@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, jsonify, request, Response
-from datetime import datetime
+from datetime import datetime, timedelta
 import asyncio
 from ..models import ScrapedURL, AcestreamChannel
 from ..extensions import db
@@ -21,9 +21,8 @@ def get_stats():
     
     url_stats = []
     for url in urls:
-        channel_count = AcestreamChannel.query.filter(
-            AcestreamChannel.last_processed == url.last_processed
-        ).count()
+        # Count channels that came from this URL
+        channel_count = AcestreamChannel.query.filter_by(source_url=url.url).count()
         
         url_stats.append({
             'url': url.url,
@@ -69,12 +68,18 @@ def add_url():
     return jsonify({'message': 'URL added successfully'})
 
 @bp.route('/api/refresh', methods=['POST'])
-async def refresh_urls():
+def refresh_urls():
     """Force refresh all URLs."""
     try:
-        task_manager = TaskManager()
-        await task_manager.process_urls()
-        return jsonify({'message': 'Refresh completed successfully'})
+        # Get pending URLs
+        urls = ScrapedURL.query.filter_by(status='pending').all()
+        
+        # Update status to indicate processing
+        for url in urls:
+            url.status = 'processing'
+        db.session.commit()
+        
+        return jsonify({'message': f'Refresh initiated for {len(urls)} URLs'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

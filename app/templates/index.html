@@ -21,14 +21,22 @@
                 <h1>Acestream Scraper Dashboard</h1>
                 <div class="d-flex align-items-center">
                     <span id="loading" class="spinner-border spinner-border-sm" role="status"></span>
-                    <!-- Add Download and Refresh All buttons -->
-                    <a href="/playlist.m3u" class="btn btn-success ms-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download" viewBox="0 0 16 16">
-                            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                            <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                        </svg>
-                        Download M3U
-                    </a>
+                    <div class="btn-group ms-2">
+                        <a href="/list.m3u" target="_blank" class="btn btn-success">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download" viewBox="0 0 16 16">
+                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                            </svg>
+                            Download M3U
+                        </a>
+                        <a href="/list.m3u?refresh=true" target="_blank" class="btn btn-outline-success">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-repeat" viewBox="0 0 16 16">
+                                <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/>
+                                <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/>
+                            </svg>
+                            Download Fresh M3U
+                        </a>
+                    </div>
                     <button onclick="refreshAllUrls()" class="btn btn-primary ms-2">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
                             <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
@@ -41,24 +49,9 @@
             </div>
         </header>
 
-        <!-- Add URL Form -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <h5 class="card-title">Add New URL</h5>
-                <form id="addUrlForm" class="row g-3">
-                    <div class="col-md-9">
-                        <input type="url" class="form-control" id="newUrl" required placeholder="Enter URL to scrape">
-                    </div>
-                    <div class="col-md-3">
-                        <button type="submit" class="btn btn-primary w-100">Add URL</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
         <!-- Stats Section -->
-        <div class="row">
-            <div class="col-md-6">
+        <div class="row mb-4">
+            <div class="col-md-8">
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">URLs Being Scraped</h5>
@@ -66,7 +59,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">Total Channels</h5>
@@ -77,7 +70,7 @@
         </div>
 
         <!-- Channels Table -->
-        <div class="card mt-4">
+        <div class="card">
             <div class="card-body">
                 <h5 class="card-title">Channels</h5>
                 <div class="table-responsive">
@@ -96,6 +89,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function showLoading() {
             document.getElementById('loading').style.display = 'inline-block';
@@ -108,11 +102,9 @@
         async function refreshData() {
             showLoading();
             try {
-                // Fetch stats
                 const statsResponse = await fetch('/api/stats');
                 const stats = await statsResponse.json();
                 
-                // Update URLs list
                 const urlsList = document.getElementById('urlsList');
                 urlsList.innerHTML = stats.urls.map(url => `
                     <div class="d-flex justify-content-between align-items-center mb-2">
@@ -124,10 +116,8 @@
                     </div>
                 `).join('');
 
-                // Update total channels
                 document.getElementById('totalChannels').textContent = stats.total_channels;
 
-                // Fetch and update channels
                 const channelsResponse = await fetch('/api/channels');
                 const channels = await channelsResponse.json();
                 
@@ -154,7 +144,7 @@
             showLoading();
             try {
                 const response = await fetch('/api/refresh', {
-                    method: 'POST',
+                    method: 'POST'
                 });
                 
                 if (response.ok) {
@@ -172,42 +162,6 @@
                 hideLoading();
             }
         }
-
-        // Handle form submission
-        document.getElementById('addUrlForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const urlInput = document.getElementById('newUrl');
-            const url = urlInput.value;
-
-            try {
-                const response = await fetch('/api/urls', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ url }),
-                });
-
-                if (response.ok) {
-                    urlInput.value = '';
-                    refreshData();
-                } else {
-                    const error = await response.json();
-                    alert(error.message || 'Error adding URL');
-                }
-            } catch (error) {
-                console.error('Error adding URL:', error);
-                alert('Error adding URL');
-            }
-        });
-
-        // Add a function to handle playlist download errors
-        document.querySelector('a[href="/playlist.m3u"]').addEventListener('click', function(e) {
-            if (document.getElementById('totalChannels').textContent === '0') {
-                e.preventDefault();
-                alert('No channels available to download');
-            }
-        });
 
         // Initial data load
         refreshData();

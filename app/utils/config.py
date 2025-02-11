@@ -25,6 +25,9 @@ class Config:
         self.config_file = self.config_path / 'config.json'
         self._ensure_config_exists()
         self._load_config()
+        
+        # Add database path property
+        self.database_path = self.config_path / 'acestream.db'
 
     def _ensure_config_exists(self):
         """Ensure config directory and file exist with default values."""
@@ -83,6 +86,11 @@ class Config:
     def base_url(self) -> str:
         """Get base URL for acestream links."""
         return self._config.get('base_url', self.DEFAULT_BASE_URL)
+
+    @property
+    def database_uri(self) -> str:
+        """Get SQLite database URI."""
+        return f'sqlite:///{self.database_path}'
 
     def add_url(self, url: str) -> bool:
         """

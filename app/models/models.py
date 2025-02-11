@@ -10,6 +10,7 @@ class AcestreamChannel(db.Model):
     added_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_processed = db.Column(db.DateTime)
     status = db.Column(db.String(32), default='active')
+    source_url = db.Column(db.Text, db.ForeignKey('scraped_urls.url'))  # Add this line
     
     def __repr__(self):
         return f'<AcestreamChannel {self.name or self.id}>'

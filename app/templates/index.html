@@ -3,45 +3,216 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acestream Scraper</title>
-    <script>
-        function refreshScraper() {
-            fetch('/refresh', { method: 'POST' })
-                .then(response => response.json())
-                .then(data => {
-                    alert('Refresh initiated. Last refresh date: ' + data.last_refresh_date);
-                    // Optionally, you can reload the page to update the displayed data
-                    location.reload();
-                })
-                .catch(error => console.error('Error:', error));
-        }
-    </script>
+    <title>Acestream Scraper Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .status-ok { color: #198754; }
+        .status-error { color: #dc3545; }
+        .status-pending { color: #ffc107; }
+        .card { margin-bottom: 1rem; }
+        .refresh-btn { cursor: pointer; }
+        #loading { display: none; }
+    </style>
 </head>
 <body>
-    <h1>Acestream Scraper</h1>
-    <button onclick="refreshScraper()">Force Refresh</button>
-    <h2>Scraped URLs:</h2>
-    <ul>
-        {% for url in urls %}
-            <li>{{ url.url }} - Status: {{ url.status }} - Last Processed: {{ url.last_processed }}</li>
-        {% endfor %}
-    </ul>
-    <form method="POST">
-        <label for="new_url">Add URL:</label>
-        <input type="text" id="new_url" name="new_url">
-        <button type="submit">Add</button>
-    </form>
-    <h2>Metadata:</h2>
-    <p>Last Refresh Date: {{ last_refresh_date }}</p>
-    <p>Previous Item Count: {{ last_item_count }}</p>
-    <p>Current Item Count: {{ current_item_count }}</p>
-    <h2>Acestream Channels:</h2>
-    <ul>
-        {% for channel in channels %}
-            <li>{{ channel.name }} (ID: {{ channel.id }}) - Last Processed: {{ channel.last_processed }}</li>
-        {% endfor %}
-    </ul>
-    <h2>Links:</h2>
-    <p><a href="/list.m3u" target="_blank">Download M3U Playlist</a></p>
+    <div class="container py-4">
+        <header class="pb-3 mb-4 border-bottom">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1>Acestream Scraper Dashboard</h1>
+                <div class="d-flex align-items-center">
+                    <span id="loading" class="spinner-border spinner-border-sm" role="status"></span>
+                    <!-- Add Download and Refresh All buttons -->
+                    <a href="/playlist.m3u" class="btn btn-success ms-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download" viewBox="0 0 16 16">
+                            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                            <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                        </svg>
+                        Download M3U
+                    </a>
+                    <button onclick="refreshAllUrls()" class="btn btn-primary ms-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                            <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                        </svg>
+                        Refresh All
+                    </button>
+                    <span class="refresh-btn ms-2" onclick="refreshData()">🔄</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Add URL Form -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Add New URL</h5>
+                <form id="addUrlForm" class="row g-3">
+                    <div class="col-md-9">
+                        <input type="url" class="form-control" id="newUrl" required placeholder="Enter URL to scrape">
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary w-100">Add URL</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Stats Section -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">URLs Being Scraped</h5>
+                        <div id="urlsList"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Channels</h5>
+                        <h2 id="totalChannels">0</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Channels Table -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <h5 class="card-title">Channels</h5>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>ID</th>
+                                <th>Last Updated</th>
+                            </tr>
+                        </thead>
+                        <tbody id="channelsList"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showLoading() {
+            document.getElementById('loading').style.display = 'inline-block';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        async function refreshData() {
+            showLoading();
+            try {
+                // Fetch stats
+                const statsResponse = await fetch('/api/stats');
+                const stats = await statsResponse.json();
+                
+                // Update URLs list
+                const urlsList = document.getElementById('urlsList');
+                urlsList.innerHTML = stats.urls.map(url => `
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <span class="status-${url.status.toLowerCase()}">${url.status}</span>
+                            <span class="ms-2">${url.url}</span>
+                        </div>
+                        <span class="badge bg-primary">${url.channel_count} channels</span>
+                    </div>
+                `).join('');
+
+                // Update total channels
+                document.getElementById('totalChannels').textContent = stats.total_channels;
+
+                // Fetch and update channels
+                const channelsResponse = await fetch('/api/channels');
+                const channels = await channelsResponse.json();
+                
+                const channelsList = document.getElementById('channelsList');
+                channelsList.innerHTML = channels.map(channel => `
+                    <tr>
+                        <td>${channel.name}</td>
+                        <td><code>${channel.id}</code></td>
+                        <td>${new Date(channel.last_processed).toLocaleString()}</td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error refreshing data:', error);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function refreshAllUrls() {
+            if (!confirm('Are you sure you want to refresh all URLs? This might take a while.')) {
+                return;
+            }
+
+            showLoading();
+            try {
+                const response = await fetch('/api/refresh', {
+                    method: 'POST',
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    alert(result.message);
+                    refreshData();
+                } else {
+                    const error = await response.json();
+                    alert(error.error || 'Error refreshing URLs');
+                }
+            } catch (error) {
+                console.error('Error refreshing URLs:', error);
+                alert('Error refreshing URLs');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('addUrlForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const urlInput = document.getElementById('newUrl');
+            const url = urlInput.value;
+
+            try {
+                const response = await fetch('/api/urls', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url }),
+                });
+
+                if (response.ok) {
+                    urlInput.value = '';
+                    refreshData();
+                } else {
+                    const error = await response.json();
+                    alert(error.message || 'Error adding URL');
+                }
+            } catch (error) {
+                console.error('Error adding URL:', error);
+                alert('Error adding URL');
+            }
+        });
+
+        // Add a function to handle playlist download errors
+        document.querySelector('a[href="/playlist.m3u"]').addEventListener('click', function(e) {
+            if (document.getElementById('totalChannels').textContent === '0') {
+                e.preventDefault();
+                alert('No channels available to download');
+            }
+        });
+
+        // Initial data load
+        refreshData();
+        // Refresh every minute
+        setInterval(refreshData, 60000);
+    </script>
 </body>
 </html>

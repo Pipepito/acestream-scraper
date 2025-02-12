@@ -8,6 +8,9 @@ from ..tasks.manager import TaskManager
 
 bp = Blueprint('main', __name__)
 
+# Add a reference to the task manager
+task_manager = None
+
 @bp.route('/')
 def index():
     """Render the main page."""
@@ -21,14 +24,14 @@ def get_stats():
     
     url_stats = []
     for url in urls:
-        # Count channels that came from this URL
         channel_count = AcestreamChannel.query.filter_by(source_url=url.url).count()
         
         url_stats.append({
             'url': url.url,
             'status': url.status,
             'last_processed': url.last_processed.isoformat() if url.last_processed else None,
-            'channel_count': channel_count
+            'channel_count': channel_count,
+            'enabled': url.status != 'disabled'
         })
     
     return jsonify({
@@ -54,33 +57,109 @@ def add_url():
     
     if not url:
         return jsonify({'error': 'URL is required'}), 400
-    
-    # Add to config
-    config = Config()
-    if url not in config.urls:
-        config.add_url(url)
-    
-    # Add to database
-    url_record = ScrapedURL(url=url, status='pending')
-    db.session.add(url_record)
-    db.session.commit()
-    
-    return jsonify({'message': 'URL added successfully'})
+        
+    try:
+        # Check if URL already exists
+        existing_url = ScrapedURL.query.filter_by(url=url).first()
+        if existing_url:
+            # Reset status to trigger new scrape
+            existing_url.status = 'pending'
+            existing_url.error_count = 0
+            existing_url.last_error = None
+        else:
+            # Add new URL to database
+            new_url = ScrapedURL(url=url, status='pending')
+            db.session.add(new_url)
+            
+            # Add to config if not already present
+            config = Config()
+            if url not in config.urls:
+                config.add_url(url)
+        
+        db.session.commit()
+        
+        # Create asyncio task for immediate processing
+        if task_manager and task_manager.running:
+            async def process():
+                await task_manager.process_url(url)
+            
+            loop = asyncio.get_event_loop()
+            if not loop.is_running():
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            loop.create_task(process())
+            
+        return jsonify({'message': 'URL added successfully and queued for processing'})
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error adding URL: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @bp.route('/api/refresh', methods=['POST'])
 def refresh_urls():
     """Force refresh all URLs."""
     try:
-        # Get pending URLs
-        urls = ScrapedURL.query.filter_by(status='pending').all()
+        # Reset all URLs except disabled ones to pending status
+        urls = ScrapedURL.query.filter(ScrapedURL.status != 'disabled').all()
         
-        # Update status to indicate processing
         for url in urls:
-            url.status = 'processing'
+            url.status = 'pending'
+            url.error_count = 0
+            url.last_error = None
+        
         db.session.commit()
         
-        return jsonify({'message': f'Refresh initiated for {len(urls)} URLs'})
+        # Trigger immediate processing if task manager is available
+        if task_manager and task_manager.running:
+            async def process_all():
+                for url in urls:
+                    await task_manager.process_url(url.url)
+            
+            loop = asyncio.get_event_loop()
+            if not loop.is_running():
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            loop.create_task(process_all())
+        
+        return jsonify({
+            'message': f'Refresh initiated for {len(urls)} URLs',
+            'urls': [url.url for url in urls]
+        })
+        
     except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/api/urls/<path:url>', methods=['DELETE', 'PUT'])
+def manage_url(url):
+    """Manage (delete or update) a URL."""
+    try:
+        url_obj = ScrapedURL.query.filter_by(url=url).first()
+        if not url_obj:
+            return jsonify({'error': 'URL not found'}), 404
+
+        if request.method == 'DELETE':
+            # Delete the URL and its associated channels
+            AcestreamChannel.query.filter_by(source_url=url).delete()
+            db.session.delete(url_obj)
+            db.session.commit()
+            return jsonify({'message': 'URL deleted successfully'})
+            
+        elif request.method == 'PUT':
+            data = request.get_json()
+            enabled = data.get('enabled', True)
+            
+            if not enabled:
+                url_obj.status = 'disabled'
+            else:
+                url_obj.status = 'pending'  # Re-enable and queue for processing
+                
+            db.session.commit()
+            return jsonify({'message': f'URL {"enabled" if enabled else "disabled"} successfully'})
+            
+    except Exception as e:
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 @bp.route('/playlist.m3u')

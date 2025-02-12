@@ -1,16 +1,19 @@
 #!/bin/sh
 
-# Wait for any dependent services to start
-sleep 5
-
 # Start ZeroNet in the background with the correct options
 cd /app/ZeroNet
-./ZeroNet.sh --ui_ip '*' --ui_restrict '' &
-ZERO_NET_PID=$!
+python3 zeronet.py --ui-ip '*' --ui-host '0.0.0.0' --ui-port 43110 main &
+ZERONET_PID=$!
 
-# Run the Flask application with Gunicorn
+# Wait for ZeroNet to start
+echo "Waiting for ZeroNet to start..."
+sleep 10
+
+# Start the Flask application with Gunicorn
 cd /app
-exec gunicorn --bind 0.0.0.0:8000 --workers 3 wsgi:app
+exec gunicorn --bind 0.0.0.0:8000 --workers 3 wsgi:app &
+GUNICORN_PID=$!
 
-# Stop ZeroNet when the script exits
-trap "kill $ZERO_NET_PID" EXIT
+# Monitor both processes
+trap "kill $ZERONET_PID $GUNICORN_PID" EXIT
+wait

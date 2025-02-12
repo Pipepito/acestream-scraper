@@ -28,27 +28,7 @@ def start_task_manager(app):
     loop.create_task(task_manager.start())
     loop.run_forever()
 
+app = create_app()
+
 if __name__ == '__main__':
-    flask_app = create_app()
-    
-    # Start task manager in a daemon thread
-    task_thread = threading.Thread(target=start_task_manager, args=(flask_app,))
-    task_thread.daemon = True
-    task_thread.start()
-    
-    # Gunicorn configuration
-    options = {
-        'bind': f"0.0.0.0:{os.getenv('FLASK_PORT', '8000')}",
-        'workers': 3,
-        'worker_class': 'sync',
-        'threads': 2,
-        'timeout': 120,
-        'keepalive': 5,
-        'max_requests': 10000,
-        'max_requests_jitter': 1000,
-        'errorlog': '-',
-        'accesslog': '-',
-        'access_log_format': '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'
-    }
-    
-    GunicornApplication(flask_app, options).run()
+    app.run()

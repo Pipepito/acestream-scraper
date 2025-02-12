@@ -88,17 +88,34 @@ Open your web browser and navigate to `http://localhost:8000` to access the Aces
 
 ## Running with Docker
 
-1. **Build the Docker image:**
+1. **Pull the Docker image:**
 
     ```bash
-    docker build -t acestream-scraper .
+    docker pull pipepito/acestream-scraper:latest
     ```
 
-2. **Run the Docker container, mounting the user-provided directory to `/app/config`:**
+    Or build it locally:
 
     ```bash
-    docker run -p 8000:8000 -p 43110:43110 --name acestream-scraper-container -v /path/to/your/config:/app/config acestream-scraper
+    docker build -t pipepito/acestream-scraper:latest .
     ```
+
+2. **Run the Docker container:**
+
+    ```bash
+    docker run -d \
+      -p 8000:8000 \
+      -p 43110:43110 \
+      -p 43111:43111 \
+      -v ${PWD}/config:/app/config \
+      pipepito/acestream-scraper:latest
+    ```
+
+    Where:
+    - `8000`: Main application web interface
+    - `43110`: ZeroNet web interface
+    - `43111`: ZeroNet transport port
+    - `${PWD}/config`: Local directory for configuration and database files
 
 # Docker Setup for Acestream Scraper
 
@@ -118,7 +135,7 @@ This document provides an overview of the required and optional variables and pa
 
 ### /app/config
 
-- **Description:** The directory inside the Docker container where the configuration file (`config.json`) and the database file (`acestream_channels.db`) are stored.
+- **Description:** The directory inside the Docker container where the configuration file (`config.json`) and the database file (`acestream.db`) are stored.
 - **Usage:** You need to map a local directory containing the configuration and database files to `/app/config` inside the Docker container.
 
     ```bash
@@ -150,11 +167,32 @@ This document provides an overview of the required and optional variables and pa
     }
     ```
 
-## Running the Docker Container
+## Required Ports
 
-- **-p 8000:8000:** Maps port 8000 on the host to port 8000 in the container.
-- **-e HOST_PORT=8000:** Sets the HOST_PORT environment variable inside the container.
-- **-v /path/to/your/config:/app/config:** Maps the local directory containing the configuration and database files to `/app/config` inside the container.
+### Application Ports
+- **8000**: Main web interface for Acestream Scraper
+- **43110**: ZeroNet web interface (required for ZeroNet URL scraping)
+- **43111**: ZeroNet transport port (required for peer connections)
+
+### Volumes
+- **/app/config**: Configuration directory that should contain:
+  - `config.json`: Configuration file
+  - `acestream.db`: SQLite database (created automatically)
+
+## Configuration Example
+
+Create a [config.json](http://_vscodecontentref_/3) file in your local directory with:
+
+```json
+{
+    "urls": [
+        "https://ipfs.io/ipns/your-ipfs-url",
+        "http://127.0.0.1:43110/your-zeronet-address"
+    ],
+    "base_url": "http://your-acestream-host:8008/ace/getstream?id="
+}
+```
+
 
 ### Accessing the Application
 
@@ -164,6 +202,9 @@ After running the Docker container, you can access the Acestream Scraper applica
 
 - Make sure the local directory containing the configuration and database files exists before running the Docker container.
 - If the configuration file (`config.json`) does not exist, the application will create it with default values.
+- The container now includes ZeroNet support out of the box
+- ZeroNet ports (43110 and 43111) are required for proper functionality
+- Configuration files are persisted through the mounted volume
 
 ## Contributing
 

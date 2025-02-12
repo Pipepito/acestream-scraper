@@ -12,6 +12,16 @@
         .card { margin-bottom: 1rem; }
         .refresh-btn { cursor: pointer; }
         #loading { display: none; }
+        .text-break {
+            word-break: break-word;
+            overflow-wrap: break-word;
+        }
+        @media (max-width: 768px) {
+            .btn-sm {
+                padding: 0.25rem 0.5rem;
+                font-size: 0.75rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -48,6 +58,21 @@
                 </div>
             </div>
         </header>
+
+        <!-- Add URL Form Section -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Add New URL</h5>
+                <form id="addUrlForm" class="row g-3 align-items-center">
+                    <div class="col-auto flex-grow-1">
+                        <input type="url" class="form-control" id="urlInput" placeholder="Enter URL to scrape" required>
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary">Add URL</button>
+                    </div>
+                </form>
+            </div>
+        </div>
 
         <!-- Stats Section -->
         <div class="row mb-4">
@@ -108,11 +133,25 @@
                 const urlsList = document.getElementById('urlsList');
                 urlsList.innerHTML = stats.urls.map(url => `
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <div>
-                            <span class="status-${url.status.toLowerCase()}">${url.status}</span>
-                            <span class="ms-2">${url.url}</span>
+                        <div class="row w-100">
+                            <div class="col-12 col-md-6 text-break">
+                                <span class="status-${url.status.toLowerCase()}">${url.status}</span>
+                                <span class="ms-2">${url.url}</span>
+                            </div>
+                            <div class="col-6 col-md-3 text-md-end">
+                                <span class="badge bg-primary">${url.channel_count} channels</span>
+                            </div>
+                            <div class="col-6 col-md-3 text-end">
+                                <button class="btn btn-sm ${url.enabled ? 'btn-warning' : 'btn-success'}" 
+                                        onclick="toggleUrl('${url.url}', ${!url.enabled})">
+                                    ${url.enabled ? 'Disable' : 'Enable'}
+                                </button>
+                                <button class="btn btn-sm btn-danger" 
+                                        onclick="deleteUrl('${url.url}')">
+                                    Delete
+                                </button>
+                            </div>
                         </div>
-                        <span class="badge bg-primary">${url.channel_count} channels</span>
                     </div>
                 `).join('');
 
@@ -125,7 +164,7 @@
                 channelsList.innerHTML = channels.map(channel => `
                     <tr>
                         <td>${channel.name}</td>
-                        <td><code>${channel.id}</code></td>
+                        <td><code>${channel.id}</td>
                         <td>${new Date(channel.last_processed).toLocaleString()}</td>
                     </tr>
                 `).join('');
@@ -149,8 +188,24 @@
                 
                 if (response.ok) {
                     const result = await response.json();
-                    alert(result.message);
-                    refreshData();
+                    alert(`${result.message}\nURLs being processed: ${result.urls.length}`);
+                    
+                    // Start polling for updates more frequently during refresh
+                    const pollInterval = setInterval(async () => {
+                        await refreshData();
+                        
+                        // Check if all URLs are done processing
+                        const statsResponse = await fetch('/api/stats');
+                        const stats = await statsResponse.json();
+                        const processingUrls = stats.urls.filter(u => u.status === 'processing');
+                        
+                        if (processingUrls.length === 0) {
+                            clearInterval(pollInterval);
+                        }
+                    }, 5000); // Poll every 5 seconds
+                    
+                    // Stop polling after 5 minutes max
+                    setTimeout(() => clearInterval(pollInterval), 300000);
                 } else {
                     const error = await response.json();
                     alert(error.error || 'Error refreshing URLs');
@@ -162,6 +217,83 @@
                 hideLoading();
             }
         }
+
+        async function toggleUrl(url, enable) {
+            try {
+                const response = await fetch(`/api/urls/${encodeURIComponent(url)}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ enabled: enable })
+                });
+                
+                if (response.ok) {
+                    await refreshData();
+                } else {
+                    const error = await response.json();
+                    alert(error.error || 'Error updating URL');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error updating URL');
+            }
+        }
+        
+        async function deleteUrl(url) {
+            if (!confirm('Are you sure you want to delete this URL? This will also remove all associated channels.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/urls/${encodeURIComponent(url)}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    await refreshData();
+                } else {
+                    const error = await response.json();
+                    alert(error.error || 'Error deleting URL');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error deleting URL');
+            }
+        }
+
+        // Add this to the existing script section
+        document.getElementById('addUrlForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const urlInput = document.getElementById('urlInput');
+            const url = urlInput.value;
+
+            try {
+                showLoading();
+                const response = await fetch('/api/urls', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url: url })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    alert(result.message);
+                    urlInput.value = '';
+                    refreshData();
+                } else {
+                    const error = await response.json();
+                    alert(error.error || 'Error adding URL');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error adding URL');
+            } finally {
+                hideLoading();
+            }
+        });
 
         // Initial data load
         refreshData();

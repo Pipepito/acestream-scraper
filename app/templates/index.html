@@ -90,6 +90,26 @@
             </div>
         </div>
 
+        <!-- Add after the base URL configuration card -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Add Channel Manually</h5>
+                <form id="addChannelForm" class="row g-3 align-items-center">
+                    <div class="col-12 col-md-4">
+                        <input type="text" class="form-control" id="channelId" 
+                               placeholder="Channel" required>
+                    </div>
+                    <div class="col-12 col-md-5">
+                        <input type="text" class="form-control" id="channelName" 
+                               placeholder="Channel Name" required>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <button type="submit" class="btn btn-primary w-100">Add Channel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- Stats Section -->
         <div class="row mb-4">
             <div class="col-md-8">
@@ -128,6 +148,7 @@
                                 <th>Name</th>
                                 <th>ID</th>
                                 <th>Last Updated</th>
+                                <th>Actions</th>  <!-- Add this column -->
                             </tr>
                         </thead>
                         <tbody id="channelsList"></tbody>
@@ -195,8 +216,13 @@
                 channelsList.innerHTML = channels.map(channel => `
                     <tr>
                         <td>${channel.name}</td>
-                        <td><code>${channel.id}</td>
+                        <td><code>${channel.id}</code></td>
                         <td>${new Date(channel.last_processed).toLocaleString()}</td>
+                        <td>
+                            <button class="btn btn-sm btn-danger" onclick="deleteChannel('${channel.id}')">
+                                Delete
+                            </button>
+                        </td>
                     </tr>
                 `).join('');
             } catch (error) {
@@ -293,6 +319,32 @@
             }
         }
 
+        // Add this function in the script section
+        async function deleteChannel(channelId) {
+            if (!confirm('Are you sure you want to delete this channel?')) {
+                return;
+            }
+            
+            try {
+                showLoading();
+                const response = await fetch(`/api/channels/${encodeURIComponent(channelId)}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    await refreshData();
+                } else {
+                    const error = await response.json();
+                    alert(error.error || 'Error deleting channel');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error deleting channel');
+            } finally {
+                hideLoading();
+            }
+        }
+
         // Add this to the existing script section
         document.getElementById('addUrlForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -354,6 +406,42 @@
             } catch (error) {
                 console.error('Error:', error);
                 alert('Error updating base URL');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        document.getElementById('addChannelForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const channelId = document.getElementById('channelId').value;
+            const channelName = document.getElementById('channelName').value;
+
+            try {
+                showLoading();
+                const response = await fetch('/api/channels', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        id: channelId,
+                        name: channelName
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    alert('Channel added successfully');
+                    document.getElementById('channelId').value = '';
+                    document.getElementById('channelName').value = '';
+                    refreshData();
+                } else {
+                    const error = await response.json();
+                    alert(error.error || 'Error adding channel');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error adding channel');
             } finally {
                 hideLoading();
             }

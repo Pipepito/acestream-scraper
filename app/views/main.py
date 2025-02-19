@@ -6,7 +6,7 @@ from ..extensions import db
 from ..utils.config import Config
 from ..tasks.manager import TaskManager
 from ..services import ScraperService, PlaylistService
-from ..repositories import URLRepository
+from ..repositories import URLRepository, ChannelRepository
 
 bp = Blueprint('main', __name__)
 
@@ -52,6 +52,57 @@ def get_channels():
         'name': ch.name,
         'last_processed': ch.last_processed.isoformat() if ch.last_processed else None
     } for ch in channels])
+
+# Add this new route
+@bp.route('/api/channels', methods=['POST'])
+def add_channel():
+    """Add a channel manually."""
+    try:
+        data = request.get_json()
+        channel_id = data.get('id')
+        channel_name = data.get('name')
+        
+        if not channel_id or not channel_name:
+            return jsonify({'error': 'Channel ID and name are required'}), 400
+            
+        # Use repository to add channel
+        channel_repository = ChannelRepository()
+        channel = channel_repository.update_or_create(
+            channel_id=channel_id,
+            name=channel_name,
+            source_url='manual'  # Indicate this was manually added
+        )
+        channel_repository.commit()
+        
+        return jsonify({
+            'message': 'Channel added successfully',
+            'channel': {
+                'id': channel.id,
+                'name': channel.name
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Add this new route
+@bp.route('/api/channels/<channel_id>', methods=['DELETE'])
+def delete_channel(channel_id):
+    """Delete a channel."""
+    try:
+        channel_repository = ChannelRepository()
+        channel = channel_repository.get_by_id(channel_id)
+        
+        if not channel:
+            return jsonify({'error': 'Channel not found'}), 404
+            
+        channel_repository.delete(channel)
+        channel_repository.commit()
+        
+        return jsonify({'message': 'Channel deleted successfully'})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @bp.route('/api/urls', methods=['POST'])
 def add_url():

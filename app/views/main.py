@@ -23,6 +23,7 @@ def get_stats():
     """Get scraping statistics."""
     urls = ScrapedURL.query.all()
     channels = AcestreamChannel.query.all()
+    config = Config()
     
     url_stats = []
     for url in urls:
@@ -38,7 +39,8 @@ def get_stats():
     
     return jsonify({
         'urls': url_stats,
-        'total_channels': len(channels)
+        'total_channels': len(channels),
+        'base_url': config.base_url  # Add this line
     })
 
 @bp.route('/api/channels')
@@ -193,3 +195,26 @@ async def get_playlist():
             'Content-Disposition': f'attachment; filename=acestream_playlist_{datetime.utcnow().strftime("%Y%m%d_%H%M%S")}.m3u'
         }
     )
+
+@bp.route('/api/config/base_url', methods=['PUT'])
+def update_base_url():
+    """Update the base URL configuration."""
+    try:
+        data = request.get_json()
+        new_base_url = data.get('base_url')
+        
+        if not new_base_url:
+            return jsonify({'error': 'base_url is required'}), 400
+            
+        config = Config()
+        config._config['base_url'] = new_base_url
+        config._save_config()
+        
+        # Return a sample URL for preview
+        return jsonify({
+            'message': 'Base URL updated successfully',
+            'sample': f"{new_base_url}{'1' * 40}"  # 40-char sample acestream ID
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

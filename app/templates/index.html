@@ -74,6 +74,22 @@
             </div>
         </div>
 
+        <!-- Add this after the "Add URL Form" card and before the "Stats Section" -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Base URL Configuration</h5>
+                <form id="baseUrlForm" class="row g-3 align-items-center">
+                    <div class="col-12 col-md-6">
+                        <input type="text" class="form-control" id="baseUrlInput" 
+                               placeholder="Enter base URL (e.g., acestream:// or http://localhost:6878/ace/getstream?id=)" required>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <button type="submit" class="btn btn-primary w-100">Update Base URL</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- Stats Section -->
         <div class="row mb-4">
             <div class="col-md-8">
@@ -87,8 +103,15 @@
             <div class="col-md-4">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title">Total Channels</h5>
-                        <h2 id="totalChannels">0</h2>
+                        <div class="mb-3">
+                            <h5 class="card-title">Total Channels</h5>
+                            <h2 id="totalChannels">0</h2>
+                        </div>
+                        <div>
+                            <h5 class="card-title">Base URL</h5>
+                            <p id="currentBaseUrlDisplay" class="mb-1 text-muted small"></p>
+                            <p id="sampleUrlDisplay" class="text-break text-muted small"></p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -156,6 +179,14 @@
                 `).join('');
 
                 document.getElementById('totalChannels').textContent = stats.total_channels;
+
+                // Add base URL information to stats card
+                if (stats.base_url) {
+                    const currentBaseUrlDisplay = document.getElementById('currentBaseUrlDisplay');
+                    const sampleUrlDisplay = document.getElementById('sampleUrlDisplay');
+                    currentBaseUrlDisplay.textContent = `Current: ${stats.base_url}`;
+                    sampleUrlDisplay.innerHTML = `Sample: <code>${stats.base_url}${'1'.repeat(40)}</code>`;
+                }
 
                 const channelsResponse = await fetch('/api/channels');
                 const channels = await channelsResponse.json();
@@ -290,6 +321,39 @@
             } catch (error) {
                 console.error('Error:', error);
                 alert('Error adding URL');
+            } finally {
+                hideLoading();
+            }
+        });
+        
+        document.getElementById('baseUrlForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const baseUrlInput = document.getElementById('baseUrlInput');
+            const sampleUrl = document.getElementById('sampleUrl');
+            const baseUrl = baseUrlInput.value;
+
+            try {
+                showLoading();
+                const response = await fetch('/api/config/base_url', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ base_url: baseUrl })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    alert('Base URL updated successfully');
+                    baseUrlInput.value = '';         
+                    refreshData();           
+                } else {
+                    const error = await response.json();
+                    alert(error.error || 'Error updating base URL');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error updating base URL');
             } finally {
                 hideLoading();
             }

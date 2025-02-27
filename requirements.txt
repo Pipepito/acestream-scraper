@@ -1,5 +1,5 @@
 aiohttp==3.11.12
-asgiref==3.4.1
+asgiref==3.7.2
 beautifulsoup4==4.9.3
 flask[async]==2.0.1
 flask-migrate==4.0.5

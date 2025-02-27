@@ -4,7 +4,7 @@ FROM python:3.9-slim
 # Add metadata labels
 LABEL maintainer="pipepito" \
       description="Acestream channel scraper with ZeroNet support" \
-      version="1.2.6"
+      version="1.2.7"
 
 # Set the working directory
 WORKDIR /app

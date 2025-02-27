@@ -5,6 +5,7 @@ from app import create_app
 from app.tasks.manager import TaskManager
 import threading
 import asyncio
+from asgiref.wsgi import WsgiToAsgi
 
 class GunicornApplication(BaseApplication):
     def __init__(self, app, options=None):
@@ -29,7 +30,18 @@ def start_task_manager(app):
     loop.create_task(task_manager.start())
     loop.run_forever()
 
-app = create_app()
+flask_app = create_app()
+asgi_app = WsgiToAsgi(flask_app)  # Convert WSGI app to ASGI
+
+# Use this for running with Python directly
+app = asgi_app
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8000)
+    options = {
+        'bind': '0.0.0.0:8000',
+        'workers': 3,
+        'timeout': 300,
+        'keepalive': 5,
+        'worker_class': 'uvicorn.workers.UvicornWorker'
+    }
+    GunicornApplication(asgi_app, options).run()

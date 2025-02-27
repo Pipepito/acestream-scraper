@@ -32,13 +32,18 @@ ZERONET_PID=$!
 echo "Waiting for ZeroNet to initialize..."
 sleep 10
 
-# Start Flask app with Gunicorn
+# Start Flask app with Gunicorn with increased timeouts
 cd /app
 echo "Starting Flask application..."
-exec gunicorn --bind 0.0.0.0:8000 --workers 3 wsgi:app &
-GUNICORN_PID=$!
+exec gunicorn \
+    --bind 0.0.0.0:8000 \
+    --workers 3 \
+    --timeout 300 \
+    --keep-alive 5 \
+    --worker-class uvicorn.workers.UvicornWorker \
+    --log-level info \
+    "wsgi:asgi_app"
 
 # Monitor processes
 echo "Services started. Monitoring processes..."
-trap "kill $ZERONET_PID $GUNICORN_PID" EXIT
-wait
+trap "kill $ZERONET_PID" EXIT

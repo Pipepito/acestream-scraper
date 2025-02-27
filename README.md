@@ -38,7 +38,8 @@ A Python-based web scraping application that retrieves Acestream channel informa
            "https://example.com/url1",
            "https://example.com/url2"
        ],
-       "base_url": "http://127.0.0.1:8008/ace/getstream?id="
+       "base_url": "http://127.0.0.1:8008/ace/getstream?id=",
+       "ace_engine_url": "http://127.0.0.1:6878"
    }
    ```
 
@@ -94,6 +95,35 @@ python manage.py downgrade
 ```
 
 ## Configuration
+
+### Application Settings
+
+The application supports the following configuration options:
+
+- `urls`: Array of URLs to scrape for Acestream channels
+- `base_url`: Base URL format for playlist generation (e.g., `acestream://` or `http://localhost:6878/ace/getstream?id=`)
+- `ace_engine_url`: URL of your Acestream Engine instance (default: `http://127.0.0.1:6878`)
+
+### Channel Status Checking
+
+The application can verify channel availability by communicating with an Acestream Engine instance:
+
+- Checks if channels are online/offline via Acestream Engine API
+- Supports individual and bulk status checking
+- Displays status history and error messages in the UI
+- Configurable through the `ace_engine_url` setting
+
+To use this feature:
+
+1. Ensure you have Acestream Engine running
+2. Configure `ace_engine_url` to point to your Acestream Engine instance
+3. Use the "Check Status" buttons in the UI to verify channel availability
+
+The status check will:
+- Mark channels as online/offline
+- Store last check timestamp
+- Record any errors encountered
+- Update channel statistics in the dashboard
 
 ### Port Mapping
 - `8000`: Main web interface

@@ -120,14 +120,6 @@ jobs:
       - name: Build package
         run: python -m build
       
-      - name: Commit version update
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add version.txt
-          git commit -m "Bump version to v$VERSION [skip ci]" || echo "No changes to commit"
-          git push || echo "Failed to push version update"
-      
       - name: Tag Repository
         run: |
           git config --local user.email "action@github.com"

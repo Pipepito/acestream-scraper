@@ -9,7 +9,7 @@ on:
 jobs:
   version:
     name: Determine Version
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, unraid, docker]
     outputs:
       new_version: ${{ steps.get_version.outputs.version }}
     steps:
@@ -46,7 +46,7 @@ jobs:
 
   tag-repository:
     name: Tag Repository
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, unraid, docker]
     needs: version
     permissions:
       contents: write
@@ -70,7 +70,7 @@ jobs:
 
   build-and-push:
     name: Build and Push Docker Image
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, unraid, docker]
     needs: [version, tag-repository]
     permissions:
       packages: write
@@ -100,7 +100,7 @@ jobs:
 
   create-release:
     name: Create GitHub Release
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, unraid, docker]
     needs: [version, build-and-push]
     permissions:
       contents: write

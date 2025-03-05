@@ -8,7 +8,7 @@ on:
 jobs:
   code-quality:
     name: Lint and Test
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, unraid, docker]
     steps:
       - uses: actions/checkout@v3
       
@@ -37,7 +37,7 @@ jobs:
 
   docker-validation:
     name: Validate Docker Build
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, unraid, docker]
     steps:
       - uses: actions/checkout@v3
       

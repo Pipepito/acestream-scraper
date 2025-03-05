@@ -9,8 +9,8 @@ from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision = 'channel_status_fields_02'  # New unique revision ID
-down_revision = 'fb06651a94c1'    # Use the version from your database
+revision = 'channel_status_fields_02' 
+down_revision = 'fb06651a94c1'
 branch_labels = None
 depends_on = None
 

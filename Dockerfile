@@ -62,6 +62,7 @@ RUN mkdir -p ZeroNet && \
 
 # Set environment variable to indicate Docker environment
 ENV DOCKER_ENV=true
+ENV TZ=UTC
 
 # Expose the ports
 EXPOSE 8000

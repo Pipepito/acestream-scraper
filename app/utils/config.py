@@ -16,6 +16,7 @@ class Config:
     
     DEFAULT_BASE_URL = "acestream://"
     DEFAULT_ACE_ENGINE_URL = "http://127.0.0.1:6878"
+    DEFAULT_RESCRAPE_INTERVAL = 24  # hours
     
     def __init__(self):
         if self._initialized:
@@ -52,7 +53,8 @@ class Config:
                 default_config = {
                     "urls": [],
                     "base_url": self.DEFAULT_BASE_URL,
-                    "ace_engine_url": self.DEFAULT_ACE_ENGINE_URL
+                    "ace_engine_url": self.DEFAULT_ACE_ENGINE_URL,
+                    "rescrape_interval": self.DEFAULT_RESCRAPE_INTERVAL
                 }
                 
                 with open(self.config_file, 'w') as f:
@@ -111,6 +113,11 @@ class Config:
     def ace_engine_url(self) -> str:
         """Get Acestream Engine URL."""
         return self._config.get('ace_engine_url', self.DEFAULT_ACE_ENGINE_URL)
+
+    @property
+    def rescrape_interval(self) -> int:
+        """Get URL rescrape interval in hours."""
+        return self._config.get('rescrape_interval', self.DEFAULT_RESCRAPE_INTERVAL)
 
     def add_url(self, url: str) -> bool:
         """

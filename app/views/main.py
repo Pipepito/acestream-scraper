@@ -51,7 +51,8 @@ def get_stats():
         'channels_online': online_channels,
         'channels_offline': total_checked - online_channels,
         'base_url': config.base_url,
-        'ace_engine_url': config.ace_engine_url 
+        'ace_engine_url': config.ace_engine_url,
+        'rescrape_interval': config.rescrape_interval
     })
 
 @bp.route('/api/channels')
@@ -367,6 +368,28 @@ async def check_channel_status(channel_id):
             'is_online': is_online,
             'last_checked': channel.last_checked.isoformat() if channel.last_checked else None,
             'error': channel.check_error
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/api/config/rescrape_interval', methods=['PUT'])
+def update_rescrape_interval():
+    """Update the URL rescraping interval."""
+    try:
+        data = request.get_json()
+        hours = data.get('hours')
+        
+        if hours is None or not isinstance(hours, int) or hours < 1:
+            return jsonify({'error': 'Valid rescrape interval in hours is required (minimum 1)'}), 400
+            
+        config = Config()
+        config._config['rescrape_interval'] = hours
+        config._save_config()
+        
+        return jsonify({
+            'message': 'Rescrape interval updated successfully',
+            'rescrape_interval_hours': hours
         })
         
     except Exception as e:

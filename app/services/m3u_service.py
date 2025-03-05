@@ -92,24 +92,28 @@ class M3UService:
                     
                     current_extinf = M3UChannel(
                         id="",  # Will be set when we find the acestream URL
-                        name=name,
+                        name=name or "Unknown Channel",  # Default name if none provided
                         group=group,
                         logo=logo,
                         tvg_id=tvg_id,
                         tvg_name=tvg_name or name
                     )
             
-            elif not line.startswith('#'):
-                if current_extinf:
-                    # Extract acestream ID from URL
-                    acestream_id = self.stream_service.extract_acestream_id(line)
-                    if acestream_id:
-                        current_extinf.id = acestream_id
-                        current_extinf.original_url = line  # Store original URL
-                        channels.append(current_extinf)
-                    current_extinf = None
+            elif not line.startswith('#') and current_extinf:
+                # Extract acestream ID from URL
+                acestream_id = self.stream_service.extract_acestream_id(line)
+                if acestream_id:
+                    # If no name was provided in EXTINF, use the ID as name
+                    if not current_extinf.name or current_extinf.name == "Unknown Channel":
+                        current_extinf.name = f"Channel {acestream_id}"
+                        
+                    current_extinf.id = acestream_id
+                    current_extinf.original_url = line  # Store original URL
+                    channels.append(current_extinf)
+                current_extinf = None
 
-        return channels
+        # Filter out entries with missing IDs
+        return [ch for ch in channels if ch.id]
 
     async def extract_channels_from_m3u(self, url: str) -> List[Tuple[str, str, dict]]:
         """Download and parse M3U file, returning channel information."""

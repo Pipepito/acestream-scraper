@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from ..models import ScrapedURL, AcestreamChannel
 from ..extensions import db
 from ..scrapers import create_scraper
@@ -10,12 +10,14 @@ from sqlalchemy.exc import OperationalError
 from contextlib import contextmanager
 from ..services import ScraperService
 from ..repositories import URLRepository
+from ..config import Config
 
 class TaskManager:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.running = False
         self.MAX_RETRIES = 3
+        self.config = Config()
         self.RETRY_DELAY = 60  # seconds between retries
         self.app = None
         self._processing_urls = set()  # Track URLs being processed
@@ -68,17 +70,28 @@ class TaskManager:
         while self.running:
             try:
                 with self.app.app_context():
+                    # Calculate the rescrape cutoff time
+                    config = Config()
+                    cutoff_time = datetime.utcnow() - timedelta(hours=config.rescrape_interval)
+                    
+                    # Find URLs that need to be processed
                     urls = ScrapedURL.query.filter(
                         (ScrapedURL.status != 'disabled') &  # Skip disabled URLs
                         ((ScrapedURL.status == 'pending') |
                          (ScrapedURL.status == 'failed') & 
-                         (ScrapedURL.error_count < self.MAX_RETRIES))
+                         (ScrapedURL.error_count < self.MAX_RETRIES) |
+                         # Add this condition to auto-refresh based on last processed time
+                         (ScrapedURL.last_processed < cutoff_time))
                     ).all()
 
                     if urls:
                         self.logger.info(f"Found {len(urls)} URLs to process")
                         for url_obj in urls:
                             if url_obj.url not in self._processing_urls:
+                                # Set status to pending to indicate it's being refreshed
+                                if url_obj.status == 'OK':
+                                    url_obj.status = 'pending'
+                                    db.session.commit()
                                 await self.process_url(url_obj.url)
 
             except Exception as e:

@@ -84,6 +84,26 @@
             </div>
         </div>
 
+        <!-- Rescrape Interval Configuration -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Rescrape Interval Configuration</h5>
+                <form id="rescrapeIntervalForm" class="row g-3 align-items-center">
+                    <div class="col-12 col-md-6">
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="rescrapeIntervalInput" 
+                                   min="1" step="1" placeholder="Hours between rescans" required>
+                            <span class="input-group-text">hours</span>
+                        </div>
+                        <div class="form-text">How often to automatically refresh URLs (in hours)</div>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <button type="submit" class="btn btn-primary w-100">Update Interval</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- Stats Section -->
         <div class="row mb-4">
             <div class="col-md-8">
@@ -308,6 +328,23 @@
                 if (stats.ace_engine_url) {
                     const aceEngineUrlDisplay = document.getElementById('currentAceEngineUrlDisplay');
                     aceEngineUrlDisplay.textContent = `Current: ${stats.ace_engine_url}`;
+                }
+
+                // Add display for rescrape interval
+                if (stats.rescrape_interval) {
+                    const rescrapeInfoDiv = document.createElement('div');
+                    rescrapeInfoDiv.innerHTML = `
+                        <h5 class="card-title">Rescrape Interval</h5>
+                        <p id="currentRescrapeInterval" class="mb-1 text-muted small">
+                            Current: ${stats.rescrape_interval} hours
+                        </p>
+                    `;
+                    
+                    // Find where to insert it (after the Ace Engine URL display)
+                    const aceEngineDisplay = document.getElementById('currentAceEngineUrlDisplay');
+                    if (aceEngineDisplay && aceEngineDisplay.parentNode) {
+                        aceEngineDisplay.parentNode.appendChild(rescrapeInfoDiv);
+                    }
                 }
 
                 const channelsResponse = await fetch(`/api/channels?search=${encodeURIComponent(searchTerm)}`);
@@ -717,6 +754,44 @@
                 hideLoading();
             }
         }
+
+        // Add to existing JavaScript
+        document.getElementById('rescrapeIntervalForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const hoursInput = document.getElementById('rescrapeIntervalInput');
+            const hours = parseInt(hoursInput.value, 10);
+
+            if (isNaN(hours) || hours < 1) {
+                alert('Please enter a valid number of hours (minimum 1)');
+                return;
+            }
+
+            try {
+                showLoading();
+                const response = await fetch('/api/config/rescrape_interval', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ hours: hours })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    alert('Rescrape interval updated successfully');
+                    hoursInput.value = '';         
+                    refreshData();           
+                } else {
+                    const error = await response.json();
+                    alert(error.error || 'Error updating rescrape interval');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error updating rescrape interval');
+            } finally {
+                hideLoading();
+            }
+        });
 
         // Initial data load
         refreshData();

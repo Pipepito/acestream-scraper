@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, jsonify, request, Response
 from datetime import datetime, timedelta
 import asyncio
+import logging
 from ..models import ScrapedURL, AcestreamChannel
 from ..extensions import db
 from ..utils.config import Config
@@ -10,6 +11,7 @@ from ..repositories import URLRepository, ChannelRepository
 from ..services.channel_status_service import ChannelStatusService
 
 bp = Blueprint('main', __name__)
+logger = logging.getLogger(__name__)  # Add this line to define logger
 
 # Add a reference to the task manager
 task_manager = None

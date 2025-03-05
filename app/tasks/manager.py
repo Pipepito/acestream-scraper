@@ -10,7 +10,7 @@ from sqlalchemy.exc import OperationalError
 from contextlib import contextmanager
 from ..services import ScraperService
 from ..repositories import URLRepository
-from ..config import Config
+from ..utils.config import Config
 
 class TaskManager:
     def __init__(self):

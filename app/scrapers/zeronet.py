@@ -4,6 +4,7 @@ import asyncio
 import re
 from bs4 import BeautifulSoup
 from .base import BaseScraper
+from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -26,12 +27,16 @@ class ZeronetScraper(BaseScraper):
 
     async def fetch_content(self, url: str) -> str:
         """Fetch content from Zeronet URLs using internal service with retries."""
-        # Convert external Zeronet URL to internal format
+        # Extract host from the URL if available
+        parsed_url = urlparse(url)
+        zeronet_host = parsed_url.netloc.split(':')[0] if parsed_url.netloc else '127.0.0.1'
+        
+        # Convert external Zeronet URL to internal format, keeping the host if provided
         if url.startswith('zero://'):
-            internal_url = f"{self.zeronet_url}/{url[7:]}"
+            internal_url = f"http://{zeronet_host}:43110/{url[7:]}"
         elif ':43110/' in url:
             path = url.split(':43110/', 1)[1]
-            internal_url = f"{self.zeronet_url}/{path}"
+            internal_url = f"http://{zeronet_host}:43110/{path}"
         else:
             internal_url = url
 

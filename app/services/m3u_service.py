@@ -30,9 +30,10 @@ class M3UService:
         parsed = urlparse(url)
         # Handle ZeroNet URLs specially
         if ':43110/' in url:
-            base = url.split(':43110/', 1)[0] + ':43110/'
-            path = url.split(':43110/', 1)[1].split('/')[0]
-            return f"{base}{path}/"
+            # Keep original host for ZeroNet URLs
+            host_with_port = parsed.netloc
+            path_base = parsed.path.rsplit('/', 1)[0]
+            return f"{parsed.scheme}://{host_with_port}{path_base}/"
         # For regular URLs
         return f"{parsed.scheme}://{parsed.netloc}{parsed.path.rsplit('/', 1)[0]}/"
 

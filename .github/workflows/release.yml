@@ -5,6 +5,17 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'app/**'
+      - 'migrations/**'
+      - 'Dockerfile'
+      - 'entrypoint.sh'
+      - 'requirements*.txt'
+      - 'wsgi.py'
+      - 'run_dev.py'
+      - 'manage.py'
+      - 'pyproject.toml'
+      - 'migrations_app.py'
 
 jobs:
   version:

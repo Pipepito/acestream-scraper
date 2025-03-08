@@ -19,6 +19,19 @@
             word-break: break-word;
             overflow-wrap: break-word;
         }
+        .nav-link:not(.active) svg {
+            fill: #0d6efd; 
+        }
+        .nav-link.active svg {
+            fill: #ffffff; 
+        }
+        .nav-pills .nav-link:not(.active):hover {
+            background-color: #f8f9fa;
+            color: #495057;
+        }
+        .nav-pills .nav-link:not(.active):hover svg {
+            fill: #495057;
+        }
         @media (max-width: 768px) {
             .btn-sm {
                 padding: 0.25rem 0.5rem;
@@ -31,203 +44,244 @@
     <div class="container py-4">
         <span id="loading" class="spinner-border spinner-border-sm position-fixed top-0 end-0 m-4" role="status" aria-hidden="true"></span>
         <header class="pb-3 mb-4 border-bottom">
-            <div class="d-flex justify-content-between align-items-center">
-                <h1>Acestream Scraper Dashboard</h1>
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <h1 class="me-auto mb-md-0">Acestream Scraper Dashboard</h1>
+                
+                <ul class="nav nav-pills" id="ScrapperTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button" role="tab" aria-controls="dashboard" aria-selected="true">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-collection-play-fill me-1" viewBox="0 0 16 16">
+                                <path d="M2.5 3.5a.5.5 0 0 1 0-1h11a.5.5 0 0 1 0 1h-11zm2-2a.5.5 0 0 1 0-1h7a.5.5 0 0 1 0 1h-7zM0 13a1.5 1.5 0 0 0 1.5 1.5h13A1.5 1.5 0 0 0 16 13V6a1.5 1.5 0 0 0-1.5-1.5h-13A1.5 1.5 0 0 0 0 6v7zm6.258-6.437a.5.5 0 0 1 .507.013l4 2.5a.5.5 0 0 1 0 .848l-4 2.5A.5.5 0 0 1 6 12V7a.5.5 0 0 1 .258-.437z"/>
+                            </svg>
+                            Dashboard
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="config-tab" data-bs-toggle="tab" data-bs-target="#config" type="button" role="tab" aria-controls="config" aria-selected="false">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-gear-fill me-1" viewBox="0 0 16 16">
+                                <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/>
+                            </svg>
+                            Configuration
+                        </button>
+                    </li>
+                </ul>
             </div>
         </header>
 
-        <div class="card mb-4">
-            <div class="card-body">
-                <h5 class="card-title">Add New URL</h5>
-                <form id="addUrlForm" class="row g-3 align-items-center">
-                    <div class="col-auto flex-grow-1">
-                        <input type="url" class="form-control" id="urlInput" placeholder="Enter URL to scrape" required>
-                    </div>
-                    <div class="col-auto">
-                        <button type="submit" class="btn btn-primary">Add URL</button>
-                    </div>
-                </form>
-            </div>
-        </div>
+        
 
-        <div class="card mb-4">
-            <div class="card-body">
-                <h5 class="card-title">Base URL Configuration</h5>
-                <form id="baseUrlForm" class="row g-3 align-items-center">
-                    <div class="col-12 col-md-6">
-                        <input type="text" class="form-control" id="baseUrlInput" 
-                               placeholder="Enter base URL (e.g., acestream:// or http://localhost:6878/ace/getstream?id=)" required>
-                    </div>
-                    <div class="col-12 col-md-3">
-                        <button type="submit" class="btn btn-primary w-100">Update Base URL</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <div class="card mb-4">
-            <div class="card-body">
-                <h5 class="card-title">Ace Engine Configuration</h5>
-                <form id="aceEngineForm" class="row g-3 align-items-center">
-                    <div class="col-12 col-md-6">
-                        <input type="text" class="form-control" id="aceEngineInput" 
-                               placeholder="Enter Ace Engine URL (e.g., http://localhost:6878)" required>
-                        <div class="form-text">URL of your Acestream Engine instance</div>
-                    </div>
-                    <div class="col-12 col-md-3">
-                        <button type="submit" class="btn btn-primary w-100">Update Ace Engine URL</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <div class="card mb-4">
-            <div class="card-body">
-                <h5 class="card-title">Rescrape Interval Configuration</h5>
-                <form id="rescrapeIntervalForm" class="row g-3 align-items-center">
-                    <div class="col-12 col-md-6">
-                        <div class="input-group">
-                            <input type="number" class="form-control" id="rescrapeIntervalInput" 
-                                   min="1" step="1" placeholder="Hours between rescans" required>
-                            <span class="input-group-text">hours</span>
-                        </div>
-                        <div class="form-text">How often to automatically refresh URLs (in hours)</div>
-                    </div>
-                    <div class="col-12 col-md-3">
-                        <button type="submit" class="btn btn-primary w-100">Update Interval</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-        <div class="row mb-4">
-            <div class="col-md-8">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h5 class="card-title mb-0">URLs Being Scraped</h5>
-                        </div>
-                        <div id="urlsList"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="mb-4">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h5 class="card-title mb-0">Total Channels</h5>
-                                <button onclick="refreshData()" class="btn btn-sm btn-outline-secondary" title="Refresh UI">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
-                                        <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
-                                        <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
-                                    </svg>
-                                    <span class="ms-1">Refresh UI</span>
-                                </button>
+        <div class="tab-content" id="myTabContent">
+            <div class="tab-pane fade show active" id="dashboard" role="tabpanel" aria-labelledby="dashboard-tab">
+                
+                <div class="row mb-4">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h5 class="card-title mb-0">URLs Being Scraped</h5>
+                                </div>
+                                <div id="urlsList"></div>
                             </div>
-                            <h2 id="totalChannels" class="mb-0">0</h2>
-                        </div>
-                        <div>
-                            <h5 class="card-title">Base URL</h5>
-                            <p id="currentBaseUrlDisplay" class="mb-1 text-muted small"></p>
-                            <p id="sampleUrlDisplay" class="text-break text-muted small"></p>
-                        </div>
-                        <div>
-                            <h5 class="card-title">Ace Engine URL</h5>
-                            <p id="currentAceEngineUrlDisplay" class="mb-1 text-muted small"></p>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-        <div class="card mb-4">
-            <div class="card-body">
-                <h5 class="card-title">Add Channel Manually</h5>
-                <form id="addChannelForm" class="row g-3 align-items-center">
-                    <div class="col-12 col-md-4">
-                        <input type="text" class="form-control" id="channelId" 
-                               placeholder="Channel" required>
-                    </div>
-                    <div class="col-12 col-md-5">
-                        <input type="text" class="form-control" id="channelName" 
-                               placeholder="Channel Name" required>
-                    </div>
-                    <div class="col-12 col-md-3">
-                        <button type="submit" class="btn btn-primary w-100">Add Channel</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-        <div class="card mb-4">
-            <div class="card-body">
-                <div class="row align-items-center">
-                    <div class="col-md-6">
-                        <div class="input-group">
-                            <span class="input-group-text">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
-                                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
-                                </svg>
-                            </span>
-                            <input type="text" 
-                                   class="form-control" 
-                                   id="channelSearch" 
-                                   placeholder="Search channels..."
-                                   onkeyup="debounce(searchChannels, 300)(this.value)">
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="btn-group float-md-end">
-                            <button onclick="refreshAllUrls()" class="btn btn-primary btn-sm" title="Refresh all channel data">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-cloud-arrow-down" viewBox="0 0 16 16">
-                                    <path fill-rule="evenodd" d="M7.646 10.854a.5.5 0 0 0 .708 0l2-2a.5.5 0 0 0-.708-.708L8.5 9.293V5.5a.5.5 0 0 0-1 0v3.793L6.354 8.146a.5.5 0 1 0-.708.708l2 2z"/>
-                                    <path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383z"/>
-                                </svg>
-                                <span class="ms-1">Refresh All Data</span>
-                            </button>
-                            <button class="btn btn-success" onclick="downloadPlaylist(false)">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download" viewBox="0 0 16 16">
-                                    <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                                    <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                                </svg>
-                                Download M3U
-                            </button>
-                            <button class="btn btn-outline-success" onclick="downloadPlaylist(true)">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-repeat" viewBox="0 0 16 16">
-                                    <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/>
-                                    <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/>
-                                </svg>
-                                Download Fresh M3U
-                            </button>
-                            <button onclick="checkChannelsStatus()" class="btn btn-info btn-sm" title="Check channels status">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-shield-check" viewBox="0 0 16 16">
-                                    <path d="M5.338 1.59a61.44 61.44 0 0 0-2.837.856.481.481 0 0 0-.328.39c-.554 4.157.726 7.19 2.253 9.188a10.725 10.725 0 0 0 2.287 2.233c.346.244.652.42.893.533.12.057.218.095.293.118a.55.55 0 0 0 .101.025.615.615 0 0 0 .1-.025c.076-.023.174-.061.294-.118.24-.113.547-.29.893-.533a10.726 10.726 0 0 0 2.287-2.233c1.527-1.997 2.807-5.031 2.253-9.188a.48.48 0 0 0-.328-.39c-.651-.213-1.75-.56-2.837-.855C9.552 1.29 8.531 1.067 8 1.067c-.53 0-1.552.223-2.662.524zM5.072.56C6.157.265 7.31 0 8 0s1.843.265 2.928.56c1.11.3 2.229.655 2.887.87a1.54 1.54 0 0 1 1.044 1.262c.596 4.477-.787 7.795-2.465 9.99a11.775 11.775 0 0 1-2.517 2.453 7.159 7.159 0 0 1-1.048.625c-.28.132-.581.24-.829.24s-.548-.108-.829-.24a7.158 7.158 0 0 1-1.048-.625 11.777 11.777 0 0 1-2.517-2.453C1.928 10.487.545 7.169 1.141 2.692A1.54 1.54 0 0 1 2.185 1.43 62.456 62.456 0 0 1 5.072.56z"/>
-                                    <path d="M10.854 5.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 7.793l2.646-2.647a.5.5 0 0 1 .708 0z"/>
-                                </svg>
-                                <span class="ms-1">Check Status</span>
-                            </button>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="mb-4">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h5 class="card-title mb-0">Total Channels</h5>
+                                        <button onclick="refreshData()" class="btn btn-sm btn-outline-secondary" title="Refresh UI">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                                                <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                                                <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                                            </svg>
+                                            <span class="ms-1">Refresh UI</span>
+                                        </button>
+                                    </div>
+                                    <h2 id="totalChannels" class="mb-0">0</h2>
+                                </div>
+                                <div>
+                                    <h5 class="card-title">Base URL</h5>
+                                    <p id="currentBaseUrlDisplay" class="mb-1 text-muted small"></p>
+                                    <p id="sampleUrlDisplay" class="text-break text-muted small"></p>
+                                </div>
+                                <div>
+                                    <h5 class="card-title">Ace Engine URL</h5>
+                                    <p id="currentAceEngineUrlDisplay" class="mb-1 text-muted small"></p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Add Channel Manually</h5>
+                        <form id="addChannelForm" class="row g-3 align-items-center">
+                            <div class="col-12 col-md-4">
+                                <input type="text" class="form-control" id="channelId" 
+                                       placeholder="Channel" required>
+                            </div>
+                            <div class="col-12 col-md-5">
+                                <input type="text" class="form-control" id="channelName" 
+                                       placeholder="Channel Name" required>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <button type="submit" class="btn btn-primary w-100">Add Channel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+                                            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                                        </svg>
+                                    </span>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="channelSearch" 
+                                           placeholder="Search channels..."
+                                           onkeyup="debounce(searchChannels, 300)(this.value)">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="btn-group float-md-end">
+                                    <button onclick="refreshAllUrls()" class="btn btn-primary btn-sm" title="Refresh all channel data">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-cloud-arrow-down" viewBox="0 0 16 16">
+                                            <path fill-rule="evenodd" d="M7.646 10.854a.5.5 0 0 0 .708 0l2-2a.5.5 0 0 0-.708-.708L8.5 9.293V5.5a.5.5 0 0 0-1 0v3.793L6.354 8.146a.5.5 0 1 0-.708.708l2 2z"/>
+                                            <path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383z"/>
+                                        </svg>
+                                        <span class="ms-1">Refresh All Data</span>
+                                    </button>
+                                    <button class="btn btn-success" onclick="downloadPlaylist(false)">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download" viewBox="0 0 16 16">
+                                            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                            <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                                        </svg>
+                                        Download M3U
+                                    </button>
+                                    <button class="btn btn-outline-success" onclick="downloadPlaylist(true)">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-repeat" viewBox="0 0 16 16">
+                                            <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/>
+                                            <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/>
+                                        </svg>
+                                        Download Fresh M3U
+                                    </button>
+                                    <button onclick="checkChannelsStatus()" class="btn btn-info btn-sm" title="Check channels status">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-shield-check" viewBox="0 0 16 16">
+                                            <path d="M5.338 1.59a61.44 61.44 0 0 0-2.837.856.481.481 0 0 0-.328.39c-.554 4.157.726 7.19 2.253 9.188a10.725 10.725 0 0 0 2.287 2.233c.346.244.652.42.893.533.12.057.218.095.293.118a.55.55 0 0 0 .101.025.615.615 0 0 0 .1-.025c.076-.023.174-.061.294-.118.24-.113.547-.29.893-.533a10.726 10.726 0 0 0 2.287-2.233c1.527-1.997 2.807-5.031 2.253-9.188a.48.48 0 0 0-.328-.39c-.651-.213-1.75-.56-2.837-.855C9.552 1.29 8.531 1.067 8 1.067c-.53 0-1.552.223-2.662.524zM5.072.56C6.157.265 7.31 0 8 0s1.843.265 2.928.56c1.11.3 2.229.655 2.887.87a1.54 1.54 0 0 1 1.044 1.262c.596 4.477-.787 7.795-2.465 9.99a11.775 11.775 0 0 1-2.517 2.453 7.159 7.159 0 0 1-1.048.625c-.28.132-.581.24-.829.24s-.548-.108-.829-.24a7.158 7.158 0 0 1-1.048-.625 11.777 11.777 0 0 1-2.517-2.453C1.928 10.487.545 7.169 1.141 2.692A1.54 1.54 0 0 1 2.185 1.43 62.456 62.456 0 0 1 5.072.56z"/>
+                                            <path d="M10.854 5.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 7.793l2.646-2.647a.5.5 0 0 1 .708 0z"/>
+                                        </svg>
+                                        <span class="ms-1">Check Status</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Channels</h5>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>ID</th>
+                                        <th>Last Updated</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="channelsList"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+
+            <div class="tab-pane fade" id="config" role="tabpanel" aria-labelledby="config-tab">
+                
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Add New URL</h5>
+                        <form id="addUrlForm" class="row g-3 align-items-center">
+                            <div class="col-auto flex-grow-1">
+                                <input type="url" class="form-control" id="urlInput" placeholder="Enter URL to scrape" required>
+                            </div>
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-primary">Add URL</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Base URL Configuration</h5>
+                        <form id="baseUrlForm" class="row g-3 align-items-center">
+                            <div class="col-12 col-md-6">
+                                <input type="text" class="form-control" id="baseUrlInput" 
+                                       placeholder="Enter base URL (e.g., acestream:// or http://localhost:6878/ace/getstream?id=)" required>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <button type="submit" class="btn btn-primary w-100">Update Base URL</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Ace Engine Configuration</h5>
+                        <form id="aceEngineForm" class="row g-3 align-items-center">
+                            <div class="col-12 col-md-6">
+                                <input type="text" class="form-control" id="aceEngineInput" 
+                                       placeholder="Enter Ace Engine URL (e.g., http://localhost:6878)" required>
+                                <div class="form-text">URL of your Acestream Engine instance</div>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <button type="submit" class="btn btn-primary w-100">Update Ace Engine URL</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Rescrape Interval Configuration</h5>
+                        <form id="rescrapeIntervalForm" class="row g-3 align-items-center">
+                            <div class="col-12 col-md-6">
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="rescrapeIntervalInput" 
+                                           min="1" step="1" placeholder="Hours between rescans" required>
+                                    <span class="input-group-text">hours</span>
+                                </div>
+                                <div class="form-text">How often to automatically refresh URLs (in hours)</div>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <button type="submit" class="btn btn-primary w-100">Update Interval</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
             </div>
         </div>
 
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Channels</h5>
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>ID</th>
-                                <th>Last Updated</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="channelsList"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+        
+
+        
+
+        
+
+        
+        
     </div>
 
     <div class="card">

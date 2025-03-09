@@ -1,7 +1,10 @@
-from flask import Blueprint, render_template, jsonify, request, Response
+from flask import Blueprint, render_template, jsonify, request, Response, current_app
 from datetime import datetime, timedelta
 import asyncio
 import logging
+import os  # Add this line
+import requests  # Add this line too since you're using it
+from sqlalchemy import text
 from ..models import ScrapedURL, AcestreamChannel
 from ..extensions import db
 from ..utils.config import Config
@@ -402,10 +405,35 @@ def health():
         # Check database connection
         db.session.execute(text('SELECT 1'))
         
-        # You can add additional health checks here
-        # For example, check if ZeroNet is accessible
+        # Check Acexy if enabled
+        if os.environ.get('ENABLE_ACEXY') == 'true':
+            try:
+                acexy_response = requests.get('http://localhost:8080/ace/status', timeout=2)
+                if not acexy_response.ok:
+                    current_app.logger.warning("Acexy health check failed")
+            except Exception as e:
+                current_app.logger.warning(f"Acexy health check failed: {str(e)}")
+                # Don't fail the whole health check if just Acexy is down
         
         return jsonify({"status": "ok"}), 200
     except Exception as e:
-        app.logger.error(f"Health check failed: {str(e)}")
+        current_app.logger.error(f"Health check failed: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
+
+@bp.route('/api/config/acexy_status')
+def acexy_status():
+    """Return if Acexy is enabled and available."""
+    enabled = os.environ.get('ENABLE_ACEXY') == 'true'
+    available = False
+    
+    if enabled:
+        try:
+            response = requests.get('http://localhost:8080/ace/status', timeout=2)
+            available = response.ok
+        except Exception:  # Add explicit Exception
+            available = False
+    
+    return jsonify({
+        "enabled": enabled,
+        "available": available
+    })

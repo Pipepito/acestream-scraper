@@ -11,7 +11,7 @@ FROM python:3.10-slim
 # Add metadata labels
 LABEL maintainer="pipepito" \
       description="Acestream channel scraper with ZeroNet support" \
-      version="1.2.7"
+      version="1.2.14"
 
 # Set the working directory
 WORKDIR /app
@@ -95,22 +95,23 @@ RUN apt-get update \
 COPY --from=acexy-builder /acexy /usr/local/bin/acexy
 RUN chmod +x /usr/local/bin/acexy
 
-
+# Add the healthcheck script
+COPY healthcheck.sh /app/healthcheck.sh
+RUN chmod +x /app/healthcheck.sh
 
 # Set environment variable to indicate Docker environment
 ENV DOCKER_ENV=true
-ENV TZ=UTC
+ENV TZ='Europe/Madrid'
 ENV ENABLE_TOR=false
 ENV ENABLE_ACEXY=false
 ENV ACESTREAM_HTTP_PORT=6878
 ENV ACEXY_LISTEN_ADDR=":8080"
-ENV EXTRA_FLAGS=''
-ENV ALLOW_REMOTE_ACCESS=false
+ENV ALLOW_REMOTE_ACCESS="no"
+ENV ACEXY_NO_RESPONSE_TIMEOUT=15s
+ENV ACEXY_BUFFER_SIZE=5MiB
 
 # Acexy and Acestream environment variables
-ENV ENABLE_ACEXY=false \
-    ACEXY_LISTEN_ADDR=":8080" \
-    EXTRA_FLAGS="--cache-dir /tmp --cache-limit 2 --cache-auto 1 --log-stderr --log-stderr-level error"
+ENV EXTRA_FLAGS="--cache-dir /tmp --cache-limit 2 --cache-auto 1 --log-stderr --log-stderr-level error"
 
 # Expose the ports
 EXPOSE 8000
@@ -118,7 +119,6 @@ EXPOSE 43110
 EXPOSE 43111
 EXPOSE 26552
 EXPOSE 8080
-EXPOSE 6878
 # Set the volume
 VOLUME ["/app/ZeroNet/data"]
 
@@ -129,7 +129,8 @@ RUN apt-get clean && \
 # Make sure WORKDIR is set correctly
 WORKDIR /app
 
-HEALTHCHECK --interval=10s --timeout=10s --start-period=1s \
-    CMD curl -qf http://localhost${ACEXY_LISTEN_ADDR}/ace/status || exit 1
+# Define the healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s \
+    CMD /app/healthcheck.sh
 
 ENTRYPOINT ["/app/entrypoint.sh"]

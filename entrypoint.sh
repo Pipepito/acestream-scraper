@@ -34,17 +34,15 @@ fi
 if [ "$ENABLE_ACEXY" = "true" ]; then
     echo "Starting Acestream engine and Acexy proxy..."
     
-    if [[ $ALLOW_REMOTE_ACCESS == "yes" ]];then
+    if [[ $ALLOW_REMOTE_ACCESS = "yes" ]];then
         EXTRA_FLAGS="$EXTRA_FLAGS --bind-all"
     fi
     # Start the Acestream engine
-    /opt/acestream/start-engine --client-console --http-port $ACESTREAM_HTTP_PORT $EXTRA_FLAGS &
-    
-    # Brief pause to allow Acestream engine to start
-    sleep 3
-    
-    # Start Acexy proxy
-    /usr/local/bin/acexy &
+    /opt/acestream/start-engine --client-console --http-port $ACESTREAM_HTTP_PORT $EXTRA_FLAGS &  
+    sleep 3 # Brief pause to allow Acestream engine to start        
+    /usr/local/bin/acexy & # Start Acexy proxy
+else
+    echo "Acexy is disabled. Not starting Acestream engine or Acexy proxy."
 fi
 
 # Start ZeroNet in the background

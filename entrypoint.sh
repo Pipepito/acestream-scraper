@@ -22,6 +22,14 @@ fi
 # Create symlink to config
 ln -sf "$ZERONET_CONFIG" /app/ZeroNet/zeronet.conf
 
+# Start Tor if enabled
+if [ "$ENABLE_TOR" = "true" ]; then
+    echo "Starting Tor service..."
+    service tor start
+    # Add a brief pause to ensure Tor has time to start
+    sleep 3
+fi
+
 # Start ZeroNet in the background
 cd /app/ZeroNet
 echo "Starting ZeroNet..."

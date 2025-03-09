@@ -45,6 +45,36 @@ A Python-based web scraping application that retrieves Acestream channel informa
    }
    ```
 
+### Using with TOR
+
+This image supports ZeroNet with TOR integration for enhanced privacy. Use the `ENABLE_TOR` environment variable to toggle this feature.
+
+### Running with TOR disabled
+
+```bash
+docker run -d \
+  -p 8000:8000 \
+  -p 43110:43110 \
+  -p 43111:43111 \
+  -p 26552:26552 \ # Optional: Zeronet Fileserver port
+  -v "${PWD}/config:/app/config" \
+  -v "${PWD}/zeronet_data:/app/ZeroNet/data" \
+  pipepito/acestream-scraper:latest
+```
+
+### Running with TOR enabled
+
+```bash
+docker run -d \
+  -p 8000:8000 \
+  -p 43110:43110 \
+  -p 43111:43111 \
+  -e ENABLE_TOR=true \
+  -v "${PWD}/config:/app/config" \
+  -v "${PWD}/zeronet_data:/app/ZeroNet/data" \
+  pipepito/acestream-scraper:latest
+```
+
 ### Manual Installation
 
 1. **Prerequisites:**

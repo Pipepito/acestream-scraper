@@ -19,7 +19,12 @@ RUN apt-get update && apt-get install -y \
     gnupg \
     gcc \
     python3-dev \
-    build-essential 
+    build-essential \
+    tor
+
+# Add TOR configuration
+RUN echo "ControlPort 9051" >> /etc/tor/torrc && \
+    echo "CookieAuthentication 1" >> /etc/tor/torrc
 
 # Copy application files
 COPY --chmod=0755 entrypoint.sh /app/entrypoint.sh
@@ -63,11 +68,16 @@ RUN mkdir -p ZeroNet && \
 # Set environment variable to indicate Docker environment
 ENV DOCKER_ENV=true
 ENV TZ=UTC
+ENV ENABLE_TOR=false
 
 # Expose the ports
 EXPOSE 8000
 EXPOSE 43110
 EXPOSE 43111
+EXPOSE 26552
+
+# Set the volume
+VOLUME ["/app/ZeroNet/data"]
 
 # Clean up APT
 RUN apt-get clean && \

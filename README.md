@@ -3,6 +3,7 @@
 A Python-based web scraping application that retrieves Acestream channel information and generates M3U playlists. Built using Flask, BeautifulSoup, and SQLAlchemy.
 
 [![Release Pipeline](https://github.com/Pipepito/acestream-scraper/actions/workflows/release.yml/badge.svg)](https://github.com/Pipepito/acestream-scraper/actions/workflows/release.yml)
+
 ## Features
 
 - Scrapes Acestream channel information from multiple URLs
@@ -14,6 +15,9 @@ A Python-based web scraping application that retrieves Acestream channel informa
 - Database migrations support
 - Service-oriented architecture
 - Repository pattern for data access
+- **Built-in Acestream engine with Acexy proxy (optional)**
+- Channel status checking
+- Acexy status display in the dashboard
 
 ## Quick Start
 
@@ -22,19 +26,22 @@ A Python-based web scraping application that retrieves Acestream channel informa
 [Image in Docker Hub](https://hub.docker.com/r/pipepito/acestream-scraper)
 
 1. **Pull and run the container:**
+
    ```bash
    docker pull pipepito/acestream-scraper:latest
    docker run -d \
      -p 8000:8000 \
      -p 43110:43110 \
      -p 43111:43111 \
-     -e TZ=Europe/Madrid
+     -e TZ=Europe/Madrid \
      -v "${PWD}/config:/app/config" \
+     -v "${PWD}/zeronet_data:/app/ZeroNet/data" \
      pipepito/acestream-scraper:latest
    ```
 
 2. **Create a config/config.json file:**
-   ```json
+
+   ```bash
    {
        "urls": [
            "https://example.com/url1",
@@ -44,6 +51,24 @@ A Python-based web scraping application that retrieves Acestream channel informa
        "ace_engine_url": "http://127.0.0.1:6878"
    }
    ```
+
+### Running with Acexy Enabled
+
+The image includes an embedded Acestream engine with the Acexy proxy interface, which can be enabled through environment variables:
+
+```bash
+docker run -d \
+  -p 8000:8000 \
+  -p 43110:43110 \
+  -p 8080:8080 \
+  -e ENABLE_ACEXY=true \
+  -e ALLOW_REMOTE_ACCESS=yes \
+  -v "${PWD}/config:/app/config" \
+  -v "${PWD}/zeronet_data:/app/ZeroNet/data" \
+  pipepito/acestream-scraper:latest
+```
+
+The Acexy web interface will be available at `http://localhost:8080`.
 
 ### Using with TOR
 
@@ -78,10 +103,11 @@ docker run -d \
 ### Manual Installation
 
 1. **Prerequisites:**
-   - Python 3.9 or higher
+   - Python 3.10 or higher
    - pip
 
 2. **Setup:**
+
    ```bash
    git clone https://github.com/Pipepito/acestream-scraper.git
    cd acestream-scraper
@@ -91,6 +117,7 @@ docker run -d \
    ```
 
 3. **Create config and run:**
+
    ```bash
    mkdir -p config
    # Create config/config.json as shown above
@@ -102,15 +129,23 @@ docker run -d \
 ## Usage
 
 ### Web Interface
+
 Access the web interface at `http://localhost:8000`
 ![image](https://github.com/user-attachments/assets/5043a652-dc5a-4227-904e-21828fac089e)
 
 ### M3U Playlist
+
 - Get current playlist: `http://localhost:8000/playlist.m3u`
 - Force refresh and get playlist: `http://localhost:8000/playlist.m3u?refresh=true`
 
+### Acexy Interface
+
+- If enabled, access the Acexy interface at: `http://localhost:8080`
+- Check Acexy status in the main dashboard
+
 ### Database Management
-The application now includes database migration support:
+
+The application includes database migration support:
 
 ```bash
 # Initialize database (first time only)
@@ -136,6 +171,17 @@ The application supports the following configuration options:
 - `base_url`: Base URL format for playlist generation (e.g., `acestream://` or `http://localhost:6878/ace/getstream?id=`)
 - `ace_engine_url`: URL of your Acestream Engine instance (default: `http://127.0.0.1:6878`)
 
+### Acexy Configuration
+
+Acexy provides an enhanced proxy interface for Acestream, with a web UI for better management:
+
+- `ENABLE_ACEXY`: Set to `true` to enable Acexy and Acestream engine (default: `false`)
+- `ACEXY_LISTEN_ADDR`: Address for Acexy to listen on (default: `:8080`)
+- `ALLOW_REMOTE_ACCESS`: Set to `yes` to allow external connections (default: `no`)
+- `ACEXY_NO_RESPONSE_TIMEOUT`: Timeout for Acestream responses (default: `15s`)
+- `ACEXY_BUFFER_SIZE`: Buffer size for data transfers (default: `5MiB`)
+- `ACESTREAM_HTTP_PORT`: Port for Acestream engine (default: `6878`)
+
 ### Channel Status Checking
 
 The application can verify channel availability by communicating with an Acestream Engine instance:
@@ -147,31 +193,30 @@ The application can verify channel availability by communicating with an Acestre
 
 To use this feature:
 
-1. Ensure you have Acestream Engine running
+1. Ensure you have Acestream Engine running (built-in if ENABLE_ACEXY=true)
 2. Configure `ace_engine_url` to point to your Acestream Engine instance
 3. Use the "Check Status" buttons in the UI to verify channel availability
 
-The status check will:
-- Mark channels as online/offline
-- Store last check timestamp
-- Record any errors encountered
-- Update channel statistics in the dashboard
-
 ### Port Mapping
+
 - `8000`: Main web interface
 - `43110`: ZeroNet web interface
 - `43111`: ZeroNet transport port
+- `8080`: Acexy web interface (if enabled)
+- `6878`: Acestream HTTP API port (internal)
 
 ### Volumes
-When using Docker, mount your local config directory to `/app/config`:
-- `config.json`: Configuration file
-- `acestream.db`: SQLite database (created automatically)
+
+When using Docker, mount these volumes:
+
+- `/app/config`: Configuration files
+- `/app/ZeroNet/data`: ZeroNet data directory
 
 ### ZeroNet Configuration
 
 The application looks for a `zeronet.conf` file in the `/app/config` directory. If none exists, it creates one with default values:
 
-```ini
+```bash
 [global]
 ui_ip = *
 ui_host =
@@ -183,7 +228,8 @@ ui_port = 43110
 To customize ZeroNet access:
 
 1. Create your own `config/zeronet.conf`:
-```ini
+
+```bash
 [global]
 ui_ip = *
 ui_host =
@@ -195,23 +241,36 @@ ui_port = 43110
 ```
 
 2. Mount it when running the container:
+
 ```bash
 docker run -d \
   -p 8000:8000 \
   -p 43110:43110 \
   -p 43111:43111 \
-  -e TZ=Europe/Madrid
+  -e TZ=Europe/Madrid \
   -v "${PWD}/config:/app/config" \
   pipepito/acestream-scraper:latest
 ```
 
 ### Security Note
+
 - Add your domain(s) to `ui_host` for public access
 - Use one domain per line after `ui_host =`
 - Always include `localhost` for local access
+- Set `ALLOW_REMOTE_ACCESS=no` to restrict Acestream access to localhost only
+
+### Healthchecks
+
+The container includes comprehensive health checking:
+
+- Main application health check at `/health` endpoint
+- Acexy health check (if enabled)
+- Automatic retry for temporary failures
 
 ### Development
+
 For development, use `run_dev.py` which provides:
+
 - Debug mode
 - Auto-reloading (disabled for task manager thread)
 - Windows compatibility
@@ -219,21 +278,25 @@ For development, use `run_dev.py` which provides:
 ## Architecture
 
 The application follows a service-oriented architecture with:
+
 - Repository pattern for data access
 - Service layer for business logic
 - Migrations support for database changes
 - Async task management
 - Clear separation of concerns
+- Integration with external services (Acestream, Acexy, ZeroNet)
 
 ## Testing
 
 ### Setup
+
 ```bash
 # Install development dependencies
 pip install -r requirements-dev.txt
 ```
 
 ### Running Tests
+
 ```bash
 # Run all tests
 pytest
@@ -246,8 +309,9 @@ pytest --cov=app tests/
 ```
 
 ### Test Structure
-- `tests/unit/`: Unit tests for individual components
-- `tests/integration/`: Integration tests for API endpoints
+
+- `tests/unit`: Unit tests for individual components
+- `tests/integration`: Integration tests for API endpoints
 - `tests/conftest.py`: Test fixtures and configuration
 
 ## Contributing
@@ -256,8 +320,11 @@ Contributions are welcome! Please fork the repository and create a pull request 
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the LICENSE file for details.
 
 ## Acknowledgements
 
 Special thanks to the developers of Flask, BeautifulSoup, SQLAlchemy, and other dependencies used in this project.
+
+- [Acexy](https://github.com/Javinator9889/acexy) - Enhanced Acestream proxy interface
+- [Acestream-http-proxy](https://github.com/martinbjeldbak/acestream-http-proxy) - HTTP proxy for Acestream

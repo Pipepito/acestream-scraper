@@ -394,3 +394,18 @@ def update_rescrape_interval():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@bp.route('/health')
+def health():
+    """Health check endpoint for Docker."""
+    try:
+        # Check database connection
+        db.session.execute(text('SELECT 1'))
+        
+        # You can add additional health checks here
+        # For example, check if ZeroNet is accessible
+        
+        return jsonify({"status": "ok"}), 200
+    except Exception as e:
+        app.logger.error(f"Health check failed: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500

@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from typing import List, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from ..models import AcestreamChannel
 from ..extensions import db
 from ..scrapers import create_scraper
@@ -29,7 +29,7 @@ class ChannelCleanupWorker:
 
     async def cleanup_old_channels(self):
         """Remove channels that haven't been seen in a while."""
-        cutoff_date = datetime.utcnow() - timedelta(days=self.max_age_days)
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=self.max_age_days)
         
         try:
             old_channels = AcestreamChannel.query.filter(

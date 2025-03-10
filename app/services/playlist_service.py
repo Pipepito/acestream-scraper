@@ -1,5 +1,5 @@
 from ..repositories import ChannelRepository
-from ..utils.config import Config
+from app.utils.config import Config
 
 class PlaylistService:
     def __init__(self):
@@ -8,27 +8,31 @@ class PlaylistService:
 
     def _format_stream_url(self, channel_id: str) -> str:
         """Format stream URL based on base_url configuration."""
-        base_url = self.config.base_url
+        # Get base_url directly from config instance
+        base_url = getattr(self.config, 'base_url', 'acestream://')
         return f'{base_url}{channel_id}'
 
-    def generate_playlist(self, search_term: str = None) -> str:
-        """
-        Generate M3U playlist from active channels.
-        
-        Args:
-            search_term (str, optional): Filter channels by name
-        """
-        # Get channels with optional filter
+    def _get_channels(self, search_term: str = None):
+        """Retrieve channels from the repository with optional search term."""
         if search_term:
-            channels = self.channel_repository.model.query.filter(
+            return self.channel_repository.model.query.filter(
                 (self.channel_repository.model.status == 'active') &
                 (self.channel_repository.model.name.ilike(f'%{search_term}%'))
             ).all()
-        else:
-            channels = self.channel_repository.get_active()
+        return self.channel_repository.get_active()
+
+    def generate_playlist(self, search_term=None):
+        """Generate M3U playlist with channels."""
+        playlist_lines = ['#EXTM3U']
         
-        playlist = ['#EXTM3U']
+        # Query channels from the database
+        channels = self._get_channels(search_term)
+        
+        # Add each channel to the playlist
         for channel in channels:
+            # Use _format_stream_url to get the correct URL format
+            stream_url = self._format_stream_url(channel.id)
+            
             # Add metadata if available
             metadata = []
             if channel.tvg_name:
@@ -46,7 +50,7 @@ class PlaylistService:
                 extinf += f' {" ".join(metadata)}'
             extinf += f',{channel.name}'
             
-            playlist.append(extinf)
-            playlist.append(self._format_stream_url(channel.id))
+            playlist_lines.append(extinf)
+            playlist_lines.append(stream_url)
             
-        return '\n'.join(playlist)
+        return '\n'.join(playlist_lines)

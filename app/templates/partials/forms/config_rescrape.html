@@ -1,0 +1,21 @@
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Rescrape Interval Configuration</h5>
+        <div class="current-config" id="currentRescrapeConfig">
+            Current: <span id="currentRescrapeValue"></span> hours
+        </div>
+        <form id="rescrapeIntervalForm" class="row g-3 align-items-center mt-3">
+            <div class="col-12 col-md-6">
+                <div class="input-group">
+                    <input type="number" class="form-control" id="rescrapeIntervalInput" 
+                           min="1" step="1" placeholder="Hours between rescans" required>
+                    <span class="input-group-text">hours</span>
+                </div>
+                <div class="form-text">How often to automatically refresh URLs (in hours)</div>
+            </div>
+            <div class="col-12 col-md-3">
+                <button type="submit" class="btn btn-primary w-100">Update Interval</button>
+            </div>
+        </form>
+    </div>
+</div>

@@ -178,4 +178,5 @@ cython_debug/
 .pypirc
 config/config.json
 config/acestream_channels.db
+zeronet_data/
 

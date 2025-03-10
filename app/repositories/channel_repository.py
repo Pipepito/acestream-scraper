@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Set
 from ..models import AcestreamChannel
 from .base import BaseRepository
@@ -20,7 +20,7 @@ class ChannelRepository(BaseRepository[AcestreamChannel]):
         channel = (self.model.query.get(channel_id) or 
                   self.model(id=channel_id))
         channel.name = name
-        channel.last_processed = datetime.utcnow()
+        channel.last_processed = datetime.now(timezone.utc)
         channel.status = 'active'
         channel.source_url = source_url
         

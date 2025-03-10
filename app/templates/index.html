@@ -312,7 +312,8 @@
             try {
                 const searchTerm = document.getElementById('channelSearch')?.value || '';
 
-                const statsResponse = await fetch('/api/stats');
+                // Update to use new stats endpoint
+                const statsResponse = await fetch('/api/stats/');
                 const stats = await statsResponse.json();
                 
                 const urlsList = document.getElementById('urlsList');
@@ -457,13 +458,13 @@
 
             showLoading();
             try {
-                const response = await fetch('/api/refresh', {
+                const response = await fetch('/api/urls/refresh', {
                     method: 'POST'
                 });
                 
+                const data = await response.json();
                 if (response.ok) {
-                    const result = await response.json();
-                    alert(`${result.message}\nURLs being processed: ${result.urls.length}`);
+                    alert(`${data.message}\nURLs being processed: ${data.urls.length}`);
                     
                     // Start polling for updates more frequently during refresh
                     const pollInterval = setInterval(async () => {
@@ -482,12 +483,11 @@
                     // Stop polling after 5 minutes max
                     setTimeout(() => clearInterval(pollInterval), 300000);
                 } else {
-                    const error = await response.json();
-                    alert(error.error || 'Error refreshing URLs');
+                    alert(data.message || data.error || 'Error refreshing URLs');
                 }
             } catch (error) {
                 console.error('Error refreshing URLs:', error);
-                alert('Error refreshing URLs');
+                alert('Network error while refreshing URLs');
             } finally {
                 hideLoading();
             }
@@ -495,6 +495,7 @@
 
         async function toggleUrl(url, enable) {
             try {
+                showLoading();
                 const response = await fetch(`/api/urls/${encodeURIComponent(url)}`, {
                     method: 'PUT',
                     headers: {
@@ -503,15 +504,12 @@
                     body: JSON.stringify({ enabled: enable })
                 });
                 
-                if (response.ok) {
-                    await refreshData();
-                } else {
-                    const error = await response.json();
-                    alert(error.error || 'Error updating URL');
-                }
+                await handleApiResponse(response);
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error updating URL');
+                alert('Network error while updating URL');
+            } finally {
+                hideLoading();
             }
         }
         
@@ -521,19 +519,17 @@
             }
             
             try {
+                showLoading();
                 const response = await fetch(`/api/urls/${encodeURIComponent(url)}`, {
                     method: 'DELETE'
                 });
                 
-                if (response.ok) {
-                    await refreshData();
-                } else {
-                    const error = await response.json();
-                    alert(error.error || 'Error deleting URL');
-                }
+                await handleApiResponse(response, 'URL deleted successfully');
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error deleting URL');
+                alert('Network error while deleting URL');
+            } finally {
+                hideLoading();
             }
         }
 
@@ -548,15 +544,10 @@
                     method: 'DELETE'
                 });
                 
-                if (response.ok) {
-                    await refreshData();
-                } else {
-                    const error = await response.json();
-                    alert(error.error || 'Error deleting channel');
-                }
+                await handleApiResponse(response, 'Channel deleted successfully');
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error deleting channel');
+                alert('Network error while deleting channel');
             } finally {
                 hideLoading();
             }
@@ -577,18 +568,12 @@
                     body: JSON.stringify({ url: url })
                 });
 
-                if (response.ok) {
-                    const result = await response.json();
-                    alert(result.message);
+                if (await handleApiResponse(response, 'URL added successfully')) {
                     urlInput.value = '';
-                    refreshData();
-                } else {
-                    const error = await response.json();
-                    alert(error.error || 'Error adding URL');
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error adding URL');
+                alert('Network error while adding URL');
             } finally {
                 hideLoading();
             }
@@ -597,7 +582,6 @@
         document.getElementById('baseUrlForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const baseUrlInput = document.getElementById('baseUrlInput');
-            const sampleUrl = document.getElementById('sampleUrl');
             const baseUrl = baseUrlInput.value;
 
             try {
@@ -610,18 +594,13 @@
                     body: JSON.stringify({ base_url: baseUrl })
                 });
 
-                if (response.ok) {
-                    const result = await response.json();
-                    alert('Base URL updated successfully');
+                if (await handleApiResponse(response, 'Base URL updated successfully')) {
                     baseUrlInput.value = '';         
                     refreshData();           
-                } else {
-                    const error = await response.json();
-                    alert(error.error || 'Error updating base URL');
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error updating base URL');
+                alert('Network error while updating base URL');
             } finally {
                 hideLoading();
             }
@@ -645,19 +624,13 @@
                     })
                 });
 
-                if (response.ok) {
-                    const result = await response.json();
-                    alert('Channel added successfully');
+                if (await handleApiResponse(response, 'Channel added successfully')) {
                     document.getElementById('channelId').value = '';
                     document.getElementById('channelName').value = '';
-                    refreshData();
-                } else {
-                    const error = await response.json();
-                    alert(error.error || 'Error adding channel');
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error adding channel');
+                alert('Network error while adding channel');
             } finally {
                 hideLoading();
             }
@@ -710,7 +683,7 @@
 
         function downloadPlaylist(refresh = false) {
             const searchTerm = document.getElementById('channelSearch').value.trim();
-            let url = '/playlist.m3u';
+            let url = '/playlist.m3u'; // Use original URL for backward compatibility
             const params = new URLSearchParams();
             
             if (refresh) {
@@ -738,17 +711,16 @@
                     method: 'POST'
                 });
                 
+                const data = await response.json();
                 if (response.ok) {
-                    const result = await response.json();
-                    alert(`Status check completed.\nOnline: ${result.online}\nOffline: ${result.offline}`);
-                    refreshData();
+                    alert(`Status check completed.\nOnline: ${data.online}\nOffline: ${data.offline}`);
+                    await refreshData();
                 } else {
-                    const error = await response.json();
-                    alert(error.error || 'Error checking channel status');
+                    alert(data.message || data.error || 'Error checking channel status');
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error checking channel status');
+                alert('Network error while checking channel status');
             } finally {
                 hideLoading();
             }
@@ -769,18 +741,12 @@
                     body: JSON.stringify({ ace_engine_url: aceEngineUrl })
                 });
 
-                if (response.ok) {
-                    const result = await response.json();
-                    alert('Ace Engine URL updated successfully');
-                    aceEngineInput.value = '';         
-                    refreshData();           
-                } else {
-                    const error = await response.json();
-                    alert(error.error || 'Error updating Ace Engine URL');
+                if (await handleApiResponse(response, 'Ace Engine URL updated successfully')) {
+                    aceEngineInput.value = '';
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error updating Ace Engine URL');
+                alert('Network error while updating Ace Engine URL');
             } finally {
                 hideLoading();
             }
@@ -793,16 +759,10 @@
                     method: 'POST'
                 });
                 
-                if (response.ok) {
-                    const result = await response.json();
-                    refreshData();
-                } else {
-                    const error = await response.json();
-                    alert(error.error || 'Error checking channel status');
-                }
+                await handleApiResponse(response);
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error checking channel status');
+                alert('Network error while checking channel status');
             } finally {
                 hideLoading();
             }
@@ -828,18 +788,12 @@
                     body: JSON.stringify({ hours: hours })
                 });
 
-                if (response.ok) {
-                    const result = await response.json();
-                    alert('Rescrape interval updated successfully');
-                    hoursInput.value = '';         
-                    refreshData();           
-                } else {
-                    const error = await response.json();
-                    alert(error.error || 'Error updating rescrape interval');
+                if (await handleApiResponse(response, 'Rescrape interval updated successfully')) {
+                    hoursInput.value = '';
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error updating rescrape interval');
+                alert('Network error while updating rescrape interval');
             } finally {
                 hideLoading();
             }
@@ -893,6 +847,26 @@
                 }
             } finally {
                 if (showLoading) hideLoading();
+            }
+        }
+
+        // Generic error handling function
+        async function handleApiResponse(response, successMessage) {
+            if (response.ok) {
+                if (successMessage) {
+                    alert(successMessage);
+                }
+                await refreshData();
+                return true;
+            } else {
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const error = await response.json();
+                    alert(error.message || error.error || 'An error occurred');
+                } else {
+                    alert('An unexpected error occurred');
+                }
+                return false;
             }
         }
 

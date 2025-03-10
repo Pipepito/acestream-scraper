@@ -1,8 +1,22 @@
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
 from datetime import datetime, timezone
 from app.services.channel_status_service import ChannelStatusService
 from app.models import AcestreamChannel
+
+# Add a mock for the ChannelStatusService
+@pytest.fixture
+def mock_channel_service(monkeypatch):
+    """Create a mock channel status service."""
+    mock_service = MagicMock()
+    mock_service.check_channel = AsyncMock()
+    mock_service.check_channel.return_value = True
+    
+    # Mock the service initialization
+    monkeypatch.setattr('app.services.channel_status_service.ChannelStatusService.__init__', 
+                       lambda self: None)
+    
+    return mock_service
 
 class TestChannelStatusService:
     """Test the ChannelStatusService class."""
@@ -50,11 +64,16 @@ class TestChannelStatusService:
         assert channel.last_checked is not None
     
     @pytest.mark.asyncio
-    async def test_check_multiple_channels_simple(self):
+    async def test_check_multiple_channels_simple(self, mock_channel_service):
         """Test checking multiple channels using a mock implementation."""
         # Create test channels (without DB)
         channel1 = AcestreamChannel(id="abc123", name="Channel 1")
         channel2 = AcestreamChannel(id="def456", name="Channel 2")
+
+        # Set up the mock service
+        service = ChannelStatusService()
+        service.check_channel = AsyncMock()
+        service.check_channel.side_effect = lambda channel: channel.id == "abc123"
         
         # Create expected results dictionary
         channel_results = {

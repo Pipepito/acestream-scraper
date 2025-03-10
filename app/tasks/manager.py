@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from ..models import ScrapedURL, AcestreamChannel
 from ..extensions import db
 from ..scrapers import create_scraper
@@ -23,13 +23,13 @@ class TaskManager:
         self._processing_urls = set()  # Track URLs being processed
         self.scraper_service = ScraperService()
         self.url_repository = URLRepository()
-
+        
     def init_app(self, app):
         """Initialize with Flask app context"""
         self.app = app
         self.running = True
-        # Push an application context
-        self.app.app_context().push()
+        # Don't push an app context here; let Flask manage it
+        # Remove: self.app.app_context().push()
 
     @contextmanager
     def database_retry(self, max_retries=3):
@@ -48,14 +48,19 @@ class TaskManager:
                 time.sleep(1)
 
     async def process_url(self, url: str):
-        """Process a specific URL immediately."""
         if url in self._processing_urls:
             self.logger.info(f"URL {url} is already being processed")
             return
             
         self._processing_urls.add(url)
         try:
-            await self.scraper_service.scrape_url(url)
+            # Create app context if needed but don't interfere with existing contexts
+            if self.app and not current_app._get_current_object():
+                with self.app.app_context():
+                    await self.scraper_service.scrape_url(url)
+            else:
+                # Either no app is set or we're already in an app context
+                await self.scraper_service.scrape_url(url)
         finally:
             self._processing_urls.remove(url)
 
@@ -72,7 +77,7 @@ class TaskManager:
                 with self.app.app_context():
                     # Calculate the rescrape cutoff time
                     config = Config()
-                    cutoff_time = datetime.utcnow() - timedelta(hours=config.rescrape_interval)
+                    cutoff_time = datetime.now(timezone.utc) - timedelta(hours=config.rescrape_interval)
                     
                     # Find URLs that need to be processed
                     urls = ScrapedURL.query.filter(

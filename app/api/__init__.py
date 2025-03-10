@@ -1,0 +1,35 @@
+from flask import Blueprint, jsonify
+from flask_restx import Api
+
+bp = Blueprint('api', __name__)
+api = Api(bp, 
+    version='1.0', 
+    title='Acestream Scraper API',
+    description='REST API for Acestream channels and configurations',
+    doc='/docs'
+)
+
+# Import and register namespaces AFTER creating the Api instance
+from app.api.controllers.stats_controller import api as stats_ns
+from app.api.controllers.config_controller import api as config_ns
+from app.api.controllers.channels_controller import api as channels_ns
+from app.api.controllers.urls_controller import api as urls_ns
+from app.api.controllers.health_controller import api as health_ns
+from app.api.controllers.playlist_controller import api as playlist_ns
+
+# Add namespaces to the API
+api.add_namespace(stats_ns, path='/stats')
+api.add_namespace(config_ns, path='/config')
+api.add_namespace(channels_ns, path='/channels')
+api.add_namespace(urls_ns, path='/urls')
+api.add_namespace(health_ns, path='/health')
+api.add_namespace(playlist_ns, path='/playlists')
+
+# Register error handlers
+@bp.errorhandler(404)
+def handle_404(e):
+    return jsonify({'error': 'Not found'}), 404
+
+@bp.errorhandler(500)
+def handle_500(e):
+    return jsonify({'error': 'Internal server error'}), 500

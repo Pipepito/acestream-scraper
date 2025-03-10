@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import Mock, patch, AsyncMock, MagicMock
 from app.services import ScraperService, PlaylistService
 from app.models import ScrapedURL, AcestreamChannel
 
@@ -30,11 +30,9 @@ async def test_scraper_service_scrape_url(db_session):
         assert channel is not None
         assert channel.name == "Test Channel"
 
-def test_playlist_service_generate(db_session):
+def test_playlist_service_generate(db_session, config):
+    """Test playlist generation with base URL configuration."""
     service = PlaylistService()
-    
-    # Set test base URL
-    service.config._config = {"base_url": "acestream://"}
     
     # Create test channels
     channel_repo = service.channel_repository
@@ -42,10 +40,22 @@ def test_playlist_service_generate(db_session):
     channel_repo.update_or_create("456", "Test Channel 2", "http://test.com")
     channel_repo.commit()
     
+    # Test with acestream:// format
+    config.base_url = "acestream://"
     playlist = service.generate_playlist()
     
+    # Verify acestream:// format
     assert "#EXTM3U" in playlist
     assert "Test Channel 1" in playlist
     assert "acestream://123" in playlist
-    assert "Test Channel 2" in playlist
     assert "acestream://456" in playlist
+    
+    # Test with HTTP format
+    config.base_url = "http://localhost:6878/ace/getstream?id="
+    playlist = service.generate_playlist()
+    
+    # Verify HTTP format
+    assert "#EXTM3U" in playlist
+    assert "Test Channel 1" in playlist
+    assert "http://localhost:6878/ace/getstream?id=123" in playlist
+    assert "http://localhost:6878/ace/getstream?id=456" in playlist

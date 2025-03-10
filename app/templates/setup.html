@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup - Acestream Scraper</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .setup-container {
+            max-width: 800px;
+            margin: 2rem auto;
+        }
+        .setup-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .step {
+            display: none;
+        }
+        .step.active {
+            display: block;
+        }
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+        .step-indicator .step-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #dee2e6;
+            margin: 0 0.5rem;
+            cursor: pointer;
+        }
+        .step-indicator .step-dot.active {
+            background-color: #0d6efd;
+        }
+        .step-indicator .step-dot.completed {
+            background-color: #198754;
+        }
+        .step-content {
+            background-color: white;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+        .step-title {
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        .step-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 2rem;
+        }
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading" id="loading">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <div class="container setup-container">
+        <div class="setup-header">
+            <h1>Welcome to Acestream Scraper</h1>
+            <p class="lead">Let's set up your system with a few simple steps</p>
+        </div>
+
+        <div class="step-indicator">
+            <div class="step-dot active" data-step="1" title="Welcome"></div>
+            <div class="step-dot" data-step="2" title="Base URL"></div>
+            <div class="step-dot" data-step="3" title="Ace Engine"></div>
+            <div class="step-dot" data-step="4" title="Scraping Sources"></div>
+            <div class="step-dot" data-step="5" title="Complete"></div>
+        </div>
+
+        <div class="step-content">
+            <!-- Step 1: Welcome -->
+            <div class="step active" id="step-1">
+                <h2 class="step-title">Welcome to Acestream Scraper</h2>
+                <p>This wizard will help you set up the basic configuration for your Acestream Scraper instance.</p>
+                <p>You'll need to configure:</p>
+                <ul>
+                    <li>Base URL for Acestream links in your playlist</li>
+                    <li>Ace Engine URL for checking channel status</li>
+                    <li>Scraping sources for finding Acestream channels</li>
+                </ul>
+                <p>You can change all these settings later in the configuration page.</p>
+                
+                <div class="step-actions">
+                    <div></div> <!-- Empty div for flex alignment -->
+                    <button class="btn btn-primary" onclick="nextStep()">Get Started</button>
+                </div>
+            </div>
+
+            <!-- Step 2: Base URL Configuration -->
+            <div class="step" id="step-2">
+                <h2 class="step-title">Configure Base URL</h2>
+                <p>The base URL defines how links will be formatted in your M3U playlist.</p>
+                
+                <form id="baseUrlForm">
+                    <div class="mb-3">
+                        <label for="baseUrl" class="form-label">Base URL</label>
+                        <input type="text" class="form-control" id="baseUrl" 
+                               placeholder="e.g., acestream:// or http://localhost:6878/ace/getstream?id=" required>
+                        <div class="form-text">
+                            Choose based on how your media player handles Acestream links:
+                            <ul>
+                                <li><code>acestream://</code> - For players with Acestream protocol support</li>
+                                <li><code>http://localhost:6878/ace/getstream?id=</code> - For local HTTP streaming</li>
+                                <li><code>http://your-acestream-proxy:port/ace/getstream?id=</code> - For remote Acestream proxy</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="step-actions">
+                        <button type="button" class="btn btn-outline-secondary" onclick="prevStep()">Back</button>
+                        <button type="submit" class="btn btn-primary">Continue</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Step 3: Ace Engine Configuration -->
+            <div class="step" id="step-3">
+                <h2 class="step-title">Configure Ace Engine URL</h2>
+                <p>The Ace Engine URL is used to check if channels are online.</p>
+                
+                <form id="aceEngineForm">
+                    <div class="mb-3">
+                        <label for="aceEngineUrl" class="form-label">Ace Engine URL</label>
+                        <input type="text" class="form-control" id="aceEngineUrl" 
+                               placeholder="e.g., http://localhost:6878" required>
+                        <div class="form-text">
+                            This should be the base URL of your Acestream Engine:
+                            <ul>
+                                <li>If using built-in Acexy: <code>http://localhost:8080</code></li>
+                                <li>If using external Acestream: <code>http://localhost:6878</code> (default)</li>
+                                <li>If using remote Acestream: <code>http://your-acestream-server:port</code></li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div id="acexySection">
+                        <div class="alert alert-info">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="useAcexy" checked>
+                                <label class="form-check-label" for="useAcexy">
+                                    Use built-in Acexy (recommended)
+                                </label>
+                            </div>
+                            <small>This Docker image includes Acexy, a lightweight Acestream proxy.</small>
+                        </div>
+                    </div>
+                    
+                    <div class="step-actions">
+                        <button type="button" class="btn btn-outline-secondary" onclick="prevStep()">Back</button>
+                        <button type="submit" class="btn btn-primary">Continue</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Step 4: Scraping Sources -->
+            <div class="step" id="step-4">
+                <h2 class="step-title">Add Scraping Sources</h2>
+                <p>Add URLs to scrape for Acestream channels.</p>
+                
+                <form id="scrapingSourcesForm">
+                    <div class="mb-3">
+                        <label for="sourceUrl" class="form-label">Source URL</label>
+                        <div class="input-group mb-3">
+                            <input type="url" class="form-control" id="sourceUrl" 
+                                   placeholder="Enter URL to scrape" required>
+                            <button class="btn btn-outline-secondary" type="button" id="addSourceBtn">Add</button>
+                        </div>
+                        <div class="form-text">
+                            Add one or more URLs that contain Acestream links. You can add more later.
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Added Sources</label>
+                        <div id="sourcesList" class="list-group">
+                            <div class="list-group-item text-muted" id="noSourcesMessage">No sources added yet</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="rescrapeInterval" class="form-label">Rescrape Interval (hours)</label>
+                        <input type="number" class="form-control" id="rescrapeInterval" 
+                               min="1" value="24" required>
+                        <div class="form-text">
+                            How often to automatically refresh sources for new channels
+                        </div>
+                    </div>
+                    
+                    <div class="step-actions">
+                        <button type="button" class="btn btn-outline-secondary" onclick="prevStep()">Back</button>
+                        <button type="submit" class="btn btn-primary">Continue</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Step 5: Setup Complete -->
+            <div class="step" id="step-5">
+                <h2 class="step-title">Setup Complete</h2>
+                <div class="text-center mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-check-circle-fill text-success" viewBox="0 0 16 16">
+                        <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+                    </svg>
+                </div>
+                <p>Your Acestream Scraper is now configured and ready to use!</p>
+                <p>The system will start scraping your added sources in the background.</p>
+                <p>You can manage your configuration, add more sources, and view discovered channels in the dashboard.</p>
+                
+                <div class="step-actions">
+                    <button type="button" class="btn btn-outline-secondary" onclick="prevStep()">Back</button>
+                    <button type="button" class="btn btn-success" onclick="finishSetup()">Go to Dashboard</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/setup.js') }}"></script>
+</body>
+</html>

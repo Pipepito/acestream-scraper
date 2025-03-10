@@ -1,0 +1,152 @@
+{% extends "layout.html" %}
+
+{% block title %}Configuration - Acestream Scraper{% endblock %}
+
+{% block config_active %}active{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Add New URL</h5>
+        <form id="addUrlForm" class="row g-3 align-items-center">
+            <div class="col-auto flex-grow-1">
+                <input type="url" class="form-control" id="urlInput" placeholder="Enter URL to scrape" required>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary">Add URL</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Base URL Configuration</h5>
+        <form id="baseUrlForm" class="row g-3 align-items-center">
+            <div class="col-12 col-md-6">
+                <input type="text" class="form-control" id="baseUrlInput" 
+                       placeholder="Enter base URL (e.g., acestream:// or http://localhost:6878/ace/getstream?id=)" required>
+            </div>
+            <div class="col-12 col-md-3">
+                <button type="submit" class="btn btn-primary w-100">Update Base URL</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Ace Engine Configuration</h5>
+        <form id="aceEngineForm" class="row g-3 align-items-center">
+            <div class="col-12 col-md-6">
+                <input type="text" class="form-control" id="aceEngineInput" 
+                       placeholder="Enter Ace Engine URL (e.g., http://localhost:6878)" required>
+                <div class="form-text">URL of your Acestream Engine instance</div>
+            </div>
+            <div class="col-12 col-md-3">
+                <button type="submit" class="btn btn-primary w-100">Update Ace Engine URL</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Rescrape Interval Configuration</h5>
+        <form id="rescrapeIntervalForm" class="row g-3 align-items-center">
+            <div class="col-12 col-md-6">
+                <div class="input-group">
+                    <input type="number" class="form-control" id="rescrapeIntervalInput" 
+                           min="1" step="1" placeholder="Hours between rescans" required>
+                    <span class="input-group-text">hours</span>
+                </div>
+                <div class="form-text">How often to automatically refresh URLs (in hours)</div>
+            </div>
+            <div class="col-12 col-md-3">
+                <button type="submit" class="btn btn-primary w-100">Update Interval</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="acexyConfig" class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Acexy Status</h5>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="d-flex align-items-center mb-2">
+                    <span class="me-2">Status:</span>
+                    <span id="acexyStatusConfig" class="badge bg-secondary">Checking...</span>
+                </div>
+                <p class="text-muted">
+                    <a href="https://github.com/Javinator9889/acexy" target="_blank" class="acexy-feature">
+                        Acexy is an enhanced proxy interface for Acestream Engine with a web UI.
+                    </a>
+                </p>
+            </div>
+            <div class="col-md-6">
+                <div class="d-grid">
+                    <button onclick="checkAcexyStatus(true)" class="btn btn-info" title="Check Acexy status">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-repeat" viewBox="0 0 16 16">
+                            <path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                            <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                        </svg>
+                        Check Acexy Status
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">System Information</h5>
+        <table class="table table-bordered">
+            <tbody>
+                <tr>
+                    <th>Base URL</th>
+                    <td id="configBaseUrl"></td>
+                </tr>
+                <tr>
+                    <th>Ace Engine URL</th>
+                    <td id="configAceEngineUrl"></td>
+                </tr>
+                <tr>
+                    <th>Rescrape Interval</th>
+                    <td id="configRescrapeInterval"></td>
+                </tr>
+                <tr>
+                    <th>Acexy Status</th>
+                    <td id="configAcexyStatus"></td>
+                </tr>
+                <tr>
+                    <th>Total URLs</th>
+                    <td id="configTotalUrls"></td>
+                </tr>
+                <tr>
+                    <th>Total Channels</th>
+                    <td id="configTotalChannels"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">URLs Management</h5>
+    </div>
+    <div class="list-group list-group-flush" id="urlsManagementList">
+        <!-- URLs will be dynamically inserted here -->
+        <div class="list-group-item text-center text-muted">
+            Loading URLs...
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/config.js') }}"></script>
+<script src="{{ url_for('static', filename='js/urls.js') }}"></script>
+{% endblock %}

@@ -72,35 +72,72 @@ function formatLocalDate(dateString) {
  * Handle API response and show appropriate message
  * @param {Response} response - Fetch API response object
  * @param {string} successMessage - Message to show on success
- * @returns {Promise<boolean>} - Whether the request was successful
+ * @param {Function} refreshCallback - Optional callback function to refresh data
+ * @returns {Promise<Object>} - The parsed response data and success status
  */
-async function handleApiResponse(response, successMessage = 'Operation successful') {
+async function handleApiResponse(response, successMessage = 'Operation successful', refreshCallback = null) {
     try {
         const data = await response.json();
         
         if (response.ok) {
             showAlert('success', data.message || successMessage);
             
-            // Only call refreshData if it exists as a function in this context
-            if (typeof refreshData === 'function') {
+            // Refresh data if callback provided
+            if (typeof refreshCallback === 'function') {
+                setTimeout(() => refreshCallback(), 1000);
+            // If no specific callback is provided, try to use common refresh functions
+            } else if (typeof refreshData === 'function') {
                 setTimeout(() => refreshData(), 1000);
-            } else {
-                // Alternative refresh approach if refreshData doesn't exist
-                // For example, on the config page we might want to refresh config data
-                if (typeof loadConfigData === 'function') {
-                    setTimeout(() => loadConfigData(), 1000);
-                }
+            } else if (typeof loadConfigData === 'function') {
+                setTimeout(() => loadConfigData(), 1000);
             }
             
-            return true;
+            return { success: true, data };
         } else {
             showAlert('error', data.message || data.error || 'Operation failed');
-            return false;
+            return { success: false, data };
         }
     } catch (error) {
         console.error('Error processing response:', error);
         showAlert('error', 'Error processing response');
-        return false;
+        return { success: false, error };
+    }
+}
+
+/**
+ * Make an API request with standardized handling
+ * @param {string} url - API endpoint URL
+ * @param {Object} options - Fetch API options
+ * @param {string} successMessage - Message to show on success 
+ * @param {Function} refreshCallback - Optional callback function to refresh data
+ * @returns {Promise<Object>} - The result of handleApiResponse
+ */
+async function makeApiRequest(url, options, successMessage, refreshCallback = null) {
+    showLoading();
+    try {
+        console.log('Making API request to:', url, options); // Add debugging
+        const response = await fetch(url, {
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+        
+        console.log('Response:', response); // Add debugging
+        
+        if (!response.ok) {
+            // Log more details about error responses
+            console.error('API error:', response.status, await response.text());
+        }
+        
+        return await handleApiResponse(response, successMessage, refreshCallback);
+    } catch (error) {
+        console.error('API request error:', error);
+        showAlert('error', 'Network error while making request');
+        return { success: false, error };
+    } finally {
+        hideLoading();
     }
 }
 

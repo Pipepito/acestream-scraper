@@ -140,6 +140,34 @@ async function refreshUrl(url) {
     }
 }
 
+// Migrate configuration from file to database
+async function migrateConfigToDatabase() {
+    if (!confirm('This will migrate settings from config.json to the database. Continue?')) {
+        return;
+    }
+    
+    try {
+        showLoading();
+        const response = await fetch('/api/config/migrate_config', {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.status === 'success') {
+            showAlert('success', data.message);
+            await loadConfigData();
+        } else {
+            showAlert('error', data.message || 'Failed to migrate configuration');
+        }
+    } catch (error) {
+        console.error('Error migrating config:', error);
+        showAlert('error', 'Network error while migrating configuration');
+    } finally {
+        hideLoading();
+    }
+}
+
 // Setup event listeners for the configuration page
 function setupConfigEvents() {
     // Base URL form
@@ -247,28 +275,21 @@ function setupConfigEvents() {
             e.preventDefault();
             const urlInput = document.getElementById('urlInput');
             const url = urlInput.value;
-
-            try {
-                showLoading();
-                const response = await fetch('/api/urls', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ url: url })
-                });
-
-                if (await handleApiResponse(response, 'URL added successfully')) {
-                    urlInput.value = '';
-                    await loadConfigData();
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Network error while adding URL');
-            } finally {
-                hideLoading();
+            
+            console.log('Form submitted with URL:', url); // Add debugging
+            
+            const result = await addUrl(url);
+            if (result.success) {
+                urlInput.value = '';
+                await loadConfigData();
             }
         });
+    }
+    
+    // Migration button
+    const migrateConfigBtn = document.getElementById('migrateConfigBtn');
+    if (migrateConfigBtn) {
+        migrateConfigBtn.addEventListener('click', migrateConfigToDatabase);
     }
 }
 

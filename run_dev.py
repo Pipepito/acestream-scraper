@@ -1,38 +1,40 @@
+#!/usr/bin/env python
 import os
-from app import create_app
-from app.tasks.manager import TaskManager
-import threading
-import asyncio
+import sys
+import logging
+from pathlib import Path
 
-def run_task_manager(app):
-    """Run task manager in a separate thread"""
-    task_manager = TaskManager()
-    task_manager.init_app(app)
-    
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.create_task(task_manager.start())
-    loop.run_forever()
+# Setup basic logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 def main():
-    """Main entry point for development server"""
-    app = create_app()
+    # Ensure project root is in Python path
+    project_root = os.path.dirname(os.path.abspath(__file__))
+    sys.path.insert(0, project_root)
     
-    # Get port from environment variable or use default
-    port = int(os.getenv('FLASK_PORT', 8000))
+    # Ensure config directory exists
+    config_dir = Path(project_root) / 'config'
+    config_dir.mkdir(parents=True, exist_ok=True)
+    logger.info(f"Ensuring config directory exists: {config_dir}")
     
-    # Start task manager in a separate thread
-    task_thread = threading.Thread(target=run_task_manager, args=(app,))
-    task_thread.daemon = True
-    task_thread.start()
+    # Set development environment
+    os.environ['FLASK_ENV'] = 'development'
+    os.environ['FLASK_APP'] = 'app'
     
-    # Run Flask app in debug mode
-    app.run(
-        host='0.0.0.0',
-        port=port,
-        debug=True,
-        use_reloader=False  # Disable reloader when using threads
-    )
+    try:
+        # Import the create_app function and create the app
+        from app import create_app
+        app = create_app()
+        
+        # Run the development server
+        app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 8000)))
+    except Exception as e:
+        logger.error(f"Failed to start application: {e}", exc_info=True)
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()

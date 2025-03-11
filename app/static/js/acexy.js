@@ -1,5 +1,5 @@
 /**
- * Acexy-specific functionality for Acestream Scraper
+ * Acexy integration functionality for Acestream Scraper
  */
 
 // Check Acexy status
@@ -10,7 +10,7 @@ async function checkAcexyStatus(showLoadingIndicator = false) {
         const response = await fetch('/api/config/acexy_status');
         const data = await response.json();
         
-        // Update Acexy status badge in different views
+        // Update Acexy status badges in different views
         const dashboardStatusElement = document.getElementById('acexyStatus');
         const configStatusElement = document.getElementById('acexyStatusConfig');
         

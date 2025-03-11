@@ -10,7 +10,7 @@ async function handleAddChannel(e) {
 
     try {
         showLoading();
-        const response = await fetch('/api/channels/', {
+        const response = await fetch('/api/channels/', {  // Note: no trailing slash
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -24,10 +24,14 @@ async function handleAddChannel(e) {
         if (await handleApiResponse(response, 'Channel added successfully')) {
             document.getElementById('channelId').value = '';
             document.getElementById('channelName').value = '';
+            // Refresh data after successful addition
+            if (typeof refreshData === 'function') {
+                await refreshData();
+            }
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Network error while adding channel');
+        showAlert('error', 'Network error while adding channel');
     } finally {
         hideLoading();
     }
@@ -45,10 +49,15 @@ async function deleteChannel(channelId) {
             method: 'DELETE'
         });
         
-        await handleApiResponse(response, 'Channel deleted successfully');
+        if (await handleApiResponse(response, 'Channel deleted successfully')) {
+            // Refresh data after successful deletion
+            if (typeof refreshData === 'function') {
+                await refreshData();
+            }
+        }
     } catch (error) {
         console.error('Error:', error);
-        alert('Network error while deleting channel');
+        showAlert('error', 'Network error while deleting channel');
     } finally {
         hideLoading();
     }
@@ -94,7 +103,11 @@ async function refreshChannelsList(searchTerm = '') {
             channelsList.innerHTML = channels.map(channel => `
                 <tr>
                     <td>${channel.name}</td>
-                    <td><code>${channel.id}</td>
+                    <td>
+                            <a href="acestream://${channel.id}" class="text-decoration-none" title="Open in Acestream player">
+                                ${channel.id}
+                            </a>
+                    </td>
                     <td>
                         ${formatLocalDate(channel.last_processed)}
                         ${channel.last_checked ? `
@@ -137,9 +150,18 @@ async function refreshChannelsList(searchTerm = '') {
 async function searchChannels(searchTerm) {
     try {
         showLoading();
-        await refreshChannelsList(searchTerm);
+        const response = await fetch(`/api/channels?search=${encodeURIComponent(searchTerm)}`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to search channels');
+        }
+        
+        return data;
     } catch (error) {
         console.error('Error searching channels:', error);
+        showAlert('error', 'Error searching channels');
+        return [];
     } finally {
         hideLoading();
     }

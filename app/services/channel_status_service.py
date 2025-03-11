@@ -108,3 +108,14 @@ class ChannelStatusService:
         
         tasks = [check_with_semaphore(channel) for channel in channels]
         return await asyncio.gather(*tasks)
+
+async def check_channel_status(channel: AcestreamChannel) -> dict:
+    """Check status of a single channel."""
+    service = ChannelStatusService()
+    is_online = await service.check_channel(channel)
+    
+    return {
+        'is_online': is_online,
+        'last_checked': channel.last_checked,
+        'error': channel.check_error
+    }

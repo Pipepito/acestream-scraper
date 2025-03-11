@@ -1,3 +1,4 @@
+import asyncio
 from flask_restx import Namespace, Resource, fields, reqparse
 from flask import request
 from app.models import AcestreamChannel
@@ -36,6 +37,11 @@ channel_parser.add_argument('search', type=str, required=False, help='Filter cha
 
 channel_repo = ChannelRepository()
 
+def handle_repository_error(e: Exception, operation: str):
+    """Handle repository errors consistently."""
+    logger.error(f"Error in channels controller - {operation}: {str(e)}")
+    api.abort(500, f"Failed to {operation}: {str(e)}")
+
 @api.route('/')
 class ChannelList(Resource):
     @api.doc('list_channels')
@@ -43,20 +49,13 @@ class ChannelList(Resource):
     @api.marshal_list_with(channel_model)
     def get(self):
         """Get list of channels, optionally filtered by search term."""
-        args = channel_parser.parse_args()
-        search = args.get('search', '')
-        
         try:
-            if (search):
-                channels = AcestreamChannel.query.filter(
-                    AcestreamChannel.name.ilike(f'%{search}%')
-                ).all()
-            else:
-                channels = AcestreamChannel.query.all()
-            
+            args = channel_parser.parse_args()
+            search = args.get('search', '')
+            channels = channel_repo.search(search) if search else channel_repo.get_active()
             return channels
         except Exception as e:
-            api.abort(500, str(e))
+            handle_repository_error(e, "fetch channels")
     
     @api.doc('create_channel')
     @api.expect(channel_input_model)
@@ -65,21 +64,14 @@ class ChannelList(Resource):
     def post(self):
         """Add a new channel."""
         data = request.json
-        
         try:
-            # Check if channel already exists
-            existing = channel_repo.get_by_id(data['id'])
-            if existing:
-                api.abort(409, 'A channel with this ID already exists')
-            
-            # Create new channel
-            channel = AcestreamChannel(
-                id=data['id'],
-                name=data['name'],
-                status='active',
-                added_at=datetime.now(timezone.utc)
+            # Use repository create method
+            channel = channel_repo.create(
+                channel_id=data['id'],
+                name=data['name']
             )
-            channel_repo.add(channel)
+            if not channel:
+                api.abort(500, "Failed to create channel")
             
             return {
                 'message': 'Channel added successfully',
@@ -112,12 +104,10 @@ class Channel(Resource):
     def delete(self, channel_id):
         """Delete a channel."""
         try:
-            channel = channel_repo.get_by_id(channel_id)
-            if not channel:
-                api.abort(404, 'Channel not found')
-            
-            channel_repo.delete(channel)
-            return {'message': 'Channel deleted successfully'}
+            # Use repository delete method directly
+            if channel_repo.delete(channel_id):
+                return {'message': 'Channel deleted successfully'}
+            api.abort(404, 'Channel not found')
         except Exception as e:
             api.abort(500, str(e))
 
@@ -134,10 +124,10 @@ class ChannelStatusCheck(Resource):
             if not channel:
                 api.abort(404, 'Channel not found')
             
-            # Import here to avoid circular imports
             from app.services.channel_status_service import check_channel_status
             
-            result = check_channel_status(channel)
+            # Run the async function in the event loop
+            result = asyncio.run(check_channel_status(channel))
             
             return {
                 'id': channel.id,
@@ -147,6 +137,7 @@ class ChannelStatusCheck(Resource):
                 'error': result.get('error', None)
             }
         except Exception as e:
+            logger.error(f"Error checking channel status: {e}", exc_info=True)
             api.abort(500, str(e))
 
 @api.route('/check-status')

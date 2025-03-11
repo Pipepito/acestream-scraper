@@ -35,7 +35,13 @@
                 <!-- Add URL Form -->
                 <div class="mb-4 border-bottom pb-3">
                     <h6 class="card-subtitle mb-2">Add New URL</h6>
-                    {% include 'partials/forms/add_url.html' %}
+                    <form id="addUrlForm" class="mb-3">
+                        <div class="input-group">
+                            <input type="url" class="form-control" id="urlInput" 
+                                   placeholder="Enter URL to scrape" required>
+                            <button type="submit" class="btn btn-primary">Add URL</button>
+                        </div>
+                    </form>
                 </div>
                 
                 <!-- URLs List -->
@@ -77,22 +83,10 @@
                 <div class="mb-3 border-bottom pb-3">
                     <h6 class="card-subtitle mb-2">Ace Engine</h6>
                     <p id="currentAceEngineUrlDisplay" class="mb-1 text-muted small"></p>
-                    <div id="acexyInfoSection" class="d-none acexy-feature mt-3">
-                        <h6 class="card-subtitle mb-2">Acexy Status</h6>
-                        <p class="mb-1 text-muted small">
-                            <span id="acexyStatus">
-                                <span class="badge bg-secondary">Checking...</span>
-                            </span>
-                        </p>
-                        <div class="mt-2">
-                            <a href="http://localhost:8080" target="_blank" class="btn btn-sm btn-outline-primary acexy-feature d-none">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box-arrow-up-right me-1" viewBox="0 0 16 16">
-                                    <path fill-rule="evenodd" d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a.5.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5z"/>
-                                    <path fill-rule="evenodd" d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z"/>
-                                </svg>
-                                Open Acexy
-                            </a>
-                        </div>
+                    <div class="mt-2">
+                        <span>
+                            Status: <span id="acexyStatus" class="badge bg-secondary">Checking...</span>
+                        </span>
                     </div>
                 </div>
 
@@ -205,6 +199,7 @@
 <script src="{{ url_for('static', filename='js/channels.js') }}"></script>
 <script src="{{ url_for('static', filename='js/urls.js') }}"></script>
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script src="{{ url_for('static', filename='js/acexy.js') }}"></script>
 <script>
     function copyToClipboard(element) {
         const el = document.querySelector(element);

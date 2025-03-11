@@ -1,81 +1,68 @@
-from typing import Any, Optional, Dict
-from datetime import datetime, timezone
-from ..models import Setting
-from .base import BaseRepository
+from app.models import Setting
+from app.extensions import db
 
-class SettingsRepository(BaseRepository):
-    """Repository for accessing and managing settings."""
+class SettingsRepository:
+    """Repository for application settings."""
     
-    # Define constants for setting keys
-    BASE_URL = 'base_url'
-    DEFAULT_BASE_URL = 'http://localhost:6878/ace/getstream?id='
-    
+    # Constants for common settings (for backwards compatibility)
     ACE_ENGINE_URL = 'ace_engine_url'
     DEFAULT_ACE_ENGINE_URL = 'http://localhost:6878'
-    
+    BASE_URL = 'base_url'
+    DEFAULT_BASE_URL = 'acestream://'
     RESCRAPE_INTERVAL = 'rescrape_interval'
-    DEFAULT_RESCRAPE_INTERVAL = 24  # hours
-    
+    DEFAULT_RESCRAPE_INTERVAL = '24'
     SETUP_COMPLETED = 'setup_completed'
-    SETUP_TIMESTAMP = 'setup_timestamp'
     
-    def __init__(self):
-        super().__init__(Setting)
-    
-    def get(self, key: str, default: Any = None) -> Any:
-        """Get a setting value by key."""
-        setting = self.model.query.get(key)
+    def get_setting(self, key, default=None):
+        """Get a setting value by key, with database fallback."""
+        setting = Setting.query.filter_by(key=key).first()
         return setting.value if setting else default
-    
-    def set(self, key: str, value: Any) -> None:
-        """Set a setting value."""
-        setting = self.model.query.get(key) or self.model(key=key)
-        setting.value = str(value)
-        self._db.session.merge(setting)
-        self._db.session.commit()
-    
-    def delete(self, key: str) -> bool:
-        """Delete a setting by key."""
-        setting = self.get_by_id(key)
-        if setting is not None:
-            super().delete(setting)
-            self.commit()
-            return True
-        return False
-    
-    def get_all(self) -> Dict[str, str]:
-        """Get all settings as a dictionary."""
-        settings = super().get_all()
-        return {setting.key: setting.value for setting in settings}
-    
-    def setup_defaults(self) -> None:
-        """Set up default values for settings if they don't exist."""
-        if not self.get(self.BASE_URL):
-            self.set(self.BASE_URL, self.DEFAULT_BASE_URL)
-        if not self.get(self.ACE_ENGINE_URL):
-            self.set(self.ACE_ENGINE_URL, self.DEFAULT_ACE_ENGINE_URL)
-        if not self.get(self.RESCRAPE_INTERVAL):
-            self.set(self.RESCRAPE_INTERVAL, self.DEFAULT_RESCRAPE_INTERVAL)
-    
-    def is_setup_completed(self) -> bool:
-        """Check if initial setup has been completed."""
-        return self.get(self.SETUP_COMPLETED) == 'True'
-    
-    def mark_setup_completed(self) -> None:
-        """Mark initial setup as completed."""
-        self.set(self.SETUP_COMPLETED, 'True')
-        self.set(self.SETUP_TIMESTAMP, datetime.now(timezone.utc).isoformat())
-    
-    def import_from_json_config(self, config: dict) -> None:
-        """Import settings from JSON configuration."""
-        if 'base_url' in config:
-            self.set(self.BASE_URL, config['base_url'])
-            
-        if 'ace_engine_url' in config:
-            self.set(self.ACE_ENGINE_URL, config['ace_engine_url'])
-            
-        if 'rescrape_interval' in config:
-            self.set(self.RESCRAPE_INTERVAL, config['rescrape_interval'])
         
-        # Mark setup as completed
+    def set_setting(self, key, value):
+        """Set a setting value by key."""
+        setting = Setting.query.filter_by(key=key).first()
+        if setting:
+            setting.value = str(value)
+        else:
+            setting = Setting(key=key, value=str(value))
+            db.session.add(setting)
+        db.session.commit()
+        
+    # Alias methods for backwards compatibility
+    def get(self, key, default=None):
+        """Alias for get_setting."""
+        return self.get_setting(key, default)
+        
+    def set(self, key, value):
+        """Alias for set_setting."""
+        return self.set_setting(key, value)
+        
+    def get_all_settings(self):
+        """Get all settings as a dictionary."""
+        return {setting.key: setting.value for setting in Setting.query.all()}
+        
+    def is_setup_completed(self):
+        """Check if setup has been completed."""
+        return self.get_setting(self.SETUP_COMPLETED) == 'True'
+        
+    def mark_setup_completed(self):
+        """Mark setup as completed."""
+        self.set_setting(self.SETUP_COMPLETED, 'True')
+        
+    def setup_defaults(self):
+        """Set up default settings."""
+        default_settings = {
+            self.BASE_URL: self.DEFAULT_BASE_URL,
+            self.ACE_ENGINE_URL: self.DEFAULT_ACE_ENGINE_URL,
+            self.RESCRAPE_INTERVAL: self.DEFAULT_RESCRAPE_INTERVAL
+        }
+        
+        for key, value in default_settings.items():
+            if not self.get_setting(key):
+                self.set_setting(key, value)
+                
+    def import_from_json_config(self, config_data):
+        """Import settings from a JSON configuration dictionary."""
+        for key, value in config_data.items():
+            self.set_setting(key, value)
         self.mark_setup_completed()

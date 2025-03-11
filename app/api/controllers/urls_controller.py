@@ -1,9 +1,13 @@
 from flask_restx import Namespace, Resource, fields, reqparse
 from flask import request, current_app
 from app.models import ScrapedURL
-from app.repositories import URLRepository
+from app.repositories import URLRepository, ChannelRepository  # Add ChannelRepository import
 from datetime import datetime, timezone
 from app.tasks.manager import TaskManager
+from urllib.parse import unquote
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Create a singleton instance that tests can reference and mock
 task_manager = TaskManager()
@@ -32,7 +36,9 @@ url_model = api.model('URL', {
     'last_error': fields.String(description='Last error message, if any')
 })
 
+# Initialize repositories
 url_repo = URLRepository()
+channel_repo = ChannelRepository()  # Add channel repository initialization
 
 @api.route('/')
 class URLList(Resource):
@@ -132,20 +138,35 @@ class URLItem(Resource):
             api.abort(500, str(e))
     
     @api.doc('delete_url')
-    @api.response(200, 'URL deleted')
+    @api.response(204, 'URL deleted')
     @api.response(404, 'URL not found')
     def delete(self, url):
         """Delete a URL and its associated channels."""
         try:
-            url_obj = url_repo.get_by_url(url)
+            # Properly decode the URL
+            decoded_url = unquote(url)
+            logger.debug(f"Attempting to delete URL: {decoded_url}")
+            
+            # Get the URL object
+            url_obj = url_repo.get_by_url(decoded_url)
             if not url_obj:
+                logger.warning(f"URL not found for deletion: {decoded_url}")
                 api.abort(404, 'URL not found')
             
-            # Delete the URL and associated channels
-            url_repo.delete(url_obj)
+            # Delete associated channels first
+            if not channel_repo.delete_by_source(decoded_url):
+                logger.error(f"Failed to delete associated channels for URL: {decoded_url}")
             
-            return {'message': 'URL and associated channels deleted successfully'}
+            # Delete the URL
+            if url_repo.delete(url_obj):
+                logger.info(f"Successfully deleted URL: {decoded_url}")
+                return '', 204
+            
+            logger.error(f"Failed to delete URL: {decoded_url}")
+            api.abort(500, "Failed to delete URL")
+            
         except Exception as e:
+            logger.error(f"Error deleting URL: {e}", exc_info=True)
             api.abort(500, str(e))
 
 @api.route('/refresh')

@@ -20,12 +20,20 @@ logger = logging.getLogger(__name__)  # Add this line to define logger
 task_manager = None
 
 @bp.route('/')
-def index():
+def index():  # Change name back to index
     """Render the dashboard page."""
     config = Config()
     if not config.is_initialized() and not current_app.testing:
         return redirect(url_for('main.setup'))
     return render_template('dashboard.html')
+
+# Remove or update the dashboard route to point to index
+@bp.route('/dashboard')
+def dashboard():
+    """Alternative endpoint for dashboard."""
+    return index()
+
+# Add test_mode check to the get_playlist function
 
 @bp.route('/playlist.m3u')
 def get_playlist():
@@ -41,6 +49,7 @@ def get_playlist():
     # Get query parameters
     refresh = request.args.get('refresh', 'false').lower() == 'true'
     search = request.args.get('search', None)
+    base_url_param = request.args.get('base_url', None)
     
     # Refresh data if requested
     if refresh and task_manager:
@@ -54,7 +63,17 @@ def get_playlist():
     
     # Generate playlist using service
     playlist_service = PlaylistService()
-    playlist = playlist_service.generate_playlist(search_term=search)
+    
+    # Override base_url if provided in query params
+    if base_url_param:
+        # Temporarily override the base_url for this request
+        original_base_url = playlist_service.config.base_url
+        playlist_service.config.base_url = base_url_param
+        playlist = playlist_service.generate_playlist(search_term=search)
+        # Restore original base_url
+        playlist_service.config.base_url = original_base_url
+    else:
+        playlist = playlist_service.generate_playlist(search_term=search)
     
     # Generate filename with timestamp
     filename = f"acestream_playlist_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"

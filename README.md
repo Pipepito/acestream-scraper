@@ -18,6 +18,10 @@ A Python-based web scraping application that retrieves Acestream channel informa
 - **Built-in Acestream engine with Acexy proxy (optional)**
 - Channel status checking
 - Acexy status display in the dashboard
+- **Interactive setup wizard for easy configuration**
+- **Channel search functionality**
+- **Automatic rescraping at configurable intervals**
+- **API documentation via OpenAPI/Swagger UI**
 
 ## Quick Start
 
@@ -31,17 +35,26 @@ A Python-based web scraping application that retrieves Acestream channel informa
    docker pull pipepito/acestream-scraper:latest
    docker run -d \
      -p 8000:8000 \
-     -p 43110:43110 \
-     -p 43111:43111 \
-     -e TZ=Europe/Madrid \
      -v "${PWD}/config:/app/config" \
-     -v "${PWD}/zeronet_data:/app/ZeroNet/data" \
+     --name acestream-scraper \
      pipepito/acestream-scraper:latest
    ```
 
-2. **Create a config/config.json file:**
+2. **Access the setup wizard:**
+   
+   Open your browser and navigate to `http://localhost:8000`
+   
+   The first-time setup wizard will guide you through configuration:
+   - Base URL format (acestream:// or http://)
+   - Acestream Engine settings
+   - Source URLs to scrape
+   - Rescrape interval
 
-   ```bash
+3. **Alternative: Manual configuration**
+
+   Create a `config/config.json` file:
+
+   ```json
    {
        "urls": [
            "https://example.com/url1",
@@ -52,42 +65,41 @@ A Python-based web scraping application that retrieves Acestream channel informa
    }
    ```
 
-### Running with Acexy Enabled
+### Running with Acexy Enabled (Recommended)
 
-The image includes an embedded Acestream engine with the Acexy proxy interface, which can be enabled through environment variables:
+The image includes an embedded Acestream engine with the Acexy proxy interface, which provides a user-friendly web UI:
 
 ```bash
 docker run -d \
   -p 8000:8000 \
-  -p 43110:43110 \
   -p 8080:8080 \
   -e ENABLE_ACEXY=true \
   -e ALLOW_REMOTE_ACCESS=yes \
   -v "${PWD}/config:/app/config" \
-  -v "${PWD}/zeronet_data:/app/ZeroNet/data" \
+  --name acestream-scraper \
   pipepito/acestream-scraper:latest
 ```
 
 The Acexy web interface will be available at `http://localhost:8080`.
 
-### Using with TOR
+### Using with ZeroNet
 
-This image supports ZeroNet with TOR integration for enhanced privacy. Use the `ENABLE_TOR` environment variable to toggle this feature.
+The application can scrape ZeroNet sites for channel information:
 
-### Running with TOR disabled
+#### Running with TOR disabled
 
 ```bash
 docker run -d \
   -p 8000:8000 \
   -p 43110:43110 \
   -p 43111:43111 \
-  -p 26552:26552 \ # Optional: Zeronet Fileserver port
   -v "${PWD}/config:/app/config" \
   -v "${PWD}/zeronet_data:/app/ZeroNet/data" \
+  --name acestream-scraper \
   pipepito/acestream-scraper:latest
 ```
 
-### Running with TOR enabled
+#### Running with TOR enabled
 
 ```bash
 docker run -d \
@@ -97,6 +109,7 @@ docker run -d \
   -e ENABLE_TOR=true \
   -v "${PWD}/config:/app/config" \
   -v "${PWD}/zeronet_data:/app/ZeroNet/data" \
+  --name acestream-scraper \
   pipepito/acestream-scraper:latest
 ```
 
@@ -126,50 +139,76 @@ docker run -d \
    python wsgi.py     # For production
    ```
 
-## Usage
+## Usage Guide
 
 ### Web Interface
 
 Access the web interface at `http://localhost:8000`
+
 ![image](https://github.com/user-attachments/assets/5043a652-dc5a-4227-904e-21828fac089e)
+
+#### Dashboard
+
+The main dashboard provides:
+- Channel statistics (total, online, offline)
+- Search functionality for channels
+- Download playlist button
+- Add/delete channels
+- URL management
+- Configuration options
+
+#### Channel Management
+
+- **Adding channels**: Enter a channel ID and name in the form
+- **Searching**: Use the search box to filter channels by name
+- **Status checking**: Click the "Check Status" button to verify if a channel is online
+- **Delete channels**: Remove unwanted channels with the delete button
+
+#### URL Management
+
+- **Add new URLs**: Enter URLs to scrape in the "Add New URL" form
+- **Refresh URLs**: Update channel data by clicking "Refresh" on a URL
+- **Enable/Disable URLs**: Toggle URLs on/off without deleting them
+- **Delete URLs**: Remove URLs you no longer want to scrape
 
 ### M3U Playlist
 
-- Get current playlist: `http://localhost:8000/playlist.m3u`
-- Force refresh and get playlist: `http://localhost:8000/playlist.m3u?refresh=true`
+Get the M3U playlist for your media player:
+
+- Current playlist: `http://localhost:8000/playlist.m3u`
+- Force refresh: `http://localhost:8000/playlist.m3u?refresh=true`
+
+To use in your media player (like VLC):
+1. Copy the playlist URL (http://localhost:8000/playlist.m3u)
+2. In your media player, select "Open Network Stream" or similar option
+3. Paste the URL and play
+
+### API Documentation
+
+The application provides OpenAPI/Swagger documentation:
+
+- Access at: `http://localhost:8000/api/docs`
+- Interactive API documentation for developers
+- Test endpoints directly from the browser
 
 ### Acexy Interface
 
-- If enabled, access the Acexy interface at: `http://localhost:8080`
-- Check Acexy status in the main dashboard
+If you enabled Acexy (recommended):
 
-### Database Management
-
-The application includes database migration support:
-
-```bash
-# Initialize database (first time only)
-python manage.py init
-
-# Create a new migration
-python manage.py migrate "description"
-
-# Apply migrations
-python manage.py upgrade
-
-# Rollback migrations
-python manage.py downgrade
-```
+- Access the Acexy interface at: `http://localhost:8080`
+- Check Acexy status directly in the main dashboard
+- Manage your Acestream connections through a user-friendly web interface
 
 ## Configuration
 
 ### Application Settings
 
-The application supports the following configuration options:
+Configure through the setup wizard or directly in `config.json`:
 
 - `urls`: Array of URLs to scrape for Acestream channels
 - `base_url`: Base URL format for playlist generation (e.g., `acestream://` or `http://localhost:6878/ace/getstream?id=`)
 - `ace_engine_url`: URL of your Acestream Engine instance (default: `http://127.0.0.1:6878`)
+- `rescrape_interval`: How often to refresh URLs (in hours, default: 24)
 
 ### Acexy Configuration
 
@@ -184,12 +223,11 @@ Acexy provides an enhanced proxy interface for Acestream, with a web UI for bett
 
 ### Channel Status Checking
 
-The application can verify channel availability by communicating with an Acestream Engine instance:
+The application verifies if channels are available:
 
-- Checks if channels are online/offline via Acestream Engine API
-- Supports individual and bulk status checking
-- Displays status history and error messages in the UI
-- Configurable through the `ace_engine_url` setting
+- Shows which channels are online/offline in the dashboard
+- Click "Check Status" button to verify individual channels
+- Status history and error messages displayed in the UI
 
 To use this feature:
 
@@ -200,8 +238,8 @@ To use this feature:
 ### Port Mapping
 
 - `8000`: Main web interface
-- `43110`: ZeroNet web interface
-- `43111`: ZeroNet transport port
+- `43110`: ZeroNet web interface (if ZeroNet enabled)
+- `43111`: ZeroNet transport port (if ZeroNet enabled)
 - `8080`: Acexy web interface (if enabled)
 - `6878`: Acestream HTTP API port (internal)
 
@@ -210,7 +248,7 @@ To use this feature:
 When using Docker, mount these volumes:
 
 - `/app/config`: Configuration files
-- `/app/ZeroNet/data`: ZeroNet data directory
+- `/app/ZeroNet/data`: ZeroNet data directory (if using ZeroNet)
 
 ### ZeroNet Configuration
 
@@ -235,7 +273,6 @@ ui_ip = *
 ui_host =
  127.0.0.1
  your.domain.com
- another.domain.com
  localhost:43110
 ui_port = 43110
 ```
@@ -246,22 +283,20 @@ ui_port = 43110
 docker run -d \
   -p 8000:8000 \
   -p 43110:43110 \
-  -p 43111:43111 \
-  -e TZ=Europe/Madrid \
   -v "${PWD}/config:/app/config" \
+  --name acestream-scraper \
   pipepito/acestream-scraper:latest
 ```
 
 ### Security Note
 
 - Add your domain(s) to `ui_host` for public access
-- Use one domain per line after `ui_host =`
 - Always include `localhost` for local access
 - Set `ALLOW_REMOTE_ACCESS=no` to restrict Acestream access to localhost only
 
 ### Healthchecks
 
-The container includes comprehensive health checking:
+The container includes health checking:
 
 - Main application health check at `/health` endpoint
 - Acexy health check (if enabled)
@@ -272,7 +307,7 @@ The container includes comprehensive health checking:
 For development, use `run_dev.py` which provides:
 
 - Debug mode
-- Auto-reloading (disabled for task manager thread)
+- Auto-reloading
 - Windows compatibility
 
 ## Architecture

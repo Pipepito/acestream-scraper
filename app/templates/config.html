@@ -101,6 +101,22 @@
 
 <div class="card mb-4">
     <div class="card-body">
+        <h5 class="card-title">Configuration Migration</h5>
+        <p class="text-muted">Migrate settings from config.json file to the database. This is recommended for future compatibility.</p>
+        <div class="d-grid gap-2">
+            <button id="migrateConfigBtn" class="btn btn-warning">
+                <i class="bi bi-arrow-right"></i> Migrate config.json to Database
+            </button>
+        </div>
+        <div class="alert alert-info mt-2">
+            <i class="bi bi-info-circle"></i> After successful migration, config.json will still exist but will no longer be required.
+            In a future version, support for config.json will be removed completely.
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
         <h5 class="card-title">System Information</h5>
         <table class="table table-bordered">
             <tbody>

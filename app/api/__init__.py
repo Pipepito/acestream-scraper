@@ -25,6 +25,10 @@ api.add_namespace(urls_ns, path='/urls')
 api.add_namespace(health_ns, path='/health')
 api.add_namespace(playlist_ns, path='/playlists')
 
+# Register the config routes with the config namespace
+from . import config_routes
+config_routes.register_routes(config_ns)
+
 # Register error handlers
 @bp.errorhandler(404)
 def handle_404(e):

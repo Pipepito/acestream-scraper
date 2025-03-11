@@ -186,3 +186,46 @@ document.addEventListener('DOMContentLoaded', function() {
     // Refresh periodically
     setInterval(refreshData, 60000); // Every minute
 });
+
+async function handleAddUrl(e) {
+    e.preventDefault();
+    const urlInput = document.getElementById('urlInput');
+    const url = urlInput.value.trim();
+    
+    if (!url) {
+        showAlert('error', 'Please enter a URL');
+        return;
+    }
+    
+    try {
+        showLoading();
+        const response = await fetch('/api/urls/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ url: url })
+        });
+        
+        if (await handleApiResponse(response, 'URL added successfully')) {
+            urlInput.value = '';
+            // Refresh data after successful addition
+            if (typeof refreshData === 'function') {
+                await refreshData();
+            }
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showAlert('error', 'Network error while adding URL');
+    } finally {
+        hideLoading();
+    }
+}
+
+// Add event listener to the form
+document.addEventListener('DOMContentLoaded', () => {
+    const addUrlForm = document.getElementById('addUrlForm');
+    if (addUrlForm) {
+        addUrlForm.addEventListener('submit', handleAddUrl);
+    }
+});

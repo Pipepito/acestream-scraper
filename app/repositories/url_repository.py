@@ -1,7 +1,11 @@
+import logging
+from typing import Optional, List
+from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime, timezone
-from typing import List, Optional
 from ..models import ScrapedURL
 from .base import BaseRepository
+
+logger = logging.getLogger(__name__)
 
 class URLRepository(BaseRepository[ScrapedURL]):
     def __init__(self):
@@ -11,7 +15,7 @@ class URLRepository(BaseRepository[ScrapedURL]):
         return self.model.query.filter(
             (ScrapedURL.status != 'disabled') & 
             ((ScrapedURL.status == 'pending') |
-             (ScrapedURL.status == 'failed') &
+             (ScrapedURL.status == 'failed') & 
              (ScrapedURL.error_count < max_retries))
         ).all()
         
@@ -39,3 +43,25 @@ class URLRepository(BaseRepository[ScrapedURL]):
         self._db.session.add(url_obj)
         self._db.session.commit()
         return url_obj
+
+    def add(self, url_obj):
+        """Add a new URL to the database."""
+        try:
+            self._db.session.add(url_obj)
+            self._db.session.commit()
+            return url_obj
+        except Exception as e:
+            self._db.session.rollback()
+            logger.error(f"Error adding URL to database: {e}")
+            raise
+
+    def delete(self, url_obj: ScrapedURL) -> bool:
+        """Delete a URL from the database."""
+        try:
+            self._db.session.delete(url_obj)
+            self._db.session.commit()
+            return True
+        except SQLAlchemyError as e:
+            self._db.session.rollback()
+            logger.error(f"Error deleting URL {url_obj.url}: {e}")
+            return False

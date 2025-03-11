@@ -33,6 +33,8 @@ def reset_config():
     original_instance = Config._instance if hasattr(Config, '_instance') else None
     # Reset the instance
     Config._instance = None
+    Config.config_path = None
+    Config.database_path = None
     yield
     # Restore the original instance after the test
     Config._instance = original_instance
@@ -43,10 +45,8 @@ def app():
     # Set testing environment
     os.environ['TESTING'] = '1'
     
-    # Create base app without initialization
+    # Create base app with minimal configuration
     app = Flask(__name__)
-    
-    # Configure SQLite in-memory database
     app.config.update({
         'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
         'TESTING': True,
@@ -84,16 +84,17 @@ def app():
 @pytest.fixture
 def client(app, db_session):
     """Create Flask test client with initialized database."""
+    # Ensure app has registered routes properly before creating test client
     with app.test_client() as test_client:
-        with app.app_context():
-            yield test_client
+        # Verify that the playlist route is available
+        assert '/playlist.m3u' in [rule.rule for rule in app.url_map.iter_rules()], "Playlist route not found!"
+        yield test_client
 
 @pytest.fixture
 def app_context(app):
     """Create an application context for tests."""
-    with app.app_context() as ctx:
-        yield ctx
-        # Don't pop the context here - let the test manage it
+    with app.app_context():
+        yield
 
 @pytest.fixture
 def db_session(app):
@@ -142,10 +143,6 @@ def mock_settings_repo():
 @pytest.fixture
 def config():
     """Provide a properly configured Config instance for tests."""
-    # Reset singleton
-    if hasattr(Config, '_instance'):
-        Config._instance = None
-    
     # Create fresh config instance
     config = Config()
     
@@ -157,6 +154,9 @@ def config():
     config.base_url = "http://localhost:6878/ace/getstream?id="
     config.ace_engine_url = "http://localhost:6878"
     config.rescrape_interval = 24
+    
+    # Set TESTING environment variable for in-memory database
+    os.environ['TESTING'] = 'True'
     
     return config
 

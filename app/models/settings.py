@@ -1,10 +1,10 @@
 from sqlalchemy import Column, String
-from ..extensions import db
+from app.extensions import db
 from datetime import datetime
 
 
 class Setting(db.Model):
-    """Application settings model."""
+    """Model for storing application settings."""
     
     __tablename__ = 'settings'
     
@@ -13,4 +13,4 @@ class Setting(db.Model):
     last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     def __repr__(self):
-        return f"<Setting {self.key}>"
+        return f'<Setting {self.key}={self.value}>'

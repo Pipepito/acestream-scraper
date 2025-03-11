@@ -27,7 +27,6 @@ class HealthCheck(Resource):
             'task_manager': False
         }
         
-        # Check database health
         try:
             from app.extensions import db
             db.session.execute('SELECT 1')
@@ -35,7 +34,6 @@ class HealthCheck(Resource):
             health_data['database'] = False
             health_data['status'] = 'degraded'
         
-        # Check Acexy health (if enabled)
         acexy_enabled = os.environ.get("ENABLE_ACEXY", "false").lower() == "true"
         if acexy_enabled:
             try:
@@ -47,7 +45,6 @@ class HealthCheck(Resource):
                 health_data['acexy'] = False
                 health_data['status'] = 'degraded'
         
-        # Check task manager status
         from app.views.main import task_manager
         if task_manager:
             health_data['task_manager'] = task_manager.running

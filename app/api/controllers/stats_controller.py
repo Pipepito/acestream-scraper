@@ -2,10 +2,8 @@ from flask_restx import Namespace, Resource, fields
 from app.models import AcestreamChannel, ScrapedURL
 from app.utils.config import Config
 
-# Create namespace first
 api = Namespace('stats', description='Application statistics')
 
-# Define models for the API documentation
 url_stats_model = api.model('URLStats', {
     'url': fields.String(description='URL being scraped'),
     'status': fields.String(description='Current status of the URL'),
@@ -28,7 +26,6 @@ stats_model = api.model('Stats', {
     'task_manager_status': fields.String(description='Status of the background task manager')
 })
 
-# Now add routes to the namespace
 @api.route('/')
 class Stats(Resource):
     @api.doc('get_stats')
@@ -40,7 +37,6 @@ class Stats(Resource):
             channels = AcestreamChannel.query.all()
             config = Config()
             
-            # Count channels by status
             total_checked = sum(1 for ch in channels if ch.last_checked is not None)
             online_channels = sum(1 for ch in channels if ch.is_online)
             
@@ -58,7 +54,6 @@ class Stats(Resource):
                     'last_error': url.last_error
                 })
             
-            # Get task manager status
             try:
                 from app.tasks.manager import task_manager
                 task_status = "running" if task_manager and task_manager.running else "stopped"

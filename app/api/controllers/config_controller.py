@@ -2,29 +2,27 @@ from flask_restx import Namespace, Resource, fields
 from flask import request
 import os
 import requests
-# Fix the import path - this is the key change
 from app.repositories import SettingsRepository
 from app.utils.config import Config
 from app.extensions import db
+import logging
+
+logger = logging.getLogger(__name__)
 
 api = Namespace('config', description='Configuration management')
 
-# Model for updating base URL
 base_url_model = api.model('BaseURL', {
     'base_url': fields.String(required=True, description='Base URL for acestream links')
 })
 
-# Model for updating Ace Engine URL
 ace_engine_url_model = api.model('AceEngineURL', {
     'ace_engine_url': fields.String(required=True, description='URL for Acestream Engine')
 })
 
-# Model for updating rescrape interval
 rescrape_interval_model = api.model('RescrapeInterval', {
     'hours': fields.Integer(required=True, description='Hours between automatic rescans')
 })
 
-# Model for Acexy status
 acexy_status_model = api.model('AcexyStatus', {
     'enabled': fields.Boolean(description='Whether Acexy is enabled'),
     'available': fields.Boolean(description='Whether Acexy is available'),
@@ -105,7 +103,6 @@ class AcexyStatus(Resource):
         """Get Acexy status."""
         config = Config()
         
-        # Check if Acexy is enabled via environment variable
         enabled = os.environ.get('ENABLE_ACEXY', 'false').lower() == 'true'
         
         if not enabled:
@@ -115,9 +112,7 @@ class AcexyStatus(Resource):
                 "message": "Acexy is not enabled in this environment"
             }
         
-        # Check if we can reach the Acexy service
         try:
-            # Try to connect to Acexy status endpoint
             acexy_url = "http://localhost:8080/ace/status"
             response = requests.get(acexy_url, timeout=2)
             return {
@@ -131,3 +126,27 @@ class AcexyStatus(Resource):
                 "available": False,
                 "message": "Could not connect to Acexy service"
             }
+
+@api.route('/setup_completed')
+class SetupCompleted(Resource):
+    @api.doc('mark_setup_completed')
+    @api.expect(api.model('SetupCompleted', {
+        'completed': fields.Boolean(required=True, description='Setup completion status')
+    }))
+    @api.response(200, 'Setup status updated')
+    def put(self):
+        """Mark setup as completed."""
+        try:
+            data = request.json
+            config = Config()
+            
+            if data.get('completed'):
+                config.settings_repo.mark_setup_completed()
+                logger.info("Setup marked as completed")
+                return {'message': 'Setup completed successfully'}, 200
+            
+            return {'message': 'Invalid request'}, 400
+            
+        except Exception as e:
+            logger.error(f"Error updating setup status: {e}")
+            api.abort(500, str(e))

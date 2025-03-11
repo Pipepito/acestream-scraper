@@ -6,11 +6,11 @@
 const setupState = {
     currentStep: 1,
     totalSteps: 5,
-    baseUrl: '',
-    aceEngineUrl: '',
-    useAcexy: true,
-    sources: [],
-    rescrapeInterval: 24
+    baseUrl: 'acestream://',
+    acexyEnabled: false,
+    aceEngineUrl: 'http://localhost:6878',
+    rescrapeInterval: 24,
+    sources: []
 };
 
 // Show loading spinner
@@ -106,7 +106,7 @@ function updateSourcesList() {
                 <button class="btn btn-sm btn-outline-danger remove-source-btn" data-url="${source}">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
                         <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
-                        <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                        <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
                     </svg>
                 </button>
             `;
@@ -145,13 +145,28 @@ async function saveConfiguration() {
             body: JSON.stringify({ hours: setupState.rescrapeInterval })
         });
         
-        // Add source URLs
+        // Mark setup as completed - IMPORTANT: This should be last
+        const setupResponse = await fetch('/api/config/setup_completed', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ completed: true })
+        });
+
+        if (!setupResponse.ok) {
+            throw new Error('Failed to mark setup as completed');
+        }
+        
+        // Add source URLs only after setup is completed
         for (const url of setupState.sources) {
-            await fetch('/api/urls', {
+            const response = await fetch('/api/urls/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ url: url })
             });
+            
+            if (!response.ok) {
+                console.error(`Failed to add URL: ${url}`);
+            }
         }
         
         return true;
@@ -166,14 +181,26 @@ async function saveConfiguration() {
 
 // Finish setup and redirect to dashboard
 async function finishSetup() {
-    const success = await saveConfiguration();
-    if (success) {
-        window.location.href = '/';
+    try {
+        showLoading();
+        const success = await saveConfiguration();
+        if (success) {
+            // Force reload to trigger server-side redirect
+            window.location.href = '/';
+        }
+    } catch (error) {
+        console.error('Error finishing setup:', error);
+        alert('There was an error completing the setup. Please try again.');
+    } finally {
+        hideLoading();
     }
 }
 
 // Initialize the setup page
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize setup
+    initSetup();
+    
     // Enable clicking on step indicators
     document.querySelectorAll('.step-dot').forEach(dot => {
         dot.addEventListener('click', () => {
@@ -247,3 +274,63 @@ document.addEventListener('DOMContentLoaded', function() {
     // Focus first input on page load
     document.getElementById('baseUrl').focus();
 });
+
+// Initialize setup page
+async function initSetup() {
+    try {
+        // Check Acexy availability first
+        const acexyResponse = await fetch('/api/config/acexy_status');
+        const acexyData = await acexyResponse.json();
+        
+        // Show/hide Acexy option based on availability
+        const acexySection = document.getElementById('acexySection');
+        if (acexySection) {
+            if (acexyData.enabled) {
+                acexySection.classList.remove('d-none');
+                
+                // Add event listener for Acexy checkbox
+                const acexyCheckbox = document.getElementById('useAcexy');
+                if (acexyCheckbox) {
+                    acexyCheckbox.addEventListener('change', (e) => {
+                        setupState.acexyEnabled = e.target.checked;
+                        // Update Ace Engine URL based on Acexy selection
+                        const aceEngineInput = document.getElementById('aceEngineUrl');
+                        if (aceEngineInput) {
+                            aceEngineInput.value = e.target.checked ? 
+                                'http://localhost:8080' : 
+                                'http://localhost:6878';
+                            setupState.aceEngineUrl = aceEngineInput.value;
+                        }
+                    });
+                }
+            } else {
+                acexySection.classList.add('d-none');
+            }
+        }
+    } catch (error) {
+        console.error('Error initializing setup:', error);
+    }
+}
+
+// Validate setup data
+function validateSetup() {
+    const baseUrl = document.getElementById('baseUrl').value;
+    const aceEngineUrl = document.getElementById('aceEngineUrl').value;
+    const rescrapeInterval = document.getElementById('rescrapeInterval').value;
+    
+    if (!baseUrl || !aceEngineUrl || !rescrapeInterval) {
+        showAlert('error', 'Please fill in all required fields');
+        return false;
+    }
+    
+    // URLs are optional, just collect them if they exist
+    const urlsInput = document.getElementById('urlsInput');
+    if (urlsInput && urlsInput.value.trim()) {
+        setupState.sources = urlsInput.value
+            .split('\n')
+            .map(url => url.trim())
+            .filter(url => url.length > 0);
+    }
+    
+    return true;
+}

@@ -13,7 +13,6 @@ class ScrapedURL(db.Model):
     error_count = db.Column(db.Integer, default=0)
     last_error = db.Column(db.Text)
     
-    # Define relationship with channels
     channels = db.relationship('AcestreamChannel', backref='source', lazy='dynamic')
     
     def __repr__(self):

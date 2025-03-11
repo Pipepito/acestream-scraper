@@ -20,7 +20,7 @@ class TaskManager:
         self.config = Config()
         self.RETRY_DELAY = 60  # seconds between retries
         self.app = None
-        self._processing_urls = set()  # Track URLs being processed
+        self._processing_urls = set()
         self.scraper_service = ScraperService()
         self.url_repository = URLRepository()
         
@@ -28,8 +28,6 @@ class TaskManager:
         """Initialize with Flask app context"""
         self.app = app
         self.running = True
-        # Don't push an app context here; let Flask manage it
-        # Remove: self.app.app_context().push()
 
     @contextmanager
     def database_retry(self, max_retries=3):
@@ -54,12 +52,10 @@ class TaskManager:
             
         self._processing_urls.add(url)
         try:
-            # Create app context if needed but don't interfere with existing contexts
             if self.app and not current_app._get_current_object():
                 with self.app.app_context():
                     await self.scraper_service.scrape_url(url)
             else:
-                # Either no app is set or we're already in an app context
                 await self.scraper_service.scrape_url(url)
         finally:
             self._processing_urls.remove(url)
@@ -75,17 +71,14 @@ class TaskManager:
         while self.running:
             try:
                 with self.app.app_context():
-                    # Calculate the rescrape cutoff time
                     config = Config()
                     cutoff_time = datetime.now(timezone.utc) - timedelta(hours=config.rescrape_interval)
                     
-                    # Find URLs that need to be processed
                     urls = ScrapedURL.query.filter(
                         (ScrapedURL.status != 'disabled') &  # Skip disabled URLs
                         ((ScrapedURL.status == 'pending') |
                          (ScrapedURL.status == 'failed') & 
                          (ScrapedURL.error_count < self.MAX_RETRIES) |
-                         # Add this condition to auto-refresh based on last processed time
                          (ScrapedURL.last_processed < cutoff_time))
                     ).all()
 
@@ -93,7 +86,6 @@ class TaskManager:
                         self.logger.info(f"Found {len(urls)} URLs to process")
                         for url_obj in urls:
                             if url_obj.url not in self._processing_urls:
-                                # Set status to pending to indicate it's being refreshed
                                 if url_obj.status == 'OK':
                                     url_obj.status = 'pending'
                                     db.session.commit()

@@ -1,13 +1,15 @@
 import asyncio
+import logging
 from flask_restx import Namespace, Resource, fields, reqparse
 from flask import request
 from app.models import AcestreamChannel
 from app.repositories import ChannelRepository
 from datetime import datetime, timezone
 
+logger = logging.getLogger(__name__)
+
 api = Namespace('channels', description='Channel management')
 
-# Model definitions
 channel_input_model = api.model('ChannelInput', {
     'id': fields.String(required=True, description='Acestream Channel ID'),
     'name': fields.String(required=True, description='Channel name')
@@ -31,7 +33,6 @@ status_check_result_model = api.model('StatusCheckResult', {
     'error': fields.String(description='Error message, if any')
 })
 
-# Parser for query parameters
 channel_parser = reqparse.RequestParser()
 channel_parser.add_argument('search', type=str, required=False, help='Filter channels by name')
 
@@ -65,7 +66,6 @@ class ChannelList(Resource):
         """Add a new channel."""
         data = request.json
         try:
-            # Use repository create method
             channel = channel_repo.create(
                 channel_id=data['id'],
                 name=data['name']
@@ -104,7 +104,6 @@ class Channel(Resource):
     def delete(self, channel_id):
         """Delete a channel."""
         try:
-            # Use repository delete method directly
             if channel_repo.delete(channel_id):
                 return {'message': 'Channel deleted successfully'}
             api.abort(404, 'Channel not found')
@@ -126,7 +125,6 @@ class ChannelStatusCheck(Resource):
             
             from app.services.channel_status_service import check_channel_status
             
-            # Run the async function in the event loop
             result = asyncio.run(check_channel_status(channel))
             
             return {
@@ -147,7 +145,6 @@ class ChannelBatchStatusCheck(Resource):
     def post(self):
         """Check online status for all channels."""
         try:
-            # Import here to avoid circular imports
             from app.services.channel_status_service import check_all_channels_status
             
             result = check_all_channels_status()

@@ -9,7 +9,6 @@ from app.services import ScraperService
 
 api = Namespace('playlists', description='Playlist management operations')
 
-# Request parser for playlist options
 playlist_parser = reqparse.RequestParser()
 playlist_parser.add_argument('refresh', type=bool, required=False, default=False,
                           help='Whether to refresh the playlist before returning')
@@ -26,7 +25,6 @@ class M3UPlaylist(Resource):
         refresh = args.get('refresh', False)
         search = args.get('search', None)
         
-        # Refresh data if requested
         if refresh:
             try:
                 from app.views.main import task_manager
@@ -34,23 +32,19 @@ class M3UPlaylist(Resource):
                 url_repository = URLRepository()
                 urls = url_repository.get_enabled()
                 
-                # Queue all enabled URLs for processing
                 for url in urls:
                     task_manager.add_url(url.url)
             except Exception as e:
                 api.abort(500, f"Error during playlist refresh: {str(e)}")
         
-        # Generate playlist using existing service
         playlist_service = PlaylistService()
         playlist = playlist_service.generate_playlist(search_term=search)
         
-        # Generate filename with timestamp
         filename = f"acestream_playlist_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
         if search:
             filename += f"_filtered"
         filename += ".m3u"
         
-        # Return playlist as downloadable file
         return Response(
             playlist,
             mimetype="audio/x-mpegurl",

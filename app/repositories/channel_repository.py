@@ -99,13 +99,11 @@ class ChannelRepository(BaseRepository[AcestreamChannel]):
                 channel = self.model(id=channel_id)
                 self._db.session.add(channel)
 
-            # Update basic fields
             channel.name = name
             channel.last_processed = datetime.now(timezone.utc)
             channel.status = 'active'
             channel.source_url = source_url
 
-            # Update metadata if provided
             if metadata:
                 channel.group = metadata.get('group')
                 channel.logo = metadata.get('logo')

@@ -3,13 +3,18 @@ import json
 import logging
 from pathlib import Path
 from app.repositories import SettingsRepository
+from flask import has_app_context, current_app
 
-
+logger = logging.getLogger(__name__)
 class Config:
     """Configuration management class."""
     
+    # Add default values as class constants
+    DEFAULT_BASE_URL = 'acestream://'
+    DEFAULT_ACE_ENGINE_URL = 'http://localhost:6878'
+    DEFAULT_RESCRAPE_INTERVAL = 24
+    
     _instance = None
-    # Make config_path a class attribute so it can be patched in tests
     config_path = None
     database_path = None
     
@@ -24,41 +29,29 @@ class Config:
             return
             
         self.logger = logging.getLogger(__name__)
+        self.settings_repo = None
+        self._needs_init = True
         
-        # Ensure settings_repo exists even during testing
-        try:
-            self.settings_repo = SettingsRepository()
-        except Exception as e:
-            self.logger.warning(f"Could not initialize settings repository: {e}")
-            self.settings_repo = None
-        
-        # Determine base directory for configuration
+        # Set up paths first, which don't require app context
         if os.environ.get('DOCKER_ENVIRONMENT'):
-            # In Docker, always use /config regardless of any other paths
             base_config_dir = Path('/config')
         else:
-            # Outside Docker, use project root/config
             project_root = Path(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
             base_config_dir = project_root / 'config'
         
-        # Ensure config directory exists
         base_config_dir.mkdir(parents=True, exist_ok=True)
         self.logger.info(f"Using configuration directory: {base_config_dir}")
         
-        # Initialize config path if not already set (allows patching in tests)
         if Config.config_path is None:
             try:
                 Config.config_path = base_config_dir / 'config.json'
                 self.logger.info(f"Config path set to {Config.config_path}")
             except Exception as e:
                 self.logger.warning(f"Could not set config path: {e}")
-                # Set a default path that won't exist
                 Config.config_path = Path("/tmp/non_existent_config.json")
         
-        # Initialize database path if not already set
         if Config.database_path is None:
             try:
-                # Always use the same base directory for database
                 Config.database_path = base_config_dir / 'acestream.db'
                 self.logger.info(f"Database path set to {Config.database_path}")
             except Exception as e:
@@ -67,77 +60,119 @@ class Config:
         
         self._config = {}
         self._load_config()
+        
+        # Initialize settings repo but don't access database yet
+        try:
+            self.settings_repo = SettingsRepository()
+        except Exception as e:
+            self.logger.warning(f"Could not initialize settings repository: {e}")
+        
         self._initialized = True
-    
+
+    def _ensure_app_context(self):
+        """Ensure we're in an app context and initialize if needed."""
+        if not has_app_context():
+            return False
+            
+        # Only do this once
+        if self._needs_init and self.settings_repo:
+            self._needs_init = False
+            self._ensure_required_settings()
+            # Commit any cached settings
+            if hasattr(self.settings_repo, 'commit_cache_to_db'):
+                self.settings_repo.commit_cache_to_db()
+            
+        return True
+
+    def _ensure_required_settings(self):
+        """Ensure all required settings exist with default values."""
+        # Skip setting defaults during testing to avoid unexpected method calls
+        if not self.settings_repo or os.environ.get('TESTING'):
+            return
+            
+        required_settings = {
+            'base_url': self.DEFAULT_BASE_URL,
+            'ace_engine_url': self.DEFAULT_ACE_ENGINE_URL,
+            'rescrape_interval': self.DEFAULT_RESCRAPE_INTERVAL
+        }
+        
+        for key, default_value in required_settings.items():
+            try:
+                if not self.settings_repo.get_setting(key):
+                    self.logger.info(f"Setting default value for {key}: {default_value}")
+                    self.settings_repo.set_setting(key, default_value)
+            except Exception as e:
+                self.logger.error(f"Error ensuring required setting {key}: {e}")
+
     def set_settings_repository(self, settings_repo):
         """Set the settings repository after database initialization (for testing)."""
-        self.settings_repo = settings_repo
-        
-        # Import from config file if this is the first run and settings are empty
-        if self._config and hasattr(settings_repo, 'is_setup_completed') and not settings_repo.is_setup_completed():
-            self.logger.info("First run detected: Importing config to database...")
-            if hasattr(settings_repo, 'import_from_json_config'):
-                settings_repo.import_from_json_config(self._config)
-            else:
-                for key, value in self._config.items():
-                    self.set(key, value)
-                if hasattr(settings_repo, 'mark_setup_completed'):
-                    settings_repo.mark_setup_completed()
-            self.logger.info("Config import completed")
+        try:
+            self.settings_repo = settings_repo
+            self._needs_init = False
+            
+            if self._config and hasattr(settings_repo, 'is_setup_completed') and not settings_repo.is_setup_completed():
+                self.logger.info("First run detected: Importing config to database...")
+                if hasattr(settings_repo, 'import_from_json_config'):
+                    settings_repo.import_from_json_config(self._config)
+                else:
+                    for key, value in self._config.items():
+                        self.set(key, value)
+                    if hasattr(settings_repo, 'mark_setup_completed'):
+                        settings_repo.mark_setup_completed()
+                self.logger.info("Config import completed")
+        except Exception as e:
+            self.logger.error(f"Error during repository setup: {e}")
     
     def _load_config(self):
         """Load configuration from file if it exists, fallback to database."""
         try:
-            # Add explicit checks to avoid problems with None path
             if Config.config_path and Config.config_path.exists():
                 with open(Config.config_path, 'r') as f:
                     self._config = json.load(f)
                 self.logger.info(f"Configuration loaded from {Config.config_path}")
             else:
-                self.logger.info("No config.json found or path does not exist, using database settings only")
+                self._config = {}
+                self.logger.warning("No config file found")
         except Exception as e:
-            self.logger.warning(f"Failed to load config from file: {str(e)}. Using database settings only.")
+            self.logger.error(f"Error loading config file: {e}")
+            self._config = {}
     
     def get(self, key, default=None):
         """Get a configuration value with database fallback."""
-        # For testing - direct repository call first
+        # Try to initialize if possible
+        self._ensure_app_context()
+        
         try:
             if self.settings_repo:
-                # Handle both naming conventions for backward compatibility
-                if hasattr(self.settings_repo, 'get_setting'):
-                    db_value = self.settings_repo.get_setting(key)
-                elif hasattr(self.settings_repo, 'get'):
-                    db_value = self.settings_repo.get(key, default)
-                else:
-                    self.logger.warning("Settings repository has no get_setting or get method")
-                    db_value = None
-                    
-                if db_value is not None:
-                    return db_value
+                value = self.settings_repo.get_setting(key)
+                if value is not None:
+                    return value
             
-            # Fall back to config file
-            return self._config.get(key, default)
+            # Check file-based config
+            if key in self._config:
+                return self._config[key]
+                
+            # Use class default if available
+            default_attr = f'DEFAULT_{key.upper()}'
+            if hasattr(self, default_attr):
+                return getattr(self, default_attr)
+                
+            return default
         except Exception as e:
-            self.logger.error(f"Error in get(): {str(e)}")
+            self.logger.error(f"Error getting config value for {key}: {e}")
             return default
     
     def set(self, key, value):
         """Set a configuration value in the database."""
+        # Try to initialize if possible
+        self._ensure_app_context()
+        
         try:
             if self.settings_repo:
-                # Handle both naming conventions for backward compatibility
-                if hasattr(self.settings_repo, 'set_setting'):
-                    self.settings_repo.set_setting(key, value)
-                elif hasattr(self.settings_repo, 'set'):
-                    self.settings_repo.set(key, value)
-                else:
-                    self.logger.warning(f"Settings repository has no set_setting or set method. Could not save {key}")
-            else:
-                self._config[key] = value
-                self.logger.warning(f"Setting {key} in memory only (no repository available)")
-            return value
+                self.settings_repo.set_setting(key, value)
+            self._config[key] = value
         except Exception as e:
-            self.logger.error(f"Error in set(): {str(e)}")
+            self.logger.error(f"Error setting config value for {key}: {e}")
             return value
     
     def save(self):
@@ -148,9 +183,7 @@ class Config:
             
         if not Config.config_path.exists():
             try:
-                # Create parent directories if they don't exist
                 Config.config_path.parent.mkdir(parents=True, exist_ok=True)
-                # Create an empty file
                 with open(Config.config_path, 'w') as f:
                     json.dump({}, f)
             except Exception as e:
@@ -158,18 +191,15 @@ class Config:
                 return
                 
         try:
-            # Get all settings from database
             settings = {}
             if self.settings_repo and hasattr(self.settings_repo, 'get_all_settings'):
                 settings = self.settings_repo.get_all_settings()
             else:
                 self.logger.warning("Settings repository has no get_all_settings method")
             
-            # Update config with database values
             for key, value in settings.items():
                 self._config[key] = value
                 
-            # Write to file
             with open(Config.config_path, 'w') as f:
                 json.dump(self._config, f, indent=2)
                 
@@ -179,16 +209,19 @@ class Config:
     
     def migrate_to_database(self):
         """Migrate settings from config.json to the database."""
+        # Try to initialize if possible
+        if not self._ensure_app_context():
+            self.logger.warning("Cannot migrate to database without app context")
+            return False
+            
         if not Config.config_path or not Config.config_path.exists():
             self.logger.info("No config file to migrate")
             return False
             
         try:
-            # Load config from file first
             with open(Config.config_path, 'r') as f:
                 file_config = json.load(f)
                 
-            # Transfer all settings to database
             for key, value in file_config.items():
                 self.set(key, value)
                 
@@ -201,26 +234,19 @@ class Config:
     @property
     def database_uri(self) -> str:
         """Get SQLite database URI."""
-        # For testing, always use in-memory database
         if os.environ.get('TESTING'):
             return 'sqlite:///:memory:'
             
-        # For normal operation use file database
         try:
-            # Ensure the directory exists
             if Config.database_path:
                 Config.database_path.parent.mkdir(parents=True, exist_ok=True)
-                
-                # Log the full path for debugging
                 self.logger.info(f"Using database at: {Config.database_path.absolute()}")
                 
             return f'sqlite:///{Config.database_path}'
         except Exception as e:
             self.logger.error(f"Error ensuring database directory exists: {e}")
-            # Fallback to in-memory database if there's an error
             return 'sqlite:///:memory:'
     
-    # Properties to maintain compatibility with existing code
     @property
     def base_url(self):
         """Get base URL for acestream links."""
@@ -254,19 +280,24 @@ class Config:
         
     def is_initialized(self):
         """Check if configuration is fully initialized."""
-        # For test compatibility, always return True when testing
-        if os.environ.get('TESTING'):
-            return True
-            
+        # Try to initialize if possible
+        self._ensure_app_context()
+        
         try:
-            # Handle different repository methods for testing compatibility
             if self.settings_repo:
-                if hasattr(self.settings_repo, 'get_setting'):
-                    setup = self.settings_repo.get_setting('setup_completed')
-                    return setup == 'True'
-                elif hasattr(self.settings_repo, 'is_setup_completed'):
-                    return self.settings_repo.is_setup_completed()
+                setup_completed = self.settings_repo.get_setting('setup_completed')
+                if setup_completed and setup_completed.lower() == 'true':
+                    # Only check for required settings
+                    required_settings = [
+                        'base_url',
+                        'ace_engine_url',
+                        'rescrape_interval'
+                    ]
+                    for setting in required_settings:
+                        if not self.settings_repo.get_setting(setting):
+                            return False
+                    return True
+            return False
         except Exception as e:
             self.logger.error(f"Error checking initialization: {e}")
-            
-        return False
+            return False

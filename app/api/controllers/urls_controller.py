@@ -1,7 +1,7 @@
 from flask_restx import Namespace, Resource, fields, reqparse
 from flask import request, current_app
 from app.models import ScrapedURL
-from app.repositories import URLRepository, ChannelRepository  # Add ChannelRepository import
+from app.repositories import URLRepository, ChannelRepository
 from datetime import datetime, timezone
 from app.tasks.manager import TaskManager
 from urllib.parse import unquote
@@ -9,16 +9,13 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Create a singleton instance that tests can reference and mock
 task_manager = TaskManager()
 
-# Initialize the add_task method if not present
 if not hasattr(task_manager, 'add_task'):
     task_manager.add_task = lambda task_type, *args, **kwargs: None
 
 api = Namespace('urls', description='URL management')
 
-# Model definitions
 url_input_model = api.model('URLInput', {
     'url': fields.String(required=True, description='URL to scrape')
 })
@@ -36,9 +33,8 @@ url_model = api.model('URL', {
     'last_error': fields.String(description='Last error message, if any')
 })
 
-# Initialize repositories
 url_repo = URLRepository()
-channel_repo = ChannelRepository()  # Add channel repository initialization
+channel_repo = ChannelRepository()
 
 @api.route('/')
 class URLList(Resource):
@@ -61,12 +57,10 @@ class URLList(Resource):
         data = request.json
         
         try:
-            # Check if URL already exists
             existing = url_repo.get_by_url(data['url'])
             if existing:
                 api.abort(409, 'This URL already exists')
             
-            # Create new URL
             url = ScrapedURL(
                 url=data['url'],
                 added_at=datetime.now(timezone.utc),
@@ -75,17 +69,15 @@ class URLList(Resource):
             )
             url_repo.add(url)
             
-            # Queue URL for scraping
             try:
                 task_manager.add_task('scrape_url', data['url'])
             except Exception as e:
-                # Log but don't fail if task manager fails
                 current_app.logger.error(f"Failed to queue URL for scraping: {e}")
             
             return {
                 'message': 'URL added successfully and queued for processing',
                 'url': url.url
-            }, 201  # Created
+            }, 201
         except Exception as e:
             api.abort(500, str(e))
 
@@ -119,7 +111,6 @@ class URLItem(Resource):
             if not url_obj:
                 api.abort(404, 'URL not found')
             
-            # Update enabled status if provided
             if 'enabled' in data:
                 if data['enabled']:
                     url_obj.status = 'pending'
@@ -143,21 +134,17 @@ class URLItem(Resource):
     def delete(self, url):
         """Delete a URL and its associated channels."""
         try:
-            # Properly decode the URL
             decoded_url = unquote(url)
             logger.debug(f"Attempting to delete URL: {decoded_url}")
             
-            # Get the URL object
             url_obj = url_repo.get_by_url(decoded_url)
             if not url_obj:
                 logger.warning(f"URL not found for deletion: {decoded_url}")
                 api.abort(404, 'URL not found')
             
-            # Delete associated channels first
             if not channel_repo.delete_by_source(decoded_url):
                 logger.error(f"Failed to delete associated channels for URL: {decoded_url}")
             
-            # Delete the URL
             if url_repo.delete(url_obj):
                 logger.info(f"Successfully deleted URL: {decoded_url}")
                 return '', 204
@@ -178,7 +165,6 @@ class URLBatchRefresh(Resource):
         try:
             urls = ScrapedURL.query.filter_by(enabled=True).all()
             
-            # Queue URLs for scraping
             for url in urls:
                 task_manager.add_task('scrape_url', url.url)
             
@@ -206,7 +192,6 @@ class URLRefresh(Resource):
             if not url_obj.enabled:
                 api.abort(400, 'URL is disabled and cannot be refreshed')
             
-            # Queue URL for scraping
             task_manager.add_task('scrape_url', url)
             
             return {

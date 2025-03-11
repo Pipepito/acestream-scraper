@@ -95,7 +95,11 @@ class Config:
     @property
     def database_uri(self) -> str:
         """Get SQLite database URI."""
-        # Make sure database_path is set
+        # For testing, always use in-memory database
+        if os.environ.get('TESTING'):
+            return 'sqlite:///:memory:'
+            
+        # For normal operation use file database
         if not hasattr(self, 'database_path'):
             self.database_path = self.config_path / 'acestream.db'
         return f'sqlite:///{self.database_path}'

@@ -40,16 +40,46 @@ def reset_config():
 @pytest.fixture(scope='function')
 def app():
     """Create application for the tests."""
-    # Create app with test configuration
-    app = create_app('testing')
+    # Set testing environment
+    os.environ['TESTING'] = '1'
     
-    # Configure app for testing
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
-    app.config['TESTING'] = True
-    app.config['WTF_CSRF_ENABLED'] = False
-    app.config['PRESERVE_CONTEXT_ON_EXCEPTION'] = False
+    # Create base app without initialization
+    app = Flask(__name__)
+    
+    # Configure SQLite in-memory database
+    app.config.update({
+        'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
+        'TESTING': True,
+        'WTF_CSRF_ENABLED': False,
+        'PRESERVE_CONTEXT_ON_EXCEPTION': False
+    })
+    
+    # Initialize database
+    db.init_app(app)
+    
+    # Create tables within app context
+    with app.app_context():
+        db.create_all()
+        
+        # Initialize settings for testing
+        from app.repositories import SettingsRepository
+        settings_repo = SettingsRepository()
+        settings_repo.set('setup_completed', 'True')
+        db.session.commit()
+    
+    # Now create the full application
+    app = create_app('testing')
+    app.config.update({
+        'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
+        'TESTING': True,
+        'WTF_CSRF_ENABLED': False,
+        'PRESERVE_CONTEXT_ON_EXCEPTION': False
+    })
     
     yield app
+    
+    # Clean up environment
+    os.environ.pop('TESTING', None)
 
 @pytest.fixture
 def client(app, db_session):

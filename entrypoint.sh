@@ -1,5 +1,9 @@
 #!/bin/sh
-
+# Set ENABLE_ACESTREAM_ENGINE to match ENABLE_ACEXY if not explicitly set
+if [ -z "${ENABLE_ACESTREAM_ENGINE+x}" ]; then
+    export ENABLE_ACESTREAM_ENGINE=$ENABLE_ACEXY
+    echo "ENABLE_ACESTREAM_ENGINE not set, using ENABLE_ACEXY value: $ENABLE_ACESTREAM_ENGINE"
+fi
 # Run database migrations
 cd /app
 echo "Running database migrations..."
@@ -30,19 +34,29 @@ if [ "$ENABLE_TOR" = "true" ]; then
     sleep 3
 fi
 
-# Start Acexy if enabled
-if [ "$ENABLE_ACEXY" = "true" ]; then
-    echo "Starting Acestream engine and Acexy proxy..."
-    
+# Start Acestream Engine if enabled
+if [ "$ENABLE_ACESTREAM_ENGINE" = "true" ]; then
+    echo "Starting Acestream engine..."
     if [[ $ALLOW_REMOTE_ACCESS = "yes" ]];then
         EXTRA_FLAGS="$EXTRA_FLAGS --bind-all"
     fi
-    # Start the Acestream engine
     /opt/acestream/start-engine --client-console --http-port $ACESTREAM_HTTP_PORT $EXTRA_FLAGS &  
-    sleep 3 # Brief pause to allow Acestream engine to start        
-    /usr/local/bin/acexy & # Start Acexy proxy
+    sleep 3 # Brief pause to allow Acestream engine to start
+fi
+
+# Start Acexy if enabled
+if [ "$ENABLE_ACEXY" = "true" ]; then
+    if [ "$ENABLE_ACESTREAM_ENGINE" = "false" ] && [ "$ACEXY_HOST" = "localhost" ] && [ "$ACEXY_PORT" = "6878" ]; then
+        echo "ERROR: When Acestream Engine is disabled, you must specify ACEXY_HOST and ACEXY_PORT other than localhost to connect to an external Acestream Engine instance"
+        exit 1
+    fi
+    
+    echo "Starting Acexy proxy..."
+    export ACEXY_HOST
+    export ACEXY_PORT
+    /usr/local/bin/acexy &
 else
-    echo "Acexy is disabled. Not starting Acestream engine or Acexy proxy."
+    echo "Acexy is disabled."
 fi
 
 # Start ZeroNet in the background
@@ -57,9 +71,9 @@ sleep 10
 
 # Start Flask app with Gunicorn
 cd /app
-echo "Starting Flask application..."
+echo "Starting Flask application on port $FLASK_PORT..."
 exec gunicorn \
-    --bind 0.0.0.0:8000 \
+    --bind "0.0.0.0:$FLASK_PORT" \
     --workers 3 \
     --timeout 300 \
     --keep-alive 5 \

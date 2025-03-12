@@ -16,16 +16,67 @@ A Python-based web scraping application that retrieves Acestream channel informa
 - Service-oriented architecture
 - Repository pattern for data access
 - **Built-in Acestream engine with Acexy proxy (optional)**
+- **Support for external Acestream Engine instances**
 - Channel status checking
 - Acexy status display in the dashboard
 - **Interactive setup wizard for easy configuration**
 - **Channel search functionality**
 - **Automatic rescraping at configurable intervals**
 - **API documentation via OpenAPI/Swagger UI**
+- **Enhanced health checking for all components**
 
 ## Quick Start
 
-### Using Docker (Recommended)
+### Using Docker Compose (Easiest Method)
+
+1. **Create a docker-compose.yml file:**
+
+   ```yaml
+   version: '3.8'
+
+   services:
+     acestream-scraper:
+       image: pipepito/acestream-scraper:latest
+       container_name: acestream-scraper
+       environment:
+         - TZ=Europe/Madrid
+         - ENABLE_TOR=false
+         - ENABLE_ACEXY=true
+         - ENABLE_ACESTREAM_ENGINE=true
+         - ACESTREAM_HTTP_PORT=6878
+         - FLASK_PORT=8000
+         - ACEXY_LISTEN_ADDR=:8080
+         - ACEXY_HOST=localhost
+         - ACEXY_PORT=6878
+         - ALLOW_REMOTE_ACCESS=no
+         - ACEXY_NO_RESPONSE_TIMEOUT=15s
+         - ACEXY_BUFFER_SIZE=5MiB
+       ports:
+         - "8000:8000"  # Flask application
+         - "8080:8080"  # Acexy proxy
+         - "43110:43110"  # ZeroNet UI
+         - "43111:43111"  # ZeroNet peer
+         - "26552:26552"  # ZeroNet peer
+       volumes:
+         - ./data/zeronet:/app/ZeroNet/data
+       restart: unless-stopped
+       healthcheck:
+         test: ["CMD", "/app/healthcheck.sh"]
+         interval: 30s
+         timeout: 10s
+         retries: 3
+         start_period: 60s
+   ```
+
+2. **Start the service:**
+
+   ```bash
+   docker-compose up -d
+   ```
+
+3. **Access the application at `http://localhost:8000`**
+
+### Using Docker (Alternative)
 
 [Image in Docker Hub](https://hub.docker.com/r/pipepito/acestream-scraper)
 
@@ -65,7 +116,7 @@ A Python-based web scraping application that retrieves Acestream channel informa
    }
    ```
 
-### Running with Acexy Enabled (Recommended)
+### Running with Acexy and Internal Acestream Engine
 
 The image includes an embedded Acestream engine with the Acexy proxy interface, which provides a user-friendly web UI:
 
@@ -74,6 +125,7 @@ docker run -d \
   -p 8000:8000 \
   -p 8080:8080 \
   -e ENABLE_ACEXY=true \
+  -e ENABLE_ACESTREAM_ENGINE=true \
   -e ALLOW_REMOTE_ACCESS=yes \
   -v "${PWD}/config:/app/config" \
   --name acestream-scraper \
@@ -81,6 +133,23 @@ docker run -d \
 ```
 
 The Acexy web interface will be available at `http://localhost:8080`.
+
+### Using with External Acestream Engine
+
+You can connect the Acexy proxy to an external Acestream Engine instance:
+
+```bash
+docker run -d \
+  -p 8000:8000 \
+  -p 8080:8080 \
+  -e ENABLE_ACEXY=true \
+  -e ENABLE_ACESTREAM_ENGINE=false \
+  -e ACEXY_HOST=192.168.1.100 \
+  -e ACEXY_PORT=6878 \
+  -v "${PWD}/config:/app/config" \
+  --name acestream-scraper \
+  pipepito/acestream-scraper:latest
+```
 
 ### Using with ZeroNet
 
@@ -210,16 +279,33 @@ Configure through the setup wizard or directly in `config.json`:
 - `ace_engine_url`: URL of your Acestream Engine instance (default: `http://127.0.0.1:6878`)
 - `rescrape_interval`: How often to refresh URLs (in hours, default: 24)
 
-### Acexy Configuration
+### Environment Variables
+
+#### Core Application
+
+- `FLASK_PORT`: Port the Flask application runs on (default: `8000`)
+
+#### Acestream Configuration
+
+- `ENABLE_ACESTREAM_ENGINE`: Enable built-in Acestream Engine (default: matches `ENABLE_ACEXY`)
+- `ACESTREAM_HTTP_PORT`: Port for Acestream engine (default: `6878`)
+
+#### Acexy Configuration
 
 Acexy provides an enhanced proxy interface for Acestream, with a web UI for better management:
 
-- `ENABLE_ACEXY`: Set to `true` to enable Acexy and Acestream engine (default: `false`)
+- `ENABLE_ACEXY`: Set to `true` to enable Acexy proxy (default: `false`)
 - `ACEXY_LISTEN_ADDR`: Address for Acexy to listen on (default: `:8080`)
+- `ACEXY_HOST`: Hostname of the Acestream Engine to connect to (default: `localhost`)
+- `ACEXY_PORT`: Port of the Acestream Engine to connect to (default: `6878`)
 - `ALLOW_REMOTE_ACCESS`: Set to `yes` to allow external connections (default: `no`)
 - `ACEXY_NO_RESPONSE_TIMEOUT`: Timeout for Acestream responses (default: `15s`)
 - `ACEXY_BUFFER_SIZE`: Buffer size for data transfers (default: `5MiB`)
-- `ACESTREAM_HTTP_PORT`: Port for Acestream engine (default: `6878`)
+
+#### Other Settings
+
+- `ENABLE_TOR`: Enable TOR for ZeroNet connections (default: `false`)
+- `TZ`: Timezone for the container (default: `Europe/Madrid`)
 
 ### Channel Status Checking
 
@@ -231,17 +317,18 @@ The application verifies if channels are available:
 
 To use this feature:
 
-1. Ensure you have Acestream Engine running (built-in if ENABLE_ACEXY=true)
+1. Ensure you have Acestream Engine running (built-in if ENABLE_ACESTREAM_ENGINE=true)
 2. Configure `ace_engine_url` to point to your Acestream Engine instance
 3. Use the "Check Status" buttons in the UI to verify channel availability
 
 ### Port Mapping
 
-- `8000`: Main web interface
+- `8000`: Main web interface (configurable via `FLASK_PORT`)
 - `43110`: ZeroNet web interface (if ZeroNet enabled)
 - `43111`: ZeroNet transport port (if ZeroNet enabled)
 - `8080`: Acexy web interface (if enabled)
-- `6878`: Acestream HTTP API port (internal)
+- `6878`: Acestream HTTP API port (configurable via `ACESTREAM_HTTP_PORT`)
+- `26552`: Additional ZeroNet peer port
 
 ### Volumes
 
@@ -288,6 +375,14 @@ docker run -d \
   pipepito/acestream-scraper:latest
 ```
 
+### Running Behind a Reverse Proxy
+
+The application includes proper headers handling for running behind a reverse proxy:
+
+- Automatic handling of SSL/TLS termination
+- Correct handling of X-Forwarded-Proto and X-Forwarded-Host headers
+- Works with nginx, Apache, Traefik or other reverse proxies
+
 ### Security Note
 
 - Add your domain(s) to `ui_host` for public access
@@ -296,11 +391,13 @@ docker run -d \
 
 ### Healthchecks
 
-The container includes health checking:
+The container includes comprehensive health checking:
 
-- Main application health check at `/health` endpoint
+- Main application health check at `/health` endpoint providing detailed status
 - Acexy health check (if enabled)
-- Automatic retry for temporary failures
+- Acestream Engine health check (if enabled)
+- Automatic monitoring of internal services
+- Graceful handling of service dependencies
 
 ### Development
 

@@ -4,6 +4,7 @@ import threading
 import logging
 from pathlib import Path
 from flask import Flask, redirect, url_for, request
+from werkzeug.middleware.proxy_fix import ProxyFix
 from app.extensions import db, migrate
 from app.utils.config import Config
 from app.repositories import SettingsRepository
@@ -19,6 +20,16 @@ def create_app(test_config=None):
         task_manager = TaskManager()
         
     app = Flask(__name__)
+    
+    # Add middleware to handle SSL/proxy headers
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+    
+    # Force HTTP scheme internally
+    app.config['PREFERRED_URL_SCHEME'] = 'http'
+    
+    # Disable SSL requirement for internal API calls
+    app.config['SWAGGER_SUPPORTED_SUBMIT_METHODS'] = ['get', 'post', 'put', 'delete']
+    app.config['SWAGGER_UI_DOC_EXPANSION'] = 'list'
     
     # Configure logging
     logging_level = logging.DEBUG if os.environ.get('FLASK_ENV') == 'development' else logging.INFO

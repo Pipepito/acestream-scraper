@@ -59,6 +59,7 @@ A Python-based web scraping application that retrieves Acestream channel informa
          - "26552:26552"  # ZeroNet peer
        volumes:
          - ./data/zeronet:/app/ZeroNet/data
+         - ./data/config:/app/config
        restart: unless-stopped
        healthcheck:
          test: ["CMD", "/app/healthcheck.sh"]

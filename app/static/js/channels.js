@@ -77,7 +77,6 @@ async function checkChannelsStatus() {
         
         const data = await response.json();
         if (response.ok) {
-            alert(`Status check completed.\nOnline: ${data.online}\nOffline: ${data.offline}`);
             if (typeof refreshData === 'function') {
                 await refreshData();
             }

@@ -35,8 +35,6 @@ class ChannelStatusService:
                 'method': 'get_status'
             }
             
-            logger.info(f"Checking channel {channel.id} ({channel.name}) status at {status_url}")
-            
             async with aiohttp.ClientSession() as session:
                 async with session.get(status_url, 
                                      params=params,
@@ -54,7 +52,6 @@ class ChannelStatusService:
                                     # Check for "got newer download" message
                                     if error and "got newer download" in str(error).lower():
                                         self.repo.update_channel_status(channel.id, True, check_time)
-                                        logger.info(f"Channel {channel.id} ({channel.name}) is online (newer version available)")
                                         return True
                                     
                                     # Check regular online status
@@ -62,7 +59,6 @@ class ChannelStatusService:
                                         response_data and 
                                         response_data.get('is_live') == 1):
                                         self.repo.update_channel_status(channel.id, True, check_time)
-                                        logger.info(f"Channel {channel.id} ({channel.name}) is online")
                                         return True
                                     
                                     # Channel exists but not available
@@ -90,20 +86,22 @@ class ChannelStatusService:
                 self.repo.update_channel_status(channel.id, False, check_time, str(e))
             return False
             
-    async def check_channels(self, channels: List[AcestreamChannel], concurrency: int = 20):
-        """Check multiple channels concurrently."""
+    async def check_channels(self, channels: List[AcestreamChannel], concurrency: int = 5):
+        """Check multiple channels concurrently with rate limiting."""
         semaphore = asyncio.Semaphore(concurrency)
         
         async def check_with_semaphore(channel):
             async with semaphore:
                 try:
-                    return await self.check_channel(channel)
+                    # Check the channel
+                    result = await self.check_channel(channel)
+                    await asyncio.sleep(1)
+                    return result
                 except Exception as e:
                     logger.error(f"Error checking channel {channel.id}: {e}")
                     return False
         
-        # Process channels in smaller chunks for better memory management
-        chunk_size = 20
+        chunk_size = 10
         results = []
         
         for i in range(0, len(channels), chunk_size):
@@ -116,13 +114,11 @@ class ChannelStatusService:
             except Exception as e:
                 logger.error(f"Error processing chunk: {e}", exc_info=True)
             finally:
-                # Cancel any pending tasks
                 for task in tasks:
                     if not task.done():
                         task.cancel()
             
-            # Small delay between chunks to prevent overload
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(2)
         
         return results
 
@@ -131,48 +127,15 @@ async def check_channel_status(channel: AcestreamChannel) -> dict:
     service = ChannelStatusService()
     is_online = await service.check_channel(channel)
     
+    # Add status field to match what frontend expects
     return {
-        'is_online': is_online,
+        'is_online': is_online, 
+        'status': 'online' if is_online else 'offline',
         'last_checked': channel.last_checked,
         'error': channel.check_error
     }
 
-def check_all_channels_status() -> dict:
-    """Check status for all channels in the database."""
-    try:
-        from ..repositories.channel_repository import ChannelRepository
-        
-        # Get all channels
-        channel_repo = ChannelRepository()
-        channels = channel_repo.get_all()
-        
-        # Create service instance
-        service = ChannelStatusService()
-        
-        # Always create a new event loop in thread
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
-        try:
-            # Run status checks using new loop
-            results = loop.run_until_complete(service.check_channels(channels))
-            
-            # Count results
-            online_count = sum(1 for result in results if result)
-            offline_count = len(results) - online_count
-            
-            return {
-                'online': online_count,
-                'offline': offline_count,
-                'total': len(results)
-            }
-        finally:
-            # Clean up the loop
-            loop.close()
-            
-    except Exception as e:
-        logger.error(f"Error checking all channels status: {e}", exc_info=True)
-        raise
+# Removing unused function check_all_channels_status as it's not called anywhere
 
 def start_background_check(channels: list[AcestreamChannel]) -> dict:
     """Start background channel status check."""
@@ -184,19 +147,16 @@ def start_background_check(channels: list[AcestreamChannel]) -> dict:
     async def run_checks():
         service = ChannelStatusService()
         try:
-            # Process channels in smaller batches
-            batch_size = 50
+            batch_size = 30
             total_processed = 0
             
             for i in range(0, len(channels), batch_size):
                 batch = channels[i:i + batch_size]
-                # Create app context for each batch
                 with app.app_context():
-                    await service.check_channels(batch, concurrency=10)
+                    await service.check_channels(batch, concurrency=5)
                 total_processed += len(batch)
                 logger.info(f"Processed {total_processed}/{len(channels)} channels")
-                # Small delay between batches
-                await asyncio.sleep(1)
+                await asyncio.sleep(3)
                 
         except Exception as e:
             logger.error(f"Error in background check: {e}", exc_info=True)

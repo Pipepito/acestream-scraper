@@ -85,10 +85,10 @@ def upgrade():
                     
                     # Insert settings from config file
                     settings_to_insert = [
-                        ('base_url', config.get('base_url'), CURRENT_TIMESTAMP),
-                        ('ace_engine_url', config.get('ace_engine_url'), CURRENT_TIMESTAMP),
-                        ('rescrape_interval', str(config.get('rescrape_interval')), CURRENT_TIMESTAMP),
-                        ('setup_completed', 'false', CURRENT_TIMESTAMP)
+                        ('base_url', config.get('base_url')),
+                        ('ace_engine_url', config.get('ace_engine_url')),
+                        ('rescrape_interval', str(config.get('rescrape_interval'))),
+                        ('setup_completed', 'false')
                     ]
                     
                     # Only insert settings that exist in config file

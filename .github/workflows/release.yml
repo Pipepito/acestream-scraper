@@ -126,6 +126,12 @@ jobs:
         with:
           ref: "v${{ needs.version.outputs.new_version }}"
       
+      - name: Get Previous Tag
+        id: get_previous_tag
+        run: |
+          PREVIOUS_TAG=$(git tag -l "v*" | grep -v "-" | sort -V | tail -n 2 | head -n 1)
+          echo "tag=${PREVIOUS_TAG}" >> $GITHUB_OUTPUT
+      
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
@@ -134,3 +140,4 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
+          previous-tag: ${{ steps.get_previous_tag.outputs.tag }}

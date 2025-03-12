@@ -22,19 +22,25 @@ channel_model = api.model('Channel', {
     'last_processed': fields.DateTime(description='When the channel was last processed'),
     'is_online': fields.Boolean(description='Whether the channel is online'),
     'last_checked': fields.DateTime(description='When the channel status was last checked'),
-    'check_error': fields.String(description='Error message from last check')
+    'check_error': fields.String(description='Error message from last check'),
+    'group': fields.String(description='Channel group/category')
 })
 
 status_check_result_model = api.model('StatusCheckResult', {
     'id': fields.String(description='Acestream Channel ID'),
     'name': fields.String(description='Channel name'),
     'is_online': fields.Boolean(description='Whether the channel is online'),
+    'status': fields.String(description='Channel status: online/offline'),
     'last_checked': fields.DateTime(description='When the channel status was checked'),
     'error': fields.String(description='Error message, if any')
 })
 
+# Updated parser to include pagination parameters used in frontend
 channel_parser = reqparse.RequestParser()
 channel_parser.add_argument('search', type=str, required=False, help='Filter channels by name')
+channel_parser.add_argument('page', type=int, required=False, default=1, help='Page number')
+channel_parser.add_argument('per_page', type=int, required=False, default=25, help='Items per page')
+channel_parser.add_argument('status', type=str, required=False, help='Filter by status')
 
 channel_repo = ChannelRepository()
 
@@ -141,18 +147,33 @@ class ChannelStatusCheck(Resource):
 @api.route('/check-status')
 class ChannelBatchStatusCheck(Resource):
     @api.doc('check_all_channels_status')
-    @api.response(200, 'Status check initiated')
+    @api.response(202, 'Status check initiated')
     def post(self):
-        """Check online status for all channels."""
+        """Start background check for all channels."""
         try:
-            from app.services.channel_status_service import check_all_channels_status
+            from app.services.channel_status_service import start_background_check
+            from app.repositories.channel_repository import ChannelRepository
             
-            result = check_all_channels_status()
+            channel_repo = ChannelRepository()
+            channels = channel_repo.get_all()
+            
+            if not channels:
+                return {
+                    'message': 'No channels to check',
+                    'total_channels': 0
+                }, 200
+            
+            # Start background check
+            result = start_background_check(channels)
             
             return {
-                'message': 'Channel status check completed',
-                'online': result['online'],
-                'offline': result['offline']
-            }
+                'message': 'Channel status check initiated',
+                'total_channels': result['total_channels']
+            }, 202
+            
         except Exception as e:
-            api.abort(500, str(e))
+            logger.error(f"Error initiating status check: {e}", exc_info=True)
+            return {
+                'error': 'Failed to start status check',
+                'message': str(e)
+            }, 500

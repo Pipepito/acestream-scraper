@@ -225,52 +225,46 @@ async function checkAllChannelsStatus() {
         const data = await response.json();
         
         if (response.ok) {
-            showAlert('success', `Status check initiated. This may take some time to complete.`);
-            // Start polling for updates
-            startCheckStatusPolling();
+            showAlert('info', `Status check started for ${data.total_channels} channels. Results will update automatically.`);
+            // Start periodic refresh of channel list
+            startAutoRefresh();
         } else {
             showAlert('error', data.message || data.error || 'Error starting status check');
         }
     } catch (error) {
-        console.error('Error checking all channels:', error);
-        showAlert('error', 'Network error while checking channels status');
+        console.error('Error:', error);
+        showAlert('error', 'Network error while initiating status check');
     } finally {
         hideLoading();
     }
 }
 
-// Poll for status updates after initiating a bulk check
-function startCheckStatusPolling() {
-    let pollCount = 0;
-    const maxPolls = 60; // 5 minutes max (5s interval)
+// Auto-refresh functionality
+let refreshInterval = null;
+
+function startAutoRefresh() {
+    // Stop any existing refresh
+    stopAutoRefresh();
     
-    const pollInterval = setInterval(async () => {
-        try {
-            // Check if there's an active job
-            const response = await fetch('/api/jobs/status?type=check_channels');
-            const data = await response.json();
-            
-            if (response.ok) {
-                if (!data.active_job) {
-                    // Job completed
-                    clearInterval(pollInterval);
-                    showAlert('success', 'Channel status check completed');
-                    loadChannelsData();
-                } else if (data.progress) {
-                    // Update progress
-                    showAlert('info', `Status check in progress: ${data.progress.checked || 0}/${data.progress.total || 0} channels checked`);
-                }
-            }
-        } catch (error) {
-            console.error('Error polling job status:', error);
-        }
+    // Refresh every 10 seconds for 2 minutes
+    let refreshCount = 0;
+    const maxRefreshes = 12;  // 2 minutes total
+    
+    refreshInterval = setInterval(async () => {
+        await loadChannelsData();
+        refreshCount++;
         
-        // Stop polling after max attempts
-        pollCount++;
-        if (pollCount >= maxPolls) {
-            clearInterval(pollInterval);
+        if (refreshCount >= maxRefreshes) {
+            stopAutoRefresh();
         }
-    }, 5000);
+    }, 10000);
+}
+
+function stopAutoRefresh() {
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+    }
 }
 
 // Remove offline channels

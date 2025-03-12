@@ -76,23 +76,29 @@ def upgrade():
             sa.PrimaryKeyConstraint('key')
         )
         
-        # Get existing config values
-        config = load_existing_config()
-        
-        # Insert settings safely
-        settings_to_insert = [
-            ('base_url', config['base_url']),
-            ('ace_engine_url', config['ace_engine_url']),
-            ('rescrape_interval', str(config['rescrape_interval'])),
-            ('setup_completed', 'true'),
-            ('setup_timestamp', sa.func.now())
-        ]
-        
-        for key, value in settings_to_insert:
-            if not has_setting(key):
-                op.execute(
-                    f"INSERT INTO settings (key, value) VALUES ('{key}', '{value}')"
-                )
+        # Only try to insert settings if config file exists
+        config_file = get_config_path()
+        if config_file.exists():
+            try:
+                with open(config_file, 'r') as f:
+                    config = json.load(f)
+                    
+                    # Insert settings from config file
+                    settings_to_insert = [
+                        ('base_url', config.get('base_url'), CURRENT_TIMESTAMP),
+                        ('ace_engine_url', config.get('ace_engine_url'), CURRENT_TIMESTAMP),
+                        ('rescrape_interval', str(config.get('rescrape_interval')), CURRENT_TIMESTAMP),
+                        ('setup_completed', 'false', CURRENT_TIMESTAMP)
+                    ]
+                    
+                    # Only insert settings that exist in config file
+                    for key, value in settings_to_insert:
+                        if value is not None and not has_setting(key):
+                            op.execute(
+                                f"INSERT INTO settings (key, value) VALUES ('{key}', '{value}')"
+                            )
+            except Exception:
+                pass
 
 
 def downgrade():

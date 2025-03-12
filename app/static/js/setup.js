@@ -197,10 +197,7 @@ async function finishSetup() {
 }
 
 // Initialize the setup page
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize setup
-    initSetup();
-    
+document.addEventListener('DOMContentLoaded', function() {    
     // Enable clicking on step indicators
     document.querySelectorAll('.step-dot').forEach(dot => {
         dot.addEventListener('click', () => {
@@ -221,14 +218,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Ace Engine form submission
     document.getElementById('aceEngineForm').addEventListener('submit', function(e) {
         e.preventDefault();
-        setupState.aceEngineUrl = document.getElementById('aceEngineUrl').value;
-        setupState.useAcexy = document.getElementById('useAcexy').checked;
-        
-        // If using Acexy, set default Ace Engine URL
-        if (setupState.useAcexy && setupState.aceEngineUrl === '') {
-            setupState.aceEngineUrl = 'http://localhost:8080';
-        }
-        
+        setupState.aceEngineUrl = document.getElementById('aceEngineUrl').value;        
         nextStep();
     });
     
@@ -274,43 +264,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Focus first input on page load
     document.getElementById('baseUrl').focus();
 });
-
-// Initialize setup page
-async function initSetup() {
-    try {
-        // Check Acexy availability first
-        const acexyResponse = await fetch('/api/config/acexy_status');
-        const acexyData = await acexyResponse.json();
-        
-        // Show/hide Acexy option based on availability
-        const acexySection = document.getElementById('acexySection');
-        if (acexySection) {
-            if (acexyData.enabled) {
-                acexySection.classList.remove('d-none');
-                
-                // Add event listener for Acexy checkbox
-                const acexyCheckbox = document.getElementById('useAcexy');
-                if (acexyCheckbox) {
-                    acexyCheckbox.addEventListener('change', (e) => {
-                        setupState.acexyEnabled = e.target.checked;
-                        // Update Ace Engine URL based on Acexy selection
-                        const aceEngineInput = document.getElementById('aceEngineUrl');
-                        if (aceEngineInput) {
-                            aceEngineInput.value = e.target.checked ? 
-                                'http://localhost:8080' : 
-                                'http://localhost:6878';
-                            setupState.aceEngineUrl = aceEngineInput.value;
-                        }
-                    });
-                }
-            } else {
-                acexySection.classList.add('d-none');
-            }
-        }
-    } catch (error) {
-        console.error('Error initializing setup:', error);
-    }
-}
 
 // Validate setup data
 function validateSetup() {

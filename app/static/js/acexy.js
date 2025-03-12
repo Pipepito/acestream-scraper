@@ -10,50 +10,57 @@ async function checkAcexyStatus(showLoadingIndicator = false) {
         const response = await fetch('/api/config/acexy_status');
         const data = await response.json();
         
-        // Update Acexy status badge and streams info
-        const acexyStatusElement = document.getElementById('acexyStatus');
-        const acexyStreamsElement = document.getElementById('acexyStreams');
+        // Update Acexy status badges in different views
+        const dashboardStatusElement = document.getElementById('acexyStatus');
+        const configStatusElement = document.getElementById('acexyStatusConfig');
         
-        if (acexyStatusElement) {
-            if (data.enabled) {
-                if (data.available) {
-                    acexyStatusElement.innerHTML = '<span class="badge bg-success">Online</span>';
-                    if (acexyStreamsElement) {
-                        acexyStreamsElement.classList.remove('d-none');
-                        acexyStreamsElement.querySelector('.fw-bold').textContent = data.active_streams;
-                    }
-                } else {
-                    acexyStatusElement.innerHTML = '<span class="badge bg-danger">Offline</span>';
-                    if (acexyStreamsElement) {
-                        acexyStreamsElement.classList.add('d-none');
-                    }
-                }
-            } else {
-                acexyStatusElement.innerHTML = '<span class="badge bg-secondary">Disabled</span>';
-                if (acexyStreamsElement) {
-                    acexyStreamsElement.classList.add('d-none');
-                }
-            }
-        }
-        
-        // Show/hide Acexy features
-        const acexyElements = document.querySelectorAll('.acexy-feature');
         if (data.enabled) {
-            acexyElements.forEach(el => el.classList.remove('d-none'));
+            const statusHTML = data.available ? 
+                '<span class="badge bg-success">Online</span>' : 
+                '<span class="badge bg-danger">Offline</span>';
+                
+            if (dashboardStatusElement) {
+                dashboardStatusElement.innerHTML = statusHTML;
+            }
+            if (configStatusElement) {
+                configStatusElement.innerHTML = statusHTML;
+            }
+            
+            // Show Acexy features
+            document.querySelectorAll('.acexy-feature').forEach(el => {
+                el.classList.remove('d-none');
+            });
         } else {
-            acexyElements.forEach(el => el.classList.add('d-none'));
+            const statusHTML = '<span class="badge bg-secondary">Disabled</span>';
+            
+            if (dashboardStatusElement) {
+                dashboardStatusElement.innerHTML = statusHTML;
+            }
+            if (configStatusElement) {
+                configStatusElement.innerHTML = statusHTML;
+            }
+            
+            // Hide Acexy features
+            document.querySelectorAll('.acexy-feature').forEach(el => {
+                el.classList.add('d-none');
+            });
         }
         
         return data;
     } catch (error) {
         console.error('Error checking Acexy status:', error);
-        const acexyStatusElement = document.getElementById('acexyStatus');
-        if (acexyStatusElement) {
-            acexyStatusElement.innerHTML = '<span class="badge bg-warning">Error</span>';
+        const errorHTML = '<span class="badge bg-warning">Error</span>';
+        
+        const dashboardStatusElement = document.getElementById('acexyStatus');
+        if (dashboardStatusElement) {
+            dashboardStatusElement.innerHTML = errorHTML;
         }
-        if (acexyStreamsElement) {
-            acexyStreamsElement.classList.add('d-none');
+        
+        const configStatusElement = document.getElementById('acexyStatusConfig');
+        if (configStatusElement) {
+            configStatusElement.innerHTML = errorHTML;
         }
+        
         return { enabled: false, available: false };
     } finally {
         if (showLoadingIndicator) hideLoading();

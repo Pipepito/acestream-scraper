@@ -54,7 +54,7 @@ if [ "$ENABLE_ACEXY" = "true" ]; then
     echo "Starting Acexy proxy..."
     export ACEXY_HOST
     export ACEXY_PORT
-    /usr/local/bin/acexy &
+    /usr/local/bin/acexy -addr "$ACEXY_LISTEN_ADDR" &
 else
     echo "Acexy is disabled."
 fi

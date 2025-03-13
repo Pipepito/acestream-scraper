@@ -26,7 +26,8 @@ rescrape_interval_model = api.model('RescrapeInterval', {
 acexy_status_model = api.model('AcexyStatus', {
     'enabled': fields.Boolean(description='Whether Acexy is enabled'),
     'available': fields.Boolean(description='Whether Acexy is available'),
-    'message': fields.String(description='Status message')
+    'message': fields.String(description='Status message'),
+    'active_streams': fields.Integer(description='Number of active streams')
 })
 
 @api.route('/base_url')
@@ -109,22 +110,39 @@ class AcexyStatus(Resource):
             return {
                 "enabled": False,
                 "available": False,
-                "message": "Acexy is not enabled in this environment"
+                "message": "Acexy is not enabled in this environment",
+                "active_streams": 0
             }
         
         try:
-            acexy_url = "http://localhost:8080/ace/status"
+            # Get port from ACEXY_LISTEN_ADDR or default to 8080
+            acexy_addr = os.environ.get('ACEXY_LISTEN_ADDR', ':8080')
+            # Extract port from address (format is either :8080 or 0.0.0.0:8080)
+            port = acexy_addr.split(':')[-1]
+            
+            acexy_url = f"http://localhost:{port}/ace/status"
             response = requests.get(acexy_url, timeout=2)
+            
+            if response.status_code == 200:
+                active_streams = int(response.text)
+                return {
+                    "enabled": True,
+                    "available": True,
+                    "message": f"Acexy is available ({active_streams} active streams)",
+                    "active_streams": active_streams
+                }
             return {
                 "enabled": True,
-                "available": response.status_code == 200,
-                "message": "Acexy is available" if response.status_code == 200 else "Acexy is not responding"
+                "available": False,
+                "message": "Acexy is not responding",
+                "active_streams": 0
             }
         except:
             return {
                 "enabled": True,
                 "available": False,
-                "message": "Could not connect to Acexy service"
+                "message": "Could not connect to Acexy service",
+                "active_streams": 0
             }
 
 @api.route('/setup_completed')

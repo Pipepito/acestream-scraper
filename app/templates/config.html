@@ -99,6 +99,41 @@
     </div>
 </div>
 
+<div id="acestreamConfig" class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Acestream Engine Status</h5>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="d-flex align-items-center mb-2">
+                    <span class="me-2">Status:</span>
+                    <span id="acestreamStatusConfig" class="badge bg-secondary">Checking...</span>
+                </div>
+                <div id="acestreamDetailsConfig" class="mt-2 d-none">
+                    <div class="small">
+                        <div>Version: <span id="acestreamVersionConfig">-</span></div>
+                        <div>Platform: <span id="acestreamPlatformConfig">-</span></div>
+                        <div>Network: <span id="acestreamNetworkConfig">-</span></div>
+                    </div>
+                </div>
+                <p class="text-muted mt-2">
+                    Acestream Engine is required for checking channel status and playing content.
+                </p>
+            </div>
+            <div class="col-md-6">
+                <div class="d-grid">
+                    <button onclick="checkAcestreamStatus(true)" class="btn btn-info" title="Check Acestream Engine status">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-repeat" viewBox="0 0 16 16">
+                            <path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                            <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                        </svg>
+                        Check Acestream Engine Status
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="card mb-4">
     <div class="card-body">
         <h5 class="card-title">Configuration Migration</h5>

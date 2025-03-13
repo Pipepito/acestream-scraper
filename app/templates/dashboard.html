@@ -77,6 +77,8 @@
                     <h6 class="card-subtitle mb-2">Base URL</h6>
                     <p id="currentBaseUrlDisplay" class="mb-1 text-muted small"></p>
                     <p id="sampleUrlDisplay" class="mb-1 text-muted small"></p>
+                    <h6 class="card-subtitle mb-2">Ace Engine</h6>
+                    <p id="currentAceEngineUrlDisplay" class="mb-1 text-muted small"></p>
                 </div>
                 
                 <!-- Acexy Status -->
@@ -93,9 +95,15 @@
                     </div>
                     
                 </div>
+                <!-- Acestream Engine Status -->
                 <div class="mb-3 border-bottom pb-3">
-                    <h6 class="card-subtitle mb-2">Ace Engine</h6>
-                    <p id="currentAceEngineUrlDisplay" class="mb-1 text-muted small"></p>
+                    <h6 class="card-subtitle mb-2">Acestream Engine Status</h6>
+                    <div class="mt-2">
+                        <span id="acestreamStatus" class="badge bg-secondary">Checking...</span>
+                    </div>
+                    <div id="acestreamDetails" class="mt-2 d-none">
+                        <!-- Will be filled by JavaScript -->
+                    </div>
                 </div>
                 <!-- Rescrape interval info -->
                 <div class="mb-3 pb-3">

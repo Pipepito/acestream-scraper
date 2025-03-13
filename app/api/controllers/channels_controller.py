@@ -125,17 +125,22 @@ class ChannelStatusCheck(Resource):
     def post(self, channel_id):
         """Check online status for a specific channel."""
         try:
+            # Just verify the channel exists
             channel = channel_repo.get_by_id(channel_id)
             if not channel:
                 api.abort(404, 'Channel not found')
             
+            # Instead of passing the ORM object, just pass the ID
             from app.services.channel_status_service import check_channel_status
             
-            result = asyncio.run(check_channel_status(channel))
+            # Pass only the channel ID to the async function
+            result = asyncio.run(check_channel_status(channel_id))
             
+            # Return the result - no need to access ORM object here
             return {
-                'id': channel.id,
-                'name': channel.name,
+                'id': result['id'],
+                'name': result['name'],
+                'status': result['status'],
                 'is_online': result['is_online'],
                 'last_checked': result['last_checked'],
                 'error': result.get('error', None)

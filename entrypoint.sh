@@ -4,6 +4,11 @@ if [ -z "${ENABLE_ACESTREAM_ENGINE+x}" ]; then
     export ENABLE_ACESTREAM_ENGINE=$ENABLE_ACEXY
     echo "ENABLE_ACESTREAM_ENGINE not set, using ENABLE_ACEXY value: $ENABLE_ACESTREAM_ENGINE"
 fi
+# Update ACESTREAM_HTTP_HOST to use the actual value of ACEXY_HOST
+if [ "$ACESTREAM_HTTP_HOST" = "ACEXY_HOST" ]; then
+    export ACESTREAM_HTTP_HOST="$ACEXY_HOST"
+    echo "Setting ACESTREAM_HTTP_HOST to $ACEXY_HOST"
+fi
 # Run database migrations
 cd /app
 echo "Running database migrations..."
@@ -54,7 +59,7 @@ if [ "$ENABLE_ACEXY" = "true" ]; then
     echo "Starting Acexy proxy..."
     export ACEXY_HOST
     export ACEXY_PORT
-    /usr/local/bin/acexy -addr "$ACEXY_LISTEN_ADDR" &
+    /usr/local/bin/acexy &
 else
     echo "Acexy is disabled."
 fi

@@ -3,7 +3,7 @@ import logging
 import aiohttp
 import threading
 from datetime import datetime, timezone
-from typing import Optional, List
+from typing import Optional, List, Union, Dict, Any
 from ..models import AcestreamChannel
 from ..extensions import db
 from ..utils.config import Config
@@ -122,20 +122,56 @@ class ChannelStatusService:
         
         return results
 
-async def check_channel_status(channel: AcestreamChannel) -> dict:
-    """Check status of a single channel."""
-    service = ChannelStatusService()
-    is_online = await service.check_channel(channel)
+async def check_channel_status(channel_id_or_obj: Union[str, AcestreamChannel, Dict[str, Any]]) -> dict:
+    """
+    Check status of a single channel.
     
-    # Add status field to match what frontend expects
-    return {
-        'is_online': is_online, 
-        'status': 'online' if is_online else 'offline',
-        'last_checked': channel.last_checked,
-        'error': channel.check_error
-    }
-
-# Removing unused function check_all_channels_status as it's not called anywhere
+    Args:
+        channel_id_or_obj: Can be channel ID string, channel object or dict with channel data
+    """
+    from flask import current_app
+    
+    # Determine what we're working with and get channel ID
+    channel_id = None
+    channel_name = None
+    
+    if isinstance(channel_id_or_obj, str):
+        channel_id = channel_id_or_obj
+    elif isinstance(channel_id_or_obj, dict):
+        channel_id = channel_id_or_obj.get('id')
+        channel_name = channel_id_or_obj.get('name', 'Unknown')
+    elif hasattr(channel_id_or_obj, 'id'):
+        channel_id = channel_id_or_obj.id
+        channel_name = getattr(channel_id_or_obj, 'name', 'Unknown')
+    
+    if not channel_id:
+        raise ValueError("Missing channel ID")
+        
+    # Create a new service instance
+    service = ChannelStatusService()
+    
+    # We need to get a fresh channel object in a new session
+    with current_app.app_context():
+        repo = ChannelRepository()
+        channel = repo.get_by_id(channel_id)
+        if not channel:
+            raise ValueError(f"Channel {channel_id} not found")
+            
+        # Now check the channel
+        is_online = await service.check_channel(channel)
+        
+        # Get the fresh state after the check
+        updated_channel = repo.get_by_id(channel_id)
+        
+        # Return the results
+        return {
+            'id': channel_id,
+            'name': channel_name or updated_channel.name,
+            'is_online': is_online, 
+            'status': 'online' if is_online else 'offline',
+            'last_checked': updated_channel.last_checked,
+            'error': updated_channel.check_error
+        }
 
 def start_background_check(channels: list[AcestreamChannel]) -> dict:
     """Start background channel status check."""

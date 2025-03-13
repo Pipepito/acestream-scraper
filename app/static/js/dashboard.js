@@ -104,6 +104,8 @@ async function refreshData() {
         
         // Check Acexy status 
         await checkAcexyStatus();
+
+        await checkAcestreamStatus();
         
     } catch (error) {
         console.error('Error refreshing dashboard data:', error);
@@ -167,6 +169,59 @@ async function checkAcexyStatus(showLoadingIndicator = false) {
         if (acexyStatusElement) {
             acexyStatusElement.innerHTML = '<span class="badge bg-warning">Error</span>';
         }
+    } finally {
+        if (showLoadingIndicator) hideLoading();
+    }
+}
+
+// Check Acestream Engine status
+async function checkAcestreamStatus(showLoadingIndicator = false) {
+    try {
+        if (showLoadingIndicator) showLoading();
+        
+        const response = await fetch('/api/config/acestream_status');
+        const data = await response.json();
+        
+        // Update Acestream status badge
+        const acestreamStatusElement = document.getElementById('acestreamStatus');
+        const acestreamDetailsElement = document.getElementById('acestreamDetails');
+        
+        if (acestreamStatusElement) {
+            if (data.enabled) {
+                if (data.available) {
+                    acestreamStatusElement.innerHTML = '<span class="badge bg-success">Online</span>';
+                    if (acestreamDetailsElement) {
+                        acestreamDetailsElement.classList.remove('d-none');
+                        acestreamDetailsElement.innerHTML = `
+                            <div class="mt-1 small">
+                                <div>Version: ${data.version || 'Unknown'}</div>
+                                <div>Platform: ${data.platform || 'Unknown'}</div>
+                                <div>Network: ${data.connected ? 'Connected' : 'Disconnected'}</div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    acestreamStatusElement.innerHTML = '<span class="badge bg-danger">Offline</span>';
+                    if (acestreamDetailsElement) {
+                        acestreamDetailsElement.classList.add('d-none');
+                    }
+                }
+            } else {
+                acestreamStatusElement.innerHTML = '<span class="badge bg-secondary">Disabled</span>';
+                if (acestreamDetailsElement) {
+                    acestreamDetailsElement.classList.add('d-none');
+                }
+            }
+        }
+        
+        return data;
+    } catch (error) {
+        console.error('Error checking Acestream status:', error);
+        const acestreamStatusElement = document.getElementById('acestreamStatus');
+        if (acestreamStatusElement) {
+            acestreamStatusElement.innerHTML = '<span class="badge bg-warning">Error</span>';
+        }
+        return { enabled: false, available: false };
     } finally {
         if (showLoadingIndicator) hideLoading();
     }

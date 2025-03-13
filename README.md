@@ -51,9 +51,11 @@ A Python-based web scraping application that retrieves Acestream channel informa
          - ALLOW_REMOTE_ACCESS=no
          - ACEXY_NO_RESPONSE_TIMEOUT=15s
          - ACEXY_BUFFER_SIZE=5MiB
+         - ACESTREAM_HTTP_HOST=localhost
        ports:
          - "8000:8000"  # Flask application
          - "8080:8080"  # Acexy proxy
+         - "8621:8621"  # Acestream P2P Port
          - "43110:43110"  # ZeroNet UI
          - "43111:43111"  # ZeroNet peer
          - "26552:26552"  # ZeroNet peer
@@ -290,6 +292,7 @@ Configure through the setup wizard or directly in `config.json`:
 
 - `ENABLE_ACESTREAM_ENGINE`: Enable built-in Acestream Engine (default: matches `ENABLE_ACEXY`)
 - `ACESTREAM_HTTP_PORT`: Port for Acestream engine (default: `6878`)
+- `ACESTREAM_HTTP_HOST`: Host for Acestream engine (default: uses value of `ACEXY_HOST`)
 
 #### Acexy Configuration
 

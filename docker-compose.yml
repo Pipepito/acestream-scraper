@@ -17,9 +17,11 @@ services:
       - ALLOW_REMOTE_ACCESS=no
       - ACEXY_NO_RESPONSE_TIMEOUT=15s
       - ACEXY_BUFFER_SIZE=5MiB
+      - ACESTREAM_HTTP_HOST=ACEXY_HOST
     ports:
       - "8000:8000"  # Flask application
       - "8080:8080"  # Acexy proxy
+      - "8621:8621"  # Acestream P2P Port
       - "43110:43110"  # ZeroNet UI
       - "43111:43111"  # ZeroNet peer
       - "26552:26552"  # ZeroNet peer

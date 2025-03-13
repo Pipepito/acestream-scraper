@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Set ENABLE_ACESTREAM_ENGINE to match ENABLE_ACEXY if not explicitly set
 if [ -z "${ENABLE_ACESTREAM_ENGINE+x}" ]; then
     export ENABLE_ACESTREAM_ENGINE=$ENABLE_ACEXY
@@ -37,7 +37,7 @@ fi
 # Start Acestream Engine if enabled
 if [ "$ENABLE_ACESTREAM_ENGINE" = "true" ]; then
     echo "Starting Acestream engine..."
-    if [[ $ALLOW_REMOTE_ACCESS = "yes" ]];then
+    if [ "$ALLOW_REMOTE_ACCESS" = "yes" ]; then
         EXTRA_FLAGS="$EXTRA_FLAGS --bind-all"
     fi
     /opt/acestream/start-engine --client-console --http-port $ACESTREAM_HTTP_PORT $EXTRA_FLAGS &  

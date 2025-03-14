@@ -6,11 +6,11 @@ class PlaylistService:
         self.channel_repository = ChannelRepository()
         self.config = Config()
 
-    def _format_stream_url(self, channel_id: str) -> str:
+    def _format_stream_url(self, channel_id: str, local_id: int) -> str:
         """Format stream URL based on base_url configuration."""
         # Get base_url directly from config instance
         base_url = getattr(self.config, 'base_url', 'acestream://')
-        return f'{base_url}{channel_id}'
+        return f'{base_url}{channel_id}&pid={local_id}'
 
     def _get_channels(self, search_term: str = None):
         """Retrieve channels from the repository with optional search term."""
@@ -29,9 +29,9 @@ class PlaylistService:
         channels = self._get_channels(search_term)
         
         # Add each channel to the playlist
-        for channel in channels:
+        for local_id, channel in enumerate(channels, start=0):
             # Use _format_stream_url to get the correct URL format
-            stream_url = self._format_stream_url(channel.id)
+            stream_url = self._format_stream_url(channel.id, local_id)
             
             # Add metadata if available
             metadata = []

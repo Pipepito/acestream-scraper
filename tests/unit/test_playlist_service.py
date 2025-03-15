@@ -1,4 +1,6 @@
+import os
 import pytest
+from unittest.mock import patch
 from app.utils.config import Config
 from app.services.playlist_service import PlaylistService
 from app.models import AcestreamChannel
@@ -60,3 +62,51 @@ def test_generate_playlist_all_channels(db_session, setup_test_channels):
     # Verify correct URLs are in the playlist
     assert '123' in playlist
     assert '456' in playlist
+
+def test_format_stream_url_with_acexy(db_session, monkeypatch):
+    """Test URL formatting when Acexy is enabled and port is 8080."""
+    # Create service with custom base URL containing port 8080
+    service = PlaylistService()
+    
+    # Mock the config to use Acexy port
+    monkeypatch.setattr(service.config, 'base_url', 'http://localhost:8080/ace/getstream?id=')
+    
+    # Mock environment variable
+    with patch.dict(os.environ, {"ENABLE_ACEXY": "true"}):
+        # Format URL
+        url = service._format_stream_url('abc123', 42)
+        
+        # Verify that no pid parameter is added
+        assert url == 'http://localhost:8080/ace/getstream?id=abc123'
+        assert '&pid=' not in url
+
+def test_format_stream_url_without_acexy(db_session, monkeypatch):
+    """Test URL formatting when Acexy is not enabled (default case)."""
+    # Create service
+    service = PlaylistService()
+    
+    # Mock the config to use standard port 6878
+    monkeypatch.setattr(service.config, 'base_url', 'http://localhost:6878/ace/getstream?id=')
+    
+    # Format URL with Acexy disabled (default)
+    url = service._format_stream_url('abc123', 42)
+    
+    # Verify that pid parameter is added
+    assert url == 'http://localhost:6878/ace/getstream?id=abc123&pid=42'
+    assert '&pid=42' in url
+
+def test_format_stream_url_acexy_environment_overrides_port(db_session, monkeypatch):
+    """Test that Acexy environment variable is respected even with 8080 port."""
+    # Create service with port 8080 but Acexy explicitly disabled
+    service = PlaylistService()
+    
+    # Mock the config to use Acexy port
+    monkeypatch.setattr(service.config, 'base_url', 'http://localhost:8080/ace/getstream?id=')
+    
+    # Mock environment variable to explicitly disable Acexy
+    with patch.dict(os.environ, {"ENABLE_ACEXY": "false"}):
+        # Format URL
+        url = service._format_stream_url('abc123', 42)
+        
+        # Should add pid parameter since ENABLE_ACEXY is false, despite port 8080
+        assert url == 'http://localhost:8080/ace/getstream?id=abc123&pid=42'

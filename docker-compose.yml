@@ -2,7 +2,9 @@ version: '3.8'
 
 services:
   acestream-scraper:
-    image: pipepito/acestream-scraper:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.warp
     container_name: acestream-scraper
     environment:
       - TZ=Europe/Madrid
@@ -18,6 +20,7 @@ services:
       - ACEXY_NO_RESPONSE_TIMEOUT=15s
       - ACEXY_BUFFER_SIZE=5MiB
       - ACESTREAM_HTTP_HOST=ACEXY_HOST
+      - ENABLE_WARP=true
     ports:
       - "8000:8000"  # Flask application
       - "8080:8080"  # Acexy proxy
@@ -29,9 +32,3 @@ services:
       - ./data/zeronet:/app/ZeroNet/data
       - ./data/config:/app/config
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "/app/healthcheck.sh"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s

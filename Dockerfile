@@ -95,6 +95,28 @@ RUN apt-get update \
 COPY --from=acexy-builder /acexy /usr/local/bin/acexy
 RUN chmod +x /usr/local/bin/acexy
 
+# Install Cloudflare WARP dependencies
+RUN apt-get update && apt-get install -y \
+    apt-transport-https \
+    gnupg \
+    curl \
+    lsb-release \
+    dirmngr \
+    ca-certificates \
+    --no-install-recommends
+
+# Add Cloudflare GPG key and repository
+RUN curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/cloudflare-client.list
+
+# Install Cloudflare WARP
+RUN apt-get update && apt-get install -y cloudflare-warp \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the WARP setup script
+COPY warp-setup.sh /app/warp-setup.sh
+RUN chmod +x /app/warp-setup.sh
+
 # Add the healthcheck script
 COPY healthcheck.sh /app/healthcheck.sh
 RUN chmod +x /app/healthcheck.sh
@@ -105,7 +127,12 @@ ENV TZ='Europe/Madrid'
 ENV ENABLE_TOR=false
 ENV ENABLE_ACEXY=false
 ENV ENABLE_ACESTREAM_ENGINE=false
+ENV ENABLE_WARP=false
+ENV WARP_ENABLE_NAT=true
+ENV WARP_ENABLE_IPV6=false
 ENV ACESTREAM_HTTP_PORT=6878
+# Added IPv6 disable flag
+ENV IPV6_DISABLED=true
 
 ENV FLASK_PORT=8000
 ENV ACEXY_LISTEN_ADDR=":8080"
@@ -139,5 +166,11 @@ WORKDIR /app
 # Define the healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s \
     CMD /app/healthcheck.sh
+
+# IMPORTANT: The following capabilities must be added when running the container with WARP enabled:
+# --cap-add NET_ADMIN
+# --cap-add SYS_ADMIN
+# Example: docker run --cap-add NET_ADMIN --cap-add SYS_ADMIN -e ENABLE_WARP=true ...
+# Note: Container runs with IPv6 disabled to avoid DNS lookup issues
 
 ENTRYPOINT ["/app/entrypoint.sh"]

@@ -19,6 +19,7 @@ Built using Flask, BeautifulSoup, and SQLAlchemy, this application provides a co
 - **Database Management**: Complete with migration support
 - **Built-in Acestream Integration**: Optional integrated Acestream engine with Acexy proxy
 - **External Acestream Support**: Connect to existing Acestream Engine instances
+- **Cloudflare WARP Integration**: Enhanced privacy and geo-unblocking capabilities
 - **Channel Status Monitoring**: Check which channels are online or offline
 - **Interactive Setup**: Easy configuration through a setup wizard
 - **Search Functionality**: Find specific channels quickly

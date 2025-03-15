@@ -27,6 +27,9 @@ async function loadConfigData() {
         // Update Acestream Engine status
         await updateAcestreamStatus();
         
+        // Update WARP status
+        await updateWarpUI();
+        
         // Load URLs list
         await loadUrlsList();
         

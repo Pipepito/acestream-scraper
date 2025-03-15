@@ -16,6 +16,7 @@ from app.api.controllers.channels_controller import api as channels_ns
 from app.api.controllers.urls_controller import api as urls_ns
 from app.api.controllers.health_controller import api as health_ns
 from app.api.controllers.playlist_controller import api as playlist_ns
+from app.api.controllers.warp_controller import api as warp_ns
 
 # Add namespaces to the API
 api.add_namespace(stats_ns, path='/stats')
@@ -24,6 +25,7 @@ api.add_namespace(channels_ns, path='/channels')
 api.add_namespace(urls_ns, path='/urls')
 api.add_namespace(health_ns, path='/health')
 api.add_namespace(playlist_ns, path='/playlists')
+api.add_namespace(warp_ns, path='/warp')
 
 # Register the config routes with the config namespace
 from . import config_routes

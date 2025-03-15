@@ -8,9 +8,11 @@ This guide explains how to use Acestream Scraper once it's installed.
   - [Channel Management](#channel-management)
   - [URL Management](#url-management)
   - [Configuration Page](#configuration-page)
+  - [WARP Management](#warp-management)
 - [M3U Playlist](#m3u-playlist)
 - [API Documentation](#api-documentation)
 - [Acexy Interface](#acexy-interface)
+- [Cloudflare WARP](#cloudflare-warp)
 
 ## Web Interface
 
@@ -104,6 +106,33 @@ The configuration page allows you to modify system settings:
 - **Rescrape Interval**: How often to automatically check for new channels
 - **Acexy Status**: View the status of the Acexy proxy (if enabled)
 - **Acestream Engine Status**: View the status of the Acestream Engine
+- **WARP Status**: View and manage Cloudflare WARP connection (if enabled)
+
+### WARP Management
+
+If Cloudflare WARP is enabled in your container, you can manage it through the Configuration page:
+
+#### WARP Status
+
+- View connection status (Connected, Running but Not Connected, Not Running)
+- See your current connection mode (WARP, DoT, Proxy, Off)
+- Check your account type (Free, Premium, Team)
+- View your public IP address through WARP
+
+#### WARP Controls
+
+- Connect/Disconnect from WARP
+- Change WARP mode (WARP, DoT, Proxy, Off)
+- Register a license key for WARP+ or Team accounts
+
+#### WARP Connection Details
+
+When connected to WARP, detailed Cloudflare trace information is available showing:
+- WARP connection status
+- Current IP address and location
+- Cloudflare datacenter handling your connection
+- Connection protocol details
+- Server information
 
 ## M3U Playlist
 
@@ -147,6 +176,7 @@ Acestream Scraper provides an OpenAPI/Swagger interface for developers:
 - `/api/config` - View and update configuration
 - `/api/playlists` - Generate playlists
 - `/api/health` - Check system health
+- `/api/warp` - Manage Cloudflare WARP connection
 
 ## Acexy Interface
 
@@ -155,3 +185,18 @@ If you enabled Acexy (recommended):
 1. Access the Acexy status endpoint at: `http://localhost:8080/ace/status`
 2. Check Acexy status directly in the main dashboard
 3. Manage your Acestream connections through this web interface
+
+## Cloudflare WARP
+
+When enabled, Cloudflare WARP provides these benefits:
+
+1. **Enhanced Privacy**: Your traffic is encrypted and routed through Cloudflare's network
+2. **Geo-Blocking Bypass**: Access content that might be regionally restricted
+3. **Improved Security**: Protection from various network-based attacks
+4. **Better Performance**: Optimized routing through Cloudflare's global network
+
+To use WARP features:
+1. Make sure the container is running with `-e ENABLE_WARP=true` and required capabilities (`--cap-add NET_ADMIN --cap-add SYS_ADMIN`)
+2. Navigate to the Configuration page
+3. Use the WARP controls to connect, disconnect, or change modes
+4. Optionally register a WARP+ or Team license for premium features

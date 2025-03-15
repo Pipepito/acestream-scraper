@@ -17,6 +17,7 @@ A Python-based web scraping application that retrieves Acestream channel informa
 - Repository pattern for data access
 - **Built-in Acestream engine with Acexy proxy (optional)**
 - **Support for external Acestream Engine instances**
+- **Cloudflare WARP integration for enhanced privacy and geo-unblocking**
 - Channel status checking
 - Acexy status display in the dashboard
 - **Interactive setup wizard for easy configuration**
@@ -187,6 +188,23 @@ docker run -d \
   pipepito/acestream-scraper:latest
 ```
 
+### Using with Cloudflare WARP
+
+The application can use Cloudflare WARP to provide enhanced privacy and access to geo-restricted content:
+
+```bash
+docker run -d \
+  -p 8000:8000 \
+  --cap-add NET_ADMIN \
+  --cap-add SYS_ADMIN \
+  -e ENABLE_WARP=true \
+  -v "${PWD}/config:/app/config" \
+  --name acestream-scraper \
+  pipepito/acestream-scraper:latest
+```
+
+> **Note:** WARP integration requires additional capabilities (`NET_ADMIN` and `SYS_ADMIN`) to create and manage network tunnels.
+
 ### Manual Installation
 
 1. **Prerequisites:**
@@ -314,6 +332,14 @@ Acexy provides an enhanced proxy interface for Acestream, with a web UI for bett
 - `ALLOW_REMOTE_ACCESS`: Set to `yes` to allow external connections (default: `no`)
 - `ACEXY_NO_RESPONSE_TIMEOUT`: Timeout for Acestream responses (default: `15s`)
 - `ACEXY_BUFFER_SIZE`: Buffer size for data transfers (default: `5MiB`)
+
+#### WARP Configuration
+
+Cloudflare WARP provides enhanced privacy and secure tunneling:
+
+- `ENABLE_WARP`: Set to `true` to enable Cloudflare WARP (default: `false`)
+- `WARP_ENABLE_NAT`: Enable NAT for WARP traffic (default: `true`)
+- `WARP_LICENSE_KEY`: Optional license key for WARP+ or WARP Team
 
 #### Other Settings
 

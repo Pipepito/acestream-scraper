@@ -65,6 +65,39 @@ It depends on your setup:
 ### How often does it update the channel list?
 By default, it rescans URLs every 24 hours. You can change this with the `rescrape_interval` setting in the configuration page or by setting the value when going through the setup wizard.
 
+### What is Cloudflare WARP and why would I use it?
+Cloudflare WARP is a privacy-focused VPN-like service that encrypts your traffic and routes it through Cloudflare's global network. Benefits include:
+- **Privacy**: Encrypts your internet traffic
+- **Access**: Can bypass certain geographical restrictions
+- **Performance**: Often provides optimized routing through Cloudflare's network
+- **Security**: Protection against certain network-based attacks
+
+### How do I enable WARP in Acestream Scraper?
+You need to add specific Docker capabilities and environment variables:
+```bash
+docker run -d \
+  --cap-add NET_ADMIN \
+  --cap-add SYS_ADMIN \
+  -e ENABLE_WARP=true \
+  -p 8000:8000 \
+  -v "${PWD}/config:/app/config" \
+  --name acestream-scraper \
+  pipepito/acestream-scraper:latest
+```
+
+### What WARP modes are available?
+- **WARP**: Full tunnel mode - routes all traffic through WARP
+- **DoT**: DNS-over-TLS mode - only DNS traffic is secured
+- **Proxy**: Proxy mode - selective routing through WARP
+- **Off**: WARP disabled but the service remains running
+
+### How do I use WARP+ or Team features?
+If you have a license key for WARP+ or a WARP Team account:
+1. Navigate to the Configuration page in the web interface
+2. Find the WARP License Management section
+3. Enter your license key and register it
+4. Alternatively, set the `WARP_LICENSE_KEY` environment variable when starting the container
+
 ## Usage Questions
 
 ### How do I access the web interface?
@@ -118,6 +151,13 @@ Common issues include:
 2. Check if you're using the correct Base URL format for your setup
 3. Verify the channel is online using the "Check Status" button
 4. If using Acexy, make sure it's properly configured and running
+
+### WARP shows as "Running but Not Connected"
+1. Check the WARP section in the Configuration page
+2. Try clicking the "Connect" button
+3. If connection fails, try changing the WARP mode to a different setting
+4. Ensure your container has the proper capabilities (`NET_ADMIN` and `SYS_ADMIN`)
+5. Check container logs for WARP-related errors
 
 ## Advanced Questions
 

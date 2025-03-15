@@ -134,6 +134,86 @@
     </div>
 </div>
 
+<div class="card mb-4" id="warpConfig">
+    <div class="card-body">
+        <h5 class="card-title">Cloudflare WARP Status</h5>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="d-flex align-items-center mb-2">
+                    <span class="me-2">Status:</span>
+                    <span id="warpStatusBadge" class="badge bg-secondary">Checking...</span>
+                </div>
+                <div class="d-flex align-items-center mb-2">
+                    <span class="me-2">Mode:</span>
+                    <span id="warpMode" class="badge bg-info">Unknown</span>
+                </div>
+                <div id="warpDetailsConfig" class="mt-2">
+                    <div class="small">
+                        <div>Account Type: <span id="warpAccountType">-</span></div>
+                        <div>IP Address: <span id="warpIpAddress">-</span></div>
+                    </div>
+                </div>
+                <p class="text-muted mt-2">
+                    Cloudflare WARP provides secure connectivity and enhanced privacy.
+                </p>
+            </div>
+            <div class="col-md-6">
+                <div class="d-grid gap-2 mb-3">
+                    <button id="btnCheckWarpStatus" class="btn btn-info" title="Check WARP status">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-repeat" viewBox="0 0 16 16">
+                            <path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                            <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                        </svg>
+                        Check WARP Status
+                    </button>
+                </div>
+                <div class="btn-group w-100 mb-2" role="group">
+                    <button id="btnConnectWarp" class="btn btn-success">Connect</button>
+                    <button id="btnDisconnectWarp" class="btn btn-warning">Disconnect</button>
+                </div>
+                <div class="btn-group-vertical w-100" role="group">
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
+                            Set Mode
+                        </button>
+                        <ul class="dropdown-menu w-100">
+                            <li><a class="dropdown-item warp-mode-option" data-mode="warp" href="#">WARP Mode</a></li>
+                            <li><a class="dropdown-item warp-mode-option" data-mode="dot" href="#">DoT Mode</a></li>
+                            <li><a class="dropdown-item warp-mode-option" data-mode="proxy" href="#">Proxy Mode</a></li>
+                            <li><a class="dropdown-item warp-mode-option" data-mode="off" href="#">Off Mode</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- New section for Cloudflare trace information -->
+        <div class="mt-4 border-top pt-3 d-none" id="warpTraceInfo">
+            <h6>Cloudflare Connection Details</h6>
+            <div class="alert alert-info small mb-2">
+                This information is provided directly from Cloudflare and confirms your WARP connection status.
+            </div>
+            <div id="warpTraceData"></div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4" id="warpLicenseConfig">
+    <div class="card-body">
+        <h5 class="card-title">WARP License Management</h5>
+        <form id="warpLicenseForm" class="row g-3 align-items-center">
+            <div class="col-12 col-md-6">
+                <input type="text" class="form-control" id="warpLicenseInput" 
+                       placeholder="Enter WARP license key" required>
+                <div class="form-text">Register a WARP+ or WARP Team license key</div>
+            </div>
+            <div class="col-12 col-md-3">
+                <button type="submit" class="btn btn-primary w-100">Register License</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="card mb-4">
     <div class="card-body">
         <h5 class="card-title">Configuration Migration</h5>
@@ -200,4 +280,5 @@
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/config.js') }}"></script>
 <script src="{{ url_for('static', filename='js/urls.js') }}"></script>
+<script src="{{ url_for('static', filename='js/warp.js') }}"></script>
 {% endblock %}

@@ -1,4 +1,11 @@
 #!/bin/bash
+
+# Initialize WARP if enabled
+if [ "${ENABLE_WARP}" = "true" ]; then
+    echo "Initializing Cloudflare WARP..."
+    /app/warp-setup.sh
+fi
+
 # Set ENABLE_ACESTREAM_ENGINE to match ENABLE_ACEXY if not explicitly set
 if [ -z "${ENABLE_ACESTREAM_ENGINE+x}" ]; then
     export ENABLE_ACESTREAM_ENGINE=$ENABLE_ACEXY

@@ -33,6 +33,7 @@ If using Docker (recommended approach):
 
 - **Docker**: Version 19.03 or newer
 - **Docker Compose**: Version 1.27.0 or newer (if using docker-compose)
+- **Docker Capabilities**: NET_ADMIN and SYS_ADMIN (only if using Cloudflare WARP)
 
 ### Manual Installation
 
@@ -50,6 +51,7 @@ These may be needed depending on your configuration:
 - **Acestream Engine**: If not using the built-in engine
 - **ZeroNet**: Built-in, but requires connection to ZeroNet network
 - **Tor**: Optional, for anonymous ZeroNet connections
+- **Cloudflare WARP**: Optional, for enhanced privacy and geo-unblocking
 
 ## Network Requirements
 

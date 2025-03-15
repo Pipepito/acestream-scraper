@@ -18,11 +18,16 @@ if [ "${ENABLE_WARP}" = "true" ]; then
     fi
     sudo dbus-daemon --config-file=/usr/share/dbus-1/system.conf
     echo "Initializing Cloudflare WARP in full tunnel mode..."
+
+    # Force IPv4 for WARP
+    export WARP_FORCE_IPV4=true
+    
     # start the daemon
     sudo warp-svc --accept-tos &
     # Start the WARP service
     # service warp-svc start
     sleep 5
+    
     
     # if /var/lib/cloudflare-warp/reg.json not exists, setup new warp client
     echo "checking warp client registration..."
@@ -38,10 +43,12 @@ if [ "${ENABLE_WARP}" = "true" ]; then
             fi
         fi
         # connect to the warp server
-        warp-cli --accept-tos connect
+        # warp-cli --accept-tos connect
     else
         echo "Warp client already registered, skip registration"
     fi
+    
+    
     # disable qlog if DEBUG_ENABLE_QLOG is empty
     if [ -z "$DEBUG_ENABLE_QLOG" ]; then
         warp-cli --accept-tos debug qlog disable
@@ -53,7 +60,7 @@ if [ "${ENABLE_WARP}" = "true" ]; then
     if [ -n "$WARP_ENABLE_NAT" ]; then
         # switch to warp mode
         echo "[NAT] Switching to warp mode..."
-        warp-cli --accept-tos mode warp
+        warp-cli --accept-tos mode warp+doh
         warp-cli --accept-tos connect
 
         # wait another seconds for the daemon to reconfigure
@@ -68,6 +75,7 @@ if [ "${ENABLE_WARP}" = "true" ]; then
         sudo nft add chain ip mangle forward { type filter hook forward priority mangle \; }
         sudo nft add rule ip mangle forward tcp flags syn tcp option maxseg size set rt mtu
 
+        # IPv6 NAT configuration is completely commented out as we're disabling IPv6
         sudo nft add table ip6 nat
         sudo nft add chain ip6 nat WARP_NAT { type nat hook postrouting priority 100 \; }
         sudo nft add rule ip6 nat WARP_NAT oifname "CloudflareWARP" masquerade
@@ -76,11 +84,10 @@ if [ "${ENABLE_WARP}" = "true" ]; then
         sudo nft add rule ip6 mangle forward tcp flags syn tcp option maxseg size set rt mtu
     fi
 
-    
     # Check status
     warp-cli --accept-tos status
     
-    echo "WARP initialization completed - all traffic now routed through WARP"
+    echo "WARP initialization completed - all traffic now routed through WARP (IPv6 disabled)"
 else
     echo "WARP is disabled, skipping initialization"
 fi

@@ -101,6 +101,51 @@ Without Acexy, you'd need to manually append `&pid={unique_id}` to each stream U
 | `TZ` | Timezone for the container | `Europe/Madrid` | Use any valid TZ identifier |
 | `DOCKER_ENVIRONMENT` | Mark as running in Docker | `true` | Used for internal path configuration |
 
+### WARP Configuration
+
+Cloudflare WARP provides enhanced privacy and secure connection options:
+
+| Variable | Description | Default | Notes |
+|----------|-------------|---------|-------|
+| `ENABLE_WARP` | Enable Cloudflare WARP | `false` | Requires `NET_ADMIN` and `SYS_ADMIN` capabilities |
+| `WARP_ENABLE_NAT` | Enable NAT for WARP traffic | `true` | Allows routing traffic through WARP tunnel |
+| `WARP_LICENSE_KEY` | WARP license key | - | Optional: For WARP+ or Team accounts |
+
+### Docker Example with WARP Enabled
+
+```bash
+docker run -d \
+  -p 8000:8000 \
+  --cap-add NET_ADMIN \
+  --cap-add SYS_ADMIN \
+  -e ENABLE_WARP=true \
+  -v "${PWD}/config:/app/config" \
+  --name acestream-scraper \
+  pipepito/acestream-scraper:latest
+```
+
+### Docker Compose Example with WARP Enabled
+
+```yaml
+version: '3.8'
+
+services:
+  acestream-scraper:
+    image: pipepito/acestream-scraper:latest
+    container_name: acestream-scraper
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    environment:
+      - TZ=Europe/Madrid
+      - ENABLE_WARP=true
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/config:/app/config
+    restart: unless-stopped
+```
+
 ## Channel Status Checking
 
 The application verifies if channels are available:
@@ -228,4 +273,4 @@ healthcheck:
   start_period: 60s
 ```
 
-You can check the health status with: `docker inspect --format='{{.State.Health.Status}}' acestream-scraper`
+You can check the health status with: `docker inspect --format='{{.State.Health.Status}}' acestream-scraper

@@ -25,6 +25,8 @@ A Python-based web scraping application that retrieves Acestream channel informa
 - **API documentation via OpenAPI/Swagger UI**
 - **Enhanced health checking for all components**
 
+# [Detailed Wiki](https://github.com/Pipepito/acestream-scraper/wiki)
+
 ## Quick Start
 
 ### Using Docker Compose (Easiest Method)
@@ -135,7 +137,7 @@ docker run -d \
   pipepito/acestream-scraper:latest
 ```
 
-The Acexy web interface will be available at `http://localhost:8080`.
+Acexy only exposes an status endpoint available at `http://localhost:8080/ace/status`.
 
 ### Using with External Acestream Engine
 
@@ -250,11 +252,17 @@ Get the M3U playlist for your media player:
 
 - Current playlist: `http://localhost:8000/playlist.m3u`
 - Force refresh: `http://localhost:8000/playlist.m3u?refresh=true`
+- Search channels: `http://localhost:8000/playlist.m3u?search=sports`
 
 To use in your media player (like VLC):
 1. Copy the playlist URL (http://localhost:8000/playlist.m3u)
 2. In your media player, select "Open Network Stream" or similar option
 3. Paste the URL and play
+
+**URL Formatting Note:**
+- When using Acexy proxy (port 8080), stream URLs are formatted as `{base_url}{channel_id}`
+- For all other configurations, `&pid={local_id}` is automatically appended to each stream URL: `{base_url}{channel_id}&pid={local_id}`
+- This ensures proper channel identification in various player environments
 
 ### API Documentation
 

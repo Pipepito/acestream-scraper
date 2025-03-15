@@ -110,3 +110,37 @@ def test_format_stream_url_acexy_environment_overrides_port(db_session, monkeypa
         
         # Should add pid parameter since ENABLE_ACEXY is false, despite port 8080
         assert url == 'http://localhost:8080/ace/getstream?id=abc123&pid=42'
+
+def test_generate_playlist_with_duplicate_names(db_session):
+    """Test playlist generation with duplicate channel names."""
+    # Create test channels with duplicate names
+    ch1 = AcestreamChannel(id='123', name='Sports Channel', group='Sports', status='active')
+    ch2 = AcestreamChannel(id='456', name='Sports Channel', group='Sports', status='active')
+    ch3 = AcestreamChannel(id='789', name='Sports Channel', group='Sports', status='active')
+    ch4 = AcestreamChannel(id='abc', name='News Channel', group='News', status='active')
+    ch5 = AcestreamChannel(id='def', name='News Channel', group='News', status='active')
+    
+    db_session.add_all([ch1, ch2, ch3, ch4, ch5])
+    db_session.commit()
+    
+    # Create the service
+    service = PlaylistService()
+    
+    # Generate playlist
+    playlist = service.generate_playlist()
+    
+    # Debug output
+    print(f"Generated playlist: {playlist}")
+    
+    # Verify original names are present
+    assert ',Sports Channel' in playlist
+    assert ',News Channel' in playlist
+    
+    # Verify numbered duplicates are present
+    assert ',Sports Channel 2' in playlist
+    assert ',Sports Channel 3' in playlist
+    assert ',News Channel 2' in playlist
+    
+    # Make sure the original name doesn't have a number
+    assert ',Sports Channel 1' not in playlist
+    assert ',News Channel 1' not in playlist

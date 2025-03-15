@@ -38,10 +38,25 @@ class PlaylistService:
         # Query channels from the database
         channels = self._get_channels(search_term)
         
+        # Track used names and their counts
+        name_counts = {}
+        
         # Add each channel to the playlist
         for local_id, channel in enumerate(channels, start=0):
             # Use _format_stream_url to get the correct URL format
             stream_url = self._format_stream_url(channel.id, local_id)
+            
+            # Handle duplicate names
+            base_name = channel.name
+            if base_name in name_counts:
+                # Increment the counter for this name
+                name_counts[base_name] += 1
+                # For duplicates, append the counter value (2, 3, etc.)
+                display_name = f"{base_name} {name_counts[base_name]}"
+            else:
+                # First occurrence - use original name and initialize counter
+                name_counts[base_name] = 1
+                display_name = base_name
             
             # Add metadata if available
             metadata = []
@@ -58,7 +73,7 @@ class PlaylistService:
             extinf = '#EXTINF:-1'
             if metadata:
                 extinf += f' {" ".join(metadata)}'
-            extinf += f',{channel.name}'
+            extinf += f',{display_name}'
             
             playlist_lines.append(extinf)
             playlist_lines.append(stream_url)

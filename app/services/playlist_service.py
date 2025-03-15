@@ -1,3 +1,4 @@
+import os
 from ..repositories import ChannelRepository
 from app.utils.config import Config
 
@@ -10,7 +11,16 @@ class PlaylistService:
         """Format stream URL based on base_url configuration."""
         # Get base_url directly from config instance
         base_url = getattr(self.config, 'base_url', 'acestream://')
-        return f'{base_url}{channel_id}&pid={local_id}'
+        
+        # Check if using Acexy (port 8080)
+        is_acexy_enabled = os.environ.get('ENABLE_ACEXY', 'false').lower() == 'true'
+        is_acexy_port = ':8080' in base_url
+        
+        # Don't add pid parameter if using Acexy
+        if is_acexy_enabled and is_acexy_port:
+            return f'{base_url}{channel_id}'
+        else:
+            return f'{base_url}{channel_id}&pid={local_id}'
 
     def _get_channels(self, search_term: str = None):
         """Retrieve channels from the repository with optional search term."""

@@ -25,6 +25,9 @@
         .nav-link.active svg {
             fill: #ffffff; 
         }
+        .nav-pills {
+            gap: 0.5rem;
+        }
         .nav-pills .nav-link:not(.active):hover {
             background-color: #f8f9fa;
             color: #495057;
@@ -38,6 +41,19 @@
         
         [data-bs-theme="dark"] .card-header {
             background-color: var(--bs-dark);
+        }
+        #themeToggle {
+            border-color: var(--bs-border-color) !important;
+        }
+        #themeToggle:hover {
+            border-color: var(--bs-border-color) !important;
+            background-color: var(--bs-border-color);
+        }
+        #themeToggle.active {
+            border-color: var(--bs-primary) !important;
+        }
+        #themeToggle:hover svg {
+            fill: var(--bs-primary);  /* Color del icono en hover */
         }
         @media (max-width: 768px) {
             .btn-sm {
@@ -60,12 +76,6 @@
         <header class="pb-3 mb-4 border-bottom">
             <div class="d-flex flex-wrap justify-content-between align-items-center">
                 <h1 class="me-auto mb-md-0">Acestream Scraper Dashboard</h1>
-                <button class="btn btn-link me-3" id="themeToggle">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-moon-stars-fill" viewBox="0 0 16 16">
-                        <path d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278z"/>
-                        <path d="M10.794 3.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387a1.734 1.734 0 0 0-1.097 1.097l-.387 1.162a.217.217 0 0 1-.412 0l-.387-1.162A1.734 1.734 0 0 0 9.31 6.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387a1.734 1.734 0 0 0 1.097-1.097l.387-1.162z"/>
-                    </svg>
-                </button>
                 <ul class="nav nav-pills" id="ScrapperTab" role="tablist">
                     <li class="nav-item" role="presentation">
                         <a class="nav-link {% block dashboard_active %}{% endblock %}" href="{{ url_for('main.index') }}">
@@ -81,6 +91,13 @@
                                 <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34z"/>
                             </svg>
                             Configuration
+                        </a>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <a class="nav-link border" href="#" id="themeToggle" title="Toggle theme">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-moon-stars-fill me-1" viewBox="0 0 16 16">
+                                <path d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278z"/>
+                            </svg>
                         </a>
                     </li>
                 </ul>

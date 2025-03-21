@@ -57,11 +57,21 @@ class ZeronetScraper(BaseScraper):
                         response.raise_for_status()
                         content = await response.text()
                         
+                        # Check for new_era_iframe.html format by looking for specific HTML structure
+                        if 'channel-item' in content or 'ACEStream NEW ERA' in content:
+                            logger.info("Detected NEW ERA iframe format")
+                            return content
+                        
                         # Look for the iframe_src in the script
                         iframe_src_match = re.search(r'iframe_src\s*=\s*"([^"]+)"', content)
                         if iframe_src_match:
                             iframe_url = iframe_src_match.group(1)
                             logger.info(f"Found iframe URL in script: {iframe_url}")
+                            
+                            # Handle relative URLs
+                            if iframe_url.startswith('/'):
+                                base_url = f"http://{zeronet_host}:43110"
+                                iframe_url = base_url + iframe_url
                             
                             try:
                                 # Try to fetch iframe content
@@ -73,14 +83,17 @@ class ZeronetScraper(BaseScraper):
                                     iframe_response.raise_for_status()
                                     iframe_content = await iframe_response.text()
                                     
-                                    if 'acestream://' in iframe_content or 'const linksData' in iframe_content:
+                                    if ('acestream://' in iframe_content or 
+                                        'const linksData' in iframe_content or
+                                        'fileContents' in iframe_content or
+                                        'channel-item' in iframe_content):
                                         return iframe_content
                             except aiohttp.ClientError as e:
                                 logger.warning(f"Failed to fetch iframe content: {e}")
                                 # Don't retry on iframe errors, continue with main content
                         
                         # Check main content as fallback
-                        if 'acestream://' in content or 'const linksData' in content:
+                        if 'acestream://' in content or 'const linksData' in content or 'fileContents' in content:
                             return content
                         
                         # If we get here, no content was found in this attempt
@@ -101,4 +114,9 @@ class ZeronetScraper(BaseScraper):
                     await asyncio.sleep(delay)
                 else:
                     logger.error(f"Max retries reached for {internal_url}. Last error: {last_error}")
-                    raise Exception(f"Failed to fetch content after {self.retries} retries. Last error: {last_error}")
+                    raise
+        
+        if last_error:
+            raise Exception(f"Failed to fetch content after {self.retries} retries. Last error: {last_error}")
+        
+        return ""  # Empty content if all attempts fail

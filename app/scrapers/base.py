@@ -22,6 +22,17 @@ class BaseScraper(ABC):
         self.m3u_pattern = re.compile(r'https?://[^\s<>"]+?\.m3u[8]?(?=[\s<>"]|$)')
         self.identified_ids: Set[str] = set()
         self.m3u_service = M3UService()
+        # Pattern to match multiple whitespace characters (spaces, tabs, newlines)
+        self.whitespace_pattern = re.compile(r'\s+')
+
+    def clean_channel_name(self, name: str) -> str:
+        """Clean channel name by replacing multiple whitespace with single space and trimming."""
+        if not name:
+            return ""
+        # Replace all whitespace sequences (including newlines) with a single space
+        cleaned_name = self.whitespace_pattern.sub(' ', name)
+        # Trim leading/trailing whitespace
+        return cleaned_name.strip()
 
     @abstractmethod
     async def fetch_content(self, url: str) -> str:
@@ -52,6 +63,8 @@ class BaseScraper(ABC):
                             name_part = line.split('acestream://')[0].strip()
                             if name_part:
                                 name = name_part.rstrip(':- ')
+                                # Clean the channel name
+                                name = self.clean_channel_name(name)
                                 
                                 if channel_id and channel_id not in self.identified_ids:
                                     channels.append((channel_id, name))
@@ -73,8 +86,11 @@ class BaseScraper(ABC):
                     for link in links_data.get('links', []):
                         if 'acestream://' in link.get('url', ''):
                             id = link['url'].split('acestream://')[1]
+                            name = link.get('name', '')
+                            # Clean the channel name
+                            name = self.clean_channel_name(name)
                             if id and id not in self.identified_ids:
-                                channels.append((id, link.get('name', '')))
+                                channels.append((id, name))
                                 self.identified_ids.add(id)
                 except json.JSONDecodeError as e:
                     logger.error(f"Error parsing JSON from script tag: {e}")
@@ -92,6 +108,8 @@ class BaseScraper(ABC):
                 if link_name_div and link_name_div.text.strip():
                     # Only add channels where a proper name is found
                     channel_name = link_name_div.text.strip()
+                    # Clean the channel name
+                    channel_name = self.clean_channel_name(channel_name)
                     channels.append((id, channel_name))
                     self.identified_ids.add(id)
                 # Do NOT add channels with generated names based on IDs
@@ -116,7 +134,9 @@ class BaseScraper(ABC):
                 for channel_id, name, metadata in m3u_channels:
                     # Only add channels with actual names, not ID-based names
                     if channel_id not in self.identified_ids and name and not name.startswith("Channel "):
-                        channels.append((channel_id, name, metadata))
+                        # Clean the channel name
+                        cleaned_name = self.clean_channel_name(name)
+                        channels.append((channel_id, cleaned_name, metadata))
                         self.identified_ids.add(channel_id)
             except Exception as e:
                 logger.warning(f"Failed to process M3U file {m3u_url}: {e}")
@@ -139,6 +159,8 @@ class BaseScraper(ABC):
                 # Only add the name if it exists and is not empty
                 if name_elem and name_elem.get_text().strip():
                     name = name_elem.get_text().strip()
+                    # Clean the channel name
+                    name = self.clean_channel_name(name)
                     if channel_id and channel_id not in self.identified_ids:
                         channels.append((channel_id, name, {}))
                         self.identified_ids.add(channel_id)
@@ -158,6 +180,9 @@ class BaseScraper(ABC):
                             if len(parts) == 2:
                                 name = parts[0].strip().rstrip(':- ')
                                 channel_id = parts[1].strip()
+                                
+                                # Clean the channel name
+                                name = self.clean_channel_name(name)
                                 
                                 if name and channel_id and channel_id not in self.identified_ids:
                                     channels.append((channel_id, name, {}))

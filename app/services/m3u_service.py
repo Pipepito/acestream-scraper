@@ -24,6 +24,17 @@ class M3UService:
         self.extinf_pattern = re.compile(r'#EXTINF:(-?\d+)\s*(?:\s*(.+?)\s*)?,\s*(.+)')
         self.tvg_pattern = re.compile(r'tvg-(?:id|name|logo|group-title)="([^"]*)"')
         self.m3u_pattern = re.compile(r'href=["\'](.*?\.m3u[8]?)[\'"]\s*(?:rel="[^"]*"\s*)?(?:target="[^"]*")?>(.*?)<')
+        # Pattern to match multiple whitespace characters (spaces, tabs, newlines)
+        self.whitespace_pattern = re.compile(r'\s+')
+
+    def clean_text(self, text: str) -> str:
+        """Clean text by replacing multiple whitespace with single space and trimming."""
+        if not text:
+            return ""
+        # Replace all whitespace sequences (including newlines) with a single space
+        cleaned_text = self.whitespace_pattern.sub(' ', text)
+        # Trim leading/trailing whitespace
+        return cleaned_text.strip()
 
     def _get_base_url(self, url: str) -> str:
         """Extract base URL from the source URL."""
@@ -74,6 +85,9 @@ class M3UService:
                     metadata = extinf_match.group(2) or ""
                     name = extinf_match.group(3)
                     
+                    # Clean the channel name
+                    name = self.clean_text(name)
+                    
                     # Parse TVG tags if present
                     tvg_id = None
                     tvg_name = None
@@ -85,11 +99,11 @@ class M3UService:
                         if 'tvg-id=' in tag_text:
                             tvg_id = tag.group(1)
                         elif 'tvg-name=' in tag_text:
-                            tvg_name = tag.group(1)
+                            tvg_name = self.clean_text(tag.group(1))
                         elif 'tvg-logo=' in tag_text:
                             logo = tag.group(1)
                         elif 'group-title=' in tag_text:
-                            group = tag.group(1)
+                            group = self.clean_text(tag.group(1))
                     
                     current_extinf = M3UChannel(
                         id="",  # Will be set when we find the acestream URL

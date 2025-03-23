@@ -5,8 +5,58 @@
 // Handle form submission for adding a channel
 async function handleAddChannel(e) {
     e.preventDefault();
-    const channelId = document.getElementById('channelId').value;
-    const channelName = document.getElementById('channelName').value;
+    const channelIdInput = document.getElementById('channelId');
+    const channelNameInput = document.getElementById('channelName');
+    
+    const channelId = channelIdInput.value.trim();
+    const channelName = channelNameInput.value.trim();
+     
+    // Reset previous validation state
+    channelIdInput.classList.remove('is-invalid');
+    channelNameInput.classList.remove('is-invalid');
+    
+    // Clear previous error messages
+    document.getElementById('channelIdError')?.remove();
+    document.getElementById('channelNameError')?.remove();
+    
+    // Validate Acestream ID format
+    const aceStreamIdRegex = /^[a-fA-F0-9]{40}$/;
+    
+    let isValid = true;
+    
+    // Validate channel name
+    if (!channelName) {
+        channelNameInput.classList.add('is-invalid');
+        const errorDiv = document.createElement('div');
+        errorDiv.id = 'channelNameError';
+        errorDiv.className = 'invalid-feedback';
+        errorDiv.textContent = 'Channel name is required';
+        channelNameInput.parentNode.appendChild(errorDiv);
+        isValid = false;
+    }
+    
+    // Validate Acestream ID
+    if (!channelId) {
+        channelIdInput.classList.add('is-invalid');
+        const errorDiv = document.createElement('div');
+        errorDiv.id = 'channelIdError';
+        errorDiv.className = 'invalid-feedback';
+        errorDiv.textContent = 'Channel ID is required';
+        channelIdInput.parentNode.appendChild(errorDiv);
+        isValid = false;
+    } else if (!aceStreamIdRegex.test(channelId)) {
+        channelIdInput.classList.add('is-invalid');
+        const errorDiv = document.createElement('div');
+        errorDiv.id = 'channelIdError';
+        errorDiv.className = 'invalid-feedback';
+        errorDiv.textContent = 'Channel ID must be a 40-character hexadecimal string';
+        channelIdInput.parentNode.appendChild(errorDiv);
+        isValid = false;
+    }
+    
+    if (!isValid) {
+        return;
+    }
 
     try {
         showLoading();
@@ -22,8 +72,10 @@ async function handleAddChannel(e) {
         });
 
         if (await handleApiResponse(response, 'Channel added successfully')) {
-            document.getElementById('channelId').value = '';
-            document.getElementById('channelName').value = '';
+            channelIdInput.value = '';
+            channelNameInput.value = '';
+            channelIdInput.classList.remove('is-valid');
+            channelNameInput.classList.remove('is-valid');
             // Refresh data after successful addition
             if (typeof refreshData === 'function') {
                 await refreshData();

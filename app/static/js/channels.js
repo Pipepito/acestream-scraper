@@ -8,8 +8,8 @@ async function handleAddChannel(e) {
     const channelIdInput = document.getElementById('channelId');
     const channelNameInput = document.getElementById('channelName');
     
-    const channelId = channelIdInput.value.trim();
-    const channelName = channelNameInput.value.trim();
+    let channelId = channelIdInput.value.trim();
+    let channelName = channelNameInput.value.trim();
      
     // Reset previous validation state
     channelIdInput.classList.remove('is-invalid');
@@ -18,9 +18,6 @@ async function handleAddChannel(e) {
     // Clear previous error messages
     document.getElementById('channelIdError')?.remove();
     document.getElementById('channelNameError')?.remove();
-    
-    // Validate Acestream ID format
-    const aceStreamIdRegex = /^[a-fA-F0-9]{40}$/;
     
     let isValid = true;
     
@@ -44,14 +41,23 @@ async function handleAddChannel(e) {
         errorDiv.textContent = 'Channel ID is required';
         channelIdInput.parentNode.appendChild(errorDiv);
         isValid = false;
-    } else if (!aceStreamIdRegex.test(channelId)) {
-        channelIdInput.classList.add('is-invalid');
-        const errorDiv = document.createElement('div');
-        errorDiv.id = 'channelIdError';
-        errorDiv.className = 'invalid-feedback';
-        errorDiv.textContent = 'Channel ID must be a 40-character hexadecimal string';
-        channelIdInput.parentNode.appendChild(errorDiv);
-        isValid = false;
+    } else {
+        // Search for any 40-character hexadecimal sequence in the text
+        const aceStreamIdMatch = channelId.match(/[a-fA-F0-9]{40}/);
+
+        if (aceStreamIdMatch) {
+            const extractedId = aceStreamIdMatch[0];
+            channelIdInput.value = extractedId;
+            channelId = extractedId;
+        } else {
+            channelIdInput.classList.add('is-invalid');
+            const errorDiv = document.createElement('div');
+            errorDiv.id = 'channelIdError';
+            errorDiv.className = 'invalid-feedback';
+            errorDiv.textContent = 'Channel ID not valid';
+            channelIdInput.parentNode.appendChild(errorDiv);
+            isValid = false;
+        }   
     }
     
     if (!isValid) {

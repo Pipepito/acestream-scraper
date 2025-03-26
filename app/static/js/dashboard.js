@@ -43,8 +43,15 @@ async function refreshData() {
         if (stats.base_url) {
             const currentBaseUrlDisplay = document.getElementById('currentBaseUrlDisplay');
             const sampleUrlDisplay = document.getElementById('sampleUrlDisplay');
+            const pidParameterDisplay = document.getElementById('pidParameterDisplay');
+            
             if (currentBaseUrlDisplay) currentBaseUrlDisplay.textContent = `Current: ${stats.base_url}`;
-            if (sampleUrlDisplay) sampleUrlDisplay.innerHTML = `Sample: <code>${stats.base_url}${'1'.repeat(40)}</code>`;
+            if (pidParameterDisplay) pidParameterDisplay.textContent = `Add PID parameter: ${stats.addpid === true ? 'Yes' : 'No'}`;
+            if (sampleUrlDisplay) {
+                const sampleId = '1'.repeat(40);
+                const pidParam = stats.addpid === true ? '&pid=0' : '';
+                sampleUrlDisplay.innerHTML = `Sample: <code>${stats.base_url}${sampleId}${pidParam}</code>`;
+            }
         }
 
         // Update Ace Engine URL info

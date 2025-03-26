@@ -10,6 +10,7 @@ const setupState = {
     acexyEnabled: false,
     aceEngineUrl: 'http://localhost:6878',
     rescrapeInterval: 24,
+    addpid: false,
     sources: []
 };
 
@@ -131,6 +132,13 @@ async function saveConfiguration() {
             body: JSON.stringify({ base_url: setupState.baseUrl })
         });
         
+        // Save addpid setting
+        await fetch('/api/config/addpid', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ addpid: setupState.addpid })
+        });
+        
         // Save Ace Engine URL
         await fetch('/api/config/ace_engine_url', {
             method: 'PUT',
@@ -212,6 +220,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('baseUrlForm').addEventListener('submit', function(e) {
         e.preventDefault();
         setupState.baseUrl = document.getElementById('baseUrl').value;
+        setupState.addpid = document.getElementById('addPidCheckbox').checked;
         nextStep();
     });
     
@@ -257,6 +266,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Set default values based on common configurations
     document.getElementById('baseUrl').value = 'acestream://';
     document.getElementById('aceEngineUrl').value = 'http://localhost:8080'; // Default for Acexy
+    document.getElementById('addPidCheckbox').checked = false; // Default for addpid
     
     // Initialize sources list
     updateSourcesList();

@@ -180,3 +180,5 @@ config/config.json
 config/acestream_channels.db
 zeronet_data/
 
+new_era_iframe_sample.html
+new_era_sample.html

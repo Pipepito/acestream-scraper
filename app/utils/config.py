@@ -13,6 +13,7 @@ class Config:
     DEFAULT_BASE_URL = 'acestream://'
     DEFAULT_ACE_ENGINE_URL = 'http://localhost:6878'
     DEFAULT_RESCRAPE_INTERVAL = 24
+    DEFAULT_ADDPID = False
     
     _instance = None
     config_path = None
@@ -93,7 +94,8 @@ class Config:
         required_settings = {
             'base_url': self.DEFAULT_BASE_URL,
             'ace_engine_url': self.DEFAULT_ACE_ENGINE_URL,
-            'rescrape_interval': self.DEFAULT_RESCRAPE_INTERVAL
+            'rescrape_interval': self.DEFAULT_RESCRAPE_INTERVAL,
+            'addpid': self.DEFAULT_ADDPID
         }
         
         for key, default_value in required_settings.items():
@@ -278,6 +280,19 @@ class Config:
         """Set rescrape interval in hours."""
         self.set('rescrape_interval', str(value))
         
+    @property
+    def addpid(self):
+        """Get whether to add PID parameter to stream URLs."""
+        addpid_value = self.get('addpid', self.DEFAULT_ADDPID)
+        if isinstance(addpid_value, str):
+            return addpid_value.lower() in ('true', 'yes', '1', 'on')
+        return bool(addpid_value)
+    
+    @addpid.setter
+    def addpid(self, value):
+        """Set whether to add PID parameter to stream URLs."""
+        self.set('addpid', str(bool(value)).lower())
+        
     def is_initialized(self):
         """Check if configuration is fully initialized."""
         # Try to initialize if possible
@@ -291,7 +306,8 @@ class Config:
                     required_settings = [
                         'base_url',
                         'ace_engine_url',
-                        'rescrape_interval'
+                        'rescrape_interval',
+                        'addpid'
                     ]
                     for setting in required_settings:
                         if not self.settings_repo.get_setting(setting):

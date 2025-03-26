@@ -16,6 +16,10 @@ base_url_model = api.model('BaseURL', {
     'base_url': fields.String(required=True, description='Base URL for acestream links')
 })
 
+addpid_model = api.model('AddPid', {
+    'addpid': fields.Boolean(required=True, description='Whether to add PID parameter to URLs')
+})
+
 ace_engine_url_model = api.model('AceEngineURL', {
     'ace_engine_url': fields.String(required=True, description='URL for Acestream Engine')
 })
@@ -208,3 +212,31 @@ class AcestreamStatus(Resource):
         status = service.check_status()
         
         return status
+
+@api.route('/addpid')
+class AddPid(Resource):
+    @api.doc('get_addpid')
+    def get(self):
+        """Get whether to add PID parameter to URLs."""
+        try:
+            config = Config()
+            return {"addpid": config.addpid}
+        except Exception as e:
+            api.abort(500, str(e))
+    
+    @api.doc('update_addpid')
+    @api.expect(addpid_model)
+    def put(self):
+        """Update whether to add PID parameter to URLs."""
+        data = request.json
+        addpid = data.get('addpid')
+        
+        if addpid is None:
+            api.abort(400, "addpid is required")
+        
+        try:
+            config = Config()
+            config.addpid = addpid
+            return {"message": "PID parameter setting updated successfully"}
+        except Exception as e:
+            api.abort(500, str(e))

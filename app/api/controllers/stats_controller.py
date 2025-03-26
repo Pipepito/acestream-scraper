@@ -23,6 +23,7 @@ stats_model = api.model('Stats', {
     'base_url': fields.String(description='Base URL for playlist generation'),
     'ace_engine_url': fields.String(description='URL of the Acestream Engine'),
     'rescrape_interval': fields.Integer(description='Hours between automatic rescans'),
+    'addpid': fields.Boolean(description='Whether to add PID parameter to URLs'),
     'task_manager_status': fields.String(description='Status of the background task manager')
 })
 
@@ -69,6 +70,7 @@ class Stats(Resource):
                 'base_url': config.base_url,
                 'ace_engine_url': config.ace_engine_url,
                 'rescrape_interval': config.rescrape_interval,
+                'addpid': config.addpid,
                 'task_manager_status': task_status
             }
         except Exception as e:

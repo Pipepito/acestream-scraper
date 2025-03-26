@@ -119,3 +119,50 @@ class TestConfig:
             assert result is True
             # Check that set_setting was called the right number of times
             assert mock_settings_repo.set_setting.call_count == 3  # For the 3 keys in our test config
+
+    def test_addpid_property_default(self, reset_config, mock_settings_repo, app_context):
+        """Test that addpid property returns the default value when not set."""
+        mock_settings_repo.get_setting.return_value = None
+        
+        with patch('app.utils.config.SettingsRepository', return_value=mock_settings_repo):
+            config = Config()
+            assert config.addpid is False  # Default should be False
+    
+    def test_addpid_property_getter(self, reset_config, mock_settings_repo, app_context):
+        """Test that addpid property correctly handles various string values."""
+        # Test various truthy string values
+        for true_value in ['true', 'yes', '1', 'on']:
+            mock_settings_repo.get_setting.return_value = true_value
+            with patch('app.utils.config.SettingsRepository', return_value=mock_settings_repo):
+                config = Config()
+                assert config.addpid is True
+                
+        # Test various falsy string values
+        for false_value in ['false', 'no', '0', 'off']:
+            mock_settings_repo.get_setting.return_value = false_value
+            with patch('app.utils.config.SettingsRepository', return_value=mock_settings_repo):
+                config = Config()
+                assert config.addpid is False
+    
+    def test_addpid_property_setter(self, reset_config, mock_settings_repo, app_context):
+        """Test that addpid property setter correctly converts to string."""
+        with patch('app.utils.config.SettingsRepository', return_value=mock_settings_repo):
+            config = Config()
+            
+            # Test setting to True
+            config.addpid = True
+            mock_settings_repo.set_setting.assert_called_with('addpid', 'true')
+            
+            # Reset mock to test setting to False
+            mock_settings_repo.set_setting.reset_mock()
+            config.addpid = False
+            mock_settings_repo.set_setting.assert_called_with('addpid', 'false')
+            
+            # Test setting with non-boolean values
+            mock_settings_repo.set_setting.reset_mock()
+            config.addpid = 1  # Should convert to 'true'
+            mock_settings_repo.set_setting.assert_called_with('addpid', 'true')
+            
+            mock_settings_repo.set_setting.reset_mock()
+            config.addpid = 0  # Should convert to 'false'
+            mock_settings_repo.set_setting.assert_called_with('addpid', 'false')

@@ -63,53 +63,66 @@ def test_generate_playlist_all_channels(db_session, setup_test_channels):
     assert '123' in playlist
     assert '456' in playlist
 
-def test_format_stream_url_with_acexy(db_session, monkeypatch):
-    """Test URL formatting when Acexy is enabled and port is 8080."""
-    # Create service with custom base URL containing port 8080
-    service = PlaylistService()
-    
-    # Mock the config to use Acexy port
-    monkeypatch.setattr(service.config, 'base_url', 'http://localhost:8080/ace/getstream?id=')
-    
-    # Mock environment variable
-    with patch.dict(os.environ, {"ENABLE_ACEXY": "true"}):
-        # Format URL
-        url = service._format_stream_url('abc123', 42)
-        
-        # Verify that no pid parameter is added
-        assert url == 'http://localhost:8080/ace/getstream?id=abc123'
-        assert '&pid=' not in url
+# Removed tests that depended on Acexy detection logic:
+# - test_format_stream_url_with_acexy
+# - test_format_stream_url_without_acexy
+# - test_format_stream_url_acexy_environment_overrides_port
+# - test_format_stream_url_acexy_overrides_addpid
 
-def test_format_stream_url_without_acexy(db_session, monkeypatch):
-    """Test URL formatting when Acexy is not enabled (default case)."""
+def test_format_stream_url_with_addpid(db_session, monkeypatch):
+    """Test URL formatting when addpid is True."""
     # Create service
     service = PlaylistService()
     
-    # Mock the config to use standard port 6878
+    # Mock the config to set addpid to True
     monkeypatch.setattr(service.config, 'base_url', 'http://localhost:6878/ace/getstream?id=')
+    monkeypatch.setattr(service.config, 'addpid', True)
     
-    # Format URL with Acexy disabled (default)
+    # Format URL
     url = service._format_stream_url('abc123', 42)
     
     # Verify that pid parameter is added
     assert url == 'http://localhost:6878/ace/getstream?id=abc123&pid=42'
     assert '&pid=42' in url
 
-def test_format_stream_url_acexy_environment_overrides_port(db_session, monkeypatch):
-    """Test that Acexy environment variable is respected even with 8080 port."""
-    # Create service with port 8080 but Acexy explicitly disabled
+def test_format_stream_url_without_addpid(db_session, monkeypatch):
+    """Test URL formatting when addpid is False."""
+    # Create service
     service = PlaylistService()
     
-    # Mock the config to use Acexy port
-    monkeypatch.setattr(service.config, 'base_url', 'http://localhost:8080/ace/getstream?id=')
+    # Mock the config to set addpid to False
+    monkeypatch.setattr(service.config, 'base_url', 'http://localhost:6878/ace/getstream?id=')
+    monkeypatch.setattr(service.config, 'addpid', False)
     
-    # Mock environment variable to explicitly disable Acexy
-    with patch.dict(os.environ, {"ENABLE_ACEXY": "false"}):
-        # Format URL
-        url = service._format_stream_url('abc123', 42)
-        
-        # Should add pid parameter since ENABLE_ACEXY is false, despite port 8080
-        assert url == 'http://localhost:8080/ace/getstream?id=abc123&pid=42'
+    # Format URL
+    url = service._format_stream_url('abc123', 42)
+    
+    # Verify that pid parameter is not added
+    assert url == 'http://localhost:6878/ace/getstream?id=abc123'
+    assert '&pid=' not in url
+
+def test_format_stream_url_with_different_base_urls(db_session, monkeypatch):
+    """Test URL formatting with different base URL types."""
+    # Create service
+    service = PlaylistService()
+    
+    # Test with acestream:// protocol
+    monkeypatch.setattr(service.config, 'base_url', 'acestream://')
+    monkeypatch.setattr(service.config, 'addpid', True)
+    url = service._format_stream_url('abc123', 42)
+    assert url == 'acestream://abc123&pid=42'
+    
+    # Test with HTTP URL
+    monkeypatch.setattr(service.config, 'base_url', 'http://example.com/ace/getstream?id=')
+    url = service._format_stream_url('abc123', 42)
+    assert url == 'http://example.com/ace/getstream?id=abc123&pid=42'
+    
+    # Test with HTTPS URL and addpid=False
+    monkeypatch.setattr(service.config, 'base_url', 'https://example.com/ace/getstream?id=')
+    monkeypatch.setattr(service.config, 'addpid', False)
+    url = service._format_stream_url('abc123', 42)
+    assert url == 'https://example.com/ace/getstream?id=abc123'
+    assert '&pid=' not in url
 
 def test_generate_playlist_with_duplicate_names(db_session):
     """Test playlist generation with duplicate channel names."""

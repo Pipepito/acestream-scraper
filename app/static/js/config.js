@@ -12,6 +12,8 @@ async function loadConfigData() {
         // Update system info table - only elements that exist on the config page
         if (document.getElementById('configBaseUrl')) 
             document.getElementById('configBaseUrl').textContent = stats.base_url || 'Not configured';
+        if (document.getElementById('configAddPid'))
+            document.getElementById('configAddPid').textContent = stats.addpid === true ? 'Yes' : 'No';
         if (document.getElementById('configAceEngineUrl'))
             document.getElementById('configAceEngineUrl').textContent = stats.ace_engine_url || 'Not configured';
         if (document.getElementById('configRescrapeInterval'))
@@ -20,6 +22,12 @@ async function loadConfigData() {
             document.getElementById('configTotalUrls').textContent = stats.urls?.length || 0;
         if (document.getElementById('configTotalChannels'))
             document.getElementById('configTotalChannels').textContent = stats.total_channels || 0;
+        
+        // Set the addPid checkbox value
+        const addPidCheckbox = document.getElementById('addPidCheckbox');
+        if (addPidCheckbox) {
+            addPidCheckbox.checked = stats.addpid === true;
+        }
         
         // Update Acexy status
         await updateAcexyStatus();
@@ -243,10 +251,13 @@ function setupConfigEvents() {
             e.preventDefault();
             const baseUrlInput = document.getElementById('baseUrlInput');
             const baseUrl = baseUrlInput.value;
+            const addpid = document.getElementById('addPidCheckbox').checked;
 
             try {
                 showLoading();
-                const response = await fetch('/api/config/base_url', {
+                
+                // Update base URL
+                const responseBaseUrl = await fetch('/api/config/base_url', {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -254,13 +265,48 @@ function setupConfigEvents() {
                     body: JSON.stringify({ base_url: baseUrl })
                 });
 
-                if (await handleApiResponse(response, 'Base URL updated successfully')) {
+                // Update addpid setting
+                const responseAddPid = await fetch('/api/config/addpid', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ addpid: addpid })
+                });
+
+                if (await handleApiResponse(responseBaseUrl, 'Base URL updated successfully') && 
+                    await handleApiResponse(responseAddPid, 'PID parameter setting updated successfully')) {
                     baseUrlInput.value = '';
                     await loadConfigData();
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('Network error while updating base URL');
+                alert('Network error while updating base URL configuration');
+            } finally {
+                hideLoading();
+            }
+        });
+    }
+
+    // Save addpid when checkbox is changed (separately)
+    const addPidCheckbox = document.getElementById('addPidCheckbox');
+    if (addPidCheckbox) {
+        addPidCheckbox.addEventListener('change', async () => {
+            try {
+                showLoading();
+                const response = await fetch('/api/config/addpid', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ addpid: addPidCheckbox.checked })
+                });
+
+                await handleApiResponse(response, 'PID parameter setting updated successfully');
+                await loadConfigData();
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Network error while updating PID parameter setting');
             } finally {
                 hideLoading();
             }

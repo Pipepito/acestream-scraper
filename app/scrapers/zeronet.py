@@ -35,7 +35,12 @@ class ZeronetScraper(BaseScraper):
         # Get the internal HTTP URL for ZeroNet service
         internal_url = self.url_obj.get_internal_url(zeronet_host)
         
-        logger.info(f"Fetching ZeroNet content from: {internal_url}")
+        # Check if URL is directly pointing to an M3U file
+        is_m3u_file = internal_url.lower().endswith(('.m3u', '.m3u8'))
+        if is_m3u_file:
+            logger.info(f"Detected direct M3U file URL: {internal_url}")
+        else:
+            logger.info(f"Fetching ZeroNet content from: {internal_url}")
         
         retry_count = 0
         last_error = None
@@ -43,7 +48,7 @@ class ZeronetScraper(BaseScraper):
         while retry_count < self.retries:
             try:
                 async with aiohttp.ClientSession(cookie_jar=self.cookie_jar) as session:
-                    # First request to get the main page
+                    # First request to get the content
                     async with session.get(
                         internal_url,
                         headers=self.headers,
@@ -51,6 +56,14 @@ class ZeronetScraper(BaseScraper):
                     ) as response:
                         response.raise_for_status()
                         content = await response.text()
+                        
+                        # If it's an M3U file, just return the content without further processing
+                        if is_m3u_file:
+                            if content.strip().startswith('#EXTM3U') or 'acestream://' in content:
+                                logger.info(f"Successfully fetched M3U file content ({len(content)} bytes)")
+                                return content
+                            else:
+                                logger.warning(f"Content doesn't appear to be a valid M3U file. First 100 chars: {content[:100]}")
                         
                         # Check for new_era_iframe.html format by looking for specific HTML structure
                         if 'channel-item' in content or 'ACEStream NEW ERA' in content:
@@ -91,21 +104,28 @@ class ZeronetScraper(BaseScraper):
                         if 'acestream://' in content or 'const linksData' in content or 'fileContents' in content:
                             return content
                         
-                        # If we get here, no content was found in this attempt
+                        # If we get here, no expected content was found in this attempt
                         retry_count += 1
                         if retry_count < self.retries:
                             delay = 2 ** retry_count
-                            logger.warning(f"No content found, retry {retry_count}/{self.retries}. Waiting {delay} seconds...")
+                            content_preview = content[:150] + "..." if len(content) > 150 else content
+                            logger.warning(f"No relevant content found, retry {retry_count}/{self.retries}. "
+                                          f"Content preview: {content_preview}. Waiting {delay} seconds...")
                             await asyncio.sleep(delay)
                         else:
-                            raise ValueError("No acestream data found after max retries")
+                            content_type = response.headers.get('Content-Type', 'unknown')
+                            content_preview = content[:150] + "..." if len(content) > 150 else content
+                            error_msg = (f"No acestream data found after max retries. Content-Type: {content_type}. "
+                                        f"Content preview: {content_preview}")
+                            raise ValueError(error_msg)
                             
             except Exception as e:
                 last_error = e
                 retry_count += 1
                 if retry_count < self.retries:
                     delay = 2 ** retry_count
-                    logger.warning(f"Retry {retry_count}/{self.retries} for {internal_url}. Waiting {delay} seconds... Error: {str(e)}")
+                    logger.warning(f"Retry {retry_count}/{self.retries} for {internal_url}. "
+                                  f"Error: {str(e)}. Waiting {delay} seconds...")
                     await asyncio.sleep(delay)
                 else:
                     logger.error(f"Max retries reached for {internal_url}. Last error: {last_error}")

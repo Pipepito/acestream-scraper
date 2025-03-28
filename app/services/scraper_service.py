@@ -46,6 +46,36 @@ class ScraperService:
             self.url_repository.update_status(url, 'failed', str(e))
             raise
 
+    async def _add_channels_to_database(self, channels: List[Tuple[str, str, dict]], source_url: str):
+        """Add channels to the database with their metadata."""
+        added_count = 0
+        
+        for channel_data in channels:
+            channel_id, name, metadata = channel_data
+            
+            try:
+                # Get the existing channel or create a new one
+                channel = self.channel_repository.update_or_create(channel_id, name, source_url)
+                
+                # Update metadata fields if provided
+                if 'tvg_id' in metadata:
+                    channel.tvg_id = metadata['tvg_id']
+                if 'tvg_name' in metadata:
+                    channel.tvg_name = metadata['tvg_name']
+                if 'logo' in metadata:
+                    channel.logo = metadata['logo']
+                if 'group' in metadata:
+                    channel.group = metadata['group']
+                
+                # Save to database
+                self.channel_repository.commit()
+                added_count += 1
+                
+            except Exception as e:
+                logger.error(f"Error adding channel {channel_id} to database: {e}")
+        
+        logger.info(f"Added/updated {added_count} channels in the database")
+
     def _update_channels(self, url: str, links: List[Tuple[str, str, dict]]):
         """Update channels for a given URL."""
         try:

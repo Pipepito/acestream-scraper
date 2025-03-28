@@ -203,9 +203,31 @@ class BaseScraper(ABC):
         status = "OK"
         retries_left = self.retries
 
+        # Check if the URL is directly pointing to an M3U file
+        is_m3u_file = url_to_scrape.lower().endswith(('.m3u', '.m3u8'))
+        
         while retries_left >= 0:
             try:
                 content = await self.fetch_content(url_to_scrape)
+                
+                # Direct handling for M3U files
+                if is_m3u_file:
+                    logger.info(f"Processing direct M3U file: {url_to_scrape}")
+                    # Parse the M3U content directly
+                    direct_channels = self.m3u_service.extract_channels_from_content(content)
+                    
+                    for channel_id, name, metadata in direct_channels:
+                        if channel_id not in self.identified_ids and name:
+                            cleaned_name = self.clean_channel_name(name)
+                            channels.append((channel_id, cleaned_name, metadata))
+                            self.identified_ids.add(channel_id)
+                    
+                    if channels:
+                        logger.info(f"Extracted {len(channels)} channels from direct M3U file")
+                    else:
+                        logger.warning(f"No channels found in M3U file content")
+                    break
+                
                 soup = BeautifulSoup(content, 'html.parser')
                 
                 # First check script tags for listaplana.txt content
@@ -226,12 +248,18 @@ class BaseScraper(ABC):
                 
                 break
             except Exception as e:
-                logger.error(f"Error scraping {url_to_scrape}: {e}")
+                logger.error(f"Error scraping {url_to_scrape}: {str(e)}")
                 retries_left -= 1
                 if retries_left < 0:
-                    status = "Error"
+                    status = f"Error: {str(e)}"
                     break
                 self.timeout += 5
+
+        # Log results summary
+        if channels:
+            logger.info(f"Successfully extracted {len(channels)} channels from {url_to_scrape}")
+        else:
+            logger.warning(f"No channels extracted from {url_to_scrape}")
 
         # Update URL status in database
         self.update_url_status(url_to_scrape, status)

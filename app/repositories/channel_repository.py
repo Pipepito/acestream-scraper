@@ -91,33 +91,39 @@ class ChannelRepository(BaseRepository[AcestreamChannel]):
             logger.error(f"Error deleting channels for source {source_url}: {e}")
             return False
 
-    def update_or_create(self, channel_id: str, name: str, source_url: str, metadata: dict = None) -> Optional[AcestreamChannel]:
+    def update_or_create(self, channel_id: str, name: str, source_url: str = None, metadata: dict = None) -> AcestreamChannel:
         """Update an existing channel or create a new one."""
-        try:
-            channel = self.get_by_id(channel_id)
-            if not channel:
-                channel = self.model(id=channel_id)
-                self._db.session.add(channel)
-
+        channel = self.model.query.filter_by(id=channel_id).first()
+        
+        if channel:
             channel.name = name
-            channel.last_processed = datetime.now(timezone.utc)
-            channel.status = 'active'
-            channel.source_url = source_url
-
-            if metadata:
-                channel.group = metadata.get('group')
-                channel.logo = metadata.get('logo')
-                channel.tvg_id = metadata.get('tvg_id')
-                channel.tvg_name = metadata.get('tvg_name')
-                channel.m3u_source = metadata.get('m3u_source')
-                channel.original_url = metadata.get('original_url')
-
-            self._db.session.commit()
-            return channel
-        except SQLAlchemyError as e:
-            self._db.session.rollback()
-            logger.error(f"Error updating/creating channel {channel_id}: {e}")
-            return None
+            if source_url:
+                channel.source_url = source_url
+            channel.last_updated = datetime.now()
+        else:
+            channel = self.model(
+                id=channel_id,
+                name=name,
+                source_url=source_url,
+                status='active',
+                is_online=True,
+            )
+        
+        # Update metadata fields if provided
+        if metadata:
+            if 'tvg_id' in metadata:
+                channel.tvg_id = metadata['tvg_id']
+            if 'tvg_name' in metadata:
+                channel.tvg_name = metadata['tvg_name']
+            if 'logo' in metadata:
+                channel.logo = metadata['logo']
+            if 'group' in metadata:
+                channel.group = metadata['group']
+        
+        # Add the channel to the session
+        self._db.session.add(channel)
+        
+        return channel
 
     def update_status(self, channel_id: str, is_online: bool, error: str = None) -> Optional[AcestreamChannel]:
         """Update channel status after checking availability."""
@@ -184,3 +190,19 @@ class ChannelRepository(BaseRepository[AcestreamChannel]):
             except:
                 pass
             return False
+            
+    def commit(self):
+        """Commit the current transaction."""
+        try:
+            self._db.session.commit()
+        except SQLAlchemyError as e:
+            logger.error(f"Error committing transaction: {e}")
+            raise
+            
+    def rollback(self):
+        """Rollback the current transaction."""
+        try:
+            self._db.session.rollback()
+        except SQLAlchemyError as e:
+            logger.error(f"Error rolling back transaction: {e}")
+            raise

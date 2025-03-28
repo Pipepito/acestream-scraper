@@ -231,3 +231,76 @@ class M3UService:
         except Exception as e:
             logger.error(f"Error fetching M3U from ZeroNet URL {url}: {e}")
             return None
+
+    def extract_channels_from_content(self, content: str) -> List[Tuple[str, str, Dict]]:
+        """Extract channel information directly from M3U content."""
+        channels = []
+        channel_info = {}
+        
+        for line in content.splitlines():
+            line = line.strip()
+            
+            # Skip empty lines
+            if not line:
+                continue
+            
+            # Handle EXTINF lines
+            if line.startswith('#EXTINF:'):
+                # Parse channel name and optional attributes
+                name_match = re.search(r'#EXTINF:.*,(.+)', line)
+                if name_match:
+                    channel_info['name'] = name_match.group(1).strip()
+                
+                # Extract tvg-id, tvg-name, group-title, etc.
+                for tag_match in re.finditer(r'(tvg-[^=]+|group-title)="([^"]+)"', line):
+                    tag_name = tag_match.group(1)
+                    tag_value = tag_match.group(2)
+                    
+                    # Normalize field names to match database column names
+                    if tag_name == 'tvg-id':
+                        channel_info['tvg_id'] = tag_value
+                    elif tag_name == 'tvg-name':
+                        channel_info['tvg_name'] = tag_value
+                    elif tag_name == 'tvg-logo':
+                        channel_info['logo'] = tag_value
+                    elif tag_name == 'group-title':
+                        channel_info['group'] = tag_value
+                    else:
+                        # Store any other metadata with original name
+                        channel_info[tag_name] = tag_value
+                
+                continue
+            
+            # Skip other comment lines
+            if line.startswith('#'):
+                continue
+            
+            # Check if the line contains an acestream link or ace/getstream URL
+            acestream_match = self.acestream_pattern.search(line)
+            getstream_match = re.search(r'ace/getstream\?id=([\w\d]+)', line) if not acestream_match else None
+            
+            if acestream_match:
+                channel_id = acestream_match.group(1)
+                name = channel_info.get('name', f"Channel {channel_id}")
+                
+                # Extract any other metadata
+                metadata = {k: v for k, v in channel_info.items() if k != 'name'}
+                
+                channels.append((channel_id, name, metadata))
+                
+                # Reset channel_info for the next channel
+                channel_info = {}
+            elif getstream_match:
+                channel_id = getstream_match.group(1)
+                name = channel_info.get('name', f"Channel {channel_id}")
+                
+                # Extract any other metadata
+                metadata = {k: v for k, v in channel_info.items() if k != 'name'}
+                
+                channels.append((channel_id, name, metadata))
+                
+                # Reset channel_info for the next channel
+                channel_info = {}
+        
+        logger.info(f"Extracted {len(channels)} channels with metadata from M3U content")
+        return channels

@@ -2,14 +2,15 @@ import pytest
 from unittest.mock import Mock, patch, AsyncMock, MagicMock
 from app.services import ScraperService, PlaylistService
 from app.models import ScrapedURL, AcestreamChannel
+from app.models.url_types import RegularURL
 
 @pytest.mark.asyncio
 async def test_scraper_service_scrape_url(db_session):
     service = ScraperService()
     url = "http://test.com"
     
-    # Create URL object first
-    url_obj = ScrapedURL(url=url)
+    # Create URL object first with URL type
+    url_obj = ScrapedURL(url=url, url_type='regular')
     db_session.add(url_obj)
     db_session.commit()
     
@@ -17,7 +18,8 @@ async def test_scraper_service_scrape_url(db_session):
     mock_scraper = AsyncMock()
     mock_scraper.scrape.return_value = ([("123", "Test Channel", {})], "OK")
     
-    with patch('app.scrapers.create_scraper', return_value=mock_scraper):
+    # Use the new create_scraper_for_url function
+    with patch('app.scrapers.create_scraper_for_url', return_value=mock_scraper):
         links, status = await service.scrape_url(url)
         
         assert status == "OK"

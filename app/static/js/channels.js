@@ -149,10 +149,21 @@ async function checkChannelsStatus() {
     }
 }
 
-// Refresh channels list with optional search term
-async function refreshChannelsList(searchTerm = '') {
+// Refresh channels list with optional search term and URL filter
+async function refreshChannelList(searchTerm = '', urlId = '') {
     try {
-        const response = await fetch(`/api/channels?search=${encodeURIComponent(searchTerm)}`);
+        // Build query parameters
+        const params = new URLSearchParams();
+        if (searchTerm) {
+            params.append('search', searchTerm);
+        }
+        if (urlId) {
+            params.append('url_id', urlId);
+        }
+        
+        // Fetch filtered channels
+        const queryString = params.toString() ? `?${params.toString()}` : '';
+        const response = await fetch(`/api/channels${queryString}`);
         const channels = await response.json();
         
         const channelsList = document.getElementById('channelsList');
@@ -198,16 +209,42 @@ async function refreshChannelsList(searchTerm = '') {
                 </tr>
             `).join('');
         }
+        
+        // Update total and filtered channel counts in stats
+        const displayedChannels = document.getElementById('displayedChannels');
+        if (displayedChannels) {
+            displayedChannels.textContent = channels.length;
+        }
     } catch (error) {
         console.error('Error refreshing channels list:', error);
     }
 }
 
-// Search channels by name
-async function searchChannels(searchTerm) {
+// Search channels by name with optional URL filter
+async function searchChannels(searchTerm, urlId = '') {
     try {
         showLoading();
-        const response = await fetch(`/api/channels?search=${encodeURIComponent(searchTerm)}`);
+        
+        // Build query parameters
+        const params = new URLSearchParams();
+        if (searchTerm) {
+            params.append('search', searchTerm);
+        }
+        if (urlId) {
+            params.append('url_id', urlId);
+        }
+        
+        // Get current URL filter if not provided
+        if (!urlId) {
+            const urlFilter = document.getElementById('urlFilter');
+            if (urlFilter && urlFilter.value) {
+                params.append('url_id', urlFilter.value);
+            }
+        }
+        
+        // Fetch filtered channels
+        const queryString = params.toString() ? `?${params.toString()}` : '';
+        const response = await fetch(`/api/channels${queryString}`);
         const data = await response.json();
         
         if (!response.ok) {

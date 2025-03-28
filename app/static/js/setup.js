@@ -63,19 +63,33 @@ function prevStep() {
     }
 }
 
-// Add a source URL to the list
-function addSource(url) {
-    if (url && !setupState.sources.includes(url)) {
-        setupState.sources.push(url);
-        updateSourcesList();
-        return true;
+// Add a source URL to the list - remove auto type default
+function addSource(url, urlType = 'auto') {
+    if (!url || !url.trim()) {
+        return false;
     }
-    return false;
+    
+    url = url.trim();
+    
+    // Check if already added
+    if (setupState.sources.some(source => source.url === url)) {
+        return false;
+    }
+    
+    // Add to state with URL type
+    setupState.sources.push({
+        url: url,
+        url_type: urlType
+    });
+    
+    // Update UI
+    updateSourcesList();
+    return true;
 }
 
 // Remove a source URL from the list
 function removeSource(url) {
-    const index = setupState.sources.indexOf(url);
+    const index = setupState.sources.findIndex(source => source.url === url);
     if (index !== -1) {
         setupState.sources.splice(index, 1);
         updateSourcesList();
@@ -103,8 +117,9 @@ function updateSourcesList() {
             const item = document.createElement('div');
             item.className = 'list-group-item source-item d-flex justify-content-between align-items-center';
             item.innerHTML = `
-                <span class="text-break">${source}</span>
-                <button class="btn btn-sm btn-outline-danger remove-source-btn" data-url="${source}">
+                <span class="text-break">${source.url}</span>
+                <span class="badge bg-info me-2">${source.url_type === 'zeronet' ? 'ZeroNet' : 'HTTP'}</span>
+                <button class="btn btn-sm btn-outline-danger remove-source-btn" data-url="${source.url}">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
                         <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
                         <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
@@ -165,15 +180,15 @@ async function saveConfiguration() {
         }
         
         // Add source URLs only after setup is completed
-        for (const url of setupState.sources) {
+        for (const source of setupState.sources) {
             const response = await fetch('/api/urls/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: url })
+                body: JSON.stringify({ url: source.url, url_type: source.url_type })
             });
             
             if (!response.ok) {
-                console.error(`Failed to add URL: ${url}`);
+                console.error(`Failed to add URL: ${source.url}`);
             }
         }
         
@@ -234,7 +249,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add source button click
     document.getElementById('addSourceBtn').addEventListener('click', function() {
         const sourceUrl = document.getElementById('sourceUrl').value;
-        if (addSource(sourceUrl)) {
+        const sourceUrlType = document.getElementById('sourceUrlType').value;
+        
+        if (addSource(sourceUrl, sourceUrlType)) {
             document.getElementById('sourceUrl').value = '';
         } else {
             alert('Please enter a valid URL that has not been added yet.');

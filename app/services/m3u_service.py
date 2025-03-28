@@ -1,9 +1,10 @@
 import re
 import logging
 import aiohttp
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Dict, Optional
 from dataclasses import dataclass
 from urllib.parse import urljoin, urlparse
+from ..models.url_types import create_url_object, ZeronetURL, RegularURL
 from .stream_service import StreamService
 
 logger = logging.getLogger(__name__)
@@ -19,11 +20,17 @@ class M3UChannel:
     original_url: Optional[str] = None
 
 class M3UService:
+    """Service for handling M3U playlists."""
+    
     def __init__(self):
         self.stream_service = StreamService()
+        self.acestream_pattern = re.compile(r'acestream://([\w\d]+)')
         self.extinf_pattern = re.compile(r'#EXTINF:(-?\d+)\s*(?:\s*(.+?)\s*)?,\s*(.+)')
         self.tvg_pattern = re.compile(r'tvg-(?:id|name|logo|group-title)="([^"]*)"')
-        self.m3u_pattern = re.compile(r'href=["\'](.*?\.m3u[8]?)[\'"]\s*(?:rel="[^"]*"\s*)?(?:target="[^"]*")?>(.*?)<')
+        self.m3u_pattern = re.compile(r'https?://[^\s<>"]+?\.m3u[8]?(?=[\s<>"]|$)')
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
         # Pattern to match multiple whitespace characters (spaces, tabs, newlines)
         self.whitespace_pattern = re.compile(r'\s+')
 
@@ -48,19 +55,37 @@ class M3UService:
         # For regular URLs
         return f"{parsed.scheme}://{parsed.netloc}{parsed.path.rsplit('/', 1)[0]}/"
 
-    async def find_m3u_links(self, content: str, source_url: str) -> List[str]:
-        """Find M3U links in content and convert relative to absolute URLs."""
-        base_url = self._get_base_url(source_url)
-        m3u_urls = []
+    async def find_m3u_links(self, content: str, base_url: str) -> List[str]:
+        """Find M3U links in content with support for relative URLs."""
+        # Direct M3U URLs in the content
+        m3u_urls = set(self.m3u_pattern.findall(content))
         
-        # Find all M3U links
-        for match in self.m3u_pattern.finditer(content):
-            m3u_path = match.group(1)
-            # Convert relative URLs to absolute
-            absolute_url = urljoin(base_url, m3u_path)
-            m3u_urls.append(absolute_url)
-            
-        return m3u_urls
+        # Process relative URLs based on base_url
+        relative_matches = re.findall(r'(["\'](/[^"\']*?\.m3u[8]?)["\'|\?])', content)
+        for match, rel_url in relative_matches:
+            try:
+                # Determine how to handle the URL based on base_url type
+                if ZeronetURL.is_valid_url(base_url):
+                    # For ZeroNet URLs
+                    url_obj = create_url_object(base_url, 'zeronet')
+                    if base_url.startswith('zero://'):
+                        abs_url = f"zero://{rel_url.lstrip('/')}"
+                    else:
+                        # For HTTP ZeroNet URLs
+                        host = '127.0.0.1'  # Default
+                        parsed = re.match(r'http://([\w\.]+):43110', base_url)
+                        if parsed:
+                            host = parsed.group(1)
+                        abs_url = f"http://{host}:43110{rel_url}"
+                else:
+                    # For regular HTTP URLs
+                    abs_url = urljoin(base_url, rel_url)
+                
+                m3u_urls.add(abs_url)
+            except Exception as e:
+                logger.error(f"Error processing relative M3U URL {rel_url}: {e}")
+        
+        return list(m3u_urls)
 
     async def download_m3u(self, url: str) -> str:
         """Download M3U file content."""
@@ -130,24 +155,79 @@ class M3UService:
         # Filter out entries with missing IDs
         return [ch for ch in channels if ch.id]
 
-    async def extract_channels_from_m3u(self, url: str) -> List[Tuple[str, str, dict]]:
-        """Download and parse M3U file, returning channel information."""
+    async def extract_channels_from_m3u(self, m3u_url: str) -> List[Tuple[str, str, Dict]]:
+        """Extract channel information from M3U file."""
+        channels = []
+        
         try:
-            content = await self.download_m3u(url)
-            channels = self.parse_m3u_content(content)
+            # Create the appropriate URL object based on URL type
+            url_obj = create_url_object(m3u_url)
             
-            # Convert to format expected by scrapers
-            return [
-                (ch.id, ch.name, {
-                    'group': ch.group,
-                    'logo': ch.logo,
-                    'tvg_id': ch.tvg_id,
-                    'tvg_name': ch.tvg_name,
-                    'm3u_source': url,
-                    'original_url': ch.original_url
-                }) for ch in channels if ch.id
-            ]
+            # Handle different URL types
+            if isinstance(url_obj, ZeronetURL):
+                m3u_content = await self._fetch_zeronet_m3u(m3u_url)
+            else:
+                m3u_content = await self._fetch_http_m3u(m3u_url)
             
+            if not m3u_content:
+                return []
+            
+            # Parse the M3U content
+            channel_info = {}
+            channel_id = None
+            
+            for line in m3u_content.splitlines():
+                line = line.strip()
+                
+                # Skip empty lines and comments
+                if not line or line.startswith('#'):
+                    # Extract metadata from EXTINF line
+                    if line.startswith('#EXTINF:'):
+                        # Parse channel name and optional attributes
+                        name_match = re.search(r'#EXTINF:.*,(.+)', line)
+                        if name_match:
+                            channel_info['name'] = name_match.group(1).strip()
+                        
+                        # Extract any other metadata
+                        # ... (implementation details)
+                    continue
+                
+                # Check if the line contains an acestream link
+                acestream_match = self.acestream_pattern.search(line)
+                if acestream_match:
+                    channel_id = acestream_match.group(1)
+                    name = channel_info.get('name', f"Channel {channel_id}")
+                    metadata = {k: v for k, v in channel_info.items() if k != 'name'}
+                    channels.append((channel_id, name, metadata))
+                    channel_info = {}
+            
+            return channels
+        
         except Exception as e:
-            logger.error(f"Error processing M3U file from {url}: {e}")
+            logger.error(f"Error extracting channels from M3U at {m3u_url}: {e}")
             return []
+
+    async def _fetch_http_m3u(self, url: str) -> Optional[str]:
+        """Fetch M3U content from regular HTTP URL."""
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, headers=self.headers, timeout=10) as response:
+                    response.raise_for_status()
+                    return await response.text()
+        except Exception as e:
+            logger.error(f"Error fetching M3U from HTTP URL {url}: {e}")
+            return None
+    
+    async def _fetch_zeronet_m3u(self, url: str) -> Optional[str]:
+        """Fetch M3U content from ZeroNet URL."""
+        try:
+            url_obj = create_url_object(url, 'zeronet')
+            internal_url = url_obj.get_internal_url()
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.get(internal_url, headers=self.headers, timeout=20) as response:
+                    response.raise_for_status()
+                    return await response.text()
+        except Exception as e:
+            logger.error(f"Error fetching M3U from ZeroNet URL {url}: {e}")
+            return None

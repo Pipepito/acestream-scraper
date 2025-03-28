@@ -21,6 +21,10 @@ class URLRepository(BaseRepository[ScrapedURL]):
         
     def get_by_url(self, url: str) -> Optional[ScrapedURL]:
         return self.model.query.filter_by(url=url).first()
+
+    def get_by_id(self, id: str) -> Optional[ScrapedURL]:
+        """Get a URL by its ID."""
+        return self.model.query.filter_by(id=id).first()
         
     def update_status(self, url: str, status: str, error: str = None):
         url_obj = self.get_by_url(url)
@@ -44,24 +48,52 @@ class URLRepository(BaseRepository[ScrapedURL]):
         self._db.session.commit()
         return url_obj
 
-    def add(self, url_obj):
-        """Add a new URL to the database."""
+    def add(self, url: str, url_type: str = 'regular') -> ScrapedURL:
+        """Add a new URL to scrape."""
         try:
+            url_obj = ScrapedURL(url=url, url_type=url_type)
             self._db.session.add(url_obj)
             self._db.session.commit()
             return url_obj
         except Exception as e:
             self._db.session.rollback()
-            logger.error(f"Error adding URL to database: {e}")
+            logger.error(f"Error adding URL to database: {str(e)}", exc_info=True)
             raise
 
-    def delete(self, url_obj: ScrapedURL) -> bool:
-        """Delete a URL from the database."""
+    def delete(self, url_obj_or_id):
+        """Delete a URL."""
         try:
-            self._db.session.delete(url_obj)
-            self._db.session.commit()
-            return True
-        except SQLAlchemyError as e:
-            self._db.session.rollback()
-            logger.error(f"Error deleting URL {url_obj.url}: {e}")
+            if isinstance(url_obj_or_id, str):
+                # Assume it's an ID
+                url_obj = self.get_by_id(url_obj_or_id)
+            else:
+                # Assume it's a URL object
+                url_obj = url_obj_or_id
+                
+            if url_obj:
+                self._db.session.delete(url_obj)
+                self._db.session.commit()
+                return True
             return False
+        except Exception as e:
+            self._db.session.rollback()
+            logger.error(f"Error deleting URL: {e}", exc_info=True)
+            return False
+
+    def update_enabled(self, url: str, enabled: bool) -> Optional[ScrapedURL]:
+        """Enable or disable a URL."""
+        url_obj = self.get_by_url(url)
+        if url_obj:
+            url_obj.enabled = enabled
+            self._db.session.commit()
+            return url_obj
+        return None
+        
+    def update_url_type(self, url: str, url_type: str) -> Optional[ScrapedURL]:
+        """Update the URL type."""
+        url_obj = self.get_by_url(url)
+        if url_obj:
+            url_obj.url_type = url_type
+            self._db.session.commit()
+            return url_obj
+        return None

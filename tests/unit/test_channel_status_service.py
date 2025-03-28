@@ -130,16 +130,13 @@ def test_channel_online_data_parsing():
     assert error is None
 
 def test_channel_offline_data_parsing():
-    """Test parsing an error response from the Acestream engine."""
-    # Sample response data for an offline channel
+    """Test parsing the response data for an offline channel."""
+    # Create mock response data for an offline channel
     response_data = {
-        "error": "Channel not found",
-        "response": {
-            "is_live": 0
-        }
+        'response': {'is_live': 0},
+        'error': 'Channel not found'
     }
     
-    # Check if the channel is considered online based on this data
     is_online = response_data.get('response', {}).get('is_live') == 1
     error = response_data.get('error')
     
@@ -164,6 +161,7 @@ def test_channel_status_update(db_session):
     
     # Verify the update worked
     updated_channel = db_session.query(AcestreamChannel).filter_by(id="abc123def456").first()
+    assert updated_channel is not None
     assert updated_channel.is_online is True
     assert updated_channel.check_error is None
     assert updated_channel.last_checked is not None

@@ -4,6 +4,21 @@
 
 // Check Acexy status
 async function checkAcexyStatus(showLoadingIndicator = false) {
+    // Check if status checks are enabled
+    const acexyCheckEnabled = localStorage.getItem('enableAcexyCheck') !== 'false';
+    if (!acexyCheckEnabled) {
+        const acexyStatus = document.getElementById('acexyStatus');
+        if (acexyStatus) {
+            acexyStatus.className = 'badge bg-secondary';
+            acexyStatus.textContent = 'Check disabled';
+        }
+        const acexyStreams = document.getElementById('acexyStreams');
+        if (acexyStreams) {
+            acexyStreams.classList.add('d-none');
+        }
+        return;
+    }
+
     try {
         if (showLoadingIndicator) showLoading();
         
@@ -51,6 +66,7 @@ async function checkAcexyStatus(showLoadingIndicator = false) {
         if (acexyStatusElement) {
             acexyStatusElement.innerHTML = '<span class="badge bg-warning">Error</span>';
         }
+        const acexyStreamsElement = document.getElementById('acexyStreams');
         if (acexyStreamsElement) {
             acexyStreamsElement.classList.add('d-none');
         }

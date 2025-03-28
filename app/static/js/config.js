@@ -29,11 +29,8 @@ async function loadConfigData() {
             addPidCheckbox.checked = stats.addpid === true;
         }
         
-        // Update Acexy status
-        await updateAcexyStatus();
-        
-        // Update Acestream Engine status
-        await updateAcestreamStatus();
+        // Update Acexy status and Acestream Engine status
+        initializeServiceStatusControls();
         
         // Update WARP status
         await updateWarpUI();
@@ -50,8 +47,97 @@ async function loadConfigData() {
     }
 }
 
+// Initialize service status controls and check status if enabled
+function initializeServiceStatusControls() {
+    // Setup Acexy status check control
+    const enableAcexyCheck = document.getElementById('enableAcexyCheck');
+    if (enableAcexyCheck) {
+        // Set checkbox state from localStorage
+        const acexyCheckEnabled = localStorage.getItem('enableAcexyCheck') !== 'false';
+        enableAcexyCheck.checked = acexyCheckEnabled;
+        
+        // Add event listener to save preference
+        enableAcexyCheck.addEventListener('change', function() {
+            localStorage.setItem('enableAcexyCheck', this.checked);
+            if (this.checked) {
+                // If re-enabled, immediately check status
+                updateAcexyStatus();
+            } else {
+                // If disabled, update UI to reflect disabled state
+                const acexyStatus = document.getElementById('acexyStatusConfig');
+                if (acexyStatus) {
+                    acexyStatus.className = 'badge bg-secondary';
+                    acexyStatus.textContent = 'Check disabled';
+                }
+            }
+        });
+        
+        // Check status if enabled
+        if (acexyCheckEnabled) {
+            updateAcexyStatus();
+        } else {
+            const acexyStatus = document.getElementById('acexyStatusConfig');
+            if (acexyStatus) {
+                acexyStatus.className = 'badge bg-secondary';
+                acexyStatus.textContent = 'Check disabled';
+            }
+        }
+    }
+    
+    // Setup Acestream Engine status check control
+    const enableAcestreamCheck = document.getElementById('enableAcestreamCheck');
+    if (enableAcestreamCheck) {
+        // Set checkbox state from localStorage
+        const acestreamCheckEnabled = localStorage.getItem('enableAcestreamCheck') !== 'false';
+        enableAcestreamCheck.checked = acestreamCheckEnabled;
+        
+        // Add event listener to save preference
+        enableAcestreamCheck.addEventListener('change', function() {
+            localStorage.setItem('enableAcestreamCheck', this.checked);
+            if (this.checked) {
+                // If re-enabled, immediately check status
+                updateAcestreamStatus();
+            } else {
+                // If disabled, update UI to reflect disabled state
+                const acestreamStatus = document.getElementById('acestreamStatusConfig');
+                if (acestreamStatus) {
+                    acestreamStatus.className = 'badge bg-secondary';
+                    acestreamStatus.textContent = 'Check disabled';
+                }
+                // Hide details
+                const acestreamDetails = document.getElementById('acestreamDetailsConfig');
+                if (acestreamDetails) {
+                    acestreamDetails.classList.add('d-none');
+                }
+            }
+        });
+        
+        // Check status if enabled
+        if (acestreamCheckEnabled) {
+            updateAcestreamStatus();
+        } else {
+            const acestreamStatus = document.getElementById('acestreamStatusConfig');
+            if (acestreamStatus) {
+                acestreamStatus.className = 'badge bg-secondary';
+                acestreamStatus.textContent = 'Check disabled';
+            }
+        }
+    }
+}
+
 // Update Acexy status in the config page
 async function updateAcexyStatus() {
+    // Check if status checks are enabled
+    const acexyCheckEnabled = localStorage.getItem('enableAcexyCheck') !== 'false';
+    if (!acexyCheckEnabled) {
+        const acexyStatus = document.getElementById('acexyStatusConfig');
+        if (acexyStatus) {
+            acexyStatus.className = 'badge bg-secondary';
+            acexyStatus.textContent = 'Check disabled';
+        }
+        return;
+    }
+
     try {
         const response = await fetch('/api/config/acexy_status');
         const data = await response.json();
@@ -96,6 +182,17 @@ async function updateAcexyStatus() {
 
 // Update Acestream Engine status in the config page
 async function updateAcestreamStatus() {
+    // Check if status checks are enabled
+    const acestreamCheckEnabled = localStorage.getItem('enableAcestreamCheck') !== 'false';
+    if (!acestreamCheckEnabled) {
+        const acestreamStatus = document.getElementById('acestreamStatusConfig');
+        if (acestreamStatus) {
+            acestreamStatus.className = 'badge bg-secondary';
+            acestreamStatus.textContent = 'Check disabled';
+        }
+        return;
+    }
+
     try {
         const response = await fetch('/api/config/acestream_status');
         const data = await response.json();
@@ -165,24 +262,28 @@ async function loadUrlsList() {
                 <div class="list-group-item">
                     <div class="row align-items-center">
                         <div class="col-md-7">
-                            <div><strong>${url.url}</strong></div>
+                            <div>
+                                <strong>${url.url}</strong>
+                                <span class="badge bg-info ms-2">${url.url_type}</span>
+                            </div>
                             <div class="small text-muted">
-                                Status: <span class="status-${url.status.toLowerCase()}">${url.status}</span>
+                                <span>ID: ${url.id}</span>
+                                <span class="ms-2">Status: <span class="status-${url.status.toLowerCase()}">${url.status}</span></span>
                                 <span class="ms-2">Channels: ${url.channel_count}</span>
-                                ${url.last_scraped ? `<span class="ms-2">Last scraped: ${formatLocalDate(url.last_scraped)}</span>` : ''}
+                                ${url.last_processed ? `<span class="ms-2">Last scraped: ${formatLocalDate(url.last_processed)}</span>` : ''}
                             </div>
                         </div>
                         <div class="col-md-5 text-end">
                             <button class="btn btn-sm ${url.enabled ? 'btn-warning' : 'btn-success'}" 
-                                    onclick="toggleUrl('${url.url}', ${!url.enabled})">
+                                    onclick="toggleUrl('${url.id}', ${!url.enabled})">
                                 ${url.enabled ? 'Disable' : 'Enable'}
                             </button>
                             <button class="btn btn-sm btn-info" 
-                                    onclick="refreshUrl('${url.url}')">
+                                    onclick="refreshUrl('${url.id}')">
                                 Refresh
                             </button>
                             <button class="btn btn-sm btn-danger" 
-                                    onclick="deleteUrl('${url.url}')">
+                                    onclick="deleteUrl('${url.id}')">
                                 Delete
                             </button>
                         </div>
@@ -386,18 +487,28 @@ function setupConfigEvents() {
         addUrlForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const urlInput = document.getElementById('urlInput');
-            const url = urlInput.value;
-            
-            console.log('Form submitted with URL:', url); // Add debugging
-            
-            const result = await addUrl(url);
-            if (result.success) {
-                urlInput.value = '';
-                await loadConfigData();
+            const urlTypeSelect = document.getElementById('urlTypeSelect');
+            const url = urlInput.value.trim();
+            const urlType = urlTypeSelect.value;
+
+            if (!url) {
+                showAlert('warning', 'Please enter a URL');
+                return;
+            }
+
+            try {
+                showLoading();
+                const success = await addUrl(url, urlType);
+                if (success) {
+                    urlInput.value = '';
+                    await loadUrlsList();
+                }
+            } finally {
+                hideLoading();
             }
         });
     }
-    
+
     // Migration button
     const migrateConfigBtn = document.getElementById('migrateConfigBtn');
     if (migrateConfigBtn) {

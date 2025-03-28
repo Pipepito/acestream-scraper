@@ -179,6 +179,67 @@ async function fetchStats() {
     }
 }
 
+// Check Acestream Engine status
+async function checkAcestreamStatus() {
+    // Check if status checks are enabled
+    const acestreamCheckEnabled = localStorage.getItem('enableAcestreamCheck') !== 'false';
+    if (!acestreamCheckEnabled) {
+        const acestreamStatus = document.getElementById('acestreamStatus');
+        if (acestreamStatus) {
+            acestreamStatus.className = 'badge bg-secondary';
+            acestreamStatus.textContent = 'Check disabled';
+        }
+        const acestreamDetails = document.getElementById('acestreamDetails');
+        if (acestreamDetails) {
+            acestreamDetails.classList.add('d-none');
+        }
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/config/acestream_status');
+        const data = await response.json();
+        
+        const acestreamStatus = document.getElementById('acestreamStatus');
+        const acestreamDetails = document.getElementById('acestreamDetails');
+        
+        if (acestreamStatus) {
+            if (data.enabled) {
+                if (data.available) {
+                    acestreamStatus.className = 'badge bg-success';
+                    acestreamStatus.textContent = 'Online';
+                    
+                    if (acestreamDetails) {
+                        acestreamDetails.classList.remove('d-none');
+                        acestreamDetails.innerHTML = `
+                            <div class="small">
+                                <div>Version: ${data.version || 'Unknown'}</div>
+                                <div>Platform: ${data.platform || 'Unknown'}</div>
+                                <div>Network: ${data.connected ? 'Connected' : 'Disconnected'}</div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    acestreamStatus.className = 'badge bg-danger';
+                    acestreamStatus.textContent = 'Offline';
+                    if (acestreamDetails) acestreamDetails.classList.add('d-none');
+                }
+            } else {
+                acestreamStatus.className = 'badge bg-secondary';
+                acestreamStatus.textContent = 'Disabled';
+                if (acestreamDetails) acestreamDetails.classList.add('d-none');
+            }
+        }
+    } catch (error) {
+        console.error('Error checking Acestream Engine status:', error);
+        const acestreamStatus = document.getElementById('acestreamStatus');
+        if (acestreamStatus) {
+            acestreamStatus.className = 'badge bg-warning';
+            acestreamStatus.textContent = 'Error';
+        }
+    }
+}
+
 // Document ready function
 document.addEventListener('DOMContentLoaded', () => {
     // Update stats on page load - only if we're on a page with stats elements

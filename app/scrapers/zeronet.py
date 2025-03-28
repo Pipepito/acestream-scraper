@@ -4,6 +4,7 @@ import asyncio
 import re
 from bs4 import BeautifulSoup
 from .base import BaseScraper
+from ..models.url_types import ZeronetURL
 from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
@@ -11,8 +12,8 @@ logger = logging.getLogger(__name__)
 class ZeronetScraper(BaseScraper):
     """Scraper for Zeronet URLs using internal ZeroNet service."""
 
-    def __init__(self, timeout: int = 20, retries: int = 5):
-        super().__init__(timeout, retries)
+    def __init__(self, url_obj: ZeronetURL, timeout: int = 20, retries: int = 5):
+        super().__init__(url_obj, timeout, retries)
         self.zeronet_url = "http://127.0.0.1:43110"
         self.headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -27,20 +28,14 @@ class ZeronetScraper(BaseScraper):
 
     async def fetch_content(self, url: str) -> str:
         """Fetch content from Zeronet URLs using internal service with retries."""
-        # Extract host from the URL if available
+        # Use the ZeronetURL object to handle URL conversion
         parsed_url = urlparse(url)
         zeronet_host = parsed_url.netloc.split(':')[0] if parsed_url.netloc else '127.0.0.1'
         
-        # Convert external Zeronet URL to internal format, keeping the host if provided
-        if url.startswith('zero://'):
-            internal_url = f"http://{zeronet_host}:43110/{url[7:]}"
-        elif ':43110/' in url:
-            path = url.split(':43110/', 1)[1]
-            internal_url = f"http://{zeronet_host}:43110/{path}"
-        else:
-            internal_url = url
-
-        logger.info(f"Fetching Zeronet content from: {internal_url}")
+        # Get the internal HTTP URL for ZeroNet service
+        internal_url = self.url_obj.get_internal_url(zeronet_host)
+        
+        logger.info(f"Fetching ZeroNet content from: {internal_url}")
         
         retry_count = 0
         last_error = None

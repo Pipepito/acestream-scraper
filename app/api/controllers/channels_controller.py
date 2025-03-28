@@ -3,7 +3,7 @@ import logging
 from flask_restx import Namespace, Resource, fields, reqparse
 from flask import request
 from app.models import AcestreamChannel
-from app.repositories import ChannelRepository
+from app.repositories import ChannelRepository, URLRepository
 from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
@@ -35,14 +35,16 @@ status_check_result_model = api.model('StatusCheckResult', {
     'error': fields.String(description='Error message, if any')
 })
 
-# Updated parser to include pagination parameters used in frontend
+# Updated parser to include URL ID filter parameter
 channel_parser = reqparse.RequestParser()
 channel_parser.add_argument('search', type=str, required=False, help='Filter channels by name')
+channel_parser.add_argument('url_id', type=str, required=False, help='Filter channels by source URL ID')
 channel_parser.add_argument('page', type=int, required=False, default=1, help='Page number')
 channel_parser.add_argument('per_page', type=int, required=False, default=25, help='Items per page')
 channel_parser.add_argument('status', type=str, required=False, help='Filter by status')
 
 channel_repo = ChannelRepository()
+url_repo = URLRepository()  # Add this URL repository instance
 
 def handle_repository_error(e: Exception, operation: str):
     """Handle repository errors consistently."""
@@ -55,11 +57,26 @@ class ChannelList(Resource):
     @api.expect(channel_parser)
     @api.marshal_list_with(channel_model)
     def get(self):
-        """Get list of channels, optionally filtered by search term."""
+        """Get list of channels, optionally filtered by search term or source URL."""
         try:
             args = channel_parser.parse_args()
             search = args.get('search', '')
+            url_id = args.get('url_id', '')
+            
+            # First get channels (either all or filtered by search term)
             channels = channel_repo.search(search) if search else channel_repo.get_active()
+            
+            # Then filter by URL ID if provided
+            if url_id:
+                url_obj = url_repo.get_by_id(url_id)
+                
+                if url_obj:
+                    # Filter channels by source URL
+                    channels = [ch for ch in channels if ch.source_url == url_obj.url]
+                else:
+                    # If URL ID not found, return empty list
+                    channels = []
+            
             return channels
         except Exception as e:
             handle_repository_error(e, "fetch channels")
@@ -182,3 +199,22 @@ class ChannelBatchStatusCheck(Resource):
                 'error': 'Failed to start status check',
                 'message': str(e)
             }, 500
+
+@api.route('/url/<string:url_id>/channels')
+@api.param('url_id', 'The URL ID to filter channels by')
+class ChannelsByUrlId(Resource):
+    @api.doc('get_channels_by_url_id')
+    @api.marshal_list_with(channel_model)
+    @api.response(404, 'URL not found')
+    def get(self, url_id):
+        """Get channels for a specific URL ID."""
+        try:
+            url_obj = url_repo.get_by_id(url_id)
+            if not url_obj:
+                api.abort(404, 'URL not found')
+            
+            # Get channels for this URL
+            channels = channel_repo.get_by_source(url_obj.url)
+            return channels
+        except Exception as e:
+            handle_repository_error(e, "fetch channels by URL ID")

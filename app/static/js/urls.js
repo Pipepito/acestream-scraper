@@ -3,9 +3,9 @@
  */
 
 // Toggle URL enabled/disabled status
-async function toggleUrl(url, enable) {
+async function toggleUrl(id, enable) {
     return await makeApiRequest(
-        `/api/urls/${encodeURIComponent(url)}`,
+        `/api/urls/${id}`,
         {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -16,18 +16,15 @@ async function toggleUrl(url, enable) {
 }
 
 // Delete URL
-async function deleteUrl(url) {
+async function deleteUrl(id) {
     if (!confirm('Are you sure you want to delete this URL? This will also remove all associated channels.')) {
         return;
     }
     
     try {
         showLoading();
-        // Properly encode the URL for the request
-        const encodedUrl = encodeURIComponent(url);
-        console.log('Deleting URL:', url);
         
-        const response = await fetch(`/api/urls/${encodedUrl}`, {
+        const response = await fetch(`/api/urls/${id}`, {
             method: 'DELETE'
         });
         
@@ -53,29 +50,52 @@ async function deleteUrl(url) {
 }
 
 // Refresh a single URL
-async function refreshUrl(url) {
-    return await makeApiRequest(
-        `/api/urls/${encodeURIComponent(url)}/refresh`,
-        { method: 'POST' },
-        'URL refresh started'
-    );
+async function refreshUrl(id) {
+    try {
+        showLoading();
+        const response = await fetch(`/api/urls/${id}/refresh`, {
+            method: 'POST'
+        });
+        
+        await handleApiResponse(response, 'URL refreshed successfully');
+        
+        // Refresh dashboard data
+        await refreshData();
+    } catch (error) {
+        console.error('Error refreshing URL:', error);
+        showAlert('danger', 'Failed to refresh URL: ' + error.message);
+    } finally {
+        hideLoading();
+    }
 }
 
 // Add new URL 
-async function addUrl(url) {
-    console.log('Adding URL:', url); // Add debugging
-    const result = await makeApiRequest(
-        '/api/urls/',  // Add trailing slash
-        {
+async function addUrl(url, urlType = 'regular') {
+    try {
+        showLoading();
+        const response = await fetch('/api/urls/', {
             method: 'POST',
-            body: JSON.stringify({ url: url })
-        },
-        'URL added successfully',
-        () => loadConfigData() // Add callback to refresh data
-    );
-    
-    console.log('Add URL result:', result); // Add debugging
-    return result;
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                url: url,
+                url_type: urlType
+            })
+        });
+        
+        await handleApiResponse(response, 'URL added successfully');
+        
+        // Refresh dashboard data
+        await refreshData();
+        return true;
+    } catch (error) {
+        console.error('Error adding URL:', error);
+        showAlert('danger', 'Failed to add URL: ' + error.message);
+        return false;
+    } finally {
+        hideLoading();
+    }
 }
 
 // Refresh all URLs

@@ -2,12 +2,13 @@ import re
 import logging
 import json
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Set
+from typing import List, Tuple, Set, Union
 from datetime import datetime
 from bs4 import BeautifulSoup
 
 from ..extensions import db
 from ..models import ScrapedURL
+from ..models.url_types import BaseURL
 from ..services.m3u_service import M3UService
 
 logger = logging.getLogger(__name__)
@@ -15,7 +16,8 @@ logger = logging.getLogger(__name__)
 class BaseScraper(ABC):
     """Base scraper class with common acestream link extraction logic."""
 
-    def __init__(self, timeout: int = 10, retries: int = 3):
+    def __init__(self, url_obj: BaseURL, timeout: int = 10, retries: int = 3):
+        self.url_obj = url_obj
         self.timeout = timeout
         self.retries = retries
         self.acestream_pattern = re.compile(r'acestream://([\w\d]+)')
@@ -24,6 +26,7 @@ class BaseScraper(ABC):
         self.m3u_service = M3UService()
         # Pattern to match multiple whitespace characters (spaces, tabs, newlines)
         self.whitespace_pattern = re.compile(r'\s+')
+        self.current_url = url_obj.original_url
 
     def clean_channel_name(self, name: str) -> str:
         """Clean channel name by replacing multiple whitespace with single space and trimming."""
@@ -77,7 +80,7 @@ class BaseScraper(ABC):
         
         # Fallback to regular linksData extraction only if listaplana.txt didn't yield results
         script_tag = soup.find('script', text=re.compile(r'const linksData'))
-        if script_tag:
+        if (script_tag):
             script_content = script_tag.string
             json_str = re.search(r'const linksData = (\{.*?\});', script_content, re.DOTALL)
             if json_str:
@@ -190,16 +193,19 @@ class BaseScraper(ABC):
         
         return channels
 
-    async def scrape(self, url: str) -> Tuple[List[Tuple[str, str, dict]], str]:
+    async def scrape(self, url: str = None) -> Tuple[List[Tuple[str, str, dict]], str]:
         """Main scraping method."""
-        self.current_url = url  # Store current URL for relative path resolution
+        # Use provided URL or the normalized URL from url_obj
+        url_to_scrape = url if url else self.url_obj.get_normalized_url()
+        self.current_url = url_to_scrape
+        
         channels = []
         status = "OK"
         retries_left = self.retries
 
         while retries_left >= 0:
             try:
-                content = await self.fetch_content(url)
+                content = await self.fetch_content(url_to_scrape)
                 soup = BeautifulSoup(content, 'html.parser')
                 
                 # First check script tags for listaplana.txt content
@@ -209,7 +215,7 @@ class BaseScraper(ABC):
                 if script_channels:
                     channels.extend(script_channels)
                 else:
-                    # Otherwise, try other extraction methods, but still be careful not to create ID-based names
+                    # Otherwise, try other extraction methods
                     iframe_channels = self.extract_from_iframe_content(soup)
                     content_channels = [(id, name, {}) for id, name in self.extract_from_content(soup)]
                     m3u_channels = await self.extract_from_m3u_links(content)
@@ -220,7 +226,7 @@ class BaseScraper(ABC):
                 
                 break
             except Exception as e:
-                logger.error(f"Error scraping {url}: {e}")
+                logger.error(f"Error scraping {url_to_scrape}: {e}")
                 retries_left -= 1
                 if retries_left < 0:
                     status = "Error"
@@ -228,7 +234,7 @@ class BaseScraper(ABC):
                 self.timeout += 5
 
         # Update URL status in database
-        self.update_url_status(url, status)
+        self.update_url_status(url_to_scrape, status)
         
         return channels, status
 

@@ -98,6 +98,32 @@ If you have a license key for WARP+ or a WARP Team account:
 3. Enter your license key and register it
 4. Alternatively, set the `WARP_LICENSE_KEY` environment variable when starting the container
 
+### How do I specify URL types when adding sources?
+
+When adding URLs to scrape, you can explicitly select the URL type:
+
+1. **Regular HTTP**: For standard websites using HTTP or HTTPS protocols
+2. **ZeroNet**: For ZeroNet-specific URLs
+
+The application provides a dropdown menu next to the URL input field to select the type. This is important because:
+
+- **Regular HTTP URLs**: Will be accessed directly via HTTP/HTTPS protocols
+- **ZeroNet URLs**: Will be accessed via the ZeroNet network (either internal or external)
+
+It's important to correctly specify the URL type when adding sources to ensure the application can access the content properly.
+
+### Do I need ZeroNet running inside the container to use ZeroNet URLs?
+
+No, you can use ZeroNet URLs with an external ZeroNet service by:
+
+1. Explicitly selecting "ZeroNet" as the URL type when adding the URL
+2. Providing the full URL to your external ZeroNet service
+
+This flexibility allows you to:
+- Use ZeroNet running inside the container (simplest approach)
+- Connect to a ZeroNet service running elsewhere on your network
+- Use publicly accessible ZeroNet gateways
+
 ## Usage Questions
 
 ### How do I access the web interface?
@@ -158,6 +184,28 @@ Common issues include:
 3. If connection fails, try changing the WARP mode to a different setting
 4. Ensure your container has the proper capabilities (`NET_ADMIN` and `SYS_ADMIN`)
 5. Check container logs for WARP-related errors
+
+### I can see Acestream channels on a website in my browser, but the app doesn't find any when scraping it
+This is usually caused by one of these issues:
+
+1. **JavaScript-dependent content**: The website uses JavaScript to dynamically display content. Our scraper doesn't execute JavaScript like a browser does.
+   
+2. **Wrong URL type selection**: Make sure you're using the correct URL type:
+   - Use `Regular HTTP` for standard websites
+   - Use `ZeroNet` for ZeroNet sites
+
+3. **Content requires authentication**: The site might require login cookies that the scraper doesn't have.
+
+4. **Content is in iframes**: The channels might be loaded in iframes from another domain that our scraper doesn't automatically follow.
+
+5. **Anti-scraping protections**: The site might have measures to detect and block automated scraping.
+
+Solutions to try:
+- Inspect the site in your browser's developer tools to find direct links to M3U playlists
+- Try scraping a different page on the same site that has a simpler structure
+- Add channels manually if scraping consistently fails
+- Use the browser developer tools (F12) to find the actual Acestream IDs in the page source
+- If the site lists channels in a consistent format, consider submitting a feature request for a specialized scraper
 
 ## Advanced Questions
 

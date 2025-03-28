@@ -13,6 +13,12 @@
                 <input type="url" class="form-control" id="urlInput" placeholder="Enter URL to scrape" required>
             </div>
             <div class="col-auto">
+                <select class="form-select" id="urlTypeSelect">
+                    <option value="regular" selected>Regular HTTP</option>
+                    <option value="zeronet">ZeroNet</option>
+                </select>
+            </div>
+            <div class="col-auto">
                 <button type="submit" class="btn btn-primary">Add URL</button>
             </div>
         </form>
@@ -93,6 +99,14 @@
                         Acexy is an enhanced proxy interface for Acestream Engine with a web UI.
                     </a>
                 </p>
+                <!-- Add checkbox for enabling/disabling status check -->
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="enableAcexyCheck" checked>
+                    <label class="form-check-label" for="enableAcexyCheck">
+                        Enable status check
+                    </label>
+                    <small class="form-text text-muted d-block">Uncheck to prevent status check requests</small>
+                </div>
             </div>
             <div class="col-md-6">
                 <div class="d-grid">
@@ -128,6 +142,14 @@
                 <p class="text-muted mt-2">
                     Acestream Engine is required for checking channel status and playing content.
                 </p>
+                <!-- Add checkbox for enabling/disabling status check -->
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="enableAcestreamCheck" checked>
+                    <label class="form-check-label" for="enableAcestreamCheck">
+                        Enable status check
+                    </label>
+                    <small class="form-text text-muted d-block">Uncheck to prevent status check requests</small>
+                </div>
             </div>
             <div class="col-md-6">
                 <div class="d-grid">

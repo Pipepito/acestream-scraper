@@ -1,6 +1,7 @@
 from typing import List, Tuple
 from ..repositories import URLRepository, ChannelRepository
 import logging
+from ..models.url_types import create_url_object
 
 logger = logging.getLogger(__name__)
 
@@ -9,23 +10,32 @@ class ScraperService:
         self.url_repository = URLRepository()
         self.channel_repository = ChannelRepository()
 
-    async def scrape_url(self, url: str) -> Tuple[List[Tuple[str, str, dict]], str]:
+    async def scrape_url(self, url: str, url_type: str = None) -> Tuple[List[Tuple[str, str, dict]], str]:
         """Scrape a URL and update channels."""
         try:
             # Update URL status
             self.url_repository.update_status(url, 'processing')
             
             # Import here to avoid circular dependency
-            from ..scrapers import create_scraper
+            from ..scrapers import create_scraper_for_url
             
-            # Create and execute scraper
-            scraper = create_scraper(url)
-            links, status = await scraper.scrape(url)
+            # If URL type not provided, get it from database
+            if url_type is None:
+                url_obj = self.url_repository.get_by_url(url)
+                url_type = url_obj.url_type if url_obj else 'regular'  # Default to regular if not found
+            
+            # Create and execute scraper with explicit URL type
+            scraper = create_scraper_for_url(url, url_type)
+            links, status = await scraper.scrape()
             
             if status == "OK":
                 # Update channels with metadata
                 self._update_channels(url, links)
                 self.url_repository.update_status(url, status)
+                
+                # Update URL type in database if needed
+                url_obj = create_url_object(url, url_type)
+                self.url_repository.update_url_type(url, url_obj.type_name)
             else:
                 self.url_repository.update_status(url, status, "Failed to scrape URL")
                 

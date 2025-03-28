@@ -76,8 +76,17 @@ URLs are sources that contain Acestream channel information. The system will scr
 
 1. Go to the Configuration page
 2. Enter a URL in the "Add New URL" form
-3. Click "Add URL"
-4. The system will begin scraping the URL for channels
+3. Select the appropriate URL type:
+   - **Regular HTTP**: For standard websites
+   - **ZeroNet**: For ZeroNet sites (either internal or external)
+4. Click "Add URL"
+5. The system will begin scraping the URL for channels
+
+When selecting the URL type:
+- Choose "Regular HTTP" for standard websites
+- Choose "ZeroNet" for any ZeroNet URLs, including:
+  - Internal ZeroNet sites (zero://, http://127.0.0.1:43110/)
+  - External ZeroNet services or gateways
 
 #### Refreshing URLs
 

@@ -2,14 +2,15 @@ import aiohttp
 import logging
 from typing import Optional
 from .base import BaseScraper
+from ..models.url_types import RegularURL
 
 logger = logging.getLogger(__name__)
 
 class HTTPScraper(BaseScraper):
     """Scraper for regular HTTP/HTTPS URLs."""
 
-    def __init__(self, timeout: int = 10, retries: int = 3):
-        super().__init__(timeout, retries)
+    def __init__(self, url_obj: RegularURL, timeout: int = 10, retries: int = 3):
+        super().__init__(url_obj, timeout, retries)
         self.headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'

@@ -2,9 +2,9 @@ import asyncio
 import logging
 from typing import List, Tuple
 from datetime import datetime, timedelta, timezone
-from ..models import AcestreamChannel
+from ..models import AcestreamChannel, ScrapedURL
 from ..extensions import db
-from ..scrapers import create_scraper
+from ..scrapers import create_scraper_for_url
 
 logger = logging.getLogger(__name__)
 
@@ -15,11 +15,16 @@ class ScrapeWorker:
         self.max_concurrent = max_concurrent
         self.semaphore = asyncio.Semaphore(max_concurrent)
 
-    async def execute(self, url: str) -> Tuple[List[Tuple[str, str]], str]:
+    async def execute(self, url: str) -> Tuple[List[Tuple[str, str, dict]], str]:
         """Execute a scraping task for a single URL."""
         async with self.semaphore:
-            scraper = create_scraper(url)
-            return await scraper.scrape(url)
+            # Get URL type from database
+            url_obj = ScrapedURL.query.filter_by(url=url).first()
+            url_type = url_obj.url_type if url_obj else 'auto'
+            
+            # Create scraper with the correct URL type
+            scraper = create_scraper_for_url(url, url_type)
+            return await scraper.scrape()
 
 class ChannelCleanupWorker:
     """Worker class for cleaning up old channels."""

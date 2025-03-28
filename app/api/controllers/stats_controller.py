@@ -5,7 +5,9 @@ from app.utils.config import Config
 api = Namespace('stats', description='Application statistics')
 
 url_stats_model = api.model('URLStats', {
+    'id': fields.String(description='ID of the URL'),  # Include ID field
     'url': fields.String(description='URL being scraped'),
+    'url_type': fields.String(description='Type of URL (regular, zeronet)'),
     'status': fields.String(description='Current status of the URL'),
     'last_processed': fields.DateTime(description='When the URL was last processed'),
     'channel_count': fields.Integer(description='Number of channels from this URL'),
@@ -46,7 +48,9 @@ class Stats(Resource):
                 channel_count = AcestreamChannel.query.filter_by(source_url=url.url).count()
                 
                 url_stats.append({
+                    'id': url.id,
                     'url': url.url,
+                    'url_type': url.url_type,
                     'status': url.status,
                     'last_processed': url.last_processed, 
                     'channel_count': channel_count,

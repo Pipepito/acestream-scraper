@@ -123,6 +123,70 @@ function initializeServiceStatusControls() {
             }
         }
     }
+    
+    // Setup Acexy check interval control
+    const acexyCheckInterval = document.getElementById('acexyCheckInterval');
+    const saveAcexyIntervalBtn = document.getElementById('saveAcexyIntervalBtn');
+    
+    if (acexyCheckInterval) {
+        // Load saved interval from localStorage or use default
+        const savedInterval = localStorage.getItem('acexyCheckInterval');
+        if (savedInterval) {
+            acexyCheckInterval.value = savedInterval;
+        }
+        
+        // Add event listener to save button
+        if (saveAcexyIntervalBtn) {
+            saveAcexyIntervalBtn.addEventListener('click', function() {
+                const interval = parseInt(acexyCheckInterval.value);
+                if (isNaN(interval) || interval < 5) {
+                    showAlert('warning', 'Check interval must be at least 5 seconds');
+                    return;
+                }
+                
+                // Save to localStorage
+                localStorage.setItem('acexyCheckInterval', interval);
+                
+                // Show confirmation
+                showAlert('success', 'Acexy check interval updated');
+                
+                // Update backend configuration
+                updateAcexyCheckIntervalSetting(interval);
+            });
+        }
+    }
+    
+    // Setup Acestream Engine check interval control
+    const acestreamCheckInterval = document.getElementById('acestreamCheckInterval');
+    const saveAcestreamIntervalBtn = document.getElementById('saveAcestreamIntervalBtn');
+    
+    if (acestreamCheckInterval) {
+        // Load saved interval from localStorage or use default
+        const savedInterval = localStorage.getItem('acestreamCheckInterval');
+        if (savedInterval) {
+            acestreamCheckInterval.value = savedInterval;
+        }
+        
+        // Add event listener to save button
+        if (saveAcestreamIntervalBtn) {
+            saveAcestreamIntervalBtn.addEventListener('click', function() {
+                const interval = parseInt(acestreamCheckInterval.value);
+                if (isNaN(interval) || interval < 5) {
+                    showAlert('warning', 'Check interval must be at least 5 seconds');
+                    return;
+                }
+                
+                // Save to localStorage
+                localStorage.setItem('acestreamCheckInterval', interval);
+                
+                // Show confirmation
+                showAlert('success', 'Acestream Engine check interval updated');
+                
+                // Update backend configuration
+                updateAcestreamCheckIntervalSetting(interval);
+            });
+        }
+    }
 }
 
 // Update Acexy status in the config page
@@ -203,32 +267,63 @@ async function updateAcestreamStatus() {
         const versionElement = document.getElementById('acestreamVersionConfig');
         const platformElement = document.getElementById('acestreamPlatformConfig');
         const networkElement = document.getElementById('acestreamNetworkConfig');
+        const engineUrlElement = document.getElementById('acestreamUrlConfig');
         
         if (acestreamStatusElement) {
-            if (data.enabled) {
-                if (data.available) {
-                    acestreamStatusElement.className = 'badge bg-success';
-                    acestreamStatusElement.textContent = 'Online';
+            if (data.available) {
+                acestreamStatusElement.className = 'badge bg-success';
+                acestreamStatusElement.textContent = data.is_internal ? 'Online' : 'External Online';
+                
+                if (acestreamDetailsElement) {
+                    acestreamDetailsElement.classList.remove('d-none');
+                    if (versionElement) versionElement.textContent = data.version || 'Unknown';
+                    if (platformElement) platformElement.textContent = data.platform || 'Unknown';
+                    if (networkElement) networkElement.textContent = data.connected ? 'Connected' : 'Disconnected';
+                    if (engineUrlElement) {
+                        if (data.is_internal) {
+                            engineUrlElement.parentElement.classList.add('d-none');
+                        } else {
+                            engineUrlElement.parentElement.classList.remove('d-none');
+                            engineUrlElement.textContent = data.engine_url || 'Unknown';
+                        }
+                    }
+                }
+                
+                if (configAcestreamStatus) {
+                    configAcestreamStatus.textContent = data.is_internal ? 
+                        'Enabled and Online' : 'External Engine Online';
+                }
+            } else {
+                if (data.is_internal === false && data.engine_url) {
+                    // External engine is configured but not available
+                    acestreamStatusElement.className = 'badge bg-danger';
+                    acestreamStatusElement.textContent = 'External Offline';
                     
                     if (acestreamDetailsElement) {
                         acestreamDetailsElement.classList.remove('d-none');
-                        if (versionElement) versionElement.textContent = data.version || 'Unknown';
-                        if (platformElement) platformElement.textContent = data.platform || 'Unknown';
-                        if (networkElement) networkElement.textContent = data.connected ? 'Connected' : 'Disconnected';
+                        if (engineUrlElement) {
+                            engineUrlElement.parentElement.classList.remove('d-none');
+                            engineUrlElement.textContent = data.engine_url || 'Unknown';
+                        }
+                        if (versionElement) versionElement.parentElement.classList.add('d-none');
+                        if (platformElement) platformElement.parentElement.classList.add('d-none');
+                        if (networkElement) networkElement.parentElement.classList.add('d-none');
                     }
                     
-                    if (configAcestreamStatus) configAcestreamStatus.textContent = 'Enabled and Online';
-                } else {
+                    if (configAcestreamStatus) {
+                        configAcestreamStatus.textContent = 'External Engine Offline';
+                    }
+                } else if (data.enabled) {
                     acestreamStatusElement.className = 'badge bg-danger';
                     acestreamStatusElement.textContent = 'Offline';
                     if (acestreamDetailsElement) acestreamDetailsElement.classList.add('d-none');
                     if (configAcestreamStatus) configAcestreamStatus.textContent = 'Enabled but Offline';
+                } else {
+                    acestreamStatusElement.className = 'badge bg-secondary';
+                    acestreamStatusElement.textContent = 'Disabled';
+                    if (acestreamDetailsElement) acestreamDetailsElement.classList.add('d-none');
+                    if (configAcestreamStatus) configAcestreamStatus.textContent = 'Disabled';
                 }
-            } else {
-                acestreamStatusElement.className = 'badge bg-secondary';
-                acestreamStatusElement.textContent = 'Disabled';
-                if (acestreamDetailsElement) acestreamDetailsElement.classList.add('d-none');
-                if (configAcestreamStatus) configAcestreamStatus.textContent = 'Disabled';
             }
         }
     } catch (error) {
@@ -513,6 +608,42 @@ function setupConfigEvents() {
     const migrateConfigBtn = document.getElementById('migrateConfigBtn');
     if (migrateConfigBtn) {
         migrateConfigBtn.addEventListener('click', migrateConfigToDatabase);
+    }
+}
+
+// Update Acexy check interval setting on server
+async function updateAcexyCheckIntervalSetting(interval) {
+    try {
+        const response = await fetch('/api/config/acexy_check_interval', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ interval: interval })
+        });
+        
+        await handleApiResponse(response, 'Acexy check interval saved');
+    } catch (error) {
+        console.error('Error updating Acexy check interval:', error);
+        showAlert('error', 'Error saving Acexy check interval');
+    }
+}
+
+// Update Acestream Engine check interval setting on server
+async function updateAcestreamCheckIntervalSetting(interval) {
+    try {
+        const response = await fetch('/api/config/acestream_check_interval', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ interval: interval })
+        });
+        
+        await handleApiResponse(response, 'Acestream Engine check interval saved');
+    } catch (error) {
+        console.error('Error updating Acestream Engine check interval:', error);
+        showAlert('error', 'Error saving Acestream Engine check interval');
     }
 }
 

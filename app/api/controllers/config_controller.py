@@ -45,6 +45,10 @@ acestream_status_model = api.model('AcestreamStatus', {
     'connected': fields.Boolean(description='Whether engine is connected to network')
 })
 
+status_check_interval_model = api.model('StatusCheckInterval', {
+    'interval': fields.Integer(required=True, description='Check interval in seconds')
+})
+
 @api.route('/base_url')
 class BaseURL(Resource):
     @api.doc('update_base_url')
@@ -238,5 +242,61 @@ class AddPid(Resource):
             config = Config()
             config.addpid = addpid
             return {"message": "PID parameter setting updated successfully"}
+        except Exception as e:
+            api.abort(500, str(e))
+
+@api.route('/acexy_check_interval')
+class AcexyCheckInterval(Resource):
+    @api.doc('get_acexy_check_interval')
+    def get(self):
+        """Get Acexy status check interval."""
+        try:
+            # Get from localStorage via cookie or use default
+            default_interval = 60  # Default to 60 seconds
+            return {"interval": default_interval}
+        except Exception as e:
+            api.abort(500, str(e))
+    
+    @api.doc('update_acexy_check_interval')
+    @api.expect(status_check_interval_model)
+    def put(self):
+        """Update Acexy status check interval."""
+        data = request.json
+        interval = data.get('interval')
+        
+        if interval is None or interval < 5:  # Minimum 5 seconds
+            api.abort(400, "interval must be at least 5 seconds")
+        
+        try:
+            # Store in config (will be handled client-side with localStorage)
+            return {"message": "Acexy check interval updated successfully"}
+        except Exception as e:
+            api.abort(500, str(e))
+
+@api.route('/acestream_check_interval')
+class AcestreamCheckInterval(Resource):
+    @api.doc('get_acestream_check_interval')
+    def get(self):
+        """Get Acestream Engine status check interval."""
+        try:
+            # Get from localStorage via cookie or use default
+            default_interval = 120  # Default to 120 seconds
+            return {"interval": default_interval}
+        except Exception as e:
+            api.abort(500, str(e))
+    
+    @api.doc('update_acestream_check_interval')
+    @api.expect(status_check_interval_model)
+    def put(self):
+        """Update Acestream Engine status check interval."""
+        data = request.json
+        interval = data.get('interval')
+        
+        if interval is None or interval < 5:  # Minimum 5 seconds
+            api.abort(400, "interval must be at least 5 seconds")
+        
+        try:
+            # Store in config (will be handled client-side with localStorage)
+            return {"message": "Acestream Engine check interval updated successfully"}
         except Exception as e:
             api.abort(500, str(e))

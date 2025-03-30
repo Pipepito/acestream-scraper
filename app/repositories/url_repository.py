@@ -97,3 +97,29 @@ class URLRepository(BaseRepository[ScrapedURL]):
             self._db.session.commit()
             return url_obj
         return None
+
+    def get_or_create_by_type_and_url(self, url_type: str, url: str, enabled: bool = True, trigger_scrape: bool = False) -> ScrapedURL:
+        """Get a URL by type and URL, or create it if it doesn't exist."""
+        try:
+            # Try to find existing URL
+            scraped_url = self.model.query.filter_by(url=url, url_type=url_type).first()
+            
+            # If it doesn't exist, create it
+            if not scraped_url:
+                from datetime import datetime, timezone
+                scraped_url = self.model(
+                    url=url,
+                    url_type=url_type,
+                    added_at=datetime.now(timezone.utc),
+                    enabled=enabled,
+                    status='pending' if trigger_scrape else 'ok'
+                )
+                self._db.session.add(scraped_url)
+                self._db.session.commit()
+                logger.info(f"Created new {url_type} URL: {url}")
+            
+            return scraped_url
+        except SQLAlchemyError as e:
+            self._db.session.rollback()
+            logger.error(f"Error getting or creating URL by type {url_type} and URL {url}: {e}")
+            raise

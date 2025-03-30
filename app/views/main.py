@@ -36,6 +36,17 @@ def dashboard():
     """Alternative endpoint for dashboard."""
     return index()
 
+@bp.route('/search')
+def search():
+    """Acestream search page."""
+    config = Config()
+    
+    # If config was not imported, redirect to setup
+    if not config.settings_repo or not config.settings_repo.is_setup_completed():
+        return redirect(url_for('main.setup'))
+        
+    return render_template('search.html')
+
 @bp.route('/playlist.m3u')
 def get_playlist():
     """

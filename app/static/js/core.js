@@ -204,30 +204,45 @@ async function checkAcestreamStatus() {
         const acestreamDetails = document.getElementById('acestreamDetails');
         
         if (acestreamStatus) {
-            if (data.enabled) {
-                if (data.available) {
-                    acestreamStatus.className = 'badge bg-success';
-                    acestreamStatus.textContent = 'Online';
+            if (data.available) {
+                acestreamStatus.className = 'badge bg-success';
+                acestreamStatus.textContent = data.is_internal ? 'Online' : 'External Online';
+                
+                if (acestreamDetails) {
+                    acestreamDetails.classList.remove('d-none');
+                    acestreamDetails.innerHTML = `
+                        <div class="small">
+                            <div>Version: ${data.version || 'Unknown'}</div>
+                            <div>Platform: ${data.platform || 'Unknown'}</div>
+                            <div>Network: ${data.connected ? 'Connected' : 'Disconnected'}</div>
+                            ${!data.is_internal ? `<div>URL: ${data.engine_url || 'Unknown'}</div>` : ''}
+                        </div>
+                    `;
+                }
+            } else {
+                if (data.is_internal === false && data.engine_url) {
+                    // External engine is configured but not available
+                    acestreamStatus.className = 'badge bg-danger';
+                    acestreamStatus.textContent = 'External Offline';
                     
                     if (acestreamDetails) {
                         acestreamDetails.classList.remove('d-none');
                         acestreamDetails.innerHTML = `
                             <div class="small">
-                                <div>Version: ${data.version || 'Unknown'}</div>
-                                <div>Platform: ${data.platform || 'Unknown'}</div>
-                                <div>Network: ${data.connected ? 'Connected' : 'Disconnected'}</div>
+                                <div>URL: ${data.engine_url || 'Unknown'}</div>
+                                <div class="text-danger">Cannot connect to external engine</div>
                             </div>
                         `;
                     }
-                } else {
+                } else if (data.enabled) {
                     acestreamStatus.className = 'badge bg-danger';
                     acestreamStatus.textContent = 'Offline';
                     if (acestreamDetails) acestreamDetails.classList.add('d-none');
+                } else {
+                    acestreamStatus.className = 'badge bg-secondary';
+                    acestreamStatus.textContent = 'Disabled';
+                    if (acestreamDetails) acestreamDetails.classList.add('d-none');
                 }
-            } else {
-                acestreamStatus.className = 'badge bg-secondary';
-                acestreamStatus.textContent = 'Disabled';
-                if (acestreamDetails) acestreamDetails.classList.add('d-none');
             }
         }
     } catch (error) {
@@ -237,6 +252,139 @@ async function checkAcestreamStatus() {
             acestreamStatus.className = 'badge bg-warning';
             acestreamStatus.textContent = 'Error';
         }
+    }
+}
+
+// Check Acexy status
+async function checkAcexyStatus() {
+    // Check if status checks are enabled
+    const acexyCheckEnabled = localStorage.getItem('enableAcexyCheck') !== 'false';
+    if (!acexyCheckEnabled) {
+        const acexyStatus = document.getElementById('acexyStatus');
+        if (acexyStatus) {
+            acexyStatus.className = 'badge bg-secondary';
+            acexyStatus.textContent = 'Check disabled';
+        }
+        const acexyDetails = document.getElementById('acexyDetails');
+        if (acexyDetails) {
+            acexyDetails.classList.add('d-none');
+        }
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/config/acexy_status');
+        const data = await response.json();
+        
+        const acexyStatus = document.getElementById('acexyStatus');
+        const acexyDetails = document.getElementById('acexyDetails');
+        
+        if (acexyStatus) {
+            if (data.enabled) {
+                if (data.available) {
+                    acexyStatus.className = 'badge bg-success';
+                    acexyStatus.textContent = 'Online';
+                    
+                    if (acexyDetails) {
+                        acexyDetails.classList.remove('d-none');
+                        acexyDetails.innerHTML = `
+                            <div class="small">
+                                <div>Acexy version: ${data.version || 'Unknown'}</div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    acexyStatus.className = 'badge bg-danger';
+                    acexyStatus.textContent = 'Offline';
+                    if (acexyDetails) acexyDetails.classList.add('d-none');
+                }
+            } else {
+                acexyStatus.className = 'badge bg-secondary';
+                acexyStatus.textContent = 'Disabled';
+                if (acexyDetails) acexyDetails.classList.add('d-none');
+            }
+        }
+    } catch (error) {
+        console.error('Error checking Acexy status:', error);
+        const acexyStatus = document.getElementById('acexyStatus');
+        if (acexyStatus) {
+            acexyStatus.className = 'badge bg-warning';
+            acexyStatus.textContent = 'Error';
+        }
+    }
+}
+
+// Initialize automatic status checks
+function initStatusAutoRefresh() {
+    // Set up Acestream Engine status auto-refresh
+    let acestreamInterval;
+    
+    function setupAcestreamAutoRefresh() {
+        // Clear existing interval if any
+        if (acestreamInterval) {
+            clearInterval(acestreamInterval);
+        }
+        
+        // Only set up auto-refresh if status checks are enabled
+        const checkEnabled = localStorage.getItem('enableAcestreamCheck') !== 'false';
+        if (!checkEnabled) {
+            return;
+        }
+        
+        // Get the configured interval or use default
+        const intervalSeconds = parseInt(localStorage.getItem('acestreamCheckInterval'), 10) || 120;
+        
+        // Set up new interval
+        acestreamInterval = setInterval(checkAcestreamStatus, intervalSeconds * 1000);
+        console.log(`Auto-refresh for Acestream Engine status set to ${intervalSeconds} seconds`);
+    }
+    
+    // Set up Acexy status auto-refresh
+    let acexyInterval;
+    
+    function setupAcexyAutoRefresh() {
+        // Clear existing interval if any
+        if (acexyInterval) {
+            clearInterval(acexyInterval);
+        }
+        
+        // Only set up auto-refresh if status checks are enabled
+        const checkEnabled = localStorage.getItem('enableAcexyCheck') !== 'false';
+        if (!checkEnabled) {
+            return;
+        }
+        
+        // Get the configured interval or use default
+        const intervalSeconds = parseInt(localStorage.getItem('acexyCheckInterval'), 10) || 60;
+        
+        // Set up new interval
+        acexyInterval = setInterval(checkAcexyStatus, intervalSeconds * 1000);
+        console.log(`Auto-refresh for Acexy status set to ${intervalSeconds} seconds`);
+    }
+    
+    // Initial setup for both
+    setupAcestreamAutoRefresh();
+    setupAcexyAutoRefresh();
+    
+    // Watch for changes to the localStorage settings
+    window.addEventListener('storage', function(e) {
+        if (e.key === 'enableAcestreamCheck' || e.key === 'acestreamCheckInterval') {
+            setupAcestreamAutoRefresh();
+        }
+        if (e.key === 'enableAcexyCheck' || e.key === 'acexyCheckInterval') {
+            setupAcexyAutoRefresh();
+        }
+    });
+    
+    // Do initial checks
+    const acestreamCheckEnabled = localStorage.getItem('enableAcestreamCheck') !== 'false';
+    if (acestreamCheckEnabled) {
+        checkAcestreamStatus();
+    }
+    
+    const acexyCheckEnabled = localStorage.getItem('enableAcexyCheck') !== 'false';
+    if (acexyCheckEnabled) {
+        checkAcexyStatus();
     }
 }
 
@@ -252,4 +400,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateStats(stats);
         }
     });
+    
+    // Initialize automatic status checks
+    initStatusAutoRefresh();
 });

@@ -2,7 +2,9 @@ import asyncio
 import logging
 from flask_restx import Namespace, Resource, fields, reqparse
 from flask import request
+from sqlalchemy import or_  # Add this import for the or_ function
 from app.models import AcestreamChannel
+from app.models.scraped_url import ScrapedURL  # Add this import
 from app.repositories import ChannelRepository, URLRepository
 from datetime import datetime, timezone
 
@@ -35,6 +37,12 @@ status_check_result_model = api.model('StatusCheckResult', {
     'error': fields.String(description='Error message, if any')
 })
 
+channels_source_model = api.model('ChannelSource', {
+    'url': fields.String(description='Source URL for channels'),
+    'url_id': fields.String(description='ID of the source URL'),
+    'channel_count': fields.Integer(description='Number of channels associated with this source')
+})
+
 # Updated parser to include URL ID filter parameter
 channel_parser = reqparse.RequestParser()
 channel_parser.add_argument('search', type=str, required=False, help='Filter channels by name')
@@ -56,30 +64,45 @@ class ChannelList(Resource):
     @api.doc('list_channels')
     @api.expect(channel_parser)
     @api.marshal_list_with(channel_model)
+    @api.param('search', 'Search query to filter channels')
+    @api.param('url_id', 'URL ID to filter channels by source')
+    @api.param('source_url', 'Source URL to filter channels directly by source')
     def get(self):
-        """Get list of channels, optionally filtered by search term or source URL."""
-        try:
-            args = channel_parser.parse_args()
-            search = args.get('search', '')
-            url_id = args.get('url_id', '')
-            
-            # First get channels (either all or filtered by search term)
-            channels = channel_repo.search(search) if search else channel_repo.get_active()
-            
-            # Then filter by URL ID if provided
-            if url_id:
-                url_obj = url_repo.get_by_id(url_id)
-                
-                if url_obj:
-                    # Filter channels by source URL
-                    channels = [ch for ch in channels if ch.source_url == url_obj.url]
-                else:
-                    # If URL ID not found, return empty list
-                    channels = []
-            
-            return channels
-        except Exception as e:
-            handle_repository_error(e, "fetch channels")
+        """List all channels, optionally filtered by search query or URL."""
+        search_query = request.args.get('search', '')
+        url_id = request.args.get('url_id', '')
+        source_url = request.args.get('source_url', '')
+        
+        # Create base query
+        query = AcestreamChannel.query
+        
+        # Apply filters
+        if search_query:
+            query = query.filter(
+                or_(
+                    AcestreamChannel.name.ilike(f'%{search_query}%'),
+                    AcestreamChannel.id.ilike(f'%{search_query}%'),
+                    AcestreamChannel.group.ilike(f'%{search_query}%')
+                )
+            )
+        
+        # Filter by URL ID if provided
+        if url_id:
+            scraped_url = ScrapedURL.query.get(url_id)
+            if scraped_url:
+                query = query.filter(AcestreamChannel.source_url == scraped_url.url)
+        
+        # Directly filter by source URL if provided (new parameter)
+        if source_url:
+            query = query.filter(AcestreamChannel.source_url == source_url)
+        
+        # Execute query and get results
+        channels = query.all()
+        
+        # Serialize the results
+        result = [channel.to_dict() for channel in channels]
+        
+        return result
     
     @api.doc('create_channel')
     @api.expect(channel_input_model)
@@ -218,3 +241,39 @@ class ChannelsByUrlId(Resource):
             return channels
         except Exception as e:
             handle_repository_error(e, "fetch channels by URL ID")
+
+@api.route('/sources')
+class ChannelSources(Resource):
+    @api.doc('get_channel_sources')
+    @api.marshal_list_with(channels_source_model)
+    @api.response(200, 'Channel sources retrieved')
+    def get(self):
+        """Get all channel sources for filtering."""
+        try:
+            channel_repo = ChannelRepository()
+            sources = channel_repo.get_channel_sources()
+            logger.info(f"Channel sources: {sources}")
+            
+            # Count channels per source
+            result = []
+            for url in sources:
+                channels = channel_repo.get_by_source(url)
+                if not channels:
+                    continue
+                channels_count = len(channels)
+                url_obj = url_repo.get_by_url(url)
+                url_id = url_obj.id if url_obj else None
+                
+                result.append({
+                    'url': url,
+                    'url_id': url_id,
+                    'channel_count': channels_count
+                })
+            
+            return result
+        except Exception as e:
+            logger.error(f"Error getting channel sources: {str(e)}")
+            return {
+                'error': 'Error getting channel sources',
+                'message': str(e)
+            }, 500

@@ -72,6 +72,18 @@ class ChannelRepository(BaseRepository[AcestreamChannel]):
             logger.error(f"Error getting active channels: {e}")
             return []
 
+    def get_channel_sources(self) -> List[str]:
+        """Get all unique channel sources."""
+        try:
+            sources = self._db.session.query(AcestreamChannel.source_url)\
+            .filter(AcestreamChannel.source_url.isnot(None))\
+            .distinct()\
+            .all()
+            return [source[0] for source in sources if source[0]]
+        except SQLAlchemyError as e:
+            logger.error(f"Error getting channel sources: {e}")
+            return []
+    
     def get_by_source(self, source_url: str) -> List[AcestreamChannel]:
         """Get all channels from a specific source URL."""
         try:

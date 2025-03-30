@@ -10,7 +10,13 @@ class AcestreamChannel(db.Model):
     added_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_processed = db.Column(db.DateTime)
     status = db.Column(db.String(32), default='active')
-    source_url = db.Column(db.Text, db.ForeignKey('scraped_urls.url'))
+    
+    # Keep source_url as a text field for reference, no foreign key
+    source_url = db.Column(db.Text)
+    
+    # Add new foreign key column for scraped_urls.id
+    scraped_url_id = db.Column(db.Integer, db.ForeignKey('scraped_urls.id'), nullable=True)
+    
     group = db.Column(db.String(256))
     logo = db.Column(db.Text)
     tvg_id = db.Column(db.String(256))
@@ -27,3 +33,16 @@ class AcestreamChannel(db.Model):
     @property
     def is_active(self):
         return self.status == 'active'
+
+    def to_dict(self):
+        """Convert the channel to a dictionary."""
+        return {
+            'id': self.id,
+            'name': self.name,
+            'status': self.status,
+            'added_on': self.added_at.isoformat() if self.added_at else None,
+            'last_checked': self.last_checked.isoformat() if self.last_checked else None,
+            'is_online': self.is_online,
+            'check_error': self.check_error,
+            'group': self.group
+        }

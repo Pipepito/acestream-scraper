@@ -1,13 +1,22 @@
 <div class="table-responsive">
-    <table class="table">
+    <table class="table table-striped table-hover">
         <thead>
             <tr>
                 <th>Name</th>
                 <th>ID</th>
-                <th>Last Updated</th>
+                <th>Last Updthed</th>
                 <th>Actions</th>
             </tr>
         </thead>
-        <tbody id="channelsList"></tbody>
+        <tbody id="channelListContent">
+            <!-- Channel list will be populated by JavaScript -->
+            <tr>
+                <td colspan="4" class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading channels...</span>
+                    </div>
+                </td>
+            </tr>
+        </tbody>
     </table>
 </div>

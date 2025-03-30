@@ -36,7 +36,7 @@ class AcestreamStatusService:
         
         # If URL doesn't start with a protocol, assume http://
         if not self.engine_url.startswith('http'):
-            self.engine_url = f"http://localhost:{self.engine_url}"
+            self.engine_url = f"http://{self.engine_url}"
         
         # Ensure the URL doesn't end with a slash
         self.engine_url = self.engine_url.rstrip('/')
@@ -53,7 +53,9 @@ class AcestreamStatusService:
         
         Returns:
             Dict with status details including:
-            - enabled: Whether the internal engine is enabled
+            - enabled: Whether the internal engine is enabled (for UI logic)
+            - is_internal: Whether the engine is internal or external
+            - engine_url: The URL being used for the engine
             - available: Whether any engine (internal or external) is responding
             - message: Status message
             - version: Engine version if available
@@ -86,7 +88,9 @@ class AcestreamStatusService:
                     message = f"External {message}"
                 
                 return {
-                    "enabled": self.is_internal_engine,
+                    "enabled": self.is_internal_engine,  # Whether internal engine is enabled
+                    "is_internal": self.is_internal_engine,
+                    "engine_url": self.engine_url,
                     "available": True,
                     "message": message,
                     "version": engine_version,
@@ -107,7 +111,9 @@ class AcestreamStatusService:
                 message = f"External {message}"
                 
             return {
-                "enabled": self.is_internal_engine,
+                "enabled": self.is_internal_engine,  # Whether internal engine is enabled
+                "is_internal": self.is_internal_engine,
+                "engine_url": self.engine_url,
                 "available": False,
                 "message": message,
                 "version": None,
@@ -124,7 +130,9 @@ class AcestreamStatusService:
                 message = f"External {message}"
                 
             return {
-                "enabled": self.is_internal_engine,
+                "enabled": self.is_internal_engine,  # Whether internal engine is enabled
+                "is_internal": self.is_internal_engine,
+                "engine_url": self.engine_url,
                 "available": False,
                 "message": message,
                 "version": None,

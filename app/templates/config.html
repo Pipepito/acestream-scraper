@@ -107,6 +107,18 @@
                     </label>
                     <small class="form-text text-muted d-block">Uncheck to prevent status check requests</small>
                 </div>
+                
+                <!-- Add check interval setting -->
+                <div class="mt-3">
+                    <label for="acexyCheckInterval" class="form-label">Check interval:</label>
+                    <div class="input-group mb-2" style="max-width: 200px;">
+                        <input type="number" class="form-control" id="acexyCheckInterval" 
+                               min="5" step="1" value="60">
+                        <span class="input-group-text">seconds</span>
+                    </div>
+                    <button id="saveAcexyIntervalBtn" class="btn btn-sm btn-primary">Save interval</button>
+                    <small class="form-text text-muted d-block">How often to check Acexy status (minimum 5 seconds)</small>
+                </div>
             </div>
             <div class="col-md-6">
                 <div class="d-grid">
@@ -149,6 +161,18 @@
                         Enable status check
                     </label>
                     <small class="form-text text-muted d-block">Uncheck to prevent status check requests</small>
+                </div>
+                
+                <!-- Add check interval setting -->
+                <div class="mt-3">
+                    <label for="acestreamCheckInterval" class="form-label">Check interval:</label>
+                    <div class="input-group mb-2" style="max-width: 200px;">
+                        <input type="number" class="form-control" id="acestreamCheckInterval" 
+                               min="5" step="1" value="120">
+                        <span class="input-group-text">seconds</span>
+                    </div>
+                    <button id="saveAcestreamIntervalBtn" class="btn btn-sm btn-primary">Save interval</button>
+                    <small class="form-text text-muted d-block">How often to check Acestream Engine status (minimum 5 seconds)</small>
                 </div>
             </div>
             <div class="col-md-6">

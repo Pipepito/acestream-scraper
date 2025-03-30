@@ -1,5 +1,24 @@
 #!/bin/bash
 
+# Create logs directory
+LOG_DIR="/app/logs"
+mkdir -p $LOG_DIR
+
+# Configure log rotation - hourly rotation, keep 1 day of logs
+cat > /etc/logrotate.d/acestream-services << EOF
+$LOG_DIR/*.log {
+    hourly
+    rotate 7
+    compress
+    missingok
+    notifempty
+    create 0644 root root
+}
+EOF
+
+# Run logrotate once to ensure config is valid
+logrotate /etc/logrotate.d/acestream-services --debug
+
 # Initialize WARP if enabled
 if [ "${ENABLE_WARP}" = "true" ]; then
     echo "Initializing Cloudflare WARP..."
@@ -41,9 +60,10 @@ ln -sf "$ZERONET_CONFIG" /app/ZeroNet/zeronet.conf
 # Start Tor if enabled
 if [ "$ENABLE_TOR" = "true" ]; then
     echo "Starting Tor service..."
-    service tor start
+    service tor start >> "$LOG_DIR/tor.log" 2>&1
     # Add a brief pause to ensure Tor has time to start
     sleep 3
+    echo "Tor service logs available at $LOG_DIR/tor.log"
 fi
 
 # Start Acestream Engine if enabled
@@ -52,8 +72,9 @@ if [ "$ENABLE_ACESTREAM_ENGINE" = "true" ]; then
     if [ "$ALLOW_REMOTE_ACCESS" = "yes" ]; then
         EXTRA_FLAGS="$EXTRA_FLAGS --bind-all"
     fi
-    /opt/acestream/start-engine --client-console --http-port $ACESTREAM_HTTP_PORT $EXTRA_FLAGS &  
+    /opt/acestream/start-engine --client-console --http-port $ACESTREAM_HTTP_PORT $EXTRA_FLAGS >> "$LOG_DIR/acestream.log" 2>&1 &  
     sleep 3 # Brief pause to allow Acestream engine to start
+    echo "Acestream engine logs available at $LOG_DIR/acestream.log"
 fi
 
 # Start Acexy if enabled
@@ -66,7 +87,8 @@ if [ "$ENABLE_ACEXY" = "true" ]; then
     echo "Starting Acexy proxy..."
     export ACEXY_HOST
     export ACEXY_PORT
-    /usr/local/bin/acexy &
+    /usr/local/bin/acexy >> "$LOG_DIR/acexy.log" 2>&1 &
+    echo "Acexy proxy logs available at $LOG_DIR/acexy.log"
 else
     echo "Acexy is disabled."
 fi
@@ -74,8 +96,9 @@ fi
 # Start ZeroNet in the background
 cd /app/ZeroNet
 echo "Starting ZeroNet..."
-python3 zeronet.py main &
+python3 zeronet.py main >> "$LOG_DIR/zeronet.log" 2>&1 &
 ZERONET_PID=$!
+echo "ZeroNet logs available at $LOG_DIR/zeronet.log"
 
 # Wait for ZeroNet to start
 echo "Waiting for ZeroNet to initialize..."
@@ -91,8 +114,11 @@ exec gunicorn \
     --keep-alive 5 \
     --worker-class uvicorn.workers.UvicornWorker \
     --log-level info \
+    --access-logfile "$LOG_DIR/gunicorn-access.log" \
+    --error-logfile "$LOG_DIR/gunicorn-error.log" \
     "wsgi:asgi_app" &
 GUNICORN_PID=$!
+echo "Flask application logs available at $LOG_DIR/gunicorn-access.log and $LOG_DIR/gunicorn-error.log"
 
 # Monitor processes
 echo "Services started. Monitoring processes..."

@@ -282,7 +282,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Set default values based on common configurations
     document.getElementById('baseUrl').value = 'acestream://';
-    document.getElementById('aceEngineUrl').value = 'http://localhost:8080'; // Default for Acexy
+    document.getElementById('aceEngineUrl').value = 'http://localhost:6878'; // Default for Acexy
     document.getElementById('addPidCheckbox').checked = false; // Default for addpid
     
     // Initialize sources list

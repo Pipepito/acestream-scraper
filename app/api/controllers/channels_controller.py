@@ -112,10 +112,35 @@ class ChannelList(Resource):
         """Add a new channel."""
         data = request.json
         try:
-            channel = channel_repo.create(
-                channel_id=data['id'],
-                name=data['name']
+            channel_id = data.get('id')
+            channel_name = data.get('name')
+            source_type = data.get('source_type', 'manual')  # Default to 'manual' if not specified
+            
+            # Check if channel already exists
+            existing_channel = channel_repo.get_by_id(channel_id)
+            if existing_channel:
+                return {
+                    'message': f'Channel with ID {channel_id} already exists',
+                    'id': existing_channel.id,
+                    'name': existing_channel.name
+                }, 409
+            
+            # Get or create the manual URL entry
+            manual_url = url_repo.get_or_create_by_type_and_url(
+                url_type="manual",
+                url="Manual Addition",
+                enabled=False,  # No need to scrape this URL
+                trigger_scrape=False
             )
+            
+            # Create the channel with a reference to the manual URL
+            channel = channel_repo.create(
+                channel_id=channel_id,
+                name=channel_name,
+                source_url="Manual Addition",
+                scraped_url_id=manual_url.id
+            )
+            
             if not channel:
                 api.abort(500, "Failed to create channel")
             

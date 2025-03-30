@@ -41,6 +41,7 @@ class AcestreamChannel(db.Model):
             'name': self.name,
             'status': self.status,
             'added_on': self.added_at.isoformat() if self.added_at else None,
+            'last_processed': self.last_processed.isoformat() if self.last_processed else None,
             'last_checked': self.last_checked.isoformat() if self.last_checked else None,
             'is_online': self.is_online,
             'check_error': self.check_error,

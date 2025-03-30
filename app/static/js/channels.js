@@ -73,7 +73,8 @@ async function handleAddChannel(e) {
             },
             body: JSON.stringify({ 
                 id: channelId,
-                name: channelName
+                name: channelName,
+                source_type: 'manual'  // Add this field to indicate manual addition
             })
         });
 

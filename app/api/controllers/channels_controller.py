@@ -2,9 +2,9 @@ import asyncio
 import logging
 from flask_restx import Namespace, Resource, fields, reqparse
 from flask import request
-from sqlalchemy import or_  # Add this import for the or_ function
+from sqlalchemy import or_
 from app.models import AcestreamChannel
-from app.models.scraped_url import ScrapedURL  # Add this import
+from app.models.scraped_url import ScrapedURL
 from app.repositories import ChannelRepository, URLRepository
 from datetime import datetime, timezone
 
@@ -43,6 +43,16 @@ channels_source_model = api.model('ChannelSource', {
     'channel_count': fields.Integer(description='Number of channels associated with this source')
 })
 
+channel_update_model = api.model('ChannelUpdate', {
+    'name': fields.String(description='Channel name'),
+    'group': fields.String(description='Channel group/category'),
+    'logo': fields.String(description='Logo URL'),
+    'tvg_id': fields.String(description='TVG ID for EPG'),
+    'tvg_name': fields.String(description='TVG Name for EPG'),
+    'original_url': fields.String(description='Original URL before conversion'),
+    'm3u_source': fields.String(description='Original M3U source')
+})
+
 # Updated parser to include URL ID filter parameter
 channel_parser = reqparse.RequestParser()
 channel_parser.add_argument('search', type=str, required=False, help='Filter channels by name')
@@ -52,7 +62,7 @@ channel_parser.add_argument('per_page', type=int, required=False, default=25, he
 channel_parser.add_argument('status', type=str, required=False, help='Filter by status')
 
 channel_repo = ChannelRepository()
-url_repo = URLRepository()  # Add this URL repository instance
+url_repo = URLRepository()
 
 def handle_repository_error(e: Exception, operation: str):
     """Handle repository errors consistently."""
@@ -88,9 +98,18 @@ class ChannelList(Resource):
         
         # Filter by URL ID if provided
         if url_id:
-            scraped_url = ScrapedURL.query.get(url_id)
-            if scraped_url:
-                query = query.filter(AcestreamChannel.source_url == scraped_url.url)
+            if url_id == 'manual':
+                # Special case for manually added channels
+                query = query.filter(
+                    or_(
+                        AcestreamChannel.source_url == "Manual Addition",
+                        AcestreamChannel.source_url.is_(None)
+                    )
+                )
+            else:
+                scraped_url = ScrapedURL.query.get(url_id)
+                if scraped_url:
+                    query = query.filter(AcestreamChannel.source_url == scraped_url.url)
         
         # Directly filter by source URL if provided (new parameter)
         if source_url:
@@ -114,7 +133,12 @@ class ChannelList(Resource):
         try:
             channel_id = data.get('id')
             channel_name = data.get('name')
-            source_type = data.get('source_type', 'manual')  # Default to 'manual' if not specified
+            current_url = data.get('current_url', 'Manual Addition')
+            
+            # Extract the base URL (removing path and query parameters)
+            from urllib.parse import urlparse
+            parsed_url = urlparse(current_url)
+            base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
             
             # Check if channel already exists
             existing_channel = channel_repo.get_by_id(channel_id)
@@ -125,10 +149,10 @@ class ChannelList(Resource):
                     'name': existing_channel.name
                 }, 409
             
-            # Get or create the manual URL entry
+            # Get or create the manual URL entry with the actual base URL
             manual_url = url_repo.get_or_create_by_type_and_url(
                 url_type="manual",
-                url="Manual Addition",
+                url=base_url,
                 enabled=False,  # No need to scrape this URL
                 trigger_scrape=False
             )
@@ -137,8 +161,15 @@ class ChannelList(Resource):
             channel = channel_repo.create(
                 channel_id=channel_id,
                 name=channel_name,
-                source_url="Manual Addition",
-                scraped_url_id=manual_url.id
+                source_url=base_url,  # Use the actual base URL instead of "Manual Addition"
+                scraped_url_id=manual_url.id,
+                # Add other fields from form if provided
+                group=data.get('group'),
+                logo=data.get('logo'),
+                tvg_id=data.get('tvg_id'),
+                tvg_name=data.get('tvg_name'),
+                original_url=data.get('original_url'),
+                m3u_source=data.get('m3u_source')
             )
             
             if not channel:
@@ -167,6 +198,50 @@ class Channel(Resource):
             
             return channel
         except Exception as e:
+            api.abort(500, str(e))
+    
+    @api.doc('update_channel')
+    @api.expect(channel_update_model)
+    @api.response(200, 'Channel updated')
+    @api.response(404, 'Channel not found')
+    @api.response(500, 'Server error')
+    def put(self, channel_id):
+        """Update a channel."""
+        try:
+            channel = channel_repo.get_by_id(channel_id)
+            if not channel:
+                api.abort(404, 'Channel not found')
+            
+            data = request.get_json()
+            if not data:
+                api.abort(400, 'No data provided')
+            
+            # Update fields if provided
+            if 'name' in data:
+                channel.name = data['name']
+            if 'group' in data:
+                channel.group = data['group']
+            if 'logo' in data:
+                channel.logo = data['logo']
+            if 'tvg_id' in data:
+                channel.tvg_id = data['tvg_id']
+            if 'tvg_name' in data:
+                channel.tvg_name = data['tvg_name']
+            if 'original_url' in data:
+                channel.original_url = data['original_url']
+            if 'm3u_source' in data:
+                channel.m3u_source = data['m3u_source']
+                
+            # Save changes
+            channel_repo.commit()
+            
+            return {
+                'message': 'Channel updated successfully',
+                'id': channel.id,
+                'name': channel.name
+            }
+        except Exception as e:
+            logger.error(f"Error updating channel: {e}", exc_info=True)
             api.abort(500, str(e))
     
     @api.doc('delete_channel')

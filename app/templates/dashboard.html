@@ -175,7 +175,12 @@
         
         <!-- Add Channel Form -->
         <div class="mb-4 border-bottom pb-3">
-            <h6 class="card-subtitle mb-2">Add Channel Manually</h6>
+            <h6 class="card-subtitle mb-2 d-flex justify-content-between align-items-center">
+                Add Channel Manually
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="toggleAdvancedFields">
+                    <span id="advancedToggleText">Show Advanced</span>
+                </button>
+            </h6>
             {% include 'partials/forms/add_channel.html' %}
         </div>
         
@@ -202,6 +207,7 @@
                         <!-- URL filter dropdown -->
                         <select class="form-select" id="urlFilter" onchange="filterByUrl(this.value)">
                             <option value="">All Sources</option>
+                            <option value="manual">Manual/Legacy Channels</option>
                             <!-- Other options will be populated by JavaScript -->
                         </select>
                     </div>
@@ -313,5 +319,19 @@
         
         window.location.href = url;
     }
+    
+    // Toggle advanced fields visibility
+    document.getElementById('toggleAdvancedFields').addEventListener('click', function() {
+        const advancedFields = document.getElementById('advancedChannelFields');
+        const toggleText = document.getElementById('advancedToggleText');
+        
+        if (advancedFields.classList.contains('d-none')) {
+            advancedFields.classList.remove('d-none');
+            toggleText.textContent = 'Hide Advanced';
+        } else {
+            advancedFields.classList.add('d-none');
+            toggleText.textContent = 'Show Advanced';
+        }
+    });
 </script>
 {% endblock %}

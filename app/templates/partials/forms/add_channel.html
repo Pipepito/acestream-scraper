@@ -2,18 +2,59 @@
     <div class="card-body">
         <h5 class="card-title">Add Channel Manually</h5>
         <form id="addChannelForm" class="row g-3">
-            <div class="col-12 col-md-3">
-                <input type="text" class="form-control" id="channelName" 
-                       placeholder="Channel Name">
-                <div class="invalid-feedback"></div>
+            <div class="col-md-6">
+                <label for="channelId" class="form-label">Channel ID</label>
+                <input type="text" class="form-control" id="channelId" placeholder="Enter Acestream channel ID" required>
             </div>
-            <div class="col-12 col-md-5">
-                <input type="text" class="form-control" id="channelId" 
-                       placeholder="Channel ID">
-                <div class="invalid-feedback"></div>
+            <div class="col-md-6">
+                <label for="channelName" class="form-label">Channel Name</label>
+                <input type="text" class="form-control" id="channelName" placeholder="Enter channel name" required>
             </div>
-            <div class="col-12 col-md-4">
-                <button type="submit" class="btn btn-primary w-100">Add Channel</button>
+            
+            <div class="col-md-6">
+                <label for="channelGroup" class="form-label">Group</label>
+                <input type="text" class="form-control" id="channelGroup" placeholder="e.g., Sports, Movies, etc.">
+            </div>
+            
+            <!-- Hidden advanced fields section -->
+            <div id="advancedChannelFields" class="col-12 d-none">
+                <div class="card mt-3">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Advanced Channel Properties</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="channelLogo" class="form-label">Logo URL</label>
+                                <input type="url" class="form-control" id="channelLogo" placeholder="URL to channel logo">
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="channelTvgId" class="form-label">TVG ID</label>
+                                <input type="text" class="form-control" id="channelTvgId" placeholder="EPG/TVG ID">
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="channelTvgName" class="form-label">TVG Name</label>
+                                <input type="text" class="form-control" id="channelTvgName" placeholder="EPG/TVG Name">
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="channelOriginalUrl" class="form-label">Original URL</label>
+                                <input type="url" class="form-control" id="channelOriginalUrl" placeholder="Source URL before conversion">
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="channelM3uSource" class="form-label">M3U Source</label>
+                                <input type="text" class="form-control" id="channelM3uSource" placeholder="Original M3U source">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">Add Channel</button>
             </div>
         </form>
     </div>

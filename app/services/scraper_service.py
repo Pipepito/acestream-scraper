@@ -13,16 +13,25 @@ class ScraperService:
     async def scrape_url(self, url: str, url_type: str = None) -> Tuple[List[Tuple[str, str, dict]], str]:
         """Scrape a URL and update channels."""
         try:
+            # If URL type not provided, get it from database
+            if url_type is None:
+                url_obj = self.url_repository.get_by_url(url)
+                url_type = url_obj.url_type if url_obj else 'regular'  # Default to regular if not found
+            
+            # Skip processing for special URL types that should not be scraped
+            non_scrapable_types = ['search', 'manual']
+            if url_type in non_scrapable_types:
+                logger.info(f"Skipping URL '{url}' with type '{url_type}' (not intended for scraping)")
+                # Update status to OK without actually scraping
+                self.url_repository.update_status(url, 'ok')
+                # Return empty links list and OK status
+                return [], "OK"
+            
             # Update URL status
             self.url_repository.update_status(url, 'processing')
             
             # Import here to avoid circular dependency
             from ..scrapers import create_scraper_for_url
-            
-            # If URL type not provided, get it from database
-            if url_type is None:
-                url_obj = self.url_repository.get_by_url(url)
-                url_type = url_obj.url_type if url_obj else 'regular'  # Default to regular if not found
             
             # Create and execute scraper with explicit URL type
             scraper = create_scraper_for_url(url, url_type)

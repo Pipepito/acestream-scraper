@@ -5,96 +5,85 @@
 // Handle form submission for adding a channel
 async function handleAddChannel(e) {
     e.preventDefault();
-    const channelIdInput = document.getElementById('channelId');
-    const channelNameInput = document.getElementById('channelName');
     
-    let channelId = channelIdInput.value.trim();
-    let channelName = channelNameInput.value.trim();
-     
-    // Reset previous validation state
-    channelIdInput.classList.remove('is-invalid');
-    channelNameInput.classList.remove('is-invalid');
+    const channelId = document.getElementById('channelId').value.trim();
+    const channelName = document.getElementById('channelName').value.trim();
+    const channelGroup = document.getElementById('channelGroup').value.trim();
     
-    // Clear previous error messages
-    document.getElementById('channelIdError')?.remove();
-    document.getElementById('channelNameError')?.remove();
+    // Advanced fields
+    const channelLogo = document.getElementById('channelLogo').value.trim();
+    const channelTvgId = document.getElementById('channelTvgId').value.trim();
+    const channelTvgName = document.getElementById('channelTvgName').value.trim();
+    const channelOriginalUrl = document.getElementById('channelOriginalUrl').value.trim();
+    const channelM3uSource = document.getElementById('channelM3uSource').value.trim();
     
-    let isValid = true;
-    
-    // Validate channel name
-    if (!channelName) {
-        channelNameInput.classList.add('is-invalid');
-        const errorDiv = document.createElement('div');
-        errorDiv.id = 'channelNameError';
-        errorDiv.className = 'invalid-feedback';
-        errorDiv.textContent = 'Channel name is required';
-        channelNameInput.parentNode.appendChild(errorDiv);
-        isValid = false;
-    }
-    
-    // Validate Acestream ID
     if (!channelId) {
-        channelIdInput.classList.add('is-invalid');
-        const errorDiv = document.createElement('div');
-        errorDiv.id = 'channelIdError';
-        errorDiv.className = 'invalid-feedback';
-        errorDiv.textContent = 'Channel ID is required';
-        channelIdInput.parentNode.appendChild(errorDiv);
-        isValid = false;
-    } else {
-        // Search for any 40-character hexadecimal sequence in the text
-        const aceStreamIdMatch = channelId.match(/[a-fA-F0-9]{40}/);
-
-        if (aceStreamIdMatch) {
-            const extractedId = aceStreamIdMatch[0];
-            channelIdInput.value = extractedId;
-            channelId = extractedId;
-        } else {
-            channelIdInput.classList.add('is-invalid');
-            const errorDiv = document.createElement('div');
-            errorDiv.id = 'channelIdError';
-            errorDiv.className = 'invalid-feedback';
-            errorDiv.textContent = 'Channel ID not valid';
-            channelIdInput.parentNode.appendChild(errorDiv);
-            isValid = false;
-        }   
-    }
-    
-    if (!isValid) {
+        showAlert('warning', 'Please enter a channel ID');
         return;
     }
-
+    
     try {
         showLoading();
-        const response = await fetch('/api/channels/', {  // Note: no trailing slash
+        
+        // Create the channel data object with all fields
+        const channelData = {
+            id: channelId,
+            name: channelName || `Channel ${channelId}`,
+            manual_add: true, // Flag indicating this is a manually added channel
+            group: channelGroup || '',
+            current_url: window.location.href // Send the current browser URL
+        };
+        
+        // Only add the advanced fields if they are provided
+        if (channelLogo) channelData.logo = channelLogo;
+        if (channelTvgId) channelData.tvg_id = channelTvgId;
+        if (channelTvgName) channelData.tvg_name = channelTvgName;
+        if (channelOriginalUrl) channelData.original_url = channelOriginalUrl;
+        if (channelM3uSource) channelData.m3u_source = channelM3uSource;
+        
+        const response = await fetch('/api/channels/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ 
-                id: channelId,
-                name: channelName,
-                source_type: 'manual'  // Add this field to indicate manual addition
-            })
+            body: JSON.stringify(channelData)
         });
-
-        if (await handleApiResponse(response, 'Channel added successfully')) {
-            channelIdInput.value = '';
-            channelNameInput.value = '';
-            channelIdInput.classList.remove('is-valid');
-            channelNameInput.classList.remove('is-valid');
-            // Refresh data after successful addition
-            if (typeof refreshData === 'function') {
-                await refreshData();
+        
+        if (response.ok) {
+            showAlert('success', 'Channel added successfully');
+            document.getElementById('addChannelForm').reset();
+            
+            // Refresh the channels list
+            if (typeof refreshChannelList === 'function') {
+                await refreshChannelList();
             }
+        } else {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Failed to add channel');
         }
     } catch (error) {
-        console.error('Error:', error);
-        showAlert('error', 'Network error while adding channel');
+        console.error('Error adding channel:', error);
+        showAlert('danger', error.message || 'Error adding channel');
     } finally {
         hideLoading();
     }
 }
+
+// Add event listener for form submission
+document.addEventListener('DOMContentLoaded', function() {
+    // Set up the form submission handler for adding channels
+    const addChannelForm = document.getElementById('addChannelForm');
+    if (addChannelForm) {
+        addChannelForm.addEventListener('submit', handleAddChannel);
+        console.log('Add channel form handler set up');
+    }
+    
+    // Set up event listener for the save button in the edit modal
+    const saveButton = document.getElementById('saveEditChannelBtn');
+    if (saveButton) {
+        saveButton.addEventListener('click', saveChannelChanges);
+    }
+});
 
 // Delete a channel
 async function deleteChannel(channelId) {
@@ -274,6 +263,108 @@ async function checkChannelStatus(channelId) {
     } catch (error) {
         console.error('Error:', error);
         alert('Network error while checking channel status');
+    } finally {
+        hideLoading();
+    }
+}
+
+// Edit a channel - load data and show modal
+async function editChannel(channelId) {
+    try {
+        showLoading();
+        const response = await fetch(`/api/channels/${channelId}`);
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch channel data');
+        }
+        
+        const channel = await response.json();
+        
+        // Populate form fields
+        document.getElementById('editChannelId').value = channel.id;
+        document.getElementById('editChannelName').value = channel.name || '';
+        document.getElementById('editChannelGroup').value = channel.group || '';
+        document.getElementById('editChannelLogo').value = channel.logo || '';
+        document.getElementById('editChannelTvgId').value = channel.tvg_id || '';
+        document.getElementById('editChannelTvgName').value = channel.tvg_name || '';
+        document.getElementById('editChannelOriginalUrl').value = channel.original_url || '';
+        document.getElementById('editChannelM3uSource').value = channel.m3u_source || '';
+        
+        // Show the modal
+        const editModal = new bootstrap.Modal(document.getElementById('editChannelModal'));
+        editModal.show();
+        
+    } catch (error) {
+        console.error('Error loading channel data:', error);
+        showAlert('danger', 'Failed to load channel data');
+    } finally {
+        hideLoading();
+    }
+}
+
+// Initialize the edit channel functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Set up event listener for the save button in the edit modal
+    const saveButton = document.getElementById('saveEditChannelBtn');
+    if (saveButton) {
+        saveButton.addEventListener('click', saveChannelChanges);
+    }
+});
+
+// Save changes to an edited channel
+async function saveChannelChanges() {
+    try {
+        showLoading();
+        
+        const channelId = document.getElementById('editChannelId').value;
+        const channelName = document.getElementById('editChannelName').value;
+        const channelGroup = document.getElementById('editChannelGroup').value;
+        const channelLogo = document.getElementById('editChannelLogo').value;
+        const channelTvgId = document.getElementById('editChannelTvgId').value;
+        const channelTvgName = document.getElementById('editChannelTvgName').value;
+        const channelOriginalUrl = document.getElementById('editChannelOriginalUrl').value;
+        const channelM3uSource = document.getElementById('editChannelM3uSource').value;
+        
+        // Create channel data object
+        const channelData = {
+            name: channelName,
+            group: channelGroup
+        };
+        
+        // Only include fields that have values
+        if (channelLogo) channelData.logo = channelLogo;
+        if (channelTvgId) channelData.tvg_id = channelTvgId;
+        if (channelTvgName) channelData.tvg_name = channelTvgName;
+        if (channelOriginalUrl) channelData.original_url = channelOriginalUrl;
+        if (channelM3uSource) channelData.m3u_source = channelM3uSource;
+        
+        // Send update request
+        const response = await fetch(`/api/channels/${channelId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(channelData)
+        });
+        
+        if (response.ok) {
+            // Close the modal
+            const editModal = bootstrap.Modal.getInstance(document.getElementById('editChannelModal'));
+            editModal.hide();
+            
+            showAlert('success', 'Channel updated successfully');
+            
+            // Refresh channel list
+            if (typeof refreshChannelList === 'function') {
+                await refreshChannelList();
+            }
+        } else {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Failed to update channel');
+        }
+    } catch (error) {
+        console.error('Error updating channel:', error);
+        showAlert('danger', error.message || 'Error updating channel');
     } finally {
         hideLoading();
     }

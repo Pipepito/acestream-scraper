@@ -5,12 +5,12 @@ RUN git clone https://github.com/Javinator9889/acexy.git . && \
     cd acexy && \
     CGO_ENABLED=0 GOOS=linux go build -o /acexy
 
-# Continue with your main image
-FROM python:3.10-slim
+# Create base image with all dependencies
+FROM python:3.10-slim AS base
 
 # Add metadata labels
 LABEL maintainer="pipepito" \
-      description="Acestream channel scraper with ZeroNet support" \
+      description="Base image for Acestream channel scraper" \
       version="1.2.14"
 
 # Set the working directory
@@ -32,18 +32,6 @@ RUN apt-get update && apt-get install -y \
 # Add TOR configuration
 RUN echo "ControlPort 9051" >> /etc/tor/torrc && \
     echo "CookieAuthentication 1" >> /etc/tor/torrc
-
-# Copy application files
-COPY --chmod=0755 entrypoint.sh /app/entrypoint.sh
-COPY requirements.txt requirements-prod.txt ./
-COPY migrations/ ./migrations/
-COPY migrations_app.py manage.py ./
-COPY wsgi.py ./
-COPY app/ ./app/
-
-# Install the required dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install --no-cache-dir -r requirements-prod.txt
 
 # Install ZeroNet dependencies with specific versions
 RUN pip install --no-cache-dir \
@@ -113,15 +101,11 @@ RUN curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | gpg --yes --dearmor
 RUN apt-get update && apt-get install -y cloudflare-warp \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy the WARP setup script
-COPY warp-setup.sh /app/warp-setup.sh
-RUN chmod +x /app/warp-setup.sh
+# Clean up APT in base image
+RUN apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Add the healthcheck script
-COPY healthcheck.sh /app/healthcheck.sh
-RUN chmod +x /app/healthcheck.sh
-
-# Set environment variable to indicate Docker environment
+# Set default environment variables for base image
 ENV DOCKER_ENV=true
 ENV TZ='Europe/Madrid'
 ENV ENABLE_TOR=false
@@ -131,9 +115,7 @@ ENV ENABLE_WARP=false
 ENV WARP_ENABLE_NAT=true
 ENV WARP_ENABLE_IPV6=false
 ENV ACESTREAM_HTTP_PORT=6878
-# Added IPv6 disable flag
 ENV IPV6_DISABLED=true
-
 ENV FLASK_PORT=8000
 ENV ACEXY_LISTEN_ADDR=":8080"
 ENV ACEXY_HOST="localhost"
@@ -142,9 +124,28 @@ ENV ALLOW_REMOTE_ACCESS="no"
 ENV ACEXY_NO_RESPONSE_TIMEOUT=15s
 ENV ACEXY_BUFFER_SIZE=5MiB
 ENV ACESTREAM_HTTP_HOST=ACEXY_HOST
-
-# Acexy and Acestream environment variables
 ENV EXTRA_FLAGS="--cache-dir /tmp --cache-limit 2 --cache-auto 1 --log-stderr --log-stderr-level error"
+
+# Final image with application code
+FROM base
+
+# Update metadata labels for the final image
+LABEL description="Acestream channel scraper with ZeroNet support" \
+      version="1.2.14"
+
+# Copy application files
+COPY --chmod=0755 entrypoint.sh /app/entrypoint.sh
+COPY --chmod=0755 healthcheck.sh /app/healthcheck.sh
+COPY --chmod=0755 warp-setup.sh /app/warp-setup.sh
+COPY requirements.txt requirements-prod.txt ./
+COPY migrations/ ./migrations/
+COPY migrations_app.py manage.py ./
+COPY wsgi.py ./
+COPY app/ ./app/
+
+# Install the application dependencies
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir -r requirements-prod.txt
 
 # Expose the ports
 EXPOSE 8000
@@ -153,12 +154,9 @@ EXPOSE 43111
 EXPOSE 26552
 EXPOSE 8080
 EXPOSE 8621
+
 # Set the volume
 VOLUME ["/app/ZeroNet/data"]
-
-# Clean up APT
-RUN apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Make sure WORKDIR is set correctly
 WORKDIR /app

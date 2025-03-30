@@ -4,11 +4,12 @@ services:
   acestream-scraper:
     build:
       context: .
-      dockerfile: Dockerfile.warp
+      dockerfile: Dockerfile
+    image: pipepito/acestream-scraper:latest
     container_name: acestream-scraper
     environment:
       - TZ=Europe/Madrid
-      - ENABLE_TOR=false
+      - ENABLE_TOR=true
       - ENABLE_ACEXY=true
       - ENABLE_ACESTREAM_ENGINE=true
       - ACESTREAM_HTTP_PORT=6878
@@ -32,3 +33,11 @@ services:
       - ./data/zeronet:/app/ZeroNet/data
       - ./data/config:/app/config
     restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    healthcheck:
+      test: ["CMD", "/app/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

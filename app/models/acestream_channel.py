@@ -47,5 +47,10 @@ class AcestreamChannel(db.Model):
             'check_error': self.check_error,
             'group': self.group,
             'source_url': self.source_url,
-            'scraped_url_id': self.scraped_url_id
+            'scraped_url_id': self.scraped_url_id,
+            'logo': self.logo,
+            'tvg_id': self.tvg_id,
+            'tvg_name': self.tvg_name,
+            'original_url': self.original_url,
+            'm3u_source': self.m3u_source
         }

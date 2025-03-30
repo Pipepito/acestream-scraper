@@ -25,7 +25,15 @@ channel_model = api.model('Channel', {
     'is_online': fields.Boolean(description='Whether the channel is online'),
     'last_checked': fields.DateTime(description='When the channel status was last checked'),
     'check_error': fields.String(description='Error message from last check'),
-    'group': fields.String(description='Channel group/category')
+    'group': fields.String(description='Channel group/category'),
+    'logo': fields.String(description='Logo URL'),
+    'tvg_id': fields.String(description='TVG ID for EPG'),
+    'tvg_name': fields.String(description='TVG Name for EPG'),
+    'original_url': fields.String(description='Original URL before conversion'),
+    'm3u_source': fields.String(description='Original M3U source'),
+    'source_url': fields.String(description='Source URL for the channel'),
+    'scraped_url_id': fields.String(description='ID of the scraped URL'),
+    'added_on': fields.DateTime(description='When the channel was added')
 })
 
 status_check_result_model = api.model('StatusCheckResult', {

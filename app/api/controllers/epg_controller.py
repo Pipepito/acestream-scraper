@@ -16,7 +16,6 @@ api = Namespace('epg', description='EPG configuration and management')
 epg_source_model = api.model('EPGSource', {
     'id': fields.Integer(readonly=True, description='Unique ID for the source'),
     'url': fields.String(required=True, description='URL of the EPG source (XMLTV)'),
-    'name': fields.String(description='Descriptive name for the source'),
     'enabled': fields.Boolean(default=True, description='Whether this source is enabled'),
     'last_updated': fields.DateTime(readonly=True, description='Last update timestamp'),
     'error_count': fields.Integer(readonly=True, description='Error counter'),
@@ -29,10 +28,23 @@ epg_string_mapping_model = api.model('EPGStringMapping', {
     'epg_channel_id': fields.String(required=True, description='EPG channel ID to map to')
 })
 
+# Auto-scan model including threshold and processing options
+auto_scan_model = api.model('AutoScan', {
+    'threshold': fields.Float(required=False, description='Similarity threshold (0.0-1.0)', default=0.8),
+    'clean_unmatched': fields.Boolean(required=False, description='Clean EPG data if no match is found', default=False),
+    'respect_existing': fields.Boolean(required=False, description='Don\'t modify channels that already have EPG data', default=False)
+})
+
+# Update options model for EPG channel updates
+update_channels_model = api.model('UpdateChannels', {
+    'respect_existing': fields.Boolean(required=False, description='Don\'t modify channels that already have EPG data', default=False),
+    'clean_unmatched': fields.Boolean(required=False, description='Clean EPG data if no match is found', default=False)
+})
+
 # Endpoints for EPG sources
 @api.route('/sources')
 class EPGSourceListResource(Resource):
-    @api.marshal_list_with(epg_source_model)
+    @api.marshal_with(epg_source_model)
     def get(self):
         """Get all EPG sources"""
         repo = EPGSourceRepository()
@@ -45,10 +57,26 @@ class EPGSourceListResource(Resource):
         data = request.json
         repo = EPGSourceRepository()
         
+        # Validate URL presence
+        url = data.get('url', '').strip()
+        if not url:
+            api.abort(400, "URL is required")
+        
+        # Validate URL format
+        import re
+        url_pattern = re.compile(r'^https?://\S+\.\S+')
+        if not url_pattern.match(url):
+            api.abort(400, "Invalid URL format. Must start with http:// or https://")
+        
+        # Check for duplicate sources
+        existing_sources = repo.get_all()
+        for source in existing_sources:
+            if source.url.lower() == url.lower():
+                api.abort(409, "This EPG source URL already exists")
+        
         # Create new source
         source = EPGSource(
-            url=data.get('url'),
-            name=data.get('name'),
+            url=url,
             enabled=data.get('enabled', True)
         )
         
@@ -57,36 +85,6 @@ class EPGSourceListResource(Resource):
 
 @api.route('/sources/<int:id>')
 class EPGSourceResource(Resource):
-    @api.marshal_with(epg_source_model)
-    def get(self, id):
-        """Get EPG source by ID"""
-        repo = EPGSourceRepository()
-        source = repo.get_by_id(id)
-        if not source:
-            api.abort(404, f"EPG source with ID {id} not found")
-        return source
-    
-    @api.expect(epg_source_model)
-    @api.marshal_with(epg_source_model)
-    def put(self, id):
-        """Update EPG source"""
-        data = request.json
-        repo = EPGSourceRepository()
-        
-        source = repo.get_by_id(id)
-        if not source:
-            api.abort(404, f"EPG source with ID {id} not found")
-        
-        if 'url' in data:
-            source.url = data['url']
-        if 'name' in data:
-            source.name = data['name']
-        if 'enabled' in data:
-            source.enabled = data['enabled']
-        
-        repo.update(source)
-        return source
-    
     def delete(self, id):
         """Delete EPG source"""
         repo = EPGSourceRepository()
@@ -97,17 +95,25 @@ class EPGSourceResource(Resource):
         repo.delete(source)
         return {'message': f'EPG source {id} deleted'}, 200
 
-@api.route('/sources/<int:id>/toggle')
-class EPGSourceToggleResource(Resource):
+    @api.doc('update_epg_source')
+    @api.expect(api.model('EPGSourceUpdate', {
+        'enabled': fields.Boolean(required=False, description='Whether this source is enabled')
+    }))
     @api.marshal_with(epg_source_model)
-    def post(self, id):
-        """Toggle enabled status for an EPG source"""
+    def put(self, id):
+        """Update an EPG source's enabled status"""
         repo = EPGSourceRepository()
         source = repo.get_by_id(id)
         if not source:
             api.abort(404, f"EPG source with ID {id} not found")
         
-        repo.toggle_enabled(source)
+        data = request.json
+        
+        # Only allow updating the enabled flag
+        if 'enabled' in data:
+            source.enabled = data['enabled']
+            
+        repo.update(source)
         return source
 
 # Endpoints for pattern mappings
@@ -126,7 +132,7 @@ class EPGStringMappingListResource(Resource):
         data = request.json
         repo = EPGStringMappingRepository()
         
-        # Create new mapping
+        # Create new mapping from request data
         mapping = EPGStringMapping(
             search_pattern=data.get('search_pattern'),
             epg_channel_id=data.get('epg_channel_id')
@@ -137,34 +143,6 @@ class EPGStringMappingListResource(Resource):
 
 @api.route('/mappings/<int:id>')
 class EPGStringMappingResource(Resource):
-    @api.marshal_with(epg_string_mapping_model)
-    def get(self, id):
-        """Get pattern mapping by ID"""
-        repo = EPGStringMappingRepository()
-        mapping = repo.get_by_id(id)
-        if not mapping:
-            api.abort(404, f"Mapping with ID {id} not found")
-        return mapping
-    
-    @api.expect(epg_string_mapping_model)
-    @api.marshal_with(epg_string_mapping_model)
-    def put(self, id):
-        """Update pattern mapping"""
-        data = request.json
-        repo = EPGStringMappingRepository()
-        
-        mapping = repo.get_by_id(id)
-        if not mapping:
-            api.abort(404, f"Mapping with ID {id} not found")
-        
-        if 'search_pattern' in data:
-            mapping.search_pattern = data['search_pattern']
-        if 'epg_channel_id' in data:
-            mapping.epg_channel_id = data['epg_channel_id']
-        
-        repo.update(mapping)
-        return mapping
-    
     def delete(self, id):
         """Delete pattern mapping"""
         repo = EPGStringMappingRepository()
@@ -189,11 +167,76 @@ class EPGRefreshResource(Resource):
 
 @api.route('/update-channels')
 class EPGUpdateChannelsResource(Resource):
+    @api.doc('update_epg_channels')
+    @api.expect(update_channels_model)
     def post(self):
         """Update all channels with EPG metadata"""
+        try:
+            data = request.get_json() or {}
+            respect_existing = data.get('respect_existing', False)
+            clean_unmatched = data.get('clean_unmatched', False)
+            
+            service = EPGService()
+            stats = service.update_all_channels_epg(
+                respect_existing=respect_existing,
+                clean_unmatched=clean_unmatched
+            )
+            
+            return {
+                'message': 'Channel EPG update process completed',
+                'stats': stats
+            }
+        except Exception as e:
+            logger.error(f"Error updating channels with EPG data: {str(e)}")
+            return {'error': str(e)}, 500
+
+@api.route('/channels')
+class EPGChannelsResource(Resource):
+    def get(self):
+        """Get all available EPG channel IDs and names"""
         service = EPGService()
-        stats = service.update_all_channels()
-        return {
-            'message': 'Channel EPG update process completed',
-            'stats': stats
-        }
+        channels = []
+        
+        # Load EPG data if not already loaded
+        if not service.epg_data:
+            service.fetch_epg_data()
+        
+        # Convert to simple list of channel IDs and names
+        for channel_id, data in service.epg_data.items():
+            channels.append({
+                'id': channel_id,
+                'name': data.get('tvg_name', channel_id)
+            })
+        
+        return channels
+
+@api.route('/auto-scan')
+class EPGAutoScanResource(Resource):
+    @api.doc('auto_scan_epg')
+    @api.expect(auto_scan_model)
+    @api.response(200, 'Scan completed')
+    def post(self):
+        """Scan channels and automatically map EPG data based on name similarity."""
+        try:
+            data = request.get_json() or {}
+            threshold = data.get('threshold', 0.8)
+            clean_unmatched = data.get('clean_unmatched', False)
+            respect_existing = data.get('respect_existing', False)
+            
+            service = EPGService()
+            result = service.auto_scan_channels(
+                threshold=threshold,
+                clean_unmatched=clean_unmatched,
+                respect_existing=respect_existing
+            )
+            
+            return {
+                'message': 'EPG auto-scan completed successfully',
+                'total': result.get('total', 0),
+                'matched': result.get('matched', 0),
+                'cleaned': result.get('cleaned', 0),
+                'skipped': result.get('skipped', 0)
+            }
+        except Exception as e:
+            logger.error(f"Error during auto-scan: {str(e)}")
+            return {'error': str(e)}, 500

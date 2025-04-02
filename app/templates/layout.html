@@ -73,7 +73,28 @@
                 margin-left: auto;
             }
         }
-        {% block additional_styles %}{% endblock %}
+        /* Custom purple color class for locked EPG items */
+        .bg-purple {
+            background-color: #6f42c1 !important;
+            color: white !important;
+        }
+
+        .btn-purple {
+            background-color: #6f42c1 !important;
+            border-color: #6f42c1 !important;
+            color: white !important;
+        }
+
+        .border-purple {
+            border-color: #6f42c1 !important;
+        }
+
+        /* Channel logo sizing */
+        .channel-logo {
+            object-fit: contain;
+            border-radius: 3px;
+        }
+      
     </style>
     {% block head_extra %}{% endblock %}
 </head>

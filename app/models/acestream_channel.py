@@ -26,6 +26,7 @@ class AcestreamChannel(db.Model):
     is_online = db.Column(db.Boolean, default=False)
     last_checked = db.Column(db.DateTime)
     check_error = db.Column(db.Text)
+    epg_update_protected = db.Column(db.Boolean, default=False, nullable=False)
     
     def __repr__(self):
         return f'<AcestreamChannel {self.name or self.id}>'
@@ -52,5 +53,6 @@ class AcestreamChannel(db.Model):
             'tvg_id': self.tvg_id,
             'tvg_name': self.tvg_name,
             'original_url': self.original_url,
-            'm3u_source': self.m3u_source
+            'm3u_source': self.m3u_source,
+            'epg_update_protected': bool(self.epg_update_protected)
         }

@@ -13,6 +13,10 @@ async function loadEpgSources() {
         const sourcesContainer = document.getElementById('epgSourcesContainer');
         if (!sourcesContainer) return;
         
+        const hasActiveSources = sources.some(source => source.enabled);
+
+        updateButtonsState(hasActiveSources);
+
         if (sources.length === 0) {
             sourcesContainer.innerHTML = `
                 <div class="alert alert-info">
@@ -61,8 +65,6 @@ async function loadEpgSources() {
             sourcesContainer.appendChild(sourceCard);
         });
         
-        // DO NOT add event listeners here - they are handled via delegation
-        
     } catch (error) {
         console.error('Error loading EPG sources:', error);
         const sourcesContainer = document.getElementById('epgSourcesContainer');
@@ -73,6 +75,7 @@ async function loadEpgSources() {
                 </div>
             `;
         }
+        updateButtonsState(false);
     }
 }
 
@@ -680,6 +683,82 @@ function initializeEpgComponents() {
 // Initialize everything when the DOM is ready
 document.addEventListener('DOMContentLoaded', initializeEpgComponents);
 
+
+
+/**
+ * Update buttons state and show alerts when no active sources
+ * @param {boolean} hasActiveSources - Whether there are any active EPG sources
+ */
+function updateButtonsState(hasActiveSources) {
+    // Buttons to disable
+    const scanChannelsBtn = document.getElementById('scanChannelsBtn');
+    const updateChannelsEpgBtn = document.getElementById('updateChannelsEpgBtn');
+    const addEpgMappingBtn = document.getElementById('addEpgMappingBtn'); // Añadido
+
+    // Alert containers
+    const mappingsTabContent = document.getElementById('mappings');
+    const autoScanTabContent = document.getElementById('automapping');
+    
+    if (!hasActiveSources) {
+        // Disable buttons
+        if (scanChannelsBtn) {
+            scanChannelsBtn.disabled = true;
+            scanChannelsBtn.title = 'Requires active EPG sources';
+        }
+        
+        if (updateChannelsEpgBtn) {
+            updateChannelsEpgBtn.disabled = true;
+            updateChannelsEpgBtn.title = 'Requires active EPG sources';
+        }
+
+        if (addEpgMappingBtn) {
+            addEpgMappingBtn.disabled = true;
+            addEpgMappingBtn.title = 'Requires active EPG sources';
+        }
+        
+        // Add alert if not exists
+        if (mappingsTabContent) {
+            const existingAlert = mappingsTabContent.querySelector('.epg-no-sources-alert');
+            if (!existingAlert) {
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-warning mt-3 epg-no-sources-alert';
+                alert.innerHTML = '<strong>No active EPG sources!</strong> You need to add and enable at least one EPG source to use mapping functions.';
+                mappingsTabContent.insertBefore(alert, mappingsTabContent.firstChild);
+            }
+        }
+        
+        if (autoScanTabContent) {
+            const existingAlert = autoScanTabContent.querySelector('.epg-no-sources-alert');
+            if (!existingAlert) {
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-warning mt-3 epg-no-sources-alert';
+                alert.innerHTML = '<strong>No active EPG sources!</strong> You need to add and enable at least one EPG source to use auto-scan functionality.';
+                autoScanTabContent.insertBefore(alert, autoScanTabContent.firstChild);
+            }
+        }
+    } else {
+        // Enable buttons
+        if (scanChannelsBtn) {
+            scanChannelsBtn.disabled = false;
+            scanChannelsBtn.title = '';
+        }
+        
+        if (updateChannelsEpgBtn) {
+            updateChannelsEpgBtn.disabled = false;
+            updateChannelsEpgBtn.title = '';
+        }
+
+        if (addEpgMappingBtn) {
+            addEpgMappingBtn.disabled = false;
+            addEpgMappingBtn.title = '';
+        }
+        
+        // Remove alerts if exists
+        document.querySelectorAll('.epg-no-sources-alert').forEach(alert => {
+            alert.remove();
+        });
+    }
+}
 // From core.js
 /**
  * Core functionality for the Acestream Scraper application

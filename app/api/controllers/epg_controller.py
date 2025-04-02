@@ -127,19 +127,35 @@ class EPGStringMappingListResource(Resource):
     
     @api.expect(epg_string_mapping_model)
     @api.marshal_with(epg_string_mapping_model, code=201)
+    @api.response(409, 'Mapping already exists')
     def post(self):
         """Add a new pattern mapping"""
         data = request.json
         repo = EPGStringMappingRepository()
         
+        # Validate required fields
+        search_pattern = data.get('search_pattern')
+        if not search_pattern:
+            api.abort(400, "Search pattern is required")
+            
+        # Check for duplicate mappings
+        existing_mappings = repo.get_all()
+        for mapping in existing_mappings:
+            if mapping.search_pattern.lower() == search_pattern.lower():
+                api.abort(409, "This search pattern already exists")
+        
         # Create new mapping from request data
         mapping = EPGStringMapping(
-            search_pattern=data.get('search_pattern'),
+            search_pattern=search_pattern,
             epg_channel_id=data.get('epg_channel_id')
         )
         
-        repo.create(mapping)
-        return mapping, 201
+        try:
+            repo.create(mapping)
+            return mapping, 201
+        except Exception as e:
+            logger.error(f"Error creating EPG mapping: {str(e)}")
+            api.abort(500, f"Failed to create mapping: {str(e)}")
 
 @api.route('/mappings/<int:id>')
 class EPGStringMappingResource(Resource):

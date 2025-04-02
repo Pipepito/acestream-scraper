@@ -64,6 +64,7 @@ async function loadEpgSources() {
             `;
             sourcesContainer.appendChild(sourceCard);
         });
+
         
     } catch (error) {
         console.error('Error loading EPG sources:', error);
@@ -322,9 +323,15 @@ async function addEpgMapping() {
             })
         });
         
+        // Prevent duplicates
+        if (response.status === 409) {
+            showAlert('warning', 'This pattern already exists');
+            return;
+        }
+        
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Failed to add EPG mapping');
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to add EPG mapping');
         }
         
         // Close modal and refresh data

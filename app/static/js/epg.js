@@ -21,7 +21,7 @@ async function loadEpgSources() {
             sourcesContainer.innerHTML = `
                 <div class="alert alert-info">
                     No EPG source configured. Add one to enable EPG functionality.
-                </div
+                </div>
             `;
             return;
         }

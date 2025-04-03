@@ -52,7 +52,7 @@ async function loadEpgSources() {
                             <small class="text-muted d-block">Last updated: ${lastUpdated}</small>
                         </div>
                         <div class="d-flex flex-nowrap">
-                            <button type="button" class="btn btn-sm btn-secondary me-2 toggle-source" data-id="${source.id}" title="${source.enabled ? 'Disable' : 'Enable'}">
+                            <button type="button" class="btn btn-sm ${source.enabled ? 'btn-warning' : 'btn-success'} me-2 toggle-source" data-id="${source.id}" title="${source.enabled ? 'Disable' : 'Enable'}">
                                 ${source.enabled ? 'Disable' : 'Enable'}
                             </button>
                             <button type="button" class="btn btn-sm btn-danger delete-source" data-id="${source.id}" title="Delete">

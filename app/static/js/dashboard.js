@@ -443,7 +443,7 @@ function updateChannelList(channels) {
         
         // Logo display
         const logoHtml = channel.logo ? 
-            `<img src="${channel.logo}" alt="Logo" class="channel-logo me-2" style="max-height:20px; max-width:40px;">` : 
+            `<img src="${channel.logo}" alt="Logo" class="channel-logo me-2" style="max-height:60px; max-width:60px;">` : 
             '';
             
         return `

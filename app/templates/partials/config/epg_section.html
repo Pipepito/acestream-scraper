@@ -54,7 +54,6 @@
                 
                 <div class="card mb-3">
                     <div class="card-body">
-                        <h6>Mapping Options</h6>
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="checkbox" id="updateCleanUnmatched">
                             <label class="form-check-label" for="updateCleanUnmatched">
@@ -67,12 +66,6 @@
                             <label class="form-check-label" for="updateRespectExisting">
                                 Don't modify channels that already have EPG data
                             </label>
-                        </div>
-                        
-                        <div class="text-end">
-                            <button id="updateChannelsEpgBtn" class="btn btn-primary">
-                                <i class="bi bi-arrow-repeat"></i> Update EPG Mappings
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -90,6 +83,11 @@
                             <!-- Dynamic content: EPG mapping rules will be loaded here by JavaScript -->
                         </tbody>
                     </table>
+                </div>
+                <div class="text-end">
+                    <button id="updateChannelsEpgBtn" class="btn btn-primary">
+                        <i class="bi bi-arrow-repeat"></i> Update EPG Mappings
+                    </button>
                 </div>
             </div>
             

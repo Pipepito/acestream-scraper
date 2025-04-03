@@ -133,7 +133,7 @@ class EPGService:
         """
         string_mappings = self.epg_string_mapping_repo.get_all()
         
-        # Detectar si el canal debe ser excluido (mantener esta parte sin cambios)
+        # Detect if channel should be excluded
         channel_name_lower = channel.name.lower()
         for mapping in string_mappings:
             if mapping.search_pattern.startswith('!'):
@@ -141,7 +141,7 @@ class EPGService:
                 if exclusion_pattern in channel_name_lower:
                     logger.info(f"Channel '{channel.name}' excluded by pattern '!{exclusion_pattern}'")
                     
-                    # Limpiar los datos EPG si el canal tiene algún dato
+                    # Clean EPG data if channel has any data
                     changes_made = False
                     
                     if channel.tvg_id:
@@ -162,35 +162,35 @@ class EPGService:
                     
                     return (False, False, False, False)
         
-        # Mejorar la lógica de mapeo
+        # Improved mapping logic
         potential_mappings = []
         
-        # Pre-procesar el nombre del canal para dividirlo en palabras para comparación más exacta
+        # Pre-process channel name to split into words for more exact comparison
         channel_words = channel_name_lower.split()
         
         for mapping in string_mappings:
-            if not mapping.search_pattern.startswith('!'):  # Solo procesar patrones regulares
+            if not mapping.search_pattern.startswith('!'):  # Only process regular patterns
                 pattern_lower = mapping.search_pattern.lower()
                 pattern_words = pattern_lower.split()
                 
-                # Solo considerar patrones que estén dentro del nombre del canal
+                # Only consider patterns that are within the channel name
                 if pattern_lower in channel_name_lower:
-                    # Base score - longitud del patrón multiplicado por 10 para darle más peso
+                    # Base score - pattern length multiplied by 10 to give it more weight
                     pattern_score = len(pattern_lower) * 10
                     
-                    # MAYOR PRIORIDAD: Coincidencia exacta con el nombre completo
+                    # HIGHEST PRIORITY: Exact match with full name
                     if pattern_lower == channel_name_lower:
-                        pattern_score += 10000  # Prioridad extremadamente alta
+                        pattern_score += 10000  # Extremely high priority
                     
-                    # NUEVA PRIORIDAD MUY ALTA: El patrón coincide exactamente con el inicio del nombre
+                    # VERY HIGH PRIORITY: Pattern exactly matches the start of the name
                     if channel_name_lower.startswith(pattern_lower):
-                        pattern_score += 3000  # Mayor prioridad que tener números
+                        pattern_score += 3000  # Higher priority than having numbers
                     
-                    # ALTA PRIORIDAD: Coincidencia al inicio del nombre (más importante que tener números)
+                    # HIGH PRIORITY: Match at the beginning of the name (more important than having numbers)
                     elif channel_name_lower.startswith(pattern_lower + ' '):
-                        pattern_score += 2500  # Mayor prioridad que tener números
+                        pattern_score += 2500  # Higher priority than having numbers
                     
-                    # Bonus por coincidencia de palabras completas
+                    # Bonus for matching complete words
                     matching_words = 0
                     for word in pattern_words:
                         if word in channel_words:
@@ -199,25 +199,25 @@ class EPGService:
                     if matching_words == len(pattern_words):
                         pattern_score += 1000 * matching_words
                         
-                        # Bonus si las palabras están en el mismo orden
+                        # Bonus if words are in the same order
                         if ' '.join(pattern_words) in ' '.join(channel_words):
                             pattern_score += 500
                     
-                    # Bonus para patrones con números (reducido para no sobrepasar coincidencias al inicio)
+                    # Bonus for patterns with numbers
                     if any(char.isdigit() for char in pattern_lower):
-                        pattern_score += 1500  # Reducido de 2000 a 1500
+                        pattern_score += 1500
                     
-                    # NUEVO: Bonus adicional si la primera palabra del patrón coincide con la primera palabra del canal
-                    # Esto ayuda a priorizar patrones como "dazn laliga" para canales que comienzan con "DAZN"
+                    # Bonus if first word of pattern matches first word of channel
+                    # This helps prioritize patterns like "dazn laliga" for channels starting with "DAZN"
                     if channel_words and pattern_words and channel_words[0] == pattern_words[0]:
                         pattern_score += 1800
                     
                     potential_mappings.append((mapping, pattern_score))
         
-        # Ordenar por score, de mayor a menor
+        # Sort by score, highest to lowest
         potential_mappings.sort(key=lambda x: x[1], reverse=True)
         
-        # Usar el mapeo con el score más alto si existe
+        # Use the mapping with the highest score if it exists
         if potential_mappings:
             best_mapping, score = potential_mappings[0]
             
@@ -230,7 +230,7 @@ class EPGService:
             else:
                 logger.warning(f"EPG channel ID '{best_mapping.epg_channel_id}' not found for pattern '{best_mapping.search_pattern}'")
         
-        # Si no se encontró ningún mapeo adecuado
+        # If no suitable mapping was found
         return (False, False, False, False)
     
     def _apply_epg_data(self, channel: AcestreamChannel, epg_data: Dict) -> Tuple[bool, bool, bool]:
@@ -282,7 +282,7 @@ class EPGService:
             "errors": 0
         }
         
-        # Verificar si hay reglas de mapeo definidas
+        # Check if there are mapping rules defined
         string_mappings = self.epg_string_mapping_repo.get_all()
         normal_rules = [m for m in string_mappings if not m.search_pattern.startswith('!')]
         has_mapping_rules = len(normal_rules) > 0
@@ -295,38 +295,38 @@ class EPGService:
         logger.info(f"Processing {len(channels)} channels, {len(channels_with_epg)} have some EPG data")
         stats["total"] = len(channels)
         
-        # Primero asegurarnos de cargar los datos EPG
+        # First make sure to load EPG data
         if not self.epg_data:
             self.fetch_epg_data()
         
-        # Usar una transacción explícita para asegurar que los cambios se apliquen
+        # Use an explicit transaction to ensure changes are applied
         from sqlalchemy.orm import Session
         session = db.session
         
         try:
             for channel in channels:
                 try:
-                    # Cambiar epg_update_protected por epg_update_protected
+                    # Check if channel is protected from EPG updates
                     if channel.epg_update_protected:
                         stats["locked"] += 1
                         continue
                     
-                    # Si la opción respect_existing está activada y el canal ya tiene datos, saltarlo
+                    # If respect_existing option is active and channel already has data, skip it
                     if respect_existing and (channel.tvg_id or channel.tvg_name or channel.logo):
                         stats["skipped"] += 1
                         continue
                     
                     if not has_mapping_rules:
-                        # Si no hay reglas de mapeo y el canal tiene datos, limpiarlo SOLO si clean_unmatched es true
+                        # If there are no mapping rules and the channel has data, clean it ONLY if clean_unmatched is true
                         if clean_unmatched and (channel.tvg_id or channel.tvg_name or channel.logo):
                             old_data = f"tvg_id={channel.tvg_id}, tvg_name={channel.tvg_name}, logo={'Yes' if channel.logo else 'No'}"
                             
-                            # Realizar limpieza directamente
+                            # Perform cleaning directly
                             channel.tvg_id = None
                             channel.tvg_name = None
                             channel.logo = None
                             
-                            # Actualizar el canal en la base de datos
+                            # Update the channel in the database
                             try:
                                 self.channel_repo.update(channel)
                                 session.flush()
@@ -338,13 +338,13 @@ class EPGService:
                                 stats["errors"] += 1
                         continue
                     
-                    # Si hay reglas, proceder con la aplicación de mapeos
+                    # If there are rules, proceed with applying mappings
                     was_updated, tvg_id_updated, tvg_name_updated, logo_updated = self._update_channel_epg(channel)
                     
                     if was_updated:
                         try:
                             self.channel_repo.update(channel)
-                            session.flush()  # Asegurar que los cambios se apliquen
+                            session.flush()  # Ensure changes are applied
                             
                             if not channel.tvg_id and not channel.tvg_name and not channel.logo:
                                 stats["cleaned"] += 1
@@ -358,15 +358,15 @@ class EPGService:
                             stats["errors"] += 1
                         continue
                     
-                    # Si no se actualizó el canal y no está excluido, limpiar sus datos
+                    # If channel was not updated and not excluded, clean its data
                     is_excluded = self._is_excluded_by_rule(channel)
                     
                     if not is_excluded and (channel.tvg_id or channel.tvg_name or channel.logo):
-                        # CORRECCIÓN: Limpiar solo si clean_unmatched es verdadero
+                        # Clean only if clean_unmatched is true
                         if clean_unmatched:
                             old_data = f"tvg_id={channel.tvg_id}, tvg_name={channel.tvg_name}, logo={'Yes' if channel.logo else 'No'}"
                             
-                            # Limpiar datos
+                            # Clean data
                             channel.tvg_id = None
                             channel.tvg_name = None
                             channel.logo = None
@@ -387,7 +387,7 @@ class EPGService:
                     logger.error(f"Error processing channel {channel.name}: {str(e)}")
                     stats["errors"] += 1
             
-            # Confirmar todos los cambios
+            # Confirm all changes
             session.commit()
             logger.info(f"EPG update completed. Summary: Updated={stats['updated']}, Cleaned={stats['cleaned']}, Locked={stats['locked']}, Excluded={stats['excluded']}, Errors={stats['errors']}")
         
@@ -400,7 +400,7 @@ class EPGService:
         return stats
     
     def _is_excluded_by_rule(self, channel: AcestreamChannel) -> bool:
-        """Determinar si un canal está excluido por una regla de patrón."""
+        """Determine if a channel is excluded by a pattern rule."""
         channel_name_lower = channel.name.lower()
         string_mappings = self.epg_string_mapping_repo.get_all()
         
@@ -462,10 +462,10 @@ class EPGService:
             for epg_id, epg_data in self.epg_data.items():
                 normalized_epg_name = self._normalize_channel_name(epg_data["tvg_name"])
                 
-                # Usar nombres normalizados para la comparación
+                # Use normalized names for comparison
                 score = SequenceMatcher(None, normalized_channel_name, normalized_epg_name).ratio()
                 
-                # Dar bonus si el inicio del nombre coincide exactamente
+                # Give bonus if the start of the name matches exactly
                 if normalized_epg_name.startswith(normalized_channel_name) or normalized_channel_name.startswith(normalized_epg_name):
                     score += 0.1  # Bonus for matching prefix
                 
@@ -502,16 +502,16 @@ class EPGService:
 
     def _normalize_channel_name(self, channel_name: str) -> str:
         """
-        Normaliza el nombre del canal eliminando indicadores de calidad y términos técnicos
-        que no son relevantes para la comparación con EPG.
+        Normalizes the channel name by removing quality indicators and technical terms
+        that are not relevant for EPG comparison.
         """
-        # Convertir a minúsculas
+        # Convert to lowercase
         name = channel_name.lower()
         
-        # Eliminar todo lo que esté entre paréntesis
+        # Remove everything in parentheses
         name = re.sub(r'\([^)]*\)', '', name)
         
-        # Eliminar términos técnicos comunes
+        # Remove common technical terms
         terms_to_remove = [
             '1080', '1080p', '720', '480', '4k', '8k',
             'hd', 'sd', 'uhd', 'fullhd', 'full hd', 
@@ -522,13 +522,13 @@ class EPGService:
         ]
         
         for term in terms_to_remove:
-            # Reemplazar el término rodeado por espacios, al principio o al final
+            # Replace the term surrounded by spaces, at the beginning or end
             name = re.sub(r'(^|\s)' + re.escape(term) + r'(\s|$)', ' ', name)
         
-        # Eliminar múltiples espacios
+        # Remove multiple spaces
         name = re.sub(r'\s+', ' ', name)
         
-        # Eliminar espacios al principio y al final
+        # Remove spaces at the beginning and end
         name = name.strip()
         
         return name

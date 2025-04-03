@@ -65,7 +65,6 @@ async function loadEpgSources() {
             sourcesContainer.appendChild(sourceCard);
         });
 
-        
     } catch (error) {
         console.error('Error loading EPG sources:', error);
         const sourcesContainer = document.getElementById('epgSourcesContainer');
@@ -140,7 +139,7 @@ async function toggleEpgSource(sourceIdOrElement) {
     isCurrentlyEnabled = btn ? btn.textContent.trim() === 'Disable' : false;
     
     try {
-        // Usar PUT para actualizar el estado
+        // Use PUT to update the status
         await fetch(`/api/epg/sources/${sourceId}`, {
             method: 'PUT',
             headers: {
@@ -151,10 +150,10 @@ async function toggleEpgSource(sourceIdOrElement) {
             })
         });
         
-        // Recargar fuentes para mostrar el estado actualizado
+        // Reload sources to show updated status
         loadEpgSources();
         
-        // Mostrar feedback al usuario
+        // Show feedback to the user
         showAlert('success', `EPG source ${isCurrentlyEnabled ? 'disabled' : 'enabled'} successfully`);
         
     } catch (error) {
@@ -700,7 +699,7 @@ function updateButtonsState(hasActiveSources) {
     // Buttons to disable
     const scanChannelsBtn = document.getElementById('scanChannelsBtn');
     const updateChannelsEpgBtn = document.getElementById('updateChannelsEpgBtn');
-    const addEpgMappingBtn = document.getElementById('addEpgMappingBtn'); // Añadido
+    const addEpgMappingBtn = document.getElementById('addEpgMappingBtn'); // Added
 
     // Alert containers
     const mappingsTabContent = document.getElementById('mappings');

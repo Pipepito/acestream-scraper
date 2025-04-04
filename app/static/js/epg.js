@@ -587,11 +587,11 @@ async function autoScanChannels() {
  * Initialize all EPG components and event handlers
  */
 function initializeEpgComponents() {
-    // 1. Load initial data
+    // Load initial data
     loadEpgSources();
     loadEpgMappings();
     
-    // 2. Configure threshold slider
+    // Configure threshold slider
     const thresholdSlider = document.getElementById('similarityThreshold');
     const thresholdValue = document.getElementById('thresholdValue');
     if (thresholdSlider && thresholdValue) {
@@ -604,7 +604,7 @@ function initializeEpgComponents() {
         });
     }
     
-    // 3. Configure exclusion checkbox
+    // Configure exclusion checkbox
     const exclusionCheckbox = document.getElementById('epgIsExclusion');
     const channelIdContainer = document.getElementById('epgChannelIdContainer');
     if (exclusionCheckbox && channelIdContainer) {
@@ -620,7 +620,23 @@ function initializeEpgComponents() {
         });
     }
     
-    // 4. Configure global event delegation (once)
+    // Add event listener for the search pattern input
+    const searchPatternInput = document.getElementById('epgSearchPattern');
+    if (searchPatternInput) {
+        searchPatternInput.addEventListener('input', debounce(previewMatchingChannels, 300));
+    }
+    
+    // Add event listener for the exclusion checkbox to update preview when changed
+    if (exclusionCheckbox) {
+        exclusionCheckbox.addEventListener('change', () => {
+            const searchPattern = document.getElementById('epgSearchPattern');
+            if (searchPattern && searchPattern.value) {
+                previewMatchingChannels();
+            }
+        });
+    }
+    
+    // Configure global event delegation (once)
     document.addEventListener('click', function(event) {
         // EPG source events
         if (event.target.closest('.toggle-source')) {
@@ -662,6 +678,20 @@ function initializeEpgComponents() {
             const channelIdField = document.getElementById('epgChannelId');
             if (channelIdField) channelIdField.setAttribute('required', 'required');
             
+            // Reset preview container to default state
+            const previewContainer = document.getElementById('matchingChannelsPreview');
+            const matchCount = document.getElementById('matchCount');
+            if (previewContainer) {
+                previewContainer.innerHTML = `
+                    <div class="p-3 text-center text-muted">
+                        <small>Start typing to see matching channels</small>
+                    </div>
+                `;
+            }
+            if (matchCount) {
+                matchCount.textContent = '0';
+            }
+            
             const modal = new bootstrap.Modal(document.getElementById('addEpgMappingModal'));
             modal.show();
             
@@ -686,10 +716,165 @@ function initializeEpgComponents() {
     });
 }
 
+/**
+ * Preview channels that match the current search pattern
+ * Considers existing exclusion rules and protected status
+ */
+async function previewMatchingChannels() {
+    const searchPattern = document.getElementById('epgSearchPattern').value.trim();
+    const isExclusion = document.getElementById('epgIsExclusion')?.checked || false;
+    const previewContainer = document.getElementById('matchingChannelsPreview');
+    const matchCount = document.getElementById('matchCount');
+    
+    if (!previewContainer) return;
+    
+    // If no pattern, show default message
+    if (!searchPattern) {
+        previewContainer.innerHTML = `
+            <div class="p-3 text-center text-muted">
+                <small>Start typing to see matching channels</small>
+            </div>
+        `;
+        matchCount.textContent = '0';
+        return;
+    }
+    
+    // Show loading indicator
+    previewContainer.innerHTML = `
+        <div class="p-3 text-center">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <span class="ms-2">Searching channels...</span>
+        </div>
+    `;
+    
+    try {
+        // Get existing exclusion rules
+        const mappingsResponse = await fetch('/api/epg/mappings');
+        const mappings = await mappingsResponse.json();
+        const exclusionPatterns = mappings
+            .filter(m => m.search_pattern.startsWith('!'))
+            .map(m => m.search_pattern.substring(1).toLowerCase());
+        
+        // Get all channels
+        const response = await fetch('/api/channels');
+        const channels = await response.json();
+        
+        // Filter channels based on pattern and existing exclusion rules
+        const pattern = new RegExp(escapeRegExp(searchPattern), 'i');
+        const matchingChannels = channels.filter(channel => {
+            // Skip if channel name is missing
+            if (!channel.name) return false;
+            
+            // Check if this channel matches the current pattern
+            const matchesPattern = pattern.test(channel.name);
+            if (!matchesPattern) return false;
+            
+            // If this is not an exclusion rule, check if channel is already excluded
+            if (!isExclusion) {
+                // Check if any existing exclusion patterns match this channel
+                const isAlreadyExcluded = exclusionPatterns.some(exPattern => 
+                    channel.name.toLowerCase().includes(exPattern)
+                );
+                
+                if (isAlreadyExcluded) {
+                    return false; // Skip channels already excluded
+                }
+            }
+            
+            return true;
+        });
+        
+        // Update counter
+        matchCount.textContent = matchingChannels.length.toString();
+        
+        // Limit to 15 results for performance
+        const limitedResults = matchingChannels.slice(0, 15);
+        
+        // If no matches
+        if (limitedResults.length === 0) {
+            previewContainer.innerHTML = `
+                <div class="p-3 text-center text-muted">
+                    <small>No channels match this pattern</small>
+                </div>
+            `;
+            return;
+        }
+        
+        // Generate HTML for each channel
+        const listItems = limitedResults.map(channel => {
+            // Highlight matching part
+            const highlightedName = (channel.name || '').replace(
+                new RegExp(`(${escapeRegExp(searchPattern)})`, 'gi'),
+                '<span class="bg-warning text-dark">$1</span>'
+            );
+            
+            // Determine EPG status with better visual indication
+            let epgStatus = '';
+            
+            if (channel.epg_update_protected) {
+                epgStatus = '<span class="ms-2 badge bg-purple">Protected</span>';
+            } else if (channel.tvg_id && channel.tvg_name) {
+                epgStatus = '<span class="ms-2 badge bg-success">EPG</span>';
+            }
+            
+            return `
+                <div class="list-group-item list-group-item-action py-2 px-3 border-start-0 border-end-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-truncate" style="max-width: 350px;">${highlightedName}</div>
+                            <small class="text-muted">${channel.id}</small>
+                        </div>
+                        ${epgStatus}
+                    </div>
+                </div>
+            `;
+        });
+        
+        // Show more indicator if there are more results
+        const moreResults = matchingChannels.length > limitedResults.length ? 
+            `<div class="list-group-item text-center text-muted py-2"><small>+ ${matchingChannels.length - limitedResults.length} more channels</small></div>` : '';
+        
+        // Update container
+        previewContainer.innerHTML = `
+            <div class="list-group list-group-flush">
+                ${listItems.join('')}
+                ${moreResults}
+            </div>
+        `;
+        
+    } catch (error) {
+        console.error('Error previewing matching channels:', error);
+        previewContainer.innerHTML = `
+            <div class="p-3 text-center text-danger">
+                <small>Error loading channel preview</small>
+            </div>
+        `;
+    }
+}
+
+/**
+ * Escape special characters in a string for use in RegExp
+ */
+function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Debounce function to limit how often a function runs
+ */
+function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        const context = this;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(context, args), wait);
+    };
+}
+
 // Initialize everything when the DOM is ready
 document.addEventListener('DOMContentLoaded', initializeEpgComponents);
-
-
 
 /**
  * Update buttons state and show alerts when no active sources

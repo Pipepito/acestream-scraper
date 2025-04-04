@@ -175,6 +175,25 @@
                         <input type="text" class="form-control" id="epgSearchPattern" required placeholder="Enter text to search in channel names">
                         <div class="form-text">Text pattern to match in Acestream channel names (case insensitive)</div>
                     </div>
+
+                    <!-- Channel matching preview panel -->
+                    <div class="mb-3">
+                        <div class="card">
+                            <div class="card-header py-1">
+                                <div class="d-flex justify-content-between align-items-center">
+                                        Matching Channels Preview
+                                    <span class="badge bg-secondary" id="matchCount">0</span>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div id="matchingChannelsPreview" style="max-height: 200px; overflow-y: auto;">
+                                    <div class="p-3 text-center text-muted">
+                                        <small>Start typing to see matching channels</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     
                     <div class="mb-3 form-check">
                         <input type="checkbox" class="form-check-input" id="epgIsExclusion">

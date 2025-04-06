@@ -65,6 +65,10 @@ async function loadEpgSources() {
             sourcesContainer.appendChild(sourceCard);
         });
 
+        // Clear and update EPG channel cache whenever sources are updated
+        window.epgChannelsList = null;
+        await loadEpgChannelOptions();
+
     } catch (error) {
         console.error('Error loading EPG sources:', error);
         const sourcesContainer = document.getElementById('epgSourcesContainer');
@@ -154,7 +158,7 @@ async function toggleEpgSource(sourceIdOrElement) {
         loadEpgSources();
         
         // Show feedback to the user
-        showAlert('success', `EPG source ${isCurrentlyEnabled ? 'disabled' : 'enabled'} successfully`);
+        showAlert('success', `EPG source ${isCurrentlyEnabled ? 'disabled' : 'enabled'}`);
         
     } catch (error) {
         console.error('Error toggling EPG source:', error);
@@ -179,12 +183,11 @@ async function deleteEpgSource(sourceId) {
             throw new Error('Failed to delete EPG source');
         }
         
-        console.log('EPG source deleted successfully');
+        showAlert('success', 'EPG source deleted');
         
-        // Reload sources list
         loadEpgSources();
     } catch (error) {
-        console.error('Error deleting EPG source:', error);
+        showAlert('danger', 'Failed to delete EPG source');
     }
 }
 
@@ -252,8 +255,7 @@ async function addEpgSource() {
         
         // Reload sources list
         loadEpgSources();
-        
-        console.log('EPG source added successfully');
+        showAlert('success', 'EPG source added');
     } catch (error) {
         console.error('Error adding EPG source:', error);
         showInputError(urlInput, error.message || 'Error adding EPG source');
@@ -293,23 +295,48 @@ function clearInputError(inputElement) {
  */
 async function addEpgMapping() {
     try {
-        const pattern = document.getElementById('epgSearchPattern').value;
+        // Get form field references
+        const patternInput = document.getElementById('epgSearchPattern');
         const isExclusion = document.getElementById('epgIsExclusion').checked;
-        const channelId = isExclusion ? '' : document.getElementById('epgChannelId').value;
+        const channelIdInput = document.getElementById('epgChannelId');
         
-        // Validate data
-        if (!pattern || (pattern.trim() === '')) {
-            showAlert('danger', 'Search pattern is required');
-            return;
+        // Get values with trimming
+        const pattern = patternInput.value.trim();
+        const channelId = isExclusion ? '' : channelIdInput.value.trim();
+        
+        // Clear previous errors
+        clearInputError(patternInput);
+        if (!isExclusion) clearInputError(channelIdInput);
+        
+        // Validate form fields
+        let hasValidationErrors = false;
+        
+        if (!pattern) {
+            showInputError(patternInput, 'Search pattern is required');
+            hasValidationErrors = true;
         }
         
-        if (!isExclusion && (!channelId || channelId.trim() === '')) {
-            showAlert('danger', 'EPG channel ID is required for non-exclusion rules');
-            return;
+        if (!isExclusion) {
+            if (!channelId) {
+                showInputError(channelIdInput, 'EPG channel ID is required');
+                hasValidationErrors = true;
+            } else {
+                // Verify if the ID exists in the available EPG channels list
+                const isValidChannelId = window.epgChannelsList && 
+                    window.epgChannelsList.some(channel => channel.id === channelId);
+                
+                if (!isValidChannelId) {
+                    showInputError(channelIdInput, 'Please select a valid EPG channel ID from the list');
+                    hasValidationErrors = true;
+                }
+            }
         }
         
-        // Format data
+        if (hasValidationErrors) return;
+        
+        // Format pattern for API
         const formattedPattern = isExclusion ? '!' + pattern : pattern;
+
         
         const response = await fetch('/api/epg/mappings', {
             method: 'POST',
@@ -322,9 +349,9 @@ async function addEpgMapping() {
             })
         });
         
-        // Prevent duplicates
+        // Handle specific error responses
         if (response.status === 409) {
-            showAlert('warning', 'This pattern already exists');
+            showInputError(patternInput, 'This pattern already exists');
             return;
         }
         
@@ -333,13 +360,13 @@ async function addEpgMapping() {
             throw new Error(errorData.message || 'Failed to add EPG mapping');
         }
         
-        // Close modal and refresh data
+        // Close modal and reset form
         const modal = bootstrap.Modal.getInstance(document.getElementById('addEpgMappingModal'));
         if (modal) {
             modal.hide();
         }
         
-        // Refresh data
+        // Refresh data and show success notification
         loadEpgMappings();
         showAlert('success', 'EPG mapping added successfully');
     } catch (error) {
@@ -396,6 +423,8 @@ async function refreshEpgData() {
         
         // Reload sources list to update last_updated info
         loadEpgSources();
+
+        showAlert('success', 'EPG data refreshed');
     } catch (error) {
         console.error('Error refreshing EPG data:', error);
     } finally {
@@ -497,16 +526,34 @@ async function loadEpgChannelOptions() {
             
             const channelData = await channelResponse.json();
             window.epgChannelsList = channelData;
+            console.log('EPG channels updated');
         }
         
         // Populate the datalist with options
         const datalist = document.getElementById('epgChannelOptions');
         if (datalist) {
             datalist.innerHTML = '';
+            
+            // Check if there are multiple sources
+            const uniqueSources = new Set();
+            window.epgChannelsList.forEach(channel => {
+                if (channel.source_id) uniqueSources.add(channel.source_id);
+            });
+            
+            const multipleSources = uniqueSources.size > 1;
+            
+            // Generate options for the datalist
             window.epgChannelsList.forEach(channel => {
                 const option = document.createElement('option');
                 option.value = channel.id;
-                option.text = channel.name || channel.id;
+                
+                // If multiple sources are available, show the source name
+                if (multipleSources && channel.source_name) {
+                    option.text = `${channel.name || channel.id} [${channel.source_name}]`;
+                } else {
+                    option.text = channel.name || channel.id;
+                }
+                
                 datalist.appendChild(option);
             });
         }
@@ -569,8 +616,8 @@ async function autoScanChannels() {
             await refreshData();
         }
     } catch (error) {
-        console.error('Error during auto-scan:', error);
-        showAlert('danger', 'Error during auto-scan: ' + error.message);
+        console.error('Error during auto map:', error);
+        showAlert('danger', 'Error during auto map: ' + error.message);
     } finally {
         hideLoading();
         
@@ -578,7 +625,7 @@ async function autoScanChannels() {
         const btn = document.getElementById('scanChannelsBtn');
         if (btn) {
             btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-search"></i> Scan Channels';
+            btn.innerHTML = '<i class="bi bi-search"></i> Auto Map Channels';
         }
     }
 }
@@ -625,6 +672,9 @@ function initializeEpgComponents() {
     if (searchPatternInput) {
         searchPatternInput.addEventListener('input', debounce(previewMatchingChannels, 300));
     }
+
+    // Add autofocus to modals
+    setupEpgModalAutofocus();
     
     // Add event listener for the exclusion checkbox to update preview when changed
     if (exclusionCheckbox) {
@@ -710,7 +760,7 @@ function initializeEpgComponents() {
         else if (event.target.id === 'scanChannelsBtn') {
             const btn = event.target;
             btn.disabled = true;
-            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Scanning...';
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Auto Mapping...';
             autoScanChannels();
         }
     });
@@ -950,6 +1000,37 @@ function updateButtonsState(hasActiveSources) {
         });
     }
 }
+
+/**
+ * Setup autofocus for EPG modals
+ */
+function setupEpgModalAutofocus() {
+    // Get all the modals in the EPG section
+    const modals = [
+        document.getElementById('addEpgSourceModal'),
+        document.getElementById('addEpgMappingModal')
+    ];
+    
+    // Setup autofocus for each modal
+    modals.forEach(modal => {
+        if (modal) {
+            modal.addEventListener('shown.bs.modal', function() {
+                // Find the first input field in the modal
+                const firstInput = this.querySelector('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])');
+                if (firstInput) {
+                    firstInput.focus();
+                    
+                    // If it's a text input, select all text for quick replacement
+                    if (firstInput.tagName.toLowerCase() === 'input' && 
+                        ['text', 'email', 'url', 'search'].includes(firstInput.type)) {
+                        firstInput.select();
+                    }
+                }
+            });
+        }
+    });
+}
+
 // From core.js
 /**
  * Core functionality for the Acestream Scraper application

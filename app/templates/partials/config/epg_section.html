@@ -11,10 +11,10 @@
                 <button class="nav-link active" id="sources-tab" data-bs-toggle="tab" data-bs-target="#sources" type="button" role="tab" aria-controls="sources" aria-selected="true">EPG Sources</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="mappings-tab" data-bs-toggle="tab" data-bs-target="#mappings" type="button" role="tab" aria-controls="mappings" aria-selected="false">Channel Mappings</button>
+                <button class="nav-link" id="automapping-tab" data-bs-toggle="tab" data-bs-target="#automapping" type="button" role="tab" aria-controls="automapping" aria-selected="false">Auto Map</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="automapping-tab" data-bs-toggle="tab" data-bs-target="#automapping" type="button" role="tab" aria-controls="automapping" aria-selected="false">Auto Scan</button>
+                <button class="nav-link" id="mappings-tab" data-bs-toggle="tab" data-bs-target="#mappings" type="button" role="tab" aria-controls="mappings" aria-selected="false">Channel Mappings</button>
             </li>
         </ul>
         
@@ -91,11 +91,11 @@
                 </div>
             </div>
             
-            <!-- Auto Scan Tab: Automatically match channels with EPG data -->
+            <!-- Auto Map Tab: Automatically match channels with EPG data -->
             <div class="tab-pane fade" id="automapping" role="tabpanel" aria-labelledby="automapping-tab">
                 <div class="row mb-3">
                     <div class="col-md-8">
-                        <h5>Auto-Scan Channels</h5>
+                        <h5>Auto Map Channels</h5>
                         <p class="text-muted">Automatically match channels with EPG data based on name similarity</p>
                     </div>
                 </div>
@@ -127,7 +127,7 @@
                 </div>
                 <div class="text-end">
                     <button class="btn btn-primary" id="scanChannelsBtn">
-                        <i class="bi bi-search"></i> Scan Channels
+                        <i class="bi bi-search"></i> Auto Map Channels
                     </button>
                 </div>
             </div>

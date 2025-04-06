@@ -217,11 +217,24 @@ class EPGChannelsResource(Resource):
         if not service.epg_data:
             service.fetch_epg_data()
         
-        # Convert to simple list of channel IDs and names
+        source_repo = EPGSourceRepository()
+        sources = {source.id: source for source in source_repo.get_all()}
+
+        # Sequential numbering of sources for UI display
+        source_numbers = {}
+        for i, source_id in enumerate(sources.keys()):
+            source_numbers[source_id] = f"Source #{i+1}"
+
+        # Convert to simple list of channel IDs and names with source info
         for channel_id, data in service.epg_data.items():
+            source_id = data.get('source_id')
+            source_name = source_numbers.get(source_id, "Unknown") if source_id else ""
+            
             channels.append({
                 'id': channel_id,
-                'name': data.get('tvg_name', channel_id)
+                'name': data.get('tvg_name', channel_id),
+                'source_id': source_id,
+                'source_name': source_name  
             })
         
         return channels

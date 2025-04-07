@@ -911,18 +911,6 @@ function escapeRegExp(string) {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/**
- * Debounce function to limit how often a function runs
- */
-function debounce(func, wait) {
-    let timeout;
-    return function(...args) {
-        const context = this;
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func.apply(context, args), wait);
-    };
-}
-
 // Initialize everything when the DOM is ready
 document.addEventListener('DOMContentLoaded', initializeEpgComponents);
 
@@ -1093,4 +1081,17 @@ function hideLoading() {
     if (loadingElement) {
         loadingElement.style.display = 'none';
     }
+}
+
+// Debounce function to limit API calls
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
 }

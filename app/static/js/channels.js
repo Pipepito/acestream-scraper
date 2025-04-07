@@ -235,113 +235,16 @@ async function searchChannels(searchTerm, urlId = '') {
         // Fetch filtered channels
         const queryString = params.toString() ? `?${params.toString()}` : '';
         const response = await fetch(`/api/channels${queryString}`);
+        const data = await response.json();
         
         if (!response.ok) {
-            const data = await response.json();
             throw new Error(data.message || 'Failed to search channels');
         }
         
-        const channels = await response.json();
-        
-        // Update the channel list with the same styling as refreshChannelList
-        const channelsList = document.getElementById('channelsList');
-        if (channelsList) {
-            channelsList.innerHTML = channels.map(channel => {
-                // Asegurarse de que channel.id y channel.name nunca sean null
-                const channelId = channel.id || 'unknown';
-                const channelName = channel.name || 'Unnamed Channel';
-                
-                // Determinar clase de estilo según metadatos
-                let metadataClass = 'primary'; // Por defecto azul (sin metadatos)
-                let metadataText = 'Basic';
-                let metadataBadge = '';
-                let tooltipText = 'Edit channel - No EPG data';
-                
-                // Si está bloqueado, tiene prioridad en el color
-                if (channel.epg_update_protected) {
-                    metadataClass = 'purple';
-                    metadataText = 'Locked EPG';
-                    metadataBadge = '<span class="badge bg-purple ms-1"><i class="bi bi-lock-fill"></i></span>';
-                    tooltipText = 'Edit channel - EPG locked (protected from automatic updates)';
-                }
-                // Sino evaluamos el estado de los metadatos
-                else if (channel.tvg_id && channel.tvg_name && channel.logo) {
-                    metadataClass = 'success';  // Verde - completo
-                    metadataText = 'Complete EPG';
-                    tooltipText = 'Edit channel - Complete EPG data';
-                } 
-                else if (channel.tvg_id || channel.tvg_name || channel.logo) {
-                    metadataClass = 'warning';  // Ámbar - parcial
-                    metadataText = 'Partial EPG';
-                    tooltipText = 'Edit channel - Partial EPG data';
-                }
-                
-                // Logo display
-                const logoHtml = channel.logo ? 
-                    `<img src="${channel.logo}" alt="Logo" class="channel-logo me-2" style="max-height:60px; max-width:60px;">` : 
-                    '';
-                
-                // Usar exactamente el mismo HTML que en refreshChannelList
-                return `
-                <tr class="border-${metadataClass}">
-                    <td>
-                        <div class="d-flex align-items-center">
-                            ${logoHtml}
-                            <div>
-                                ${channelName}
-                                <span class="badge bg-${metadataClass} ms-1">${metadataText}</span>
-                                ${metadataBadge}
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        <a href="acestream://${channelId}" class="text-decoration-none" title="Open in Acestream player">
-                            ${channelId}
-                        </a>
-                    </td>
-                    <td>
-                        ${formatLocalDate(channel.last_processed)}
-                        ${channel.last_checked ? `
-                            <br>
-                            <small class="text-muted">
-                                Status: <span class="badge ${channel.is_online ? 'bg-success' : 'bg-danger'}">
-                                    ${channel.is_online ? 'Online' : 'Offline'}
-                                </span>
-                                ${channel.check_error ? `<br><small class="text-danger">Error: ${channel.check_error}</small>` : ''}
-                                <br>
-                                Last checked: ${formatLocalDate(channel.last_checked)}
-                            </small>
-                        ` : ''}
-                    </td>
-                    <td>
-                        <div class="btn-group">
-                            <button class="btn btn-sm btn-${channel.epg_update_protected ? 'purple' : 'outline-secondary'} toggle-epg-lock" 
-                                data-id="${channelId}" title="${channel.epg_update_protected ? 'Allow automatic EPG updates' : 'Prevent automatic EPG updates'}">
-                                ${channel.epg_update_protected ? '<i class="bi bi-lock-fill"></i>' : '<i class="bi bi-unlock"></i>'} EPG
-                            </button>
-                            <button class="btn btn-sm btn-info check-status" 
-                                onclick="checkChannelStatus('${encodeURIComponent(channelId)}')" title="Check status">
-                                <i class="bi bi-shield-check"></i>
-                            </button>
-                            <button class="btn btn-sm btn-${metadataClass} edit-channel" 
-                                onclick="editChannel('${encodeURIComponent(channelId)}')" title="${tooltipText}">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger" 
-                                onclick="deleteChannel('${encodeURIComponent(channelId)}')" title="Delete channel">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                `;
-            }).join('');
-        }
-        
-        return channels;
+        return data;
     } catch (error) {
         console.error('Error searching channels:', error);
-        showAlert('danger', 'Error searching channels');
+        showAlert('error', 'Error searching channels');
         return [];
     } finally {
         hideLoading();

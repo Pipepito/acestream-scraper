@@ -5,6 +5,6 @@ flask[async]==2.0.1
 flask-migrate==4.0.5
 flask-sqlalchemy==2.5.1
 flask-restx==1.3.0
-sqlalchemy==1.4.23
+sqlalchemy==1.4.54
 werkzeug==2.0.3
 requests>=2.31.0

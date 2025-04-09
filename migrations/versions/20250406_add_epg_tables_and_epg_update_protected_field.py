@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '20250406_add_epg_tables_and_epg_update_protected_field'
-down_revision = '20250330_add_added_at_to_scraped_urls'
+down_revision = '20250330_add_added_at'
 branch_labels = None
 depends_on = None
 

@@ -103,3 +103,25 @@ def setup():
         current_app.logger.info("Configuration already initialized, redirecting to dashboard")
         return redirect(url_for('main.index'))
     return render_template('setup.html')
+
+@bp.route('/tv-channels')
+def tv_channels():
+    """TV channels management page."""
+    config = Config()
+    
+    # If config was not imported, redirect to setup
+    if not config.settings_repo or not config.settings_repo.is_setup_completed():
+        return redirect(url_for('main.setup'))
+        
+    return render_template('tv_channels.html')
+
+@bp.route('/tv-channels/<int:tv_channel_id>')
+def tv_channel_detail(tv_channel_id):
+    """TV channel detail page showing information about a single TV channel."""
+    config = Config()
+    
+    # If config was not imported, redirect to setup
+    if not config.settings_repo or not config.settings_repo.is_setup_completed():
+        return redirect(url_for('main.setup'))
+        
+    return render_template('tv_channel_detail.html', tv_channel_id=tv_channel_id)

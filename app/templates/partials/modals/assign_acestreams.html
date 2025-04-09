@@ -1,0 +1,56 @@
+<!-- Assign Acestreams Modal -->
+<div class="modal fade" id="assignAcestreamsModal" tabindex="-1" aria-labelledby="assignAcestreamsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="assignAcestreamsModalLabel">Assign Acestreams</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h6 id="tvChannelNameDisplay" class="mb-3">TV Channel: Loading...</h6>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-header bg-light">
+                                Assigned Acestreams
+                            </div>
+                            <div class="list-group list-group-flush" id="assignedAcestreams">
+                                <div class="list-group-item text-center text-muted">
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <span class="ms-2">Loading assigned acestreams...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <div class="row align-items-center">
+                                    <div class="col">Available Acestreams</div>
+                                    <div class="col-8">
+                                        <input type="text" class="form-control form-control-sm" id="searchAcestreamsInput" 
+                                               placeholder="Search streams by name or ID">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="list-group list-group-flush" id="availableAcestreams" style="max-height: 400px; overflow-y: auto;">
+                                <div class="list-group-item text-center text-muted">
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <span class="ms-2">Loading available acestreams...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

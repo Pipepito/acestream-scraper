@@ -289,6 +289,10 @@ async function editChannel(channelId) {
         document.getElementById('editChannelTvgName').value = channel.tvg_name || '';
         document.getElementById('editChannelOriginalUrl').value = channel.original_url || '';
         document.getElementById('editChannelM3uSource').value = channel.m3u_source || '';
+        const epgLockedField = document.getElementById('editChannelEpgLocked');
+        if (epgLockedField) {
+            epgLockedField.checked = Boolean(channel.epg_update_protected || false);
+        }
         
         // Show the modal
         const editModal = new bootstrap.Modal(document.getElementById('editChannelModal'));
@@ -324,11 +328,13 @@ async function saveChannelChanges() {
         const channelTvgName = document.getElementById('editChannelTvgName').value;
         const channelOriginalUrl = document.getElementById('editChannelOriginalUrl').value;
         const channelM3uSource = document.getElementById('editChannelM3uSource').value;
+        const epgLocked = document.getElementById('editChannelEpgLocked').checked;
         
         // Create channel data object
         const channelData = {
             name: channelName,
-            group: channelGroup
+            group: channelGroup,
+            epg_update_protected: epgLocked  
         };
         
         // Only include fields that have values

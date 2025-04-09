@@ -335,14 +335,10 @@
         </div>
     </div>
 </div>
-
-<!-- Include the EPG section -->
-{% include 'partials/config/epg_section.html' %}
 {% endblock %}
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/config.js') }}"></script>
 <script src="{{ url_for('static', filename='js/urls.js') }}"></script>
 <script src="{{ url_for('static', filename='js/warp.js') }}"></script>
-<script src="{{ url_for('static', filename='js/epg.js') }}"></script>
 {% endblock %}

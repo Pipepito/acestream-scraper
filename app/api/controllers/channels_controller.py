@@ -33,8 +33,7 @@ channel_model = api.model('Channel', {
     'm3u_source': fields.String(description='Original M3U source'),
     'source_url': fields.String(description='Source URL for the channel'),
     'scraped_url_id': fields.String(description='ID of the scraped URL'),
-    'added_on': fields.DateTime(description='When the channel was added'),
-    'epg_update_protected': fields.Boolean(description='Whether EPG mapping is locked for this channel')
+    'added_on': fields.DateTime(description='When the channel was added')
 })
 
 status_check_result_model = api.model('StatusCheckResult', {
@@ -59,9 +58,7 @@ channel_update_model = api.model('ChannelUpdate', {
     'tvg_id': fields.String(description='TVG ID for EPG'),
     'tvg_name': fields.String(description='TVG Name for EPG'),
     'original_url': fields.String(description='Original URL before conversion'),
-    'm3u_source': fields.String(description='Original M3U source'),
-    'epg_update_protected': fields.Boolean(description='Whether EPG mapping is locked for this channel')
-
+    'm3u_source': fields.String(description='Original M3U source')
 })
 
 # Updated parser to include URL ID filter parameter
@@ -131,7 +128,7 @@ class ChannelList(Resource):
         
         # Serialize the results
         result = [channel.to_dict() for channel in channels]
-
+        
         return result
     
     @api.doc('create_channel')
@@ -242,8 +239,6 @@ class Channel(Resource):
                 channel.original_url = data['original_url']
             if 'm3u_source' in data:
                 channel.m3u_source = data['m3u_source']
-            if 'epg_update_protected' in data:
-                channel.epg_update_protected = bool(data['epg_update_protected'])
                 
             # Save changes
             channel_repo.commit()

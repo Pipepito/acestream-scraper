@@ -14,7 +14,8 @@ const tvChannelsState = {
     page: 1,
     perPage: 20,
     totalPages: 1,
-    isLoading: false
+    isLoading: false,
+    selectedChannels: new Set()
 };
 
 // Document ready handler
@@ -26,6 +27,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Set up event listeners
     setupEventListeners();
+
+    // Initialize bulk edit handlers
+    initBulkEditHandlers();
 });
 
 /**
@@ -101,6 +105,53 @@ function setupEventListeners() {
     document.getElementById('associateByEPGBtn')?.addEventListener('click', associateByEPG);
     document.getElementById('bulkUpdateEPGBtn')?.addEventListener('click', bulkUpdateEPG);
     document.getElementById('generateTVChannelsBtn')?.addEventListener('click', generateTVChannelsFromAcestreams);
+}
+
+/**
+ * Initialize bulk edit functionality
+ */
+function initBulkEditHandlers() {
+    // Set up select all checkbox
+    const selectAllCheckbox = document.getElementById('selectAllChannels');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            const isChecked = this.checked;
+            const checkboxes = document.querySelectorAll('.channel-select-checkbox');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = isChecked;
+                const channelId = checkbox.value;
+                
+                if (isChecked) {
+                    tvChannelsState.selectedChannels.add(channelId);
+                } else {
+                    tvChannelsState.selectedChannels.delete(channelId);
+                }
+            });
+            
+            updateBulkEditToolbar();
+        });
+    }
+    
+    // Set up bulk edit buttons
+    document.getElementById('bulkEditBtn')?.addEventListener('click', openBulkEditModal);
+    document.getElementById('clearSelectionBtn')?.addEventListener('click', clearSelection);
+    document.getElementById('saveBulkEditBtn')?.addEventListener('click', saveBulkEdit);
+    
+    // Set up bulk field toggles
+    const toggles = document.querySelectorAll('.bulk-field-toggle');
+    toggles.forEach(toggle => {
+        toggle.addEventListener('change', function() {
+            const fieldName = this.value;
+            const fieldGroup = document.getElementById(`${fieldName}FieldGroup`);
+            
+            if (this.checked) {
+                fieldGroup.classList.remove('d-none');
+            } else {
+                fieldGroup.classList.add('d-none');
+            }
+        });
+    });
 }
 
 /**
@@ -193,9 +244,20 @@ function updateTVChannelsTable() {
                 ${channel.name}
             </div>` : 
             channel.name;
+
+        // Check if this channel is in the selected set
+        const isSelected = tvChannelsState.selectedChannels.has(channel.id.toString());
         
         return `
             <tr>
+                <td>
+                    <div class="form-check">
+                        <input class="form-check-input channel-select-checkbox" type="checkbox" 
+                               value="${channel.id}" 
+                               data-channel-id="${channel.id}" 
+                               ${isSelected ? 'checked' : ''}>
+                    </div>
+                </td>
                 <td>${nameWithLogo}</td>
                 <td>${channel.category || '-'}</td>
                 <td>${countryLanguage || '-'}</td>
@@ -216,6 +278,165 @@ function updateTVChannelsTable() {
             </tr>
         `;
     }).join('');
+
+    // Add event listeners to new checkboxes
+    addCheckboxEventListeners();
+}
+
+/**
+ * Add event listeners to channel selection checkboxes
+ */
+function addCheckboxEventListeners() {
+    const checkboxes = document.querySelectorAll('.channel-select-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const channelId = this.value;
+            
+            if (this.checked) {
+                tvChannelsState.selectedChannels.add(channelId);
+            } else {
+                tvChannelsState.selectedChannels.delete(channelId);
+                
+                // Uncheck "select all" if any individual checkbox is unchecked
+                document.getElementById('selectAllChannels').checked = false;
+            }
+            
+            updateBulkEditToolbar();
+        });
+    });
+}
+
+/**
+ * Update the bulk edit toolbar visibility and count
+ */
+function updateBulkEditToolbar() {
+    const toolbar = document.getElementById('bulkEditToolbar');
+    const countSpan = document.getElementById('selectedChannelsCount');
+    const selectedCount = tvChannelsState.selectedChannels.size;
+    
+    if (selectedCount > 0) {
+        toolbar.classList.remove('d-none');
+        countSpan.textContent = selectedCount;
+    } else {
+        toolbar.classList.add('d-none');
+    }
+}
+
+/**
+ * Clear all selected channels
+ */
+function clearSelection() {
+    tvChannelsState.selectedChannels.clear();
+    
+    // Uncheck all checkboxes
+    document.querySelectorAll('.channel-select-checkbox, #selectAllChannels').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    
+    updateBulkEditToolbar();
+}
+
+/**
+ * Open the bulk edit modal
+ */
+function openBulkEditModal() {
+    // Update the count in the modal
+    document.getElementById('bulkEditCount').textContent = tvChannelsState.selectedChannels.size;
+    
+    // Clear previous values
+    document.getElementById('bulkEditCategory').value = '';
+    document.getElementById('bulkEditCountry').value = '';
+    document.getElementById('bulkEditLanguage').value = '';
+    document.getElementById('bulkEditIsActive').checked = true;
+    
+    // Reset toggles
+    document.querySelectorAll('.bulk-field-toggle').forEach(toggle => {
+        toggle.checked = false;
+    });
+    
+    // Hide all field groups
+    document.querySelectorAll('.bulk-field').forEach(field => {
+        field.classList.add('d-none');
+    });
+    
+    // Show the modal
+    const modal = new bootstrap.Modal(document.getElementById('bulkEditTVChannelsModal'));
+    modal.show();
+}
+
+/**
+ * Save bulk edit changes
+ */
+async function saveBulkEdit() {
+    // Get selected field toggles
+    const toggles = document.querySelectorAll('.bulk-field-toggle:checked');
+    
+    // Build update object based on selected fields
+    const updateData = {
+        channel_ids: Array.from(tvChannelsState.selectedChannels)
+    };
+    
+    // Add fields that should be updated
+    toggles.forEach(toggle => {
+        const field = toggle.value;
+        
+        switch (field) {
+            case 'category':
+                updateData.category = document.getElementById('bulkEditCategory').value.trim();
+                break;
+            case 'country':
+                updateData.country = document.getElementById('bulkEditCountry').value.trim();
+                break;
+            case 'language':
+                updateData.language = document.getElementById('bulkEditLanguage').value.trim();
+                break;
+            case 'is_active':
+                updateData.is_active = document.getElementById('bulkEditIsActive').checked;
+                break;
+        }
+    });
+    
+    // If no fields selected, show warning
+    if (Object.keys(updateData).length <= 1) { // Only channel_ids
+        showAlert('warning', 'Please select at least one field to update');
+        return;
+    }
+    
+    try {
+        showLoading();
+        
+        const response = await fetch('/api/tv-channels/bulk-update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(updateData)
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.message || 'An error occurred during bulk update');
+        }
+        
+        // Close the modal
+        bootstrap.Modal.getInstance(document.getElementById('bulkEditTVChannelsModal')).hide();
+        
+        // Show success message
+        showAlert('success', `Successfully updated ${data.updated_count} channels`);
+        
+        // Clear selection
+        clearSelection();
+        
+        // Refresh the channels list
+        loadTVChannels();
+        
+    } catch (error) {
+        console.error('Bulk update failed:', error);
+        showAlert('error', error.message || 'Failed to update channels');
+    } finally {
+        hideLoading();
+    }
 }
 
 /**

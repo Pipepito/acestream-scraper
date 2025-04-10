@@ -125,3 +125,25 @@ def tv_channel_detail(tv_channel_id):
         return redirect(url_for('main.setup'))
         
     return render_template('tv_channel_detail.html', tv_channel_id=tv_channel_id)
+
+@bp.route('/streams')
+def streams():
+    """Acestream channels management page."""
+    config = Config()
+    
+    # If config was not imported, redirect to setup
+    if not config.settings_repo or not config.settings_repo.is_setup_completed():
+        return redirect(url_for('main.setup'))
+        
+    return render_template('streams.html')
+
+@bp.route('/epg')
+def epg_management():
+    """EPG management page."""
+    config = Config()
+    
+    # If config was not imported, redirect to setup
+    if not config.settings_repo or not config.settings_repo.is_setup_completed():
+        return redirect(url_for('main.setup'))
+        
+    return render_template('epg.html')

@@ -6,7 +6,6 @@
 <div class="container py-4" id="tvChannelDetailContainer">
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
             <li class="breadcrumb-item"><a href="{{ url_for('main.tv_channels') }}">TV Channels</a></li>
             <li class="breadcrumb-item active" aria-current="page" id="channelBreadcrumb">Channel Detail</li>
         </ol>
@@ -16,7 +15,9 @@
     <div class="row mb-4 align-items-center" id="channelHeader">
         <div class="col-auto" id="channelLogoContainer">
             <div class="placeholder-logo bg-light rounded d-flex align-items-center justify-content-center" style="width: 150px; height: 150px;">
-                <i class="bi bi-tv fs-1 text-muted"></i>
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-tv text-muted" viewBox="0 0 16 16">
+                    <path d="M2.5 13.5A.5.5 0 0 1 3 13h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zM13.991 3l.024.001a1.46 1.46 0 0 1 .538.143.757.757 0 0 1 .302.254c.067.1.145.277.145.602v5.991l-.001.024a1.464 1.464 0 0 1-.143.538.758.758 0 0 1-.254.302c-.1.067-.277.145-.602.145H2.009l-.024-.001a1.464 1.464 0 0 1-.538-.143.758.758 0 0 1-.302-.254C1.078 10.502 1 10.325 1 10V4.009l.001-.024a1.46 1.46 0 0 1 .143-.538.758.758 0 0 1 .254-.302C1.498 3.078 1.675 3 2 3h11.991zM14 2H2C0 2 0 4 0 4v6c0 2 2 2 2 2h12c2 0 2-2 2-2V4c0-2-2-2-2-2z"/>
+                </svg>
             </div>
         </div>
         <div class="col">
@@ -31,10 +32,17 @@
         <div class="col-auto">
             <div class="btn-group">
                 <button class="btn btn-primary" id="editChannelBtn">
-                    <i class="bi bi-pencil"></i> Edit
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil me-1" viewBox="0 0 16 16">
+                        <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
+                    </svg>
+                    Edit
                 </button>
                 <button class="btn btn-danger" id="deleteChannelBtn">
-                    <i class="bi bi-trash"></i> Delete
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash me-1" viewBox="0 0 16 16">
+                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                        <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                    </svg>
+                    Delete
                 </button>
             </div>
         </div>
@@ -61,7 +69,11 @@
                         <h5>Associated Acestream Channels</h5>
                         <div>
                             <button class="btn btn-primary btn-sm" id="assignAcestreamsBtn">
-                                <i class="bi bi-link"></i> Assign Acestreams
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-link me-1" viewBox="0 0 16 16">
+                                    <path d="M6.354 5.5H4a3 3 0 0 0 0 6h3a3 3 0 0 0 2.83-4H9c-.086 0-.17.01-.25.031A2 2 0 0 1 7 10.5H4a2 2 0 1 1 0-4h1.535c.218-.376.495-.714.82-1z"/>
+                                    <path d="M9 5.5a3 3 0 0 0-2.83 4h1.098A2 2 0 0 1 9 6.5h3a2 2 0 1 1 0 4h-1.535a4.02 4.02 0 0 1-.82 1H12a3 3 0 1 0 0-6H9z"/>
+                                </svg>
+                                Assign Acestreams
                             </button>
                         </div>
                     </div>
@@ -90,7 +102,10 @@
                     <div class="text-center text-muted" id="noAcestreamsMessage" style="display: none;">
                         <p>No acestream channels associated with this TV channel.</p>
                         <button class="btn btn-outline-primary" id="findAcestreamsBtn">
-                            <i class="bi bi-search"></i> Find Acestreams to Associate
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search me-1" viewBox="0 0 16 16">
+                                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                            </svg>
+                            Find Acestreams to Associate
                         </button>
                     </div>
                 </div>
@@ -107,7 +122,10 @@
                                         <div class="input-group">
                                             <input type="text" class="form-control" id="epgIdDisplay" readonly>
                                             <button class="btn btn-outline-secondary" id="syncEpgBtn" title="Synchronize EPG data">
-                                                <i class="bi bi-arrow-repeat"></i>
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-repeat" viewBox="0 0 16 16">
+                                                    <path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                                                    <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                                                </svg>
                                             </button>
                                         </div>
                                     </div>
@@ -165,9 +183,6 @@
                                         
                                         <dt class="col-sm-6">Online Streams</dt>
                                         <dd class="col-sm-6" id="detailOnlineStreams">-</dd>
-                                        
-                                        <dt class="col-sm-6">Best Stream</dt>
-                                        <dd class="col-sm-6" id="detailBestStream">-</dd>
                                     </dl>
                                 </div>
                             </div>

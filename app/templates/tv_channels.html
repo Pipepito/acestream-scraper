@@ -1,161 +1,196 @@
-{% extends "layout.html" %}
-
-{% block title %}TV Channels Management - Acestream Scraper{% endblock %}
-
-{% block content %}
+{% extends "layout.html" %} {% block title %}TV Channels Management - Acestream
+Scraper{% endblock %} {% block tv_channels_active %}active{% endblock %} {%
+block content %}
 <div class="container py-4">
-    <h1 class="mb-4">TV Channels Management</h1>
-    
-    <!-- Add navigation breadcrumbs at the top -->
-    <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
-            <li class="breadcrumb-item active" aria-current="page">TV Channels</li>
-        </ol>
-    </nav>
-    
-    <!-- Statistics summary -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card h-100">
-                <div class="card-body text-center">
-                    <h5 class="card-title">Total TV Channels</h5>
-                    <h2 id="totalTVChannelsCard">...</h2>
-                </div>
-            </div>
+  <h1 class="mb-4">TV Channels Management</h1>
+
+  <!-- Statistics summary -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card h-100">
+        <div class="card-body text-center">
+          <h5 class="card-title">Total TV Channels</h5>
+          <h2 id="totalTVChannelsCard">...</h2>
         </div>
-        <div class="col-md-3">
-            <div class="card h-100">
-                <div class="card-body text-center">
-                    <h5 class="card-title">Active Channels</h5>
-                    <h2 id="activeChannelsCard">...</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card h-100">
-                <div class="card-body text-center">
-                    <h5 class="card-title">Channels with EPG</h5>
-                    <h2 id="channelsWithEPGCard">...</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card h-100">
-                <div class="card-body text-center">
-                    <h5 class="card-title">Total Acestreams</h5>
-                    <h2 id="totalAcestreamsCard">...</h2>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
-    
-    <!-- Actions Panel -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-8">
-                    <h5>Channel Actions</h5>
-                </div>
-                <div class="col-md-4 text-end">
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-primary" id="addTVChannelBtn">
-                            <i class="bi bi-plus-lg"></i> Add TV Channel
-                        </button>
-                        <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
-                            <span class="visually-hidden">Toggle Dropdown</span>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="#" id="batchAssignBtn">Auto-assign Acestreams</a></li>
-                            <li><a class="dropdown-item" href="#" id="associateByEPGBtn">Associate by EPG ID</a></li>
-                            <li><a class="dropdown-item" href="#" id="bulkUpdateEPGBtn">Bulk Update EPG</a></li>
-                            <li><a class="dropdown-item" href="#" id="generateTVChannelsBtn">Generate from Acestreams</a></li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
+    <div class="col-md-3">
+      <div class="card h-100">
+        <div class="card-body text-center">
+          <h5 class="card-title">Active Channels</h5>
+          <h2 id="activeChannelsCard">...</h2>
         </div>
+      </div>
     </div>
-    
-    <!-- Search and filters -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <label for="tvChannelSearchInput" class="form-label">Search Channels</label>
-                    <input type="text" class="form-control" id="tvChannelSearchInput" placeholder="Search by name, description...">
-                </div>
-                <div class="col-md-2">
-                    <label for="categoryFilter" class="form-label">Category</label>
-                    <select class="form-select" id="categoryFilter">
-                        <option value="">All Categories</option>
-                        <!-- Categories will be populated by JavaScript -->
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label for="countryFilter" class="form-label">Country</label>
-                    <select class="form-select" id="countryFilter">
-                        <option value="">All Countries</option>
-                        <!-- Countries will be populated by JavaScript -->
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label for="languageFilter" class="form-label">Language</label>
-                    <select class="form-select" id="languageFilter">
-                        <option value="">All Languages</option>
-                        <!-- Languages will be populated by JavaScript -->
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label for="channelsPerPage" class="form-label">Channels Per Page</label>
-                    <select class="form-select" id="channelsPerPage">
-                        <option value="20">20</option>
-                        <option value="50">50</option>
-                        <option value="100">100</option>
-                    </select>
-                </div>
-            </div>
+    <div class="col-md-3">
+      <div class="card h-100">
+        <div class="card-body text-center">
+          <h5 class="card-title">Channels with EPG</h5>
+          <h2 id="channelsWithEPGCard">...</h2>
         </div>
+      </div>
     </div>
-    
-    <!-- TV Channels list -->
-    <div class="card">
-        <div class="card-body">
-            <h5 class="card-title">TV Channels List</h5>
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Channel</th>
-                            <th>Category</th>
-                            <th>Country/Language</th>
-                            <th>Acestreams</th>
-                            <th>EPG ID</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tvChannelsTableBody">
-                        <tr>
-                            <td colspan="6" class="text-center">Loading TV channels...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            
-            <!-- Pagination -->
-            <nav aria-label="TV Channels pagination">
-                <ul class="pagination justify-content-center" id="tvChannelsPagination">
-                    <!-- Pagination will be populated by JavaScript -->
-                </ul>
-            </nav>
+    <div class="col-md-3">
+      <div class="card h-100">
+        <div class="card-body text-center">
+          <h5 class="card-title">Total Acestreams</h5>
+          <h2 id="totalAcestreamsCard">...</h2>
         </div>
+      </div>
     </div>
+  </div>
+
+  <!-- Actions Panel -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <!-- Channel actions row -->
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <h5 class="mb-0">Channel Actions</h5>
+        </div>
+        <div class="col-md-6 text-md-end">
+          <div class="btn-toolbar justify-content-md-end">
+            <button type="button" class="btn btn-primary me-2" id="addTVChannelBtn">
+              <i class="bi bi-plus-lg me-1"></i> Add TV Channel
+            </button>
+            <button type="button" class="btn btn-outline-primary me-2" id="batchAssignBtn">
+              <i class="bi bi-link me-1"></i> Auto-assign Acestreams
+            </button>
+            <button type="button" class="btn btn-outline-primary me-2" id="associateByEPGBtn">
+              <i class="bi bi-card-list me-1"></i> Associate by EPG
+            </button>
+            <button type="button" class="btn btn-outline-primary me-2" id="bulkUpdateEPGBtn">
+              <i class="bi bi-broadcast me-1"></i> Update EPG
+            </button>
+            <button type="button" class="btn btn-outline-primary" id="generateTVChannelsBtn">
+              <i class="bi bi-magic me-1"></i> Generate Channels
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Bulk edit toolbar - initially hidden -->
+      <div class="row" id="bulkEditContainer">
+        <div class="col-12">
+          <div id="bulkEditToolbar" class="alert alert-info d-none">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <i class="bi bi-check2-square me-2"></i>
+                <span id="selectedChannelsCount" class="fw-bold">0</span> channels selected
+              </div>
+              <div>
+                <button type="button" class="btn btn-primary btn-sm me-2" id="bulkEditBtn">
+                  <i class="bi bi-pencil-square me-1"></i> Edit Selected
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="clearSelectionBtn">
+                  <i class="bi bi-x-lg me-1"></i> Clear Selection
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search and filters -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label for="tvChannelSearchInput" class="form-label"
+            >Search Channels</label
+          >
+          <input
+            type="text"
+            class="form-control"
+            id="tvChannelSearchInput"
+            placeholder="Search by name, description..." />
+        </div>
+        <div class="col-md-2">
+          <label for="categoryFilter" class="form-label">Category</label>
+          <select class="form-select" id="categoryFilter">
+            <option value="">All Categories</option>
+            <!-- Categories will be populated by JavaScript -->
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label for="countryFilter" class="form-label">Country</label>
+          <select class="form-select" id="countryFilter">
+            <option value="">All Countries</option>
+            <!-- Countries will be populated by JavaScript -->
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label for="languageFilter" class="form-label">Language</label>
+          <select class="form-select" id="languageFilter">
+            <option value="">All Languages</option>
+            <!-- Languages will be populated by JavaScript -->
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label for="channelsPerPage" class="form-label"
+            >Channels Per Page</label
+          >
+          <select class="form-select" id="channelsPerPage">
+            <option value="20">20</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Bulk Edit Toolbar - Initially hidden -->
+
+  <!-- TV Channels list -->
+  <div class="card">
+    <div class="card-body">
+      <h5 class="card-title">TV Channels List</h5>
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    value=""
+                    id="selectAllChannels" />
+                </div>
+              </th>
+              <th>Channel</th>
+              <th>Category</th>
+              <th>Country/Language</th>
+              <th>Acestreams</th>
+              <th>EPG ID</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tvChannelsTableBody">
+            <tr>
+              <td colspan="7" class="text-center">Loading TV channels...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <nav aria-label="TV Channels pagination">
+        <ul class="pagination justify-content-center" id="tvChannelsPagination">
+          <!-- Pagination will be populated by JavaScript -->
+        </ul>
+      </nav>
+    </div>
+  </div>
 </div>
 
 <!-- Include modals -->
-{% include 'partials/modals/add_tv_channel.html' %}
-{% include 'partials/modals/edit_tv_channel.html' %}
-{% include 'partials/modals/assign_acestreams.html' %}
+{% include 'partials/modals/add_tv_channel.html' %} {% include
+'partials/modals/edit_tv_channel.html' %} {% include
+'partials/modals/assign_acestreams.html' %} {% include
+'partials/modals/bulk_edit_tv_channels.html' %}
 
 <!-- Include script for TV Channels management -->
 <script src="{{ url_for('static', filename='js/tv-channels.js') }}"></script>

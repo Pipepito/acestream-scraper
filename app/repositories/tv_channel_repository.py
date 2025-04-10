@@ -284,3 +284,37 @@ class TVChannelRepository:
                      .distinct() \
                      .all()
         return [l[0] for l in languages]
+
+    def bulk_update(self, channel_ids: List[int], update_data: Dict) -> Dict:
+        """
+        Bulk update multiple TV channels at once.
+        
+        Args:
+            channel_ids: List of TV channel IDs to update
+            update_data: Dictionary with fields to update
+            
+        Returns:
+            Dictionary with result message and count of updated channels
+        """
+        try:
+            # Get all channels in a single query
+            channels = TVChannel.query.filter(TVChannel.id.in_(channel_ids)).all()
+            
+            if not channels:
+                return {'message': 'No matching channels found', 'updated_count': 0}
+                
+            # Update all channels with the same values
+            for channel in channels:
+                for field, value in update_data.items():
+                    setattr(channel, field, value)
+                    
+            # Commit changes
+            db.session.commit()
+            
+            return {
+                'message': f'Successfully updated {len(channels)} channels',
+                'updated_count': len(channels)
+            }
+        except Exception as e:
+            db.session.rollback()
+            raise e

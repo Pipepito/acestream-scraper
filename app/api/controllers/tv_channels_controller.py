@@ -60,6 +60,14 @@ batch_assign_model = api.model('BatchAssign', {
     'patterns': fields.Raw(required=True, description='Dictionary of patterns to TV channel IDs')
 })
 
+bulk_update_model = api.model('BulkUpdate', {
+    'channel_ids': fields.List(fields.Integer, required=True, description='List of TV channel IDs to update'),
+    'category': fields.String(description='Category to set for all channels'),
+    'country': fields.String(description='Country to set for all channels'),
+    'language': fields.String(description='Language to set for all channels'),
+    'is_active': fields.Boolean(description='Active status to set for all channels')
+})
+
 # Parse query parameters
 parser = api.parser()
 parser.add_argument('category', type=str, help='Filter by category')
@@ -342,3 +350,35 @@ class GenerateTVChannelsResource(Resource):
             'message': 'TV Channels generation complete',
             'stats': result
         }
+
+@api.route('/bulk-update')
+class BulkUpdateResource(Resource):
+    @api.doc('bulk_update_channels')
+    @api.expect(bulk_update_model)
+    @api.response(200, 'Channels updated successfully')
+    @api.response(400, 'Invalid request')
+    def post(self):
+        """Bulk update multiple TV channels at once"""
+        data = request.json
+        channel_ids = data.get('channel_ids', [])
+        
+        if not channel_ids:
+            api.abort(400, "No channel IDs provided")
+            
+        # Extract fields to update
+        update_data = {}
+        for field in ['category', 'country', 'language', 'is_active']:
+            if field in data:
+                update_data[field] = data[field]
+                
+        if not update_data:
+            api.abort(400, "No fields provided for update")
+            
+        try:
+            # Use the repository instead of direct DB access
+            repo = TVChannelRepository()
+            result = repo.bulk_update(channel_ids, update_data)
+            return result
+            
+        except Exception as e:
+            api.abort(500, f"Error updating channels: {str(e)}")

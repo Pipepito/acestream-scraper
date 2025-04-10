@@ -1,0 +1,370 @@
+{% extends "layout.html" %}
+
+{% block title %}EPG Management - Acestream Scraper{% endblock %}
+
+{% block epg_active %}active{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4">EPG Guide Management</h1>
+
+    <!-- Add navigation breadcrumbs at the top -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+            <li class="breadcrumb-item active" aria-current="page">EPG Guide</li>
+        </ol>
+    </nav>
+
+    <!-- Status Summary -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title">EPG Sources</h5>
+                    <h2 id="epgSourcesCount">...</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Total EPG Channels</h5>
+                    <h2 id="epgChannelsCount">...</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Mapping Rules</h5>
+                    <h2 id="mappingRulesCount">...</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Last Update</h5>
+                    <h2 id="lastUpdateTime">...</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- EPG Management Card -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">EPG Configuration</h5>
+        </div>
+        
+        <div class="card-body">
+            <!-- Navigation tabs for EPG management sections -->
+            <ul class="nav nav-tabs mb-3" id="epgTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="sources-tab" data-bs-toggle="tab" data-bs-target="#sources" type="button" role="tab" aria-controls="sources" aria-selected="true">EPG Sources</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="automapping-tab" data-bs-toggle="tab" data-bs-target="#automapping" type="button" role="tab" aria-controls="automapping" aria-selected="false">Auto Map</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="mappings-tab" data-bs-toggle="tab" data-bs-target="#mappings" type="button" role="tab" aria-controls="mappings" aria-selected="false">Channel Mappings</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="browse-tab" data-bs-toggle="tab" data-bs-target="#browse" type="button" role="tab" aria-controls="browse" aria-selected="false">Browse Channels</button>
+                </li>
+            </ul>
+            
+            <!-- Tab content panels -->
+            <div class="tab-content" id="epgTabsContent">
+                <!-- EPG Sources Tab: Manage XMLTV data sources -->
+                <div class="tab-pane fade show active" id="sources" role="tabpanel" aria-labelledby="sources-tab">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5>EPG Sources</h5>
+                        <div>
+                            <button id="addEpgSourceBtn" class="btn btn-primary btn-sm">
+                                <i class="bi bi-plus-lg"></i> Add Source
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="epgSourcesContainer">
+                        <!-- Dynamic content: EPG sources will be loaded here by JavaScript -->
+                        <div class="spinner-border spinner-border-sm" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <span class="ms-2">Loading EPG sources...</span>
+                    </div>
+                    <div class="text-end mt-3">
+                        <button id="refreshEpgDataBtn" class="btn btn-primary">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh EPG Data
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Channel Mappings Tab: Configure EPG data mapping rules -->
+                <div class="tab-pane fade" id="mappings" role="tabpanel" aria-labelledby="mappings-tab">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5>Channel Mappings</h5>
+                        <div>
+                            <button id="addEpgMappingBtn" class="btn btn-primary btn-sm">
+                                <i class="bi bi-plus-lg"></i> Add Mapping
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="updateCleanUnmatched">
+                                <label class="form-check-label" for="updateCleanUnmatched">
+                                    Clean EPG data if no match found
+                                </label>
+                            </div>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="updateRespectExisting" checked>
+                                <label class="form-check-label" for="updateRespectExisting">
+                                    Don't modify channels that already have EPG data
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Search Pattern</th>
+                                    <th>EPG Channel ID</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="epgMappingsTable">
+                                <!-- Dynamic content: EPG mapping rules will be loaded here by JavaScript -->
+                                <tr>
+                                    <td colspan="3" class="text-center">
+                                        <div class="spinner-border spinner-border-sm" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <span class="ms-2">Loading EPG mappings...</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-end">
+                        <button id="updateChannelsEpgBtn" class="btn btn-primary">
+                            <i class="bi bi-arrow-repeat"></i> Update EPG Mappings
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Auto Map Tab: Automatically match channels with EPG data -->
+                <div class="tab-pane fade" id="automapping" role="tabpanel" aria-labelledby="automapping-tab">
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <h5>Auto Map Channels</h5>
+                            <p class="text-muted">Automatically match channels with EPG data based on name similarity</p>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h6>Similarity Threshold</h6>
+                            <div class="mb-3">
+                                <label for="similarityThreshold" class="form-label">
+                                    <span id="thresholdValue">75%</span> - Minimum match confidence
+                                </label>
+                                <input type="range" class="form-range" min="50" max="95" step="5" value="75" id="similarityThreshold">
+                            </div>
+                            
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="cleanUnmatched">
+                                <label class="form-check-label" for="cleanUnmatched">
+                                    Clean EPG data if no match found
+                                </label>
+                            </div>
+                            
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="respectExisting" checked>
+                                <label class="form-check-label" for="respectExisting">
+                                    Don't modify channels that already have EPG data
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <button class="btn btn-primary" id="scanChannelsBtn">
+                            <i class="bi bi-search"></i> Auto Map Channels
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Browse EPG Channels Tab -->
+                <div class="tab-pane fade" id="browse" role="tabpanel" aria-labelledby="browse-tab">
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <h5>Browse EPG Channels</h5>
+                            <p class="text-muted">View all available EPG channels from your sources</p>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="epgChannelSearch" placeholder="Search EPG channels...">
+                                <button class="btn btn-outline-secondary" type="button" id="searchEpgChannelsBtn">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Logo</th>
+                                    <th>EPG ID</th>
+                                    <th>Name</th>
+                                    <th>Source</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="epgChannelsTable">
+                                <tr>
+                                    <td colspan="5" class="text-center">
+                                        <div class="spinner-border spinner-border-sm" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <span class="ms-2">Loading EPG channels...</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <nav>
+                        <ul class="pagination justify-content-center" id="epgChannelsPagination">
+                            <!-- Pagination will be inserted here by JavaScript -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Current Program Schedule -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">EPG Program Schedule</h5>
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-3">Select a channel from the Browse Channels tab to view its current program schedule</p>
+            <div id="programScheduleContainer" class="d-none">
+                <h6 id="selectedChannelName" class="mb-3"></h6>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Title</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody id="programScheduleTable">
+                            <!-- Program schedule will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add New EPG Source -->
+<div class="modal fade" id="addEpgSourceModal" tabindex="-1" aria-labelledby="addEpgSourceModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addEpgSourceModalLabel">Add EPG Source</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addEpgSourceForm">
+                    <div class="mb-3">
+                        <label for="epgSourceUrl" class="form-label">XMLTV URL</label>
+                        <input type="url" class="form-control" id="epgSourceUrl" required placeholder="Enter XMLTV URL (http/https)">
+                        <div class="form-text">URL to an XMLTV format EPG data source</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveEpgSourceBtn">Add Source</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add Channel Mapping Rule -->
+<div class="modal fade" id="addEpgMappingModal" tabindex="-1" aria-labelledby="addEpgMappingModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addEpgMappingModalLabel">Add Channel Mapping</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="epgMappingForm">
+                    <div class="mb-3">
+                        <label for="epgSearchPattern" class="form-label">Search Pattern</label>
+                        <input type="text" class="form-control" id="epgSearchPattern" required placeholder="Enter text to search in channel names">
+                        <div class="form-text">Text pattern to match in Acestream channel names (case insensitive)</div>
+                    </div>
+
+                    <!-- Channel matching preview panel -->
+                    <div class="mb-3">
+                        <div class="card">
+                            <div class="card-header py-1">
+                                <div class="d-flex justify-content-between align-items-center">
+                                        Matching Channels Preview
+                                    <span class="badge bg-secondary" id="matchCount">0</span>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div id="matchingChannelsPreview" style="max-height: 200px; overflow-y: auto;">
+                                    <div class="p-3 text-center text-muted">
+                                        <small>Start typing to see matching channels</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="epgIsExclusion">
+                        <label class="form-check-label" for="epgIsExclusion">Exclusion rule</label>
+                        <div class="form-text">If checked, channels matching this pattern will be excluded from EPG mapping</div>
+                    </div>
+                    
+                    <div class="mb-3" id="epgChannelIdContainer">
+                        <label for="epgChannelId" class="form-label">EPG Channel ID</label>
+                        <input type="text" class="form-control" id="epgChannelId" required placeholder="Enter EPG channel ID" list="epgChannelOptions">
+                        <datalist id="epgChannelOptions">
+                            <!-- Dynamic content: EPG channel options will be populated by JavaScript -->
+                        </datalist>
+                        <div class="form-text">ID of the EPG channel to map to (tvg-id attribute)</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveEpgMappingBtn">Add Mapping</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/epg.js') }}"></script>
+{% endblock %}

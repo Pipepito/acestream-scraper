@@ -1,0 +1,243 @@
+{% extends "layout.html" %}
+
+{% block title %}Acestream Channels Management - Acestream Scraper{% endblock %}
+
+{% block streams_active %}active{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4">Acestream Channels Management</h1>
+    
+    <!-- Add navigation breadcrumbs at the top -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Streams</li>
+        </ol>
+    </nav>
+    
+    <!-- Statistics summary -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Total Streams</h5>
+                    <h2 id="totalStreamsCard">...</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Online Streams</h5>
+                    <h2 id="onlineStreamsCard">...</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title">With EPG Data</h5>
+                    <h2 id="withEpgStreamsCard">...</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title">TV Channels Assigned</h5>
+                    <h2 id="assignedStreamsCard">...</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Playlist Section -->
+    <div class="card mb-4">
+        <div class="card-header">Acestream Playlist</div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-8">
+                    <div class="input-group mb-2">
+                        <input type="text" class="form-control" id="playlistUrl" value="{{ request.url_root }}playlist.m3u" readonly>
+                        <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('#playlistUrl')">Copy</button>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex justify-content-end gap-2">
+                        <button class="btn btn-success btn-sm" onclick="downloadPlaylist(false)">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download me-1" viewBox="0 0 16 16">
+                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                            </svg>
+                            Download
+                        </button>
+                        <button class="btn btn-primary btn-sm" onclick="downloadPlaylist(true)">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-repeat me-1" viewBox="0 0 16 16">
+                                <path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                                <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                            </svg>
+                            Refresh & Download
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Channel Form -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Add Channel Manually</h5>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="toggleAdvancedFields">
+                <span id="advancedToggleText">Show Advanced</span>
+            </button>
+        </div>
+        <div class="card-body">
+            {% include 'partials/forms/add_channel.html' %}
+        </div>
+    </div>
+    
+    <!-- Channel Search and Actions -->
+    <div class="card mb-4">
+        <div class="card-header">Channel Search and Filters</div>
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <!-- Create a flex container for search and filter -->
+                    <div class="d-flex gap-2 mb-2">
+                        <!-- Smaller search box -->
+                        <div class="input-group" style="width: 60%;">
+                            <span class="input-group-text">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+                                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                                </svg>
+                            </span>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="channelSearch" 
+                                   placeholder="Filter channels..."
+                                   onkeyup="debounce(searchChannels, 300)(this.value)">
+                        </div>
+                        
+                        <!-- URL filter dropdown -->
+                        <select class="form-select" id="urlFilter" onchange="filterByUrl(this.value)">
+                            <option value="">All Sources</option>
+                            <option value="manual">Manual/Legacy Channels</option>
+                            <!-- Other options will be populated by JavaScript -->
+                        </select>
+                    </div>
+                    
+                    <div class="form-text">Filtered results will be applied to the playlist when downloading</div>
+                </div>
+                <div class="col-md-6">
+                    <div class="d-flex justify-content-md-end mt-2 mt-md-0">
+                        <div class="btn-group">
+                            <button onclick="refreshData()" class="btn btn-outline-secondary btn-sm" title="Refresh data">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                                    <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                                    <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                                </svg>
+                                <span class="d-none d-md-inline ms-1">Refresh</span>
+                            </button>
+                            <button onclick="checkChannelsStatus()" class="btn btn-outline-primary btn-sm" title="Check all channels status">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-shield-check" viewBox="0 0 16 16">
+                                    <path d="M5.338 1.59a61.44 61.44 0 0 0-2.837.856.481.481 0 0 0-.328.39c-.554 4.157.726 7.19 2.253 9.188a10.725 10.725 0 0 0 2.287 2.233c.346.244.652.42.893.533.12.057.218.095.293.118a.55.55 0 0 0 .101.025.615.615 0 0 0 .1-.025c.076-.023.174-.061.294-.118.24-.113.547-.29.893-.533a10.726 10.726 0 0 0 2.287-2.233c1.527-1.997 2.807-5.031 2.253-9.188a.48.48 0 0 0-.328-.39c-.651-.213-1.75-.56-2.837-.855C9.552 1.29 8.531 1.067 8 1.067c-.53 0-1.552.223-2.662.524zM5.072.56C6.157.265 7.31 0 8 0s1.843.265 2.928.56c1.11.3 2.229.655 2.887.87a1.54 1.54 0 0 1 1.044 1.262c.596 4.477-.787 7.795-2.465 9.99a11.775 11.775 0 0 1-2.517 2.453a7.159 7.159 0 0 1-1.048.625c-.28.132-.581.24-.829.24s-.548-.108-.829-.24a7.158 7.158 0 0 1-1.048-.625 11.777 11.777 0 0 1-2.517-2.453C1.928 10.487.545 7.169 1.141 2.692A1.54 1.54 0 0 1 2.185 1.43 62.456 62.456 0 0 1 5.072.56z"/>
+                                    <path d="M10.854 5.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 7.793l2.646-2.647a.5.5 0 0 1 .708 0z"/>
+                                </svg>
+                                <span class="d-none d-md-inline ms-1">Check All</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+        
+    <!-- Channel List -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Acestream Channels</h5>
+                <span class="badge bg-primary" id="channelCount">Loading...</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Channel</th>
+                            <th>ID</th>
+                            <th>Status/Time</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="channelListContent">
+                        <tr>
+                            <td colspan="4" class="text-center">
+                                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                    <span class="visually-hidden">Loading channels...</span>
+                                </div>
+                                <span class="ms-2">Loading channels...</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/channels.js') }}"></script>
+<script src="{{ url_for('static', filename='js/streams.js') }}"></script>
+<script>
+    function copyToClipboard(element) {
+        const el = document.querySelector(element);
+        el.select();
+        document.execCommand('copy');
+        // Show temporary feedback
+        const oldValue = el.value;
+        el.value = 'Copied!';
+        setTimeout(() => {
+            el.value = oldValue;
+        }, 1000);
+    }
+    
+    // Function to download playlist
+    function downloadPlaylist(refresh = false) {
+        const searchTerm = document.getElementById('channelSearch').value.trim();
+        let url = '/playlist.m3u'; 
+        const params = new URLSearchParams();
+        
+        if (refresh) {
+            params.append('refresh', 'true');
+        }
+        if (searchTerm) {
+            params.append('search', searchTerm);
+        }
+        
+        if (params.toString()) {
+            url += '?' + params.toString();
+        }
+        
+        window.location.href = url;
+    }
+    
+    // Toggle advanced fields visibility
+    document.getElementById('toggleAdvancedFields').addEventListener('click', function() {
+        const advancedFields = document.getElementById('advancedChannelFields');
+        const toggleText = document.getElementById('advancedToggleText');
+        
+        if (advancedFields.classList.contains('d-none')) {
+            advancedFields.classList.remove('d-none');
+            toggleText.textContent = 'Hide Advanced';
+        } else {
+            advancedFields.classList.add('d-none');
+            toggleText.textContent = 'Show Advanced';
+        }
+    });
+</script>
+{% endblock %}

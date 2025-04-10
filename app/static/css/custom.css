@@ -1,0 +1,55 @@
+/* ...existing code... */
+
+/* TV Channel Detail Page Styles */
+.placeholder-logo {
+    width: 150px;
+    height: 150px;
+}
+
+.channel-logo {
+    max-height: 150px;
+    max-width: 150px;
+    border-radius: 4px;
+}
+
+.bg-purple {
+    background-color: #6f42c1;
+}
+
+.badge.bg-purple {
+    color: #fff;
+}
+
+/* Add spacing to tab content */
+.tab-pane {
+    padding-top: 1.5rem;
+}
+
+/* Make sure logo previews are constrained */
+#logoPreview img {
+    max-width: 100%;
+    max-height: 200px;
+}
+
+/* TV Channels List Page */
+.channel-list-logo {
+    height: 30px;
+    max-width: 50px;
+    object-fit: contain;
+}
+
+.filter-controls {
+    margin-bottom: 1.5rem;
+}
+
+/* Stats cards on TV channels page */
+.stats-card {
+    transition: all 0.3s ease;
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* ...existing code... */

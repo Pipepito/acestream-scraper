@@ -6,6 +6,7 @@ from app.models.epg_source import EPGSource
 from app.models.epg_string_mapping import EPGStringMapping
 from app.repositories.epg_source_repository import EPGSourceRepository
 from app.repositories.epg_string_mapping_repository import EPGStringMappingRepository
+from app.repositories.epg_channel_repository import EPGChannelRepository
 from app.services.epg_service import EPGService
 
 logger = logging.getLogger(__name__)
@@ -210,12 +211,9 @@ class EPGUpdateChannelsResource(Resource):
 class EPGChannelsResource(Resource):
     def get(self):
         """Get all available EPG channel IDs and names"""
-        service = EPGService()
-        channels = []
-        
-        # Load EPG data if not already loaded
-        if not service.epg_data:
-            service.fetch_epg_data()
+        # Use EPGChannelRepository to get channels from database
+        epg_channel_repo = EPGChannelRepository()
+        all_channels = epg_channel_repo.get_all()
         
         source_repo = EPGSourceRepository()
         sources = {source.id: source for source in source_repo.get_all()}
@@ -225,22 +223,23 @@ class EPGChannelsResource(Resource):
         for i, source_id in enumerate(sources.keys()):
             source_numbers[source_id] = f"Source #{i+1}"
 
-        # Convert to simple list of channel IDs and names with source info and all available properties
-        for channel_id, data in service.epg_data.items():
-            source_id = data.get('source_id')
+        # Convert to the expected format
+        channels = []
+        for channel in all_channels:
+            source_id = channel.epg_source_id
             source_name = source_numbers.get(source_id, "Unknown") if source_id else ""
             
             # Get the source URL if available
             source_url = sources[source_id].url if source_id and source_id in sources else ""
             
             channels.append({
-                'id': channel_id,
-                'name': data.get('tvg_name', channel_id),
+                'id': channel.channel_xml_id,
+                'name': channel.name or channel.channel_xml_id,
                 'source_id': source_id,
                 'source_name': source_name,
-                'source_url': source_url,  # Add source URL
-                'icon': data.get('logo'),
-                'language': data.get('language')
+                'source_url': source_url,
+                'icon': channel.icon_url,
+                'language': channel.language
             })
         
         return channels
@@ -258,11 +257,37 @@ class EPGAutoScanResource(Resource):
             clean_unmatched = data.get('clean_unmatched', False)
             respect_existing = data.get('respect_existing', False)
             
+            # Get all EPG channels from repository
+            epg_channel_repo = EPGChannelRepository()
+            all_epg_channels = []
+            
+            # Get all sources
+            source_repo = EPGSourceRepository()
+            sources = source_repo.get_all()
+            
+            # Collect channels from all sources
+            for source in sources:
+                channels = epg_channel_repo.get_by_source_id(source.id)
+                
+                # Convert to the format expected by the service
+                for channel in channels:
+                    all_epg_channels.append({
+                        'id': channel.channel_xml_id,
+                        'name': channel.name,
+                        'logo': channel.icon_url,
+                        'language': channel.language,
+                        'source_id': source.id
+                    })
+            
+            logger.info(f"Found {len(all_epg_channels)} EPG channels in repository")
+            
+            # Use the existing service for auto-scanning
             service = EPGService()
             result = service.auto_scan_channels(
                 threshold=threshold,
                 clean_unmatched=clean_unmatched,
-                respect_existing=respect_existing
+                respect_existing=respect_existing,
+                epg_channels=all_epg_channels  # Pass the channels from repository
             )
             
             return {

@@ -19,6 +19,8 @@ class TVChannel(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
+    is_favorite = db.Column(db.Boolean, default=False, nullable=False)
+    channel_number = db.Column(db.Integer, nullable=True)
     
     # Relationships
     acestream_channels = db.relationship('AcestreamChannel', backref='tv_channel', lazy='dynamic')
@@ -43,5 +45,7 @@ class TVChannel(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
             'is_active': self.is_active,
+            'is_favorite': self.is_favorite,
+            'channel_number': self.channel_number,
             'acestream_channels_count': self.acestream_channels.count()
         }

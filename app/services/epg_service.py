@@ -12,6 +12,7 @@ from app.models.epg_string_mapping import EPGStringMapping
 from app.repositories.epg_source_repository import EPGSourceRepository
 from app.repositories.epg_string_mapping_repository import EPGStringMappingRepository
 from app.repositories.channel_repository import ChannelRepository
+from app.repositories.epg_channel_repository import EPGChannelRepository
 from app.extensions import db
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,7 @@ class EPGService:
         self.epg_source_repo = EPGSourceRepository()
         self.epg_string_mapping_repo = EPGStringMappingRepository()
         self.channel_repo = ChannelRepository()
+        self.epg_channel_repo = EPGChannelRepository()
         self.epg_data = {}  # Cache of EPG data {tvg_id: {tvg_name, logo}}
         self.auto_mapping_threshold = 0.75  # Similarity threshold for auto-mapping
     
@@ -44,8 +46,33 @@ class EPGService:
                     xml_content = response.text
                     source.cached_data = xml_content
                     
-                    # Use original method to parse EPG XML
+                    # Prepare for bulk insertion
+                    channels_to_insert = []
+                    
+                    # Use original method to parse EPG XML and populate cache
                     self._parse_epg_xml(xml_content, source.id)
+                    
+                    # Prepare channel data for database storage
+                    for channel_id, channel_data in self.epg_data.items():
+                        if channel_data.get('source_id') == source.id:
+                            # Create dictionary for database insertion
+                            # Fix field names to match EPGChannel model
+                            channel_db_data = {
+                                'epg_source_id': source.id,
+                                'channel_xml_id': channel_id,
+                                'name': channel_data.get('tvg_name', ''), 
+                                'icon_url': channel_data.get('logo', ''),
+                                'language': channel_data.get('language')
+                            }
+                            channels_to_insert.append(channel_db_data)
+                    
+                    # Bulk insert channels to database
+                    if channels_to_insert:
+                        # First delete existing channels for this source
+                        self.epg_channel_repo.delete_by_source_id(source.id)
+                        # Then insert new ones
+                        inserted_count = self.epg_channel_repo.bulk_insert(channels_to_insert)
+                        logger.info(f"Bulk inserted {inserted_count} channels from source {source.id}")
                     
                     # Update timestamp
                     source.last_updated = datetime.utcnow()
@@ -220,7 +247,7 @@ class EPGService:
             "logo": ""
         }
     
-    def auto_scan_channels(self, threshold=0.75, clean_unmatched=False, respect_existing=True):
+    def auto_scan_channels(self, threshold=0.75, clean_unmatched=False, respect_existing=True, epg_channels=None):
         """
         Automatically match channels with EPG data based on name similarity.
         
@@ -228,16 +255,20 @@ class EPGService:
             threshold: Minimum similarity threshold (0-1)
             clean_unmatched: Whether to remove EPG data from unmatched channels
             respect_existing: Whether to skip channels that already have EPG data
+            epg_channels: Optional pre-loaded EPG channel data
             
         Returns:
             Dict with statistics about the operation
         """
         try:
-            # Get all EPG channels
-            all_epg_channels = []
-            for source in self.epg_source_repo.get_all():
-                epg_channels = self.get_channels_from_source(source.id)
-                all_epg_channels.extend(epg_channels)
+            # Use provided EPG channels if available, otherwise fetch them
+            all_epg_channels = epg_channels or []
+            
+            # If no channels were provided, fetch them from sources
+            if not all_epg_channels:
+                for source in self.epg_source_repo.get_all():
+                    channels = self.get_channels_from_source(source.id)
+                    all_epg_channels.extend(channels)
             
             logger.info(f"Found {len(all_epg_channels)} EPG channels")
             

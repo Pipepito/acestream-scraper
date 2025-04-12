@@ -16,5 +16,6 @@ class EPGStringMapping(db.Model):
         return {
             'id': self.id,
             'search_pattern': self.search_pattern,
-            'epg_channel_id': self.epg_channel_id
+            'epg_channel_id': self.epg_channel_id,
+            'is_exclusion': self.is_exclusion
         }

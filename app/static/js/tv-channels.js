@@ -30,6 +30,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize bulk edit handlers
     initBulkEditHandlers();
+
+    // Initialize bulk actions
+    initializeBulkActions();
 });
 
 /**
@@ -152,6 +155,108 @@ function initBulkEditHandlers() {
             }
         });
     });
+}
+
+/**
+ * Initialize event handlers for bulk actions
+ */
+function initializeBulkActions() {
+    // Select all channels checkbox
+    const selectAllCheckbox = document.getElementById('selectAllChannels');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            const isChecked = this.checked;
+            const checkboxes = document.querySelectorAll('.channel-select-checkbox');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = isChecked;
+                const channelId = parseInt(checkbox.getAttribute('data-channel-id'));
+                
+                if (isChecked) {
+                    tvChannelsState.selectedChannels.add(channelId);
+                } else {
+                    tvChannelsState.selectedChannels.delete(channelId);
+                }
+            });
+            
+            updateBulkEditToolbar();
+        });
+    }
+    
+    // Bulk edit button
+    const bulkEditBtn = document.getElementById('bulkEditBtn');
+    if (bulkEditBtn) {
+        bulkEditBtn.addEventListener('click', openBulkEditModal);
+    }
+    
+    // Bulk delete button
+    const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+    if (bulkDeleteBtn) {
+        bulkDeleteBtn.addEventListener('click', confirmBulkDelete);
+    }
+    
+    // Clear selection button
+    const clearSelectionBtn = document.getElementById('clearSelectionBtn');
+    if (clearSelectionBtn) {
+        clearSelectionBtn.addEventListener('click', clearSelection);
+    }
+    
+    // Update bulk edit toolbar initially
+    updateBulkEditToolbar();
+}
+
+/**
+ * Show confirmation dialog for bulk deletion
+ */
+function confirmBulkDelete() {
+    const selectedCount = tvChannelsState.selectedChannels.size;
+    if (selectedCount === 0) {
+        showAlert('warning', 'No channels selected');
+        return;
+    }
+    
+    if (confirm(`Are you sure you want to delete ${selectedCount} selected channels? This action cannot be undone.`)) {
+        bulkDeleteChannels();
+    }
+}
+
+/**
+ * Delete multiple channels at once
+ */
+async function bulkDeleteChannels() {
+    const selectedIds = Array.from(tvChannelsState.selectedChannels);
+    if (selectedIds.length === 0) return;
+    
+    try {
+        showLoading();
+        
+        const response = await fetch('/api/tv-channels/bulk-delete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                channel_ids: selectedIds
+            })
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            showAlert('success', result.message || `Successfully deleted ${result.deleted_count} channels`);
+            
+            // Clear selection and refresh the list
+            clearSelection();
+            await loadTVChannels();
+        } else {
+            const error = await response.json();
+            throw new Error(error.message || `Failed to delete channels: ${response.statusText}`);
+        }
+    } catch (error) {
+        console.error('Error deleting channels:', error);
+        showAlert('error', error.message || 'An error occurred during bulk deletion');
+    } finally {
+        hideLoading();
+    }
 }
 
 /**

@@ -5,6 +5,11 @@ from app.services.tv_channel_service import TVChannelService
 from app.repositories.channel_repository import ChannelRepository
 from app.models.tv_channel import TVChannel
 from app.models.acestream_channel import AcestreamChannel
+from app.services.epg_service import EPGService
+import logging
+
+# Add logger
+logger = logging.getLogger(__name__)
 
 api = Namespace('tv_channels', description='TV Channels operations')
 
@@ -36,7 +41,8 @@ tv_channel_create_model = api.model('TVChannelCreate', {
     'website': fields.String(description='Official website URL'),
     'epg_id': fields.String(description='ID used for EPG mapping'),
     'epg_source_id': fields.Integer(description='EPG source ID'),
-    'is_active': fields.Boolean(description='Whether the channel is active')
+    'is_active': fields.Boolean(description='Whether the channel is active'),
+    'selected_acestreams': fields.List(fields.String, description='List of acestream IDs to associate')
 })
 
 tv_channel_update_model = api.model('TVChannelUpdate', {
@@ -66,6 +72,18 @@ bulk_update_model = api.model('BulkUpdate', {
     'country': fields.String(description='Country to set for all channels'),
     'language': fields.String(description='Language to set for all channels'),
     'is_active': fields.Boolean(description='Active status to set for all channels')
+})
+
+# Add a new model for match results
+match_result_model = api.model('MatchResult', {
+    'epg_id': fields.String(description='EPG ID used for matching'),
+    'name': fields.String(description='EPG channel name used for matching'),
+    'matches': fields.List(fields.Nested(api.model('Match', {
+        'channel': fields.Nested(tv_channel_model),
+        'score': fields.Float(description='Match score (0-1)'),
+        'match_type': fields.String(description='How the match was made (epg_id, name_similarity)')
+    }))),
+    'match_count': fields.Integer(description='Number of matches found')
 })
 
 # Parse query parameters
@@ -116,20 +134,43 @@ class TVChannelsResource(Resource):
         }
     
     @api.doc('create_tv_channel')
-    @api.expect(tv_channel_create_model)
+    @api.expect(api.model('TVChannelCreate', {
+        'name': fields.String(required=True, description='Channel name'),
+        'description': fields.String(description='Channel description'),
+        'logo_url': fields.String(description='Logo URL'),
+        'category': fields.String(description='Channel category'),
+        'country': fields.String(description='Country of origin'),
+        'language': fields.String(description='Primary language'),
+        'website': fields.String(description='Official website URL'),
+        'epg_id': fields.String(description='ID used for EPG mapping'),
+        'epg_source_id': fields.Integer(description='EPG source ID'),
+        'is_active': fields.Boolean(description='Whether the channel is active'),
+        'selected_acestreams': fields.List(fields.String, description='List of acestream IDs to associate')
+    }))
     @api.response(201, 'TV Channel created successfully')
     def post(self):
         """Create a new TV channel"""
         repo = TVChannelRepository()
         data = request.json
+        selected_acestreams = data.pop('selected_acestreams', []) if isinstance(data, dict) else []
         
         try:
             # Create the TV channel
             channel = repo.create(data)
+            channel_id = channel.id
+            
+            # Associate selected acestreams if provided
+            associated_count = 0
+            if selected_acestreams and channel_id:
+                for acestream_id in selected_acestreams:
+                    if repo.assign_acestream(channel_id, acestream_id):
+                        associated_count += 1
+            
             return {
                 'message': 'TV Channel created successfully', 
                 'id': channel.id,
-                'channel': channel.to_dict()
+                'channel': channel.to_dict(),
+                'associated_acestreams': associated_count
             }, 201
         except Exception as e:
             api.abort(400, str(e))
@@ -382,3 +423,129 @@ class BulkUpdateResource(Resource):
             
         except Exception as e:
             api.abort(500, f"Error updating channels: {str(e)}")
+
+@api.route('/bulk-delete')
+class BulkDeleteResource(Resource):
+    @api.doc('bulk_delete_channels')
+    @api.expect(api.model('BulkDelete', {
+        'channel_ids': fields.List(fields.Integer, required=True, description='List of TV channel IDs to delete')
+    }))
+    @api.response(200, 'Channels deleted successfully')
+    @api.response(400, 'Invalid request')
+    def post(self):
+        """Delete multiple TV channels at once"""
+        data = request.json
+        channel_ids = data.get('channel_ids', [])
+        
+        if not channel_ids:
+            api.abort(400, "No channel IDs provided")
+            
+        try:
+            # Create repository instance
+            repo = TVChannelRepository()
+            
+            # Track successful deletions
+            deleted_count = 0
+            
+            # Delete each channel
+            for channel_id in channel_ids:
+                if repo.delete(channel_id):
+                    deleted_count += 1
+            
+            return {
+                'message': f'Successfully deleted {deleted_count} channels',
+                'deleted_count': deleted_count,
+                'total_requested': len(channel_ids)
+            }
+            
+        except Exception as e:
+            api.abort(500, f"Error deleting channels: {str(e)}")
+
+@api.route('/find-matches')
+class FindMatchesResource(Resource):
+    @api.doc('find_matching_acestreams')
+    @api.param('epg_id', 'EPG Channel ID to match')
+    @api.param('name', 'Channel name to match')
+    @api.param('threshold', 'Similarity threshold (0-1)')
+    @api.response(200, 'Found matches', match_result_model)
+    def get(self):
+        """Find acestream channels that match an EPG channel by ID or name"""
+        epg_id = request.args.get('epg_id')
+        name = request.args.get('name')
+        
+        # Get threshold from request, default to 0.3 if not provided
+        try:
+            threshold = float(request.args.get('threshold', 0.3))
+            # Ensure threshold is within valid range
+            threshold = max(0.1, min(threshold, 0.95))
+        except (ValueError, TypeError):
+            threshold = 0.3
+        
+        if not epg_id and not name:
+            api.abort(400, "Either EPG ID or name is required for matching")
+        
+        try:
+            # Initialize services and repositories
+            epg_service = EPGService()
+            channel_repo = ChannelRepository()
+            
+            # Get all acestream channels
+            acestream_channels = channel_repo.get_all()
+            
+            # Create a simplified EPG channel for matching
+            epg_channel = {'id': epg_id, 'name': name or epg_id}
+            
+            # Use the existing find_matching_channels function from EPGService
+            # with apply_changes=False to just get matches without saving
+            result = epg_service.find_matching_channels(
+                [epg_channel],  # Pass as a list since the function expects a list
+                acestream_channels,
+                threshold=threshold,  # Use the provided threshold
+                apply_changes=False  # Don't apply changes, just return matches
+            )
+            
+            # Format the response
+            matches = []
+            if 'matches' in result:
+                for match_item in result['matches']:
+                    try:
+                        # Fix the extraction of channel and score based on the actual structure
+                        if isinstance(match_item, dict) and 'channel' in match_item:
+                            channel = match_item['channel']
+                            score = match_item.get('similarity', 0.0)
+                            match_type = match_item.get('match_method', 'name_similarity')
+                        elif isinstance(match_item, tuple) or isinstance(match_item, list):
+                            # Handle tuple/list structure (channel, score)
+                            channel = match_item[0]
+                            score = match_item[1] if len(match_item) > 1 else 0.0
+                            match_type = 'name_similarity'
+                        else:
+                            # Skip items with unknown structure
+                            logger.warning(f"Skipping match item with unknown structure: {match_item}")
+                            continue
+                        
+                        # Add to matches list
+                        matches.append({
+                            'channel': channel.to_dict() if hasattr(channel, 'to_dict') else channel,
+                            'score': score,
+                            'match_type': match_type
+                        })
+                    except (KeyError, IndexError, AttributeError) as e:
+                        # Log the error but continue with other matches
+                        logger.warning(f"Error processing match item: {e}, item: {match_item}")
+                        continue
+            
+            # Sort matches by score descending
+            matches.sort(key=lambda x: x['score'], reverse=True)
+            
+            return {
+                'epg_id': epg_id,
+                'name': name,
+                'threshold': threshold,
+                'matches': matches,
+                'match_count': len(matches)
+            }
+            
+        except Exception as e:
+            logger.error(f"Error finding matches: {e}", exc_info=True)
+            api.abort(500, f"Error finding matches: {str(e)}")

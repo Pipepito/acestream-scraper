@@ -2,7 +2,6 @@
 Scraper{% endblock %} {% block tv_channels_active %}active{% endblock %} {%
 block content %}
 <div class="container py-4">
-  <h1 class="mb-4">TV Channels Management</h1>
 
   <!-- Statistics summary -->
   <div class="row mb-4">
@@ -81,6 +80,9 @@ block content %}
               <div>
                 <button type="button" class="btn btn-primary btn-sm me-2" id="bulkEditBtn">
                   <i class="bi bi-pencil-square me-1"></i> Edit Selected
+                </button>
+                <button type="button" class="btn btn-danger btn-sm me-2" id="bulkDeleteBtn">
+                  <i class="bi bi-trash me-1"></i> Delete Selected
                 </button>
                 <button type="button" class="btn btn-outline-secondary btn-sm" id="clearSelectionBtn">
                   <i class="bi bi-x-lg me-1"></i> Clear Selection

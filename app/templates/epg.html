@@ -6,16 +6,6 @@
 
 {% block content %}
 <div class="container py-4">
-    <h1 class="mb-4">EPG Guide Management</h1>
-
-    <!-- Add navigation breadcrumbs at the top -->
-    <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
-            <li class="breadcrumb-item active" aria-current="page">EPG Guide</li>
-        </ol>
-    </nav>
-
     <!-- Status Summary -->
     <div class="row mb-4">
         <div class="col-md-3">
@@ -226,12 +216,13 @@
                                     <th>EPG ID</th>
                                     <th>Name</th>
                                     <th>Source</th>
+                                    <th>Language</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="epgChannelsTable">
                                 <tr>
-                                    <td colspan="5" class="text-center">
+                                    <td colspan="6" class="text-center">
                                         <div class="spinner-border spinner-border-sm" role="status">
                                             <span class="visually-hidden">Loading...</span>
                                         </div>
@@ -367,4 +358,8 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/epg.js') }}"></script>
+<script src="{{ url_for('static', filename='js/epg-tv-channel.js') }}"></script>
 {% endblock %}
+
+<!-- Include modals -->
+{% include 'partials/modals/create_tv_channel_from_epg.html' %}

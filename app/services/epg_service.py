@@ -26,19 +26,36 @@ class EPGService:
     
     def fetch_epg_data(self) -> Dict:
         """Fetch EPG data from all enabled sources."""
-        self.epg_data = {}
+        self.epg_data = {}  # Reset cache
+        
+        # Get ENABLED sources only (this was missing)
         sources = self.epg_source_repo.get_enabled()
+        
+        logger.info(f"Found {len(sources)} enabled EPG sources")
+        
+        total_channels = 0
         
         for source in sources:
             try:
                 logger.info(f"Fetching EPG data from {source.url}")
                 response = requests.get(source.url, timeout=60)
                 if response.status_code == 200:
-                    self._parse_epg_xml(response.text, source.id)  # Pass source.id
+                    # Parse the XML content
+                    xml_content = response.text
+                    source.cached_data = xml_content
+                    
+                    # Use original method to parse EPG XML
+                    self._parse_epg_xml(xml_content, source.id)
+                    
                     # Update timestamp
                     source.last_updated = datetime.utcnow()
                     source.error_count = 0
                     source.last_error = None
+                    
+                    # Count channels for stats
+                    channels_count = sum(1 for ch in self.epg_data.values() if ch.get('source_id') == source.id)
+                    logger.info(f"Found {channels_count} channels in EPG source {source.id}")
+                    total_channels += channels_count
                 else:
                     error_msg = f"HTTP error {response.status_code}"
                     logger.warning(f"Error fetching EPG from {source.url}: {error_msg}")
@@ -47,14 +64,14 @@ class EPGService:
             except Exception as e:
                 logger.error(f"Error processing EPG from {source.url}: {str(e)}")
                 source.error_count = source.error_count + 1 if source.error_count else 1
-                source.last_error = str(e)
+                source.last_error = str(e)[:255]  # Truncate error if too long
             
             # Save changes to the source
             self.epg_source_repo.update(source)
         
         logger.info(f"Loaded {len(self.epg_data)} channels from EPG sources")
         return self.epg_data
-    
+
     def _parse_epg_xml(self, xml_content: str, source_id: int) -> None:
         try:
             root = ET.fromstring(xml_content)
@@ -65,9 +82,14 @@ class EPGService:
                 if not channel_id:
                     continue
                 
+                # Get the display name
                 display_name_elem = channel.find("display-name")
                 channel_name = display_name_elem.text if display_name_elem is not None else ""
                 
+                # Get language from the display-name attribute
+                language = display_name_elem.get("lang") if display_name_elem is not None else None
+                
+                # Get icon URL
                 icon_elem = channel.find("icon")
                 icon_url = icon_elem.get("src") if icon_elem is not None else ""
                 
@@ -75,12 +97,85 @@ class EPGService:
                     "tvg_id": channel_id,
                     "tvg_name": channel_name,
                     "logo": icon_url,
-                    "source_id": source_id  # Store the source ID
+                    "source_id": source_id,  # Store the source ID
+                    "language": language     # Store the language
                 }
                 
         except Exception as e:
             logger.error(f"Error parsing EPG XML: {str(e)}")
             raise
+
+    def parse_epg_channels(self, xml_content):
+        """
+        Parse EPG channels from XML content.
+        
+        Args:
+            xml_content: XML content as string
+            
+        Returns:
+            List of channel dictionaries
+        """
+        try:
+            # Try to parse XML content
+            logger.info("Parsing EPG channels from XML content")
+            
+            # Handle potential encoding issues
+            if isinstance(xml_content, bytes):
+                xml_content = xml_content.decode('utf-8', errors='replace')
+            
+            # Parse the XML
+            root = ET.fromstring(xml_content)
+            
+            # Find all channel elements
+            channels = []
+            for channel_elem in root.findall(".//channel"):
+                channel_id = channel_elem.get('id')
+                if not channel_id:
+                    continue
+                
+                # Get display names with language attributes
+                display_names = {}
+                default_name = None
+                
+                for display_name in channel_elem.findall('display-name'):
+                    name_text = display_name.text
+                    if name_text:
+                        lang = display_name.get('lang')
+                        if lang:
+                            display_names[lang] = name_text
+                        if not default_name:
+                            default_name = name_text
+                
+                # Use first display name or ID as fallback
+                name = default_name or channel_id
+                
+                # Get icon URL if available
+                icon_url = None
+                icon_elem = channel_elem.find('icon')
+                if icon_elem is not None:
+                    icon_url = icon_elem.get('src')
+                
+                # Extract primary language if available
+                primary_language = None
+                if display_names:
+                    primary_language = next(iter(display_names.keys()), None)
+                
+                # Create channel dictionary
+                channel = {
+                    'id': channel_id,
+                    'name': name,
+                    'logo': icon_url,
+                    'language': primary_language,
+                    'display_names': display_names
+                }
+                
+                channels.append(channel)
+            
+            logger.info(f"Parsed {len(channels)} channels from XML content")
+            return channels
+        except Exception as e:
+            logger.error(f"Failed to parse EPG channels: {str(e)}", exc_info=True)
+            return []
     
     def get_channel_epg_data(self, channel: AcestreamChannel) -> Dict:
         """
@@ -124,6 +219,243 @@ class EPGService:
             "tvg_name": channel.name,
             "logo": ""
         }
+    
+    def auto_scan_channels(self, threshold=0.75, clean_unmatched=False, respect_existing=True):
+        """
+        Automatically match channels with EPG data based on name similarity.
+        
+        Args:
+            threshold: Minimum similarity threshold (0-1)
+            clean_unmatched: Whether to remove EPG data from unmatched channels
+            respect_existing: Whether to skip channels that already have EPG data
+            
+        Returns:
+            Dict with statistics about the operation
+        """
+        try:
+            # Get all EPG channels
+            all_epg_channels = []
+            for source in self.epg_source_repo.get_all():
+                epg_channels = self.get_channels_from_source(source.id)
+                all_epg_channels.extend(epg_channels)
+            
+            logger.info(f"Found {len(all_epg_channels)} EPG channels")
+            
+            # Get all acestream channels
+            from app.repositories.channel_repository import ChannelRepository
+            channel_repo = ChannelRepository()
+            acestream_channels = channel_repo.get_all()
+            
+            logger.info(f"Found {len(acestream_channels)} acestream channels")
+            
+            # Use the extracted find_matching_channels function
+            stats = self.find_matching_channels(
+                all_epg_channels, 
+                acestream_channels, 
+                threshold, 
+                clean_unmatched, 
+                respect_existing,
+                apply_changes=True
+            )
+                
+            return stats
+        except Exception as e:
+            logger.error(f"Error in auto_scan_channels: {e}")
+            raise
+
+    def find_matching_channels(
+        self, epg_channels, acestream_channels, 
+        threshold=0.75, clean_unmatched=False, 
+        respect_existing=True, apply_changes=False
+    ):
+        """
+        Find potential matches between EPG channels and Acestream channels.
+        
+        Args:
+            epg_channels: List of EPG channel dictionaries
+            acestream_channels: List of AcestreamChannel objects
+            threshold: Minimum similarity threshold (0-1)
+            clean_unmatched: Whether to remove EPG data from unmatched channels
+            respect_existing: Whether to skip channels that already have EPG data
+            apply_changes: Whether to actually save changes or just return matches
+            
+        Returns:
+            Dict with statistics and matches if apply_changes=False
+        """
+        from difflib import SequenceMatcher
+        
+        stats = {
+            'matched': 0,
+            'cleaned': 0,
+            'matches': []  # Will store match details if apply_changes=False
+        }
+        
+        # Create a mapping of clean names to EPG channels
+        epg_lookup = {}
+        for channel in epg_channels:
+            # Clean the channel name
+            clean_name = self._clean_channel_name(channel['name'])
+            epg_lookup[clean_name] = channel
+            
+            # Add additional lookups for common abbreviations/aliases
+            # If the channel name contains "HD", also add a non-HD version for matching
+            if 'HD' in clean_name:
+                epg_lookup[clean_name.replace('HD', '').strip()] = channel
+        
+        # Create a direct mapping of EPG IDs to channels for faster lookup
+        epg_id_lookup = {channel['id']: channel for channel in epg_channels}
+        
+        # Process each acestream channel
+        for acestream in acestream_channels:
+            try:
+                # Skip if it has EPG data and we're respecting existing mappings
+                if respect_existing and acestream.tvg_id and acestream.epg_update_protected:
+                    continue
+                    
+                if not acestream.name:
+                    continue
+                
+                best_epg = None
+                best_similarity = 0
+                best_epg_id = None
+                match_method = None  # Track how the match was made
+                
+                # First, try to match by TVG ID if available
+                if acestream.tvg_id and acestream.tvg_id in epg_id_lookup:
+                    best_epg = epg_id_lookup[acestream.tvg_id]
+                    best_similarity = 1.0  # Perfect match
+                    best_epg_id = acestream.tvg_id
+                    match_method = "id_match"
+                    
+                # If no ID match or we want to check for potentially better name matches
+                # Clean the acestream name
+                clean_name = self._clean_channel_name(acestream.name)
+                
+                # Check if name exactly matches any EPG channel
+                if clean_name in epg_lookup:
+                    # If we already have an ID match, only replace it if this is also a perfect match
+                    if not best_epg or best_similarity < 1.0:
+                        best_epg = epg_lookup[clean_name]
+                        best_similarity = 1.0
+                        best_epg_id = best_epg['id']
+                        match_method = "exact_name_match"
+                # If no direct match, try fuzzy matching
+                else:
+                    # Find the best match using similarity
+                    for epg_name, epg_channel in epg_lookup.items():
+                        similarity = SequenceMatcher(None, clean_name, epg_name).ratio()
+                        # Only consider this match if it's better than what we have AND above threshold
+                        if similarity > best_similarity and similarity >= threshold:
+                            best_similarity = similarity
+                            best_epg = epg_channel
+                            best_epg_id = epg_channel['id']
+                            match_method = "fuzzy_name_match"
+                
+                # If we found a match
+                if best_epg_id:
+                    # If just returning matches
+                    if not apply_changes:
+                        # Use a consistent dictionary format for matches
+                        stats['matches'].append({
+                            'channel': acestream,
+                            'similarity': best_similarity,
+                            'match_method': match_method,
+                            'epg_id': best_epg_id,
+                            'epg_name': best_epg['name']
+                        })
+                        continue
+                        
+                    # If applying changes, update the acestream channel
+                    acestream.tvg_id = best_epg_id
+                    acestream.tvg_name = best_epg['name']
+                    
+                    # If the EPG channel has a logo and the acestream doesn't, use it
+                    if not acestream.logo and 'logo' in best_epg and best_epg['logo']:
+                        acestream.logo = best_epg['logo']
+                        
+                    stats['matched'] += 1
+                    
+                # If no match and cleaning unmatched
+                elif clean_unmatched and not respect_existing:
+                    if not apply_changes:
+                        continue
+                        
+                    # Clean EPG data
+                    acestream.tvg_id = None
+                    acestream.tvg_name = None
+                    stats['cleaned'] += 1
+                    
+            except Exception as e:
+                logger.error(f"Error processing channel {acestream.id}: {e}")
+        
+        # Commit changes if applying them
+        if apply_changes:
+            from app.extensions import db
+            db.session.commit()
+        
+        return stats
+
+    def _clean_channel_name(self, name):
+        """
+        Clean a channel name for better matching.
+        
+        Args:
+            name: The channel name to clean
+            
+        Returns:
+            Cleaned channel name
+        """
+        if not name:
+            return ""
+            
+        import re
+        
+        # Convert to lowercase
+        clean = name.lower()
+        
+        # Remove HD, UHD, FHD, 4K, +1, etc. indicators
+        clean = re.sub(r'\b(?:hd|uhd|fhd|sd|4k|\+\d)\b', '', clean)
+        
+        # Remove brackets and their contents
+        clean = re.sub(r'\([^)]*\)|\[[^\]]*\]', '', clean)
+        
+        # Remove common words
+        for word in ['channel', 'tv', 'television', 'official']:
+            clean = re.sub(r'\b' + word + r'\b', '', clean)
+        
+        # Remove special characters and normalize spaces
+        clean = re.sub(r'[^\w\s]', ' ', clean)
+        clean = re.sub(r'\s+', ' ', clean).strip()
+        
+        return clean
+
+    def _apply_epg_data(self, channel: AcestreamChannel, epg_data: Dict) -> Tuple[bool, bool, bool]:
+        """
+        Apply EPG data to the channel, always updating if the data exists in the EPG.
+        This overrides the previous behavior of only updating if the channel data was empty.
+        Returns a tuple of (tvg_id_updated, tvg_name_updated, logo_updated).
+        """
+        tvg_id_updated = False
+        tvg_name_updated = False
+        logo_updated = False
+        
+        # Update tvg_id if provided in EPG data (always update, not just when empty)
+        if epg_data["tvg_id"]:
+            # Only mark as updated if value actually changes
+            tvg_id_updated = channel.tvg_id != epg_data["tvg_id"]
+            channel.tvg_id = epg_data["tvg_id"]
+        
+        # Update tvg_name if provided in EPG data
+        if epg_data["tvg_name"]:
+            tvg_name_updated = channel.tvg_name != epg_data["tvg_name"]
+            channel.tvg_name = epg_data["tvg_name"]
+        
+        # Update logo if provided in EPG data
+        if epg_data["logo"]:
+            logo_updated = channel.logo != epg_data["logo"]
+            channel.logo = epg_data["logo"]
+            
+        return (tvg_id_updated, tvg_name_updated, logo_updated)
     
     def _update_channel_epg(self, channel: AcestreamChannel) -> Tuple[bool, bool, bool, bool]:
         """
@@ -232,35 +564,7 @@ class EPGService:
         
         # If no suitable mapping was found
         return (False, False, False, False)
-    
-    def _apply_epg_data(self, channel: AcestreamChannel, epg_data: Dict) -> Tuple[bool, bool, bool]:
-        """
-        Apply EPG data to the channel, always updating if the data exists in the EPG.
-        This overrides the previous behavior of only updating if the channel data was empty.
-        Returns a tuple of (tvg_id_updated, tvg_name_updated, logo_updated).
-        """
-        tvg_id_updated = False
-        tvg_name_updated = False
-        logo_updated = False
-        
-        # Update tvg_id if provided in EPG data (always update, not just when empty)
-        if epg_data["tvg_id"]:
-            # Only mark as updated if value actually changes
-            tvg_id_updated = channel.tvg_id != epg_data["tvg_id"]
-            channel.tvg_id = epg_data["tvg_id"]
-        
-        # Update tvg_name if provided in EPG data
-        if epg_data["tvg_name"]:
-            tvg_name_updated = channel.tvg_name != epg_data["tvg_name"]
-            channel.tvg_name = epg_data["tvg_name"]
-        
-        # Update logo if provided in EPG data
-        if epg_data["logo"]:
-            logo_updated = channel.logo != epg_data["logo"]
-            channel.logo = epg_data["logo"]
-            
-        return (tvg_id_updated, tvg_name_updated, logo_updated)
-    
+
     def update_all_channels_epg(self, respect_existing: bool = False, clean_unmatched: bool = False) -> dict:
         """
         Updates EPG information for all channels that don't have EPG locked.
@@ -412,123 +716,170 @@ class EPGService:
         
         return False
 
-    def auto_scan_channels(self, threshold: float = 0.8, clean_unmatched: bool = False, respect_existing: bool = False) -> dict:
+    def get_channels_from_source(self, source_id):
         """
-        Scan all unlocked channels and try to match them with EPG data.
+        Get all EPG channels from a specific source.
         
         Args:
-            threshold: Similarity threshold for matching (0.0-1.0)
-            clean_unmatched: If True, clear EPG data from channels with no match
-            respect_existing: If True, don't modify channels that already have some EPG data
-        
+            source_id: The EPG source ID
+            
         Returns:
-            Statistics about the scan
+            List of channel dictionaries
         """
-        # Ensure we have EPG data
-        if not self.epg_data:
-            self.fetch_epg_data()
+        try:
+            # Get the source from the database
+            epg_source_repo = EPGSourceRepository()
+            source = epg_source_repo.get_by_id(source_id)
+            
+            if not source:
+                logger.warning(f"EPG source {source_id} not found")
+                return []
+            
+            # Get XML content directly from URL
+            xml_content = None
+            
+            if source.url:
+                logger.info(f"Fetching data from URL for EPG source {source_id}: {source.url}")
+                try:
+                    response = requests.get(source.url, timeout=30)
+                    if response.status_code == 200:
+                        xml_content = response.text
+                    else:
+                        logger.error(f"Error fetching EPG source {source_id}: HTTP {response.status_code}")
+                except Exception as e:
+                    logger.error(f"Error fetching EPG source {source_id} URL: {str(e)}")
+            
+            if not xml_content:
+                logger.warning(f"No XML content available for EPG source {source_id}")
+                return []
+            
+            # Parse the XML content to get channels
+            channels = self.parse_epg_channels(xml_content)
+            
+            logger.info(f"Found {len(channels)} channels from EPG source {source_id}")
+            return channels
+            
+        except Exception as e:
+            logger.error(f"Error getting channels from EPG source {source_id}: {str(e)}")
+            return []
+
+    def get_epg_channels(self, page=1, per_page=50, source_id=None):
+        """
+        Get EPG channels with pagination from XML data.
         
-        channels = self.channel_repo.get_all()
+        Args:
+            page: Page number (default: 1)
+            per_page: Items per page (default: 50)
+            source_id: Optional EPG source ID to filter by
+            
+        Returns:
+            Dictionary with channels, pagination info
+        """
+        # Get EPG sources based on filter
+        from app.repositories.epg_source_repository import EPGSourceRepository
+        repo = EPGSourceRepository()
         
-        total_processed = 0
-        total_matched = 0
-        total_cleaned = 0
-        total_skipped = 0
+        if source_id:
+            # Get specific source
+            source = repo.get_by_id(source_id)
+            sources = [source] if source else []
+        else:
+            # Get all sources - removed active_only parameter which was causing the error
+            sources = repo.get_all()
         
-        for channel in channels:
-            if channel.epg_update_protected:
+        if not sources:
+            return {'channels': [], 'page': page, 'total_pages': 0, 'total': 0}
+
+        # Collect channels from all specified sources
+        all_channels = []
+        for source in sources:
+            if not source or not source.url:
                 continue
                 
-            # Skip channels excluded by rules
-            if self._is_excluded_by_rule(channel):
-                continue
-            
-            # Skip channels that already have EPG data if respect_existing is enabled
-            if respect_existing and (channel.tvg_id or channel.tvg_name or channel.logo):
-                total_skipped += 1
-                continue
-            
-            # Skip channels with complete EPG data
-            if channel.tvg_id and channel.tvg_name and channel.logo:
-                continue
-                
-            total_processed += 1
-            
-            # Try to find best match by name similarity using normalized names
-            best_match = None
-            best_score = 0
-            normalized_channel_name = self._normalize_channel_name(channel.name)
-            
-            for epg_id, epg_data in self.epg_data.items():
-                normalized_epg_name = self._normalize_channel_name(epg_data["tvg_name"])
-                
-                # Use normalized names for comparison
-                score = SequenceMatcher(None, normalized_channel_name, normalized_epg_name).ratio()
-                
-                # Give bonus if the start of the name matches exactly
-                if normalized_epg_name.startswith(normalized_channel_name) or normalized_channel_name.startswith(normalized_epg_name):
-                    score += 0.1  # Bonus for matching prefix
-                
-                if score > best_score and score >= threshold:
-                    best_score = score
-                    best_match = epg_id
-            
-            if best_match:
-                epg_data = self.epg_data[best_match]
-                updates = self._apply_epg_data(channel, epg_data)
-                if any(updates):
-                    logger.info(f"Auto-mapped '{channel.name}' to '{epg_data['tvg_name']}' (score: {best_score:.2f}, normalized: '{normalized_channel_name}')")
-                    self.channel_repo.update(channel)
-                    total_matched += 1
-            elif clean_unmatched and (channel.tvg_id or channel.tvg_name or channel.logo):
-                # Clean EPG data if no match was found and clean_unmatched is enabled
-                old_data = f"tvg_id={channel.tvg_id}, tvg_name={channel.tvg_name}, logo={'Yes' if channel.logo else 'No'}"
-                channel.tvg_id = None
-                channel.tvg_name = None
-                channel.logo = None
-                self.channel_repo.update(channel)
-                total_cleaned += 1
-                logger.info(f"Cleaned EPG data from channel '{channel.name}' (previous: {old_data}) - no match found")
+            try:
+                # Parse and get channels from this source
+                channels = self._extract_channels_from_epg_source(source)
+                for channel in channels:
+                    # Add source information to each channel
+                    channel['source_id'] = source.id
+                    channel['source_name'] = source.name
+                    all_channels.append(channel)
+            except Exception as e:
+                logger.error(f"Error getting channels from EPG source {source.id}: {e}")
         
-        # Save all changes
-        db.session.commit()
+        # Sort channels by name
+        all_channels.sort(key=lambda x: x.get('name', '').lower())
+        
+        # Calculate pagination
+        total = len(all_channels)
+        total_pages = (total + per_page - 1) // per_page if total > 0 else 1
+        
+        # Apply pagination
+        start_idx = (page - 1) * per_page
+        end_idx = start_idx + per_page
+        paginated_channels = all_channels[start_idx:end_idx]
         
         return {
-            'total': total_processed,
-            'matched': total_matched,
-            'cleaned': total_cleaned,
-            'skipped': total_skipped
+            'channels': paginated_channels,
+            'page': page,
+            'per_page': per_page,
+            'total': total,
+            'total_pages': total_pages
         }
-
-    def _normalize_channel_name(self, channel_name: str) -> str:
+    
+    def _extract_channels_from_epg_source(self, source):
         """
-        Normalizes the channel name by removing quality indicators and technical terms
-        that are not relevant for EPG comparison.
+        Extract channels from an EPG source.
+        
+        Args:
+            source: EPGSource object
+            
+        Returns:
+            List of channel dictionaries with id, name, icon
         """
-        # Convert to lowercase
-        name = channel_name.lower()
-        
-        # Remove everything in parentheses
-        name = re.sub(r'\([^)]*\)', '', name)
-        
-        # Remove common technical terms
-        terms_to_remove = [
-            '1080', '1080p', '720', '480', '4k', '8k',
-            'hd', 'sd', 'uhd', 'fullhd', 'full hd', 
-            'multiaudio', 'multi audio', 'multilenguaje', 'multi', 
-            'p', 'i', 'h264', 'h265', 'hevc',
-            'ace', 'acestream', 
-            '+', '[]', '()', '{}',
-        ]
-        
-        for term in terms_to_remove:
-            # Replace the term surrounded by spaces, at the beginning or end
-            name = re.sub(r'(^|\s)' + re.escape(term) + r'(\s|$)', ' ', name)
-        
-        # Remove multiple spaces
-        name = re.sub(r'\s+', ' ', name)
-        
-        # Remove spaces at the beginning and end
-        name = name.strip()
-        
-        return name
+        if not source or not source.url:
+            return []
+            
+        try:
+            # Fetch and parse XML
+            import requests
+            import xml.etree.ElementTree as ET
+            from io import StringIO
+            
+            # Try to fetch the XML data
+            response = requests.get(source.url, timeout=30)
+            response.raise_for_status()
+            
+            # Parse the XML
+            xml_data = response.text
+            tree = ET.parse(StringIO(xml_data))
+            root = tree.getroot()
+            
+            # Find all channel elements
+            channels = []
+            for channel_elem in root.findall('.//channel'):
+                channel_id = channel_elem.get('id', '')
+                
+                # Get channel name
+                display_name_elem = channel_elem.find('./display-name')
+                name = display_name_elem.text if display_name_elem is not None else channel_id
+                
+                # Get channel icon if available
+                icon_url = None
+                icon_elem = channel_elem.find('./icon')
+                if icon_elem is not None:
+                    icon_url = icon_elem.get('src')
+                
+                # Create channel entry
+                channel = {
+                    'id': channel_id,
+                    'name': name,
+                    'icon': icon_url
+                }
+                
+                channels.append(channel)
+                
+            return channels
+        except Exception as e:
+            logger.error(f"Error extracting channels from EPG source: {e}")
+            return []

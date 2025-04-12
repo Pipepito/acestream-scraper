@@ -225,16 +225,22 @@ class EPGChannelsResource(Resource):
         for i, source_id in enumerate(sources.keys()):
             source_numbers[source_id] = f"Source #{i+1}"
 
-        # Convert to simple list of channel IDs and names with source info
+        # Convert to simple list of channel IDs and names with source info and all available properties
         for channel_id, data in service.epg_data.items():
             source_id = data.get('source_id')
             source_name = source_numbers.get(source_id, "Unknown") if source_id else ""
+            
+            # Get the source URL if available
+            source_url = sources[source_id].url if source_id and source_id in sources else ""
             
             channels.append({
                 'id': channel_id,
                 'name': data.get('tvg_name', channel_id),
                 'source_id': source_id,
-                'source_name': source_name  
+                'source_name': source_name,
+                'source_url': source_url,  # Add source URL
+                'icon': data.get('logo'),
+                'language': data.get('language')
             })
         
         return channels

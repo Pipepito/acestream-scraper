@@ -1,0 +1,136 @@
+<!-- Create TV Channel from EPG Modal -->
+<div class="modal fade" id="createTVChannelFromEPGModal" tabindex="-1" aria-labelledby="createTVChannelFromEPGModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createTVChannelFromEPGModalLabel">Create TV Channel from EPG</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <!-- Left column: TV Channel form -->
+                    <div class="col-md-6">
+                        <form id="createTVChannelForm">
+                            <input type="hidden" id="createTVChannelEpgSourceId">
+
+                            <div class="mb-3">
+                                <label for="createTVChannelName" class="form-label">Channel Name *</label>
+                                <input type="text" class="form-control" id="createTVChannelName" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="createTVChannelDescription" class="form-label">Description</label>
+                                <textarea class="form-control" id="createTVChannelDescription" rows="2"></textarea>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label for="createTVChannelCategory" class="form-label">Category</label>
+                                    <input type="text" class="form-control" id="createTVChannelCategory" placeholder="e.g., Sports, News">
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <label for="createTVChannelCountry" class="form-label">Country</label>
+                                    <input type="text" class="form-control" id="createTVChannelCountry" placeholder="e.g., USA, UK">
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <label for="createTVChannelLanguage" class="form-label">Language</label>
+                                    <input type="text" class="form-control" id="createTVChannelLanguage" placeholder="e.g., English">
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="createTVChannelLogo" class="form-label">Logo URL</label>
+                                    <div class="input-group">
+                                        <input type="url" class="form-control" id="createTVChannelLogo">
+                                        <button class="btn btn-outline-secondary" type="button" id="createPreviewLogoBtn">Preview</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label for="createTVChannelWebsite" class="form-label">Website</label>
+                                    <input type="url" class="form-control" id="createTVChannelWebsite">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="createTVChannelEpgId" class="form-label">EPG ID</label>
+                                <input type="text" class="form-control" id="createTVChannelEpgId" readonly>
+                            </div>
+
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="createTVChannelIsActive" checked>
+                                <label class="form-check-label" for="createTVChannelIsActive">Active</label>
+                            </div>
+
+                            <div id="createLogoPreview" class="mb-3 d-none">
+                                <div class="card">
+                                    <div class="card-header">Logo Preview</div>
+                                    <div class="card-body text-center">
+                                        <img src="" alt="Logo preview" class="img-fluid" style="max-height: 100px;">
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Right column: Acestream matching -->
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header bg-light">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>Matching Acestream Channels</span>
+                                    <button class="btn btn-sm btn-primary" id="findMatchingStreamsBtn">
+                                        <i class="bi bi-search"></i> Find Matches
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Add match confidence slider -->
+                            <div class="card-body pb-0">
+                                <div class="mb-2">
+                                    <h6 class="mb-1">Match Confidence</h6>
+                                    <div class="d-flex align-items-center">
+                                        <span id="matchThresholdValue" class="me-2">50%</span>
+                                        <input type="range" class="form-range" min="30" max="95" step="5" value="50" id="matchConfidenceThreshold">
+                                        <span class="ms-2 text-muted small">Higher = stricter matching</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card-body p-0">
+                                <div class="list-group list-group-flush" id="matchingStreamsList" style="max-height: 400px; overflow-y: auto;">
+                                    <div class="list-group-item text-center text-muted p-4">
+                                        <i class="bi bi-info-circle me-2"></i>
+                                        Click "Find Matches" to search for acestreams that match this EPG channel
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="badge bg-secondary" id="selectedStreamsCount">0</span> streams selected
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="selectAllStreams">
+                                        <label class="form-check-label" for="selectAllStreams">
+                                            Select All
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="createTVChannelBtn">
+                    Create TV Channel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

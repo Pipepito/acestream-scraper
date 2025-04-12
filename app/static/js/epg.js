@@ -298,18 +298,36 @@ async function loadEpgChannels(page = 1, searchTerm = '') {
         
         // Update table
         table.innerHTML = pageData.map(channel => {
-            const logo = channel.logo ? `<img src="${channel.logo}" class="img-fluid" style="max-height: 40px;">` : '';
+            // Get logo HTML
+            const logoHtml = channel.icon ? 
+                `<img src="${channel.icon}" alt="${channel.name}" style="max-height: 30px;">` : 
+                `<span class="text-muted"><i class="bi bi-image"></i></span>`;
+            
+            // Get source URL instead of source name
+            const sourceDisplay = channel.source_url || "Unknown Source";
+            
+            // Add language display if available
+            const language = channel.language || "";
             
             return `
-                <tr class="cursor-pointer" onclick="showProgramSchedule('${channel.id}')">
-                    <td>${logo}</td>
+                <tr data-channel-id="${channel.id}" data-channel-name="${channel.name}" 
+                    onclick="showProgramSchedule('${channel.id}')">
+                    <td>${logoHtml}</td>
                     <td>${channel.id}</td>
                     <td>${channel.name}</td>
-                    <td>${channel.source_name || ''}</td>
+                    <td><small class="text-muted">${sourceDisplay}</small></td>
+                    <td>${language}</td>
                     <td>
-                        <button class="btn btn-outline-primary btn-sm" onclick="event.stopPropagation(); copyEpgId('${channel.id}')">
-                            <i class="bi bi-clipboard"></i> Copy ID
-                        </button>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-secondary" 
+                                    onclick="event.stopPropagation(); copyEpgId('${channel.id}')">
+                                <i class="bi bi-clipboard"></i>
+                            </button>
+                            <button class="btn btn-outline-success create-tv-channel-btn"
+                                    onclick="event.stopPropagation(); openCreateTVChannelModal('${channel.id}', '${channel.name.replace(/'/g, "\\'")}')">
+                                <i class="bi bi-tv"></i> Create TV Channel
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `;

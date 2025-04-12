@@ -218,3 +218,32 @@ class ChannelRepository(BaseRepository[AcestreamChannel]):
         except SQLAlchemyError as e:
             logger.error(f"Error rolling back transaction: {e}")
             raise
+
+    def get_all(self, tv_channel_id=None) -> List[AcestreamChannel]:
+        """
+        Get all channels with optional filtering by TV channel association.
+        
+        Args:
+            tv_channel_id: If provided, filter channels by this TV channel ID. 
+                          If None, return only channels not assigned to any TV channel.
+                          If not specified, return all channels.
+        
+        Returns:
+            List of AcestreamChannel objects
+        """
+        try:
+            query = self.model.query
+            
+            # Filter by TV channel ID if specified
+            if tv_channel_id is not None:
+                # Check if we're looking for unassigned channels
+                if tv_channel_id is None:
+                    query = query.filter(self.model.tv_channel_id.is_(None))
+                else:
+                    query = query.filter(self.model.tv_channel_id == tv_channel_id)
+                
+            return query.order_by(self.model.name).all()
+            
+        except SQLAlchemyError as e:
+            logger.error(f"Error getting channels: {e}")
+            return []

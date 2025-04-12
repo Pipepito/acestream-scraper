@@ -55,6 +55,8 @@ function initializeDetailPage() {
     document.getElementById('syncEpgBtn').addEventListener('click', syncEpgData);
     document.getElementById('updateTVChannelBtn').addEventListener('click', updateChannel);
     document.getElementById('previewLogoBtn').addEventListener('click', previewLogo);
+    document.getElementById('toggleFavoriteBtn').addEventListener('click', toggleFavorite);
+    document.getElementById('setChannelNumberBtn').addEventListener('click', setChannelNumber);
 }
 
 /**
@@ -106,11 +108,15 @@ function updateChannelUI() {
     const channel = channelState.channelData;
     if (!channel) return;
     
-    // Update breadcrumb
-    document.getElementById('channelBreadcrumb').textContent = channel.name;
     
     // Update header
     document.getElementById('channelName').textContent = channel.name;
+    
+    // Update favorite status
+    updateFavoriteUI(channel.is_favorite);
+    
+    // Update channel number
+    updateChannelNumberUI(channel.channel_number);
     
     // Update logo
     const logoContainer = document.getElementById('channelLogoContainer');
@@ -146,6 +152,18 @@ function updateChannelUI() {
         '<span class="badge bg-success">Active</span>' : 
         '<span class="badge bg-danger">Inactive</span>';
     
+    // Update favorite status display
+    document.getElementById('isFavoriteDisplay').innerHTML = channel.is_favorite ?
+        '<span class="badge bg-warning"><i class="bi bi-star-fill"></i> Favorite</span>' :
+        '<span class="badge bg-secondary">Not favorite</span>';
+    
+    // Set channel number input value
+    if (channel.channel_number) {
+        document.getElementById('channelNumberInput').value = channel.channel_number;
+    } else {
+        document.getElementById('channelNumberInput').value = '';
+    }
+    
     // Update website link
     if (channel.website) {
         document.getElementById('detailWebsite').innerHTML = `<a href="${channel.website}" target="_blank">${channel.website}</a>`;
@@ -156,6 +174,119 @@ function updateChannelUI() {
     // Update stream information
     document.getElementById('detailTotalStreams').textContent = channelState.acestreams.length;
     document.getElementById('detailOnlineStreams').textContent = channelState.acestreams.filter(stream => stream.is_online).length;
+}
+
+/**
+ * Update the favorite UI elements based on status
+ */
+function updateFavoriteUI(isFavorite) {
+    const favoriteIcon = document.getElementById('favoriteIcon');
+    const toggleFavoriteBtn = document.getElementById('toggleFavoriteBtn');
+    
+    if (isFavorite) {
+        favoriteIcon.className = 'bi bi-star-fill text-warning fs-4';
+        toggleFavoriteBtn.setAttribute('title', 'Remove from favorites');
+    } else {
+        favoriteIcon.className = 'bi bi-star fs-4';
+        toggleFavoriteBtn.setAttribute('title', 'Add to favorites');
+    }
+}
+
+/**
+ * Update channel number UI elements
+ */
+function updateChannelNumberUI(channelNumber) {
+    const channelNumberBadge = document.getElementById('channelNumberBadge');
+    
+    if (channelNumber) {
+        channelNumberBadge.textContent = `#${channelNumber}`;
+        channelNumberBadge.classList.remove('d-none');
+    } else {
+        channelNumberBadge.classList.add('d-none');
+    }
+}
+
+/**
+ * Toggle favorite status
+ */
+async function toggleFavorite() {
+    try {
+        showLoading();
+        
+        const response = await fetch(`/api/tv-channels/${channelState.channelId}/favorite`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            showAlert('success', result.message);
+            
+            // Update local state
+            channelState.channelData.is_favorite = result.is_favorite;
+            
+            // Update UI
+            updateFavoriteUI(result.is_favorite);
+            
+            // Update favorite status display
+            document.getElementById('isFavoriteDisplay').innerHTML = result.is_favorite ?
+                '<span class="badge bg-warning"><i class="bi bi-star-fill"></i> Favorite</span>' :
+                '<span class="badge bg-secondary">Not favorite</span>';
+        } else {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to toggle favorite status');
+        }
+    } catch (error) {
+        console.error('Error toggling favorite status:', error);
+        showAlert('error', error.message || 'Error toggling favorite status');
+    } finally {
+        hideLoading();
+    }
+}
+
+/**
+ * Set channel number
+ */
+async function setChannelNumber() {
+    const channelNumber = parseInt(document.getElementById('channelNumberInput').value);
+    
+    if (isNaN(channelNumber) || channelNumber < 1) {
+        showAlert('warning', 'Please enter a valid channel number');
+        return;
+    }
+    
+    try {
+        showLoading();
+        
+        const response = await fetch(`/api/tv-channels/${channelState.channelId}/channel-number`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ channel_number: channelNumber })
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            showAlert('success', result.message);
+            
+            // Update local state
+            channelState.channelData.channel_number = channelNumber;
+            
+            // Update UI
+            updateChannelNumberUI(channelNumber);
+        } else {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to set channel number');
+        }
+    } catch (error) {
+        console.error('Error setting channel number:', error);
+        showAlert('error', error.message || 'Error setting channel number');
+    } finally {
+        hideLoading();
+    }
 }
 
 /**
@@ -237,6 +368,8 @@ function editChannel() {
     document.getElementById('editTVChannelEpgId').value = channel.epg_id || '';
     document.getElementById('editTVChannelEpgSourceId').value = channel.epg_source_id || '';
     document.getElementById('editTVChannelIsActive').checked = Boolean(channel.is_active);
+    document.getElementById('editTVChannelIsFavorite').checked = Boolean(channel.is_favorite);
+    document.getElementById('editTVChannelNumber').value = channel.channel_number || '';
     
     // Clear logo preview
     const logoPreview = document.getElementById('logoPreview');
@@ -265,6 +398,8 @@ async function updateChannel() {
     const channelEpgId = document.getElementById('editTVChannelEpgId').value.trim();
     const channelEpgSourceId = document.getElementById('editTVChannelEpgSourceId').value;
     const channelIsActive = document.getElementById('editTVChannelIsActive').checked;
+    const channelIsFavorite = document.getElementById('editTVChannelIsFavorite').checked;
+    const channelNumber = document.getElementById('editTVChannelNumber').value;
     
     if (!channelName) {
         showAlert('warning', 'Channel name is required');
@@ -276,7 +411,8 @@ async function updateChannel() {
         
         const channelData = {
             name: channelName,
-            is_active: channelIsActive
+            is_active: channelIsActive,
+            is_favorite: channelIsFavorite
         };
         
         // Add optional fields if they have values
@@ -288,6 +424,7 @@ async function updateChannel() {
         if (channelWebsite) channelData.website = channelWebsite;
         if (channelEpgId) channelData.epg_id = channelEpgId;
         if (channelEpgSourceId) channelData.epg_source_id = parseInt(channelEpgSourceId);
+        if (channelNumber) channelData.channel_number = parseInt(channelNumber);
         
         const response = await fetch(`/api/tv-channels/${channelId}`, {
             method: 'PUT',

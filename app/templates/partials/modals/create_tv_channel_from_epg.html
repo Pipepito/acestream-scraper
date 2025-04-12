@@ -55,14 +55,32 @@
                                 </div>
                             </div>
 
-                            <div class="mb-3">
-                                <label for="createTVChannelEpgId" class="form-label">EPG ID</label>
-                                <input type="text" class="form-control" id="createTVChannelEpgId" readonly>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="createTVChannelEpgId" class="form-label">EPG ID</label>
+                                    <input type="text" class="form-control" id="createTVChannelEpgId" readonly>
+                                </div>
+                                
+                                <!-- Add Channel Number field -->
+                                <div class="col-md-6">
+                                    <label for="createTVChannelNumber" class="form-label">Channel Number</label>
+                                    <input type="number" class="form-control" id="createTVChannelNumber" min="1">
+                                </div>
                             </div>
 
-                            <div class="mb-3 form-check">
-                                <input type="checkbox" class="form-check-input" id="createTVChannelIsActive" checked>
-                                <label class="form-check-label" for="createTVChannelIsActive">Active</label>
+                            <div class="mb-3 d-flex">
+                                <div class="form-check me-4">
+                                    <input type="checkbox" class="form-check-input" id="createTVChannelIsActive" checked>
+                                    <label class="form-check-label" for="createTVChannelIsActive">Active</label>
+                                </div>
+                                
+                                <!-- Add Favorite checkbox -->
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="createTVChannelIsFavorite">
+                                    <label class="form-check-label" for="createTVChannelIsFavorite">
+                                        <i class="bi bi-star-fill text-warning"></i> Add to Favorites
+                                    </label>
+                                </div>
                             </div>
 
                             <div id="createLogoPreview" class="mb-3 d-none">

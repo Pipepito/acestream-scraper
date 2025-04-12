@@ -4,12 +4,6 @@
 
 {% block content %}
 <div class="container py-4" id="tvChannelDetailContainer">
-    <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('main.tv_channels') }}">TV Channels</a></li>
-            <li class="breadcrumb-item active" aria-current="page" id="channelBreadcrumb">Channel Detail</li>
-        </ol>
-    </nav>
     
     <!-- Channel Header -->
     <div class="row mb-4 align-items-center" id="channelHeader">
@@ -21,7 +15,15 @@
             </div>
         </div>
         <div class="col">
-            <h1 id="channelName">Loading...</h1>
+            <div class="d-flex align-items-center">
+                <h1 id="channelName">Loading...</h1>
+                <!-- Add favorite button/star -->
+                <button class="btn btn-link text-decoration-none ms-2" id="toggleFavoriteBtn">
+                    <i class="bi bi-star fs-4" id="favoriteIcon"></i>
+                </button>
+                <!-- Add channel number badge -->
+                <span class="badge bg-secondary ms-2" id="channelNumberBadge"></span>
+            </div>
             <div id="channelMetadata" class="mb-2">
                 <span class="badge bg-secondary me-2" id="channelCategory"></span>
                 <span class="badge bg-info me-2" id="channelCountry"></span>
@@ -157,6 +159,19 @@
                                     <dl class="row">
                                         <dt class="col-sm-4">Channel ID</dt>
                                         <dd class="col-sm-8" id="detailChannelId">-</dd>
+                                        
+                                        <!-- Add Channel Number -->
+                                        <dt class="col-sm-4">Channel Number</dt>
+                                        <dd class="col-sm-8">
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" class="form-control" id="channelNumberInput" min="1">
+                                                <button class="btn btn-outline-primary" type="button" id="setChannelNumberBtn">Set</button>
+                                            </div>
+                                        </dd>
+                                        
+                                        <!-- Add Favorite Status -->
+                                        <dt class="col-sm-4">Favorite</dt>
+                                        <dd class="col-sm-8" id="isFavoriteDisplay">-</dd>
                                         
                                         <dt class="col-sm-4">Created</dt>
                                         <dd class="col-sm-8" id="detailCreatedAt">-</dd>

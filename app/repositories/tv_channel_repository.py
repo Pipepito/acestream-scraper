@@ -285,6 +285,76 @@ class TVChannelRepository:
                      .all()
         return [l[0] for l in languages]
 
+    def set_favorite(self, channel_id: int, is_favorite: bool = True) -> Optional[TVChannel]:
+        """
+        Set or unset a TV channel as favorite.
+        
+        Args:
+            channel_id: ID of the channel to update
+            is_favorite: True to mark as favorite, False to unmark
+            
+        Returns:
+            Updated TVChannel object or None if not found
+        """
+        channel = self.get_by_id(channel_id)
+        if not channel:
+            return None
+            
+        channel.is_favorite = is_favorite
+        db.session.commit()
+        return channel
+        
+    def set_channel_number(self, channel_id: int, channel_number: int) -> Optional[TVChannel]:
+        """
+        Set a channel number for a TV channel.
+        
+        Args:
+            channel_id: ID of the channel to update
+            channel_number: Channel number to set
+            
+        Returns:
+            Updated TVChannel object or None if not found
+        """
+        channel = self.get_by_id(channel_id)
+        if not channel:
+            return None
+            
+        channel.channel_number = channel_number
+        db.session.commit()
+        return channel
+    
+    def toggle_favorite(self, channel_id: int) -> Optional[Dict]:
+        """
+        Toggle the favorite status of a TV channel.
+        
+        Args:
+            channel_id: ID of the channel to update
+            
+        Returns:
+            Dict with updated channel and new status or None if not found
+        """
+        channel = self.get_by_id(channel_id)
+        if not channel:
+            return None
+            
+        # Toggle the status
+        channel.is_favorite = not channel.is_favorite
+        db.session.commit()
+        
+        return {
+            'channel': channel.to_dict(),
+            'is_favorite': channel.is_favorite
+        }
+    
+    def get_favorites(self) -> List[TVChannel]:
+        """
+        Get all favorite TV channels.
+        
+        Returns:
+            List of favorite TVChannel objects
+        """
+        return TVChannel.query.filter_by(is_favorite=True).order_by(TVChannel.channel_number, TVChannel.name).all()
+
     def bulk_update(self, channel_ids: List[int], update_data: Dict) -> Dict:
         """
         Bulk update multiple TV channels at once.

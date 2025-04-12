@@ -11,9 +11,15 @@
                     <input type="hidden" id="editTVChannelId">
                     
                     <div class="row g-3">
-                        <div class="col-md-12">
+                        <div class="col-md-8">
                             <label for="editTVChannelName" class="form-label">Channel Name *</label>
                             <input type="text" class="form-control" id="editTVChannelName" required>
+                        </div>
+                        
+                        <!-- Add Channel Number field -->
+                        <div class="col-md-4">
+                            <label for="editTVChannelNumber" class="form-label">Channel Number</label>
+                            <input type="number" class="form-control" id="editTVChannelNumber" min="1">
                         </div>
                         
                         <div class="col-md-12">
@@ -59,10 +65,20 @@
                             <input type="number" class="form-control" id="editTVChannelEpgSourceId">
                         </div>
                         
-                        <div class="col-md-12">
+                        <div class="col-md-6">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" id="editTVChannelIsActive" checked>
                                 <label class="form-check-label" for="editTVChannelIsActive">Active</label>
+                            </div>
+                        </div>
+                        
+                        <!-- Add Favorite checkbox -->
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="editTVChannelIsFavorite">
+                                <label class="form-check-label" for="editTVChannelIsFavorite">
+                                    <i class="bi bi-star-fill text-warning"></i> Favorite
+                                </label>
                             </div>
                         </div>
                         

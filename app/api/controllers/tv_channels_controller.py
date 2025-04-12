@@ -549,3 +549,87 @@ class FindMatchesResource(Resource):
         except Exception as e:
             logger.error(f"Error finding matches: {e}", exc_info=True)
             api.abort(500, f"Error finding matches: {str(e)}")
+
+@api.route('/favorites')
+class TVChannelFavoritesResource(Resource):
+    @api.doc('get_favorites')
+    @api.response(200, 'Success')
+    def get(self):
+        """Get all favorite TV channels"""
+        repo = TVChannelRepository()
+        favorites = repo.get_favorites()
+        
+        return {
+            'total': len(favorites),
+            'favorites': [channel.to_dict() for channel in favorites]
+        }
+
+@api.route('/<int:id>/favorite')
+@api.param('id', 'The TV channel ID')
+class TVChannelFavoriteResource(Resource):
+    @api.doc('set_favorite')
+    @api.expect(api.model('SetFavorite', {
+        'is_favorite': fields.Boolean(required=True, description='Favorite status to set')
+    }))
+    @api.response(200, 'Favorite status updated')
+    @api.response(404, 'TV Channel not found')
+    def post(self, id):
+        """Set or unset a TV channel as favorite"""
+        repo = TVChannelRepository()
+        data = request.json
+        
+        is_favorite = data.get('is_favorite', True)
+        channel = repo.set_favorite(id, is_favorite)
+        
+        if not channel:
+            api.abort(404, f'TV Channel {id} not found')
+            
+        return {
+            'message': f'TV Channel {id} {"marked as favorite" if is_favorite else "removed from favorites"}',
+            'channel': channel.to_dict()
+        }
+        
+    @api.doc('toggle_favorite')
+    @api.response(200, 'Favorite status toggled')
+    @api.response(404, 'TV Channel not found')
+    def put(self, id):
+        """Toggle favorite status of a TV channel"""
+        repo = TVChannelRepository()
+        
+        result = repo.toggle_favorite(id)
+        if not result:
+            api.abort(404, f'TV Channel {id} not found')
+            
+        return {
+            'message': f'TV Channel {id} {"marked as favorite" if result["is_favorite"] else "removed from favorites"}',
+            'channel': result['channel'],
+            'is_favorite': result['is_favorite']
+        }
+
+@api.route('/<int:id>/channel-number')
+@api.param('id', 'The TV channel ID')
+class TVChannelNumberResource(Resource):
+    @api.doc('set_channel_number')
+    @api.expect(api.model('SetChannelNumber', {
+        'channel_number': fields.Integer(required=True, description='Channel number to set')
+    }))
+    @api.response(200, 'Channel number updated')
+    @api.response(404, 'TV Channel not found')
+    def post(self, id):
+        """Set a channel number for a TV channel"""
+        repo = TVChannelRepository()
+        data = request.json
+        
+        channel_number = data.get('channel_number')
+        if channel_number is None:
+            api.abort(400, 'Channel number is required')
+        
+        channel = repo.set_channel_number(id, channel_number)
+        
+        if not channel:
+            api.abort(404, f'TV Channel {id} not found')
+            
+        return {
+            'message': f'Channel number for TV Channel {id} set to {channel_number}',
+            'channel': channel.to_dict()
+        }

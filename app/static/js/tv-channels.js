@@ -15,7 +15,8 @@ const tvChannelsState = {
     perPage: 20,
     totalPages: 1,
     isLoading: false,
-    selectedChannels: new Set()
+    selectedChannels: new Set(),
+    favoritesOnly: false
 };
 
 // Document ready handler
@@ -92,6 +93,16 @@ function setupEventListeners() {
             });
         }
     });
+    
+    // Favorites filter
+    const favoritesFilter = document.getElementById('favoritesOnlyFilter');
+    if (favoritesFilter) {
+        favoritesFilter.addEventListener('change', function() {
+            tvChannelsState.favoritesOnly = this.checked;
+            tvChannelsState.page = 1; // Reset to first page
+            loadTVChannels();
+        });
+    }
     
     // Per page dropdown
     const perPageSelect = document.getElementById('channelsPerPage');
@@ -266,55 +277,56 @@ async function loadTVChannels() {
     if (tvChannelsState.isLoading) return;
     
     tvChannelsState.isLoading = true;
+    showLoading();
     
     try {
-        // Build query parameters from filters and pagination
-        const params = new URLSearchParams();
+        // Get filter values
+        const category = document.getElementById('categoryFilter').value;
+        const country = document.getElementById('countryFilter').value;
+        const language = document.getElementById('languageFilter').value;
+        const search = document.getElementById('tvChannelSearchInput').value;
         
-        const searchInput = document.getElementById('tvChannelSearchInput');
-        if (searchInput && searchInput.value.trim()) {
-            params.append('search', searchInput.value.trim());
-        }
-        
-        const filters = ['category', 'country', 'language'];
-        filters.forEach(filter => {
-            const element = document.getElementById(`${filter}Filter`);
-            if (element && element.value) {
-                params.append(filter, element.value);
-            }
+        // Build query parameters
+        const params = new URLSearchParams({
+            page: tvChannelsState.page,
+            per_page: tvChannelsState.perPage
         });
         
-        params.append('page', tvChannelsState.page.toString());
-        params.append('per_page', tvChannelsState.perPage.toString());
+        if (category) params.append('category', category);
+        if (country) params.append('country', country);
+        if (language) params.append('language', language);
+        if (search) params.append('search', search);
         
-        // Make API request
-        const url = `/api/tv-channels?${params.toString()}`;
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-            throw new Error(`API error: ${response.status}`);
-        }
-        
+        // Fetch TV channels
+        const response = await fetch(`/api/tv-channels/?${params.toString()}`);
         const data = await response.json();
         
-        // Update state with returned data
-        tvChannelsState.channels = data.channels || [];
-        tvChannelsState.totalPages = data.total_pages || 1;
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to load TV channels');
+        }
         
-        // Update filter options if provided
-        if (data.filters) {
-            tvChannelsState.filters = data.filters;
-            updateFilterDropdowns();
+        // Update state
+        tvChannelsState.channels = data.channels;
+        tvChannelsState.totalPages = data.total_pages;
+        tvChannelsState.filters.categories = data.filters.categories;
+        tvChannelsState.filters.countries = data.filters.countries;
+        tvChannelsState.filters.languages = data.filters.languages;
+        
+        // Filter locally if favoritesOnly is true
+        if (tvChannelsState.favoritesOnly) {
+            tvChannelsState.channels = tvChannelsState.channels.filter(channel => channel.is_favorite);
         }
         
         // Update UI
         updateTVChannelsTable();
+        updateFilterDropdowns();
         updatePagination();
         
     } catch (error) {
         console.error('Error loading TV channels:', error);
-        showAlert('error', 'Failed to load TV channels');
+        showAlert('error', 'Failed to load TV channels data');
     } finally {
+        hideLoading();
         tvChannelsState.isLoading = false;
     }
 }
@@ -324,76 +336,85 @@ async function loadTVChannels() {
  */
 function updateTVChannelsTable() {
     const tableBody = document.getElementById('tvChannelsTableBody');
-    if (!tableBody) return;
+    
+    if (!tableBody) {
+        console.error('TV channels table body not found');
+        return;
+    }
     
     if (tvChannelsState.channels.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="6" class="text-center">No TV channels found</td></tr>`;
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center text-muted">
+                    No channels found matching your criteria
+                </td>
+            </tr>
+        `;
         return;
     }
     
     tableBody.innerHTML = tvChannelsState.channels.map(channel => {
-        // Format acestreams count
-        const acestreamsCount = channel.acestream_channels_count || 0;
-        const badgeClass = acestreamsCount > 0 ? 'bg-success' : 'bg-secondary';
+        // Prepare favorite status indicator
+        let favoriteIcon = '';
+        if (channel.is_favorite) {
+            favoriteIcon = '<i class="bi bi-star-fill text-warning me-2" title="Favorite"></i>';
+        }
         
-        // Format country/language display
-        const countryLanguage = [
-            channel.country ? `<span class="badge bg-secondary">${channel.country}</span>` : '',
-            channel.language ? `<span class="badge bg-info text-dark">${channel.language}</span>` : ''
-        ].filter(Boolean).join(' ');
-        
-        // Channel name with logo if available
-        const nameWithLogo = channel.logo_url ? 
-            `<div class="d-flex align-items-center">
-                <img src="${channel.logo_url}" alt="${channel.name}" class="me-2" style="height: 30px; max-width: 50px;">
-                ${channel.name}
-            </div>` : 
-            channel.name;
-
-        // Check if this channel is in the selected set
-        const isSelected = tvChannelsState.selectedChannels.has(channel.id.toString());
+        // Prepare channel number indicator
+        const channelNumber = channel.channel_number ? 
+            `<span class="badge bg-secondary me-2">#${channel.channel_number}</span>` : '';
         
         return `
             <tr>
                 <td>
                     <div class="form-check">
-                        <input class="form-check-input channel-select-checkbox" type="checkbox" 
-                               value="${channel.id}" 
-                               data-channel-id="${channel.id}" 
-                               ${isSelected ? 'checked' : ''}>
+                        <input class="form-check-input channel-select-checkbox" 
+                               type="checkbox" 
+                               value="${channel.id}"
+                               ${tvChannelsState.selectedChannels.has(channel.id.toString()) ? 'checked' : ''}>
                     </div>
                 </td>
-                <td>${nameWithLogo}</td>
-                <td>${channel.category || '-'}</td>
-                <td>${countryLanguage || '-'}</td>
                 <td>
-                    <span class="badge ${badgeClass}">${acestreamsCount}</span>
+                    <div class="d-flex align-items-center">
+                        ${favoriteIcon}
+                        ${channelNumber}
+                        <div>
+                            <a href="/tv-channels/${channel.id}" class="text-decoration-none">
+                                ${channel.name}
+                            </a>
+                        </div>
+                    </div>
+                </td>
+                <td>${channel.category || '-'}</td>
+                <td>
+                    ${channel.country ? `<div>${channel.country}</div>` : ''}
+                    ${channel.language ? `<small class="text-muted">${channel.language}</small>` : ''}
+                </td>
+                <td>
+                    <span class="badge bg-primary">${channel.acestream_channels_count}</span>
                 </td>
                 <td>${channel.epg_id || '-'}</td>
                 <td>
                     <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary toggle-favorite-btn" 
+                                onclick="toggleChannelFavorite(${channel.id})" 
+                                title="${channel.is_favorite ? 'Remove from favorites' : 'Add to favorites'}">
+                            <i class="bi ${channel.is_favorite ? 'bi-star-fill' : 'bi-star'}"></i>
+                        </button>
                         <a href="/tv-channels/${channel.id}" class="btn btn-primary" title="View details">
-                            <i class="bi bi-eye"></i> View
+                            <i class="bi bi-eye"></i>
                         </a>
-                        <button class="btn btn-danger" onclick="deleteTVChannel(${channel.id})" title="Delete">
-                            <i class="bi bi-trash"></i> Delete
+                        <button class="btn btn-danger" onclick="deleteChannel(${channel.id})" title="Delete channel">
+                            <i class="bi bi-trash"></i>
                         </button>
                     </div>
                 </td>
             </tr>
         `;
     }).join('');
-
-    // Add event listeners to new checkboxes
-    addCheckboxEventListeners();
-}
-
-/**
- * Add event listeners to channel selection checkboxes
- */
-function addCheckboxEventListeners() {
-    const checkboxes = document.querySelectorAll('.channel-select-checkbox');
-    checkboxes.forEach(checkbox => {
+    
+    // Add event listeners to checkboxes
+    document.querySelectorAll('.channel-select-checkbox').forEach(checkbox => {
         checkbox.addEventListener('change', function() {
             const channelId = this.value;
             
@@ -401,14 +422,53 @@ function addCheckboxEventListeners() {
                 tvChannelsState.selectedChannels.add(channelId);
             } else {
                 tvChannelsState.selectedChannels.delete(channelId);
-                
-                // Uncheck "select all" if any individual checkbox is unchecked
-                document.getElementById('selectAllChannels').checked = false;
             }
             
             updateBulkEditToolbar();
         });
     });
+}
+
+/**
+ * Toggle favorite status for a channel
+ */
+async function toggleChannelFavorite(channelId) {
+    try {
+        showLoading();
+        
+        const response = await fetch(`/api/tv-channels/${channelId}/favorite`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            
+            // Update channel in state
+            const channelIndex = tvChannelsState.channels.findIndex(c => c.id === channelId);
+            if (channelIndex >= 0) {
+                tvChannelsState.channels[channelIndex].is_favorite = result.is_favorite;
+                
+                // If filtering by favorites and this channel is no longer a favorite, reload the list
+                if (tvChannelsState.favoritesOnly && !result.is_favorite) {
+                    await loadTVChannels();
+                } else {
+                    // Otherwise just update the table
+                    updateTVChannelsTable();
+                }
+            }
+        } else {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to toggle favorite status');
+        }
+    } catch (error) {
+        console.error('Error toggling favorite status:', error);
+        showAlert('error', error.message || 'Error toggling favorite status');
+    } finally {
+        hideLoading();
+    }
 }
 
 /**
@@ -445,27 +505,22 @@ function clearSelection() {
  * Open the bulk edit modal
  */
 function openBulkEditModal() {
-    // Update the count in the modal
-    document.getElementById('bulkEditCount').textContent = tvChannelsState.selectedChannels.size;
+    if (tvChannelsState.selectedChannels.size === 0) {
+        showAlert('warning', 'Please select at least one channel to edit');
+        return;
+    }
     
-    // Clear previous values
-    document.getElementById('bulkEditCategory').value = '';
-    document.getElementById('bulkEditCountry').value = '';
-    document.getElementById('bulkEditLanguage').value = '';
-    document.getElementById('bulkEditIsActive').checked = true;
-    
-    // Reset toggles
-    document.querySelectorAll('.bulk-field-toggle').forEach(toggle => {
-        toggle.checked = false;
+    // Reset form fields
+    document.querySelectorAll('.bulk-field-toggle').forEach(checkbox => {
+        checkbox.checked = false;
     });
     
-    // Hide all field groups
-    document.querySelectorAll('.bulk-field').forEach(field => {
-        field.classList.add('d-none');
+    document.querySelectorAll('.bulk-field-group').forEach(group => {
+        group.classList.add('d-none');
     });
     
-    // Show the modal
-    const modal = new bootstrap.Modal(document.getElementById('bulkEditTVChannelsModal'));
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('bulkEditModal'));
     modal.show();
 }
 
@@ -497,6 +552,9 @@ async function saveBulkEdit() {
                 break;
             case 'is_active':
                 updateData.is_active = document.getElementById('bulkEditIsActive').checked;
+                break;
+            case 'is_favorite':
+                updateData.is_favorite = document.getElementById('bulkEditIsFavorite').checked;
                 break;
         }
     });

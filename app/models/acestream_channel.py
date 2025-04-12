@@ -28,13 +28,16 @@ class AcestreamChannel(db.Model):
     check_error = db.Column(db.Text)
     epg_update_protected = db.Column(db.Boolean, default=False, nullable=False)
     
+    # Add new foreign key column for tv_channels.id
+    tv_channel_id = db.Column(db.Integer, db.ForeignKey('tv_channels.id'), nullable=True)
+    
     def __repr__(self):
         return f'<AcestreamChannel {self.name or self.id}>'
     
     @property
     def is_active(self):
         return self.status == 'active'
-
+        
     def to_dict(self):
         """Convert the channel to a dictionary."""
         return {
@@ -54,5 +57,6 @@ class AcestreamChannel(db.Model):
             'tvg_name': self.tvg_name,
             'original_url': self.original_url,
             'm3u_source': self.m3u_source,
-            'epg_update_protected': bool(self.epg_update_protected)
+            'epg_update_protected': bool(self.epg_update_protected),
+            'tv_channel_id': self.tv_channel_id
         }

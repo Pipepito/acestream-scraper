@@ -1,0 +1,80 @@
+<!-- Bulk Edit TV Channels Modal -->
+<div class="modal fade" id="bulkEditTVChannelsModal" tabindex="-1" aria-labelledby="bulkEditTVChannelsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bulkEditTVChannelsModalLabel">Bulk Edit TV Channels</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="bulkEditTVChannelsForm">
+                    <p class="text-muted mb-3">
+                        Editing <span id="bulkEditCount" class="fw-bold">0</span> channels. Only selected properties will be updated.
+                    </p>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input bulk-field-toggle" type="checkbox" value="category" id="editCategoryToggle">
+                            <label class="form-check-label" for="editCategoryToggle">
+                                Update Category
+                            </label>
+                        </div>
+                        <div class="mt-1 ms-4 d-none bulk-field" id="categoryFieldGroup">
+                            <label for="bulkEditCategory" class="form-label">Category</label>
+                            <input type="text" class="form-control" id="bulkEditCategory" placeholder="Sports, News, Entertainment, etc.">
+                            <div class="form-text">Common categories will appear as suggestions as you type</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input bulk-field-toggle" type="checkbox" value="country" id="editCountryToggle">
+                            <label class="form-check-label" for="editCountryToggle">
+                                Update Country
+                            </label>
+                        </div>
+                        <div class="mt-1 ms-4 d-none bulk-field" id="countryFieldGroup">
+                            <label for="bulkEditCountry" class="form-label">Country</label>
+                            <input type="text" class="form-control" id="bulkEditCountry" placeholder="US, UK, ES, etc.">
+                            <div class="form-text">Use country codes (US, UK, etc.) or full names</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input bulk-field-toggle" type="checkbox" value="language" id="editLanguageToggle">
+                            <label class="form-check-label" for="editLanguageToggle">
+                                Update Language
+                            </label>
+                        </div>
+                        <div class="mt-1 ms-4 d-none bulk-field" id="languageFieldGroup">
+                            <label for="bulkEditLanguage" class="form-label">Language</label>
+                            <input type="text" class="form-control" id="bulkEditLanguage" placeholder="English, Spanish, etc.">
+                            <div class="form-text">Use full language names (English, Spanish, French, etc.)</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input bulk-field-toggle" type="checkbox" value="is_active" id="editActiveToggle">
+                            <label class="form-check-label" for="editActiveToggle">
+                                Update Active Status
+                            </label>
+                        </div>
+                        <div class="mt-1 ms-4 d-none bulk-field" id="activeFieldGroup">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="bulkEditIsActive" checked>
+                                <label class="form-check-label" for="bulkEditIsActive">Active</label>
+                            </div>
+                            <div class="form-text">Inactive channels won't appear in playlists</div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveBulkEditBtn">Update Channels</button>
+            </div>
+        </div>
+    </div>
+</div>

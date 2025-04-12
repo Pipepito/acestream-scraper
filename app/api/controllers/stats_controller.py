@@ -79,3 +79,33 @@ class Stats(Resource):
             }
         except Exception as e:
             api.abort(500, f"Error retrieving statistics: {str(e)}")
+
+@api.route('/tv-channels/')
+class TVChannelStats(Resource):
+    @api.doc('get_tv_channel_stats')
+    def get(self):
+        """Get statistics about TV channels"""
+        try:
+            from app.models.tv_channel import TVChannel
+            from sqlalchemy import func
+            
+            # Get total count
+            total_count = TVChannel.query.count()
+            
+            # Get active count
+            active_count = TVChannel.query.filter_by(is_active=True).count()
+            
+            # Get count with EPG
+            with_epg_count = TVChannel.query.filter(TVChannel.epg_id.isnot(None)).count()
+            
+            # Get total acestreams associated with TV channels
+            acestreams_count = AcestreamChannel.query.filter(AcestreamChannel.tv_channel_id.isnot(None)).count()
+            
+            return {
+                'total': total_count,
+                'active': active_count,
+                'with_epg': with_epg_count,
+                'acestreams': acestreams_count
+            }
+        except Exception as e:
+            api.abort(500, f"Error retrieving TV channel statistics: {str(e)}")

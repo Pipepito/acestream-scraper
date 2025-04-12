@@ -194,16 +194,27 @@
                 <!-- Browse EPG Channels Tab -->
                 <div class="tab-pane fade" id="browse" role="tabpanel" aria-labelledby="browse-tab">
                     <div class="row mb-3">
-                        <div class="col-md-8">
+                        <div class="col-md-6">
                             <h5>Browse EPG Channels</h5>
                             <p class="text-muted">View all available EPG channels from your sources</p>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="input-group">
                                 <input type="text" class="form-control" id="epgChannelSearch" placeholder="Search EPG channels...">
                                 <button class="btn btn-outline-secondary" type="button" id="searchEpgChannelsBtn">
                                     <i class="bi bi-search"></i>
                                 </button>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="d-flex">
+                                <label for="epgChannelsPerPage" class="form-label me-2 d-flex align-items-center mb-0">Show:</label>
+                                <select class="form-select" id="epgChannelsPerPage">
+                                    <option value="20">20 per page</option>
+                                    <option value="50">50 per page</option>
+                                    <option value="100">100 per page</option>
+                                    <option value="200">200 per page</option>
+                                </select>
                             </div>
                         </div>
                     </div>

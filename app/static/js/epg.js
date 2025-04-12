@@ -13,6 +13,13 @@ const epgState = {
     selectedEpgChannel: null
 };
 
+// State management for EPG channels pagination
+const epgChannelsState = {
+    currentPage: 1,
+    perPage: 20,
+    searchTerm: ''
+};
+
 // Initialize when the document is loaded
 document.addEventListener('DOMContentLoaded', function() {
     console.log('EPG management page initializing...');
@@ -47,6 +54,14 @@ document.addEventListener('DOMContentLoaded', function() {
             if (e.key === 'Enter') {
                 searchEpgChannels();
             }
+        });
+    }
+    
+    // Initialize the per page dropdown listener
+    const perPageSelect = document.getElementById('epgChannelsPerPage');
+    if (perPageSelect) {
+        perPageSelect.addEventListener('change', function() {
+            loadEpgChannels(1); // Reset to first page when changing items per page
         });
     }
     
@@ -229,60 +244,61 @@ async function loadEpgMappings() {
 }
 
 /**
- * Load EPG channels
+ * Load EPG channels with pagination and search
  */
 async function loadEpgChannels(page = 1, searchTerm = '') {
+    // Update state
+    epgChannelsState.currentPage = page;
+    if (searchTerm !== undefined) {
+        epgChannelsState.searchTerm = searchTerm;
+    }
+    
+    const tableBody = document.getElementById('epgChannelsTable');
+    if (!tableBody) return;
+    
+    // Show loading state
+    tableBody.innerHTML = `
+        <tr>
+            <td colspan="6" class="text-center">
+                <div class="spinner-border spinner-border-sm" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <span class="ms-2">Loading EPG channels...</span>
+            </td>
+        </tr>
+    `;
+    
     try {
-        // Store current page
-        epgState.currentPage = page;
-        
-        // Update UI to show loading
-        const table = document.getElementById('epgChannelsTable');
-        if (table) {
-            table.innerHTML = `
-                <tr>
-                    <td colspan="5" class="text-center">
-                        <div class="spinner-border spinner-border-sm" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <span class="ms-2">Loading EPG channels...</span>
-                    </td>
-                </tr>
-            `;
+        // Get the per_page value from the dropdown
+        const perPageSelect = document.getElementById('epgChannelsPerPage');
+        if (perPageSelect) {
+            epgChannelsState.perPage = parseInt(perPageSelect.value);
         }
         
-        // Build request URL with pagination and search
-        let url = '/api/epg/channels';
-        const params = new URLSearchParams();
+        // Build URL with params
+        const params = new URLSearchParams({
+            page: epgChannelsState.currentPage,
+            per_page: epgChannelsState.perPage
+        });
         
-        if (searchTerm) {
-            params.append('search', searchTerm);
+        if (epgChannelsState.searchTerm) {
+            params.append('search', epgChannelsState.searchTerm);
         }
         
-        if (params.toString()) {
-            url += '?' + params.toString();
-        }
-        
-        const response = await fetch(url);
+        // Fetch EPG channels with search and pagination
+        const response = await fetch(`/api/epg/channels?${params.toString()}`);
+        const data = await response.json();
         
         if (!response.ok) {
-            throw new Error(`API returned ${response.status}: ${response.statusText}`);
+            throw new Error('Failed to load EPG channels');
         }
         
-        const data = await response.json();
-        epgState.epgChannels = data;
-        
-        // Update channels datalist for the mapping dialog
-        updateEpgChannelsList(data);
-        
-        // Update UI
-        if (!table || !data || data.length === 0) {
-            table.innerHTML = `
+        if (!data.channels || !data.channels.length) {
+            tableBody.innerHTML = `
                 <tr>
-                    <td colspan="5" class="text-center">
-                        <div class="alert alert-info m-0 p-2">
-                            <i class="bi bi-info-circle me-2"></i>
-                            No EPG channels found. Add an EPG source and refresh data.
+                    <td colspan="6" class="text-center">
+                        <div class="alert alert-info mb-0">
+                            No EPG channels found matching your criteria.
                         </div>
                     </td>
                 </tr>
@@ -290,27 +306,17 @@ async function loadEpgChannels(page = 1, searchTerm = '') {
             return;
         }
         
-        // Calculate pagination
-        const totalPages = Math.ceil(data.length / epgState.itemsPerPage);
-        const startIdx = (page - 1) * epgState.itemsPerPage;
-        const endIdx = Math.min(startIdx + epgState.itemsPerPage, data.length);
-        const pageData = data.slice(startIdx, endIdx);
-        
-        // Update table
-        table.innerHTML = pageData.map(channel => {
-            // Get logo HTML
+        // Render channels
+        tableBody.innerHTML = data.channels.map(channel => {
             const logoHtml = channel.icon ? 
-                `<img src="${channel.icon}" alt="${channel.name}" style="max-height: 30px;">` : 
-                `<span class="text-muted"><i class="bi bi-image"></i></span>`;
-            
-            // Get source URL instead of source name
-            const sourceDisplay = channel.source_url || "Unknown Source";
-            
-            // Add language display if available
-            const language = channel.language || "";
+                `<img src="${channel.icon}" alt="Channel Logo" class="img-fluid" style="max-height: 30px;">` : 
+                '<span class="text-muted"><i class="bi bi-tv"></i></span>';
+                
+            const sourceDisplay = channel.source_url || 'Unknown Source';
+            const language = channel.language || 'Unknown';
             
             return `
-                <tr data-channel-id="${channel.id}" data-channel-name="${channel.name}" 
+                <tr class="cursor-pointer" 
                     onclick="showProgramSchedule('${channel.id}')">
                     <td>${logoHtml}</td>
                     <td>${channel.id}</td>
@@ -334,71 +340,107 @@ async function loadEpgChannels(page = 1, searchTerm = '') {
         }).join('');
         
         // Update pagination
-        updatePagination(page, totalPages);
+        updateEpgChannelsPagination(data.page, data.total_pages);
         
     } catch (error) {
         console.error('Error loading EPG channels:', error);
-        throw error;
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center text-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Failed to load EPG channels: ${error.message}
+                </td>
+            </tr>
+        `;
     }
 }
 
 /**
- * Update the pagination controls
+ * Update pagination controls for EPG channels
  */
-function updatePagination(currentPage, totalPages) {
+function updateEpgChannelsPagination(currentPage, totalPages) {
     const pagination = document.getElementById('epgChannelsPagination');
     if (!pagination) return;
     
-    // Generate pagination HTML
-    let paginationHtml = '';
+    // Clear existing pagination
+    pagination.innerHTML = '';
+    
+    if (totalPages <= 1) {
+        return; // No pagination needed
+    }
     
     // Previous button
-    paginationHtml += `
-        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-            <a class="page-link" href="#" onclick="loadEpgChannels(${currentPage - 1}); return false;">Previous</a>
-        </li>
+    const prevItem = document.createElement('li');
+    prevItem.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+    prevItem.innerHTML = `
+        <a class="page-link" href="#" aria-label="Previous" ${currentPage > 1 ? `onclick="loadEpgChannels(${currentPage - 1}); return false;"` : ''}>
+            <span aria-hidden="true">&laquo;</span>
+        </a>
     `;
+    pagination.appendChild(prevItem);
     
     // Page numbers
-    const startPage = Math.max(1, currentPage - 2);
-    const endPage = Math.min(totalPages, startPage + 4);
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
     
-    for (let i = startPage; i <= endPage; i++) {
-        paginationHtml += `
-            <li class="page-item ${i === currentPage ? 'active' : ''}">
-                <a class="page-link" href="#" onclick="loadEpgChannels(${i}); return false;">${i}</a>
-            </li>
+    if (endPage - startPage < maxVisiblePages - 1) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+    
+    // First page
+    if (startPage > 1) {
+        const firstItem = document.createElement('li');
+        firstItem.className = 'page-item';
+        firstItem.innerHTML = `
+            <a class="page-link" href="#" onclick="loadEpgChannels(1); return false;">1</a>
         `;
+        pagination.appendChild(firstItem);
+        
+        if (startPage > 2) {
+            const ellipsisItem = document.createElement('li');
+            ellipsisItem.className = 'page-item disabled';
+            ellipsisItem.innerHTML = '<a class="page-link" href="#">...</a>';
+            pagination.appendChild(ellipsisItem);
+        }
+    }
+    
+    // Visible pages
+    for (let i = startPage; i <= endPage; i++) {
+        const item = document.createElement('li');
+        item.className = `page-item ${i === currentPage ? 'active' : ''}`;
+        item.innerHTML = `
+            <a class="page-link" href="#" onclick="loadEpgChannels(${i}); return false;">${i}</a>
+        `;
+        pagination.appendChild(item);
+    }
+    
+    // Last page
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            const ellipsisItem = document.createElement('li');
+            ellipsisItem.className = 'page-item disabled';
+            ellipsisItem.innerHTML = '<a class="page-link" href="#">...</a>';
+            pagination.appendChild(ellipsisItem);
+        }
+        
+        const lastItem = document.createElement('li');
+        lastItem.className = 'page-item';
+        lastItem.innerHTML = `
+            <a class="page-link" href="#" onclick="loadEpgChannels(${totalPages}); return false;">${totalPages}</a>
+        `;
+        pagination.appendChild(lastItem);
     }
     
     // Next button
-    paginationHtml += `
-        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-            <a class="page-link" href="#" onclick="loadEpgChannels(${currentPage + 1}); return false;">Next</a>
-        </li>
+    const nextItem = document.createElement('li');
+    nextItem.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+    nextItem.innerHTML = `
+        <a class="page-link" href="#" aria-label="Next" ${currentPage < totalPages ? `onclick="loadEpgChannels(${currentPage + 1}); return false;"` : ''}>
+            <span aria-hidden="true">&raquo;</span>
+        </a>
     `;
-    
-    pagination.innerHTML = paginationHtml;
-}
-
-/**
- * Update EPG channels list in the datalist for mapping
- */
-function updateEpgChannelsList(channels) {
-    const datalist = document.getElementById('epgChannelOptions');
-    if (!datalist) return;
-    
-    datalist.innerHTML = '';
-    
-    // Sort channels by name
-    const sortedChannels = [...channels].sort((a, b) => a.name.localeCompare(b.name));
-    
-    sortedChannels.forEach(channel => {
-        const option = document.createElement('option');
-        option.value = channel.id;
-        option.textContent = `${channel.name} (${channel.id})`;
-        datalist.appendChild(option);
-    });
+    pagination.appendChild(nextItem);
 }
 
 /**
@@ -884,7 +926,7 @@ function copyEpgId(id) {
  */
 function searchEpgChannels() {
     const searchTerm = document.getElementById('epgChannelSearch').value.trim();
-    loadEpgChannels(1, searchTerm);
+    loadEpgChannels(1, searchTerm); // Reset to first page when searching
 }
 
 /**

@@ -208,9 +208,17 @@ class EPGUpdateChannelsResource(Resource):
             return {'error': str(e)}, 500
 
 @api.route('/channels')
+@api.param('search', 'Search term to filter channels')
+@api.param('page', 'Page number (default: 1)')
+@api.param('per_page', 'Items per page (default: 20)')
 class EPGChannelsResource(Resource):
     def get(self):
         """Get all available EPG channel IDs and names"""
+        # Get pagination and search parameters
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+        search_term = request.args.get('search', '')
+        
         # Use EPGChannelRepository to get channels from database
         epg_channel_repo = EPGChannelRepository()
         all_channels = epg_channel_repo.get_all()
@@ -223,26 +231,45 @@ class EPGChannelsResource(Resource):
         for i, source_id in enumerate(sources.keys()):
             source_numbers[source_id] = f"Source #{i+1}"
 
-        # Convert to the expected format
-        channels = []
+        # Filter channels if search term provided
+        filtered_channels = []
         for channel in all_channels:
-            source_id = channel.epg_source_id
-            source_name = source_numbers.get(source_id, "Unknown") if source_id else ""
-            
-            # Get the source URL if available
-            source_url = sources[source_id].url if source_id and source_id in sources else ""
-            
-            channels.append({
-                'id': channel.channel_xml_id,
-                'name': channel.name or channel.channel_xml_id,
-                'source_id': source_id,
-                'source_name': source_name,
-                'source_url': source_url,
-                'icon': channel.icon_url,
-                'language': channel.language
-            })
+            if not search_term or (
+                search_term.lower() in (channel.name or '').lower() or
+                search_term.lower() in (channel.channel_xml_id or '').lower()
+            ):
+                # Get source info for the channel
+                source_id = channel.epg_source_id
+                source_name = source_numbers.get(source_id, "Unknown") if source_id else ""
+                source_url = sources[source_id].url if source_id and source_id in sources else ""
+                
+                filtered_channels.append({
+                    'id': channel.channel_xml_id,
+                    'name': channel.name or channel.channel_xml_id,
+                    'source_id': source_id,
+                    'source_name': source_name,
+                    'source_url': source_url,
+                    'icon': channel.icon_url,
+                    'language': channel.language
+                })
+
+        # Calculate pagination
+        total_channels = len(filtered_channels)
+        total_pages = (total_channels + per_page - 1) // per_page
         
-        return channels
+        # Apply pagination
+        start_idx = (page - 1) * per_page
+        end_idx = min(start_idx + per_page, total_channels)
+        paginated_channels = filtered_channels[start_idx:end_idx]
+        
+        # Return with pagination info
+        return {
+            'channels': paginated_channels,
+            'page': page,
+            'per_page': per_page,
+            'total_channels': total_channels,
+            'total_pages': total_pages
+        }
 
 @api.route('/auto-scan')
 class EPGAutoScanResource(Resource):

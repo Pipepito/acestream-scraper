@@ -95,43 +95,60 @@ parser.add_argument('search', type=str, help='Search term')
 parser.add_argument('page', type=int, default=1, help='Page number')
 parser.add_argument('per_page', type=int, default=20, help='Items per page')
 parser.add_argument('is_active', type=bool, help='Filter by active status')
+parser.add_argument('favorites_only', type=bool, help='Show only favorite channels')
 
 @api.route('/')
-class TVChannelsResource(Resource):
+class TVChannelsList(Resource):
     @api.doc('list_tv_channels')
     @api.expect(parser)
     def get(self):
         """List TV channels with optional filtering"""
         args = parser.parse_args()
-        repo = TVChannelRepository()
+        category = args.get('category')
+        country = args.get('country')
+        language = args.get('language')
+        search = args.get('search')
+        page = args.get('page', 1)
+        per_page = args.get('per_page', 20)
+        favorites_only = args.get('favorites_only', False)
         
-        # Get filtered channels with pagination
-        channels, total, total_pages = repo.filter_channels(
-            category=args.get('category'),
-            country=args.get('country'),
-            language=args.get('language'),
-            search_term=args.get('search'),
-            page=args.get('page', 1),
-            per_page=args.get('per_page', 20)
-        )
-        
-        # Get unique filter options for dropdowns
-        categories = repo.get_categories()
-        countries = repo.get_countries()
-        languages = repo.get_languages()
-        
-        return {
-            'channels': [channel.to_dict() for channel in channels],
-            'total': total,
-            'page': args.get('page', 1),
-            'per_page': args.get('per_page', 20),
-            'total_pages': total_pages,
-            'filters': {
-                'categories': categories,
-                'countries': countries,
-                'languages': languages
+        try:
+            # Create TV Channel repository instance
+            repo = TVChannelRepository()
+            
+            # Use TV Channel repository to filter channels
+            channels, total, total_pages = repo.filter_channels(
+                category=category,
+                country=country,
+                language=language,
+                search_term=search,
+                page=page,
+                per_page=per_page,
+                favorites_only=favorites_only
+            )
+            
+            # Convert to dictionaries for response
+            channels_data = [c.to_dict() for c in channels]
+            
+            # Get all available filter options
+            filters = {
+                'categories': repo.get_categories(),
+                'countries': repo.get_countries(),
+                'languages': repo.get_languages()
             }
-        }
+            
+            # Return successful response with data
+            response = {
+                'channels': channels_data,
+                'total': total,
+                'page': page,
+                'per_page': per_page,
+                'total_pages': total_pages,
+                'filters': filters
+            }
+            return response
+        except Exception as e:
+            api.abort(500, f"Error retrieving TV channels: {str(e)}")
     
     @api.doc('create_tv_channel')
     @api.expect(api.model('TVChannelCreate', {

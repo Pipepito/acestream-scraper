@@ -34,6 +34,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize bulk actions
     initializeBulkActions();
+    
+    // Initialize playlist functionality
+    initializePlaylistFunctions();
 });
 
 /**
@@ -122,6 +125,332 @@ function setupEventListeners() {
 }
 
 /**
+ * Show the modal for adding a new TV channel
+ */
+function showAddTVChannelModal() {
+    // Reset the form
+    const form = document.getElementById('addTVChannelForm');
+    if (form) {
+        form.reset();
+    }
+    
+    // Clear any previous selected acestreams
+    const selectedAcestreamsContainer = document.getElementById('selectedAcestreams');
+    if (selectedAcestreamsContainer) {
+        selectedAcestreamsContainer.innerHTML = '';
+    }
+    
+    // Show the modal
+    const modal = new bootstrap.Modal(document.getElementById('addTVChannelModal'));
+    modal.show();
+    
+    // Load unassigned acestreams for the selection area
+    loadUnassignedAcestreams();
+}
+
+/**
+ * Save a new TV channel
+ */
+function saveNewTVChannel() {
+    // Get form data
+    const form = document.getElementById('addTVChannelForm');
+    if (!form) return;
+    
+    // Collect form data
+    const formData = {
+        name: form.querySelector('[name="name"]').value.trim(),
+        description: form.querySelector('[name="description"]').value.trim() || null,
+        logo_url: form.querySelector('[name="logo_url"]').value.trim() || null,
+        category: form.querySelector('[name="category"]').value.trim() || null,
+        country: form.querySelector('[name="country"]').value.trim() || null,
+        language: form.querySelector('[name="language"]').value.trim() || null,
+        website: form.querySelector('[name="website"]').value.trim() || null,
+        epg_id: form.querySelector('[name="epg_id"]').value.trim() || null,
+        is_active: form.querySelector('[name="is_active"]').checked,
+        selected_acestreams: []
+    };
+    
+    // Validate required fields
+    if (!formData.name) {
+        showAlert('error', 'Channel name is required');
+        return;
+    }
+    
+    // Collect selected acestreams
+    const selectedContainer = document.getElementById('selectedAcestreams');
+    if (selectedContainer) {
+        const acestreams = selectedContainer.querySelectorAll('.selected-acestream');
+        acestreams.forEach(item => {
+            const id = item.getAttribute('data-acestream-id');
+            if (id) {
+                formData.selected_acestreams.push(id);
+            }
+        });
+    }
+    
+    // Show loading
+    showLoading();
+    
+    // Send API request
+    fetch('/api/tv-channels/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.message || 'Failed to create TV channel');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Show success message
+        showAlert('success', 'TV channel created successfully');
+        
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addTVChannelModal'));
+        if (modal) {
+            modal.hide();
+        }
+        
+        // Refresh channel list
+        loadTVChannels();
+    })
+    .catch(error => {
+        console.error('Error creating TV channel:', error);
+        showAlert('error', error.message || 'Failed to create TV channel');
+    })
+    .finally(() => {
+        hideLoading();
+    });
+}
+
+/**
+ * Load unassigned acestreams for selection in the add channel modal
+ */
+function loadUnassignedAcestreams(searchTerm = '') {
+    const container = document.getElementById('unassignedAcestreamsContainer');
+    if (!container) return;
+    
+    // Show loading indicator
+    container.innerHTML = `
+        <div class="text-center p-3">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                <span class="visually-hidden">Loading acestreams...</span>
+            </div>
+            <span class="ms-2">Loading unassigned acestreams...</span>
+        </div>
+    `;
+    
+    // Build query parameters
+    let url = '/api/tv-channels/unassigned-acestreams';
+    if (searchTerm) {
+        url += `?search=${encodeURIComponent(searchTerm)}`;
+    }
+    
+    // Fetch unassigned acestreams
+    fetch(url)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to load unassigned acestreams');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (!data.acestreams || data.acestreams.length === 0) {
+                container.innerHTML = `
+                    <div class="alert alert-info">
+                        No unassigned acestreams found
+                    </div>
+                `;
+                return;
+            }
+            
+            // Create search box and list container
+            let html = `
+                <div class="mb-3">
+                    <input type="text" 
+                           class="form-control form-control-sm" 
+                           id="acestreamsSearchInput" 
+                           placeholder="Search acestreams...">
+                </div>
+                <div class="list-group acestreams-list" style="max-height: 300px; overflow-y: auto;">
+            `;
+            
+            // Add each acestream as a list item
+            data.acestreams.forEach(acestream => {
+                html += `
+                    <div class="list-group-item list-group-item-action">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                ${acestream.name || 'Unnamed Stream'}
+                                <small class="d-block text-muted">${acestream.id}</small>
+                            </div>
+                            <button type="button" 
+                                    class="btn btn-sm btn-outline-primary select-acestream-btn"
+                                    data-acestream-id="${acestream.id}" 
+                                    data-acestream-name="${acestream.name || 'Unnamed Stream'}">
+                                Select
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+            
+            // Add event listener to search input
+            const searchInput = document.getElementById('acestreamsSearchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', debounce(function() {
+                    loadUnassignedAcestreams(this.value);
+                }, 300));
+            }
+            
+            // Add event listeners to select buttons
+            document.querySelectorAll('.select-acestream-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const id = this.getAttribute('data-acestream-id');
+                    const name = this.getAttribute('data-acestream-name');
+                    addSelectedAcestream(id, name);
+                });
+            });
+        })
+        .catch(error => {
+            console.error('Error loading unassigned acestreams:', error);
+            container.innerHTML = `
+                <div class="alert alert-danger">
+                    Failed to load unassigned acestreams: ${error.message}
+                </div>
+            `;
+        });
+}
+
+/**
+ * Add a selected acestream to the list of acestreams to associate with the new TV channel
+ * @param {string} id - Acestream ID
+ * @param {string} name - Acestream name
+ */
+function addSelectedAcestream(id, name) {
+    const container = document.getElementById('selectedAcestreams');
+    if (!container) return;
+    
+    // Check if this acestream is already selected
+    if (container.querySelector(`.selected-acestream[data-acestream-id="${id}"]`)) {
+        // Already selected, don't add again
+        return;
+    }
+    
+    // Create a new element for this selected acestream
+    const acestream = document.createElement('div');
+    acestream.className = 'selected-acestream alert alert-info alert-dismissible fade show';
+    acestream.setAttribute('data-acestream-id', id);
+    
+    acestream.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <strong>${name}</strong>
+                <small class="d-block">${id}</small>
+            </div>
+            <button type="button" class="btn-close" aria-label="Remove"></button>
+        </div>
+    `;
+    
+    // Add event listener to remove button
+    acestream.querySelector('.btn-close').addEventListener('click', function() {
+        acestream.remove();
+    });
+    
+    // Add to container
+    container.appendChild(acestream);
+}
+
+/**
+ * Initialize playlist functionality for TV channels
+ */
+function initializePlaylistFunctions() {
+    // Get playlist download buttons
+    const downloadPlaylistBtn = document.getElementById('downloadPlaylistBtn');
+    const refreshPlaylistBtn = document.getElementById('refreshPlaylistBtn');
+    
+    // Download playlist button
+    if (downloadPlaylistBtn) {
+        downloadPlaylistBtn.addEventListener('click', function() {
+            downloadChannelsPlaylist(false);
+        });
+    }
+    
+    // Refresh and download playlist button
+    if (refreshPlaylistBtn) {
+        refreshPlaylistBtn.addEventListener('click', function() {
+            downloadChannelsPlaylist(true);
+        });
+    }
+    
+    // Initialize copy to clipboard functionality
+    const playlistUrlElement = document.getElementById('playlistUrl');
+    const copyPlaylistUrlBtn = document.getElementById('copyPlaylistUrlBtn');
+    
+    if (playlistUrlElement && copyPlaylistUrlBtn) {
+        copyPlaylistUrlBtn.addEventListener('click', function() {
+            playlistUrlElement.select();
+            document.execCommand('copy');
+            
+            // Show temporary feedback
+            const originalText = this.textContent;
+            this.textContent = 'Copied!';
+            setTimeout(() => {
+                this.textContent = originalText;
+            }, 1500);
+        });
+    }
+}
+
+/**
+ * Download TV channels playlist
+ * 
+ * @param {boolean} refresh - Whether to refresh the playlist before downloading
+ */
+function downloadChannelsPlaylist(refresh = false) {
+    // Build base URL
+    let url = '/tv-channels/playlist.m3u8';
+    
+    // Add parameters
+    const params = new URLSearchParams();
+    
+    // Add refresh parameter if needed
+    if (refresh) {
+        params.append('refresh', 'true');
+    }
+    
+    // Add current filters if any
+    const category = document.getElementById('categoryFilter')?.value;
+    const country = document.getElementById('countryFilter')?.value;
+    const language = document.getElementById('languageFilter')?.value;
+    const search = document.getElementById('tvChannelSearchInput')?.value;
+    const favoritesOnly = document.getElementById('favoritesOnlyFilter')?.checked;
+    
+    if (category) params.append('category', category);
+    if (country) params.append('country', country);
+    if (language) params.append('language', language);
+    if (search) params.append('search', search);
+    if (favoritesOnly) params.append('favorites_only', 'true');
+    
+    // Add parameters to URL if there are any
+    if (params.toString()) {
+        url += `?${params.toString()}`;
+    }
+    
+    // Trigger download
+    window.location.href = url;
+}
+
+/**
  * Initialize bulk edit functionality
  */
 function initBulkEditHandlers() {
@@ -165,6 +494,181 @@ function initBulkEditHandlers() {
                 fieldGroup.classList.add('d-none');
             }
         });
+    });
+}
+
+/**
+ * Open the bulk edit modal with the selected TV channels
+ */
+function openBulkEditModal() {
+    const selectedCount = tvChannelsState.selectedChannels.size;
+    if (selectedCount === 0) {
+        showAlert('warning', 'No channels selected');
+        return;
+    }
+    
+    // Get the modal element
+    const modal = document.getElementById('bulkEditModal');
+    if (!modal) return;
+    
+    // Reset the form
+    const form = document.getElementById('bulkEditForm');
+    if (form) {
+        form.reset();
+    }
+    
+    // Reset all field toggles to unchecked and hide field groups
+    document.querySelectorAll('.bulk-field-toggle').forEach(toggle => {
+        toggle.checked = false;
+    });
+    
+    document.querySelectorAll('.bulk-field-group').forEach(group => {
+        group.classList.add('d-none');
+    });
+    
+    // Update the selection count in the modal
+    const selectionCountElement = document.getElementById('selectedChannelCount');
+    if (selectionCountElement) {
+        selectionCountElement.textContent = selectedCount;
+    }
+    
+    // Show the modal
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+}
+
+/**
+ * Clear the current channel selection
+ */
+function clearSelection() {
+    // Clear the selected channels set
+    tvChannelsState.selectedChannels.clear();
+    
+    // Uncheck all checkboxes
+    document.querySelectorAll('.channel-select-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    
+    // Also uncheck the "select all" checkbox
+    const selectAllCheckbox = document.getElementById('selectAllChannels');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.checked = false;
+    }
+    
+    // Update the bulk edit toolbar visibility
+    updateBulkEditToolbar();
+}
+
+/**
+ * Update the visibility and count of the bulk edit toolbar based on selection
+ */
+function updateBulkEditToolbar() {
+    const toolbar = document.getElementById('bulkActionToolbar');
+    if (!toolbar) return;
+    
+    const selectedCount = tvChannelsState.selectedChannels.size;
+    
+    if (selectedCount > 0) {
+        toolbar.classList.remove('d-none');
+        
+        // Update selected count badge
+        const countBadge = document.getElementById('selectedChannelsCount');
+        if (countBadge) {
+            countBadge.textContent = selectedCount;
+        }
+    } else {
+        toolbar.classList.add('d-none');
+    }
+}
+
+/**
+ * Save bulk edit changes to selected TV channels
+ */
+function saveBulkEdit() {
+    // Get selected channel IDs
+    const selectedIds = Array.from(tvChannelsState.selectedChannels);
+    if (selectedIds.length === 0) return;
+    
+    // Collect form data
+    const form = document.getElementById('bulkEditForm');
+    if (!form) return;
+    
+    const changes = {};
+    let hasChanges = false;
+    
+    // Check which fields are enabled and collect their values
+    document.querySelectorAll('.bulk-field-toggle:checked').forEach(toggle => {
+        const fieldName = toggle.value;
+        let fieldValue;
+        
+        // Handle different types of fields
+        switch (fieldName) {
+            case 'is_active':
+                fieldValue = form.querySelector(`[name="${fieldName}"]`).checked;
+                break;
+            default:
+                const input = form.querySelector(`[name="${fieldName}"]`);
+                if (input) {
+                    fieldValue = input.value.trim() || null;
+                }
+        }
+        
+        // Add to changes if value is not undefined
+        if (fieldValue !== undefined) {
+            changes[fieldName] = fieldValue;
+            hasChanges = true;
+        }
+    });
+    
+    if (!hasChanges) {
+        showAlert('warning', 'No changes selected');
+        return;
+    }
+    
+    // Show loading
+    showLoading();
+    
+    // Send API request
+    fetch('/api/tv-channels/bulk-update', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            channel_ids: selectedIds,
+            changes: changes
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.message || 'Failed to update TV channels');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Show success message
+        showAlert('success', `Successfully updated ${data.updated_count} channels`);
+        
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('bulkEditModal'));
+        if (modal) {
+            modal.hide();
+        }
+        
+        // Refresh channel list to reflect changes
+        loadTVChannels();
+        
+        // Clear selection
+        clearSelection();
+    })
+    .catch(error => {
+        console.error('Error during bulk update:', error);
+        showAlert('error', error.message || 'Failed to update TV channels');
+    })
+    .finally(() => {
+        hideLoading();
     });
 }
 
@@ -214,6 +718,358 @@ function initializeBulkActions() {
     
     // Update bulk edit toolbar initially
     updateBulkEditToolbar();
+}
+
+/**
+ * Process batch assigning of acestreams to TV channels based on EPG ID
+ */
+async function associateByEPG() {
+    try {
+        showLoading();
+        
+        const response = await fetch('/api/tv-channels/associate-by-epg', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to associate acestreams by EPG ID');
+        }
+        
+        const result = await response.json();
+        console.log('Associate by EPG response:', result);
+        
+        // Extract stats from the result, ensuring we have default values if properties are missing
+        const matched = result.stats?.matched || result.matched || 0;
+        const unmatched = result.stats?.unmatched || result.unmatched || 0;
+        
+        // Show success message with statistics
+        const message = `Association by EPG complete: ${matched} acestreams matched, ${unmatched} unmatched`;
+        showAlert('success', message);
+        
+        // Reload TV channels to reflect changes
+        loadTVChannels();
+    } catch (error) {
+        console.error('Error associating by EPG:', error);
+        showAlert('error', error.message || 'Failed to associate acestreams by EPG ID');
+    } finally {
+        hideLoading();
+    }
+}
+
+/**
+ * Process bulk update of EPG data for all TV channels
+ */
+async function bulkUpdateEPG() {
+    try {
+        showLoading();
+        
+        const response = await fetch('/api/tv-channels/bulk-update-epg', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to update EPG data');
+        }
+        
+        const result = await response.json();
+        console.log('Bulk update EPG response:', result);
+        
+        // Extract stats from the result with fallbacks for different response structures
+        const updated = result.stats?.updated || result.updated || 0;
+        const skipped = result.stats?.skipped || result.skipped || 0;
+        const errors = result.stats?.errors || result.errors || 0;
+        
+        // Show success message with statistics
+        const message = `EPG update complete: ${updated} channels updated, ${skipped} skipped, ${errors} errors`;
+        showAlert('success', message);
+        
+        // Reload TV channels to reflect changes
+        loadTVChannels();
+    } catch (error) {
+        console.error('Error updating EPG data:', error);
+        showAlert('error', error.message || 'Failed to update EPG data');
+    } finally {
+        hideLoading();
+    }
+}
+
+/**
+ * Generate TV channels from existing acestreams
+ */
+async function generateTVChannelsFromAcestreams() {
+    if (!confirm('This will create new TV channels based on unassigned acestreams. Continue?')) {
+        return;
+    }
+    
+    try {
+        showLoading();
+        
+        const response = await fetch('/api/tv-channels/generate-from-acestreams', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to generate TV channels');
+        }
+        
+        const result = await response.json();
+        console.log('Generate TV channels response:', result);
+        
+        // Extract stats from the result with fallbacks for different response structures
+        const created = result.stats?.created || result.created || 0;
+        const matched = result.stats?.matched || result.matched || 0;
+        const skipped = result.stats?.skipped || result.skipped || 0;
+        const errors = result.stats?.errors || result.errors || 0;
+        
+        // Show success message with statistics
+        const message = `TV channels generated: ${created} channels created, ${matched} acestreams matched` +
+                       (skipped > 0 ? `, ${skipped} skipped` : '') +
+                       (errors > 0 ? `, ${errors} errors` : '');
+        showAlert('success', message);
+        
+        // Reload TV channels to reflect changes
+        loadTVChannels();
+    } catch (error) {
+        console.error('Error generating TV channels:', error);
+        showAlert('error', error.message || 'Failed to generate TV channels');
+    } finally {
+        hideLoading();
+    }
+}
+
+/**
+ * Show the modal for batch assigning acestreams to TV channels
+ */
+function batchAssignAcestreams() {
+    // Get the modal element
+    const modal = document.getElementById('batchAssignModal');
+    if (!modal) return;
+    
+    // Clear any previous patterns
+    const patternsContainer = document.getElementById('assignmentPatternsContainer');
+    if (patternsContainer) {
+        patternsContainer.innerHTML = '<div class="pattern-row"></div>';
+    }
+    
+    // Add the first empty row
+    addAssignmentPatternRow();
+    
+    // Populate TV channel dropdown with current TV channels
+    populateTVChannelDropdowns();
+    
+    // Show the modal
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+}
+
+/**
+ * Populate TV channel dropdowns for the batch assign modal
+ */
+function populateTVChannelDropdowns() {
+    // Fetch TV channels if we don't have them yet
+    if (!tvChannelsState.channels || tvChannelsState.channels.length === 0) {
+        fetch('/api/tv-channels/?per_page=100')
+            .then(response => response.json())
+            .then(data => {
+                tvChannelsState.channels = data.channels;
+                updateTVChannelDropdowns();
+            })
+            .catch(error => {
+                console.error('Error fetching TV channels:', error);
+                showAlert('error', 'Failed to load TV channels');
+            });
+    } else {
+        updateTVChannelDropdowns();
+    }
+}
+
+/**
+ * Update all TV channel dropdowns with the current channel list
+ */
+function updateTVChannelDropdowns() {
+    // Find all TV channel dropdowns in the batch assign modal
+    const dropdowns = document.querySelectorAll('.tv-channel-dropdown');
+    
+    dropdowns.forEach(dropdown => {
+        // Save current selection
+        const currentValue = dropdown.value;
+        
+        // Clear dropdown except for the first placeholder option
+        while (dropdown.options.length > 1) {
+            dropdown.remove(1);
+        }
+        
+        // Add options for all TV channels
+        tvChannelsState.channels.forEach(channel => {
+            const option = document.createElement('option');
+            option.value = channel.id;
+            option.textContent = channel.name;
+            dropdown.appendChild(option);
+        });
+        
+        // Restore previous selection if it exists
+        if (currentValue && dropdown.querySelector(`option[value="${currentValue}"]`)) {
+            dropdown.value = currentValue;
+        }
+    });
+}
+
+/**
+ * Add a new pattern row to the batch assign modal
+ */
+function addAssignmentPatternRow() {
+    const container = document.getElementById('assignmentPatternsContainer');
+    if (!container) return;
+    
+    const row = document.createElement('div');
+    row.className = 'pattern-row mb-3';
+    
+    row.innerHTML = `
+        <div class="row g-3 align-items-center">
+            <div class="col-md-5">
+                <input type="text" class="form-control pattern-input" placeholder="Channel name contains...">
+            </div>
+            <div class="col-md-5">
+                <select class="form-select tv-channel-dropdown">
+                    <option value="">Select a TV channel...</option>
+                    <!-- Will be populated by JavaScript -->
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-outline-danger btn-sm remove-pattern-btn">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    
+    // Add event listener to the remove button
+    const removeBtn = row.querySelector('.remove-pattern-btn');
+    removeBtn.addEventListener('click', function() {
+        row.remove();
+    });
+    
+    // Add to container
+    container.appendChild(row);
+    
+    // Update TV channel dropdowns
+    updateTVChannelDropdowns();
+}
+
+/**
+ * Process the batch assignment of acestreams to TV channels
+ */
+function processBatchAssignment() {
+    // Collect patterns and TV channel IDs
+    const patterns = {};
+    let hasErrors = false;
+    
+    // Check each pattern row
+    document.querySelectorAll('.pattern-row').forEach(row => {
+        const patternInput = row.querySelector('.pattern-input');
+        const channelSelect = row.querySelector('.tv-channel-dropdown');
+        
+        if (!patternInput || !channelSelect) return;
+        
+        const pattern = patternInput.value.trim();
+        const channelId = channelSelect.value;
+        
+        // Validate input
+        if (!pattern) {
+            patternInput.classList.add('is-invalid');
+            hasErrors = true;
+            return;
+        }
+        
+        if (!channelId) {
+            channelSelect.classList.add('is-invalid');
+            hasErrors = true;
+            return;
+        }
+        
+        // Add to patterns object
+        patterns[pattern] = parseInt(channelId);
+        
+        // Clear validation errors
+        patternInput.classList.remove('is-invalid');
+        channelSelect.classList.remove('is-invalid');
+    });
+    
+    if (hasErrors || Object.keys(patterns).length === 0) {
+        showAlert('error', 'Please fill in all pattern fields and select TV channels');
+        return;
+    }
+    
+    // Show loading
+    showLoading();
+    
+    // Send API request
+    fetch('/api/tv-channels/batch-assign', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            patterns: patterns
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.message || 'Failed to assign acestreams');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Show success message
+        let message = 'Assignment complete. ';
+        let totalAssigned = 0;
+        
+        // Create result summary
+        Object.keys(data.assigned).forEach(channelId => {
+            const count = data.assigned[channelId];
+            totalAssigned += count;
+            const channel = tvChannelsState.channels.find(c => c.id.toString() === channelId);
+            if (channel && count > 0) {
+                message += `${count} acestreams assigned to ${channel.name}. `;
+            }
+        });
+        
+        if (totalAssigned === 0) {
+            message = 'No acestreams matched the provided patterns.';
+        }
+        
+        showAlert('success', message);
+        
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('batchAssignModal'));
+        if (modal) {
+            modal.hide();
+        }
+        
+        // Refresh channel list
+        loadTVChannels();
+    })
+    .catch(error => {
+        console.error('Error during batch assignment:', error);
+        showAlert('error', error.message || 'Failed to assign acestreams');
+    })
+    .finally(() => {
+        hideLoading();
+    });
 }
 
 /**
@@ -285,6 +1141,7 @@ async function loadTVChannels() {
         const country = document.getElementById('countryFilter').value;
         const language = document.getElementById('languageFilter').value;
         const search = document.getElementById('tvChannelSearchInput').value;
+        const favoritesOnly = document.getElementById('favoritesOnlyFilter').checked;
         
         // Build query parameters
         const params = new URLSearchParams({
@@ -296,6 +1153,10 @@ async function loadTVChannels() {
         if (country) params.append('country', country);
         if (language) params.append('language', language);
         if (search) params.append('search', search);
+        if (favoritesOnly) params.append('favorites_only', 'true');
+        
+        // Store favorites state in the state object
+        tvChannelsState.favoritesOnly = favoritesOnly;
         
         // Fetch TV channels
         const response = await fetch(`/api/tv-channels/?${params.toString()}`);
@@ -311,11 +1172,6 @@ async function loadTVChannels() {
         tvChannelsState.filters.categories = data.filters.categories;
         tvChannelsState.filters.countries = data.filters.countries;
         tvChannelsState.filters.languages = data.filters.languages;
-        
-        // Filter locally if favoritesOnly is true
-        if (tvChannelsState.favoritesOnly) {
-            tvChannelsState.channels = tvChannelsState.channels.filter(channel => channel.is_favorite);
-        }
         
         // Update UI
         updateTVChannelsTable();
@@ -345,7 +1201,7 @@ function updateTVChannelsTable() {
     if (tvChannelsState.channels.length === 0) {
         tableBody.innerHTML = `
             <tr>
-                <td colspan="7" class="text-center text-muted">
+                <td colspan="8" class="text-center text-muted">
                     No channels found matching your criteria
                 </td>
             </tr>
@@ -360,10 +1216,6 @@ function updateTVChannelsTable() {
             favoriteIcon = '<i class="bi bi-star-fill text-warning me-2" title="Favorite"></i>';
         }
         
-        // Prepare channel number indicator
-        const channelNumber = channel.channel_number ? 
-            `<span class="badge bg-secondary me-2">#${channel.channel_number}</span>` : '';
-        
         return `
             <tr>
                 <td>
@@ -371,13 +1223,30 @@ function updateTVChannelsTable() {
                         <input class="form-check-input channel-select-checkbox" 
                                type="checkbox" 
                                value="${channel.id}"
+                               data-channel-id="${channel.id}"
                                ${tvChannelsState.selectedChannels.has(channel.id.toString()) ? 'checked' : ''}>
+                    </div>
+                </td>
+                <td>
+                    <div class="input-group input-group-sm">
+                        <input type="number" 
+                               class="form-control form-control-sm channel-number-input" 
+                               value="${channel.channel_number || ''}" 
+                               min="1"
+                               data-channel-id="${channel.id}"
+                               placeholder="#"
+                               aria-label="Channel number">
+                        <button class="btn btn-outline-secondary save-channel-number-btn" 
+                                type="button" 
+                                data-channel-id="${channel.id}"
+                                title="Save channel number">
+                            <i class="bi bi-check"></i>
+                        </button>
                     </div>
                 </td>
                 <td>
                     <div class="d-flex align-items-center">
                         ${favoriteIcon}
-                        ${channelNumber}
                         <div>
                             <a href="/tv-channels/${channel.id}" class="text-decoration-none">
                                 ${channel.name}
@@ -413,6 +1282,44 @@ function updateTVChannelsTable() {
         `;
     }).join('');
     
+    // Add event listeners to channel number inputs
+    document.querySelectorAll('.save-channel-number-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const channelId = parseInt(this.getAttribute('data-channel-id'));
+            const input = document.querySelector(`.channel-number-input[data-channel-id="${channelId}"]`);
+            
+            if (input) {
+                const value = parseInt(input.value);
+                // Only save if the value is a valid number
+                if (!isNaN(value) && value > 0) {
+                    setChannelNumber(channelId, value);
+                } else if (input.value === '') {
+                    // Clear channel number (set to null)
+                    setChannelNumber(channelId, null);
+                }
+            }
+        });
+    });
+    
+    // Also save on Enter key
+    document.querySelectorAll('.channel-number-input').forEach(input => {
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const channelId = parseInt(this.getAttribute('data-channel-id'));
+                const value = parseInt(this.value);
+                
+                // Only save if the value is a valid number
+                if (!isNaN(value) && value > 0) {
+                    setChannelNumber(channelId, value);
+                } else if (this.value === '') {
+                    // Clear channel number (set to null)
+                    setChannelNumber(channelId, null);
+                }
+            }
+        });
+    });
+    
     // Add event listeners to checkboxes
     document.querySelectorAll('.channel-select-checkbox').forEach(checkbox => {
         checkbox.addEventListener('change', function() {
@@ -430,17 +1337,22 @@ function updateTVChannelsTable() {
 }
 
 /**
- * Toggle favorite status for a channel
+ * Set channel number for a TV channel
  */
-async function toggleChannelFavorite(channelId) {
+async function setChannelNumber(channelId, channelNumber) {
     try {
         showLoading();
         
-        const response = await fetch(`/api/tv-channels/${channelId}/favorite`, {
-            method: 'PUT',
+        const payload = { 
+            channel_number: channelNumber 
+        };
+        
+        const response = await fetch(`/api/tv-channels/${channelId}/channel-number`, {
+            method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-            }
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
         });
         
         if (response.ok) {
@@ -449,157 +1361,211 @@ async function toggleChannelFavorite(channelId) {
             // Update channel in state
             const channelIndex = tvChannelsState.channels.findIndex(c => c.id === channelId);
             if (channelIndex >= 0) {
-                tvChannelsState.channels[channelIndex].is_favorite = result.is_favorite;
-                
-                // If filtering by favorites and this channel is no longer a favorite, reload the list
-                if (tvChannelsState.favoritesOnly && !result.is_favorite) {
-                    await loadTVChannels();
-                } else {
-                    // Otherwise just update the table
-                    updateTVChannelsTable();
-                }
+                tvChannelsState.channels[channelIndex].channel_number = channelNumber;
+                showAlert('success', `Channel number updated`);
             }
         } else {
             const error = await response.json();
-            throw new Error(error.message || 'Failed to toggle favorite status');
+            throw new Error(error.message || 'Failed to update channel number');
         }
     } catch (error) {
-        console.error('Error toggling favorite status:', error);
-        showAlert('error', error.message || 'Error toggling favorite status');
+        console.error('Error setting channel number:', error);
+        showAlert('error', error.message || 'Error updating channel number');
     } finally {
         hideLoading();
     }
 }
 
 /**
- * Update the bulk edit toolbar visibility and count
+ * Update filter dropdowns with available options from data
  */
-function updateBulkEditToolbar() {
-    const toolbar = document.getElementById('bulkEditToolbar');
-    const countSpan = document.getElementById('selectedChannelsCount');
-    const selectedCount = tvChannelsState.selectedChannels.size;
-    
-    if (selectedCount > 0) {
-        toolbar.classList.remove('d-none');
-        countSpan.textContent = selectedCount;
-    } else {
-        toolbar.classList.add('d-none');
-    }
-}
-
-/**
- * Clear all selected channels
- */
-function clearSelection() {
-    tvChannelsState.selectedChannels.clear();
-    
-    // Uncheck all checkboxes
-    document.querySelectorAll('.channel-select-checkbox, #selectAllChannels').forEach(checkbox => {
-        checkbox.checked = false;
-    });
-    
-    updateBulkEditToolbar();
-}
-
-/**
- * Open the bulk edit modal
- */
-function openBulkEditModal() {
-    if (tvChannelsState.selectedChannels.size === 0) {
-        showAlert('warning', 'Please select at least one channel to edit');
-        return;
-    }
-    
-    // Reset form fields
-    document.querySelectorAll('.bulk-field-toggle').forEach(checkbox => {
-        checkbox.checked = false;
-    });
-    
-    document.querySelectorAll('.bulk-field-group').forEach(group => {
-        group.classList.add('d-none');
-    });
-    
-    // Show modal
-    const modal = new bootstrap.Modal(document.getElementById('bulkEditModal'));
-    modal.show();
-}
-
-/**
- * Save bulk edit changes
- */
-async function saveBulkEdit() {
-    // Get selected field toggles
-    const toggles = document.querySelectorAll('.bulk-field-toggle:checked');
-    
-    // Build update object based on selected fields
-    const updateData = {
-        channel_ids: Array.from(tvChannelsState.selectedChannels)
-    };
-    
-    // Add fields that should be updated
-    toggles.forEach(toggle => {
-        const field = toggle.value;
+function updateFilterDropdowns() {
+    // Update categories dropdown
+    const categoryFilter = document.getElementById('categoryFilter');
+    if (categoryFilter) {
+        // Store current value
+        const currentValue = categoryFilter.value;
         
-        switch (field) {
-            case 'category':
-                updateData.category = document.getElementById('bulkEditCategory').value.trim();
-                break;
-            case 'country':
-                updateData.country = document.getElementById('bulkEditCountry').value.trim();
-                break;
-            case 'language':
-                updateData.language = document.getElementById('bulkEditLanguage').value.trim();
-                break;
-            case 'is_active':
-                updateData.is_active = document.getElementById('bulkEditIsActive').checked;
-                break;
-            case 'is_favorite':
-                updateData.is_favorite = document.getElementById('bulkEditIsFavorite').checked;
-                break;
+        // Clear existing options except the first "All Categories" option
+        while (categoryFilter.options.length > 1) {
+            categoryFilter.remove(1);
         }
-    });
-    
-    // If no fields selected, show warning
-    if (Object.keys(updateData).length <= 1) { // Only channel_ids
-        showAlert('warning', 'Please select at least one field to update');
-        return;
+        
+        // Add new options
+        if (tvChannelsState.filters.categories) {
+            tvChannelsState.filters.categories.forEach(category => {
+                if (category) {
+                    const option = document.createElement('option');
+                    option.value = category;
+                    option.textContent = category;
+                    categoryFilter.appendChild(option);
+                }
+            });
+        }
+        
+        // Restore selected value if it exists in the new options
+        if (currentValue) {
+            categoryFilter.value = currentValue;
+        }
     }
     
-    try {
-        showLoading();
+    // Update countries dropdown
+    const countryFilter = document.getElementById('countryFilter');
+    if (countryFilter) {
+        // Store current value
+        const currentValue = countryFilter.value;
         
-        const response = await fetch('/api/tv-channels/bulk-update', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(updateData)
+        // Clear existing options except the first "All Countries" option
+        while (countryFilter.options.length > 1) {
+            countryFilter.remove(1);
+        }
+        
+        // Add new options
+        if (tvChannelsState.filters.countries) {
+            tvChannelsState.filters.countries.forEach(country => {
+                if (country) {
+                    const option = document.createElement('option');
+                    option.value = country;
+                    option.textContent = country;
+                    countryFilter.appendChild(option);
+                }
+            });
+        }
+        
+        // Restore selected value if it exists in the new options
+        if (currentValue) {
+            countryFilter.value = currentValue;
+        }
+    }
+    
+    // Update languages dropdown
+    const languageFilter = document.getElementById('languageFilter');
+    if (languageFilter) {
+        // Store current value
+        const currentValue = languageFilter.value;
+        
+        // Clear existing options except the first "All Languages" option
+        while (languageFilter.options.length > 1) {
+            languageFilter.remove(1);
+        }
+        
+        // Add new options
+        if (tvChannelsState.filters.languages) {
+            tvChannelsState.filters.languages.forEach(language => {
+                if (language) {
+                    const option = document.createElement('option');
+                    option.value = language;
+                    option.textContent = language;
+                    languageFilter.appendChild(option);
+                }
+            });
+        }
+        
+        // Restore selected value if it exists in the new options
+        if (currentValue) {
+            languageFilter.value = currentValue;
+        }
+    }
+}
+
+/**
+ * Update statistics cards with current data
+ */
+function updateStatCards() {
+    // Instead of using a dedicated stats endpoint that doesn't exist,
+    // we'll fetch the main TV channels list with minimal data
+    const params = new URLSearchParams({
+        page: 1,
+        per_page: 1  // We just need the total count, not actual items
+    });
+    
+    fetch(`/api/tv-channels/?${params.toString()}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to load TV channels statistics');
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Extract stats from the main API response
+            const stats = {
+                total: data.total || 0,
+                active: 0,
+                with_epg: 0,
+                total_acestreams: 0
+            };
+            
+            // Update total TV channels card
+            const totalChannelsCard = document.getElementById('totalTVChannelsCard');
+            if (totalChannelsCard) {
+                totalChannelsCard.textContent = stats.total;
+            }
+            
+            // For the other stats, we'll make a separate call to count specific categories
+            // Active channels (filter by is_active=true)
+            fetch('/api/tv-channels/?is_active=true&per_page=1')
+                .then(response => response.json())
+                .then(data => {
+                    const activeChannelsCard = document.getElementById('activeChannelsCard');
+                    if (activeChannelsCard) {
+                        activeChannelsCard.textContent = data.total || 0;
+                    }
+                })
+                .catch(() => {
+                    // Handle errors silently for this secondary stat
+                    const activeChannelsCard = document.getElementById('activeChannelsCard');
+                    if (activeChannelsCard) {
+                        activeChannelsCard.textContent = 'N/A';
+                    }
+                });
+            
+            // Channels with EPG data - we'll count these from the main list
+            let withEpgCount = 0;
+            if (data.channels && Array.isArray(data.channels)) {
+                withEpgCount = data.channels.filter(channel => channel.epg_id).length;
+                
+                // If we have all channels, calculate directly
+                if (data.channels.length >= data.total) {
+                    withEpgCount = data.channels.filter(channel => channel.epg_id).length;
+                } else {
+                    // Otherwise, make an estimate based on the sampling
+                    const ratio = data.channels.filter(channel => channel.epg_id).length / data.channels.length;
+                    withEpgCount = Math.round(ratio * data.total);
+                }
+            }
+            
+            const withEpgCard = document.getElementById('channelsWithEPGCard');
+            if (withEpgCard) {
+                withEpgCard.textContent = withEpgCount || '...';
+            }
+            
+            // Total acestreams - use a reasonable default
+            const totalAcestreamsCard = document.getElementById('totalAcestreamsCard');
+            if (totalAcestreamsCard) {
+                // This is an approximation as we don't have the exact count
+                fetch('/api/tv-channels/unassigned-acestreams')
+                    .then(response => response.json())
+                    .then(unassignedData => {
+                        // Add total unassigned plus a rough estimate of assigned (2 per channel)
+                        const totalEstimate = (unassignedData.total || 0) + (stats.total * 2);
+                        totalAcestreamsCard.textContent = totalEstimate;
+                    })
+                    .catch(() => {
+                        totalAcestreamsCard.textContent = 'N/A';
+                    });
+            }
+        })
+        .catch(error => {
+            console.error('Error updating stat cards:', error);
+            // Set default values for cards in case of error
+            const cards = ['totalTVChannelsCard', 'activeChannelsCard', 'channelsWithEPGCard', 'totalAcestreamsCard'];
+            cards.forEach(id => {
+                const card = document.getElementById(id);
+                if (card) {
+                    card.textContent = 'N/A';
+                }
+            });
         });
-        
-        const data = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(data.message || 'An error occurred during bulk update');
-        }
-        
-        // Close the modal
-        bootstrap.Modal.getInstance(document.getElementById('bulkEditTVChannelsModal')).hide();
-        
-        // Show success message
-        showAlert('success', `Successfully updated ${data.updated_count} channels`);
-        
-        // Clear selection
-        clearSelection();
-        
-        // Refresh the channels list
-        loadTVChannels();
-        
-    } catch (error) {
-        console.error('Bulk update failed:', error);
-        showAlert('error', error.message || 'Failed to update channels');
-    } finally {
-        hideLoading();
-    }
 }
 
 /**
@@ -615,10 +1581,10 @@ function updatePagination() {
         return;
     }
     
-    let paginationHtml = '';
+    let pagination_html = '';
     
     // Previous button
-    paginationHtml += `
+    pagination_html += `
         <li class="page-item ${tvChannelsState.page === 1 ? 'disabled' : ''}">
             <a class="page-link" href="#" data-page="${tvChannelsState.page - 1}" aria-label="Previous">
                 <span aria-hidden="true">&laquo;</span>
@@ -627,17 +1593,17 @@ function updatePagination() {
     `;
     
     // Page numbers
-    const maxPages = Math.min(5, tvChannelsState.totalPages);
-    let startPage = Math.max(1, tvChannelsState.page - 2);
-    let endPage = Math.min(startPage + maxPages - 1, tvChannelsState.totalPages);
+    const max_pages = Math.min(5, tvChannelsState.totalPages);
+    let start_page = Math.max(1, tvChannelsState.page - 2);
+    let end_page = Math.min(start_page + max_pages - 1, tvChannelsState.totalPages);
     
-    // Adjust startPage if we're near the end
-    if (endPage - startPage + 1 < maxPages) {
-        startPage = Math.max(1, endPage - maxPages + 1);
+    // Adjust start_page if we're near the end
+    if (end_page - start_page + 1 < max_pages) {
+        start_page = Math.max(1, end_page - max_pages + 1);
     }
     
-    for (let i = startPage; i <= endPage; i++) {
-        paginationHtml += `
+    for (let i = start_page; i <= end_page; i++) {
+        pagination_html += `
             <li class="page-item ${i === tvChannelsState.page ? 'active' : ''}">
                 <a class="page-link" href="#" data-page="${i}">${i}</a>
             </li>
@@ -645,7 +1611,7 @@ function updatePagination() {
     }
     
     // Next button
-    paginationHtml += `
+    pagination_html += `
         <li class="page-item ${tvChannelsState.page === tvChannelsState.totalPages ? 'disabled' : ''}">
             <a class="page-link" href="#" data-page="${tvChannelsState.page + 1}" aria-label="Next">
                 <span aria-hidden="true">&raquo;</span>
@@ -653,11 +1619,11 @@ function updatePagination() {
         </li>
     `;
     
-    pagination.innerHTML = paginationHtml;
+    pagination.innerHTML = pagination_html;
     
     // Add event listeners to pagination links
-    const pageLinks = pagination.querySelectorAll('.page-link');
-    pageLinks.forEach(link => {
+    const page_links = pagination.querySelectorAll('.page-link');
+    page_links.forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
             const page = parseInt(this.getAttribute('data-page'));
@@ -667,368 +1633,4 @@ function updatePagination() {
             }
         });
     });
-}
-
-/**
- * Update filter dropdowns with available options
- */
-function updateFilterDropdowns() {
-    // Update category filter
-    updateFilterDropdown('category', tvChannelsState.filters.categories);
-    
-    // Update country filter
-    updateFilterDropdown('country', tvChannelsState.filters.countries);
-    
-    // Update language filter
-    updateFilterDropdown('language', tvChannelsState.filters.languages);
-}
-
-/**
- * Update a specific filter dropdown with options
- */
-function updateFilterDropdown(filterName, options) {
-    const dropdown = document.getElementById(`${filterName}Filter`);
-    if (!dropdown) return;
-    
-    // Save current selection
-    const currentValue = dropdown.value;
-    
-    // Clear existing options except the first one (All)
-    while (dropdown.options.length > 1) {
-        dropdown.remove(1);
-    }
-    
-    // Add new options
-    if (Array.isArray(options)) {
-        options.forEach(option => {
-            if (option) { // Only add non-empty values
-                const optionEl = document.createElement('option');
-                optionEl.value = option;
-                optionEl.textContent = option;
-                dropdown.appendChild(optionEl);
-            }
-        });
-    }
-    
-    // Restore selected value if it still exists
-    if (currentValue) {
-        dropdown.value = currentValue;
-    }
-}
-
-/**
- * Update statistics cards with channel counts
- */
-function updateStatCards() {
-    // Make API call to get TV channel stats
-    fetch('/api/stats/tv-channels/')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`API error: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log('TV Channel stats loaded:', data);
-            
-            // Update stats cards with actual data
-            document.getElementById('totalTVChannelsCard').textContent = data.total || 0;
-            document.getElementById('activeChannelsCard').textContent = data.active || 0;
-            document.getElementById('channelsWithEPGCard').textContent = data.with_epg || 0;
-            document.getElementById('totalAcestreamsCard').textContent = data.acestreams || 0;
-        })
-        .catch(error => {
-            console.error('Error loading TV channel stats:', error);
-            
-            // Set default values in case of error
-            document.getElementById('totalTVChannelsCard').textContent = '0';
-            document.getElementById('activeChannelsCard').textContent = '0';
-            document.getElementById('channelsWithEPGCard').textContent = '0';
-            document.getElementById('totalAcestreamsCard').textContent = '0';
-        });
-}
-
-/**
- * Show the add TV channel modal
- */
-function showAddTVChannelModal() {
-    console.log('Showing Add TV Channel modal');
-    // Clear form
-    const form = document.getElementById('addTVChannelForm');
-    if (form) form.reset();
-    
-    // Show the modal
-    const modal = document.getElementById('addTVChannelModal');
-    if (!modal) {
-        console.error('Add TV Channel modal not found!');
-        return;
-    }
-    
-    const bootstrapModal = new bootstrap.Modal(modal);
-    bootstrapModal.show();
-}
-
-/**
- * Save a new TV channel
- */
-async function saveNewTVChannel() {
-    const form = document.getElementById('addTVChannelForm');
-    if (!form) return;
-    
-    // Get form values
-    const name = document.getElementById('newTVChannelName').value.trim();
-    const description = document.getElementById('newTVChannelDescription').value.trim();
-    const category = document.getElementById('newTVChannelCategory').value.trim();
-    const country = document.getElementById('newTVChannelCountry').value.trim();
-    const language = document.getElementById('newTVChannelLanguage').value.trim();
-    const logoUrl = document.getElementById('newTVChannelLogo').value.trim();
-    const website = document.getElementById('newTVChannelWebsite').value.trim();
-    const epgId = document.getElementById('newTVChannelEpgId').value.trim();
-    
-    if (!name) {
-        showAlert('warning', 'Channel name is required');
-        return;
-    }
-    
-    const channelData = {
-        name: name,
-        is_active: true
-    };
-    
-    // Add optional fields
-    if (description) channelData.description = description;
-    if (category) channelData.category = category;
-    if (country) channelData.country = country;
-    if (language) channelData.language = language;
-    if (logoUrl) channelData.logo_url = logoUrl;
-    if (website) channelData.website = website;
-    if (epgId) channelData.epg_id = epgId;
-    
-    try {
-        showLoading();
-        
-        // Add trailing slash to the URL to match Flask's route definition
-        const response = await fetch('/api/tv-channels/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(channelData)
-        });
-        
-        const result = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(result.message || 'Failed to create TV channel');
-        }
-        
-        // Hide modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('addTVChannelModal'));
-        if (modal) modal.hide();
-        
-        // Show success message
-        showAlert('success', 'TV channel created successfully');
-        
-        // Refresh data
-        await loadTVChannels();
-        updateStatCards();
-    } catch (error) {
-        console.error('Error creating TV channel:', error);
-        showAlert('error', error.message || 'Error creating TV channel');
-    } finally {
-        hideLoading();
-    }
-}
-
-/**
- * Delete a TV channel
- */
-async function deleteTVChannel(id) {
-    if (!confirm('Are you sure you want to delete this TV channel? This action cannot be undone.')) {
-        return;
-    }
-    
-    try {
-        showLoading();
-        
-        const response = await fetch(`/api/tv-channels/${id}`, {
-            method: 'DELETE'
-        });
-        
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Failed to delete TV channel');
-        }
-        
-        // Show success message
-        showAlert('success', 'TV channel deleted successfully');
-        
-        // Refresh data
-        await loadTVChannels();
-        updateStatCards();
-    } catch (error) {
-        console.error('Error deleting TV channel:', error);
-        showAlert('error', error.message || 'Error deleting TV channel');
-    } finally {
-        hideLoading();
-    }
-}
-
-/**
- * Batch assign acestreams based on name patterns
- */
-async function batchAssignAcestreams() {
-    if (!confirm('This will attempt to match acestreams to TV channels based on name patterns. Continue?')) {
-        return;
-    }
-    
-    try {
-        showLoading();
-        
-        const response = await fetch('/api/tv-channels/batch-assign', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ patterns: {} }) // The backend will handle the matching
-        });
-        
-        const result = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(result.message || 'Failed to batch assign acestreams');
-        }
-        
-        // Show success message
-        showAlert('success', `Batch assignment complete. ${Object.keys(result.results || {}).length} TV channels updated.`);
-        
-        // Refresh data
-        await loadTVChannels();
-        updateStatCards();
-    } catch (error) {
-        console.error('Error batch assigning acestreams:', error);
-        showAlert('error', error.message || 'Error batch assigning acestreams');
-    } finally {
-        hideLoading();
-    }
-}
-
-/**
- * Associate acestreams with TV channels based on EPG IDs
- */
-async function associateByEPG() {
-    if (!confirm('This will associate acestreams with TV channels based on matching EPG IDs. Continue?')) {
-        return;
-    }
-    
-    try {
-        showLoading();
-        
-        const response = await fetch('/api/tv-channels/associate-by-epg', {
-            method: 'POST'
-        });
-        
-        const result = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(result.message || 'Failed to associate by EPG');
-        }
-        
-        // Show success message
-        showAlert('success', 'EPG association complete');
-        
-        // Refresh data
-        await loadTVChannels();
-        updateStatCards();
-    } catch (error) {
-        console.error('Error associating by EPG:', error);
-        showAlert('error', error.message || 'Error associating by EPG');
-    } finally {
-        hideLoading();
-    }
-}
-
-/**
- * Bulk update EPG data for all TV channels
- */
-async function bulkUpdateEPG() {
-    if (!confirm('This will update EPG data for all TV channels and their acestreams. Continue?')) {
-        return;
-    }
-    
-    try {
-        showLoading();
-        
-        const response = await fetch('/api/tv-channels/bulk-update-epg', {
-            method: 'POST'
-        });
-        
-        const result = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(result.message || 'Failed to bulk update EPG');
-        }
-        
-        // Show success message
-        showAlert('success', 'Bulk EPG update complete');
-        
-        // Refresh data
-        await loadTVChannels();
-        updateStatCards();
-    } catch (error) {
-        console.error('Error bulk updating EPG:', error);
-        showAlert('error', error.message || 'Error bulk updating EPG');
-    } finally {
-        hideLoading();
-    }
-}
-
-/**
- * Generate TV channels from existing acestreams based on metadata
- */
-async function generateTVChannelsFromAcestreams() {
-    if (!confirm('This will analyze your acestreams and create TV channels based on their EPG data and other metadata. Continue?')) {
-        return;
-    }
-    
-    try {
-        showLoading();
-        
-        const response = await fetch('/api/tv-channels/generate-from-acestreams', {
-            method: 'POST'
-        });
-        
-        const result = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(result.message || 'Failed to generate TV channels');
-        }
-        
-        // Show success message
-        showAlert('success', `TV channels generation complete. Created: ${result.stats.created}, Matched: ${result.stats.matched}, Skipped: ${result.stats.skipped}`);
-        
-        // Refresh data
-        await loadTVChannels();
-        updateStatCards();
-    } catch (error) {
-        console.error('Error generating TV channels:', error);
-        showAlert('error', error.message || 'Error generating TV channels');
-    } finally {
-        hideLoading();
-    }
-}
-
-// Initialize debounce function if not already defined
-if (typeof debounce !== 'function') {
-    window.debounce = function(func, wait) {
-        let timeout;
-        return function(...args) {
-            const later = () => {
-                timeout = null;
-                func.apply(this, args);
-            };
-            clearTimeout(timeout);
-            timeout = setTimeout(later, wait);
-        };
-    };
 }

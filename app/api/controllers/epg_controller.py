@@ -327,3 +327,38 @@ class EPGAutoScanResource(Resource):
         except Exception as e:
             logger.error(f"Error during auto-scan: {str(e)}")
             return {'error': str(e)}, 500
+
+@api.route('/channel/<string:id>')
+class EPGChannelResource(Resource):
+    @api.doc('get_epg_channel')
+    @api.response(200, 'Success')
+    @api.response(404, 'EPG channel not found')
+    def get(self, id):
+        """Get a specific EPG channel by ID"""
+        repo = EPGChannelRepository()
+        channel = repo.get_by_id(id)
+        
+        if not channel:
+            # If not found in database, try to find in all sources
+            epg_service = EPGService()
+            for source in EPGSourceRepository().get_all():
+                channels = epg_service.get_channels_from_source(source.id)
+                for ch in channels:
+                    if ch['id'] == id:
+                        return {
+                            'id': ch['id'],
+                            'name': ch['name'],
+                            'icon': ch['icon'],
+                            'source_id': source.id,
+                            'language': ch.get('language')
+                        }
+            
+            api.abort(404, f'EPG channel with ID {id} not found')
+        
+        return {
+            'id': channel.channel_xml_id,
+            'name': channel.name,
+            'icon': channel.icon_url,
+            'source_id': channel.epg_source_id,
+            'language': channel.language
+        }

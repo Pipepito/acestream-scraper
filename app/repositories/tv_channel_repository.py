@@ -76,7 +76,8 @@ class TVChannelRepository:
                         language: str = None, 
                         search_term: str = None,
                         page: int = 1,
-                        per_page: int = 20) -> tuple:
+                        per_page: int = 20,
+                        favorites_only: bool = False) -> tuple:
         """
         Filter TV channels by various criteria.
         
@@ -87,6 +88,7 @@ class TVChannelRepository:
             search_term: Search in name and description
             page: Page number for pagination
             per_page: Number of items per page
+            favorites_only: Show only favorite channels
             
         Returns:
             Tuple of (list of TV channels, total number of matches, number of pages)
@@ -106,6 +108,8 @@ class TVChannelRepository:
                     TVChannel.description.ilike(f'%{search_term}%')
                 )
             )
+        if favorites_only:
+            query = query.filter_by(is_favorite=True)
             
         # Count total before pagination
         total = query.count()

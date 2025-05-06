@@ -131,45 +131,122 @@ function openCreateTVChannelModal(epgId, channelName) {
     }
     
     // Fetch EPG channel details
-    fetch('/api/epg/channels')
+    fetch(`/api/epg/channels?id=${encodeURIComponent(epgId)}`)
         .then(response => response.json())
-        .then(channels => {
-            // Find the channel with the matching EPG ID
-            const channel = channels.find(ch => ch.id === epgId);
-            
-            if (channel) {
-                // Populate the form with EPG data
-                document.getElementById('createTVChannelName').value = channel.name || channelName;
-                document.getElementById('createTVChannelEpgId').value = channel.id;
-                document.getElementById('createTVChannelEpgSourceId').value = channel.source_id || '';
+        .then(data => {
+            // Check if the response has a channels property
+            if (data.channels && Array.isArray(data.channels)) {
+                // Find the channel with the matching EPG ID in the channels array
+                const channel = data.channels.find(ch => ch.id === epgId);
                 
-                // Set language if available
-                if (channel.language) {
-                    document.getElementById('createTVChannelLanguage').value = channel.language;
-                }
-                
-                // Set logo if available
-                if (channel.icon) {
-                    document.getElementById('createTVChannelLogo').value = channel.icon;
+                if (channel) {
+                    // Populate the form with EPG data
+                    document.getElementById('createTVChannelName').value = channel.name || channelName;
+                    document.getElementById('createTVChannelEpgId').value = channel.id;
+                    document.getElementById('createTVChannelEpgSourceId').value = channel.epg_source_id || '';
                     
-                    // Show logo preview
-                    const previewContainer = document.getElementById('createLogoPreview');
-                    const previewImg = previewContainer.querySelector('img');
-                    previewImg.src = channel.icon;
-                    previewContainer.classList.remove('d-none');
+                    // Set language if available
+                    if (channel.language) {
+                        document.getElementById('createTVChannelLanguage').value = channel.language;
+                    }
+                    
+                    // Set logo if available
+                    if (channel.icon) {
+                        document.getElementById('createTVChannelLogo').value = channel.icon;
+                        
+                        // Show logo preview
+                        const previewContainer = document.getElementById('createLogoPreview');
+                        const previewImg = previewContainer.querySelector('img');
+                        previewImg.src = channel.icon;
+                        previewContainer.classList.remove('d-none');
+                    }
+                    
+                    // Show the modal
+                    const modal = new bootstrap.Modal(document.getElementById('createTVChannelFromEPGModal'));
+                    modal.show();
+                } else {
+                    // Fetch individual channel data if not found in the list
+                    fetchIndividualChannelData(epgId, channelName);
                 }
-                
-                // Show the modal
-                const modal = new bootstrap.Modal(document.getElementById('createTVChannelFromEPGModal'));
-                modal.show();
+            } else if (data.channel) {
+                // Direct channel data in response
+                const channel = data.channel;
+                populateChannelData(channel, channelName);
             } else {
-                showAlert('warning', `Could not find EPG channel details for ID: ${epgId}`);
+                // If response structure is different, try to fetch individual channel
+                fetchIndividualChannelData(epgId, channelName);
             }
         })
         .catch(error => {
             console.error('Error fetching EPG channel details:', error);
-            showAlert('danger', 'Failed to load EPG channel details');
+            // Even if there's an error, try to show the modal with basic data
+            basicChannelModal(epgId, channelName);
         });
+}
+
+/**
+ * Fetch individual channel data when the main API doesn't return expected format
+ */
+function fetchIndividualChannelData(epgId, channelName) {
+    fetch(`/api/epg/channel/${encodeURIComponent(epgId)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data && (data.channel || data.id)) {
+                const channel = data.channel || data;
+                populateChannelData(channel, channelName);
+            } else {
+                basicChannelModal(epgId, channelName);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching individual EPG channel:', error);
+            basicChannelModal(epgId, channelName);
+        });
+}
+
+/**
+ * Populate the form with channel data
+ */
+function populateChannelData(channel, channelName) {
+    document.getElementById('createTVChannelName').value = channel.name || channelName;
+    document.getElementById('createTVChannelEpgId').value = channel.id;
+    document.getElementById('createTVChannelEpgSourceId').value = channel.epg_source_id || channel.source_id || '';
+    
+    // Set language if available
+    if (channel.language) {
+        document.getElementById('createTVChannelLanguage').value = channel.language;
+    }
+    
+    // Set logo if available
+    const logoUrl = channel.icon || channel.logo_url || channel.logo;
+    if (logoUrl) {
+        document.getElementById('createTVChannelLogo').value = logoUrl;
+        
+        // Show logo preview
+        const previewContainer = document.getElementById('createLogoPreview');
+        const previewImg = previewContainer.querySelector('img');
+        previewImg.src = logoUrl;
+        previewContainer.classList.remove('d-none');
+    }
+    
+    // Show the modal
+    const modal = new bootstrap.Modal(document.getElementById('createTVChannelFromEPGModal'));
+    modal.show();
+}
+
+/**
+ * Open modal with basic data when EPG details can't be fetched
+ */
+function basicChannelModal(epgId, channelName) {
+    document.getElementById('createTVChannelName').value = channelName;
+    document.getElementById('createTVChannelEpgId').value = epgId;
+    
+    // Show the modal
+    const modal = new bootstrap.Modal(document.getElementById('createTVChannelFromEPGModal'));
+    modal.show();
+    
+    // Show a warning alert
+    showAlert('warning', `Could not fetch complete EPG channel details for ID: ${epgId}`);
 }
 
 /**

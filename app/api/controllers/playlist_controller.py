@@ -6,6 +6,7 @@ from app.models import AcestreamChannel
 from app.services.playlist_service import PlaylistService
 from app.repositories import URLRepository
 from app.services import ScraperService
+from app.repositories.tv_channel_repository import TVChannelRepository
 
 api = Namespace('playlists', description='Playlist management operations')
 
@@ -14,6 +15,8 @@ playlist_parser.add_argument('refresh', type=bool, required=False, default=False
                           help='Whether to refresh the playlist before returning')
 playlist_parser.add_argument('search', type=str, required=False,
                           help='Filter channels by name')
+playlist_parser.add_argument('favorites_only', type=bool, required=False, default=False,
+                          help='Filter to show only favorite channels')
 
 @api.route('/m3u')
 class M3UPlaylist(Resource):
@@ -48,6 +51,51 @@ class M3UPlaylist(Resource):
         return Response(
             playlist,
             mimetype="audio/x-mpegurl",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+
+@api.route('/tv-channels/m3u')
+class TVChannelsPlaylist(Resource):
+    @api.doc('get_tv_channels_playlist')
+    @api.expect(playlist_parser)
+    def get(self):
+        """Get M3U playlist of TV channels with their best acestreams"""
+        args = playlist_parser.parse_args()
+        search = args.get('search', None)
+        favorites_only = args.get('favorites_only', False)
+        
+        playlist_service = PlaylistService()
+        playlist = playlist_service.generate_tv_channels_playlist(
+            search_term=search,
+            favorites_only=favorites_only
+        )
+        
+        filename = f"tv_channels_playlist_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+        if search:
+            filename += f"_filtered"
+        if favorites_only:
+            filename += "_favorites"
+        filename += ".m3u"
+        
+        return Response(
+            playlist,
+            mimetype="audio/x-mpegurl",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+
+@api.route('/epg.xml')
+class EPGXmlGuide(Resource):
+    @api.doc('get_epg_xml_guide')
+    def get(self):
+        """Get XML EPG guide for channels with EPG data"""
+        playlist_service = PlaylistService()
+        xml_guide = playlist_service.generate_epg_xml()
+        
+        filename = f"epg_guide_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.xml"
+        
+        return Response(
+            xml_guide,
+            mimetype="application/xml",
             headers={"Content-Disposition": f"attachment; filename={filename}"}
         )
 

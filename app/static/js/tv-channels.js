@@ -1634,3 +1634,123 @@ function updatePagination() {
         });
     });
 }
+
+/**
+ * Delete a TV channel from the listing page
+ * @param {number} channelId - The ID of the channel to delete
+ */
+function deleteChannel(channelId) {
+    if (!confirm('Are you sure you want to delete this TV channel? This will remove all associations with acestream channels but will not delete the acestreams.')) {
+        return;
+    }
+    
+    // Show loading
+    showLoading();
+    
+    // Call API to delete the channel
+    fetch(`/api/tv-channels/${channelId}`, {
+        method: 'DELETE'
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.message || 'Failed to delete TV channel');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        showAlert('success', 'TV channel deleted successfully');
+        
+        // Reload the channels list to reflect the deletion
+        loadTVChannels();
+    })
+    .catch(error => {
+        console.error('Error deleting TV channel:', error);
+        showAlert('error', error.message || 'Error deleting TV channel');
+    })
+    .finally(() => {
+        hideLoading();
+    });
+}
+
+/**
+ * Toggle the favorite status of a TV channel
+ * @param {number} channelId - The ID of the channel to toggle favorite status
+ */
+function toggleChannelFavorite(channelId) {
+    // Show loading
+    showLoading();
+    
+    // Call API to toggle favorite status
+    fetch(`/api/tv-channels/${channelId}/favorite`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.message || 'Failed to toggle favorite status');
+            });
+        }
+        return response.json();
+    })
+    .then(result => {
+        // Update local state - find the channel in the state and toggle its favorite status
+        const channelIndex = tvChannelsState.channels.findIndex(c => c.id === channelId);
+        if (channelIndex >= 0) {
+            tvChannelsState.channels[channelIndex].is_favorite = result.is_favorite;
+            
+            // Update the UI without reloading the entire table
+            const row = document.querySelector(`tr .channel-select-checkbox[data-channel-id="${channelId}"]`)?.closest('tr');
+            if (row) {
+                // Update favorite icon
+                const favoriteBtn = row.querySelector('.toggle-favorite-btn');
+                const favoriteIcon = favoriteBtn?.querySelector('i');
+                
+                if (favoriteIcon) {
+                    if (result.is_favorite) {
+                        favoriteIcon.className = 'bi bi-star-fill';
+                        favoriteBtn.setAttribute('title', 'Remove from favorites');
+                        
+                        // Add favorite star to the channel name column if not present
+                        let nameCell = row.cells[2];
+                        let nameContent = nameCell.querySelector('div');
+                        if (nameContent && !nameContent.querySelector('.bi-star-fill')) {
+                            const favoriteIndicator = document.createElement('i');
+                            favoriteIndicator.className = 'bi bi-star-fill text-warning me-2';
+                            favoriteIndicator.title = 'Favorite';
+                            nameContent.insertBefore(favoriteIndicator, nameContent.firstChild);
+                        }
+                    } else {
+                        favoriteIcon.className = 'bi bi-star';
+                        favoriteBtn.setAttribute('title', 'Add to favorites');
+                        
+                        // Remove favorite star from the channel name column
+                        let nameCell = row.cells[2];
+                        let favoriteIndicator = nameCell.querySelector('.bi-star-fill');
+                        if (favoriteIndicator) {
+                            favoriteIndicator.remove();
+                        }
+                    }
+                }
+            }
+            
+            // If we're filtering by favorites, we might need to reload the list
+            if (tvChannelsState.favoritesOnly && !result.is_favorite) {
+                loadTVChannels();
+            }
+        }
+        
+        showAlert('success', result.message);
+    })
+    .catch(error => {
+        console.error('Error toggling favorite status:', error);
+        showAlert('error', error.message || 'Error toggling favorite status');
+    })
+    .finally(() => {
+        hideLoading();
+    });
+}

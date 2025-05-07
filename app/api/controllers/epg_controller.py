@@ -6,6 +6,7 @@ from app.models.epg_source import EPGSource
 from app.models.epg_string_mapping import EPGStringMapping
 from app.repositories.epg_source_repository import EPGSourceRepository
 from app.repositories.epg_string_mapping_repository import EPGStringMappingRepository
+from app.repositories.epg_channel_repository import EPGChannelRepository
 from app.services.epg_service import EPGService
 
 logger = logging.getLogger(__name__)
@@ -207,15 +208,20 @@ class EPGUpdateChannelsResource(Resource):
             return {'error': str(e)}, 500
 
 @api.route('/channels')
+@api.param('search', 'Search term to filter channels')
+@api.param('page', 'Page number (default: 1)')
+@api.param('per_page', 'Items per page (default: 20)')
 class EPGChannelsResource(Resource):
     def get(self):
         """Get all available EPG channel IDs and names"""
-        service = EPGService()
-        channels = []
+        # Get pagination and search parameters
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+        search_term = request.args.get('search', '')
         
-        # Load EPG data if not already loaded
-        if not service.epg_data:
-            service.fetch_epg_data()
+        # Use EPGChannelRepository to get channels from database
+        epg_channel_repo = EPGChannelRepository()
+        all_channels = epg_channel_repo.get_all()
         
         source_repo = EPGSourceRepository()
         sources = {source.id: source for source in source_repo.get_all()}
@@ -225,19 +231,45 @@ class EPGChannelsResource(Resource):
         for i, source_id in enumerate(sources.keys()):
             source_numbers[source_id] = f"Source #{i+1}"
 
-        # Convert to simple list of channel IDs and names with source info
-        for channel_id, data in service.epg_data.items():
-            source_id = data.get('source_id')
-            source_name = source_numbers.get(source_id, "Unknown") if source_id else ""
-            
-            channels.append({
-                'id': channel_id,
-                'name': data.get('tvg_name', channel_id),
-                'source_id': source_id,
-                'source_name': source_name  
-            })
+        # Filter channels if search term provided
+        filtered_channels = []
+        for channel in all_channels:
+            if not search_term or (
+                search_term.lower() in (channel.name or '').lower() or
+                search_term.lower() in (channel.channel_xml_id or '').lower()
+            ):
+                # Get source info for the channel
+                source_id = channel.epg_source_id
+                source_name = source_numbers.get(source_id, "Unknown") if source_id else ""
+                source_url = sources[source_id].url if source_id and source_id in sources else ""
+                
+                filtered_channels.append({
+                    'id': channel.channel_xml_id,
+                    'name': channel.name or channel.channel_xml_id,
+                    'source_id': source_id,
+                    'source_name': source_name,
+                    'source_url': source_url,
+                    'icon': channel.icon_url,
+                    'language': channel.language
+                })
+
+        # Calculate pagination
+        total_channels = len(filtered_channels)
+        total_pages = (total_channels + per_page - 1) // per_page
         
-        return channels
+        # Apply pagination
+        start_idx = (page - 1) * per_page
+        end_idx = min(start_idx + per_page, total_channels)
+        paginated_channels = filtered_channels[start_idx:end_idx]
+        
+        # Return with pagination info
+        return {
+            'channels': paginated_channels,
+            'page': page,
+            'per_page': per_page,
+            'total_channels': total_channels,
+            'total_pages': total_pages
+        }
 
 @api.route('/auto-scan')
 class EPGAutoScanResource(Resource):
@@ -252,11 +284,37 @@ class EPGAutoScanResource(Resource):
             clean_unmatched = data.get('clean_unmatched', False)
             respect_existing = data.get('respect_existing', False)
             
+            # Get all EPG channels from repository
+            epg_channel_repo = EPGChannelRepository()
+            all_epg_channels = []
+            
+            # Get all sources
+            source_repo = EPGSourceRepository()
+            sources = source_repo.get_all()
+            
+            # Collect channels from all sources
+            for source in sources:
+                channels = epg_channel_repo.get_by_source_id(source.id)
+                
+                # Convert to the format expected by the service
+                for channel in channels:
+                    all_epg_channels.append({
+                        'id': channel.channel_xml_id,
+                        'name': channel.name,
+                        'logo': channel.icon_url,
+                        'language': channel.language,
+                        'source_id': source.id
+                    })
+            
+            logger.info(f"Found {len(all_epg_channels)} EPG channels in repository")
+            
+            # Use the existing service for auto-scanning
             service = EPGService()
             result = service.auto_scan_channels(
                 threshold=threshold,
                 clean_unmatched=clean_unmatched,
-                respect_existing=respect_existing
+                respect_existing=respect_existing,
+                epg_channels=all_epg_channels  # Pass the channels from repository
             )
             
             return {
@@ -269,3 +327,38 @@ class EPGAutoScanResource(Resource):
         except Exception as e:
             logger.error(f"Error during auto-scan: {str(e)}")
             return {'error': str(e)}, 500
+
+@api.route('/channel/<string:id>')
+class EPGChannelResource(Resource):
+    @api.doc('get_epg_channel')
+    @api.response(200, 'Success')
+    @api.response(404, 'EPG channel not found')
+    def get(self, id):
+        """Get a specific EPG channel by ID"""
+        repo = EPGChannelRepository()
+        channel = repo.get_by_id(id)
+        
+        if not channel:
+            # If not found in database, try to find in all sources
+            epg_service = EPGService()
+            for source in EPGSourceRepository().get_all():
+                channels = epg_service.get_channels_from_source(source.id)
+                for ch in channels:
+                    if ch['id'] == id:
+                        return {
+                            'id': ch['id'],
+                            'name': ch['name'],
+                            'icon': ch['icon'],
+                            'source_id': source.id,
+                            'language': ch.get('language')
+                        }
+            
+            api.abort(404, f'EPG channel with ID {id} not found')
+        
+        return {
+            'id': channel.channel_xml_id,
+            'name': channel.name,
+            'icon': channel.icon_url,
+            'source_id': channel.epg_source_id,
+            'language': channel.language
+        }

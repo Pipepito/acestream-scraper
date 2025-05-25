@@ -86,12 +86,25 @@ class TVChannelsPlaylist(Resource):
 @api.route('/epg.xml')
 class EPGXmlGuide(Resource):
     @api.doc('get_epg_xml_guide')
+    @api.expect(playlist_parser)
     def get(self):
         """Get XML EPG guide for channels with EPG data"""
-        playlist_service = PlaylistService()
-        xml_guide = playlist_service.generate_epg_xml()
+        args = playlist_parser.parse_args()
+        search = args.get('search', None)
+        favorites_only = args.get('favorites_only', False)
         
-        filename = f"epg_guide_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.xml"
+        playlist_service = PlaylistService()
+        xml_guide = playlist_service.generate_epg_xml(
+            search_term=search,
+            favorites_only=favorites_only
+        )
+        
+        filename = f"epg_guide_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+        if search:
+            filename += f"_filtered"
+        if favorites_only:
+            filename += "_favorites"
+        filename += ".xml"
         
         return Response(
             xml_guide,

@@ -37,6 +37,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize playlist functionality
     initializePlaylistFunctions();
+    
+    // Initialize playlist URL (set the initial URL state)
+    updatePlaylistUrl();
+    
+    // Initialize the global favorites checkbox state on page load
+    const favoritesFilter = document.getElementById('favoritesOnlyFilter');
+    if (favoritesFilter && favoritesFilter.checked) {
+      document.getElementById('globalFavoritesOnly').checked = true;
+    }
 });
 
 /**
@@ -122,6 +131,12 @@ function setupEventListeners() {
     document.getElementById('associateByEPGBtn')?.addEventListener('click', associateByEPG);
     document.getElementById('bulkUpdateEPGBtn')?.addEventListener('click', bulkUpdateEPG);
     document.getElementById('generateTVChannelsBtn')?.addEventListener('click', generateTVChannelsFromAcestreams);
+
+    // Add listener for batch assign save button
+    document.getElementById('saveBatchAssignBtn')?.addEventListener('click', processBatchAssignment);
+    
+    // Add listener for add pattern row button
+    document.getElementById('addPatternRowBtn')?.addEventListener('click', addAssignmentPatternRow);
 }
 
 /**
@@ -374,40 +389,125 @@ function addSelectedAcestream(id, name) {
  * Initialize playlist functionality for TV channels
  */
 function initializePlaylistFunctions() {
-    // Get playlist download buttons
-    const downloadPlaylistBtn = document.getElementById('downloadPlaylistBtn');
-    const refreshPlaylistBtn = document.getElementById('refreshPlaylistBtn');
+    // Update button references to match HTML elements
     
     // Download playlist button
+    const downloadPlaylistBtn = document.getElementById('downloadPlaylistBtn');
     if (downloadPlaylistBtn) {
         downloadPlaylistBtn.addEventListener('click', function() {
-            downloadChannelsPlaylist(false);
+            downloadTVChannelsPlaylist(false);
         });
     }
     
-    // Refresh and download playlist button
-    if (refreshPlaylistBtn) {
-        refreshPlaylistBtn.addEventListener('click', function() {
-            downloadChannelsPlaylist(true);
-        });
-    }
-    
-    // Initialize copy to clipboard functionality
-    const playlistUrlElement = document.getElementById('playlistUrl');
+    // Initialize copy to clipboard functionality for playlist URL
+    const playlistUrlElement = document.getElementById('tvChannelsPlaylistUrl');
     const copyPlaylistUrlBtn = document.getElementById('copyPlaylistUrlBtn');
     
     if (playlistUrlElement && copyPlaylistUrlBtn) {
         copyPlaylistUrlBtn.addEventListener('click', function() {
-            playlistUrlElement.select();
-            document.execCommand('copy');
-            
-            // Show temporary feedback
-            const originalText = this.textContent;
-            this.textContent = 'Copied!';
-            setTimeout(() => {
-                this.textContent = originalText;
-            }, 1500);
+            copyToClipboard('#tvChannelsPlaylistUrl');
         });
+    }
+    
+    // Add event listener for playlist favorites only checkbox
+    const playlistFavoritesCheckbox = document.getElementById('playlistFavoritesOnly');
+    if (playlistFavoritesCheckbox) {
+        playlistFavoritesCheckbox.addEventListener('change', updatePlaylistUrl);
+    }
+    
+    // Add event listener for EPG XML favorites only checkbox
+    const epgFavoritesCheckbox = document.getElementById('epgFavoritesOnly');
+    if (epgFavoritesCheckbox) {
+        epgFavoritesCheckbox.addEventListener('change', updateEpgXmlUrl);
+    }
+}
+
+/**
+ * Update the playlist URL based on current filters and favorites selection
+ */
+function updatePlaylistUrl() {
+    const urlInput = document.getElementById('tvChannelsPlaylistUrl');
+    if (!urlInput) return;
+    
+    // Get base URL
+    const baseUrl = urlInput.getAttribute('data-base-url');
+    if (!baseUrl) return;
+    
+    // Check if favorites only is selected
+    const favoritesOnly = document.getElementById('playlistFavoritesOnly')?.checked || false;
+    
+    // Build URL with proper parameters
+    let url = baseUrl;
+    if (favoritesOnly) {
+        url += (url.includes('?') ? '&' : '?') + 'favorites_only=true';
+    }
+    
+    // Update URL in input field
+    urlInput.value = url;
+}
+
+/**
+ * Update the EPG XML URL based on current filters and favorites selection
+ */
+function updateEpgXmlUrl() {
+    const urlInput = document.getElementById('epgXmlUrl');
+    if (!urlInput) return;
+    
+    // Get base URL
+    const baseUrl = urlInput.getAttribute('data-base-url');
+    if (!baseUrl) return;
+    
+    // Check if favorites only is selected
+    const favoritesOnly = document.getElementById('epgFavoritesOnly')?.checked || false;
+    
+    // Build URL with proper parameters
+    let url = baseUrl;
+    if (favoritesOnly) {
+        url += (url.includes('?') ? '&' : '?') + 'favorites_only=true';
+    }
+    
+    // Update URL in input field
+    urlInput.value = url;
+}
+
+/**
+ * Download EPG XML file with current filters
+ */
+function downloadEpgXml() {
+    // Get URL from input field (already formatted with correct parameters)
+    const urlInput = document.getElementById('epgXmlUrl');
+    if (!urlInput) return;
+    
+    // Navigate to the URL to download the EPG XML
+    window.location.href = urlInput.value;
+}
+
+/**
+ * Copy content to clipboard
+ * @param {string} elementSelector - CSS selector for the element to copy from
+ */
+function copyToClipboard(elementSelector) {
+    const element = document.querySelector(elementSelector);
+    if (!element) return;
+    
+    // Select the text
+    element.select();
+    element.setSelectionRange(0, 99999); // For mobile devices
+    
+    // Copy the text
+    document.execCommand('copy');
+    
+    // Deselect the text
+    window.getSelection().removeAllRanges();
+    
+    // Find the button that was clicked (assuming it's the next sibling or parent)
+    const button = document.querySelector(`button[onclick*="copyToClipboard('${elementSelector}')"]`);
+    if (button) {
+        const originalText = button.textContent;
+        button.textContent = 'Copied!';
+        setTimeout(() => {
+            button.textContent = originalText;
+        }, 1500);
     }
 }
 
@@ -416,38 +516,41 @@ function initializePlaylistFunctions() {
  * 
  * @param {boolean} refresh - Whether to refresh the playlist before downloading
  */
-function downloadChannelsPlaylist(refresh = false) {
+function downloadTVChannelsPlaylist(refresh = false) {
     // Build base URL
-    let url = '/tv-channels/playlist.m3u8';
-    
-    // Add parameters
-    const params = new URLSearchParams();
-    
-    // Add refresh parameter if needed
-    if (refresh) {
-        params.append('refresh', 'true');
-    }
-    
-    // Add current filters if any
-    const category = document.getElementById('categoryFilter')?.value;
-    const country = document.getElementById('countryFilter')?.value;
-    const language = document.getElementById('languageFilter')?.value;
-    const search = document.getElementById('tvChannelSearchInput')?.value;
-    const favoritesOnly = document.getElementById('favoritesOnlyFilter')?.checked;
-    
-    if (category) params.append('category', category);
-    if (country) params.append('country', country);
-    if (language) params.append('language', language);
-    if (search) params.append('search', search);
-    if (favoritesOnly) params.append('favorites_only', 'true');
-    
-    // Add parameters to URL if there are any
-    if (params.toString()) {
-        url += `?${params.toString()}`;
-    }
+    const urlInput = document.getElementById('tvChannelsPlaylistUrl');
+    if (!urlInput) return;
     
     // Trigger download
     window.location.href = url;
+}
+
+/**
+ * Toggle favorites across all filters and playlist options
+ * 
+ * @param {boolean} checked - Whether favorites only should be enabled or disabled
+ */
+function toggleAllFavorites(checked) {
+    // Update all hidden favorites checkboxes
+    document.getElementById('favoritesOnlyFilter').checked = checked;
+    document.getElementById('playlistFavoritesOnly').checked = checked;
+    document.getElementById('epgFavoritesOnly').checked = checked;
+    
+    // Manually trigger the change events to update URLs and filter the table
+    if (document.getElementById('playlistFavoritesOnly').onchange) {
+      document.getElementById('playlistFavoritesOnly').onchange();
+    }
+    
+    if (document.getElementById('epgFavoritesOnly').onchange) {
+      document.getElementById('epgFavoritesOnly').onchange();
+    }
+    
+    // If favoritesOnlyFilter has event listeners in the JS file, this will trigger them
+    const favoritesFilter = document.getElementById('favoritesOnlyFilter');
+    if (favoritesFilter) {
+      const event = new Event('change', { bubbles: true });
+      favoritesFilter.dispatchEvent(event);
+    }
 }
 
 /**
@@ -563,7 +666,7 @@ function clearSelection() {
  * Update the visibility and count of the bulk edit toolbar based on selection
  */
 function updateBulkEditToolbar() {
-    const toolbar = document.getElementById('bulkActionToolbar');
+    const toolbar = document.getElementById('bulkEditToolbar');
     if (!toolbar) return;
     
     const selectedCount = tvChannelsState.selectedChannels.size;
@@ -1027,9 +1130,7 @@ function processBatchAssignment() {
     })
     .then(response => {
         if (!response.ok) {
-            return response.json().then(data => {
-                throw new Error(data.message || 'Failed to assign acestreams');
-            });
+            return response.json().then(data => { throw new Error(data.message || 'Failed to assign acestreams'); });
         }
         return response.json();
     })
@@ -1044,7 +1145,7 @@ function processBatchAssignment() {
             totalAssigned += count;
             const channel = tvChannelsState.channels.find(c => c.id.toString() === channelId);
             if (channel && count > 0) {
-                message += `${count} acestreams assigned to ${channel.name}. `;
+                message += `${count} acestreams assigned to "${channel.name}". `;
             }
         });
         
@@ -1209,6 +1310,8 @@ function updateTVChannelsTable() {
         return;
     }
     
+    // Note: We don't need to sort here as the API now returns channels 
+    // already ordered by channel_number first, then name
     tableBody.innerHTML = tvChannelsState.channels.map(channel => {
         // Prepare favorite status indicator
         let favoriteIcon = '';

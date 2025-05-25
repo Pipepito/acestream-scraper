@@ -39,6 +39,18 @@ block content %}
     </div>
   </div>
 
+  <!-- Global favorites filter -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" id="globalFavoritesOnly" onchange="toggleAllFavorites(this.checked)">
+        <label class="form-check-label" for="globalFavoritesOnly">
+          <i class="bi bi-star-fill text-warning"></i> <strong>Show favorites only</strong> (applies to playlist, EPG, and channel list)
+        </label>
+      </div>
+    </div>
+  </div>
+
   <!-- TV Channels Playlist Section -->
   <div class="card mb-4">
     <div class="card-header">TV Channels Playlist</div>
@@ -49,16 +61,14 @@ block content %}
           <h6 class="mb-2">M3U Playlist URL</h6>
           <div class="input-group mb-2">
             <input type="text" class="form-control" id="tvChannelsPlaylistUrl" data-base-url="{{ request.url_root }}api/playlists/tv-channels/m3u" value="{{ request.url_root }}api/playlists/tv-channels/m3u" readonly>
-            <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('#tvChannelsPlaylistUrl')">Copy</button>
+            <button class="btn btn-outline-secondary" type="button" id="copyPlaylistUrlBtn" onclick="copyToClipboard('#tvChannelsPlaylistUrl')">Copy</button>
           </div>
-          <div class="form-check mt-2">
+          <!-- Hidden checkbox for compatibility with existing JS -->
+          <div class="d-none">
             <input class="form-check-input" type="checkbox" id="playlistFavoritesOnly" onchange="updatePlaylistUrl()">
-            <label class="form-check-label" for="playlistFavoritesOnly">
-              <i class="bi bi-star-fill text-warning"></i> Favorites only
-            </label>
           </div>
           <div class="d-flex justify-content-end mt-2">
-            <button class="btn btn-outline-primary btn-sm" onclick="downloadTVChannelsPlaylist()">
+            <button class="btn btn-outline-primary btn-sm" id="downloadPlaylistBtn" onclick="downloadTVChannelsPlaylist()">
               <i class="bi bi-download me-1"></i> Download Playlist
             </button>
           </div>
@@ -68,11 +78,15 @@ block content %}
         <div class="col-md-6 mb-3">
           <h6 class="mb-2">EPG XML Guide URL</h6>
           <div class="input-group mb-2">
-            <input type="text" class="form-control" id="epgXmlUrl" value="{{ request.url_root }}api/playlists/epg.xml" readonly>
-            <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('#epgXmlUrl')">Copy</button>
+            <input type="text" class="form-control" id="epgXmlUrl" data-base-url="{{ request.url_root }}api/playlists/epg.xml" value="{{ request.url_root }}api/playlists/epg.xml" readonly>
+            <button class="btn btn-outline-secondary" type="button" id="copyEpgXmlBtn" onclick="copyToClipboard('#epgXmlUrl')">Copy</button>
           </div>
-          <div class="d-flex justify-content-end mt-4">
-            <button class="btn btn-outline-primary btn-sm" onclick="window.location.href='{{ request.url_root }}api/playlists/epg.xml'">
+          <!-- Hidden checkbox for compatibility with existing JS -->
+          <div class="d-none">
+            <input class="form-check-input" type="checkbox" id="epgFavoritesOnly" onchange="updateEpgXmlUrl()">
+          </div>
+          <div class="d-flex justify-content-end mt-2">
+            <button class="btn btn-outline-primary btn-sm" onclick="downloadEpgXml()">
               <i class="bi bi-download me-1"></i> Download EPG
             </button>
           </div>
@@ -182,14 +196,9 @@ block content %}
             <option value="100">100</option>
           </select>
         </div>
-        <!-- Add a Favorite filter -->
-        <div class="col-md-12">
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="favoritesOnlyFilter">
-            <label class="form-check-label" for="favoritesOnlyFilter">
-              <i class="bi bi-star-fill text-warning"></i> Show favorites only
-            </label>
-          </div>
+        <!-- Hidden checkbox for compatibility with existing JS -->
+        <div class="d-none">
+          <input class="form-check-input" type="checkbox" id="favoritesOnlyFilter">
         </div>
       </div>
     </div>
@@ -240,10 +249,10 @@ block content %}
 </div>
 
 <!-- Include modals -->
-{% include 'partials/modals/add_tv_channel.html' %} {% include
-'partials/modals/edit_tv_channel.html' %} {% include
-'partials/modals/assign_acestreams.html' %} {% include
-'partials/modals/bulk_edit_tv_channels.html' %}
+{% include 'partials/modals/add_tv_channel.html' %} 
+{% include 'partials/modals/edit_tv_channel.html' %} 
+{% include 'partials/modals/batch_assign.html' %} 
+{% include 'partials/modals/bulk_edit_tv_channels.html' %}
 
 <!-- Include script for TV Channels management -->
 <script src="{{ url_for('static', filename='js/tv-channels.js') }}"></script>

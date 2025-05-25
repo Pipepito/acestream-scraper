@@ -169,9 +169,13 @@ class PlaylistService:
             
         return '\n'.join(playlist_lines)
         
-    def generate_epg_xml(self):
+    def generate_epg_xml(self, search_term=None, favorites_only=False):
         """Generate XML EPG guide for channels with EPG data.
         
+        Args:
+            search_term: Optional search term to filter channels by name
+            favorites_only: If True, only include favorite channels
+            
         Returns:
             String containing the XML EPG guide content
         """
@@ -182,8 +186,15 @@ class PlaylistService:
             '<tv generator-info-name="Acestream Scraper EPG Generator" generator-info-url="https://github.com/pipepito/acestream-scraper">'
         ]
         
-        # Get active TV channels with EPG data
-        channels = self.tv_channel_repository.get_all(is_active=True)
+        # Get TV channels with filters
+        channels, _, _ = self.tv_channel_repository.filter_channels(
+            search_term=search_term,
+            favorites_only=favorites_only,
+            is_active=True,
+            per_page=1000  # Large value to avoid pagination
+        )
+        
+        # Filter to channels with EPG data
         channels_with_epg = [c for c in channels if c.epg_id]
         
         # First, add channel definitions

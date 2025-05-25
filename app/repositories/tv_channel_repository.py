@@ -66,9 +66,17 @@ class TVChannelRepository:
         """
         query = TVChannel.query
         if is_active is not None:
-            query = query.filter_by(is_active=is_active)
+            query = query.filter(TVChannel.is_active == is_active)
             
-        return query.order_by(TVChannel.name).all()
+        # Order by channel_number first (if not null), then by name
+        return query.order_by(
+            # Put channels with numbers first
+            db.case([(TVChannel.channel_number.is_(None), 1)], else_=0),
+            # Order by channel_number in ascending order
+            TVChannel.channel_number.asc(),
+            # Then order by name for channels without a number
+            TVChannel.name.asc()
+        ).all()
     
     def filter_channels(self, 
                         category: str = None, 
@@ -77,7 +85,8 @@ class TVChannelRepository:
                         search_term: str = None,
                         page: int = 1,
                         per_page: int = 20,
-                        favorites_only: bool = False) -> tuple:
+                        favorites_only: bool = False,
+                        is_active: bool = None) -> tuple:
         """
         Filter TV channels by various criteria.
         
@@ -89,6 +98,7 @@ class TVChannelRepository:
             page: Page number for pagination
             per_page: Number of items per page
             favorites_only: Show only favorite channels
+            is_active: Filter by active status
             
         Returns:
             Tuple of (list of TV channels, total number of matches, number of pages)
@@ -110,13 +120,22 @@ class TVChannelRepository:
             )
         if favorites_only:
             query = query.filter_by(is_favorite=True)
+        if is_active is not None:
+            query = query.filter_by(is_active=is_active)
             
         # Count total before pagination
         total = query.count()
         total_pages = (total + per_page - 1) // per_page  # Ceiling division
         
-        # Apply pagination
-        channels = query.order_by(TVChannel.name).paginate(
+        # Apply ordering and pagination
+        channels = query.order_by(
+            # Put channels with numbers first
+            db.case([(TVChannel.channel_number.is_(None), 1)], else_=0),
+            # Order by channel_number in ascending order
+            TVChannel.channel_number.asc(),
+            # Then order by name for channels without a number
+            TVChannel.name.asc()
+        ).paginate(
             page=page, per_page=per_page, error_out=False
         ).items
         

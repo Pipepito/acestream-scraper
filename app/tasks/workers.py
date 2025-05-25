@@ -2,9 +2,10 @@ import asyncio
 import logging
 from typing import List, Tuple
 from datetime import datetime, timedelta, timezone
-from ..models import AcestreamChannel, ScrapedURL
+from ..models import AcestreamChannel, ScrapedURL, EPGSource
 from ..extensions import db
 from ..scrapers import create_scraper_for_url
+from ..services.epg_service import EPGService
 
 logger = logging.getLogger(__name__)
 
@@ -50,3 +51,47 @@ class ChannelCleanupWorker:
         except Exception as e:
             logger.error(f"Error during channel cleanup: {e}")
             db.session.rollback()
+
+
+class EPGRefreshWorker:
+    """Worker class for refreshing EPG data and programs."""
+    
+    def __init__(self, cleanup_old_programs_days: int = 7):
+        self.cleanup_old_programs_days = cleanup_old_programs_days
+        self.epg_service = EPGService()
+
+    async def refresh_epg_data(self):
+        """Refresh EPG data from all enabled sources."""
+        try:
+            # Check if EPG refresh is needed
+            if not self.epg_service.should_refresh_epg():
+                logger.info("EPG data is up to date, skipping refresh")
+                return 0
+            
+            logger.info("Starting EPG data refresh")
+            
+            # Fetch fresh EPG data (this includes programs)
+            epg_data = self.epg_service.fetch_epg_data()
+            
+            # Clean up old programs
+            await self.cleanup_old_programs()
+            
+            # No need for separate timestamp update - it's done in fetch_epg_data
+            
+            logger.info(f"EPG refresh completed: {len(epg_data)} channels processed")
+            return len(epg_data)
+            
+        except Exception as e:
+            logger.error(f"Error during EPG refresh: {e}")
+            raise
+
+    async def cleanup_old_programs(self):
+        """Remove old program data to prevent database bloat."""
+        try:
+            cutoff_date = datetime.now(timezone.utc) - timedelta(days=self.cleanup_old_programs_days)
+            
+            deleted_count = self.epg_service.epg_program_repo.delete_old_programs(cutoff_date)
+            logger.info(f"Cleaned up {deleted_count} old EPG programs (older than {self.cleanup_old_programs_days} days)")
+            
+        except Exception as e:
+            logger.error(f"Error during EPG program cleanup: {e}")

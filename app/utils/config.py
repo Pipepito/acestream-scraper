@@ -8,12 +8,12 @@ from flask import has_app_context, current_app
 logger = logging.getLogger(__name__)
 class Config:
     """Configuration management class."""
-    
-    # Add default values as class constants
+      # Add default values as class constants
     DEFAULT_BASE_URL = 'acestream://'
     DEFAULT_ACE_ENGINE_URL = 'http://localhost:6878'
     DEFAULT_RESCRAPE_INTERVAL = 24
     DEFAULT_ADDPID = False
+    DEFAULT_EPG_REFRESH_INTERVAL = 6  # Hours between EPG data refreshes
     
     _instance = None
     config_path = None
@@ -90,12 +90,13 @@ class Config:
         # Skip setting defaults during testing to avoid unexpected method calls
         if not self.settings_repo or os.environ.get('TESTING'):
             return
-            
+        
         required_settings = {
             'base_url': self.DEFAULT_BASE_URL,
             'ace_engine_url': self.DEFAULT_ACE_ENGINE_URL,
             'rescrape_interval': self.DEFAULT_RESCRAPE_INTERVAL,
-            'addpid': self.DEFAULT_ADDPID
+            'addpid': self.DEFAULT_ADDPID,
+            'epg_refresh_interval': self.DEFAULT_EPG_REFRESH_INTERVAL
         }
         
         for key, default_value in required_settings.items():
@@ -253,7 +254,7 @@ class Config:
     def base_url(self):
         """Get base URL for acestream links."""
         return self.get('base_url', 'acestream://')
-        
+    
     @base_url.setter
     def base_url(self, value):
         """Set base URL for acestream links."""
@@ -268,7 +269,7 @@ class Config:
     def ace_engine_url(self, value):
         """Set Acestream Engine URL."""
         self.set('ace_engine_url', value)
-        
+    
     @property
     def rescrape_interval(self):
         """Get rescrape interval in hours."""
@@ -279,7 +280,7 @@ class Config:
     def rescrape_interval(self, value):
         """Set rescrape interval in hours."""
         self.set('rescrape_interval', str(value))
-        
+    
     @property
     def addpid(self):
         """Get whether to add PID parameter to stream URLs."""
@@ -292,6 +293,17 @@ class Config:
     def addpid(self, value):
         """Set whether to add PID parameter to stream URLs."""
         self.set('addpid', str(bool(value)).lower())
+        
+    @property
+    def epg_refresh_interval(self):
+        """Get EPG refresh interval in hours."""
+        interval = self.get('epg_refresh_interval', self.DEFAULT_EPG_REFRESH_INTERVAL)
+        return int(interval) if isinstance(interval, (int, str)) else self.DEFAULT_EPG_REFRESH_INTERVAL
+    
+    @epg_refresh_interval.setter
+    def epg_refresh_interval(self, value):
+        """Set EPG refresh interval in hours."""
+        self.set('epg_refresh_interval', str(value))
         
     def is_initialized(self):
         """Check if configuration is fully initialized."""
@@ -307,7 +319,8 @@ class Config:
                         'base_url',
                         'ace_engine_url',
                         'rescrape_interval',
-                        'addpid'
+                        'addpid',
+                        'epg_refresh_interval'
                     ]
                     for setting in required_settings:
                         if not self.settings_repo.get_setting(setting):

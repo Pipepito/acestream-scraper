@@ -27,6 +27,7 @@
 ## Python Stack & Tools
 
 - Python 3.12
+- Launch commands in powershell format with the virtual environment .\venv\Scripts\activate; python .\run_dev.py
 
 ### Python Best Practices
 

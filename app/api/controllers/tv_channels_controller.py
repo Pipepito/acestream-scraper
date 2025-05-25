@@ -409,6 +409,20 @@ class GenerateTVChannelsResource(Resource):
             'stats': result
         }
 
+@api.route('/generate-from-epg')
+class GenerateFromEPGResource(Resource):
+    @api.doc('generate_from_epg')
+    @api.response(200, 'TV Channels generation from EPG complete')
+    def post(self):
+        """Generate TV channels from EPG data first, then assign matching acestreams"""
+        service = TVChannelService()
+        result = service.generate_tv_channels_from_epg()
+        
+        return {
+            'message': 'TV Channels generation from EPG complete',
+            'stats': result
+        }
+
 @api.route('/bulk-update')
 class BulkUpdateResource(Resource):
     @api.doc('bulk_update_channels')

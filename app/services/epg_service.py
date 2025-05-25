@@ -1,36 +1,42 @@
 import requests
 import xml.etree.ElementTree as ET
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from difflib import SequenceMatcher
 from typing import Dict, List, Optional, Tuple
 import re
+import os
+import time
 
 from app.models.acestream_channel import AcestreamChannel
 from app.models.epg_source import EPGSource
 from app.models.epg_string_mapping import EPGStringMapping
+from app.models.epg_program import EPGProgram
 from app.repositories.epg_source_repository import EPGSourceRepository
 from app.repositories.epg_string_mapping_repository import EPGStringMappingRepository
 from app.repositories.channel_repository import ChannelRepository
 from app.repositories.epg_channel_repository import EPGChannelRepository
+from app.repositories.epg_program_repository import EPGProgramRepository
 from app.extensions import db
 
 logger = logging.getLogger(__name__)
 
-class EPGService:
+class EPGService:    
     def __init__(self):
         self.epg_source_repo = EPGSourceRepository()
         self.epg_string_mapping_repo = EPGStringMappingRepository()
         self.channel_repo = ChannelRepository()
         self.epg_channel_repo = EPGChannelRepository()
+        self.epg_program_repo = EPGProgramRepository()
         self.epg_data = {}  # Cache of EPG data {tvg_id: {tvg_name, logo}}
         self.auto_mapping_threshold = 0.75  # Similarity threshold for auto-mapping
+        self.data_dir = "data"  # Directory to store data files (e.g., timestamps)
     
     def fetch_epg_data(self) -> Dict:
         """Fetch EPG data from all enabled sources."""
         self.epg_data = {}  # Reset cache
         
-        # Get ENABLED sources only (this was missing)
+        # Get ENABLED sources only
         sources = self.epg_source_repo.get_enabled()
         
         logger.info(f"Found {len(sources)} enabled EPG sources")
@@ -74,31 +80,16 @@ class EPGService:
                         inserted_count = self.epg_channel_repo.bulk_insert(channels_to_insert)
                         logger.info(f"Bulk inserted {inserted_count} channels from source {source.id}")
                     
-                    # Update timestamp
-                    source.last_updated = datetime.utcnow()
-                    source.error_count = 0
-                    source.last_error = None
-                    
-                    # Count channels for stats
-                    channels_count = sum(1 for ch in self.epg_data.values() if ch.get('source_id') == source.id)
-                    logger.info(f"Found {channels_count} channels in EPG source {source.id}")
-                    total_channels += channels_count
-                else:
-                    error_msg = f"HTTP error {response.status_code}"
-                    logger.warning(f"Error fetching EPG from {source.url}: {error_msg}")
-                    source.error_count = source.error_count + 1 if source.error_count else 1
-                    source.last_error = error_msg
-            except Exception as e:
-                logger.error(f"Error processing EPG from {source.url}: {str(e)}")
-                source.error_count = source.error_count + 1 if source.error_count else 1
-                source.last_error = str(e)[:255]  # Truncate error if too long
+                    # Update last_updated timestamp for this source
+                    source.last_updated = datetime.now()
+                    self.epg_source_repo.update(source)
+                    logger.info(f"Updated last_updated timestamp for source {source.id} to {source.last_updated.isoformat()}")
             
-            # Save changes to the source
-            self.epg_source_repo.update(source)
-        
-        logger.info(f"Loaded {len(self.epg_data)} channels from EPG sources")
-        return self.epg_data
-
+            except Exception as e:
+                logger.error(f"Error fetching EPG data from {source.url}: {e}")
+    
+        return self.epg_data    
+    
     def _parse_epg_xml(self, xml_content: str, source_id: int) -> None:
         try:
             root = ET.fromstring(xml_content)
@@ -127,10 +118,125 @@ class EPGService:
                     "source_id": source_id,  # Store the source ID
                     "language": language     # Store the language
                 }
+              # Parse program data and store in database
+            self._parse_and_store_programs(root, source_id)
                 
         except Exception as e:
             logger.error(f"Error parsing EPG XML: {str(e)}")
             raise
+
+    def _parse_and_store_programs(self, xml_root, source_id: int) -> None:
+        """Parse program data from EPG XML and store in database."""
+        try:
+            from datetime import datetime
+            import re
+            
+            # First, get all EPG channels for this source to create a mapping
+            epg_channels = self.epg_channel_repo.get_by_source_id(source_id)
+            channel_mapping = {ch.channel_xml_id: ch.id for ch in epg_channels}
+            
+            # Clear existing programs for this source
+            self.epg_program_repo.delete_by_source_id(source_id)
+            
+            programs_to_insert = []
+            
+            # Extract program information
+            for programme in xml_root.findall(".//programme"):
+                channel_xml_id = programme.get("channel")
+                start_str = programme.get("start")
+                stop_str = programme.get("stop")
+                
+                if not all([channel_xml_id, start_str, stop_str]):
+                    continue
+                
+                # Check if we have this channel in our database
+                epg_channel_id = channel_mapping.get(channel_xml_id)
+                if not epg_channel_id:
+                    continue
+                
+                try:
+                    # Parse time strings - XMLTV format: 20230101120000 +0000
+                    start_time = self._parse_xmltv_time(start_str)
+                    end_time = self._parse_xmltv_time(stop_str)
+                    
+                    if not start_time or not end_time:
+                        continue
+                    
+                    # Get program details
+                    title_elem = programme.find("title")
+                    title = title_elem.text if title_elem is not None else "Unknown Program"
+                    
+                    subtitle_elem = programme.find("sub-title")
+                    subtitle = subtitle_elem.text if subtitle_elem is not None else None
+                    
+                    desc_elem = programme.find("desc")
+                    description = desc_elem.text if desc_elem is not None else None
+                    
+                    category_elem = programme.find("category")
+                    category = category_elem.text if category_elem is not None else None
+                    
+                    # Get episode info if available
+                    episode_elem = programme.find("episode-num")
+                    episode_number = episode_elem.text if episode_elem is not None else None
+                    
+                    # Get rating if available
+                    rating_elem = programme.find("rating/value")
+                    rating = rating_elem.text if rating_elem is not None else None
+                    
+                    # Get icon if available
+                    icon_elem = programme.find("icon")
+                    icon_url = icon_elem.get("src") if icon_elem is not None else None
+                    
+                    # Create program data
+                    program_data = {
+                        'epg_channel_id': epg_channel_id,
+                        'start_time': start_time,
+                        'end_time': end_time,
+                        'title': title[:500],  # Limit title length
+                        'subtitle': subtitle[:500] if subtitle else None,
+                        'description': description,
+                        'category': category[:100] if category else None,
+                        'episode_number': episode_number[:100] if episode_number else None,
+                        'rating': rating[:20] if rating else None,
+                        'icon_url': icon_url
+                    }
+                    
+                    programs_to_insert.append(program_data)
+                    
+                except Exception as e:
+                    logger.warning(f"Error parsing program data for channel {channel_xml_id}: {e}")
+                    continue
+            
+            # Bulk insert programs
+            if programs_to_insert:
+                inserted_count = self.epg_program_repo.bulk_insert(programs_to_insert)
+                logger.info(f"Inserted {inserted_count} programs for source {source_id}")
+            else:
+                logger.warning(f"No programs found for source {source_id}")
+                
+        except Exception as e:
+            logger.error(f"Error parsing and storing programs: {str(e)}")
+            raise
+
+    def _parse_xmltv_time(self, time_str: str) -> datetime:
+        """Parse XMLTV time format to datetime object."""
+        try:
+            import re
+            from datetime import datetime, timezone
+            
+            # XMLTV format: 20230101120000 +0000 or 20230101120000
+            # Remove timezone info for now and parse as UTC
+            time_clean = re.sub(r'\s+[+-]\d{4}$', '', time_str.strip())
+            
+            # Parse the datetime
+            if len(time_clean) >= 14:
+                dt = datetime.strptime(time_clean[:14], '%Y%m%d%H%M%S')
+                return dt.replace(tzinfo=timezone.utc)
+            
+            return None
+        except Exception as e:
+            logger.warning(f"Error parsing XMLTV time '{time_str}': {e}")
+            return None
 
     def parse_epg_channels(self, xml_content):
         """
@@ -914,3 +1020,56 @@ class EPGService:
         except Exception as e:
             logger.error(f"Error extracting channels from EPG source: {e}")
             return []
+    
+    def should_refresh_epg(self):
+        """
+        Check if EPG data should be refreshed based on last refresh time
+        
+        Returns:
+            bool: True if EPG should be refreshed, False otherwise
+        """
+        # Get the most recently updated enabled EPG source
+        sources = self.epg_source_repo.get_enabled()
+        
+        # If no enabled sources, refresh is needed
+        if not sources:
+            logger.info("Initial EPG refresh needed (no enabled EPG sources)")
+            return True
+        
+        # Find the most recently updated source
+        latest_source = None
+        for source in sources:
+            if source.last_updated and (not latest_source or source.last_updated > latest_source.last_updated):
+                latest_source = source
+        
+        # If no previous refresh or no enabled sources with last_updated, refresh is needed
+        if not latest_source or not latest_source.last_updated:
+            logger.info("Initial EPG refresh needed (no previous refresh recorded)")
+            return True
+        
+        # Define refresh interval (24 hours by default)
+        refresh_interval = timedelta(hours=24)
+        
+        current_time = datetime.now()
+        next_refresh_time = latest_source.last_updated + refresh_interval
+        
+        if current_time >= next_refresh_time:
+            logger.info(f"EPG refresh needed (last refresh: {latest_source.last_updated.isoformat()})")
+            return True
+        else:
+            logger.info(f"EPG data up to date (last refresh: {latest_source.last_updated.isoformat()}, next: {next_refresh_time.isoformat()})")
+            return False
+
+    def _update_last_refresh_time(self):
+        """Update the timestamp of the last EPG refresh"""
+        # Get current time
+        current_time = datetime.now()
+        
+        # Update last_updated timestamp for all enabled sources that we refreshed
+        sources = self.epg_source_repo.get_enabled()
+        for source in sources:
+            source.last_updated = current_time
+        
+        # Commit changes to the database
+        self.epg_source_repo.session.commit()
+        logger.info(f"Updated EPG refresh timestamp to {current_time.isoformat()}")

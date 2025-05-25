@@ -858,16 +858,39 @@ async function associateByEPG() {
             const error = await response.json();
             throw new Error(error.message || 'Failed to associate acestreams by EPG ID');
         }
-        
-        const result = await response.json();
+          const result = await response.json();
         console.log('Associate by EPG response:', result);
         
         // Extract stats from the result, ensuring we have default values if properties are missing
         const matched = result.stats?.matched || result.matched || 0;
         const unmatched = result.stats?.unmatched || result.unmatched || 0;
+        const created = result.stats?.created || result.created || 0;
+        const existingAssociations = result.stats?.existing_associations || result.existing_associations || 0;
+        
+        // Build a comprehensive success message
+        let message = 'EPG Association complete: ';
+        const parts = [];
+        
+        if (created > 0) {
+            parts.push(`${created} new TV channels created`);
+        }
+        if (matched > 0) {
+            parts.push(`${matched} acestreams matched`);
+        }
+        if (existingAssociations > 0) {
+            parts.push(`${existingAssociations} existing associations`);
+        }
+        if (unmatched > 0) {
+            parts.push(`${unmatched} unmatched`);
+        }
+        
+        if (parts.length > 0) {
+            message += parts.join(', ');
+        } else {
+            message += 'No changes made';
+        }
         
         // Show success message with statistics
-        const message = `Association by EPG complete: ${matched} acestreams matched, ${unmatched} unmatched`;
         showAlert('success', message);
         
         // Reload TV channels to reflect changes
@@ -1389,6 +1412,11 @@ function updateTVChannelsTable() {
                                 onclick="toggleChannelFavorite(${channel.id})" 
                                 title="${channel.is_favorite ? 'Remove from favorites' : 'Add to favorites'}">
                             <i class="bi ${channel.is_favorite ? 'bi-star-fill' : 'bi-star'}"></i>
+                        </button>
+                        <button class="btn btn-success" onclick="showPlayerOptions('${channel.id}')" title="Play stream">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-play-fill" viewBox="0 0 16 16">
+                                <path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/>
+                            </svg>
                         </button>
                         <a href="/tv-channels/${channel.id}" class="btn btn-primary" title="View details">
                             <i class="bi bi-eye"></i>

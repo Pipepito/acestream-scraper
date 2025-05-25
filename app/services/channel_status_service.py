@@ -86,7 +86,7 @@ class ChannelStatusService:
                 self.repo.update_channel_status(channel.id, False, check_time, str(e))
             return False
             
-    async def check_channels(self, channels: List[AcestreamChannel], concurrency: int = 5):
+    async def check_channels(self, channels: List[AcestreamChannel], concurrency: int = 2):
         """Check multiple channels concurrently with rate limiting."""
         semaphore = asyncio.Semaphore(concurrency)
         
@@ -95,13 +95,13 @@ class ChannelStatusService:
                 try:
                     # Check the channel
                     result = await self.check_channel(channel)
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(2)
                     return result
                 except Exception as e:
                     logger.error(f"Error checking channel {channel.id}: {e}")
                     return False
         
-        chunk_size = 10
+        chunk_size = 2
         results = []
         
         for i in range(0, len(channels), chunk_size):

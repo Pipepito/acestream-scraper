@@ -143,20 +143,22 @@ class PlaylistService:
                 # Use _format_stream_url to get the correct URL format
                 stream_url = self._format_stream_url(acestream.id, local_id)
                 local_id += 1
-                
-                # Handle duplicate names and multiple streams per channel
+                  # Handle duplicate names and multiple streams per channel
                 base_name = tv_channel.name
-                if len(sorted_acestreams) > 1:
-                    # Multiple streams for same channel: use sub-numbering
-                    display_name = f"{base_name} ({stream_index + 1})"
+                if len(sorted_acestreams) > 1:                # Multiple streams for same channel: use sub-numbering
+                    display_name = f"{base_name} {stream_index + 1}"
+                    # Update epg_id to match sub-numbering
+                    epg_id = f"{tv_channel.epg_id}.{stream_index + 1}" if tv_channel.epg_id else None
                 else:
                     # Single stream: check for global name duplicates
                     if base_name in name_counts:
                         name_counts[base_name] += 1
                         display_name = f"{base_name} {name_counts[base_name]}"
+                        epg_id = f"{tv_channel.epg_id}.{name_counts[base_name]}" if tv_channel.epg_id else None
                     else:
                         name_counts[base_name] = 1
                         display_name = base_name
+                        epg_id = tv_channel.epg_id
                 
                 # Add metadata if available
                 metadata = []
@@ -170,10 +172,9 @@ class PlaylistService:
                         # Single stream: use original number
                         channel_number = str(tv_channel.channel_number)
                     metadata.append(f'tvg-chno="{channel_number}"')
-                
-                # Prioritize TV channel metadata, fall back to acestream metadata if needed
-                if tv_channel.epg_id:
-                    metadata.append(f'tvg-id="{tv_channel.epg_id}"')
+                  # Add EPG ID with proper channel reference (matches the IDs in the EPG XML)
+                if epg_id:
+                    metadata.append(f'tvg-id="{epg_id}"')
                 elif acestream.tvg_id:
                     metadata.append(f'tvg-id="{acestream.tvg_id}"')
                     
@@ -199,7 +200,7 @@ class PlaylistService:
                 playlist_lines.append(stream_url)
             
         return '\n'.join(playlist_lines)
-    
+
     def generate_epg_xml(self, search_term=None, favorites_only=False):
         """Generate XML EPG guide for channels with EPG data and associated acestreams.
         
@@ -210,6 +211,11 @@ class PlaylistService:
         Returns:
             String containing the XML EPG guide content
         """
+        from datetime import datetime, timedelta
+        from app.repositories.epg_channel_repository import EPGChannelRepository
+        from app.repositories.epg_program_repository import EPGProgramRepository
+        import html
+        
         # Start with XML header and root element
         xml_lines = [
             '<?xml version="1.0" encoding="utf-8" ?>',
@@ -225,32 +231,133 @@ class PlaylistService:
             per_page=1000  # Large value to avoid pagination
         )
         
-        # Filter to channels with EPG data AND associated acestreams
-        channels_with_epg = []
-        for channel in channels:
-            if channel.epg_id and channel.acestream_channels.count() > 0:
-                channels_with_epg.append(channel)
-          # First, add channel definitions
-        for channel in channels_with_epg:
-            channel_id = channel.epg_id
-            if not channel_id:
+        # Sort channels by channel_number if available (consistent with playlist generation)
+        sorted_channels = sorted(
+            channels, 
+            key=lambda c: (c.channel_number is None, c.channel_number or 0, c.name.lower())
+        )
+        
+        # Initialize repositories for EPG data
+        epg_channel_repo = EPGChannelRepository()
+        epg_program_repo = EPGProgramRepository()
+        
+        # Track channels and their EPG mappings
+        channel_epg_mappings = []
+        # Initialize name_counts for tracking duplicates
+        name_counts = {} # Simple counter for duplicate channel names
+        
+        # Process each TV channel
+        for tv_channel in sorted_channels:
+            # Skip channels without EPG ID or acestreams
+            if not tv_channel.epg_id or tv_channel.acestream_channels.count() == 0:
                 continue
                 
-            xml_lines.append(f'  <channel id="{channel_id}">')
-            xml_lines.append(f'    <display-name>{channel.name}</display-name>')
-            
-            if channel.logo_url:
-                xml_lines.append(f'    <icon src="{channel.logo_url}" />')
+            # Get all acestreams for this TV channel
+            acestreams = AcestreamChannel.query.filter_by(tv_channel_id=tv_channel.id).all()
+            if not acestreams:
+                continue
                 
-            if channel.website:
-                xml_lines.append(f'    <url>{channel.website}</url>')
+            # Sort acestreams by quality (same logic as playlist generation)
+            def score_acestream(acestream):
+                score = 0
+                if acestream.is_online:
+                    score += 10
+                if acestream.logo:
+                    score += 3
+                if acestream.tvg_id:
+                    score += 2
+                if acestream.tvg_name:
+                    score += 1
+                return score
+                
+            sorted_acestreams = sorted(acestreams, key=score_acestream, reverse=True)
+              # Find the EPG channels corresponding to this TV channel's EPG ID
+            epg_channels = epg_channel_repo.get_by_channel_xml_id(tv_channel.epg_id)
+            
+            # Use the first channel if available, otherwise None
+            epg_channel = epg_channels[0] if epg_channels else None
+            
+            # Create channel definitions for each acestream (handle duplicates like playlist)
+            base_name = tv_channel.name
+            
+            # Process each acestream to create channel entries
+            for stream_index, acestream in enumerate(sorted_acestreams):
+                # Handle duplicate names and multiple streams per channel
+                if len(sorted_acestreams) > 1:
+                    # Multiple streams: use numeric suffix (Antena 3 1, Antena 3 2, etc.)
+                    display_name = f"{tv_channel.name} {stream_index + 1}"
+                    epg_id = f"{tv_channel.epg_id}.{stream_index + 1}"
+                else:
+                    # Single stream: check for global name duplicates
+                    if base_name in name_counts:
+                        name_counts[base_name] += 1
+                        display_name = f"{base_name} {name_counts[base_name]}"
+                        epg_id = f"{tv_channel.epg_id}.{name_counts[base_name]}"
+                    else:
+                        name_counts[base_name] = 1
+                        display_name = base_name
+                        epg_id = tv_channel.epg_id
+                
+                # Store mapping for program generation
+                channel_epg_mappings.append({
+                    'epg_id': epg_id,
+                    'display_name': display_name,
+                    'tv_channel': tv_channel,
+                    'epg_channel': epg_channel,
+                    'stream_index': stream_index,
+                    'original_epg_id': tv_channel.epg_id  # Store original ID for program data
+                })
+        
+        # Generate channel definitions
+        for mapping in channel_epg_mappings:
+            epg_id = mapping['epg_id']
+            display_name = mapping['display_name']
+            tv_channel = mapping['tv_channel']
+            
+            xml_lines.append(f'  <channel id="{html.escape(epg_id)}">')
+            xml_lines.append(f'    <display-name>{html.escape(display_name)}</display-name>')
+            
+            if tv_channel.logo_url:
+                xml_lines.append(f'    <icon src="{html.escape(tv_channel.logo_url)}" />')
+                
+            if tv_channel.website:
+                xml_lines.append(f'    <url>{html.escape(tv_channel.website)}</url>')
                 
             xml_lines.append('  </channel>')
+          # Initialize the programs section
+            xml_lines.append('')
+        
+        # Get program data for each channel mapping        for mapping in channel_epg_mappings:
+            epg_id = mapping['epg_id']
+            original_epg_id = mapping['original_epg_id']
+            epg_channel = mapping['epg_channel']
+            
+            if not epg_channel:
+                continue
+            
+            # Get programs for this channel
+            now = datetime.utcnow()
+            start_time = now - timedelta(hours=12)  # Include past 12 hours
+            end_time = now + timedelta(days=7)     # Include next 7 days
+            
+            # Get programs using the epg_channel object
+            programs = epg_program_repo.get_programs_for_channel(epg_channel.id, start_time, end_time)
+            
+            # Generate program entries - each variant of a channel needs its own program entries
+            # with the correct channel ID
+            for program in programs:
+                xml_lines.append(f'  <programme start="{program.start_time.strftime("%Y%m%d%H%M%S %z")}" stop="{program.end_time.strftime("%Y%m%d%H%M%S %z")}" channel="{html.escape(epg_id)}">')
+                xml_lines.append(f'    <title>{html.escape(program.title)}</title>')
+                
+                if program.description:
+                    xml_lines.append(f'    <desc>{html.escape(program.description)}</desc>')
+                
+                if program.category:
+                    xml_lines.append(f'    <category>{html.escape(program.category)}</category>')
+                
+                xml_lines.append('  </programme>')
         
         # Close the XML document
-        # Note: In a real implementation, we would fetch and add program data here
-        # But without actual EPG program data source, we're just creating channel definitions
-        
         xml_lines.append('</tv>')
         
         return '\n'.join(xml_lines)

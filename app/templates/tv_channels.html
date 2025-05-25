@@ -50,15 +50,14 @@ block content %}
       </div>
     </div>
   </div>
-
   <!-- TV Channels Playlist Section -->
   <div class="card mb-4">
     <div class="card-header">TV Channels Playlist</div>
     <div class="card-body">
       <div class="row">
         <!-- M3U Playlist -->
-        <div class="col-md-6 mb-3">
-          <h6 class="mb-2">M3U Playlist URL</h6>
+        <div class="col-md-4 mb-3">
+          <h6 class="mb-2">M3U Playlist URL (TV Channels)</h6>
           <div class="input-group mb-2">
             <input type="text" class="form-control" id="tvChannelsPlaylistUrl" data-base-url="{{ request.url_root }}api/playlists/tv-channels/m3u" value="{{ request.url_root }}api/playlists/tv-channels/m3u" readonly>
             <button class="btn btn-outline-secondary" type="button" id="copyPlaylistUrlBtn" onclick="copyToClipboard('#tvChannelsPlaylistUrl')">Copy</button>
@@ -72,10 +71,26 @@ block content %}
               <i class="bi bi-download me-1"></i> Download Playlist
             </button>
           </div>
+          <small class="text-muted">All acestreams from TV channels with proper numbering</small>
+        </div>
+        
+        <!-- All Streams Playlist -->
+        <div class="col-md-4 mb-3">
+          <h6 class="mb-2">M3U All Streams URL</h6>
+          <div class="input-group mb-2">
+            <input type="text" class="form-control" id="allStreamsPlaylistUrl" data-base-url="{{ request.url_root }}api/playlists/all-streams/m3u" value="{{ request.url_root }}api/playlists/all-streams/m3u" readonly>
+            <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('#allStreamsPlaylistUrl')">Copy</button>
+          </div>
+          <div class="d-flex justify-content-end mt-2">
+            <button class="btn btn-outline-primary btn-sm" onclick="downloadAllStreamsPlaylist()">
+              <i class="bi bi-download me-1"></i> Download All Streams
+            </button>
+          </div>
+          <small class="text-muted">TV channels + unassigned streams with channel numbers</small>
         </div>
         
         <!-- EPG XML -->
-        <div class="col-md-6 mb-3">
+        <div class="col-md-4 mb-3">
           <h6 class="mb-2">EPG XML Guide URL</h6>
           <div class="input-group mb-2">
             <input type="text" class="form-control" id="epgXmlUrl" data-base-url="{{ request.url_root }}api/playlists/epg.xml" value="{{ request.url_root }}api/playlists/epg.xml" readonly>
@@ -90,6 +105,7 @@ block content %}
               <i class="bi bi-download me-1"></i> Download EPG
             </button>
           </div>
+          <small class="text-muted">Only channels with acestreams and EPG data</small>
         </div>
       </div>
     </div>

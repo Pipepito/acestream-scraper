@@ -170,8 +170,7 @@ function saveNewTVChannel() {
     // Get form data
     const form = document.getElementById('addTVChannelForm');
     if (!form) return;
-    
-    // Collect form data
+      // Collect form data
     const formData = {
         name: form.querySelector('[name="name"]').value.trim(),
         description: form.querySelector('[name="description"]').value.trim() || null,
@@ -180,8 +179,10 @@ function saveNewTVChannel() {
         country: form.querySelector('[name="country"]').value.trim() || null,
         language: form.querySelector('[name="language"]').value.trim() || null,
         website: form.querySelector('[name="website"]').value.trim() || null,
-        epg_id: form.querySelector('[name="epg_id"]').value.trim() || null,
+        epg_id: form.querySelector('[name="epg_id"]').value.trim() || null,        epg_source_id: form.querySelector('[name="epg_source_id"]').value ? parseInt(form.querySelector('[name="epg_source_id"]').value) : null,
+        channel_number: form.querySelector('[name="channel_number"]').value ? parseInt(form.querySelector('[name="channel_number"]').value) : null,
         is_active: form.querySelector('[name="is_active"]').checked,
+        is_favorite: form.querySelector('[name="is_favorite"]').checked,
         selected_acestreams: []
     };
     
@@ -521,8 +522,24 @@ function downloadTVChannelsPlaylist(refresh = false) {
     const urlInput = document.getElementById('tvChannelsPlaylistUrl');
     if (!urlInput) return;
     
+    let url = urlInput.value;
+    if (refresh) {
+        url += (url.includes('?') ? '&' : '?') + 'refresh=true';
+    }
+    
     // Trigger download
     window.location.href = url;
+}
+
+/**
+ * Download all streams playlist (TV channels + unassigned streams)
+ */
+function downloadAllStreamsPlaylist() {
+    const urlInput = document.getElementById('allStreamsPlaylistUrl');
+    if (!urlInput) return;
+    
+    // Trigger download
+    window.location.href = urlInput.value;
 }
 
 /**

@@ -22,6 +22,7 @@
 - Ensure compatibility with the project's language or framework versions.
 - Replace hardcoded values with named constants.
 - Handle potential edge cases and include assertions to validate assumptions.
+- Terminal path is always the root of the project by default, no need to cd onto it when running commands.
 
 ## Python Stack & Tools
 
@@ -39,6 +40,7 @@
 8. Write unit tests for code reliability.
 9. Use type hints for clarity and type checking.
 10. Avoid global variables to reduce side effects.
+11. When running commands always enable the virtual environment first and run the command on the same terminal.
 
 ## HTML, Bootstrap, and JavaScript Copilot Instructions
 

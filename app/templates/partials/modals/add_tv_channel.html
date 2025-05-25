@@ -6,47 +6,72 @@
                 <h5 class="modal-title" id="addTVChannelModalLabel">Add TV Channel</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <form id="addTVChannelForm">
+            <div class="modal-body">                <form id="addTVChannelForm">
                     <div class="row g-3">
-                        <div class="col-md-12">
+                        <div class="col-md-8">
                             <label for="newTVChannelName" class="form-label">Channel Name *</label>
-                            <input type="text" class="form-control" id="newTVChannelName" required>
+                            <input type="text" class="form-control" id="newTVChannelName" name="name" required>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label for="newTVChannelNumber" class="form-label">Channel Number</label>
+                            <input type="number" class="form-control" id="newTVChannelNumber" name="channel_number" min="1">
                         </div>
                         
                         <div class="col-md-12">
                             <label for="newTVChannelDescription" class="form-label">Description</label>
-                            <textarea class="form-control" id="newTVChannelDescription" rows="3"></textarea>
+                            <textarea class="form-control" id="newTVChannelDescription" name="description" rows="3"></textarea>
                         </div>
                         
                         <div class="col-md-4">
                             <label for="newTVChannelCategory" class="form-label">Category</label>
-                            <input type="text" class="form-control" id="newTVChannelCategory" placeholder="e.g., Sports, News">
+                            <input type="text" class="form-control" id="newTVChannelCategory" name="category" placeholder="e.g., Sports, News">
                         </div>
                         
                         <div class="col-md-4">
                             <label for="newTVChannelCountry" class="form-label">Country</label>
-                            <input type="text" class="form-control" id="newTVChannelCountry" placeholder="e.g., USA, UK">
+                            <input type="text" class="form-control" id="newTVChannelCountry" name="country" placeholder="e.g., USA, UK">
                         </div>
                         
                         <div class="col-md-4">
                             <label for="newTVChannelLanguage" class="form-label">Language</label>
-                            <input type="text" class="form-control" id="newTVChannelLanguage" placeholder="e.g., English">
+                            <input type="text" class="form-control" id="newTVChannelLanguage" name="language" placeholder="e.g., English">
                         </div>
                         
                         <div class="col-md-6">
                             <label for="newTVChannelLogo" class="form-label">Logo URL</label>
-                            <input type="url" class="form-control" id="newTVChannelLogo" placeholder="http://example.com/logo.png">
+                            <input type="url" class="form-control" id="newTVChannelLogo" name="logo_url" placeholder="http://example.com/logo.png">
                         </div>
                         
                         <div class="col-md-6">
                             <label for="newTVChannelWebsite" class="form-label">Website</label>
-                            <input type="url" class="form-control" id="newTVChannelWebsite" placeholder="http://example.com">
+                            <input type="url" class="form-control" id="newTVChannelWebsite" name="website" placeholder="http://example.com">
                         </div>
                         
-                        <div class="col-md-12">
+                        <div class="col-md-6">
                             <label for="newTVChannelEpgId" class="form-label">EPG ID</label>
-                            <input type="text" class="form-control" id="newTVChannelEpgId" placeholder="EPG identifier for this channel">
+                            <input type="text" class="form-control" id="newTVChannelEpgId" name="epg_id" placeholder="EPG identifier for this channel">
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="newTVChannelEpgSourceId" class="form-label">EPG Source ID</label>
+                            <input type="number" class="form-control" id="newTVChannelEpgSourceId" name="epg_source_id">
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="newTVChannelIsActive" name="is_active" checked>
+                                <label class="form-check-label" for="newTVChannelIsActive">Active</label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="newTVChannelIsFavorite" name="is_favorite">
+                                <label class="form-check-label" for="newTVChannelIsFavorite">
+                                    <i class="bi bi-star-fill text-warning"></i> Favorite
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </form>

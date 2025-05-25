@@ -132,3 +132,32 @@ class PlaylistChannels(Resource):
             })
             
         return result
+
+@api.route('/all-streams/m3u')
+class AllStreamsPlaylist(Resource):
+    @api.doc('get_all_streams_playlist')
+    @api.expect(playlist_parser)
+    def get(self):
+        """Get M3U playlist of all acestreams with proper channel numbering (TV channels + unassigned)"""
+        args = playlist_parser.parse_args()
+        search = args.get('search', None)
+        include_unassigned = request.args.get('include_unassigned', 'true').lower() == 'true'
+        
+        playlist_service = PlaylistService()
+        playlist = playlist_service.generate_all_streams_playlist(
+            search_term=search,
+            include_unassigned=include_unassigned
+        )
+        
+        filename = f"all_streams_playlist_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+        if search:
+            filename += f"_filtered"
+        if not include_unassigned:
+            filename += "_assigned_only"
+        filename += ".m3u"
+        
+        return Response(
+            playlist,
+            mimetype="audio/x-mpegurl",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )

@@ -35,7 +35,7 @@ def upgrade():
         op.add_column('epg_sources', 
                      sa.Column('last_error', sa.String(), nullable=True))
 
-    if not column_exists('epg_string_mappings', 'last_error'):
+    if not column_exists('epg_string_mappings', 'is_exclusion'):  # This was checking for wrong column
         op.add_column('epg_string_mappings', 
                      sa.Column('is_exclusion', sa.Boolean(), nullable=True))
     # ### end Alembic commands ###

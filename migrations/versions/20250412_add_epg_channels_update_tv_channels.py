@@ -25,7 +25,7 @@ def has_column(table, column):
     """Check if a column exists in a table"""
     conn = op.get_bind()
     insp = inspect(conn)
-    columns = [c["name"] for c in insp.get_columns(table)]
+    columns = [col['name'] for col in insp.get_columns(table)]
     return column in columns
 
 def upgrade():
@@ -35,13 +35,13 @@ def upgrade():
             # Add is_favorite column if it doesn't exist
             if not has_column('tv_channels', 'is_favorite'):
                 batch_op.add_column(sa.Column('is_favorite', sa.Boolean(), 
-                                             nullable=False, 
-                                             server_default=sa.text('0')))
+                                            nullable=False, 
+                                            server_default=sa.text('0')))
             
             # Add channel_number column if it doesn't exist
             if not has_column('tv_channels', 'channel_number'):
                 batch_op.add_column(sa.Column('channel_number', sa.Integer(), 
-                                             nullable=True))
+                                            nullable=True))
 
     # 2. Create epg_channels table if it doesn't exist
     if not has_table('epg_channels'):
@@ -64,7 +64,7 @@ def upgrade():
 
 
 def downgrade():
-    # 1. Remove columns from tv_channels table
+    # 1. Remove columns from tv_channels table if they exist
     if has_table('tv_channels'):
         with op.batch_alter_table('tv_channels') as batch_op:
             # Drop is_favorite column if it exists

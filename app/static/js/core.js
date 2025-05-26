@@ -390,6 +390,10 @@ function initStatusAutoRefresh() {
 
 // Document ready function
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize tooltips on all elements with data-bs-toggle="tooltip"
+    const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    tooltips.forEach(tooltip => new bootstrap.Tooltip(tooltip));
+    
     // Update stats on page load - only if we're on a page with stats elements
     fetchStats().then(stats => {
         // Only call updateStats if at least one of the elements exists

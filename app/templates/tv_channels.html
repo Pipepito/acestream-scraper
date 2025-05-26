@@ -8,7 +8,7 @@ block content %}
     <div class="col-md-3">
       <div class="card h-100">
         <div class="card-body text-center">
-          <h5 class="card-title">Total TV Channels</h5>
+          <h5 class="card-title" data-bs-toggle="tooltip" title="Total number of defined TV channels">TV Channels</h5>
           <h2 id="totalTVChannelsCard">...</h2>
         </div>
       </div>
@@ -16,7 +16,7 @@ block content %}
     <div class="col-md-3">
       <div class="card h-100">
         <div class="card-body text-center">
-          <h5 class="card-title">Active Channels</h5>
+          <h5 class="card-title" data-bs-toggle="tooltip" title="Number of enabled TV channels">Active TV Channels</h5>
           <h2 id="activeChannelsCard">...</h2>
         </div>
       </div>
@@ -24,7 +24,7 @@ block content %}
     <div class="col-md-3">
       <div class="card h-100">
         <div class="card-body text-center">
-          <h5 class="card-title">Channels with EPG</h5>
+          <h5 class="card-title" data-bs-toggle="tooltip" title="Number of TV channels with EPG metadata">With EPG Data</h5>
           <h2 id="channelsWithEPGCard">...</h2>
         </div>
       </div>
@@ -32,7 +32,7 @@ block content %}
     <div class="col-md-3">
       <div class="card h-100">
         <div class="card-body text-center">
-          <h5 class="card-title">Total Acestreams</h5>
+          <h5 class="card-title" data-bs-toggle="tooltip" title="Total number of acestreams assigned to TV channels (a TV channel can have multiple acestreams)">Linked Acestreams</h5>
           <h2 id="totalAcestreamsCard">...</h2>
         </div>
       </div>
@@ -116,10 +116,7 @@ block content %}
     <div class="card-body">
       <!-- Channel actions row -->
       <div class="row mb-3">
-        <div class="col-md-2">
-          <h5 class="mb-0">Channel Actions</h5>
-        </div>
-        <div class="col-md-10 text-md-end">
+        <div class="col-md-12 text-md-end">
           <div class="btn-toolbar justify-content-md-end">
             <button type="button" class="btn btn-primary me-2" id="addTVChannelBtn">
               <i class="bi bi-plus-lg me-1"></i> Add TV Channel
@@ -132,10 +129,10 @@ block content %}
               <i class="bi bi-broadcast me-1"></i> Update EPG
             </button>
             <button type="button" class="btn btn-outline-primary me-2" id="associateByEPGBtn">
-              <i class="bi bi-card-list me-1"></i> Generare Channels with streams by EPG
+              <i class="bi bi-card-list me-1"></i> Generare Channels from streams by EPG
             </button>
             <button type="button" class="btn btn-outline-primary" id="generateTVChannelsBtn">
-              <i class="bi bi-magic me-1"></i> Generate Channels from Acestreams
+              <i class="bi bi-magic me-1"></i> Generate Channels from streams by Stream Name
             </button>
           </div>
         </div>

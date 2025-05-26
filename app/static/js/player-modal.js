@@ -14,6 +14,18 @@ async function getAceEngineUrl() {
     }
 }
 
+// Function to get the base URL from config
+async function getBaseUrl() {
+    try {
+        const response = await fetch('/api/config/base_url');
+        const data = await response.json();
+        return data.value || 'acestream://'; // Default to acestream:// if not set
+    } catch (error) {
+        console.error('Error fetching base URL:', error);
+        return 'acestream://'; // Default to acestream:// on error
+    }
+}
+
 // Open the player options modal for a stream
 async function showPlayerOptions(streamId) {
     if (!streamId) {
@@ -21,14 +33,24 @@ async function showPlayerOptions(streamId) {
         return;
     }
     
-    // Get the base engine URL
+    // Get the base URLs
     const aceEngineUrl = await getAceEngineUrl();
+    const baseUrl = await getBaseUrl();
+    const fullStreamUrl = `${baseUrl}${streamId}`;
     
     // Create the modal HTML
     const modalHTML = `
     <div class="player-options-modal" id="playerOptionsModal">
         <div class="modal-content">
             <h3 style="margin-top: 0; text-align: center;">Stream Options</h3>
+            <div style="margin-bottom: 20px;">
+                <div class="input-group mb-2">
+                    <input type="text" class="form-control" id="streamUrlInput" value="${fullStreamUrl}" readonly>
+                    <button class="button modal-button" onclick="copyStreamUrl()" style="border-radius: 0 4px 4px 0;">
+                        Copy URL
+                    </button>
+                </div>
+            </div>
             <div style="display: flex; flex-direction: column; gap: 10px;">
                 <button class="button modal-button" onclick="window.open('acestream://${streamId}', '_blank')">
                     Open in Acestream (PC/Android)
@@ -69,4 +91,18 @@ async function showPlayerOptions(streamId) {
             this.remove();
         }
     });
+}
+
+// Function to copy the stream URL to clipboard
+function copyStreamUrl() {
+    const input = document.getElementById('streamUrlInput');
+    input.select();
+    document.execCommand('copy');
+    
+    // Show feedback
+    const originalValue = input.value;
+    input.value = 'Copied!';
+    setTimeout(() => {
+        input.value = originalValue;
+    }, 1000);
 }

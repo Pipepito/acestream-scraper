@@ -1073,3 +1073,14 @@ class EPGService:
         # Commit changes to the database
         self.epg_source_repo.session.commit()
         logger.info(f"Updated EPG refresh timestamp to {current_time.isoformat()}")
+
+def refresh_epg_data():
+    """
+    Refresh EPG data for all configured EPG sources.
+    This function is called by the scheduler to update EPG data periodically.
+    
+    Returns:
+        dict: A dictionary containing statistics about the refresh operation
+    """
+    service = EPGService()
+    return service.refresh_all_sources()

@@ -127,7 +127,7 @@ function setupEventListeners() {
     }
     
     // Batch actions
-    document.getElementById('batchAssignBtn')?.addEventListener('click', batchAssignAcestreams);
+    // document.getElementById('batchAssignBtn')?.addEventListener('click', batchAssignAcestreams);
     document.getElementById('associateByEPGBtn')?.addEventListener('click', associateByEPG);
     document.getElementById('bulkUpdateEPGBtn')?.addEventListener('click', bulkUpdateEPG);
     document.getElementById('generateTVChannelsBtn')?.addEventListener('click', generateTVChannelsFromAcestreams);
@@ -995,27 +995,27 @@ async function generateTVChannelsFromAcestreams() {
 /**
  * Show the modal for batch assigning acestreams to TV channels
  */
-function batchAssignAcestreams() {
-    // Get the modal element
-    const modal = document.getElementById('batchAssignModal');
-    if (!modal) return;
+// function batchAssignAcestreams() {
+//     // Get the modal element
+//     const modal = document.getElementById('batchAssignModal');
+//     if (!modal) return;
     
-    // Clear any previous patterns
-    const patternsContainer = document.getElementById('assignmentPatternsContainer');
-    if (patternsContainer) {
-        patternsContainer.innerHTML = '<div class="pattern-row"></div>';
-    }
+//     // Clear any previous patterns
+//     const patternsContainer = document.getElementById('assignmentPatternsContainer');
+//     if (patternsContainer) {
+//         patternsContainer.innerHTML = '<div class="pattern-row"></div>';
+//     }
     
-    // Add the first empty row
-    addAssignmentPatternRow();
+//     // Add the first empty row
+//     addAssignmentPatternRow();
     
-    // Populate TV channel dropdown with current TV channels
-    populateTVChannelDropdowns();
+//     // Populate TV channel dropdown with current TV channels
+//     populateTVChannelDropdowns();
     
-    // Show the modal
-    const bsModal = new bootstrap.Modal(modal);
-    bsModal.show();
-}
+//     // Show the modal
+//     const bsModal = new bootstrap.Modal(modal);
+//     bsModal.show();
+// }
 
 /**
  * Populate TV channel dropdowns for the batch assign modal

@@ -13,8 +13,9 @@ from ..repositories import URLRepository
 from ..utils.config import Config
 from .workers import EPGRefreshWorker
 from app.services.epg_service import EPGService, refresh_epg_data
+from app.services.tv_channel_service import TVChannelService
 
-class TaskManager:    
+class TaskManager:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.running = False
@@ -26,10 +27,13 @@ class TaskManager:
         self.scraper_service = ScraperService()
         self.url_repository = URLRepository()
         self.epg_refresh_worker = EPGRefreshWorker()
+        self.tv_channel_service = TVChannelService()
         # Setting last_epg_refresh to None will force an initial refresh
         # This will be updated after the first refresh
         self.last_epg_refresh = None
-        
+        # Track if channels were updated during current cycle
+        self.channels_updated_in_cycle = False
+    
     def init_app(self, app):
         """Initialize with Flask app context"""
         self.app = app
@@ -50,7 +54,7 @@ class TaskManager:
                 self.logger.warning(f"SQLite error, retrying ({retry_count}/{max_retries}): {e}")
                 db.session.rollback()
                 time.sleep(1)
-
+    
     async def process_url(self, url: str):
         if url in self._processing_urls:
             self.logger.info(f"URL {url} is already being processed")
@@ -60,11 +64,17 @@ class TaskManager:
         try:
             if self.app and not current_app._get_current_object():
                 with self.app.app_context():
-                    await self.scraper_service.scrape_url(url)
+                    links, status = await self.scraper_service.scrape_url(url)
+                    # Track if channels were actually updated (not just checked)
+                    if status == "OK" and links:
+                        self.channels_updated_in_cycle = True
             else:
-                await self.scraper_service.scrape_url(url)
+                links, status = await self.scraper_service.scrape_url(url)
+                # Track if channels were actually updated (not just checked)
+                if status == "OK" and links:
+                    self.channels_updated_in_cycle = True
         finally:
-            self._processing_urls.remove(url)    
+            self._processing_urls.remove(url)
     
     def should_refresh_epg(self):
         """Check if EPG data needs to be refreshed."""
@@ -108,7 +118,7 @@ class TaskManager:
                     # Check and refresh EPG data if needed
                     await self.refresh_epg_if_needed()
 
-                    config = Config()
+                    config = Config()                    
                     cutoff_time = datetime.now(timezone.utc) - timedelta(hours=config.rescrape_interval)
                     urls = ScrapedURL.query.filter(
                         (ScrapedURL.status != 'disabled') &  # Skip disabled URLs
@@ -117,14 +127,24 @@ class TaskManager:
                           (ScrapedURL.error_count < self.MAX_RETRIES)) |
                          (ScrapedURL.last_processed < cutoff_time))
                     ).all()
+                    
                     if urls:
                         self.logger.info(f"Found {len(urls)} URLs to process")
+                        # Reset the update tracking flag at the start of a new cycle
+                        self.channels_updated_in_cycle = False
+                        
+                        # Process all URLs
                         for url_obj in urls:
                             if url_obj.url not in self._processing_urls:
                                 if url_obj.status == 'OK':
                                     url_obj.status = 'pending'
                                     db.session.commit()
                                 await self.process_url(url_obj.url)
+                        
+                        # After all URLs are processed, associate channels if any were updated
+                        if self.channels_updated_in_cycle:
+                            self.logger.info("URLs processed, re-associating channels by EPG ID...")
+                            await self.associate_channels_by_epg()
             except Exception as e:
                 self.logger.error(f"Task Manager error: {str(e)}")
             await asyncio.sleep(self.RETRY_DELAY)
@@ -132,6 +152,25 @@ class TaskManager:
     def stop(self):
         self.running = False
         self.logger.info("Task Manager stopped")
+
+    async def associate_channels_by_epg(self):
+        """Associate acestream channels with TV channels based on EPG IDs."""
+        try:
+            self.logger.info("Starting automatic EPG association after scraping")
+            stats = self.tv_channel_service.associate_by_epg_id()
+            
+            # Log meaningful results
+            matched = stats.get('matched', 0)
+            created = stats.get('created', 0)
+            unmatched = stats.get('unmatched', 0)
+            
+            if matched > 0 or created > 0:
+                self.logger.info(f"EPG association completed: {created} TV channels created, {matched} acestreams matched, {unmatched} remain unmatched")
+            else:
+                self.logger.debug("EPG association completed: No new associations made")
+                
+        except Exception as e:
+            self.logger.error(f"Error during automatic EPG association: {str(e)}")
 
 def initialize_app():
     """Initialize the application on startup"""

@@ -116,25 +116,26 @@ block content %}
     <div class="card-body">
       <!-- Channel actions row -->
       <div class="row mb-3">
-        <div class="col-md-6">
+        <div class="col-md-2">
           <h5 class="mb-0">Channel Actions</h5>
         </div>
-        <div class="col-md-6 text-md-end">
+        <div class="col-md-10 text-md-end">
           <div class="btn-toolbar justify-content-md-end">
             <button type="button" class="btn btn-primary me-2" id="addTVChannelBtn">
               <i class="bi bi-plus-lg me-1"></i> Add TV Channel
             </button>
-            <button type="button" class="btn btn-outline-primary me-2" id="batchAssignBtn">
+            <!-- <button type="button" class="btn btn-outline-primary me-2" id="batchAssignBtn">
               <i class="bi bi-link me-1"></i> Auto-assign Acestreams
-            </button>
-            <button type="button" class="btn btn-outline-primary me-2" id="associateByEPGBtn">
-              <i class="bi bi-card-list me-1"></i> Associate by EPG
-            </button>
+            </button> -->
+            
             <button type="button" class="btn btn-outline-primary me-2" id="bulkUpdateEPGBtn">
               <i class="bi bi-broadcast me-1"></i> Update EPG
             </button>
+            <button type="button" class="btn btn-outline-primary me-2" id="associateByEPGBtn">
+              <i class="bi bi-card-list me-1"></i> Generare Channels with streams by EPG
+            </button>
             <button type="button" class="btn btn-outline-primary" id="generateTVChannelsBtn">
-              <i class="bi bi-magic me-1"></i> Generate Channels
+              <i class="bi bi-magic me-1"></i> Generate Channels from Acestreams
             </button>
           </div>
         </div>

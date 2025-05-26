@@ -16,6 +16,7 @@ on:
       - 'manage.py'
       - 'pyproject.toml'
       - 'migrations_app.py'
+      - 'version.txt'
 
 jobs:
   code-quality:
@@ -48,39 +49,19 @@ jobs:
           pytest tests/
 
   version:
-    name: Determine Version
+    name: Get Version from File
     needs: code-quality
     runs-on: [self-hosted, unraid, docker]
     outputs:
       new_version: ${{ steps.get_version.outputs.version }}
     steps:
       - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      
-      - name: Determine version
+        
+      - name: Read version from file
         id: get_version
         run: |
-          # Get latest version tag
-          LATEST_TAG=$(git tag -l "v*" | grep -v "-" | sort -V | tail -n 1)
-          
-          if [ -z "$LATEST_TAG" ]; then
-            # No tags found, use default
-            VERSION="1.0.0"
-          else
-            # Extract version number without 'v' prefix
-            CURRENT_VERSION=${LATEST_TAG#v}
-            
-            # Split the version into components
-            IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
-            
-            # Increment the patch version
-            PATCH=$((PATCH + 1))
-            
-            # Form the new version
-            VERSION="${MAJOR}.${MINOR}.${PATCH}"
-          fi
-          
+          # Read version from version.txt, strip any whitespace and 'v' prefix
+          VERSION=$(cat version.txt | tr -d '\r\n\t ' | sed 's/^v//')
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Using version: v$VERSION"
@@ -144,30 +125,3 @@ jobs:
           build-args: |
             BUILDKIT_CONTEXT_KEEP_GIT_DIR=1
           network: host
-
-  create-release:
-    name: Create GitHub Release
-    runs-on: [self-hosted, unraid, docker]
-    needs: [version, build-and-push]
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          ref: "v${{ needs.version.outputs.new_version }}"
-      
-      - name: Get Previous Tag
-        id: get_previous_tag
-        run: |
-          PREVIOUS_TAG=$(git tag -l "v*" | grep -v "-" | sort -V | tail -n 2 | head -n 1)
-          echo "tag=${PREVIOUS_TAG}" >> $GITHUB_OUTPUT
-      
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ needs.version.outputs.new_version }}
-          name: "Release v${{ needs.version.outputs.new_version }}"
-          draft: false
-          prerelease: false
-          generate_release_notes: true
-          previous-tag: ${{ steps.get_previous_tag.outputs.tag }}

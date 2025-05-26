@@ -40,9 +40,13 @@ class Stats(Resource):
             channels = AcestreamChannel.query.all()
             config = Config()
             
-            total_checked = sum(1 for ch in channels if ch.last_checked is not None)
-            online_channels = sum(1 for ch in channels if ch.is_online)
+            # Calculate channel stats more robustly
+            total_channels = len(channels)
+            channels_checked = sum(1 for ch in channels if ch.last_checked is not None)
+            channels_online = sum(1 for ch in channels if ch.last_checked is not None and ch.is_online is True)
+            channels_offline = sum(1 for ch in channels if ch.last_checked is not None and ch.is_online is False)
             
+            # Build URL stats
             url_stats = []
             for url in urls:
                 channel_count = AcestreamChannel.query.filter_by(source_url=url.url).count()
@@ -67,10 +71,10 @@ class Stats(Resource):
             
             return {
                 'urls': url_stats,
-                'total_channels': len(channels),
-                'channels_checked': total_checked,
-                'channels_online': online_channels,
-                'channels_offline': total_checked - online_channels,
+                'total_channels': total_channels,
+                'channels_checked': channels_checked, 
+                'channels_online': channels_online,
+                'channels_offline': channels_offline,
                 'base_url': config.base_url,
                 'ace_engine_url': config.ace_engine_url,
                 'rescrape_interval': config.rescrape_interval,

@@ -96,7 +96,7 @@ function renderUrlsList(urlsList, stats) {
     if (!stats || !stats.urls || stats.urls.length === 0) {
         urlsList.innerHTML = `
             <div class="list-group-item text-center">
-                <span class="text-muted">No URLs found. Add a URL to start scraping for channels.</span>
+                <span class="text-muted">No URLs found. Add a URL to start scraping for streams.</span>
             </div>
         `;
         return;
@@ -112,7 +112,7 @@ function renderUrlsList(urlsList, stats) {
                     </div>
                     <div class="small text-muted">
                         <span class="status-badge">Status: <span class="badge ${getStatusBadgeClass(url.status)}">${url.status}</span></span>
-                        <span class="ms-2">Channels: ${url.channel_count}</span>
+                        <span class="ms-2">Streams: ${url.channel_count}</span>
                         ${url.last_processed ? `<span class="ms-2">Last scraped: ${formatLocalDate(url.last_processed)}</span>` : ''}
                     </div>
                 </div>

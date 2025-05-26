@@ -12,7 +12,7 @@ from ..services import ScraperService
 from ..repositories import URLRepository
 from ..utils.config import Config
 from .workers import EPGRefreshWorker
-from app.services.epg_service import EPGService
+from app.services.epg_service import EPGService, refresh_epg_data
 
 class TaskManager:    
     def __init__(self):

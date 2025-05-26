@@ -25,7 +25,7 @@ def has_column(table, column):
     """Check if a column exists in a table"""
     conn = op.get_bind()
     insp = inspect(conn)
-    columns = [c["name"] for c in insp.get_columns(table)]
+    columns = [col['name'] for col in insp.get_columns(table)]
     return column in columns
 
 def upgrade():
@@ -50,9 +50,10 @@ def upgrade():
             sa.PrimaryKeyConstraint('id')
         )
     
-    # Add tv_channel_id column to acestream_channels table using batch_alter_table
-    if not has_column('acestream_channels', 'tv_channel_id'):
+    # Add tv_channel_id column to acestream_channels table if it doesn't exist
+    if has_table('acestream_channels') and not has_column('acestream_channels', 'tv_channel_id'):
         with op.batch_alter_table('acestream_channels', recreate='always') as batch_op:
+            # Add the column
             batch_op.add_column(sa.Column('tv_channel_id', sa.Integer(), nullable=True))
             # Create foreign key constraint within the batch operation
             batch_op.create_foreign_key(
@@ -64,12 +65,12 @@ def upgrade():
 
 def downgrade():
     # Use batch_alter_table to handle the constraint drop in SQLite
-    if has_column('acestream_channels', 'tv_channel_id'):
+    if has_table('acestream_channels') and has_column('acestream_channels', 'tv_channel_id'):
         with op.batch_alter_table('acestream_channels', recreate='always') as batch_op:
             # Drop foreign key constraint implicitly by recreating the table
             # Drop tv_channel_id column
             batch_op.drop_column('tv_channel_id')
     
-    # Drop tv_channels table
+    # Drop tv_channels table if it exists
     if has_table('tv_channels'):
         op.drop_table('tv_channels')

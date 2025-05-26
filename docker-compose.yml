@@ -23,6 +23,7 @@ services:
       - ACESTREAM_HTTP_HOST=ACEXY_HOST
       - ENABLE_WARP=true
     ports:
+      - "6878:6878"  # AceStream Engine Port 
       - "8000:8000"  # Flask application
       - "8080:8080"  # Acexy proxy
       - "8621:8621"  # Acestream P2P Port

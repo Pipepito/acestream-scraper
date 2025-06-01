@@ -42,14 +42,32 @@ class EPGService:
         logger.info(f"Found {len(sources)} enabled EPG sources")
         
         total_channels = 0
-        
         for source in sources:
             try:
                 logger.info(f"Fetching EPG data from {source.url}")
                 response = requests.get(source.url, timeout=60)
                 if response.status_code == 200:
+                    # Check if content is gzipped
+                    is_gzipped = source.url.endswith('.gz') or 'content-encoding' in response.headers and response.headers['content-encoding'] == 'gzip'
+                    
                     # Parse the XML content
-                    xml_content = response.text
+                    if is_gzipped:
+                        import gzip
+                        import io
+                        
+                        try:
+                            logger.info(f"Detected gzipped content, attempting to decompress")
+                            # Handle gzipped content
+                            content = io.BytesIO(response.content)
+                            with gzip.GzipFile(fileobj=content) as f:
+                                xml_content = f.read().decode('utf-8')
+                        except Exception as gz_error:
+                            logger.error(f"Error decompressing gzipped content: {gz_error}")
+                            # Fall back to raw content in case of error
+                            xml_content = response.text
+                    else:
+                        xml_content = response.text
+                        
                     source.cached_data = xml_content
                     
                     # Prepare for bulk insertion

@@ -313,7 +313,6 @@ class PlaylistService:
             epg_id = mapping['epg_id']
             display_name = mapping['display_name']
             tv_channel = mapping['tv_channel']
-            
             xml_lines.append(f'  <channel id="{html.escape(epg_id)}">')
             xml_lines.append(f'    <display-name>{html.escape(display_name)}</display-name>')
             
@@ -324,10 +323,12 @@ class PlaylistService:
                 xml_lines.append(f'    <url>{html.escape(tv_channel.website)}</url>')
                 
             xml_lines.append('  </channel>')
-          # Initialize the programs section
-            xml_lines.append('')
         
-        # Get program data for each channel mapping        for mapping in channel_epg_mappings:
+        # Initialize the programs section - add an empty line to separate channels from programs
+        xml_lines.append('')
+        
+        # Get program data for each channel mapping
+        for mapping in channel_epg_mappings:
             epg_id = mapping['epg_id']
             original_epg_id = mapping['original_epg_id']
             epg_channel = mapping['epg_channel']
@@ -346,7 +347,16 @@ class PlaylistService:
             # Generate program entries - each variant of a channel needs its own program entries
             # with the correct channel ID
             for program in programs:
-                xml_lines.append(f'  <programme start="{program.start_time.strftime("%Y%m%d%H%M%S %z")}" stop="{program.end_time.strftime("%Y%m%d%H%M%S %z")}" channel="{html.escape(epg_id)}">')
+                start_time_str = program.start_time.strftime("%Y%m%d%H%M%S %z")
+                stop_time_str = program.end_time.strftime("%Y%m%d%H%M%S %z")
+                
+                # Make sure timezone offset is included
+                if start_time_str.endswith(' '):
+                    start_time_str += '+0000'  # Add UTC offset if missing
+                if stop_time_str.endswith(' '):
+                    stop_time_str += '+0000'  # Add UTC offset if missing
+                
+                xml_lines.append(f'  <programme start="{start_time_str}" stop="{stop_time_str}" channel="{html.escape(epg_id)}">')
                 xml_lines.append(f'    <title>{html.escape(program.title)}</title>')
                 
                 if program.description:

@@ -2,6 +2,7 @@
 import os
 import sys
 import logging
+import subprocess
 from pathlib import Path
 
 # Setup basic logging
@@ -24,6 +25,18 @@ def main():
     # Set development environment
     os.environ['FLASK_ENV'] = 'development'
     os.environ['FLASK_APP'] = 'app'
+    
+    # Run database migrations before starting the app
+    try:
+        logger.info("Running database migrations...")
+        subprocess.run([sys.executable, "manage.py", "upgrade"], check=True)
+        logger.info("Database migrations completed successfully")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Failed to run database migrations: {e}", exc_info=True)
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"Unexpected error during database migrations: {e}", exc_info=True)
+        sys.exit(1)
     
     try:
         # Import the create_app function and create the app

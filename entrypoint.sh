@@ -35,10 +35,8 @@ if [ "$ACESTREAM_HTTP_HOST" = "ACEXY_HOST" ]; then
     export ACESTREAM_HTTP_HOST="$ACEXY_HOST"
     echo "Setting ACESTREAM_HTTP_HOST to $ACEXY_HOST"
 fi
-# Run database migrations
-cd /app
-echo "Running database migrations..."
-python manage.py upgrade
+# Note: Database migrations are now automatically handled in the Flask app startup
+# rather than in this script, preventing duplication of migration execution
 
 # Setup ZeroNet config if not exists
 ZERONET_CONFIG="/app/config/zeronet.conf"

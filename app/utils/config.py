@@ -317,10 +317,7 @@ class Config:
                     # Only check for required settings
                     required_settings = [
                         'base_url',
-                        'ace_engine_url',
-                        'rescrape_interval',
-                        'addpid',
-                        'epg_refresh_interval'
+                        'ace_engine_url'
                     ]
                     for setting in required_settings:
                         if not self.settings_repo.get_setting(setting):

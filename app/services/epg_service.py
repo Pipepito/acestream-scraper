@@ -223,17 +223,53 @@ class EPGService:
         try:
             import re
             from datetime import datetime, timezone
+            from dateutil import parser
             
-            # XMLTV format: 20230101120000 +0000 or 20230101120000
-            # Remove timezone info for now and parse as UTC
-            time_clean = re.sub(r'\s+[+-]\d{4}$', '', time_str.strip())
+            # XMLTV format can be either:
+            # - 20250526064200 +0200 (with space)
+            # - 20250526064200+0200 (without space)
+            # Use dateutil's parser which handles both formats correctly
             
-            # Parse the datetime
-            if len(time_clean) >= 14:
-                dt = datetime.strptime(time_clean[:14], '%Y%m%d%H%M%S')
+            if not time_str:
+                return None
+                
+            time_str = time_str.strip()
+            
+            # Handle the case where there's no timezone info
+            if len(time_str) == 14 and re.match(r'^\d{14}$', time_str):
+                dt = datetime.strptime(time_str, '%Y%m%d%H%M%S')
                 return dt.replace(tzinfo=timezone.utc)
             
-            return None
+            # Parse XMLTV format with timezone
+            # First, try to manually parse the format which is more reliable for XMLTV
+            match = re.match(r'(\d{14})\s*([+-])(\d{2})(\d{2})', time_str)
+            if match:
+                dt_str, sign, hours, minutes = match.groups()
+                dt = datetime.strptime(dt_str, '%Y%m%d%H%M%S')
+                
+                # Calculate offset in seconds
+                offset_seconds = (int(hours) * 3600 + int(minutes) * 60)
+                
+                # Create timezone with correct sign 
+                # Note: In timezone objects, + means ahead of UTC, - means behind UTC
+                # In XMLTV format, + means ahead of UTC, - means behind UTC
+                # So we match the signs directly
+                from datetime import timedelta
+                if sign == '+':
+                    tz = timezone(timedelta(seconds=offset_seconds))
+                else:
+                    tz = timezone(timedelta(seconds=-offset_seconds))
+                
+                # Return datetime with timezone
+                return dt.replace(tzinfo=tz)
+            
+            # If manual parsing fails, fall back to dateutil parser
+            try:
+                return parser.parse(time_str)
+            except (ValueError, AttributeError) as e:
+                logger.warning(f"Could not parse time with dateutil: {e}")
+                return None
+                
         except Exception as e:
             logger.warning(f"Error parsing XMLTV time '{time_str}': {e}")
             return None

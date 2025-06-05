@@ -11,7 +11,7 @@ FROM python:3.10-slim AS base
 # Add metadata labels
 LABEL maintainer="pipepito" \
       description="Base image for Acestream channel scraper" \
-      version="1.2.14"
+      version="1.3.04"
 
 # Set the working directory
 WORKDIR /app
@@ -131,7 +131,7 @@ FROM base
 
 # Update metadata labels for the final image
 LABEL description="Acestream channel scraper with ZeroNet support" \
-      version="1.2.14"
+      version="1.3.04"
 
 # Copy application files
 COPY --chmod=0755 entrypoint.sh /app/entrypoint.sh

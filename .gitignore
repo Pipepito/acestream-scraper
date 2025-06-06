@@ -182,3 +182,43 @@ zeronet_data/
 
 new_era_iframe_sample.html
 new_era_sample.html
+
+# v2 folder - general
+v2/node_modules/
+v2/.env
+
+# v2 backend
+v2/backend/__pycache__/
+v2/backend/*.py[cod]
+v2/backend/*$py.class
+v2/backend/.env
+v2/backend/.venv/
+v2/backend/env/
+v2/backend/venv/
+v2/backend/ENV/
+v2/backend/.pytest_cache/
+v2/backend/coverage/
+v2/backend/htmlcov/
+v2/backend/.coverage
+v2/backend/data/
+v2/backend/logs/
+v2/backend/alembic.ini
+v2/backend/.mypy_cache/
+
+# v2 frontend
+v2/frontend/node_modules/
+v2/frontend/.pnp
+v2/frontend/.pnp.js
+v2/frontend/coverage/
+v2/frontend/build/
+v2/frontend/dist/
+v2/frontend/.DS_Store
+v2/frontend/.env
+v2/frontend/.env.local
+v2/frontend/.env.development.local
+v2/frontend/.env.test.local
+v2/frontend/.env.production.local
+v2/frontend/npm-debug.log*
+v2/frontend/yarn-debug.log*
+v2/frontend/yarn-error.log*
+v2/frontend/.eslintcache

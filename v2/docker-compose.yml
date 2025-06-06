@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./config:/app/config
+    environment:
+      - DATABASE_URL=sqlite:///./config/acestream.db
+      - ZERONET_URL=http://zeronet:43110
+    depends_on:
+      - zeronet
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+  zeronet:
+    image: nofish/zeronet:latest
+    ports:
+      - "43110:43110"
+    volumes:
+      - ../zeronet_data:/root/data
+    environment:
+      - HOME=/root
+      - USER_UID=1000

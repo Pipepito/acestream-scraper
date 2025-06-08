@@ -1,10 +1,10 @@
 version: '3.8'
 
 services:
-  backend:
+  app:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     ports:
       - "8000:8000"
     volumes:
@@ -13,17 +13,9 @@ services:
     environment:
       - DATABASE_URL=sqlite:///./config/acestream.db
       - ZERONET_URL=http://zeronet:43110
+      - FRONTEND_BUILD_PATH=frontend_build
     depends_on:
       - zeronet
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - "3000:80"
-    depends_on:
-      - backend
 
   zeronet:
     image: nofish/zeronet:latest

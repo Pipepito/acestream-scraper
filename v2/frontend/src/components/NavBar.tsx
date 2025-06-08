@@ -19,6 +19,7 @@ import TvIcon from '@mui/icons-material/Tv';
 import SearchIcon from '@mui/icons-material/Search';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import SettingsIcon from '@mui/icons-material/Settings';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 
 const drawerWidth = 240;
 
@@ -35,11 +36,11 @@ const NavBar: React.FC = () => {
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
-
   const navItems: NavItem[] = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
     { text: 'Channels', icon: <TvIcon />, path: '/channels' },
     { text: 'Scraper', icon: <SearchIcon />, path: '/scraper' },
+    { text: 'Playlist', icon: <PlayArrowIcon />, path: '/playlist' },
     { text: 'EPG', icon: <EventNoteIcon />, path: '/epg' },
     { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
   ];

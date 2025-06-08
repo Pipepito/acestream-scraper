@@ -19,6 +19,84 @@ graph TD
     Playlist --> FastAPI
     EPGEndpoint --> FastAPI
     AceEngine --> InternetP2P[P2P Network]
+```
+
+## Database Schema
+
+```
+┌─────────────────────┐      ┌────────────────────┐
+│ acestream_channels  │      │ scraped_urls       │
+├─────────────────────┤      ├────────────────────┤
+│ id (PK)             │      │ id (PK)            │
+│ name                │      │ url                │
+│ added_at            │      │ status             │
+│ last_processed      │      │ last_processed     │
+│ status              │      │ error_count        │
+│ source_url          │      │ last_error         │
+│ scraped_url_id (FK) │◄────►│ enabled            │
+│ group               │      │ added_at           │
+│ logo                │      │ url_type           │
+│ tvg_id              │      └────────────────────┘
+│ tvg_name            │
+│ m3u_source          │      ┌────────────────────┐
+│ original_url        │      │ tv_channels        │
+│ is_online           │      ├────────────────────┤
+│ last_checked        │      │ id (PK)            │
+│ check_error         │      │ name               │
+│ epg_update_protected│      │ description        │
+│ tv_channel_id (FK)  │◄────►│ logo_url           │
+└─────────────────────┘      │ category           │
+                             │ country            │
+                             │ language           │
+┌─────────────────────┐      │ website            │
+│ epg_sources         │      │ epg_id             │
+├─────────────────────┤      │ epg_source_id (FK) │◄─┐
+│ id (PK)             │◄────►│ created_at         │  │
+│ url                 │      │ updated_at         │  │
+│ name                │      │ is_active          │  │
+│ enabled             │      │ is_favorite        │  │
+│ last_updated        │      │ channel_number     │  │
+│ error_count         │      └────────────────────┘  │
+│ last_error          │                              │
+└─────────────────────┘                              │
+       ▲                                             │
+       │                                             │
+┌──────┴──────────────┐     ┌─────────────────────┐  │
+│ epg_channels        │     │ epg_programs        │  │
+├─────────────────────┤     ├─────────────────────┤  │
+│ id (PK)             │     │ id (PK)             │  │
+│ epg_source_id (FK)  │◄────│ epg_channel_id (FK) │  │
+│ channel_xml_id      │     │ program_xml_id      │  │
+│ name                │     │ start_time          │  │
+│ icon_url            │     │ end_time            │  │
+│ language            │     │ title               │  │
+│ created_at          │     │ subtitle            │  │
+│ updated_at          │     │ description         │  │
+└─────────────────────┘     │ ...                 │  │
+                            └─────────────────────┘  │
+                                                     │
+┌─────────────────────┐                              │
+│ epg_string_mappings │                              │
+├─────────────────────┤                              │
+│ id (PK)             │                              │
+│ search_pattern      │                              │
+│ epg_channel_id      │                              │
+│ is_exclusion        │                              │
+└─────────────────────┘                              │
+
+┌─────────────────────┐                              │
+│ settings            │                              │
+├─────────────────────┤                              │
+│ key (PK)            │                              │
+│ value               │                              │
+│ last_updated        │                              │
+└─────────────────────┘                              │
+```
+
+## Services Architecture
+
+```mermaid
+graph TD
     WARP --> Internet[Internet]
     
     subgraph "Backend Services"
@@ -29,13 +107,23 @@ graph TD
         WARPService[WARP Service]
         StatusService[Status Service]
     end
-    
-    FastAPI --> ChannelService
+      FastAPI --> ChannelService
     FastAPI --> ScrapeService
     FastAPI --> PlaylistService
     FastAPI --> EPGService
     FastAPI --> WARPService
     FastAPI --> StatusService
+    
+    ChannelService --> DB
+    ScrapeService --> DB
+    PlaylistService --> DB
+    EPGService --> DB
+    StatusService --> DB
+    
+    ScrapeService --> Internet
+    EPGService --> Internet
+    WARPService --> WARP
+end
 ```
 
 ## Database Entity Relationship Diagram

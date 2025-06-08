@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import Channels from './pages/Channels';
 import Scraper from './pages/Scraper';
 import EPG from './pages/EPG';
+import Playlist from './pages/Playlist';
 import NotFound from './pages/NotFound';
 
 const App: React.FC = () => {
@@ -22,6 +23,7 @@ const App: React.FC = () => {
           <Route path="/channels" element={<Channels />} />
           <Route path="/scraper" element={<Scraper />} />
           <Route path="/epg" element={<EPG />} />
+          <Route path="/playlist" element={<Playlist />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Box>

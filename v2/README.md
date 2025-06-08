@@ -12,7 +12,7 @@ This is a complete rewrite of the Acestream Scraper application using modern tec
 - BeautifulSoup
 
 ### Frontend
-- React with TypeScript
+- React with TypeScript (strict TypeScript only, no JavaScript files)
 - Material UI
 - React Query
 - React Router
@@ -54,16 +54,18 @@ v2/
 │   └── requirements.txt
 └── frontend/
     ├── public/
+    ├── scripts/
+    │   └── copy-build.ts
     ├── src/
     │   ├── components/
-    │   │   └── NavBar.js
+    │   │   └── NavBar.tsx
     │   ├── pages/
     │   ├── services/
     │   ├── hooks/
     │   ├── utils/
-    │   ├── App.js
-    │   ├── index.js
-    │   └── theme.js
+    │   ├── App.tsx
+    │   ├── index.tsx
+    │   └── theme.ts
     └── package.json
 ```
 
@@ -104,6 +106,11 @@ npm install
 2. Run the development server:
 ```bash
 npm start
+```
+
+3. Build the frontend for production and copy to backend:
+```bash
+npm run build:backend
 ```
 
 ## Scraper Implementation

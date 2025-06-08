@@ -4,8 +4,8 @@ This document tracks the implementation progress of the Acestream Scraper rewrit
 
 ## Project Status
 
-**Current Phase**: Phase 2 - Core Scraping Engine  
-**Last Updated**: June 1, 2025
+**Current Phase**: Phase 3 - Advanced Features  
+**Last Updated**: June 8, 2025
 
 ## Completed Items
 
@@ -49,6 +49,15 @@ This document tracks the implementation progress of the Acestream Scraper rewrit
 #### 3.1 Channel Management
 - [x] SQLAlchemy model for `AcestreamChannel`
 - [x] Pydantic DTOs for channels
+- [x] Channel service layer implementation
+- [x] Channel repository implementation
+
+#### 3.2 Frontend API Integration
+- [x] TypeScript-only frontend setup (removed all JavaScript files)
+- [x] API client implementation with proper TypeScript interfaces
+- [x] React Query hooks for data fetching
+- [x] Backend serving frontend static content
+- [x] Docker setup updated for integrated frontend/backend deployment
 - [x] Channel repository implementation
 - [x] Channel service implementation
 - [x] Integration with scrapers
@@ -68,11 +77,13 @@ This document tracks the implementation progress of the Acestream Scraper rewrit
 - [x] Connect scrapers to URL management
 - [x] API controllers for URL management
   - [x] `GET /api/scrapers/urls`
-  - [ ] `POST /api/scrapers/urls`
-  - [ ] `GET /api/scrapers/urls/{id}`
-  - [ ] `PUT /api/scrapers/urls/{id}`
-  - [ ] `DELETE /api/scrapers/urls/{id}`
+  - [x] `POST /api/scrapers/urls`
+  - [x] `GET /api/scrapers/urls/{id}`
+  - [x] `PATCH /api/scrapers/urls/{id}`
+  - [x] `DELETE /api/scrapers/urls/{id}`
   - [x] `POST /api/scrapers/scrape`
+  - [x] `POST /api/scrapers/urls/{id}/scrape`
+  - [x] `POST /api/scrapers/urls/scrape_all`
 
 #### 2.3 TV Channels Management
 - [ ] SQLAlchemy model for `TVChannel`
@@ -95,32 +106,38 @@ This document tracks the implementation progress of the Acestream Scraper rewrit
 ### Phase 3: Advanced Features
 
 #### 3.1 Playlist Generation
-- [ ] Playlist service implementation
-- [ ] M3U formatting
-- [ ] API controllers for playlist endpoints
-  - [ ] `GET /api/v1/playlists/m3u`
-  - [ ] `GET /api/v1/playlists/tv-channels/m3u`
-  - [ ] `GET /api/v1/playlists/all-streams/m3u`
+- [x] Playlist service implementation
+- [x] M3U formatting
+- [x] API controllers for playlist endpoints
+  - [x] `GET /api/v1/playlists/m3u`
+  - [x] `GET /api/v1/playlists/groups`
+  - [x] `GET /api/v1/playlists/all-streams/m3u`
 
 #### 3.2 EPG Integration
-- [ ] SQLAlchemy models for EPG data
-  - [ ] `EPGSource` model
-  - [ ] `EPGChannel` model
-  - [ ] `EPGProgram` model
-  - [ ] `EPGStringMapping` model
-- [ ] Pydantic DTOs for EPG data
-- [ ] EPG repository implementations
-- [ ] EPG service implementation
-- [ ] API controllers for EPG management
-  - [ ] `GET /api/v1/epg/sources`
-  - [ ] `POST /api/v1/epg/sources`
-  - [ ] `DELETE /api/v1/epg/sources/{id}`
-  - [ ] `GET /api/v1/epg/mappings`
-  - [ ] `POST /api/v1/epg/mappings`
-  - [ ] `DELETE /api/v1/epg/mappings/{id}`
-  - [ ] `POST /api/v1/epg/auto-scan`
-  - [ ] `POST /api/v1/epg/update-channels`
-  - [ ] `GET /api/v1/epg/channels`
+- [x] SQLAlchemy models for EPG data
+  - [x] `EPGSource` model
+  - [x] `EPGChannel` model
+  - [x] `EPGProgram` model
+  - [x] `EPGStringMapping` model
+- [x] Pydantic DTOs for EPG data
+- [x] EPG repository implementations
+- [x] EPG service implementation
+- [x] API controllers for EPG management
+  - [x] `GET /api/v1/epg/sources`
+  - [x] `POST /api/v1/epg/sources`
+  - [x] `GET /api/v1/epg/sources/{id}`
+  - [x] `PATCH /api/v1/epg/sources/{id}`
+  - [x] `DELETE /api/v1/epg/sources/{id}`
+  - [x] `POST /api/v1/epg/sources/{id}/refresh`
+  - [x] `POST /api/v1/epg/sources/refresh_all`
+  - [x] `GET /api/v1/epg/channels`
+  - [x] `GET /api/v1/epg/channels/{id}`
+  - [x] `POST /api/v1/epg/channels/map`
+  - [x] `DELETE /api/v1/epg/channels/map`
+  - [x] `GET /api/v1/epg/channels/{id}/programs`
+  - [x] `GET /api/v1/epg/channels/{id}/mappings`
+  - [x] `POST /api/v1/epg/channels/{id}/mappings`
+  - [x] `DELETE /api/v1/epg/mappings/{id}`
 - [ ] EPG XML generation
 
 #### 3.3 Search Integration
@@ -158,24 +175,25 @@ This document tracks the implementation progress of the Acestream Scraper rewrit
   - [ ] `GET /api/v1/health`
   - [ ] `GET /api/v1/stats`
 
-### Phase 4: Frontend Implementation
+### Phase 4: Frontend Implementation (TypeScript-Only)
 
 #### 4.1 Core UI Components
-- [x] Design system setup
-- [x] Layout components
-- [x] Navigation
-- [ ] Common utilities and hooks
+- [x] Design system setup with TypeScript
+- [x] Layout components using TypeScript
+- [x] Navigation with TypeScript
+- [x] Common utilities and hooks in TypeScript
+- [x] TypeScript strict mode configuration
 
 #### 4.2 Channel Management UI
-- [ ] Channel list/grid view
+- [x] Channel list/grid view
 - [ ] Channel detail view
 - [ ] Add/edit channel forms
 - [ ] Status check interface
 
 #### 4.3 URL Management UI
-- [ ] URL list view
-- [ ] Add/edit URL forms
-- [ ] URL refresh interface
+- [x] URL list view
+- [x] Add/edit URL forms
+- [x] URL refresh interface
 
 #### 4.4 TV Channel Management UI
 - [ ] TV channel list/grid view
@@ -183,9 +201,9 @@ This document tracks the implementation progress of the Acestream Scraper rewrit
 - [ ] Acestream association interface
 
 #### 4.5 Playlist and EPG UI
-- [ ] Playlist generation interface
-- [ ] Playlist options and filtering
-- [ ] EPG management interface
+- [x] Playlist generation interface
+- [x] Playlist options and filtering
+- [x] EPG management interface
 
 #### 4.6 Search and Import UI
 - [ ] Search interface
@@ -199,11 +217,13 @@ This document tracks the implementation progress of the Acestream Scraper rewrit
 
 ## Next Steps
 
-1. Complete the remaining API endpoints for channel management
+1. Complete the remaining API endpoints for channel status checking
 2. Implement the TV Channel models and endpoints
-3. Develop the frontend components using TypeScript
-4. Implement the playlist generation service
-5. Add EPG integration functionality
+3. Implement channel detail view and edit functionality
+4. Complete EPG XML generation
+5. Add search functionality
+6. Add authentication system (if needed)
+7. Add unit and integration tests
 
 ## Technical Notes
 
@@ -243,7 +263,11 @@ All API endpoints follow these patterns:
 
 ## Issues and Challenges
 
-*This section tracks any current issues or challenges that need to be addressed.*
+1. EPG XML parsing - The current implementation provides a simplified version of XML parsing. For production, a more robust implementation with proper date/time handling and XML structure validation will be needed.
+   
+2. Backend-Frontend Type Consistency - We need to ensure that TypeScript interfaces in the frontend match exactly with the Pydantic models in the backend. Currently this is manually maintained, but we could explore tools to auto-generate TypeScript types from OpenAPI specs.
+   
+3. Testing Strategy - Need to develop a comprehensive testing strategy covering unit tests, integration tests, and end-to-end tests.
 
 ## References
 

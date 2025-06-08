@@ -13,8 +13,7 @@ class ChannelRepository:
     
     def __init__(self, db: Session):
         self.db = db
-    
-    def get_channels(self, 
+      def get_channels(self, 
                     skip: int = 0, 
                     limit: int = 100, 
                     active_only: bool = True,
@@ -29,6 +28,59 @@ class ChannelRepository:
             query = query.filter(AcestreamChannel.name.ilike(f"%{search}%"))
             
         return query.offset(skip).limit(limit).all()
+        
+    def get_filtered_channels(self,
+                             search: Optional[str] = None,
+                             group: Optional[str] = None,
+                             only_online: bool = False,
+                             include_groups: Optional[List[str]] = None,
+                             exclude_groups: Optional[List[str]] = None) -> List[AcestreamChannel]:
+        """
+        Get channels with advanced filtering options
+        
+        Args:
+            search: Optional search term for channel names
+            group: Optional specific group to filter by
+            only_online: Whether to include only online channels
+            include_groups: Optional list of groups to include
+            exclude_groups: Optional list of groups to exclude
+            
+        Returns:
+            List of filtered channels
+        """
+        query = self.db.query(AcestreamChannel)
+        
+        # Apply filters
+        if search:
+            query = query.filter(AcestreamChannel.name.ilike(f"%{search}%"))
+            
+        if group:
+            query = query.filter(AcestreamChannel.group == group)
+            
+        if only_online:
+            query = query.filter(AcestreamChannel.is_active == True)
+            
+        if include_groups and len(include_groups) > 0:
+            query = query.filter(AcestreamChannel.group.in_(include_groups))
+            
+        if exclude_groups and len(exclude_groups) > 0:
+            query = query.filter(~AcestreamChannel.group.in_(exclude_groups))
+            
+        # Always sort by group and name
+        query = query.order_by(AcestreamChannel.group, AcestreamChannel.name)
+            
+        return query.all()
+        
+    def get_unique_groups(self) -> List[str]:
+        """
+        Get a list of all unique channel groups
+        
+        Returns:
+            List of group names
+        """
+        groups = self.db.query(AcestreamChannel.group).distinct().all()
+        # Return only non-None/empty groups
+        return [group[0] for group in groups if group[0]]
     
     def get_channel_by_id(self, channel_id: str) -> Optional[AcestreamChannel]:
         """Get a channel by ID"""

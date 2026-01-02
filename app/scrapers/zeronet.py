@@ -22,7 +22,9 @@ class ZeronetScraper(BaseScraper):
             'Accept-Encoding': 'gzip, deflate',
             'Connection': 'keep-alive',
             'DNT': '1',
-            'Upgrade-Insecure-Requests': '1'
+            'Upgrade-Insecure-Requests': '1',
+            # Fixes CORS
+            'Sec-Fetch-Mode': 'navigate'
         }
         self.cookie_jar = aiohttp.CookieJar()
 

@@ -23,7 +23,7 @@
 
 - [x] **API-01**: v2 API contracts are explicit, typed, and internally consistent (no ambiguous payload shapes across endpoint/service layers).
 - [x] **API-02**: Backend modules are reorganized to enforce clear boundaries (endpoint -> service -> repository/model responsibilities).
-- [ ] **API-03**: Core backend paths include robust error handling/logging for operational failures (scrape, EPG refresh, status checks, tasks).
+- [x] **API-03**: Core backend paths include robust error handling/logging for operational failures (scrape, EPG refresh, status checks, tasks).
 - [ ] **API-04**: Database access patterns for high-churn operations are optimized to reduce unnecessary per-record overhead.
 
 ### Frontend UX and Usability
@@ -82,7 +82,7 @@ Which phases cover which requirements.
 | SCRP-04 | Phase 1 | Complete |
 | API-01 | Phase 2 | Complete |
 | API-02 | Phase 2 | Complete |
-| API-03 | Phase 2 | Pending |
+| API-03 | Phase 2 | Complete |
 | API-04 | Phase 6 | Pending |
 | UI-01 | Phase 4 | Pending |
 | UI-02 | Phase 4 | Pending |

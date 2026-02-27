@@ -11,7 +11,7 @@ This roadmap delivers a big-bang migration from the legacy root stack to a singl
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 - [x] **Phase 1: Parity Baseline and Safety Gates** - Lock scraper/output parity and migration acceptance checks. (completed 2026-02-27)
-- [ ] **Phase 2: Backend Contract and Structure Hardening** - Stabilize v2 backend contracts and architecture boundaries.
+- [x] **Phase 2: Backend Contract and Structure Hardening** - Stabilize v2 backend contracts and architecture boundaries. (completed 2026-02-27)
 - [ ] **Phase 3: v2-Only Cutover and Legacy Retirement** - Replace root runtime/build ownership with v2-only paths.
 - [ ] **Phase 4: Frontend UX Modernization** - Improve usability, responsiveness, and operational flow clarity.
 - [ ] **Phase 5: Multi-Arch Build and Runtime Validation** - Ship and validate ARM v7/ARM64 compatibility.
@@ -30,8 +30,8 @@ This roadmap delivers a big-bang migration from the legacy root stack to a singl
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01: Define parity baseline datasets and regression checks for scraping + output artifacts.
-- [ ] 01-02: Implement migration safety gates and verification checklist used by all later phases.
+- [x] 01-01: Define parity baseline datasets and regression checks for scraping + output artifacts.
+- [x] 01-02: Implement migration safety gates and verification checklist used by all later phases.
 
 ### Phase 2: Backend Contract and Structure Hardening
 **Goal**: Make v2 backend contracts explicit and reduce architecture pollution.
@@ -44,9 +44,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: Normalize API contracts/schemas and remove shape ambiguities.
-- [ ] 02-02: Refactor backend module boundaries for maintainability and lower coupling.
-- [ ] 02-03: Harden error handling/logging for scrape, EPG, status, and task flows.
+- [x] 02-01: Normalize API contracts/schemas and remove shape ambiguities.
+- [x] 02-02: Refactor backend module boundaries for maintainability and lower coupling.
+- [x] 02-03: Harden error handling/logging for scrape, EPG, status, and task flows.
 
 ### Phase 3: v2-Only Cutover and Legacy Retirement
 **Goal**: Complete root-to-v2 replacement for runtime, build, and release ownership.
@@ -115,7 +115,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Parity Baseline and Safety Gates | 2/2 | Complete    | 2026-02-27 |
-| 2. Backend Contract and Structure Hardening | 0/3 | Not started | - |
+| 2. Backend Contract and Structure Hardening | 3/3 | Complete | 2026-02-27 |
 | 3. v2-Only Cutover and Legacy Retirement | 0/3 | Not started | - |
 | 4. Frontend UX Modernization | 0/3 | Not started | - |
 | 5. Multi-Arch Build and Runtime Validation | 0/2 | Not started | - |

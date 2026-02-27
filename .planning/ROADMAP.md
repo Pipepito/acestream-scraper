@@ -59,7 +59,7 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 03-01: Consolidate CI/build/release workflow to v2-only ownership.
+- [x] 03-01: Consolidate CI/build/release workflow to v2-only ownership.
 - [ ] 03-02: Retire legacy root runtime/deployment paths and reconcile docs.
 - [ ] 03-03: Execute and verify big-bang cutover checklist on branch.
 
@@ -116,7 +116,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 |-------|----------------|--------|-----------|
 | 1. Parity Baseline and Safety Gates | 2/2 | Complete    | 2026-02-27 |
 | 2. Backend Contract and Structure Hardening | 3/3 | Complete | 2026-02-27 |
-| 3. v2-Only Cutover and Legacy Retirement | 0/3 | Not started | - |
+| 3. v2-Only Cutover and Legacy Retirement | 1/3 | In Progress | - |
 | 4. Frontend UX Modernization | 0/3 | Not started | - |
 | 5. Multi-Arch Build and Runtime Validation | 0/2 | Not started | - |
 | 6. Reliability, Test Ownership, and Optimization | 0/3 | Not started | - |

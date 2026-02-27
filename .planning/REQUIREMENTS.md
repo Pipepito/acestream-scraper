@@ -7,10 +7,10 @@
 
 ### Migration and Cutover
 
-- [ ] **MIGR-01**: Production runtime uses v2 stack only (`v2/backend` + `v2/frontend`) with no dependency on legacy root app runtime.
+- [x] **MIGR-01**: Production runtime uses v2 stack only (`v2/backend` + `v2/frontend`) with no dependency on legacy root app runtime.
 - [ ] **MIGR-02**: Root legacy deployment/build workflow paths are retired or redirected to v2 equivalents.
 - [x] **MIGR-03**: Functional parity checklist confirms all core user-facing capabilities currently used in root stack are available in v2.
-- [ ] **MIGR-04**: Big-bang cutover can be executed from a single release branch without dual-stack runtime overlap.
+- [x] **MIGR-04**: Big-bang cutover can be executed from a single release branch without dual-stack runtime overlap.
 
 ### Scraping and Data Integrity
 
@@ -72,10 +72,10 @@ Which phases cover which requirements.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MIGR-01 | Phase 3 | Pending |
+| MIGR-01 | Phase 3 | Complete |
 | MIGR-02 | Phase 3 | Pending |
 | MIGR-03 | Phase 2 | Complete |
-| MIGR-04 | Phase 3 | Pending |
+| MIGR-04 | Phase 3 | Complete |
 | SCRP-01 | Phase 1 | Complete |
 | SCRP-02 | Phase 1 | Complete |
 | SCRP-03 | Phase 1 | Complete |

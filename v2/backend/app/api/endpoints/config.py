@@ -1,84 +1,80 @@
-
-from fastapi import APIRouter, Depends, HTTPException, Request, Body
-from sqlalchemy.orm import Session
-from typing import Dict, Any, Optional
-from pydantic import BaseModel
+"""API endpoints for configuration management."""
 import logging
 
-router = APIRouter(tags=["config"])
+from fastapi import APIRouter, Body, Depends, HTTPException
+from sqlalchemy.orm import Session
 
 from app.config.database import get_db
 from app.repositories.settings_repository import SettingsRepository
-from app.services.config_service import ConfigService
-from app.services.dashboard_config_service import DashboardConfigService
 from app.schemas.config import (
-    BaseUrlUpdate,
     AceEngineUrlUpdate,
-    RescrapeIntervalUpdate,
     AddPidUpdate,
+    AppIdUpdate,
+    BaseUrlUpdate,
+    ConfigKeyUpdate,
+    ConfigUpdateResponse,
+    DashboardConfigResponse,
+    DashboardConfigUpdate,
+    RescrapeIntervalUpdate,
     SettingResponse,
     SettingsResponse,
-    HealthResponse
 )
+from app.services.config_service import ConfigService
+from app.services.dashboard_config_service import DashboardConfigService
+
+router = APIRouter(tags=["config"])
+logger = logging.getLogger(__name__)
 
 
-
-def get_config_service(db: Session = Depends(get_db)):
+def get_config_service(db: Session = Depends(get_db)) -> ConfigService:
     settings_repo = SettingsRepository(db)
     return ConfigService(settings_repo)
 
-# Add a simple Pydantic model for AppIdUpdate if not present
-class AppIdUpdate(BaseModel):
-    value: str
+
+def _validate_boolean_string(value: str, setting_name: str) -> None:
+    valid_values = {"true", "false", "True", "False", "1", "0"}
+    if value not in valid_values:
+        raise HTTPException(status_code=422, detail=f"Invalid boolean value for {setting_name}")
+
 
 @router.get("/appid", response_model=SettingResponse)
 def get_appid(config_service: ConfigService = Depends(get_config_service)):
-    """Get whether to use AppID in Acestream links"""
+    """Get whether to use AppID in Acestream links."""
     value = config_service.settings_repo.get_setting(
-        getattr(config_service.settings_repo, 'APPID', 'appid'),
-        'false'
+        getattr(config_service.settings_repo, "APPID", "appid"),
+        "false",
     )
     return {"key": "appid", "value": value}
 
-@router.put("/appid")
+
+@router.put("/appid", response_model=ConfigUpdateResponse)
 def update_appid(
     update: AppIdUpdate,
-    config_service: ConfigService = Depends(get_config_service)
+    config_service: ConfigService = Depends(get_config_service),
 ):
-    """Update whether to use AppID in Acestream links"""
-    value = update.value
-    valid_values = ["true", "false", "True", "False", "1", "0"]
-    if value not in valid_values:
-        raise HTTPException(status_code=422, detail="Invalid boolean value for appid")
-    # Store as 'true' or 'false' string
+    """Update whether to use AppID in Acestream links."""
+    _validate_boolean_string(update.value, "appid")
     config_service.settings_repo.set_setting(
-        getattr(config_service.settings_repo, 'APPID', 'appid'),
-        value,
-        "Use AppID in Acestream links"
+        getattr(config_service.settings_repo, "APPID", "appid"),
+        update.value,
+        "Use AppID in Acestream links",
     )
-    return {"message": "Setting updated successfully", "value": value}
+    return {"message": "Setting updated successfully", "value": update.value}
 
-
-logger = logging.getLogger(__name__)
-
-def get_config_service(db: Session = Depends(get_db)):
-    settings_repo = SettingsRepository(db)
-    return ConfigService(settings_repo)
 
 @router.get("/base_url", response_model=SettingResponse)
 def get_base_url(config_service: ConfigService = Depends(get_config_service)):
-    """Get the base URL for Acestream links"""
-    base_url = config_service.get_base_url()
-    return {"key": "base_url", "value": base_url}
+    """Get the base URL for Acestream links."""
+    return {"key": "base_url", "value": config_service.get_base_url()}
 
-@router.put("/base_url")
-async def update_base_url(
-    request: Request,
-    config_service: ConfigService = Depends(get_config_service)
+
+@router.put("/base_url", response_model=ConfigUpdateResponse)
+def update_base_url(
+    update: BaseUrlUpdate,
+    config_service: ConfigService = Depends(get_config_service),
 ):
-    """Update the base URL for Acestream links"""
-    update = await request.json()
-    base_url = update.get("base_url") or update.get("value")
+    """Update the base URL for Acestream links."""
+    base_url = update.resolved_value()
     if not base_url:
         raise HTTPException(status_code=422, detail="Missing base_url value")
     success = config_service.set_base_url(base_url)
@@ -86,123 +82,117 @@ async def update_base_url(
         raise HTTPException(status_code=500, detail="Failed to update base URL")
     return {"message": "Base URL updated successfully", "value": base_url}
 
+
 @router.get("/ace_engine_url", response_model=SettingResponse)
 def get_ace_engine_url(config_service: ConfigService = Depends(get_config_service)):
-    """Get the Acestream Engine URL"""
-    url = config_service.get_ace_engine_url()
-    return {"key": "ace_engine_url", "value": url}
+    """Get the Acestream Engine URL."""
+    return {"key": "ace_engine_url", "value": config_service.get_ace_engine_url()}
 
-@router.put("/ace_engine_url")
+
+@router.put("/ace_engine_url", response_model=ConfigUpdateResponse)
 def update_ace_engine_url(
     update: AceEngineUrlUpdate,
-    config_service: ConfigService = Depends(get_config_service)
+    config_service: ConfigService = Depends(get_config_service),
 ):
-    """Update the Acestream Engine URL"""
+    """Update the Acestream Engine URL."""
     success = config_service.set_ace_engine_url(update.value)
     if not success:
         raise HTTPException(status_code=500, detail="Failed to update Acestream Engine URL")
     return {"message": "Setting updated successfully", "value": update.value}
 
+
 @router.get("/rescrape_interval", response_model=SettingResponse)
 def get_rescrape_interval(config_service: ConfigService = Depends(get_config_service)):
-    """Get the interval between automatic rescrapes in hours"""
-    hours = config_service.get_rescrape_interval()
-    return {"key": "rescrape_interval", "value": str(hours)}
+    """Get the interval between automatic rescrapes in hours."""
+    return {"key": "rescrape_interval", "value": str(config_service.get_rescrape_interval())}
 
-@router.put("/rescrape_interval")
-async def update_rescrape_interval(
-    request: Request,
-    config_service: ConfigService = Depends(get_config_service)
+
+@router.put("/rescrape_interval", response_model=ConfigUpdateResponse)
+def update_rescrape_interval(
+    update: RescrapeIntervalUpdate,
+    config_service: ConfigService = Depends(get_config_service),
 ):
-    """Update the interval between automatic rescrapes in hours"""
-    update = await request.json()
-    value = update.get("value")
+    """Update the interval between automatic rescrapes in hours."""
+    value = update.resolved_value()
     if not value:
         raise HTTPException(status_code=422, detail="Missing rescrape_interval value")
     try:
         hours = int(value)
         if hours < 1:
             raise HTTPException(status_code=422, detail="Rescrape interval must be positive")
-    except ValueError:
-        raise HTTPException(status_code=422, detail="Rescrape interval must be a valid number")
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail="Rescrape interval must be a valid number") from exc
     success = config_service.set_rescrape_interval(hours)
     if not success:
         raise HTTPException(status_code=500, detail="Failed to update rescrape interval")
-    return {"message": "Setting updated successfully", "value": value}
+    return {"message": "Setting updated successfully", "value": str(hours)}
+
 
 @router.get("/addpid", response_model=SettingResponse)
 def get_addpid(config_service: ConfigService = Depends(get_config_service)):
-    """Get whether to add PID to Acestream links"""
-    # Return the stored string value as-is
-    value = config_service.get_addpid()
-    return {"key": "addpid", "value": value}
+    """Get whether to add PID to Acestream links."""
+    return {"key": "addpid", "value": config_service.get_addpid()}
 
-@router.put("/addpid")
+
+@router.put("/addpid", response_model=ConfigUpdateResponse)
 def update_addpid(
     update: AddPidUpdate,
-    config_service: ConfigService = Depends(get_config_service)
+    config_service: ConfigService = Depends(get_config_service),
 ):
-    """Update whether to add PID to Acestream links"""
-    # Store the exact string provided by the user
-    value = update.value
-    # Accept only valid boolean representations
-    valid_values = ["true", "false", "True", "False", "1", "0"]
-    if value not in valid_values:
-        raise HTTPException(status_code=422, detail="Invalid boolean value for addpid")
-    # Store as 'true' if value is in true values, else 'false'
-    enabled = value.lower() in ['true', '1']
+    """Update whether to add PID to Acestream links."""
+    _validate_boolean_string(update.value, "addpid")
+    enabled = update.value.lower() in {"true", "1"}
     config_service.set_addpid(enabled)
-    # Overwrite the stored value with the exact string for test compatibility
+    # Preserve exact string representation for compatibility with existing tests.
     config_service.settings_repo.set_setting(
         config_service.settings_repo.ADDPID,
-        value,
-        "Add PID to Acestream links"
+        update.value,
+        "Add PID to Acestream links",
     )
-    return {"message": "Setting updated successfully", "value": value}
+    return {"message": "Setting updated successfully", "value": update.value}
+
 
 @router.get("/all", response_model=SettingsResponse)
 def get_all_settings(config_service: ConfigService = Depends(get_config_service)):
-    """Get all settings"""
-    settings = config_service.get_all_settings()
-    return {"settings": settings}
+    """Get all settings."""
+    return {"settings": config_service.get_all_settings()}
+
 
 @router.get("/acestream_status")
 def check_acestream_status(config_service: ConfigService = Depends(get_config_service)):
-    """Check the status of the Acestream Engine"""
-    status = config_service.check_acestream_status()
-    return status
+    """Check the status of the Acestream Engine."""
+    return config_service.check_acestream_status()
 
-@router.get("/dashboard")
+
+@router.get("/dashboard", response_model=DashboardConfigResponse)
 def get_dashboard_config(db: Session = Depends(get_db)):
     service = DashboardConfigService(db)
     config = service.get_config()
     return {
         "retention_days": config.retention_days,
-        "auto_refresh_interval": config.auto_refresh_interval
+        "auto_refresh_interval": config.auto_refresh_interval,
     }
 
-class DashboardConfigUpdate(BaseModel):
-    retention_days: Optional[int] = None
-    auto_refresh_interval: Optional[int] = None
 
-@router.put("/dashboard")
+@router.put("/dashboard", response_model=DashboardConfigResponse)
 def update_dashboard_config(
     update: DashboardConfigUpdate = Body(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     service = DashboardConfigService(db)
     config = service.update_config(
         retention_days=update.retention_days,
-        auto_refresh_interval=update.auto_refresh_interval
+        auto_refresh_interval=update.auto_refresh_interval,
     )
     return {
         "retention_days": config.retention_days,
-        "auto_refresh_interval": config.auto_refresh_interval
+        "auto_refresh_interval": config.auto_refresh_interval,
     }
+
 
 @router.get("/{key}", response_model=SettingResponse)
 def get_config_key(key: str, config_service: ConfigService = Depends(get_config_service)):
-    """Generic GET for config keys"""
+    """Generic GET for config keys."""
     if key == "base_url":
         value = config_service.get_base_url()
     elif key == "ace_engine_url":
@@ -215,62 +205,58 @@ def get_config_key(key: str, config_service: ConfigService = Depends(get_config_
         raise HTTPException(status_code=404, detail=f"Unknown config key: {key}")
     return {"key": key, "value": value}
 
-@router.put("/{key}")
-async def update_config_key(key: str, request: Request, config_service: ConfigService = Depends(get_config_service)):
-    """Generic PUT for config keys"""
-    update = await request.json()
-    logger.info(f"PUT /config/{{key}}: key={key}, update={update}")
+
+@router.put("/{key}", response_model=ConfigUpdateResponse)
+def update_config_key(
+    key: str,
+    update: ConfigKeyUpdate,
+    config_service: ConfigService = Depends(get_config_service),
+):
+    """Generic PUT for config keys."""
+    logger.info("PUT /config/{key}: key=%s, update=%s", key, update.model_dump(exclude_none=True))
+    value = update.get_value_for_key(key)
+
     if key == "base_url":
-        base_url = update.get("base_url") or update.get("value")
-        logger.info(f"Updating base_url to {base_url}")
-        if not base_url:
+        if not value:
             raise HTTPException(status_code=422, detail="Missing base_url value")
-        success = config_service.set_base_url(base_url)
-        logger.info(f"set_base_url returned {success}")
+        success = config_service.set_base_url(value)
         if not success:
             raise HTTPException(status_code=500, detail="Failed to update base_url")
-        return {"message": "Base URL updated successfully", "value": base_url}
-    elif key == "ace_engine_url":
-        value = update.get("value")
-        logger.info(f"Updating ace_engine_url to {value}")
+        return {"message": "Base URL updated successfully", "value": value}
+
+    if key == "ace_engine_url":
         if not value:
             raise HTTPException(status_code=422, detail="Missing ace_engine_url value")
         success = config_service.set_ace_engine_url(value)
-        logger.info(f"set_ace_engine_url returned {success}")
         if not success:
             raise HTTPException(status_code=500, detail="Failed to update ace_engine_url")
         return {"message": "Setting updated successfully", "value": value}
-    elif key == "rescrape_interval":
-        value = update.get("value")
-        logger.info(f"Updating rescrape_interval to {value}")
+
+    if key == "rescrape_interval":
         if not value:
             raise HTTPException(status_code=422, detail="Missing rescrape_interval value")
         try:
             hours = int(value)
             if hours < 1:
                 raise HTTPException(status_code=422, detail="Rescrape interval must be positive")
-        except ValueError:
-            raise HTTPException(status_code=422, detail="Rescrape interval must be a valid number")
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail="Rescrape interval must be a valid number") from exc
         success = config_service.set_rescrape_interval(hours)
-        logger.info(f"set_rescrape_interval returned {success}")
         if not success:
             raise HTTPException(status_code=500, detail="Failed to update rescrape_interval")
-        return {"message": "Setting updated successfully", "value": value}
-    elif key == "addpid":
-        value = update.get("value")
-        logger.info(f"Updating addpid to {value}")
-        valid_values = ["true", "false", "True", "False", "1", "0"]
-        if value not in valid_values:
-            raise HTTPException(status_code=422, detail="Invalid boolean value for addpid")
-        enabled = value.lower() in ['true', '1']
+        return {"message": "Setting updated successfully", "value": str(hours)}
+
+    if key == "addpid":
+        if not value:
+            raise HTTPException(status_code=422, detail="Missing addpid value")
+        _validate_boolean_string(value, "addpid")
+        enabled = value.lower() in {"true", "1"}
         config_service.set_addpid(enabled)
         config_service.settings_repo.set_setting(
             config_service.settings_repo.ADDPID,
             value,
-            "Add PID to Acestream links"
+            "Add PID to Acestream links",
         )
-        logger.info(f"set_addpid called with enabled={enabled}, value={value}")
         return {"message": "Setting updated successfully", "value": value}
-    else:
-        logger.info(f"Unknown config key: {key}")
-        raise HTTPException(status_code=404, detail=f"Unknown config key: {key}")
+
+    raise HTTPException(status_code=404, detail=f"Unknown config key: {key}")

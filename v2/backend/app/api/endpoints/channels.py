@@ -1,12 +1,10 @@
 """
 API endpoints for channel management
 """
-from fastapi import APIRouter, Depends, HTTPException, Query, status, BackgroundTasks, Body
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-from typing import List, Optional, Dict, Any
-import asyncio
-import uuid
+from typing import List, Optional
 import csv
 from io import StringIO
 
@@ -15,7 +13,13 @@ from app.models.models import AcestreamChannel, TVChannel
 from app.services.acestreamchannel_service import AcestreamChannelService
 from app.services.channel_status_service import ChannelStatusService
 from app.schemas.channel import (
-    AcestreamChannelResponse, TVChannelResponse, AcestreamChannelCreate, AcestreamChannelUpdate, TVChannelCreate, TVChannelUpdate, AcestreamChannelListResponse
+    AcestreamChannelCreate,
+    AcestreamChannelListResponse,
+    AcestreamChannelResponse,
+    AcestreamChannelUpdate,
+    BulkChannelActivateRequest,
+    BulkChannelEditRequest,
+    TVChannelResponse,
 )
 from app.schemas.channel_status import ChannelStatusResponse, BulkStatusCheckResponse, ChannelStatusSummary, StatusCheckRequest
 
@@ -174,6 +178,57 @@ async def get_tv_channels(
     return service.get_all_tv_channels(skip=skip, limit=limit)
 
 
+@router.post("/bulk_delete", status_code=status.HTTP_204_NO_CONTENT)
+async def bulk_delete_acestream_channels(
+    acestreamchannel_ids: List[str] = Body(..., embed=True),
+    db: Session = Depends(get_db)
+):
+    """
+    Delete multiple Acestream channels by IDs.
+    """
+    service = AcestreamChannelService(db)
+    deleted = service.bulk_delete_channels(acestreamchannel_ids)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="No Acestream channels deleted")
+    return None
+
+
+@router.put("/bulk_edit", response_model=List[AcestreamChannelResponse])
+async def bulk_edit_acestream_channels(
+    updates: BulkChannelEditRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Update multiple Acestream channels by IDs and fields.
+    updates: {"acestreamchannel_ids": [...], "fields": {...}}
+    """
+    service = AcestreamChannelService(db)
+    acestreamchannel_ids = updates.acestreamchannel_ids
+    fields = updates.fields.model_dump(exclude_unset=True)
+    if not acestreamchannel_ids or not fields:
+        raise HTTPException(status_code=400, detail="acestreamchannel_ids and fields required")
+    updated = service.bulk_update_channels(acestreamchannel_ids, fields)
+    return updated
+
+
+@router.post("/bulk_activate", response_model=List[AcestreamChannelResponse])
+async def bulk_activate_acestream_channels(
+    data: BulkChannelActivateRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Activate/deactivate multiple Acestream channels by IDs.
+    data: {"acestreamchannel_ids": [...], "active": true/false}
+    """
+    service = AcestreamChannelService(db)
+    acestreamchannel_ids = data.acestreamchannel_ids
+    active = data.active
+    if not acestreamchannel_ids:
+        raise HTTPException(status_code=400, detail="acestreamchannel_ids required")
+    updated = service.bulk_activate_channels(acestreamchannel_ids, active)
+    return updated
+
+
 @router.get("/{acestreamchannel_id}", response_model=AcestreamChannelResponse)
 async def get_acestream_channel(acestreamchannel_id: str, db: Session = Depends(get_db)):
     """
@@ -182,7 +237,7 @@ async def get_acestream_channel(acestreamchannel_id: str, db: Session = Depends(
     service = AcestreamChannelService(db)
     channel = service.get_channel_by_id(acestreamchannel_id)
     if not channel:
-        raise HTTPException(status_code=404, detail="Acestream channel not found")
+        raise HTTPException(status_code=404, detail="Channel not found")
     return channel
 
 
@@ -194,7 +249,7 @@ async def check_acestream_channel_status(acestreamchannel_id: str, db: Session =
     service = AcestreamChannelService(db)
     channel = service.get_channel_by_id(acestreamchannel_id)
     if not channel:
-        raise HTTPException(status_code=404, detail="Acestream channel not found")
+        raise HTTPException(status_code=404, detail="Channel not found")
 
     status_service = ChannelStatusService(db)
     result = await status_service.check_channel_status(channel)
@@ -243,7 +298,7 @@ async def update_acestream_channel(
     service = AcestreamChannelService(db)
     existing_channel = service.get_channel_by_id(acestreamchannel_id)
     if not existing_channel:
-        raise HTTPException(status_code=404, detail="Acestream channel not found")
+        raise HTTPException(status_code=404, detail="Channel not found")
 
     updated_channel = service.update_channel(
         channel_id=acestreamchannel_id,
@@ -260,61 +315,10 @@ async def delete_acestream_channel(acestreamchannel_id: str, db: Session = Depen
     service = AcestreamChannelService(db)
     existing_channel = service.get_channel_by_id(acestreamchannel_id)
     if not existing_channel:
-        raise HTTPException(status_code=404, detail="Acestream channel not found")
+        raise HTTPException(status_code=404, detail="Channel not found")
 
     service.delete_channel(acestreamchannel_id)
     return None
-
-
-@router.post("/bulk_delete", status_code=status.HTTP_204_NO_CONTENT)
-async def bulk_delete_acestream_channels(
-    acestreamchannel_ids: List[str] = Body(..., embed=True),
-    db: Session = Depends(get_db)
-):
-    """
-    Delete multiple Acestream channels by IDs.
-    """
-    service = AcestreamChannelService(db)
-    deleted = service.bulk_delete_channels(acestreamchannel_ids)
-    if not deleted:
-        raise HTTPException(status_code=404, detail="No Acestream channels deleted")
-    return None
-
-
-@router.put("/bulk_edit", response_model=List[AcestreamChannelResponse])
-async def bulk_edit_acestream_channels(
-    updates: Dict[str, Any] = Body(...),
-    db: Session = Depends(get_db)
-):
-    """
-    Update multiple Acestream channels by IDs and fields.
-    updates: {"acestreamchannel_ids": [...], "fields": {...}}
-    """
-    service = AcestreamChannelService(db)
-    acestreamchannel_ids = updates.get("acestreamchannel_ids", [])
-    fields = updates.get("fields", {})
-    if not acestreamchannel_ids or not fields:
-        raise HTTPException(status_code=400, detail="acestreamchannel_ids and fields required")
-    updated = service.bulk_update_channels(acestreamchannel_ids, fields)
-    return updated
-
-
-@router.post("/bulk_activate", response_model=List[AcestreamChannelResponse])
-async def bulk_activate_acestream_channels(
-    data: Dict[str, Any] = Body(...),
-    db: Session = Depends(get_db)
-):
-    """
-    Activate/deactivate multiple Acestream channels by IDs.
-    data: {"acestreamchannel_ids": [...], "active": true/false}
-    """
-    service = AcestreamChannelService(db)
-    acestreamchannel_ids = data.get("acestreamchannel_ids", [])
-    active = data.get("active", True)
-    if not acestreamchannel_ids:
-        raise HTTPException(status_code=400, detail="acestreamchannel_ids required")
-    updated = service.bulk_activate_channels(acestreamchannel_ids, active)
-    return updated
 
 
 @router.get("/export_csv")
@@ -352,4 +356,3 @@ async def _background_status_check(
         import logging
         logger = logging.getLogger(__name__)
         logger.error(f"Background status check failed: {e}")
-

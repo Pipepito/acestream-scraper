@@ -3,19 +3,32 @@ API endpoints for TV channel management
 """
 from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
-from typing import List, Optional, Dict, Any
+from typing import List
 
 from app.config.database import get_db
 from app.services.tvchannel_service import TVChannelService
 from app.services.acestreamchannel_service import AcestreamChannelService
-from app.schemas.channel import TVChannelResponse, TVChannelCreate, TVChannelUpdate, AcestreamChannelResponse
+from app.schemas.channel import (
+    AcestreamChannelResponse,
+    MessageResponse,
+    TVChannelAssociationRequest,
+    TVChannelBatchAssignRequest,
+    TVChannelBatchAssignResponse,
+    TVChannelBulkEPGUpdateRequest,
+    TVChannelBulkEPGUpdateResponse,
+    TVChannelCreate,
+    TVChannelListResponse,
+    TVChannelResponse,
+    TVChannelUpdate,
+)
 
 router = APIRouter()
 
 
 from fastapi import Query
 
-@router.get("/", response_model=Dict[str, Any])
+
+@router.get("/", response_model=TVChannelListResponse)
 async def get_tv_channels(
     skip: int = Query(0, alias="skip"),
     limit: int = Query(100, alias="limit"),
@@ -131,19 +144,20 @@ async def get_tv_channel_acestreams(tv_channel_id: int, db: Session = Depends(ge
     return tv_channel.acestream_channels
 
 
-@router.post("/{tv_channel_id}/acestreams", status_code=status.HTTP_200_OK)
+@router.post(
+    "/{tv_channel_id}/acestreams",
+    status_code=status.HTTP_200_OK,
+    response_model=MessageResponse,
+)
 async def associate_acestream(
     tv_channel_id: int,
-    association: dict,
+    association: TVChannelAssociationRequest,
     db: Session = Depends(get_db)
 ):
     """
     Associate an acestream channel with a TV channel.
     """
-    if "acestream_channel_id" not in association:
-        raise HTTPException(status_code=422, detail="acestream_channel_id is required")
-
-    acestream_id = association["acestream_channel_id"]
+    acestream_id = association.acestream_channel_id
     service = TVChannelService(db)
     success = service.associate_acestream(
         tv_channel_id=tv_channel_id,
@@ -184,9 +198,13 @@ async def remove_acestream_association(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.post("/batch-assign", status_code=status.HTTP_200_OK)
+@router.post(
+    "/batch-assign",
+    status_code=status.HTTP_200_OK,
+    response_model=TVChannelBatchAssignResponse,
+)
 async def batch_assign_acestreams(
-    assignment_data: dict,
+    assignment_data: TVChannelBatchAssignRequest,
     db: Session = Depends(get_db)
 ):
     """
@@ -201,11 +219,9 @@ async def batch_assign_acestreams(
         "2": ["acestream3"]
     }
     """
-    if "assignments" not in assignment_data:
-        raise HTTPException(status_code=422, detail="assignments field is required")
-
     service = TVChannelService(db)
-    results = service.batch_associate_acestreams(assignment_data["assignments"])
+    assignments = [item.model_dump() for item in assignment_data.assignments]
+    results = service.batch_associate_acestreams(assignments)
     return results
 
 
@@ -245,8 +261,15 @@ async def associate_by_epg(db: Session = Depends(get_db)):
     }
 
 
-@router.post("/bulk-update-epg", status_code=status.HTTP_200_OK)
-async def bulk_update_epg(update_data: dict, db: Session = Depends(get_db)):
+@router.post(
+    "/bulk-update-epg",
+    status_code=status.HTTP_200_OK,
+    response_model=TVChannelBulkEPGUpdateResponse,
+)
+async def bulk_update_epg(
+    update_data: TVChannelBulkEPGUpdateRequest,
+    db: Session = Depends(get_db),
+):
     """
     Update EPG IDs for multiple TV channels.
 
@@ -260,10 +283,7 @@ async def bulk_update_epg(update_data: dict, db: Session = Depends(get_db)):
         ]
     }
     """
-    if "updates" not in update_data:
-        raise HTTPException(status_code=422, detail="updates field is required")
-
-    updates = update_data["updates"]
+    updates = update_data.updates
     service = TVChannelService(db)
 
     results = {
@@ -273,17 +293,8 @@ async def bulk_update_epg(update_data: dict, db: Session = Depends(get_db)):
     }
 
     for update in updates:
-        if "tv_channel_id" not in update or "epg_id" not in update:
-            results["failure_count"] += 1
-            results["details"].append({
-                "tv_channel_id": update.get("tv_channel_id", "missing"),
-                "status": "failure",
-                "reason": "Missing required fields"
-            })
-            continue
-
-        tv_channel_id = update["tv_channel_id"]
-        epg_id = update["epg_id"]
+        tv_channel_id = update.tv_channel_id
+        epg_id = update.epg_id
 
         try:
             # Get the TV channel

@@ -6,6 +6,8 @@ from app.api.endpoints import channels, scrapers, epg, playlists, tv_channels, s
 
 api_router = APIRouter()
 api_router.include_router(channels.router, prefix="/acestream-channels", tags=["channels"])
+# Backward-compatible alias retained for parity and existing test expectations.
+api_router.include_router(channels.router, prefix="/channels", tags=["channels"])
 api_router.include_router(tv_channels.router, prefix="/tv-channels", tags=["tv-channels"])
 api_router.include_router(scrapers.router, prefix="/scrapers", tags=["scrapers"])
 api_router.include_router(epg.router, prefix="/epg", tags=["epg"])

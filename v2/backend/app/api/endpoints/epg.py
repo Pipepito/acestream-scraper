@@ -16,7 +16,7 @@ from app.schemas.epg import (
     EPGRefreshResponse,
     EPGChannelMappingRequest,
     EPGXmlGenerationRequest,
-    EPGStringMappingCreate
+    EPGStringMappingUpdate,
 )
 from app.services.epg_service import EPGService
 
@@ -243,7 +243,7 @@ def get_epg_string_mappings(
 @router.post("/channels/{channel_id}/mappings", response_model=EPGStringMappingResponse, status_code=201)
 def add_epg_string_mapping(
     channel_id: int,
-    mapping_data: dict = Body(...),
+    mapping_data: EPGStringMappingUpdate = Body(...),
     db: Session = Depends(get_db)
 ):
     """
@@ -253,13 +253,10 @@ def add_epg_string_mapping(
     channel = epg_service.get_channel(channel_id)
     if not channel:
         raise HTTPException(status_code=404, detail="EPG channel not found")
-    # Accept both dict and schema
-    search_pattern = mapping_data.get("search_pattern")
-    is_exclusion = mapping_data.get("is_exclusion", False)
+    search_pattern = mapping_data.search_pattern
+    is_exclusion = mapping_data.is_exclusion
     if not isinstance(search_pattern, str) or not search_pattern.strip():
         raise HTTPException(status_code=422, detail="search_pattern must be a non-empty string")
-    if not isinstance(is_exclusion, bool):
-        raise HTTPException(status_code=422, detail="is_exclusion must be a boolean")
     return epg_service.add_string_mapping(
         channel_id=channel_id,
         search_pattern=search_pattern.strip(),
@@ -270,19 +267,17 @@ def add_epg_string_mapping(
 @router.patch("/mappings/{mapping_id}", response_model=EPGStringMappingResponse)
 def update_epg_string_mapping(
     mapping_id: int,
-    mapping_data: dict = Body(...),
+    mapping_data: EPGStringMappingUpdate = Body(...),
     db: Session = Depends(get_db)
 ):
     """
     Update an existing EPG string mapping. Accepts both direct JSON and Pydantic schema for backward compatibility.
     """
     epg_service = EPGService(db)
-    search_pattern = mapping_data.get("search_pattern")
-    is_exclusion = mapping_data.get("is_exclusion", False)
+    search_pattern = mapping_data.search_pattern
+    is_exclusion = mapping_data.is_exclusion
     if not isinstance(search_pattern, str) or not search_pattern.strip():
         raise HTTPException(status_code=422, detail="search_pattern must be a non-empty string")
-    if not isinstance(is_exclusion, bool):
-        raise HTTPException(status_code=422, detail="is_exclusion must be a boolean")
     updated = epg_service.update_string_mapping(
         mapping_id=mapping_id,
         search_pattern=search_pattern.strip(),

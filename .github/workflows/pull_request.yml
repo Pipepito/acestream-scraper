@@ -2,60 +2,60 @@ name: Pull Request Checks
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [main]
     types: [opened, synchronize, reopened]
 
 jobs:
-  code-quality:
-    name: Lint and Test
-    runs-on: [self-hosted, unraid, docker]
+  required-checks:
+    name: Required Cutover Checks
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-          
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -r requirements-dev.txt
-          pip install flake8
-          
-      - name: Lint with flake8
-        run: |
-          # stop the build if there are Python syntax errors or undefined names
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          # exit-zero treats all errors as warnings
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-          
-      - name: Run tests
-        run: |
-          pytest tests/
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  docker-validation:
-    name: Validate Docker Build
-    runs-on: [self-hosted, unraid, docker]
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          driver-opts: |
-            network=host
-      
-      - name: Build Docker image
-        uses: docker/build-push-action@v4
+          python-version: "3.12"
+
+      - name: Prepare backend virtualenv
+        run: |
+          python -m venv backend/venv
+          backend/venv/bin/python -m pip install --upgrade pip
+          backend/venv/bin/pip install -r backend/requirements.txt
+
+      - name: Run backend tests
+        run: |
+          backend/venv/bin/pytest -q backend/tests
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
         with:
-          context: .
-          push: false
-          tags: pipepito/acestream-scraper:test
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          outputs: type=docker,dest=/tmp/docker-image.tar
-          build-args: |
-            BUILDKIT_CONTEXT_KEEP_GIT_DIR=1
-          network: host
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Run frontend tests
+        env:
+          CI: "true"
+        run: |
+          cd frontend
+          npm test -- --watch=false
+
+      - name: Run frontend build
+        run: |
+          cd frontend
+          npm run build
+
+      - name: Enforce legacy path guardrails
+        run: |
+          bash scripts/ci/assert_no_legacy_paths.sh --strict
+
+      - name: Run cutover required checks (quick profile)
+        run: |
+          bash scripts/ci/run_cutover_required_checks.sh --profile quick

@@ -21,9 +21,9 @@ jobs:
 
       - name: Prepare backend virtualenv
         run: |
-          python -m venv v2/backend/venv
-          v2/backend/venv/bin/python -m pip install --upgrade pip
-          v2/backend/venv/bin/pip install -r v2/backend/requirements.txt
+          python -m venv backend/venv
+          backend/venv/bin/python -m pip install --upgrade pip
+          backend/venv/bin/pip install -r backend/requirements.txt
 
       - name: Run quick parity safety gates
         run: |

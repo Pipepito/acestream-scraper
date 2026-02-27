@@ -1,127 +1,90 @@
-# .github/workflows/release.yml
 name: Release Pipeline
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
-      - 'app/**'
-      - 'migrations/**'
-      - 'Dockerfile'
-      - 'entrypoint.sh'
-      - 'requirements*.txt'
-      - 'wsgi.py'
-      - 'run_dev.py'
-      - 'manage.py'
-      - 'pyproject.toml'
-      - 'migrations_app.py'
-      - 'version.txt'
+      - "backend/**"
+      - "frontend/**"
+      - "scripts/**"
+      - "docs/**"
+      - ".github/workflows/**"
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - "version.txt"
+  workflow_dispatch:
 
 jobs:
-  code-quality:
-    name: Lint and Test
-    runs-on: [self-hosted, unraid, docker]
+  required-checks:
+    name: Required Release Checks
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
-          
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -r requirements-dev.txt
-          pip install flake8
-          
-      - name: Lint with flake8
-        run: |
-          # stop the build if there are Python syntax errors or undefined names
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          # exit-zero treats all errors as warnings
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-          
-      - name: Run tests
-        run: |
-          pytest tests/
+          python-version: "3.12"
 
-  version:
-    name: Get Version from File
-    needs: code-quality
-    runs-on: [self-hosted, unraid, docker]
-    outputs:
-      new_version: ${{ steps.get_version.outputs.version }}
-    steps:
-      - uses: actions/checkout@v3
-        
-      - name: Read version from file
-        id: get_version
+      - name: Prepare backend virtualenv
         run: |
-          # Read version from version.txt, strip any whitespace and 'v' prefix
-          VERSION=$(cat version.txt | tr -d '\r\n\t ' | sed 's/^v//')
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Using version: v$VERSION"
+          python -m venv backend/venv
+          backend/venv/bin/python -m pip install --upgrade pip
+          backend/venv/bin/pip install -r backend/requirements.txt
 
-  tag-repository:
-    name: Tag Repository
-    runs-on: [self-hosted, unraid, docker]
-    needs: version
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v3
-        
-      - name: Update Dockerfile version
+      - name: Run backend tests
         run: |
-          # Update the version in Dockerfile
-          sed -i "s/version=\".*\"/version=\"${{ needs.version.outputs.new_version }}\"/" Dockerfile
-          
-      - name: Tag Repository
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add Dockerfile
-          git commit -m "Bump version to v${{ needs.version.outputs.new_version }} [skip ci]" || echo "No changes to commit"
-          git tag -a "v${{ needs.version.outputs.new_version }}" -m "Release v${{ needs.version.outputs.new_version }}"
-          git push origin "v${{ needs.version.outputs.new_version }}"
-          git push || echo "Failed to push version update"
+          backend/venv/bin/pytest -q backend/tests
 
-  build-and-push:
-    name: Build and Push Docker Image
-    runs-on: [self-hosted, unraid, docker]
-    needs: [version, tag-repository]
-    permissions:
-      packages: write
-    steps:
-      - uses: actions/checkout@v3
+      - name: Set up Node
+        uses: actions/setup-node@v4
         with:
-          ref: "v${{ needs.version.outputs.new_version }}"
-      
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Run frontend tests
+        env:
+          CI: "true"
+        run: |
+          cd frontend
+          npm test -- --watch=false
+
+      - name: Run frontend build
+        run: |
+          cd frontend
+          npm run build
+
+      - name: Enforce legacy path guardrails
+        run: |
+          bash scripts/ci/assert_no_legacy_paths.sh --strict
+
+      - name: Run cutover required checks (full profile)
+        run: |
+          bash scripts/ci/run_cutover_required_checks.sh --profile full
+
+  build-image:
+    name: Build Release Image
+    runs-on: ubuntu-latest
+    needs: required-checks
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-        with:
-          driver-opts: |
-            network=host
-      
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v4
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build canonical release image
+        uses: docker/build-push-action@v6
         with:
           context: .
-          push: true
+          push: false
           tags: |
-            pipepito/acestream-scraper:latest
-            pipepito/acestream-scraper:v${{ needs.version.outputs.new_version }}
-          no-cache: true
-          build-args: |
-            BUILDKIT_CONTEXT_KEEP_GIT_DIR=1
-          network: host
+            pipepito/acestream-scraper-v2:latest
+            pipepito/acestream-scraper-v2:${{ github.sha }}

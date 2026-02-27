@@ -13,7 +13,13 @@ fi
 
 bash scripts/ci/assert_no_legacy_paths.sh --strict
 
-python -m venv backend/venv
+PYTHON_BIN="${PYTHON_BIN:-python3}"
+if ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
+  echo "Python interpreter not found: $PYTHON_BIN"
+  exit 1
+fi
+
+"$PYTHON_BIN" -m venv backend/venv
 backend/venv/bin/python -m pip install --upgrade pip
 backend/venv/bin/pip install -r backend/requirements.txt
 

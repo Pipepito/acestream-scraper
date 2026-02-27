@@ -12,7 +12,7 @@ This roadmap delivers a big-bang migration from the legacy root stack to a singl
 
 - [x] **Phase 1: Parity Baseline and Safety Gates** - Lock scraper/output parity and migration acceptance checks. (completed 2026-02-27)
 - [x] **Phase 2: Backend Contract and Structure Hardening** - Stabilize v2 backend contracts and architecture boundaries. (completed 2026-02-27)
-- [ ] **Phase 3: v2-Only Cutover and Legacy Retirement** - Replace root runtime/build ownership with v2-only paths.
+- [x] **Phase 3: v2-Only Cutover and Legacy Retirement** - Replace root runtime/build ownership with v2-only paths. (completed 2026-02-27)
 - [ ] **Phase 4: Frontend UX Modernization** - Improve usability, responsiveness, and operational flow clarity.
 - [ ] **Phase 5: Multi-Arch Build and Runtime Validation** - Ship and validate ARM v7/ARM64 compatibility.
 - [ ] **Phase 6: Reliability, Test Ownership, and Optimization** - Drive bugs down and harden performance/reliability.
@@ -61,7 +61,7 @@ Plans:
 Plans:
 - [x] 03-01: Consolidate CI/build/release workflow to v2-only ownership.
 - [x] 03-02: Retire legacy root runtime/deployment paths and reconcile docs.
-- [ ] 03-03: Execute and verify big-bang cutover checklist on branch.
+- [x] 03-03: Execute and verify big-bang cutover checklist on branch.
 
 ### Phase 4: Frontend UX Modernization
 **Goal**: Deliver materially better operator UX while keeping core functionality intact.
@@ -116,7 +116,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 |-------|----------------|--------|-----------|
 | 1. Parity Baseline and Safety Gates | 2/2 | Complete    | 2026-02-27 |
 | 2. Backend Contract and Structure Hardening | 3/3 | Complete | 2026-02-27 |
-| 3. v2-Only Cutover and Legacy Retirement | 2/3 | In Progress | - |
+| 3. v2-Only Cutover and Legacy Retirement | 3/3 | Complete | 2026-02-27 |
 | 4. Frontend UX Modernization | 0/3 | Not started | - |
 | 5. Multi-Arch Build and Runtime Validation | 0/2 | Not started | - |
 | 6. Reliability, Test Ownership, and Optimization | 0/3 | Not started | - |

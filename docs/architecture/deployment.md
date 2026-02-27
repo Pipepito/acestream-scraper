@@ -50,4 +50,49 @@ Legacy env aliases remain supported for one release window (`v2-cutover-r1`) wit
 
 ## Multi-Architecture Direction
 
-Current deployment docs define one canonical runtime path. Multi-arch release hardening (including `linux/arm/v7` and `linux/arm64`) is tracked in roadmap Phase 5 and will extend this document with buildx and runtime validation details.
+### Supported Image Targets
+
+The canonical image build now targets:
+
+- `linux/amd64`
+- `linux/arm/v7`
+- `linux/arm64`
+
+Required minimum compatibility claims for release signoff:
+
+- ARM v7 image build succeeds and is included in architecture validation outputs.
+- ARM64 image build succeeds and is included in architecture validation outputs.
+- Runtime smoke checks pass for required ARM targets (`/api/v1/health`, frontend root path).
+
+### Build and Validation Path
+
+Use the canonical scripts:
+
+```bash
+# Build matrix (local dry-run check)
+bash scripts/ci/build_multiarch_images.sh --dry-run --platforms linux/arm/v7,linux/arm64
+
+# Verify required architecture variants
+bash scripts/ci/verify_multiarch_manifest.sh --result-file phase5-build-result.json --required linux/arm/v7,linux/arm64
+
+# Runtime smoke flow
+bash scripts/ci/phase5_arch_smoke.sh --platforms linux/arm/v7,linux/arm64
+```
+
+CI orchestration:
+
+- `.github/workflows/multiarch-validation.yml`
+- `scripts/phase_gates/phase5_gate_runner.py` (`quick` and `full` profiles)
+
+### Android TV Notes
+
+Android TV deployments should prefer `linux/arm64` when device firmware supports 64-bit containers.  
+`linux/arm/v7` remains supported for older ARM32 devices but may need conservative runtime settings.
+
+Recommended operator caveats:
+
+- Prefer reduced background concurrency on lower-memory ARMv7 devices.
+- Validate storage I/O performance for SQLite-backed deployments on removable media.
+- Run the Phase 5 smoke checklist before production rollouts on new device classes.
+
+See: `docs/migration/phase5-architecture-smoke-checklist.md`

@@ -79,4 +79,15 @@ echo "Running frontend build checks..."
 
 docker compose config >/dev/null
 
+if [[ "${CUTOVER_INCLUDE_MULTIARCH:-0}" == "1" ]]; then
+  echo "Running optional multi-arch matrix validation (dry-run)..."
+  bash scripts/ci/build_multiarch_images.sh \
+    --dry-run \
+    --platforms linux/arm/v7,linux/arm64 \
+    --result-file phase5-build-result-cutover.json
+  bash scripts/ci/verify_multiarch_manifest.sh \
+    --result-file phase5-build-result-cutover.json \
+    --required linux/arm/v7,linux/arm64
+fi
+
 echo "Cutover required checks passed for profile=$PROFILE"

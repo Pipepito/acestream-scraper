@@ -45,6 +45,25 @@ jobs:
           cd frontend
           npm run build
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate multi-arch build matrix (dry-run)
+        run: |
+          bash scripts/ci/build_multiarch_images.sh \
+            --dry-run \
+            --platforms linux/arm/v7,linux/arm64 \
+            --result-file phase5-build-result-pr.json
+
+      - name: Verify required architecture matrix entries
+        run: |
+          bash scripts/ci/verify_multiarch_manifest.sh \
+            --result-file phase5-build-result-pr.json \
+            --required linux/arm/v7,linux/arm64
+
       - name: Enforce legacy path guardrails
         run: |
           bash scripts/ci/assert_no_legacy_paths.sh --strict

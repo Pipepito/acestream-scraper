@@ -1,0 +1,52 @@
+{
+  "version": "2026-02-27.1",
+  "profiles": {
+    "quick": {
+      "description": "PR-friendly architecture validation profile",
+      "commands": [
+        {
+          "id": "multiarch_build_dryrun",
+          "description": "Validate multi-arch build command matrix without heavy build execution",
+          "command": "bash scripts/ci/build_multiarch_images.sh --dry-run --platforms linux/arm/v7,linux/arm64 --result-file phase5-build-result-quick.json",
+          "blocking": true
+        },
+        {
+          "id": "manifest_matrix_guard",
+          "description": "Assert required arch entries in generated build result",
+          "command": "bash scripts/ci/verify_multiarch_manifest.sh --result-file phase5-build-result-quick.json --required linux/arm/v7,linux/arm64",
+          "blocking": true
+        },
+        {
+          "id": "runtime_smoke_dryrun",
+          "description": "Validate architecture smoke plan shape",
+          "command": "bash scripts/ci/phase5_arch_smoke.sh --dry-run --platforms linux/arm/v7,linux/arm64",
+          "blocking": true
+        }
+      ]
+    },
+    "full": {
+      "description": "Full architecture build/runtime validation profile",
+      "commands": [
+        {
+          "id": "multiarch_build_exec",
+          "description": "Execute multi-platform build matrix",
+          "command": "bash scripts/ci/build_multiarch_images.sh --platforms linux/amd64,linux/arm/v7,linux/arm64 --result-file phase5-build-result-full.json",
+          "blocking": true
+        },
+        {
+          "id": "manifest_matrix_guard",
+          "description": "Assert required arch entries in build result",
+          "command": "bash scripts/ci/verify_multiarch_manifest.sh --result-file phase5-build-result-full.json --required linux/arm/v7,linux/arm64",
+          "blocking": true
+        },
+        {
+          "id": "runtime_smoke_exec",
+          "description": "Run architecture runtime smoke checks",
+          "command": "bash scripts/ci/phase5_arch_smoke.sh --platforms linux/arm/v7,linux/arm64",
+          "blocking": true
+        }
+      ]
+    }
+  }
+}
+

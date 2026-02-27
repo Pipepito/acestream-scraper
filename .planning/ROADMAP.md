@@ -14,7 +14,7 @@ This roadmap delivers a big-bang migration from the legacy root stack to a singl
 - [x] **Phase 2: Backend Contract and Structure Hardening** - Stabilize v2 backend contracts and architecture boundaries. (completed 2026-02-27)
 - [x] **Phase 3: v2-Only Cutover and Legacy Retirement** - Replace root runtime/build ownership with v2-only paths. (completed 2026-02-27)
 - [x] **Phase 4: Frontend UX Modernization** - Improve usability, responsiveness, and operational flow clarity. (completed 2026-02-27)
-- [ ] **Phase 5: Multi-Arch Build and Runtime Validation** - Ship and validate ARM v7/ARM64 compatibility.
+- [x] **Phase 5: Multi-Arch Build and Runtime Validation** - Ship and validate ARM v7/ARM64 compatibility. (completed 2026-02-27)
 - [ ] **Phase 6: Reliability, Test Ownership, and Optimization** - Drive bugs down and harden performance/reliability.
 
 ## Phase Details
@@ -89,8 +89,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 05-01: Implement/verify multi-arch build pipeline and artifact publishing.
-- [ ] 05-02: Create architecture smoke-test checklist and validate runtime behavior.
+- [x] 05-01: Implement/verify multi-arch build pipeline and artifact publishing.
+- [x] 05-02: Create architecture smoke-test checklist and validate runtime behavior.
 
 ### Phase 6: Reliability, Test Ownership, and Optimization
 **Goal**: Reduce bugs and improve DB/runtime efficiency under the new v2-only architecture.
@@ -118,5 +118,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 2. Backend Contract and Structure Hardening | 3/3 | Complete | 2026-02-27 |
 | 3. v2-Only Cutover and Legacy Retirement | 3/3 | Complete | 2026-02-27 |
 | 4. Frontend UX Modernization | 3/3 | Complete   | 2026-02-27 |
-| 5. Multi-Arch Build and Runtime Validation | 0/2 | Not started | - |
+| 5. Multi-Arch Build and Runtime Validation | 2/2 | Complete   | 2026-02-27 |
 | 6. Reliability, Test Ownership, and Optimization | 0/3 | Not started | - |

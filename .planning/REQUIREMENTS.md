@@ -35,8 +35,8 @@
 
 ### Compatibility and Deployment
 
-- [ ] **COMP-01**: Build pipeline can produce multi-arch images including `linux/arm/v7` and `linux/arm64`.
-- [ ] **COMP-02**: Runtime smoke checks validate core service startup and key workflows on supported architectures.
+- [x] **COMP-01**: Build pipeline can produce multi-arch images including `linux/arm/v7` and `linux/arm64`.
+- [x] **COMP-02**: Runtime smoke checks validate core service startup and key workflows on supported architectures.
 - [x] **COMP-03**: Release documentation reflects v2-only deployment and architecture support expectations.
 
 ### Reliability and Quality
@@ -88,8 +88,8 @@ Which phases cover which requirements.
 | UI-02 | Phase 4 | Complete |
 | UI-03 | Phase 4 | Complete |
 | UI-04 | Phase 4 | Complete |
-| COMP-01 | Phase 5 | Pending |
-| COMP-02 | Phase 5 | Pending |
+| COMP-01 | Phase 5 | Complete |
+| COMP-02 | Phase 5 | Complete |
 | COMP-03 | Phase 3 | Complete |
 | QUAL-01 | Phase 6 | Pending |
 | QUAL-02 | Phase 6 | Pending |
@@ -103,4 +103,4 @@ Which phases cover which requirements.
 
 ---
 *Requirements defined: 2026-02-27*
-*Last updated: 2026-02-27 after Phase 4 completion*
+*Last updated: 2026-02-27 after Phase 5 completion*

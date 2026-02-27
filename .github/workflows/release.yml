@@ -54,6 +54,25 @@ jobs:
           cd frontend
           npm run build
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate multi-arch build matrix (dry-run)
+        run: |
+          bash scripts/ci/build_multiarch_images.sh \
+            --dry-run \
+            --platforms linux/arm/v7,linux/arm64 \
+            --result-file phase5-build-result-release-checks.json
+
+      - name: Verify required architecture matrix entries
+        run: |
+          bash scripts/ci/verify_multiarch_manifest.sh \
+            --result-file phase5-build-result-release-checks.json \
+            --required linux/arm/v7,linux/arm64
+
       - name: Enforce legacy path guardrails
         run: |
           bash scripts/ci/assert_no_legacy_paths.sh --strict
@@ -70,14 +89,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build canonical release image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: false
-          tags: |
-            pipepito/acestream-scraper-v2:latest
-            pipepito/acestream-scraper-v2:${{ github.sha }}
+      - name: Build canonical multi-arch release image
+        run: |
+          bash scripts/ci/build_multiarch_images.sh \
+            --platforms linux/amd64,linux/arm/v7,linux/arm64 \
+            --tag pipepito/acestream-scraper-v2:${{ github.sha }} \
+            --result-file phase5-build-result-release-image.json
+
+      - name: Verify release image architecture matrix
+        run: |
+          bash scripts/ci/verify_multiarch_manifest.sh \
+            --result-file phase5-build-result-release-image.json \
+            --required linux/arm/v7,linux/arm64

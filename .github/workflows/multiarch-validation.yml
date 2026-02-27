@@ -1,0 +1,76 @@
+name: Multi-Arch Validation
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches:
+      - main
+      - release/**
+  workflow_dispatch:
+
+jobs:
+  multiarch-quick:
+    name: Multi-Arch Quick Profile
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate multi-arch build matrix (dry-run)
+        run: |
+          bash scripts/ci/build_multiarch_images.sh \
+            --dry-run \
+            --platforms linux/arm/v7,linux/arm64 \
+            --result-file phase5-build-result-quick.json
+
+      - name: Verify required architecture matrix entries
+        run: |
+          bash scripts/ci/verify_multiarch_manifest.sh \
+            --result-file phase5-build-result-quick.json \
+            --required linux/arm/v7,linux/arm64
+
+      - name: Run phase-5 quick gate profile
+        run: |
+          python3 scripts/phase_gates/phase5_gate_runner.py --profile quick --json-output > phase5-gate-report-quick.json
+
+      - name: Upload quick profile artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase5-multiarch-quick
+          path: |
+            phase5-build-result-quick.json
+            phase5-gate-report-quick.json
+
+  multiarch-full:
+    name: Multi-Arch Full Profile
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Run phase-5 full gate profile
+        run: |
+          python3 scripts/phase_gates/phase5_gate_runner.py --profile full --json-output > phase5-gate-report-full.json
+
+      - name: Upload full profile artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase5-multiarch-full
+          path: |
+            phase5-build-result-full.json
+            phase5-gate-report-full.json
+

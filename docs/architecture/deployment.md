@@ -1,77 +1,53 @@
-# Deployment & Dockerization
+# Deployment Architecture
 
-## Goals
+## Canonical Runtime Model
 
-- **Single endpoint:** Backend (API) and frontend (React) are served from the same URL/port (e.g., http://localhost:8000).
-- **Multi-arch (x86_64 and arm64) Docker builds.**
-- **Easy dev/prod setup with Docker Compose.**
+Acestream Scraper runs with root-owned application paths:
 
----
+- `backend/` provides API, background tasks, scraper logic, and serves the built SPA.
+- `frontend/` builds static assets consumed by backend runtime image.
 
-## Serving React from FastAPI
+## Containers
 
-- Build React app (`npm run build`).
-- Copy build output to `backend/app/static/`.
-- FastAPI serves:
-  - `/api/*` - API endpoints.
-  - `/*` - React SPA (static files + index.html fallback).
+### Unified Image Build
 
-**Example FastAPI main.py:**
-```python
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-import os
+Root `Dockerfile` performs a two-stage build:
 
-app = FastAPI(...)
+1. Build `frontend/` with Node.
+2. Build `backend/` runtime with Python and copy frontend build output to `frontend_build/`.
 
-app.mount("/", StaticFiles(directory="app/static", html=True), name="static")
+Runtime command:
 
-@app.get("/{full_path:path}")
-async def react_spa(full_path: str):
-    return FileResponse("app/static/index.html")
+```bash
+uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
----
+### Compose Stack
 
-## Docker Compose Example
+`docker-compose.yml` runs:
 
-```yaml
-version: '3.8'
-services:
-  backend:
-    build: ./backend
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./backend/app/static:/app/app/static
-    environment:
-      - ...
-  frontend:
-    build: ./frontend
-    command: npm run build && cp -r dist/* /app/app/static/
-    volumes:
-      - ./backend/app/static:/app/app/static
-      - ./frontend:/app
-    depends_on:
-      - backend
+- `app`: backend runtime at port `8000`
+- `zeronet`: optional ZeroNet dependency at port `43110`
+
+Bring up stack:
+
+```bash
+docker compose up --build
 ```
 
-- In production, only `backend` is needed; React is a static build.
+## Environment Configuration
 
----
+Primary backend settings:
 
-## ARM64 Support
+- `DATABASE_URL`
+- `LEGACY_DATABASE_URL`
+- `ZERONET_URL`
+- `CORS_ORIGINS`
+- `FRONTEND_BUILD_PATH`
+- `ACE_ENGINE_URL`
 
-- Use multi-arch base images (`python:3.11-slim`, `node:20-alpine`).
-- Test on both x86_64 and arm64 hosts (Raspberry Pi, Apple Silicon, etc.).
+Legacy env aliases remain supported for one release window (`v2-cutover-r1`) with canonical-variable precedence and conflict warnings.
 
----
+## Multi-Architecture Direction
 
-## Static Assets
-
-- All frontend assets are placed in `backend/app/static` and versioned if needed.
-
----
-
-**See [`docs/dev/backend.md`](../dev/backend.md) and [`docs/dev/frontend.md`](../dev/frontend.md) for developer setup.**
+Current deployment docs define one canonical runtime path. Multi-arch release hardening (including `linux/arm/v7` and `linux/arm64`) is tracked in roadmap Phase 5 and will extend this document with buildx and runtime validation details.

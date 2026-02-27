@@ -1,62 +1,19 @@
-# Acestream Scraper Rewrite (AI-Driven, Fullstack)
+# Documentation Home
 
-This project is a **modern, AI-assisted rewrite** of Acestream Scraper, featuring:
+This repository now uses a single root deployment model:
 
-- **FastAPI** backend (Python, async, fully typed, OpenAPI-first)
-- **React** frontend (TypeScript, modular, reusable components)
-- **Unified deployment:** Both frontend and backend served from the same endpoint for seamless SPA/API experience.
-- **Multi-arch Docker:** x86_64 and arm64 support.
-- **Copilot/AI-first workflow:** All code, docs, and DTOs are written and documented for maximum Copilot/codegen effectiveness.
+- `backend/` is the API/runtime source of truth.
+- `frontend/` is the web UI source of truth.
 
----
+## Key Docs
 
-## Quickstart
+- `docs/architecture/deployment.md`: production and local deployment model for `backend/` + `frontend/`.
+- `docs/migration/migration-strategy.md`: cutover rules and migration direction.
+- `docs/migration/development-phases.md`: planned phase breakdown.
+- `docs/migration/development-progress.md`: current execution progress and completed work.
 
-**Development:**
+## Developer Entry Points
 
-- See [`docs/dev/backend.md`](docs/dev/backend.md) for backend setup instructions (Python, Copilot, local dev).
-- See [`docs/dev/frontend.md`](docs/dev/frontend.md) for frontend setup (React, TypeScript, Copilot).
-- See [`docs/architecture/api-structure.md`](docs/architecture/api-structure.md) for how the API/DTOs are organized.
-- See [`docs/architecture/deployment.md`](docs/architecture/deployment.md) for Docker, single-endpoint serving, and multi-arch notes.
-
-**AI/LLM/Copilot Usage:**
-
-- See [`docs/ai/copilot-guidelines.md`](docs/ai/copilot-guidelines.md) for using Copilot or other LLMs to extend or maintain the project.
-
----
-
-## Project Structure
-
-```
-.
-├── backend/             # FastAPI app
-├── frontend/            # React app (TypeScript)
-├── docs/                # Full project documentation
-├── docker-compose.yml   # Unified dev/prod stack
-└── README.md
-```
-
----
-
-## Key Features
-
-- All scraper logic and core algorithms retained and modularized.
-- Modern, reusable, testable Python and TypeScript code.
-- Fully documented OpenAPI schema – auto-generates frontend API client.
-- Responsive, feature-rich UI (React) with search, status, playlist, and configuration.
-- ARM64-ready, efficient Docker builds.
-- Designed for ongoing AI/Copilot-assisted development.
-
----
-
-## Contributing
-
-1. Read [`docs/ai/copilot-guidelines.md`](docs/ai/copilot-guidelines.md) to get the most out of Copilot/AI.
-2. Use the provided scripts/linting/formatting tools.
-3. All contributions (code, docs, or tests) must be type-annotated and documented.
-
----
-
-## License
-
-MIT License
+- Backend local run: `cd backend && uvicorn main:app --reload --host 0.0.0.0 --port 8000`
+- Frontend local run: `cd frontend && npm start`
+- Container stack: `docker compose up --build`

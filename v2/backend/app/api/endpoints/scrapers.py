@@ -2,13 +2,11 @@
 API endpoints for scraper management
 """
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
-from sqlalchemy.orm import Session
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 
-from app.config.database import get_db
+from app.api.dependencies import get_scraper_service
 from app.schemas.scraper import ScraperRequest, ScraperResult, URLResponse, URLCreate, URLUpdate
 from app.services.scraper_service import ScraperService
-from app.models.models import ScrapedURL
 
 router = APIRouter()
 
@@ -22,7 +20,7 @@ class ScraperResultExtended(ScraperResult):
 async def scrape_url(
     request: ScraperRequest,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db)
+    scraper_service: ScraperService = Depends(get_scraper_service),
 ):
     """
     Scrape a URL for Acestream channels.
@@ -32,7 +30,6 @@ async def scrape_url(
     - url_type: (Optional) URL type ('auto', 'regular', 'zeronet')
     - run_async: (Optional) Run scraping in background
     """
-    scraper_service = ScraperService(db)
     # Basic validation for invalid URLs
     if not request.url or not request.url.startswith("http"):
         raise HTTPException(status_code=400, detail="Scraping failed: invalid URL")
@@ -76,24 +73,22 @@ async def scrape_url(
 async def get_scraped_urls(
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db)
+    scraper_service: ScraperService = Depends(get_scraper_service),
 ):
     """
     Get list of URLs that have been scraped.
     """
-    scraper_service = ScraperService(db)
     return scraper_service.get_scraped_urls(skip=skip, limit=limit)
 
 
 @router.post("/urls", response_model=URLResponse, status_code=201)
 async def create_scraped_url(
     url_data: URLCreate,
-    db: Session = Depends(get_db)
+    scraper_service: ScraperService = Depends(get_scraper_service),
 ):
     """
     Create a new URL to be scraped.
     """
-    scraper_service = ScraperService(db)
     # Validate required fields
     if not url_data.url or not url_data.url_type:
         raise HTTPException(status_code=422, detail="Missing required fields: url and url_type")
@@ -103,12 +98,11 @@ async def create_scraped_url(
 @router.get("/urls/{url_id}", response_model=URLResponse)
 async def get_scraped_url(
     url_id: int,
-    db: Session = Depends(get_db)
+    scraper_service: ScraperService = Depends(get_scraper_service),
 ):
     """
     Get a specific scraped URL by ID.
     """
-    scraper_service = ScraperService(db)
     url = scraper_service.get_scraped_url(url_id)
     if not url:
         raise HTTPException(status_code=404, detail="URL not found")
@@ -119,12 +113,11 @@ async def get_scraped_url(
 async def update_scraped_url(
     url_id: int,
     url_data: URLUpdate,
-    db: Session = Depends(get_db)
+    scraper_service: ScraperService = Depends(get_scraper_service),
 ):
     """
     Update a scraped URL.
     """
-    scraper_service = ScraperService(db)
     url = scraper_service.update_scraped_url(url_id, url_data)
     if not url:
         raise HTTPException(status_code=404, detail="URL not found")
@@ -134,12 +127,11 @@ async def update_scraped_url(
 @router.delete("/urls/{url_id}", status_code=204)
 async def delete_scraped_url(
     url_id: int,
-    db: Session = Depends(get_db)
+    scraper_service: ScraperService = Depends(get_scraper_service),
 ):
     """
     Delete a scraped URL.
     """
-    scraper_service = ScraperService(db)
     success = scraper_service.delete_scraped_url(url_id)
     if not success:
         raise HTTPException(status_code=404, detail="URL not found")
@@ -150,18 +142,16 @@ async def delete_scraped_url(
 async def scrape_specific_url(
     url_id: int,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db)
+    scraper_service: ScraperService = Depends(get_scraper_service),
 ):
     """
     Scrape a specific URL by ID.
     """
-    scraper_service = ScraperService(db)
     url = scraper_service.get_scraped_url(url_id)
     if not url:
         raise HTTPException(status_code=404, detail="URL not found")
-    # Check if URL is enabled
-    db_url = db.query(ScrapedURL).filter(ScrapedURL.id == url_id).first()
-    if db_url and not db_url.enabled:
+    url_entity = scraper_service.get_scraped_url_entity(url_id)
+    if url_entity and not url_entity.enabled:
         raise HTTPException(status_code=400, detail="URL is disabled")
     background_tasks.add_task(
         scraper_service.scrape_url,
@@ -181,12 +171,11 @@ async def scrape_specific_url(
 async def scrape_all_urls(
     background_tasks: BackgroundTasks,
     limit: Optional[int] = Query(None),
-    db: Session = Depends(get_db)
+    scraper_service: ScraperService = Depends(get_scraper_service),
 ):
     """
     Scrape all enabled URLs, with optional limit.
     """
-    scraper_service = ScraperService(db)
     urls = scraper_service.get_enabled_urls()
     if limit is not None:
         urls = urls[:limit]

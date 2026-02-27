@@ -1,27 +1,29 @@
 from sqlalchemy.orm import Session
-from app.models.models import AcestreamChannel, ScrapedURL, TVChannel
-from app.schemas.stats_schemas import URLStats, StatsResponse, TVChannelStatsResponse
+
 from app.config.settings import settings
+from app.repositories.stats_repository import StatsRepository
+from app.schemas.stats_schemas import StatsResponse, TVChannelStatsResponse, URLStats
 from app.services.task_service import task_service
+
 
 class StatsService:
     def __init__(self, db: Session):
-        self.db = db
+        self.repository = StatsRepository(db)
 
     def get_stats(self) -> StatsResponse:
-        urls = self.db.query(ScrapedURL).all()
-        channels = self.db.query(AcestreamChannel).all()
+        urls = self.repository.get_urls()
+        channels = self.repository.get_channels()
+        channel_counts = self.repository.get_channel_counts_by_source_url([url.url for url in urls])
         # URL stats
         url_stats = []
         for url in urls:
-            channel_count = self.db.query(AcestreamChannel).filter(AcestreamChannel.source_url == url.url).count()
             url_stats.append(URLStats(
                 id=url.id,
                 url=url.url,
                 url_type=url.url_type,
                 status=url.status,
                 last_processed=str(url.last_scraped) if url.last_scraped else None,
-                channel_count=channel_count,
+                channel_count=channel_counts.get(url.url, 0),
                 enabled=url.status != 'disabled',
                 error_count=url.error_count or 0,
                 last_error=url.last_error
@@ -57,13 +59,34 @@ class StatsService:
         )
 
     def get_tv_channel_stats(self) -> TVChannelStatsResponse:
-        total = self.db.query(TVChannel).count()
-        active = self.db.query(TVChannel).filter(TVChannel.is_active == True).count()
-        with_epg = self.db.query(TVChannel).filter(TVChannel.epg_id.isnot(None)).count()
-        acestreams = self.db.query(AcestreamChannel).filter(AcestreamChannel.tv_channel_id.isnot(None)).count()
+        total, active, with_epg, acestreams = self.repository.get_tv_channel_rollup()
         return TVChannelStatsResponse(
             total=total,
             active=active,
             with_epg=with_epg,
             acestreams=acestreams
         )
+
+    def get_health_stats(self):
+        """Compact stats payload for /health/stats endpoint."""
+        rollup = self.repository.get_health_rollup()
+        channels = rollup["channels"]
+        return {
+            "channels": channels,
+            "channels_detail": {
+                "total": channels,
+                "online": 0,
+                "offline": 0,
+                "unknown": 0,
+            },
+            "urls": {
+                "total": rollup["scraped_urls"],
+                "active": 0,
+                "error": 0,
+            },
+            "epg": {
+                "sources": rollup["epg_sources"],
+                "channels": rollup["epg_channels"],
+                "programs": rollup["epg_programs"],
+            },
+        }

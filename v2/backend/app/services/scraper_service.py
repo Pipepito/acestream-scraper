@@ -13,6 +13,7 @@ from app.services.channel_service import ChannelService
 from app.services.m3u_service import M3UService
 from app.services.epg_service import EPGService
 from app.services.tvchannel_service import TVChannelService
+from app.repositories.url_repository import URLRepository
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,7 @@ class ScraperService:
 
     def __init__(self, db: Session):
         self.db = db
+        self.url_repository = URLRepository(db)
 
     async def scrape_url(self, url: str, url_type: str = 'auto') -> Tuple[List[ChannelResult], str]:
         """
@@ -99,7 +101,7 @@ class ScraperService:
 
     def get_scraped_urls(self, skip: int = 0, limit: int = 100) -> List[URLResponse]:
         """Get list of URLs that have been scraped, including channels_found count"""
-        urls = self.db.query(ScrapedURL).offset(skip).limit(limit).all()
+        urls = self.url_repository.get_all(skip=skip, limit=limit)
         # Get all source_urls in one query for efficiency
         url_to_count = {}
         if urls:
@@ -121,20 +123,23 @@ class ScraperService:
 
     def get_scraped_url(self, url_id: int) -> Optional[URLResponse]:
         """Get a specific scraped URL by ID"""
-        url = self.db.query(ScrapedURL).filter(ScrapedURL.id == url_id).first()
+        url = self.url_repository.get_by_id(url_id)
         return URLResponse.model_validate(url) if url else None
+
+    def get_scraped_url_entity(self, url_id: int) -> Optional[ScrapedURL]:
+        """Get raw scraped URL model for service-internal decisions."""
+        return self.url_repository.get_by_id(url_id)
 
     def create_scraped_url(self, url_data: URLCreate) -> URLResponse:
         """Create a new scraped URL or update existing if duplicate"""
         # Check for existing URL
-        url = self.db.query(ScrapedURL).filter(ScrapedURL.url == url_data.url).first()
+        url = self.url_repository.get_by_url(url_data.url)
         if url:
             # Update fields if duplicate
             url.url_type = url_data.url_type
             url.enabled = url_data.enabled
             url.status = url_data.status
-            self.db.commit()
-            self.db.refresh(url)
+            url = self.url_repository.update(url)
             return URLResponse.model_validate(url)
         # Create new if not exists
         url = ScrapedURL(
@@ -143,14 +148,13 @@ class ScraperService:
             enabled=url_data.enabled,
             status=url_data.status
         )
-        self.db.add(url)
-        self.db.commit()
+        self.url_repository.add(url)
         self.db.refresh(url)
         return URLResponse.model_validate(url)
 
     def update_scraped_url(self, url_id: int, url_data: URLUpdate) -> Optional[URLResponse]:
         """Update a scraped URL"""
-        url = self.db.query(ScrapedURL).filter(ScrapedURL.id == url_id).first()
+        url = self.url_repository.get_by_id(url_id)
         if not url:
             return None
 
@@ -158,20 +162,19 @@ class ScraperService:
         for field, value in update_data.items():
             setattr(url, field, value)
 
-        self.db.commit()
+        url = self.url_repository.update(url)
         self.db.refresh(url)
         return URLResponse.model_validate(url)
 
     def delete_scraped_url(self, url_id: int) -> bool:
         """Delete a scraped URL"""
-        url = self.db.query(ScrapedURL).filter(ScrapedURL.id == url_id).first()
+        url = self.url_repository.get_by_id(url_id)
         if not url:
             return False
 
-        self.db.delete(url)
-        self.db.commit()
+        self.url_repository.delete(url)
         return True
 
     def get_enabled_urls(self) -> List[ScrapedURL]:
         """Get all enabled URLs"""
-        return self.db.query(ScrapedURL).filter(ScrapedURL.enabled == True).all()
+        return self.url_repository.get_enabled()

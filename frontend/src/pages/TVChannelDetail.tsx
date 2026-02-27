@@ -64,6 +64,7 @@ const TVChannelDetail: React.FC = () => {
     searchTerm ? { search: searchTerm } : {},
     { staleTime: 1000 * 60 }
   );
+  const acestreamCandidateItems = acestreamCandidates?.items || [];
 
   const handleGoBack = () => {
     navigate('/tv-channels');
@@ -597,12 +598,12 @@ const TVChannelDetail: React.FC = () => {
               <Box display="flex" justifyContent="center" my={2}><CircularProgress /></Box>
             ) : (
               <List sx={{ maxHeight: 350, overflow: 'auto' }}>
-                {(acestreamCandidates?.length ?? 0) === 0 ? (
+                {acestreamCandidateItems.length === 0 ? (
                   <ListItem>
                     <ListItemText primary="No Acestream channels found." />
                   </ListItem>
                 ) : (
-                  (acestreamCandidates || []).map((acestream: any) => (
+                  acestreamCandidateItems.map((acestream: any) => (
                     <ListItem
                       key={acestream.id}
                       button

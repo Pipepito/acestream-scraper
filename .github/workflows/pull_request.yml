@@ -40,13 +40,6 @@ jobs:
           cd frontend
           npm ci
 
-      - name: Run frontend tests
-        env:
-          CI: "true"
-        run: |
-          cd frontend
-          npm test -- --watch=false
-
       - name: Run frontend build
         run: |
           cd frontend

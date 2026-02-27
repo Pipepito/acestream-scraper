@@ -222,5 +222,23 @@ v2/frontend/npm-debug.log*
 v2/frontend/yarn-debug.log*
 v2/frontend/yarn-error.log*
 v2/frontend/.eslintcache
+
+# root frontend (v2 cutover)
+frontend/node_modules/
+frontend/.pnp
+frontend/.pnp.js
+frontend/coverage/
+frontend/build/
+frontend/dist/
+frontend/.DS_Store
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.eslintcache
 list.m3u
 v2/backend/config/scraper.db

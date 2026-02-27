@@ -10,7 +10,7 @@ This roadmap delivers a big-bang migration from the legacy root stack to a singl
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
-- [ ] **Phase 1: Parity Baseline and Safety Gates** - Lock scraper/output parity and migration acceptance checks.
+- [x] **Phase 1: Parity Baseline and Safety Gates** - Lock scraper/output parity and migration acceptance checks. (completed 2026-02-27)
 - [ ] **Phase 2: Backend Contract and Structure Hardening** - Stabilize v2 backend contracts and architecture boundaries.
 - [ ] **Phase 3: v2-Only Cutover and Legacy Retirement** - Replace root runtime/build ownership with v2-only paths.
 - [ ] **Phase 4: Frontend UX Modernization** - Improve usability, responsiveness, and operational flow clarity.
@@ -114,7 +114,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Parity Baseline and Safety Gates | 1/2 | In Progress|  |
+| 1. Parity Baseline and Safety Gates | 2/2 | Complete    | 2026-02-27 |
 | 2. Backend Contract and Structure Hardening | 0/3 | Not started | - |
 | 3. v2-Only Cutover and Legacy Retirement | 0/3 | Not started | - |
 | 4. Frontend UX Modernization | 0/3 | Not started | - |

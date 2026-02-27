@@ -44,7 +44,7 @@
 - [ ] **QUAL-01**: Regression test coverage for critical flows is rebuilt/owned under v2 test locations (`v2/backend/tests`, `v2/frontend/src/__tests__`).
 - [ ] **QUAL-02**: Legacy root tests are retained only as temporary parity references, then removed once v2 coverage is sufficient.
 - [ ] **QUAL-03**: Known high-impact bugs in current v2 paths are fixed before cutover.
-- [ ] **QUAL-04**: Phase acceptance gates require measurable verification before marking migration complete.
+- [x] **QUAL-04**: Phase acceptance gates require measurable verification before marking migration complete.
 
 ## v2 Requirements
 
@@ -94,7 +94,7 @@ Which phases cover which requirements.
 | QUAL-01 | Phase 6 | Pending |
 | QUAL-02 | Phase 6 | Pending |
 | QUAL-03 | Phase 6 | Pending |
-| QUAL-04 | Phase 1 | Pending |
+| QUAL-04 | Phase 1 | Complete |
 
 **Coverage:**
 - v1 requirements: 23 total

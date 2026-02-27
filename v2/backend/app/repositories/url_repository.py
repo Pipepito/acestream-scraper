@@ -16,6 +16,11 @@ class URLRepository:
         result = self.db.execute(select(ScrapedURL).offset(skip).limit(limit))
         return result.scalars().all()
 
+    def get_enabled(self) -> List[ScrapedURL]:
+        """Get enabled ScrapedURLs only."""
+        result = self.db.execute(select(ScrapedURL).where(ScrapedURL.enabled == True))
+        return result.scalars().all()
+
     def get_by_id(self, url_id: int) -> Optional[ScrapedURL]:
         """Get a ScrapedURL by id"""
         result = self.db.execute(select(ScrapedURL).where(ScrapedURL.id == url_id))
@@ -76,3 +81,24 @@ class URLRepository:
         """Delete a ScrapedURL"""
         self.db.delete(scraped_url)
         self.db.commit()
+
+    def refresh_url(self, url_id: int) -> bool:
+        """Mark one URL as refreshing and update the last scrape timestamp."""
+        url = self.get_by_id(url_id)
+        if not url:
+            return False
+        url.last_scraped = datetime.utcnow()
+        url.status = "refreshing"
+        self.update(url)
+        return True
+
+    def refresh_all_urls(self) -> int:
+        """Mark all URLs as refreshing and update the last scrape timestamp."""
+        urls = self.get_all(skip=0, limit=100000)
+        now = datetime.utcnow()
+        for url in urls:
+            url.last_scraped = now
+            url.status = "refreshing"
+            self.db.add(url)
+        self.db.commit()
+        return len(urls)

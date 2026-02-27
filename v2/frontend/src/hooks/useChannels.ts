@@ -1,10 +1,20 @@
 
 import { useQuery, useMutation, useQueryClient, UseQueryOptions } from 'react-query';
-import { acestreamChannelService, AcestreamChannel, CreateAcestreamChannelDTO, UpdateAcestreamChannelDTO, AcestreamChannelFilters } from '../services/channelService';
+import {
+  AcestreamChannel,
+  AcestreamChannelFilters,
+  CreateAcestreamChannelDTO,
+  PaginatedAcestreamChannels,
+  UpdateAcestreamChannelDTO,
+  acestreamChannelService,
+} from '../services/channelService';
 
 // Fetch all Acestream channels
-export const useAcestreamChannels = (filters?: AcestreamChannelFilters, options?: UseQueryOptions<AcestreamChannel[]>) => {
-  return useQuery<AcestreamChannel[]>(
+export const useAcestreamChannels = (
+  filters?: AcestreamChannelFilters,
+  options?: UseQueryOptions<PaginatedAcestreamChannels>
+) => {
+  return useQuery<PaginatedAcestreamChannels>(
     ['acestream-channels', filters],
     () => acestreamChannelService.getAcestreamChannels(filters),
     options

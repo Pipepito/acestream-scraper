@@ -81,7 +81,7 @@ export const configService = {
    * Update the rescrape interval
    */
   updateRescrapeInterval: async (hours: number): Promise<void> => {
-    await apiClient.put(`${BASE_URL}/rescrape_interval`, { hours });
+    await apiClient.put(`${BASE_URL}/rescrape_interval`, { value: String(hours) });
   },
 
   /**

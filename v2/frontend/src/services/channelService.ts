@@ -77,6 +77,11 @@ export interface AcestreamChannelFilters {
   active_only?: boolean; // Added to support backend override
 }
 
+export interface PaginatedAcestreamChannels {
+  items: AcestreamChannel[];
+  total: number;
+}
+
 /**
  * Channel API service
  */
@@ -84,7 +89,7 @@ const acestreamChannelService = {
   /**
    * Get all channels with optional filtering
    */
-  getAcestreamChannels: async (filters?: AcestreamChannelFilters): Promise<AcestreamChannel[]> => {
+  getAcestreamChannels: async (filters?: AcestreamChannelFilters): Promise<PaginatedAcestreamChannels> => {
     // Convert string values for is_online and is_active to booleans if present
     const params = { ...filters };
     if (typeof params.is_online === 'string') {
@@ -166,7 +171,10 @@ const acestreamChannelService = {
   /**
    * Bulk edit channels
    */
-  bulkEditAcestreamChannels: async (ids: string[], fields: any): Promise<any[]> => {
+  bulkEditAcestreamChannels: async (
+    ids: string[],
+    fields: Partial<UpdateAcestreamChannelDTO>
+  ): Promise<AcestreamChannel[]> => {
     const { data } = await apiClient.put('/v1/acestream-channels/bulk_edit', { acestreamchannel_ids: ids, fields });
     return data;
   },
@@ -174,7 +182,7 @@ const acestreamChannelService = {
   /**
    * Bulk activate/deactivate channels
    */
-  bulkActivateAcestreamChannels: async (ids: string[], active: boolean): Promise<any[]> => {
+  bulkActivateAcestreamChannels: async (ids: string[], active: boolean): Promise<AcestreamChannel[]> => {
     const { data } = await apiClient.post('/v1/acestream-channels/bulk_activate', { acestreamchannel_ids: ids, active });
     return data;
   },

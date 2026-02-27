@@ -114,7 +114,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Parity Baseline and Safety Gates | 0/2 | Not started | - |
+| 1. Parity Baseline and Safety Gates | 1/2 | In Progress|  |
 | 2. Backend Contract and Structure Hardening | 0/3 | Not started | - |
 | 3. v2-Only Cutover and Legacy Retirement | 0/3 | Not started | - |
 | 4. Frontend UX Modernization | 0/3 | Not started | - |

@@ -14,10 +14,10 @@
 
 ### Scraping and Data Integrity
 
-- [ ] **SCRP-01**: Existing HTTP/M3U scraping behavior is preserved in v2 for currently working sources.
-- [ ] **SCRP-02**: Existing ZeroNet scraping behavior is preserved in v2 for currently working sources.
-- [ ] **SCRP-03**: Scrape runs persist channels and metadata without regression in core fields (`id`, `name`, `group`, `logo`, `tvg_id`, `tvg_name`, source linkage).
-- [ ] **SCRP-04**: Playlist and EPG generation workflows produce valid outputs for representative datasets.
+- [x] **SCRP-01**: Existing HTTP/M3U scraping behavior is preserved in v2 for currently working sources.
+- [x] **SCRP-02**: Existing ZeroNet scraping behavior is preserved in v2 for currently working sources.
+- [x] **SCRP-03**: Scrape runs persist channels and metadata without regression in core fields (`id`, `name`, `group`, `logo`, `tvg_id`, `tvg_name`, source linkage).
+- [x] **SCRP-04**: Playlist and EPG generation workflows produce valid outputs for representative datasets.
 
 ### Backend Architecture and API
 
@@ -76,10 +76,10 @@ Which phases cover which requirements.
 | MIGR-02 | Phase 3 | Pending |
 | MIGR-03 | Phase 2 | Pending |
 | MIGR-04 | Phase 3 | Pending |
-| SCRP-01 | Phase 1 | Pending |
-| SCRP-02 | Phase 1 | Pending |
-| SCRP-03 | Phase 1 | Pending |
-| SCRP-04 | Phase 1 | Pending |
+| SCRP-01 | Phase 1 | Complete |
+| SCRP-02 | Phase 1 | Complete |
+| SCRP-03 | Phase 1 | Complete |
+| SCRP-04 | Phase 1 | Complete |
 | API-01 | Phase 2 | Pending |
 | API-02 | Phase 2 | Pending |
 | API-03 | Phase 2 | Pending |

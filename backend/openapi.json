@@ -1,0 +1,3840 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Acestream Scraper API",
+    "description": "API for scraping and managing Acestream channels",
+    "version": "2.0.0"
+  },
+  "paths": {
+    "/api/v1/channels/": {
+      "get": {
+        "tags": ["channels"],
+        "summary": "Get Channels",
+        "description": "Get all channels with optional filtering.\nSupports both skip/limit and page/page_size parameters.",
+        "operationId": "get_channels_api_v1_channels__get",
+        "parameters": [
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 0, "title": "Skip" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 100, "title": "Limit" }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "title": "Page" }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "title": "Page Size" }
+          },
+          {
+            "name": "active_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": true,
+              "title": "Active Only"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Search"
+            }
+          },
+          {
+            "name": "group",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Group"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/ChannelResponse" },
+                  "title": "Response Get Channels Api V1 Channels  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["channels"],
+        "summary": "Create Channel",
+        "description": "Create a new Acestream channel. If a channel with the same ID exists, update it.",
+        "operationId": "create_channel_api_v1_channels__post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ChannelCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ChannelResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/channels/status_summary": {
+      "get": {
+        "tags": ["channels"],
+        "summary": "Get Channel Status Summary",
+        "description": "Get summary of channel statuses.",
+        "operationId": "get_channel_status_summary_api_v1_channels_status_summary_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelStatusSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/channels/groups": {
+      "get": {
+        "tags": ["channels"],
+        "summary": "Get Channel Groups",
+        "description": "Get unique channel groups.",
+        "operationId": "get_channel_groups_api_v1_channels_groups_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          }
+        }
+      }
+    },
+    "/api/v1/channels/check_status_all": {
+      "post": {
+        "tags": ["channels"],
+        "summary": "Check All Channels Status",
+        "description": "Check the online status of all active channels or specific channels.",
+        "operationId": "check_all_channels_status_api_v1_channels_check_status_all_post",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "integer" }, { "type": "null" }],
+              "title": "Limit"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  { "$ref": "#/components/schemas/StatusCheckRequest" },
+                  { "type": "null" }
+                ],
+                "title": "Request"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkStatusCheckResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/channels/tv/": {
+      "get": {
+        "tags": ["channels"],
+        "summary": "Get Tv Channels",
+        "description": "Get all TV channels.",
+        "operationId": "get_tv_channels_api_v1_channels_tv__get",
+        "parameters": [
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 0, "title": "Skip" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 100, "title": "Limit" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/TVChannelResponse" },
+                  "title": "Response Get Tv Channels Api V1 Channels Tv  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/channels/{channel_id}": {
+      "get": {
+        "tags": ["channels"],
+        "summary": "Get Channel",
+        "description": "Get a specific channel by ID.",
+        "operationId": "get_channel_api_v1_channels__channel_id__get",
+        "parameters": [
+          {
+            "name": "channel_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Channel Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ChannelResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["channels"],
+        "summary": "Update Channel",
+        "description": "Update an existing channel.",
+        "operationId": "update_channel_api_v1_channels__channel_id__put",
+        "parameters": [
+          {
+            "name": "channel_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Channel Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ChannelUpdate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ChannelResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["channels"],
+        "summary": "Delete Channel",
+        "description": "Delete a channel.",
+        "operationId": "delete_channel_api_v1_channels__channel_id__delete",
+        "parameters": [
+          {
+            "name": "channel_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Channel Id" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "Successful Response" },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/channels/{channel_id}/check_status": {
+      "post": {
+        "tags": ["channels"],
+        "summary": "Check Channel Status",
+        "description": "Check the online status of a specific channel via Acestream engine.",
+        "operationId": "check_channel_status_api_v1_channels__channel_id__check_status_post",
+        "parameters": [
+          {
+            "name": "channel_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Channel Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelStatusResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tv-channels/": {
+      "get": {
+        "tags": ["tv-channels"],
+        "summary": "Get Tv Channels",
+        "description": "Get all TV channels.",
+        "operationId": "get_tv_channels_api_v1_tv_channels__get",
+        "parameters": [
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 0, "title": "Skip" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 100, "title": "Limit" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/TVChannelResponse" },
+                  "title": "Response Get Tv Channels Api V1 Tv Channels  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["tv-channels"],
+        "summary": "Create Tv Channel",
+        "description": "Create a new TV channel.",
+        "operationId": "create_tv_channel_api_v1_tv_channels__post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TVChannelCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TVChannelResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tv-channels/{tv_channel_id}": {
+      "get": {
+        "tags": ["tv-channels"],
+        "summary": "Get Tv Channel",
+        "description": "Get a specific TV channel by ID.",
+        "operationId": "get_tv_channel_api_v1_tv_channels__tv_channel_id__get",
+        "parameters": [
+          {
+            "name": "tv_channel_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Tv Channel Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TVChannelResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["tv-channels"],
+        "summary": "Update Tv Channel",
+        "description": "Update an existing TV channel.",
+        "operationId": "update_tv_channel_api_v1_tv_channels__tv_channel_id__put",
+        "parameters": [
+          {
+            "name": "tv_channel_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Tv Channel Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TVChannelUpdate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TVChannelResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["tv-channels"],
+        "summary": "Delete Tv Channel",
+        "description": "Delete a TV channel.",
+        "operationId": "delete_tv_channel_api_v1_tv_channels__tv_channel_id__delete",
+        "parameters": [
+          {
+            "name": "tv_channel_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Tv Channel Id" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "Successful Response" },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tv-channels/{tv_channel_id}/acestreams": {
+      "get": {
+        "tags": ["tv-channels"],
+        "summary": "Get Tv Channel Acestreams",
+        "description": "Get all acestream channels associated with a TV channel.",
+        "operationId": "get_tv_channel_acestreams_api_v1_tv_channels__tv_channel_id__acestreams_get",
+        "parameters": [
+          {
+            "name": "tv_channel_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Tv Channel Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/ChannelResponse" },
+                  "title": "Response Get Tv Channel Acestreams Api V1 Tv Channels  Tv Channel Id  Acestreams Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["tv-channels"],
+        "summary": "Associate Acestream",
+        "description": "Associate an acestream channel with a TV channel.",
+        "operationId": "associate_acestream_api_v1_tv_channels__tv_channel_id__acestreams_post",
+        "parameters": [
+          {
+            "name": "tv_channel_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Tv Channel Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Association"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tv-channels/{tv_channel_id}/acestreams/{acestream_id}": {
+      "delete": {
+        "tags": ["tv-channels"],
+        "summary": "Remove Acestream Association",
+        "description": "Remove association between an acestream channel and a TV channel.",
+        "operationId": "remove_acestream_association_api_v1_tv_channels__tv_channel_id__acestreams__acestream_id__delete",
+        "parameters": [
+          {
+            "name": "tv_channel_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Tv Channel Id" }
+          },
+          {
+            "name": "acestream_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Acestream Id" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "Successful Response" },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tv-channels/batch-assign": {
+      "post": {
+        "tags": ["tv-channels"],
+        "summary": "Batch Assign Acestreams",
+        "description": "Batch assign acestream channels to TV channels.\n\nThe request body should be a dictionary where keys are TV channel IDs\nand values are lists of acestream channel IDs.\n\nExample:\n{\n    \"1\": [\"acestream1\", \"acestream2\"],\n    \"2\": [\"acestream3\"]\n}",
+        "operationId": "batch_assign_acestreams_api_v1_tv_channels_batch_assign_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Assignment Data"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tv-channels/associate-by-epg": {
+      "post": {
+        "tags": ["tv-channels"],
+        "summary": "Associate By Epg",
+        "description": "Associate acestream channels with TV channels based on EPG IDs.\n\nThis endpoint attempts to match acestream channels with TV channels\nusing EPG IDs and channel names.",
+        "operationId": "associate_by_epg_api_v1_tv_channels_associate_by_epg_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          }
+        }
+      }
+    },
+    "/api/v1/tv-channels/bulk-update-epg": {
+      "post": {
+        "tags": ["tv-channels"],
+        "summary": "Bulk Update Epg",
+        "description": "Update EPG IDs for multiple TV channels.\n\nThis endpoint updates EPG IDs for multiple TV channels in a batch.\n\nRequest format:\n{\n    \"updates\": [\n        {\"tv_channel_id\": 1, \"epg_id\": \"new.epg.id1\"},\n        {\"tv_channel_id\": 2, \"epg_id\": \"new.epg.id2\"}\n    ]\n}",
+        "operationId": "bulk_update_epg_api_v1_tv_channels_bulk_update_epg_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Update Data"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/scrapers/scrape": {
+      "post": {
+        "tags": ["scrapers"],
+        "summary": "Scrape Url",
+        "description": "Scrape a URL for Acestream channels.\n\nRequest body:\n- url: The URL to scrape\n- url_type: (Optional) URL type ('auto', 'regular', 'zeronet')\n- run_async: (Optional) Run scraping in background",
+        "operationId": "scrape_url_api_v1_scrapers_scrape_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ScraperRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScraperResultExtended"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/scrapers/urls": {
+      "get": {
+        "tags": ["scrapers"],
+        "summary": "Get Scraped Urls",
+        "description": "Get list of URLs that have been scraped.",
+        "operationId": "get_scraped_urls_api_v1_scrapers_urls_get",
+        "parameters": [
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 0, "title": "Skip" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 100, "title": "Limit" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/URLResponse" },
+                  "title": "Response Get Scraped Urls Api V1 Scrapers Urls Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["scrapers"],
+        "summary": "Create Scraped Url",
+        "description": "Create a new URL to be scraped.",
+        "operationId": "create_scraped_url_api_v1_scrapers_urls_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/URLCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/URLResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/scrapers/urls/{url_id}": {
+      "get": {
+        "tags": ["scrapers"],
+        "summary": "Get Scraped Url",
+        "description": "Get a specific scraped URL by ID.",
+        "operationId": "get_scraped_url_api_v1_scrapers_urls__url_id__get",
+        "parameters": [
+          {
+            "name": "url_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Url Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/URLResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["scrapers"],
+        "summary": "Update Scraped Url",
+        "description": "Update a scraped URL.",
+        "operationId": "update_scraped_url_api_v1_scrapers_urls__url_id__patch",
+        "parameters": [
+          {
+            "name": "url_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Url Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/URLUpdate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/URLResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["scrapers"],
+        "summary": "Delete Scraped Url",
+        "description": "Delete a scraped URL.",
+        "operationId": "delete_scraped_url_api_v1_scrapers_urls__url_id__delete",
+        "parameters": [
+          {
+            "name": "url_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Url Id" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "Successful Response" },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/scrapers/urls/{url_id}/scrape": {
+      "post": {
+        "tags": ["scrapers"],
+        "summary": "Scrape Specific Url",
+        "description": "Scrape a specific URL by ID.",
+        "operationId": "scrape_specific_url_api_v1_scrapers_urls__url_id__scrape_post",
+        "parameters": [
+          {
+            "name": "url_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Url Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScraperResultExtended"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/scrapers/urls/scrape_all": {
+      "post": {
+        "tags": ["scrapers"],
+        "summary": "Scrape All Urls",
+        "description": "Scrape all enabled URLs, with optional limit.",
+        "operationId": "scrape_all_urls_api_v1_scrapers_urls_scrape_all_post",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "integer" }, { "type": "null" }],
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ScraperResultExtended"
+                  },
+                  "title": "Response Scrape All Urls Api V1 Scrapers Urls Scrape All Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/epg/sources": {
+      "get": {
+        "tags": ["epg"],
+        "summary": "Get Epg Sources",
+        "description": "Get all EPG sources",
+        "operationId": "get_epg_sources_api_v1_epg_sources_get",
+        "parameters": [
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 0, "title": "Skip" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 100, "title": "Limit" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/EPGSourceResponse" },
+                  "title": "Response Get Epg Sources Api V1 Epg Sources Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["epg"],
+        "summary": "Create Epg Source",
+        "description": "Create a new EPG source",
+        "operationId": "create_epg_source_api_v1_epg_sources_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/EPGSourceCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EPGSourceResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/epg/sources/{source_id}": {
+      "get": {
+        "tags": ["epg"],
+        "summary": "Get Epg Source",
+        "description": "Get a specific EPG source by ID",
+        "operationId": "get_epg_source_api_v1_epg_sources__source_id__get",
+        "parameters": [
+          {
+            "name": "source_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Source Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EPGSourceResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["epg"],
+        "summary": "Update Epg Source",
+        "description": "Update an EPG source",
+        "operationId": "update_epg_source_api_v1_epg_sources__source_id__patch",
+        "parameters": [
+          {
+            "name": "source_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Source Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/EPGSourceUpdate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EPGSourceResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["epg"],
+        "summary": "Delete Epg Source",
+        "description": "Delete an EPG source",
+        "operationId": "delete_epg_source_api_v1_epg_sources__source_id__delete",
+        "parameters": [
+          {
+            "name": "source_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Source Id" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "Successful Response" },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/epg/sources/{source_id}/refresh": {
+      "post": {
+        "tags": ["epg"],
+        "summary": "Refresh Epg Source",
+        "description": "Refresh EPG data for a specific source",
+        "operationId": "refresh_epg_source_api_v1_epg_sources__source_id__refresh_post",
+        "parameters": [
+          {
+            "name": "source_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Source Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EPGRefreshResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/epg/sources/refresh_all": {
+      "post": {
+        "tags": ["epg"],
+        "summary": "Refresh All Epg Sources",
+        "description": "Refresh EPG data for all enabled sources",
+        "operationId": "refresh_all_epg_sources_api_v1_epg_sources_refresh_all_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EPGRefreshResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Refresh All Epg Sources Api V1 Epg Sources Refresh All Post"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/epg/channels": {
+      "get": {
+        "tags": ["epg"],
+        "summary": "Get Epg Channels",
+        "description": "Get EPG channels, optionally filtered by source ID",
+        "operationId": "get_epg_channels_api_v1_epg_channels_get",
+        "parameters": [
+          {
+            "name": "source_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "integer" }, { "type": "null" }],
+              "title": "Source Id"
+            }
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 0, "title": "Skip" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 100, "title": "Limit" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EPGChannelResponse"
+                  },
+                  "title": "Response Get Epg Channels Api V1 Epg Channels Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/epg/channels/{channel_id}": {
+      "get": {
+        "tags": ["epg"],
+        "summary": "Get Epg Channel",
+        "description": "Get a specific EPG channel by ID",
+        "operationId": "get_epg_channel_api_v1_epg_channels__channel_id__get",
+        "parameters": [
+          {
+            "name": "channel_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Channel Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EPGChannelResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/epg/channels/map": {
+      "post": {
+        "tags": ["epg"],
+        "summary": "Map Epg Channel To Tv",
+        "description": "Map an EPG channel to a TV channel",
+        "operationId": "map_epg_channel_to_tv_api_v1_epg_channels_map_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EPGChannelMappingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": { "description": "Successful Response" },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/epg/channels/unmap": {
+      "post": {
+        "tags": ["epg"],
+        "summary": "Unmap Epg Channel From Tv",
+        "description": "Remove a mapping between an EPG channel and a TV channel",
+        "operationId": "unmap_epg_channel_from_tv_api_v1_epg_channels_unmap_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EPGChannelMappingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": { "description": "Successful Response" },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/epg/channels/{channel_id}/programs": {
+      "get": {
+        "tags": ["epg"],
+        "summary": "Get Epg Programs",
+        "description": "Get programs for an EPG channel, optionally filtered by date range",
+        "operationId": "get_epg_programs_api_v1_epg_channels__channel_id__programs_get",
+        "parameters": [
+          {
+            "name": "channel_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Channel Id" }
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Start Date"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "End Date"
+            }
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 0, "title": "Skip" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 100, "title": "Limit" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EPGProgramResponse"
+                  },
+                  "title": "Response Get Epg Programs Api V1 Epg Channels  Channel Id  Programs Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/epg/channels/{channel_id}/mappings": {
+      "get": {
+        "tags": ["epg"],
+        "summary": "Get Epg String Mappings",
+        "description": "Get string mappings for an EPG channel",
+        "operationId": "get_epg_string_mappings_api_v1_epg_channels__channel_id__mappings_get",
+        "parameters": [
+          {
+            "name": "channel_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Channel Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EPGStringMappingResponse"
+                  },
+                  "title": "Response Get Epg String Mappings Api V1 Epg Channels  Channel Id  Mappings Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["epg"],
+        "summary": "Add Epg String Mapping",
+        "description": "Add a string mapping for an EPG channel. Accepts both direct JSON and Pydantic schema for backward compatibility.",
+        "operationId": "add_epg_string_mapping_api_v1_epg_channels__channel_id__mappings_post",
+        "parameters": [
+          {
+            "name": "channel_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Channel Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Mapping Data"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EPGStringMappingResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/epg/mappings/{mapping_id}": {
+      "patch": {
+        "tags": ["epg"],
+        "summary": "Update Epg String Mapping",
+        "description": "Update an existing EPG string mapping. Accepts both direct JSON and Pydantic schema for backward compatibility.",
+        "operationId": "update_epg_string_mapping_api_v1_epg_mappings__mapping_id__patch",
+        "parameters": [
+          {
+            "name": "mapping_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Mapping Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Mapping Data"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EPGStringMappingResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["epg"],
+        "summary": "Delete Epg String Mapping",
+        "description": "Delete a string mapping",
+        "operationId": "delete_epg_string_mapping_api_v1_epg_mappings__mapping_id__delete",
+        "parameters": [
+          {
+            "name": "mapping_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Mapping Id" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "Successful Response" },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/epg/mappings": {
+      "get": {
+        "tags": ["epg"],
+        "summary": "Get All Epg String Mappings",
+        "description": "Get all EPG string mappings across all channels",
+        "operationId": "get_all_epg_string_mappings_api_v1_epg_mappings_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EPGStringMappingResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Get All Epg String Mappings Api V1 Epg Mappings Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/epg/auto-scan": {
+      "post": {
+        "tags": ["epg"],
+        "summary": "Auto Map Channels",
+        "description": "Auto-map TV channels to EPG channels based on string patterns",
+        "operationId": "auto_map_channels_api_v1_epg_auto_scan_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          }
+        }
+      }
+    },
+    "/api/v1/epg/xml": {
+      "get": {
+        "tags": ["epg"],
+        "summary": "Get Epg Xml",
+        "description": "Generate EPG XML data in XMLTV format\n\nArgs:\n    search_term: Optional term to filter channels by name\n    favorites_only: If True, only include favorite channels\n    days_back: Number of days in the past to include programs for\n    days_forward: Number of days in the future to include programs for\n\nReturns:\n    XML content in XMLTV format",
+        "operationId": "get_epg_xml_api_v1_epg_xml_get",
+        "parameters": [
+          {
+            "name": "search_term",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Search Term"
+            }
+          },
+          {
+            "name": "favorites_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Favorites Only"
+            }
+          },
+          {
+            "name": "days_back",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 1, "title": "Days Back" }
+          },
+          {
+            "name": "days_forward",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 7,
+              "title": "Days Forward"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["epg"],
+        "summary": "Generate Epg Xml",
+        "description": "Generate EPG XML data with customizable parameters\n\nArgs:\n    request: Parameters for XML generation\n\nReturns:\n    XML content in XMLTV format",
+        "operationId": "generate_epg_xml_api_v1_epg_xml_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EPGXmlGenerationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/playlists/m3u": {
+      "get": {
+        "tags": ["playlists"],
+        "summary": "Get M3U Playlist",
+        "description": "Generate M3U playlist with specified filters\n\n- **search**: Optional search term for channel names\n- **group**: Optional specific group to filter by\n- **only_online**: Whether to include only online channels (default: True)\n- **include_groups**: Comma-separated list of groups to include\n- **exclude_groups**: Comma-separated list of groups to exclude",
+        "operationId": "get_m3u_playlist_api_v1_playlists_m3u_get",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Search"
+            }
+          },
+          {
+            "name": "group",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Group"
+            }
+          },
+          {
+            "name": "only_online",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": true,
+              "title": "Only Online"
+            }
+          },
+          {
+            "name": "include_groups",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Include Groups"
+            }
+          },
+          {
+            "name": "exclude_groups",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Exclude Groups"
+            }
+          },
+          {
+            "name": "base_url",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Base Url"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Format"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "text/plain": { "schema": { "type": "string" } } }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/playlists/playlists/m3u": {
+      "get": {
+        "tags": ["playlists"],
+        "summary": "Get M3U Playlist Compat",
+        "description": "Compatibility route for M3U playlist generation\n\nThis route exists to support legacy URLs. It behaves identically to the\n/m3u endpoint.",
+        "operationId": "get_m3u_playlist_compat_api_v1_playlists_playlists_m3u_get",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Search"
+            }
+          },
+          {
+            "name": "group",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Group"
+            }
+          },
+          {
+            "name": "only_online",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": true,
+              "title": "Only Online"
+            }
+          },
+          {
+            "name": "include_groups",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Include Groups"
+            }
+          },
+          {
+            "name": "exclude_groups",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Exclude Groups"
+            }
+          },
+          {
+            "name": "base_url",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Base Url"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Format"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "text/plain": { "schema": { "type": "string" } } }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/playlists/groups": {
+      "get": {
+        "tags": ["playlists"],
+        "summary": "Get Channel Groups",
+        "description": "Get list of all available channel groups",
+        "operationId": "get_channel_groups_api_v1_playlists_groups_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": { "type": "string" },
+                  "type": "array",
+                  "title": "Response Get Channel Groups Api V1 Playlists Groups Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/search": {
+      "get": {
+        "tags": ["search", "search"],
+        "summary": "Search Channels",
+        "description": "Search for Acestream channels via engine API",
+        "operationId": "search_channels_api_v1_search_get",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Search query string (optional)",
+              "default": "",
+              "title": "Query"
+            },
+            "description": "Search query string (optional)"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Page number (default: 1, must be >= 1)",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "Page number (default: 1, must be >= 1)"
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Results per page (default: 10, must be >= 1, alias: per_page)",
+              "default": 10,
+              "title": "Per Page"
+            },
+            "description": "Results per page (default: 10, must be >= 1, alias: per_page)"
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "description": "Filter by category (optional)",
+              "title": "Category"
+            },
+            "description": "Filter by category (optional)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SearchResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/search/add": {
+      "post": {
+        "tags": ["search", "search"],
+        "summary": "Add Channel",
+        "description": "Add a channel from search results to the database (delegated to service)",
+        "operationId": "add_channel_api_v1_search_add_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AddChannelRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/search/add_multiple": {
+      "post": {
+        "tags": ["search", "search"],
+        "summary": "Add Multiple Channels",
+        "description": "Add multiple channels from search results to the database (delegated to service)",
+        "operationId": "add_multiple_channels_api_v1_search_add_multiple_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AddMultipleRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/config/base_url": {
+      "get": {
+        "tags": ["config", "config"],
+        "summary": "Get Base Url",
+        "description": "Get the base URL for Acestream links",
+        "operationId": "get_base_url_api_v1_config_base_url_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SettingResponse" }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["config", "config"],
+        "summary": "Update Base Url",
+        "description": "Update the base URL for Acestream links",
+        "operationId": "update_base_url_api_v1_config_base_url_put",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          }
+        }
+      }
+    },
+    "/api/v1/config/ace_engine_url": {
+      "get": {
+        "tags": ["config", "config"],
+        "summary": "Get Ace Engine Url",
+        "description": "Get the Acestream Engine URL",
+        "operationId": "get_ace_engine_url_api_v1_config_ace_engine_url_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SettingResponse" }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["config", "config"],
+        "summary": "Update Ace Engine Url",
+        "description": "Update the Acestream Engine URL",
+        "operationId": "update_ace_engine_url_api_v1_config_ace_engine_url_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AceEngineUrlUpdate" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/config/rescrape_interval": {
+      "get": {
+        "tags": ["config", "config"],
+        "summary": "Get Rescrape Interval",
+        "description": "Get the interval between automatic rescrapes in hours",
+        "operationId": "get_rescrape_interval_api_v1_config_rescrape_interval_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SettingResponse" }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["config", "config"],
+        "summary": "Update Rescrape Interval",
+        "description": "Update the interval between automatic rescrapes in hours",
+        "operationId": "update_rescrape_interval_api_v1_config_rescrape_interval_put",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          }
+        }
+      }
+    },
+    "/api/v1/config/addpid": {
+      "get": {
+        "tags": ["config", "config"],
+        "summary": "Get Addpid",
+        "description": "Get whether to add PID to Acestream links",
+        "operationId": "get_addpid_api_v1_config_addpid_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SettingResponse" }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["config", "config"],
+        "summary": "Update Addpid",
+        "description": "Update whether to add PID to Acestream links",
+        "operationId": "update_addpid_api_v1_config_addpid_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AddPidUpdate" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/config/all": {
+      "get": {
+        "tags": ["config", "config"],
+        "summary": "Get All Settings",
+        "description": "Get all settings",
+        "operationId": "get_all_settings_api_v1_config_all_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SettingsResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/config/acestream_status": {
+      "get": {
+        "tags": ["config", "config"],
+        "summary": "Check Acestream Status",
+        "description": "Check the status of the Acestream Engine",
+        "operationId": "check_acestream_status_api_v1_config_acestream_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          }
+        }
+      }
+    },
+    "/api/v1/config/{key}": {
+      "get": {
+        "tags": ["config", "config"],
+        "summary": "Get Config Key",
+        "description": "Generic GET for config keys",
+        "operationId": "get_config_key_api_v1_config__key__get",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Key" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SettingResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["config", "config"],
+        "summary": "Update Config Key",
+        "description": "Generic PUT for config keys",
+        "operationId": "update_config_key_api_v1_config__key__put",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Key" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "tags": ["health", "health"],
+        "summary": "Check Health",
+        "description": "Check the overall system health",
+        "operationId": "check_health_api_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HealthResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/stats": {
+      "get": {
+        "tags": ["health", "health"],
+        "summary": "Get Stats",
+        "description": "Get system statistics",
+        "operationId": "get_stats_api_v1_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          }
+        }
+      }
+    },
+    "/api/v1/warp/status": {
+      "get": {
+        "tags": ["warp"],
+        "summary": "Get WARP status",
+        "description": "Get the current status of the WARP client.\n\nReturns:\n    Information about the current WARP status.",
+        "operationId": "get_warp_status_api_v1_warp_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          }
+        }
+      }
+    },
+    "/api/v1/warp/connect": {
+      "post": {
+        "tags": ["warp"],
+        "summary": "Connect to WARP",
+        "description": "Connect to the WARP network.\n\nReturns:\n    Success message if the connection was successful.",
+        "operationId": "connect_to_warp_api_v1_warp_connect_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          }
+        }
+      }
+    },
+    "/api/v1/warp/disconnect": {
+      "post": {
+        "tags": ["warp"],
+        "summary": "Disconnect from WARP",
+        "description": "Disconnect from the WARP network.\n\nReturns:\n    Success message if the disconnection was successful.",
+        "operationId": "disconnect_from_warp_api_v1_warp_disconnect_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          }
+        }
+      }
+    },
+    "/api/v1/warp/mode": {
+      "post": {
+        "tags": ["warp"],
+        "summary": "Set WARP mode",
+        "description": "Set the WARP mode (warp, dot, proxy, or off).\n\nArgs:\n    request: The mode to set WARP to.\n\nReturns:\n    Success message if the mode was set successfully.",
+        "operationId": "set_warp_mode_api_v1_warp_mode_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/WarpModeRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/warp/license": {
+      "post": {
+        "tags": ["warp"],
+        "summary": "Register WARP license",
+        "description": "Register a license key with the WARP client.\n\nArgs:\n    request: The license key to register.\n\nReturns:\n    Success message if the license was registered successfully.",
+        "operationId": "register_warp_license_api_v1_warp_license_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Request"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/urls/{url_id}/refresh": {
+      "post": {
+        "tags": ["urls"],
+        "summary": "Refresh Url",
+        "description": "Manually refresh a specific URL by ID.",
+        "operationId": "refresh_url_api_v1_urls__url_id__refresh_post",
+        "parameters": [
+          {
+            "name": "url_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Url Id" }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/urls/refresh-all": {
+      "post": {
+        "tags": ["urls"],
+        "summary": "Refresh All Urls",
+        "description": "Manually refresh all URLs.",
+        "operationId": "refresh_all_urls_api_v1_urls_refresh_all_post",
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          }
+        }
+      }
+    },
+    "/api/v1/acestream/status": {
+      "get": {
+        "tags": ["acestream", "acestream"],
+        "summary": "Get Acestream Engine status",
+        "operationId": "get_acestream_status_api_v1_acestream_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcestreamStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/stats/": {
+      "get": {
+        "tags": ["stats", "stats"],
+        "summary": "Get Stats",
+        "operationId": "get_stats_api_v1_stats__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/StatsResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/stats/tv-channels/": {
+      "get": {
+        "tags": ["stats", "stats"],
+        "summary": "Get Tv Channel Stats",
+        "operationId": "get_tv_channel_stats_api_v1_stats_tv_channels__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TVChannelStatsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/background-tasks/status": {
+      "get": {
+        "summary": "Get Background Tasks Status",
+        "operationId": "get_background_tasks_status_api_v1_background_tasks_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "Read Index",
+        "description": "Serve the React frontend index page.",
+        "operationId": "read_index__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "text/html": { "schema": { "type": "string" } } }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AceEngineUrlUpdate": {
+        "properties": {
+          "value": {
+            "type": "string",
+            "title": "Value",
+            "description": "Acestream Engine URL"
+          }
+        },
+        "type": "object",
+        "required": ["value"],
+        "title": "AceEngineUrlUpdate",
+        "description": "Schema for updating the Acestream Engine URL"
+      },
+      "AcestreamStatusResponse": {
+        "properties": {
+          "enabled": { "type": "boolean", "title": "Enabled" },
+          "is_internal": { "type": "boolean", "title": "Is Internal" },
+          "engine_url": { "type": "string", "title": "Engine Url" },
+          "available": { "type": "boolean", "title": "Available" },
+          "message": { "type": "string", "title": "Message" },
+          "version": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Version"
+          },
+          "platform": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Platform"
+          },
+          "playlist_loaded": {
+            "anyOf": [{ "type": "boolean" }, { "type": "null" }],
+            "title": "Playlist Loaded"
+          },
+          "connected": {
+            "anyOf": [{ "type": "boolean" }, { "type": "null" }],
+            "title": "Connected"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled",
+          "is_internal",
+          "engine_url",
+          "available",
+          "message"
+        ],
+        "title": "AcestreamStatusResponse"
+      },
+      "AddChannelRequest": {
+        "properties": {
+          "id": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Id",
+            "description": "Acestream channel ID (optional, will be generated if not provided)"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Channel name"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "description": "Channel URL"
+          },
+          "category": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Category",
+            "description": "Channel category"
+          },
+          "description": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Description",
+            "description": "Channel description"
+          },
+          "logo": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Logo",
+            "description": "Channel logo URL"
+          },
+          "tv_channel_id": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Tv Channel Id",
+            "description": "TV channel ID for association"
+          }
+        },
+        "type": "object",
+        "required": ["name", "url"],
+        "title": "AddChannelRequest"
+      },
+      "AddMultipleRequest": {
+        "properties": {
+          "channels": {
+            "items": { "$ref": "#/components/schemas/AddChannelRequest" },
+            "type": "array",
+            "title": "Channels",
+            "description": "List of channels to add"
+          }
+        },
+        "type": "object",
+        "required": ["channels"],
+        "title": "AddMultipleRequest"
+      },
+      "AddPidUpdate": {
+        "properties": {
+          "value": {
+            "type": "string",
+            "title": "Value",
+            "description": "Whether to add PID to Acestream links"
+          }
+        },
+        "type": "object",
+        "required": ["value"],
+        "title": "AddPidUpdate",
+        "description": "Schema for updating the addpid setting"
+      },
+      "BulkStatusCheckResponse": {
+        "properties": {
+          "total_channels": { "type": "integer", "title": "Total Channels" },
+          "total_checked": { "type": "integer", "title": "Total Checked" },
+          "online_count": { "type": "integer", "title": "Online Count" },
+          "offline_count": { "type": "integer", "title": "Offline Count" },
+          "results": {
+            "items": { "$ref": "#/components/schemas/ChannelStatusResponse" },
+            "type": "array",
+            "title": "Results"
+          },
+          "summary": { "$ref": "#/components/schemas/ChannelStatusSummary" }
+        },
+        "type": "object",
+        "required": [
+          "total_channels",
+          "total_checked",
+          "online_count",
+          "offline_count",
+          "results",
+          "summary"
+        ],
+        "title": "BulkStatusCheckResponse",
+        "description": "Response for bulk status check operations"
+      },
+      "ChannelCreate": {
+        "properties": {
+          "id": { "type": "string", "title": "Id" },
+          "name": { "type": "string", "title": "Name" },
+          "source_url": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Source Url"
+          },
+          "group": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Group"
+          },
+          "logo": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Logo"
+          },
+          "tvg_id": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Tvg Id"
+          },
+          "tvg_name": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Tvg Name"
+          },
+          "is_online": {
+            "anyOf": [{ "type": "boolean" }, { "type": "null" }],
+            "title": "Is Online",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": ["id", "name"],
+        "title": "ChannelCreate",
+        "description": "Schema for channel creation"
+      },
+      "ChannelResponse": {
+        "properties": {
+          "id": { "type": "string", "title": "Id" },
+          "name": { "type": "string", "title": "Name" },
+          "source_url": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Source Url"
+          },
+          "group": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Group"
+          },
+          "logo": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Logo"
+          },
+          "tvg_id": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Tvg Id"
+          },
+          "tvg_name": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Tvg Name"
+          },
+          "last_seen": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Last Seen"
+          },
+          "is_active": { "type": "boolean", "title": "Is Active" },
+          "is_online": {
+            "anyOf": [{ "type": "boolean" }, { "type": "null" }],
+            "title": "Is Online"
+          },
+          "last_checked": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "Last Checked"
+          },
+          "check_error": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Check Error"
+          },
+          "tv_channel_id": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Tv Channel Id"
+          },
+          "epg_update_protected": {
+            "anyOf": [{ "type": "boolean" }, { "type": "null" }],
+            "title": "Epg Update Protected",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": ["id", "name", "last_seen", "is_active"],
+        "title": "ChannelResponse",
+        "description": "Schema for channel response"
+      },
+      "ChannelResult": {
+        "properties": {
+          "channel_id": { "type": "string", "title": "Channel Id" },
+          "name": { "type": "string", "title": "Name" },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "default": {}
+          }
+        },
+        "type": "object",
+        "required": ["channel_id", "name"],
+        "title": "ChannelResult",
+        "description": "Schema for channel result from scraping"
+      },
+      "ChannelStatusResponse": {
+        "properties": {
+          "channel_id": { "type": "string", "title": "Channel Id" },
+          "is_online": { "type": "boolean", "title": "Is Online" },
+          "status": { "type": "string", "title": "Status" },
+          "message": { "type": "string", "title": "Message" },
+          "last_checked": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Last Checked"
+          },
+          "error": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "channel_id",
+          "is_online",
+          "status",
+          "message",
+          "last_checked"
+        ],
+        "title": "ChannelStatusResponse",
+        "description": "Response schema for channel status check"
+      },
+      "ChannelStatusSummary": {
+        "properties": {
+          "total_channels": { "type": "integer", "title": "Total Channels" },
+          "active_channels": { "type": "integer", "title": "Active Channels" },
+          "online": { "type": "integer", "title": "Online" },
+          "online_channels": { "type": "integer", "title": "Online Channels" },
+          "offline": { "type": "integer", "title": "Offline" },
+          "offline_channels": {
+            "type": "integer",
+            "title": "Offline Channels"
+          },
+          "unknown": { "type": "integer", "title": "Unknown" },
+          "recent_checks": { "type": "integer", "title": "Recent Checks" },
+          "last_checked_channels": {
+            "type": "integer",
+            "title": "Last Checked Channels"
+          },
+          "online_percentage": {
+            "type": "number",
+            "title": "Online Percentage"
+          },
+          "checked_percentage": {
+            "type": "number",
+            "title": "Checked Percentage"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_channels",
+          "active_channels",
+          "online",
+          "online_channels",
+          "offline",
+          "offline_channels",
+          "unknown",
+          "recent_checks",
+          "last_checked_channels",
+          "online_percentage",
+          "checked_percentage"
+        ],
+        "title": "ChannelStatusSummary",
+        "description": "Summary of all channel statuses"
+      },
+      "ChannelUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Name"
+          },
+          "group": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Group"
+          },
+          "logo": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Logo"
+          },
+          "tvg_id": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Tvg Id"
+          },
+          "tvg_name": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Tvg Name"
+          },
+          "source_url": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Source Url"
+          },
+          "is_active": {
+            "anyOf": [{ "type": "boolean" }, { "type": "null" }],
+            "title": "Is Active"
+          },
+          "is_online": {
+            "anyOf": [{ "type": "boolean" }, { "type": "null" }],
+            "title": "Is Online"
+          },
+          "tv_channel_id": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Tv Channel Id"
+          },
+          "epg_update_protected": {
+            "anyOf": [{ "type": "boolean" }, { "type": "null" }],
+            "title": "Epg Update Protected"
+          }
+        },
+        "type": "object",
+        "title": "ChannelUpdate",
+        "description": "Schema for channel update"
+      },
+      "EPGChannelMappingRequest": {
+        "properties": {
+          "epg_channel_id": { "type": "integer", "title": "Epg Channel Id" },
+          "tv_channel_id": { "type": "integer", "title": "Tv Channel Id" }
+        },
+        "type": "object",
+        "required": ["epg_channel_id", "tv_channel_id"],
+        "title": "EPGChannelMappingRequest",
+        "description": "Schema for EPG channel to TV channel mapping request"
+      },
+      "EPGChannelResponse": {
+        "properties": {
+          "epg_source_id": { "type": "integer", "title": "Epg Source Id" },
+          "channel_xml_id": { "type": "string", "title": "Channel Xml Id" },
+          "name": { "type": "string", "title": "Name" },
+          "icon_url": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Icon Url"
+          },
+          "language": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Language"
+          },
+          "id": { "type": "integer", "title": "Id" },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "epg_source_id",
+          "channel_xml_id",
+          "name",
+          "id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "EPGChannelResponse",
+        "description": "Schema for EPG channel response"
+      },
+      "EPGProgramResponse": {
+        "properties": {
+          "epg_channel_id": { "type": "integer", "title": "Epg Channel Id" },
+          "start_time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Start Time"
+          },
+          "end_time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "End Time"
+          },
+          "title": { "type": "string", "title": "Title" },
+          "subtitle": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Subtitle"
+          },
+          "description": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Description"
+          },
+          "category": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Category"
+          },
+          "image_url": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Image Url"
+          },
+          "id": { "type": "integer", "title": "Id" },
+          "program_xml_id": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Program Xml Id"
+          }
+        },
+        "type": "object",
+        "required": ["epg_channel_id", "start_time", "end_time", "title", "id"],
+        "title": "EPGProgramResponse",
+        "description": "Schema for EPG program response"
+      },
+      "EPGRefreshResponse": {
+        "properties": {
+          "source_id": { "type": "integer", "title": "Source Id" },
+          "message": { "type": "string", "title": "Message" },
+          "success": { "type": "boolean", "title": "Success" },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "success"
+          },
+          "channels_found": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Channels Found"
+          },
+          "programs_found": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Programs Found"
+          },
+          "duration_seconds": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Duration Seconds"
+          },
+          "error": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": ["source_id", "message", "success"],
+        "title": "EPGRefreshResponse",
+        "description": "Schema for EPG refresh response"
+      },
+      "EPGSourceCreate": {
+        "properties": {
+          "url": { "type": "string", "title": "Url" },
+          "name": { "type": "string", "title": "Name" },
+          "enabled": { "type": "boolean", "title": "Enabled", "default": true }
+        },
+        "type": "object",
+        "required": ["url", "name"],
+        "title": "EPGSourceCreate",
+        "description": "Schema for creating an EPG source"
+      },
+      "EPGSourceResponse": {
+        "properties": {
+          "url": { "type": "string", "title": "Url" },
+          "name": { "type": "string", "title": "Name" },
+          "id": { "type": "integer", "title": "Id" },
+          "enabled": { "type": "boolean", "title": "Enabled" },
+          "last_updated": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "Last Updated"
+          },
+          "error_count": {
+            "type": "integer",
+            "title": "Error Count",
+            "default": 0
+          },
+          "last_error": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Last Error"
+          }
+        },
+        "type": "object",
+        "required": ["url", "name", "id", "enabled"],
+        "title": "EPGSourceResponse",
+        "description": "Schema for EPG source response"
+      },
+      "EPGSourceUpdate": {
+        "properties": {
+          "url": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Url"
+          },
+          "name": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Name"
+          },
+          "enabled": {
+            "anyOf": [{ "type": "boolean" }, { "type": "null" }],
+            "title": "Enabled"
+          }
+        },
+        "type": "object",
+        "title": "EPGSourceUpdate",
+        "description": "Schema for updating an EPG source"
+      },
+      "EPGStringMappingResponse": {
+        "properties": {
+          "search_pattern": { "type": "string", "title": "Search Pattern" },
+          "is_exclusion": {
+            "type": "boolean",
+            "title": "Is Exclusion",
+            "default": false
+          },
+          "id": { "type": "integer", "title": "Id" },
+          "epg_channel_id": { "type": "integer", "title": "Epg Channel Id" }
+        },
+        "type": "object",
+        "required": ["search_pattern", "id", "epg_channel_id"],
+        "title": "EPGStringMappingResponse",
+        "description": "Schema for EPG string mapping response"
+      },
+      "EPGXmlGenerationRequest": {
+        "properties": {
+          "search_term": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Search Term"
+          },
+          "favorites_only": {
+            "type": "boolean",
+            "title": "Favorites Only",
+            "default": false
+          },
+          "days_back": {
+            "type": "integer",
+            "title": "Days Back",
+            "default": 1
+          },
+          "days_forward": {
+            "type": "integer",
+            "title": "Days Forward",
+            "default": 7
+          }
+        },
+        "type": "object",
+        "title": "EPGXmlGenerationRequest",
+        "description": "Schema for EPG XML generation request"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": { "$ref": "#/components/schemas/ValidationError" },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Overall system status (healthy, degraded, unhealthy)"
+          },
+          "acestream": {
+            "$ref": "#/components/schemas/StatusResponse",
+            "description": "Acestream Engine status"
+          },
+          "database": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Database",
+            "description": "Database connection status"
+          },
+          "settings": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Settings",
+            "description": "Application settings"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "Application version"
+          }
+        },
+        "type": "object",
+        "required": ["status", "acestream", "database", "settings", "version"],
+        "title": "HealthResponse",
+        "description": "Schema for the health check response"
+      },
+      "ScraperRequest": {
+        "properties": {
+          "url": { "type": "string", "title": "Url" },
+          "url_type": {
+            "type": "string",
+            "title": "Url Type",
+            "default": "auto"
+          },
+          "run_async": {
+            "type": "boolean",
+            "title": "Run Async",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": ["url"],
+        "title": "ScraperRequest",
+        "description": "Request model for scraping a URL"
+      },
+      "ScraperResultExtended": {
+        "properties": {
+          "message": { "type": "string", "title": "Message" },
+          "channels": {
+            "items": { "$ref": "#/components/schemas/ChannelResult" },
+            "type": "array",
+            "title": "Channels"
+          },
+          "url": { "type": "string", "title": "Url" },
+          "channels_found": { "type": "integer", "title": "Channels Found" },
+          "status": { "type": "string", "title": "Status" }
+        },
+        "type": "object",
+        "required": ["message", "channels", "url", "channels_found", "status"],
+        "title": "ScraperResultExtended"
+      },
+      "SearchPagination": {
+        "properties": {
+          "page": {
+            "type": "integer",
+            "title": "Page",
+            "description": "Current page number"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size",
+            "description": "Results per page"
+          },
+          "total_results": {
+            "type": "integer",
+            "title": "Total Results",
+            "description": "Total number of results"
+          },
+          "total_pages": {
+            "type": "integer",
+            "title": "Total Pages",
+            "description": "Total number of pages"
+          }
+        },
+        "type": "object",
+        "required": ["page", "page_size", "total_results", "total_pages"],
+        "title": "SearchPagination"
+      },
+      "SearchResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "description": "Success status of the request"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Message describing the result"
+          },
+          "results": {
+            "items": { "$ref": "#/components/schemas/SearchResultItem" },
+            "type": "array",
+            "title": "Results",
+            "description": "Search results"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/SearchPagination",
+            "description": "Pagination information"
+          }
+        },
+        "type": "object",
+        "required": ["success", "message", "pagination"],
+        "title": "SearchResponse"
+      },
+      "SearchResultItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Acestream channel ID (infohash)"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Channel name"
+          },
+          "bitrate": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Bitrate",
+            "description": "Channel bitrate"
+          },
+          "categories": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Categories",
+            "description": "Categories of the channel"
+          }
+        },
+        "type": "object",
+        "required": ["id", "name"],
+        "title": "SearchResultItem"
+      },
+      "SettingResponse": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key",
+            "description": "Setting key"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value",
+            "description": "Setting value"
+          }
+        },
+        "type": "object",
+        "required": ["key", "value"],
+        "title": "SettingResponse",
+        "description": "Schema for a setting response"
+      },
+      "SettingsResponse": {
+        "properties": {
+          "settings": {
+            "additionalProperties": { "type": "string" },
+            "type": "object",
+            "title": "Settings",
+            "description": "All settings"
+          }
+        },
+        "type": "object",
+        "required": ["settings"],
+        "title": "SettingsResponse",
+        "description": "Schema for all settings response"
+      },
+      "StatsResponse": {
+        "properties": {
+          "urls": {
+            "items": { "$ref": "#/components/schemas/URLStats" },
+            "type": "array",
+            "title": "Urls"
+          },
+          "total_channels": { "type": "integer", "title": "Total Channels" },
+          "channels": { "type": "integer", "title": "Channels" },
+          "channels_checked": {
+            "type": "integer",
+            "title": "Channels Checked"
+          },
+          "channels_online": { "type": "integer", "title": "Channels Online" },
+          "channels_offline": {
+            "type": "integer",
+            "title": "Channels Offline"
+          },
+          "base_url": { "type": "string", "title": "Base Url" },
+          "ace_engine_url": { "type": "string", "title": "Ace Engine Url" },
+          "rescrape_interval": {
+            "type": "integer",
+            "title": "Rescrape Interval"
+          },
+          "addpid": { "type": "boolean", "title": "Addpid" },
+          "task_manager_status": {
+            "type": "string",
+            "title": "Task Manager Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "urls",
+          "total_channels",
+          "channels",
+          "channels_checked",
+          "channels_online",
+          "channels_offline",
+          "base_url",
+          "ace_engine_url",
+          "rescrape_interval",
+          "addpid",
+          "task_manager_status"
+        ],
+        "title": "StatsResponse"
+      },
+      "StatusCheckRequest": {
+        "properties": {
+          "channel_ids": {
+            "anyOf": [
+              { "items": { "type": "string" }, "type": "array" },
+              { "type": "null" }
+            ],
+            "title": "Channel Ids"
+          },
+          "concurrency": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Concurrency",
+            "default": 3
+          }
+        },
+        "type": "object",
+        "title": "StatusCheckRequest",
+        "description": "Request schema for status checking"
+      },
+      "StatusResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Status of the component (online, offline, error, etc.)"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Status message"
+          },
+          "details": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Details",
+            "description": "Additional details"
+          }
+        },
+        "type": "object",
+        "required": ["status", "message"],
+        "title": "StatusResponse",
+        "description": "Schema for a status check response"
+      },
+      "TVChannelCreate": {
+        "properties": {
+          "name": { "type": "string", "title": "Name" },
+          "logo_url": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Logo Url"
+          },
+          "description": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Description"
+          },
+          "category": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Category"
+          },
+          "country": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Country"
+          },
+          "language": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Language"
+          },
+          "website": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Website"
+          },
+          "epg_id": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Epg Id"
+          },
+          "channel_number": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Channel Number"
+          },
+          "is_active": {
+            "anyOf": [{ "type": "boolean" }, { "type": "null" }],
+            "title": "Is Active",
+            "default": true
+          },
+          "is_favorite": {
+            "anyOf": [{ "type": "boolean" }, { "type": "null" }],
+            "title": "Is Favorite",
+            "default": false
+          },
+          "epg_source_id": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Epg Source Id"
+          }
+        },
+        "type": "object",
+        "required": ["name"],
+        "title": "TVChannelCreate",
+        "description": "Schema for TV channel creation"
+      },
+      "TVChannelResponse": {
+        "properties": {
+          "name": { "type": "string", "title": "Name" },
+          "logo_url": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Logo Url"
+          },
+          "description": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Description"
+          },
+          "category": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Category"
+          },
+          "country": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Country"
+          },
+          "language": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Language"
+          },
+          "website": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Website"
+          },
+          "epg_id": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Epg Id"
+          },
+          "channel_number": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Channel Number"
+          },
+          "id": { "type": "integer", "title": "Id" },
+          "epg_source_id": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Epg Source Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "is_active": { "type": "boolean", "title": "Is Active" },
+          "is_favorite": { "type": "boolean", "title": "Is Favorite" },
+          "acestream_channels": {
+            "items": { "$ref": "#/components/schemas/ChannelResponse" },
+            "type": "array",
+            "title": "Acestream Channels",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "id",
+          "created_at",
+          "updated_at",
+          "is_active",
+          "is_favorite"
+        ],
+        "title": "TVChannelResponse",
+        "description": "Schema for TV channel response"
+      },
+      "TVChannelStatsResponse": {
+        "properties": {
+          "total": { "type": "integer", "title": "Total" },
+          "active": { "type": "integer", "title": "Active" },
+          "with_epg": { "type": "integer", "title": "With Epg" },
+          "acestreams": { "type": "integer", "title": "Acestreams" }
+        },
+        "type": "object",
+        "required": ["total", "active", "with_epg", "acestreams"],
+        "title": "TVChannelStatsResponse"
+      },
+      "TVChannelUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Name"
+          },
+          "logo_url": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Logo Url"
+          },
+          "description": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Description"
+          },
+          "category": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Category"
+          },
+          "country": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Country"
+          },
+          "language": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Language"
+          },
+          "website": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Website"
+          },
+          "epg_id": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Epg Id"
+          },
+          "is_active": {
+            "anyOf": [{ "type": "boolean" }, { "type": "null" }],
+            "title": "Is Active"
+          },
+          "is_favorite": {
+            "anyOf": [{ "type": "boolean" }, { "type": "null" }],
+            "title": "Is Favorite"
+          },
+          "channel_number": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Channel Number"
+          },
+          "epg_source_id": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Epg Source Id"
+          }
+        },
+        "type": "object",
+        "title": "TVChannelUpdate",
+        "description": "Schema for TV channel update"
+      },
+      "URLCreate": {
+        "properties": {
+          "url": { "type": "string", "title": "Url" },
+          "url_type": {
+            "type": "string",
+            "title": "Url Type",
+            "default": "regular"
+          },
+          "enabled": { "type": "boolean", "title": "Enabled", "default": true },
+          "status": { "type": "string", "title": "Status", "default": "active" }
+        },
+        "type": "object",
+        "required": ["url"],
+        "title": "URLCreate",
+        "description": "Schema for creating a scraped URL"
+      },
+      "URLResponse": {
+        "properties": {
+          "id": { "type": "integer", "title": "Id" },
+          "url": { "type": "string", "title": "Url" },
+          "url_type": { "type": "string", "title": "Url Type" },
+          "status": { "type": "string", "title": "Status" },
+          "last_processed": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "Last Processed"
+          },
+          "last_scraped": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "Last Scraped"
+          },
+          "error_count": {
+            "type": "integer",
+            "title": "Error Count",
+            "default": 0
+          },
+          "last_error": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Last Error"
+          },
+          "error": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Error"
+          },
+          "enabled": { "type": "boolean", "title": "Enabled", "default": true },
+          "added_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Added At"
+          }
+        },
+        "type": "object",
+        "required": ["id", "url", "url_type", "status", "added_at"],
+        "title": "URLResponse",
+        "description": "Schema for scraped URL information"
+      },
+      "URLStats": {
+        "properties": {
+          "id": { "type": "integer", "title": "Id" },
+          "url": { "type": "string", "title": "Url" },
+          "url_type": { "type": "string", "title": "Url Type" },
+          "status": { "type": "string", "title": "Status" },
+          "last_processed": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Last Processed"
+          },
+          "channel_count": { "type": "integer", "title": "Channel Count" },
+          "enabled": { "type": "boolean", "title": "Enabled" },
+          "error_count": { "type": "integer", "title": "Error Count" },
+          "last_error": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Last Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "url",
+          "url_type",
+          "status",
+          "channel_count",
+          "enabled",
+          "error_count"
+        ],
+        "title": "URLStats"
+      },
+      "URLUpdate": {
+        "properties": {
+          "url": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Url"
+          },
+          "url_type": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Url Type"
+          },
+          "enabled": {
+            "anyOf": [{ "type": "boolean" }, { "type": "null" }],
+            "title": "Enabled"
+          },
+          "status": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "title": "URLUpdate",
+        "description": "Schema for updating a scraped URL"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": { "anyOf": [{ "type": "string" }, { "type": "integer" }] },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": { "type": "string", "title": "Message" },
+          "type": { "type": "string", "title": "Error Type" }
+        },
+        "type": "object",
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError"
+      },
+      "WarpModeEnum": {
+        "type": "string",
+        "enum": ["warp", "dot", "proxy", "off"],
+        "title": "WarpModeEnum",
+        "description": "Available WARP modes for API use"
+      },
+      "WarpModeRequest": {
+        "properties": {
+          "mode": {
+            "$ref": "#/components/schemas/WarpModeEnum",
+            "description": "The WARP mode to set"
+          }
+        },
+        "type": "object",
+        "required": ["mode"],
+        "title": "WarpModeRequest",
+        "description": "Request schema for changing WARP mode"
+      }
+    }
+  }
+}

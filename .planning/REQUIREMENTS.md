@@ -68,39 +68,39 @@ Explicitly excluded from this migration milestone.
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
+Which phases cover which requirements.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MIGR-01 | Phase TBD | Pending |
-| MIGR-02 | Phase TBD | Pending |
-| MIGR-03 | Phase TBD | Pending |
-| MIGR-04 | Phase TBD | Pending |
-| SCRP-01 | Phase TBD | Pending |
-| SCRP-02 | Phase TBD | Pending |
-| SCRP-03 | Phase TBD | Pending |
-| SCRP-04 | Phase TBD | Pending |
-| API-01 | Phase TBD | Pending |
-| API-02 | Phase TBD | Pending |
-| API-03 | Phase TBD | Pending |
-| API-04 | Phase TBD | Pending |
-| UI-01 | Phase TBD | Pending |
-| UI-02 | Phase TBD | Pending |
-| UI-03 | Phase TBD | Pending |
-| UI-04 | Phase TBD | Pending |
-| COMP-01 | Phase TBD | Pending |
-| COMP-02 | Phase TBD | Pending |
-| COMP-03 | Phase TBD | Pending |
-| QUAL-01 | Phase TBD | Pending |
-| QUAL-02 | Phase TBD | Pending |
-| QUAL-03 | Phase TBD | Pending |
-| QUAL-04 | Phase TBD | Pending |
+| MIGR-01 | Phase 3 | Pending |
+| MIGR-02 | Phase 3 | Pending |
+| MIGR-03 | Phase 2 | Pending |
+| MIGR-04 | Phase 3 | Pending |
+| SCRP-01 | Phase 1 | Pending |
+| SCRP-02 | Phase 1 | Pending |
+| SCRP-03 | Phase 1 | Pending |
+| SCRP-04 | Phase 1 | Pending |
+| API-01 | Phase 2 | Pending |
+| API-02 | Phase 2 | Pending |
+| API-03 | Phase 2 | Pending |
+| API-04 | Phase 6 | Pending |
+| UI-01 | Phase 4 | Pending |
+| UI-02 | Phase 4 | Pending |
+| UI-03 | Phase 4 | Pending |
+| UI-04 | Phase 4 | Pending |
+| COMP-01 | Phase 5 | Pending |
+| COMP-02 | Phase 5 | Pending |
+| COMP-03 | Phase 3 | Pending |
+| QUAL-01 | Phase 6 | Pending |
+| QUAL-02 | Phase 6 | Pending |
+| QUAL-03 | Phase 6 | Pending |
+| QUAL-04 | Phase 1 | Pending |
 
 **Coverage:**
 - v1 requirements: 23 total
-- Mapped to phases: 0
-- Unmapped: 23 ⚠️
+- Mapped to phases: 23
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-02-27*
-*Last updated: 2026-02-27 after initial definition*
+*Last updated: 2026-02-27 after roadmap mapping*

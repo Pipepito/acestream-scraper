@@ -169,7 +169,11 @@ class ChannelStatusService:
             self.channel_repository.update_channel_status(
                 channel.id, False, error_msg
             )
-            logger.warning(f"Timeout checking channel {channel.id} ({channel.name})")
+            logger.warning(
+                "Timeout checking channel channel_id=%s channel_name=%s",
+                channel.id,
+                channel.name,
+            )
             return {
                 'channel_id': channel.id,
                 'is_online': False,
@@ -183,7 +187,7 @@ class ChannelStatusService:
             self.channel_repository.update_channel_status(
                 channel.id, False, error_msg
             )
-            logger.error(f"Error checking channel {channel.id}: {e}")
+            logger.error("Error checking channel channel_id=%s error=%s", channel.id, e)
             return {
                 'channel_id': channel.id,
                 'is_online': False,
@@ -218,7 +222,7 @@ class ChannelStatusService:
                     await asyncio.sleep(1)
                     return result
                 except Exception as e:
-                    logger.error(f"Error checking channel {channel.id}: {e}")
+                    logger.error("Error checking channel channel_id=%s error=%s", channel.id, e)
                     return {
                         'channel_id': channel.id,
                         'is_online': False,
@@ -243,9 +247,9 @@ class ChannelStatusService:
                     if not isinstance(result, Exception):
                         all_results.append(result)
                     else:
-                        logger.error(f"Task exception: {result}")
+                        logger.error("Task exception result=%s", result)
             except Exception as e:
-                logger.error(f"Error processing batch: {e}")
+                logger.error("Error processing status batch error=%s", e)
             finally:
                 # Cancel any remaining tasks
                 for task in tasks:

@@ -1,10 +1,13 @@
 """
 API endpoints for EPG management
 """
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Response, Body
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
+from app.api.error_handlers import APIError
 from app.config.database import get_db
 from app.schemas.epg import (
     EPGSourceCreate,
@@ -21,6 +24,7 @@ from app.schemas.epg import (
 from app.services.epg_service import EPGService
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.get("/sources", response_model=List[EPGSourceResponse])
@@ -107,8 +111,16 @@ def refresh_epg_source(
     if not source:
         raise HTTPException(status_code=404, detail="EPG source not found")
 
-    # Start background task to refresh EPG
-    background_tasks.add_task(epg_service.refresh_source, source_id)
+    try:
+        background_tasks.add_task(epg_service.refresh_source, source_id)
+    except Exception as exc:
+        logger.error("Failed to enqueue EPG refresh source_id=%s error=%s", source_id, exc)
+        raise APIError(
+            code="EPG_REFRESH_ENQUEUE_FAILED",
+            message="Unable to start EPG refresh task",
+            status_code=500,
+            context={"source_id": source_id, "error": str(exc)},
+        ) from exc
 
     return {
         "source_id": source_id,
@@ -131,13 +143,22 @@ def refresh_all_epg_sources(
 
     results = []
     for source in sources:
-        background_tasks.add_task(epg_service.refresh_source, source.id)
-        results.append({
-            "source_id": source.id,
-            "message": f"EPG refresh started for source: {source.name}",
-            "success": True,
-            "status": "success"
-        })
+        try:
+            background_tasks.add_task(epg_service.refresh_source, source.id)
+            results.append({
+                "source_id": source.id,
+                "message": f"EPG refresh started for source: {source.name}",
+                "success": True,
+                "status": "success"
+            })
+        except Exception as exc:
+            logger.error("Failed to enqueue EPG refresh source_id=%s error=%s", source.id, exc)
+            raise APIError(
+                code="EPG_REFRESH_ALL_ENQUEUE_FAILED",
+                message="Unable to start one or more EPG refresh tasks",
+                status_code=500,
+                context={"source_id": source.id, "error": str(exc)},
+            ) from exc
 
     return results
 
@@ -317,8 +338,16 @@ def auto_map_channels(db: Session = Depends(get_db)):
     Auto-map TV channels to EPG channels based on string patterns
     """
     epg_service = EPGService(db)
-    result = epg_service.auto_map_channels()
-    return result
+    try:
+        return epg_service.auto_map_channels()
+    except Exception as exc:
+        logger.error("Auto-map channels failed error=%s", exc)
+        raise APIError(
+            code="EPG_AUTO_MAP_FAILED",
+            message="Failed to auto-map EPG channels",
+            status_code=500,
+            context={"error": str(exc)},
+        ) from exc
 
 
 @router.get("/xml")

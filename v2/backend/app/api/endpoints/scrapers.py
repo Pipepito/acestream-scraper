@@ -1,14 +1,18 @@
 """
 API endpoints for scraper management
 """
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
 from typing import List, Optional
 
 from app.api.dependencies import get_scraper_service
+from app.api.error_handlers import APIError
 from app.schemas.scraper import ScraperRequest, ScraperResult, URLResponse, URLCreate, URLUpdate
 from app.services.scraper_service import ScraperService
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 class ScraperResultExtended(ScraperResult):
@@ -60,13 +64,18 @@ async def scrape_url(
                 status=status_msg
             )
     except Exception as e:
-        return ScraperResultExtended(
-            message=f"Scraping failed: {str(e)}",
-            channels=[],
-            url=request.url,
-            channels_found=0,
-            status=f"error: {str(e)}"
+        logger.error(
+            "Scrape execution failed url=%s type=%s error=%s",
+            request.url,
+            request.url_type,
+            e,
         )
+        raise APIError(
+            code="SCRAPE_EXECUTION_FAILED",
+            message="Scraping failed",
+            status_code=502,
+            context={"url": request.url, "url_type": request.url_type, "error": str(e)},
+        ) from e
 
 
 @router.get("/urls", response_model=List[URLResponse])

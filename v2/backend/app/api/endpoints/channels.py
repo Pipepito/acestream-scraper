@@ -1,6 +1,7 @@
 """
 API endpoints for channel management
 """
+import logging
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
@@ -9,6 +10,7 @@ import csv
 from io import StringIO
 
 from app.config.database import get_db
+from app.api.error_handlers import APIError
 from app.models.models import AcestreamChannel, TVChannel
 from app.services.acestreamchannel_service import AcestreamChannelService
 from app.services.channel_status_service import ChannelStatusService
@@ -24,6 +26,7 @@ from app.schemas.channel import (
 from app.schemas.channel_status import ChannelStatusResponse, BulkStatusCheckResponse, ChannelStatusSummary, StatusCheckRequest
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.get("/", response_model=AcestreamChannelListResponse)
@@ -146,7 +149,16 @@ async def check_all_channels_status(
         }
     else:
         # Check immediately for small numbers
-        results = await status_service.check_multiple_channels(channels, concurrency)
+        try:
+            results = await status_service.check_multiple_channels(channels, concurrency)
+        except Exception as exc:
+            logger.error("Bulk status check failed channels=%s error=%s", len(channels), exc)
+            raise APIError(
+                code="CHANNEL_STATUS_CHECK_FAILED",
+                message="Failed to check channel statuses",
+                status_code=500,
+                context={"channels": len(channels), "error": str(exc)},
+            ) from exc
         summary = status_service.get_channel_status_summary()
 
         # Count online and offline channels
@@ -352,7 +364,10 @@ async def _background_status_check(
         status_service = ChannelStatusService(db)
         await status_service.check_multiple_channels(channels, concurrency)
     except Exception as e:
-        # Log error but don't raise (background task)
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.error(f"Background status check failed: {e}")
+        # Log error but do not re-raise from background task context.
+        logger.error(
+            "Background status check failed channels=%s concurrency=%s error=%s",
+            len(channels),
+            concurrency,
+            e,
+        )

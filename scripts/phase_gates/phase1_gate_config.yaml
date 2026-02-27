@@ -1,0 +1,78 @@
+{
+  "version": "2026-02-27.1",
+  "class_policy": {
+    "active": {
+      "blocking_default": true
+    },
+    "flaky": {
+      "blocking_default": true
+    },
+    "legacy": {
+      "blocking_default": false
+    },
+    "disabled": {
+      "blocking_default": false
+    }
+  },
+  "profiles": {
+    "quick": {
+      "description": "PR-friendly parity gate profile",
+      "commands": [
+        {
+          "id": "scraper_parity",
+          "description": "Scraper parity snapshots (HTTP/M3U + ZeroNet)",
+          "command": "v2/backend/venv/bin/python -m pytest -q v2/backend/tests/parity/test_scraper_parity.py",
+          "source_class": "active",
+          "gate_critical": true
+        },
+        {
+          "id": "output_parity",
+          "description": "Playlist and EPG output validity snapshots",
+          "command": "v2/backend/venv/bin/python -m pytest -q v2/backend/tests/parity/test_output_parity.py",
+          "source_class": "active",
+          "gate_critical": true
+        },
+        {
+          "id": "legacy_visibility_report",
+          "description": "Legacy/non-blocking scoring policy check",
+          "command": "v2/backend/venv/bin/python -m pytest -q v2/backend/tests/parity/test_scraper_parity.py::test_gate_scoring_separates_non_blocking_sources",
+          "source_class": "legacy",
+          "gate_critical": false
+        }
+      ]
+    },
+    "full": {
+      "description": "Pre-cutover full parity gate profile",
+      "commands": [
+        {
+          "id": "scraper_parity",
+          "description": "Scraper parity snapshots (HTTP/M3U + ZeroNet)",
+          "command": "v2/backend/venv/bin/python -m pytest -q v2/backend/tests/parity/test_scraper_parity.py",
+          "source_class": "active",
+          "gate_critical": true
+        },
+        {
+          "id": "output_parity",
+          "description": "Playlist and EPG output validity snapshots",
+          "command": "v2/backend/venv/bin/python -m pytest -q v2/backend/tests/parity/test_output_parity.py",
+          "source_class": "active",
+          "gate_critical": true
+        },
+        {
+          "id": "service_smoke_suite",
+          "description": "Existing scraper/playlist/EPG smoke regression suite",
+          "command": "v2/backend/venv/bin/python -m pytest -q v2/backend/tests/test_scrapers.py v2/backend/tests/test_playlists.py v2/backend/tests/test_epg.py",
+          "source_class": "active",
+          "gate_critical": true
+        },
+        {
+          "id": "legacy_visibility_report",
+          "description": "Legacy/non-blocking scoring policy check",
+          "command": "v2/backend/venv/bin/python -m pytest -q v2/backend/tests/parity/test_scraper_parity.py::test_gate_scoring_separates_non_blocking_sources",
+          "source_class": "legacy",
+          "gate_critical": false
+        }
+      ]
+    }
+  }
+}

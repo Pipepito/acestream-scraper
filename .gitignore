@@ -222,3 +222,5 @@ v2/frontend/npm-debug.log*
 v2/frontend/yarn-debug.log*
 v2/frontend/yarn-error.log*
 v2/frontend/.eslintcache
+list.m3u
+v2/backend/config/scraper.db

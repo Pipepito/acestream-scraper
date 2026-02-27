@@ -8,7 +8,7 @@
 ### Migration and Cutover
 
 - [x] **MIGR-01**: Production runtime uses v2 stack only (`v2/backend` + `v2/frontend`) with no dependency on legacy root app runtime.
-- [ ] **MIGR-02**: Root legacy deployment/build workflow paths are retired or redirected to v2 equivalents.
+- [x] **MIGR-02**: Root legacy deployment/build workflow paths are retired or redirected to v2 equivalents.
 - [x] **MIGR-03**: Functional parity checklist confirms all core user-facing capabilities currently used in root stack are available in v2.
 - [x] **MIGR-04**: Big-bang cutover can be executed from a single release branch without dual-stack runtime overlap.
 
@@ -37,7 +37,7 @@
 
 - [ ] **COMP-01**: Build pipeline can produce multi-arch images including `linux/arm/v7` and `linux/arm64`.
 - [ ] **COMP-02**: Runtime smoke checks validate core service startup and key workflows on supported architectures.
-- [ ] **COMP-03**: Release documentation reflects v2-only deployment and architecture support expectations.
+- [x] **COMP-03**: Release documentation reflects v2-only deployment and architecture support expectations.
 
 ### Reliability and Quality
 
@@ -73,7 +73,7 @@ Which phases cover which requirements.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | MIGR-01 | Phase 3 | Complete |
-| MIGR-02 | Phase 3 | Pending |
+| MIGR-02 | Phase 3 | Complete |
 | MIGR-03 | Phase 2 | Complete |
 | MIGR-04 | Phase 3 | Complete |
 | SCRP-01 | Phase 1 | Complete |
@@ -90,7 +90,7 @@ Which phases cover which requirements.
 | UI-04 | Phase 4 | Pending |
 | COMP-01 | Phase 5 | Pending |
 | COMP-02 | Phase 5 | Pending |
-| COMP-03 | Phase 3 | Pending |
+| COMP-03 | Phase 3 | Complete |
 | QUAL-01 | Phase 6 | Pending |
 | QUAL-02 | Phase 6 | Pending |
 | QUAL-03 | Phase 6 | Pending |

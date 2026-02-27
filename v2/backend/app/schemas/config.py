@@ -1,9 +1,14 @@
-from pydantic import BaseModel, Field, HttpUrl
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
+from pydantic import BaseModel, Field
 
 class BaseUrlUpdate(BaseModel):
     """Schema for updating the base URL for Acestream links"""
-    base_url: str = Field(..., description="Base URL for Acestream links")
+    base_url: Optional[str] = Field(None, description="Base URL for Acestream links")
+    value: Optional[str] = Field(None, description="Compatibility alias for base_url")
+
+    def resolved_value(self) -> Optional[str]:
+        return self.base_url or self.value
 
 class AceEngineUrlUpdate(BaseModel):
     """Schema for updating the Acestream Engine URL"""
@@ -11,11 +16,60 @@ class AceEngineUrlUpdate(BaseModel):
 
 class RescrapeIntervalUpdate(BaseModel):
     """Schema for updating the rescrape interval"""
-    value: str = Field(..., description="Hours between automatic rescrapes")
+    value: Optional[str] = Field(None, description="Hours between automatic rescrapes")
+    hours: Optional[int] = Field(None, description="Numeric hours between automatic rescrapes")
+
+    def resolved_value(self) -> Optional[str]:
+        if self.value is not None:
+            return self.value
+        if self.hours is not None:
+            return str(self.hours)
+        return None
 
 class AddPidUpdate(BaseModel):
     """Schema for updating the addpid setting"""
     value: str = Field(..., description="Whether to add PID to Acestream links")
+
+
+class AppIdUpdate(BaseModel):
+    """Schema for updating appid setting"""
+    value: str = Field(..., description="Whether to add appid to Acestream links")
+
+
+class DashboardConfigUpdate(BaseModel):
+    """Schema for dashboard config updates"""
+    retention_days: Optional[int] = None
+    auto_refresh_interval: Optional[int] = None
+
+
+class DashboardConfigResponse(BaseModel):
+    """Schema for dashboard config response"""
+    retention_days: int
+    auto_refresh_interval: int
+
+
+class ConfigUpdateResponse(BaseModel):
+    """Schema for simple config mutation result"""
+    message: str
+    value: str
+
+
+class ConfigKeyUpdate(BaseModel):
+    """Schema for generic config key update endpoint"""
+    value: Optional[str] = None
+    base_url: Optional[str] = None
+    hours: Optional[int] = None
+
+    def get_value_for_key(self, key: str) -> Optional[str]:
+        if key == "base_url":
+            return self.base_url or self.value
+        if key == "rescrape_interval":
+            if self.value is not None:
+                return self.value
+            if self.hours is not None:
+                return str(self.hours)
+            return None
+        return self.value
 
 class SettingResponse(BaseModel):
     """Schema for a setting response"""

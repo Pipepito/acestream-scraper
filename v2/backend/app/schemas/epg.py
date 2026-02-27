@@ -87,6 +87,11 @@ class EPGStringMappingCreate(EPGStringMappingBase):
     epg_channel_id: int
 
 
+class EPGStringMappingUpdate(EPGStringMappingBase):
+    """Schema for updating/creating mapping payload in endpoint bodies"""
+    pass
+
+
 class EPGStringMappingResponse(EPGStringMappingBase):
     """Schema for EPG string mapping response"""
     id: int

@@ -1,10 +1,8 @@
-"""
-Pydantic schemas for channel data
-"""
-from pydantic import BaseModel, Field, HttpUrl
-from typing import List, Optional, Dict, Any
+"""Pydantic schemas for channel data."""
 from datetime import datetime
-import uuid
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
 
 
 
@@ -124,3 +122,76 @@ class AcestreamChannelListResponse(BaseModel):
     """Schema for paginated acestream channel results"""
     items: List[AcestreamChannelResponse]
     total: int
+
+
+class TVChannelListResponse(BaseModel):
+    """Schema for paginated TV channel results"""
+    items: List[TVChannelResponse]
+    total: int
+
+
+class BulkChannelEditRequest(BaseModel):
+    """Schema for bulk channel field updates"""
+    acestreamchannel_ids: List[str]
+    fields: AcestreamChannelUpdate
+
+
+class BulkChannelActivateRequest(BaseModel):
+    """Schema for bulk channel activation/deactivation"""
+    acestreamchannel_ids: List[str]
+    active: bool = True
+
+
+class TVChannelAssociationRequest(BaseModel):
+    """Schema for asociating one acestream channel with a TV channel"""
+    acestream_channel_id: str
+
+
+class TVChannelBatchAssignmentItem(BaseModel):
+    """Schema for one TV channel assignment row"""
+    tv_channel_id: int
+    acestream_channel_id: str
+
+
+class TVChannelBatchAssignRequest(BaseModel):
+    """Schema for batch TV channel assignments"""
+    assignments: List[TVChannelBatchAssignmentItem]
+
+
+class TVChannelBatchAssignResponse(BaseModel):
+    """Schema for batch assignment operation results"""
+    success_count: int
+    failure_count: int
+    details: Dict[str, Dict[str, List[str]]]
+
+
+class TVChannelBulkEPGUpdateItem(BaseModel):
+    """Schema for one EPG update row"""
+    tv_channel_id: int
+    epg_id: str
+
+
+class TVChannelBulkEPGUpdateRequest(BaseModel):
+    """Schema for bulk EPG updates"""
+    updates: List[TVChannelBulkEPGUpdateItem]
+
+
+class TVChannelBulkEPGUpdateDetail(BaseModel):
+    """Schema for one bulk EPG update result detail"""
+    tv_channel_id: int | str
+    status: str
+    reason: Optional[str] = None
+    old_epg_id: Optional[str] = None
+    new_epg_id: Optional[str] = None
+
+
+class TVChannelBulkEPGUpdateResponse(BaseModel):
+    """Schema for bulk EPG update operation results"""
+    success_count: int
+    failure_count: int
+    details: List[TVChannelBulkEPGUpdateDetail]
+
+
+class MessageResponse(BaseModel):
+    """Generic operation message response"""
+    message: str

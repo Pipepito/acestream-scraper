@@ -22,7 +22,7 @@
 ### Backend Architecture and API
 
 - [x] **API-01**: v2 API contracts are explicit, typed, and internally consistent (no ambiguous payload shapes across endpoint/service layers).
-- [ ] **API-02**: Backend modules are reorganized to enforce clear boundaries (endpoint -> service -> repository/model responsibilities).
+- [x] **API-02**: Backend modules are reorganized to enforce clear boundaries (endpoint -> service -> repository/model responsibilities).
 - [ ] **API-03**: Core backend paths include robust error handling/logging for operational failures (scrape, EPG refresh, status checks, tasks).
 - [ ] **API-04**: Database access patterns for high-churn operations are optimized to reduce unnecessary per-record overhead.
 
@@ -81,7 +81,7 @@ Which phases cover which requirements.
 | SCRP-03 | Phase 1 | Complete |
 | SCRP-04 | Phase 1 | Complete |
 | API-01 | Phase 2 | Complete |
-| API-02 | Phase 2 | Pending |
+| API-02 | Phase 2 | Complete |
 | API-03 | Phase 2 | Pending |
 | API-04 | Phase 6 | Pending |
 | UI-01 | Phase 4 | Pending |

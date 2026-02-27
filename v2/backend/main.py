@@ -2,6 +2,8 @@ from fastapi import Request, Response, Depends, Query
 from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
 from typing import Optional
+from uuid import uuid4
+
 from app.config.database import get_db
 from app.services.playlist_service import PlaylistService
 """
@@ -14,6 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.api.api import api_router
+from app.api.error_handlers import register_error_handlers
 from app.config.settings import settings
 from app.utils.logging import setup_logging
 from app.services.task_service import task_service
@@ -70,6 +73,15 @@ app = FastAPI(
     version="2.0.0",
 )
 
+
+@app.middleware("http")
+async def correlation_id_middleware(request: Request, call_next):
+    correlation_id = request.headers.get("X-Correlation-ID") or str(uuid4())
+    request.state.correlation_id = correlation_id
+    response = await call_next(request)
+    response.headers["X-Correlation-ID"] = correlation_id
+    return response
+
 # Add CORS middleware
 from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(
@@ -82,6 +94,7 @@ app.add_middleware(
 
 # Add API routes with versioning
 app.include_router(api_router, prefix="/api/v1")
+register_error_handlers(app)
 
 # Status router for background tasks
 status_router = APIRouter()

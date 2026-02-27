@@ -1,40 +1,64 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import ChannelTable from '../components/ChannelTable';
 
+jest.mock('../services/apiClient', () => ({
+  __esModule: true,
+  ApiError: class ApiError extends Error {
+    status: number;
+    constructor(message: string, status = 500) {
+      super(message);
+      this.status = status;
+    }
+  },
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+  },
+}));
+
+jest.mock('../services/channelService', () => ({
+  __esModule: true,
+  acestreamChannelService: {
+    updateAcestreamChannel: jest.fn(),
+  },
+}));
+
 describe('ChannelTable', () => {
-  it('shows error snackbar on inline edit failure', async () => {
-    const onCheckStatus = jest.fn();
-    const onEdit = jest.fn();
-    const onDelete = jest.fn();
-    const onFilterChange = jest.fn();
-    const onSortChange = jest.fn();
-    const onPageChange = jest.fn();
-    const onPageSizeChange = jest.fn();
-    const onSelectionChange = jest.fn();
-    const channels = [{ id: '1', name: 'Test', group: '', is_active: true, is_online: true, status: 'active', added_at: '', last_checked: '', epg_update_protected: false }];
+  it('renders channel rows and action controls', () => {
     render(
       <ChannelTable
-        channels={channels}
+        channels={[
+          {
+            id: 'acestream-1',
+            name: 'Test Channel',
+            group: 'Sports',
+            is_active: true,
+            is_online: true,
+            status: 'active',
+            last_seen: '',
+            epg_update_protected: false,
+          },
+        ]}
         loading={false}
-        onCheckStatus={onCheckStatus}
-        onEdit={onEdit}
-        onDelete={onDelete}
+        onCheckStatus={jest.fn()}
+        onEdit={jest.fn()}
+        onDelete={jest.fn()}
         checkingStatus={{}}
         filters={{}}
-        onFilterChange={onFilterChange}
+        onFilterChange={jest.fn()}
         totalCount={1}
         page={0}
         pageSize={25}
-        onPageChange={onPageChange}
-        onPageSizeChange={onPageSizeChange}
-        onSortChange={onSortChange}
-        onSelectionChange={onSelectionChange}
+        onPaginationModelChange={jest.fn()}
+        onSortChange={jest.fn()}
+        onSelectionChange={jest.fn()}
       />
     );
-    // Simulate inline edit error
-    // This would require mocking the updateChannel import, which is best done with jest.mock in a real test suite
-    // For now, just check that the component renders without crashing
-    expect(screen.getByText('Test')).toBeInTheDocument();
+
+    expect(screen.getByText('Test Channel')).toBeInTheDocument();
+    expect(screen.getByRole('grid')).toBeInTheDocument();
   });
 });

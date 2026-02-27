@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Typography,
   Box,
-  Paper,
   Button,
   TextField,
   Dialog,
@@ -24,7 +22,8 @@ import {
   LinearProgress,
   Alert,
   Snackbar,
-  SelectChangeEvent
+  SelectChangeEvent,
+  Stack,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -36,6 +35,8 @@ import {
 import { useURLs, useCreateURL, useUpdateURL, useDeleteURL, useScrapeURL, useScrapeAllURLs } from '../hooks/useScrapers';
 import { CreateURLDTO, UpdateURLDTO, ScrapedURL } from '../services/scraperService';
 import { formatDistanceToNow } from 'date-fns';
+import PageHeader from '../components/layout/PageHeader';
+import ContentSection from '../components/layout/ContentSection';
 
 interface URLFormData {
   url: string;
@@ -223,36 +224,31 @@ const Scraper: React.FC = () => {
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h4" gutterBottom>
-          URL Scraper
-        </Typography>
-        <Box>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={() => handleOpenDialog(false)}
-          >
-            Add URL
-          </Button>
-          <Button
-            variant="outlined"
-            color="secondary"
-            startIcon={<PlayArrowIcon />}
-            onClick={handleScrapeAll}
-            disabled={scrapeAllURLs.isLoading}
-            sx={{ ml: 2 }}
-          >
-            Scrape All Enabled
-          </Button>
-          <IconButton color="primary" onClick={() => refetch()} disabled={isLoading}>
-            <RefreshIcon />
-          </IconButton>
-        </Box>
-      </Box>
+      <PageHeader
+        title="URL Scraper"
+        subtitle="Manage source URLs and trigger scrape jobs."
+        actions={
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+            <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => handleOpenDialog(false)}>
+              Add URL
+            </Button>
+            <Button
+              variant="outlined"
+              color="secondary"
+              startIcon={<PlayArrowIcon />}
+              onClick={handleScrapeAll}
+              disabled={scrapeAllURLs.isLoading}
+            >
+              Scrape All Enabled
+            </Button>
+            <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => refetch()} disabled={isLoading}>
+              Refresh
+            </Button>
+          </Stack>
+        }
+      />
 
-      <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+      <ContentSection title="Configured URLs" description="Run single URL checks or scrape all enabled sources.">
         {isLoading && <LinearProgress />}
 
         <TableContainer sx={{ maxHeight: 640 }}>
@@ -311,7 +307,7 @@ const Scraper: React.FC = () => {
             </TableBody>
           </Table>
         </TableContainer>
-      </Paper>
+      </ContentSection>
 
       {/* URL Form Dialog */}
       <Dialog open={openDialog} onClose={handleCloseDialog}>

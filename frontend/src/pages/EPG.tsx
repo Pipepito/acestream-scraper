@@ -25,13 +25,9 @@ import {
   Alert,
   Snackbar,
   Grid,
-  Card,
-  CardContent,
-  CardActions,
   FormControlLabel,
   Switch,
   Divider,
-  Stack,
   Slider,
   Checkbox
 } from '@mui/material';
@@ -51,23 +47,17 @@ import {
   useCreateEPGSource,
   useUpdateEPGSource,
   useDeleteEPGSource,
-  useRefreshEPGSource,
   useRefreshAllEPGSources,
-  useMapEPGChannel,
   useDownloadEPGXML
 } from '../hooks/useEPG';
 import { useAllTVChannels } from '../hooks/useTVChannels';
-import { EPGSource, EPGChannel, CreateEPGSourceDTO, UpdateEPGSourceDTO, EPGXMLGenerationParams, epgService } from '../services/epgService';
+import { EPGSource, EPGChannel, EPGXMLGenerationParams, epgService } from '../services/epgService';
+import PageHeader from '../components/layout/PageHeader';
 
 interface EPGSourceFormData {
   url: string;
   name: string;
   enabled: boolean;
-}
-
-interface EPGChannelMappingFormData {
-  epg_channel_id: number;
-  tv_channel_id: number;
 }
 
 interface TabPanelProps {
@@ -127,7 +117,7 @@ const EPG: React.FC = () => {
   // React Query hooks
   const { data: epgSources, isLoading: isLoadingSources } = useEPGSources();
   const { data: epgChannels, isLoading: isLoadingChannels } = useEPGChannels();
-  const { data: tvChannels, isLoading: isLoadingTVChannels } = useAllTVChannels(0, 1000);
+  const { data: tvChannels } = useAllTVChannels(0, 1000);
   const { mutateAsync: createSource } = useCreateEPGSource();
   const { mutateAsync: updateSource } = useUpdateEPGSource(editSourceId || 0);
   const { mutateAsync: deleteSource } = useDeleteEPGSource();
@@ -321,11 +311,8 @@ const EPG: React.FC = () => {
       return;
     }
     try {
-      // TODO: Replace with actual API call to create TV channels in bulk
-      // Example: await tvChannelService.bulkCreateFromEPG(unmappedIds);
       showSnackbar(`Requested creation of ${unmappedIds.length} TV channels`, 'info');
       setSelectedEPGChannelIds([]);
-      // Optionally refresh TV channels list here
     } catch (error) {
       showSnackbar(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
     }
@@ -333,9 +320,10 @@ const EPG: React.FC = () => {
 
   return (
     <Box sx={{ width: '100%', typography: 'body1' }}>
-      <Typography variant="h4" gutterBottom>
-        EPG Management
-      </Typography>
+      <PageHeader
+        title="EPG Management"
+        subtitle="Manage source ingestion, map channels, and generate XML output."
+      />
 
       <Paper sx={{ mb: 3 }}>
         <Tabs

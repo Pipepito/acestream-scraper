@@ -7,83 +7,105 @@ import {
   IconButton,
   List,
   ListItem,
+  ListItemButton,
   ListItemIcon,
   ListItemText,
   Toolbar,
   Typography,
   Divider,
+  Chip,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import TvIcon from '@mui/icons-material/Tv';
-import FindInPageIcon from '@mui/icons-material/FindInPage';
-import EventNoteIcon from '@mui/icons-material/EventNote';
-import SettingsIcon from '@mui/icons-material/Settings';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import SearchIcon from '@mui/icons-material/Search';
-import CloudIcon from '@mui/icons-material/Cloud';
-import HealthAndSafetyIcon from '@mui/icons-material/HealthAndSafety';
+import { getNavTitle, navItems } from './layout/navItems';
 
-const drawerWidth = 240;
-
-interface NavItem {
-  text: string;
-  icon: React.ReactNode;
-  path: string;
+interface NavBarProps {
+  drawerWidth?: number;
 }
 
-const NavBar: React.FC = () => {
+const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
   const [mobileOpen, setMobileOpen] = useState<boolean>(false);
   const location = useLocation();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
-  const navItems: NavItem[] = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
 
-    { text: 'Scraper', icon: <FindInPageIcon />, path: '/scraper' },
-    { text: 'Acestream Search', icon: <SearchIcon />, path: '/search' },
-    { text: 'Acestream Channels', icon: <TvIcon />, path: '/acestream-channels' },
-    { text: 'EPG Sources', icon: <EventNoteIcon />, path: '/epg' },
-    { text: 'TV Channels', icon: <TvIcon />, path: '/tv-channels' },
-    { text: 'Playlist', icon: <PlayArrowIcon />, path: '/playlist' },
-    { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
-    { text: 'WARP Status', icon: <CloudIcon />, path: '/warp' },
-    { text: 'Health', icon: <HealthAndSafetyIcon />, path: '/health' },
-  ];
+  const operations = navItems.filter((item) => item.section === 'Operations');
+  const system = navItems.filter((item) => item.section === 'System');
 
   const drawer = (
-    <div>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Toolbar>
-        <Typography variant="h6" noWrap component="div">
+        <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700 }}>
           Acestream Scraper
         </Typography>
       </Toolbar>
       <Divider />
-      <List>
-        {navItems.map((item) => (
-          <ListItem
-            button
-            key={item.text}
-            component={RouterLink}
-            to={item.path}
-            selected={location.pathname === item.path}
-            sx={{
-              '&.Mui-selected': {
-                bgcolor: 'rgba(74, 222, 128, 0.08)',
-                '&:hover': {
-                  bgcolor: 'rgba(74, 222, 128, 0.12)',
-                },
-              },
-            }}
-          >
-            <ListItemIcon>{item.icon}</ListItemIcon>
-            <ListItemText primary={item.text} />
-          </ListItem>
-        ))}
+      <List sx={{ py: 1 }}>
+        <ListItem>
+          <Chip label="Operations" size="small" variant="outlined" />
+        </ListItem>
+        {operations.map((item) => {
+          const isSelected =
+            (item.path === '/' && location.pathname === '/') ||
+            (item.path !== '/' && location.pathname.startsWith(item.path)) ||
+            (item.matchPrefixes && item.matchPrefixes.some((prefix) => location.pathname.startsWith(prefix)));
+          return (
+            <ListItem key={item.text} disablePadding>
+              <ListItemButton
+                component={RouterLink}
+                to={item.path}
+                selected={Boolean(isSelected)}
+                onClick={() => setMobileOpen(false)}
+                sx={{
+                  mx: 1,
+                  borderRadius: 2,
+                  '&.Mui-selected': {
+                    bgcolor: 'rgba(15, 118, 110, 0.14)',
+                    '&:hover': { bgcolor: 'rgba(15, 118, 110, 0.22)' },
+                  },
+                }}
+              >
+                <ListItemIcon>{item.icon}</ListItemIcon>
+                <ListItemText primary={item.text} />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
       </List>
-    </div>
+      <Divider sx={{ mt: 1 }} />
+      <List sx={{ py: 1, mt: 'auto' }}>
+        <ListItem>
+          <Chip label="System" size="small" variant="outlined" />
+        </ListItem>
+        {system.map((item) => {
+          const isSelected =
+            (item.path === '/' && location.pathname === '/') ||
+            (item.path !== '/' && location.pathname.startsWith(item.path));
+          return (
+            <ListItem key={item.text} disablePadding>
+              <ListItemButton
+                component={RouterLink}
+                to={item.path}
+                selected={Boolean(isSelected)}
+                onClick={() => setMobileOpen(false)}
+                sx={{
+                  mx: 1,
+                  borderRadius: 2,
+                  '&.Mui-selected': {
+                    bgcolor: 'rgba(15, 118, 110, 0.14)',
+                    '&:hover': { bgcolor: 'rgba(15, 118, 110, 0.22)' },
+                  },
+                }}
+              >
+                <ListItemIcon>{item.icon}</ListItemIcon>
+                <ListItemText primary={item.text} />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
+      </List>
+    </Box>
   );
 
   return (
@@ -106,7 +128,7 @@ const NavBar: React.FC = () => {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div">
-            {navItems.find((item) => item.path === location.pathname)?.text || 'Not Found'}
+            {getNavTitle(location.pathname)}
           </Typography>
         </Toolbar>
       </AppBar>
@@ -135,7 +157,12 @@ const NavBar: React.FC = () => {
           variant="permanent"
           sx={{
             display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: drawerWidth,
+              borderRightColor: 'divider',
+              backgroundColor: 'background.paper',
+            },
           }}
           open
         >

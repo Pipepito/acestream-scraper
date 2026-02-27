@@ -1,5 +1,16 @@
 import React, { useState } from 'react';
-import { Box, Button, TextField, MenuItem, Select, InputLabel, FormControl, Grid, SelectChangeEvent } from '@mui/material';
+import {
+  Box,
+  Button,
+  TextField,
+  MenuItem,
+  Select,
+  InputLabel,
+  FormControl,
+  Grid,
+  SelectChangeEvent,
+  Stack,
+} from '@mui/material';
 
 export interface AdvancedSearchFilters {
   search?: string;
@@ -39,6 +50,10 @@ const sortOptions = [
 const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onChange, categories = [], groups = [] }) => {
   const [local, setLocal] = useState<AdvancedSearchFilters>(filters);
 
+  React.useEffect(() => {
+    setLocal(filters);
+  }, [filters]);
+
   const handleSelectChange = (e: SelectChangeEvent<string>) => {
     const { name, value } = e.target;
     setLocal((prev) => ({ ...prev, [name as string]: value }));
@@ -61,16 +76,17 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onChange, cate
   return (
     <Box mb={2}>
       <Grid container spacing={2} alignItems="center">
-        <Grid item xs={12} sm={3}>
+        <Grid item xs={12} sm={6} md={3}>
           <TextField
             name="search"
             label="Search"
             value={local.search || ''}
             onChange={handleInputChange}
             fullWidth
+            size="small"
           />
         </Grid>
-        <Grid item xs={12} sm={2}>
+        <Grid item xs={12} sm={6} md={2}>
           <FormControl fullWidth>
             <InputLabel>Category</InputLabel>
             <Select
@@ -78,6 +94,7 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onChange, cate
               value={local.category || ''}
               label="Category"
               onChange={handleSelectChange}
+              size="small"
             >
               <MenuItem value="">Any</MenuItem>
               {categories.map(cat => (
@@ -86,7 +103,7 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onChange, cate
             </Select>
           </FormControl>
         </Grid>
-        <Grid item xs={12} sm={2}>
+        <Grid item xs={12} sm={6} md={2}>
           <FormControl fullWidth>
             <InputLabel>Group</InputLabel>
             <Select
@@ -94,6 +111,7 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onChange, cate
               value={local.group || ''}
               label="Group"
               onChange={handleSelectChange}
+              size="small"
             >
               <MenuItem value="">Any</MenuItem>
               {groups.map(grp => (
@@ -102,7 +120,7 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onChange, cate
             </Select>
           </FormControl>
         </Grid>
-        <Grid item xs={12} sm={2}>
+        <Grid item xs={12} sm={6} md={2}>
           <FormControl fullWidth>
             <InputLabel>Status</InputLabel>
             <Select
@@ -110,6 +128,7 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onChange, cate
               value={local.status || ''}
               label="Status"
               onChange={handleSelectChange}
+              size="small"
             >
               {statusOptions.map(opt => (
                 <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
@@ -117,7 +136,7 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onChange, cate
             </Select>
           </FormControl>
         </Grid>
-        <Grid item xs={12} sm={2}>
+        <Grid item xs={12} sm={6} md={2}>
           <FormControl fullWidth>
             <InputLabel>Sort By</InputLabel>
             <Select
@@ -125,6 +144,7 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onChange, cate
               value={local.sort || ''}
               label="Sort By"
               onChange={handleSelectChange}
+              size="small"
             >
               {sortOptions.map(opt => (
                 <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
@@ -132,25 +152,27 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onChange, cate
             </Select>
           </FormControl>
         </Grid>
-        <Grid item xs={12} sm={2}>
+        <Grid item xs={12} sm={6} md={2}>
           <TextField
             name="country"
             label="Country"
             value={local.country || ''}
             onChange={handleInputChange}
             fullWidth
+            size="small"
           />
         </Grid>
-        <Grid item xs={12} sm={2}>
+        <Grid item xs={12} sm={6} md={2}>
           <TextField
             name="language"
             label="Language"
             value={local.language || ''}
             onChange={handleInputChange}
             fullWidth
+            size="small"
           />
         </Grid>
-        <Grid item xs={12} sm={2}>
+        <Grid item xs={12} sm={6} md={2}>
           <FormControl fullWidth>
             <InputLabel>Active</InputLabel>
             <Select
@@ -158,6 +180,7 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onChange, cate
               value={local.is_active || ''}
               label="Active"
               onChange={handleSelectChange}
+              size="small"
             >
               <MenuItem value="">Any</MenuItem>
               <MenuItem value="true">Active</MenuItem>
@@ -165,7 +188,7 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onChange, cate
             </Select>
           </FormControl>
         </Grid>
-        <Grid item xs={12} sm={2}>
+        <Grid item xs={12} sm={6} md={2}>
           <FormControl fullWidth>
             <InputLabel>Online</InputLabel>
             <Select
@@ -173,6 +196,7 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onChange, cate
               value={local.is_online || ''}
               label="Online"
               onChange={handleSelectChange}
+              size="small"
             >
               <MenuItem value="">Any</MenuItem>
               <MenuItem value="true">Online</MenuItem>
@@ -180,9 +204,15 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onChange, cate
             </Select>
           </FormControl>
         </Grid>
-        <Grid item xs={12} sm={1}>
-          <Button variant="contained" color="primary" onClick={handleApply} sx={{ mr: 1 }}>Apply</Button>
-          <Button variant="outlined" color="secondary" onClick={handleReset}>Reset</Button>
+        <Grid item xs={12} md={4}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} justifyContent="flex-end">
+            <Button variant="contained" color="primary" onClick={handleApply}>
+              Apply
+            </Button>
+            <Button variant="outlined" color="secondary" onClick={handleReset}>
+              Reset
+            </Button>
+          </Stack>
         </Grid>
       </Grid>
     </Box>

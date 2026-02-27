@@ -83,6 +83,15 @@ Disable alias compatibility explicitly with:
 
 ## Verification Commands
 
+Safe pre-deploy check for existing user databases:
+
+```bash
+bash scripts/ops/preflight_v2_deploy.sh
+```
+
+This script creates timestamped DB backups under `config/backups/` and prints a clear SAFE/UNSAFE result before v2 rollout.
+If result is UNSAFE, it also exports detected scraper sources into a rescue DB file (`scraper_sources_rescue.db`) inside the same backup run folder.
+
 Quick cutover checks:
 
 ```bash

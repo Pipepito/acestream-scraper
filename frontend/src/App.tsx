@@ -1,8 +1,6 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import Box from '@mui/material/Box';
-
-import NavBar from './components/NavBar';
+import AppShell from './components/layout/AppShell';
 import Dashboard from './pages/Dashboard';
 import AcestreamChannels from './pages/AcestreamChannels';
 import TVChannels from './pages/TVChannels';
@@ -18,15 +16,8 @@ import Health from './pages/Health';
 import NotFound from './pages/NotFound';
 
 const App: React.FC = () => {
-  console.log('App component rendering...');
-
   return (
-    <Box sx={{ display: 'flex' }}>
-      <NavBar />
-      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-        {/* Toolbar spacer */}
-        <Box sx={{ height: '64px' }} />
-
+    <AppShell>
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/acestream-channels" element={<AcestreamChannels />} />
@@ -42,9 +33,8 @@ const App: React.FC = () => {
           <Route path="/health" element={<Health />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </Box>
-    </Box>
+    </AppShell>
   );
-}
+};
 
 export default App;

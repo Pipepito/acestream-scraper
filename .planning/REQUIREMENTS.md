@@ -28,10 +28,10 @@
 
 ### Frontend UX and Usability
 
-- [ ] **UI-01**: v2 frontend delivers improved visual design quality and clearer information hierarchy on core operational pages.
-- [ ] **UI-02**: Core workflows (channels, scraping URLs, EPG, config, status) are faster to complete and require fewer friction points than current state.
-- [ ] **UI-03**: Frontend is responsive and usable across desktop and constrained display contexts.
-- [ ] **UI-04**: Frontend integrates cleanly with stabilized v2 API contracts without ad-hoc runtime shape workarounds.
+- [x] **UI-01**: v2 frontend delivers improved visual design quality and clearer information hierarchy on core operational pages.
+- [x] **UI-02**: Core workflows (channels, scraping URLs, EPG, config, status) are faster to complete and require fewer friction points than current state.
+- [x] **UI-03**: Frontend is responsive and usable across desktop and constrained display contexts.
+- [x] **UI-04**: Frontend integrates cleanly with stabilized v2 API contracts without ad-hoc runtime shape workarounds.
 
 ### Compatibility and Deployment
 
@@ -84,10 +84,10 @@ Which phases cover which requirements.
 | API-02 | Phase 2 | Complete |
 | API-03 | Phase 2 | Complete |
 | API-04 | Phase 6 | Pending |
-| UI-01 | Phase 4 | Pending |
-| UI-02 | Phase 4 | Pending |
-| UI-03 | Phase 4 | Pending |
-| UI-04 | Phase 4 | Pending |
+| UI-01 | Phase 4 | Complete |
+| UI-02 | Phase 4 | Complete |
+| UI-03 | Phase 4 | Complete |
+| UI-04 | Phase 4 | Complete |
 | COMP-01 | Phase 5 | Pending |
 | COMP-02 | Phase 5 | Pending |
 | COMP-03 | Phase 3 | Complete |
@@ -103,4 +103,4 @@ Which phases cover which requirements.
 
 ---
 *Requirements defined: 2026-02-27*
-*Last updated: 2026-02-27 after roadmap mapping*
+*Last updated: 2026-02-27 after Phase 4 completion*

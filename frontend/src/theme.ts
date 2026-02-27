@@ -1,23 +1,28 @@
 import { createTheme } from '@mui/material/styles';
 
-// Custom theme for the application
 const theme = createTheme({
   palette: {
-    mode: 'dark',
+    mode: 'light',
     primary: {
-      main: '#4ade80',
+      main: '#0f766e',
+      dark: '#115e59',
+      light: '#14b8a6',
     },
     secondary: {
-      main: '#3b82f6',
+      main: '#0b5ed7',
     },
     background: {
-      default: '#121212',
-      paper: '#1e1e1e',
+      default: '#f3f6fb',
+      paper: '#ffffff',
+    },
+    text: {
+      primary: '#10212f',
+      secondary: '#41556a',
     },
   },
   typography: {
     fontFamily: [
-      'Inter',
+      '"IBM Plex Sans"',
       'system-ui',
       '-apple-system',
       'BlinkMacSystemFont',
@@ -35,8 +40,17 @@ const theme = createTheme({
       },
       styleOverrides: {
         root: {
-          backgroundColor: '#1e1e1e',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
+          backgroundColor: '#ffffff',
+          color: '#10212f',
+          borderBottom: '1px solid rgba(16, 33, 47, 0.08)',
+          backdropFilter: 'blur(6px)',
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          borderColor: 'rgba(16, 33, 47, 0.08)',
         },
       },
     },
@@ -44,12 +58,13 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           textTransform: 'none',
-          borderRadius: '8px',
+          borderRadius: 10,
+          fontWeight: 600,
         },
         contained: {
           boxShadow: 'none',
           '&:hover': {
-            boxShadow: 'none',
+            boxShadow: '0 8px 24px rgba(15, 118, 110, 0.22)',
           },
         },
       },
@@ -57,8 +72,16 @@ const theme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: '12px',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+          borderRadius: 14,
+          border: '1px solid rgba(16, 33, 47, 0.08)',
+          boxShadow: '0 8px 20px rgba(16, 33, 47, 0.06)',
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          borderRadius: 8,
         },
       },
     },

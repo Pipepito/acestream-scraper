@@ -5,9 +5,8 @@ import {
   GridToolbar,
   GridRenderCellParams,
   GridSortModel,
-  GridFilterModel,
 } from '@mui/x-data-grid';
-import { Box, IconButton, Avatar, Tooltip, Chip } from '@mui/material';
+import { Box, IconButton, Avatar, Tooltip, Chip, useMediaQuery, useTheme } from '@mui/material';
 import { Edit, Delete, PlayArrow } from '@mui/icons-material';
 import { TVChannel } from '../types/tvChannelTypes';
 
@@ -38,6 +37,9 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
   onDelete,
   onPlay,
 }) => {
+  const theme = useTheme();
+  const isCompact = useMediaQuery(theme.breakpoints.down('md'));
+
   const columns: GridColDef[] = [
     {
       field: 'logo_url',
@@ -82,18 +84,24 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
       renderCell: (params: GridRenderCellParams<TVChannel>) => (
         <Box display="flex" gap={1}>
           <Tooltip title="Edit">
-            <IconButton size="small" onClick={() => onEdit(params.row)}>
+            <IconButton size="small" aria-label={`edit tv channel ${params.row.name}`} onClick={() => onEdit(params.row)}>
               <Edit fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Delete">
-            <IconButton size="small" onClick={() => onDelete(params.row.id)}>
+            <IconButton size="small" aria-label={`delete tv channel ${params.row.name}`} onClick={() => onDelete(params.row.id)}>
               <Delete fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Play">
             <span>
-              <IconButton size="small" color="primary" disabled={!params.row.acestream_channels?.length} onClick={() => onPlay(params.row.id)}>
+              <IconButton
+                size="small"
+                color="primary"
+                aria-label={`play tv channel ${params.row.name}`}
+                disabled={!params.row.acestream_channels?.length}
+                onClick={() => onPlay(params.row.id)}
+              >
                 <PlayArrow fontSize="small" />
               </IconButton>
             </span>
@@ -109,6 +117,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
       columns={columns}
       getRowId={(row) => row.id}
       loading={loading}
+      density={isCompact ? 'compact' : 'standard'}
       autoHeight
       pagination
       paginationMode="server"
@@ -118,6 +127,10 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
       onPaginationModelChange={(model) => {
         onPageChange(model.page);
         onPageSizeChange(model.pageSize);
+      }}
+      columnVisibilityModel={{
+        country: !isCompact,
+        language: !isCompact,
       }}
       sortingMode="server"
       onSortModelChange={onSortChange}

@@ -13,7 +13,7 @@ This roadmap delivers a big-bang migration from the legacy root stack to a singl
 - [x] **Phase 1: Parity Baseline and Safety Gates** - Lock scraper/output parity and migration acceptance checks. (completed 2026-02-27)
 - [x] **Phase 2: Backend Contract and Structure Hardening** - Stabilize v2 backend contracts and architecture boundaries. (completed 2026-02-27)
 - [x] **Phase 3: v2-Only Cutover and Legacy Retirement** - Replace root runtime/build ownership with v2-only paths. (completed 2026-02-27)
-- [ ] **Phase 4: Frontend UX Modernization** - Improve usability, responsiveness, and operational flow clarity.
+- [x] **Phase 4: Frontend UX Modernization** - Improve usability, responsiveness, and operational flow clarity. (completed 2026-02-27)
 - [ ] **Phase 5: Multi-Arch Build and Runtime Validation** - Ship and validate ARM v7/ARM64 compatibility.
 - [ ] **Phase 6: Reliability, Test Ownership, and Optimization** - Drive bugs down and harden performance/reliability.
 
@@ -74,9 +74,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 04-01: Redesign layout/navigation primitives for clarity and operational speed.
-- [ ] 04-02: Rework core management pages and interactions around stabilized contracts.
-- [ ] 04-03: Apply responsive and accessibility/usability polishing across primary flows.
+- [x] 04-01: Redesign layout/navigation primitives for clarity and operational speed.
+- [x] 04-02: Rework core management pages and interactions around stabilized contracts.
+- [x] 04-03: Apply responsive and accessibility/usability polishing across primary flows.
 
 ### Phase 5: Multi-Arch Build and Runtime Validation
 **Goal**: Provide dependable support for ARM v7 and ARM64 deployment targets.
@@ -117,6 +117,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 1. Parity Baseline and Safety Gates | 2/2 | Complete    | 2026-02-27 |
 | 2. Backend Contract and Structure Hardening | 3/3 | Complete | 2026-02-27 |
 | 3. v2-Only Cutover and Legacy Retirement | 3/3 | Complete | 2026-02-27 |
-| 4. Frontend UX Modernization | 0/3 | Not started | - |
+| 4. Frontend UX Modernization | 3/3 | Complete   | 2026-02-27 |
 | 5. Multi-Arch Build and Runtime Validation | 0/2 | Not started | - |
 | 6. Reliability, Test Ownership, and Optimization | 0/3 | Not started | - |

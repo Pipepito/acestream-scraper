@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import Dashboard from '../pages/Dashboard';
 import * as dashboardHooks from '../hooks/useDashboard';
+import { MemoryRouter } from 'react-router-dom';
 
 // Mock apiClient to avoid axios import issues
 jest.mock('../services/apiClient', () => ({
@@ -38,24 +39,31 @@ beforeEach(() => {
   (dashboardHooks.useUpdateDashboardConfig as jest.Mock).mockReturnValue({ mutate: jest.fn() });
 });
 
+const renderDashboard = () =>
+  render(
+    <MemoryRouter>
+      <Dashboard />
+    </MemoryRouter>
+  );
+
 describe('Dashboard UI', () => {
   it('renders activity, background tasks, streams, and warp status', async () => {
-    render(<Dashboard />);
+    renderDashboard();
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Recent Activity')).toBeInTheDocument();
     expect(screen.getByText('Scrape started')).toBeInTheDocument();
     expect(screen.getByText('Scrape finished')).toBeInTheDocument();
-    expect(screen.getByText('Background Tasks')).toBeInTheDocument();
+    expect(screen.getAllByText('Background Tasks').length).toBeGreaterThan(0);
     expect(screen.getByText('Scrape')).toBeInTheDocument();
     expect(screen.getByText('Active Streams')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
-    expect(screen.getByText('Warp Status')).toBeInTheDocument();
+    expect(screen.getByText('WARP Status')).toBeInTheDocument();
     expect(screen.getByText('connected')).toBeInTheDocument();
   });
 
   it('handles loading state', () => {
     (dashboardHooks.useDashboardConfig as jest.Mock).mockReturnValue({ data: undefined, isLoading: true });
-    render(<Dashboard />);
+    renderDashboard();
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
@@ -65,7 +73,7 @@ describe('Dashboard UI', () => {
     (dashboardHooks.useBackgroundTaskStatus as jest.Mock).mockReturnValue({ data: undefined, isLoading: false, error: new Error('Task error!') });
     (dashboardHooks.useActiveStreams as jest.Mock).mockReturnValue({ data: undefined, isLoading: false, error: new Error('Streams error!') });
     (dashboardHooks.useWarpStatus as jest.Mock).mockReturnValue({ data: undefined, isLoading: false, error: new Error('Warp error!') });
-    render(<Dashboard />);
+    renderDashboard();
     // Use a matcher function to find any error message
     expect(screen.getByText((content) => content.toLowerCase().includes('error'))).toBeInTheDocument();
   });
@@ -74,8 +82,8 @@ describe('Dashboard UI', () => {
 describe('Dashboard UI - settings and feedback', () => {
   it('persists auto-refresh toggle in localStorage', () => {
     localStorage.clear();
-    render(<Dashboard />);
-    const toggle = screen.getByLabelText('Auto-Refresh');
+    renderDashboard();
+    const toggle = screen.getByRole('checkbox', { name: 'Auto-Refresh' });
     expect(toggle).toBeChecked(); // default true
     fireEvent.click(toggle);
     expect(localStorage.getItem('dashboard-auto-refresh')).toBe('false');
@@ -87,7 +95,7 @@ describe('Dashboard UI - settings and feedback', () => {
     (dashboardHooks.useUpdateDashboardConfig as jest.Mock).mockReturnValue({
       mutate: (_: any, opts: any) => opts.onSuccess && opts.onSuccess(),
     });
-    render(<Dashboard />);
+    renderDashboard();
     const selects = screen.getAllByRole('combobox');
     const retentionSelect = selects[0];
     fireEvent.mouseDown(retentionSelect);
@@ -100,7 +108,7 @@ describe('Dashboard UI - settings and feedback', () => {
     (dashboardHooks.useUpdateDashboardConfig as jest.Mock).mockReturnValue({
       mutate: (_: any, opts: any) => opts.onError && opts.onError(),
     });
-    render(<Dashboard />);
+    renderDashboard();
     const selects = screen.getAllByRole('combobox');
     const retentionSelect = selects[0];
     fireEvent.mouseDown(retentionSelect);

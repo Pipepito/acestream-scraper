@@ -9,7 +9,7 @@
 
 - [ ] **MIGR-01**: Production runtime uses v2 stack only (`v2/backend` + `v2/frontend`) with no dependency on legacy root app runtime.
 - [ ] **MIGR-02**: Root legacy deployment/build workflow paths are retired or redirected to v2 equivalents.
-- [ ] **MIGR-03**: Functional parity checklist confirms all core user-facing capabilities currently used in root stack are available in v2.
+- [x] **MIGR-03**: Functional parity checklist confirms all core user-facing capabilities currently used in root stack are available in v2.
 - [ ] **MIGR-04**: Big-bang cutover can be executed from a single release branch without dual-stack runtime overlap.
 
 ### Scraping and Data Integrity
@@ -21,7 +21,7 @@
 
 ### Backend Architecture and API
 
-- [ ] **API-01**: v2 API contracts are explicit, typed, and internally consistent (no ambiguous payload shapes across endpoint/service layers).
+- [x] **API-01**: v2 API contracts are explicit, typed, and internally consistent (no ambiguous payload shapes across endpoint/service layers).
 - [ ] **API-02**: Backend modules are reorganized to enforce clear boundaries (endpoint -> service -> repository/model responsibilities).
 - [ ] **API-03**: Core backend paths include robust error handling/logging for operational failures (scrape, EPG refresh, status checks, tasks).
 - [ ] **API-04**: Database access patterns for high-churn operations are optimized to reduce unnecessary per-record overhead.
@@ -74,13 +74,13 @@ Which phases cover which requirements.
 |-------------|-------|--------|
 | MIGR-01 | Phase 3 | Pending |
 | MIGR-02 | Phase 3 | Pending |
-| MIGR-03 | Phase 2 | Pending |
+| MIGR-03 | Phase 2 | Complete |
 | MIGR-04 | Phase 3 | Pending |
 | SCRP-01 | Phase 1 | Complete |
 | SCRP-02 | Phase 1 | Complete |
 | SCRP-03 | Phase 1 | Complete |
 | SCRP-04 | Phase 1 | Complete |
-| API-01 | Phase 2 | Pending |
+| API-01 | Phase 2 | Complete |
 | API-02 | Phase 2 | Pending |
 | API-03 | Phase 2 | Pending |
 | API-04 | Phase 6 | Pending |

@@ -52,13 +52,18 @@ class PlaylistService:
             exclude_groups=exclude_groups
         )
 
-        # Always get base_url from settings if not provided
-        if not base_url:
-            from app.repositories.settings_repository import SettingsRepository
-            settings_repo = SettingsRepository(self.db)
-            base_url = settings_repo.get_setting(SettingsRepository.BASE_URL, SettingsRepository.DEFAULT_BASE_URL)
-        # Get addpid config only
+        # Load runtime settings for base URL fallback and addpid toggle.
         from app.repositories.settings_repository import SettingsRepository
+        settings_repo = SettingsRepository(self.db)
+
+        # Always get base_url from settings if not provided.
+        if not base_url:
+            base_url = settings_repo.get_setting(
+                SettingsRepository.BASE_URL,
+                SettingsRepository.DEFAULT_BASE_URL
+            )
+
+        # Get addpid config only.
         addpid = settings_repo.get_setting(SettingsRepository.ADDPID, SettingsRepository.DEFAULT_ADDPID)
         addpid_enabled = str(addpid).lower() in ("true", "1")
 

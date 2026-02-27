@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.api.api import api_router
 from app.api.error_handlers import register_error_handlers
-from app.config.settings import settings
+from app.config.settings import settings, get_env_compat_events
 from app.utils.logging import setup_logging
 from app.services.task_service import task_service
 from app.tasks.epg_refresh_task import run_epg_refresh_task
@@ -29,6 +29,16 @@ from app.tasks.channel_status_task import run_channel_status_task
 setup_logging()
 import logging
 logging.getLogger().warning("[MAIN] Root logger active at startup")
+
+for event in get_env_compat_events():
+    logging.getLogger("app.config.settings").warning(
+        "env_compat_event kind=%s legacy_key=%s new_key=%s selected=%s window=%s",
+        event.get("kind"),
+        event.get("legacy_key"),
+        event.get("new_key"),
+        event.get("selected"),
+        event.get("window"),
+    )
 
 # Initialize database on startup
 def initialize_database():

@@ -12,7 +12,7 @@ status_service = BackgroundTaskStatusService()
 @router.get("/background-tasks/status", tags=["background-tasks"])
 def get_background_tasks_status():
     try:
-        return [task.dict() for task in status_service.get_all_statuses()]
+        return [task.model_dump() for task in status_service.get_all_statuses()]
     except Exception as exc:
         logger.error("Failed to fetch background task status: %s", exc)
         raise APIError(

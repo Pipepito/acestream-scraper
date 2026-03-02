@@ -24,7 +24,7 @@
 - [x] **API-01**: v2 API contracts are explicit, typed, and internally consistent (no ambiguous payload shapes across endpoint/service layers).
 - [x] **API-02**: Backend modules are reorganized to enforce clear boundaries (endpoint -> service -> repository/model responsibilities).
 - [x] **API-03**: Core backend paths include robust error handling/logging for operational failures (scrape, EPG refresh, status checks, tasks).
-- [ ] **API-04**: Database access patterns for high-churn operations are optimized to reduce unnecessary per-record overhead.
+- [x] **API-04**: Database access patterns for high-churn operations are optimized to reduce unnecessary per-record overhead.
 
 ### Frontend UX and Usability
 
@@ -41,9 +41,9 @@
 
 ### Reliability and Quality
 
-- [ ] **QUAL-01**: Regression test coverage for critical flows is rebuilt/owned under v2 test locations (`v2/backend/tests`, `v2/frontend/src/__tests__`).
-- [ ] **QUAL-02**: Legacy root tests are retained only as temporary parity references, then removed once v2 coverage is sufficient.
-- [ ] **QUAL-03**: Known high-impact bugs in current v2 paths are fixed before cutover.
+- [x] **QUAL-01**: Regression test coverage for critical flows is rebuilt/owned under canonical root test locations (`backend/tests`, `frontend/src/__tests__`).
+- [x] **QUAL-02**: Legacy root tests are retained only as temporary parity references, then removed once v2 coverage is sufficient.
+- [x] **QUAL-03**: Known high-impact bugs in current v2 paths are fixed before cutover.
 - [x] **QUAL-04**: Phase acceptance gates require measurable verification before marking migration complete.
 
 ## v2 Requirements
@@ -83,7 +83,7 @@ Which phases cover which requirements.
 | API-01 | Phase 2 | Complete |
 | API-02 | Phase 2 | Complete |
 | API-03 | Phase 2 | Complete |
-| API-04 | Phase 6 | Pending |
+| API-04 | Phase 6 | Complete |
 | UI-01 | Phase 4 | Complete |
 | UI-02 | Phase 4 | Complete |
 | UI-03 | Phase 4 | Complete |
@@ -91,9 +91,9 @@ Which phases cover which requirements.
 | COMP-01 | Phase 5 | Complete |
 | COMP-02 | Phase 5 | Complete |
 | COMP-03 | Phase 3 | Complete |
-| QUAL-01 | Phase 6 | Pending |
-| QUAL-02 | Phase 6 | Pending |
-| QUAL-03 | Phase 6 | Pending |
+| QUAL-01 | Phase 6 | Complete |
+| QUAL-02 | Phase 6 | Complete |
+| QUAL-03 | Phase 6 | Complete |
 | QUAL-04 | Phase 1 | Complete |
 
 **Coverage:**
@@ -103,4 +103,4 @@ Which phases cover which requirements.
 
 ---
 *Requirements defined: 2026-02-27*
-*Last updated: 2026-02-27 after Phase 5 completion*
+*Last updated: 2026-02-27 after Phase 6 completion*

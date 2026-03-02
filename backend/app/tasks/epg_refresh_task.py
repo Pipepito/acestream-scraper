@@ -11,8 +11,15 @@ def run_epg_refresh_task():
     try:
         service = EPGService(db)
         results = service.refresh_all_sources()
-        logger.info("EPG refresh task completed results=%s", results)
-    except Exception as e:
-        logger.error("EPG refresh task failed error=%s", e)
+        summary = {
+            "sources": len(results),
+            "successful": sum(1 for item in results if item.get("success")),
+            "failed": sum(1 for item in results if not item.get("success")),
+        }
+        logger.info("EPG refresh task completed summary=%s results=%s", summary, results)
+        return summary
+    except Exception as exc:
+        logger.exception("EPG refresh task failed error=%s", exc)
+        raise
     finally:
         db.close()

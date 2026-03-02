@@ -16,12 +16,16 @@ class ChannelRepository:
         return items, total
     def assign_acestreams_to_tv_channel(self, acestream_ids: list, tv_channel_id: int) -> int:
         """Assign multiple acestream channels to a TV channel by setting their tv_channel_id."""
-        updated = 0
-        for ace_id in acestream_ids:
-            channel = self.get_channel_by_id(ace_id)
-            if channel and channel.tv_channel_id != tv_channel_id:
-                channel.tv_channel_id = tv_channel_id
-                updated += 1
+        if not acestream_ids:
+            return 0
+        updated = (
+            self.db.query(AcestreamChannel)
+            .filter(
+                AcestreamChannel.id.in_(acestream_ids),
+                AcestreamChannel.tv_channel_id != tv_channel_id,
+            )
+            .update({"tv_channel_id": tv_channel_id}, synchronize_session=False)
+        )
         self.db.commit()
         return updated
     def get_tv_channel_by_epg_id(self, epg_id: str) -> Optional[TVChannel]:
@@ -113,7 +117,8 @@ class ChannelRepository:
                                logo: Optional[str] = None,
                                tvg_id: Optional[str] = None,
                                tvg_name: Optional[str] = None,
-                               is_online: Optional[bool] = None) -> AcestreamChannel:
+                               is_online: Optional[bool] = None,
+                               commit: bool = True) -> AcestreamChannel:
         """Create a new channel or update existing one. Always update tvg_id and tvg_name if present (even if empty string)."""
         channel = self.get_channel_by_id(channel_id)
 
@@ -150,8 +155,11 @@ class ChannelRepository:
             if is_online is not None:
                 channel.is_online = is_online
 
-        self.db.commit()
-        self.db.refresh(channel)
+        if commit:
+            self.db.commit()
+            self.db.refresh(channel)
+        else:
+            self.db.flush()
         return channel
 
     def update_channel(self, channel_id: str, updates: Dict[str, Any]) -> AcestreamChannel:
@@ -183,34 +191,52 @@ class ChannelRepository:
         """
         Delete multiple channels by IDs
         """
-        deleted_any = False
-        for channel_id in channel_ids:
-            deleted = self.delete_channel(channel_id)
-            if deleted:
-                deleted_any = True
-        return deleted_any
+        if not channel_ids:
+            return False
+        deleted = (
+            self.db.query(AcestreamChannel)
+            .filter(AcestreamChannel.id.in_(channel_ids))
+            .delete(synchronize_session=False)
+        )
+        self.db.commit()
+        return deleted > 0
 
     def bulk_update_channels(self, channel_ids: List[str], fields: Dict[str, Any]) -> List[AcestreamChannel]:
         """
         Update multiple channels by IDs and fields
         """
-        updated = []
-        for channel_id in channel_ids:
-            channel = self.update_channel(channel_id, fields)
-            if channel:
-                updated.append(channel)
+        if not channel_ids or not fields:
+            return []
+        valid_fields = {key: value for key, value in fields.items() if hasattr(AcestreamChannel, key)}
+        if not valid_fields:
+            return []
+        updated = (
+            self.db.query(AcestreamChannel)
+            .filter(AcestreamChannel.id.in_(channel_ids))
+            .all()
+        )
+        for channel in updated:
+            for key, value in valid_fields.items():
+                setattr(channel, key, value)
+        self.db.commit()
         return updated
 
     def bulk_activate_channels(self, channel_ids: List[str], active: bool) -> List[AcestreamChannel]:
         """
         Activate/deactivate multiple channels by IDs
         """
-        updated = []
-        for channel_id in channel_ids:
-            channel = self.update_channel(channel_id, {"is_active": active})
-            if channel:
-                updated.append(channel)
-        return updated
+        if not channel_ids:
+            return []
+        self.db.query(AcestreamChannel).filter(AcestreamChannel.id.in_(channel_ids)).update(
+            {"is_active": active},
+            synchronize_session=False,
+        )
+        self.db.commit()
+        return (
+            self.db.query(AcestreamChannel)
+            .filter(AcestreamChannel.id.in_(channel_ids))
+            .all()
+        )
 
     def update_channel_status(self, channel_id: str, is_online: bool, error: str = None) -> AcestreamChannel:
         """Update the online status of a channel"""
@@ -227,17 +253,13 @@ class ChannelRepository:
 
     def check_all_channels_status(self) -> int:
         """Check status for all active channels"""
-        active_channels = self.db.query(AcestreamChannel).filter(AcestreamChannel.is_active == True).all()
-
-        # In a real implementation, this would check each channel
-        # For now, just update the timestamps
-        for channel in active_channels:
-            channel.last_checked = datetime.utcnow()
-            # Simulate a random status
-            # In production this would call the acestream engine
-
+        updated_count = (
+            self.db.query(AcestreamChannel)
+            .filter(AcestreamChannel.is_active == True)
+            .update({"last_checked": datetime.utcnow()}, synchronize_session=False)
+        )
         self.db.commit()
-        return len(active_channels)
+        return updated_count
 
     def get_tv_channels(self, skip: int = 0, limit: int = 100) -> List[TVChannel]:
         """Get TV channels"""

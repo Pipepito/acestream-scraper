@@ -11,7 +11,7 @@ Main application entry point for Acestream Scraper v2 backend
 """
 import os
 import uvicorn
-from fastapi import FastAPI, Request, APIRouter
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -105,20 +105,6 @@ app.add_middleware(
 # Add API routes with versioning
 app.include_router(api_router, prefix="/api/v1")
 register_error_handlers(app)
-
-# Status router for background tasks
-status_router = APIRouter()
-
-@status_router.get("/api/v1/background-tasks/status")
-def get_background_tasks_status():
-    jobs = task_service.get_jobs()
-    return [{
-        "id": job.id,
-        "next_run_time": str(job.next_run_time),
-        "trigger": str(job.trigger)
-    } for job in jobs]
-
-app.include_router(status_router)
 
 # Static files serving
 frontend_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), settings.FRONTEND_BUILD_PATH)

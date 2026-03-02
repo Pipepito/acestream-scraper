@@ -7,7 +7,8 @@ import uuid
 from datetime import datetime, timedelta
 from fastapi import status
 
-from app.models.models import EPGStringMapping
+from app.models.models import EPGProgram, EPGSource, EPGStringMapping
+from app.services.epg_service import EPGService
 
 
 class TestEPGSourceEndpoints:
@@ -445,3 +446,29 @@ class TestEPGGlobalMappingEndpoints:
             for m in data["auto_mapped"]
         )
         assert found
+
+
+def test_process_epg_xml_is_idempotent_for_existing_records(db_session):
+    source = EPGSource(url="https://example.com/idempotent-epg.xml", name="Idempotent Source", enabled=True)
+    db_session.add(source)
+    db_session.commit()
+
+    payload = b"""<?xml version="1.0" encoding="UTF-8"?>
+<tv>
+  <channel id="idempotent-channel"><display-name>Idempotent Channel</display-name></channel>
+  <programme channel="idempotent-channel" start="20260101010000 +0000" stop="20260101020000 +0000">
+    <title>Idempotent Program</title>
+    <desc>First</desc>
+  </programme>
+</tv>
+"""
+
+    service = EPGService(db_session)
+    first_channels, first_programs = service._process_epg_xml(source.id, payload)
+    second_channels, second_programs = service._process_epg_xml(source.id, payload)
+
+    assert first_channels == 1
+    assert first_programs == 1
+    assert second_channels == 0
+    assert second_programs == 0
+    assert db_session.query(EPGProgram).count() == 1

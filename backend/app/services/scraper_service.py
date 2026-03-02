@@ -9,10 +9,10 @@ import logging
 from app.models.models import ScrapedURL, AcestreamChannel
 from app.schemas.scraper import ChannelResult, URLResponse, URLCreate, URLUpdate
 from app.scrapers import create_scraper_for_url
-from app.services.channel_service import ChannelService
 from app.services.m3u_service import M3UService
 from app.services.epg_service import EPGService
 from app.services.tvchannel_service import TVChannelService
+from app.repositories.channel_repository import ChannelRepository
 from app.repositories.url_repository import URLRepository
 
 logger = logging.getLogger(__name__)
@@ -52,22 +52,17 @@ class ScraperService:
             m3u_service = M3UService()
             raw_channels = m3u_service.auto_create_tv_channels_from_epg(self.db, raw_channels, epg_service, tv_channel_service)
 
-            # Remove old channels for this source_url
-            existing_channels = {ch.id for ch in self.db.query(self.db.query(AcestreamChannel).filter_by(source_url=url).subquery()).all()}
             new_channel_ids = {channel_id for channel_id, _, _ in raw_channels}
-            channels_to_remove = existing_channels - new_channel_ids
-            if channels_to_remove:
-                for ch_id in channels_to_remove:
-                    ch = self.db.query(AcestreamChannel).filter(AcestreamChannel.id == ch_id).first()
-                    if ch:
-                        self.db.delete(ch)
-                self.db.commit()
+            source_query = self.db.query(AcestreamChannel).filter(AcestreamChannel.source_url == url)
+            if new_channel_ids:
+                source_query = source_query.filter(~AcestreamChannel.id.in_(new_channel_ids))
+            source_query.delete(synchronize_session=False)
 
-            # Persist channels to DB using ChannelService
-            channel_service = ChannelService(self.db)
+            # Persist channels to DB using transaction-scoped upserts
+            channel_repository = ChannelRepository(self.db)
             persisted_channels = []
             for channel_id, name, metadata in raw_channels:
-                persisted = channel_service.create_channel(
+                persisted = channel_repository.create_or_update_channel(
                     channel_id=channel_id,
                     name=name,
                     source_url=url,
@@ -75,7 +70,8 @@ class ScraperService:
                     logo=metadata.get('tvg_logo') or metadata.get('logo') or None,
                     tvg_id=metadata.get('tvg_id') or None,
                     tvg_name=metadata.get('tvg_name') or None,
-                    is_online=True
+                    is_online=True,
+                    commit=False,
                 )
                 persisted_channels.append(persisted)
             self.db.commit()

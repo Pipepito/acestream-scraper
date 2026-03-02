@@ -2,10 +2,12 @@
 Integration tests for Scraper endpoints
 """
 
+import asyncio
 import pytest
 import uuid
 from fastapi import status
-from app.models.models import ScrapedURL
+from app.models.models import AcestreamChannel, ScrapedURL
+from app.services.scraper_service import ScraperService
 
 
 class TestScraperEndpoints:
@@ -265,3 +267,32 @@ class TestScraperIntegration:
         # Should handle malformed content gracefully
         assert "status" in data
         assert data["channels_found"] >= 0
+
+    def test_scrape_service_replaces_stale_source_channels(self, db_session, monkeypatch):
+        source_url = "https://example.com/perf_replace.m3u"
+
+        stale = AcestreamChannel(
+            id="stale-channel",
+            name="Stale Channel",
+            source_url=source_url,
+            is_active=True,
+        )
+        db_session.add(stale)
+        db_session.commit()
+
+        class _FakeScraper:
+            async def scrape(self):
+                return [("fresh-channel", "Fresh Channel", {"group_title": "News"})], "OK"
+
+        monkeypatch.setattr(
+            "app.services.scraper_service.create_scraper_for_url",
+            lambda _url, _url_type: _FakeScraper(),
+        )
+
+        service = ScraperService(db_session)
+        channels, scrape_status = asyncio.run(service.scrape_url(source_url, "regular"))
+
+        assert scrape_status == "OK"
+        assert len(channels) == 1
+        assert channels[0].channel_id == "fresh-channel"
+        assert db_session.query(AcestreamChannel).filter(AcestreamChannel.id == "stale-channel").first() is None

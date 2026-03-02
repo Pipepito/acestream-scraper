@@ -14,12 +14,36 @@ def run_url_scraping_task():
         service = ScraperService(db)
         enabled_urls = service.get_enabled_urls()
         logger.info(f"Starting URL scraping task for {len(enabled_urls)} URLs.")
+
         async def scrape_all():
+            processed = 0
+            failures = 0
             for url_obj in enabled_urls:
-                channels, status = await service.scrape_url(url_obj.url, url_obj.url_type)
-                logger.info(f"Scraped {url_obj.url} (type: {url_obj.url_type}): {status}, channels found: {len(channels)}")
-        asyncio.run(scrape_all())
-    except Exception as e:
-        logger.error("URL scraping task failed error=%s", e)
+                try:
+                    channels, status = await service.scrape_url(url_obj.url, url_obj.url_type)
+                    processed += 1
+                    if status.lower().startswith("error"):
+                        failures += 1
+                    logger.info(
+                        "Scraped %s (type: %s): %s, channels found: %s",
+                        url_obj.url,
+                        url_obj.url_type,
+                        status,
+                        len(channels),
+                    )
+                except Exception as exc:
+                    failures += 1
+                    logger.exception("Failed scraping url=%s type=%s error=%s", url_obj.url, url_obj.url_type, exc)
+            return {
+                "processed": processed,
+                "failures": failures,
+            }
+
+        result = asyncio.run(scrape_all())
+        logger.info("URL scraping task completed result=%s", result)
+        return result
+    except Exception as exc:
+        logger.exception("URL scraping task failed error=%s", exc)
+        raise
     finally:
         db.close()

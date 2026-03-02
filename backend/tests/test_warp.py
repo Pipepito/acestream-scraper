@@ -66,12 +66,11 @@ class TestWARPStatusEndpoint:
         """Test getting WARP status when service has error."""
         mock_get_status.side_effect = Exception("WARP service not available")
 
-        # When the service raises an exception, FastAPI will return 500
         response = client.get("/api/v1/warp/status")
-        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
         data = response.json()
-        assert "detail" in data
-        assert "Internal Server Error" in data["detail"]
+        assert data["error"]["code"] == "WARP_STATUS_UNAVAILABLE"
+        assert data["error"]["context"]["operation"] == "status"
 
 
 class TestWARPConnectionEndpoints:
@@ -110,9 +109,8 @@ class TestWARPConnectionEndpoints:
         response = client.post("/api/v1/warp/connect")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         data = response.json()
-        assert data["success"] == False
-        assert "message" in data
-        assert "error" in data
+        assert data["error"]["code"] == "WARP_CONNECT_FAILED"
+        assert data["error"]["context"]["operation"] == "connect"
 
     @patch(WARP_CONNECT_PATH, new_callable=AsyncMock)
     def test_connect_warp_with_mode(self, mock_connect, client):
@@ -170,9 +168,8 @@ class TestWARPConnectionEndpoints:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         data = response.json()
 
-        assert data["success"] == False
-        assert "message" in data
-        assert "error" in data
+        assert data["error"]["code"] == "WARP_DISCONNECT_FAILED"
+        assert data["error"]["context"]["operation"] == "disconnect"
 
 
 class TestWARPModeEndpoint:
@@ -266,8 +263,8 @@ class TestWARPModeEndpoint:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         data = response.json()
 
-        assert data["success"] == False
-        assert "error" in data
+        assert data["error"]["code"] == "WARP_MODE_CHANGE_FAILED"
+        assert data["error"]["context"]["operation"] == "mode"
 
 
 class TestWARPLicenseEndpoint:
@@ -308,14 +305,15 @@ class TestWARPLicenseEndpoint:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         data = response.json()
 
-        assert data["success"] == False
-        assert "error" in data
+        assert data["error"]["code"] == "WARP_LICENSE_REGISTER_FAILED"
+        assert data["error"]["context"]["operation"] == "license registration"
 
     @patch(WARP_REGISTER_LICENSE_PATH, new_callable=AsyncMock)
     def test_register_warp_license_missing_data(self, mock_register_license, client):
         """Test registering WARP license without license parameter."""
         response = client.post("/api/v1/warp/license", json={})
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.json()["error"]["code"] == "WARP_LICENSE_REQUIRED"
 
     @patch(WARP_REGISTER_LICENSE_PATH, new_callable=AsyncMock)
     def test_register_warp_license_empty_license(self, mock_register_license, client):
@@ -323,6 +321,7 @@ class TestWARPLicenseEndpoint:
         request_data = {"license": ""}
         response = client.post("/api/v1/warp/license", json=request_data)
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.json()["error"]["code"] == "WARP_LICENSE_REQUIRED"
 
     @patch(WARP_REGISTER_LICENSE_PATH, new_callable=AsyncMock)
     def test_register_warp_license_already_registered(self, mock_register_license, client):
@@ -338,8 +337,8 @@ class TestWARPLicenseEndpoint:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         data = response.json()
 
-        assert data["success"] == False
-        assert "error" in data
+        assert data["error"]["code"] == "WARP_LICENSE_REGISTER_FAILED"
+        assert data["error"]["context"]["operation"] == "license registration"
 
 
 class TestWARPEndpointIntegration:
@@ -467,7 +466,8 @@ class TestWARPErrorHandling:
         mock_get_status.side_effect = Exception("WARP service unavailable")
 
         response = client.get("/api/v1/warp/status")
-        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+        assert response.json()["error"]["code"] == "WARP_STATUS_UNAVAILABLE"
 
     @patch(WARP_CONNECT_PATH)
     def test_warp_connection_timeout(self, mock_connect, client):
@@ -475,7 +475,8 @@ class TestWARPErrorHandling:
         mock_connect.side_effect = TimeoutError("Connection timeout")
 
         response = client.post("/api/v1/warp/connect")
-        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+        assert response.json()["error"]["code"] == "WARP_CONNECT_UNAVAILABLE"
 
     @patch(WARP_SET_MODE_PATH)
     def test_warp_mode_change_error(self, mock_set_mode, client):
@@ -484,4 +485,5 @@ class TestWARPErrorHandling:
 
         request_data = {"mode": "warp"}
         response = client.post("/api/v1/warp/mode", json=request_data)
-        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+        assert response.json()["error"]["code"] == "WARP_MODE_CHANGE_UNAVAILABLE"

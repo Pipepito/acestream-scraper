@@ -1,174 +1,128 @@
 """
 API endpoints for Cloudflare WARP
 """
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import JSONResponse
-from fastapi import status as http_status, Request
 import asyncio
+from typing import Any, Dict
 
-from app.schemas.warp import (
-    WarpStatusResponse,
-    WarpResponse,
-    WarpLicenseRequest,
-    WarpModeRequest,
-    WarpModeEnum
-)
-from app.services.warp_service import warp_service, WarpMode
+from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
+from fastapi import status as http_status
+
+from app.api.error_handlers import APIError
+from app.schemas.warp import WarpModeRequest
+from app.services.warp_service import warp_service
 
 router = APIRouter()
 
+
+async def _unwrap_result(result: Any) -> Dict[str, Any]:
+    while asyncio.iscoroutine(result):
+        result = await result
+    if not isinstance(result, dict):
+        raise APIError(
+            code="WARP_INVALID_RESPONSE",
+            message="Unexpected WARP service response",
+            status_code=http_status.HTTP_502_BAD_GATEWAY,
+            context={"result_type": type(result).__name__},
+        )
+    return result
+
+
+def _failure_error(operation: str, result: Dict[str, Any], code: str) -> APIError:
+    detail = result.get("error") or result.get("message") or "Unknown WARP error"
+    return APIError(
+        code=code,
+        message=f"WARP {operation} failed",
+        status_code=http_status.HTTP_400_BAD_REQUEST,
+        context={"operation": operation, "error": detail},
+    )
+
+
+def _internal_error(operation: str, exc: Exception, code: str) -> APIError:
+    return APIError(
+        code=code,
+        message=f"WARP {operation} unavailable",
+        status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
+        context={"operation": operation, "error": str(exc)},
+    )
+
+
 @router.get("/status", summary="Get WARP status")
 async def get_warp_status():
-    """
-    Get the current status of the WARP client.
-
-    Returns:
-        Information about the current WARP status.
-    """
     try:
-        result = await warp_service.get_status()
+        result = await _unwrap_result(await warp_service.get_status())
         return JSONResponse(content=result, status_code=http_status.HTTP_200_OK)
-    except Exception as e:
-        return JSONResponse(content={
-            "detail": "Internal Server Error",
-            "success": False,
-            "error": str(e),
-            "message": str(e)
-        }, status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except APIError:
+        raise
+    except Exception as exc:
+        raise _internal_error("status", exc, "WARP_STATUS_UNAVAILABLE") from exc
+
 
 @router.post("/connect", summary="Connect to WARP")
 async def connect_to_warp(request: Request):
-    """
-    Connect to the WARP network.
-
-    Returns:
-        Success message if the connection was successful.
-    """
     try:
-        try:
-            body = await request.json() if request.method == "POST" else {}
-        except Exception:
-            body = {}
+        body = await request.json() if request.method == "POST" else {}
         mode = body.get("mode") if isinstance(body, dict) else None
-        if mode:
-            result = await warp_service.connect(mode=mode)
-        else:
-            result = await warp_service.connect()
-        # Robustly await result until it is not a coroutine (handles AsyncMock double-async)
-        import asyncio
-        while asyncio.iscoroutine(result):
-            result = await result
+    except Exception:
+        mode = None
+
+    try:
+        result = await _unwrap_result(
+            await warp_service.connect(mode=mode) if mode else await warp_service.connect()
+        )
         if not result.get("success", False):
-            return JSONResponse(content={
-                "detail": result.get("message", "Failed to connect to WARP"),
-                "success": False,
-                "error": result.get("error", result.get("message", "Failed to connect to WARP")),
-                "message": result.get("message", "Failed to connect to WARP")
-            }, status_code=http_status.HTTP_400_BAD_REQUEST)
+            raise _failure_error("connect", result, "WARP_CONNECT_FAILED")
         return JSONResponse(content=result, status_code=http_status.HTTP_200_OK)
-    except Exception as e:
-        return JSONResponse(content={
-            "detail": "Internal Server Error",
-            "success": False,
-            "error": str(e),
-            "message": str(e)
-        }, status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except APIError:
+        raise
+    except Exception as exc:
+        raise _internal_error("connect", exc, "WARP_CONNECT_UNAVAILABLE") from exc
+
 
 @router.post("/disconnect", summary="Disconnect from WARP")
 async def disconnect_from_warp():
-    """
-    Disconnect from the WARP network.
-
-    Returns:
-        Success message if the disconnection was successful.
-    """
     try:
-        result = await warp_service.disconnect()
-        if asyncio.iscoroutine(result):
-            result = await result
+        result = await _unwrap_result(await warp_service.disconnect())
         if not result.get("success", False):
-            return JSONResponse(content={
-                "detail": result.get("message", "Failed to disconnect from WARP"),
-                "success": False,
-                "error": result.get("error", result.get("message", "Failed to disconnect from WARP")),
-                "message": result.get("message", "Failed to disconnect from WARP")
-            }, status_code=http_status.HTTP_400_BAD_REQUEST)
+            raise _failure_error("disconnect", result, "WARP_DISCONNECT_FAILED")
         return JSONResponse(content=result, status_code=http_status.HTTP_200_OK)
-    except Exception as e:
-        return JSONResponse(content={
-            "detail": "Internal Server Error",
-            "success": False,
-            "error": str(e),
-            "message": str(e)
-        }, status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except APIError:
+        raise
+    except Exception as exc:
+        raise _internal_error("disconnect", exc, "WARP_DISCONNECT_UNAVAILABLE") from exc
+
 
 @router.post("/mode", summary="Set WARP mode")
 async def set_warp_mode(request: WarpModeRequest):
-    """
-    Set the WARP mode (warp, dot, proxy, or off).
-
-    Args:
-        request: The mode to set WARP to.
-
-    Returns:
-        Success message if the mode was set successfully.
-    """
+    mode = request.mode.value if hasattr(request.mode, "value") else str(request.mode)
     try:
-        mode = request.mode.value if hasattr(request.mode, 'value') else str(request.mode)
-        result = await warp_service.set_mode(mode)
-        if asyncio.iscoroutine(result):
-            result = await result
+        result = await _unwrap_result(await warp_service.set_mode(mode))
         if not result.get("success", False):
-            return JSONResponse(content={
-                "detail": result.get("message", f"Failed to change WARP mode"),
-                "success": False,
-                "error": result.get("error", result.get("message", f"Failed to change WARP mode")),
-                "message": result.get("message", f"Failed to change WARP mode")
-            }, status_code=http_status.HTTP_400_BAD_REQUEST)
+            raise _failure_error("mode", result, "WARP_MODE_CHANGE_FAILED")
         return JSONResponse(content=result, status_code=http_status.HTTP_200_OK)
-    except Exception as e:
-        return JSONResponse(content={
-            "detail": "Internal Server Error",
-            "success": False,
-            "error": str(e),
-            "message": str(e)
-        }, status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except APIError:
+        raise
+    except Exception as exc:
+        raise _internal_error("mode", exc, "WARP_MODE_CHANGE_UNAVAILABLE") from exc
+
 
 @router.post("/license", summary="Register WARP license")
 async def register_warp_license(request: dict):
-    """
-    Register a license key with the WARP client.
+    license_key = request.get("license") if isinstance(request, dict) else None
+    if not license_key:
+        raise APIError(
+            code="WARP_LICENSE_REQUIRED",
+            message="Missing license key",
+            status_code=http_status.HTTP_422_UNPROCESSABLE_ENTITY,
+            context={"operation": "license"},
+        )
 
-    Args:
-        request: The license key to register.
-
-    Returns:
-        Success message if the license was registered successfully.
-    """
     try:
-        license_key = request.get("license")
-        if not license_key:
-            return JSONResponse(content={
-                "detail": "Missing license key",
-                "success": False,
-                "error": "Missing license key",
-                "message": "Missing license key"
-            }, status_code=http_status.HTTP_422_UNPROCESSABLE_ENTITY)
-        result = await warp_service.register_license(license_key)
-        if asyncio.iscoroutine(result):
-            result = await result
+        result = await _unwrap_result(await warp_service.register_license(license_key))
         if not result.get("success", False):
-            return JSONResponse(content={
-                "detail": result.get("message", "Failed to register WARP license"),
-                "success": False,
-                "error": result.get("error", result.get("message", "Failed to register WARP license")),
-                "message": result.get("message", "Failed to register WARP license")
-            }, status_code=http_status.HTTP_400_BAD_REQUEST)
+            raise _failure_error("license registration", result, "WARP_LICENSE_REGISTER_FAILED")
         return JSONResponse(content=result, status_code=http_status.HTTP_200_OK)
-    except Exception as e:
-        return JSONResponse(content={
-            "detail": "Internal Server Error",
-            "success": False,
-            "error": str(e),
-            "message": str(e)
-        }, status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except APIError:
+        raise
+    except Exception as exc:
+        raise _internal_error("license registration", exc, "WARP_LICENSE_REGISTER_UNAVAILABLE") from exc

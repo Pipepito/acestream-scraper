@@ -1,7 +1,7 @@
 """
 SQLAlchemy models for the application
 """
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey, Text, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from datetime import datetime
@@ -12,6 +12,10 @@ from app.config.database import Base
 class ScrapedURL(Base):
     """Model for tracking URLs that have been scraped"""
     __tablename__ = "scraped_urls"
+    __table_args__ = (
+        Index("ix_scraped_urls_enabled_status", "enabled", "status"),
+        Index("ix_scraped_urls_url_type_enabled", "url_type", "enabled"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     url = Column(String(2048), unique=True, index=True, nullable=False)
@@ -40,6 +44,10 @@ class ScrapedURL(Base):
 class AcestreamChannel(Base):
     """Model for Acestream channels"""
     __tablename__ = "acestream_channels"
+    __table_args__ = (
+        Index("ix_acestream_channels_source_active", "source_url", "is_active"),
+        Index("ix_acestream_channels_tv_channel_id", "tv_channel_id"),
+    )
 
     id = Column(String(255), primary_key=True, index=True)  # Use GUID from v1 as primary key
     name = Column(String(255))
@@ -81,6 +89,9 @@ class EPGSource(Base):
 class TVChannel(Base):
     """Model for TV channels"""
     __tablename__ = "tv_channels"
+    __table_args__ = (
+        Index("ix_tv_channels_epg_source_epg_id", "epg_source_id", "epg_id"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), unique=True, index=True, nullable=False)
@@ -105,6 +116,9 @@ class TVChannel(Base):
 class EPGChannel(Base):
     """Model for EPG channels"""
     __tablename__ = "epg_channels"
+    __table_args__ = (
+        Index("ix_epg_channels_source_xml_id", "epg_source_id", "channel_xml_id"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     epg_source_id = Column(Integer, ForeignKey("epg_sources.id"), nullable=False)
@@ -124,6 +138,9 @@ class EPGChannel(Base):
 class EPGProgram(Base):
     """Model for EPG programs"""
     __tablename__ = "epg_programs"
+    __table_args__ = (
+        Index("ix_epg_programs_channel_time", "epg_channel_id", "start_time", "end_time"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     epg_channel_id = Column(Integer, ForeignKey("epg_channels.id"), nullable=False)

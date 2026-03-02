@@ -1,40 +1,46 @@
-from typing import List, Optional
-from datetime import datetime
+from typing import Dict, List, Optional
 from app.models.background_task_status import BackgroundTaskStatus
+from app.services.task_service import task_service
 
-# This is a placeholder. In production, integrate with your scheduler/task manager.
 class BackgroundTaskStatusService:
     def __init__(self):
-        # In-memory store for demonstration; replace with persistent or scheduler-backed store
-        self._tasks = {
-            "epg_refresh": BackgroundTaskStatus(
-                task_name="epg_refresh",
-                last_run=None,
-                next_run=None,
-                status="idle",
-                last_error=None,
-                last_result=None
-            ),
-            "playlist_generation": BackgroundTaskStatus(
-                task_name="playlist_generation",
-                last_run=None,
-                next_run=None,
-                status="idle",
-                last_error=None,
-                last_result=None
-            ),
-            # Add more tasks as needed
+        self._task_service = task_service
+
+    def _base_payload(self, task_name: str) -> Dict[str, object]:
+        state = self._task_service.get_task_state(task_name) or {}
+        return {
+            "task_name": task_name,
+            "last_run": state.get("last_run"),
+            "next_run": state.get("next_run"),
+            "status": state.get("status", "idle"),
+            "last_error": state.get("last_error"),
+            "last_result": state.get("last_result"),
         }
 
     def get_all_statuses(self) -> List[BackgroundTaskStatus]:
-        return list(self._tasks.values())
+        statuses: List[BackgroundTaskStatus] = []
+        jobs = self._task_service.get_jobs()
+        seen = set()
+
+        for job in jobs:
+            task_name = job.id
+            payload = self._base_payload(task_name)
+            payload["next_run"] = job.next_run_time
+            statuses.append(BackgroundTaskStatus(**payload))
+            seen.add(task_name)
+
+        for task_name, state in self._task_service.get_task_states().items():
+            if task_name in seen:
+                continue
+            statuses.append(BackgroundTaskStatus(**self._base_payload(task_name)))
+
+        return sorted(statuses, key=lambda status: status.task_name)
 
     def update_status(self, task_name: str, **kwargs):
-        if task_name in self._tasks:
-            for k, v in kwargs.items():
-                setattr(self._tasks[task_name], k, v)
-        else:
-            self._tasks[task_name] = BackgroundTaskStatus(task_name=task_name, **kwargs)
+        raise NotImplementedError("Task status is scheduler-driven and cannot be manually updated.")
 
     def get_status(self, task_name: str) -> Optional[BackgroundTaskStatus]:
-        return self._tasks.get(task_name)
+        for status in self.get_all_statuses():
+            if status.task_name == task_name:
+                return status
+        return None

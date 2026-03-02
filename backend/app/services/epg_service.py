@@ -100,42 +100,33 @@ class EPGService:
             Tuple of (channels_found, programs_found)
         """
         try:
-            # Parse XML
             root = ET.fromstring(xml_content)
-
-            # Track counts
             channels_found = 0
             programs_found = 0
 
-            # First pass: Process channels
+            existing_channels = (
+                self.db.query(EPGChannel)
+                .filter(EPGChannel.epg_source_id == source_id)
+                .all()
+            )
+            channel_mapping = {channel.channel_xml_id: channel for channel in existing_channels}
+
             for channel_elem in root.findall(".//channel"):
                 channel_id = channel_elem.get("id", "")
                 if not channel_id:
                     continue
 
-                # Get channel display name
                 display_name_elem = channel_elem.find("display-name")
                 name = display_name_elem.text if display_name_elem is not None else channel_id
-
-                # Get language from display-name attribute
                 language = display_name_elem.get("lang") if display_name_elem is not None else None
 
-                # Get icon URL
                 icon_url = None
                 icon_elem = channel_elem.find("icon")
                 if icon_elem is not None:
                     icon_url = icon_elem.get("src")
 
-                # Check if channel already exists
-                db_channel = self.db.query(EPGChannel).filter(
-                    and_(
-                        EPGChannel.epg_source_id == source_id,
-                        EPGChannel.channel_xml_id == channel_id
-                    )
-                ).first()
-
+                db_channel = channel_mapping.get(channel_id)
                 if not db_channel:
-                    # Create new channel
                     db_channel = EPGChannel(
                         epg_source_id=source_id,
                         channel_xml_id=channel_id,
@@ -146,24 +137,29 @@ class EPGService:
                         updated_at=datetime.now()
                     )
                     self.db.add(db_channel)
+                    channel_mapping[channel_id] = db_channel
                     channels_found += 1
                 else:
-                    # Update existing channel
                     db_channel.name = name
                     db_channel.icon_url = icon_url
                     db_channel.language = language
                     db_channel.updated_at = datetime.now()
 
-            # Commit channel changes to get IDs
-            self.db.commit()
+            self.db.flush()
+            channel_id_map = {xml_id: channel.id for xml_id, channel in channel_mapping.items()}
 
-            # Get channel mapping for programs
-            epg_channels = self.db.query(EPGChannel).filter(
-                EPGChannel.epg_source_id == source_id
-            ).all()
-            channel_mapping = {ch.channel_xml_id: ch.id for ch in epg_channels}
+            existing_programs = (
+                self.db.query(EPGProgram)
+                .filter(EPGProgram.epg_channel_id.in_(channel_id_map.values()))
+                .all()
+                if channel_id_map
+                else []
+            )
+            existing_program_map = {
+                (program.epg_channel_id, program.start_time, program.end_time, program.title): program
+                for program in existing_programs
+            }
 
-            # Second pass: Process programs
             for program_elem in root.findall(".//programme"):
                 channel_id = program_elem.get("channel", "")
                 start_time_str = program_elem.get("start", "")
@@ -172,19 +168,16 @@ class EPGService:
                 if not (channel_id and start_time_str and stop_time_str):
                     continue
 
-                # Find channel ID
-                epg_channel_id = channel_mapping.get(channel_id)
+                epg_channel_id = channel_id_map.get(channel_id)
                 if not epg_channel_id:
                     continue
 
-                # Parse dates
                 try:
                     start_time = self._parse_xmltv_time(start_time_str)
                     end_time = self._parse_xmltv_time(stop_time_str)
                 except ValueError:
                     continue
 
-                # Get program details
                 title_elem = program_elem.find("title")
                 title = title_elem.text if title_elem is not None else "Unknown Program"
 
@@ -197,22 +190,13 @@ class EPGService:
                 category_elem = program_elem.find("category")
                 category = category_elem.text if category_elem is not None else None
 
-                # Get icon URL
                 icon_elem = program_elem.find("icon")
                 image_url = icon_elem.get("src") if icon_elem is not None else None
 
-                # Check if program already exists
-                db_program = self.db.query(EPGProgram).filter(
-                    and_(
-                        EPGProgram.epg_channel_id == epg_channel_id,
-                        EPGProgram.start_time == start_time,
-                        EPGProgram.end_time == end_time,
-                        EPGProgram.title == title
-                    )
-                ).first()
+                program_key = (epg_channel_id, start_time, end_time, title)
+                db_program = existing_program_map.get(program_key)
 
                 if not db_program:
-                    # Create new program
                     db_program = EPGProgram(
                         epg_channel_id=epg_channel_id,
                         start_time=start_time,
@@ -224,18 +208,16 @@ class EPGService:
                         image_url=image_url
                     )
                     self.db.add(db_program)
+                    existing_program_map[program_key] = db_program
                     programs_found += 1
                 else:
-                    # Update existing program
                     db_program.title = title
                     db_program.subtitle = subtitle
                     db_program.description = description
                     db_program.category = category
                     db_program.image_url = image_url
 
-            # Commit all changes
             self.db.commit()
-
             return channels_found, programs_found
 
         except Exception as e:
@@ -371,7 +353,6 @@ class EPGService:
             '<tv generator-info-name="Acestream Scraper EPG Generator" generator-info-url="https://github.com/pipepito/acestream-scraper">'
         ]
 
-        # Get TV channels with filters
         tv_channels_query = self.db.query(TVChannel).filter(TVChannel.epg_id.isnot(None))
 
         if search_term:
@@ -381,38 +362,39 @@ class EPGService:
             tv_channels_query = tv_channels_query.filter(TVChannel.is_favorite == True)
 
         tv_channels = tv_channels_query.all()
-
-        # Sort channels by channel_number
         sorted_channels = sorted(
             tv_channels,
             key=lambda c: (c.channel_number is None, c.channel_number or 0, c.name.lower())
         )
 
-        # Track channels and their EPG mappings
         channel_epg_mappings = []
-        name_counts = {}  # Track duplicate channel names
+        name_counts = {}
 
-        # Process each TV channel
+        source_ids = {channel.epg_source_id for channel in sorted_channels if channel.epg_source_id is not None}
+        xml_ids = {channel.epg_id for channel in sorted_channels if channel.epg_id}
+        epg_channels = (
+            self.db.query(EPGChannel)
+            .filter(
+                EPGChannel.epg_source_id.in_(source_ids),
+                EPGChannel.channel_xml_id.in_(xml_ids),
+            )
+            .all()
+            if source_ids and xml_ids
+            else []
+        )
+        epg_lookup = {
+            (channel.epg_source_id, channel.channel_xml_id): channel
+            for channel in epg_channels
+        }
+
         for tv_channel in sorted_channels:
-            # Skip channels without EPG ID or acestreams
             if not tv_channel.epg_id:
                 continue
-
-            # Get EPG channel for this TV channel
-            epg_channel = self.db.query(EPGChannel).filter(
-                and_(
-                    EPGChannel.epg_source_id == tv_channel.epg_source_id,
-                    EPGChannel.channel_xml_id == tv_channel.epg_id
-                )
-            ).first()
-
-            if not epg_channel:
+            epg_channel = epg_lookup.get((tv_channel.epg_source_id, tv_channel.epg_id))
+            if epg_channel is None:
                 continue
 
-            # Create channel definition
             base_name = tv_channel.name
-
-            # Handle duplicate names
             if base_name in name_counts:
                 name_counts[base_name] += 1
                 display_name = f"{base_name} {name_counts[base_name]}"
@@ -422,7 +404,6 @@ class EPGService:
                 display_name = base_name
                 epg_id = tv_channel.epg_id
 
-            # Store mapping for program generation
             channel_epg_mappings.append({
                 'epg_id': epg_id,
                 'display_name': display_name,
@@ -444,35 +425,37 @@ class EPGService:
 
             xml_lines.append('  </channel>')
 
-        # Add an empty line to separate channels from programs
         xml_lines.append('')
 
-        # Calculate date range for programs
         now = datetime.utcnow()
         start_time = now - timedelta(days=days_back)
         end_time = now + timedelta(days=days_forward)
 
-        # Get program data for each channel mapping
+        epg_channel_ids = [mapping['epg_channel'].id for mapping in channel_epg_mappings]
+        all_programs = (
+            self.db.query(EPGProgram)
+            .filter(
+                EPGProgram.epg_channel_id.in_(epg_channel_ids),
+                EPGProgram.start_time >= start_time,
+                EPGProgram.end_time <= end_time,
+            )
+            .order_by(EPGProgram.epg_channel_id, EPGProgram.start_time)
+            .all()
+            if epg_channel_ids
+            else []
+        )
+        programs_by_channel = {}
+        for program in all_programs:
+            programs_by_channel.setdefault(program.epg_channel_id, []).append(program)
+
         for mapping in channel_epg_mappings:
             epg_id = mapping['epg_id']
             epg_channel = mapping['epg_channel']
-
-            # Get programs for this channel
-            programs = self.db.query(EPGProgram).filter(
-                and_(
-                    EPGProgram.epg_channel_id == epg_channel.id,
-                    EPGProgram.start_time >= start_time,
-                    EPGProgram.end_time <= end_time
-                )
-            ).order_by(EPGProgram.start_time).all()
-
-            # Generate program entries
+            programs = programs_by_channel.get(epg_channel.id, [])
             for program in programs:
-                # Format times in XMLTV format (YYYYMMDDHHMMSS +0000)
                 start_time_str = program.start_time.strftime("%Y%m%d%H%M%S %z")
                 stop_time_str = program.end_time.strftime("%Y%m%d%H%M%S %z")
 
-                # Ensure timezone info is included
                 if not '+' in start_time_str and not '-' in start_time_str:
                     start_time_str += ' +0000'
                 if not '+' in stop_time_str and not '-' in stop_time_str:
@@ -495,7 +478,6 @@ class EPGService:
 
                 xml_lines.append('  </programme>')
 
-        # Close the XML document
         xml_lines.append('</tv>')
 
         return '\n'.join(xml_lines)

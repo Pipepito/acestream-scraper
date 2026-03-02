@@ -154,6 +154,18 @@ class TestChannelEndpoints:
         response = client.delete(f"/api/v1/channels/{fake_id}")
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
+    def test_bulk_activate_channels_endpoint(self, client, seed_channels):
+        """Test bulk activate/deactivate endpoint updates channels in one call."""
+        payload = {
+            "acestreamchannel_ids": [channel.id for channel in seed_channels],
+            "active": False,
+        }
+        response = client.post("/api/v1/channels/bulk_activate", json=payload)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) == len(seed_channels)
+        assert all(item["is_active"] is False for item in data)
+
 
 class TestChannelStatusEndpoints:
     """Test channel status checking endpoints."""

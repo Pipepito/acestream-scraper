@@ -1,26 +1,64 @@
 """
-Test background task system integration and scheduling.
+Task service reliability and scheduler lifecycle tests.
 """
 import time
-from app.services.task_service import task_service
 
-def dummy_job():
-    # No-op job for testing
-    pass
+from app.services.task_service import TaskService
 
-def test_task_scheduling():
+
+def test_scheduler_start_and_shutdown_are_idempotent():
+    service = TaskService()
     try:
-        # Start scheduler
-        task_service.start()
-        # Add a test task with a short interval
-        task_service.add_interval_task(dummy_job, seconds=1, job_id="test_dummy_job")
-        jobs = task_service.get_jobs()
-        assert any(job.id == "test_dummy_job" for job in jobs)
-        # Wait for at least one run
-        time.sleep(1.5)
-        # Remove test task
-        task_service.remove_task("test_dummy_job")
-        assert not any(job.id == "test_dummy_job" for job in task_service.get_jobs())
+        assert service.start() is True
+        assert service.start() is False
+        assert service.shutdown() is True
+        assert service.shutdown() is False
     finally:
-        # Always shut down the scheduler to avoid hanging threads
-        task_service.shutdown()
+        service.shutdown()
+
+
+def test_interval_task_updates_runtime_status():
+    service = TaskService()
+
+    executed = {"runs": 0}
+
+    def ok_job():
+        executed["runs"] += 1
+        return {"runs": executed["runs"]}
+
+    try:
+        service.start()
+        service.add_interval_task(ok_job, seconds=1, job_id="test_ok_job")
+        time.sleep(1.4)
+        state = service.get_task_state("test_ok_job")
+
+        assert executed["runs"] >= 1
+        assert state is not None
+        assert state["last_run"] is not None
+        assert state["status"] in {"idle", "running"}
+        assert state["last_error"] is None
+        assert isinstance(state["last_result"], dict)
+    finally:
+        service.remove_task("test_ok_job")
+        service.shutdown()
+
+
+def test_interval_task_failure_surfaces_error_state():
+    service = TaskService()
+
+    def failing_job():
+        raise RuntimeError("intentional failure")
+
+    try:
+        service.start()
+        service.add_interval_task(failing_job, seconds=1, job_id="test_failing_job")
+        time.sleep(1.4)
+        state = service.get_task_state("test_failing_job")
+
+        assert state is not None
+        assert state["status"] == "error"
+        assert "intentional failure" in (state["last_error"] or "")
+        assert state["last_run"] is not None
+    finally:
+        service.remove_task("test_failing_job")
+        service.shutdown()

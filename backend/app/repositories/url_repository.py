@@ -84,21 +84,34 @@ class URLRepository:
 
     def refresh_url(self, url_id: int) -> bool:
         """Mark one URL as refreshing and update the last scrape timestamp."""
-        url = self.get_by_id(url_id)
-        if not url:
-            return False
-        url.last_scraped = datetime.utcnow()
-        url.status = "refreshing"
-        self.update(url)
-        return True
+        updated = (
+            self.db.query(ScrapedURL)
+            .filter(ScrapedURL.id == url_id)
+            .update(
+                {
+                    "last_scraped": datetime.utcnow(),
+                    "status": "refreshing",
+                },
+                synchronize_session=False,
+            )
+        )
+        if updated:
+            self.db.commit()
+            return True
+        return False
 
     def refresh_all_urls(self) -> int:
         """Mark all URLs as refreshing and update the last scrape timestamp."""
-        urls = self.get_all(skip=0, limit=100000)
         now = datetime.utcnow()
-        for url in urls:
-            url.last_scraped = now
-            url.status = "refreshing"
-            self.db.add(url)
+        updated = (
+            self.db.query(ScrapedURL)
+            .update(
+                {
+                    "last_scraped": now,
+                    "status": "refreshing",
+                },
+                synchronize_session=False,
+            )
+        )
         self.db.commit()
-        return len(urls)
+        return updated

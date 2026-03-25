@@ -6,6 +6,9 @@ import pytest
 import uuid
 from fastapi import status
 
+from app.models.models import AcestreamChannel, EPGChannel, EPGSource, TVChannel
+from app.repositories.channel_repository import ChannelRepository
+
 
 class TestTVChannelEndpoints:
     """Test TV channel CRUD operations."""
@@ -349,3 +352,483 @@ class TestTVChannelCreateFromEPG:
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
             assert data["epg_id"] == update["epg_id"]
+
+
+@pytest.fixture
+def seeded_match_data(db_session):
+    primary_source = EPGSource(url="https://example.com/epg-primary.xml", name="Primary Source", enabled=True)
+    secondary_source = EPGSource(url="https://example.com/epg-secondary.xml", name="Secondary Source", enabled=True)
+    db_session.add_all([primary_source, secondary_source])
+    db_session.flush()
+
+    epg_channels = {
+        "xml_exact": EPGChannel(
+            epg_source_id=primary_source.id,
+            channel_xml_id="xml-match-1",
+            name="Alpha Sports HD",
+            language="en",
+        ),
+        "normalized_exact": EPGChannel(
+            epg_source_id=primary_source.id,
+            channel_xml_id="name-match-1",
+            name="Canal Plus Liga HD",
+            language="es",
+        ),
+        "fuzzy": EPGChannel(
+            epg_source_id=primary_source.id,
+            channel_xml_id="fuzzy-match-1",
+            name="Premier Sports 1 HD",
+            language="en",
+        ),
+        "multi_candidate": EPGChannel(
+            epg_source_id=secondary_source.id,
+            channel_xml_id="multi-match-1",
+            name="Arena Vision 2",
+            language="en",
+        ),
+        "conflict_winner": EPGChannel(
+            epg_source_id=secondary_source.id,
+            channel_xml_id="shared-match-1",
+            name="Shared Sports One",
+            language="en",
+        ),
+        "conflict_loser": EPGChannel(
+            epg_source_id=secondary_source.id,
+            channel_xml_id="shared-match-2",
+            name="Shared Sports Uno",
+            language="en",
+        ),
+    }
+    db_session.add_all(list(epg_channels.values()))
+
+    acestream_channels = [
+        AcestreamChannel(
+            id=str(uuid.uuid4()),
+            name="Alpha Sports",
+            tvg_id="xml-match-1",
+            tvg_name="Alpha Sports",
+            source_url="https://example.com/a1.m3u8",
+            is_active=True,
+            is_online=True,
+        ),
+        AcestreamChannel(
+            id=str(uuid.uuid4()),
+            name="Canal Liga",
+            tvg_id=None,
+            tvg_name="Canal Plus Liga",
+            source_url="https://example.com/a2.m3u8",
+            is_active=True,
+            is_online=True,
+        ),
+        AcestreamChannel(
+            id=str(uuid.uuid4()),
+            name="Premier Sport One",
+            tvg_id=None,
+            tvg_name=None,
+            source_url="https://example.com/a3.m3u8",
+            is_active=True,
+            is_online=True,
+        ),
+        AcestreamChannel(
+            id=str(uuid.uuid4()),
+            name="Arena Vision 2",
+            tvg_id=None,
+            tvg_name=None,
+            source_url="https://example.com/a4.m3u8",
+            is_active=True,
+            is_online=True,
+        ),
+        AcestreamChannel(
+            id=str(uuid.uuid4()),
+            name="Arena Vision Two",
+            tvg_id=None,
+            tvg_name=None,
+            source_url="https://example.com/a5.m3u8",
+            is_active=True,
+            is_online=True,
+        ),
+        AcestreamChannel(
+            id=str(uuid.uuid4()),
+            name="Shared Sports 1",
+            tvg_id=None,
+            tvg_name=None,
+            source_url="https://example.com/a6.m3u8",
+            is_active=True,
+            is_online=True,
+        ),
+    ]
+    db_session.add_all(acestream_channels)
+    db_session.commit()
+
+    return {
+        "sources": {"primary": primary_source, "secondary": secondary_source},
+        "epg_channels": epg_channels,
+        "acestream_channels": acestream_channels,
+    }
+
+
+@pytest.fixture
+def seeded_unmatched_data(db_session):
+    source = EPGSource(url="https://example.com/epg-unmatched.xml", name="Unmatched Source", enabled=True)
+    db_session.add(source)
+    db_session.flush()
+
+    epg_channels = [
+        EPGChannel(epg_source_id=source.id, channel_xml_id="nomatch-1", name="Documentary Planet", language="en"),
+        EPGChannel(epg_source_id=source.id, channel_xml_id="nomatch-2", name="Cinema World", language="en"),
+    ]
+    db_session.add_all(
+        epg_channels
+        + [
+            AcestreamChannel(
+                id=str(uuid.uuid4()),
+                name="Fishing Network",
+                tvg_id="other-id",
+                tvg_name="Fishing Network",
+                source_url="https://example.com/u1.m3u8",
+                is_active=True,
+                is_online=True,
+            ),
+        ]
+    )
+    db_session.commit()
+
+    return {"source": source, "epg_channels": epg_channels}
+
+
+@pytest.fixture
+def seeded_conflict_data(db_session):
+    source = EPGSource(url="https://example.com/epg-conflict.xml", name="Conflict Source", enabled=True)
+    db_session.add(source)
+    db_session.flush()
+
+    winner = EPGChannel(epg_source_id=source.id, channel_xml_id="winner-id", name="Arena Sports 1", language="en")
+    loser = EPGChannel(epg_source_id=source.id, channel_xml_id="loser-id", name="Arena Sports Uno", language="en")
+    shared = AcestreamChannel(
+        id="shared-candidate",
+        name="Arena Sports 1",
+        tvg_id=None,
+        tvg_name=None,
+        source_url="https://example.com/conflict.m3u8",
+        is_active=True,
+        is_online=True,
+    )
+
+    db_session.add_all([winner, loser, shared])
+    db_session.commit()
+
+    return {"source": source, "winner": winner, "loser": loser, "shared": shared}
+
+
+class TestTVChannelEPGMatchAnalysis:
+    def test_analyze_epg_matches_returns_summary_and_rows(self, client, seeded_match_data):
+        response = client.post("/api/v1/tv-channels/analyze-epg-matches", json={"strictness": "balanced"})
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["summary"]["epg_channels_analyzed"] == 6
+        assert data["summary"]["matched_epg_channels"] >= 5
+        assert data["summary"]["matched_acestream_channels"] >= 5
+        assert data["summary"]["creatable_rows"] >= 5
+        assert len(data["rows"]) == 6
+
+    def test_analyze_epg_matches_applies_strictness_thresholds(self, client, seeded_match_data):
+        loose = client.post("/api/v1/tv-channels/analyze-epg-matches", json={"strictness": "loose"})
+        strict = client.post("/api/v1/tv-channels/analyze-epg-matches", json={"strictness": "strict"})
+
+        assert loose.status_code == status.HTTP_200_OK
+        assert strict.status_code == status.HTTP_200_OK
+        loose_data = loose.json()
+        strict_data = strict.json()
+        assert loose_data["summary"]["matched_epg_channels"] >= strict_data["summary"]["matched_epg_channels"]
+        loose_fuzzy_row = next(row for row in loose_data["rows"] if row["epg_channel_xml_id"] == "fuzzy-match-1")
+        strict_fuzzy_row = next(row for row in strict_data["rows"] if row["epg_channel_xml_id"] == "fuzzy-match-1")
+        assert len(loose_fuzzy_row["candidates"]) == 1
+        assert strict_fuzzy_row["candidates"] == []
+
+    def test_analyze_epg_matches_honors_source_filter(self, client, seeded_match_data):
+        source_id = seeded_match_data["sources"]["secondary"].id
+        response = client.post(
+            "/api/v1/tv-channels/analyze-epg-matches",
+            json={"strictness": "balanced", "source_id": source_id},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        rows = response.json()["rows"]
+        assert rows
+        assert all(row["epg_source_id"] == source_id for row in rows)
+
+    def test_analyze_epg_matches_returns_clean_zero_summary_when_no_matches_exist(self, client, seeded_unmatched_data):
+        response = client.post("/api/v1/tv-channels/analyze-epg-matches", json={"strictness": "balanced"})
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["summary"]["epg_channels_analyzed"] == 2
+        assert data["summary"]["matched_epg_channels"] == 0
+        assert data["summary"]["matched_acestream_channels"] == 0
+        assert data["summary"]["creatable_rows"] == 0
+        assert all(row["candidates"] == [] for row in data["rows"])
+
+    def test_analyze_epg_matches_includes_scores_and_match_stages(self, client, seeded_match_data):
+        response = client.post("/api/v1/tv-channels/analyze-epg-matches", json={"strictness": "balanced"})
+
+        assert response.status_code == status.HTTP_200_OK
+        rows = response.json()["rows"]
+        xml_row = next(row for row in rows if row["epg_channel_xml_id"] == "xml-match-1")
+        assert xml_row["best_match_type"] == "xml_id_exact"
+        assert xml_row["best_match_confidence"] == "high"
+        first_candidate = xml_row["candidates"][0]
+        assert first_candidate["match_stage"] == "xml_id_exact"
+        assert first_candidate["score"] == pytest.approx(1.0)
+
+    def test_analyze_epg_matches_resolves_shared_acestream_candidates_deterministically(self, client, seeded_conflict_data):
+        response = client.post("/api/v1/tv-channels/analyze-epg-matches", json={"strictness": "balanced"})
+
+        assert response.status_code == status.HTTP_200_OK
+        rows = response.json()["rows"]
+        winner_row = next(row for row in rows if row["epg_channel_xml_id"] == "winner-id")
+        loser_row = next(row for row in rows if row["epg_channel_xml_id"] == "loser-id")
+        assert [candidate["acestream_channel_id"] for candidate in winner_row["candidates"]] == ["shared-candidate"]
+        assert loser_row["candidates"] == []
+        assert winner_row["is_creatable"] is True
+        assert loser_row["is_creatable"] is False
+
+    def test_analyze_epg_matches_rejects_workloads_over_budget(self, client, seeded_match_data, monkeypatch):
+        monkeypatch.setattr("app.services.epg_match_service.MAX_ANALYSIS_COMPARISONS", 1)
+
+        response = client.post("/api/v1/tv-channels/analyze-epg-matches", json={"strictness": "balanced"})
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert "budget" in response.json()["detail"].lower()
+
+    def test_analyze_epg_matches_marks_duplicate_existing_conflicts_as_not_creatable(self, client, seeded_match_data, db_session):
+        epg_channel = seeded_match_data["epg_channels"]["xml_exact"]
+        db_session.add_all([
+            TVChannel(name="Duplicate Existing 1", epg_id=epg_channel.channel_xml_id),
+            TVChannel(name="Duplicate Existing 2", epg_id=epg_channel.channel_xml_id),
+        ])
+        db_session.commit()
+
+        response = client.post("/api/v1/tv-channels/analyze-epg-matches", json={"strictness": "balanced"})
+
+        assert response.status_code == status.HTTP_200_OK
+        row = next(row for row in response.json()["rows"] if row["epg_channel_xml_id"] == epg_channel.channel_xml_id)
+        assert row["is_creatable"] is False
+        assert row["existing_tv_channel_count"] == 2
+        assert row["has_duplicate_existing_conflict"] is True
+
+
+class TestTVChannelCreateFromEPGAnalysis:
+    def test_create_from_epg_analysis_creates_tv_channels_and_associates_all_candidates(self, client, seeded_match_data):
+        epg_channels = seeded_match_data["epg_channels"]
+
+        response = client.post(
+            "/api/v1/tv-channels/create-from-epg-analysis",
+            json={"strictness": "balanced", "epg_channel_ids": [epg_channels["xml_exact"].id, epg_channels["multi_candidate"].id]},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["created_count"] == 2
+        assert data["associated_count"] == 3
+        assert len(data["row_outcomes"]) == 2
+
+        tv_channel_ids = [row["tv_channel_id"] for row in data["row_outcomes"] if row["status"] == "created"]
+        associations = []
+        for tv_channel_id in tv_channel_ids:
+            asociated_response = client.get(f"/api/v1/tv-channels/{tv_channel_id}/acestreams")
+            assert asociated_response.status_code == status.HTTP_200_OK
+            associations.extend(asociated_response.json())
+        assert len(associations) == 3
+
+    def test_create_from_epg_analysis_revalidates_matches_server_side(self, client, seeded_match_data, db_session):
+        epg_channel = seeded_match_data["epg_channels"]["fuzzy"]
+        candidate = seeded_match_data["acestream_channels"][2]
+        candidate.name = "Completely Different Name"
+        db_session.commit()
+
+        response = client.post(
+            "/api/v1/tv-channels/create-from-epg-analysis",
+            json={"strictness": "strict", "epg_channel_ids": [epg_channel.id]},
+        )
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert "no accepted matches" in response.json()["detail"].lower()
+
+    def test_create_from_epg_analysis_reports_row_level_partial_success(self, client, seeded_match_data, db_session):
+        duplicate_one = TVChannel(name="Duplicate One", epg_id=seeded_match_data["epg_channels"]["xml_exact"].channel_xml_id)
+        duplicate_two = TVChannel(name="Duplicate Two", epg_id=seeded_match_data["epg_channels"]["xml_exact"].channel_xml_id)
+        db_session.add_all([duplicate_one, duplicate_two])
+        db_session.commit()
+
+        response = client.post(
+            "/api/v1/tv-channels/create-from-epg-analysis",
+            json={
+                "strictness": "balanced",
+                "epg_channel_ids": [
+                    seeded_match_data["epg_channels"]["xml_exact"].id,
+                    seeded_match_data["epg_channels"]["multi_candidate"].id,
+                ],
+            },
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["created_count"] == 1
+        assert data["skipped_count"] == 1
+        assert any(row["status"] == "duplicate_existing_conflict" for row in data["row_outcomes"])
+        assert any(row["status"] == "created" for row in data["row_outcomes"])
+
+    def test_create_from_epg_analysis_enforces_candidate_uniqueness_across_created_rows(self, client, seeded_conflict_data):
+        response = client.post(
+            "/api/v1/tv-channels/create-from-epg-analysis",
+            json={"strictness": "balanced", "epg_channel_ids": [seeded_conflict_data["winner"].id, seeded_conflict_data["loser"].id]},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        created_rows = [row for row in data["row_outcomes"] if row["status"] == "created"]
+        skipped_rows = [row for row in data["row_outcomes"] if row["status"] != "created"]
+        assert len(created_rows) == 1
+        assert len(skipped_rows) == 1
+
+        tv_channel_id = created_rows[0]["tv_channel_id"]
+        associated = client.get(f"/api/v1/tv-channels/{tv_channel_id}/acestreams")
+        assert associated.status_code == status.HTTP_200_OK
+        associated_ids = [row["id"] for row in associated.json()]
+        assert associated_ids == ["shared-candidate"]
+
+    def test_create_from_epg_analysis_limits_uniqueness_to_selected_rows(self, client, seeded_conflict_data):
+        response = client.post(
+            "/api/v1/tv-channels/create-from-epg-analysis",
+            json={"strictness": "balanced", "epg_channel_ids": [seeded_conflict_data["loser"].id]},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["created_count"] == 1
+        assert data["failure_count"] == 0
+        assert data["row_outcomes"][0]["status"] == "created"
+
+        associated = client.get(f"/api/v1/tv-channels/{data['row_outcomes'][0]['tv_channel_id']}/acestreams")
+        assert associated.status_code == status.HTTP_200_OK
+        assert [row["id"] for row in associated.json()] == ["shared-candidate"]
+
+    def test_create_from_epg_analysis_does_not_steal_existing_acestream_associations(self, client, seeded_match_data, db_session):
+        protected_channel = TVChannel(name="Protected Existing", epg_id="protected-existing")
+        db_session.add(protected_channel)
+        db_session.flush()
+
+        protected_acestream = seeded_match_data["acestream_channels"][0]
+        protected_acestream.tv_channel_id = protected_channel.id
+        db_session.commit()
+
+        epg_channel = seeded_match_data["epg_channels"]["xml_exact"]
+        response = client.post(
+            "/api/v1/tv-channels/create-from-epg-analysis",
+            json={"strictness": "balanced", "epg_channel_ids": [epg_channel.id]},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["created_count"] == 0
+        assert data["failure_count"] == 1
+        assert data["row_outcomes"][0]["status"] == "failed"
+
+        db_session.refresh(protected_acestream)
+        assert protected_acestream.tv_channel_id == protected_channel.id
+        assert db_session.query(TVChannel).filter(TVChannel.epg_id == epg_channel.channel_xml_id).all() == []
+
+    def test_create_from_epg_analysis_rolls_back_failed_row_without_orphan_tv_channel(self, client, seeded_match_data, monkeypatch, db_session):
+        original_assign = ChannelRepository.assign_acestreams_to_tv_channel
+        failing_epg_id = seeded_match_data["epg_channels"]["multi_candidate"].channel_xml_id
+        successful_epg_id = seeded_match_data["epg_channels"]["xml_exact"].channel_xml_id
+
+        def fail_once_for_target(self, acestream_ids, tv_channel_id):
+            tv_channel = self.get_tv_channel_by_id(tv_channel_id)
+            if tv_channel and tv_channel.epg_id == failing_epg_id:
+                raise RuntimeError("forced association failure")
+            return original_assign(self, acestream_ids, tv_channel_id)
+
+        monkeypatch.setattr(ChannelRepository, "assign_acestreams_to_tv_channel", fail_once_for_target)
+
+        response = client.post(
+            "/api/v1/tv-channels/create-from-epg-analysis",
+            json={
+                "strictness": "balanced",
+                "epg_channel_ids": [
+                    seeded_match_data["epg_channels"]["xml_exact"].id,
+                    seeded_match_data["epg_channels"]["multi_candidate"].id,
+                ],
+            },
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        failed_row = next(row for row in data["row_outcomes"] if row["epg_channel_id"] == seeded_match_data["epg_channels"]["multi_candidate"].id)
+        assert failed_row["status"] == "failed"
+
+        orphan = db_session.query(TVChannel).filter(TVChannel.epg_id == failing_epg_id).all()
+        assert orphan == []
+
+        successful_channel = db_session.query(TVChannel).filter(TVChannel.epg_id == successful_epg_id).one_or_none()
+        assert successful_channel is not None
+
+        associated = client.get(f"/api/v1/tv-channels/{successful_channel.id}/acestreams")
+        assert associated.status_code == status.HTTP_200_OK
+        assert [row["id"] for row in associated.json()] == [seeded_match_data["acestream_channels"][0].id]
+
+    def test_create_from_epg_analysis_skips_existing_epg_id(self, client, seeded_match_data, db_session):
+        existing = TVChannel(name="Existing", epg_id=seeded_match_data["epg_channels"]["xml_exact"].channel_xml_id)
+        db_session.add(existing)
+        db_session.commit()
+
+        response = client.post(
+            "/api/v1/tv-channels/create-from-epg-analysis",
+            json={"strictness": "balanced", "epg_channel_ids": [seeded_match_data["epg_channels"]["xml_exact"].id]},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["created_count"] == 0
+        assert data["skipped_count"] == 1
+        assert data["row_outcomes"][0]["status"] == "skipped_existing"
+
+    def test_create_from_epg_analysis_rejects_duplicate_existing_epg_id_conflicts(self, client, seeded_match_data, db_session):
+        epg_id = seeded_match_data["epg_channels"]["xml_exact"].channel_xml_id
+        db_session.add_all([TVChannel(name="Duplicate 1", epg_id=epg_id), TVChannel(name="Duplicate 2", epg_id=epg_id)])
+        db_session.commit()
+
+        response = client.post(
+            "/api/v1/tv-channels/create-from-epg-analysis",
+            json={"strictness": "balanced", "epg_channel_ids": [seeded_match_data["epg_channels"]["xml_exact"].id]},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["row_outcomes"][0]["status"] == "duplicate_existing_conflict"
+
+    def test_create_from_epg_analysis_rejects_invalid_strictness(self, client, seeded_match_data):
+        response = client.post(
+            "/api/v1/tv-channels/create-from-epg-analysis",
+            json={"strictness": "invalid", "epg_channel_ids": [seeded_match_data["epg_channels"]["xml_exact"].id]},
+        )
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    def test_create_from_epg_analysis_rejects_empty_epg_channel_ids(self, client):
+        response = client.post(
+            "/api/v1/tv-channels/create-from-epg-analysis",
+            json={"strictness": "balanced", "epg_channel_ids": []},
+        )
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    def test_create_from_epg_analysis_rejects_when_revalidation_yields_no_matches(self, client, seeded_unmatched_data):
+        unmatched_channel_id = seeded_unmatched_data["epg_channels"][0].id
+        response = client.post(
+            "/api/v1/tv-channels/create-from-epg-analysis",
+            json={"strictness": "balanced", "epg_channel_ids": [unmatched_channel_id]},
+        )
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert "no accepted matches" in response.json()["detail"].lower()

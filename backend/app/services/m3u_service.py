@@ -9,8 +9,6 @@ from typing import List, Tuple, Dict, Any, Set
 from urllib.parse import urljoin, urlparse
 
 logger = logging.getLogger(__name__)
-# Forced logger activation diagnostic
-logger.warning(f"[M3UService] MODULE IMPORTED, logger name: {logger.name}")
 
 
 class M3UService:
@@ -24,6 +22,51 @@ class M3UService:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
 
+    def _extract_quoted_attributes(self, line: str) -> Dict[str, str]:
+        """Extract quoted M3U attributes from a metadata line."""
+        return {match.group(1): match.group(2) for match in re.finditer(r'([\w-]+)="([^"]+)"', line)}
+
+    def _resolve_m3u_url(self, base_url: str, candidate_url: str) -> str:
+        """Resolve relative M3U URLs for both HTTP(S) and zero:// bases."""
+        if urlparse(candidate_url).scheme or urlparse(candidate_url).netloc:
+            return candidate_url
+        if base_url.startswith("zero://"):
+            zero_path = base_url[len("zero://"):]
+            base_parts = [part for part in zero_path.split("/") if part]
+            if not base_parts:
+                return f"zero://{candidate_url.lstrip('/')}"
+            if not base_url.endswith("/") and len(base_parts) > 1:
+                base_parts = base_parts[:-1]
+            candidate_parts = [part for part in candidate_url.split("/") if part and part != "."]
+            resolved_parts = list(base_parts)
+            for part in candidate_parts:
+                if part == "..":
+                    if resolved_parts:
+                        resolved_parts.pop()
+                    continue
+                resolved_parts.append(part)
+            return f"zero://{'/'.join(resolved_parts)}"
+        return urljoin(base_url, candidate_url)
+
+    async def extract_channels_from_m3u(
+        self,
+        m3u_url: str,
+        db=None,
+        epg_service=None,
+        tv_channel_service=None,
+    ) -> List[Tuple[str, str, Dict[str, Any]]]:
+        """Fetch and parse channels from a remote M3U URL."""
+        async with aiohttp.ClientSession(headers=self.headers) as session:
+            async with session.get(m3u_url) as response:
+                response.raise_for_status()
+                content = await response.text()
+        return self.extract_channels_from_content(
+            content,
+            db=db,
+            epg_service=epg_service,
+            tv_channel_service=tv_channel_service,
+        )
+
     async def find_m3u_links(self, content: str, base_url: str) -> List[str]:
         """Find M3U links in HTML content."""
         m3u_urls = []
@@ -32,7 +75,7 @@ class M3UService:
         for url in self.m3u_pattern.findall(content):
             # Handle relative URLs
             if not urlparse(url).netloc:
-                url = urljoin(base_url, url)
+                url = self._resolve_m3u_url(base_url, url)
             m3u_urls.append(url)
 
         # Look for hrefs that point to m3u files
@@ -41,15 +84,13 @@ class M3UService:
             url = match.group(1)
             # Handle relative URLs
             if not urlparse(url).netloc:
-                url = urljoin(base_url, url)
+                url = self._resolve_m3u_url(base_url, url)
             m3u_urls.append(url)
 
         return m3u_urls
 
     def extract_channels_from_content(self, content: str, db=None, epg_service=None, tv_channel_service=None) -> List[Tuple[str, str, Dict[str, Any]]]:
         """Extract channel information from M3U content."""
-        logger.warning(f"[M3UService] ENTERED extract_channels_from_content, logger name: {logger.name}")
-        print(f"[M3UService][PRINT] ENTERED extract_channels_from_content, logger name: {logger.name}")
         channels = []
 
         if not content or not content.strip():
@@ -57,33 +98,43 @@ class M3UService:
 
         lines = content.splitlines()
         channel_info = {}
-        for idx, line in enumerate(lines):
-            raw_line = line
+        current_group_metadata = {}
+        for line in lines:
             line = line.strip()
             if not line:
                 continue
+            if line.startswith('#EXTGRP:'):
+                extgrp_attrs = self._extract_quoted_attributes(line)
+                current_group_metadata = {}
+                if 'group-title' in extgrp_attrs or 'group-logo' in extgrp_attrs:
+                    if extgrp_attrs.get('group-title'):
+                        current_group_metadata['group_title'] = extgrp_attrs['group-title']
+                    if extgrp_attrs.get('group-logo'):
+                        current_group_metadata['group_logo'] = extgrp_attrs['group-logo']
+                continue
             if line.startswith('#EXTINF:'):
                 # Parse channel name and optional attributes
+                channel_info = {}
                 name_match = re.search(r'#EXTINF:.*,(.+)', line)
                 if name_match:
                     channel_info['name'] = name_match.group(1).strip()
-                logger.debug(f"[M3UService] #EXTINF line: {line}")
-                # Extract tvg-id, tvg-name, group-title, etc. (quoted only, as in v1)
-                for tag_match in re.finditer(r'(tvg-[^=]+|group-title)="([^"]+)"', line):
-                    tag_name = tag_match.group(1)
-                    tag_value = tag_match.group(2)
-                    # Normalize field names to match v1/v2 conventions
-                    if tag_name == 'tvg-id':
-                        channel_info['tvg_id'] = tag_value
-                    elif tag_name == 'tvg-name':
-                        channel_info['tvg_name'] = tag_value
-                    elif tag_name == 'tvg-logo':
-                        channel_info['tvg_logo'] = tag_value
-                    elif tag_name == 'group-title':
-                        channel_info['group_title'] = tag_value
-                    else:
-                        channel_info[tag_name] = tag_value
-                logger.debug(f"[M3UService] Parsed metadata after #EXTINF: {channel_info}")
+                attrs = self._extract_quoted_attributes(line)
+                if attrs.get('tvg-id'):
+                    channel_info['tvg_id'] = attrs['tvg-id']
+                if attrs.get('tvg-name'):
+                    channel_info['tvg_name'] = attrs['tvg-name']
+                if attrs.get('tvg-logo'):
+                    channel_info['tvg_logo'] = attrs['tvg-logo']
+                if attrs.get('group-title'):
+                    channel_info['group_title'] = attrs['group-title']
+                elif current_group_metadata.get('group_title'):
+                    channel_info['group_title'] = current_group_metadata['group_title']
+                if (
+                    'tvg_logo' not in channel_info
+                    and current_group_metadata.get('group_logo')
+                    and channel_info.get('group_title') == current_group_metadata.get('group_title')
+                ):
+                    channel_info['tvg_logo'] = current_group_metadata['group_logo']
                 continue
             # Skip other comment lines
             if line.startswith('#'):
@@ -99,13 +150,9 @@ class M3UService:
             if channel_id:
                 name = channel_info.get('name', f"Channel {channel_id}")
                 metadata = {k: v for k, v in channel_info.items() if k != 'name'}
-                logger.debug(f"[M3UService] Adding channel: id={channel_id}, name={name}, metadata={metadata}")
                 channels.append((channel_id, name, metadata))
                 channel_info = {}
-        print(f"[M3UService][PRINT] Extracted {len(channels)} channels from M3U content")
         logger.info(f"Extracted {len(channels)} channels from M3U content")
-        for ch in channels:
-            logger.debug(f"[M3UService] Extracted channel: id={ch[0]}, name={ch[1]}, metadata={ch[2]}")
         # Auto-create TV channels from EPG if services are provided
         if db and epg_service and tv_channel_service:
             channels = self.auto_create_tv_channels_from_epg(db, channels, epg_service, tv_channel_service)

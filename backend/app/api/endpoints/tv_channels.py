@@ -8,8 +8,11 @@ from typing import List
 from app.config.database import get_db
 from app.services.tvchannel_service import TVChannelService
 from app.services.acestreamchannel_service import AcestreamChannelService
+from app.services.epg_match_service import EPGMatchService
 from app.schemas.channel import (
     AcestreamChannelResponse,
+    EPGMatchAnalysisRequest,
+    EPGMatchAnalysisResponse,
     MessageResponse,
     TVChannelAssociationRequest,
     TVChannelBatchAssignRequest,
@@ -17,6 +20,8 @@ from app.schemas.channel import (
     TVChannelBulkEPGUpdateRequest,
     TVChannelBulkEPGUpdateResponse,
     TVChannelCreateFromEPGRequest,
+    TVChannelCreateFromEPGAnalysisRequest,
+    TVChannelCreateFromEPGAnalysisResponse,
     TVChannelCreateFromEPGResponse,
     TVChannelCreate,
     TVChannelListResponse,
@@ -51,6 +56,19 @@ async def get_tv_channels(
     return {"items": items_serialized, "total": total}
 
 
+@router.post(
+    "/analyze-epg-matches",
+    status_code=status.HTTP_200_OK,
+    response_model=EPGMatchAnalysisResponse,
+)
+async def analyze_epg_matches(request: EPGMatchAnalysisRequest, db: Session = Depends(get_db)):
+    service = EPGMatchService(db)
+    try:
+        return service.analyze_matches(strictness=request.strictness, source_id=request.source_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+
+
 @router.get("/{tv_channel_id}", response_model=TVChannelResponse)
 async def get_tv_channel(tv_channel_id: int, db: Session = Depends(get_db)):
     """
@@ -68,6 +86,25 @@ async def create_tv_channels_from_epg(request: TVChannelCreateFromEPGRequest, db
     service = TVChannelService(db)
     result = service.create_tv_channels_from_epg(request.epg_channel_ids)
     return result
+
+
+@router.post(
+    "/create-from-epg-analysis",
+    status_code=status.HTTP_200_OK,
+    response_model=TVChannelCreateFromEPGAnalysisResponse,
+)
+async def create_tv_channels_from_epg_analysis(
+    request: TVChannelCreateFromEPGAnalysisRequest,
+    db: Session = Depends(get_db),
+):
+    service = TVChannelService(db)
+    try:
+        return service.create_tv_channels_from_epg_analysis(
+            strictness=request.strictness,
+            epg_channel_ids=request.epg_channel_ids,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
 
 
 @router.post("/", response_model=TVChannelResponse, status_code=status.HTTP_201_CREATED)

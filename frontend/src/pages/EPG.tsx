@@ -58,7 +58,12 @@ import {
 } from '../hooks/useEPG';
 import { useAllTVChannels } from '../hooks/useTVChannels';
 import { EPGSource, EPGChannel, EPGXMLGenerationParams, epgService } from '../services/epgService';
-import { tvChannelService } from '../services/tvChannelService';
+import {
+  tvChannelService,
+  EPGMatchAnalysisResponse,
+  EPGMatchAnalysisRow,
+  EPGMatchStrictness,
+} from '../services/tvChannelService';
 import PageHeader from '../components/layout/PageHeader';
 
 interface EPGSourceFormData {
@@ -72,6 +77,8 @@ interface TabPanelProps {
   index: number;
   value: number;
 }
+
+type MatchFilter = 'all' | 'matched' | 'unmatched' | 'creatable';
 
 function TabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props;
@@ -140,6 +147,11 @@ const EPG: React.FC = () => {
 
   // State for EPG Channels selection
   const [selectedEPGChannelIds, setSelectedEPGChannelIds] = useState<number[]>([]);
+  const [matchStrictness, setMatchStrictness] = useState<EPGMatchStrictness>('balanced');
+  const [isAnalyzingMatches, setIsAnalyzingMatches] = useState(false);
+  const [matchAnalysis, setMatchAnalysis] = useState<EPGMatchAnalysisResponse | null>(null);
+  const [matchFilter, setMatchFilter] = useState<MatchFilter>('all');
+  const [selectedMatchRowIds, setSelectedMatchRowIds] = useState<number[]>([]);
 
   const epgChannels = useMemo(() => epgChannelPage?.items || [], [epgChannelPage]);
   const totalEPGChannels = epgChannelPage?.total || 0;
@@ -300,6 +312,22 @@ const EPG: React.FC = () => {
     [epgChannels, mappedEpgXmlIds]
   );
 
+  const filteredMatchRows = useMemo(() => {
+    const rows = matchAnalysis?.rows || [];
+
+    switch (matchFilter) {
+      case 'matched':
+        return rows.filter((row) => row.candidate_count > 0);
+      case 'unmatched':
+        return rows.filter((row) => row.candidate_count === 0);
+      case 'creatable':
+        return rows.filter((row) => row.is_creatable);
+      case 'all':
+      default:
+        return rows;
+    }
+  }, [matchAnalysis, matchFilter]);
+
   useEffect(() => {
     if (!isLoadingChannels && channelPage > totalChannelPages) {
       setChannelPage(1);
@@ -309,6 +337,12 @@ const EPG: React.FC = () => {
   useEffect(() => {
     setSelectedEPGChannelIds([]);
   }, [selectedSourceId, channelPage, channelPageSize]);
+
+  useEffect(() => {
+    setMatchAnalysis(null);
+    setSelectedMatchRowIds([]);
+    setMatchFilter('all');
+  }, [selectedSourceId]);
 
   const isChannelMapped = (channel: EPGChannel) => mappedEpgXmlIds.has(channel.channel_xml_id);
 
@@ -325,6 +359,95 @@ const EPG: React.FC = () => {
   const handleChannelPageSizeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setChannelPageSize(Number(event.target.value));
     setChannelPage(1);
+  };
+
+  const formatMatchLabel = (value?: string | null) => {
+    if (!value) return 'Unmatched';
+
+    const specialCases: Record<string, string> = {
+      xml_id_exact: 'XML ID exact',
+      name_exact: 'Name exact',
+      name_similarity: 'Name similarity',
+      high: 'High',
+      medium: 'Medium',
+      low: 'Low',
+    };
+
+    if (specialCases[value]) {
+      return specialCases[value];
+    }
+
+    return value
+      .split('_')
+      .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+      .join(' ');
+  };
+
+  const handleMatchStrictnessChange = (event: SelectChangeEvent<string>) => {
+    setMatchStrictness(event.target.value as EPGMatchStrictness);
+  };
+
+  const handleAnalyzeMatches = () => {
+    setIsAnalyzingMatches(true);
+
+    queueMicrotask(() => {
+      void (async () => {
+        try {
+          const result = await tvChannelService.analyzeEPGMatches({
+            strictness: matchStrictness,
+            ...(selectedSourceId !== undefined ? { source_id: selectedSourceId } : {}),
+          });
+          setMatchAnalysis(result);
+          setMatchFilter('all');
+          setSelectedMatchRowIds(result.rows.filter((row) => row.is_creatable).map((row) => row.epg_channel_id));
+        } catch (error) {
+          showSnackbar(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+        } finally {
+          setIsAnalyzingMatches(false);
+        }
+      })();
+    });
+  };
+
+  const handleToggleMatchRow = (row: EPGMatchAnalysisRow) => {
+    if (!row.is_creatable) {
+      return;
+    }
+
+    setSelectedMatchRowIds((prev) =>
+      prev.includes(row.epg_channel_id)
+        ? prev.filter((id) => id !== row.epg_channel_id)
+        : [...prev, row.epg_channel_id]
+    );
+  };
+
+  const handleCreateMatchedTVChannels = () => {
+    if (selectedMatchRowIds.length === 0) {
+      return;
+    }
+
+    queueMicrotask(() => {
+      void (async () => {
+        try {
+          const result = await tvChannelService.createFromEPGAnalysis({
+            strictness: matchStrictness,
+            epg_channel_ids: selectedMatchRowIds,
+          });
+
+          queryClient.invalidateQueries('tvChannels');
+          queryClient.invalidateQueries('epg-channels');
+
+          showSnackbar(
+            `Created ${result.created_count} TV channels, skipped ${result.skipped_count}, associated ${result.associated_count} Acestream channels`,
+            'success'
+          );
+
+          setSelectedMatchRowIds([]);
+        } catch (error) {
+          showSnackbar(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+        }
+      })();
+    });
   };
 
   const handleSelectAllChannels = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -482,7 +605,7 @@ const EPG: React.FC = () => {
       </TabPanel>
 
       <TabPanel value={tabValue} index={1}>
-        <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
           <Typography variant="h6" gutterBottom>
             Available EPG Channels
           </Typography>
@@ -502,6 +625,35 @@ const EPG: React.FC = () => {
               ))}
             </Select>
           </FormControl>
+          <FormControl size="small" sx={{ minWidth: 180 }}>
+            <InputLabel id="epg-match-strictness-label">Match Strictness</InputLabel>
+            <Select
+              labelId="epg-match-strictness-label"
+              label="Match Strictness"
+              value={matchStrictness}
+              onChange={handleMatchStrictnessChange}
+            >
+              <MenuItem value="loose">Loose</MenuItem>
+              <MenuItem value="balanced">Balanced</MenuItem>
+              <MenuItem value="strict">Strict</MenuItem>
+            </Select>
+          </FormControl>
+          <Button
+            variant="outlined"
+            color="primary"
+            onClick={handleAnalyzeMatches}
+            disabled={isAnalyzingMatches}
+          >
+            Analyze Matches
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            disabled={!matchAnalysis || selectedMatchRowIds.length === 0}
+            onClick={handleCreateMatchedTVChannels}
+          >
+            Create Matched TV Channels
+          </Button>
           <Button
             variant="contained"
             color="primary"
@@ -511,6 +663,96 @@ const EPG: React.FC = () => {
             Create TV Channels ({selectedEPGChannelIds.length})
           </Button>
         </Box>
+
+        {isAnalyzingMatches ? (
+          <LinearProgress sx={{ mb: 2 }} />
+        ) : null}
+
+        {matchAnalysis ? (
+          <Paper sx={{ p: 2, mb: 2 }}>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+              <Typography variant="body2">{matchAnalysis.summary.epg_channels_analyzed} analyzed</Typography>
+              <Typography variant="body2">{matchAnalysis.summary.matched_epg_channels} matched</Typography>
+              <Typography variant="body2">{matchAnalysis.summary.creatable_rows} creatable</Typography>
+            </Box>
+
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+              <Button variant={matchFilter === 'all' ? 'contained' : 'outlined'} size="small" onClick={() => setMatchFilter('all')}>
+                All
+              </Button>
+              <Button variant={matchFilter === 'matched' ? 'contained' : 'outlined'} size="small" onClick={() => setMatchFilter('matched')}>
+                Matched
+              </Button>
+              <Button variant={matchFilter === 'unmatched' ? 'contained' : 'outlined'} size="small" onClick={() => setMatchFilter('unmatched')}>
+                Unmatched
+              </Button>
+              <Button variant={matchFilter === 'creatable' ? 'contained' : 'outlined'} size="small" onClick={() => setMatchFilter('creatable')}>
+                Creatable
+              </Button>
+            </Box>
+
+            {matchAnalysis.rows.length === 0 || matchAnalysis.summary.matched_epg_channels === 0 ? (
+              <Alert severity="info">No matches met the current strictness.</Alert>
+            ) : (
+              <TableContainer component={Paper} variant="outlined">
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell padding="checkbox">Select</TableCell>
+                      <TableCell>Name</TableCell>
+                      <TableCell>Match Type</TableCell>
+                      <TableCell>Confidence</TableCell>
+                      <TableCell>Status</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {filteredMatchRows.map((row) => {
+                      const isSelected = selectedMatchRowIds.includes(row.epg_channel_id);
+                      const isDisabled = !row.is_creatable;
+                      const statusLabel = row.existing_tv_channel_id
+                        ? 'Already exists'
+                        : row.candidate_count === 0
+                          ? 'No candidate'
+                          : row.is_creatable
+                            ? 'Creatable'
+                            : 'Skipped';
+
+                      return (
+                        <TableRow key={row.epg_channel_id} selected={isSelected}>
+                          <TableCell padding="checkbox">
+                            <Checkbox
+                              checked={isSelected}
+                              disabled={isDisabled}
+                              onChange={() => handleToggleMatchRow(row)}
+                              inputProps={{ 'aria-label': `select match row ${row.epg_channel_name}` }}
+                            />
+                          </TableCell>
+                          <TableCell>{row.epg_channel_name}</TableCell>
+                          <TableCell>{row.best_match_type ? formatMatchLabel(row.best_match_type) : 'No match'}</TableCell>
+                          <TableCell>{row.is_creatable && row.best_match_confidence ? formatMatchLabel(row.best_match_confidence) : '-'}</TableCell>
+                          <TableCell>
+                            <Chip
+                              label={statusLabel}
+                              color={row.is_creatable ? 'success' : row.existing_tv_channel_id ? 'default' : 'warning'}
+                              size="small"
+                            />
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {filteredMatchRows.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} align="center">
+                          No rows match this filter
+                        </TableCell>
+                      </TableRow>
+                    ) : null}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </Paper>
+        ) : null}
 
         <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
           <Typography variant="body2" color="text.secondary">

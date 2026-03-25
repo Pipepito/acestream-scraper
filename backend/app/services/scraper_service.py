@@ -7,6 +7,7 @@ from typing import List, Tuple, Dict, Any, Optional
 import logging
 
 from app.models.models import ScrapedURL, AcestreamChannel
+from app.models.url_types import create_url_object
 from app.schemas.scraper import ChannelResult, URLResponse, URLCreate, URLUpdate
 from app.scrapers import create_scraper_for_url
 from app.services.m3u_service import M3UService
@@ -40,6 +41,10 @@ class ScraperService:
 
         try:
             scraper = create_scraper_for_url(url, url_type)
+            try:
+                source_url = scraper.url_obj.get_normalized_url()
+            except AttributeError:
+                source_url = create_url_object(url, url_type).get_normalized_url()
             # Inject db, epg_service, tv_channel_service for robust TV channel creation/association
             epg_service = EPGService(self.db)
             tv_channel_service = TVChannelService(self.db)
@@ -53,10 +58,11 @@ class ScraperService:
             raw_channels = m3u_service.auto_create_tv_channels_from_epg(self.db, raw_channels, epg_service, tv_channel_service)
 
             new_channel_ids = {channel_id for channel_id, _, _ in raw_channels}
-            source_query = self.db.query(AcestreamChannel).filter(AcestreamChannel.source_url == url)
+            source_urls = {url, source_url}
+            source_query = self.db.query(AcestreamChannel).filter(AcestreamChannel.source_url.in_(source_urls))
             if new_channel_ids:
                 source_query = source_query.filter(~AcestreamChannel.id.in_(new_channel_ids))
-            source_query.delete(synchronize_session=False)
+                source_query.delete(synchronize_session=False)
 
             # Persist channels to DB using transaction-scoped upserts
             channel_repository = ChannelRepository(self.db)
@@ -65,11 +71,11 @@ class ScraperService:
                 persisted = channel_repository.create_or_update_channel(
                     channel_id=channel_id,
                     name=name,
-                    source_url=url,
-                    group=metadata.get('group_title') or metadata.get('group') or None,
-                    logo=metadata.get('tvg_logo') or metadata.get('logo') or None,
-                    tvg_id=metadata.get('tvg_id') or None,
-                    tvg_name=metadata.get('tvg_name') or None,
+                    source_url=source_url,
+                    group=metadata.get('group_title', metadata.get('group', '')),
+                    logo=metadata.get('tvg_logo', metadata.get('logo', '')),
+                    tvg_id=metadata.get('tvg_id', ''),
+                    tvg_name=metadata.get('tvg_name', ''),
                     is_online=True,
                     commit=False,
                 )
@@ -101,14 +107,24 @@ class ScraperService:
         # Get all source_urls in one query for efficiency
         url_to_count = {}
         if urls:
-            url_list = [u.url for u in urls]
+            normalized_url_map = {}
+            for url in urls:
+                try:
+                    normalized_url_map[url.url] = create_url_object(url.url, url.url_type).get_normalized_url()
+                except Exception:
+                    normalized_url_map[url.url] = url.url
+            url_list = list({*normalized_url_map.keys(), *normalized_url_map.values()})
             counts = (
                 self.db.query(AcestreamChannel.source_url, func.count(AcestreamChannel.id))
                 .filter(AcestreamChannel.source_url.in_(url_list))
                 .group_by(AcestreamChannel.source_url)
                 .all()
             )
-            url_to_count = {url: count for url, count in counts}
+            raw_counts = {url: count for url, count in counts}
+            url_to_count = {}
+            for original_url, normalized_url in normalized_url_map.items():
+                count_keys = {original_url, normalized_url}
+                url_to_count[original_url] = sum(raw_counts.get(key, 0) for key in count_keys)
         responses = []
         for url in urls:
             channels_found = url_to_count.get(url.url, 0)

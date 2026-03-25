@@ -7,6 +7,7 @@ import pytest
 import uuid
 from fastapi import status
 from app.models.models import AcestreamChannel, ScrapedURL
+from app.services.m3u_service import M3UService
 from app.services.scraper_service import ScraperService
 
 
@@ -216,6 +217,104 @@ class TestScrapedURLRefreshEndpoints:
 class TestScraperIntegration:
     """Test end-to-end scraper integration."""
 
+    def test_extract_channels_from_content_preserves_group_title_tvg_logo_and_tvg_id(self):
+        service = M3UService()
+        content = """#EXTM3U
+#EXTINF:-1 tvg-id="alpha-id" tvg-logo="https://example.com/channel-logo.png" group-title="Sports",Alpha Sports
+acestream://0123456789abcdef0123456789abcdef01234567
+"""
+
+        channels = service.extract_channels_from_content(content)
+
+        assert channels == [
+            (
+                "0123456789abcdef0123456789abcdef01234567",
+                "Alpha Sports",
+                {
+                    "tvg_id": "alpha-id",
+                    "tvg_logo": "https://example.com/channel-logo.png",
+                    "group_title": "Sports",
+                },
+            )
+        ]
+
+    def test_extract_channels_from_content_extgrp_group_logo_falls_back_when_tvg_logo_missing(self):
+        service = M3UService()
+        content = """#EXTM3U
+#EXTGRP: group-title="Cinema" group-logo="https://example.com/group-logo.png"
+#EXTINF:-1 tvg-id="cinema-id",Cinema One
+acestream://1111111111111111111111111111111111111111
+"""
+
+        channels = service.extract_channels_from_content(content)
+
+        assert channels == [
+            (
+                "1111111111111111111111111111111111111111",
+                "Cinema One",
+                {
+                    "tvg_id": "cinema-id",
+                    "group_title": "Cinema",
+                    "tvg_logo": "https://example.com/group-logo.png",
+                },
+            )
+        ]
+
+    def test_extract_channels_from_content_extgrp_ignores_unsupported_variants(self):
+        service = M3UService()
+        content = """#EXTM3U
+#EXTGRP: This is not a supported metadata declaration
+#EXTINF:-1,Plain Channel
+acestream://2222222222222222222222222222222222222222
+"""
+
+        channels = service.extract_channels_from_content(content)
+
+        assert channels == [
+            (
+                "2222222222222222222222222222222222222222",
+                "Plain Channel",
+                {},
+            )
+        ]
+
+    def test_extract_channels_from_content_extgrp_unsupported_variant_resets_group_state(self):
+        service = M3UService()
+        content = """#EXTM3U
+#EXTGRP: group-title="Cinema" group-logo="https://example.com/group-logo.png"
+#EXTINF:-1,First Cinema
+acestream://5555555555555555555555555555555555555555
+#EXTGRP: unsupported blob
+#EXTINF:-1,Second Plain
+acestream://6666666666666666666666666666666666666666
+"""
+
+        channels = service.extract_channels_from_content(content)
+
+        assert channels[0][2] == {
+            "group_title": "Cinema",
+            "tvg_logo": "https://example.com/group-logo.png",
+        }
+        assert channels[1][2] == {}
+
+    def test_extract_channels_from_content_extinf_group_title_does_not_inherit_other_group_logo(self):
+        service = M3UService()
+        content = """#EXTM3U
+#EXTGRP: group-title="Cinema" group-logo="https://example.com/cinema-logo.png"
+#EXTINF:-1 group-title="Sports",Sports One
+acestream://7777777777777777777777777777777777777777
+"""
+
+        channels = service.extract_channels_from_content(content)
+
+        assert channels == [
+            (
+                "7777777777777777777777777777777777777777",
+                "Sports One",
+                {"group_title": "Sports"},
+            )
+        ]
+
     def test_scrape_and_create_channels(self, client, db_session):
         """Test that scraping creates channels in the database."""
         # Create a URL to scrape
@@ -296,3 +395,341 @@ class TestScraperIntegration:
         assert len(channels) == 1
         assert channels[0].channel_id == "fresh-channel"
         assert db_session.query(AcestreamChannel).filter(AcestreamChannel.id == "stale-channel").first() is None
+
+    def test_scrape_service_persists_extgrp_group_title_tvg_logo_and_tvg_id(self, db_session, monkeypatch):
+        source_url = "https://example.com/metadata_import.m3u"
+        content = """#EXTM3U
+#EXTGRP: group-title="Cinema" group-logo="https://example.com/group-logo.png"
+#EXTINF:-1 tvg-id="cinema-id",Cinema One
+acestream://3333333333333333333333333333333333333333
+#EXTINF:-1 tvg-id="direct-id" tvg-logo="https://example.com/direct-logo.png" group-title="Sports",Direct Sports
+acestream://4444444444444444444444444444444444444444
+"""
+
+        class _FakeScraper:
+            def __init__(self):
+                from app.models.url_types import RegularURL
+
+                self.url_obj = RegularURL(source_url)
+                self.db = None
+                self.epg_service = None
+                self.tv_channel_service = None
+
+            async def scrape(self):
+                channels = M3UService().extract_channels_from_content(content)
+                return channels, "OK"
+
+        monkeypatch.setattr(
+            "app.services.scraper_service.create_scraper_for_url",
+            lambda _url, _url_type: _FakeScraper(),
+        )
+
+        service = ScraperService(db_session)
+        channels, scrape_status = asyncio.run(service.scrape_url(source_url, "regular"))
+
+        assert scrape_status == "OK"
+        assert {channel.channel_id for channel in channels} == {
+            "3333333333333333333333333333333333333333",
+            "4444444444444444444444444444444444444444",
+        }
+
+        fallback_channel = db_session.query(AcestreamChannel).filter(
+            AcestreamChannel.id == "3333333333333333333333333333333333333333"
+        ).one()
+        direct_channel = db_session.query(AcestreamChannel).filter(
+            AcestreamChannel.id == "4444444444444444444444444444444444444444"
+        ).one()
+
+        assert fallback_channel.group == "Cinema"
+        assert fallback_channel.logo == "https://example.com/group-logo.png"
+        assert fallback_channel.tvg_id == "cinema-id"
+
+        assert direct_channel.group == "Sports"
+        assert direct_channel.logo == "https://example.com/direct-logo.png"
+        assert direct_channel.tvg_id == "direct-id"
+
+    def test_scrape_service_clears_stale_metadata_on_rescrape(self, db_session, monkeypatch):
+        source_url = "https://example.com/stale_metadata.m3u"
+        existing = AcestreamChannel(
+            id="8888888888888888888888888888888888888888",
+            name="Existing Channel",
+            source_url=source_url,
+            group="Old Group",
+            logo="https://example.com/old-logo.png",
+            tvg_id="old-id",
+            is_active=True,
+        )
+        db_session.add(existing)
+        db_session.commit()
+
+        content = """#EXTM3U
+#EXTINF:-1,Existing Channel
+acestream://8888888888888888888888888888888888888888
+"""
+
+        class _FakeScraper:
+            def __init__(self):
+                from app.models.url_types import RegularURL
+
+                self.url_obj = RegularURL(source_url)
+                self.db = None
+                self.epg_service = None
+                self.tv_channel_service = None
+
+            async def scrape(self):
+                channels = M3UService().extract_channels_from_content(content)
+                return channels, "OK"
+
+        monkeypatch.setattr(
+            "app.services.scraper_service.create_scraper_for_url",
+            lambda _url, _url_type: _FakeScraper(),
+        )
+
+        service = ScraperService(db_session)
+        channels, scrape_status = asyncio.run(service.scrape_url(source_url, "regular"))
+
+        assert scrape_status == "OK"
+        assert len(channels) == 1
+
+        db_session.refresh(existing)
+        assert existing.group is None
+        assert existing.logo is None
+        assert existing.tvg_id is None
+
+    def test_scrape_service_keeps_existing_channels_when_empty_scrape_returns_ok(self, db_session, monkeypatch):
+        source_url = "https://example.com/empty_scrape.m3u"
+        existing = AcestreamChannel(
+            id="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            name="Existing Channel",
+            source_url=source_url,
+            is_active=True,
+        )
+        db_session.add(existing)
+        db_session.commit()
+
+        class _FakeScraper:
+            def __init__(self):
+                from app.models.url_types import RegularURL
+
+                self.url_obj = RegularURL(source_url)
+                self.db = None
+                self.epg_service = None
+                self.tv_channel_service = None
+
+            async def scrape(self):
+                return [], "OK"
+
+        monkeypatch.setattr(
+            "app.services.scraper_service.create_scraper_for_url",
+            lambda _url, _url_type: _FakeScraper(),
+        )
+
+        service = ScraperService(db_session)
+        channels, scrape_status = asyncio.run(service.scrape_url(source_url, "regular"))
+
+        assert scrape_status == "OK"
+        assert channels == []
+        assert db_session.query(AcestreamChannel).filter(AcestreamChannel.id == existing.id).one_or_none() is not None
+
+    def test_scrape_service_persists_channels_under_normalized_url(self, db_session, monkeypatch):
+        input_url = "http://example.com:43110/channel-list"
+        normalized_url = "zero://channel-list"
+
+        class _FakeScraper:
+            def __init__(self):
+                from app.models.url_types import ZeronetURL
+
+                self.url_obj = ZeronetURL(input_url)
+                self.db = None
+                self.epg_service = None
+                self.tv_channel_service = None
+
+            async def scrape(self):
+                return [
+                    (
+                        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                        "Normalized Channel",
+                        {"group_title": "Sports"},
+                    )
+                ], "OK"
+
+        monkeypatch.setattr(
+            "app.services.scraper_service.create_scraper_for_url",
+            lambda _url, _url_type: _FakeScraper(),
+        )
+
+        service = ScraperService(db_session)
+        channels, scrape_status = asyncio.run(service.scrape_url(input_url, "auto"))
+
+        assert scrape_status == "OK"
+        assert len(channels) == 1
+        persisted = db_session.query(AcestreamChannel).filter(
+            AcestreamChannel.id == "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        ).one()
+        assert persisted.source_url == normalized_url
+
+    def test_get_scraped_urls_counts_channels_by_normalized_url(self, db_session):
+        scraped_url = ScrapedURL(url="http://example.com:43110/channel-list", url_type="auto", status="active", enabled=True)
+        db_session.add(scraped_url)
+        db_session.flush()
+        db_session.add(
+            AcestreamChannel(
+                id="dddddddddddddddddddddddddddddddddddddddd",
+                name="Counted Channel",
+                source_url="zero://channel-list",
+                is_active=True,
+            )
+        )
+        db_session.commit()
+
+        rows = ScraperService(db_session).get_scraped_urls()
+
+        assert len(rows) == 1
+        assert rows[0].channels_found == 1
+
+    def test_get_scraped_urls_does_not_double_count_regular_urls(self, db_session):
+        scraped_url = ScrapedURL(url="https://example.com/playlist.m3u", url_type="regular", status="active", enabled=True)
+        db_session.add(scraped_url)
+        db_session.flush()
+        db_session.add(
+            AcestreamChannel(
+                id="eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                name="Regular Counted Channel",
+                source_url="https://example.com/playlist.m3u",
+                is_active=True,
+            )
+        )
+        db_session.commit()
+
+        rows = ScraperService(db_session).get_scraped_urls()
+
+        assert len(rows) == 1
+        assert rows[0].channels_found == 1
+
+    def test_scrape_service_removes_legacy_original_url_channels_after_normalized_rescrape(self, db_session, monkeypatch):
+        input_url = "http://example.com:43110/channel-list"
+        normalized_url = "zero://channel-list"
+        db_session.add(
+            AcestreamChannel(
+                id="ffffffffffffffffffffffffffffffffffffffff",
+                name="Legacy Channel",
+                source_url=input_url,
+                is_active=True,
+            )
+        )
+        db_session.commit()
+
+        class _FakeScraper:
+            def __init__(self):
+                from app.models.url_types import ZeronetURL
+
+                self.url_obj = ZeronetURL(input_url)
+                self.db = None
+                self.epg_service = None
+                self.tv_channel_service = None
+
+            async def scrape(self):
+                return [
+                    (
+                        "1212121212121212121212121212121212121212",
+                        "Fresh Normalized",
+                        {},
+                    )
+                ], "OK"
+
+        monkeypatch.setattr(
+            "app.services.scraper_service.create_scraper_for_url",
+            lambda _url, _url_type: _FakeScraper(),
+        )
+
+        channels, scrape_status = asyncio.run(ScraperService(db_session).scrape_url(input_url, "auto"))
+
+        assert scrape_status == "OK"
+        assert len(channels) == 1
+        assert db_session.query(AcestreamChannel).filter(AcestreamChannel.id == "ffffffffffffffffffffffffffffffffffffffff").one_or_none() is None
+        persisted = db_session.query(AcestreamChannel).filter(
+            AcestreamChannel.id == "1212121212121212121212121212121212121212"
+        ).one()
+        assert persisted.source_url == normalized_url
+
+    def test_base_scraper_updates_existing_scraped_url_status_without_creating_normalized_duplicate(self, db_session):
+        from app.models.url_types import ZeronetURL
+        from app.scrapers.base import BaseScraper
+
+        original_url = "http://example.com:43110/channel-list"
+        normalized_url = "zero://channel-list"
+        existing = ScrapedURL(url=original_url, url_type="auto", status="pending", enabled=True)
+        db_session.add(existing)
+        db_session.commit()
+
+        class _FakeScraper(BaseScraper):
+            async def fetch_content(self, url: str) -> str:
+                return ""
+
+        scraper = _FakeScraper(ZeronetURL(original_url))
+        asyncio.run(scraper.update_url_status(normalized_url, "OK"))
+
+        db_session.expire_all()
+        rows = db_session.query(ScrapedURL).order_by(ScrapedURL.id.asc()).all()
+        assert len(rows) == 1
+        assert rows[0].url == original_url
+        assert rows[0].status == "OK"
+
+    def test_base_scraper_extracts_linked_m3u_metadata(self):
+        from app.models.url_types import RegularURL
+        from app.scrapers.base import BaseScraper
+
+        class _FakeScraper(BaseScraper):
+            async def fetch_content(self, url: str) -> str:
+                if url == "https://example.com/page":
+                    return '<a href="https://example.com/list.m3u">Playlist</a>'
+                if url == "https://example.com/list.m3u":
+                    return """#EXTM3U
+#EXTGRP: group-title="Cinema" group-logo="https://example.com/group-logo.png"
+#EXTINF:-1 tvg-id="linked-id",Linked Channel
+acestream://9999999999999999999999999999999999999999
+"""
+                raise AssertionError(f"Unexpected URL: {url}")
+
+        scraper = _FakeScraper(RegularURL(url="https://example.com/page"))
+        channels, status = asyncio.run(scraper.scrape())
+
+        assert status == "OK"
+        assert channels == [
+            (
+                "9999999999999999999999999999999999999999",
+                "Linked Channel",
+                {
+                    "tvg_id": "linked-id",
+                    "group_title": "Cinema",
+                    "tvg_logo": "https://example.com/group-logo.png",
+                },
+            )
+        ]
+
+    def test_base_scraper_resolves_relative_m3u_links_for_zeronet_normalized_sources(self):
+        from app.models.url_types import ZeronetURL
+        from app.scrapers.base import BaseScraper
+
+        class _FakeScraper(BaseScraper):
+            async def fetch_content(self, url: str) -> str:
+                if url == "zero://site/path":
+                    return '<a href="channels/list.m3u">Playlist</a>'
+                if url == "zero://site/channels/list.m3u":
+                    return """#EXTM3U
+#EXTINF:-1 tvg-id="zero-id",Zero Channel
+acestream://cccccccccccccccccccccccccccccccccccccccc
+"""
+                raise AssertionError(f"Unexpected URL: {url}")
+
+        scraper = _FakeScraper(ZeronetURL("zero://site/path"))
+        channels, status = asyncio.run(scraper.scrape())
+
+        assert status == "OK"
+        assert channels == [
+            (
+                "cccccccccccccccccccccccccccccccccccccccc",
+                "Zero Channel",
+                {"tvg_id": "zero-id"},
+            )
+        ]

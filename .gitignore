@@ -240,5 +240,17 @@ frontend/npm-debug.log*
 frontend/yarn-debug.log*
 frontend/yarn-error.log*
 frontend/.eslintcache
+
+# local backend runtime artifacts
+backend/config/*.db
+backend/config/backups/
+backend/frontend_build/
+backend/logs/
+backend/*.log
+v2/backend/config/*.db
+v2/backend/frontend_build/
+v2/backend/logs/
+v2/backend/*.log
+
 list.m3u
 v2/backend/config/scraper.db

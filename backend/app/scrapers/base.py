@@ -133,11 +133,12 @@ class BaseScraper(ABC):
         m3u_urls.extend(direct_m3u_urls)
         for m3u_url in set(m3u_urls):
             try:
-                m3u_channels = await self.m3u_service.extract_channels_from_m3u(
-                    m3u_url,
+                m3u_content = await self.fetch_content(m3u_url)
+                m3u_channels = self.m3u_service.extract_channels_from_content(
+                    m3u_content,
                     db=self.db,
                     epg_service=self.epg_service,
-                    tv_channel_service=self.tv_channel_service
+                    tv_channel_service=self.tv_channel_service,
                 )
                 for channel_id, name, metadata in m3u_channels:
                     if channel_id not in self.identified_ids and name and not name.startswith("Channel "):
@@ -252,12 +253,30 @@ class BaseScraper(ABC):
 
     async def update_url_status(self, url: str, status: str, error: str = None):
         """Update URL status in database."""
-        # Get DB session
-        db = next(get_db())
+        db = self.db
+        owns_session = db is None
+        if db is None:
+            try:
+                from main import app
+
+                override_get_db = app.dependency_overrides.get(get_db)
+            except Exception:
+                override_get_db = None
+
+            if override_get_db is not None:
+                db = next(override_get_db())
+                owns_session = False
+            else:
+                db = next(get_db())
 
         from app.models.models import ScrapedURL
 
-        url_record = db.query(ScrapedURL).filter(ScrapedURL.url == url).first()
+        candidate_urls = {url}
+        if self.url_obj is not None:
+            candidate_urls.add(self.url_obj.original_url)
+            candidate_urls.add(self.url_obj.get_normalized_url())
+
+        url_record = db.query(ScrapedURL).filter(ScrapedURL.url.in_(candidate_urls)).order_by(ScrapedURL.id.asc()).first()
 
         if not url_record:
             url_record = ScrapedURL(url=url)
@@ -265,4 +284,5 @@ class BaseScraper(ABC):
         url_record.update_status(status, error)
         db.add(url_record)
         db.commit()
-        db.close()
+        if owns_session:
+            db.close()

@@ -1,9 +1,13 @@
 """Service for TVChannel operations"""
 import re
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+
 from app.repositories.channel_repository import ChannelRepository
 from app.models.models import AcestreamChannel, EPGChannel, TVChannel
+from app.services.epg_match_service import EPGMatchService
 
 class TVChannelService:
     def get_tv_channels_with_total(self, skip: int = 0, limit: int = 100):
@@ -94,6 +98,141 @@ class TVChannelService:
             "skipped_count": skipped_count,
             "associated_count": associated_count,
             "items": created_channels,
+        }
+
+    def create_tv_channels_from_epg_analysis(self, strictness: str, epg_channel_ids: List[int]) -> Dict[str, Any]:
+        selected_ids = sorted(set(epg_channel_ids))
+        analysis = EPGMatchService(self.repository.db).analyze_matches(
+            strictness=strictness,
+            epg_channel_ids=selected_ids,
+        )
+        selected_rows = analysis["rows"]
+
+        if not selected_rows:
+            raise ValueError("No accepted matches found for selected EPG rows.")
+
+        accepted_rows = [row for row in selected_rows if row["candidates"]]
+        if not accepted_rows:
+            raise ValueError("No accepted matches found for selected EPG rows.")
+
+        epg_channels = {
+            channel.id: channel
+            for channel in self.repository.get_epg_channels_by_ids([row["epg_channel_id"] for row in selected_rows])
+        }
+
+        created_count = 0
+        skipped_count = 0
+        associated_count = 0
+        failure_count = 0
+        row_outcomes: List[Dict[str, Any]] = []
+
+        for row in selected_rows:
+            epg_channel_id = row["epg_channel_id"]
+            epg_channel = epg_channels.get(epg_channel_id)
+            if epg_channel is None:
+                failure_count += 1
+                row_outcomes.append(
+                    {
+                        "epg_channel_id": epg_channel_id,
+                        "status": "failed",
+                        "reason": "Selected EPG channel not found.",
+                        "associated_count": 0,
+                    }
+                )
+                continue
+
+            existing_channels = self.repository.get_tv_channels_by_epg_id(epg_channel.channel_xml_id)
+            if len(existing_channels) > 1:
+                skipped_count += 1
+                row_outcomes.append(
+                    {
+                        "epg_channel_id": epg_channel.id,
+                        "status": "duplicate_existing_conflict",
+                        "reason": "Multiple TV channels already exist for this epg_id.",
+                        "associated_count": 0,
+                    }
+                )
+                continue
+
+            if len(existing_channels) == 1:
+                skipped_count += 1
+                row_outcomes.append(
+                    {
+                        "epg_channel_id": epg_channel.id,
+                        "status": "skipped_existing",
+                        "reason": "A TV channel already exists for this epg_id.",
+                        "tv_channel_id": existing_channels[0].id,
+                        "associated_count": 0,
+                    }
+                )
+                continue
+
+            candidate_ids = [candidate["acestream_channel_id"] for candidate in row["candidates"]]
+            if not candidate_ids:
+                skipped_count += 1
+                row_outcomes.append(
+                    {
+                        "epg_channel_id": epg_channel.id,
+                        "status": "no_accepted_matches",
+                        "reason": "No accepted matches found for selected EPG row.",
+                        "associated_count": 0,
+                    }
+                )
+                continue
+
+            try:
+                with self.repository.db.begin_nested():
+                    tv_channel = TVChannel(
+                        name=epg_channel.name,
+                        logo_url=getattr(epg_channel, "icon_url", None),
+                        language=getattr(epg_channel, "language", None),
+                        epg_id=epg_channel.channel_xml_id,
+                        epg_source_id=epg_channel.epg_source_id,
+                        is_active=True,
+                        is_favorite=False,
+                    )
+                    self.repository.db.add(tv_channel)
+                    self.repository.db.flush()
+
+                    associated_for_row = self.repository.assign_acestreams_to_tv_channel(candidate_ids, tv_channel.id)
+                    self.repository.db.refresh(tv_channel)
+
+                created_count += 1
+                associated_count += associated_for_row
+                row_outcomes.append(
+                    {
+                        "epg_channel_id": epg_channel.id,
+                        "status": "created",
+                        "tv_channel_id": tv_channel.id,
+                        "associated_count": associated_for_row,
+                    }
+                )
+            except Exception as exc:
+                failure_count += 1
+                row_outcomes.append(
+                    {
+                        "epg_channel_id": epg_channel.id,
+                        "status": "failed",
+                        "reason": str(exc),
+                        "associated_count": 0,
+                    }
+                )
+
+        try:
+            self.repository.db.commit()
+        except SQLAlchemyError:
+            self.repository.db.rollback()
+            raise
+
+        if not accepted_rows:
+            raise ValueError("No accepted matches found for selected EPG rows.")
+
+        return {
+            "created_count": created_count,
+            "skipped_count": skipped_count,
+            "associated_count": associated_count,
+            "failure_count": failure_count,
+            "row_outcomes": row_outcomes,
         }
 
     def auto_associate_acestreams(self, tv_channel: TVChannel) -> int:

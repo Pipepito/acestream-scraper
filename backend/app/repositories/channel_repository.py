@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
-from app.models.models import AcestreamChannel, TVChannel
+from app.models.models import AcestreamChannel, EPGChannel, TVChannel
 
 
 class ChannelRepository:
@@ -19,19 +19,47 @@ class ChannelRepository:
         """Assign multiple acestream channels to a TV channel by setting their tv_channel_id."""
         if not acestream_ids:
             return 0
+        available_count = (
+            self.db.query(AcestreamChannel)
+            .filter(
+                AcestreamChannel.id.in_(acestream_ids),
+                AcestreamChannel.tv_channel_id.is_(None),
+            )
+            .count()
+        )
+        if available_count != len(acestream_ids):
+            raise ValueError("One or more accepted Acestream channels are already associated with another TV channel.")
         updated = (
             self.db.query(AcestreamChannel)
             .filter(
                 AcestreamChannel.id.in_(acestream_ids),
-                or_(AcestreamChannel.tv_channel_id.is_(None), AcestreamChannel.tv_channel_id != tv_channel_id),
+                AcestreamChannel.tv_channel_id.is_(None),
             )
             .update({"tv_channel_id": tv_channel_id}, synchronize_session=False)
         )
-        self.db.commit()
+        if self.db.in_nested_transaction():
+            self.db.flush()
+        else:
+            self.db.commit()
         return updated
     def get_tv_channel_by_epg_id(self, epg_id: str) -> Optional[TVChannel]:
         """Get a TV channel by EPG ID"""
         return self.db.query(TVChannel).filter(TVChannel.epg_id == epg_id).first()
+
+    def get_tv_channels_by_epg_id(self, epg_id: str) -> List[TVChannel]:
+        """Get all TV channels for an EPG ID."""
+        return self.db.query(TVChannel).filter(TVChannel.epg_id == epg_id).order_by(TVChannel.id.asc()).all()
+
+    def get_epg_channels_by_ids(self, epg_channel_ids: List[int]) -> List[EPGChannel]:
+        """Get EPG channels by IDs preserving deterministic order."""
+        if not epg_channel_ids:
+            return []
+        return (
+            self.db.query(EPGChannel)
+            .filter(EPGChannel.id.in_(epg_channel_ids))
+            .order_by(EPGChannel.id.asc())
+            .all()
+        )
     """Repository for channel operations"""
 
     def __init__(self, db: Session):
@@ -128,10 +156,10 @@ class ChannelRepository:
                 id=channel_id,
                 name=name,
                 source_url=source_url,
-                group=group,
-                logo=logo,
-                tvg_id=tvg_id,
-                tvg_name=tvg_name,
+                group=group or None,
+                logo=logo or None,
+                tvg_id=tvg_id or None,
+                tvg_name=tvg_name or None,
                 last_seen=datetime.utcnow(),
                 is_active=True,
                 is_online=is_online if is_online is not None else True  # Default to True
@@ -145,14 +173,14 @@ class ChannelRepository:
             if source_url is not None:
                 channel.source_url = source_url
             if group is not None:
-                channel.group = group
+                channel.group = group or None
             if logo is not None:
-                channel.logo = logo
+                channel.logo = logo or None
             # Always update tvg_id and tvg_name, even if empty string (to allow clearing)
             if tvg_id is not None:
-                channel.tvg_id = tvg_id
+                channel.tvg_id = tvg_id or None
             if tvg_name is not None:
-                channel.tvg_name = tvg_name
+                channel.tvg_name = tvg_name or None
             if is_online is not None:
                 channel.is_online = is_online
 

@@ -1,8 +1,8 @@
 """Pydantic schemas for channel data."""
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 
@@ -174,6 +174,75 @@ class TVChannelCreateFromEPGResponse(BaseModel):
     skipped_count: int
     associated_count: int
     items: List[TVChannelResponse]
+
+
+MatchStrictness = Literal["loose", "balanced", "strict"]
+
+
+class EPGMatchAnalysisRequest(BaseModel):
+    strictness: MatchStrictness
+    source_id: Optional[int] = None
+
+
+class EPGMatchCandidateResponse(BaseModel):
+    acestream_channel_id: str
+    name: str
+    tvg_id: Optional[str] = None
+    tvg_name: Optional[str] = None
+    score: float
+    match_stage: str
+
+
+class EPGMatchRowResponse(BaseModel):
+    epg_channel_id: int
+    epg_channel_xml_id: str
+    epg_channel_name: str
+    epg_source_id: int
+    epg_source_name: Optional[str] = None
+    existing_tv_channel_id: Optional[int] = None
+    existing_tv_channel_count: int = 0
+    has_duplicate_existing_conflict: bool = False
+    candidate_count: int
+    candidates: List[EPGMatchCandidateResponse]
+    best_match_type: Optional[str] = None
+    best_match_confidence: Optional[str] = None
+    is_creatable: bool
+
+
+class EPGMatchAnalysisSummaryResponse(BaseModel):
+    epg_channels_analyzed: int
+    matched_epg_channels: int
+    matched_acestream_channels: int
+    creatable_rows: int
+    skipped_existing_tv_channels: int
+
+
+class EPGMatchAnalysisResponse(BaseModel):
+    summary: EPGMatchAnalysisSummaryResponse
+    rows: List[EPGMatchRowResponse]
+
+
+class TVChannelCreateFromEPGAnalysisRowOutcome(BaseModel):
+    epg_channel_id: int
+    status: str
+    reason: Optional[str] = None
+    tv_channel_id: Optional[int] = None
+    associated_count: int = 0
+
+
+class TVChannelCreateFromEPGAnalysisRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    strictness: MatchStrictness
+    epg_channel_ids: List[int] = Field(..., min_length=1)
+
+
+class TVChannelCreateFromEPGAnalysisResponse(BaseModel):
+    created_count: int
+    skipped_count: int
+    associated_count: int
+    failure_count: int
+    row_outcomes: List[TVChannelCreateFromEPGAnalysisRowOutcome]
 
 
 class TVChannelBulkEPGUpdateItem(BaseModel):

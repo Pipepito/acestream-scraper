@@ -10,6 +10,65 @@ export interface CreateTVChannelsFromEPGResult {
   items: TVChannel[];
 }
 
+export type EPGMatchStrictness = 'loose' | 'balanced' | 'strict';
+
+export interface EPGMatchCandidate {
+  acestream_channel_id: string;
+  name: string;
+  tvg_id?: string | null;
+  tvg_name?: string | null;
+  score: number;
+  match_stage: string;
+}
+
+export interface EPGMatchAnalysisRow {
+  epg_channel_id: number;
+  epg_channel_xml_id: string;
+  epg_channel_name: string;
+  epg_source_id: number;
+  epg_source_name?: string | null;
+  existing_tv_channel_id?: number | null;
+  existing_tv_channel_count: number;
+  has_duplicate_existing_conflict: boolean;
+  candidate_count: number;
+  candidates: EPGMatchCandidate[];
+  best_match_type?: string | null;
+  best_match_confidence?: string | null;
+  is_creatable: boolean;
+}
+
+export interface EPGMatchAnalysisSummary {
+  epg_channels_analyzed: number;
+  matched_epg_channels: number;
+  matched_acestream_channels: number;
+  creatable_rows: number;
+  skipped_existing_tv_channels: number;
+}
+
+export interface EPGMatchAnalysisResponse {
+  summary: EPGMatchAnalysisSummary;
+  rows: EPGMatchAnalysisRow[];
+}
+
+export interface CreateFromEPGAnalysisRequest {
+  strictness: EPGMatchStrictness;
+  epg_channel_ids: number[];
+}
+
+export interface CreateFromEPGAnalysisResult {
+  created_count: number;
+  skipped_count: number;
+  associated_count: number;
+  failure_count: number;
+  row_outcomes: Array<{
+    epg_channel_id: number;
+    status: string;
+    reason?: string | null;
+    tv_channel_id?: number | null;
+    associated_count: number;
+  }>;
+}
+
 export const tvChannelService = {
   /**
    * Get all TV channels
@@ -39,6 +98,19 @@ export const tvChannelService = {
 
   createFromEpg: async (epgChannelIds: number[]): Promise<CreateTVChannelsFromEPGResult> => {
     const response = await apiClient.post(`${BASE_URL}/from-epg`, { epg_channel_ids: epgChannelIds });
+    return response.data;
+  },
+
+  analyzeEPGMatches: async (params: { strictness: EPGMatchStrictness; source_id?: number }): Promise<EPGMatchAnalysisResponse> => {
+    const response = await apiClient.post(`${BASE_URL}/analyze-epg-matches`, {
+      strictness: params.strictness,
+      ...(params.source_id !== undefined ? { source_id: params.source_id } : {}),
+    });
+    return response.data;
+  },
+
+  createFromEPGAnalysis: async (payload: CreateFromEPGAnalysisRequest): Promise<CreateFromEPGAnalysisResult> => {
+    const response = await apiClient.post(`${BASE_URL}/create-from-epg-analysis`, payload);
     return response.data;
   },
 

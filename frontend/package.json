@@ -28,7 +28,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "build:backend": "react-scripts build && ts-node scripts/copy-build.ts",
+    "build:backend": "react-scripts build && node scripts/copy-build.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },

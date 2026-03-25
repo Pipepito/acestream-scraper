@@ -3,6 +3,13 @@ import apiClient from './apiClient';
 
 const BASE_URL = '/v1/tv-channels';
 
+export interface CreateTVChannelsFromEPGResult {
+  created_count: number;
+  skipped_count: number;
+  associated_count: number;
+  items: TVChannel[];
+}
+
 export const tvChannelService = {
   /**
    * Get all TV channels
@@ -27,6 +34,11 @@ export const tvChannelService = {
    */
   create: async (tvChannel: TVChannelCreate): Promise<TVChannel> => {
     const response = await apiClient.post(BASE_URL, tvChannel);
+    return response.data;
+  },
+
+  createFromEpg: async (epgChannelIds: number[]): Promise<CreateTVChannelsFromEPGResult> => {
+    const response = await apiClient.post(`${BASE_URL}/from-epg`, { epg_channel_ids: epgChannelIds });
     return response.data;
   },
 

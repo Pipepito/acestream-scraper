@@ -1,10 +1,8 @@
-version: '3.8'
-
 services:
   app:
     build:
       context: .
-      dockerfile: backend/Dockerfile
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
     volumes:
@@ -20,6 +18,7 @@ services:
 
   zeronet:
     image: nofish/zeronet:latest
+    platform: linux/amd64
     ports:
       - "43110:43110"
     volumes:

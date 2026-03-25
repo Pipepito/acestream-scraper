@@ -61,6 +61,24 @@ describe('Dashboard UI', () => {
     expect(screen.getByText('connected')).toBeInTheDocument();
   });
 
+  it('renders activity when backend returns paginated items instead of results', () => {
+    (dashboardHooks.useRecentActivity as jest.Mock).mockReturnValue({
+      data: {
+        items: [
+          { id: 3, message: 'Backend item shape', type: 'sync', timestamp: new Date().toISOString(), user: 'system', details: null },
+        ],
+        total: 1,
+        page: 1,
+        page_size: 10,
+      },
+      isLoading: false,
+    });
+
+    renderDashboard();
+
+    expect(screen.getByText('Backend item shape')).toBeInTheDocument();
+  });
+
   it('handles loading state', () => {
     (dashboardHooks.useDashboardConfig as jest.Mock).mockReturnValue({ data: undefined, isLoading: true });
     renderDashboard();

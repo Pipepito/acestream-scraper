@@ -30,6 +30,11 @@ export interface EPGChannel {
   updated_at: string;
 }
 
+export interface PaginatedEPGChannels {
+  items: EPGChannel[];
+  total: number;
+}
+
 /**
  * EPG Program model interface
  */
@@ -166,9 +171,19 @@ export const epgService = {
   /**
    * Get EPG channels for a source
    */
-  getChannels: async (sourceId?: number): Promise<EPGChannel[]> => {
-    const params = sourceId ? { source_id: sourceId } : {};
+  getChannels: async (sourceId?: number, skip = 0, limit = 50): Promise<PaginatedEPGChannels> => {
+    const params: Record<string, number> = { skip, limit };
+    if (sourceId !== undefined) {
+      params.source_id = sourceId;
+    }
     const { data } = await apiClient.get('/v1/epg/channels', { params });
+    return data;
+  },
+
+  resolveChannel: async (sourceId: number, channelXmlId: string): Promise<EPGChannel> => {
+    const { data } = await apiClient.get('/v1/epg/channels/resolve', {
+      params: { source_id: sourceId, channel_xml_id: channelXmlId },
+    });
     return data;
   },
 

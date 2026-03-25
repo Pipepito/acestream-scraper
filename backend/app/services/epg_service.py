@@ -225,18 +225,34 @@ class EPGService:
             logger.error(f"Error processing EPG XML: {str(e)}")
             raise
 
-    def get_channels(self, source_id: Optional[int] = None, skip: int = 0, limit: int = 100) -> List[EPGChannel]:
-        """Get EPG channels, optionally filtered by source"""
+    def get_channels(self, source_id: Optional[int] = None, skip: int = 0, limit: int = 50) -> Tuple[List[EPGChannel], int]:
+        """Get paginated EPG channels, optionally filtered by source."""
+        skip = max(skip, 0)
+        limit = 50 if limit <= 0 else min(limit, 100)
+
         query = self.db.query(EPGChannel)
 
-        if source_id:
+        if source_id is not None:
             query = query.filter(EPGChannel.epg_source_id == source_id)
 
-        return query.offset(skip).limit(limit).all()
+        total = query.count()
+        items = query.order_by(EPGChannel.name.asc(), EPGChannel.id.asc()).offset(skip).limit(limit).all()
+        return items, total
 
     def get_channel(self, channel_id: int) -> Optional[EPGChannel]:
         """Get an EPG channel by ID"""
         return self.db.query(EPGChannel).filter(EPGChannel.id == channel_id).first()
+
+    def get_channel_by_source_and_xml_id(self, source_id: int, channel_xml_id: str) -> Optional[EPGChannel]:
+        """Resolve an EPG channel by source and XML identifier."""
+        return (
+            self.db.query(EPGChannel)
+            .filter(
+                EPGChannel.epg_source_id == source_id,
+                EPGChannel.channel_xml_id == channel_xml_id,
+            )
+            .first()
+        )
 
     def map_channel_to_tv(self, epg_channel_id: int, tv_channel_id: int) -> bool:
         """Map an EPG channel to a TV channel"""

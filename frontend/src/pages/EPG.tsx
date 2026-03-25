@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from 'react-query';
 import {
@@ -29,7 +29,13 @@ import {
   Switch,
   Divider,
   Slider,
-  Checkbox
+  Checkbox,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+  TablePagination,
+  SelectChangeEvent,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -52,6 +58,7 @@ import {
 } from '../hooks/useEPG';
 import { useAllTVChannels } from '../hooks/useTVChannels';
 import { EPGSource, EPGChannel, EPGXMLGenerationParams, epgService } from '../services/epgService';
+import { tvChannelService } from '../services/tvChannelService';
 import PageHeader from '../components/layout/PageHeader';
 
 interface EPGSourceFormData {
@@ -116,7 +123,11 @@ const EPG: React.FC = () => {
 
   // React Query hooks
   const { data: epgSources, isLoading: isLoadingSources } = useEPGSources();
-  const { data: epgChannels, isLoading: isLoadingChannels } = useEPGChannels();
+  const [selectedSourceId, setSelectedSourceId] = useState<number | undefined>(undefined);
+  const [channelPage, setChannelPage] = useState(1);
+  const [channelPageSize, setChannelPageSize] = useState(50);
+
+  const { data: epgChannelPage, isLoading: isLoadingChannels } = useEPGChannels(selectedSourceId, channelPage, channelPageSize);
   const { data: tvChannels } = useAllTVChannels(0, 1000);
   const { mutateAsync: createSource } = useCreateEPGSource();
   const { mutateAsync: updateSource } = useUpdateEPGSource(editSourceId || 0);
@@ -129,6 +140,10 @@ const EPG: React.FC = () => {
 
   // State for EPG Channels selection
   const [selectedEPGChannelIds, setSelectedEPGChannelIds] = useState<number[]>([]);
+
+  const epgChannels = useMemo(() => epgChannelPage?.items || [], [epgChannelPage]);
+  const totalEPGChannels = epgChannelPage?.total || 0;
+  const totalChannelPages = Math.max(1, Math.ceil(totalEPGChannels / channelPageSize));
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -275,17 +290,46 @@ const EPG: React.FC = () => {
 
   // EPG Channels selection handlers
   // Build a set of mapped EPG XML IDs (or channel_xml_id)
-  const mappedEpgXmlIds = React.useMemo(() => {
+  const mappedEpgXmlIds = useMemo(() => {
     if (!tvChannels) return new Set<string>();
     return new Set((tvChannels?.items || []).filter((c: any) => c.epg_id).map((c: any) => c.epg_id));
   }, [tvChannels]);
 
+  const visibleUnmappedChannelIds = useMemo(
+    () => epgChannels.filter((channel) => !mappedEpgXmlIds.has(channel.channel_xml_id)).map((channel) => channel.id),
+    [epgChannels, mappedEpgXmlIds]
+  );
+
+  useEffect(() => {
+    if (!isLoadingChannels && channelPage > totalChannelPages) {
+      setChannelPage(1);
+    }
+  }, [channelPage, totalChannelPages, isLoadingChannels]);
+
+  useEffect(() => {
+    setSelectedEPGChannelIds([]);
+  }, [selectedSourceId, channelPage, channelPageSize]);
+
   const isChannelMapped = (channel: EPGChannel) => mappedEpgXmlIds.has(channel.channel_xml_id);
 
+  const handleSourceFilterChange = (event: SelectChangeEvent<string>) => {
+    const value = event.target.value;
+    setSelectedSourceId(value === 'all' ? undefined : Number(value));
+    setChannelPage(1);
+  };
+
+  const handleChannelPageChange = (_event: unknown, page: number) => {
+    setChannelPage(page + 1);
+  };
+
+  const handleChannelPageSizeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setChannelPageSize(Number(event.target.value));
+    setChannelPage(1);
+  };
+
   const handleSelectAllChannels = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.checked && epgChannels) {
-      // Only select unmapped channels
-      setSelectedEPGChannelIds(epgChannels.filter((c) => !isChannelMapped(c)).map((c) => c.id));
+    if (event.target.checked) {
+      setSelectedEPGChannelIds(visibleUnmappedChannelIds);
     } else {
       setSelectedEPGChannelIds([]);
     }
@@ -311,7 +355,13 @@ const EPG: React.FC = () => {
       return;
     }
     try {
-      showSnackbar(`Requested creation of ${unmappedIds.length} TV channels`, 'info');
+      const result = await tvChannelService.createFromEpg(unmappedIds);
+      queryClient.invalidateQueries('tvChannels');
+      queryClient.invalidateQueries('epg-channels');
+      showSnackbar(
+        `Created ${result.created_count} TV channels, skipped ${result.skipped_count}, auto-matched ${result.associated_count} Acestream channels`,
+        'success'
+      );
       setSelectedEPGChannelIds([]);
     } catch (error) {
       showSnackbar(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
@@ -436,6 +486,22 @@ const EPG: React.FC = () => {
           <Typography variant="h6" gutterBottom>
             Available EPG Channels
           </Typography>
+          <FormControl size="small" sx={{ minWidth: 240 }}>
+            <InputLabel id="epg-source-filter-label">EPG Source</InputLabel>
+            <Select
+              labelId="epg-source-filter-label"
+              label="EPG Source"
+              value={selectedSourceId?.toString() ?? 'all'}
+              onChange={handleSourceFilterChange}
+            >
+              <MenuItem value="all">All sources</MenuItem>
+              {(epgSources || []).map((source) => (
+                <MenuItem key={source.id} value={source.id.toString()}>
+                  {source.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
           <Button
             variant="contained"
             color="primary"
@@ -444,6 +510,23 @@ const EPG: React.FC = () => {
           >
             Create TV Channels ({selectedEPGChannelIds.length})
           </Button>
+        </Box>
+
+        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+          <Typography variant="body2" color="text.secondary">
+            {totalEPGChannels === 0
+              ? 'Showing 0-0 of 0 channels'
+              : `Showing ${(channelPage - 1) * channelPageSize + 1}-${Math.min(channelPage * channelPageSize, totalEPGChannels)} of ${totalEPGChannels} channels`}
+          </Typography>
+          <TablePagination
+            component="div"
+            count={totalEPGChannels}
+            page={Math.max(channelPage - 1, 0)}
+            onPageChange={handleChannelPageChange}
+            rowsPerPage={channelPageSize}
+            onRowsPerPageChange={handleChannelPageSizeChange}
+            rowsPerPageOptions={[25, 50, 100]}
+          />
         </Box>
 
         {isLoadingChannels ? (
@@ -456,8 +539,8 @@ const EPG: React.FC = () => {
               <TableRow>
                 <TableCell padding="checkbox">
                   <Checkbox
-                    indeterminate={selectedEPGChannelIds.length > 0 && epgChannels && selectedEPGChannelIds.length < epgChannels.length}
-                    checked={epgChannels && epgChannels.length > 0 && selectedEPGChannelIds.length === epgChannels.length}
+                    indeterminate={selectedEPGChannelIds.length > 0 && selectedEPGChannelIds.length < visibleUnmappedChannelIds.length}
+                    checked={visibleUnmappedChannelIds.length > 0 && selectedEPGChannelIds.length === visibleUnmappedChannelIds.length}
                     onChange={handleSelectAllChannels}
                     inputProps={{ 'aria-label': 'select all EPG channels' }}
                   />

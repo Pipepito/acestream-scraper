@@ -6,6 +6,7 @@ import {
   epgService, 
   EPGSource, 
   EPGChannel, 
+  PaginatedEPGChannels,
   EPGProgram, 
   EPGStringMapping,
   CreateEPGSourceDTO, 
@@ -127,11 +128,34 @@ export const useRefreshAllEPGSources = () => {
 /**
  * Hook for fetching EPG channels
  */
-export const useEPGChannels = (sourceId?: number, options?: UseQueryOptions<EPGChannel[]>) => {
-  return useQuery<EPGChannel[]>(
-    sourceId ? ['epg-channels', sourceId] : ['epg-channels'],
-    () => epgService.getChannels(sourceId),
-    options
+export const useEPGChannels = (
+  sourceId?: number,
+  page = 1,
+  pageSize = 50,
+  options?: UseQueryOptions<PaginatedEPGChannels>
+) => {
+  return useQuery<PaginatedEPGChannels>(
+    ['epg-channels', sourceId ?? 'all', page, pageSize],
+    () => epgService.getChannels(sourceId, (page - 1) * pageSize, pageSize),
+    {
+      keepPreviousData: true,
+      ...options,
+    }
+  );
+};
+
+export const useResolveEPGChannel = (
+  sourceId?: number,
+  channelXmlId?: string,
+  options?: UseQueryOptions<EPGChannel>
+) => {
+  return useQuery<EPGChannel>(
+    ['epg-channel-resolve', sourceId ?? 'none', channelXmlId ?? 'none'],
+    () => epgService.resolveChannel(sourceId as number, channelXmlId as string),
+    {
+      enabled: !!sourceId && !!channelXmlId,
+      ...options,
+    }
   );
 };
 

@@ -16,6 +16,8 @@ from app.schemas.channel import (
     TVChannelBatchAssignResponse,
     TVChannelBulkEPGUpdateRequest,
     TVChannelBulkEPGUpdateResponse,
+    TVChannelCreateFromEPGRequest,
+    TVChannelCreateFromEPGResponse,
     TVChannelCreate,
     TVChannelListResponse,
     TVChannelResponse,
@@ -59,6 +61,13 @@ async def get_tv_channel(tv_channel_id: int, db: Session = Depends(get_db)):
     if not tv_channel:
         raise HTTPException(status_code=404, detail="TV Channel not found")
     return tv_channel
+
+
+@router.post("/from-epg", status_code=status.HTTP_200_OK, response_model=TVChannelCreateFromEPGResponse)
+async def create_tv_channels_from_epg(request: TVChannelCreateFromEPGRequest, db: Session = Depends(get_db)):
+    service = TVChannelService(db)
+    result = service.create_tv_channels_from_epg(request.epg_channel_ids)
+    return result
 
 
 @router.post("/", response_model=TVChannelResponse, status_code=status.HTTP_201_CREATED)

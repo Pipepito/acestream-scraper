@@ -574,7 +574,7 @@ const TVChannelDetail: React.FC = () => {
                 <Typography variant="h6" gutterBottom>
                   EPG Program Schedule
                 </Typography>
-                <EPGProgramsTable epgId={channel.epg_id} />
+                <EPGProgramsTable epgId={channel.epg_id} epgSourceId={channel.epg_source_id} />
               </Box>
             )}
           </Grid>

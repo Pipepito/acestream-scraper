@@ -2,7 +2,9 @@
 HTTP scraper implementation
 """
 import aiohttp
+import certifi
 import logging
+import ssl
 from typing import Optional
 
 from app.models.url_types import RegularURL
@@ -31,7 +33,9 @@ class HTTPScraper(BaseScraper):
             logger.info(f"Fetching HTTP content from: {url}")
 
         try:
-            async with aiohttp.ClientSession() as session:
+            ssl_context = ssl.create_default_context(cafile=certifi.where())
+            connector = aiohttp.TCPConnector(ssl=ssl_context)
+            async with aiohttp.ClientSession(connector=connector) as session:
                 async with session.get(url, 
                                      headers=self.headers,
                                      timeout=self.timeout) as response:

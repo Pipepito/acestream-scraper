@@ -7,8 +7,29 @@ import uuid
 from datetime import datetime, timedelta
 from fastapi import status
 
-from app.models.models import EPGProgram, EPGSource, EPGStringMapping
+from app.models.models import EPGChannel, EPGProgram, EPGSource, EPGStringMapping
 from app.services.epg_service import EPGService
+
+
+@pytest.fixture
+def seeded_many_epg_channels(db_session, seed_epg_sources):
+    channels = []
+    names = ["Alpha Sports", "Bravo Sports", "Cinema One", "Drama Plus", "Zeta News"]
+    source_ids = [seed_epg_sources[0].id, seed_epg_sources[1].id, seed_epg_sources[0].id, seed_epg_sources[1].id, seed_epg_sources[0].id]
+
+    for index, (name, source_id) in enumerate(zip(names, source_ids), start=1):
+        channel = EPGChannel(
+            epg_source_id=source_id,
+            channel_xml_id=f"bulk-channel-{index}",
+            name=name,
+            icon_url=f"https://example.com/{index}.png",
+            language="en",
+        )
+        db_session.add(channel)
+        channels.append(channel)
+
+    db_session.commit()
+    return channels
 
 
 class TestEPGSourceEndpoints:
@@ -122,16 +143,17 @@ class TestEPGChannelEndpoints:
         """Test getting EPG channels when none exist."""
         response = client.get("/api/v1/epg/channels")
         assert response.status_code == status.HTTP_200_OK
-        assert response.json() == []
+        assert response.json() == {"items": [], "total": 0}
 
     def test_get_epg_channels_with_data(self, client, seed_epg_channels):
         """Test getting EPG channels with data."""
         response = client.get("/api/v1/epg/channels")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) == 2
-        assert data[0]["name"] == "Test EPG Channel 1"
-        assert data[1]["name"] == "Test EPG Channel 2"
+        assert data["total"] == 2
+        assert len(data["items"]) == 2
+        assert data["items"][0]["name"] == "Test EPG Channel 1"
+        assert data["items"][1]["name"] == "Test EPG Channel 2"
 
     def test_get_epg_channels_with_source_filter(self, client, seed_epg_channels, seed_epg_sources):
         """Test getting EPG channels filtered by source."""
@@ -139,8 +161,59 @@ class TestEPGChannelEndpoints:
         response = client.get(f"/api/v1/epg/channels?source_id={source_id}")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) == 1
-        assert data[0]["epg_source_id"] == source_id
+        assert data["total"] == 1
+        assert len(data["items"]) == 1
+        assert data["items"][0]["epg_source_id"] == source_id
+
+    def test_get_epg_channels_slices_stably_across_pages(self, client, seeded_many_epg_channels):
+        page_one = client.get("/api/v1/epg/channels?skip=0&limit=2")
+        page_two = client.get("/api/v1/epg/channels?skip=2&limit=2")
+
+        assert page_one.status_code == status.HTTP_200_OK
+        assert page_two.status_code == status.HTTP_200_OK
+
+        page_one_data = page_one.json()
+        page_two_data = page_two.json()
+
+        assert page_one_data["total"] == 5
+        assert page_two_data["total"] == 5
+        assert [item["name"] for item in page_one_data["items"]] == ["Alpha Sports", "Bravo Sports"]
+        assert [item["name"] for item in page_two_data["items"]] == ["Cinema One", "Drama Plus"]
+
+    def test_get_epg_channels_unknown_source_returns_empty_page(self, client):
+        response = client.get("/api/v1/epg/channels?source_id=999999")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == {"items": [], "total": 0}
+
+    def test_get_epg_channels_clamps_invalid_skip_and_limit(self, client, seeded_many_epg_channels):
+        negative_skip = client.get("/api/v1/epg/channels?skip=-5&limit=2")
+        zero_skip = client.get("/api/v1/epg/channels?skip=0&limit=2")
+        zero_limit = client.get("/api/v1/epg/channels?skip=0&limit=0")
+        default_limit = client.get("/api/v1/epg/channels?skip=0")
+        oversized_limit = client.get("/api/v1/epg/channels?skip=0&limit=999")
+
+        assert negative_skip.status_code == status.HTTP_200_OK
+        assert zero_skip.status_code == status.HTTP_200_OK
+        assert zero_limit.status_code == status.HTTP_200_OK
+        assert default_limit.status_code == status.HTTP_200_OK
+        assert oversized_limit.status_code == status.HTTP_200_OK
+
+        assert negative_skip.json() == zero_skip.json()
+        assert zero_limit.json() == default_limit.json()
+        assert len(oversized_limit.json()["items"]) == 5
+
+    def test_resolve_epg_channel_by_source_and_xml_id(self, client, seeded_many_epg_channels):
+        target = seeded_many_epg_channels[-1]
+
+        response = client.get(
+            f"/api/v1/epg/channels/resolve?source_id={target.epg_source_id}&channel_xml_id={target.channel_xml_id}"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["id"] == target.id
+        assert data["channel_xml_id"] == target.channel_xml_id
 
     def test_get_epg_channel_by_id(self, client, seed_epg_channels):
         """Test getting a specific EPG channel by ID."""

@@ -165,6 +165,17 @@ class TVChannelBatchAssignResponse(BaseModel):
     details: Dict[str, Dict[str, List[str]]]
 
 
+class TVChannelCreateFromEPGRequest(BaseModel):
+    epg_channel_ids: List[int]
+
+
+class TVChannelCreateFromEPGResponse(BaseModel):
+    created_count: int
+    skipped_count: int
+    associated_count: int
+    items: List[TVChannelResponse]
+
+
 class TVChannelBulkEPGUpdateItem(BaseModel):
     """Schema for one EPG update row"""
     tv_channel_id: int

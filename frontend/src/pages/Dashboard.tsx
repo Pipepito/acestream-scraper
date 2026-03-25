@@ -50,6 +50,14 @@ interface ActivityResponse {
   total_pages: number;
 }
 
+interface ActivityApiResponse {
+  results?: ActivityEntry[];
+  items?: ActivityEntry[];
+  total_pages?: number;
+  total?: number;
+  page_size?: number;
+}
+
 interface BackgroundTask {
   id?: string;
   task_name?: string;
@@ -104,7 +112,10 @@ const Dashboard: React.FC = () => {
   const { data: streams, isLoading: streamsLoading, error: streamsError, refetch: refetchStreams } = useActiveStreams();
   const { data: warp, isLoading: warpLoading, error: warpError, refetch: refetchWarp } = useWarpStatus();
 
-  const activityData = (activityRaw as ActivityResponse | undefined) ?? { results: [], total_pages: 1 };
+  const rawActivity = (activityRaw as ActivityApiResponse | undefined) ?? {};
+  const activityResults = rawActivity.results ?? rawActivity.items ?? [];
+  const activityTotalPages = rawActivity.total_pages ?? Math.max(1, Math.ceil((rawActivity.total ?? activityResults.length) / (rawActivity.page_size ?? 10)));
+  const activityData: ActivityResponse = { results: activityResults, total_pages: activityTotalPages };
   const backgroundTasks = (backgroundRaw as BackgroundTask[] | undefined) ?? [];
 
   React.useEffect(() => {
@@ -375,4 +386,3 @@ const Dashboard: React.FC = () => {
 };
 
 export default Dashboard;
-

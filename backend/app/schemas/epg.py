@@ -55,6 +55,13 @@ class EPGChannelResponse(EPGChannelBase):
         from_attributes = True
 
 
+class EPGChannelListResponse(BaseModel):
+    """Paginated EPG channel response."""
+
+    items: List[EPGChannelResponse]
+    total: int
+
+
 class EPGProgramBase(BaseModel):
     """Base model for EPG program"""
     epg_channel_id: int

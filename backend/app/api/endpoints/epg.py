@@ -13,6 +13,7 @@ from app.schemas.epg import (
     EPGSourceCreate,
     EPGSourceUpdate,
     EPGSourceResponse,
+    EPGChannelListResponse,
     EPGChannelResponse,
     EPGProgramResponse,
     EPGStringMappingResponse,
@@ -163,18 +164,33 @@ def refresh_all_epg_sources(
     return results
 
 
-@router.get("/channels", response_model=List[EPGChannelResponse])
+@router.get("/channels", response_model=EPGChannelListResponse)
 def get_epg_channels(
     source_id: Optional[int] = None,
     skip: int = 0,
-    limit: int = 100,
+    limit: int = 50,
     db: Session = Depends(get_db)
 ):
     """
     Get EPG channels, optionally filtered by source ID
     """
     epg_service = EPGService(db)
-    return epg_service.get_channels(source_id=source_id, skip=skip, limit=limit)
+    items, total = epg_service.get_channels(source_id=source_id, skip=skip, limit=limit)
+    return {"items": items, "total": total}
+
+
+@router.get("/channels/resolve", response_model=EPGChannelResponse)
+def resolve_epg_channel(
+    source_id: int,
+    channel_xml_id: str,
+    db: Session = Depends(get_db)
+):
+    """Resolve an EPG channel by source ID and channel XML ID."""
+    epg_service = EPGService(db)
+    channel = epg_service.get_channel_by_source_and_xml_id(source_id, channel_xml_id)
+    if not channel:
+        raise HTTPException(status_code=404, detail="EPG channel not found")
+    return channel
 
 
 @router.get("/channels/{channel_id}", response_model=EPGChannelResponse)

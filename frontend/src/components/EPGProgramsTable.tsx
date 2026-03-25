@@ -1,19 +1,18 @@
 import React, { useState } from 'react';
-import { useEPGPrograms, useEPGChannels } from '../hooks/useEPG';
+import { useEPGPrograms, useResolveEPGChannel } from '../hooks/useEPG';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography, Box, TextField, LinearProgress } from '@mui/material';
 
 interface EPGProgramsTableProps {
   epgId: string;
+  epgSourceId?: number;
 }
 
-const EPGProgramsTable: React.FC<EPGProgramsTableProps> = ({ epgId }) => {
+const EPGProgramsTable: React.FC<EPGProgramsTableProps> = ({ epgId, epgSourceId }) => {
   const [dateRange, setDateRange] = useState({
     start: new Date().toISOString().split('T')[0],
     end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   });
-  // Lookup EPG channel by XML ID
-  const { data: epgChannels, isLoading: loadingChannels } = useEPGChannels();
-  const epgChannel = epgChannels?.find(c => c.channel_xml_id === epgId);
+  const { data: epgChannel, isLoading: loadingChannels } = useResolveEPGChannel(epgSourceId, epgId);
   const epgChannelId = epgChannel?.id;
   const { data: programs, isLoading } = useEPGPrograms(
     epgChannelId ?? 0,

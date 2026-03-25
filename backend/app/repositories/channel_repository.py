@@ -1,6 +1,7 @@
 """
 Repository for channel data operations
 """
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 from datetime import datetime
@@ -22,7 +23,7 @@ class ChannelRepository:
             self.db.query(AcestreamChannel)
             .filter(
                 AcestreamChannel.id.in_(acestream_ids),
-                AcestreamChannel.tv_channel_id != tv_channel_id,
+                or_(AcestreamChannel.tv_channel_id.is_(None), AcestreamChannel.tv_channel_id != tv_channel_id),
             )
             .update({"tv_channel_id": tv_channel_id}, synchronize_session=False)
         )

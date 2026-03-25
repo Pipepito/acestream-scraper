@@ -265,6 +265,51 @@ class TestTVChannelBatchOperations:
             assert len(data) == 1
             assert data[0]["id"] == assignment["acestream_channel_id"]
 
+
+class TestTVChannelCreateFromEPG:
+    def test_create_tv_channels_from_epg_creates_channel_and_matches_by_epg_id(self, client, seed_epg_channels, seed_channels, db_session):
+        epg_channel = seed_epg_channels[0]
+        acestream_channel = seed_channels[0]
+        acestream_channel.tvg_id = epg_channel.channel_xml_id
+        db_session.commit()
+
+        response = client.post("/api/v1/tv-channels/from-epg", json={"epg_channel_ids": [epg_channel.id]})
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["created_count"] == 1
+        assert data["associated_count"] == 1
+        assert len(data["items"]) == 1
+        assert data["items"][0]["epg_id"] == epg_channel.channel_xml_id
+
+        refreshed_acestream_response = client.get(f"/api/v1/tv-channels/{data['items'][0]['id']}/acestreams")
+        assert refreshed_acestream_response.status_code == status.HTTP_200_OK
+        associated = refreshed_acestream_response.json()
+        assert len(associated) == 1
+        assert associated[0]["id"] == acestream_channel.id
+
+    def test_create_tv_channels_from_epg_matches_existing_acestream_by_name(self, client, seed_epg_channels, seed_channels, db_session):
+        epg_channel = seed_epg_channels[1]
+        acestream_channel = seed_channels[1]
+        epg_channel.name = "Eurosport 1 HD"
+        acestream_channel.name = "EUROSPORT 1"
+        acestream_channel.tvg_id = None
+        acestream_channel.tvg_name = None
+        db_session.commit()
+
+        response = client.post("/api/v1/tv-channels/from-epg", json={"epg_channel_ids": [epg_channel.id]})
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["created_count"] == 1
+        assert data["associated_count"] == 1
+
+        refreshed_acestream_response = client.get(f"/api/v1/tv-channels/{data['items'][0]['id']}/acestreams")
+        assert refreshed_acestream_response.status_code == status.HTTP_200_OK
+        associated = refreshed_acestream_response.json()
+        assert len(associated) == 1
+        assert associated[0]["id"] == acestream_channel.id
+
     def test_associate_by_epg_id(self, client, seed_tv_channels, seed_channels, db_session):
         """Test associating channels by EPG ID."""
         # Set matching EPG IDs

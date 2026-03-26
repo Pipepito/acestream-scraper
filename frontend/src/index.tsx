@@ -5,9 +5,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import App from './App';
-import theme from './theme';
-
-console.log('Starting React app...');
+import appTheme from './theme';
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -23,12 +21,10 @@ const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
 
-console.log('Root created...');
-
 root.render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider theme={theme}>
+      <ThemeProvider theme={appTheme}>
         <CssBaseline />
         <BrowserRouter>
           <App />
@@ -37,5 +33,3 @@ root.render(
     </QueryClientProvider>
   </React.StrictMode>
 );
-
-console.log('React render called...');

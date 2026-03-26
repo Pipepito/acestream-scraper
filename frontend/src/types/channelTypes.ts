@@ -33,7 +33,7 @@ export interface AcestreamChannel extends ChannelBase {
   original_url?: string;
   last_seen?: string;
   is_active: boolean;
-  is_online?: boolean;
+  is_online?: boolean | null;
   last_checked?: string;
   check_error?: string;
   epg_update_protected?: boolean;

@@ -1,10 +1,12 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import BulkOperations from '../components/BulkOperations';
 
 describe('BulkOperations', () => {
   it('shows error alert on bulk edit failure', async () => {
     const onBulkEdit = jest.fn().mockRejectedValue(new Error('Bulk edit failed'));
+
     render(
       <BulkOperations
         open={true}
@@ -15,10 +17,10 @@ describe('BulkOperations', () => {
         onBulkActivate={jest.fn()}
       />
     );
-    fireEvent.click(screen.getByText('Edit'));
-    fireEvent.click(screen.getByText('Apply Edit'));
-    await waitFor(() => {
-      expect(screen.getByText(/failed/i)).toBeInTheDocument();
-    });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Bulk Edit' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Update' }));
+
+    expect(await screen.findByText(/failed/i)).toBeInTheDocument();
   });
 });

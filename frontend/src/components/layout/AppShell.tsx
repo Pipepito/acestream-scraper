@@ -1,6 +1,7 @@
 import React from 'react';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
+import { useTheme } from '@mui/material/styles';
 import NavBar from '../NavBar';
 import { layout } from '../../styles/layout';
 
@@ -9,8 +10,10 @@ interface AppShellProps {
 }
 
 const AppShell: React.FC<AppShellProps> = ({ children }) => {
+  const theme = useTheme();
+
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: theme.appTokens.surface.canvas }}>
       <NavBar drawerWidth={layout.navWidth} />
       <Box
         component="main"
@@ -19,6 +22,7 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
           width: { sm: `calc(100% - ${layout.navWidth}px)` },
           px: layout.pagePadding,
           py: 2,
+          bgcolor: theme.appTokens.surface.canvas,
         }}
       >
         <Toolbar />
@@ -29,4 +33,3 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
 };
 
 export default AppShell;
-

@@ -60,6 +60,12 @@ npm run dev
 npm test
 ```
 
+## Design Foundation Docs
+
+- [Frontend Design Checklist](frontend-design-checklist.md)
+- [Frontend Theme Reference](frontend-theme-reference.md)
+- [Frontend Design Review Evidence](frontend-design-review-evidence.md)
+
 ---
 
 **See [`docs/architecture/api-structure.md`](../architecture/api-structure.md) for DTOs and API contract.**

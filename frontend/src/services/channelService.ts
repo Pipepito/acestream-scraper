@@ -20,7 +20,7 @@ export interface AcestreamChannel {
   tvg_name?: string;
   m3u_source?: string;
   original_url?: string;
-  is_online: boolean;
+  is_online: boolean | null;
   last_checked?: string;
   check_error?: string;
   epg_update_protected: boolean;
@@ -57,7 +57,7 @@ export interface UpdateAcestreamChannelDTO {
   original_url?: string;
   epg_update_protected?: boolean;
   tv_channel_id?: number;
-  is_online?: boolean; // For online/offline status
+  is_online?: boolean | null; // For online/offline status
   is_active?: boolean; // For activation/deactivation (matches backend)
 }
 

@@ -23,18 +23,57 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Validate multi-arch build matrix (dry-run)
+      - name: Validate scraper flavor build matrix (dry-run)
         run: |
           bash scripts/ci/build_multiarch_images.sh \
             --dry-run \
-            --platforms linux/arm/v7,linux/arm64 \
-            --result-file phase5-build-result-quick.json
+            --flavor scraper \
+            --result-file phase5-build-result-quick-scraper.json
 
-      - name: Verify required architecture matrix entries
+      - name: Verify scraper flavor platform matrix
         run: |
           bash scripts/ci/verify_multiarch_manifest.sh \
-            --result-file phase5-build-result-quick.json \
-            --required linux/arm/v7,linux/arm64
+            --result-file phase5-build-result-quick-scraper.json \
+            --flavor scraper
+
+      - name: Validate scraper-acestream flavor build matrix (dry-run)
+        run: |
+          bash scripts/ci/build_multiarch_images.sh \
+            --dry-run \
+            --flavor scraper-acestream \
+            --result-file phase5-build-result-quick-scraper-acestream.json
+
+      - name: Verify scraper-acestream flavor platform matrix
+        run: |
+          bash scripts/ci/verify_multiarch_manifest.sh \
+            --result-file phase5-build-result-quick-scraper-acestream.json \
+            --flavor scraper-acestream
+
+      - name: Validate scraper-acexy flavor build matrix (dry-run)
+        run: |
+          bash scripts/ci/build_multiarch_images.sh \
+            --dry-run \
+            --flavor scraper-acexy \
+            --result-file phase5-build-result-quick-scraper-acexy.json
+
+      - name: Verify scraper-acexy flavor platform matrix
+        run: |
+          bash scripts/ci/verify_multiarch_manifest.sh \
+            --result-file phase5-build-result-quick-scraper-acexy.json \
+            --flavor scraper-acexy
+
+      - name: Validate scraper-acestream-acexy flavor build matrix (dry-run)
+        run: |
+          bash scripts/ci/build_multiarch_images.sh \
+            --dry-run \
+            --flavor scraper-acestream-acexy \
+            --result-file phase5-build-result-quick-scraper-acestream-acexy.json
+
+      - name: Verify scraper-acestream-acexy flavor platform matrix
+        run: |
+          bash scripts/ci/verify_multiarch_manifest.sh \
+            --result-file phase5-build-result-quick-scraper-acestream-acexy.json \
+            --flavor scraper-acestream-acexy
 
       - name: Run phase-5 quick gate profile
         run: |
@@ -45,7 +84,10 @@ jobs:
         with:
           name: phase5-multiarch-quick
           path: |
-            phase5-build-result-quick.json
+            phase5-build-result-quick-scraper.json
+            phase5-build-result-quick-scraper-acestream.json
+            phase5-build-result-quick-scraper-acexy.json
+            phase5-build-result-quick-scraper-acestream-acexy.json
             phase5-gate-report-quick.json
 
   multiarch-full:
@@ -71,6 +113,8 @@ jobs:
         with:
           name: phase5-multiarch-full
           path: |
-            phase5-build-result-full.json
+            phase5-build-result-full-scraper.json
+            phase5-build-result-full-scraper-acestream.json
+            phase5-build-result-full-scraper-acexy.json
+            phase5-build-result-full-scraper-acestream-acexy.json
             phase5-gate-report-full.json
-

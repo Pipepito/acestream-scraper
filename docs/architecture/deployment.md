@@ -11,10 +11,16 @@ Acestream Scraper runs with root-owned application paths:
 
 ### Unified Image Build
 
-Root `Dockerfile` performs a two-stage build:
+Root `Dockerfile` is a multi-stage build with named flavor targets.
 
-1. Build `frontend/` with Node.
-2. Build `backend/` runtime with Python and copy frontend build output to `frontend_build/`.
+It assembles shared frontend and backend runtime layers once, then publishes these final targets:
+
+- `scraper`
+- `scraper-acestream`
+- `scraper-acexy`
+- `scraper-acestream-acexy`
+
+`latest` is the same payload as `scraper-acestream-acexy`.
 
 Runtime command:
 
@@ -26,14 +32,26 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 
 `docker-compose.yml` runs:
 
-- `app`: backend runtime at port `8000`
-- `zeronet`: optional ZeroNet dependency at port `43110`
+- `app`: `pipepito/acestream-scraper:latest` at port `8000`
+- `zeronet`: optional ZeroNet sidecar at port `43110` when the `zeronet` profile is enabled
 
 Bring up stack:
 
 ```bash
-docker compose up --build
+docker compose up -d
 ```
+
+To include the example ZeroNet sidecar:
+
+```bash
+docker compose --profile zeronet up -d
+```
+
+`latest` is the same payload as `scraper-acestream-acexy`. Operators can also pin `scraper`, `scraper-acestream`, `scraper-acexy`, or `scraper-acestream-acexy` directly.
+
+ZeroNet remains an external sidecar/service. The container image keeps the `ZERONET_URL` contract but does not bundle ZeroNet into every flavor.
+
+The checked-in compose file points `ZERONET_URL` at `http://host.docker.internal:43110` by default so the app can run without the optional `zeronet` profile. The example `zeronet` service is pinned for amd64. ARM deployments should use an external ZeroNet endpoint or replace that sidecar while keeping `ZERONET_URL` unchanged.
 
 ## Environment Configuration
 
@@ -46,17 +64,38 @@ Primary backend settings:
 - `FRONTEND_BUILD_PATH`
 - `ACE_ENGINE_URL`
 
+Docker runtime toggles:
+
+- `ENABLE_WARP`
+- `ENABLE_ACESTREAM_ENGINE`
+- `ENABLE_ACEXY`
+- `ACESTREAM_HTTP_HOST`
+- `ACESTREAM_HTTP_PORT`
+- `ACEXY_HOST`
+- `ACEXY_PORT`
+
+The selected image flavor controls which optional binaries are installed. Runtime env flags control whether those installed services start.
+
+WARP is installed in every flavor, but it only starts when `ENABLE_WARP=true`. WARP-enabled containers require the runtime capabilities `NET_ADMIN` and `SYS_ADMIN`.
+
 Legacy env aliases remain supported for one release window (`v2-cutover-r1`) with canonical-variable precedence and conflict warnings.
 
 ## Multi-Architecture Direction
 
 ### Supported Image Targets
 
-The canonical image build now targets:
+Baseline flavors without AceStream use the manifest-defined baseline matrix:
 
-- `linux/amd64`
-- `linux/arm/v7`
-- `linux/arm64`
+- `scraper`
+- `scraper-acexy`
+
+AceStream-enabled flavors are manifest-gated and only publish for platforms listed in `docker/manifests/acestream.json`:
+
+- `scraper-acestream`
+- `scraper-acestream-acexy`
+- `latest`
+
+That means `latest` is not a universal multi-arch alias. Its availability follows the AceStream manifest because it is the same payload as `scraper-acestream-acexy`.
 
 Required minimum compatibility claims for release signoff:
 
@@ -69,11 +108,13 @@ Required minimum compatibility claims for release signoff:
 Use the canonical scripts:
 
 ```bash
-# Build matrix (local dry-run check)
-bash scripts/ci/build_multiarch_images.sh --dry-run --platforms linux/arm/v7,linux/arm64
+# Build matrix (local dry-run checks)
+bash scripts/ci/build_multiarch_images.sh --dry-run --flavor scraper
+bash scripts/ci/build_multiarch_images.sh --dry-run --flavor scraper-acestream
 
-# Verify required architecture variants
-bash scripts/ci/verify_multiarch_manifest.sh --result-file phase5-build-result.json --required linux/arm/v7,linux/arm64
+# Verify flavor-derived platform expectations
+bash scripts/ci/verify_multiarch_manifest.sh --result-file phase5-build-result-scraper.json --flavor scraper
+bash scripts/ci/verify_multiarch_manifest.sh --result-file phase5-build-result-scraper-acestream.json --flavor scraper-acestream
 
 # Runtime smoke flow
 bash scripts/ci/phase5_arch_smoke.sh --platforms linux/arm/v7,linux/arm64

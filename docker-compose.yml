@@ -1,22 +1,27 @@
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: pipepito/acestream-scraper:latest
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app
       - ./config:/app/config
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - DATABASE_URL=sqlite:///./config/scraper.db
       - LEGACY_DATABASE_URL=sqlite:///./config/acestream.db
-      - ZERONET_URL=http://zeronet:43110
+      - ZERONET_URL=http://host.docker.internal:43110
       - FRONTEND_BUILD_PATH=frontend_build
-    depends_on:
-      - zeronet
-
+      - ENABLE_WARP=false
+      - ENABLE_ACESTREAM_ENGINE=false
+      - ENABLE_ACEXY=false
+      - ACESTREAM_HTTP_HOST=localhost
+      - ACESTREAM_HTTP_PORT=6878
+      - ACEXY_HOST=localhost
+      - ACEXY_PORT=6878
   zeronet:
+    profiles:
+      - zeronet
     image: nofish/zeronet:latest
     platform: linux/amd64
     ports:
@@ -26,3 +31,5 @@ services:
     environment:
       - HOME=/root
       - USER_UID=1000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

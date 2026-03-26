@@ -12,18 +12,27 @@ Verify required architecture variants exist in either:
 Options:
   --image <ref>            Image reference to inspect remotely
   --result-file <path>     JSON result file from build_multiarch_images.sh
-  --required <list>        Required platforms (default: linux/arm/v7,linux/arm64)
+  --required <list>        Required platforms
+  --flavor <name>          Flavor name used to derive required platforms
+  --platform-manifest <p>  platforms.json path (default: docker/manifests/platforms.json)
+  --acestream-manifest <p> acestream.json path (default: docker/manifests/acestream.json)
   --help                   Show this help
 
 Examples:
-  bash scripts/ci/verify_multiarch_manifest.sh --result-file multiarch-build-result.json
+  bash scripts/ci/verify_multiarch_manifest.sh --result-file multiarch-build-result.json --flavor scraper
   bash scripts/ci/verify_multiarch_manifest.sh --image ghcr.io/acme/app:latest --required linux/arm/v7,linux/arm64
 EOF
 }
 
+ROOT_DIR=$(cd "$(dirname "$0")/../.." && pwd)
+FLAVOR_PLATFORM_HELPER="$ROOT_DIR/scripts/ci/flavor_platforms.py"
+
 IMAGE_REF=""
 RESULT_FILE=""
-REQUIRED_PLATFORMS="linux/arm/v7,linux/arm64"
+REQUIRED_PLATFORMS=""
+FLAVOR=""
+PLATFORM_MANIFEST="$ROOT_DIR/docker/manifests/platforms.json"
+ACESTREAM_MANIFEST="$ROOT_DIR/docker/manifests/acestream.json"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -37,6 +46,18 @@ while [[ $# -gt 0 ]]; do
       ;;
     --required)
       REQUIRED_PLATFORMS="${2:-}"
+      shift 2
+      ;;
+    --flavor)
+      FLAVOR="${2:-}"
+      shift 2
+      ;;
+    --platform-manifest)
+      PLATFORM_MANIFEST="${2:-}"
+      shift 2
+      ;;
+    --acestream-manifest)
+      ACESTREAM_MANIFEST="${2:-}"
       shift 2
       ;;
     --help|-h)
@@ -59,6 +80,32 @@ fi
 if [[ -n "$IMAGE_REF" && -n "$RESULT_FILE" ]]; then
   echo "Use only one source: --image or --result-file."
   exit 1
+fi
+
+if [[ -n "$FLAVOR" && -n "$REQUIRED_PLATFORMS" ]]; then
+  echo "Use only one required platform source: --flavor or --required."
+  exit 1
+fi
+
+if [[ -z "$FLAVOR" && -z "$REQUIRED_PLATFORMS" ]]; then
+  echo "Provide either --flavor or --required."
+  exit 1
+fi
+
+if [[ -n "$FLAVOR" ]]; then
+  if [[ ! -f "$PLATFORM_MANIFEST" ]]; then
+    echo "Platforms manifest not found: $PLATFORM_MANIFEST"
+    exit 1
+  fi
+  if [[ ! -f "$ACESTREAM_MANIFEST" ]]; then
+    echo "AceStream manifest not found: $ACESTREAM_MANIFEST"
+    exit 1
+  fi
+  if [[ ! -f "$FLAVOR_PLATFORM_HELPER" ]]; then
+    echo "Flavor platform helper not found: $FLAVOR_PLATFORM_HELPER"
+    exit 1
+  fi
+  REQUIRED_PLATFORMS="$(python3 "$FLAVOR_PLATFORM_HELPER" "$PLATFORM_MANIFEST" "$ACESTREAM_MANIFEST" "$FLAVOR")"
 fi
 
 tmp_json=""
@@ -101,8 +148,12 @@ with open(source_file, "r", encoding="utf-8") as handle:
 available: Set[str] = set()
 if source_type == "manifest":
     manifests = payload.get("manifests", [])
-    for manifest in manifests:
-        platform = manifest.get("platform", {})
+    if manifests:
+        manifest_platforms = [manifest.get("platform", {}) for manifest in manifests]
+    else:
+        manifest_platforms = [payload]
+
+    for platform in manifest_platforms:
         os_name = platform.get("os")
         arch = platform.get("architecture")
         variant = platform.get("variant")
@@ -128,4 +179,3 @@ if missing:
 
 print("Manifest verification passed.")
 PY
-

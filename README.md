@@ -12,13 +12,31 @@ Legacy root runtime entrypoints were retired during cutover. All deployment and 
 ### Docker Compose
 
 ```bash
-docker compose up --build
+docker compose up -d
+```
+
+To start the example ZeroNet sidecar from `docker-compose.yml`, enable its optional profile:
+
+```bash
+docker compose --profile zeronet up -d
 ```
 
 Services:
 
 - API + SPA: `http://localhost:8000`
-- ZeroNet (if used): `http://localhost:43110`
+- ZeroNet example sidecar (optional profile, reachable from the host): `http://localhost:43110`
+
+The checked-in `docker-compose.yml` uses `pipepito/acestream-scraper:latest`. `latest` is the full `scraper-acestream-acexy` image, while the explicit flavor tags are `scraper`, `scraper-acestream`, `scraper-acexy`, and `scraper-acestream-acexy`.
+
+WARP is installed in every flavor, but it only starts when `ENABLE_WARP=true`. WARP-enabled containers need the runtime capabilities `NET_ADMIN` and `SYS_ADMIN`.
+
+ZeroNet remains an external sidecar/service. It is not bundled into every image, and the app talks to it through `ZERONET_URL`.
+
+The default compose file points `ZERONET_URL` at `http://host.docker.internal:43110`, so the app can start cleanly even when the optional `zeronet` profile is disabled. The checked-in `zeronet` compose service is an amd64-focused sidecar example. On ARM hosts, prefer an external ZeroNet endpoint or a compatible replacement sidecar and keep `ZERONET_URL` pointed at it.
+
+Runtime behavior is env-driven even when binaries are installed in the selected image. `ENABLE_ACESTREAM_ENGINE` controls the in-container AceStream engine, `ENABLE_ACEXY` controls Acexy, `ACESTREAM_HTTP_HOST` and `ACESTREAM_HTTP_PORT` define the engine endpoint, and `ACEXY_HOST` and `ACEXY_PORT` define where Acexy connects.
+
+AceStream platform availability is manifest-driven via `docker/manifests/acestream.json`. `latest` and `scraper-acestream-acexy` are only published for platforms listed there.
 
 ### Local Development
 
@@ -59,10 +77,22 @@ npm start
 
 - `DATABASE_URL` (default: `sqlite:///./config/scraper.db`)
 - `LEGACY_DATABASE_URL` (default: `sqlite:///./config/acestream.db`)
-- `ZERONET_URL` (default: `http://127.0.0.1:43110`)
+- `ZERONET_URL` (default: `http://host.docker.internal:43110` in the checked-in compose example)
 - `CORS_ORIGINS` (default: `http://localhost:3000`)
 - `FRONTEND_BUILD_PATH` (default: `frontend_build`)
 - `ACE_ENGINE_URL` (default: `http://localhost:6878`)
+
+### Docker Runtime Toggles
+
+- `ENABLE_WARP` (default: `false`)
+- `ENABLE_ACESTREAM_ENGINE` (default: `false`)
+- `ENABLE_ACEXY` (default: `false`)
+- `ACESTREAM_HTTP_HOST` (default: `localhost`)
+- `ACESTREAM_HTTP_PORT` (default: `6878`)
+- `ACEXY_HOST` (default: `localhost`)
+- `ACEXY_PORT` (default: `6878`)
+
+Docker flavor choice controls which optional binaries are installed. Runtime env vars control whether those installed services actually start.
 
 ### One-Release Env Compatibility Window
 

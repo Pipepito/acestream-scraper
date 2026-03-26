@@ -25,7 +25,7 @@ jobs:
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Run canonical v2 test suite (quick)
+      - name: Run cutover test suite (quick)
         run: |
           bash scripts/ci/run_v2_test_suite.sh --profile quick
 
@@ -35,18 +35,57 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Validate multi-arch build matrix (dry-run)
+      - name: Validate scraper flavor build matrix (dry-run)
         run: |
           bash scripts/ci/build_multiarch_images.sh \
             --dry-run \
-            --platforms linux/arm/v7,linux/arm64 \
-            --result-file phase5-build-result-pr.json
+            --flavor scraper \
+            --result-file phase5-build-result-pr-scraper.json
 
-      - name: Verify required architecture matrix entries
+      - name: Verify scraper flavor platform matrix
         run: |
           bash scripts/ci/verify_multiarch_manifest.sh \
-            --result-file phase5-build-result-pr.json \
-            --required linux/arm/v7,linux/arm64
+            --result-file phase5-build-result-pr-scraper.json \
+            --flavor scraper
+
+      - name: Validate scraper-acestream flavor build matrix (dry-run)
+        run: |
+          bash scripts/ci/build_multiarch_images.sh \
+            --dry-run \
+            --flavor scraper-acestream \
+            --result-file phase5-build-result-pr-scraper-acestream.json
+
+      - name: Verify scraper-acestream flavor platform matrix
+        run: |
+          bash scripts/ci/verify_multiarch_manifest.sh \
+            --result-file phase5-build-result-pr-scraper-acestream.json \
+            --flavor scraper-acestream
+
+      - name: Validate scraper-acexy flavor build matrix (dry-run)
+        run: |
+          bash scripts/ci/build_multiarch_images.sh \
+            --dry-run \
+            --flavor scraper-acexy \
+            --result-file phase5-build-result-pr-scraper-acexy.json
+
+      - name: Verify scraper-acexy flavor platform matrix
+        run: |
+          bash scripts/ci/verify_multiarch_manifest.sh \
+            --result-file phase5-build-result-pr-scraper-acexy.json \
+            --flavor scraper-acexy
+
+      - name: Validate scraper-acestream-acexy flavor build matrix (dry-run)
+        run: |
+          bash scripts/ci/build_multiarch_images.sh \
+            --dry-run \
+            --flavor scraper-acestream-acexy \
+            --result-file phase5-build-result-pr-scraper-acestream-acexy.json
+
+      - name: Verify scraper-acestream-acexy flavor platform matrix
+        run: |
+          bash scripts/ci/verify_multiarch_manifest.sh \
+            --result-file phase5-build-result-pr-scraper-acestream-acexy.json \
+            --flavor scraper-acestream-acexy
 
       - name: Enforce legacy path guardrails
         run: |

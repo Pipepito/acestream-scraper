@@ -5,13 +5,17 @@ show_help() {
   cat <<'EOF'
 Usage: build_multiarch_images.sh [options]
 
-Build the canonical image with Docker Buildx across a platform matrix.
+Build a flavor-aware image with Docker Buildx across a manifest-derived platform matrix.
 
 Options:
-  --platforms <list>       Comma-separated platform list (default: linux/amd64,linux/arm/v7,linux/arm64)
-  --tag <image:tag>        Image tag (default: acestream-scraper:multiarch-local)
+  --flavor <name>          Flavor name used for platform derivation (default: scraper)
+  --target <name>          Dockerfile target to build (default: flavor value)
+  --platforms <list>       Comma-separated platform list; must be allowed for the flavor
+  --tag <image:tag>        Image tag (repeatable; default: acestream-scraper:multiarch-local)
   --context <path>         Build context (default: .)
   --dockerfile <path>      Dockerfile path (default: Dockerfile)
+  --platform-manifest <p>  platforms.json path (default: docker/manifests/platforms.json)
+  --acestream-manifest <p> acestream.json path (default: docker/manifests/acestream.json)
   --push                   Push image/manifest to registry
   --load                   Load image into local docker daemon (single-platform only)
   --build-arg <k=v>        Build arg (repeatable)
@@ -21,30 +25,50 @@ Options:
   --help                   Show this help
 
 Examples:
-  bash scripts/ci/build_multiarch_images.sh --dry-run --platforms linux/arm/v7,linux/arm64
-  bash scripts/ci/build_multiarch_images.sh --tag ghcr.io/acme/app:sha --push
+  bash scripts/ci/build_multiarch_images.sh --dry-run --flavor scraper
+  bash scripts/ci/build_multiarch_images.sh --dry-run --flavor scraper-acestream --tag ghcr.io/acme/app:sha
 EOF
 }
 
-PLATFORMS="linux/amd64,linux/arm/v7,linux/arm64"
-TAG="acestream-scraper:multiarch-local"
+ROOT_DIR=$(cd "$(dirname "$0")/../.." && pwd)
+FLAVOR_PLATFORM_HELPER="$ROOT_DIR/scripts/ci/flavor_platforms.py"
+
+FLAVOR="scraper"
+TARGET=""
+PLATFORMS=""
 CONTEXT="."
 DOCKERFILE="Dockerfile"
+PLATFORM_MANIFEST="$ROOT_DIR/docker/manifests/platforms.json"
+ACESTREAM_MANIFEST="$ROOT_DIR/docker/manifests/acestream.json"
 PUSH=0
 LOAD=0
 DRY_RUN=0
 BUILDER="default"
 RESULT_FILE=""
 BUILD_ARGS=()
+TAGS=("acestream-scraper:multiarch-local")
+CUSTOM_TAGS=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --flavor)
+      FLAVOR="${2:-}"
+      shift 2
+      ;;
+    --target)
+      TARGET="${2:-}"
+      shift 2
+      ;;
     --platforms)
       PLATFORMS="${2:-}"
       shift 2
       ;;
     --tag)
-      TAG="${2:-}"
+      if [[ "$CUSTOM_TAGS" -eq 0 ]]; then
+        TAGS=()
+        CUSTOM_TAGS=1
+      fi
+      TAGS+=("${2:-}")
       shift 2
       ;;
     --context)
@@ -53,6 +77,14 @@ while [[ $# -gt 0 ]]; do
       ;;
     --dockerfile)
       DOCKERFILE="${2:-}"
+      shift 2
+      ;;
+    --platform-manifest)
+      PLATFORM_MANIFEST="${2:-}"
+      shift 2
+      ;;
+    --acestream-manifest)
+      ACESTREAM_MANIFEST="${2:-}"
       shift 2
       ;;
     --push)
@@ -96,10 +128,38 @@ if [[ "$PUSH" -eq 1 && "$LOAD" -eq 1 ]]; then
   exit 1
 fi
 
-if [[ -z "$PLATFORMS" ]]; then
+if [[ -z "$FLAVOR" ]]; then
+  echo "Flavor cannot be empty."
+  exit 1
+fi
+
+if [[ -z "$TARGET" ]]; then
+  TARGET="$FLAVOR"
+fi
+
+if [[ ! -f "$PLATFORM_MANIFEST" ]]; then
+  echo "Platforms manifest not found: $PLATFORM_MANIFEST"
+  exit 1
+fi
+
+if [[ ! -f "$ACESTREAM_MANIFEST" ]]; then
+  echo "AceStream manifest not found: $ACESTREAM_MANIFEST"
+  exit 1
+fi
+
+if [[ ! -f "$FLAVOR_PLATFORM_HELPER" ]]; then
+  echo "Flavor platform helper not found: $FLAVOR_PLATFORM_HELPER"
+  exit 1
+fi
+
+resolved_platforms="$(python3 "$FLAVOR_PLATFORM_HELPER" "$PLATFORM_MANIFEST" "$ACESTREAM_MANIFEST" "$FLAVOR" "$PLATFORMS")"
+
+if [[ -z "$resolved_platforms" ]]; then
   echo "Platforms cannot be empty."
   exit 1
 fi
+
+PLATFORMS="$resolved_platforms"
 
 if [[ "$LOAD" -eq 1 && "$PLATFORMS" == *","* ]]; then
   echo "--load supports a single platform only. Use --push for multi-platform manifests."
@@ -118,8 +178,12 @@ BUILD_CMD=(
   --builder "$BUILDER"
   --platform "$PLATFORMS"
   --file "$DOCKERFILE"
-  --tag "$TAG"
+  --target "$TARGET"
 )
+
+for tag in "${TAGS[@]}"; do
+  BUILD_CMD+=(--tag "$tag")
+done
 
 if [[ "$PUSH" -eq 1 ]]; then
   BUILD_CMD+=(--push)
@@ -138,21 +202,38 @@ BUILD_CMD+=("$CONTEXT")
 build_cmd_string="$(printf '%q ' "${BUILD_CMD[@]}")"
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
+  echo "Flavor: $FLAVOR"
+  echo "Target: $TARGET"
+  echo "Platforms: $PLATFORMS"
+  echo "Tags: ${TAGS[*]}"
   echo "[DRY RUN] ${build_cmd_string}"
 else
   eval "$build_cmd_string"
 fi
 
 if [[ -n "$RESULT_FILE" ]]; then
-  python3 - "$RESULT_FILE" "$TAG" "$PLATFORMS" "$PUSH" "$LOAD" "$DRY_RUN" <<'PY'
+  tags_json="$(python3 - "${TAGS[@]}" <<'PY'
 import json
+import sys
+
+print(json.dumps(sys.argv[1:]))
+PY
+)"
+  RESULT_TAGS_JSON="$tags_json" python3 - "$RESULT_FILE" "$FLAVOR" "$TARGET" "$PLATFORMS" "$PUSH" "$LOAD" "$DRY_RUN" <<'PY'
+import json
+import os
 import sys
 from datetime import datetime, timezone
 
-result_file, tag, platforms, push, load, dry_run = sys.argv[1:]
+result_file, flavor, target, platforms, push, load, dry_run = sys.argv[1:]
+tags = json.loads(os.environ["RESULT_TAGS_JSON"])
 payload = {
     "generated_at": datetime.now(timezone.utc).isoformat(),
-    "image": tag,
+    "flavor": flavor,
+    "target": target,
+    "image": tags[0] if tags else "",
+    "tags": tags,
+    "target_tags": tags,
     "platforms": [p.strip() for p in platforms.split(",") if p.strip()],
     "push": push == "1",
     "load": load == "1",
@@ -165,4 +246,3 @@ PY
 fi
 
 echo "Multi-arch build command completed."
-

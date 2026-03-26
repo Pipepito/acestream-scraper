@@ -11,12 +11,12 @@
 ```
 +-------------------------------------------------------------+
 |                    Presentation Layer                       |
-|  React Pages/Components/Hooks (v2/frontend/src)            |
+|  React Pages/Components/Hooks (frontend/src)            |
 +-------------------------------+-----------------------------+
                                 |
 +-------------------------------v-----------------------------+
 |                        API Layer                            |
-|  FastAPI routers/endpoints (v2/backend/app/api/endpoints)  |
+|  FastAPI routers/endpoints (backend/app/api/endpoints)  |
 +-------------------------------+-----------------------------+
                                 |
 +-------------------------------v-----------------------------+

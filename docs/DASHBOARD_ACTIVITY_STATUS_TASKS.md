@@ -23,9 +23,9 @@ This file tracks the implementation progress for the dashboard activity and stat
 
 ## Frontend Implementation
 
-- [x] API service modules in `/v2/frontend/src/services/`
-- [x] React hooks/services in `/v2/frontend/src/hooks/`
-- [x] Dashboard UI in `/v2/frontend/src/pages/Dashboard.tsx`
+- [x] API service modules in `/frontend/src/services/`
+- [x] React hooks/services in `/frontend/src/hooks/`
+- [x] Dashboard UI in `/frontend/src/pages/Dashboard.tsx`
 - [x] Auto-refresh/retention controls, error/loading states, settings persistence
 - [x] Tests for all new UI features and error cases
 

@@ -50,7 +50,7 @@ completed: 2026-02-27
 ## Verification
 
 - `bash scripts/ci/run_v2_test_suite.sh --profile quick` passed.
-- `PYTHONPATH=backend v2/backend/venv/bin/pytest -q backend/tests` passed.
+- `PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests` passed.
 - `cd frontend && CI=true npm test -- --watch=false --runInBand Dashboard.test.tsx` passed.
 - `test ! -d tests || test -f tests/README.md` passed.
 

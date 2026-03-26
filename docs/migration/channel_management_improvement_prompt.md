@@ -15,7 +15,7 @@ You are a coding assistant tasked with implementing a robust, decoupled channel 
 
 ### 1. Backend
 
-- Review and update models in `v2/backend/app/models/models.py` for correct relationships.
+- Review and update models in `backend/app/models/models.py` for correct relationships.
 - Ensure `AcestreamChannel.tv_channel_id` is nullable and supports many-to-one.
 - Expose CRUD endpoints for both AcestreamChannel and TVChannel.
 - Implement endpoints for assigning/unassigning Acestream channels to TV channels, and for listing all Acestream channels for a given TV channel.
@@ -59,13 +59,13 @@ You are a coding assistant tasked with implementing a robust, decoupled channel 
 ## References
 
 - `docs/migration/channel_management_improvement_plan.md`: The full migration and improvement plan
-- `v2/backend/app/models/models.py`: Data models
-- `v2/backend/app/services/playlist_service.py`: Playlist logic
-- `v2/backend/app/services/channel_service.py`: Channel CRUD and assignment
-- `v2/backend/app/services/search_service.py`: Search/import logic
-- `v2/frontend/src/pages/Channels.tsx`: Current Acestream channel management page
-- `v2/frontend/src/pages/TVChannels.tsx` (to be created): TV channel management page
-- `v2/frontend/src/pages/AcestreamChannels.tsx` (to be created): Acestream channel management page
+- `backend/app/models/models.py`: Data models
+- `backend/app/services/playlist_service.py`: Playlist logic
+- `backend/app/services/channel_service.py`: Channel CRUD and assignment
+- `backend/app/services/search_service.py`: Search/import logic
+- `frontend/src/pages/Channels.tsx`: Current Acestream channel management page
+- `frontend/src/pages/TVChannels.tsx` (to be created): TV channel management page
+- `frontend/src/pages/AcestreamChannels.tsx` (to be created): Acestream channel management page
 
 ---
 

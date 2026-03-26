@@ -213,11 +213,11 @@ This document tracks the comprehensive migration of functionality from V1 (Flask
 
 ##### **Task 1.1.1: Fix Search Service Test Mocking**
 
-- [ ] **File**: `v2/backend/tests/conftest.py`
+- [ ] **File**: `backend/tests/conftest.py`
   - [ ] Add `@pytest.fixture` for mock Acestream Engine
   - [ ] Mock `requests.get` calls to engine at localhost:6878
   - [ ] Return structured mock responses matching engine API
-- [ ] **File**: `v2/backend/tests/test_search.py`
+- [ ] **File**: `backend/tests/test_search.py`
   - [ ] Fix response schema assertions (use "results" not "channels")
   - [ ] Fix pagination field expectations (use "pagination.total_results" not "total")
   - [ ] Add proper mock setup for empty query test
@@ -226,11 +226,11 @@ This document tracks the comprehensive migration of functionality from V1 (Flask
 
 ##### **Task 1.1.2: Fix Repository Method Issues in Search Endpoints**
 
-- [ ] **File**: `v2/backend/app/api/endpoints/search.py`
+- [ ] **File**: `backend/app/api/endpoints/search.py`
   - [ ] Replace `channel_repo.get_by_id()` with `channel_service.get_channel_by_id()`
   - [ ] Fix dependency injection for add_multiple endpoint (missing `db` parameter)
   - [ ] Use proper service layer instead of direct repository calls
-- [ ] **File**: `v2/backend/app/services/search_service.py`
+- [ ] **File**: `backend/app/services/search_service.py`
   - [ ] Add channel creation methods to service layer
   - [ ] Implement proper error handling for duplicate channels
 - [ ] **Dependencies**: Task 1.1.1
@@ -252,13 +252,13 @@ This document tracks the comprehensive migration of functionality from V1 (Flask
 
 ##### **Task 1.2.1: Create Acestream Status Service**
 
-- [ ] **File**: `v2/backend/app/services/acestream_status_service.py`
+- [ ] **File**: `backend/app/services/acestream_status_service.py`
   - [ ] Port V1 logic from `app/services/acestream_status_service.py`
   - [ ] Implement `check_status()` method
   - [ ] Add engine URL configuration (internal vs external)
   - [ ] Handle connection timeouts and errors
   - [ ] Add environment variable support (ENABLE_ACESTREAM_ENGINE, etc.)
-- [ ] **File**: `v2/backend/app/api/endpoints/acestream.py` (NEW)
+- [ ] **File**: `backend/app/api/endpoints/acestream.py` (NEW)
   - [ ] Create `/api/v1/acestream/status` GET endpoint
   - [ ] Add response models for status information
 - [ ] **Dependencies**: Task 1.1 (tests fixed first)
@@ -266,7 +266,7 @@ This document tracks the comprehensive migration of functionality from V1 (Flask
 
 ##### **Task 1.2.2: Create Stream Service**
 
-- [x] **File**: `v2/backend/app/services/stream_service.py`
+- [x] **File**: `backend/app/services/stream_service.py`
   - [x] Port V1 logic from `app/services/stream_service.py`
   - [x] Implement `extract_acestream_id()` method
   - [x] Support acestream:// protocol URLs
@@ -280,13 +280,13 @@ This document tracks the comprehensive migration of functionality from V1 (Flask
 
 ##### **Task 1.2.3: Create Utils Infrastructure**
 
-- [x] **File**: `v2/backend/app/utils/logging.py`
+- [x] **File**: `backend/app/utils/logging.py`
   - [x] Port V1 logic from `app/utils/logging.py`
   - [x] Implement `setup_logging()` function
   - [x] Add file logging with rotation
   - [x] Configure log levels based on environment
   - [x] Add structured logging for FastAPI
-- [x] **File**: `v2/backend/app/utils/path.py`
+- [x] **File**: `backend/app/utils/path.py`
   - [x] Port V1 logic from `app/utils/path.py`
   - [x] Implement Docker-aware path management
   - [x] Add `config_dir()`, `log_dir()`, `get_database_path()` functions
@@ -301,7 +301,7 @@ This document tracks the comprehensive migration of functionality from V1 (Flask
 
 ##### **Task 1.3.1: Create URL Management Endpoints**
 
-- [x] **File**: `v2/backend/app/api/endpoints/urls.py` (NEW)
+- [x] **File**: `backend/app/api/endpoints/urls.py` (NEW)
   - [x] Port V1 controller logic from `app/api/controllers/urls_controller.py`
   - [x] Implement `/api/v1/urls` GET endpoint (list all URLs)
   - [x] Implement `/api/v1/urls` POST endpoint (add new URL)
@@ -310,11 +310,11 @@ This document tracks the comprehensive migration of functionality from V1 (Flask
   - [x] Implement `/api/v1/urls/{url_id}` DELETE endpoint (delete URL)
   - [x] Implement `/api/v1/urls/{url_id}/refresh` POST endpoint (manual refresh) ✅
   - [x] Implement `/api/v1/urls/refresh-all` POST endpoint (refresh all URLs) ✅
-- [x] **File**: `v2/backend/app/services/url_service.py` (NEW)
+- [x] **File**: `backend/app/services/url_service.py` (NEW)
   - [x] Create service layer for URL management
   - [x] Implement URL validation and processing
   - [x] Add refresh logic and status tracking
-- [x] **File**: `v2/backend/app/schemas/url_schemas.py` (NEW)
+- [x] **File**: `backend/app/schemas/url_schemas.py` (NEW)
   - [x] Define Pydantic models for URL operations
   - [x] Add request/response schemas
 - [x] **Dependencies**: Task 1.2 (services implemented)
@@ -322,18 +322,18 @@ This document tracks the comprehensive migration of functionality from V1 (Flask
 
 ##### **Task 1.3.2: Create Statistics Endpoints**
 
-- [ ] **File**: `v2/backend/app/api/endpoints/stats.py` (NEW)
+- [ ] **File**: `backend/app/api/endpoints/stats.py` (NEW)
   - [ ] Port V1 controller logic from `app/api/controllers/stats_controller.py`
   - [ ] Implement `/api/v1/stats` GET endpoint
   - [ ] Include URL statistics (status, channel counts, errors)
   - [ ] Include channel statistics (total, online, offline)
   - [ ] Include system configuration (base_url, engine_url, etc.)
   - [ ] Include task manager status
-- [ ] **File**: `v2/backend/app/services/stats_service.py` (NEW)
+- [ ] **File**: `backend/app/services/stats_service.py` (NEW)
   - [ ] Create service layer for statistics collection
   - [ ] Implement data aggregation methods
   - [ ] Add performance metrics collection
-- [ ] **File**: `v2/backend/app/schemas/stats_schemas.py` (NEW)
+- [ ] **File**: `backend/app/schemas/stats_schemas.py` (NEW)
   - [ ] Define response models for statistics
 - [ ] **Dependencies**: Task 1.2, 1.3.1
 - [ ] **Acceptance Criteria**: Complete system statistics matching V1 functionality
@@ -369,12 +369,12 @@ This document tracks the comprehensive migration of functionality from V1 (Flask
 
 ##### **Task 2.1.1: Implement Specific Configuration Endpoints**
 
-- [ ] **File**: `v2/backend/app/api/endpoints/config.py`
+- [ ] **File**: `backend/app/api/endpoints/config.py`
   - [ ] Add `/api/v1/config/base_url` GET/PUT endpoints
   - [ ] Add `/api/v1/config/ace_engine_url` GET/PUT endpoints
   - [ ] Add `/api/v1/config/rescrape_interval` GET/PUT endpoints
   - [ ] Add `/api/v1/config/addpid` GET/PUT endpoints
-- [ ] **File**: `v2/backend/app/services/config_service.py`
+- [ ] **File**: `backend/app/services/config_service.py`
   - [ ] Enhance existing service with specific config methods
   - [ ] Add runtime configuration update support
   - [ ] Implement validation for configuration values
@@ -383,7 +383,7 @@ This document tracks the comprehensive migration of functionality from V1 (Flask
 
 ##### **Task 2.1.2: Create Configuration UI**
 
-- [ ] **File**: `v2/frontend/src/pages/Settings.tsx` (NEW)
+- [ ] **File**: `frontend/src/pages/Settings.tsx` (NEW)
   - [ ] Create settings page with configuration forms
   - [ ] Add base URL configuration
   - [ ] Add Acestream Engine URL configuration
@@ -398,12 +398,12 @@ This document tracks the comprehensive migration of functionality from V1 (Flask
 
 ##### **Task 2.2.1: Implement FastAPI Background Tasks**
 
-- [x] **File**: `v2/backend/app/services/task_service.py` (NEW)
+- [x] **File**: `backend/app/services/task_service.py` (NEW)
   - [x] Create FastAPI equivalent of V1 TaskManager
   - [x] Implement APScheduler for periodic tasks
   - [x] Add task status tracking and monitoring
   - [x] Implement task queuing system
-- [x] **File**: `v2/backend/app/tasks/` (NEW DIRECTORY)
+- [x] **File**: `backend/app/tasks/` (NEW DIRECTORY)
   - [x] Create `url_scraping_task.py` for automatic URL scraping
   - [x] Create `epg_refresh_task.py` for automatic EPG updates
   - [x] Create `channel_cleanup_task.py` for maintenance
@@ -420,7 +420,7 @@ This document tracks the comprehensive migration of functionality from V1 (Flask
 
 ##### **Task 2.3.1: Integrate Channel Status Service** ✅ **COMPLETED**
 
-- [x] **File**: `v2/backend/app/api/endpoints/channels.py` ✅
+- [x] **File**: `backend/app/api/endpoints/channels.py` ✅
   - [x] Add `/api/v1/channels/{id}/check-status` POST endpoint ✅
   - [x] Add `/api/v1/channels/check-status-all` POST endpoint ✅
   - [x] Add `/api/v1/channels/status_summary` GET endpoint ✅
@@ -449,14 +449,14 @@ This document tracks the comprehensive migration of functionality from V1 (Flask
 
 ##### **Task 3.1.1: Enhance Health Endpoint**
 
-- [ ] **File**: `v2/backend/app/api/endpoints/health.py`
+- [ ] **File**: `backend/app/api/endpoints/health.py`
   - [ ] Add database connectivity check
   - [ ] Add Acestream Engine connectivity check
   - [ ] Add disk space monitoring
   - [ ] Add memory usage monitoring
   - [ ] Add service status checks
   - [ ] Add detailed error responses and logging
-- [ ] **File**: `v2/frontend/src/pages/Health.tsx` (NEW)
+- [ ] **File**: `frontend/src/pages/Health.tsx` (NEW)
   - [ ] Create health dashboard page
   - [ ] Display system status with visual indicators
   - [ ] Show performance metrics and alerts
@@ -469,11 +469,11 @@ This document tracks the comprehensive migration of functionality from V1 (Flask
 
 ##### **Task 3.2.1: EPG String Mappings Management**
 
-- [ ] **File**: `v2/backend/app/api/endpoints/epg.py`
+- [ ] **File**: `backend/app/api/endpoints/epg.py`
   - [ ] Add string mappings CRUD endpoints
   - [ ] Add auto-mapping endpoints
   - [ ] Add pattern matching functionality
-- [ ] **File**: `v2/frontend/src/pages/EPGMappings.tsx` (NEW)
+- [ ] **File**: `frontend/src/pages/EPGMappings.tsx` (NEW)
   - [ ] Create EPG mappings management page
   - [ ] Add pattern editing interface
   - [ ] Add auto-mapping tools
@@ -486,11 +486,11 @@ This document tracks the comprehensive migration of functionality from V1 (Flask
 
 ##### **Task 3.3.1: Advanced Search and Filtering**
 
-- [ ] **File**: `v2/frontend/src/components/AdvancedSearch.tsx` (NEW)
+- [ ] **File**: `frontend/src/components/AdvancedSearch.tsx` (NEW)
   - [ ] Add advanced search filters (category, group, status)
   - [ ] Implement search result pagination
   - [ ] Add sorting options
-- [ ] **File**: `v2/frontend/src/components/BulkOperations.tsx` (NEW)
+- [ ] **File**: `frontend/src/components/BulkOperations.tsx` (NEW)
   - [ ] Create bulk selection interface
   - [ ] Add bulk actions (delete, update, status check)
   - [ ] Implement progress tracking for bulk operations
@@ -620,7 +620,7 @@ For each task, update with:
 
 1. **Fix EPG Refresh** (Current Issue)
 
-   - Complete the [`refresh_source`](v2/backend/app/services/epg_service.py) method
+   - Complete the [`refresh_source`](backend/app/services/epg_service.py) method
    - Add XML parsing logic
    - Implement program extraction and storage
 

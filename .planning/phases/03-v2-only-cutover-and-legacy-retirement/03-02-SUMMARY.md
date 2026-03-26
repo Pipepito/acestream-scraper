@@ -77,7 +77,7 @@ Each task was committed atomically:
 **1. [Rule 3 - Blocking] `pytest` binary not available on PATH for required verification command**
 - **Found during:** Plan verification (`pytest -q backend/tests/test_settings_env_compat.py`)
 - **Issue:** Environment lacks global `pytest` command.
-- **Fix:** Executed equivalent verification using available backend venv binary and root import path: `PYTHONPATH=backend v2/backend/venv/bin/pytest -q backend/tests/test_settings_env_compat.py`.
+- **Fix:** Executed equivalent verification using available backend venv binary and root import path: `PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/test_settings_env_compat.py`.
 - **Files modified:** None
 - **Verification:** Test suite passed (`4 passed`).
 - **Committed in:** N/A (verification-path adaptation only)

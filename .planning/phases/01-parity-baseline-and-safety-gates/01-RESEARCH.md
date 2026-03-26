@@ -65,14 +65,14 @@ The baseline must include all configured source classes (active/flaky/disabled/l
 ### Core
 | Library/Tool | Version Source | Purpose | Why Standard Here |
 |--------------|----------------|---------|-------------------|
-| `pytest` | `v2/backend/requirements.txt` | Regression harness and assertions | Already the dominant backend test runner |
-| `sqlalchemy` | `v2/backend/requirements.txt` | Persistence-level field checks | Existing repository/model stack |
-| Existing scraper modules (`http.py`, `zeronet.py`) | `v2/backend/app/scrapers/` | Ground truth scrape behavior under test | Avoids introducing new scraper code paths |
+| `pytest` | `backend/requirements.txt` | Regression harness and assertions | Already the dominant backend test runner |
+| `sqlalchemy` | `backend/requirements.txt` | Persistence-level field checks | Existing repository/model stack |
+| Existing scraper modules (`http.py`, `zeronet.py`) | `backend/app/scrapers/` | Ground truth scrape behavior under test | Avoids introducing new scraper code paths |
 
 ### Supporting
 | Library/Tool | Version Source | Purpose | When to Use |
 |--------------|----------------|---------|-------------|
-| `pytest` fixtures in `v2/backend/tests/conftest.py` | Existing | Deterministic test setup for DB + services | Baseline and output parity tests |
+| `pytest` fixtures in `backend/tests/conftest.py` | Existing | Deterministic test setup for DB + services | Baseline and output parity tests |
 | YAML/JSON baseline manifest files | Project artifact | Source inventory + snapshot governance | Baseline definition and change control |
 | GitHub workflow file | Existing CI pattern in `.github/workflows/` | Automated safety gate execution | Pull requests and pre-cutover checks |
 
@@ -87,7 +87,7 @@ The baseline must include all configured source classes (active/flaky/disabled/l
 ### Recommended Project Structure
 
 ```text
-v2/backend/tests/parity/
+backend/tests/parity/
   baseline_sources.yaml
   snapshots/
   parity_compare.py
@@ -152,8 +152,8 @@ for field in required_fields:
 ### Output validity checks
 
 ```bash
-pytest -q v2/backend/tests/parity/test_scraper_parity.py
-pytest -q v2/backend/tests/parity/test_output_parity.py
+pytest -q backend/tests/parity/test_scraper_parity.py
+pytest -q backend/tests/parity/test_output_parity.py
 ```
 
 ## State of the Art
@@ -184,11 +184,11 @@ pytest -q v2/backend/tests/parity/test_output_parity.py
 - `.planning/codebase/STACK.md`
 - `.planning/codebase/ARCHITECTURE.md`
 - `.planning/codebase/TESTING.md`
-- `v2/backend/app/services/scraper_service.py`
-- `v2/backend/app/scrapers/http.py`
-- `v2/backend/app/scrapers/zeronet.py`
-- `v2/backend/app/services/playlist_service.py`
-- `v2/backend/app/services/epg_service.py`
+- `backend/app/services/scraper_service.py`
+- `backend/app/scrapers/http.py`
+- `backend/app/scrapers/zeronet.py`
+- `backend/app/services/playlist_service.py`
+- `backend/app/services/epg_service.py`
 
 ## Metadata
 

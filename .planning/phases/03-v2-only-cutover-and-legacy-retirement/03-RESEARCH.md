@@ -11,7 +11,7 @@
 
 ### Cutover Ownership
 - Hard cutover only: root entrypoints must become v2-derived runtime/build paths.
-- Promote `v2/backend` and `v2/frontend` into canonical root `backend/` and `frontend/`.
+- Promote `backend` and `frontend` into canonical root `backend/` and `frontend/`.
 - After cutover there should be no canonical `v2/...` route ownership.
 - Remove legacy root runtime/build/deployment paths directly once cutover succeeds.
 
@@ -73,12 +73,12 @@ This phase closes that split by converting root into the only runtime/build/rele
 
 ### Deployment and Runtime Split
 - Root `Dockerfile`, `docker-compose.yml`, `entrypoint.sh`, `wsgi.py`, and `run_dev.py` still represent legacy runtime ownership.
-- `v2/backend/main.py` and `v2/frontend` are the active stack but not canonical root ownership yet.
+- `backend/main.py` and `frontend` are the active stack but not canonical root ownership yet.
 
 ### CI/Release Drift
 - `.github/workflows/release.yml` path filters and jobs are anchored to legacy root files.
 - `.github/workflows/pull_request.yml` still installs/runs root test and lint flows.
-- `.github/workflows/phase1-safety-gates.yml` uses `v2/backend/...` paths, which will become stale after promotion unless updated.
+- `.github/workflows/phase1-safety-gates.yml` uses `backend/...` paths, which will become stale after promotion unless updated.
 
 ### Documentation Drift
 - Root `README.md` and deployment docs still communicate legacy runtime commands and file paths.
@@ -87,7 +87,7 @@ This phase closes that split by converting root into the only runtime/build/rele
 ## Recommended Implementation Pattern
 
 ### Pattern 1: Promotion-First Cutover
-- Perform directory/path ownership promotion first (`v2/backend` -> `backend`, `v2/frontend` -> `frontend`).
+- Perform directory/path ownership promotion first (`backend` -> `backend`, `frontend` -> `frontend`).
 - Rewrite internal and workflow path references immediately after promotion.
 - Keep scraper behavior untouched; cutover changes ownership, not core scraping logic.
 
@@ -157,9 +157,9 @@ Auto-mapping legacy env vars permanently undermines the post-cutover canonical c
 - `.github/workflows/release.yml`
 - `.github/workflows/phase1-safety-gates.yml`
 - `docker-compose.yml`
-- `v2/docker-compose.yml`
+- `docker-compose.yml`
 - `Dockerfile`
-- `v2/backend/Dockerfile`
+- `backend/Dockerfile`
 - `README.md`
 - `v2/README.md`
 - `docs/architecture/deployment.md`

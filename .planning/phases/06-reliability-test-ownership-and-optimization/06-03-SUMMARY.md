@@ -52,8 +52,8 @@ completed: 2026-02-27
 ## Verification
 
 - `python3 scripts/perf/profile_phase6_db_paths.py --scenario baseline --json-output phase6-db-baseline.json` passed.
-- `PYTHONPATH=backend v2/backend/venv/bin/pytest -q backend/tests/test_channels.py backend/tests/test_scrapers.py backend/tests/test_epg.py` passed.
-- `PYTHONPATH=backend v2/backend/venv/bin/pytest -q backend/tests/perf/test_high_churn_db_paths.py` passed.
+- `PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/test_channels.py backend/tests/test_scrapers.py backend/tests/test_epg.py` passed.
+- `PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/perf/test_high_churn_db_paths.py` passed.
 - `rg -n "create_index|ix_|Index\\(" backend/migrations/versions/phase6_add_hotpath_indexes.py backend/app/models/models.py` passed.
 
 ## Deviations from Plan
@@ -62,7 +62,7 @@ None.
 
 ## Issues Encountered
 
-- Local shell `python3` lacked SQLAlchemy; profiling harness now auto-reexecutes with `v2/backend/venv/bin/python` when needed.
+- Local shell `python3` lacked SQLAlchemy; profiling harness now auto-reexecutes with `backend/venv/bin/python` when needed.
 
 ## Next Phase Readiness
 

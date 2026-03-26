@@ -1,4 +1,4 @@
-# Dashboard Activity & Status System: Implementation Prompt (v2/backend)
+# Dashboard Activity & Status System: Implementation Prompt (backend)
 
 You are an expert full-stack developer and prompt engineer. Your task is to design and implement a robust, production-ready dashboard activity and status system for a modern web application. The dashboard must provide real-time, actionable insights into system activity, background tasks, stream status, and configuration, with a focus on configurability, reliability, and user experience.
 
@@ -12,33 +12,33 @@ You are an expert full-stack developer and prompt engineer. Your task is to desi
 - **All data must be live, not mocked.**
 - **Robust error handling and clear loading states in UI.**
 
-## Backend Implementation (v2/backend)
+## Backend Implementation (backend)
 
-- For each feature, create new modules/files if they do not exist, following the v2/backend project structure:
-  - Endpoints: `/v2/backend/app/api/endpoints/`
-  - Services: `/v2/backend/app/services/`
-  - Repositories: `/v2/backend/app/repositories/`
-  - Tasks: `/v2/backend/app/tasks/`
-  - Utils: `/v2/backend/app/utils/`
-- Implement a SQLAlchemy data model for activity logs, including fields for id, timestamp, type, message, details, and user. Place the model in `/v2/backend/app/models/`.
+- For each feature, create new modules/files if they do not exist, following the backend project structure:
+  - Endpoints: `/backend/app/api/endpoints/`
+  - Services: `/backend/app/services/`
+  - Repositories: `/backend/app/repositories/`
+  - Tasks: `/backend/app/tasks/`
+  - Utils: `/backend/app/utils/`
+- Implement a SQLAlchemy data model for activity logs, including fields for id, timestamp, type, message, details, and user. Place the model in `/backend/app/models/`.
 - Provide Alembic (or equivalent) migrations for all new tables.
-- Implement a logging utility for recording activity from scrapers, background tasks, user actions, and system events. Ensure error stack traces and context are captured. Place this in `/v2/backend/app/utils/`.
-- Store retention configuration in a settings table or config file. Implement a scheduled cleanup job in `/v2/backend/app/tasks/` to purge logs older than the retention period.
-- Expose a `/api/v1/activity/recent` endpoint in `/v2/backend/app/api/endpoints/`, supporting filtering by days (0–30), type, and pagination. Return activity entries sorted by timestamp descending. Register the endpoint in the API router.
+- Implement a logging utility for recording activity from scrapers, background tasks, user actions, and system events. Ensure error stack traces and context are captured. Place this in `/backend/app/utils/`.
+- Store retention configuration in a settings table or config file. Implement a scheduled cleanup job in `/backend/app/tasks/` to purge logs older than the retention period.
+- Expose a `/api/v1/activity/recent` endpoint in `/backend/app/api/endpoints/`, supporting filtering by days (0–30), type, and pagination. Return activity entries sorted by timestamp descending. Register the endpoint in the API router.
 - Track background task status in a table or in-memory store, including last run, next run, status, last error, and last result. Expose this via `/api/v1/background-tasks/status`.
 - Integrate with acexy or acestream to provide a `/api/v1/streams/active` endpoint returning the current active streams count. Handle unavailability gracefully.
 - Expose warp status via `/api/v1/warp/status`, including connection state, last connected time, and error details.
 - Provide a `/api/v1/config/dashboard` endpoint for getting and updating retention and auto-refresh settings. Validate all inputs.
 - Register all new endpoints in the API router and ensure they are included in the OpenAPI schema (`openapi.json`).
 - Document all endpoints and add/extend tests for all new models and APIs.
-- **Add/extend Python unit and integration tests in `/v2/backend/tests/` to cover all new endpoints, models, and business logic.**
+- **Add/extend Python unit and integration tests in `/backend/tests/` to cover all new endpoints, models, and business logic.**
 - **Do not make any changes to the legacy `/app` folder in the repository root.**
 
-## Frontend Implementation (v2/frontend)
+## Frontend Implementation (frontend)
 
-- For each feature, create or update API service modules in `/v2/frontend/src/services/`.
-- Add React hooks/services for fetching and updating activity logs, background task status, streams, warp status, and dashboard config. Use React Query or similar for caching and refetching. Place hooks in `/v2/frontend/src/hooks/`.
-- Implement a dashboard UI in `/v2/frontend/src/pages/Dashboard.tsx` with:
+- For each feature, create or update API service modules in `/frontend/src/services/`.
+- Add React hooks/services for fetching and updating activity logs, background task status, streams, warp status, and dashboard config. Use React Query or similar for caching and refetching. Place hooks in `/frontend/src/hooks/`.
+- Implement a dashboard UI in `/frontend/src/pages/Dashboard.tsx` with:
   - A scrollable, filterable, paginated activity log with retention selector, displaying real data from the backend.
   - A background tasks section showing all tasks, their status, errors, and results, using live data.
   - Real-time display of active streams and warp status with clear indicators, using live data.
@@ -54,7 +54,7 @@ You are an expert full-stack developer and prompt engineer. Your task is to desi
 - All frontend code should be production-ready React (TypeScript), using functional components, hooks, and Material UI (or similar modern UI library).
 - All configuration and settings should be validated and persisted.
 - All code should be well-documented and tested.
-- **All backend tests must be placed in `/v2/backend/tests/` and cover all new endpoints, models, and business logic.**
+- **All backend tests must be placed in `/backend/tests/` and cover all new endpoints, models, and business logic.**
 
 ## Examples
 
@@ -74,5 +74,5 @@ You are an expert full-stack developer and prompt engineer. Your task is to desi
 - The system must be secure, efficient, and scalable for large data volumes.
 - All features must be fully tested and documented.
 - All new modules, endpoints, and services must be imported and registered as needed in the project.
-- **All backend tests for new features must be placed in `/v2/backend/tests/` and provide full coverage for endpoints, models, and business logic.**
+- **All backend tests for new features must be placed in `/backend/tests/` and provide full coverage for endpoints, models, and business logic.**
 - **Do not make any changes to the legacy `/app` folder in the repository root.**

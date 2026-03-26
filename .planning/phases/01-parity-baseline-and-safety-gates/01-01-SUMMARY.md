@@ -17,13 +17,13 @@ tech-stack:
     - "Blocking vs non-blocking source class separation"
 key-files:
   created:
-    - v2/backend/tests/parity/baseline_sources.yaml
-    - v2/backend/tests/parity/parity_manifest.py
-    - v2/backend/tests/parity/parity_compare.py
-    - v2/backend/tests/parity/test_scraper_parity.py
-    - v2/backend/tests/parity/test_output_parity.py
+    - backend/tests/parity/baseline_sources.yaml
+    - backend/tests/parity/parity_manifest.py
+    - backend/tests/parity/parity_compare.py
+    - backend/tests/parity/test_scraper_parity.py
+    - backend/tests/parity/test_output_parity.py
   modified:
-    - v2/backend/app/services/playlist_service.py
+    - backend/app/services/playlist_service.py
 key-decisions:
   - "Stored baseline and snapshots as JSON-compatible YAML/JSON to avoid adding new parser dependencies."
   - "Made active/critical parity failures blocking while legacy/auth-region classes remain visible but non-blocking by default."
@@ -66,14 +66,14 @@ Each task was committed atomically:
 
 ## Files Created/Modified
 
-- `v2/backend/tests/parity/baseline_sources.yaml` - Source inventory and parity policy contract.
-- `v2/backend/tests/parity/snapshots/scraper_channels_snapshot.json` - Golden scraper baseline snapshots.
-- `v2/backend/tests/parity/snapshots/output_validity_snapshot.json` - Golden playlist/EPG validity assertions.
-- `v2/backend/tests/parity/parity_manifest.py` - Manifest loading and validation helpers.
-- `v2/backend/tests/parity/parity_compare.py` - Strict/fuzzy parity and gate scoring utilities.
-- `v2/backend/tests/parity/test_scraper_parity.py` - Scraper parity regression suite.
-- `v2/backend/tests/parity/test_output_parity.py` - Playlist/EPG parity validity suite.
-- `v2/backend/app/services/playlist_service.py` - Fixed runtime bug for custom `base_url` handling.
+- `backend/tests/parity/baseline_sources.yaml` - Source inventory and parity policy contract.
+- `backend/tests/parity/snapshots/scraper_channels_snapshot.json` - Golden scraper baseline snapshots.
+- `backend/tests/parity/snapshots/output_validity_snapshot.json` - Golden playlist/EPG validity assertions.
+- `backend/tests/parity/parity_manifest.py` - Manifest loading and validation helpers.
+- `backend/tests/parity/parity_compare.py` - Strict/fuzzy parity and gate scoring utilities.
+- `backend/tests/parity/test_scraper_parity.py` - Scraper parity regression suite.
+- `backend/tests/parity/test_output_parity.py` - Playlist/EPG parity validity suite.
+- `backend/app/services/playlist_service.py` - Fixed runtime bug for custom `base_url` handling.
 
 ## Decisions Made
 
@@ -89,8 +89,8 @@ Each task was committed atomically:
 - **Found during:** Plan verification suite (`test_get_m3u_playlist_with_custom_base_url`)
 - **Issue:** `settings_repo` was only initialized in one code path, causing `UnboundLocalError` on custom `base_url` requests.
 - **Fix:** Initialized `SettingsRepository` before conditional base URL resolution.
-- **Files modified:** `v2/backend/app/services/playlist_service.py`
-- **Verification:** `v2/backend/venv/bin/python -m pytest -q v2/backend/tests/test_playlists.py::TestPlaylistEndpoints::test_get_m3u_playlist_with_custom_base_url`
+- **Files modified:** `backend/app/services/playlist_service.py`
+- **Verification:** `backend/venv/bin/python -m pytest -q backend/tests/test_playlists.py::TestPlaylistEndpoints::test_get_m3u_playlist_with_custom_base_url`
 - **Committed in:** `c40be0f`
 
 ---
@@ -114,10 +114,10 @@ None - no external service configuration required.
 ## Self-Check: PASSED
 
 - Parity suites pass:
-  - `v2/backend/venv/bin/python -m pytest -q v2/backend/tests/parity/test_scraper_parity.py`
-  - `v2/backend/venv/bin/python -m pytest -q v2/backend/tests/parity/test_output_parity.py`
+  - `backend/venv/bin/python -m pytest -q backend/tests/parity/test_scraper_parity.py`
+  - `backend/venv/bin/python -m pytest -q backend/tests/parity/test_output_parity.py`
 - Existing smoke suites pass:
-  - `v2/backend/venv/bin/python -m pytest -q v2/backend/tests/test_scrapers.py v2/backend/tests/test_playlists.py v2/backend/tests/test_epg.py`
+  - `backend/venv/bin/python -m pytest -q backend/tests/test_scrapers.py backend/tests/test_playlists.py backend/tests/test_epg.py`
 
 ---
 *Phase: 01-parity-baseline-and-safety-gates*  

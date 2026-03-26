@@ -7,7 +7,7 @@
 
 ## Executive Summary
 
-The project should be executed as a strict consolidation effort: retire legacy root ownership and make `v2/backend` + `v2/frontend` the only production path. The highest-priority invariant is scraper behavior reliability; architecture and UI can change significantly as long as core scraping outputs and capabilities remain intact.
+The project should be executed as a strict consolidation effort: retire legacy root ownership and make `backend` + `frontend` the only production path. The highest-priority invariant is scraper behavior reliability; architecture and UI can change significantly as long as core scraping outputs and capabilities remain intact.
 
 Research indicates the most effective sequence is: establish parity and contracts first, then perform structural cutover, then modernize UX and optimize performance. Attempting to redesign architecture/UI and parser internals simultaneously is the most likely way to increase regressions.
 
@@ -127,7 +127,7 @@ Phases with standard patterns (skip deep research):
 - `docs/migration/migration-strategy.md` and `development-phases.md` — intended migration direction
 
 ### Secondary (MEDIUM confidence)
-- Existing `v2/backend/tests` and `v2/frontend/src/__tests__` patterns for validation strategy
+- Existing `backend/tests` and `frontend/src/__tests__` patterns for validation strategy
 
 ### Tertiary (LOW confidence)
 - Broader Android TV runtime assumptions beyond explicit repository evidence

@@ -15,16 +15,16 @@ This plan outlines the steps required to achieve a robust, decoupled channel man
 
 ### 1.1 Models
 
-- **AcestreamChannel** (`v2/backend/app/models/models.py`): Represents a stream source, can be linked to a TV channel via `tv_channel_id`.
-- **TVChannel** (`v2/backend/app/models/models.py`): Represents a logical TV channel, can have multiple Acestream channels assigned.
+- **AcestreamChannel** (`backend/app/models/models.py`): Represents a stream source, can be linked to a TV channel via `tv_channel_id`.
+- **TVChannel** (`backend/app/models/models.py`): Represents a logical TV channel, can have multiple Acestream channels assigned.
 
 ### 1.2 Functionality
 
-- **Frontend “Channels” page** (`v2/frontend/src/pages/Channels.tsx`): Currently manages Acestream channels only.
+- **Frontend “Channels” page** (`frontend/src/pages/Channels.tsx`): Currently manages Acestream channels only.
 - **Backend services**:
-  - CRUD for AcestreamChannel (`v2/backend/app/services/channel_service.py`)
-  - Playlist generation from Acestream channels (`v2/backend/app/services/playlist_service.py`)
-  - Search/import for Acestream channels (`v2/backend/app/services/search_service.py`)
+  - CRUD for AcestreamChannel (`backend/app/services/channel_service.py`)
+  - Playlist generation from Acestream channels (`backend/app/services/playlist_service.py`)
+  - Search/import for Acestream channels (`backend/app/services/search_service.py`)
 - **No dedicated UI for TV channel management or assignment.**
 
 ---
@@ -129,13 +129,13 @@ This plan outlines the steps required to achieve a robust, decoupled channel man
 
 ## 4. File References
 
-- `v2/backend/app/models/models.py`: Data models for AcestreamChannel and TVChannel
-- `v2/backend/app/services/playlist_service.py`: Playlist generation logic
-- `v2/backend/app/services/channel_service.py`: Channel CRUD and assignment logic
-- `v2/backend/app/services/search_service.py`: Search/import logic for Acestream channels
-- `v2/frontend/src/pages/Channels.tsx`: Current Acestream channel management page
-- `v2/frontend/src/pages/TVChannels.tsx` (to be created): TV channel management page
-- `v2/frontend/src/pages/AcestreamChannels.tsx` (to be created): Acestream channel management page
+- `backend/app/models/models.py`: Data models for AcestreamChannel and TVChannel
+- `backend/app/services/playlist_service.py`: Playlist generation logic
+- `backend/app/services/channel_service.py`: Channel CRUD and assignment logic
+- `backend/app/services/search_service.py`: Search/import logic for Acestream channels
+- `frontend/src/pages/Channels.tsx`: Current Acestream channel management page
+- `frontend/src/pages/TVChannels.tsx` (to be created): TV channel management page
+- `frontend/src/pages/AcestreamChannels.tsx` (to be created): Acestream channel management page
 - `docs/`: Documentation and migration plans
 
 ---

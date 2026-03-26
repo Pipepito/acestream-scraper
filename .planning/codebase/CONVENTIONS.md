@@ -5,8 +5,8 @@
 ## Naming Patterns
 
 **Files:**
-- Python backend files use `snake_case.py` in `v2/backend/app/`.
-- React pages/components use `PascalCase.tsx` in `v2/frontend/src/pages/` and `v2/frontend/src/components/`.
+- Python backend files use `snake_case.py` in `backend/app/`.
+- React pages/components use `PascalCase.tsx` in `frontend/src/pages/` and `frontend/src/components/`.
 - Frontend hooks use `useX.ts` naming (examples: `useChannels.ts`, `useEPG.ts`).
 - Python tests use `test_*.py`; frontend tests use `*.test.tsx`.
 
@@ -29,13 +29,13 @@
 **Formatting:**
 - Root CI enforces `flake8` checks via `.github/workflows/pull_request.yml` and `release.yml`.
 - No repository-level `ruff.toml`, `mypy.ini`, `pytest.ini`, or root `.eslintrc` detected.
-- Frontend inherits CRA ESLint config from `v2/frontend/package.json`.
+- Frontend inherits CRA ESLint config from `frontend/package.json`.
 - Semicolon usage in TypeScript is consistent.
 
 **Linting:**
 - Python linting is CI-driven (`flake8`) instead of local config files.
 - Frontend linting is via `react-scripts` defaults.
-- Debug `console.log` and `print` statements still exist in production paths (example: `v2/frontend/src/pages/AcestreamChannels.tsx`, `v2/backend/app/api/endpoints/playlists.py`).
+- Debug `console.log` and `print` statements still exist in production paths (example: `frontend/src/pages/AcestreamChannels.tsx`, `backend/app/api/endpoints/playlists.py`).
 
 ## Import Organization
 
@@ -49,7 +49,7 @@
 - TS imports are grouped but not always strictly sorted.
 
 **Path Aliases:**
-- No TS path aliases configured in `v2/frontend/tsconfig.json`.
+- No TS path aliases configured in `frontend/tsconfig.json`.
 - Relative imports are standard in frontend source.
 
 ## Error Handling
@@ -68,7 +68,7 @@
 
 **Framework:**
 - Python `logging` is the primary backend logging mechanism.
-- Setup helper in `v2/backend/app/utils/logging.py` configures root logger, stdout, and file logs.
+- Setup helper in `backend/app/utils/logging.py` configures root logger, stdout, and file logs.
 
 **Patterns:**
 - Scheduler/task services log start/finish/error status.
@@ -86,13 +86,13 @@
 - Full TSDoc coverage is inconsistent.
 
 **TODO Comments:**
-- TODOs exist in frontend pages (example: `v2/frontend/src/pages/EPG.tsx`, `TVChannels.tsx`).
+- TODOs exist in frontend pages (example: `frontend/src/pages/EPG.tsx`, `TVChannels.tsx`).
 - TODOs are not linked to issue IDs consistently.
 
 ## Function Design
 
 **Size:**
-- Some functions are large and multi-responsibility (examples: `v2/backend/app/services/epg_service.py`, large page components in `v2/frontend/src/pages/`).
+- Some functions are large and multi-responsibility (examples: `backend/app/services/epg_service.py`, large page components in `frontend/src/pages/`).
 
 **Parameters:**
 - FastAPI endpoints commonly use explicit query/body params.
@@ -109,7 +109,7 @@
 - Frontend uses default exports for many components and named exports for hooks/services.
 
 **Barrel Files:**
-- Limited frontend barrel usage (example: `v2/frontend/src/services/index.ts`, `v2/frontend/src/hooks/index.ts`).
+- Limited frontend barrel usage (example: `frontend/src/services/index.ts`, `frontend/src/hooks/index.ts`).
 - Most modules are imported directly from source files.
 
 ---

@@ -5,8 +5,8 @@
 ## Test Framework
 
 **Runner:**
-- Python: `pytest` for root and v2 backend tests.
-- Frontend: Jest + React Testing Library + `ts-jest` (`v2/frontend/jest.config.js`).
+- Python: `pytest` for root legacy tests and canonical backend tests.
+- Frontend: Jest + React Testing Library + `ts-jest` (`frontend/jest.config.js`).
 
 **Assertion Library:**
 - Python: pytest assert introspection.
@@ -15,17 +15,17 @@
 **Run Commands:**
 ```bash
 pytest tests/                                # Root/legacy suite
-pytest v2/backend/tests/                     # V2 backend suite
-python v2/backend/run_tests.py               # V2 backend grouped test runner
-cd v2/frontend && npm test                   # Frontend tests
+pytest backend/tests/                        # Canonical backend suite
+python backend/run_tests.py                  # Canonical backend grouped test runner
+cd frontend && npm test                      # Frontend tests
 ```
 
 ## Test File Organization
 
 **Location:**
 - Root tests in `tests/` with split `tests/unit/` and `tests/integration/`.
-- V2 backend tests in `v2/backend/tests/`.
-- Frontend tests in `v2/frontend/src/__tests__/` and near setup helpers.
+- Canonical backend tests in `backend/tests/`.
+- Frontend tests in `frontend/src/__tests__/` and near setup helpers.
 
 **Naming:**
 - Python: `test_*.py`.
@@ -36,15 +36,15 @@ cd v2/frontend && npm test                   # Frontend tests
 tests/
   unit/
   integration/
-v2/backend/tests/
-v2/frontend/src/__tests__/
+backend/tests/
+frontend/src/__tests__/
 ```
 
 ## Test Structure
 
 **Suite Organization:**
 - Python often uses `class TestX:` grouping with method-level test cases.
-- Extensive pytest fixtures in `tests/conftest.py` and `v2/backend/tests/conftest.py`.
+- Extensive pytest fixtures in `tests/conftest.py` and `backend/tests/conftest.py`.
 - Frontend test files use Jest `describe`/`it` blocks.
 
 **Patterns:**
@@ -74,7 +74,7 @@ v2/frontend/src/__tests__/
 ## Fixtures and Factories
 
 **Test Data:**
-- Rich fixture sets for seeded channels/EPG URLs/programs in `v2/backend/tests/conftest.py`.
+- Rich fixture sets for seeded channels/EPG URLs/programs in `backend/tests/conftest.py`.
 - Root test fixtures also establish temp SQLite DBs and monkeypatch singleton config state.
 
 **Location:**
@@ -92,8 +92,8 @@ v2/frontend/src/__tests__/
 
 **View Coverage:**
 ```bash
-pytest --cov=v2/backend/app v2/backend/tests
-cd v2/frontend && npm test -- --coverage
+pytest --cov=backend/app backend/tests
+cd frontend && npm test -- --coverage
 ```
 
 ## Test Types
@@ -103,7 +103,7 @@ cd v2/frontend && npm test -- --coverage
 - Emphasize service/repository behavior and helper logic.
 
 **Integration Tests:**
-- Heavy emphasis in `v2/backend/tests/` for endpoint workflows and DB interactions.
+- Heavy emphasis in `backend/tests/` for endpoint workflows and DB interactions.
 - Root `tests/integration/` validates older API/UI paths.
 
 **E2E Tests:**

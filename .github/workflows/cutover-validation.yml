@@ -27,9 +27,9 @@ jobs:
 
       - name: Prepare parity venv for phase1 gate runner
         run: |
-          python3 -m venv v2/backend/venv
-          v2/backend/venv/bin/pip install --upgrade pip
-          v2/backend/venv/bin/pip install -r backend/requirements.txt
+          python3 -m venv backend/venv
+          backend/venv/bin/pip install --upgrade pip
+          backend/venv/bin/pip install -r backend/requirements.txt
 
       - name: Run phase3 quick profile
         run: |
@@ -60,9 +60,9 @@ jobs:
 
       - name: Prepare parity venv for phase1 gate runner
         run: |
-          python3 -m venv v2/backend/venv
-          v2/backend/venv/bin/pip install --upgrade pip
-          v2/backend/venv/bin/pip install -r backend/requirements.txt
+          python3 -m venv backend/venv
+          backend/venv/bin/pip install --upgrade pip
+          backend/venv/bin/pip install -r backend/requirements.txt
 
       - name: Run phase3 full profile
         run: |

@@ -30,10 +30,10 @@ score: 9/9 must-haves verified
 ## Verification Commands
 
 - `bash scripts/ci/run_v2_test_suite.sh --profile quick`
-- `PYTHONPATH=backend v2/backend/venv/bin/pytest -q backend/tests`
-- `PYTHONPATH=backend v2/backend/venv/bin/pytest -q backend/tests/test_background_tasks.py backend/tests/test_task_service.py backend/tests/test_warp.py backend/tests/test_error_contracts.py`
+- `PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests`
+- `PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/test_background_tasks.py backend/tests/test_task_service.py backend/tests/test_warp.py backend/tests/test_error_contracts.py`
 - `python3 scripts/perf/profile_phase6_db_paths.py --scenario baseline --json-output phase6-db-baseline.json`
-- `PYTHONPATH=backend v2/backend/venv/bin/pytest -q backend/tests/test_channels.py backend/tests/test_scrapers.py backend/tests/test_epg.py backend/tests/perf/test_high_churn_db_paths.py`
+- `PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/test_channels.py backend/tests/test_scrapers.py backend/tests/test_epg.py backend/tests/perf/test_high_churn_db_paths.py`
 
 ## Residual Risks
 

@@ -17,7 +17,7 @@ score: 10/10 must-haves verified
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | HTTP/M3U scrape outputs are compared against a governed baseline dataset | ✓ VERIFIED | `v2/backend/tests/parity/baseline_sources.yaml` + `test_scraper_parity.py` |
+| 1 | HTTP/M3U scrape outputs are compared against a governed baseline dataset | ✓ VERIFIED | `backend/tests/parity/baseline_sources.yaml` + `test_scraper_parity.py` |
 | 2 | ZeroNet scrape outputs are compared against a governed baseline dataset | ✓ VERIFIED | `test_scraper_parity.py::test_scraper_parity_against_snapshots[zeronet_primary]` |
 | 3 | Core channel field regressions are detected automatically | ✓ VERIFIED | `parity_compare.py` + strict/fuzzy comparator tests |
 | 4 | Playlist output validity is validated against snapshots | ✓ VERIFIED | `test_output_parity.py::test_playlist_output_validity_and_snapshot` |
@@ -34,11 +34,11 @@ score: 10/10 must-haves verified
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `v2/backend/tests/parity/baseline_sources.yaml` | Baseline source inventory + policy fields | ✓ EXISTS + SUBSTANTIVE | Includes source classes, env tags, gate policy flags |
-| `v2/backend/tests/parity/parity_manifest.py` | Manifest loader/validator | ✓ EXISTS + SUBSTANTIVE | Schema checks + source indexing utilities |
-| `v2/backend/tests/parity/parity_compare.py` | Field-level parity engine | ✓ EXISTS + SUBSTANTIVE | Strict/fuzzy comparison + gate score computation |
-| `v2/backend/tests/parity/test_scraper_parity.py` | Scraper parity regression suite | ✓ EXISTS + SUBSTANTIVE | Covers HTTP/M3U and ZeroNet snapshot parity |
-| `v2/backend/tests/parity/test_output_parity.py` | Playlist/EPG output parity suite | ✓ EXISTS + SUBSTANTIVE | Validates XML and M3U outputs against snapshots |
+| `backend/tests/parity/baseline_sources.yaml` | Baseline source inventory + policy fields | ✓ EXISTS + SUBSTANTIVE | Includes source classes, env tags, gate policy flags |
+| `backend/tests/parity/parity_manifest.py` | Manifest loader/validator | ✓ EXISTS + SUBSTANTIVE | Schema checks + source indexing utilities |
+| `backend/tests/parity/parity_compare.py` | Field-level parity engine | ✓ EXISTS + SUBSTANTIVE | Strict/fuzzy comparison + gate score computation |
+| `backend/tests/parity/test_scraper_parity.py` | Scraper parity regression suite | ✓ EXISTS + SUBSTANTIVE | Covers HTTP/M3U and ZeroNet snapshot parity |
+| `backend/tests/parity/test_output_parity.py` | Playlist/EPG output parity suite | ✓ EXISTS + SUBSTANTIVE | Validates XML and M3U outputs against snapshots |
 | `scripts/phase_gates/phase1_gate_runner.py` | Safety gate entrypoint | ✓ EXISTS + SUBSTANTIVE | Profile execution, class-aware blocking behavior |
 | `scripts/phase_gates/phase1_gate_config.yaml` | Gate profile configuration | ✓ EXISTS + SUBSTANTIVE | Quick/full profiles and class policies |
 | `.github/workflows/phase1-safety-gates.yml` | CI gate execution path | ✓ EXISTS + SUBSTANTIVE | Runs quick gate profile and uploads report artifact |
@@ -88,8 +88,8 @@ None — automated checks fully verified this phase.
 **Automated checks:** Passed
 - `python3 scripts/phase_gates/phase1_gate_runner.py --profile quick`
 - `python3 scripts/phase_gates/phase1_gate_runner.py --profile full`
-- `v2/backend/venv/bin/python -m pytest -q v2/backend/tests/parity/test_scraper_parity.py v2/backend/tests/parity/test_output_parity.py`
-- `v2/backend/venv/bin/python -m pytest -q v2/backend/tests/test_scrapers.py v2/backend/tests/test_playlists.py v2/backend/tests/test_epg.py`
+- `backend/venv/bin/python -m pytest -q backend/tests/parity/test_scraper_parity.py backend/tests/parity/test_output_parity.py`
+- `backend/venv/bin/python -m pytest -q backend/tests/test_scrapers.py backend/tests/test_playlists.py backend/tests/test_epg.py`
 
 **Human checks required:** 0  
 **Total verification time:** ~8 min

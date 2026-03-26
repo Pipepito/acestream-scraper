@@ -18,19 +18,19 @@ tech-stack:
     - Correlation-id-aware logging and error responses
 key-files:
   created:
-    - v2/backend/app/schemas/errors.py
-    - v2/backend/app/api/error_handlers.py
-    - v2/backend/tests/test_error_contracts.py
+    - backend/app/schemas/errors.py
+    - backend/app/api/error_handlers.py
+    - backend/tests/test_error_contracts.py
   modified:
-    - v2/backend/main.py
-    - v2/backend/app/api/endpoints/scrapers.py
-    - v2/backend/app/api/endpoints/epg.py
-    - v2/backend/app/api/endpoints/channels.py
-    - v2/backend/app/api/endpoints/background_tasks.py
-    - v2/backend/app/services/channel_status_service.py
-    - v2/backend/app/tasks/url_scraping_task.py
-    - v2/backend/app/tasks/epg_refresh_task.py
-    - v2/backend/tests/test_background_tasks.py
+    - backend/main.py
+    - backend/app/api/endpoints/scrapers.py
+    - backend/app/api/endpoints/epg.py
+    - backend/app/api/endpoints/channels.py
+    - backend/app/api/endpoints/background_tasks.py
+    - backend/app/services/channel_status_service.py
+    - backend/app/tasks/url_scraping_task.py
+    - backend/app/tasks/epg_refresh_task.py
+    - backend/tests/test_background_tasks.py
 key-decisions:
   - "Applied a custom APIError envelope for actionable operational errors while preserving normal HTTPException behavior."
   - "Introduced correlation-id middleware to attach tracing context to both success and failure responses."
@@ -70,18 +70,18 @@ Each task was committed atomically:
 3. **Task 3: Add failure-path regression coverage** - `a41a341` (test)
 
 ## Files Created/Modified
-- `v2/backend/app/schemas/errors.py` - Standardized `ErrorResponse` payload schema.
-- `v2/backend/app/api/error_handlers.py` - `APIError` type + global handler registration helpers.
-- `v2/backend/main.py` - Correlation-id middleware and global handler registration.
-- `v2/backend/app/api/endpoints/scrapers.py` - Actionable scraper failure mapping to APIError.
-- `v2/backend/app/api/endpoints/epg.py` - Structured enqueue/automap failure handling.
-- `v2/backend/app/api/endpoints/channels.py` - Structured channel-status failure handling/logging.
-- `v2/backend/app/api/endpoints/background_tasks.py` - Structured failure response for task-status retrieval.
-- `v2/backend/app/services/channel_status_service.py` - Structured log statements on status-check failures.
-- `v2/backend/app/tasks/url_scraping_task.py` - Structured task failure logging.
-- `v2/backend/app/tasks/epg_refresh_task.py` - Structured task failure logging.
-- `v2/backend/tests/test_error_contracts.py` - Error envelope and status-code failure-path assertions.
-- `v2/backend/tests/test_background_tasks.py` - Added failure contract coverage for background-task status route.
+- `backend/app/schemas/errors.py` - Standardized `ErrorResponse` payload schema.
+- `backend/app/api/error_handlers.py` - `APIError` type + global handler registration helpers.
+- `backend/main.py` - Correlation-id middleware and global handler registration.
+- `backend/app/api/endpoints/scrapers.py` - Actionable scraper failure mapping to APIError.
+- `backend/app/api/endpoints/epg.py` - Structured enqueue/automap failure handling.
+- `backend/app/api/endpoints/channels.py` - Structured channel-status failure handling/logging.
+- `backend/app/api/endpoints/background_tasks.py` - Structured failure response for task-status retrieval.
+- `backend/app/services/channel_status_service.py` - Structured log statements on status-check failures.
+- `backend/app/tasks/url_scraping_task.py` - Structured task failure logging.
+- `backend/app/tasks/epg_refresh_task.py` - Structured task failure logging.
+- `backend/tests/test_error_contracts.py` - Error envelope and status-code failure-path assertions.
+- `backend/tests/test_background_tasks.py` - Added failure contract coverage for background-task status route.
 
 ## Decisions Made
 - Kept general HTTPException behavior intact for existing validation/business errors, while routing unexpected and explicit operational failures through a stable envelope.

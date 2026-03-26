@@ -45,8 +45,8 @@ Blocking failures return non-zero exit code and must be fixed before merge/cutov
    - Blocking failures must be zero.
    - Non-blocking failures must be reviewed and acknowledged.
 5. Confirm parity snapshots are current and approved:
-   - `v2/backend/tests/parity/snapshots/scraper_channels_snapshot.json`
-   - `v2/backend/tests/parity/snapshots/output_validity_snapshot.json`
+   - `backend/tests/parity/snapshots/scraper_channels_snapshot.json`
+   - `backend/tests/parity/snapshots/output_validity_snapshot.json`
 6. Record sign-off evidence in PR notes:
    - Command output or uploaded artifact.
    - Snapshot version used.

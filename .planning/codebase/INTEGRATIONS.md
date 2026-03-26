@@ -6,7 +6,7 @@
 
 **Streaming/Network Services:**
 - Acestream Engine - channel status and streaming backend integration
-  - Client: HTTP requests via `requests` in `v2/backend/app/services/acestream_status_service.py`
+- Client: HTTP requests via `requests` in `backend/app/services/acestream_status_service.py`
   - Auth: none detected; network reachability and runtime env vars drive access
   - Endpoints used: `/server/api?api_version=3&method=get_status`, `/server/api?api_version=3&method=get_network_connection_status`
 - Acexy Proxy - proxy/status integration for Acestream bridge
@@ -14,26 +14,26 @@
   - Auth: none detected
   - Endpoint used: `http://localhost:8080/ace/status`
 - Cloudflare WARP - connectivity/privacy routing integration
-  - Client: CLI invocation (`warp-cli`) in `v2/backend/app/services/warp_service.py`
+- Client: CLI invocation (`warp-cli`) in `backend/app/services/warp_service.py`
   - Additional verification: Cloudflare trace endpoint `https://www.cloudflare.com/cdn-cgi/trace/` via `httpx`
   - Auth: optional license registration endpoint in app (`/api/v1/warp/license`)
 - ZeroNet - scraping source host/service
-  - Client: HTTP scraping via `aiohttp` in `v2/backend/app/scrapers/zeronet.py`
-  - Default URL source: `ZERONET_URL` in `v2/backend/app/config/settings.py`
+- Client: HTTP scraping via `aiohttp` in `backend/app/scrapers/zeronet.py`
+- Default URL source: `ZERONET_URL` in `backend/app/config/settings.py`
 
 **External Content Sources:**
 - Arbitrary user-configured playlist/scrape URLs are fetched by scrapers
-  - Regular HTTP scraper: `v2/backend/app/scrapers/http.py`
-  - ZeroNet scraper: `v2/backend/app/scrapers/zeronet.py`
-  - URL inventory stored in DB (`scraped_urls` table via `v2/backend/app/models/models.py`)
+- Regular HTTP scraper: `backend/app/scrapers/http.py`
+- ZeroNet scraper: `backend/app/scrapers/zeronet.py`
+- URL inventory stored in DB (`scraped_urls` table via `backend/app/models/models.py`)
 
 ## Data Storage
 
 **Databases:**
-- SQLite (primary for v2)
-  - Connection: `DATABASE_URL` in `v2/backend/app/config/settings.py`
-  - Client: SQLAlchemy in `v2/backend/app/config/database.py`
-  - Migrations: Alembic-style migration files in `v2/backend/migrations/`
+- SQLite (primary canonical runtime)
+  - Connection: `DATABASE_URL` in `backend/app/config/settings.py`
+  - Client: SQLAlchemy in `backend/app/config/database.py`
+  - Migrations: Alembic-style migration files in `backend/migrations/`
 - SQLite (legacy root stack)
   - Connection path implied by root config/scripts (`config/acestream.db`)
   - Migration tooling in root `migrations/` and `manage.py`
@@ -63,7 +63,7 @@
 - Not detected
 
 **Logs:**
-- Python logging configured in `v2/backend/app/utils/logging.py`
+- Python logging configured in `backend/app/utils/logging.py`
 - Container/runtime logs managed by shell scripts in `entrypoint.sh`
 - CI logs from GitHub Actions workflows in `.github/workflows/`
 

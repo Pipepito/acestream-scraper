@@ -16,8 +16,8 @@ Complete root-to-v2 replacement for runtime, build, and release ownership by pro
 ### Cutover mode and path ownership
 - Hard switch only: root entrypoints must be v2-only after cutover.
 - Promote app directories to root structure:
-  - `v2/backend` -> `backend`
-  - `v2/frontend` -> `frontend`
+  - `backend` -> `backend`
+  - `frontend` -> `frontend`
 - Remove the `v2/` path from canonical runtime/build/deploy routes.
 - No lingering internal `v2/...` references after cutover; rewrite to promoted root paths in the same phase.
 

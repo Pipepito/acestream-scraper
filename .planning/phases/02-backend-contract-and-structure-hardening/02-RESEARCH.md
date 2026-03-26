@@ -59,21 +59,21 @@ The highest-value wins in this phase are:
 ## Current Gap Evidence
 
 ### Contract Ambiguity
-- `v2/backend/app/api/endpoints/tv_channels.py` uses `response_model=Dict[str, Any]` for list responses and multiple `dict` request bodies (`association`, `assignment_data`, `update_data`).
-- `v2/backend/app/api/endpoints/channels.py` uses `Dict[str, Any]` for bulk operations (`bulk_edit`, `bulk_activate`).
-- `v2/backend/app/api/endpoints/epg.py` string mapping routes accept raw `dict` payloads.
-- `v2/backend/app/api/endpoints/config.py` mixes typed payloads and raw `request.json()` parsing.
-- `v2/frontend/src/services/channelService.ts` assumes list-return contract while backend returns paginated `{items,total}` for channels.
+- `backend/app/api/endpoints/tv_channels.py` uses `response_model=Dict[str, Any]` for list responses and multiple `dict` request bodies (`association`, `assignment_data`, `update_data`).
+- `backend/app/api/endpoints/channels.py` uses `Dict[str, Any]` for bulk operations (`bulk_edit`, `bulk_activate`).
+- `backend/app/api/endpoints/epg.py` string mapping routes accept raw `dict` payloads.
+- `backend/app/api/endpoints/config.py` mixes typed payloads and raw `request.json()` parsing.
+- `frontend/src/services/channelService.ts` assumes list-return contract while backend returns paginated `{items,total}` for channels.
 
 ### Boundary Pollution
-- `v2/backend/app/services/url_service.py` performs direct ORM queries even though `URLRepository` exists.
-- `v2/backend/app/api/endpoints/urls.py` invokes `URLService` that bypasses repository abstractions.
-- `v2/backend/app/api/endpoints/config.py` duplicates dependency provider logic (`get_config_service` defined twice).
+- `backend/app/services/url_service.py` performs direct ORM queries even though `URLRepository` exists.
+- `backend/app/api/endpoints/urls.py` invokes `URLService` that bypasses repository abstractions.
+- `backend/app/api/endpoints/config.py` duplicates dependency provider logic (`get_config_service` defined twice).
 - Mixed direct DB usage and layered access patterns increase maintenance overhead and coupling.
 
 ### Error/Logging Gaps
 - Scrape and refresh paths often catch broad exceptions and return ad-hoc status strings.
-- Background tasks (`v2/backend/app/tasks/url_scraping_task.py`, `epg_refresh_task.py`) log failures but do not produce unified failure metadata.
+- Background tasks (`backend/app/tasks/url_scraping_task.py`, `epg_refresh_task.py`) log failures but do not produce unified failure metadata.
 - No unified API error response schema across scrape/EPG/status/task-related routes.
 
 ## Recommended Implementation Pattern
@@ -130,24 +130,24 @@ The highest-value wins in this phase are:
 - `.planning/codebase/ARCHITECTURE.md`
 - `.planning/codebase/STACK.md`
 - `.planning/codebase/TESTING.md`
-- `v2/backend/app/api/endpoints/channels.py`
-- `v2/backend/app/api/endpoints/tv_channels.py`
-- `v2/backend/app/api/endpoints/config.py`
-- `v2/backend/app/api/endpoints/epg.py`
-- `v2/backend/app/api/endpoints/scrapers.py`
-- `v2/backend/app/api/endpoints/urls.py`
-- `v2/backend/app/services/url_service.py`
-- `v2/backend/app/services/scraper_service.py`
-- `v2/backend/app/services/epg_service.py`
-- `v2/backend/app/repositories/url_repository.py`
-- `v2/frontend/src/services/channelService.ts`
-- `v2/frontend/src/services/configService.ts`
-- `v2/frontend/src/services/tvChannelService.ts`
-- `v2/backend/tests/test_channels.py`
-- `v2/backend/tests/test_tv_channels.py`
-- `v2/backend/tests/test_config.py`
-- `v2/backend/tests/test_scrapers.py`
-- `v2/backend/tests/test_epg.py`
+- `backend/app/api/endpoints/channels.py`
+- `backend/app/api/endpoints/tv_channels.py`
+- `backend/app/api/endpoints/config.py`
+- `backend/app/api/endpoints/epg.py`
+- `backend/app/api/endpoints/scrapers.py`
+- `backend/app/api/endpoints/urls.py`
+- `backend/app/services/url_service.py`
+- `backend/app/services/scraper_service.py`
+- `backend/app/services/epg_service.py`
+- `backend/app/repositories/url_repository.py`
+- `frontend/src/services/channelService.ts`
+- `frontend/src/services/configService.ts`
+- `frontend/src/services/tvChannelService.ts`
+- `backend/tests/test_channels.py`
+- `backend/tests/test_tv_channels.py`
+- `backend/tests/test_config.py`
+- `backend/tests/test_scrapers.py`
+- `backend/tests/test_epg.py`
 
 ## Metadata
 

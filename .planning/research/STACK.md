@@ -29,7 +29,7 @@
 
 | Tool | Purpose | Notes |
 |------|---------|-------|
-| pytest | Backend test and regression coverage | Use old tests as parity reference; rebuild ownership under `v2/backend/tests` |
+| pytest | Backend test and regression coverage | Use old tests as parity reference; rebuild ownership under `backend/tests` |
 | Jest + RTL | Frontend behavior tests | Prioritize critical pages/workflows over broad snapshot tests |
 | flake8 (short-term) / ruff (target) | Linting | Keep CI green with flake8 first; migrate to ruff once root legacy is removed |
 | GitHub Actions + buildx | CI and publish | Unify legacy + v2 pipelines into a single v2 release flow |
@@ -38,14 +38,14 @@
 
 ```bash
 # Backend
-pip install -r v2/backend/requirements.txt
+pip install -r backend/requirements.txt
 
 # Frontend
-cd v2/frontend && npm ci
+cd frontend && npm ci
 
 # Dev checks
-pytest v2/backend/tests/
-cd v2/frontend && npm test -- --watchAll=false
+pytest backend/tests/
+cd frontend && npm test -- --watchAll=false
 ```
 
 ## Alternatives Considered
@@ -87,7 +87,7 @@ cd v2/frontend && npm test -- --watchAll=false
 - `.planning/codebase/STACK.md` — current stack inventory
 - `docs/migration/development-progress.md` — completed migration work snapshot
 - `docs/migration/migration-strategy.md` — target direction and deployment intent
-- Repository code in `v2/backend/` and `v2/frontend/` — implementation reality
+- Repository code in `backend/` and `frontend/` — implementation reality
 
 ---
 *Stack research for: brownfield v2 consolidation*

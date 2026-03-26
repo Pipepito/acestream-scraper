@@ -68,7 +68,7 @@ Recovery:
 Run these when diagnosing release risk:
 
 ```bash
-PYTHONPATH=backend v2/backend/venv/bin/pytest -q \
+PYTHONPATH=backend backend/venv/bin/pytest -q \
   backend/tests/test_background_tasks.py \
   backend/tests/test_task_service.py \
   backend/tests/test_warp.py \

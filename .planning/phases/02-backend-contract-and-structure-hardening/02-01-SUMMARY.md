@@ -18,20 +18,20 @@ tech-stack:
     - Explicit paginated response envelopes
 key-files:
   created:
-    - v2/backend/tests/contracts/test_channel_contracts.py
-    - v2/backend/tests/contracts/test_config_contracts.py
+    - backend/tests/contracts/test_channel_contracts.py
+    - backend/tests/contracts/test_config_contracts.py
   modified:
-    - v2/backend/app/schemas/channel.py
-    - v2/backend/app/schemas/config.py
-    - v2/backend/app/schemas/epg.py
-    - v2/backend/app/api/endpoints/channels.py
-    - v2/backend/app/api/endpoints/config.py
-    - v2/backend/app/api/endpoints/epg.py
-    - v2/backend/app/api/endpoints/tv_channels.py
-    - v2/backend/app/api/api.py
-    - v2/frontend/src/services/channelService.ts
-    - v2/frontend/src/services/configService.ts
-    - v2/frontend/src/hooks/useChannels.ts
+    - backend/app/schemas/channel.py
+    - backend/app/schemas/config.py
+    - backend/app/schemas/epg.py
+    - backend/app/api/endpoints/channels.py
+    - backend/app/api/endpoints/config.py
+    - backend/app/api/endpoints/epg.py
+    - backend/app/api/endpoints/tv_channels.py
+    - backend/app/api/api.py
+    - frontend/src/services/channelService.ts
+    - frontend/src/services/configService.ts
+    - frontend/src/hooks/useChannels.ts
 key-decisions:
   - "Retained `/channels` alias alongside `/acestream-channels` to preserve current parity-oriented test expectations while keeping v2 naming."
   - "Config mutation payloads were normalized to typed models while keeping compatibility aliases (`value`, `base_url`, `hours`)."
@@ -71,19 +71,19 @@ Each task was committed atomically:
 3. **Task 3: Add contract tests and frontend type alignment** - `549550c` (test)
 
 ## Files Created/Modified
-- `v2/backend/app/schemas/channel.py` - Added bulk/association/paginated contract schemas.
-- `v2/backend/app/schemas/config.py` - Added typed config mutation/update envelopes with compatibility helpers.
-- `v2/backend/app/schemas/epg.py` - Added typed mapping update payload schema.
-- `v2/backend/app/api/endpoints/config.py` - Replaced mixed parsing with typed body models and normalized mutation responses.
-- `v2/backend/app/api/endpoints/channels.py` - Applied typed bulk operation models and fixed static route precedence for bulk endpoints.
-- `v2/backend/app/api/endpoints/tv_channels.py` - Applied typed request/response models for list/association/batch/bulk-epg paths.
-- `v2/backend/app/api/endpoints/epg.py` - Switched mapping routes from dict payloads to typed models.
-- `v2/backend/app/api/api.py` - Added `/channels` compatibility alias for parity continuity.
-- `v2/frontend/src/services/channelService.ts` - Updated paginated return type and removed `any` for bulk operations.
-- `v2/frontend/src/services/configService.ts` - Normalized rescrape update payload shape.
-- `v2/frontend/src/hooks/useChannels.ts` - Updated query type to paginated response.
-- `v2/backend/tests/contracts/test_channel_contracts.py` - Added contract assertions for channel/TV-channel payloads.
-- `v2/backend/tests/contracts/test_config_contracts.py` - Added contract assertions for config payload compatibility and response shape.
+- `backend/app/schemas/channel.py` - Added bulk/association/paginated contract schemas.
+- `backend/app/schemas/config.py` - Added typed config mutation/update envelopes with compatibility helpers.
+- `backend/app/schemas/epg.py` - Added typed mapping update payload schema.
+- `backend/app/api/endpoints/config.py` - Replaced mixed parsing with typed body models and normalized mutation responses.
+- `backend/app/api/endpoints/channels.py` - Applied typed bulk operation models and fixed static route precedence for bulk endpoints.
+- `backend/app/api/endpoints/tv_channels.py` - Applied typed request/response models for list/association/batch/bulk-epg paths.
+- `backend/app/api/endpoints/epg.py` - Switched mapping routes from dict payloads to typed models.
+- `backend/app/api/api.py` - Added `/channels` compatibility alias for parity continuity.
+- `frontend/src/services/channelService.ts` - Updated paginated return type and removed `any` for bulk operations.
+- `frontend/src/services/configService.ts` - Normalized rescrape update payload shape.
+- `frontend/src/hooks/useChannels.ts` - Updated query type to paginated response.
+- `backend/tests/contracts/test_channel_contracts.py` - Added contract assertions for channel/TV-channel payloads.
+- `backend/tests/contracts/test_config_contracts.py` - Added contract assertions for config payload compatibility and response shape.
 
 ## Decisions Made
 - Retained both `/api/v1/acestream-channels/*` and `/api/v1/channels/*` route prefixes for compatibility while contract-hardening proceeds.
@@ -97,8 +97,8 @@ Each task was committed atomically:
 - **Found during:** Task 2
 - **Issue:** `/channels/bulk_edit` resolved to `/{acestreamchannel_id}` `PUT` route and returned 404.
 - **Fix:** Ensured static bulk routes are declared before dynamic `/{acestreamchannel_id}` handlers and verified behavior via new contract tests.
-- **Files modified:** `v2/backend/app/api/endpoints/channels.py`
-- **Verification:** `v2/backend/venv/bin/pytest -q v2/backend/tests/contracts/test_channel_contracts.py`
+- **Files modified:** `backend/app/api/endpoints/channels.py`
+- **Verification:** `backend/venv/bin/pytest -q backend/tests/contracts/test_channel_contracts.py`
 - **Committed in:** `b7726eb`
 
 ---
@@ -107,7 +107,7 @@ Each task was committed atomically:
 **Impact on plan:** Positive; deviation removed an existing endpoint-resolution defect while preserving intended API behavior.
 
 ## Issues Encountered
-- Local shell did not have `pytest` on PATH; all verification was run via `v2/backend/venv/bin/pytest`.
+- Local shell did not have `pytest` on PATH; all verification was run via `backend/venv/bin/pytest`.
 
 ## User Setup Required
 

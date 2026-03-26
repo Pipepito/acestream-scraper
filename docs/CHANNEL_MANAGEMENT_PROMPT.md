@@ -5,12 +5,12 @@ You are an expert migration and parity engineer. Your task is to ensure that the
 You must analyze and compare the following areas for channel management:
 
 - V1: `app/controllers`, `app/services`, `app/repositories`, `app/static/js`, `app/templates`
-- V2: `v2/backend/app/api/endpoints/channels.py`, `v2/backend/app/services/channel_service.py`, `v2/backend/app/repositories/channel_repository.py`, `v2/frontend/src/pages/Channels.tsx` (and related components/services)
+- V2: `backend/app/api/endpoints/channels.py`, `backend/app/services/channel_service.py`, `backend/app/repositories/channel_repository.py`, `frontend/src/pages/Channels.tsx` (and related components/services)
 
-**All new work, improvements, and fixes must be implemented exclusively in the V2 codebase:**
+**All new work, improvements, and fixes must be implemented exclusively in the canonical codebase:**
 
-- V2 backend: `v2/backend` (e.g., `app/api/endpoints/channels.py`, `app/services/channel_service.py`, `app/repositories/channel_repository.py`)
-- V2 frontend: `v2/frontend` (e.g., `src/pages/Channels.tsx` and related components/services)
+- V2 backend: `backend` (e.g., `app/api/endpoints/channels.py`, `app/services/channel_service.py`, `app/repositories/channel_repository.py`)
+- V2 frontend: `frontend` (e.g., `src/pages/Channels.tsx` and related components/services)
 
 For each feature, you must:
 
@@ -30,24 +30,24 @@ For each feature, you must:
 | Channel Status (online/offline)           | [service, JS, UI]              | [API, React, status endpoint] | ✅ Completed          | Improved real-time status in V2                                                       |
 | Channel Search/Filter                     | [basic, JS, UI]                | [advanced, API, React]        | ✅ Completed          | Improved in V2                                                                        |
 | Pagination                                | [none]                         | [API, React]                  | ✅ Completed          | Improved in V2                                                                        |
-| Bulk Operations                           | [batch modals, JS, controller] | [UI present, backend partial] | ⚠️ Partially Complete | Implement backend endpoints in `v2/backend` and wire up React UI in `v2/frontend`     |
+| Bulk Operations                           | [batch modals, JS, controller] | [UI present, backend partial] | ⚠️ Partially Complete | Implement backend endpoints in `backend` and wire up React UI in `frontend`           |
 | Channel-EPG Association                   | [controller, template]         | [API, React]                  | ✅ Completed          | Parity                                                                                |
 | Channel-TV Association                    | [controller, template]         | [API, React]                  | ✅ Completed          | Parity                                                                                |
 | Channel Logo/Metadata                     | [controller, template]         | [API, React]                  | ✅ Completed          | Parity                                                                                |
 | Channel Import (M3U/EPG)                  | [controller, JS, template]     | [API, React]                  | ✅ Completed          | Parity                                                                                |
-| Channel Export (CSV, M3U)                 | [controller, JS, template]     | [API (M3U only), React]       | ⚠️ Partially Complete | Implement CSV export in `v2/backend` and `v2/frontend`                                |
+| Channel Export (CSV, M3U)                 | [controller, JS, template]     | [API (M3U only), React]       | ⚠️ Partially Complete | Implement CSV export in `backend` and `frontend`                                      |
 | Channel Deletion                          | [controller, template, JS]     | [API, React]                  | ✅ Completed          | Parity                                                                                |
 | Channel Edit                              | [modal, template, JS]          | [React dialog/page, API]      | ✅ Completed          | Parity                                                                                |
 | Channel Source Tracking                   | [controller, template]         | [API, React]                  | ✅ Completed          | Parity                                                                                |
 | Channel Sorting                           | [limited, JS, template]        | [advanced, React, API]        | ✅ Completed          | Improved in V2                                                                        |
 | Channel Import Validation                 | [controller, JS]               | [API, React]                  | ✅ Completed          | Parity                                                                                |
 | Channel Error Handling                    | [controller, JS, template]     | [API, React]                  | ✅ Completed          | Parity                                                                                |
-| Channel Activity Log                      | [controller, template]         | [API, React]                  | ⚠️ Partially Complete | Enhance React activity log in `v2/frontend` to match V1 detail                        |
-| Advanced Filtering                        | [limited, JS]                  | [React, API]                  | ⚠️ Partially Complete | Add custom field filters to React UI/API in `v2/frontend` and `v2/backend`            |
-| Modals/Dialogs (Batch Assign, Quick Edit) | [template, JS]                 | [React UI]                    | ❌ Missing            | Implement missing modals/dialogs in `v2/frontend`                                     |
-| Inline Edit/Quick Actions                 | [template, JS]                 | [React UI]                    | ❌ Missing            | Add inline edit/quick actions to React table in `v2/frontend`                         |
-| Error Handling (UI/UX)                    | [template, JS]                 | [React UI]                    | ⚠️ Partially Complete | Ensure all error cases are handled gracefully in `v2/frontend`                        |
-| Test Coverage (Edge Cases)                | [unit, integration]            | [pytest, React tests]         | ⚠️ Partially Complete | Add more tests for bulk ops, import, error handling in `v2/backend` and `v2/frontend` |
+| Channel Activity Log                      | [controller, template]         | [API, React]                  | ⚠️ Partially Complete | Enhance React activity log in `frontend` to match V1 detail                           |
+| Advanced Filtering                        | [limited, JS]                  | [React, API]                  | ⚠️ Partially Complete | Add custom field filters to React UI/API in `frontend` and `backend`                  |
+| Modals/Dialogs (Batch Assign, Quick Edit) | [template, JS]                 | [React UI]                    | ❌ Missing            | Implement missing modals/dialogs in `frontend`                                        |
+| Inline Edit/Quick Actions                 | [template, JS]                 | [React UI]                    | ❌ Missing            | Add inline edit/quick actions to React table in `frontend`                            |
+| Error Handling (UI/UX)                    | [template, JS]                 | [React UI]                    | ⚠️ Partially Complete | Ensure all error cases are handled gracefully in `frontend`                           |
+| Test Coverage (Edge Cases)                | [unit, integration]            | [pytest, React tests]         | ⚠️ Partially Complete | Add more tests for bulk ops, import, error handling in `backend` and `frontend`       |
 
 # Output Format
 
@@ -57,14 +57,14 @@ For each feature, you must:
 
 # Actionable Requirements
 
-- Implement backend endpoints for bulk channel operations (edit, delete, activate) in `v2/backend` and connect to React UI in `v2/frontend`.
-- Add CSV export functionality for channels in `v2/backend` and `v2/frontend`.
-- Implement missing modals/dialogs in React for batch assign and quick edit in `v2/frontend`.
-- Enhance React activity log UI for channels to match V1 detail in `v2/frontend`.
-- Add advanced/custom field filtering to React UI and backend API in `v2/frontend` and `v2/backend`.
-- Add inline edit and quick actions to React channel table in `v2/frontend`.
-- Ensure all error cases are handled gracefully in React UI in `v2/frontend`.
-- Add more tests for edge cases, especially for bulk operations, import, and error handling in `v2/backend` and `v2/frontend`.
+- Implement backend endpoints for bulk channel operations (edit, delete, activate) in `backend` and connect to React UI in `frontend`.
+- Add CSV export functionality for channels in `backend` and `frontend`.
+- Implement missing modals/dialogs in React for batch assign and quick edit in `frontend`.
+- Enhance React activity log UI for channels to match V1 detail in `frontend`.
+- Add advanced/custom field filtering to React UI and backend API in `frontend` and `backend`.
+- Add inline edit and quick actions to React channel table in `frontend`.
+- Ensure all error cases are handled gracefully in React UI in `frontend`.
+- Add more tests for edge cases, especially for bulk operations, import, and error handling in `backend` and `frontend`.
 
 # Notes
 

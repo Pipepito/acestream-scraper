@@ -94,7 +94,7 @@ None - no external service configuration required.
 
 - `python3 scripts/phase_gates/phase1_gate_runner.py --profile quick --dry-run`
 - `python3 scripts/phase_gates/phase1_gate_runner.py --profile full --dry-run`
-- `v2/backend/venv/bin/python -m pytest -q v2/backend/tests/parity/test_scraper_parity.py v2/backend/tests/parity/test_output_parity.py`
+- `backend/venv/bin/python -m pytest -q backend/tests/parity/test_scraper_parity.py backend/tests/parity/test_output_parity.py`
 
 ---
 *Phase: 01-parity-baseline-and-safety-gates*  

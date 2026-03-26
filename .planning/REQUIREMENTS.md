@@ -7,31 +7,31 @@
 
 ### Migration and Cutover
 
-- [x] **MIGR-01**: Production runtime uses v2 stack only (`v2/backend` + `v2/frontend`) with no dependency on legacy root app runtime.
-- [x] **MIGR-02**: Root legacy deployment/build workflow paths are retired or redirected to v2 equivalents.
-- [x] **MIGR-03**: Functional parity checklist confirms all core user-facing capabilities currently used in root stack are available in v2.
+- [x] **MIGR-01**: Production runtime uses the canonical root stack only (`backend` + `frontend`) with no dependency on legacy root app runtime.
+- [x] **MIGR-02**: Legacy deployment/build workflow paths are retired or redirected to canonical root equivalents.
+- [x] **MIGR-03**: Functional parity checklist confirms all core user-facing capabilities from the rewrite are available in the canonical stack.
 - [x] **MIGR-04**: Big-bang cutover can be executed from a single release branch without dual-stack runtime overlap.
 
 ### Scraping and Data Integrity
 
-- [x] **SCRP-01**: Existing HTTP/M3U scraping behavior is preserved in v2 for currently working sources.
-- [x] **SCRP-02**: Existing ZeroNet scraping behavior is preserved in v2 for currently working sources.
+- [x] **SCRP-01**: Existing HTTP/M3U scraping behavior is preserved in the canonical stack for currently working sources.
+- [x] **SCRP-02**: Existing ZeroNet scraping behavior is preserved in the canonical stack for currently working sources.
 - [x] **SCRP-03**: Scrape runs persist channels and metadata without regression in core fields (`id`, `name`, `group`, `logo`, `tvg_id`, `tvg_name`, source linkage).
 - [x] **SCRP-04**: Playlist and EPG generation workflows produce valid outputs for representative datasets.
 
 ### Backend Architecture and API
 
-- [x] **API-01**: v2 API contracts are explicit, typed, and internally consistent (no ambiguous payload shapes across endpoint/service layers).
+- [x] **API-01**: API contracts in the canonical stack are explicit, typed, and internally consistent (no ambiguous payload shapes across endpoint/service layers).
 - [x] **API-02**: Backend modules are reorganized to enforce clear boundaries (endpoint -> service -> repository/model responsibilities).
 - [x] **API-03**: Core backend paths include robust error handling/logging for operational failures (scrape, EPG refresh, status checks, tasks).
 - [x] **API-04**: Database access patterns for high-churn operations are optimized to reduce unnecessary per-record overhead.
 
 ### Frontend UX and Usability
 
-- [x] **UI-01**: v2 frontend delivers improved visual design quality and clearer information hierarchy on core operational pages.
+- [x] **UI-01**: The canonical frontend delivers improved visual design quality and clearer information hierarchy on core operational pages.
 - [x] **UI-02**: Core workflows (channels, scraping URLs, EPG, config, status) are faster to complete and require fewer friction points than current state.
 - [x] **UI-03**: Frontend is responsive and usable across desktop and constrained display contexts.
-- [x] **UI-04**: Frontend integrates cleanly with stabilized v2 API contracts without ad-hoc runtime shape workarounds.
+- [x] **UI-04**: Frontend integrates cleanly with stabilized API contracts without ad-hoc runtime shape workarounds.
 
 ### Compatibility and Deployment
 
@@ -63,7 +63,7 @@ Explicitly excluded from this migration milestone.
 |---------|--------|
 | Legacy API backward compatibility guarantees | v2 is intentionally allowed to break compatibility for structural cleanup |
 | Legacy UI route/component parity | UX improvements may require different flows and layouts |
-| Permanent dual maintenance of root + v2 stacks | Contradicts single-source v2 ownership goal |
+| Permanent dual maintenance of legacy + canonical stacks | Contradicts single-source ownership goal |
 | Full architectural rewrite of scraper internals | Scraper behavior is a protected baseline during migration |
 
 ## Traceability

@@ -2,7 +2,7 @@
 
 ## What This Is
 
-This project replaces the legacy root application with a consolidated v2 platform (`v2/backend` + `v2/frontend`) as the single source of truth. The new version can break API/UI compatibility with the old stack, but it must preserve the current working scraping behavior and all core product capabilities. The goal is a cleaner architecture, better UI/UX, stronger reliability, and broader runtime compatibility (including ARM targets used by Android TV-class devices).
+This project replaced the legacy root application with a consolidated platform (`backend` + `frontend`) as the single source of truth. The new version can break API/UI compatibility with the old stack, but it must preserve the current working scraping behavior and all core product capabilities. The goal is a cleaner architecture, better UI/UX, stronger reliability, and broader runtime compatibility (including ARM targets used by Android TV-class devices).
 
 ## Core Value
 
@@ -13,13 +13,13 @@ Ship a fully v2-based Acestream Scraper that keeps scraper reliability intact wh
 ### Validated
 
 - ✓ Scraping service can extract channels from regular HTTP/M3U and ZeroNet sources and persist results — existing
-- ✓ Channel, URL, TV channel, playlist, EPG, search, and status workflows exist in v2 backend/frontend — existing
-- ✓ System integrations for Acestream status and WARP controls are implemented in v2 — existing
-- ✓ Dockerized runtime and CI/CD patterns exist (currently split across legacy root and v2 paths) — existing
+- ✓ Channel, URL, TV channel, playlist, EPG, search, and status workflows exist in canonical root backend/frontend paths — existing
+- ✓ System integrations for Acestream status and WARP controls are implemented in the canonical stack — existing
+- ✓ Dockerized runtime and CI/CD patterns exist in canonical root paths — existing
 
 ### Active
 
-- [ ] Fully replace legacy root runtime, workflows, and docs with a v2-only production path
+- [ ] Continue retiring remaining legacy-root references in favor of the canonical root production path
 - [ ] Preserve scraper service logic/behavior parity while refactoring surrounding architecture
 - [ ] Reorganize backend structure for maintainability, reliability, and lower bug surface
 - [ ] Refactor and modernize frontend UX (navigation clarity, responsiveness, visual quality, and usability)
@@ -30,18 +30,18 @@ Ship a fully v2-based Acestream Scraper that keeps scraper reliability intact wh
 
 ### Out of Scope
 
-- Backward API compatibility with legacy root endpoints — v2 is allowed to define a new API contract
-- Frontend route/component parity with legacy UI — v2 can ship improved UX and changed flows
-- Long-term maintenance of duplicate root and v2 stacks — objective is single-stack v2 ownership
+- Backward API compatibility with legacy root endpoints — the consolidated stack is allowed to define a new API contract
+- Frontend route/component parity with legacy UI — the consolidated stack can ship improved UX and changed flows
+- Long-term maintenance of duplicate legacy and canonical stacks — objective is single-stack ownership
 
 ## Context
 
-The repository currently contains both a legacy root stack and a v2 implementation, with migration artifacts in `docs/migration/` documenting prior rewrite work. The scraping logic is considered stable and valuable, while surrounding architecture/UI quality has degraded due to mixed paths and accumulated technical debt. This initiative is intentionally big-bang because delivery occurs on a separate branch before merge, avoiding partial production exposure.
+The repository now uses canonical root `backend/` and `frontend/` paths, while `docs/migration/` and `.planning/phases/` retain historical migration artifacts from the rewrite. The scraping logic is considered stable and valuable, while surrounding architecture/UI quality previously degraded due to mixed paths and accumulated technical debt. The migration strategy was intentionally big-bang to avoid partial production exposure during cutover.
 
 ## Constraints
 
 - **Migration Strategy**: Big-bang cutover — users remain on current version until PR merge
-- **Compatibility**: API/UI backward compatibility is not required in v2
+- **Compatibility**: API/UI backward compatibility is not required in the consolidated stack
 - **Scraper Integrity**: Scraping logic should remain behaviorally equivalent unless a fix is required
 - **Platform**: Must support ARM v7 and ARM64 container builds; prioritize Android TV-class deployment compatibility
 - **Scope Discipline**: Root legacy stack should be retired/replaced rather than co-maintained
@@ -50,7 +50,7 @@ The repository currently contains both a legacy root stack and a v2 implementati
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Make v2 the only application stack | Current dual-stack layout creates drift and maintenance overhead | — Pending |
+| Make the canonical root stack the only application stack | Dual-stack layout created drift and maintenance overhead | Complete |
 | Allow API and frontend breaking changes | Faster cleanup and better architecture than preserving legacy contracts | — Pending |
 | Use big-bang cutover on branch | Safe migration without impacting current users pre-merge | — Pending |
 | Preserve core scraper logic behavior | Existing scraping behavior is stable and business-critical | — Pending |

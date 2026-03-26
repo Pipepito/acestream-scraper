@@ -18,17 +18,17 @@ tech-stack:
     - Repository-centric stats/query encapsulation
 key-files:
   created:
-    - v2/backend/app/api/dependencies.py
-    - v2/backend/app/repositories/stats_repository.py
-    - v2/backend/tests/architecture/test_layer_boundaries.py
+    - backend/app/api/dependencies.py
+    - backend/app/repositories/stats_repository.py
+    - backend/tests/architecture/test_layer_boundaries.py
   modified:
-    - v2/backend/app/repositories/url_repository.py
-    - v2/backend/app/services/url_service.py
-    - v2/backend/app/services/scraper_service.py
-    - v2/backend/app/services/stats_service.py
-    - v2/backend/app/api/endpoints/urls.py
-    - v2/backend/app/api/endpoints/scrapers.py
-    - v2/backend/app/api/endpoints/health.py
+    - backend/app/repositories/url_repository.py
+    - backend/app/services/url_service.py
+    - backend/app/services/scraper_service.py
+    - backend/app/services/stats_service.py
+    - backend/app/api/endpoints/urls.py
+    - backend/app/api/endpoints/scrapers.py
+    - backend/app/api/endpoints/health.py
 key-decisions:
   - "Introduced explicit API dependency providers to avoid hand-constructed services inside endpoints."
   - "Moved URL refresh and stats rollup query ownership to repository layer."
@@ -68,16 +68,16 @@ Each task was committed atomically:
 3. **Task 3: Add architecture guard tests** - `db4fce7` (test)
 
 ## Files Created/Modified
-- `v2/backend/app/api/dependencies.py` - Shared service dependency providers.
-- `v2/backend/app/repositories/stats_repository.py` - Stats and health rollup query ownership.
-- `v2/backend/app/repositories/url_repository.py` - Added enabled-url and refresh operations.
-- `v2/backend/app/services/url_service.py` - Repository-backed refresh orchestration.
-- `v2/backend/app/services/scraper_service.py` - URL CRUD now routed through repository abstraction.
-- `v2/backend/app/services/stats_service.py` - Stats/health payloads built from repository data.
-- `v2/backend/app/api/endpoints/urls.py` - Uses injected `URLService`.
-- `v2/backend/app/api/endpoints/scrapers.py` - Uses injected `ScraperService` and removes direct endpoint ORM access.
-- `v2/backend/app/api/endpoints/health.py` - Uses injected `StatsService` for `/stats` payload.
-- `v2/backend/tests/architecture/test_layer_boundaries.py` - Layer-boundary guard assertions.
+- `backend/app/api/dependencies.py` - Shared service dependency providers.
+- `backend/app/repositories/stats_repository.py` - Stats and health rollup query ownership.
+- `backend/app/repositories/url_repository.py` - Added enabled-url and refresh operations.
+- `backend/app/services/url_service.py` - Repository-backed refresh orchestration.
+- `backend/app/services/scraper_service.py` - URL CRUD now routed through repository abstraction.
+- `backend/app/services/stats_service.py` - Stats/health payloads built from repository data.
+- `backend/app/api/endpoints/urls.py` - Uses injected `URLService`.
+- `backend/app/api/endpoints/scrapers.py` - Uses injected `ScraperService` and removes direct endpoint ORM access.
+- `backend/app/api/endpoints/health.py` - Uses injected `StatsService` for `/stats` payload.
+- `backend/tests/architecture/test_layer_boundaries.py` - Layer-boundary guard assertions.
 
 ## Decisions Made
 - Kept boundary enforcement scoped to URL/scraper/health stats domains in this plan to reduce migration risk while establishing a reusable pattern.

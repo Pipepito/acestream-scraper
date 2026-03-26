@@ -51,8 +51,8 @@ completed: 2026-02-27
 
 ## Verification
 
-- `PYTHONPATH=backend v2/backend/venv/bin/pytest -q backend/tests/test_background_tasks.py backend/tests/test_task_service.py` passed.
-- `PYTHONPATH=backend v2/backend/venv/bin/pytest -q backend/tests/test_warp.py backend/tests/test_error_contracts.py` passed.
+- `PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/test_background_tasks.py backend/tests/test_task_service.py` passed.
+- `PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/test_warp.py backend/tests/test_error_contracts.py` passed.
 - `! rg -n "@status_router.get\\(\"/api/v1/background-tasks/status\"\\)" backend/main.py` passed.
 - `rg -n "scheduler|background task|recovery|diagnostic" docs/ops/reliability-runbook.md` passed.
 

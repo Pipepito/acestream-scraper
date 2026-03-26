@@ -4,38 +4,25 @@ This document provides guidelines and examples for using AI assistants like GitH
 
 ## Folder Structure and Organization
 
-The v2 application is structured to be AI-friendly with clear separation of concerns:
+The canonical application is structured to be AI-friendly with clear separation of concerns:
 
 ```
-v2/
+backend/
 ├── app/                    # FastAPI application
 │   ├── api/                # API routers
-│   │   ├── channels.py     # Channel APIs
-│   │   ├── playlists.py    # Playlist APIs
-│   │   └── ...             # Other API modules
-│   ├── core/               # Core functionality
-│   │   ├── config.py       # Application configuration
-│   │   ├── security.py     # Security utilities
-│   │   └── dependencies.py # FastAPI dependencies
-│   ├── dtos/               # Pydantic models for API
-│   │   ├── channel.py      # Channel DTOs
-│   │   ├── playlist.py     # Playlist DTOs
-│   │   └── ...             # Other DTO modules
+│   ├── config/             # Application configuration
 │   ├── models/             # SQLAlchemy models
-│   │   ├── acestream_channel.py
-│   │   ├── tv_channel.py
-│   │   └── ...             # Other model modules
 │   ├── repositories/       # Data access layer
-│   │   ├── base.py         # Base repository class
-│   │   ├── channel_repo.py # Channel repository
-│   │   └── ...             # Other repositories
+│   ├── schemas/            # Pydantic models for API
+│   ├── scrapers/           # Scraper implementations
 │   ├── services/           # Business logic
-│   │   ├── channel_service.py
-│   │   ├── playlist_service.py
-│   │   └── ...             # Other service modules
-│   └── main.py             # Application entry point
-├── frontend/               # React application
-└── tests/                  # Test suite
+│   └── tasks/              # Scheduled/background task code
+├── main.py                 # Application entry point
+└── tests/                  # Backend test suite
+
+frontend/
+├── src/                    # React application source
+└── public/                 # Static assets
 ```
 
 ## AI Prompt Examples

@@ -54,14 +54,14 @@ _Note: Batch assign and quick edit modals/dialogs are now implemented in the V2 
 
 ## 4. Migration/Implementation TODO
 
-- [x] Complete backend wiring for all bulk operations (edit, delete, activate) in `v2/backend` and connect to React UI in `v2/frontend`
-- [x] Port CSV import/export for channels in `v2/backend` and `v2/frontend`
-- [x] Add advanced/custom field filtering options to React UI and backend API in `v2/frontend` and `v2/backend`
-- [x] Re-implement missing modals/dialogs (batch assign, quick edit) in `v2/frontend`
-- [x] Enhance activity log UI for channels to match V1 detail in `v2/frontend`
-- [x] Add inline edit/quick actions to React table in `v2/frontend`
-- [x] Ensure all error cases are handled gracefully in React UI in `v2/frontend`
-- [x] Add more tests for edge cases (bulk, import, error handling) in `v2/backend` and `v2/frontend`
+- [x] Complete backend wiring for all bulk operations (edit, delete, activate) in `backend` and connect to React UI in `frontend`
+- [x] Port CSV import/export for channels in `backend` and `frontend`
+- [x] Add advanced/custom field filtering options to React UI and backend API in `frontend` and `backend`
+- [x] Re-implement missing modals/dialogs (batch assign, quick edit) in `frontend`
+- [x] Enhance activity log UI for channels to match V1 detail in `frontend`
+- [x] Add inline edit/quick actions to React table in `frontend`
+- [x] Ensure all error cases are handled gracefully in React UI in `frontend`
+- [x] Add more tests for edge cases (bulk, import, error handling) in `backend` and `frontend`
 
 ---
 

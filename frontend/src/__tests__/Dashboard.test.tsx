@@ -1,8 +1,10 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { ThemeProvider } from '@mui/material/styles';
 import Dashboard from '../pages/Dashboard';
 import * as dashboardHooks from '../hooks/useDashboard';
 import { MemoryRouter } from 'react-router-dom';
+import { createAppTheme, type ThemeMode } from '../theme';
 
 // Mock apiClient to avoid axios import issues
 jest.mock('../services/apiClient', () => ({
@@ -39,12 +41,17 @@ beforeEach(() => {
   (dashboardHooks.useUpdateDashboardConfig as jest.Mock).mockReturnValue({ mutate: jest.fn() });
 });
 
-const renderDashboard = () =>
-  render(
-    <MemoryRouter>
-      <Dashboard />
-    </MemoryRouter>
+const renderDashboard = (mode: ThemeMode = 'light') => {
+  const theme = createAppTheme(mode);
+
+  return render(
+    <ThemeProvider theme={theme}>
+      <MemoryRouter>
+        <Dashboard />
+      </MemoryRouter>
+    </ThemeProvider>
   );
+};
 
 describe('Dashboard UI', () => {
   it('renders activity, background tasks, streams, and warp status', async () => {
@@ -78,6 +85,18 @@ describe('Dashboard UI', () => {
 
     expect(screen.getByText('Backend item shape')).toBeInTheDocument();
   });
+
+  it.each<ThemeMode>(['light', 'dark'])(
+    'renders the shared page header and key sections in %s mode',
+    (mode) => {
+      renderDashboard(mode);
+
+      expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toHaveClass('MuiTypography-pageTitle');
+      expect(screen.getByText('Controls')).toBeInTheDocument();
+      expect(screen.getByText('Recent Activity')).toBeInTheDocument();
+      expect(screen.getAllByText('Background Tasks').length).toBeGreaterThan(0);
+    }
+  );
 
   it('handles loading state', () => {
     (dashboardHooks.useDashboardConfig as jest.Mock).mockReturnValue({ data: undefined, isLoading: true });

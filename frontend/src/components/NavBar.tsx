@@ -15,6 +15,7 @@ import {
   Divider,
   Chip,
 } from '@mui/material';
+import { alpha, useTheme } from '@mui/material/styles';
 import MenuIcon from '@mui/icons-material/Menu';
 import { getNavTitle, navItems } from './layout/navItems';
 
@@ -25,6 +26,19 @@ interface NavBarProps {
 const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
   const [mobileOpen, setMobileOpen] = useState<boolean>(false);
   const location = useLocation();
+  const theme = useTheme();
+
+  const selectedStyles = {
+    bgcolor: theme.appTokens.action.secondaryBg,
+    color: theme.appTokens.text.primary,
+    boxShadow: `inset 0 0 0 1px ${theme.appTokens.surface.border}`,
+    '& .MuiListItemIcon-root': {
+      color: theme.appTokens.action.secondaryText,
+    },
+    '&:hover': {
+      bgcolor: alpha(theme.appTokens.action.secondaryBg, 0.88),
+    },
+  };
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -34,16 +48,33 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
   const system = navItems.filter((item) => item.section === 'System');
 
   const drawer = (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Box
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        bgcolor: theme.appTokens.surface.panel,
+        color: theme.appTokens.text.primary,
+      }}
+    >
       <Toolbar>
-        <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700 }}>
+        <Typography variant="sectionTitle" noWrap component="div" sx={{ color: theme.appTokens.text.primary }}>
           Acestream Scraper
         </Typography>
       </Toolbar>
-      <Divider />
+      <Divider sx={{ borderColor: theme.appTokens.layout.divider }} />
       <List sx={{ py: 1 }}>
         <ListItem>
-          <Chip label="Operations" size="small" variant="outlined" />
+          <Chip
+            label="Operations"
+            size="small"
+            variant="outlined"
+            sx={{
+              borderColor: theme.appTokens.surface.border,
+              bgcolor: theme.appTokens.surface.muted,
+              color: theme.appTokens.text.secondary,
+            }}
+          />
         </ListItem>
         {operations.map((item) => {
           const isSelected =
@@ -60,9 +91,16 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
                 sx={{
                   mx: 1,
                   borderRadius: 2,
+                  color: theme.appTokens.text.secondary,
+                  '& .MuiListItemIcon-root': {
+                    minWidth: 40,
+                    color: theme.appTokens.text.muted,
+                  },
+                  '&:hover': {
+                    bgcolor: theme.appTokens.surface.muted,
+                  },
                   '&.Mui-selected': {
-                    bgcolor: 'rgba(15, 118, 110, 0.14)',
-                    '&:hover': { bgcolor: 'rgba(15, 118, 110, 0.22)' },
+                    ...selectedStyles,
                   },
                 }}
               >
@@ -73,10 +111,19 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
           );
         })}
       </List>
-      <Divider sx={{ mt: 1 }} />
+      <Divider sx={{ mt: 1, borderColor: theme.appTokens.layout.divider }} />
       <List sx={{ py: 1, mt: 'auto' }}>
         <ListItem>
-          <Chip label="System" size="small" variant="outlined" />
+          <Chip
+            label="System"
+            size="small"
+            variant="outlined"
+            sx={{
+              borderColor: theme.appTokens.surface.border,
+              bgcolor: theme.appTokens.surface.muted,
+              color: theme.appTokens.text.secondary,
+            }}
+          />
         </ListItem>
         {system.map((item) => {
           const isSelected =
@@ -92,9 +139,16 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
                 sx={{
                   mx: 1,
                   borderRadius: 2,
+                  color: theme.appTokens.text.secondary,
+                  '& .MuiListItemIcon-root': {
+                    minWidth: 40,
+                    color: theme.appTokens.text.muted,
+                  },
+                  '&:hover': {
+                    bgcolor: theme.appTokens.surface.muted,
+                  },
                   '&.Mui-selected': {
-                    bgcolor: 'rgba(15, 118, 110, 0.14)',
-                    '&:hover': { bgcolor: 'rgba(15, 118, 110, 0.22)' },
+                    ...selectedStyles,
                   },
                 }}
               >
@@ -147,7 +201,12 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
           }}
           sx={{
             display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: drawerWidth,
+              borderRightColor: theme.appTokens.layout.divider,
+              backgroundColor: theme.appTokens.surface.panel,
+            },
           }}
         >
           {drawer}
@@ -160,8 +219,8 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
               width: drawerWidth,
-              borderRightColor: 'divider',
-              backgroundColor: 'background.paper',
+              borderRightColor: theme.appTokens.layout.divider,
+              backgroundColor: theme.appTokens.surface.panel,
             },
           }}
           open

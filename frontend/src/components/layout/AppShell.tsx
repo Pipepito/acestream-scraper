@@ -14,12 +14,14 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const layout = getShellLayout(theme);
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: theme.appTokens.surface.canvas }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', minWidth: 0, bgcolor: theme.appTokens.surface.canvas }}>
       <NavBar drawerWidth={layout.navWidth} />
       <Box
         component="main"
         sx={{
           flexGrow: 1,
+          minWidth: 0,
+          overflowX: 'hidden',
           width: { sm: `calc(100% - ${layout.navWidth}px)` },
           px: layout.pagePaddingX,
           py: layout.pagePaddingY,
@@ -29,7 +31,7 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
         }}
       >
         <Toolbar />
-        <Box sx={{ maxWidth: layout.contentMaxWidth, mr: 'auto', width: '100%' }}>{children}</Box>
+        <Box sx={{ maxWidth: layout.contentMaxWidth, mr: 'auto', width: '100%', minWidth: 0 }}>{children}</Box>
       </Box>
     </Box>
   );

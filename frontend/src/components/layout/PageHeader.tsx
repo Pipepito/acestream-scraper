@@ -24,8 +24,8 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, actions }) => 
         mb: theme.appTokens.layout.pageGap,
       }}
     >
-      <Box sx={{ minWidth: 0, flex: '1 1 auto' }}>
-        <Typography variant="pageTitle" component="h1" color="text.primary">
+      <Box data-testid="page-header-copy" sx={{ minWidth: 0, flex: '1 1 auto', overflowWrap: 'break-word' }}>
+        <Typography variant="pageTitle" component="h1" color="text.primary" sx={{ overflowWrap: 'break-word' }}>
           {title}
         </Typography>
         {subtitle ? (
@@ -47,6 +47,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, actions }) => 
             justifyContent: { xs: 'flex-start', md: 'flex-end' },
             alignItems: 'center',
             gap: 1,
+            minWidth: 0,
             width: { xs: '100%', md: 'auto' },
             flexShrink: 0,
             alignSelf: { xs: 'stretch', md: 'flex-start' },

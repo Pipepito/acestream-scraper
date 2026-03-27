@@ -3,6 +3,8 @@
  */
 import axios, { AxiosInstance } from 'axios';
 
+import { ApiError, normalizeApiError } from './apiErrors';
+
 /**
  * Base API configuration
  */
@@ -19,35 +21,14 @@ const apiClient: AxiosInstance = axios.create({
 });
 
 /**
- * Generic API error class
- */
-export class ApiError extends Error {
-  status: number;
-  data?: any;
-
-  constructor(message: string, status: number, data?: any) {
-    super(message);
-    this.status = status;
-    this.data = data;
-    this.name = 'ApiError';
-  }
-}
-
-/**
  * Response interceptor for handling errors
  */
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response) {
-      throw new ApiError(
-        error.response.data.detail || 'An error occurred',
-        error.response.status,
-        error.response.data
-      );
-    }
-    throw new ApiError('Network Error', 0);
+    throw normalizeApiError(error);
   }
 );
 
+export { ApiError };
 export default apiClient;

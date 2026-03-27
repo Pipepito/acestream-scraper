@@ -14,6 +14,7 @@ import {
   UpdateAcestreamChannelDTO,
   acestreamChannelService,
 } from '../services/channelService';
+import { ApiError, getApiErrorKindFromStatus } from '../services/apiErrors';
 import { getErrorMessage } from '../utils/errorUtils';
 import BulkOperations from '../components/BulkOperations';
 import AdvancedSearch, { AdvancedSearchFilters } from '../components/AdvancedSearch';
@@ -23,8 +24,13 @@ import AssignTVChannelDialog from '../components/AssignTVChannelDialog';
 import { useAllTVChannels } from '../hooks/useTVChannels';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
+import InlineStatusNotice from '../components/state/InlineStatusNotice';
 
 type EditableChannel = Partial<AcestreamChannel> & { id?: string };
+type SnackbarNotice = {
+  message: string;
+  error?: unknown;
+};
 
 function mapFiltersToAdvanced(filters: AcestreamChannelFilters): AdvancedSearchFilters {
   return {
@@ -60,7 +66,7 @@ const AcestreamChannels: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [checkingAll, setCheckingAll] = useState(false);
-  const [checkAllResult, setCheckAllResult] = useState<string | null>(null);
+  const [checkAllResult, setCheckAllResult] = useState<SnackbarNotice | null>(null);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [batchAssignOpen, setBatchAssignOpen] = useState(false);
   const [quickEditOpen, setQuickEditOpen] = useState(false);
@@ -166,15 +172,23 @@ const AcestreamChannels: React.FC = () => {
   };
 
   const handleDelete = useCallback(
-    (id: string) => {
-      if (window.confirm('Are you sure you want to delete this channel?')) {
-        deleteChannel.mutate(id, {
-          onError: (err) => {
-            setError(`Failed to delete channel: ${getErrorMessage(err)}`);
-          },
-        });
-      }
-    },
+    (id: string) =>
+      new Promise<boolean>((resolve, reject) => {
+        if (window.confirm('Are you sure you want to delete this channel?')) {
+          deleteChannel.mutate(id, {
+            onSuccess: () => {
+              resolve(true);
+            },
+            onError: (err) => {
+              setError(`Failed to delete channel: ${getErrorMessage(err)}`);
+              reject(err);
+            },
+          });
+          return;
+        }
+
+        resolve(false);
+      }),
     [deleteChannel]
   );
 
@@ -285,16 +299,28 @@ const AcestreamChannels: React.FC = () => {
         body: JSON.stringify({}),
       });
       if (!response.ok) {
-        throw new Error('Failed to check all statuses');
+        const payload = (await response.json()) as { error?: { message?: string }; detail?: string };
+        const error = new ApiError({
+          message: payload.error?.message ?? payload.detail ?? response.statusText ?? 'Request failed',
+          status: response.status,
+          kind: getApiErrorKindFromStatus(response.status),
+          canRetry: response.status >= 500 || response.status === 429,
+          data: payload,
+        });
+
+        setCheckAllResult({ message: getErrorMessage(error), error });
+        return;
       }
       const data = (await response.json()) as { message?: string };
-      setCheckAllResult(data.message || 'Acestream status check task triggered successfully.');
+      setCheckAllResult({ message: data.message || 'Acestream status check task triggered successfully.' });
     } catch (err) {
-      setCheckAllResult(`Failed to check all statuses: ${getErrorMessage(err)}`);
+      setCheckAllResult({ message: getErrorMessage(err), error: err });
     } finally {
       setCheckingAll(false);
     }
   };
+
+  const checkAllSeverity = checkAllResult?.error ? 'error' : 'success';
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -326,15 +352,24 @@ const AcestreamChannels: React.FC = () => {
       ) : null}
 
       {fetchError ? (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {getErrorMessage(fetchError)}
-        </Alert>
+        <Box sx={{ mb: 2 }}>
+          <InlineStatusNotice
+            severity="error"
+            title="Unable to load channels"
+            description={getErrorMessage(fetchError)}
+            action={
+              <Button variant="outlined" onClick={() => refetch()}>
+                Try again
+              </Button>
+            }
+          />
+        </Box>
       ) : null}
 
       {groupError ? (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          Failed to load groups: {groupError}
-        </Alert>
+        <Box sx={{ mb: 2 }}>
+          <InlineStatusNotice severity="error" title="Unable to load groups" description={groupError} />
+        </Box>
       ) : null}
 
       <ContentSection title="Filters" description="Use table and field filters to narrow channels quickly.">
@@ -458,8 +493,8 @@ const AcestreamChannels: React.FC = () => {
         onClose={() => setCheckAllResult(null)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert onClose={() => setCheckAllResult(null)} severity={checkAllResult?.startsWith('Failed') ? 'error' : 'success'} sx={{ width: '100%' }}>
-          {checkAllResult}
+        <Alert onClose={() => setCheckAllResult(null)} severity={checkAllSeverity} sx={{ width: '100%' }}>
+          {checkAllResult?.message}
         </Alert>
       </Snackbar>
     </Box>

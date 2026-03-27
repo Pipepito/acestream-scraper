@@ -10,15 +10,38 @@ import {
 } from '@mui/x-data-grid';
 import { Chip, Box, IconButton, Tooltip, Snackbar, Alert, useMediaQuery, useTheme } from '@mui/material';
 import { CheckCircle, Cancel, Refresh, Edit, Delete, PowerSettingsNew, ContentCopy } from '@mui/icons-material';
+import EmptyState from './state/EmptyState';
 import { AcestreamChannel, AcestreamChannelFilters, acestreamChannelService } from '../services/channelService';
-import { formatDate } from '../utils/errorUtils';
+import { getErrorMessage } from '../utils/errorUtils';
+import { formatDateTime } from '../utils/formatters';
+
+const CLIPBOARD_FAILURE_MESSAGE = 'Unable to copy the Acestream ID right now.';
+const INLINE_SAVE_FAILURE_MESSAGE = 'The channel could not be updated. Try again.';
+
+const ChannelTableEmptyOverlay = () => (
+  <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%', py: 3, px: 2 }}>
+    <EmptyState
+      title="No channels to show"
+      description="Adjust your filters or add a channel to start monitoring stream health."
+    />
+  </Box>
+);
+
+const ChannelTableNoResultsOverlay = () => (
+  <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%', py: 3, px: 2 }}>
+    <EmptyState
+      title="No channels match the current filters"
+      description="Adjust or clear the filters to see more channels."
+    />
+  </Box>
+);
 
 interface ChannelTableProps {
   channels: AcestreamChannel[];
   loading: boolean;
   onCheckStatus: (id: string) => void;
   onEdit: (channel: AcestreamChannel) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: string) => Promise<boolean>;
   checkingStatus: Record<string, boolean>;
   filters: AcestreamChannelFilters;
   onFilterChange: (filters: AcestreamChannelFilters) => void;
@@ -65,15 +88,19 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
         filterable: true,
         renderCell: (params: GridRenderCellParams<AcestreamChannel>) => (
           <Box sx={{ display: 'flex', alignItems: 'center', fontFamily: 'monospace', fontSize: 12.5, width: '100%' }}>
-            <Box sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{params.row.id}</Box>
+            <Box sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{params.row.id}</Box>
             <Tooltip title="Copy ID">
               <IconButton
                 size="small"
                 aria-label={`copy acestream id ${params.row.id}`}
                 sx={{ ml: 0.5 }}
-                onClick={(event) => {
+                onClick={async (event) => {
                   event.stopPropagation();
-                  void navigator.clipboard.writeText(params.row.id);
+                  try {
+                    await navigator.clipboard.writeText(params.row.id);
+                  } catch {
+                    setError(CLIPBOARD_FAILURE_MESSAGE);
+                  }
                 }}
               >
                 <ContentCopy fontSize="inherit" />
@@ -97,7 +124,13 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
         sortable: false,
         filterable: false,
         renderCell: (params: GridRenderCellParams<AcestreamChannel>) => (
-          <Box display="flex" gap={0.25} role="group" aria-label={`Acestream channel actions for ${params.row.name}`}>
+          <Box
+            display="flex"
+            gap={0.25}
+            role="group"
+            aria-label={`Acestream channel actions for ${params.row.name}`}
+            sx={{ flexWrap: 'wrap', alignItems: 'center', width: '100%', minWidth: 0 }}
+          >
             <Tooltip title="Edit">
               <IconButton
                 size="small"
@@ -115,8 +148,14 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
                 size="small"
                 aria-label={`delete channel ${params.row.name}`}
                 onClick={async () => {
-                  await onDelete(params.row.id);
-                  onActionComplete?.();
+                  try {
+                    const deleted = await onDelete(params.row.id);
+                    if (deleted) {
+                      onActionComplete?.();
+                    }
+                  } catch {
+                    // Parent-level delete handlers surface the failure state.
+                  }
                 }}
               >
                 <Delete fontSize="small" />
@@ -133,8 +172,8 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
                       is_active: !params.row.is_active,
                     });
                     onActionComplete?.();
-                  } catch (_err) {
-                    setError('Failed to update channel status');
+                  } catch (err) {
+                    setError(getErrorMessage(err));
                   }
                 }}
               >
@@ -191,9 +230,9 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
             {params.row.is_online === null ? (
               <Chip label="Unknown" size="small" color="default" />
             ) : params.row.is_online ? (
-              <CheckCircle color="success" />
+              <Chip icon={<CheckCircle />} label="Online" size="small" color="success" />
             ) : (
-              <Cancel color="error" />
+              <Chip icon={<Cancel />} label="Offline" size="small" color="error" />
             )}
           </Box>
         ),
@@ -202,13 +241,13 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
         field: 'last_checked',
         headerName: 'Last Checked',
         width: 150,
-        valueGetter: (params: GridValueGetterParams<AcestreamChannel>) => formatDate(params.row.last_checked),
+        valueGetter: (params: GridValueGetterParams<AcestreamChannel>) => formatDateTime(params.row.last_checked),
       },
       {
         field: 'last_seen',
         headerName: 'Last Scraped',
         width: 150,
-        valueGetter: (params: GridValueGetterParams<AcestreamChannel>) => formatDate(params.row.last_seen),
+        valueGetter: (params: GridValueGetterParams<AcestreamChannel>) => formatDateTime(params.row.last_seen),
       },
     ],
     [checkingStatus, extraActions, isMobile, onActionComplete, onCheckStatus, onDelete, onEdit]
@@ -220,10 +259,18 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
     let hasIsActive = false;
 
     model.items.forEach((item) => {
-      if (item.field === 'name' && item.value) {
-        newFilters.search = String(item.value);
-      } else if (item.field === 'group' && item.value) {
-        newFilters.group = String(item.value);
+      if (item.field === 'name') {
+        if (item.value !== undefined && item.value !== '') {
+          newFilters.search = String(item.value);
+        } else {
+          delete newFilters.search;
+        }
+      } else if (item.field === 'group') {
+        if (item.value !== undefined && item.value !== '') {
+          newFilters.group = String(item.value);
+        } else {
+          delete newFilters.group;
+        }
       } else if (item.field === 'is_active') {
         if (item.value === true || item.value === 'true') {
           newFilters.is_active = true;
@@ -231,9 +278,16 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
         } else if (item.value === false || item.value === 'false') {
           newFilters.is_active = false;
           hasIsActive = true;
+        } else {
+          delete newFilters.is_active;
+          delete newFilters.active_only;
         }
-      } else if (item.field === 'is_online' && item.value !== undefined && item.value !== '') {
-        newFilters.is_online = item.value === 'true' || item.value === true;
+      } else if (item.field === 'is_online') {
+        if (item.value !== undefined && item.value !== '') {
+          newFilters.is_online = item.value === 'true' || item.value === true;
+        } else {
+          delete newFilters.is_online;
+        }
       }
     });
 
@@ -291,12 +345,14 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
             await acestreamChannelService.updateAcestreamChannel(newRow.id, newRow);
             return newRow;
           } catch {
-            setError('Failed to save inline changes');
+            setError(INLINE_SAVE_FAILURE_MESSAGE);
             return oldRow;
           }
         }}
         slots={{
           toolbar: GridToolbar,
+          noRowsOverlay: ChannelTableEmptyOverlay,
+          noResultsOverlay: ChannelTableNoResultsOverlay,
         }}
       />
     </>

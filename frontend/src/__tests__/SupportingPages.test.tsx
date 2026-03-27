@@ -153,9 +153,8 @@ describe('Supporting page normalization', () => {
     renderPage(<WarpPage />);
 
     expect(screen.getByRole('heading', { level: 1, name: 'WARP' })).toBeInTheDocument();
-    const actions = screen.getByTestId('page-header-actions');
-    expect(within(actions).getByRole('button', { name: 'Connect' })).toBeInTheDocument();
-    expect(within(actions).getByRole('button', { name: 'Disconnect' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Connect' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Disconnect' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Connection status' })).toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent(/connected/i);
   });

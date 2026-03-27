@@ -3,6 +3,7 @@
  */
 
 export * from './apiClient';
+export * from './apiErrors';
 export * from './channelService';
 export * from './scraperService';
 export * from './playlistService';

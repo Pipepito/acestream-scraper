@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import Paper from '@mui/material/Paper';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
@@ -14,16 +14,17 @@ interface ContentSectionProps {
 
 const ContentSection: React.FC<ContentSectionProps> = ({ title, description, actions, children }) => {
   const theme = useTheme();
-  const titleId = title ? `${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-section-title` : undefined;
+  const titleId = useId();
 
   return (
     <Paper
       component="section"
-      aria-labelledby={titleId}
+      aria-labelledby={title ? titleId : undefined}
       variant="outlined"
       sx={{
         p: { xs: 2, sm: theme.appTokens.layout.panelPadding },
         mb: theme.appTokens.layout.pageGap,
+        minWidth: 0,
         bgcolor: theme.appTokens.surface.raised,
         borderColor: theme.appTokens.surface.border,
         boxShadow: 'none',
@@ -35,10 +36,10 @@ const ContentSection: React.FC<ContentSectionProps> = ({ title, description, act
           alignItems="flex-start"
           justifyContent="space-between"
           spacing={1.5}
-          sx={{ mb: theme.appTokens.layout.sectionGap }}
+          sx={{ mb: theme.appTokens.layout.sectionGap, minWidth: 0 }}
         >
-          <Box sx={{ minWidth: 0, flex: '1 1 auto' }}>
-            <Typography id={titleId} variant="sectionTitle" component="h2" color="text.primary">
+          <Box data-testid="content-section-copy" sx={{ minWidth: 0, flex: '1 1 auto', overflowWrap: 'break-word' }}>
+            <Typography id={titleId} variant="sectionTitle" component="h2" color="text.primary" sx={{ overflowWrap: 'break-word' }}>
               {title}
             </Typography>
             {description ? (
@@ -60,6 +61,7 @@ const ContentSection: React.FC<ContentSectionProps> = ({ title, description, act
                 justifyContent: { xs: 'flex-start', md: 'flex-end' },
                 alignItems: 'center',
                 gap: 1,
+                minWidth: 0,
                 flexShrink: 0,
                 width: { xs: '100%', md: 'auto' },
                 alignSelf: { xs: 'stretch', md: 'flex-start' },

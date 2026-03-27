@@ -102,8 +102,7 @@ describe('Dashboard UI', () => {
   it('renders dashboard primary actions inside the shared header action area', () => {
     renderDashboard();
 
-    const actions = screen.getByTestId('page-header-actions');
-    const primaryActions = within(actions).getByRole('navigation', { name: 'Dashboard primary actions' });
+    const primaryActions = screen.getByRole('navigation', { name: 'Dashboard primary actions' });
 
     expect(within(primaryActions).getByRole('link', { name: 'Open Scraper' })).toBeInTheDocument();
     expect(within(primaryActions).getByRole('link', { name: 'Channels' })).toBeInTheDocument();

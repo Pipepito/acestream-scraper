@@ -208,4 +208,6 @@ backend/frontend_build/
 backend/logs/
 backend/*.log
 
+.worktrees/
+
 list.m3u

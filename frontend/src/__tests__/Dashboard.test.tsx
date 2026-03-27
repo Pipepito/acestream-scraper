@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { ThemeProvider } from '@mui/material/styles';
 import Dashboard from '../pages/Dashboard';
 import * as dashboardHooks from '../hooks/useDashboard';
@@ -62,10 +62,10 @@ describe('Dashboard UI', () => {
     expect(screen.getByText('Scrape finished')).toBeInTheDocument();
     expect(screen.getAllByText('Background Tasks').length).toBeGreaterThan(0);
     expect(screen.getByText('Scrape')).toBeInTheDocument();
-    expect(screen.getByText('Active Streams')).toBeInTheDocument();
+    expect(screen.getByText('1. Confirm live stream capacity')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
-    expect(screen.getByText('WARP Status')).toBeInTheDocument();
-    expect(screen.getByText('connected')).toBeInTheDocument();
+    expect(screen.getByText('2. Review protected routing')).toBeInTheDocument();
+    expect(screen.getByText(/warp status: connected/i)).toBeInTheDocument();
   });
 
   it('renders activity when backend returns paginated items instead of results', () => {
@@ -93,10 +93,49 @@ describe('Dashboard UI', () => {
 
       expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toHaveClass('MuiTypography-pageTitle');
       expect(screen.getByText('Controls')).toBeInTheDocument();
+      expect(screen.getByText('Operational path')).toBeInTheDocument();
       expect(screen.getByText('Recent Activity')).toBeInTheDocument();
       expect(screen.getAllByText('Background Tasks').length).toBeGreaterThan(0);
     }
   );
+
+  it('renders dashboard primary actions inside the shared header action area', () => {
+    renderDashboard();
+
+    const actions = screen.getByTestId('page-header-actions');
+    const primaryActions = within(actions).getByRole('navigation', { name: 'Dashboard primary actions' });
+
+    expect(within(primaryActions).getByRole('link', { name: 'Open Scraper' })).toBeInTheDocument();
+    expect(within(primaryActions).getByRole('link', { name: 'Channels' })).toBeInTheDocument();
+    expect(within(primaryActions).getByRole('link', { name: 'EPG' })).toBeInTheDocument();
+  });
+
+  it.each<ThemeMode>(['light', 'dark'])(
+    'keeps a visible focus-visible treatment available for dashboard actions in %s mode',
+    (mode) => {
+      renderDashboard(mode);
+
+      expect(screen.getByRole('link', { name: 'EPG' })).toBeInTheDocument();
+
+      const theme = createAppTheme(mode);
+      const rootStyles = theme.components?.MuiButton?.styleOverrides?.root as Record<string, any>;
+
+      expect(rootStyles['&.Mui-focusVisible']).toMatchObject({
+        outline: '2px solid currentColor',
+        outlineOffset: 2,
+        boxShadow: expect.stringContaining(theme.appTokens.action.focusRing),
+      });
+    }
+  );
+
+  it('communicates operational status with text cues instead of color alone', () => {
+    renderDashboard();
+
+    expect(screen.getByRole('heading', { level: 2, name: 'Operational path' })).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent(/protected connection active/i);
+    expect(screen.getByText(/streams available right now/i)).toBeInTheDocument();
+    expect(screen.getByText(/scheduler is keeping background tasks on cadence/i)).toBeInTheDocument();
+  });
 
   it('handles loading state', () => {
     (dashboardHooks.useDashboardConfig as jest.Mock).mockReturnValue({ data: undefined, isLoading: true });

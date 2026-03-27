@@ -1,75 +1,63 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import BatchAcestreamAssignment from '../components/BatchAcestreamAssignment';
-import EPGProgramsTable from '../components/EPGProgramsTable';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
+  Alert,
   Box,
-  Typography,
   Button,
-  Card,
-  CardContent,
-  Grid,
-  CircularProgress,
   Chip,
-  Divider,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  LinearProgress,
   List,
   ListItem,
   ListItemText,
-  ListItemSecondaryAction,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Paper,
-  FormControlLabel,
+  Stack,
   Switch,
-  AppBar,
-  Toolbar,
-  Link,
-  useTheme,
-  useMediaQuery
+  TextField,
+  Typography,
+  FormControlLabel,
 } from '@mui/material';
 import {
-  Edit as EditIcon,
+  Add as AddIcon,
+  ArrowBack as BackIcon,
   Delete as DeleteIcon,
+  Edit as EditIcon,
   Link as LinkIcon,
   PlayArrow as PlayIcon,
-  ArrowBack as BackIcon,
-  Add as AddIcon
 } from '@mui/icons-material';
-import { useTVChannel, useTVChannelAcestreams, useAssociateAcestream, useRemoveAcestreamAssociation, useUpdateTVChannel } from '../hooks/useTVChannels';
-import { AcestreamChannel } from '../types/channelTypes';
-import { Link as RouterLink } from 'react-router-dom';
+
+import BatchAcestreamAssignment from '../components/BatchAcestreamAssignment';
+import EPGProgramsTable from '../components/EPGProgramsTable';
+import ContentSection from '../components/layout/ContentSection';
+import PageHeader from '../components/layout/PageHeader';
 import { useAcestreamChannels } from '../hooks/useChannels';
-import '../styles/TVChannelDetail.css';
+import {
+  useAssociateAcestream,
+  useRemoveAcestreamAssociation,
+  useTVChannel,
+  useTVChannelAcestreams,
+  useUpdateTVChannel,
+} from '../hooks/useTVChannels';
 
 const TVChannelDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const channelId = id ? parseInt(id) : 0;
+  const channelId = id ? parseInt(id, 10) : 0;
 
   const { data: channel, isLoading, isError } = useTVChannel(channelId);
-  const { data: acestreams } = useTVChannelAcestreams(channelId);
+  useTVChannelAcestreams(channelId);
+
   const associateAcestreamMutation = useAssociateAcestream();
   const removeAcestreamMutation = useRemoveAcestreamAssociation();
+  const updateChannelMutation = useUpdateTVChannel();
 
   const [openAssociateDialog, setOpenAssociateDialog] = useState(false);
   const [openBatchAssignDialog, setOpenBatchAssignDialog] = useState(false);
-  const [aceStreamId, setAceStreamId] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAcestreams, setSelectedAcestreams] = useState<string[]>([]);
-  const { data: acestreamCandidates, isLoading: isLoadingAcestreamCandidates } = useAcestreamChannels(
-    searchTerm ? { search: searchTerm } : {},
-    { staleTime: 1000 * 60 }
-  );
-  const acestreamCandidateItems = acestreamCandidates?.items || [];
-
-  const handleGoBack = () => {
-    navigate('/tv-channels');
-  };
-
   const [isEditing, setIsEditing] = useState(false);
   const [editFormData, setEditFormData] = useState({
     name: '',
@@ -82,63 +70,45 @@ const TVChannelDetail: React.FC = () => {
     epg_id: '',
     channel_number: 0,
     is_active: true,
-    is_favorite: false
+    is_favorite: false,
   });
-  const updateChannelMutation = useUpdateTVChannel();
+
+  const { data: acestreamCandidates, isLoading: isLoadingAcestreamCandidates } = useAcestreamChannels(
+    searchTerm ? { search: searchTerm } : {},
+    { staleTime: 1000 * 60 }
+  );
+
+  const acestreamCandidateItems = acestreamCandidates?.items || [];
+
+  const handleGoBack = () => {
+    navigate('/tv-channels');
+  };
 
   const handleEdit = () => {
-    if (channel) {
-      setEditFormData({
-        name: channel.name,
-        logo_url: channel.logo_url || '',
-        description: channel.description || '',
-        category: channel.category || '',
-        country: channel.country || '',
-        language: channel.language || '',
-        website: channel.website || '',
-        epg_id: channel.epg_id || '',
-        channel_number: channel.channel_number || 0,
-        is_active: channel.is_active,
-        is_favorite: channel.is_favorite
-      });
-      setIsEditing(true);
-    }
-  };
+    if (!channel) return;
 
-  const handleAssociateAcestream = async () => {
-    if (!aceStreamId) return;
-
-    try {
-      await associateAcestreamMutation.mutateAsync({
-        tvChannelId: channelId,
-        aceStreamId
-      });
-      setAceStreamId('');
-      setOpenAssociateDialog(false);
-    } catch (error) {
-      console.error('Error associating acestream:', error);
-    }
-  };
-
-  const handleRemoveAcestream = async (aceStreamId: string) => {
-    if (window.confirm('Are you sure you want to remove this acestream?')) {
-      try {
-        await removeAcestreamMutation.mutateAsync({
-          tvChannelId: channelId,
-          aceStreamId
-        });
-      } catch (error) {
-        console.error('Error removing acestream:', error);
-      }
-    }
-  };
-
-  const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
     setEditFormData({
-      ...editFormData,
-      [name]: type === 'checkbox' ? checked : value
+      name: channel.name,
+      logo_url: channel.logo_url || '',
+      description: channel.description || '',
+      category: channel.category || '',
+      country: channel.country || '',
+      language: channel.language || '',
+      website: channel.website || '',
+      epg_id: channel.epg_id || '',
+      channel_number: channel.channel_number || 0,
+      is_active: channel.is_active,
+      is_favorite: channel.is_favorite,
     });
+    setIsEditing(true);
+  };
+
+  const handleEditFormChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = event.target;
+    setEditFormData((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
   };
 
   const handleSaveEdit = async () => {
@@ -156,8 +126,8 @@ const TVChannelDetail: React.FC = () => {
           epg_id: editFormData.epg_id,
           channel_number: editFormData.channel_number ? Number(editFormData.channel_number) : undefined,
           is_active: editFormData.is_active,
-          is_favorite: editFormData.is_favorite
-        }
+          is_favorite: editFormData.is_favorite,
+        },
       });
       setIsEditing(false);
     } catch (error) {
@@ -165,22 +135,53 @@ const TVChannelDetail: React.FC = () => {
     }
   };
 
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const handleRemoveAcestream = async (aceStreamId: string) => {
+    if (!window.confirm('Are you sure you want to remove this acestream?')) return;
+
+    try {
+      await removeAcestreamMutation.mutateAsync({
+        tvChannelId: channelId,
+        aceStreamId,
+      });
+    } catch (error) {
+      console.error('Error removing acestream:', error);
+    }
+  };
+
+  const handleAssociateSelected = async () => {
+    for (const aceStreamId of selectedAcestreams) {
+      try {
+        await associateAcestreamMutation.mutateAsync({
+          tvChannelId: channelId,
+          aceStreamId,
+        });
+      } catch (error) {
+        console.error('Error associating acestream:', error);
+      }
+    }
+
+    setOpenAssociateDialog(false);
+    setSelectedAcestreams([]);
+  };
 
   if (isLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
-        <CircularProgress />
+      <Box sx={{ width: '100%', p: 3 }}>
+        <LinearProgress />
+        <Typography variant="body1" sx={{ mt: 2 }}>
+          Loading TV channel details...
+        </Typography>
       </Box>
     );
   }
 
   if (isError || !channel) {
     return (
-      <Box p={3}>
-        <Typography color="error">Error loading TV channel details.</Typography>
-        <Button startIcon={<BackIcon />} onClick={handleGoBack} sx={{ mt: 2 }}>
+      <Box sx={{ width: '100%', p: 3 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          Error loading TV channel details.
+        </Alert>
+        <Button startIcon={<BackIcon />} onClick={handleGoBack} aria-label="Back to TV channels">
           Back to TV Channels
         </Button>
       </Box>
@@ -188,499 +189,245 @@ const TVChannelDetail: React.FC = () => {
   }
 
   return (
-    <Box sx={{ width: '100%' }}>
-      <AppBar position="static" color="default" elevation={1} sx={{ mb: 2 }}>
-        <Toolbar sx={{ flexDirection: isMobile ? 'column' : 'row', gap: 2 }}>
-          <Link component={RouterLink} to="/acestream-channels" underline="none" color="inherit" sx={{ fontWeight: 600, fontSize: 18 }}>
-            Acestream Channels
-          </Link>
-          <Link component={RouterLink} to="/tv-channels" underline="none" color="inherit" sx={{ fontWeight: 600, fontSize: 18 }}>
-            TV Channels
-          </Link>
-        </Toolbar>
-      </AppBar>
-
-      <Box p={3}>
-        <Box display="flex" alignItems="center" mb={3}>
-          <Button startIcon={<BackIcon />} onClick={handleGoBack}>
-            Back
-          </Button>
-          <Typography variant="h4" sx={{ ml: 2, flexGrow: 1 }}>
-            {channel.name}
-          </Typography>
-          {isEditing ? (
-            <>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleSaveEdit}
-                sx={{ mr: 1 }}
-              >
-                Save
-              </Button>
-              <Button
-                variant="outlined"
-                color="inherit"
-                onClick={() => setIsEditing(false)}
-                sx={{ mr: 1 }}
-              >
-                Cancel
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button
-                startIcon={<EditIcon />}
-                variant="outlined"
-                color="primary"
-                onClick={handleEdit}
-                sx={{ mr: 1 }}
-              >
+    <Box sx={{ width: '100%', typography: 'body1' }}>
+      <PageHeader
+        title={channel.name}
+        subtitle="Review channel identity, manage linked Acestream sources, and confirm guide coverage from one operational detail route."
+        actions={
+          <>
+            <Button variant="outlined" startIcon={<BackIcon />} onClick={handleGoBack} aria-label="Back to TV channels">
+              Back to TV Channels
+            </Button>
+            {isEditing ? (
+              <>
+                <Button variant="contained" onClick={handleSaveEdit}>
+                  Save
+                </Button>
+                <Button variant="outlined" color="inherit" onClick={() => setIsEditing(false)}>
+                  Cancel
+                </Button>
+              </>
+            ) : (
+              <Button variant="outlined" startIcon={<EditIcon />} onClick={handleEdit}>
                 Edit
               </Button>
+            )}
+          </>
+        }
+      />
+
+      <ContentSection
+        title="Channel Summary"
+        description="Confirm the TV channel identity, metadata, and operational state before changing assignments."
+      >
+        <Stack spacing={2}>
+          {!isEditing && channel.logo_url ? (
+            <Box
+              component="img"
+              src={channel.logo_url}
+              alt={`${channel.name} logo`}
+              sx={{ width: 96, height: 96, objectFit: 'contain', borderRadius: 2, border: 1, borderColor: 'divider', p: 1 }}
+            />
+          ) : null}
+
+          {isEditing ? (
+            <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' } }}>
+              <TextField label="Name" name="name" value={editFormData.name} onChange={handleEditFormChange} fullWidth required />
+              <TextField label="Logo URL" name="logo_url" value={editFormData.logo_url} onChange={handleEditFormChange} fullWidth />
+              <TextField label="Category" name="category" value={editFormData.category} onChange={handleEditFormChange} fullWidth />
+              <TextField label="Language" name="language" value={editFormData.language} onChange={handleEditFormChange} fullWidth />
+              <TextField label="Country" name="country" value={editFormData.country} onChange={handleEditFormChange} fullWidth />
+              <TextField label="Website" name="website" value={editFormData.website} onChange={handleEditFormChange} fullWidth />
+              <TextField label="EPG ID" name="epg_id" value={editFormData.epg_id} onChange={handleEditFormChange} fullWidth />
+              <TextField label="Channel Number" name="channel_number" type="number" value={editFormData.channel_number} onChange={handleEditFormChange} fullWidth />
+              <TextField
+                label="Description"
+                name="description"
+                value={editFormData.description}
+                onChange={handleEditFormChange}
+                fullWidth
+                multiline
+                rows={3}
+                sx={{ gridColumn: { md: '1 / -1' } }}
+              />
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', gridColumn: { md: '1 / -1' } }}>
+                <FormControlLabel control={<Switch checked={editFormData.is_active} onChange={handleEditFormChange} name="is_active" />} label="Active" />
+                <FormControlLabel control={<Switch checked={editFormData.is_favorite} onChange={handleEditFormChange} name="is_favorite" />} label="Favorite" />
+              </Box>
+            </Box>
+          ) : (
+            <>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                <Chip label={channel.is_active ? 'Status: Active' : 'Status: Inactive'} color={channel.is_active ? 'success' : 'default'} size="small" />
+                <Chip label={channel.is_favorite ? 'Favorite channel' : 'Not marked favorite'} color={channel.is_favorite ? 'primary' : 'default'} size="small" />
+                {channel.category ? <Chip label={`Category: ${channel.category}`} size="small" /> : null}
+              </Box>
+              <Stack spacing={1}>
+                {channel.language ? <Typography variant="body2">Language: {channel.language}</Typography> : null}
+                {channel.country ? <Typography variant="body2">Country: {channel.country}</Typography> : null}
+                {channel.epg_id ? <Typography variant="body2">EPG ID: {channel.epg_id}</Typography> : null}
+                {channel.channel_number !== undefined ? <Typography variant="body2">Channel Number: {channel.channel_number}</Typography> : null}
+                {channel.description ? <Typography variant="body2">{channel.description}</Typography> : null}
+              </Stack>
+              {channel.website ? (
+                <Button
+                  startIcon={<LinkIcon />}
+                  variant="text"
+                  color="primary"
+                  href={channel.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Visit Website
+                </Button>
+              ) : null}
             </>
           )}
+        </Stack>
+      </ContentSection>
+
+      <ContentSection
+        title="Acestream Coverage"
+        description="Add or remove linked Acestream sources so playback coverage matches the TV channel you expect users to see."
+        actions={
+          <>
+            <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => setOpenAssociateDialog(true)}>
+              Add Single
+            </Button>
+            <Button variant="outlined" size="small" onClick={() => setOpenBatchAssignDialog(true)}>
+              Batch Add
+            </Button>
+          </>
+        }
+      >
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+          <Chip label={`${channel.acestream_channels.length} linked acestream${channel.acestream_channels.length === 1 ? '' : 's'}`} size="small" />
         </Box>
 
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={4}>
-            <Card>
-              <CardContent>
-                {!isEditing && channel.logo_url && (
-                  <Box mb={3} display="flex" justifyContent="center">
-                    <img
-                      src={channel.logo_url}
-                      alt={`${channel.name} logo`}
-                      className="channel-logo-img"
-                    />
-                  </Box>
-                )}
-
-                <Typography variant="h6" gutterBottom>
-                  Channel Information
-                </Typography>
-
-                {isEditing ? (
-                  <Box mt={2}>
-                    <TextField
-                      label="Name"
-                      name="name"
-                      value={editFormData.name}
-                      onChange={handleEditFormChange}
-                      fullWidth
-                      margin="dense"
-                      required
-                    />
-
-                    <TextField
-                      label="Logo URL"
-                      name="logo_url"
-                      value={editFormData.logo_url}
-                      onChange={handleEditFormChange}
-                      fullWidth
-                      margin="dense"
-                    />
-
-                    <TextField
-                      label="Description"
-                      name="description"
-                      value={editFormData.description}
-                      onChange={handleEditFormChange}
-                      fullWidth
-                      margin="dense"
-                      multiline
-                      rows={3}
-                    />
-
-                    <TextField
-                      label="Category"
-                      name="category"
-                      value={editFormData.category}
-                      onChange={handleEditFormChange}
-                      fullWidth
-                      margin="dense"
-                    />
-
-                    <TextField
-                      label="Language"
-                      name="language"
-                      value={editFormData.language}
-                      onChange={handleEditFormChange}
-                      fullWidth
-                      margin="dense"
-                    />
-
-                    <TextField
-                      label="Country"
-                      name="country"
-                      value={editFormData.country}
-                      onChange={handleEditFormChange}
-                      fullWidth
-                      margin="dense"
-                    />
-
-                    <TextField
-                      label="Website"
-                      name="website"
-                      value={editFormData.website}
-                      onChange={handleEditFormChange}
-                      fullWidth
-                      margin="dense"
-                    />
-
-                    <TextField
-                      label="EPG ID"
-                      name="epg_id"
-                      value={editFormData.epg_id}
-                      onChange={handleEditFormChange}
-                      fullWidth
-                      margin="dense"
-                    />
-
-                    <TextField
-                      label="Channel Number"
-                      name="channel_number"
-                      type="number"
-                      value={editFormData.channel_number}
-                      onChange={handleEditFormChange}
-                      fullWidth
-                      margin="dense"
-                    />
-
-                    <Box display="flex" mt={2}>
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={editFormData.is_active}
-                            onChange={handleEditFormChange}
-                            name="is_active"
-                            color="primary"
-                          />
-                        }
-                        label="Active"
-                      />
-
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={editFormData.is_favorite}
-                            onChange={handleEditFormChange}
-                            name="is_favorite"
-                            color="primary"
-                          />
-                        }
-                        label="Favorite"
-                      />
-                    </Box>
-                  </Box>
-                ) : (
-                  <Box mt={2}>
-                    {channel.category && (
-                      <Box display="flex" mb={1}>
-                        <Typography variant="body1" fontWeight="bold" minWidth={100}>
-                          Category:
-                        </Typography>
-                        <Typography variant="body1">
-                          {channel.category}
-                        </Typography>
-                      </Box>
-                    )}
-
-                    {channel.language && (
-                      <Box display="flex" mb={1}>
-                        <Typography variant="body1" fontWeight="bold" minWidth={100}>
-                          Language:
-                        </Typography>
-                        <Typography variant="body1">
-                          {channel.language}
-                        </Typography>
-                      </Box>
-                    )}
-
-                    {channel.country && (
-                      <Box display="flex" mb={1}>
-                        <Typography variant="body1" fontWeight="bold" minWidth={100}>
-                          Country:
-                        </Typography>
-                        <Typography variant="body1">
-                          {channel.country}
-                        </Typography>
-                      </Box>
-                    )}
-
-                    {channel.epg_id && (
-                      <Box display="flex" mb={1}>
-                        <Typography variant="body1" fontWeight="bold" minWidth={100}>
-                          EPG ID:
-                        </Typography>
-                        <Typography variant="body1">
-                          {channel.epg_id}
-                        </Typography>
-                      </Box>
-                    )}
-
-                    {channel.channel_number !== undefined && (
-                      <Box display="flex" mb={1}>
-                        <Typography variant="body1" fontWeight="bold" minWidth={100}>
-                          Number:
-                        </Typography>
-                        <Typography variant="body1">
-                          {channel.channel_number}
-                        </Typography>
-                      </Box>
-                    )}
-
-                    <Box display="flex" mb={1}>
-                      <Typography variant="body1" fontWeight="bold" minWidth={100}>
-                        Status:
-                      </Typography>
-                      <Chip
-                        size="small"
-                        label={channel.is_active ? 'Active' : 'Inactive'}
-                        color={channel.is_active ? 'success' : 'error'}
-                      />
-                    </Box>
-
-                    <Box display="flex" mb={1}>
-                      <Typography variant="body1" fontWeight="bold" minWidth={100}>
-                        Favorite:
-                      </Typography>
-                      <Chip
-                        size="small"
-                        label={channel.is_favorite ? 'Yes' : 'No'}
-                        color={channel.is_favorite ? 'primary' : 'default'}
-                      />
-                    </Box>
-                  </Box>
-                )}
-
-                {!isEditing && channel.website && (
-                  <Box mt={2}>
-                    <Button
-                      startIcon={<LinkIcon />}
-                      variant="text"
-                      color="primary"
-                      href={channel.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
+        {channel.acestream_channels.length === 0 ? (
+          <Alert severity="info">No acestream channels are associated with this TV channel yet.</Alert>
+        ) : (
+          <List sx={{ p: 0 }}>
+            {channel.acestream_channels.map((acestream) => (
+              <ListItem
+                key={acestream.channel_id}
+                divider
+                secondaryAction={
+                  <Box role="group" aria-label={`Acestream actions for ${acestream.name}`} sx={{ display: 'flex', gap: 1 }}>
+                    <IconButton edge="end" color="primary" aria-label={`Play acestream ${acestream.name}`}>
+                      <PlayIcon />
+                    </IconButton>
+                    <IconButton
+                      edge="end"
+                      color="error"
+                      aria-label={`Remove acestream ${acestream.name}`}
+                      onClick={() => handleRemoveAcestream(acestream.channel_id)}
                     >
-                      Visit Website
-                    </Button>
+                      <DeleteIcon />
+                    </IconButton>
                   </Box>
-                )}
-              </CardContent>
-            </Card>
-
-            {!isEditing && channel.description && (
-              <Paper sx={{ mt: 3, p: 2 }}>
-                <Typography variant="h6" gutterBottom>
-                  Description
-                </Typography>
-                <Typography variant="body2">
-                  {channel.description}
-                </Typography>
-              </Paper>
-            )}
-          </Grid>
-
-          <Grid item xs={12} md={8}>
-            <Paper sx={{ p: 2 }}>
-              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                <Typography variant="h6">
-                  Acestream Channels ({channel.acestream_channels.length})
-                </Typography>
-                <Box>
-                  <Button
-                    startIcon={<AddIcon />}
-                    variant="contained"
-                    color="primary"
-                    size="small"
-                    onClick={() => setOpenAssociateDialog(true)}
-                    sx={{ mr: 1 }}
-                  >
-                    Add Single
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    size="small"
-                    onClick={() => setOpenBatchAssignDialog(true)}
-                  >
-                    Batch Add
-                  </Button>
+                }
+              >
+                <ListItemText primary={acestream.name} />
+                <Box sx={{ display: 'inline-flex', gap: 1, flexWrap: 'wrap', mt: 0.75 }}>
+                  <Chip size="small" label={`ID: ${acestream.channel_id}`} />
+                  <Chip size="small" label={`Group: ${acestream.group || 'None'}`} />
+                  {acestream.is_online !== undefined ? (
+                    <Chip size="small" label={acestream.is_online ? 'Online' : 'Offline'} color={acestream.is_online ? 'success' : 'default'} />
+                  ) : null}
                 </Box>
-              </Box>
+              </ListItem>
+            ))}
+          </List>
+        )}
+      </ContentSection>
 
-              <Divider />
+      {channel.epg_id ? (
+        <ContentSection
+          title="EPG Schedule"
+          description="Review the resolved guide feed for this TV channel without leaving the detail route."
+        >
+          <EPGProgramsTable epgId={channel.epg_id} epgSourceId={channel.epg_source_id} />
+        </ContentSection>
+      ) : null}
 
-              {channel.acestream_channels.length === 0 ? (
-                <Box py={3} textAlign="center">
-                  <Typography color="textSecondary">
-                    No acestream channels associated with this TV channel yet.
-                  </Typography>
-                </Box>
-              ) : (
-                <List>
-                  {channel.acestream_channels.map((acestream: AcestreamChannel) => (
-                    <ListItem key={acestream.channel_id}>
-                      <ListItemText
-                        primary={acestream.name}
-                        secondary={
-                          <>
-                            <Typography component="span" variant="body2" color="textSecondary">
-                              ID: {acestream.channel_id}
-                            </Typography>
-                            <br />
-                            <Typography component="span" variant="body2" color="textSecondary">
-                              Group: {acestream.group || 'None'}
-                            </Typography>
-                            {acestream.is_online !== undefined && (
-                              <>
-                                <br />
-                                <Chip
-                                  size="small"
-                                  label={acestream.is_online ? 'Online' : 'Offline'}
-                                  color={acestream.is_online ? 'success' : 'error'}
-                                />
-                              </>
-                            )}
-                          </>
-                        }
-                      />
-                      <ListItemSecondaryAction>
-                        <IconButton
-                          edge="end"
-                          color="primary"
-                        >
-                          <PlayIcon />
-                        </IconButton>
-                        <IconButton
-                          edge="end"
-                          color="error"
-                          onClick={() => handleRemoveAcestream(acestream.channel_id)}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </ListItemSecondaryAction>
-                    </ListItem>
-                  ))}
-                </List>
-              )}
-            </Paper>
-
-            {/* EPG Programs Schedule Section */}
-            {channel.epg_id && (
-              <Box mt={4}>
-                <Typography variant="h6" gutterBottom>
-                  EPG Program Schedule
-                </Typography>
-                <EPGProgramsTable epgId={channel.epg_id} epgSourceId={channel.epg_source_id} />
-              </Box>
-            )}
-          </Grid>
-        </Grid>
-
-        {/* Associate Acestream Dialog */}
-        <Dialog open={openAssociateDialog} onClose={() => setOpenAssociateDialog(false)} maxWidth="md" fullWidth>
-          <DialogTitle>Associate Acestream Channel</DialogTitle>
-          <DialogContent>
-            <TextField
-              margin="dense"
-              label="Search by name, group, or ID"
-              fullWidth
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              placeholder="Type to search..."
-              variant="outlined"
-              sx={{ mb: 2 }}
-            />
-            {isLoadingAcestreamCandidates ? (
-              <Box display="flex" justifyContent="center" my={2}><CircularProgress /></Box>
+      <Dialog open={openAssociateDialog} onClose={() => setOpenAssociateDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Associate Acestream Channel</DialogTitle>
+        <DialogContent>
+          <TextField
+            margin="dense"
+            label="Search by name, group, or ID"
+            fullWidth
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Type to search..."
+            variant="outlined"
+            sx={{ mb: 2 }}
+          />
+          {isLoadingAcestreamCandidates ? (
+            <LinearProgress sx={{ mb: 2 }} />
+          ) : null}
+          <List sx={{ maxHeight: 350, overflow: 'auto' }}>
+            {acestreamCandidateItems.length === 0 ? (
+              <ListItem>
+                <ListItemText primary="No Acestream channels found." />
+              </ListItem>
             ) : (
-              <List sx={{ maxHeight: 350, overflow: 'auto' }}>
-                {acestreamCandidateItems.length === 0 ? (
-                  <ListItem>
-                    <ListItemText primary="No Acestream channels found." />
-                  </ListItem>
-                ) : (
-                  acestreamCandidateItems.map((acestream: any) => (
-                    <ListItem
-                      key={acestream.id}
-                      button
-                      selected={selectedAcestreams.includes(acestream.id)}
-                      onClick={() => {
-                        setSelectedAcestreams((prev) =>
-                          prev.includes(acestream.id)
-                            ? prev.filter(id => id !== acestream.id)
-                            : [...prev, acestream.id]
-                        );
+              acestreamCandidateItems.map((acestream) => (
+                <ListItem
+                  key={acestream.id}
+                  divider
+                  secondaryAction={
+                    <IconButton
+                      edge="end"
+                      color="primary"
+                      aria-label={`Associate acestream ${acestream.name}`}
+                      onClick={async () => {
+                        try {
+                          await associateAcestreamMutation.mutateAsync({
+                            tvChannelId: channelId,
+                            aceStreamId: acestream.id,
+                          });
+                          setOpenAssociateDialog(false);
+                        } catch (error) {
+                          console.error('Error associating acestream:', error);
+                        }
                       }}
                     >
-                      <ListItemText
-                        primary={acestream.name}
-                        secondary={`ID: ${acestream.id} | Group: ${acestream.group || 'None'}`}
-                      />
-                      <ListItemSecondaryAction>
-                        <IconButton
-                          edge="end"
-                          color="primary"
-                          onClick={async () => {
-                            try {
-                              await associateAcestreamMutation.mutateAsync({
-                                tvChannelId: channelId,
-                                aceStreamId: acestream.id
-                              });
-                              setOpenAssociateDialog(false);
-                            } catch (error) {
-                              console.error('Error associating acestream:', error);
-                            }
-                          }}
-                        >
-                          <AddIcon />
-                        </IconButton>
-                      </ListItemSecondaryAction>
-                    </ListItem>
-                  ))
-                )}
-              </List>
-            )}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenAssociateDialog(false)} color="inherit">
-              Cancel
-            </Button>
-            <Button
-              onClick={async () => {
-                for (const aceStreamId of selectedAcestreams) {
-                  try {
-                    await associateAcestreamMutation.mutateAsync({
-                      tvChannelId: channelId,
-                      aceStreamId
-                    });
-                  } catch (error) {
-                    console.error('Error associating acestream:', error);
+                      <AddIcon />
+                    </IconButton>
                   }
-                }
-                setOpenAssociateDialog(false);
-                setSelectedAcestreams([]);
-              }}
-              color="primary"
-              variant="contained"
-              disabled={selectedAcestreams.length === 0}
-            >
-              Assign Selected
-            </Button>
-          </DialogActions>
-        </Dialog>
+                >
+                  <ListItemText
+                    primary={acestream.name}
+                    secondary={`ID: ${acestream.id} | Group: ${acestream.group || 'None'}`}
+                    onClick={() => {
+                      setSelectedAcestreams((prev) =>
+                        prev.includes(acestream.id) ? prev.filter((item) => item !== acestream.id) : [...prev, acestream.id]
+                      );
+                    }}
+                  />
+                </ListItem>
+              ))
+            )}
+          </List>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenAssociateDialog(false)} color="inherit">
+            Cancel
+          </Button>
+          <Button onClick={handleAssociateSelected} color="primary" variant="contained" disabled={selectedAcestreams.length === 0}>
+            Assign Selected
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-        {/* Batch Assignment Dialog */}
-        <BatchAcestreamAssignment
-          open={openBatchAssignDialog}
-          onClose={() => setOpenBatchAssignDialog(false)}
-          tvChannelId={channelId}
-          tvChannelName={channel.name}
-        />
-      </Box>
+      <BatchAcestreamAssignment
+        open={openBatchAssignDialog}
+        onClose={() => setOpenBatchAssignDialog(false)}
+        tvChannelId={channelId}
+        tvChannelName={channel.name}
+      />
     </Box>
   );
 };

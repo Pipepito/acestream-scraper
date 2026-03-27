@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useEPGPrograms, useResolveEPGChannel } from '../hooks/useEPG';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography, Box, TextField, LinearProgress } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, Box, TextField, LinearProgress, Chip } from '@mui/material';
+import ContentSection from './layout/ContentSection';
+import { getLocalISODate, getRelativeLocalISODate } from '../utils/dateUtils';
 
 interface EPGProgramsTableProps {
   epgId: string;
@@ -9,8 +11,8 @@ interface EPGProgramsTableProps {
 
 const EPGProgramsTable: React.FC<EPGProgramsTableProps> = ({ epgId, epgSourceId }) => {
   const [dateRange, setDateRange] = useState({
-    start: new Date().toISOString().split('T')[0],
-    end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    start: getLocalISODate(),
+    end: getRelativeLocalISODate(7)
   });
   const { data: epgChannel, isLoading: loadingChannels } = useResolveEPGChannel(epgSourceId, epgId);
   const epgChannelId = epgChannel?.id;
@@ -24,8 +26,15 @@ const EPGProgramsTable: React.FC<EPGProgramsTableProps> = ({ epgId, epgSourceId 
   if (!epgChannelId) return <Typography variant="body2">No EPG channel found for this TV channel.</Typography>;
 
   return (
-    <Box>
-      <Box display="flex" gap={2} mb={2}>
+    <ContentSection
+      title="Program Schedule"
+      description="Use the date controls to review the resolved EPG timeline for this channel."
+    >
+      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+        <Chip label={epgChannel.name} size="small" color="info" />
+        <Chip label={`${programs?.length || 0} program${programs?.length === 1 ? '' : 's'} loaded`} size="small" />
+      </Box>
+      <Box display="flex" gap={2} mb={2} flexWrap="wrap">
         <TextField
           label="Start Date"
           type="date"
@@ -42,7 +51,7 @@ const EPGProgramsTable: React.FC<EPGProgramsTableProps> = ({ epgId, epgSourceId 
         />
       </Box>
       {isLoading ? <LinearProgress sx={{ mb: 2 }} /> : null}
-      <TableContainer component={Paper}>
+      <TableContainer component={Box} sx={{ overflowX: 'auto' }}>
         <Table size="small">
           <TableHead>
             <TableRow>
@@ -74,7 +83,7 @@ const EPGProgramsTable: React.FC<EPGProgramsTableProps> = ({ epgId, epgSourceId 
           </TableBody>
         </Table>
       </TableContainer>
-    </Box>
+    </ContentSection>
   );
 };
 

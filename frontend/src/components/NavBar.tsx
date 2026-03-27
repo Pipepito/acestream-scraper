@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import MenuIcon from '@mui/icons-material/Menu';
-import { getNavTitle, navItems } from './layout/navItems';
+import { getNavTitle, isNavItemSelected, navItems } from './layout/navItems';
 
 interface NavBarProps {
   drawerWidth?: number;
@@ -30,18 +30,26 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
 
   const selectedStyles = {
     bgcolor: theme.appTokens.action.secondaryBg,
-    color: theme.appTokens.text.primary,
+    color: theme.appTokens.action.secondaryText,
     boxShadow: `inset 0 0 0 1px ${theme.appTokens.surface.border}`,
     '& .MuiListItemIcon-root': {
       color: theme.appTokens.action.secondaryText,
+    },
+    '& .MuiListItemText-primary': {
+      color: theme.appTokens.action.secondaryText,
+      fontWeight: 600,
     },
     '&:hover': {
       bgcolor: alpha(theme.appTokens.action.secondaryBg, 0.88),
     },
   };
 
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
+  const handleDrawerOpen = () => {
+    setMobileOpen(true);
+  };
+
+  const handleDrawerClose = () => {
+    setMobileOpen(false);
   };
 
   const operations = navItems.filter((item) => item.section === 'Operations');
@@ -55,6 +63,7 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
         flexDirection: 'column',
         bgcolor: theme.appTokens.surface.panel,
         color: theme.appTokens.text.primary,
+        boxShadow: 'none',
       }}
     >
       <Toolbar>
@@ -77,17 +86,15 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
           />
         </ListItem>
         {operations.map((item) => {
-          const isSelected =
-            (item.path === '/' && location.pathname === '/') ||
-            (item.path !== '/' && location.pathname.startsWith(item.path)) ||
-            (item.matchPrefixes && item.matchPrefixes.some((prefix) => location.pathname.startsWith(prefix)));
+          const isSelected = isNavItemSelected(item, location.pathname);
           return (
             <ListItem key={item.text} disablePadding>
               <ListItemButton
                 component={RouterLink}
                 to={item.path}
                 selected={Boolean(isSelected)}
-                onClick={() => setMobileOpen(false)}
+                aria-current={isSelected ? 'page' : undefined}
+                onClick={handleDrawerClose}
                 sx={{
                   mx: 1,
                   borderRadius: 2,
@@ -104,7 +111,11 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
                   },
                 }}
               >
-                <ListItemIcon>{item.icon}</ListItemIcon>
+                <ListItemIcon
+                  sx={{ color: isSelected ? theme.appTokens.action.secondaryText : theme.appTokens.text.muted }}
+                >
+                  {item.icon}
+                </ListItemIcon>
                 <ListItemText primary={item.text} />
               </ListItemButton>
             </ListItem>
@@ -126,16 +137,15 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
           />
         </ListItem>
         {system.map((item) => {
-          const isSelected =
-            (item.path === '/' && location.pathname === '/') ||
-            (item.path !== '/' && location.pathname.startsWith(item.path));
+          const isSelected = isNavItemSelected(item, location.pathname);
           return (
             <ListItem key={item.text} disablePadding>
               <ListItemButton
                 component={RouterLink}
                 to={item.path}
                 selected={Boolean(isSelected)}
-                onClick={() => setMobileOpen(false)}
+                aria-current={isSelected ? 'page' : undefined}
+                onClick={handleDrawerClose}
                 sx={{
                   mx: 1,
                   borderRadius: 2,
@@ -152,7 +162,11 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
                   },
                 }}
               >
-                <ListItemIcon>{item.icon}</ListItemIcon>
+                <ListItemIcon
+                  sx={{ color: isSelected ? theme.appTokens.action.secondaryText : theme.appTokens.text.muted }}
+                >
+                  {item.icon}
+                </ListItemIcon>
                 <ListItemText primary={item.text} />
               </ListItemButton>
             </ListItem>
@@ -166,9 +180,15 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
     <>
       <AppBar
         position="fixed"
+        elevation={0}
         sx={{
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           ml: { sm: `${drawerWidth}px` },
+          bgcolor: theme.appTokens.surface.panel,
+          color: theme.appTokens.text.primary,
+          borderBottom: `1px solid ${theme.appTokens.layout.divider}`,
+          boxShadow: 'none',
+          backgroundImage: 'none',
         }}
       >
         <Toolbar>
@@ -176,7 +196,7 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
             color="inherit"
             aria-label="open drawer"
             edge="start"
-            onClick={handleDrawerToggle}
+            onClick={handleDrawerOpen}
             sx={{ mr: 2, display: { sm: 'none' } }}
           >
             <MenuIcon />
@@ -195,7 +215,7 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
         <Drawer
           variant="temporary"
           open={mobileOpen}
-          onClose={handleDrawerToggle}
+          onClose={handleDrawerClose}
           ModalProps={{
             keepMounted: true, // Better open performance on mobile
           }}

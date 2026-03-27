@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Box, Button, Alert, CircularProgress, IconButton, Snackbar, Stack, Tooltip, useMediaQuery, useTheme } from '@mui/material';
+import { Box, Button, Alert, IconButton, Snackbar, Stack, Tooltip, useMediaQuery, useTheme } from '@mui/material';
 import { Add, FileDownload, Refresh } from '@mui/icons-material';
 import TvIcon from '@mui/icons-material/Tv';
-import { GridSortModel } from '@mui/x-data-grid';
+import type { GridSortModel } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
 
 import ChannelTable from '../components/ChannelTable';
@@ -55,7 +55,6 @@ const AcestreamChannels: React.FC = () => {
 
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(25);
-  const [sortModel, setSortModel] = useState<GridSortModel>([]);
   const [filters, setFilters] = useState<AcestreamChannelFilters>({});
   const [checkingStatus, setCheckingStatus] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
@@ -235,7 +234,7 @@ const AcestreamChannels: React.FC = () => {
   };
 
   const handleSortChange = useCallback((model: GridSortModel) => {
-    setSortModel(model);
+    void model;
     setPage(0);
   }, []);
 
@@ -468,4 +467,3 @@ const AcestreamChannels: React.FC = () => {
 };
 
 export default AcestreamChannels;
-

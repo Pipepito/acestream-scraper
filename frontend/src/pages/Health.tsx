@@ -2,9 +2,6 @@ import React from 'react';
 import {
   Box,
   Typography,
-  Card,
-  CardContent,
-  CardHeader,
   Divider,
   Grid,
   Button,
@@ -13,12 +10,16 @@ import {
   Chip,
   List,
   ListItem,
-  ListItemText
+  ListItemText,
+  Paper,
+  Stack,
 } from '@mui/material';
 import { useHealth, useStats } from '../hooks/useConfig';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import PageHeader from '../components/layout/PageHeader';
+import ContentSection from '../components/layout/ContentSection';
 
 const Health: React.FC = () => {
   // Queries
@@ -89,163 +90,100 @@ const Health: React.FC = () => {
   }
 
   return (
-    <Box sx={{ p: 2 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" gutterBottom>
-          System Health
-        </Typography>
-        {renderHealthStatus()}
-      </Box>
+    <Box>
+      <PageHeader
+        title="Health"
+        subtitle="Check system readiness, confirm engine connectivity, and review core service totals."
+        actions={renderHealthStatus()}
+      />
 
-      <Grid container spacing={4}>
-        {/* System Status Card */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardHeader title="System Status" />
-            <Divider />
-            <CardContent>
-              <List>
-                <ListItem>
-                  <ListItemText
-                    primary="Acestream Engine"
-                    secondary={healthData?.acestream.message || 'Status unknown'}
-                  />
-                  <Chip
-                    label={healthData?.acestream.status.toUpperCase()}
-                    color={
-                      healthData?.acestream.status === 'online' ? 'success' :
-                      healthData?.acestream.status === 'offline' ? 'error' : 'warning'
-                    }
-                    size="small"
-                  />
-                </ListItem>
-                <Divider component="li" />
-                <ListItem>
-                  <ListItemText
-                    primary="Software Version"
-                    secondary={healthData?.version || 'Unknown'}
-                  />
-                </ListItem>
-              </List>
-              <Button
-                variant="outlined"
-                onClick={() => refetchHealth()}
-                sx={{ mt: 2 }}
-              >
-                Refresh Health Status
-              </Button>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* System Settings Card */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardHeader title="System Configuration" />
-            <Divider />
-            <CardContent>
-              <List dense>
-                {healthData?.settings && Object.entries(healthData.settings).map(([key, value]) => (
-                  <React.Fragment key={key}>
-                    <ListItem>
-                      <ListItemText
-                        primary={key}
-                        secondary={value}
-                      />
-                    </ListItem>
-                    <Divider component="li" />
-                  </React.Fragment>
-                ))}
-              </List>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Channel Stats Card */}
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardHeader title="Channel Statistics" />
-            <Divider />
-            <CardContent>
-              {statsData ? (
-                <List dense>
-                  <ListItem>
-                    <ListItemText primary="Total Channels" secondary={statsData?.channels?.total != null ? statsData.channels.total.toString() : 'N/A'} />
+      <ContentSection
+        title="Status overview"
+        description="Start here to see whether the service is healthy and what needs attention right now."
+        actions={
+          <Button variant="outlined" onClick={() => { refetchHealth(); refetchStats(); }}>
+            Refresh status
+          </Button>
+        }
+      >
+        <Stack spacing={2}>
+          <Alert severity={healthData?.status === 'healthy' ? 'success' : healthData?.status === 'degraded' ? 'warning' : 'error'}>
+            {healthData?.status ? `${healthData.status.toUpperCase()} · ${healthData.acestream.message}` : 'Status unknown'}
+          </Alert>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
+                <List disablePadding>
+                  <ListItem disableGutters secondaryAction={<Chip label={healthData?.acestream.status.toUpperCase()} color={healthData?.acestream.status === 'online' ? 'success' : healthData?.acestream.status === 'offline' ? 'error' : 'warning'} size="small" />}>
+                    <ListItemText primary="Acestream Engine" secondary={healthData?.acestream.message || 'Status unknown'} />
                   </ListItem>
-                  <Divider component="li" />
-                  <ListItem>
-                    <ListItemText primary="Online Channels" secondary={statsData?.channels?.online != null ? statsData.channels.online.toString() : 'N/A'} />
-                  </ListItem>
-                  <Divider component="li" />
-                  <ListItem>
-                    <ListItemText primary="Offline Channels" secondary={statsData?.channels?.offline != null ? statsData.channels.offline.toString() : 'N/A'} />
-                  </ListItem>
-                  <Divider component="li" />
-                  <ListItem>
-                    <ListItemText primary="Unknown Status" secondary={statsData?.channels?.unknown != null ? statsData.channels.unknown.toString() : 'N/A'} />
+                  <Divider component="li" sx={{ my: 1.5 }} />
+                  <ListItem disableGutters>
+                    <ListItemText primary="Software Version" secondary={healthData?.version || 'Unknown'} />
                   </ListItem>
                 </List>
-              ) : (
-                <Typography color="textSecondary">No channel statistics available</Typography>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* URL Stats Card */}
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardHeader title="URL Statistics" />
-            <Divider />
-            <CardContent>
-              {statsData ? (
-                <List dense>
-                  <ListItem>
-                    <ListItemText primary="Total URLs" secondary={statsData?.urls?.total != null ? statsData.urls.total.toString() : 'N/A'} />
-                  </ListItem>
-                  <Divider component="li" />
-                  <ListItem>
-                    <ListItemText primary="Active URLs" secondary={statsData?.urls?.active != null ? statsData.urls.active.toString() : 'N/A'} />
-                  </ListItem>
-                  <Divider component="li" />
-                  <ListItem>
-                    <ListItemText primary="Error URLs" secondary={statsData?.urls?.error != null ? statsData.urls.error.toString() : 'N/A'} />
-                  </ListItem>
+              </Paper>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
+                <Typography variant="sectionTitle" sx={{ mb: 1.5 }}>Configuration snapshot</Typography>
+                <List dense disablePadding>
+                  {healthData?.settings && Object.entries(healthData.settings).map(([key, value]) => (
+                    <React.Fragment key={key}>
+                      <ListItem disableGutters>
+                        <ListItemText primary={key} secondary={value} />
+                      </ListItem>
+                      <Divider component="li" />
+                    </React.Fragment>
+                  ))}
                 </List>
-              ) : (
-                <Typography color="textSecondary">No URL statistics available</Typography>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
+              </Paper>
+            </Grid>
+          </Grid>
+        </Stack>
+      </ContentSection>
 
-        {/* EPG Stats Card */}
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardHeader title="EPG Statistics" />
-            <Divider />
-            <CardContent>
+      <ContentSection title="System totals" description="Review channel, URL, and EPG totals without digging into separate cards.">
+        <Grid container spacing={2}>
+          <Grid item xs={12} md={4}>
+            <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
+              <Typography variant="sectionTitle" sx={{ mb: 1.5 }}>Channel statistics</Typography>
               {statsData ? (
-                <List dense>
-                  <ListItem>
-                    <ListItemText primary="EPG Sources" secondary={statsData?.epg?.sources != null ? statsData.epg.sources.toString() : 'N/A'} />
-                  </ListItem>
-                  <Divider component="li" />
-                  <ListItem>
-                    <ListItemText primary="EPG Channels" secondary={statsData?.epg?.channels != null ? statsData.epg.channels.toString() : 'N/A'} />
-                  </ListItem>
-                  <Divider component="li" />
-                  <ListItem>
-                    <ListItemText primary="EPG Programs" secondary={statsData?.epg?.programs != null ? statsData.epg.programs.toString() : 'N/A'} />
-                  </ListItem>
+                <List dense disablePadding>
+                  <ListItem disableGutters><ListItemText primary="Total Channels" secondary={statsData.channels.total.toString()} /></ListItem>
+                  <ListItem disableGutters><ListItemText primary="Online Channels" secondary={statsData.channels.online.toString()} /></ListItem>
+                  <ListItem disableGutters><ListItemText primary="Offline Channels" secondary={statsData.channels.offline.toString()} /></ListItem>
+                  <ListItem disableGutters><ListItemText primary="Unknown Status" secondary={statsData.channels.unknown.toString()} /></ListItem>
                 </List>
-              ) : (
-                <Typography color="textSecondary">No EPG statistics available</Typography>
-              )}
-            </CardContent>
-          </Card>
+              ) : <Typography color="text.secondary">No channel statistics available</Typography>}
+            </Paper>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
+              <Typography variant="sectionTitle" sx={{ mb: 1.5 }}>URL statistics</Typography>
+              {statsData ? (
+                <List dense disablePadding>
+                  <ListItem disableGutters><ListItemText primary="Total URLs" secondary={statsData.urls.total.toString()} /></ListItem>
+                  <ListItem disableGutters><ListItemText primary="Active URLs" secondary={statsData.urls.active.toString()} /></ListItem>
+                  <ListItem disableGutters><ListItemText primary="Error URLs" secondary={statsData.urls.error.toString()} /></ListItem>
+                </List>
+              ) : <Typography color="text.secondary">No URL statistics available</Typography>}
+            </Paper>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
+              <Typography variant="sectionTitle" sx={{ mb: 1.5 }}>EPG statistics</Typography>
+              {statsData ? (
+                <List dense disablePadding>
+                  <ListItem disableGutters><ListItemText primary="EPG Sources" secondary={statsData.epg.sources.toString()} /></ListItem>
+                  <ListItem disableGutters><ListItemText primary="EPG Channels" secondary={statsData.epg.channels.toString()} /></ListItem>
+                  <ListItem disableGutters><ListItemText primary="EPG Programs" secondary={statsData.epg.programs.toString()} /></ListItem>
+                </List>
+              ) : <Typography color="text.secondary">No EPG statistics available</Typography>}
+            </Paper>
+          </Grid>
         </Grid>
-      </Grid>
+      </ContentSection>
     </Box>
   );
 };

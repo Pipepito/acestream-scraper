@@ -1,4 +1,5 @@
 import { createAppTheme } from '../theme';
+import { getShellLayout } from '../styles/layout';
 
 const collectKeys = (value: unknown): unknown => {
   if (Array.isArray(value)) {
@@ -99,12 +100,22 @@ describe('createAppTheme', () => {
     });
 
     expect(theme.appTokens.layout).toMatchObject({
-      pageGap: expect.any(String),
-      sectionGap: expect.any(String),
-      panelPadding: expect.any(String),
+      pageGap: expect.any(Number),
+      sectionGap: expect.any(Number),
+      panelPadding: expect.any(Number),
       cardRadius: expect.any(Number),
       elevatedShadow: expect.any(String),
       divider: expect.any(String),
+      shell: {
+        navWidth: expect.any(Number),
+        contentMaxWidth: expect.any(Number),
+        pagePaddingX: {
+          xs: expect.any(Number),
+          sm: expect.any(Number),
+          md: expect.any(Number),
+        },
+        pagePaddingY: expect.any(Number),
+      },
     });
 
     expect(theme.appTokens.motion).toMatchObject({
@@ -159,14 +170,57 @@ describe('createAppTheme', () => {
     );
     expect(theme.components?.MuiCard?.styleOverrides?.root).toEqual(
       expect.objectContaining({
+        borderRadius: theme.appTokens.layout.cardRadius,
         border: `1px solid ${theme.appTokens.surface.border}`,
       })
     );
     expect(theme.components?.MuiChip?.styleOverrides?.root).toEqual(
       expect.objectContaining({
-        borderRadius: 8,
+        borderRadius: theme.appTokens.layout.cardRadius,
       })
     );
+  });
+
+  it('exposes visible focus treatment and non-color status emphasis in shared defaults', () => {
+    const theme = createAppTheme('light');
+
+    expect(theme.components?.MuiButton?.styleOverrides?.root).toEqual(
+      expect.objectContaining({
+        '&.Mui-focusVisible': expect.objectContaining({
+          boxShadow: `0 0 0 4px ${theme.appTokens.action.focusRing}`,
+          outline: expect.stringContaining('solid'),
+          outlineOffset: 2,
+        }),
+      })
+    );
+
+    expect(theme.components?.MuiAlert?.styleOverrides?.root).toEqual(
+      expect.objectContaining({
+        borderLeftStyle: 'solid',
+        borderLeftWidth: 4,
+      })
+    );
+    expect(theme.components?.MuiAlert?.styleOverrides?.standardSuccess).toEqual(
+      expect.objectContaining({
+        backgroundColor: theme.appTokens.status.success.bg,
+        borderColor: theme.appTokens.status.success.border,
+        color: theme.appTokens.status.success.text,
+        '& .MuiAlert-icon': expect.objectContaining({
+          color: theme.appTokens.status.success.icon,
+        }),
+      })
+    );
+  });
+
+  it('derives shared shell layout defaults from semantic theme tokens', () => {
+    const theme = createAppTheme('dark');
+    const layout = getShellLayout(theme);
+
+    expect(layout).toEqual(theme.appTokens.layout.shell);
+    expect(layout.pagePaddingY).toBe(theme.appTokens.layout.pageGap);
+    expect(layout.pagePaddingX.sm).toBe(theme.appTokens.layout.pageGap);
+    expect(layout.navWidth).toBe(theme.appTokens.layout.shell.navWidth);
+    expect(layout.contentMaxWidth).toBe(theme.appTokens.layout.shell.contentMaxWidth);
   });
 
   it('uses reduced-motion timing when the user preference is enabled', () => {

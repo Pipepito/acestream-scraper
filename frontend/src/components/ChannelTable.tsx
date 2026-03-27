@@ -91,6 +91,74 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
         filterable: true,
       },
       {
+        field: 'actions',
+        headerName: 'Actions',
+        width: isMobile ? 210 : 260,
+        sortable: false,
+        filterable: false,
+        renderCell: (params: GridRenderCellParams<AcestreamChannel>) => (
+          <Box display="flex" gap={0.25} role="group" aria-label={`Acestream channel actions for ${params.row.name}`}>
+            <Tooltip title="Edit">
+              <IconButton
+                size="small"
+                aria-label={`edit channel ${params.row.name}`}
+                onClick={() => {
+                  onEdit(params.row);
+                  onActionComplete?.();
+                }}
+              >
+                <Edit fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Delete">
+              <IconButton
+                size="small"
+                aria-label={`delete channel ${params.row.name}`}
+                onClick={async () => {
+                  await onDelete(params.row.id);
+                  onActionComplete?.();
+                }}
+              >
+                <Delete fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={params.row.is_active ? 'Deactivate' : 'Activate'}>
+              <IconButton
+                size="small"
+                aria-label={`${params.row.is_active ? 'deactivate' : 'activate'} channel ${params.row.name}`}
+                onClick={async (event) => {
+                  event.stopPropagation();
+                  try {
+                    await acestreamChannelService.updateAcestreamChannel(params.row.id, {
+                      is_active: !params.row.is_active,
+                    });
+                    onActionComplete?.();
+                  } catch (_err) {
+                    setError('Failed to update channel status');
+                  }
+                }}
+              >
+                {params.row.is_active ? <PowerSettingsNew color="warning" /> : <CheckCircle color="success" />}
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Check Status">
+              <IconButton
+                size="small"
+                aria-label={`check channel status ${params.row.name}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onCheckStatus(params.row.id);
+                }}
+                disabled={checkingStatus[params.row.id]}
+              >
+                <Refresh color="primary" />
+              </IconButton>
+            </Tooltip>
+            {extraActions?.(params.row)}
+          </Box>
+        ),
+      },
+      {
         field: 'group',
         headerName: 'Group',
         flex: 0.8,
@@ -141,74 +209,6 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
         headerName: 'Last Scraped',
         width: 150,
         valueGetter: (params: GridValueGetterParams<AcestreamChannel>) => formatDate(params.row.last_seen),
-      },
-      {
-        field: 'actions',
-        headerName: 'Actions',
-        width: isMobile ? 210 : 260,
-        sortable: false,
-        filterable: false,
-        renderCell: (params: GridRenderCellParams<AcestreamChannel>) => (
-          <Box display="flex" gap={0.25}>
-            <Tooltip title="Edit">
-              <IconButton
-                size="small"
-                aria-label={`edit channel ${params.row.name}`}
-                onClick={() => {
-                  onEdit(params.row);
-                  onActionComplete?.();
-                }}
-              >
-                <Edit fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Delete">
-              <IconButton
-                size="small"
-                aria-label={`delete channel ${params.row.name}`}
-                onClick={async () => {
-                  await onDelete(params.row.id);
-                  onActionComplete?.();
-                }}
-              >
-                <Delete fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title={params.row.is_active ? 'Deactivate' : 'Activate'}>
-              <IconButton
-                size="small"
-                aria-label={`${params.row.is_active ? 'deactivate' : 'activate'} channel ${params.row.name}`}
-                onClick={async (event) => {
-                  event.stopPropagation();
-                  try {
-                    await acestreamChannelService.updateAcestreamChannel(params.row.id, {
-                      is_active: !params.row.is_active,
-                    });
-                    onActionComplete?.();
-                  } catch (err) {
-                    setError('Failed to update channel status');
-                  }
-                }}
-              >
-                {params.row.is_active ? <PowerSettingsNew color="warning" /> : <CheckCircle color="success" />}
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Check Status">
-              <IconButton
-                size="small"
-                aria-label={`check channel status ${params.row.name}`}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onCheckStatus(params.row.id);
-                }}
-                disabled={checkingStatus[params.row.id]}
-              >
-                <Refresh color="primary" />
-              </IconButton>
-            </Tooltip>
-            {extraActions?.(params.row)}
-          </Box>
-        ),
       },
     ],
     [checkingStatus, extraActions, isMobile, onActionComplete, onCheckStatus, onDelete, onEdit]
@@ -269,6 +269,8 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
         columns={columns}
         loading={loading}
         density={isMobile ? 'compact' : 'standard'}
+        columnBuffer={12}
+        disableVirtualization={process.env.NODE_ENV === 'test'}
         filterModel={filterModel}
         onFilterModelChange={handleFilterModelChange}
         checkboxSelection
@@ -302,4 +304,3 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
 };
 
 export default ChannelTable;
-

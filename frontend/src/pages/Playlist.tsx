@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Typography,
   Box,
-  Paper,
   FormControl,
   InputLabel,
   Select,
@@ -17,12 +15,15 @@ import {
   Alert,
   Divider,
   Chip,
-  SelectChangeEvent
+  SelectChangeEvent,
+  Stack,
+  Collapse,
 } from '@mui/material';
 import { Download, QrCode } from '@mui/icons-material';
-import { useM3UPlaylist, useChannelGroups } from '../hooks/usePlaylists';
+import { useChannelGroups } from '../hooks/usePlaylists';
 import { PlaylistFilters, playlistService } from '../services/playlistService';
-import { getErrorMessage } from '../utils/errorUtils';
+import PageHeader from '../components/layout/PageHeader';
+import ContentSection from '../components/layout/ContentSection';
 
 /**
  * Playlist configuration and download page
@@ -72,15 +73,25 @@ const Playlist: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        Playlist Generator
-      </Typography>
+      <PageHeader
+        title="Playlist"
+        subtitle="Build a player-ready M3U link, then download or share it without exposing advanced controls too early."
+      />
 
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Generate M3U Playlist
-        </Typography>
-
+      <ContentSection
+        title="Generate playlist"
+        description="Choose the channels you want, keep the main path simple, and open advanced options only when you need them."
+        actions={
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ width: { xs: '100%', sm: 'auto' } }}>
+            <Button variant="contained" color="primary" startIcon={<Download />} href={playlistUrl} download="acestream_playlist.m3u">
+              Download M3U
+            </Button>
+            <Button variant="outlined" startIcon={<QrCode />}>
+              Show QR Code
+            </Button>
+          </Stack>
+        }
+      >
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
             <TextField
@@ -104,20 +115,18 @@ const Playlist: React.FC = () => {
 
             <Box sx={{ mt: 2 }}>
               <Button
-                variant="contained"
-                color="primary"
+                variant="outlined"
                 onClick={() => setShowFilters(!showFilters)}
-                sx={{ mr: 2 }}
               >
-                {showFilters ? "Hide Advanced Filters" : "Show Advanced Filters"}
+                {showFilters ? 'Hide advanced options' : 'Show advanced options'}
               </Button>
             </Box>
 
-            {showFilters && (
+            <Collapse in={showFilters}>
               <Box sx={{ mt: 3 }}>
-                <Typography variant="subtitle1" gutterBottom>
-                  Advanced Filters
-                </Typography>
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  Advanced options help you narrow the playlist without changing the main download flow.
+                </Alert>
 
                 <FormControl fullWidth margin="normal">
                   <InputLabel>Include Groups</InputLabel>
@@ -169,78 +178,52 @@ const Playlist: React.FC = () => {
                   </Select>
                 </FormControl>
               </Box>
-            )}
+            </Collapse>
           </Grid>
 
           <Grid item xs={12} md={6}>
-            <Typography variant="subtitle1" gutterBottom>
-              Download Options
-            </Typography>
-
             <Alert severity="info" sx={{ mb: 2 }}>
               The generated playlist will work with any media player that supports Acestream links,
               such as VLC or Kodi with the Acestream addon.
             </Alert>
 
             <Box sx={{ mb: 2 }}>
-              <Typography variant="body2" gutterBottom>
+              <Box component="p" sx={{ typography: 'body2', mb: 1 }}>
                 Playlist URL:
-              </Typography>
-            <TextField
-              fullWidth
-              variant="outlined"
-              value={playlistUrl}
-              InputProps={{
-                readOnly: true,
-              }}
-              size="small"
-            />
+              </Box>
+              <TextField
+                fullWidth
+                variant="outlined"
+                value={playlistUrl}
+                InputProps={{
+                  readOnly: true,
+                }}
+                size="small"
+              />
             </Box>
-
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<Download />}
-              sx={{ mr: 2 }}
-              href={playlistUrl}
-              download="acestream_playlist.m3u"
-            >
-              Download M3U
-            </Button>
-
-            <Button
-              variant="outlined"
-              startIcon={<QrCode />}
-            >
-              Show QR Code
-            </Button>
           </Grid>
         </Grid>
-      </Paper>
+      </ContentSection>
 
-      <Paper sx={{ p: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Usage Instructions
-        </Typography>
-
-        <Typography variant="body2" paragraph>
+      <ContentSection title="How to use this playlist" description="Follow the same three-step path each time so playback setup stays predictable.">
+        <Box sx={{ typography: 'body2', mb: 2 }}>
           1. Configure your playlist using the options above
-        </Typography>
+        </Box>
 
-        <Typography variant="body2" paragraph>
+        <Box sx={{ typography: 'body2', mb: 2 }}>
           2. Download the M3U file or copy the playlist URL
-        </Typography>
+        </Box>
 
-        <Typography variant="body2" paragraph>
+        <Box sx={{ typography: 'body2', mb: 2 }}>
           3. Import the M3U into your media player or IPTV client
-        </Typography>
+        </Box>
 
         <Divider sx={{ my: 2 }} />
 
         <Alert severity="warning">
           Make sure you have the Acestream engine installed and running on your device before playing the channels.
         </Alert>
-      </Paper>
+      </ContentSection>
     </Box>
   );
 };

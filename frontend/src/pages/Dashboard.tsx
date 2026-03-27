@@ -2,9 +2,6 @@ import React, { useState } from 'react';
 import {
   Typography,
   Box,
-  Grid,
-  Card,
-  CardContent,
   CircularProgress,
   Alert,
   Select,
@@ -20,7 +17,7 @@ import {
   ListItem,
   ListItemText,
   Divider,
-  Chip,
+  Paper,
 } from '@mui/material';
 import type { SelectChangeEvent } from '@mui/material';
 import Snackbar from '@mui/material/Snackbar';
@@ -205,7 +202,7 @@ const Dashboard: React.FC = () => {
         title="Dashboard"
         subtitle="Track operational status, recent activity, and background jobs."
         actions={
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+          <Stack component="nav" aria-label="Dashboard primary actions" direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ width: '100%' }}>
             <Button component={RouterLink} to="/scraper" variant="outlined">
               Open Scraper
             </Button>
@@ -254,47 +251,52 @@ const Dashboard: React.FC = () => {
         </Stack>
       </ContentSection>
 
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography color="text.secondary" gutterBottom>
-                Active Streams
-              </Typography>
-              <Typography variant="h4">{(streams as { count?: number } | undefined)?.count ?? 0}</Typography>
-              <Typography sx={{ mt: 1 }} color="text.secondary">
-                Source: {(streams as { source?: string } | undefined)?.source ?? 'N/A'}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography color="text.secondary" gutterBottom>
-                WARP Status
-              </Typography>
-              <Typography variant="h6">{(warp as { status?: string } | undefined)?.status ?? 'N/A'}</Typography>
-              {(warp as { error?: string | null } | undefined)?.error ? (
-                <Chip sx={{ mt: 1 }} color="warning" label={`Error: ${(warp as { error?: string }).error}`} />
-              ) : null}
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography color="text.secondary" gutterBottom>
-                Background Tasks
-              </Typography>
-              <Typography variant="h4">{backgroundTasks.length}</Typography>
-              <Typography sx={{ mt: 1 }} color="text.secondary">
-                Latest run: {backgroundTasks[0]?.last_run || 'N/A'}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+      <ContentSection title="Operational path" description="Start with connection health, confirm live capacity, then review the scheduler before opening detailed pages.">
+        <Paper variant="outlined" sx={{ p: 2.5 }}>
+          <Stack spacing={2}>
+            <Alert severity={(warp as { error?: string | null } | undefined)?.error ? 'warning' : 'success'}>
+              {(warp as { error?: string | null; status?: string } | undefined)?.error
+                ? `Attention needed: WARP reports ${(warp as { status?: string } | undefined)?.status ?? 'unknown status'}. ${(warp as { error?: string }).error}`
+                : `Protected connection active: WARP is ${(warp as { status?: string } | undefined)?.status ?? 'unknown'}.`}
+            </Alert>
+
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} divider={<Divider flexItem orientation="vertical" sx={{ display: { xs: 'none', md: 'block' } }} />}>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography variant="sectionTitle">1. Confirm live stream capacity</Typography>
+                <Typography variant="h4" sx={{ mt: 1 }}>
+                  {(streams as { count?: number } | undefined)?.count ?? 0}
+                </Typography>
+                <Typography variant="helperText" sx={{ mt: 1 }}>
+                  {(streams as { count?: number } | undefined)?.count ?? 0} streams available right now from{' '}
+                  {(streams as { source?: string } | undefined)?.source ?? 'N/A'}.
+                </Typography>
+              </Box>
+
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography variant="sectionTitle">2. Review protected routing</Typography>
+                <Typography variant="body1" sx={{ mt: 1, fontWeight: 600 }}>
+                  WARP status: {(warp as { status?: string } | undefined)?.status ?? 'N/A'}
+                </Typography>
+                <Typography variant="helperText" sx={{ mt: 1 }}>
+                  {(warp as { error?: string | null } | undefined)?.error
+                    ? `Traffic protection needs review before running more tasks. ${String((warp as { error?: string }).error)}`
+                    : 'Protected connection active so scraper and EPG jobs can keep using the routed path.'}
+                </Typography>
+              </Box>
+
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography variant="sectionTitle">3. Check scheduler follow-through</Typography>
+                <Typography variant="h4" sx={{ mt: 1 }}>
+                  {backgroundTasks.length}
+                </Typography>
+                <Typography variant="helperText" sx={{ mt: 1 }}>
+                  Scheduler is keeping background tasks on cadence. Latest run: {backgroundTasks[0]?.last_run || 'N/A'}.
+                </Typography>
+              </Box>
+            </Stack>
+          </Stack>
+        </Paper>
+      </ContentSection>
 
       <ContentSection title="Recent Activity">
         <List>
@@ -372,15 +374,12 @@ const Dashboard: React.FC = () => {
         open={snackbar.open}
         autoHideDuration={3500}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
-        message={snackbar.message}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        ContentProps={{
-          style: {
-            backgroundColor: snackbar.severity === 'success' ? '#2e7d32' : '#d32f2f',
-            color: '#fff',
-          },
-        }}
-      />
+      >
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} variant="filled" sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

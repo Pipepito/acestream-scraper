@@ -1,9 +1,11 @@
 import React from 'react';
 import { QueryClient, QueryClientProvider } from 'react-query';
+import { ThemeProvider } from '@mui/material/styles';
 import { MemoryRouter } from 'react-router-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import EPG from '../pages/EPG';
+import { createAppTheme } from '../theme';
 
 jest.mock('../services/apiClient', () => ({
   __esModule: true,
@@ -23,6 +25,7 @@ const mockUseDeleteEPGSource = jest.fn();
 const mockUseRefreshAllEPGSources = jest.fn();
 const mockUseDownloadEPGXML = jest.fn();
 const mockUseAllTVChannels = jest.fn();
+const mockUseTVChannelCatalog = jest.fn();
 const mockAnalyzeEPGMatches = jest.fn();
 const mockCreateFromEPGAnalysis = jest.fn();
 
@@ -43,6 +46,7 @@ jest.mock('../hooks/useEPG', () => ({
 
 jest.mock('../hooks/useTVChannels', () => ({
   useAllTVChannels: (...args: unknown[]) => mockUseAllTVChannels(...args),
+  useTVChannelCatalog: (...args: unknown[]) => mockUseTVChannelCatalog(...args),
 }));
 
 jest.mock('../services/tvChannelService', () => ({
@@ -206,11 +210,13 @@ const renderPage = () => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
   return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
-        <EPG />
-      </MemoryRouter>
-    </QueryClientProvider>
+    <ThemeProvider theme={createAppTheme('light')}>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <EPG />
+        </MemoryRouter>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 };
 
@@ -244,6 +250,7 @@ describe('EPG bulk match workflow', () => {
     mockUseRefreshAllEPGSources.mockReturnValue({ mutateAsync: jest.fn(), isLoading: false });
     mockUseDownloadEPGXML.mockReturnValue({ mutateAsync: jest.fn(), isLoading: false });
     mockUseAllTVChannels.mockReturnValue({ data: { items: [], total: 0 } });
+    mockUseTVChannelCatalog.mockReturnValue({ data: [], isLoading: false, error: null });
     mockAnalyzeEPGMatches.mockResolvedValue(analysisResponse);
     mockCreateFromEPGAnalysis.mockResolvedValue({
       created_count: 1,
@@ -256,8 +263,6 @@ describe('EPG bulk match workflow', () => {
 
   it('shows strictness controls, disables create before analysis, and sends source-filtered analyze requests', async () => {
     renderPage();
-
-    fireEvent.click(screen.getByRole('tab', { name: 'Channels' }));
 
     expect(screen.getByRole('button', { name: /create matched tv channels/i })).toBeDisabled();
 
@@ -283,7 +288,6 @@ describe('EPG bulk match workflow', () => {
 
   it('renders result states, confidence text, default creatable selection, and filter views', async () => {
     renderPage();
-    fireEvent.click(screen.getByRole('tab', { name: 'Channels' }));
     fireEvent.click(screen.getByRole('button', { name: /analyze matches/i }));
 
     await screen.findByText('Alpha Arena');
@@ -314,7 +318,6 @@ describe('EPG bulk match workflow', () => {
     mockAnalyzeEPGMatches.mockResolvedValueOnce(zeroMatchResponse);
 
     renderPage();
-    fireEvent.click(screen.getByRole('tab', { name: 'Channels' }));
     fireEvent.click(screen.getByRole('button', { name: /analyze matches/i }));
 
     await screen.findByText(/2 analyzed/i);
@@ -327,7 +330,6 @@ describe('EPG bulk match workflow', () => {
 
   it('allows row deselection and creates only selected creatable rows', async () => {
     renderPage();
-    fireEvent.click(screen.getByRole('tab', { name: 'Channels' }));
     fireEvent.click(screen.getByRole('button', { name: /analyze matches/i }));
 
     await screen.findByText('Alpha Arena');

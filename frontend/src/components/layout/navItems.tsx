@@ -1,4 +1,5 @@
 import React from 'react';
+import { matchPath } from 'react-router-dom';
 import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
 import TravelExploreRoundedIcon from '@mui/icons-material/TravelExploreRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
@@ -82,18 +83,25 @@ export const navItems: NavItem[] = [
   },
 ];
 
+const matchesSegmentPath = (pathname: string, candidatePath: string) => {
+  if (candidatePath === '/') {
+    return pathname === '/';
+  }
+
+  return Boolean(
+    matchPath({ path: candidatePath, end: true }, pathname) ||
+      matchPath({ path: `${candidatePath}/*`, end: false }, pathname)
+  );
+};
+
+export function isNavItemSelected(item: NavItem, pathname: string): boolean {
+  const candidatePaths = [item.path, ...(item.matchPrefixes ?? [])];
+
+  return candidatePaths.some((candidatePath) => matchesSegmentPath(pathname, candidatePath));
+}
+
 export function getNavTitle(pathname: string): string {
-  const matched = navItems.find((item) => {
-    if (item.path === '/' && pathname === '/') {
-      return true;
-    }
-
-    if (item.matchPrefixes && item.matchPrefixes.some((prefix) => pathname.startsWith(prefix))) {
-      return true;
-    }
-
-    return item.path !== '/' && pathname.startsWith(item.path);
-  });
+  const matched = navItems.find((item) => isNavItemSelected(item, pathname));
 
   return matched?.text ?? 'Not Found';
 }

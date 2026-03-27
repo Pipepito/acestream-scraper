@@ -1,11 +1,6 @@
 import React, { useState } from 'react';
 import {
   Box,
-  Typography,
-  Card,
-  CardContent,
-  CardHeader,
-  Divider,
   Grid,
   TextField,
   Button,
@@ -13,7 +8,8 @@ import {
   Switch,
   Alert,
   CircularProgress,
-  Snackbar
+  Snackbar,
+  Stack,
 } from '@mui/material';
 import {
   useBaseUrl,
@@ -27,6 +23,8 @@ import {
   useAcestreamStatus
 } from '../hooks/useConfig';
 import { configService } from '../services/configService';
+import PageHeader from '../components/layout/PageHeader';
+import ContentSection from '../components/layout/ContentSection';
 
 const Settings: React.FC = () => {
   // Form state
@@ -35,8 +33,12 @@ const Settings: React.FC = () => {
   const [rescrapeInterval, setRescrapeInterval] = useState<number>(24);
   const [addPid, setAddPid] = useState<boolean>(false);
   const [appid, setAppid] = useState<boolean>(false);
-  const [showSuccess, setShowSuccess] = useState<boolean>(false);
-  const [successMessage, setSuccessMessage] = useState<string>('');
+  const [feedback, setFeedback] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+    open: false,
+    message: '',
+    severity: 'success',
+  });
+  const [appIdError, setAppIdError] = useState<string>('');
 
   // Queries
   const baseUrlQuery = useBaseUrl();
@@ -50,10 +52,19 @@ const Settings: React.FC = () => {
   const [appidSubmitting, setAppidSubmitting] = useState<boolean>(false);
   React.useEffect(() => {
     setAppidLoading(true);
-    configService.getAppId().then((val) => {
-      setAppid(val);
-      setAppidLoading(false);
-    });
+    setAppIdError('');
+
+    configService
+      .getAppId()
+      .then((val) => {
+        setAppid(val);
+      })
+      .catch(() => {
+        setAppIdError('Could not load AppID setting. You can still retry the toggle manually.');
+      })
+      .finally(() => {
+        setAppidLoading(false);
+      });
   }, []);
 
   // Mutations
@@ -84,8 +95,7 @@ const Settings: React.FC = () => {
     e.preventDefault();
     updateBaseUrlMutation.mutate(baseUrl, {
       onSuccess: () => {
-        setSuccessMessage('Base URL updated successfully');
-        setShowSuccess(true);
+        setFeedback({ open: true, message: 'Base URL updated successfully', severity: 'success' });
       }
     });
   };
@@ -94,8 +104,7 @@ const Settings: React.FC = () => {
     e.preventDefault();
     updateAceEngineUrlMutation.mutate(aceEngineUrl, {
       onSuccess: () => {
-        setSuccessMessage('Acestream Engine URL updated successfully');
-        setShowSuccess(true);
+        setFeedback({ open: true, message: 'Acestream Engine URL updated successfully', severity: 'success' });
       }
     });
   };
@@ -104,8 +113,7 @@ const Settings: React.FC = () => {
     e.preventDefault();
     updateRescrapeIntervalMutation.mutate(rescrapeInterval, {
       onSuccess: () => {
-        setSuccessMessage('Rescrape interval updated successfully');
-        setShowSuccess(true);
+        setFeedback({ open: true, message: 'Rescrape interval updated successfully', severity: 'success' });
       }
     });
   };
@@ -115,8 +123,7 @@ const Settings: React.FC = () => {
     setAddPid(checked);
     updateAddPidMutation.mutate(checked, {
       onSuccess: () => {
-        setSuccessMessage('Add PID setting updated successfully');
-        setShowSuccess(true);
+        setFeedback({ open: true, message: 'Add PID setting updated successfully', severity: 'success' });
       }
     });
   };
@@ -126,15 +133,24 @@ const Settings: React.FC = () => {
     const checked = e.target.checked;
     setAppid(checked);
     setAppidSubmitting(true);
-    configService.updateAppId(checked).then(() => {
-      setSuccessMessage('AppID setting updated successfully');
-      setShowSuccess(true);
-      setAppidSubmitting(false);
-    });
+
+    configService
+      .updateAppId(checked)
+      .then(() => {
+        setAppIdError('');
+        setFeedback({ open: true, message: 'AppID setting updated successfully', severity: 'success' });
+      })
+      .catch(() => {
+        setAppid(!checked);
+        setFeedback({ open: true, message: 'Failed to update AppID setting', severity: 'error' });
+      })
+      .finally(() => {
+        setAppidSubmitting(false);
+      });
   };
 
   const handleCloseSnackbar = () => {
-    setShowSuccess(false);
+    setFeedback((current) => ({ ...current, open: false }));
   };
 
 
@@ -162,66 +178,42 @@ const Settings: React.FC = () => {
   }
 
   return (
-    <Box sx={{ p: 2 }}>
-      <Typography variant="h4" gutterBottom>
-        Settings
-      </Typography>
+    <Box>
+      <PageHeader
+        title="Settings"
+        subtitle="Keep connection details and automation defaults in one predictable place."
+      />
 
-      {/* Acestream Status Card */}
-      <Card sx={{ mb: 4 }}>
-        <CardHeader title="Acestream Engine Status" />
-        <Divider />
-        <CardContent>
-          {acestreamStatusQuery.isLoading ? (
-            <Box display="flex" alignItems="center">
-              <CircularProgress size={20} sx={{ mr: 2 }} />
-              <Typography>Checking Acestream Engine status...</Typography>
-            </Box>
-          ) : acestreamStatusQuery.error ? (
-            <Alert severity="error">
-              Error checking Acestream Engine status: {acestreamStatusQuery.error.toString()}
-            </Alert>
-          ) : (
-            <Alert
-              severity={acestreamStatusQuery.data?.status === 'online' ? 'success' : 'warning'}
-              icon={false}
-            >
-              <Box display="flex" alignItems="center">
-                <Box
-                  sx={{
-                    width: 12,
-                    height: 12,
-                    borderRadius: '50%',
-                    backgroundColor: acestreamStatusQuery.data?.status === 'online' ? 'success.main' : 'warning.main',
-                    mr: 2
-                  }}
-                />
-                <Typography>
-                  {acestreamStatusQuery.data?.message || 'Status unknown'}
-                </Typography>
-              </Box>
-            </Alert>
-          )}
-          <Box mt={2}>
-            <Button
-              variant="outlined"
-              onClick={() => acestreamStatusQuery.refetch()}
-              disabled={acestreamStatusQuery.isLoading}
-            >
-              Refresh Status
-            </Button>
+      <ContentSection
+        title="Engine connection"
+        description="Confirm the backend can reach your Acestream engine before changing connection settings."
+        actions={
+          <Button variant="outlined" onClick={() => acestreamStatusQuery.refetch()} disabled={acestreamStatusQuery.isLoading}>
+            Refresh status
+          </Button>
+        }
+      >
+        {acestreamStatusQuery.isLoading ? (
+          <Box display="flex" alignItems="center">
+            <CircularProgress size={20} sx={{ mr: 2 }} />
+            <Box component="span">Checking Acestream Engine status...</Box>
           </Box>
-        </CardContent>
-      </Card>
+        ) : acestreamStatusQuery.error ? (
+          <Alert severity="error">
+            Error checking Acestream Engine status: {acestreamStatusQuery.error.toString()}
+          </Alert>
+        ) : (
+          <Alert severity={acestreamStatusQuery.data?.status === 'online' ? 'success' : 'warning'}>
+            {acestreamStatusQuery.data?.status === 'online' ? 'Online' : 'Needs attention'} · {acestreamStatusQuery.data?.message || 'Status unknown'}
+          </Alert>
+        )}
+      </ContentSection>
 
-      <Grid container spacing={4}>
-        {/* Base URL Card */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardHeader title="Base URL Configuration" />
-            <Divider />
-            <CardContent>
-              <form onSubmit={handleBaseUrlSubmit}>
+      <ContentSection title="Connection settings" description="Update the base URLs only when your environment changes.">
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6}>
+            <form onSubmit={handleBaseUrlSubmit}>
+              <Stack spacing={2}>
                 <TextField
                   label="Base URL"
                   fullWidth
@@ -230,32 +222,15 @@ const Settings: React.FC = () => {
                   margin="normal"
                   helperText="The base URL for Acestream links (e.g., acestream://)"
                 />
-                <Box mt={2}>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    color="primary"
-                    disabled={isSubmitting || baseUrl === baseUrlQuery.data}
-                  >
-                    {updateBaseUrlMutation.isLoading ? (
-                      <CircularProgress size={24} color="inherit" />
-                    ) : (
-                      'Save Changes'
-                    )}
-                  </Button>
-                </Box>
-              </form>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Acestream Engine URL Card */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardHeader title="Acestream Engine Configuration" />
-            <Divider />
-            <CardContent>
-              <form onSubmit={handleAceEngineUrlSubmit}>
+                <Button type="submit" variant="contained" color="primary" disabled={isSubmitting || baseUrl === baseUrlQuery.data}>
+                  {updateBaseUrlMutation.isLoading ? <CircularProgress size={24} color="inherit" /> : 'Save base URL'}
+                </Button>
+              </Stack>
+            </form>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <form onSubmit={handleAceEngineUrlSubmit}>
+              <Stack spacing={2}>
                 <TextField
                   label="Acestream Engine URL"
                   fullWidth
@@ -264,32 +239,20 @@ const Settings: React.FC = () => {
                   margin="normal"
                   helperText="The URL of your Acestream Engine (e.g., http://localhost:6878)"
                 />
-                <Box mt={2}>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    color="primary"
-                    disabled={isSubmitting || aceEngineUrl === aceEngineUrlQuery.data}
-                  >
-                    {updateAceEngineUrlMutation.isLoading ? (
-                      <CircularProgress size={24} color="inherit" />
-                    ) : (
-                      'Save Changes'
-                    )}
-                  </Button>
-                </Box>
-              </form>
-            </CardContent>
-          </Card>
+                <Button type="submit" variant="contained" color="primary" disabled={isSubmitting || aceEngineUrl === aceEngineUrlQuery.data}>
+                  {updateAceEngineUrlMutation.isLoading ? <CircularProgress size={24} color="inherit" /> : 'Save engine URL'}
+                </Button>
+              </Stack>
+            </form>
+          </Grid>
         </Grid>
+      </ContentSection>
 
-        {/* Rescrape Interval Card */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardHeader title="Rescrape Interval Configuration" />
-            <Divider />
-            <CardContent>
-              <form onSubmit={handleRescrapeIntervalSubmit}>
+      <ContentSection title="Automation settings" description="Adjust scraper timing and playlist link options without mixing them into connection details.">
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6}>
+            <form onSubmit={handleRescrapeIntervalSubmit}>
+              <Stack spacing={2}>
                 <TextField
                   label="Rescrape Interval (hours)"
                   type="number"
@@ -300,32 +263,16 @@ const Settings: React.FC = () => {
                   InputProps={{ inputProps: { min: 1, max: 168 } }}
                   helperText="Hours between automatic rescrapes (1-168)"
                 />
-                <Box mt={2}>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    color="primary"
-                    disabled={isSubmitting || rescrapeInterval === rescrapeIntervalQuery.data}
-                  >
-                    {updateRescrapeIntervalMutation.isLoading ? (
-                      <CircularProgress size={24} color="inherit" />
-                    ) : (
-                      'Save Changes'
-                    )}
-                  </Button>
-                </Box>
-              </form>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* AppID Card */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardHeader title="Acestream AppID Configuration" />
-            <Divider />
-            <CardContent>
-              <Box sx={{ p: 2 }}>
+                <Button type="submit" variant="contained" color="primary" disabled={isSubmitting || rescrapeInterval === rescrapeIntervalQuery.data}>
+                  {updateRescrapeIntervalMutation.isLoading ? <CircularProgress size={24} color="inherit" /> : 'Save rescrape interval'}
+                </Button>
+              </Stack>
+            </form>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Stack spacing={2} sx={{ pt: 1 }}>
+              {appIdError ? <Alert severity="warning">{appIdError}</Alert> : null}
+              <Box>
                 <FormControlLabel
                   control={
                     <Switch
@@ -336,21 +283,33 @@ const Settings: React.FC = () => {
                   }
                   label="Use AppID in Acestream links"
                 />
-                <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+                <Box sx={{ typography: 'body2', color: 'text.secondary', mt: 1 }}>
                   When enabled, the AppID will be used in Acestream links in playlists.
-                </Typography>
+                </Box>
               </Box>
-            </CardContent>
-          </Card>
+              <Box>
+                <FormControlLabel
+                  control={<Switch checked={addPid} onChange={handleAddPidChange} disabled={isSubmitting} />}
+                  label="Append PID to generated Acestream links"
+                />
+                <Box sx={{ typography: 'body2', color: 'text.secondary', mt: 1 }}>
+                  Keep this enabled when your player expects PID values in playlist links.
+                </Box>
+              </Box>
+            </Stack>
+          </Grid>
         </Grid>
-      </Grid>
+      </ContentSection>
 
       <Snackbar
-        open={showSuccess}
+        open={feedback.open}
         autoHideDuration={6000}
         onClose={handleCloseSnackbar}
-        message={successMessage}
-      />
+      >
+        <Alert onClose={handleCloseSnackbar} severity={feedback.severity} variant="filled" sx={{ width: '100%' }}>
+          {feedback.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

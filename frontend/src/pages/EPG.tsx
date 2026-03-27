@@ -4,9 +4,6 @@ import { useQueryClient } from 'react-query';
 import {
   Typography,
   Box,
-  Paper,
-  Tabs,
-  Tab,
   Button,
   TextField,
   Dialog,
@@ -42,7 +39,6 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Refresh as RefreshIcon,
-  Link as LinkIcon,
   Download as DownloadIcon,
   Visibility as VisibilityIcon
 } from '@mui/icons-material';
@@ -56,15 +52,11 @@ import {
   useRefreshAllEPGSources,
   useDownloadEPGXML
 } from '../hooks/useEPG';
-import { useAllTVChannels } from '../hooks/useTVChannels';
+import { useTVChannelCatalog } from '../hooks/useTVChannels';
 import { EPGSource, EPGChannel, EPGXMLGenerationParams, epgService } from '../services/epgService';
-import {
-  tvChannelService,
-  EPGMatchAnalysisResponse,
-  EPGMatchAnalysisRow,
-  EPGMatchStrictness,
-} from '../services/tvChannelService';
+import { tvChannelService, EPGMatchAnalysisResponse, EPGMatchAnalysisRow, EPGMatchStrictness } from '../services/tvChannelService';
 import PageHeader from '../components/layout/PageHeader';
+import ContentSection from '../components/layout/ContentSection';
 
 interface EPGSourceFormData {
   url: string;
@@ -72,38 +64,11 @@ interface EPGSourceFormData {
   enabled: boolean;
 }
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
 type MatchFilter = 'all' | 'matched' | 'unmatched' | 'creatable';
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`epg-tabpanel-${index}`}
-      aria-labelledby={`epg-tab-${index}`}
-      {...other}
-    >
-      {value === index && (
-        <Box sx={{ p: 3 }}>
-          {children}
-        </Box>
-      )}
-    </div>
-  );
-}
 
 const EPG: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [tabValue, setTabValue] = useState(0);
   const [openSourceDialog, setOpenSourceDialog] = useState(false);
   const [isEditSource, setIsEditSource] = useState(false);
   const [editSourceId, setEditSourceId] = useState<number | null>(null);
@@ -135,7 +100,11 @@ const EPG: React.FC = () => {
   const [channelPageSize, setChannelPageSize] = useState(50);
 
   const { data: epgChannelPage, isLoading: isLoadingChannels } = useEPGChannels(selectedSourceId, channelPage, channelPageSize);
-  const { data: tvChannels } = useAllTVChannels(0, 1000);
+  const {
+    data: tvChannels,
+    isLoading: isLoadingTVChannelCatalog,
+    error: tvChannelCatalogError,
+  } = useTVChannelCatalog();
   const { mutateAsync: createSource } = useCreateEPGSource();
   const { mutateAsync: updateSource } = useUpdateEPGSource(editSourceId || 0);
   const { mutateAsync: deleteSource } = useDeleteEPGSource();
@@ -156,10 +125,6 @@ const EPG: React.FC = () => {
   const epgChannels = useMemo(() => epgChannelPage?.items || [], [epgChannelPage]);
   const totalEPGChannels = epgChannelPage?.total || 0;
   const totalChannelPages = Math.max(1, Math.ceil(totalEPGChannels / channelPageSize));
-
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
-  };
 
   // Source form handlers
   const handleAddSourceClick = () => {
@@ -304,13 +269,15 @@ const EPG: React.FC = () => {
   // Build a set of mapped EPG XML IDs (or channel_xml_id)
   const mappedEpgXmlIds = useMemo(() => {
     if (!tvChannels) return new Set<string>();
-    return new Set((tvChannels?.items || []).filter((c: any) => c.epg_id).map((c: any) => c.epg_id));
+    return new Set(tvChannels.filter((channel: any) => channel.epg_id).map((channel: any) => channel.epg_id));
   }, [tvChannels]);
 
   const visibleUnmappedChannelIds = useMemo(
     () => epgChannels.filter((channel) => !mappedEpgXmlIds.has(channel.channel_xml_id)).map((channel) => channel.id),
     [epgChannels, mappedEpgXmlIds]
   );
+
+  const isTVChannelCatalogReady = !isLoadingTVChannelCatalog && !tvChannelCatalogError && Boolean(tvChannels);
 
   const filteredMatchRows = useMemo(() => {
     const rows = matchAnalysis?.rows || [];
@@ -451,6 +418,10 @@ const EPG: React.FC = () => {
   };
 
   const handleSelectAllChannels = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isTVChannelCatalogReady) {
+      return;
+    }
+
     if (event.target.checked) {
       setSelectedEPGChannelIds(visibleUnmappedChannelIds);
     } else {
@@ -459,6 +430,10 @@ const EPG: React.FC = () => {
   };
 
   const handleSelectChannel = (id: number) => {
+    if (!isTVChannelCatalogReady) {
+      return;
+    }
+
     const channel = epgChannels?.find(c => c.id === id);
     if (!channel || isChannelMapped(channel)) return;
     setSelectedEPGChannelIds((prev) =>
@@ -498,178 +473,182 @@ const EPG: React.FC = () => {
         subtitle="Manage source ingestion, map channels, and generate XML output."
       />
 
-      <Paper sx={{ mb: 3 }}>
-        <Tabs
-          value={tabValue}
-          onChange={handleTabChange}
-          indicatorColor="primary"
-          textColor="primary"
-          centered
+        <ContentSection
+          title="Source Operations"
+          description="Track source health, add feeds, and refresh ingestion without leaving the page."
+          actions={
+            <>
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<AddIcon />}
+                onClick={handleAddSourceClick}
+              >
+                Add EPG Source
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<RefreshIcon />}
+                onClick={handleRefreshAllClick}
+                disabled={isRefreshingAll}
+              >
+                Refresh All
+              </Button>
+            </>
+          }
         >
-          <Tab label="Sources" />
-          <Tab label="Channels" />
-          <Tab label="XML Generation" />
-        </Tabs>
-      </Paper>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+            <Chip label={`${(epgSources || []).length} sources`} size="small" />
+            <Chip
+              label={`${(epgSources || []).filter((source) => source.enabled).length} enabled`}
+              color="success"
+              size="small"
+            />
+          </Box>
 
-      <TabPanel value={tabValue} index={0}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={handleAddSourceClick}
-          >
-            Add EPG Source
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<RefreshIcon />}
-            onClick={handleRefreshAllClick}
-            disabled={isRefreshingAll}
-          >
-            Refresh All
-          </Button>
-        </Box>
+          {isLoadingSources || isRefreshingAll ? (
+            <LinearProgress sx={{ mb: 2 }} />
+          ) : null}
 
-        {isLoadingSources || isRefreshingAll ? (
-          <LinearProgress sx={{ mb: 2 }} />
-        ) : null}
-
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell>URL</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Last Updated</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {(epgSources || []).map((source) => (
-                <TableRow key={source.id}>
-                  <TableCell>{source.name}</TableCell>
-                  <TableCell>{source.url}</TableCell>
-                  <TableCell>
-                    {source.enabled ? (
-                      <Chip label="Enabled" color="success" size="small" />
-                    ) : (
-                      <Chip label="Disabled" color="default" size="small" />
-                    )}
-                    {source.error_count > 0 && (
-                      <Chip
-                        label={`Errors: ${source.error_count}`}
-                        color="error"
-                        size="small"
-                        sx={{ ml: 1 }}
-                        title={source.last_error}
-                      />
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {source.last_updated ? (
-                      formatDistanceToNow(new Date(source.last_updated), { addSuffix: true })
-                    ) : (
-                      'Never'
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <IconButton
-                      color="primary"
-                      onClick={() => handleRefreshSourceClick(source.id)}
-                      disabled={refreshingSourceId === source.id}
-                    >
-                      <RefreshIcon />
-                    </IconButton>
-                    <IconButton color="secondary" onClick={() => handleEditSourceClick(source)}>
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton color="error" onClick={() => handleDeleteSourceClick(source.id)}>
-                      <DeleteIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {epgSources && epgSources.length === 0 && (
+          <TableContainer component={Box} sx={{ overflowX: 'auto' }}>
+            <Table>
+              <TableHead>
                 <TableRow>
-                  <TableCell colSpan={5} align="center">
-                    No EPG sources found
-                  </TableCell>
+                  <TableCell>Name</TableCell>
+                  <TableCell>URL</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Last Updated</TableCell>
+                  <TableCell>Actions</TableCell>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </TabPanel>
+              </TableHead>
+              <TableBody>
+                {(epgSources || []).map((source) => (
+                  <TableRow key={source.id}>
+                    <TableCell>{source.name}</TableCell>
+                    <TableCell>{source.url}</TableCell>
+                    <TableCell>
+                      {source.enabled ? (
+                        <Chip label="Enabled" color="success" size="small" />
+                      ) : (
+                        <Chip label="Disabled" color="default" size="small" />
+                      )}
+                      {source.error_count > 0 && (
+                        <Chip
+                          label={`Errors: ${source.error_count}`}
+                          color="error"
+                          size="small"
+                          sx={{ ml: 1 }}
+                          title={source.last_error}
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {source.last_updated ? (
+                        formatDistanceToNow(new Date(source.last_updated), { addSuffix: true })
+                      ) : (
+                        'Never'
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <IconButton
+                        color="primary"
+                        onClick={() => handleRefreshSourceClick(source.id)}
+                        disabled={refreshingSourceId === source.id}
+                        aria-label={`Refresh source ${source.name}`}
+                      >
+                        <RefreshIcon />
+                      </IconButton>
+                      <IconButton color="secondary" onClick={() => handleEditSourceClick(source)} aria-label={`Edit source ${source.name}`}>
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton color="error" onClick={() => handleDeleteSourceClick(source.id)} aria-label={`Delete source ${source.name}`}>
+                        <DeleteIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {epgSources && epgSources.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} align="center">
+                      No EPG sources found
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </ContentSection>
 
-      <TabPanel value={tabValue} index={1}>
-        <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-          <Typography variant="h6" gutterBottom>
-            Available EPG Channels
-          </Typography>
-          <FormControl size="small" sx={{ minWidth: 240 }}>
-            <InputLabel id="epg-source-filter-label">EPG Source</InputLabel>
-            <Select
-              labelId="epg-source-filter-label"
-              label="EPG Source"
-              value={selectedSourceId?.toString() ?? 'all'}
-              onChange={handleSourceFilterChange}
-            >
-              <MenuItem value="all">All sources</MenuItem>
-              {(epgSources || []).map((source) => (
-                <MenuItem key={source.id} value={source.id.toString()}>
-                  {source.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl size="small" sx={{ minWidth: 180 }}>
-            <InputLabel id="epg-match-strictness-label">Match Strictness</InputLabel>
-            <Select
-              labelId="epg-match-strictness-label"
-              label="Match Strictness"
-              value={matchStrictness}
-              onChange={handleMatchStrictnessChange}
-            >
-              <MenuItem value="loose">Loose</MenuItem>
-              <MenuItem value="balanced">Balanced</MenuItem>
-              <MenuItem value="strict">Strict</MenuItem>
-            </Select>
-          </FormControl>
-          <Button
-            variant="outlined"
-            color="primary"
-            onClick={handleAnalyzeMatches}
-            disabled={isAnalyzingMatches}
-          >
-            Analyze Matches
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            disabled={!matchAnalysis || selectedMatchRowIds.length === 0}
-            onClick={handleCreateMatchedTVChannels}
-          >
-            Create Matched TV Channels
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            disabled={selectedEPGChannelIds.length === 0}
-            onClick={handleBulkCreateTVChannels}
-          >
-            Create TV Channels ({selectedEPGChannelIds.length})
-          </Button>
-        </Box>
+        <ContentSection
+          title="Channel Matching"
+          description="Analyze unmatched EPG channels, refine source scope, and create TV-channel entries with explicit selection controls."
+          actions={
+            <>
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={handleAnalyzeMatches}
+                disabled={isAnalyzingMatches}
+              >
+                Analyze Matches
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                disabled={!matchAnalysis || selectedMatchRowIds.length === 0}
+                onClick={handleCreateMatchedTVChannels}
+              >
+                Create Matched TV Channels
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                disabled={!isTVChannelCatalogReady || selectedEPGChannelIds.length === 0}
+                onClick={handleBulkCreateTVChannels}
+              >
+                Create TV Channels ({selectedEPGChannelIds.length})
+              </Button>
+            </>
+          }
+        >
+          <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+            <FormControl size="small" sx={{ minWidth: 240 }}>
+              <InputLabel id="epg-source-filter-label">EPG Source</InputLabel>
+              <Select
+                labelId="epg-source-filter-label"
+                label="EPG Source"
+                value={selectedSourceId?.toString() ?? 'all'}
+                onChange={handleSourceFilterChange}
+              >
+                <MenuItem value="all">All sources</MenuItem>
+                {(epgSources || []).map((source) => (
+                  <MenuItem key={source.id} value={source.id.toString()}>
+                    {source.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl size="small" sx={{ minWidth: 180 }}>
+              <InputLabel id="epg-match-strictness-label">Match Strictness</InputLabel>
+              <Select
+                labelId="epg-match-strictness-label"
+                label="Match Strictness"
+                value={matchStrictness}
+                onChange={handleMatchStrictnessChange}
+              >
+                <MenuItem value="loose">Loose</MenuItem>
+                <MenuItem value="balanced">Balanced</MenuItem>
+                <MenuItem value="strict">Strict</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
 
-        {isAnalyzingMatches ? (
-          <LinearProgress sx={{ mb: 2 }} />
-        ) : null}
+          {isAnalyzingMatches ? (
+            <LinearProgress sx={{ mb: 2 }} />
+          ) : null}
 
-        {matchAnalysis ? (
-          <Paper sx={{ p: 2, mb: 2 }}>
+          {matchAnalysis ? (
+            <Box sx={{ p: 2, mb: 0, border: 1, borderColor: 'divider', borderRadius: 2 }}>
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
               <Typography variant="body2">{matchAnalysis.summary.epg_channels_analyzed} analyzed</Typography>
               <Typography variant="body2">{matchAnalysis.summary.matched_epg_channels} matched</Typography>
@@ -694,7 +673,7 @@ const EPG: React.FC = () => {
             {matchAnalysis.rows.length === 0 || matchAnalysis.summary.matched_epg_channels === 0 ? (
               <Alert severity="info">No matches met the current strictness.</Alert>
             ) : (
-              <TableContainer component={Paper} variant="outlined">
+              <TableContainer component={Box} sx={{ overflowX: 'auto' }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
@@ -751,108 +730,123 @@ const EPG: React.FC = () => {
                 </Table>
               </TableContainer>
             )}
-          </Paper>
-        ) : null}
+            </Box>
+          ) : null}
+        </ContentSection>
 
-        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-          <Typography variant="body2" color="text.secondary">
-            {totalEPGChannels === 0
-              ? 'Showing 0-0 of 0 channels'
-              : `Showing ${(channelPage - 1) * channelPageSize + 1}-${Math.min(channelPage * channelPageSize, totalEPGChannels)} of ${totalEPGChannels} channels`}
-          </Typography>
-          <TablePagination
-            component="div"
-            count={totalEPGChannels}
-            page={Math.max(channelPage - 1, 0)}
-            onPageChange={handleChannelPageChange}
-            rowsPerPage={channelPageSize}
-            onRowsPerPageChange={handleChannelPageSizeChange}
-            rowsPerPageOptions={[25, 50, 100]}
-          />
-        </Box>
+        <ContentSection
+          title="Channel Inventory"
+          description="Review imported channels, filter by source, and open detailed schedules without losing bulk actions."
+        >
+          <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+            <Typography variant="body2" color="text.secondary">
+              {totalEPGChannels === 0
+                ? 'Showing 0-0 of 0 channels'
+                : `Showing ${(channelPage - 1) * channelPageSize + 1}-${Math.min(channelPage * channelPageSize, totalEPGChannels)} of ${totalEPGChannels} channels`}
+            </Typography>
+            <TablePagination
+              component="div"
+              count={totalEPGChannels}
+              page={Math.max(channelPage - 1, 0)}
+              onPageChange={handleChannelPageChange}
+              rowsPerPage={channelPageSize}
+              onRowsPerPageChange={handleChannelPageSizeChange}
+              rowsPerPageOptions={[25, 50, 100]}
+            />
+          </Box>
 
-        {isLoadingChannels ? (
-          <LinearProgress sx={{ mb: 2 }} />
-        ) : null}
+          {isLoadingChannels ? (
+            <LinearProgress sx={{ mb: 2 }} />
+          ) : null}
 
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell padding="checkbox">
-                  <Checkbox
-                    indeterminate={selectedEPGChannelIds.length > 0 && selectedEPGChannelIds.length < visibleUnmappedChannelIds.length}
-                    checked={visibleUnmappedChannelIds.length > 0 && selectedEPGChannelIds.length === visibleUnmappedChannelIds.length}
-                    onChange={handleSelectAllChannels}
-                    inputProps={{ 'aria-label': 'select all EPG channels' }}
-                  />
-                </TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>XML ID</TableCell>
-                <TableCell>Source</TableCell>
-                <TableCell>Language</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {(epgChannels || []).map((channel) => (
-                <TableRow key={channel.id} selected={selectedEPGChannelIds.includes(channel.id)}>
+          {isLoadingTVChannelCatalog ? (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Loading TV channel catalog before channel-creation selections become available.
+            </Alert>
+          ) : null}
+
+          {!isLoadingTVChannelCatalog && tvChannelCatalogError ? (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              Unable to verify existing TV channel mappings right now. Retry after the catalog loads.
+            </Alert>
+          ) : null}
+
+          <TableContainer component={Box} sx={{ overflowX: 'auto' }}>
+            <Table>
+              <TableHead>
+                <TableRow>
                   <TableCell padding="checkbox">
                     <Checkbox
-                      checked={selectedEPGChannelIds.includes(channel.id)}
-                      onChange={() => handleSelectChannel(channel.id)}
-                      inputProps={{ 'aria-label': `select EPG channel ${channel.name}` }}
-                      disabled={isChannelMapped(channel)}
+                      indeterminate={selectedEPGChannelIds.length > 0 && selectedEPGChannelIds.length < visibleUnmappedChannelIds.length}
+                      checked={visibleUnmappedChannelIds.length > 0 && selectedEPGChannelIds.length === visibleUnmappedChannelIds.length}
+                      disabled={!isTVChannelCatalogReady}
+                      onChange={handleSelectAllChannels}
+                      inputProps={{ 'aria-label': 'select all EPG channels' }}
                     />
                   </TableCell>
-                  <TableCell>
-                    {channel.name}
-                    {channel.icon_url && (
-                      <Box
-                        component="img"
-                        src={channel.icon_url}
-                        alt={channel.name}
-                        sx={{ height: 30, marginLeft: 1.25, verticalAlign: 'middle' }}
+                  <TableCell>Name</TableCell>
+                  <TableCell>XML ID</TableCell>
+                  <TableCell>Source</TableCell>
+                  <TableCell>Language</TableCell>
+                  <TableCell>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {(epgChannels || []).map((channel) => (
+                  <TableRow key={channel.id} selected={selectedEPGChannelIds.includes(channel.id)}>
+                    <TableCell padding="checkbox">
+                      <Checkbox
+                        checked={selectedEPGChannelIds.includes(channel.id)}
+                        onChange={() => handleSelectChannel(channel.id)}
+                        inputProps={{ 'aria-label': `select EPG channel ${channel.name}` }}
+                        disabled={!isTVChannelCatalogReady || isChannelMapped(channel)}
                       />
-                    )}
-                  </TableCell>
-                  <TableCell>{channel.channel_xml_id}</TableCell>
-                  <TableCell>
-                    {epgSources?.find(s => s.id === channel.epg_source_id)?.name || channel.epg_source_id}
-                  </TableCell>
-                  <TableCell>{channel.language || 'Unknown'}</TableCell>
-                  <TableCell>
+                    </TableCell>
+                    <TableCell>
+                      {channel.name}
+                      {channel.icon_url && (
+                        <Box
+                          component="img"
+                          src={channel.icon_url}
+                          alt={channel.name}
+                          sx={{ height: 30, marginLeft: 1.25, verticalAlign: 'middle' }}
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell>{channel.channel_xml_id}</TableCell>
+                    <TableCell>
+                      {epgSources?.find(s => s.id === channel.epg_source_id)?.name || channel.epg_source_id}
+                    </TableCell>
+                    <TableCell>{channel.language || 'Unknown'}</TableCell>
+                    <TableCell>
                     <IconButton
                       color="primary"
                       title="View Programs"
+                      aria-label={`View programs for ${channel.name}`}
                       onClick={() => navigate(`/epg/channels/${channel.id}`)}
                     >
                       <VisibilityIcon />
                     </IconButton>
-                    <IconButton color="primary" title="Link to TV Channel">
-                      <LinkIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {epgChannels && epgChannels.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} align="center">
-                    No EPG channels found
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </TabPanel>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {epgChannels && epgChannels.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center">
+                      No EPG channels found
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </ContentSection>
 
-      <TabPanel value={tabValue} index={2}>
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Generate EPG XML
-          </Typography>
-          <Paper sx={{ p: 3 }}>
+        <ContentSection
+          title="XML Output"
+          description="Generate a downloadable XML export with a clear date window and optional channel filtering."
+        >
+          <Box sx={{ p: 0 }}>
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
                 <TextField
@@ -925,9 +919,8 @@ const EPG: React.FC = () => {
                 </Box>
               </Grid>
             </Grid>
-          </Paper>
-        </Box>
-      </TabPanel>
+          </Box>
+        </ContentSection>
 
       {/* EPG Source Dialog */}
       <Dialog open={openSourceDialog} onClose={handleCloseSourceDialog} maxWidth="md" fullWidth>

@@ -3,6 +3,19 @@ import type { AppTokens } from './theme.d';
 
 export type ThemeMode = 'light' | 'dark';
 
+const VISIBLE_FOCUS_OUTLINE = '2px solid currentColor';
+
+const sharedShellLayout = {
+  navWidth: 264,
+  contentMaxWidth: 1440,
+  pagePaddingX: {
+    xs: 2,
+    sm: 3,
+    md: 4,
+  },
+  pagePaddingY: 3,
+};
+
 const fontFamily = [
   '"IBM Plex Sans"',
   'system-ui',
@@ -70,12 +83,13 @@ const tokenSets: Record<ThemeMode, AppTokens> = {
       accentWarm: '#dd8a42',
     },
     layout: {
-      pageGap: '24px',
-      sectionGap: '16px',
-      panelPadding: '20px',
+      pageGap: 3,
+      sectionGap: 2,
+      panelPadding: 2.5,
       cardRadius: 10,
       elevatedShadow: '0 8px 20px rgba(16, 33, 47, 0.06)',
       divider: 'rgba(16, 33, 47, 0.08)',
+      shell: sharedShellLayout,
     },
     motion: {
       durationShort: 120,
@@ -139,12 +153,13 @@ const tokenSets: Record<ThemeMode, AppTokens> = {
       accentWarm: '#f0a84b',
     },
     layout: {
-      pageGap: '24px',
-      sectionGap: '16px',
-      panelPadding: '20px',
+      pageGap: 3,
+      sectionGap: 2,
+      panelPadding: 2.5,
       cardRadius: 10,
       elevatedShadow: '0 14px 32px rgba(0, 0, 0, 0.28)',
       divider: 'rgba(166, 193, 214, 0.16)',
+      shell: sharedShellLayout,
     },
     motion: {
       durationShort: 120,
@@ -288,7 +303,6 @@ export const createAppTheme = (mode: ThemeMode) => {
             backgroundColor: appTokens.surface.panel,
             color: appTokens.text.primary,
             borderBottom: `1px solid ${appTokens.layout.divider}`,
-            backdropFilter: 'blur(6px)',
           },
         },
       },
@@ -307,7 +321,7 @@ export const createAppTheme = (mode: ThemeMode) => {
       MuiCard: {
         styleOverrides: {
           root: {
-            borderRadius: 14,
+            borderRadius: appTokens.layout.cardRadius,
             border: `1px solid ${appTokens.surface.border}`,
             boxShadow: appTokens.layout.elevatedShadow,
           },
@@ -316,7 +330,7 @@ export const createAppTheme = (mode: ThemeMode) => {
       MuiChip: {
         styleOverrides: {
           root: {
-            borderRadius: 8,
+            borderRadius: appTokens.layout.cardRadius,
           },
         },
       },
@@ -333,6 +347,8 @@ export const createAppTheme = (mode: ThemeMode) => {
             transitionTimingFunction: appTokens.motion.easingStandard,
             '&.Mui-focusVisible': {
               boxShadow: `0 0 0 4px ${appTokens.action.focusRing}`,
+              outline: VISIBLE_FOCUS_OUTLINE,
+              outlineOffset: 2,
             },
           },
           contained: {
@@ -363,10 +379,47 @@ export const createAppTheme = (mode: ThemeMode) => {
           },
         },
       },
+      MuiAlert: {
+        styleOverrides: {
+          root: {
+            borderLeftStyle: 'solid',
+            borderLeftWidth: 4,
+            borderRadius: appTokens.layout.cardRadius,
+          },
+          standardSuccess: {
+            backgroundColor: appTokens.status.success.bg,
+            borderColor: appTokens.status.success.border,
+            color: appTokens.status.success.text,
+            '& .MuiAlert-icon': {
+              color: appTokens.status.success.icon,
+            },
+          },
+          standardWarning: {
+            backgroundColor: appTokens.status.warning.bg,
+            borderColor: appTokens.status.warning.border,
+            color: appTokens.status.warning.text,
+            '& .MuiAlert-icon': {
+              color: appTokens.status.warning.icon,
+            },
+          },
+          standardError: {
+            backgroundColor: appTokens.status.error.bg,
+            borderColor: appTokens.status.error.border,
+            color: appTokens.status.error.text,
+            '& .MuiAlert-icon': {
+              color: appTokens.status.error.icon,
+            },
+          },
+          standardInfo: {
+            backgroundColor: appTokens.status.info.bg,
+            borderColor: appTokens.status.info.border,
+            color: appTokens.status.info.text,
+            '& .MuiAlert-icon': {
+              color: appTokens.status.info.icon,
+            },
+          },
+        },
+      },
     },
   });
 };
-
-const theme = createAppTheme('light');
-
-export default theme;

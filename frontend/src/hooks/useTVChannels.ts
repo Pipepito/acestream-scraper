@@ -27,6 +27,16 @@ export const useAllTVChannels = (skip = 0, limit = 100) => {
   );
 };
 
+export const useTVChannelCatalog = () => {
+  return useQuery<TVChannel[]>(
+    [QUERY_KEYS.ALL_TV_CHANNELS, 'catalog'],
+    () => tvChannelService.getCatalog(),
+    {
+      staleTime: 1000 * 60 * 5,
+    }
+  );
+};
+
 /**
  * Hook for fetching a single TV channel by ID
  */

@@ -1,36 +1,31 @@
 import React from 'react';
-import { Typography, Box, Paper, Button } from '@mui/material';
+import { Box, Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import PageHeader from '../components/layout/PageHeader';
+import ContentSection from '../components/layout/ContentSection';
 
 const NotFound: React.FC = () => {
   const navigate = useNavigate();
   
   return (
-    <Box sx={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: '70vh'
-    }}>
-      <Typography variant="h1" gutterBottom>
-        404
-      </Typography>
-      <Paper sx={{ p: 3, maxWidth: '500px', textAlign: 'center' }}>
-        <Typography variant="h5" gutterBottom>
-          Page Not Found
-        </Typography>
-        <Typography variant="body1" sx={{ mb: 3 }}>
-          The page you are looking for doesn't exist or has been moved.
-        </Typography>
-        <Button 
-          variant="contained" 
-          color="primary"
-          onClick={() => navigate('/')}
-        >
-          Go to Dashboard
-        </Button>
-      </Paper>
+    <Box sx={{ maxWidth: 720 }}>
+      <PageHeader
+        title="Page not found"
+        subtitle="The address you opened does not match a current route. Use the action below to return to the main operational view."
+      />
+      <ContentSection
+        title="Get back on track"
+        description="Return to the dashboard, then use the left navigation to continue with a supported workflow."
+        actions={
+          <Button variant="contained" color="primary" onClick={() => navigate('/')}>
+            Return to dashboard
+          </Button>
+        }
+      >
+        <Box sx={{ typography: 'body2', color: 'text.secondary' }}>
+          Error code: 404. If you followed an old bookmark or external link, refresh your starting point from the dashboard.
+        </Box>
+      </ContentSection>
     </Box>
   );
 };

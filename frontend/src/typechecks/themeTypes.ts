@@ -12,16 +12,25 @@ void successBackground;
 void pageTitle;
 void statusMeta;
 
-// @ts-expect-error invalid semantic token key
-theme.appTokens.surface.background;
+const invalidSurfaceKey =
+  // @ts-expect-error invalid semantic token key
+  theme.appTokens.surface.background;
 
-// @ts-expect-error invalid status family
-theme.appTokens.status.okay.bg;
+const invalidStatusFamily =
+  // @ts-expect-error invalid status family
+  theme.appTokens.status.okay.bg;
 
-// @ts-expect-error invalid typography variant
-theme.typography.captionStrong;
+const invalidCaptionVariant =
+  // @ts-expect-error invalid typography variant
+  theme.typography.captionStrong;
 
-// @ts-expect-error invalid typography variant
-theme.typography.pageHeading;
+const invalidPageHeadingVariant =
+  // @ts-expect-error invalid typography variant
+  theme.typography.pageHeading;
+
+void invalidSurfaceKey;
+void invalidStatusFamily;
+void invalidCaptionVariant;
+void invalidPageHeadingVariant;
 
 export {};

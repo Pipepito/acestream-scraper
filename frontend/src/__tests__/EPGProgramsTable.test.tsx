@@ -1,8 +1,10 @@
 import React from 'react';
 import { QueryClient, QueryClientProvider } from 'react-query';
+import { ThemeProvider } from '@mui/material/styles';
 import { render, screen } from '@testing-library/react';
 
 import EPGProgramsTable from '../components/EPGProgramsTable';
+import { createAppTheme } from '../theme';
 
 const mockUseResolveEPGChannel = jest.fn();
 const mockUseEPGPrograms = jest.fn();
@@ -17,9 +19,11 @@ describe('EPGProgramsTable', () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
     return render(
-      <QueryClientProvider client={queryClient}>
-        <EPGProgramsTable epgId="late-channel" epgSourceId={7} />
-      </QueryClientProvider>
+      <ThemeProvider theme={createAppTheme('light')}>
+        <QueryClientProvider client={queryClient}>
+          <EPGProgramsTable epgId="late-channel" epgSourceId={7} />
+        </QueryClientProvider>
+      </ThemeProvider>
     );
   };
 
@@ -43,5 +47,16 @@ describe('EPGProgramsTable', () => {
     expect(mockUseResolveEPGChannel).toHaveBeenCalledWith(7, 'late-channel');
     expect(mockUseEPGPrograms).toHaveBeenCalledWith(42, expect.any(String), expect.any(String));
     expect(screen.getByText('Late Match')).toBeInTheDocument();
+  });
+
+  it('renders a summary-led program section with date filters', () => {
+    renderTable();
+
+    expect(screen.getByRole('heading', { level: 2, name: 'Program Schedule' })).toBeInTheDocument();
+    expect(screen.getByText('Late Channel')).toBeInTheDocument();
+    expect(screen.getByText('1 program loaded')).toBeInTheDocument();
+    expect(screen.getByLabelText('Start Date')).toBeInTheDocument();
+    expect(screen.getByLabelText('End Date')).toBeInTheDocument();
+    expect(screen.getByRole('table')).toBeInTheDocument();
   });
 });

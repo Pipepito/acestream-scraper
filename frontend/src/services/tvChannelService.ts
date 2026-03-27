@@ -80,6 +80,25 @@ export const tvChannelService = {
     return response.data;
   },
 
+  getCatalog: async (pageSize = 500): Promise<TVChannel[]> => {
+    const items: TVChannel[] = [];
+    let skip = 0;
+    let total = 0;
+
+    do {
+      const response = await tvChannelService.getAll(skip, pageSize);
+      items.push(...response.items);
+      total = response.total;
+      skip += response.items.length;
+
+      if (response.items.length === 0) {
+        break;
+      }
+    } while (skip < total);
+
+    return items;
+  },
+
   /**
    * Get a TV channel by ID
    */

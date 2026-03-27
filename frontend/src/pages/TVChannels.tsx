@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
-  Typography,
   Button,
   CircularProgress,
   TextField,
@@ -50,7 +49,7 @@ const TVChannels: React.FC = () => {
   const createMutation = useCreateTVChannel();
   const updateMutation = useUpdateTVChannel();
 
-  const channels = channelsData?.items || [];
+  const channels = useMemo(() => channelsData?.items ?? [], [channelsData?.items]);
   const filteredChannels = useMemo(() => {
     return channels.filter((channel) => {
       const search = filters.search?.toLowerCase().trim();

@@ -42,12 +42,22 @@ export interface AppTokens {
     accentWarm: string;
   };
   layout: {
-    pageGap: string;
-    sectionGap: string;
-    panelPadding: string;
+    pageGap: number;
+    sectionGap: number;
+    panelPadding: number;
     cardRadius: number;
     elevatedShadow: string;
     divider: string;
+    shell: {
+      navWidth: number;
+      contentMaxWidth: number;
+      pagePaddingX: {
+        xs: number;
+        sm: number;
+        md: number;
+      };
+      pagePaddingY: number;
+    };
   };
   motion: {
     durationShort: number;

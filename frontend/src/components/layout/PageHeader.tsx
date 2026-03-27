@@ -14,11 +14,12 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, actions }) => 
 
   return (
     <Box
+      component="header"
       sx={{
         display: 'flex',
         flexDirection: { xs: 'column', md: 'row' },
         justifyContent: 'space-between',
-        alignItems: { xs: 'flex-start', md: 'center' },
+        alignItems: 'flex-start',
         gap: theme.appTokens.layout.sectionGap,
         mb: theme.appTokens.layout.pageGap,
       }}
@@ -38,7 +39,19 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, actions }) => 
         ) : null}
       </Box>
       {actions ? (
-        <Box sx={{ width: { xs: '100%', md: 'auto' }, flexShrink: 0 }}>
+        <Box
+          data-testid="page-header-actions"
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: { xs: 'flex-start', md: 'flex-end' },
+            alignItems: 'center',
+            gap: 1,
+            width: { xs: '100%', md: 'auto' },
+            flexShrink: 0,
+            alignSelf: { xs: 'stretch', md: 'flex-start' },
+          }}
+        >
           {actions}
         </Box>
       ) : null}

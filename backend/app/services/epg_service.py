@@ -71,6 +71,16 @@ class EPGService:
         if not db_source:
             return False
 
+        # Delete dependent EPGChannel objects via the ORM so their
+        # cascaded children (programs, string_mappings) are also removed.
+        channels = (
+            self.db.query(EPGChannel)
+            .filter(EPGChannel.epg_source_id == source_id)
+            .all()
+        )
+        for ch in channels:
+            self.db.delete(ch)
+
         self.db.delete(db_source)
         self.db.commit()
         return True

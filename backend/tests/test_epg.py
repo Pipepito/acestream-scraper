@@ -92,6 +92,46 @@ class TestEPGSourceEndpoints:
         response = client.get(f"/api/v1/epg/sources/{source_id}")
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
+    def test_delete_epg_source_with_channels_and_programs(self, client, db_session):
+        """Deleting an EPG source should remove its channels and programs without FK errors."""
+        # Create source
+        source = EPGSource(url="https://example.com/delete-epg.xml", name="Delete Source", enabled=True)
+        db_session.add(source)
+        db_session.commit()
+
+        # Create channel belonging to source
+        channel = EPGChannel(
+            epg_source_id=source.id,
+            channel_xml_id="del-channel-1",
+            name="Delete Channel",
+        )
+        db_session.add(channel)
+        db_session.commit()
+
+        # Add program for channel
+        program = EPGProgram(
+            epg_channel_id=channel.id,
+            title="To Be Deleted",
+            start_time=datetime.now(),
+            end_time=datetime.now() + timedelta(hours=1)
+        )
+        db_session.add(program)
+        db_session.commit()
+
+        # Ensure they exist
+        assert db_session.query(EPGSource).filter(EPGSource.id == source.id).one()
+        assert db_session.query(EPGChannel).filter(EPGChannel.epg_source_id == source.id).count() == 1
+        assert db_session.query(EPGProgram).filter(EPGProgram.epg_channel_id == channel.id).count() == 1
+
+        # Delete via API
+        response = client.delete(f"/api/v1/epg/sources/{source.id}")
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+
+        # Verify source, channels and programs are removed
+        assert db_session.query(EPGSource).filter(EPGSource.id == source.id).count() == 0
+        assert db_session.query(EPGChannel).filter(EPGChannel.epg_source_id == source.id).count() == 0
+        assert db_session.query(EPGProgram).filter(EPGProgram.epg_channel_id == channel.id).count() == 0
+
     def test_delete_epg_source_not_found(self, client):
         """Test deleting a non-existent EPG source."""
         fake_id = 99999

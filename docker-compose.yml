@@ -1,5 +1,8 @@
 services:
   app:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: pipepito/acestream-scraper:latest
     ports:
       - "8000:8000"

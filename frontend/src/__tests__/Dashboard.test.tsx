@@ -3,8 +3,8 @@ import { render, screen, fireEvent, within } from '@testing-library/react';
 import { ThemeProvider } from '@mui/material/styles';
 import Dashboard from '../pages/Dashboard';
 import * as dashboardHooks from '../hooks/useDashboard';
-import { MemoryRouter } from 'react-router-dom';
 import { createAppTheme, type ThemeMode } from '../theme';
+import { TestMemoryRouter } from '../testUtils/router';
 
 // Mock apiClient to avoid axios import issues
 jest.mock('../services/apiClient', () => ({
@@ -46,9 +46,9 @@ const renderDashboard = (mode: ThemeMode = 'light') => {
 
   return render(
     <ThemeProvider theme={theme}>
-      <MemoryRouter>
+      <TestMemoryRouter>
         <Dashboard />
-      </MemoryRouter>
+      </TestMemoryRouter>
     </ThemeProvider>
   );
 };
@@ -103,10 +103,22 @@ describe('Dashboard UI', () => {
     renderDashboard();
 
     const primaryActions = screen.getByRole('navigation', { name: 'Dashboard primary actions' });
+    const headerActions = screen.getByTestId('page-header-actions');
 
+    expect(headerActions).toContainElement(primaryActions);
     expect(within(primaryActions).getByRole('link', { name: 'Open Scraper' })).toBeInTheDocument();
     expect(within(primaryActions).getByRole('link', { name: 'Channels' })).toBeInTheDocument();
     expect(within(primaryActions).getByRole('link', { name: 'EPG' })).toBeInTheDocument();
+  });
+
+  it('keeps dashboard header actions in the shared primary group contract', () => {
+    renderDashboard();
+
+    const primaryGroup = screen.getByTestId('page-header-primary-actions');
+    const headerActions = screen.getByTestId('page-header-actions');
+
+    expect(headerActions.firstChild).toBe(primaryGroup);
+    expect(within(primaryGroup).getByRole('navigation', { name: 'Dashboard primary actions' })).toBeInTheDocument();
   });
 
   it.each<ThemeMode>(['light', 'dark'])(

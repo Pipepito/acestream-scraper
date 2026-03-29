@@ -14,10 +14,12 @@ import {
   Typography,
   Divider,
   Chip,
+  useMediaQuery,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import MenuIcon from '@mui/icons-material/Menu';
 import { getNavTitle, isNavItemSelected, navItems } from './layout/navItems';
+import { getShellLayout } from '../styles/layout';
 
 interface NavBarProps {
   drawerWidth?: number;
@@ -27,6 +29,9 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
   const [mobileOpen, setMobileOpen] = useState<boolean>(false);
   const location = useLocation();
   const theme = useTheme();
+  const shellLayout = getShellLayout(theme);
+  const isPhone = useMediaQuery(`(max-width:${shellLayout.phoneMaxWidth}px)`);
+  const isDesktop = !isPhone;
 
   const selectedStyles = {
     bgcolor: theme.appTokens.action.secondaryBg,
@@ -54,6 +59,43 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
 
   const operations = navItems.filter((item) => item.section === 'Operations');
   const system = navItems.filter((item) => item.section === 'System');
+
+  const renderNavItems = (items: typeof navItems) =>
+    items.map((item) => {
+      const isSelected = isNavItemSelected(item, location.pathname);
+
+      return (
+        <ListItem key={item.text} disablePadding>
+          <ListItemButton
+            component={RouterLink}
+            to={item.path}
+            selected={Boolean(isSelected)}
+            aria-current={isSelected ? 'page' : undefined}
+            onClick={isPhone ? handleDrawerClose : undefined}
+            sx={{
+              mx: 1,
+              borderRadius: 2,
+              color: theme.appTokens.text.secondary,
+              '& .MuiListItemIcon-root': {
+                minWidth: 40,
+                color: theme.appTokens.text.muted,
+              },
+              '&:hover': {
+                bgcolor: theme.appTokens.surface.muted,
+              },
+              '&.Mui-selected': {
+                ...selectedStyles,
+              },
+            }}
+          >
+            <ListItemIcon sx={{ color: isSelected ? theme.appTokens.action.secondaryText : theme.appTokens.text.muted }}>
+              {item.icon}
+            </ListItemIcon>
+            <ListItemText primary={item.text} />
+          </ListItemButton>
+        </ListItem>
+      );
+    });
 
   const drawer = (
     <Box
@@ -85,42 +127,7 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
             }}
           />
         </ListItem>
-        {operations.map((item) => {
-          const isSelected = isNavItemSelected(item, location.pathname);
-          return (
-            <ListItem key={item.text} disablePadding>
-              <ListItemButton
-                component={RouterLink}
-                to={item.path}
-                selected={Boolean(isSelected)}
-                aria-current={isSelected ? 'page' : undefined}
-                onClick={handleDrawerClose}
-                sx={{
-                  mx: 1,
-                  borderRadius: 2,
-                  color: theme.appTokens.text.secondary,
-                  '& .MuiListItemIcon-root': {
-                    minWidth: 40,
-                    color: theme.appTokens.text.muted,
-                  },
-                  '&:hover': {
-                    bgcolor: theme.appTokens.surface.muted,
-                  },
-                  '&.Mui-selected': {
-                    ...selectedStyles,
-                  },
-                }}
-              >
-                <ListItemIcon
-                  sx={{ color: isSelected ? theme.appTokens.action.secondaryText : theme.appTokens.text.muted }}
-                >
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText primary={item.text} />
-              </ListItemButton>
-            </ListItem>
-          );
-        })}
+        {renderNavItems(operations)}
       </List>
       <Divider sx={{ mt: 1, borderColor: theme.appTokens.layout.divider }} />
       <List sx={{ py: 1, mt: 'auto' }}>
@@ -136,42 +143,7 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
             }}
           />
         </ListItem>
-        {system.map((item) => {
-          const isSelected = isNavItemSelected(item, location.pathname);
-          return (
-            <ListItem key={item.text} disablePadding>
-              <ListItemButton
-                component={RouterLink}
-                to={item.path}
-                selected={Boolean(isSelected)}
-                aria-current={isSelected ? 'page' : undefined}
-                onClick={handleDrawerClose}
-                sx={{
-                  mx: 1,
-                  borderRadius: 2,
-                  color: theme.appTokens.text.secondary,
-                  '& .MuiListItemIcon-root': {
-                    minWidth: 40,
-                    color: theme.appTokens.text.muted,
-                  },
-                  '&:hover': {
-                    bgcolor: theme.appTokens.surface.muted,
-                  },
-                  '&.Mui-selected': {
-                    ...selectedStyles,
-                  },
-                }}
-              >
-                <ListItemIcon
-                  sx={{ color: isSelected ? theme.appTokens.action.secondaryText : theme.appTokens.text.muted }}
-                >
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText primary={item.text} />
-              </ListItemButton>
-            </ListItem>
-          );
-        })}
+        {renderNavItems(system)}
       </List>
     </Box>
   );
@@ -182,8 +154,8 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
         position="fixed"
         elevation={0}
         sx={{
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
+          width: isDesktop ? `calc(100% - ${drawerWidth}px)` : '100%',
+          ml: isDesktop ? `${drawerWidth}px` : 0,
           bgcolor: theme.appTokens.surface.panel,
           color: theme.appTokens.text.primary,
           borderBottom: `1px solid ${theme.appTokens.layout.divider}`,
@@ -192,15 +164,11 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
         }}
       >
         <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerOpen}
-            sx={{ mr: 2, display: { sm: 'none' } }}
-          >
-            <MenuIcon />
-          </IconButton>
+          {isPhone ? (
+            <IconButton color="inherit" aria-label="open drawer" edge="start" onClick={handleDrawerOpen} sx={{ mr: 2 }}>
+              <MenuIcon />
+            </IconButton>
+          ) : null}
           <Typography variant="h6" noWrap component="div">
             {getNavTitle(location.pathname)}
           </Typography>
@@ -208,45 +176,44 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
       </AppBar>
       <Box
         component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+        sx={{ width: isDesktop ? drawerWidth : 0, flexShrink: isDesktop ? 0 : 1 }}
         aria-label="navigation menu"
       >
-        {/* Mobile drawer */}
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={handleDrawerClose}
-          ModalProps={{
-            keepMounted: true, // Better open performance on mobile
-          }}
-          sx={{
-            display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': {
-              boxSizing: 'border-box',
-              width: drawerWidth,
-              borderRightColor: theme.appTokens.layout.divider,
-              backgroundColor: theme.appTokens.surface.panel,
-            },
-          }}
-        >
-          {drawer}
-        </Drawer>
-        {/* Desktop drawer */}
-        <Drawer
-          variant="permanent"
-          sx={{
-            display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': {
-              boxSizing: 'border-box',
-              width: drawerWidth,
-              borderRightColor: theme.appTokens.layout.divider,
-              backgroundColor: theme.appTokens.surface.panel,
-            },
-          }}
-          open
-        >
-          {drawer}
-        </Drawer>
+        {isPhone ? (
+          <Drawer
+            variant="temporary"
+            open={mobileOpen}
+            onClose={handleDrawerClose}
+            ModalProps={{
+              keepMounted: true,
+            }}
+            sx={{
+              '& .MuiDrawer-paper': {
+                boxSizing: 'border-box',
+                width: drawerWidth,
+                borderRightColor: theme.appTokens.layout.divider,
+                backgroundColor: theme.appTokens.surface.panel,
+              },
+            }}
+          >
+            {drawer}
+          </Drawer>
+        ) : (
+          <Drawer
+            variant="permanent"
+            sx={{
+              '& .MuiDrawer-paper': {
+                boxSizing: 'border-box',
+                width: drawerWidth,
+                borderRightColor: theme.appTokens.layout.divider,
+                backgroundColor: theme.appTokens.surface.panel,
+              },
+            }}
+            open
+          >
+            {drawer}
+          </Drawer>
+        )}
       </Box>
     </>
   );

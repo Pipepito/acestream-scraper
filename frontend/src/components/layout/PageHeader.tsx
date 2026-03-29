@@ -2,26 +2,45 @@ import React from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import { useTheme } from '@mui/material/styles';
+import { useMediaQuery } from '@mui/material';
 
 interface PageHeaderProps {
   title: string;
   subtitle?: string;
+  primaryActions?: React.ReactNode;
   actions?: React.ReactNode;
+  wideActionsAlignment?: 'start' | 'end';
 }
 
-const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, actions }) => {
+const PageHeader: React.FC<PageHeaderProps> = ({
+  title,
+  subtitle,
+  primaryActions,
+  actions,
+  wideActionsAlignment = 'end',
+}) => {
   const theme = useTheme();
+  const layout = theme.appTokens.layout.shell;
+  const isPhone = useMediaQuery(`(max-width:${layout.phoneMaxWidth}px)`);
+  const isDesktop = useMediaQuery(`(min-width:${layout.desktopMinWidth}px)`);
+  const isWideDesktop = useMediaQuery(`(min-width:${layout.wideMinWidth}px)`);
+  const groupedPrimaryActions = primaryActions ?? actions;
+  const groupedSecondaryActions = primaryActions ? actions : null;
+  const desktopActionAlignment = isWideDesktop ? wideActionsAlignment : 'end';
+  const desktopJustifyContent = desktopActionAlignment === 'start' ? 'flex-start' : 'flex-end';
+  const desktopJustifySelf = desktopActionAlignment === 'start' ? 'start' : 'end';
 
   return (
     <Box
       component="header"
       sx={{
-        display: 'flex',
-        flexDirection: { xs: 'column', md: 'row' },
-        justifyContent: 'space-between',
+        display: 'grid',
+        gridTemplateColumns: isDesktop ? 'minmax(0, 1fr) auto' : '1fr',
         alignItems: 'flex-start',
-        gap: theme.appTokens.layout.sectionGap,
+        columnGap: theme.appTokens.layout.sectionGap,
+        rowGap: theme.appTokens.layout.sectionGap,
         mb: theme.appTokens.layout.pageGap,
+        width: '100%',
       }}
     >
       <Box data-testid="page-header-copy" sx={{ minWidth: 0, flex: '1 1 auto', overflowWrap: 'break-word' }}>
@@ -38,22 +57,67 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, actions }) => 
           </Typography>
         ) : null}
       </Box>
-      {actions ? (
+      {groupedPrimaryActions || groupedSecondaryActions ? (
         <Box
           data-testid="page-header-actions"
           sx={{
             display: 'flex',
-            flexWrap: 'wrap',
-            justifyContent: { xs: 'flex-start', md: 'flex-end' },
-            alignItems: 'center',
+            flexWrap: isPhone ? 'nowrap' : 'wrap',
+            flexDirection: isPhone ? 'column' : 'row',
+            justifyContent: isDesktop ? desktopJustifyContent : 'flex-start',
+            alignItems: isPhone ? 'stretch' : 'center',
             gap: 1,
             minWidth: 0,
-            width: { xs: '100%', md: 'auto' },
+            width: isDesktop ? 'auto' : '100%',
             flexShrink: 0,
-            alignSelf: { xs: 'stretch', md: 'flex-start' },
+            alignSelf: isDesktop ? 'flex-start' : 'stretch',
+            justifySelf: isDesktop ? desktopJustifySelf : 'stretch',
           }}
         >
-          {actions}
+          {groupedPrimaryActions ? (
+            <Box
+              data-testid="page-header-primary-actions"
+              sx={{
+                display: 'flex',
+                flexWrap: isPhone ? 'nowrap' : 'wrap',
+                flexDirection: isPhone ? 'column' : 'row',
+                justifyContent: isDesktop ? desktopJustifyContent : 'flex-start',
+                alignItems: isPhone ? 'stretch' : 'center',
+                gap: 1,
+                minWidth: 0,
+                width: isPhone ? '100%' : 'auto',
+                '& > *': {
+                  minWidth: 0,
+                  maxWidth: '100%',
+                  width: isPhone ? '100%' : 'auto',
+                },
+              }}
+            >
+              {groupedPrimaryActions}
+            </Box>
+          ) : null}
+          {groupedSecondaryActions ? (
+            <Box
+              data-testid="page-header-secondary-actions"
+              sx={{
+                display: 'flex',
+                flexWrap: isPhone ? 'nowrap' : 'wrap',
+                flexDirection: isPhone ? 'column' : 'row',
+                justifyContent: isDesktop ? desktopJustifyContent : 'flex-start',
+                alignItems: isPhone ? 'stretch' : 'center',
+                gap: 1,
+                minWidth: 0,
+                width: isPhone ? '100%' : 'auto',
+                '& > *': {
+                  minWidth: 0,
+                  maxWidth: '100%',
+                  width: isPhone ? '100%' : 'auto',
+                },
+              }}
+            >
+              {groupedSecondaryActions}
+            </Box>
+          ) : null}
         </Box>
       ) : null}
     </Box>

@@ -1,5 +1,5 @@
 import { createAppTheme } from '../theme';
-import { getShellLayout } from '../styles/layout';
+import { getShellContentMaxWidth, getShellLayout } from '../styles/layout';
 
 const collectKeys = (value: unknown): unknown => {
   if (Array.isArray(value)) {
@@ -109,6 +109,10 @@ describe('createAppTheme', () => {
       shell: {
         navWidth: expect.any(Number),
         contentMaxWidth: expect.any(Number),
+        phoneMaxWidth: expect.any(Number),
+        desktopMinWidth: expect.any(Number),
+        wideMinWidth: expect.any(Number),
+        standardContentMaxWidth: expect.any(Number),
         pagePaddingX: {
           xs: expect.any(Number),
           sm: expect.any(Number),
@@ -221,6 +225,24 @@ describe('createAppTheme', () => {
     expect(layout.pagePaddingX.sm).toBe(theme.appTokens.layout.pageGap);
     expect(layout.navWidth).toBe(theme.appTokens.layout.shell.navWidth);
     expect(layout.contentMaxWidth).toBe(theme.appTokens.layout.shell.contentMaxWidth);
+    expect(layout.standardContentMaxWidth).toBeLessThan(layout.contentMaxWidth);
+  });
+
+  it('defines explicit shared shell breakpoints and content width tiers', () => {
+    const theme = createAppTheme('light');
+    const layout = getShellLayout(theme);
+    const standardContentMaxWidth = getShellContentMaxWidth(theme, 'standard');
+    const wideContentMaxWidth = getShellContentMaxWidth(theme, 'wide');
+
+    expect(layout.phoneMaxWidth).toBe(899.95);
+    expect(layout.desktopMinWidth).toBe(900);
+    expect(layout.wideMinWidth).toBe(1280);
+    expect(layout.navWidth).toBeGreaterThan(0);
+    expect(layout.pagePaddingX.md).toBeGreaterThan(layout.pagePaddingX.xs);
+    expect(layout.pagePaddingY).toBeGreaterThan(0);
+    expect(standardContentMaxWidth).toBe(layout.standardContentMaxWidth);
+    expect(wideContentMaxWidth).toBe(layout.contentMaxWidth);
+    expect(wideContentMaxWidth).toBeGreaterThan(standardContentMaxWidth);
   });
 
   it('uses reduced-motion timing when the user preference is enabled', () => {

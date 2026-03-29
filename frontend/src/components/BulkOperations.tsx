@@ -98,23 +98,16 @@ const BulkOperations: React.FC<BulkOperationsProps> = ({
   };
 
   const handleBulkEdit = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const updates: any = {};
-      Object.keys(editFields).forEach(field => {
-        if (editFields[field as keyof typeof editFields]) {
-          updates[field] = editValues[field as keyof typeof editValues];
-        }
-      });
-      await runPerChannel(async (ch) => {
-        await onBulkEdit({ ...updates, id: ch.id });
-      });
-    } catch (err: any) {
-      setError(err.message || 'Bulk edit failed');
-    } finally {
-      setLoading(false);
-    }
+    const updates: any = {};
+    Object.keys(editFields).forEach(field => {
+      if (editFields[field as keyof typeof editFields]) {
+        updates[field] = editValues[field as keyof typeof editValues];
+      }
+    });
+
+    await runPerChannel(async (ch) => {
+      await onBulkEdit({ ...updates, id: ch.id });
+    });
   };
 
   const handleBulkDelete = async () => {
@@ -141,17 +134,9 @@ const BulkOperations: React.FC<BulkOperationsProps> = ({
   };
 
   const handleBulkActivate = async (active: boolean) => {
-    setLoading(true);
-    setError(null);
-    try {
-      await runPerChannel(async (ch) => {
-        await onBulkActivate(active);
-      });
-    } catch (err: any) {
-      setError(err.message || 'Bulk status update failed');
-    } finally {
-      setLoading(false);
-    }
+    await runPerChannel(async (ch) => {
+      await onBulkActivate(active);
+    });
   };
 
   return (

@@ -201,7 +201,7 @@ const Dashboard: React.FC = () => {
       <PageHeader
         title="Dashboard"
         subtitle="Track operational status, recent activity, and background jobs."
-        actions={
+        primaryActions={
           <Stack component="nav" aria-label="Dashboard primary actions" direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ width: '100%' }}>
             <Button component={RouterLink} to="/scraper" variant="outlined">
               Open Scraper

@@ -1,10 +1,11 @@
 import React from 'react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import EPGChannelDetail from '../pages/EPGChannelDetail';
 import { createAppTheme } from '../theme';
+import { TestMemoryRouter } from '../testUtils/router';
 
 const mockUseEPGChannel = jest.fn();
 const mockUseEPGPrograms = jest.fn();
@@ -35,11 +36,11 @@ jest.mock('../hooks/useTVChannels', () => ({
 describe('EPGChannelDetail', () => {
   const renderPage = () => render(
     <ThemeProvider theme={createAppTheme('light')}>
-      <MemoryRouter initialEntries={['/epg/channels/42']}>
+      <TestMemoryRouter initialEntries={['/epg/channels/42']}>
         <Routes>
           <Route path="/epg/channels/:id" element={<EPGChannelDetail />} />
         </Routes>
-      </MemoryRouter>
+      </TestMemoryRouter>
     </ThemeProvider>
   );
 

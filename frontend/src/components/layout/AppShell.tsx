@@ -1,9 +1,10 @@
 import React from 'react';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
+import { useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import NavBar from '../NavBar';
-import { getShellLayout } from '../../styles/layout';
+import { getShellContentMaxWidth, getShellLayout } from '../../styles/layout';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -12,6 +13,9 @@ interface AppShellProps {
 const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const theme = useTheme();
   const layout = getShellLayout(theme);
+  const isDesktop = useMediaQuery(`(min-width:${layout.desktopMinWidth}px)`);
+  const isWideDesktop = useMediaQuery(`(min-width:${layout.wideMinWidth}px)`);
+  const contentMaxWidth = getShellContentMaxWidth(theme, isWideDesktop ? 'wide' : 'standard');
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', minWidth: 0, bgcolor: theme.appTokens.surface.canvas }}>
@@ -22,7 +26,7 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
           flexGrow: 1,
           minWidth: 0,
           overflowX: 'hidden',
-          width: { sm: `calc(100% - ${layout.navWidth}px)` },
+          width: isDesktop ? `calc(100% - ${layout.navWidth}px)` : '100%',
           px: layout.pagePaddingX,
           py: layout.pagePaddingY,
           bgcolor: theme.appTokens.surface.canvas,
@@ -31,7 +35,7 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
         }}
       >
         <Toolbar />
-        <Box sx={{ maxWidth: layout.contentMaxWidth, mr: 'auto', width: '100%', minWidth: 0 }}>{children}</Box>
+        <Box sx={{ maxWidth: contentMaxWidth, mr: 'auto', width: '100%', minWidth: 0 }}>{children}</Box>
       </Box>
     </Box>
   );

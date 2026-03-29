@@ -1,13 +1,13 @@
-import React from 'react';
+import React, { act } from 'react';
 import { render, screen, within, waitFor, fireEvent } from '@testing-library/react';
 import { ThemeProvider } from '@mui/material/styles';
-import { MemoryRouter } from 'react-router-dom';
 import Health from '../pages/Health';
 import Playlist from '../pages/Playlist';
 import Settings from '../pages/Settings';
 import WarpPage from '../pages/WARP';
 import NotFound from '../pages/NotFound';
 import { createAppTheme } from '../theme';
+import { TestMemoryRouter } from '../testUtils/router';
 import * as configHooks from '../hooks/useConfig';
 import * as playlistHooks from '../hooks/usePlaylists';
 import * as warpHooks from '../hooks/useWarp';
@@ -35,7 +35,7 @@ jest.mock('../services/configService', () => ({
 const renderPage = (ui: React.ReactElement) =>
   render(
     <ThemeProvider theme={createAppTheme('light')}>
-      <MemoryRouter>{ui}</MemoryRouter>
+      <TestMemoryRouter>{ui}</TestMemoryRouter>
     </ThemeProvider>
   );
 
@@ -142,10 +142,15 @@ describe('Supporting page normalization', () => {
     expect(screen.getByText(/could not load appid setting/i)).toBeInTheDocument();
 
     const appIdToggle = screen.getByRole('checkbox', { name: /use appid in acestream links/i });
-    fireEvent.click(appIdToggle);
+
+    await act(async () => {
+      fireEvent.click(appIdToggle);
+      await Promise.resolve();
+    });
 
     await waitFor(() => expect(configService.updateAppId).toHaveBeenCalledWith(true));
     await waitFor(() => expect(appIdToggle).not.toBeDisabled());
+    expect(appIdToggle).not.toBeChecked();
     expect(screen.getByText(/failed to update appid setting/i)).toBeInTheDocument();
   });
 

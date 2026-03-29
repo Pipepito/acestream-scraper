@@ -1,12 +1,13 @@
 import React from 'react';
-import { MemoryRouter } from 'react-router-dom';
+import { act } from 'react';
 import { ThemeProvider } from '@mui/material/styles';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import AcestreamChannels from '../pages/AcestreamChannels';
 import { createAppTheme } from '../theme';
 import { ApiError } from '../services/apiErrors';
+import { TestMemoryRouter } from '../testUtils/router';
 
 const mockUseAcestreamChannels = jest.fn();
 const mockUseDeleteAcestreamChannel = jest.fn();
@@ -79,9 +80,9 @@ describe('AcestreamChannels page hardening', () => {
   const renderPage = () =>
     render(
       <ThemeProvider theme={createAppTheme('light')}>
-        <MemoryRouter>
+        <TestMemoryRouter>
           <AcestreamChannels />
-        </MemoryRouter>
+        </TestMemoryRouter>
       </ThemeProvider>
     );
 

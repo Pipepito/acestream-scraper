@@ -4,17 +4,30 @@ import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { useTheme } from '@mui/material/styles';
+import { useMediaQuery } from '@mui/material';
 
 interface ContentSectionProps {
   title?: string;
   description?: string;
   actions?: React.ReactNode;
   children: React.ReactNode;
+  wideLayout?: 'default' | 'primary' | 'supporting';
 }
 
-const ContentSection: React.FC<ContentSectionProps> = ({ title, description, actions, children }) => {
+const ContentSection: React.FC<ContentSectionProps> = ({ title, description, actions, children, wideLayout = 'default' }) => {
   const theme = useTheme();
   const titleId = useId();
+  const layout = theme.appTokens.layout.shell;
+  const isPhone = useMediaQuery(`(max-width:${layout.phoneMaxWidth}px)`);
+  const isDesktop = useMediaQuery(`(min-width:${layout.desktopMinWidth}px)`);
+  const isWideDesktop = useMediaQuery(`(min-width:${layout.wideMinWidth}px)`);
+  const wideLayoutStyles =
+    isWideDesktop && wideLayout !== 'default'
+      ? {
+          gridArea: wideLayout,
+          alignSelf: 'start',
+        }
+      : undefined;
 
   return (
     <Paper
@@ -28,11 +41,14 @@ const ContentSection: React.FC<ContentSectionProps> = ({ title, description, act
         bgcolor: theme.appTokens.surface.raised,
         borderColor: theme.appTokens.surface.border,
         boxShadow: 'none',
+        width: '100%',
+        height: '100%',
+        ...wideLayoutStyles,
       }}
     >
       {title ? (
         <Stack
-          direction={{ xs: 'column', md: 'row' }}
+          direction={isDesktop ? 'row' : 'column'}
           alignItems="flex-start"
           justifyContent="space-between"
           spacing={1.5}
@@ -58,13 +74,20 @@ const ContentSection: React.FC<ContentSectionProps> = ({ title, description, act
               sx={{
                 display: 'flex',
                 flexWrap: 'wrap',
-                justifyContent: { xs: 'flex-start', md: 'flex-end' },
-                alignItems: 'center',
+                flexDirection: isPhone ? 'column' : 'row',
+                justifyContent: isDesktop ? 'flex-end' : 'flex-start',
+                alignItems: isPhone ? 'stretch' : 'center',
                 gap: 1,
                 minWidth: 0,
                 flexShrink: 0,
-                width: { xs: '100%', md: 'auto' },
-                alignSelf: { xs: 'stretch', md: 'flex-start' },
+                width: isDesktop ? 'auto' : '100%',
+                alignSelf: isDesktop ? 'flex-start' : 'stretch',
+                justifySelf: isDesktop ? 'end' : 'stretch',
+                '& > *': {
+                  minWidth: 0,
+                  maxWidth: '100%',
+                  width: isPhone ? '100%' : 'auto',
+                },
               }}
             >
               {actions}

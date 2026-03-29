@@ -1,11 +1,11 @@
 import React from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import { QueryClient, QueryClientProvider } from 'react-query';
-import { MemoryRouter } from 'react-router-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 
 import EPG from '../pages/EPG';
 import { createAppTheme } from '../theme';
+import { TestMemoryRouter } from '../testUtils/router';
 
 jest.mock('../services/apiClient', () => ({
   __esModule: true,
@@ -54,9 +54,9 @@ describe('EPG page pagination', () => {
     return render(
       <ThemeProvider theme={createAppTheme('light')}>
         <QueryClientProvider client={queryClient}>
-          <MemoryRouter>
+          <TestMemoryRouter>
             <EPG />
-          </MemoryRouter>
+          </TestMemoryRouter>
         </QueryClientProvider>
       </ThemeProvider>
     );

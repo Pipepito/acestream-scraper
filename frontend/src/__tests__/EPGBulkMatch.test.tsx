@@ -1,11 +1,11 @@
 import React from 'react';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { ThemeProvider } from '@mui/material/styles';
-import { MemoryRouter } from 'react-router-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import EPG from '../pages/EPG';
 import { createAppTheme } from '../theme';
+import { TestMemoryRouter } from '../testUtils/router';
 
 jest.mock('../services/apiClient', () => ({
   __esModule: true,
@@ -212,9 +212,9 @@ const renderPage = () => {
   return render(
     <ThemeProvider theme={createAppTheme('light')}>
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
+        <TestMemoryRouter>
           <EPG />
-        </MemoryRouter>
+        </TestMemoryRouter>
       </QueryClientProvider>
     </ThemeProvider>
   );

@@ -8,6 +8,10 @@ const VISIBLE_FOCUS_OUTLINE = '2px solid currentColor';
 const sharedShellLayout = {
   navWidth: 264,
   contentMaxWidth: 1440,
+  phoneMaxWidth: 899.95,
+  desktopMinWidth: 900,
+  wideMinWidth: 1280,
+  standardContentMaxWidth: 1280,
   pagePaddingX: {
     xs: 2,
     sm: 3,

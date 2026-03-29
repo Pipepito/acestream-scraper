@@ -1,10 +1,11 @@
 import React from 'react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import { render, screen } from '@testing-library/react';
 
 import TVChannelDetail from '../pages/TVChannelDetail';
 import { createAppTheme } from '../theme';
+import { TestMemoryRouter } from '../testUtils/router';
 
 const mockUseTVChannel = jest.fn();
 const mockUseTVChannelAcestreams = jest.fn();
@@ -31,11 +32,11 @@ jest.mock('../hooks/useChannels', () => ({
 describe('TVChannelDetail', () => {
   const renderPage = () => render(
     <ThemeProvider theme={createAppTheme('light')}>
-      <MemoryRouter initialEntries={['/tv-channels/7']}>
+      <TestMemoryRouter initialEntries={['/tv-channels/7']}>
         <Routes>
           <Route path="/tv-channels/:id" element={<TVChannelDetail />} />
         </Routes>
-      </MemoryRouter>
+      </TestMemoryRouter>
     </ThemeProvider>
   );
 

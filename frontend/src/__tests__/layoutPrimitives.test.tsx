@@ -1,16 +1,38 @@
 import React from 'react';
 import { render, screen, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import Button from '@mui/material/Button';
+import { useMediaQuery } from '@mui/material';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
 import NavBar from '../components/NavBar';
 import AppShell from '../components/layout/AppShell';
 import { createAppTheme, type ThemeMode } from '../theme';
+import { getShellContentMaxWidth } from '../styles/layout';
+import { mockResponsiveShellQueries } from '../testUtils/mockResponsiveShell';
+import { TestMemoryRouter } from '../testUtils/router';
 
-const renderWithTheme = (ui: React.ReactElement, mode: ThemeMode = 'light') => {
+jest.mock('@mui/material', () => {
+  const actual = jest.requireActual('@mui/material');
+
+  return {
+    ...actual,
+    useMediaQuery: jest.fn(),
+  };
+});
+
+const mockUseMediaQuery = useMediaQuery as jest.MockedFunction<typeof useMediaQuery>;
+
+interface ResponsiveShellState {
+  isPhone?: boolean;
+  isDesktop?: boolean;
+  isWideDesktop?: boolean;
+}
+
+const renderWithTheme = (ui: React.ReactElement, mode: ThemeMode = 'light', responsiveState: ResponsiveShellState = {}) => {
   const theme = createAppTheme(mode);
+
+  mockResponsiveShellQueries(mockUseMediaQuery, theme, responsiveState);
 
   return {
     theme,
@@ -19,6 +41,10 @@ const renderWithTheme = (ui: React.ReactElement, mode: ThemeMode = 'light') => {
 };
 
 describe('layout primitives', () => {
+  beforeEach(() => {
+    mockUseMediaQuery.mockReset();
+  });
+
   it.each<ThemeMode>(['light', 'dark'])('renders PageHeader copy and actions with stable hardening hooks in %s mode', (mode) => {
     renderWithTheme(
       <PageHeader
@@ -48,6 +74,122 @@ describe('layout primitives', () => {
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Run health check' })).toBeInTheDocument();
     expect(buttons).toHaveLength(2);
+  });
+
+  it.each<ThemeMode>(['light', 'dark'])('stacks PageHeader actions on phones and realigns them at desktop widths in %s mode', (mode) => {
+    const { rerender, theme } = renderWithTheme(
+      <PageHeader
+        title="Dashboard"
+        subtitle="Track operational status."
+        actions={
+          <>
+            <Button>Refresh</Button>
+            <Button variant="outlined">Run health check</Button>
+          </>
+        }
+      />,
+      mode,
+      { isPhone: true, isDesktop: false, isWideDesktop: false }
+    );
+
+    expect(screen.getByRole('banner')).toHaveStyle({
+      display: 'grid',
+      gridTemplateColumns: '1fr',
+    });
+    expect(screen.getByTestId('page-header-actions')).toHaveStyle({
+      flexDirection: 'column',
+      alignItems: 'stretch',
+      justifyContent: 'flex-start',
+      width: '100%',
+    });
+
+    mockResponsiveShellQueries(mockUseMediaQuery, theme, { isPhone: false, isDesktop: true, isWideDesktop: true });
+
+    rerender(
+      <ThemeProvider theme={theme}>
+        <PageHeader
+          title="Dashboard"
+          subtitle="Track operational status."
+          actions={
+            <>
+              <Button>Refresh</Button>
+              <Button variant="outlined">Run health check</Button>
+            </>
+          }
+        />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByRole('banner')).toHaveStyle({
+      display: 'grid',
+      gridTemplateColumns: 'minmax(0, 1fr) auto',
+    });
+    expect(screen.getByTestId('page-header-actions')).toHaveStyle({
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      width: 'auto',
+    });
+  });
+
+  it.each<ThemeMode>(['light', 'dark'])('supports wide-desktop PageHeader action alignment overrides in %s mode', (mode) => {
+    const { rerender, theme } = renderWithTheme(
+      <PageHeader
+        title="Dashboard"
+        actions={<Button>Refresh</Button>}
+        wideActionsAlignment="start"
+      />,
+      mode,
+      { isPhone: false, isDesktop: true, isWideDesktop: false }
+    );
+
+    expect(screen.getByTestId('page-header-actions')).toHaveStyle({
+      justifyContent: 'flex-end',
+      justifySelf: 'end',
+    });
+
+    mockResponsiveShellQueries(mockUseMediaQuery, theme, { isPhone: false, isDesktop: true, isWideDesktop: true });
+
+    rerender(
+      <ThemeProvider theme={theme}>
+        <PageHeader
+          title="Dashboard"
+          actions={<Button>Refresh</Button>}
+          wideActionsAlignment="start"
+        />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByTestId('page-header-actions')).toHaveStyle({
+      justifyContent: 'flex-start',
+      justifySelf: 'start',
+    });
+  });
+
+  it.each<ThemeMode>(['light', 'dark'])('supports grouped PageHeader actions so phone layouts keep the primary path first in %s mode', (mode) => {
+    renderWithTheme(
+      <PageHeader
+        title="Dashboard"
+        actions={<Button variant="outlined">Open details</Button>}
+        primaryActions={<Button variant="contained">Run now</Button>}
+      />,
+      mode,
+      { isPhone: true, isDesktop: false, isWideDesktop: false }
+    );
+
+    const actions = screen.getByTestId('page-header-actions');
+    const primaryGroup = screen.getByTestId('page-header-primary-actions');
+    const secondaryGroup = screen.getByTestId('page-header-secondary-actions');
+
+    expect(actions).toHaveStyle({
+      flexDirection: 'column',
+      alignItems: 'stretch',
+    });
+    expect(actions.firstChild).toBe(primaryGroup);
+    expect(primaryGroup).toHaveStyle({ width: '100%' });
+    expect(secondaryGroup).toHaveStyle({ width: '100%' });
+    expect(within(primaryGroup).getByRole('button', { name: 'Run now' })).toBeInTheDocument();
+    expect(within(secondaryGroup).getByRole('button', { name: 'Open details' })).toBeInTheDocument();
   });
 
   it.each<ThemeMode>(['light', 'dark'])('renders ContentSection as an accessible region with stable heading linkage in %s mode', (mode) => {
@@ -99,11 +241,82 @@ describe('layout primitives', () => {
     });
   });
 
+  it.each<ThemeMode>(['light', 'dark'])('keeps ContentSection actions readable on phones and split-safe on wide layouts in %s mode', (mode) => {
+    const { rerender, theme } = renderWithTheme(
+      <ContentSection
+        title="Controls"
+        description="Tune refresh cadence."
+        actions={
+          <>
+            <Button>Save changes</Button>
+            <Button variant="outlined">Reset</Button>
+          </>
+        }
+      >
+        <div>Section body</div>
+      </ContentSection>,
+      mode,
+      { isPhone: true, isDesktop: false, isWideDesktop: false }
+    );
+
+    expect(screen.getByRole('region', { name: 'Controls' })).toHaveStyle({
+      width: '100%',
+      height: '100%',
+    });
+    expect(screen.getByTestId('content-section-actions')).toHaveStyle({
+      flexDirection: 'column',
+      alignItems: 'stretch',
+      justifyContent: 'flex-start',
+      width: '100%',
+    });
+
+    mockResponsiveShellQueries(mockUseMediaQuery, theme, { isPhone: false, isDesktop: true, isWideDesktop: true });
+
+    rerender(
+      <ThemeProvider theme={theme}>
+        <ContentSection
+          title="Controls"
+          description="Tune refresh cadence."
+          actions={
+            <>
+              <Button>Save changes</Button>
+              <Button variant="outlined">Reset</Button>
+            </>
+          }
+        >
+          <div>Section body</div>
+        </ContentSection>
+      </ThemeProvider>
+    );
+
+    expect(screen.getByTestId('content-section-actions')).toHaveStyle({
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      width: 'auto',
+    });
+  });
+
+  it.each<ThemeMode>(['light', 'dark'])('provides a wide-layout composition hook for supporting ContentSection placement in %s mode', (mode) => {
+    renderWithTheme(
+      <ContentSection title="Controls" wideLayout="supporting">
+        <div>Section body</div>
+      </ContentSection>,
+      mode,
+      { isPhone: false, isDesktop: true, isWideDesktop: true }
+    );
+
+    expect(screen.getByRole('region', { name: 'Controls' })).toHaveStyle({
+      gridArea: 'supporting',
+      alignSelf: 'start',
+    });
+  });
+
   it.each<ThemeMode>(['light', 'dark'])('renders NavBar selected state, readable label, and semantic app bar styling in %s mode', (mode) => {
     const { theme } = renderWithTheme(
-      <MemoryRouter initialEntries={['/']}>
+      <TestMemoryRouter initialEntries={['/']}>
         <NavBar />
-      </MemoryRouter>,
+      </TestMemoryRouter>,
       mode
     );
 
@@ -127,9 +340,9 @@ describe('layout primitives', () => {
   it('keeps nav selection segment-aware for boundary routes', () => {
     const { unmount } = render(
       <ThemeProvider theme={createAppTheme('light')}>
-        <MemoryRouter initialEntries={['/search-archive']}>
+        <TestMemoryRouter initialEntries={['/search-archive']}>
           <NavBar />
-        </MemoryRouter>
+        </TestMemoryRouter>
       </ThemeProvider>
     );
 
@@ -140,9 +353,9 @@ describe('layout primitives', () => {
 
     render(
       <ThemeProvider theme={createAppTheme('light')}>
-        <MemoryRouter initialEntries={['/epg/channels']}>
+        <TestMemoryRouter initialEntries={['/epg/channels']}>
           <NavBar />
-        </MemoryRouter>
+        </TestMemoryRouter>
       </ThemeProvider>
     );
 
@@ -152,11 +365,11 @@ describe('layout primitives', () => {
 
   it.each<ThemeMode>(['light', 'dark'])('renders AppShell main background from semantic surface tokens in %s mode', (mode) => {
     const { theme } = renderWithTheme(
-      <MemoryRouter initialEntries={['/']}>
+      <TestMemoryRouter initialEntries={['/']}>
         <AppShell>
           <div>Shell content</div>
         </AppShell>
-      </MemoryRouter>,
+      </TestMemoryRouter>,
       mode
     );
 
@@ -175,6 +388,23 @@ describe('layout primitives', () => {
       minWidth: '0',
     });
     expect(screen.getByText('Shell content')).toBeInTheDocument();
+  });
+
+  it.each<ThemeMode>(['light', 'dark'])('uses the shared wide shell content width value in %s mode', (mode) => {
+    const { theme } = renderWithTheme(
+      <TestMemoryRouter initialEntries={['/']}>
+        <AppShell>
+          <div>Shell content</div>
+        </AppShell>
+      </TestMemoryRouter>,
+      mode
+    );
+
+    const content = screen.getByText('Shell content').parentElement;
+
+    expect(content).toHaveStyle({
+      maxWidth: `${getShellContentMaxWidth(theme, 'wide')}px`,
+    });
   });
 
   it('wraps long translated-looking copy without dropping layout hooks', () => {
@@ -205,4 +435,5 @@ describe('layout primitives', () => {
     expect(screen.getAllByTestId('content-section-actions')[0]).toHaveStyle({ flexWrap: 'wrap' });
     expect(screen.getByRole('button', { name: 'ZusätzlicheSekundärAktionMitLangemLabel' })).toBeInTheDocument();
   });
+
 });

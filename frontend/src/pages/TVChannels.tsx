@@ -13,6 +13,9 @@ import {
   Switch,
   Alert,
   Stack,
+  Collapse,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { useAllTVChannels, useDeleteTVChannel, useCreateTVChannel, useUpdateTVChannel } from '../hooks/useTVChannels';
 import { AdvancedSearchFilters } from '../components/AdvancedSearch';
@@ -21,14 +24,20 @@ import { TVChannel, TVChannelCreate, TVChannelUpdate } from '../types/tvChannelT
 import AdvancedSearch from '../components/AdvancedSearch';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
+import { getShellLayout } from '../styles/layout';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 const TVChannels: React.FC = () => {
+  const theme = useTheme();
+  const shellLayout = getShellLayout(theme);
+  const isPhone = useMediaQuery(`(max-width:${shellLayout.phoneMaxWidth}px)`);
+  const isWideDesktop = useMediaQuery(`(min-width:${shellLayout.wideMinWidth}px)`);
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[1]);
   const [filters, setFilters] = useState<AdvancedSearchFilters>({});
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState<TVChannel | null>(null);
@@ -178,13 +187,23 @@ const TVChannels: React.FC = () => {
   }
 
   const totalChannels = channelsData?.total || 0;
+  const showFilters = !isPhone || filtersOpen;
+  const dialogMobileProps = isPhone
+    ? {
+        fullScreen: true,
+      }
+    : {
+        fullScreen: false,
+        fullWidth: true,
+        maxWidth: 'sm' as const,
+      };
 
   return (
     <Box sx={{ width: '100%' }}>
       <PageHeader
         title="TV Channels"
         subtitle="Manage TV-channel metadata and launch detailed channel playback checks."
-        actions={
+        primaryActions={
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
             <Button variant="outlined" onClick={() => refetch()}>
               Refresh
@@ -202,27 +221,66 @@ const TVChannels: React.FC = () => {
         </Alert>
       ) : null}
 
-      <ContentSection title="Filters">
-        <AdvancedSearch filters={filters} onChange={setFilters} categories={categories} />
-      </ContentSection>
+      <Box
+        data-testid="tv-channels-page-layout"
+        sx={
+          isWideDesktop
+            ? {
+                display: 'grid',
+                gridTemplateColumns: 'minmax(0, 2fr) minmax(280px, 1fr)',
+                gridTemplateAreas: 'primary supporting',
+                gap: theme.appTokens.layout.pageGap,
+                alignItems: 'start',
+              }
+            : undefined
+        }
+      >
+        <ContentSection
+          title="TV Channel Inventory"
+          description="Edit metadata, remove stale entries, or open the channel detail page."
+          wideLayout="primary"
+          actions={
+            isPhone ? (
+              <Button
+                variant="outlined"
+                onClick={() => setFiltersOpen((current) => !current)}
+                aria-expanded={filtersOpen}
+                aria-controls="tv-channels-filters-panel"
+              >
+                {filtersOpen ? 'Hide Filters' : 'Show Filters'}
+              </Button>
+            ) : null
+          }
+        >
+          <TVChannelsTable
+            channels={filteredChannels}
+            loading={isLoading}
+            totalCount={totalChannels}
+            page={page - 1}
+            pageSize={pageSize}
+            onPageChange={(nextPage) => setPage(nextPage + 1)}
+            onPageSizeChange={setPageSize}
+            onSortChange={() => undefined}
+            onEdit={handleOpenEditDialog}
+            onDelete={handleDelete}
+            onPlay={(id) => navigate(`/tv-channels/${id}`)}
+          />
+        </ContentSection>
 
-      <ContentSection title="TV Channel Inventory" description="Edit metadata, remove stale entries, or open the channel detail page.">
-        <TVChannelsTable
-          channels={filteredChannels}
-          loading={isLoading}
-          totalCount={totalChannels}
-          page={page - 1}
-          pageSize={pageSize}
-          onPageChange={(nextPage) => setPage(nextPage + 1)}
-          onPageSizeChange={setPageSize}
-          onSortChange={() => undefined}
-          onEdit={handleOpenEditDialog}
-          onDelete={handleDelete}
-          onPlay={(id) => navigate(`/tv-channels/${id}`)}
-        />
-      </ContentSection>
+        <ContentSection title="Filters" wideLayout="supporting">
+          {isPhone ? (
+            <Collapse in={showFilters} id="tv-channels-filters-panel" unmountOnExit>
+              <AdvancedSearch filters={filters} onChange={setFilters} categories={categories} />
+            </Collapse>
+          ) : (
+            <Box id="tv-channels-filters-panel">
+              <AdvancedSearch filters={filters} onChange={setFilters} categories={categories} />
+            </Box>
+          )}
+        </ContentSection>
+      </Box>
 
-      <Dialog open={openCreateDialog} onClose={() => setOpenCreateDialog(false)} maxWidth="sm" fullWidth>
+      <Dialog open={openCreateDialog} onClose={() => setOpenCreateDialog(false)} {...dialogMobileProps}>
         <DialogTitle>Add TV Channel</DialogTitle>
         <DialogContent>
           <Box my={2}>
@@ -268,7 +326,7 @@ const TVChannels: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)} maxWidth="sm" fullWidth>
+      <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)} {...dialogMobileProps}>
         <DialogTitle>Edit TV Channel</DialogTitle>
         <DialogContent>
           <Box my={2}>

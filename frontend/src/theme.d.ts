@@ -50,11 +50,11 @@ export interface AppTokens {
     divider: string;
     shell: {
       navWidth: number;
-      contentMaxWidth: number;
       phoneMaxWidth: number;
       desktopMinWidth: number;
       wideMinWidth: number;
       standardContentMaxWidth: number;
+      wideContentMaxWidth: number;
       pagePaddingX: {
         xs: number;
         sm: number;

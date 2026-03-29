@@ -12,6 +12,7 @@ import { Chip, Box, IconButton, Tooltip, Snackbar, Alert, useMediaQuery, useThem
 import { CheckCircle, Cancel, Refresh, Edit, Delete, PowerSettingsNew, ContentCopy } from '@mui/icons-material';
 import EmptyState from './state/EmptyState';
 import { AcestreamChannel, AcestreamChannelFilters, acestreamChannelService } from '../services/channelService';
+import { shouldDisableGridVirtualization } from '../config/runtime';
 import { getErrorMessage } from '../utils/errorUtils';
 import { formatDateTime } from '../utils/formatters';
 
@@ -324,7 +325,7 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
         loading={loading}
         density={isMobile ? 'compact' : 'standard'}
         columnBuffer={12}
-        disableVirtualization={process.env.NODE_ENV === 'test'}
+        disableVirtualization={shouldDisableGridVirtualization({ mode: process.env.NODE_ENV })}
         filterModel={filterModel}
         onFilterModelChange={handleFilterModelChange}
         checkboxSelection

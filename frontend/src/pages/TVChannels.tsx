@@ -14,17 +14,19 @@ import {
   Alert,
   Stack,
   Collapse,
+  Divider,
+  Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import { useAllTVChannels, useDeleteTVChannel, useCreateTVChannel, useUpdateTVChannel } from '../hooks/useTVChannels';
+import { useAllTVChannels, useTVChannelCatalog, useDeleteTVChannel, useCreateTVChannel, useUpdateTVChannel } from '../hooks/useTVChannels';
 import { AdvancedSearchFilters } from '../components/AdvancedSearch';
 import TVChannelsTable from '../components/TVChannelsTable';
 import { TVChannel, TVChannelCreate, TVChannelUpdate } from '../types/tvChannelTypes';
 import AdvancedSearch from '../components/AdvancedSearch';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
-import { getShellLayout } from '../styles/layout';
+import { getShellLayout, getWidePageSplitLayout } from '../styles/layout';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
@@ -41,6 +43,7 @@ const TVChannels: React.FC = () => {
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState<TVChannel | null>(null);
+  const [deleteCandidate, setDeleteCandidate] = useState<TVChannel | null>(null);
   const [formData, setFormData] = useState<TVChannelCreate | TVChannelUpdate>({
     name: '',
     logo_url: '',
@@ -53,12 +56,17 @@ const TVChannels: React.FC = () => {
   const [notice, setNotice] = useState<string | null>(null);
 
   const skip = (page - 1) * pageSize;
-  const { data: channelsData, isLoading, isError, refetch } = useAllTVChannels(skip, pageSize);
+  const {
+    data: channelCatalog,
+    isLoading: isCatalogLoading,
+    isError: isCatalogError,
+    refetch: refetchCatalog,
+  } = useTVChannelCatalog();
   const deleteMutation = useDeleteTVChannel();
   const createMutation = useCreateTVChannel();
   const updateMutation = useUpdateTVChannel();
 
-  const channels = useMemo(() => channelsData?.items ?? [], [channelsData?.items]);
+  const channels = useMemo(() => channelCatalog ?? [], [channelCatalog]);
   const filteredChannels = useMemo(() => {
     return channels.filter((channel) => {
       const search = filters.search?.toLowerCase().trim();
@@ -89,6 +97,18 @@ const TVChannels: React.FC = () => {
       return true;
     });
   }, [channels, filters]);
+
+  const paginatedChannels = useMemo(() => {
+    return filteredChannels.slice(skip, skip + pageSize);
+  }, [filteredChannels, skip, pageSize]);
+
+  React.useEffect(() => {
+    const maxPage = Math.max(1, Math.ceil(filteredChannels.length / pageSize));
+
+    if (page > maxPage) {
+      setPage(maxPage);
+    }
+  }, [filteredChannels.length, page, pageSize]);
 
   const categories = useMemo(
     () => Array.from(new Set(channels.map((channel) => channel.category).filter(Boolean) as string[])).sort(),
@@ -128,7 +148,10 @@ const TVChannels: React.FC = () => {
 
   const handleFormChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = event.target;
-    setFormData((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : name === 'channel_number' ? (value === '' ? '' : Number(value)) : value,
+    }));
   };
 
   const handleCreate = async () => {
@@ -157,28 +180,96 @@ const TVChannels: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Are you sure you want to delete this TV channel?')) {
+  const handleRequestDelete = (id: number) => {
+    const channel = channels.find((item) => item.id === id) ?? null;
+    setDeleteCandidate(channel);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteCandidate) {
       return;
     }
 
     try {
-      await deleteMutation.mutateAsync(id);
+      await deleteMutation.mutateAsync(deleteCandidate.id);
       setNotice('TV channel deleted.');
+      setDeleteCandidate(null);
     } catch {
       setNotice('Failed to delete TV channel.');
     }
   };
 
-  if (isLoading) {
+  const renderDialogSections = (mode: 'create' | 'edit') => (
+    <Stack spacing={3} sx={{ py: 1 }}>
+      <Box>
+        <Typography variant="sectionTitle" component="h3" gutterBottom>
+          Channel basics
+        </Typography>
+        <Stack spacing={2}>
+          <TextField autoFocus name="name" label="Channel Name" fullWidth value={formData.name || ''} onChange={handleFormChange} required />
+          <TextField
+            name="description"
+            label="Description"
+            fullWidth
+            value={formData.description || ''}
+            onChange={handleFormChange}
+            multiline
+            rows={3}
+          />
+        </Stack>
+      </Box>
+
+      <Divider />
+
+      <Box>
+        <Typography variant="sectionTitle" component="h3" gutterBottom>
+          Optional metadata
+        </Typography>
+        <Stack spacing={2}>
+          <TextField name="logo_url" label="Logo URL" fullWidth value={formData.logo_url || ''} onChange={handleFormChange} />
+          <TextField name="category" label="Category" fullWidth value={formData.category || ''} onChange={handleFormChange} />
+          <TextField name="country" label="Country" fullWidth value={formData.country || ''} onChange={handleFormChange} />
+          <TextField name="language" label="Language" fullWidth value={formData.language || ''} onChange={handleFormChange} />
+          {mode === 'edit' ? <TextField name="epg_id" label="EPG ID" fullWidth value={formData.epg_id || ''} onChange={handleFormChange} /> : null}
+          <TextField name="channel_number" label="Channel Number" type="number" fullWidth value={formData.channel_number || ''} onChange={handleFormChange} />
+        </Stack>
+      </Box>
+
+      <Divider />
+
+      <Box>
+        <Typography variant="sectionTitle" component="h3" gutterBottom>
+          Visibility & favorites
+        </Typography>
+        <Stack spacing={1}>
+          <FormControlLabel
+            control={<Switch checked={formData.is_active === true} onChange={handleFormChange} name="is_active" color="primary" />}
+            label="Active"
+          />
+          <FormControlLabel
+            control={<Switch checked={formData.is_favorite === true} onChange={handleFormChange} name="is_favorite" color="primary" />}
+            label="Favorite"
+          />
+        </Stack>
+      </Box>
+    </Stack>
+  );
+
+  if (isCatalogLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
-        <CircularProgress />
+      <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" minHeight="50vh" gap={1.5}>
+        <CircularProgress aria-label="Loading TV channels" />
+        <Typography variant="sectionTitle" component="p">
+          Loading TV channels
+        </Typography>
+        <Typography variant="body2" color="text.secondary" align="center">
+          Preparing the latest TV channel inventory and actions.
+        </Typography>
       </Box>
     );
   }
 
-  if (isError) {
+  if (isCatalogError) {
     return (
       <Box p={3}>
         <Alert severity="error">Error loading TV channels.</Alert>
@@ -186,7 +277,7 @@ const TVChannels: React.FC = () => {
     );
   }
 
-  const totalChannels = channelsData?.total || 0;
+  const totalChannels = filteredChannels.length;
   const showFilters = !isPhone || filtersOpen;
   const dialogMobileProps = isPhone
     ? {
@@ -205,7 +296,7 @@ const TVChannels: React.FC = () => {
         subtitle="Manage TV-channel metadata and launch detailed channel playback checks."
         primaryActions={
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-            <Button variant="outlined" onClick={() => refetch()}>
+            <Button variant="outlined" onClick={() => refetchCatalog()}>
               Refresh
             </Button>
             <Button variant="contained" color="primary" onClick={handleOpenCreateDialog}>
@@ -223,17 +314,7 @@ const TVChannels: React.FC = () => {
 
       <Box
         data-testid="tv-channels-page-layout"
-        sx={
-          isWideDesktop
-            ? {
-                display: 'grid',
-                gridTemplateColumns: 'minmax(0, 2fr) minmax(280px, 1fr)',
-                gridTemplateAreas: 'primary supporting',
-                gap: theme.appTokens.layout.pageGap,
-                alignItems: 'start',
-              }
-            : undefined
-        }
+        sx={getWidePageSplitLayout(theme, isWideDesktop)}
       >
         <ContentSection
           title="TV Channel Inventory"
@@ -253,8 +334,8 @@ const TVChannels: React.FC = () => {
           }
         >
           <TVChannelsTable
-            channels={filteredChannels}
-            loading={isLoading}
+            channels={paginatedChannels}
+            loading={isCatalogLoading}
             totalCount={totalChannels}
             page={page - 1}
             pageSize={pageSize}
@@ -262,19 +343,53 @@ const TVChannels: React.FC = () => {
             onPageSizeChange={setPageSize}
             onSortChange={() => undefined}
             onEdit={handleOpenEditDialog}
-            onDelete={handleDelete}
+            onDelete={handleRequestDelete}
             onPlay={(id) => navigate(`/tv-channels/${id}`)}
           />
         </ContentSection>
 
-        <ContentSection title="Filters" wideLayout="supporting">
+        <ContentSection
+          title="Filters"
+          description="Use these filters to narrow the inventory before you edit, review, or remove a channel."
+          wideLayout="supporting"
+        >
           {isPhone ? (
             <Collapse in={showFilters} id="tv-channels-filters-panel" unmountOnExit>
-              <AdvancedSearch filters={filters} onChange={setFilters} categories={categories} />
+              <AdvancedSearch
+                filters={filters}
+                onChange={setFilters}
+                categories={categories}
+                visibleFields={{
+                  search: true,
+                  category: true,
+                  country: true,
+                  language: true,
+                  is_active: true,
+                  group: false,
+                  status: false,
+                  sort: false,
+                  is_online: false,
+                }}
+              />
             </Collapse>
           ) : (
             <Box id="tv-channels-filters-panel">
-              <AdvancedSearch filters={filters} onChange={setFilters} categories={categories} />
+              <AdvancedSearch
+                filters={filters}
+                onChange={setFilters}
+                categories={categories}
+                visibleFields={{
+                  search: true,
+                  category: true,
+                  country: true,
+                  language: true,
+                  is_active: true,
+                  group: false,
+                  status: false,
+                  sort: false,
+                  is_online: false,
+                }}
+              />
             </Box>
           )}
         </ContentSection>
@@ -282,42 +397,7 @@ const TVChannels: React.FC = () => {
 
       <Dialog open={openCreateDialog} onClose={() => setOpenCreateDialog(false)} {...dialogMobileProps}>
         <DialogTitle>Add TV Channel</DialogTitle>
-        <DialogContent>
-          <Box my={2}>
-            <TextField autoFocus name="name" label="Channel Name" fullWidth value={formData.name} onChange={handleFormChange} required margin="dense" />
-            <TextField name="logo_url" label="Logo URL" fullWidth value={formData.logo_url || ''} onChange={handleFormChange} margin="dense" />
-            <TextField
-              name="description"
-              label="Description"
-              fullWidth
-              value={formData.description || ''}
-              onChange={handleFormChange}
-              margin="dense"
-              multiline
-              rows={3}
-            />
-            <TextField name="category" label="Category" fullWidth value={formData.category || ''} onChange={handleFormChange} margin="dense" />
-            <TextField name="country" label="Country" fullWidth value={formData.country || ''} onChange={handleFormChange} margin="dense" />
-            <TextField name="language" label="Language" fullWidth value={formData.language || ''} onChange={handleFormChange} margin="dense" />
-            <TextField
-              name="channel_number"
-              label="Channel Number"
-              type="number"
-              fullWidth
-              value={formData.channel_number || ''}
-              onChange={handleFormChange}
-              margin="dense"
-            />
-            <FormControlLabel
-              control={<Switch checked={formData.is_active === true} onChange={handleFormChange} name="is_active" color="primary" />}
-              label="Active"
-            />
-            <FormControlLabel
-              control={<Switch checked={formData.is_favorite === true} onChange={handleFormChange} name="is_favorite" color="primary" />}
-              label="Favorite"
-            />
-          </Box>
-        </DialogContent>
+        <DialogContent dividers>{renderDialogSections('create')}</DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenCreateDialog(false)}>Cancel</Button>
           <Button onClick={handleCreate} variant="contained" color="primary" disabled={createMutation.isLoading || !formData.name}>
@@ -328,54 +408,28 @@ const TVChannels: React.FC = () => {
 
       <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)} {...dialogMobileProps}>
         <DialogTitle>Edit TV Channel</DialogTitle>
-        <DialogContent>
-          <Box my={2}>
-            <TextField autoFocus name="name" label="Channel Name" fullWidth value={formData.name || ''} onChange={handleFormChange} required margin="dense" />
-            <TextField name="logo_url" label="Logo URL" fullWidth value={formData.logo_url || ''} onChange={handleFormChange} margin="dense" />
-            <TextField
-              name="description"
-              label="Description"
-              fullWidth
-              value={formData.description || ''}
-              onChange={handleFormChange}
-              margin="dense"
-              multiline
-              rows={3}
-            />
-            <TextField name="category" label="Category" fullWidth value={formData.category || ''} onChange={handleFormChange} margin="dense" />
-            <TextField name="country" label="Country" fullWidth value={formData.country || ''} onChange={handleFormChange} margin="dense" />
-            <TextField name="language" label="Language" fullWidth value={formData.language || ''} onChange={handleFormChange} margin="dense" />
-            <TextField
-              name="epg_id"
-              label="EPG ID"
-              fullWidth
-              value={formData.epg_id || ''}
-              onChange={handleFormChange}
-              margin="dense"
-            />
-            <TextField
-              name="channel_number"
-              label="Channel Number"
-              type="number"
-              fullWidth
-              value={formData.channel_number || ''}
-              onChange={handleFormChange}
-              margin="dense"
-            />
-            <FormControlLabel
-              control={<Switch checked={formData.is_active === true} onChange={handleFormChange} name="is_active" color="primary" />}
-              label="Active"
-            />
-            <FormControlLabel
-              control={<Switch checked={formData.is_favorite === true} onChange={handleFormChange} name="is_favorite" color="primary" />}
-              label="Favorite"
-            />
-          </Box>
-        </DialogContent>
+        <DialogContent dividers>{renderDialogSections('edit')}</DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenEditDialog(false)}>Cancel</Button>
           <Button onClick={handleUpdate} variant="contained" color="primary" disabled={updateMutation.isLoading || !formData.name}>
             Update
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={deleteCandidate !== null} onClose={() => setDeleteCandidate(null)} fullWidth maxWidth="xs">
+        <DialogTitle>Delete TV Channel</DialogTitle>
+        <DialogContent dividers>
+          <Typography>
+            Remove {deleteCandidate?.name || 'this TV channel'} from the TV channel inventory? This cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteCandidate(null)} variant="contained" data-action-priority="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleConfirmDelete} color="error" variant="outlined" data-action-priority="danger">
+            Delete TV Channel
           </Button>
         </DialogActions>
       </Dialog>

@@ -2,6 +2,7 @@
  * Playlist API service
  */
 import apiClient from './apiClient';
+import { getPlaylistDownloadBaseUrl } from '../config/runtime';
 
 /**
  * Playlist filter parameters
@@ -45,7 +46,9 @@ export const playlistService = {
         filters.exclude_groups.forEach(g => params.append('exclude_groups', g));
       }
     }
-    const base = process.env.NODE_ENV === 'development' ? 'http://localhost:8000' : '';
+    const base = getPlaylistDownloadBaseUrl({
+      dev: process.env.NODE_ENV === 'development',
+    });
     return `${base}/api/v1/playlists/m3u?${params.toString()}`;
   },
 

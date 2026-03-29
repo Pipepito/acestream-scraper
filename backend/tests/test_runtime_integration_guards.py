@@ -17,7 +17,16 @@ def test_backend_requirements_include_apscheduler():
 def test_build_backend_script_uses_node_copy_script():
     package_json = json.loads((REPO_ROOT / "frontend" / "package.json").read_text())
 
-    assert package_json["scripts"]["build:backend"] == "react-scripts build && node scripts/copy-build.js"
+    assert package_json["scripts"]["build"] == "vite build"
+    assert package_json["scripts"]["build:backend"] == "vite build && node scripts/copy-build.js"
+
+
+def test_frontend_container_builds_from_vite_dist_directory():
+    frontend_dockerfile = (REPO_ROOT / "frontend" / "Dockerfile").read_text()
+    root_dockerfile = (REPO_ROOT / "Dockerfile").read_text()
+
+    assert "COPY --from=build /app/dist /usr/share/nginx/html" in frontend_dockerfile
+    assert "COPY --from=frontend-builder /build/frontend/dist/ /app/frontend_build/" in root_dockerfile
 
 
 def test_copy_build_script_copies_artifacts_with_overrides(tmp_path):

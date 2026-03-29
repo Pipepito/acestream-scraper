@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   Box,
   Button,
+  FormHelperText,
   TextField,
   MenuItem,
   Select,
@@ -10,6 +11,9 @@ import {
   Grid,
   SelectChangeEvent,
   Stack,
+  Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 
 export interface AdvancedSearchFilters {
@@ -29,6 +33,7 @@ interface AdvancedSearchProps {
   onChange: (filters: AdvancedSearchFilters) => void;
   categories?: string[];
   groups?: string[];
+  visibleFields?: Partial<Record<keyof AdvancedSearchFilters, boolean>>;
 }
 
 const statusOptions = [
@@ -47,8 +52,18 @@ const sortOptions = [
   { value: 'last_checked', label: 'Last Checked' },
 ];
 
-const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onChange, categories = [], groups = [] }) => {
+const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
+  filters,
+  onChange,
+  categories = [],
+  groups = [],
+  visibleFields,
+}) => {
   const [local, setLocal] = useState<AdvancedSearchFilters>(filters);
+  const theme = useTheme();
+  const isPhone = useMediaQuery(`(max-width:${theme.appTokens.layout.shell.phoneMaxWidth}px)`);
+  const fieldSize = isPhone ? 'medium' : 'small';
+  const isFieldVisible = (field: keyof AdvancedSearchFilters) => visibleFields?.[field] !== false;
 
   React.useEffect(() => {
     setLocal(filters);
@@ -73,9 +88,26 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onChange, cate
     onChange({});
   };
 
+  const getSelectProps = (name: string, label: string) => ({
+    labelId: `${name}-label`,
+    id: `${name}-select`,
+    name,
+    label,
+  });
+
   return (
-    <Box mb={2}>
-      <Grid container spacing={2} alignItems="center">
+    <Box component="form" aria-label="Channel filters" onSubmit={(event) => {
+      event.preventDefault();
+      handleApply();
+    }} sx={{ display: 'grid', gap: 2.5 }}>
+      <Box>
+        <Typography variant="body2" color="text.secondary">
+          Narrow the list with names, categories, status, or location details before reviewing the results.
+        </Typography>
+      </Box>
+
+      <Grid container spacing={2} alignItems="flex-start">
+        {isFieldVisible('search') ? (
         <Grid item xs={12} sm={6} md={3}>
           <TextField
             name="search"
@@ -83,35 +115,37 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onChange, cate
             value={local.search || ''}
             onChange={handleInputChange}
             fullWidth
-            size="small"
+            size={fieldSize}
+            helperText="Search by channel name or number."
           />
         </Grid>
+        ) : null}
+        {isFieldVisible('category') ? (
         <Grid item xs={12} sm={6} md={2}>
-          <FormControl fullWidth>
-            <InputLabel>Category</InputLabel>
+          <FormControl fullWidth size={fieldSize}>
+            <InputLabel id="category-label">Category</InputLabel>
             <Select
-              name="category"
+              {...getSelectProps('category', 'Category')}
               value={local.category || ''}
-              label="Category"
               onChange={handleSelectChange}
-              size="small"
             >
               <MenuItem value="">Any</MenuItem>
               {categories.map(cat => (
                 <MenuItem key={cat} value={cat}>{cat}</MenuItem>
               ))}
             </Select>
+            <FormHelperText>Limit results to one channel category.</FormHelperText>
           </FormControl>
         </Grid>
+        ) : null}
+        {isFieldVisible('group') ? (
         <Grid item xs={12} sm={6} md={2}>
-          <FormControl fullWidth>
-            <InputLabel>Group</InputLabel>
+          <FormControl fullWidth size={fieldSize}>
+            <InputLabel id="group-label">Group</InputLabel>
             <Select
-              name="group"
+              {...getSelectProps('group', 'Group')}
               value={local.group || ''}
-              label="Group"
               onChange={handleSelectChange}
-              size="small"
             >
               <MenuItem value="">Any</MenuItem>
               {groups.map(grp => (
@@ -120,15 +154,15 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onChange, cate
             </Select>
           </FormControl>
         </Grid>
+        ) : null}
+        {isFieldVisible('status') ? (
         <Grid item xs={12} sm={6} md={2}>
-          <FormControl fullWidth>
-            <InputLabel>Status</InputLabel>
+          <FormControl fullWidth size={fieldSize}>
+            <InputLabel id="status-label">Status</InputLabel>
             <Select
-              name="status"
+              {...getSelectProps('status', 'Status')}
               value={local.status || ''}
-              label="Status"
               onChange={handleSelectChange}
-              size="small"
             >
               {statusOptions.map(opt => (
                 <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
@@ -136,15 +170,15 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onChange, cate
             </Select>
           </FormControl>
         </Grid>
+        ) : null}
+        {isFieldVisible('sort') ? (
         <Grid item xs={12} sm={6} md={2}>
-          <FormControl fullWidth>
-            <InputLabel>Sort By</InputLabel>
+          <FormControl fullWidth size={fieldSize}>
+            <InputLabel id="sort-label">Sort By</InputLabel>
             <Select
-              name="sort"
+              {...getSelectProps('sort', 'Sort By')}
               value={local.sort || ''}
-              label="Sort By"
               onChange={handleSelectChange}
-              size="small"
             >
               {sortOptions.map(opt => (
                 <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
@@ -152,6 +186,8 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onChange, cate
             </Select>
           </FormControl>
         </Grid>
+        ) : null}
+        {isFieldVisible('country') ? (
         <Grid item xs={12} sm={6} md={2}>
           <TextField
             name="country"
@@ -159,9 +195,12 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onChange, cate
             value={local.country || ''}
             onChange={handleInputChange}
             fullWidth
-            size="small"
+            size={fieldSize}
+            helperText="Use a short country code when you know it."
           />
         </Grid>
+        ) : null}
+        {isFieldVisible('language') ? (
         <Grid item xs={12} sm={6} md={2}>
           <TextField
             name="language"
@@ -169,18 +208,19 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onChange, cate
             value={local.language || ''}
             onChange={handleInputChange}
             fullWidth
-            size="small"
+            size={fieldSize}
+            helperText="Use the channel audio language when available."
           />
         </Grid>
+        ) : null}
+        {isFieldVisible('is_active') ? (
         <Grid item xs={12} sm={6} md={2}>
-          <FormControl fullWidth>
-            <InputLabel>Active</InputLabel>
+          <FormControl fullWidth size={fieldSize}>
+            <InputLabel id="is_active-label">Active</InputLabel>
             <Select
-              name="is_active"
+              {...getSelectProps('is_active', 'Active')}
               value={local.is_active || ''}
-              label="Active"
               onChange={handleSelectChange}
-              size="small"
             >
               <MenuItem value="">Any</MenuItem>
               <MenuItem value="true">Active</MenuItem>
@@ -188,15 +228,15 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onChange, cate
             </Select>
           </FormControl>
         </Grid>
+        ) : null}
+        {isFieldVisible('is_online') ? (
         <Grid item xs={12} sm={6} md={2}>
-          <FormControl fullWidth>
-            <InputLabel>Online</InputLabel>
+          <FormControl fullWidth size={fieldSize}>
+            <InputLabel id="is_online-label">Online</InputLabel>
             <Select
-              name="is_online"
+              {...getSelectProps('is_online', 'Online')}
               value={local.is_online || ''}
-              label="Online"
               onChange={handleSelectChange}
-              size="small"
             >
               <MenuItem value="">Any</MenuItem>
               <MenuItem value="true">Online</MenuItem>
@@ -204,13 +244,21 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onChange, cate
             </Select>
           </FormControl>
         </Grid>
+        ) : null}
         <Grid item xs={12} md={4}>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} justifyContent="flex-end">
-            <Button variant="contained" color="primary" onClick={handleApply}>
-              Apply
+          <Stack
+            data-testid="advanced-search-actions"
+            data-layout={isPhone ? 'stacked' : 'inline'}
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={1}
+            justifyContent="flex-end"
+            alignItems="stretch"
+          >
+            <Button type="submit" variant="contained" color="primary" data-action-priority="primary" fullWidth>
+              Apply Filters
             </Button>
-            <Button variant="outlined" color="secondary" onClick={handleReset}>
-              Reset
+            <Button type="button" variant="outlined" color="secondary" onClick={handleReset} data-action-priority="secondary" fullWidth>
+              Reset Filters
             </Button>
           </Stack>
         </Grid>

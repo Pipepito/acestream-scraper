@@ -144,7 +144,7 @@ RUN apt-get update \
 COPY --from=python-deps /install /usr/local
 COPY backend/ /app/
 RUN mkdir -p /app/frontend_build /app/logs /opt/acestream/bin /opt/acexy/bin
-COPY --from=frontend-builder /build/frontend/build/ /app/frontend_build/
+COPY --from=frontend-builder /build/frontend/dist/ /app/frontend_build/
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY warp-setup.sh /usr/local/bin/warp-setup.sh
 COPY healthcheck.sh /usr/local/bin/healthcheck.sh

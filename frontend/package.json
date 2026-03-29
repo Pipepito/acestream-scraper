@@ -11,37 +11,34 @@
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^14.3.1",
     "@testing-library/user-event": "^14.6.1",
-    "@types/jest": "^29.5.0",
-    "@types/node": "^18.15.11",
-    "@types/react": "^18.0.37",
-    "@types/react-dom": "^18.0.11",
     "axios": "^1.5.1",
     "date-fns": "^2.30.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-query": "^3.39.3",
     "react-router-dom": "^6.16.0",
-    "react-scripts": "5.0.1",
-    "typescript": "~4.9.5",
-    "web-vitals": "^2.1.4"
+    "typescript": "~4.9.5"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "build:backend": "react-scripts build && node scripts/copy-build.js",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+    "start": "vite --host 0.0.0.0 --port 3000",
+    "build": "vite build",
+    "build:backend": "vite build && node scripts/copy-build.js",
+    "preview": "vite preview --host 0.0.0.0 --port 4173",
+    "test": "jest"
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.6.0",
+    "@types/react": "^18.3.24",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^6.0.1",
     "fs-extra": "^11.2.0",
-    "ts-node": "^10.9.2"
+    "jest": "^30.3.0",
+    "jest-environment-jsdom": "^30.3.0",
+    "ts-jest": "^29.4.6",
+    "ts-node": "^10.9.2",
+    "vite": "^8.0.3"
   },
   "browserslist": {
     "production": [

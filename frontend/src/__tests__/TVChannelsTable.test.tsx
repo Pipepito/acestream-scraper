@@ -79,7 +79,7 @@ describe('TVChannelsTable', () => {
     mockUseMediaQuery.mockReset();
   });
 
-  it('groups dense row actions under an accessible label', () => {
+  it('wraps the desktop grid in a semantic inventory region while keeping action labels explicit', () => {
     renderTable(
       <TVChannelsTable
         channels={[
@@ -99,10 +99,13 @@ describe('TVChannelsTable', () => {
       />
     );
 
-    expect(screen.getByRole('group', { name: 'TV channel actions for Arena TV' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'edit tv channel Arena TV' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'delete tv channel Arena TV' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'play tv channel Arena TV' })).toBeInTheDocument();
+    const inventoryRegion = screen.getByRole('region', { name: 'TV channel inventory' });
+
+    expect(within(inventoryRegion).getByRole('grid')).toBeInTheDocument();
+    expect(within(inventoryRegion).getByRole('group', { name: 'TV channel actions for Arena TV' })).toBeInTheDocument();
+    expect(within(inventoryRegion).getByRole('button', { name: 'edit tv channel Arena TV' })).toBeInTheDocument();
+    expect(within(inventoryRegion).getByRole('button', { name: 'delete tv channel Arena TV' })).toBeInTheDocument();
+    expect(within(inventoryRegion).getByRole('button', { name: 'play tv channel Arena TV' })).toBeInTheDocument();
   });
 
   it('keeps the first desktop row action keyboard focusable with its accessible label intact', async () => {
@@ -136,7 +139,7 @@ describe('TVChannelsTable', () => {
     expect(editButton).toHaveAccessibleName('edit tv channel Arena TV');
   });
 
-  it('renders a stacked mobile summary with visible channel details and actions in compact mode', () => {
+  it('renders a stacked mobile summary with secondary metadata, explicit status text, and actions in compact mode', () => {
     renderTable(
       <TVChannelsTable
         channels={[
@@ -166,6 +169,8 @@ describe('TVChannelsTable', () => {
     expect(within(row).getByText('Channel 7')).toBeInTheDocument();
     expect(within(row).getByText('Active')).toBeInTheDocument();
     expect(within(row).getByText('Sports')).toBeInTheDocument();
+    expect(within(row).getByText('Language: en')).toBeInTheDocument();
+    expect(within(row).getByText('Country: RS')).toBeInTheDocument();
     expect(within(row).getByText('2 streams')).toBeInTheDocument();
     expect(within(row).getByRole('button', { name: 'edit tv channel Arena TV' })).toHaveTextContent('Edit');
     expect(within(row).getByRole('button', { name: 'delete tv channel Arena TV' })).toHaveTextContent('Delete');
@@ -181,6 +186,27 @@ describe('TVChannelsTable', () => {
       screen.getByText('Add a TV channel or adjust your filters to start organizing playback sources.')
     ).toBeInTheDocument();
     expect(screen.queryByRole('grid')).not.toBeInTheDocument();
+    expect(screen.queryByText('Page 0 of 0')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Go to next page' })).not.toBeInTheDocument();
+  });
+
+  it('renders text-explicit loading guidance in compact mode', () => {
+    renderTable(<TVChannelsTable channels={[]} {...baseProps} loading totalCount={0} />, true);
+
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    expect(screen.getByText('Loading TV channels')).toBeInTheDocument();
+    expect(screen.getByText('Checking channel inventory and preparing the latest results.')).toBeInTheDocument();
+  });
+
+  it('renders text-explicit loading guidance in the desktop inventory region', () => {
+    renderTable(<TVChannelsTable channels={[]} {...baseProps} loading totalCount={30} />);
+
+    const inventoryRegion = screen.getByRole('region', { name: 'TV channel inventory' });
+
+    expect(within(inventoryRegion).getByRole('progressbar')).toBeInTheDocument();
+    expect(within(inventoryRegion).getByText('Loading TV channels')).toBeInTheDocument();
+    expect(within(inventoryRegion).getByText('Refreshing the TV channel inventory for the latest desktop results.')).toBeInTheDocument();
+    expect(within(inventoryRegion).queryByRole('grid')).not.toBeInTheDocument();
   });
 
   it('keeps compact mode in a loading state instead of showing the empty state', () => {
@@ -188,6 +214,16 @@ describe('TVChannelsTable', () => {
 
     expect(screen.queryByRole('heading', { level: 2, name: 'No TV channels to show' })).not.toBeInTheDocument();
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
+  });
+
+  it('renders a desktop no-results-on-this-page message instead of the full empty-state copy', () => {
+    renderTable(<TVChannelsTable channels={[]} {...baseProps} totalCount={30} page={1} pageSize={25} />);
+
+    const inventoryRegion = screen.getByRole('region', { name: 'TV channel inventory' });
+
+    expect(within(inventoryRegion).getByText('No TV channels on this page')).toBeInTheDocument();
+    expect(within(inventoryRegion).getByText('Use the pagination controls to review the remaining TV channel results.')).toBeInTheDocument();
+    expect(within(inventoryRegion).queryByText('No TV channels to show')).not.toBeInTheDocument();
   });
 
   it('renders compact pagination controls so mobile users can change page and page size', async () => {

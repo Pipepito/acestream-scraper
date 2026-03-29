@@ -144,18 +144,73 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
     </Box>
   );
 
+  const DesktopPageEmptyState = () => (
+    <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%', py: 3, px: 2 }}>
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 2,
+          borderRadius: 2,
+          borderColor: theme.appTokens.surface.border,
+          backgroundColor: theme.appTokens.surface.raised,
+          width: '100%',
+          maxWidth: 480,
+        }}
+      >
+        <Typography variant="sectionTitle" component="h2">
+          No TV channels on this page
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
+          Use the pagination controls to review the remaining TV channel results.
+        </Typography>
+      </Paper>
+    </Box>
+  );
+
   const MobileLoadingState = () => (
     <Box
       sx={{
         display: 'flex',
+        flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
         width: '100%',
         minHeight: 200,
         py: 3,
+        gap: 1,
       }}
     >
       <CircularProgress aria-label="Loading TV channels" size={28} />
+      <Typography variant="sectionTitle" component="p">
+        Loading TV channels
+      </Typography>
+      <Typography variant="body2" color="text.secondary" align="center">
+        Checking channel inventory and preparing the latest results.
+      </Typography>
+    </Box>
+  );
+
+  const DesktopLoadingState = () => (
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: '100%',
+        minHeight: 280,
+        py: 4,
+        px: 2,
+        gap: 1,
+      }}
+    >
+      <CircularProgress aria-label="Loading TV channels" size={28} />
+      <Typography variant="sectionTitle" component="p">
+        Loading TV channels
+      </Typography>
+      <Typography variant="body2" color="text.secondary" align="center">
+        Refreshing the TV channel inventory for the latest desktop results.
+      </Typography>
     </Box>
   );
 
@@ -213,6 +268,33 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
     </Paper>
   );
 
+  const renderMobileMetadata = (channel: TVChannel) => {
+    const secondaryMetadata = [
+      channel.language ? `Language: ${channel.language}` : null,
+      channel.country ? `Country: ${channel.country}` : null,
+    ].filter(Boolean);
+
+    if (secondaryMetadata.length === 0) {
+      return null;
+    }
+
+    return (
+      <Stack spacing={0.5}>
+        {secondaryMetadata.map((item) => (
+          <Typography key={item} variant="body2" color="text.secondary">
+            {item}
+          </Typography>
+        ))}
+      </Stack>
+    );
+  };
+
+  const getStatusChipSx = (isActive: boolean) => ({
+    borderColor: isActive ? theme.appTokens.status.success.border : theme.appTokens.status.warning.border,
+    backgroundColor: isActive ? theme.appTokens.status.success.bg : theme.appTokens.status.warning.bg,
+    color: isActive ? theme.appTokens.status.success.text : theme.appTokens.status.warning.text,
+  });
+
   const columns: GridColDef[] = [
     {
       field: 'logo_url',
@@ -250,8 +332,9 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
       renderCell: (params: GridRenderCellParams<TVChannel>) => (
         <Chip
           label={params.row.is_active ? 'Active' : 'Inactive'}
-          color={params.row.is_active ? 'success' : 'default'}
           size="small"
+          variant="outlined"
+          sx={getStatusChipSx(params.row.is_active)}
         />
       ),
       filterable: true,
@@ -297,8 +380,9 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
                     </Box>
                     <Chip
                       label={channel.is_active ? 'Active' : 'Inactive'}
-                      color={channel.is_active ? 'success' : 'default'}
                       size="small"
+                      variant="outlined"
+                      sx={getStatusChipSx(channel.is_active)}
                     />
                   </Stack>
 
@@ -306,6 +390,8 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
                     {channel.category ? <Chip label={channel.category} size="small" variant="outlined" /> : null}
                     <Chip label={`${streamCount} ${streamCount === 1 ? 'stream' : 'streams'}`} size="small" variant="outlined" />
                   </Stack>
+
+                  {renderMobileMetadata(channel)}
 
                   {renderActions(channel, true)}
                 </Stack>
@@ -332,36 +418,64 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
             </Typography>
           </Paper>
         )}
-        <MobilePagination />
+        {totalCount > 0 ? <MobilePagination /> : null}
       </Stack>
     );
   }
 
   return (
-    <DataGrid
-      rows={channels}
-      columns={columns}
-      getRowId={(row) => row.id}
-      loading={loading}
-      density={isCompact ? 'compact' : 'standard'}
-      autoHeight
-      pagination
-      paginationMode="server"
-      rowCount={totalCount}
-      pageSizeOptions={[10, 25, 50, 100]}
-      paginationModel={{ page, pageSize }}
-      onPaginationModelChange={(model) => {
-        onPageChange(model.page);
-        onPageSizeChange(model.pageSize);
+    <Paper
+      component="section"
+      role="region"
+      aria-label="TV channel inventory"
+      variant="outlined"
+      sx={{
+        borderRadius: 2,
+        overflow: 'hidden',
+        borderColor: theme.appTokens.surface.border,
+        backgroundColor: theme.appTokens.surface.raised,
       }}
-      columnVisibilityModel={{
-        country: !isCompact,
-        language: !isCompact,
-      }}
-      sortingMode="server"
-      onSortModelChange={onSortChange}
-      slots={{ toolbar: GridToolbar, noRowsOverlay: DesktopEmptyState }}
-    />
+    >
+      {loading ? <DesktopLoadingState /> : null}
+      {!loading && channels.length === 0 ? (totalCount === 0 ? <DesktopEmptyState /> : <DesktopPageEmptyState />) : null}
+      <DataGrid
+        rows={channels}
+        columns={columns}
+        getRowId={(row) => row.id}
+        loading={false}
+        density={isCompact ? 'compact' : 'standard'}
+        autoHeight
+        pagination
+        paginationMode="server"
+        rowCount={totalCount}
+        pageSizeOptions={[10, 25, 50, 100]}
+        paginationModel={{ page, pageSize }}
+        onPaginationModelChange={(model) => {
+          onPageChange(model.page);
+          onPageSizeChange(model.pageSize);
+        }}
+        columnVisibilityModel={{
+          country: !isCompact,
+          language: !isCompact,
+        }}
+        sortingMode="server"
+        onSortModelChange={onSortChange}
+        slots={{ toolbar: GridToolbar, noRowsOverlay: DesktopEmptyState }}
+        sx={{
+          border: 0,
+          backgroundColor: 'transparent',
+          display: loading || channels.length === 0 ? 'none' : 'grid',
+          '& .MuiDataGrid-toolbarContainer': {
+            px: 1.5,
+            py: 1,
+            borderBottom: `1px solid ${theme.appTokens.surface.border}`,
+          },
+          '& .MuiDataGrid-columnHeaders': {
+            backgroundColor: theme.appTokens.surface.canvas,
+          },
+        }}
+      />
+    </Paper>
   );
 };
 

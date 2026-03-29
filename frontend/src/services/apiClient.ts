@@ -3,15 +3,15 @@
  */
 import axios, { AxiosInstance } from 'axios';
 
+import { getApiBaseUrl } from '../config/runtime';
 import { ApiError, normalizeApiError } from './apiErrors';
 
 /**
  * Base API configuration
  */
-const apiBase =
-  process.env.NODE_ENV === 'development'
-    ? 'http://localhost:8000/api'
-    : '/api';
+const apiBase = getApiBaseUrl({
+  dev: process.env.NODE_ENV === 'development',
+});
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: apiBase,

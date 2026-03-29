@@ -7,11 +7,11 @@ const VISIBLE_FOCUS_OUTLINE = '2px solid currentColor';
 
 const sharedShellLayout = {
   navWidth: 264,
-  contentMaxWidth: 1440,
   phoneMaxWidth: 899.95,
   desktopMinWidth: 900,
   wideMinWidth: 1280,
   standardContentMaxWidth: 1280,
+  wideContentMaxWidth: 1440,
   pagePaddingX: {
     xs: 2,
     sm: 3,
@@ -183,6 +183,12 @@ export const createAppTheme = (mode: ThemeMode) => {
 
   const appTokens = {
     ...tokenSets[mode],
+    layout: {
+      ...tokenSets[mode].layout,
+      shell: {
+        ...tokenSets[mode].layout.shell,
+      },
+    },
     motion: {
       ...tokenSets[mode].motion,
       durationStandard: prefersReducedMotion

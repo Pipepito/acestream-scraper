@@ -108,11 +108,11 @@ describe('createAppTheme', () => {
       divider: expect.any(String),
       shell: {
         navWidth: expect.any(Number),
-        contentMaxWidth: expect.any(Number),
         phoneMaxWidth: expect.any(Number),
         desktopMinWidth: expect.any(Number),
         wideMinWidth: expect.any(Number),
         standardContentMaxWidth: expect.any(Number),
+        wideContentMaxWidth: expect.any(Number),
         pagePaddingX: {
           xs: expect.any(Number),
           sm: expect.any(Number),
@@ -224,8 +224,8 @@ describe('createAppTheme', () => {
     expect(layout.pagePaddingY).toBe(theme.appTokens.layout.pageGap);
     expect(layout.pagePaddingX.sm).toBe(theme.appTokens.layout.pageGap);
     expect(layout.navWidth).toBe(theme.appTokens.layout.shell.navWidth);
-    expect(layout.contentMaxWidth).toBe(theme.appTokens.layout.shell.contentMaxWidth);
-    expect(layout.standardContentMaxWidth).toBeLessThan(layout.contentMaxWidth);
+    expect(layout.wideContentMaxWidth).toBe(theme.appTokens.layout.shell.wideContentMaxWidth);
+    expect(layout.standardContentMaxWidth).toBeLessThan(layout.wideContentMaxWidth);
   });
 
   it('defines explicit shared shell breakpoints and content width tiers', () => {
@@ -241,7 +241,7 @@ describe('createAppTheme', () => {
     expect(layout.pagePaddingX.md).toBeGreaterThan(layout.pagePaddingX.xs);
     expect(layout.pagePaddingY).toBeGreaterThan(0);
     expect(standardContentMaxWidth).toBe(layout.standardContentMaxWidth);
-    expect(wideContentMaxWidth).toBe(layout.contentMaxWidth);
+    expect(wideContentMaxWidth).toBe(layout.wideContentMaxWidth);
     expect(wideContentMaxWidth).toBeGreaterThan(standardContentMaxWidth);
   });
 

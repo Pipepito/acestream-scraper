@@ -4,7 +4,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 
-const source = process.env.COPY_BUILD_SOURCE || path.join(__dirname, '..', 'build');
+const source = process.env.COPY_BUILD_SOURCE || path.join(__dirname, '..', 'dist');
 const destination = process.env.COPY_BUILD_DESTINATION || path.join(__dirname, '..', '..', 'backend', 'frontend_build');
 
 // Ensure destination directory exists

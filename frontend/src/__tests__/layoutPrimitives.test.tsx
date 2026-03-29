@@ -8,7 +8,7 @@ import ContentSection from '../components/layout/ContentSection';
 import NavBar from '../components/NavBar';
 import AppShell from '../components/layout/AppShell';
 import { createAppTheme, type ThemeMode } from '../theme';
-import { getShellContentMaxWidth } from '../styles/layout';
+import * as layoutStyles from '../styles/layout';
 import { mockResponsiveShellQueries } from '../testUtils/mockResponsiveShell';
 import { TestMemoryRouter } from '../testUtils/router';
 
@@ -403,8 +403,57 @@ describe('layout primitives', () => {
     const content = screen.getByText('Shell content').parentElement;
 
     expect(content).toHaveStyle({
-      maxWidth: `${getShellContentMaxWidth(theme, 'wide')}px`,
+      maxWidth: `${layoutStyles.getShellContentMaxWidth(theme, 'wide')}px`,
     });
+  });
+
+  it.each<ThemeMode>(['light', 'dark'])('exposes standard and wide shell content maxima in %s mode', (mode) => {
+    const theme = createAppTheme(mode);
+    const shellLayout = layoutStyles.getShellLayout(theme);
+
+    expect(shellLayout.standardContentMaxWidth).toBe(1280);
+    expect(shellLayout.wideContentMaxWidth).toBeGreaterThan(shellLayout.standardContentMaxWidth);
+    expect(layoutStyles.getShellContentMaxWidth(theme, 'standard')).toBe(shellLayout.standardContentMaxWidth);
+    expect(layoutStyles.getShellContentMaxWidth(theme, 'wide')).toBe(shellLayout.wideContentMaxWidth);
+    expect(shellLayout).not.toHaveProperty('contentMaxWidth');
+  });
+
+  it.each<ThemeMode>(['light', 'dark'])('provides a shared wide split-layout helper for primary and supporting regions in %s mode', (mode) => {
+    const theme = createAppTheme(mode);
+    const { getWidePageSplitLayout } = layoutStyles;
+
+    expect(getWidePageSplitLayout).toEqual(expect.any(Function));
+    expect(getWidePageSplitLayout(theme, false)).toBeUndefined();
+    expect(getWidePageSplitLayout(theme, true)).toMatchObject({
+      display: 'grid',
+      gridTemplateColumns: 'minmax(0, 2fr) minmax(280px, 1fr)',
+      gridTemplateAreas: 'primary supporting',
+      gap: theme.appTokens.layout.pageGap,
+      alignItems: 'start',
+    });
+  });
+
+  it.each<ThemeMode>(['light', 'dark'])('provides shared wide split region hooks for primary and supporting slots in %s mode', (mode) => {
+    const theme = createAppTheme(mode);
+    const { getWidePageSplitRegionStyles } = layoutStyles as typeof layoutStyles & {
+      getWidePageSplitRegionStyles?: (
+        active: boolean,
+        region?: 'default' | 'primary' | 'supporting'
+      ) => Record<string, unknown> | undefined;
+    };
+
+    expect(getWidePageSplitRegionStyles).toEqual(expect.any(Function));
+    expect(getWidePageSplitRegionStyles?.(false, 'primary')).toBeUndefined();
+    expect(getWidePageSplitRegionStyles?.(true, 'default')).toBeUndefined();
+    expect(getWidePageSplitRegionStyles?.(true, 'primary')).toMatchObject({
+      gridArea: 'primary',
+      alignSelf: 'start',
+    });
+    expect(getWidePageSplitRegionStyles?.(true, 'supporting')).toMatchObject({
+      gridArea: 'supporting',
+      alignSelf: 'start',
+    });
+    expect(theme.appTokens.layout.pageGap).toBeGreaterThan(0);
   });
 
   it('wraps long translated-looking copy without dropping layout hooks', () => {

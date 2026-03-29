@@ -56,7 +56,7 @@ const InlineStatusNotice: React.FC<InlineStatusNoticeProps> = ({ severity, title
             display: 'flex',
             flexWrap: 'wrap',
             gap: 1,
-            width: { xs: '100%', sm: 'auto' },
+            width: '100%',
             minWidth: 0,
             flexShrink: 0,
           }}

@@ -27,8 +27,16 @@ import AdvancedSearch from '../components/AdvancedSearch';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
 import { getShellLayout, getWidePageSplitLayout } from '../styles/layout';
+import { normalizeApiError } from '../services/apiErrors';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
+type FormErrors = {
+  name?: string;
+  submit?: string;
+};
+
+const sanitizeTextInput = (value: string | undefined): string => value?.trim() ?? '';
 
 const TVChannels: React.FC = () => {
   const theme = useTheme();
@@ -54,6 +62,7 @@ const TVChannels: React.FC = () => {
     is_active: true,
   });
   const [notice, setNotice] = useState<string | null>(null);
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
 
   const skip = (page - 1) * pageSize;
   const {
@@ -116,6 +125,7 @@ const TVChannels: React.FC = () => {
   );
 
   const handleOpenCreateDialog = () => {
+    setFormErrors({});
     setFormData({
       name: '',
       logo_url: '',
@@ -130,6 +140,7 @@ const TVChannels: React.FC = () => {
   };
 
   const handleOpenEditDialog = (channel: TVChannel) => {
+    setFormErrors({});
     setSelectedChannel(channel);
     setFormData({
       name: channel.name,
@@ -148,19 +159,49 @@ const TVChannels: React.FC = () => {
 
   const handleFormChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = event.target;
+    setFormErrors((prev) => ({ ...prev, [name]: undefined, submit: undefined }));
     setFormData((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : name === 'channel_number' ? (value === '' ? '' : Number(value)) : value,
     }));
   };
 
+  const getSanitizedPayload = (): TVChannelCreate | TVChannelUpdate => ({
+    ...formData,
+    name: sanitizeTextInput(formData.name),
+    logo_url: sanitizeTextInput(formData.logo_url),
+    description: sanitizeTextInput(formData.description),
+    category: sanitizeTextInput(formData.category),
+    country: sanitizeTextInput(formData.country),
+    language: sanitizeTextInput(formData.language),
+    epg_id: 'epg_id' in formData ? sanitizeTextInput(formData.epg_id) : undefined,
+  });
+
+  const validateForm = (): TVChannelCreate | TVChannelUpdate | null => {
+    const payload = getSanitizedPayload();
+
+    if (!payload.name) {
+      setFormErrors({ name: 'Enter a channel name before saving.' });
+      return null;
+    }
+
+    setFormErrors({});
+    return payload;
+  };
+
   const handleCreate = async () => {
+    const payload = validateForm();
+
+    if (!payload) {
+      return;
+    }
+
     try {
-      await createMutation.mutateAsync(formData as TVChannelCreate);
+      await createMutation.mutateAsync(payload as TVChannelCreate);
       setOpenCreateDialog(false);
       setNotice('TV channel created.');
-    } catch {
-      setNotice('Failed to create TV channel.');
+    } catch (error) {
+      setFormErrors({ submit: normalizeApiError(error).message });
     }
   };
 
@@ -168,15 +209,22 @@ const TVChannels: React.FC = () => {
     if (!selectedChannel) {
       return;
     }
+
+    const payload = validateForm();
+
+    if (!payload) {
+      return;
+    }
+
     try {
       await updateMutation.mutateAsync({
         id: selectedChannel.id,
-        updates: formData as TVChannelUpdate,
+        updates: payload as TVChannelUpdate,
       });
       setOpenEditDialog(false);
       setNotice('TV channel updated.');
-    } catch {
-      setNotice('Failed to update TV channel.');
+    } catch (error) {
+      setFormErrors({ submit: normalizeApiError(error).message });
     }
   };
 
@@ -206,7 +254,17 @@ const TVChannels: React.FC = () => {
           Channel basics
         </Typography>
         <Stack spacing={2}>
-          <TextField autoFocus name="name" label="Channel Name" fullWidth value={formData.name || ''} onChange={handleFormChange} required />
+          <TextField
+            autoFocus
+            name="name"
+            label="Channel Name"
+            fullWidth
+            value={formData.name || ''}
+            onChange={handleFormChange}
+            required
+            error={Boolean(formErrors.name)}
+            helperText={formErrors.name}
+          />
           <TextField
             name="description"
             label="Description"
@@ -215,6 +273,7 @@ const TVChannels: React.FC = () => {
             onChange={handleFormChange}
             multiline
             rows={3}
+            inputProps={{ maxLength: 1000 }}
           />
         </Stack>
       </Box>
@@ -272,7 +331,12 @@ const TVChannels: React.FC = () => {
   if (isCatalogError) {
     return (
       <Box p={3}>
-        <Alert severity="error">Error loading TV channels.</Alert>
+        <Stack spacing={2} alignItems="flex-start">
+          <Alert severity="error">We could not load the TV channel inventory. Try refreshing to reconnect.</Alert>
+          <Button variant="outlined" onClick={() => refetchCatalog()}>
+            Retry loading TV channels
+          </Button>
+        </Stack>
       </Box>
     );
   }
@@ -346,6 +410,16 @@ const TVChannels: React.FC = () => {
             onDelete={handleRequestDelete}
             onPlay={(id) => navigate(`/tv-channels/${id}`)}
           />
+          {totalChannels === 0 && Object.values(filters).some(Boolean) ? (
+            <Alert severity="info" sx={{ mt: 2 }}>
+              <Typography component="span" sx={{ display: 'block', fontWeight: 600 }}>
+                No TV channels match the current filters
+              </Typography>
+              <Typography component="span" variant="body2">
+                Reset the filters or broaden your search to recover the TV channel inventory.
+              </Typography>
+            </Alert>
+          ) : null}
         </ContentSection>
 
         <ContentSection
@@ -397,10 +471,17 @@ const TVChannels: React.FC = () => {
 
       <Dialog open={openCreateDialog} onClose={() => setOpenCreateDialog(false)} {...dialogMobileProps}>
         <DialogTitle>Add TV Channel</DialogTitle>
-        <DialogContent dividers>{renderDialogSections('create')}</DialogContent>
+        <DialogContent dividers>
+          {formErrors.submit ? (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {formErrors.submit}
+            </Alert>
+          ) : null}
+          {renderDialogSections('create')}
+        </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenCreateDialog(false)}>Cancel</Button>
-          <Button onClick={handleCreate} variant="contained" color="primary" disabled={createMutation.isLoading || !formData.name}>
+          <Button onClick={handleCreate} variant="contained" color="primary" disabled={createMutation.isLoading}>
             Create
           </Button>
         </DialogActions>
@@ -408,10 +489,17 @@ const TVChannels: React.FC = () => {
 
       <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)} {...dialogMobileProps}>
         <DialogTitle>Edit TV Channel</DialogTitle>
-        <DialogContent dividers>{renderDialogSections('edit')}</DialogContent>
+        <DialogContent dividers>
+          {formErrors.submit ? (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {formErrors.submit}
+            </Alert>
+          ) : null}
+          {renderDialogSections('edit')}
+        </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenEditDialog(false)}>Cancel</Button>
-          <Button onClick={handleUpdate} variant="contained" color="primary" disabled={updateMutation.isLoading || !formData.name}>
+          <Button onClick={handleUpdate} variant="contained" color="primary" disabled={updateMutation.isLoading}>
             Update
           </Button>
         </DialogActions>

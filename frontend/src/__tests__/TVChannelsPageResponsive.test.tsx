@@ -1,8 +1,9 @@
 import React, { act } from 'react';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from '@mui/material/styles';
 import { useMediaQuery } from '@mui/material';
+import { ApiError } from '../services/apiErrors';
 
 import TVChannels from '../pages/TVChannels';
 import { createAppTheme } from '../theme';
@@ -97,6 +98,8 @@ type LegacyUserEventWithSetup = typeof userEvent & {
 
 const mockUseMediaQuery = useMediaQuery as jest.MockedFunction<typeof useMediaQuery>;
 let deleteMutateAsync: jest.Mock;
+let createMutateAsync: jest.Mock;
+let updateMutateAsync: jest.Mock;
 
 const renderPage = ({
   isPhone = false,
@@ -201,9 +204,11 @@ describe('TVChannels responsive page behavior', () => {
       refetch: mockCatalogRefetch,
     });
     deleteMutateAsync = jest.fn().mockResolvedValue(undefined);
+    createMutateAsync = jest.fn().mockResolvedValue(undefined);
+    updateMutateAsync = jest.fn().mockResolvedValue(undefined);
     mockUseDeleteTVChannel.mockReturnValue({ mutateAsync: deleteMutateAsync });
-    mockUseCreateTVChannel.mockReturnValue({ mutateAsync: jest.fn(), isLoading: false });
-    mockUseUpdateTVChannel.mockReturnValue({ mutateAsync: jest.fn(), isLoading: false });
+    mockUseCreateTVChannel.mockReturnValue({ mutateAsync: createMutateAsync, isLoading: false });
+    mockUseUpdateTVChannel.mockReturnValue({ mutateAsync: updateMutateAsync, isLoading: false });
   });
 
   it('keeps primary actions visible while collapsing filters on phone', async () => {
@@ -380,5 +385,97 @@ describe('TVChannels responsive page behavior', () => {
     expect(screen.getByTestId('tv-channels-table')).toHaveTextContent('rows:1');
     expect(screen.getByTestId('tv-channels-table')).toHaveTextContent('total:1');
     expect(screen.getByTestId('tv-channels-table')).toHaveTextContent('page:0');
+  });
+
+  it('trims search input before applying filters', async () => {
+    renderPage({ isPhone: false, isDesktop: true, isWideDesktop: false });
+
+    const filtersRegion = screen.getByRole('region', { name: 'Filters' });
+    const searchInput = within(filtersRegion).getByRole('textbox', { name: 'Search' });
+
+    fireEvent.change(searchInput, { target: { value: '   Arena   ' } });
+    await click(within(filtersRegion).getByRole('button', { name: 'Apply Filters' }));
+
+    expect(screen.getByTestId('tv-channels-table')).toHaveTextContent('rows:1');
+    expect(screen.getByTestId('tv-channels-table')).toHaveTextContent('total:1');
+  });
+
+  it('shows recovery guidance when filters produce no matches and reset clears them', async () => {
+    renderPage({ isPhone: false, isDesktop: true, isWideDesktop: false });
+
+    const filtersRegion = screen.getByRole('region', { name: 'Filters' });
+    const searchInput = within(filtersRegion).getByRole('textbox', { name: 'Search' });
+
+    fireEvent.change(searchInput, { target: { value: 'Missing channel' } });
+    await click(within(filtersRegion).getByRole('button', { name: 'Apply Filters' }));
+
+    expect(screen.getByText('No TV channels match the current filters')).toBeInTheDocument();
+    expect(screen.getByText('Reset the filters or broaden your search to recover the TV channel inventory.')).toBeInTheDocument();
+
+    await click(within(filtersRegion).getByRole('button', { name: 'Reset Filters' }));
+
+    expect(screen.getByTestId('tv-channels-table')).toHaveTextContent('rows:2');
+    expect(screen.queryByText('No TV channels match the current filters')).not.toBeInTheDocument();
+  });
+
+  it('shows retry guidance when loading the catalog fails', async () => {
+    mockUseTVChannelCatalog.mockReturnValueOnce({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      refetch: mockCatalogRefetch,
+    });
+
+    renderPage({ isPhone: false, isDesktop: true, isWideDesktop: false });
+
+    expect(screen.getByRole('alert')).toHaveTextContent('We could not load the TV channel inventory. Try refreshing to reconnect.');
+
+    await click(screen.getByRole('button', { name: 'Retry loading TV channels' }));
+
+    expect(mockCatalogRefetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('blocks whitespace-only channel names and keeps the create dialog open with guidance', async () => {
+    renderPage({ isPhone: false, isDesktop: true, isWideDesktop: false });
+
+    await click(screen.getByRole('button', { name: 'Add TV Channel' }));
+
+    const createDialog = screen.getByRole('dialog', { name: 'Add TV Channel' });
+    const nameInput = within(createDialog).getByRole('textbox', { name: /channel name/i });
+
+    fireEvent.change(nameInput, { target: { value: '   ' } });
+    await click(within(createDialog).getByRole('button', { name: 'Create' }));
+
+    expect(createMutateAsync).not.toHaveBeenCalled();
+    expect(within(createDialog).getByText('Enter a channel name before saving.')).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Add TV Channel' })).toBeInTheDocument();
+  });
+
+  it('keeps the edit dialog open and preserves input after an update failure', async () => {
+    updateMutateAsync.mockRejectedValueOnce(
+      new ApiError({
+        message: 'Too many requests were sent. Please wait a moment and try again.',
+        status: 429,
+        kind: 'rate_limit',
+        canRetry: true,
+      })
+    );
+
+    renderPage({ isPhone: false, isDesktop: true, isWideDesktop: false });
+
+    await click(screen.getByRole('button', { name: 'Open edit dialog' }));
+
+    const editDialog = screen.getByRole('dialog', { name: 'Edit TV Channel' });
+    const descriptionInput = within(editDialog).getByRole('textbox', { name: 'Description' });
+
+    fireEvent.change(descriptionInput, { target: { value: 'Updated bilingual details عربى 日本語' } });
+    await click(within(editDialog).getByRole('button', { name: 'Update' }));
+
+    expect(updateMutateAsync).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('dialog', { name: 'Edit TV Channel' })).toBeInTheDocument();
+    expect(within(screen.getByRole('dialog', { name: 'Edit TV Channel' })).getByDisplayValue('Updated bilingual details عربى 日本語')).toBeInTheDocument();
+    expect(within(screen.getByRole('dialog', { name: 'Edit TV Channel' })).getByRole('alert')).toHaveTextContent(
+      'Too many requests were sent. Please wait a moment and try again.'
+    );
   });
 });

@@ -102,4 +102,48 @@ describe('shared state components', () => {
 
     expect(screen.getByText('', { selector: '.MuiTypography-helperText' })).toBeInTheDocument();
   });
+
+  it('keeps long multilingual notice content and actions wrapped without overflow', () => {
+    renderWithTheme(
+      <InlineStatusNotice
+        severity="error"
+        title="Aussergewoehnlich langer Hinweis fuer internationale Betriebszustaende عربى 日本語 😀"
+        description="Sehr lange Wiederherstellungshinweise mit CJK 日本語 und RTL العربية text should wrap instead of pushing actions off-screen."
+        action={
+          <>
+            <Button variant="outlined">Retry synchronization with very long translated action</Button>
+            <Button variant="text">Open diagnostics panel immediately</Button>
+          </>
+        }
+      />
+    );
+
+    expect(screen.getByText('Aussergewoehnlich langer Hinweis fuer internationale Betriebszustaende عربى 日本語 😀')).toHaveStyle({
+      overflowWrap: 'break-word',
+    });
+    expect(screen.getByText(/Sehr lange Wiederherstellungshinweise/)).toHaveStyle({ overflowWrap: 'break-word' });
+    expect(screen.getByTestId('inline-status-notice-action')).toHaveStyle({ width: '100%' });
+  });
+
+  it('keeps long multilingual empty-state copy and multiple actions wrapped inside the card', () => {
+    renderWithTheme(
+      <EmptyState
+        title="Keine TV-Kanaele mit aussergewoehnlich langem internationalen Titel عربى 日本語 😀"
+        description="Use a broader search, refresh the inventory, or review the imported metadata when long translated copy, emoji, and mixed-direction text appear together."
+        action={
+          <>
+            <Button variant="contained">Refresh the TV channel inventory now</Button>
+            <Button variant="outlined">Clear every active filter and try again</Button>
+          </>
+        }
+      />
+    );
+
+    expect(screen.getByRole('heading', {
+      level: 2,
+      name: 'Keine TV-Kanaele mit aussergewoehnlich langem internationalen Titel عربى 日本語 😀',
+    })).toHaveStyle({ overflowWrap: 'break-word' });
+    expect(screen.getByText(/Use a broader search/)).toHaveStyle({ overflowWrap: 'break-word' });
+    expect(screen.getByTestId('empty-state-action')).toHaveStyle({ width: '100%' });
+  });
 });

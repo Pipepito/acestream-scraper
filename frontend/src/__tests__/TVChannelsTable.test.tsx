@@ -308,6 +308,45 @@ describe('TVChannelsTable', () => {
     );
   });
 
+  it('keeps long multilingual mobile content readable without losing actions', () => {
+    renderTable(
+      <TVChannelsTable
+        channels={[
+          {
+            id: 42,
+            name: 'Canal Internacional Extraordinaer Langtitel عربى 日本語 😀 with very long operational suffix',
+            logo_url: '',
+            category: 'Internationale Live-Uebertragungen Mit Langem Namen',
+            language: 'Deutsch / العربية / 日本語',
+            country: 'DE / AE / JP',
+            channel_number: 7001,
+            is_active: true,
+            created_at: '2024-01-01T00:00:00.000Z',
+            updated_at: '2024-01-01T00:00:00.000Z',
+            is_favorite: false,
+            acestream_channels: [{ channel_id: 'ace-1' }],
+          } as any,
+        ]}
+        {...baseProps}
+      />,
+      true
+    );
+
+    const row = screen.getByRole('article', {
+      name: 'Canal Internacional Extraordinaer Langtitel عربى 日本語 😀 with very long operational suffix',
+    });
+    const title = within(row).getByText(
+      'Canal Internacional Extraordinaer Langtitel عربى 日本語 😀 with very long operational suffix'
+    );
+
+    expect(title).toHaveStyle({ overflowWrap: 'break-word' });
+    expect(within(row).getByText('Internationale Live-Uebertragungen Mit Langem Namen')).toBeInTheDocument();
+    expect(within(row).getByText('Language: Deutsch / العربية / 日本語')).toBeInTheDocument();
+    expect(within(row).getByRole('button', { name: /edit tv channel/i })).toBeInTheDocument();
+    expect(within(row).getByRole('button', { name: /delete tv channel/i })).toBeInTheDocument();
+    expect(within(row).getByRole('button', { name: /play tv channel/i })).toBeInTheDocument();
+  });
+
   it('keeps compact pagination available when the current server page has no visible rows', () => {
     renderTable(<TVChannelsTable channels={[]} {...baseProps} totalCount={30} page={1} pageSize={25} />, true);
 

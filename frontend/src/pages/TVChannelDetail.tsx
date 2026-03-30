@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
+  alpha,
   Alert,
   Box,
   Button,
@@ -20,6 +21,7 @@ import {
   TextField,
   Typography,
   FormControlLabel,
+  useTheme,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -27,7 +29,6 @@ import {
   Delete as DeleteIcon,
   Edit as EditIcon,
   Link as LinkIcon,
-  PlayArrow as PlayIcon,
 } from '@mui/icons-material';
 
 import BatchAcestreamAssignment from '../components/BatchAcestreamAssignment';
@@ -46,6 +47,7 @@ import {
 const TVChannelDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const theme = useTheme();
   const channelId = id ? parseInt(id, 10) : 0;
 
   const { data: channel, isLoading, isError } = useTVChannel(channelId);
@@ -60,6 +62,7 @@ const TVChannelDetail: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAcestreams, setSelectedAcestreams] = useState<string[]>([]);
   const [isEditing, setIsEditing] = useState(false);
+  const [notice, setNotice] = useState<{ message: string; severity: 'success' | 'error' } | null>(null);
   const [editFormData, setEditFormData] = useState({
     name: '',
     logo_url: '',
@@ -74,12 +77,32 @@ const TVChannelDetail: React.FC = () => {
     is_favorite: false,
   });
 
-  const { data: acestreamCandidates, isLoading: isLoadingAcestreamCandidates } = useAcestreamChannels(
+  const { data: acestreamCandidates, isLoading: isLoadingAcestreamCandidates, isError: isErrorLoadingAcestreamCandidates } = useAcestreamChannels(
     searchTerm ? { search: searchTerm } : {},
-    { staleTime: 1000 * 60 }
+    { staleTime: 1000 * 60, enabled: openAssociateDialog }
   );
 
   const acestreamCandidateItems = acestreamCandidates?.items || [];
+  const linkedAcestreamCount = channel?.acestream_channels.length || 0;
+  const hasEpgLink = Boolean(channel?.epg_id);
+  const identitySummary = channel
+    ? `${channel.name} is ${channel.is_active ? 'active' : 'inactive'}, ${channel.is_favorite ? 'marked favorite' : 'not marked favorite'}, and ${linkedAcestreamCount === 0 ? 'still waiting for source coverage' : hasEpgLink ? 'ready for playback and guide review' : 'ready for playback but still missing guide review'}.`
+    : '';
+  const relationshipStatus = linkedAcestreamCount === 0
+    ? 'Playback coverage incomplete'
+    : hasEpgLink
+      ? 'Operational relationship in place'
+      : 'Guide linkage still missing';
+  const relationshipSupport = linkedAcestreamCount === 0
+    ? 'No linked acestream sources are available yet, so playback coverage is still incomplete for this channel.'
+    : hasEpgLink
+      ? 'Linked source coverage and guide linkage are both present, so this channel is ready for routine review or cleanup.'
+      : 'Playback coverage is in place, but guide linkage is still missing for downstream schedule review.';
+  const nextStepLabel = linkedAcestreamCount === 0
+    ? 'Link at least one acestream source before you treat this channel as ready for playback or guide follow-up.'
+    : hasEpgLink
+      ? 'Keep linked sources and guide data aligned, and remove stale relationships only when cleanup is needed.'
+      : 'Add the correct EPG ID so downstream schedule review can start from this same detail page.';
 
   const handleGoBack = () => {
     navigate('/tv-channels');
@@ -131,7 +154,9 @@ const TVChannelDetail: React.FC = () => {
         },
       });
       setIsEditing(false);
+      setNotice({ message: 'TV channel updated successfully.', severity: 'success' });
     } catch (error) {
+      setNotice({ message: 'Failed to update TV channel.', severity: 'error' });
       console.error('Error updating TV channel:', error);
     }
   };
@@ -144,12 +169,20 @@ const TVChannelDetail: React.FC = () => {
         tvChannelId: channelId,
         aceStreamId,
       });
+      const removedAcestream = channel?.acestream_channels.find((item) => item.channel_id === aceStreamId);
+      setNotice({
+        message: `Removed acestream ${removedAcestream?.name || aceStreamId} successfully.`,
+        severity: 'success',
+      });
     } catch (error) {
+      setNotice({ message: 'Failed to remove acestream.', severity: 'error' });
       console.error('Error removing acestream:', error);
     }
   };
 
   const handleAssociateSelected = async () => {
+    const assignedCount = selectedAcestreams.length;
+
     for (const aceStreamId of selectedAcestreams) {
       try {
         await associateAcestreamMutation.mutateAsync({
@@ -157,12 +190,18 @@ const TVChannelDetail: React.FC = () => {
           aceStreamId,
         });
       } catch (error) {
+        setNotice({ message: 'Failed to assign selected acestream sources.', severity: 'error' });
         console.error('Error associating acestream:', error);
+        return;
       }
     }
 
     setOpenAssociateDialog(false);
     setSelectedAcestreams([]);
+    setNotice({
+      message: `Assigned ${assignedCount} acestream source${assignedCount === 1 ? '' : 's'} successfully.`,
+      severity: 'success',
+    });
   };
 
   if (isLoading) {
@@ -216,6 +255,72 @@ const TVChannelDetail: React.FC = () => {
           </>
         }
       />
+
+      <Box
+        sx={{
+          mb: 3,
+          p: { xs: 2, md: 2.5 },
+          borderRadius: 2.5,
+          bgcolor: theme.appTokens.hero.bg,
+          border: `1px solid ${theme.appTokens.hero.border}`,
+          backgroundImage: theme.appTokens.hero.spotlight,
+        }}
+      >
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, justifyContent: 'space-between' }}>
+          <Box sx={{ minWidth: 0, maxWidth: 760 }}>
+            <Typography variant="statusMeta" sx={{ color: theme.appTokens.hero.accent, mb: 1 }}>
+              Relationship summary
+            </Typography>
+            <Typography variant="h4" sx={{ letterSpacing: '-0.03em', mb: 1 }}>
+              {identitySummary}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {relationshipSupport}
+            </Typography>
+          </Box>
+          <Stack spacing={1} sx={{ minWidth: { xs: '100%', sm: 320 } }}>
+            <Box
+              sx={{
+                p: 1.5,
+                borderRadius: 2,
+                bgcolor: alpha(theme.appTokens.shell.accent, 0.08),
+                border: `1px solid ${alpha(theme.appTokens.shell.accent, 0.18)}`,
+              }}
+            >
+              <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>
+                Relationship status
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                {relationshipStatus}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {linkedAcestreamCount} linked acestream source{linkedAcestreamCount === 1 ? '' : 's'} {hasEpgLink ? 'with guide linkage in place.' : 'and no guide linkage yet.'}
+              </Typography>
+            </Box>
+            <Box
+              sx={{
+                p: 1.5,
+                borderRadius: 2,
+                bgcolor: theme.appTokens.surface.panel,
+                border: `1px solid ${theme.appTokens.surface.border}`,
+              }}
+            >
+              <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>
+                Next step
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {nextStepLabel}
+              </Typography>
+            </Box>
+          </Stack>
+        </Box>
+      </Box>
+
+      {notice ? (
+        <Alert severity={notice.severity} sx={{ mb: 2 }} onClose={() => setNotice(null)}>
+          {notice.message}
+        </Alert>
+      ) : null}
 
       <ContentSection
         title="Channel Summary"
@@ -315,9 +420,6 @@ const TVChannelDetail: React.FC = () => {
                 divider
                 secondaryAction={
                   <Box role="group" aria-label={`Acestream actions for ${acestream.name}`} sx={{ display: 'flex', gap: 1 }}>
-                    <IconButton edge="end" color="primary" aria-label={`Play acestream ${acestream.name}`}>
-                      <PlayIcon />
-                    </IconButton>
                     <IconButton
                       edge="end"
                       color="error"
@@ -343,14 +445,18 @@ const TVChannelDetail: React.FC = () => {
         )}
       </ContentSection>
 
-      {channel.epg_id ? (
-        <ContentSection
-          title="EPG Schedule"
-          description="Review the resolved guide feed for this TV channel without leaving the detail route."
-        >
+      <ContentSection
+        title="EPG Schedule"
+        description="Review the resolved guide feed for this TV channel without leaving the detail route."
+      >
+        {channel.epg_id ? (
           <EPGProgramsTable epgId={channel.epg_id} epgSourceId={channel.epg_source_id} />
-        </ContentSection>
-      ) : null}
+        ) : (
+          <Alert severity="info">
+            Guide linkage is still incomplete, so schedule review will appear here after you add the correct EPG ID.
+          </Alert>
+        )}
+      </ContentSection>
 
       <Dialog open={openAssociateDialog} onClose={() => setOpenAssociateDialog(false)} maxWidth="md" fullWidth>
         <DialogTitle>Associate Acestream Channel</DialogTitle>
@@ -371,13 +477,18 @@ const TVChannelDetail: React.FC = () => {
               <Typography variant="body2">Loading Acestream candidates...</Typography>
             </Box>
           ) : null}
+          {isErrorLoadingAcestreamCandidates ? (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              Unable to load Acestream candidates. Try searching again in a moment.
+            </Alert>
+          ) : null}
           <Alert severity="info" sx={{ mb: 2 }} role="status">
             {selectedAcestreams.length === 0
               ? 'Select one or more Acestream sources before assigning them.'
               : `${selectedAcestreams.length} acestream selected for assignment.`}
           </Alert>
           <List sx={{ maxHeight: 350, overflow: 'auto' }}>
-            {acestreamCandidateItems.length === 0 ? (
+            {isErrorLoadingAcestreamCandidates ? null : acestreamCandidateItems.length === 0 ? (
               <ListItem>
                 <ListItemText primary="No Acestream channels found." />
               </ListItem>

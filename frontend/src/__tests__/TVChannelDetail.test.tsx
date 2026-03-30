@@ -30,6 +30,31 @@ jest.mock('../hooks/useChannels', () => ({
 }));
 
 describe('TVChannelDetail', () => {
+  const baseChannel = {
+    id: 7,
+    name: 'Arena TV',
+    logo_url: '',
+    description: 'Primary sports feed',
+    category: 'Sports',
+    country: 'RS',
+    language: 'en',
+    website: 'https://arena.test',
+    epg_id: 'arena-tv',
+    epg_source_id: 4,
+    channel_number: 7,
+    is_active: true,
+    is_favorite: true,
+    acestream_channels: [
+      {
+        channel_id: 'ace-1',
+        id: 'ace-1',
+        name: 'Arena Feed 1',
+        group: 'Sports',
+        is_online: true,
+      },
+    ],
+  };
+
   const renderPage = () => render(
     <ThemeProvider theme={createAppTheme('light')}>
       <TestMemoryRouter initialEntries={['/tv-channels/7']}>
@@ -43,30 +68,7 @@ describe('TVChannelDetail', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseTVChannel.mockReturnValue({
-      data: {
-        id: 7,
-        name: 'Arena TV',
-        logo_url: '',
-        description: 'Primary sports feed',
-        category: 'Sports',
-        country: 'RS',
-        language: 'en',
-        website: 'https://arena.test',
-        epg_id: 'arena-tv',
-        epg_source_id: 4,
-        channel_number: 7,
-        is_active: true,
-        is_favorite: true,
-        acestream_channels: [
-          {
-            channel_id: 'ace-1',
-            id: 'ace-1',
-            name: 'Arena Feed 1',
-            group: 'Sports',
-            is_online: true,
-          },
-        ],
-      },
+      data: baseChannel,
       isLoading: false,
       isError: false,
     });
@@ -87,11 +89,74 @@ describe('TVChannelDetail', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'EPG Schedule' })).toBeInTheDocument();
   });
 
-  it('uses explicit accessible actions for each associated acestream row', () => {
+  it('only enables acestream candidate fetching while the add single dialog is open', () => {
     renderPage();
 
-    expect(screen.getByRole('button', { name: 'Play acestream Arena Feed 1' })).toBeInTheDocument();
+    expect(mockUseAcestreamChannels).toHaveBeenLastCalledWith(
+      {},
+      expect.objectContaining({ staleTime: 1000 * 60, enabled: false })
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add Single' }));
+
+    expect(mockUseAcestreamChannels).toHaveBeenLastCalledWith(
+      {},
+      expect.objectContaining({ staleTime: 1000 * 60, enabled: true })
+    );
+  });
+
+  it('renders a relationship summary above channel summary with identity, relationship status, and next step', () => {
+    renderPage();
+
+    const channelSummaryHeading = screen.getByRole('heading', { level: 2, name: 'Channel Summary' });
+    const identitySummary = screen.getByText(/Arena TV is active, marked favorite, and ready for playback and guide review\./i);
+
+    expect(screen.getByText(/^Relationship status$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Next step$/i)).toBeInTheDocument();
+    expect(screen.getByText('Operational relationship in place')).toBeInTheDocument();
+    expect(identitySummary.compareDocumentPosition(channelSummaryHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('prioritizes missing acestream coverage ahead of missing guide linkage', () => {
+    mockUseTVChannel.mockReturnValue({
+      data: {
+        ...baseChannel,
+        epg_id: '',
+        acestream_channels: [],
+      },
+      isLoading: false,
+      isError: false,
+    });
+
+    renderPage();
+
+    expect(screen.getByText('Playback coverage incomplete')).toBeInTheDocument();
+    expect(screen.getByText(/Link at least one acestream source before you treat this channel as ready for playback or guide follow-up\./i)).toBeInTheDocument();
+  });
+
+  it('uses guide linkage as the primary next step when coverage exists but epg is missing', () => {
+    mockUseTVChannel.mockReturnValue({
+      data: {
+        ...baseChannel,
+        epg_id: '',
+      },
+      isLoading: false,
+      isError: false,
+    });
+
+    renderPage();
+
+    expect(screen.getByText('Guide linkage still missing')).toBeInTheDocument();
+    expect(screen.getByText(/Add the correct EPG ID so downstream schedule review can start from this same detail page\./i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'EPG Schedule' })).toBeInTheDocument();
+    expect(screen.getByText(/Guide linkage is still incomplete, so schedule review will appear here after you add the correct EPG ID\./i)).toBeInTheDocument();
+  });
+
+  it('uses only explicit functional actions for each associated acestream row', () => {
+    renderPage();
+
     expect(screen.getByRole('button', { name: 'Remove acestream Arena Feed 1' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Play acestream Arena Feed 1' })).not.toBeInTheDocument();
   });
 
   it('announces TV channel detail loading through a contextual status region', () => {
@@ -130,5 +195,84 @@ describe('TVChannelDetail', () => {
     expect(firstCheckbox).toBeChecked();
     expect(screen.getByText('1 acestream selected for assignment.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Assign Selected' })).toBeEnabled();
+  });
+
+  it('shows an explicit error state when acestream candidate loading fails', () => {
+    mockUseAcestreamChannels.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+    });
+
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add Single' }));
+
+    expect(screen.getByText('Unable to load Acestream candidates. Try searching again in a moment.')).toBeInTheDocument();
+  });
+
+  it('shows explicit success feedback after saving the main edit path', async () => {
+    const mutateAsync = jest.fn().mockResolvedValue(undefined);
+    mockUseUpdateTVChannel.mockReturnValue({ mutateAsync });
+
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(mutateAsync).toHaveBeenCalledWith({
+      id: 7,
+      updates: expect.objectContaining({
+        name: 'Arena TV',
+        epg_id: 'arena-tv',
+        channel_number: 7,
+        is_active: true,
+        is_favorite: true,
+      }),
+    });
+    expect(await screen.findByText(/updated successfully/i)).toBeInTheDocument();
+  });
+
+  it('shows explicit success feedback after assigning selected acestream sources', async () => {
+    const mutateAsync = jest.fn().mockResolvedValue(undefined);
+    mockUseAssociateAcestream.mockReturnValue({ mutateAsync });
+    mockUseAcestreamChannels.mockReturnValue({
+      data: {
+        items: [
+          { id: 'ace-2', name: 'Arena Feed 2', group: 'Sports' },
+        ],
+      },
+      isLoading: false,
+    });
+
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add Single' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select acestream Arena Feed 2' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Assign Selected' }));
+
+    expect(mutateAsync).toHaveBeenCalledWith({
+      tvChannelId: 7,
+      aceStreamId: 'ace-2',
+    });
+    expect(await screen.findByText(/assigned 1 acestream source successfully/i)).toBeInTheDocument();
+  });
+
+  it('shows explicit success feedback after removing a linked acestream source', async () => {
+    const mutateAsync = jest.fn().mockResolvedValue(undefined);
+    mockUseRemoveAcestreamAssociation.mockReturnValue({ mutateAsync });
+    const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true);
+
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove acestream Arena Feed 1' }));
+
+    expect(mutateAsync).toHaveBeenCalledWith({
+      tvChannelId: 7,
+      aceStreamId: 'ace-1',
+    });
+    expect(await screen.findByText(/removed acestream arena feed 1 successfully/i)).toBeInTheDocument();
+
+    confirmSpy.mockRestore();
   });
 });

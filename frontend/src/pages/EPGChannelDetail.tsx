@@ -34,6 +34,7 @@ import {
   Add as AddIcon,
   Link as LinkIcon,
 } from '@mui/icons-material';
+import { alpha, useTheme } from '@mui/material/styles';
 import { format, parseISO } from 'date-fns';
 import {
   useEPGChannel,
@@ -58,6 +59,7 @@ interface StringMappingFormData {
 const EPGChannelDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const theme = useTheme();
   const channelId = parseInt(id || '0', 10);
 
   // State management
@@ -96,13 +98,13 @@ const EPGChannelDetail: React.FC = () => {
   });
 
   // API hooks
-  const { data: channel, isLoading: isLoadingChannel } = useEPGChannel(channelId);
-  const { data: programs, isLoading: isLoadingPrograms } = useEPGPrograms(
+  const { data: channel, isLoading: isLoadingChannel, error: channelError } = useEPGChannel(channelId);
+  const { data: programs, isLoading: isLoadingPrograms, error: programsError } = useEPGPrograms(
     channelId,
     dateRange.start,
     dateRange.end
   );
-  const { data: stringMappings, isLoading: isLoadingMappings } = useEPGStringMappings(channelId);
+  const { data: stringMappings, isLoading: isLoadingMappings, error: stringMappingsError } = useEPGStringMappings(channelId);
   const {
     data: tvChannels,
     isLoading: isLoadingTVChannels,
@@ -150,9 +152,11 @@ const EPGChannelDetail: React.FC = () => {
 
   // String mapping handlers
   const handleAddStringMapping = async () => {
+    const trimmedPattern = stringMappingFormData.search_pattern.trim();
+
     try {
       await addStringMapping({
-        pattern: stringMappingFormData.search_pattern,
+        pattern: trimmedPattern,
         isExclusion: stringMappingFormData.is_exclusion
       });
       showSnackbar('String mapping added successfully', 'success');
@@ -246,11 +250,61 @@ const EPGChannelDetail: React.FC = () => {
     return (
       <Box sx={{ width: '100%', p: 3 }}>
         <Alert severity="error">
-          EPG channel not found
+          {channelError ? 'Unable to load the EPG channel right now.' : 'EPG channel not found'}
         </Alert>
       </Box>
     );
   }
+
+  const inferredLinkedTVChannel =
+    tvChannels?.find((tvChannel: TVChannel) => tvChannel.epg_id === channel.channel_xml_id) || null;
+  const hasRelationshipLoading = isLoadingTVChannels || isLoadingPrograms;
+  const hasRelationshipError = Boolean(tvChannelsError || programsError);
+  const hasMappingChoices = (tvChannels?.length || 0) > 0;
+  const visibleProgramCount = programs?.length || 0;
+  const hasVisiblePrograms = visibleProgramCount > 0;
+  const stringMappingCount = stringMappings?.length || 0;
+  const stringMappingSupport = isLoadingMappings
+    ? 'String mapping rules are still loading for this source.'
+    : stringMappingsError
+      ? 'String mapping rules need attention before this summary can suggest tuning cleanup.'
+      : stringMappingCount > 0
+        ? `${stringMappingCount} string mapping rule${stringMappingCount === 1 ? '' : 's'} ready for tuning.`
+        : 'No string mapping rules are set yet.';
+
+  const relationshipState = hasRelationshipLoading
+    ? 'Checking loaded TV channel relationships'
+    : hasRelationshipError
+      ? 'Relationship evidence is incomplete right now'
+      : inferredLinkedTVChannel
+        ? hasVisiblePrograms
+          ? 'An inferred linked TV channel is available for review and tuning'
+          : `Linked TV channel found in the loaded catalog: ${inferredLinkedTVChannel.name}`
+        : 'No linked TV channel found in the loaded catalog yet';
+
+  const nextStepLabel = hasRelationshipLoading
+    ? 'Wait for the TV catalog and schedule window to finish loading before choosing the next relationship action.'
+    : hasRelationshipError
+      ? 'Resolve the TV catalog or schedule loading error before deciding whether to map, create, or tune this source.'
+      : inferredLinkedTVChannel
+        ? hasVisiblePrograms
+          ? 'Review the schedule evidence and string rules before treating this pairing as final.'
+          : 'Review the selected date range or schedule ingestion before adjusting mapping rules.'
+        : hasMappingChoices
+          ? 'Map this source to an existing TV channel before tuning schedule rules.'
+          : 'Create a TV channel first so this source has a destination for mapping.';
+
+  const relationshipMetric = hasRelationshipLoading
+    ? 'TV catalog and schedule evidence are still loading.'
+    : hasRelationshipError
+      ? 'TV catalog or schedule evidence is unavailable right now.'
+      : inferredLinkedTVChannel
+        ? `${hasVisiblePrograms ? `${visibleProgramCount} visible program${visibleProgramCount === 1 ? '' : 's'}` : 'No visible programs'} in the selected date range.`
+        : hasMappingChoices
+          ? `${tvChannels?.length || 0} TV channel option${(tvChannels?.length || 0) === 1 ? '' : 's'} available for mapping.`
+          : 'No TV channel options are loaded yet.';
+
+  const relationshipSupport = `XML ID ${channel.channel_xml_id} is loaded for review. ${hasRelationshipLoading ? 'Schedule and TV catalog evidence are still arriving.' : hasRelationshipError ? 'Schedule or TV catalog evidence needs attention before this summary can recommend a confident relationship action.' : hasVisiblePrograms ? `${visibleProgramCount} program${visibleProgramCount === 1 ? '' : 's'} visible in the selected date range.` : 'No programs are visible in the selected date range.'} ${stringMappingSupport}`;
 
   return (
     <Box sx={{ width: '100%', typography: 'body1' }}>
@@ -294,6 +348,66 @@ const EPGChannelDetail: React.FC = () => {
           </>
         }
       />
+
+      <Box
+        sx={{
+          mb: 3,
+          p: { xs: 2, md: 2.5 },
+          borderRadius: 2.5,
+          bgcolor: theme.appTokens.hero.bg,
+          border: `1px solid ${theme.appTokens.hero.border}`,
+          backgroundImage: theme.appTokens.hero.spotlight,
+        }}
+      >
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, justifyContent: 'space-between' }}>
+          <Stack spacing={1} sx={{ minWidth: 0, flex: '1 1 520px', maxWidth: 760 }}>
+            <Typography variant="statusMeta" sx={{ color: theme.appTokens.hero.accent, mb: 1 }}>
+              Relationship summary
+            </Typography>
+            <Typography variant="h4" sx={{ letterSpacing: '-0.03em', mb: 1 }}>
+              EPG source: {channel.name}
+            </Typography>
+            <Box
+              sx={{
+                p: 1.5,
+                borderRadius: 2,
+                bgcolor: alpha(theme.appTokens.shell.accent, 0.08),
+                border: `1px solid ${alpha(theme.appTokens.shell.accent, 0.18)}`,
+              }}
+            >
+              <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>
+                Relationship state
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                {relationshipState}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {relationshipMetric}
+              </Typography>
+            </Box>
+
+            <Box
+              sx={{
+                p: 1.5,
+                borderRadius: 2,
+                bgcolor: theme.appTokens.surface.panel,
+                border: `1px solid ${theme.appTokens.surface.border}`,
+              }}
+            >
+              <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>
+                Next step
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {nextStepLabel}
+              </Typography>
+            </Box>
+
+            <Typography variant="body2" color="text.secondary">
+              {relationshipSupport}
+            </Typography>
+          </Stack>
+        </Box>
+      </Box>
 
       <ContentSection title="Channel Summary" description="Confirm identity details before mapping or filtering program results.">
         <Grid container spacing={3}>
@@ -371,7 +485,14 @@ const EPGChannelDetail: React.FC = () => {
           </Box>
         ) : null}
 
-        <TableContainer component={Box} sx={{ overflowX: 'auto' }}>
+        {!isLoadingPrograms && programsError ? (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            Unable to load the schedule for this date range right now.
+          </Alert>
+        ) : null}
+
+        {!programsError ? (
+          <TableContainer component={Box} sx={{ overflowX: 'auto' }}>
           <Table>
             <TableHead>
               <TableRow>
@@ -416,16 +537,17 @@ const EPGChannelDetail: React.FC = () => {
                   </TableCell>
                 </TableRow>
               ))}
-              {programs && programs.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} align="center">
-                    No programs found for the selected date range
+               {!programsError && programs && programs.length === 0 ? (
+                 <TableRow>
+                   <TableCell colSpan={7} align="center">
+                     No programs found for the selected date range
                   </TableCell>
                 </TableRow>
               ) : null}
             </TableBody>
           </Table>
-        </TableContainer>
+          </TableContainer>
+        ) : null}
 
         {totalPages > 1 ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
@@ -464,7 +586,14 @@ const EPGChannelDetail: React.FC = () => {
           </Box>
         ) : null}
 
-        <TableContainer component={Box} sx={{ overflowX: 'auto' }}>
+        {!isLoadingMappings && stringMappingsError ? (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            Unable to load string mapping rules right now.
+          </Alert>
+        ) : null}
+
+        {!stringMappingsError ? (
+          <TableContainer component={Box} sx={{ overflowX: 'auto' }}>
           <Table>
             <TableHead>
               <TableRow>
@@ -499,16 +628,17 @@ const EPGChannelDetail: React.FC = () => {
                   </TableCell>
                 </TableRow>
               ))}
-              {stringMappings && stringMappings.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={3} align="center">
-                    No string mappings found
+               {!stringMappingsError && stringMappings && stringMappings.length === 0 ? (
+                 <TableRow>
+                   <TableCell colSpan={3} align="center">
+                     No string mappings found
                   </TableCell>
                 </TableRow>
               ) : null}
             </TableBody>
           </Table>
-        </TableContainer>
+          </TableContainer>
+        ) : null}
       </ContentSection>
 
       {/* TV Channel Mapping Dialog */}
@@ -738,7 +868,6 @@ const EPGChannelDetail: React.FC = () => {
 
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={6000}
         onClose={closeSnackbar}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >

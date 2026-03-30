@@ -1,7 +1,7 @@
 import React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import EPGChannelDetail from '../pages/EPGChannelDetail';
 import { createAppTheme } from '../theme';
@@ -90,6 +90,31 @@ describe('EPGChannelDetail', () => {
     mockUseCreateTVChannel.mockReturnValue({ mutateAsync: jest.fn().mockResolvedValue({ id: 55 }) });
   });
 
+  it('distinguishes channel-load failure from a missing channel', () => {
+    mockUseEPGChannel.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: new Error('channel failed'),
+    });
+
+    renderPage();
+
+    expect(screen.getByText('Unable to load the EPG channel right now.')).toBeInTheDocument();
+    expect(screen.queryByText('EPG channel not found')).not.toBeInTheDocument();
+  });
+
+  it('shows a not-found state when the channel data is missing without a load error', () => {
+    mockUseEPGChannel.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(screen.getByText('EPG channel not found')).toBeInTheDocument();
+  });
+
   it('renders top-down operational sections without a primary tab layout', () => {
     renderPage();
 
@@ -103,6 +128,77 @@ describe('EPGChannelDetail', () => {
     expect(channelSummary.compareDocumentPosition(programSchedule) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(programSchedule.compareDocumentPosition(mappingRules) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Delete string mapping Late' })).toBeInTheDocument();
+  });
+
+  it('shows a diagnostic relationship summary above channel summary and prioritizes mapping when candidates exist', () => {
+    renderPage();
+
+    const identity = screen.getByText('EPG source: Late Channel');
+    const relationshipState = screen.getByText(/^Relationship state$/i);
+    const nextStep = screen.getByText(/^Next step$/i);
+    const supportCopy = screen.getByText(/XML ID late-channel is loaded for review/i);
+    const channelSummary = screen.getByRole('heading', { level: 2, name: 'Channel Summary' });
+
+    expect(identity).toBeInTheDocument();
+    expect(supportCopy).toBeInTheDocument();
+    expect(relationshipState).toBeInTheDocument();
+    expect(nextStep).toBeInTheDocument();
+    expect(screen.getByText(/No linked TV channel found in the loaded catalog yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/Map this source to an existing TV channel before tuning schedule rules/i)).toBeInTheDocument();
+    expect(relationshipState.compareDocumentPosition(channelSummary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(identity.compareDocumentPosition(relationshipState) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(relationshipState.compareDocumentPosition(nextStep) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(nextStep.compareDocumentPosition(supportCopy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('prioritizes create guidance when no inferred link or mapping choices exist', () => {
+    mockUseTVChannelCatalog.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(screen.getByText(/No linked TV channel found in the loaded catalog yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/Create a TV channel first so this source has a destination for mapping/i)).toBeInTheDocument();
+  });
+
+  it('treats a catalog epg_id match as an inferred link and prioritizes schedule review when no programs are visible', () => {
+    mockUseTVChannelCatalog.mockReturnValue({
+      data: [
+        { id: 7, name: 'Late Sports', category: 'Sports', epg_id: 'late-channel' },
+        { id: 8, name: 'Night News', category: 'News' },
+      ],
+      isLoading: false,
+      error: null,
+    });
+    mockUseEPGPrograms.mockReturnValue({
+      data: [],
+      isLoading: false,
+    });
+
+    renderPage();
+
+    expect(screen.getByText(/Linked TV channel found in the loaded catalog: Late Sports/i)).toBeInTheDocument();
+    expect(screen.getByText(/Review the selected date range or schedule ingestion before adjusting mapping rules/i)).toBeInTheDocument();
+  });
+
+  it('describes inferred linked channels as review-ready without claiming confirmed mapping', () => {
+    mockUseTVChannelCatalog.mockReturnValue({
+      data: [
+        { id: 7, name: 'Late Sports', category: 'Sports', epg_id: 'late-channel' },
+        { id: 8, name: 'Night News', category: 'News' },
+      ],
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(screen.getByText(/An inferred linked TV channel is available for review and tuning/i)).toBeInTheDocument();
+    expect(screen.getByText(/Review the schedule evidence and string rules before treating this pairing as final/i)).toBeInTheDocument();
+    expect(screen.queryByText(/mapped/i)).not.toBeInTheDocument();
   });
 
   it('uses explicit radio controls for TV channel selection', () => {
@@ -187,6 +283,134 @@ describe('EPGChannelDetail', () => {
     expect(screen.getByText('Loading string mapping rules...')).toBeInTheDocument();
   });
 
+  it('shows an explicit schedule-section error state when schedule loading fails', () => {
+    mockUseEPGPrograms.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: new Error('schedule failed'),
+    });
+
+    renderPage();
+
+    expect(screen.getByText('Unable to load the schedule for this date range right now.')).toBeInTheDocument();
+    expect(screen.queryByText('No programs found for the selected date range')).not.toBeInTheDocument();
+  });
+
+  it('does not render stale schedule rows when the schedule query errors', () => {
+    mockUseEPGPrograms.mockReturnValue({
+      data: [
+        {
+          id: 1,
+          title: 'Late Match',
+          subtitle: 'Quarterfinal',
+          category: 'Sports',
+          description: 'Knockout match',
+          start_time: '2026-03-25T12:00:00Z',
+          end_time: '2026-03-25T14:00:00Z',
+        },
+      ],
+      isLoading: false,
+      error: new Error('schedule failed'),
+    });
+
+    renderPage();
+
+    expect(screen.getByText('Unable to load the schedule for this date range right now.')).toBeInTheDocument();
+    expect(screen.queryByText('Late Match')).not.toBeInTheDocument();
+  });
+
+  it('shows an explicit string-mapping-section error state when mapping rules fail to load', () => {
+    mockUseEPGStringMappings.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: new Error('mappings failed'),
+    });
+
+    renderPage();
+
+    expect(screen.getByText('Unable to load string mapping rules right now.')).toBeInTheDocument();
+    expect(screen.queryByText('No string mappings found')).not.toBeInTheDocument();
+  });
+
+  it('does not render stale string mapping rows when the mapping query errors', () => {
+    mockUseEPGStringMappings.mockReturnValue({
+      data: [{ id: 5, search_pattern: 'Late', is_exclusion: false }],
+      isLoading: false,
+      error: new Error('mappings failed'),
+    });
+
+    renderPage();
+
+    expect(screen.getByText('Unable to load string mapping rules right now.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Delete string mapping Late' })).not.toBeInTheDocument();
+  });
+
+  it('keeps the relationship summary loading-aware while TV catalog and schedule data are unresolved', () => {
+    mockUseTVChannelCatalog.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      error: null,
+    });
+    mockUseEPGPrograms.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(screen.getByText(/Checking loaded TV channel relationships/i)).toBeInTheDocument();
+    expect(screen.getByText(/Wait for the TV catalog and schedule window to finish loading before choosing the next relationship action/i)).toBeInTheDocument();
+    expect(screen.queryByText(/No linked TV channel found in the loaded catalog yet/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/No programs are visible in the selected date range/i)).not.toBeInTheDocument();
+  });
+
+  it('keeps string-mapping support text loading-aware while mapping rules are unresolved', () => {
+    mockUseEPGStringMappings.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(screen.getByText(/String mapping rules are still loading for this source/i)).toBeInTheDocument();
+    expect(screen.queryByText(/No string mapping rules are set yet/i)).not.toBeInTheDocument();
+  });
+
+  it('keeps the relationship summary error-aware when TV catalog or schedule queries fail', () => {
+    mockUseTVChannelCatalog.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: new Error('catalog failed'),
+    });
+    mockUseEPGPrograms.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: new Error('schedule failed'),
+    });
+
+    renderPage();
+
+    expect(screen.getByText(/Relationship evidence is incomplete right now/i)).toBeInTheDocument();
+    expect(screen.getByText(/Resolve the TV catalog or schedule loading error before deciding whether to map, create, or tune this source/i)).toBeInTheDocument();
+    expect(screen.queryByText(/No linked TV channel found in the loaded catalog yet/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/No programs are visible in the selected date range/i)).not.toBeInTheDocument();
+  });
+
+  it('keeps string-mapping support text error-aware when mapping rules fail to load', () => {
+    mockUseEPGStringMappings.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: new Error('mappings failed'),
+    });
+
+    renderPage();
+
+    expect(screen.getByText(/String mapping rules need attention before this summary can suggest tuning cleanup/i)).toBeInTheDocument();
+    expect(screen.queryByText(/No string mapping rules are set yet/i)).not.toBeInTheDocument();
+  });
+
   it('creates TV channels through the shared mutation layer', async () => {
     const mutateAsync = jest.fn().mockResolvedValue({ id: 55 });
     mockUseCreateTVChannel.mockReturnValue({ mutateAsync, isLoading: false });
@@ -206,6 +430,54 @@ describe('EPGChannelDetail', () => {
 
     await waitFor(() => {
       expect(screen.getByText('TV channel created successfully')).toBeInTheDocument();
+    });
+  });
+
+  it('keeps success feedback visible until the user dismisses it', async () => {
+    jest.useFakeTimers();
+
+    try {
+      const mutateAsync = jest.fn().mockResolvedValue({ id: 55 });
+      mockUseCreateTVChannel.mockReturnValue({ mutateAsync, isLoading: false });
+
+      renderPage();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Create TV Channel' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+
+      await waitFor(() => {
+        expect(screen.getByText('TV channel created successfully')).toBeInTheDocument();
+      });
+
+      act(() => {
+        jest.advanceTimersByTime(10000);
+      });
+
+      expect(screen.getByText('TV channel created successfully')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /close/i }));
+      await waitFor(() => {
+        expect(screen.queryByText('TV channel created successfully')).not.toBeInTheDocument();
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('trims string-mapping patterns before submitting them', async () => {
+    const mutateAsync = jest.fn().mockResolvedValue({ id: 99 });
+    mockUseAddEPGStringMapping.mockReturnValue({ mutateAsync });
+
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add String Mapping' }));
+    fireEvent.change(screen.getByLabelText('Search Pattern'), { target: { value: '  Late Pattern  ' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add Mapping' }));
+
+    await waitFor(() => {
+      expect(mutateAsync).toHaveBeenCalledWith({
+        pattern: 'Late Pattern',
+        isExclusion: false,
+      });
     });
   });
 });

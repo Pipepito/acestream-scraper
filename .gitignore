@@ -210,4 +210,7 @@ backend/*.log
 
 .worktrees/
 
+# local AI planning artifacts
+docs/superpowers/
+
 list.m3u

@@ -105,10 +105,12 @@ const renderPage = ({
   isPhone = false,
   isDesktop = true,
   isWideDesktop = false,
+  viewportWidth,
 }: {
   isPhone?: boolean;
   isDesktop?: boolean;
   isWideDesktop?: boolean;
+  viewportWidth?: number;
 } = {}) => {
   const theme = createAppTheme('light');
 
@@ -116,6 +118,7 @@ const renderPage = ({
     isPhone,
     isDesktop,
     isWideDesktop,
+    viewportWidth,
   });
 
   return render(
@@ -214,6 +217,7 @@ describe('TVChannels responsive page behavior', () => {
   it('keeps primary actions visible while collapsing filters on phone', async () => {
     renderPage({ isPhone: true, isDesktop: false, isWideDesktop: false });
 
+    expect(screen.getByText('Review channels and take the next action fast.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add TV Channel' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /show filters/i })).toBeInTheDocument();
@@ -225,9 +229,7 @@ describe('TVChannels responsive page behavior', () => {
     const filtersRegion = screen.getByRole('region', { name: 'Filters' });
 
     expect(within(filtersRegion).getByRole('form', { name: /channel filters/i })).toBeInTheDocument();
-    expect(
-      within(filtersRegion).getByText('Narrow the list with names, categories, status, or location details before reviewing the results.')
-    ).toBeInTheDocument();
+    expect(within(filtersRegion).getByText('Narrow the inventory before acting.')).toBeInTheDocument();
     expect(within(filtersRegion).getByRole('button', { name: 'Apply Filters' })).toBeInTheDocument();
     expect(within(filtersRegion).getByRole('button', { name: 'Reset Filters' })).toBeInTheDocument();
     expect(within(filtersRegion).getByRole('button', { name: 'Apply Filters' })).toHaveAttribute('data-action-priority', 'primary');
@@ -246,13 +248,11 @@ describe('TVChannels responsive page behavior', () => {
     expect(screen.getByRole('button', { name: /hide filters/i })).toBeInTheDocument();
   });
 
-  it('uses a wide desktop two-zone layout with supporting filters beside inventory', () => {
+  it('keeps filters stacked below inventory even on wide desktop so the table stays usable', () => {
     const theme = createAppTheme('light');
 
     mockResponsiveShellQueries(mockUseMediaQuery, theme, {
-      isPhone: false,
-      isDesktop: true,
-      isWideDesktop: true,
+      viewportWidth: 1440,
     });
 
     render(
@@ -264,15 +264,40 @@ describe('TVChannels responsive page behavior', () => {
     const layout = screen.getByTestId('tv-channels-page-layout');
     const filtersSection = screen.getByRole('region', { name: 'Filters' });
     const inventorySection = screen.getByRole('region', { name: 'TV Channel Inventory' });
-    const expectedLayout = getWidePageSplitLayout(theme, true) as Record<string, string>;
 
-    expect(layout).toHaveStyle({
-      display: expectedLayout.display,
-      gridTemplateColumns: expectedLayout.gridTemplateColumns,
+    expect(layout).not.toHaveStyle({ display: 'grid' });
+    expect(inventorySection).not.toHaveStyle({ gridArea: 'primary' });
+    expect(filtersSection).not.toHaveStyle({ gridArea: 'supporting' });
+    expect(within(filtersSection).getByText('Focus the list before you act.')).toBeInTheDocument();
+    expect(within(inventorySection).queryByText('Edit metadata, remove stale entries, or open the channel detail page.')).not.toBeInTheDocument();
+
+    const layoutChildren = Array.from(layout.children);
+    const filtersIndex = layoutChildren.findIndex((child) => within(child as HTMLElement).queryByText('Focus the list before you act.') !== null);
+    const inventoryIndex = layoutChildren.findIndex((child) => within(child as HTMLElement).queryByText('Open edit dialog') !== null);
+
+    expect(filtersIndex).toBeLessThan(inventoryIndex);
+  });
+
+  it('keeps filters stacked below inventory until the viewport can safely fit the two-column layout', () => {
+    const theme = createAppTheme('light');
+
+    mockResponsiveShellQueries(mockUseMediaQuery, theme, {
+      viewportWidth: 1280,
     });
-    expect(inventorySection).toHaveStyle({ gridArea: 'primary' });
-    expect(filtersSection).toHaveStyle({ gridArea: 'supporting' });
-    expect(within(filtersSection).getByText('Use these filters to narrow the inventory before you edit, review, or remove a channel.')).toBeInTheDocument();
+
+    render(
+      <ThemeProvider theme={theme}>
+        <TVChannels />
+      </ThemeProvider>
+    );
+
+    const layout = screen.getByTestId('tv-channels-page-layout');
+    const filtersSection = screen.getByRole('region', { name: 'Filters' });
+    const inventorySection = screen.getByRole('region', { name: 'TV Channel Inventory' });
+
+    expect(layout).not.toHaveStyle({ display: 'grid' });
+    expect(filtersSection).not.toHaveStyle({ gridArea: 'supporting' });
+    expect(inventorySection).not.toHaveStyle({ gridArea: 'primary' });
   });
 
   it('opens create and edit dialogs with mobile-safe full-screen sizing on phone', async () => {
@@ -282,9 +307,10 @@ describe('TVChannels responsive page behavior', () => {
 
     const createDialog = screen.getByRole('dialog', { name: 'Add TV Channel' });
     expect(within(createDialog).getByRole('textbox', { name: /channel name/i })).toBeInTheDocument();
-    expect(within(createDialog).getByText('Channel basics')).toBeInTheDocument();
-    expect(within(createDialog).getByText('Optional metadata')).toBeInTheDocument();
-    expect(within(createDialog).getByText('Visibility & favorites')).toBeInTheDocument();
+    expect(within(createDialog).queryByText('Channel basics')).not.toBeInTheDocument();
+    expect(within(createDialog).queryByText('Optional metadata')).not.toBeInTheDocument();
+    expect(within(createDialog).queryByText('Visibility & favorites')).not.toBeInTheDocument();
+    expect(within(createDialog).getByText('Optional details')).toBeInTheDocument();
     expect(within(createDialog).getByRole('button', { name: 'Create' })).toBeInTheDocument();
     expect(createDialog).toHaveClass('MuiDialog-paperFullScreen');
 
@@ -298,9 +324,10 @@ describe('TVChannels responsive page behavior', () => {
 
     const editDialog = screen.getByRole('dialog', { name: 'Edit TV Channel' });
     expect(within(editDialog).getByDisplayValue('Arena TV')).toBeInTheDocument();
-    expect(within(editDialog).getByText('Channel basics')).toBeInTheDocument();
-    expect(within(editDialog).getByText('Optional metadata')).toBeInTheDocument();
-    expect(within(editDialog).getByText('Visibility & favorites')).toBeInTheDocument();
+    expect(within(editDialog).queryByText('Channel basics')).not.toBeInTheDocument();
+    expect(within(editDialog).queryByText('Optional metadata')).not.toBeInTheDocument();
+    expect(within(editDialog).queryByText('Visibility & favorites')).not.toBeInTheDocument();
+    expect(within(editDialog).getByText('Optional details')).toBeInTheDocument();
     expect(within(editDialog).getByRole('textbox', { name: /epg id/i })).toBeInTheDocument();
     expect(within(editDialog).getByRole('spinbutton', { name: /channel number/i })).toBeInTheDocument();
     expect(within(editDialog).getByRole('button', { name: 'Update' })).toBeInTheDocument();

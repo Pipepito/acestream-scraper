@@ -12,6 +12,7 @@ fs.ensureDirSync(destination);
 
 // Copy files
 try {
+    fs.emptyDirSync(destination);
     fs.copySync(source, destination);
     console.log(`Successfully copied build files to ${destination}`);
 } catch (err) {

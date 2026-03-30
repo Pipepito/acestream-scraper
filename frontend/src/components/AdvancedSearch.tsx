@@ -102,7 +102,7 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
     }} sx={{ display: 'grid', gap: 2.5 }}>
       <Box>
         <Typography variant="body2" color="text.secondary">
-          Narrow the list with names, categories, status, or location details before reviewing the results.
+          Narrow the inventory before acting.
         </Typography>
       </Box>
 

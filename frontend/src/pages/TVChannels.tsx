@@ -26,7 +26,7 @@ import { TVChannel, TVChannelCreate, TVChannelUpdate } from '../types/tvChannelT
 import AdvancedSearch from '../components/AdvancedSearch';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
-import { getShellLayout, getWidePageSplitLayout } from '../styles/layout';
+import { getShellLayout } from '../styles/layout';
 import { normalizeApiError } from '../services/apiErrors';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
@@ -42,7 +42,6 @@ const TVChannels: React.FC = () => {
   const theme = useTheme();
   const shellLayout = getShellLayout(theme);
   const isPhone = useMediaQuery(`(max-width:${shellLayout.phoneMaxWidth}px)`);
-  const isWideDesktop = useMediaQuery(`(min-width:${shellLayout.wideMinWidth}px)`);
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[1]);
@@ -248,41 +247,32 @@ const TVChannels: React.FC = () => {
   };
 
   const renderDialogSections = (mode: 'create' | 'edit') => (
-    <Stack spacing={3} sx={{ py: 1 }}>
-      <Box>
-        <Typography variant="sectionTitle" component="h3" gutterBottom>
-          Channel basics
-        </Typography>
-        <Stack spacing={2}>
-          <TextField
-            autoFocus
-            name="name"
-            label="Channel Name"
-            fullWidth
-            value={formData.name || ''}
-            onChange={handleFormChange}
-            required
-            error={Boolean(formErrors.name)}
-            helperText={formErrors.name}
-          />
-          <TextField
-            name="description"
-            label="Description"
-            fullWidth
-            value={formData.description || ''}
-            onChange={handleFormChange}
-            multiline
-            rows={3}
-            inputProps={{ maxLength: 1000 }}
-          />
-        </Stack>
-      </Box>
-
-      <Divider />
+    <Stack spacing={2.5} sx={{ py: 1 }}>
+      <TextField
+        autoFocus
+        name="name"
+        label="Channel Name"
+        fullWidth
+        value={formData.name || ''}
+        onChange={handleFormChange}
+        required
+        error={Boolean(formErrors.name)}
+        helperText={formErrors.name}
+      />
+      <TextField
+        name="description"
+        label="Description"
+        fullWidth
+        value={formData.description || ''}
+        onChange={handleFormChange}
+        multiline
+        rows={3}
+        inputProps={{ maxLength: 1000 }}
+      />
 
       <Box>
-        <Typography variant="sectionTitle" component="h3" gutterBottom>
-          Optional metadata
+        <Typography variant="helperText" sx={{ display: 'block', mb: 1 }}>
+          Optional details
         </Typography>
         <Stack spacing={2}>
           <TextField name="logo_url" label="Logo URL" fullWidth value={formData.logo_url || ''} onChange={handleFormChange} />
@@ -294,23 +284,16 @@ const TVChannels: React.FC = () => {
         </Stack>
       </Box>
 
-      <Divider />
-
-      <Box>
-        <Typography variant="sectionTitle" component="h3" gutterBottom>
-          Visibility & favorites
-        </Typography>
-        <Stack spacing={1}>
-          <FormControlLabel
-            control={<Switch checked={formData.is_active === true} onChange={handleFormChange} name="is_active" color="primary" />}
-            label="Active"
-          />
-          <FormControlLabel
-            control={<Switch checked={formData.is_favorite === true} onChange={handleFormChange} name="is_favorite" color="primary" />}
-            label="Favorite"
-          />
-        </Stack>
-      </Box>
+      <Stack spacing={1}>
+        <FormControlLabel
+          control={<Switch checked={formData.is_active === true} onChange={handleFormChange} name="is_active" color="primary" />}
+          label="Active"
+        />
+        <FormControlLabel
+          control={<Switch checked={formData.is_favorite === true} onChange={handleFormChange} name="is_favorite" color="primary" />}
+          label="Favorite"
+        />
+      </Stack>
     </Stack>
   );
 
@@ -357,7 +340,7 @@ const TVChannels: React.FC = () => {
     <Box sx={{ width: '100%' }}>
       <PageHeader
         title="TV Channels"
-        subtitle="Manage TV-channel metadata and launch detailed channel playback checks."
+        subtitle="Review channels and take the next action fast."
         primaryActions={
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
             <Button variant="outlined" onClick={() => refetchCatalog()}>
@@ -376,56 +359,10 @@ const TVChannels: React.FC = () => {
         </Alert>
       ) : null}
 
-      <Box
-        data-testid="tv-channels-page-layout"
-        sx={getWidePageSplitLayout(theme, isWideDesktop)}
-      >
-        <ContentSection
-          title="TV Channel Inventory"
-          description="Edit metadata, remove stale entries, or open the channel detail page."
-          wideLayout="primary"
-          actions={
-            isPhone ? (
-              <Button
-                variant="outlined"
-                onClick={() => setFiltersOpen((current) => !current)}
-                aria-expanded={filtersOpen}
-                aria-controls="tv-channels-filters-panel"
-              >
-                {filtersOpen ? 'Hide Filters' : 'Show Filters'}
-              </Button>
-            ) : null
-          }
-        >
-          <TVChannelsTable
-            channels={paginatedChannels}
-            loading={isCatalogLoading}
-            totalCount={totalChannels}
-            page={page - 1}
-            pageSize={pageSize}
-            onPageChange={(nextPage) => setPage(nextPage + 1)}
-            onPageSizeChange={setPageSize}
-            onSortChange={() => undefined}
-            onEdit={handleOpenEditDialog}
-            onDelete={handleRequestDelete}
-            onPlay={(id) => navigate(`/tv-channels/${id}`)}
-          />
-          {totalChannels === 0 && Object.values(filters).some(Boolean) ? (
-            <Alert severity="info" sx={{ mt: 2 }}>
-              <Typography component="span" sx={{ display: 'block', fontWeight: 600 }}>
-                No TV channels match the current filters
-              </Typography>
-              <Typography component="span" variant="body2">
-                Reset the filters or broaden your search to recover the TV channel inventory.
-              </Typography>
-            </Alert>
-          ) : null}
-        </ContentSection>
-
+      <Box data-testid="tv-channels-page-layout">
         <ContentSection
           title="Filters"
-          description="Use these filters to narrow the inventory before you edit, review, or remove a channel."
-          wideLayout="supporting"
+          description="Focus the list before you act."
         >
           {isPhone ? (
             <Collapse in={showFilters} id="tv-channels-filters-panel" unmountOnExit>
@@ -466,6 +403,46 @@ const TVChannels: React.FC = () => {
               />
             </Box>
           )}
+        </ContentSection>
+
+        <ContentSection
+          title="TV Channel Inventory"
+          actions={
+            isPhone ? (
+              <Button
+                variant="outlined"
+                onClick={() => setFiltersOpen((current) => !current)}
+                aria-expanded={filtersOpen}
+                aria-controls="tv-channels-filters-panel"
+              >
+                {filtersOpen ? 'Hide Filters' : 'Show Filters'}
+              </Button>
+            ) : null
+          }
+        >
+          <TVChannelsTable
+            channels={paginatedChannels}
+            loading={isCatalogLoading}
+            totalCount={totalChannels}
+            page={page - 1}
+            pageSize={pageSize}
+            onPageChange={(nextPage) => setPage(nextPage + 1)}
+            onPageSizeChange={setPageSize}
+            onSortChange={() => undefined}
+            onEdit={handleOpenEditDialog}
+            onDelete={handleRequestDelete}
+            onPlay={(id) => navigate(`/tv-channels/${id}`)}
+          />
+          {totalChannels === 0 && Object.values(filters).some(Boolean) ? (
+            <Alert severity="info" sx={{ mt: 2 }}>
+              <Typography component="span" sx={{ display: 'block', fontWeight: 600 }}>
+                No TV channels match the current filters
+              </Typography>
+              <Typography component="span" variant="body2">
+                Reset the filters or broaden your search to recover the TV channel inventory.
+              </Typography>
+            </Alert>
+          ) : null}
         </ContentSection>
       </Box>
 

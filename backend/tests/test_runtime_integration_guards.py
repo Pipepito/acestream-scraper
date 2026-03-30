@@ -53,6 +53,34 @@ def test_copy_build_script_copies_artifacts_with_overrides(tmp_path):
     assert (destination_dir / "static" / "app.js").read_text() == "console.log('ok')"
 
 
+def test_copy_build_script_removes_stale_artifacts_from_destination(tmp_path):
+    source_dir = tmp_path / "build"
+    assets_dir = source_dir / "assets"
+    destination_dir = tmp_path / "frontend_build"
+    stale_assets_dir = destination_dir / "assets"
+
+    assets_dir.mkdir(parents=True)
+    stale_assets_dir.mkdir(parents=True)
+    (source_dir / "index.html").write_text("<html>fresh</html>")
+    (assets_dir / "index-new.js").write_text("fresh bundle")
+    (stale_assets_dir / "index-old.js").write_text("stale bundle")
+
+    env = os.environ.copy()
+    env["COPY_BUILD_SOURCE"] = str(source_dir)
+    env["COPY_BUILD_DESTINATION"] = str(destination_dir)
+
+    subprocess.run(
+        ["node", str(REPO_ROOT / "frontend" / "scripts" / "copy-build.js")],
+        check=True,
+        cwd=REPO_ROOT / "frontend",
+        env=env,
+    )
+
+    assert (destination_dir / "index.html").read_text() == "<html>fresh</html>"
+    assert (destination_dir / "assets" / "index-new.js").read_text() == "fresh bundle"
+    assert not (destination_dir / "assets" / "index-old.js").exists()
+
+
 def test_docker_compose_uses_root_dockerfile_for_app_image():
     compose_file = (REPO_ROOT / "docker-compose.yml").read_text()
 

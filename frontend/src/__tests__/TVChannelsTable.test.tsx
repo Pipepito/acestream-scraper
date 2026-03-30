@@ -108,6 +108,32 @@ describe('TVChannelsTable', () => {
     expect(within(inventoryRegion).getByRole('button', { name: 'play tv channel Arena TV' })).toBeInTheDocument();
   });
 
+  it('keeps the desktop table toolbar in normal flow instead of sticky positioning', () => {
+    const { container } = renderTable(
+      <TVChannelsTable
+        channels={[
+          {
+            id: 42,
+            name: 'Arena TV',
+            logo_url: '',
+            category: 'Sports',
+            language: 'en',
+            country: 'RS',
+            channel_number: 7,
+            is_active: true,
+            acestream_channels: [{ channel_id: 'ace-1' }],
+          } as any,
+        ]}
+        {...baseProps}
+      />
+    );
+
+    const toolbar = container.querySelector('.MuiDataGrid-toolbarContainer');
+
+    expect(toolbar).toBeInTheDocument();
+    expect(toolbar).toHaveStyle({ position: 'static' });
+  });
+
   it('keeps the first desktop row action keyboard focusable with its accessible label intact', async () => {
     renderTable(
       <TVChannelsTable
@@ -195,7 +221,7 @@ describe('TVChannelsTable', () => {
 
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
     expect(screen.getByText('Loading TV channels')).toBeInTheDocument();
-    expect(screen.getByText('Checking channel inventory and preparing the latest results.')).toBeInTheDocument();
+    expect(screen.getByText('Preparing the latest results.')).toBeInTheDocument();
   });
 
   it('renders text-explicit loading guidance in the desktop inventory region', () => {
@@ -205,7 +231,7 @@ describe('TVChannelsTable', () => {
 
     expect(within(inventoryRegion).getByRole('progressbar')).toBeInTheDocument();
     expect(within(inventoryRegion).getByText('Loading TV channels')).toBeInTheDocument();
-    expect(within(inventoryRegion).getByText('Refreshing the TV channel inventory for the latest desktop results.')).toBeInTheDocument();
+    expect(within(inventoryRegion).getByText('Refreshing the latest results.')).toBeInTheDocument();
     expect(within(inventoryRegion).queryByRole('grid')).not.toBeInTheDocument();
   });
 
@@ -222,7 +248,7 @@ describe('TVChannelsTable', () => {
     const inventoryRegion = screen.getByRole('region', { name: 'TV channel inventory' });
 
     expect(within(inventoryRegion).getByText('No TV channels on this page')).toBeInTheDocument();
-    expect(within(inventoryRegion).getByText('Use the pagination controls to review the remaining TV channel results.')).toBeInTheDocument();
+    expect(within(inventoryRegion).getByText('Move between pages to keep browsing the list.')).toBeInTheDocument();
     expect(within(inventoryRegion).queryByText('No TV channels to show')).not.toBeInTheDocument();
   });
 

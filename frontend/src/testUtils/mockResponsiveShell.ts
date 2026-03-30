@@ -7,6 +7,7 @@ interface ResponsiveShellState {
   isPhone?: boolean;
   isDesktop?: boolean;
   isWideDesktop?: boolean;
+  viewportWidth?: number;
 }
 
 export const mockResponsiveShellQueries = (
@@ -14,11 +15,25 @@ export const mockResponsiveShellQueries = (
   theme: Theme,
   state: ResponsiveShellState = {}
 ) => {
-  const { isPhone = false, isDesktop = true, isWideDesktop = true } = state;
+  const { isPhone = false, isDesktop = true, isWideDesktop = true, viewportWidth } = state;
   const layout = getShellLayout(theme);
 
   mockUseMediaQuery.mockImplementation((queryInput) => {
     const query = typeof queryInput === 'function' ? queryInput(theme) : queryInput;
+
+    if (typeof viewportWidth === 'number') {
+      const minWidthMatch = query.match(/min-width:\s*([\d.]+)px/);
+
+      if (minWidthMatch) {
+        return viewportWidth >= Number(minWidthMatch[1]);
+      }
+
+      const maxWidthMatch = query.match(/max-width:\s*([\d.]+)px/);
+
+      if (maxWidthMatch) {
+        return viewportWidth <= Number(maxWidthMatch[1]);
+      }
+    }
 
     if (query.includes(`max-width:${layout.phoneMaxWidth}px`)) {
       return isPhone;

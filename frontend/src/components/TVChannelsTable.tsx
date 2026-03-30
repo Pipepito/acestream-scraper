@@ -161,7 +161,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
           No TV channels on this page
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
-          Use the pagination controls to review the remaining TV channel results.
+          Move between pages to keep browsing the list.
         </Typography>
       </Paper>
     </Box>
@@ -185,7 +185,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
         Loading TV channels
       </Typography>
       <Typography variant="body2" color="text.secondary" align="center">
-        Checking channel inventory and preparing the latest results.
+        Preparing the latest results.
       </Typography>
     </Box>
   );
@@ -209,7 +209,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
         Loading TV channels
       </Typography>
       <Typography variant="body2" color="text.secondary" align="center">
-        Refreshing the TV channel inventory for the latest desktop results.
+        Refreshing the latest results.
       </Typography>
     </Box>
   );
@@ -414,7 +414,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
               No TV channels on this page
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
-              Use the page controls below to navigate the remaining TV channel results.
+              Move between pages to keep browsing the list.
             </Typography>
           </Paper>
         )}
@@ -465,13 +465,22 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
           border: 0,
           backgroundColor: 'transparent',
           display: loading || channels.length === 0 ? 'none' : 'grid',
+          '& .MuiDataGrid-main': {
+            overflow: 'hidden',
+          },
           '& .MuiDataGrid-toolbarContainer': {
             px: 1.5,
             py: 1,
             borderBottom: `1px solid ${theme.appTokens.surface.border}`,
+            position: 'static',
+            top: 'auto',
+            zIndex: 'auto',
           },
           '& .MuiDataGrid-columnHeaders': {
             backgroundColor: theme.appTokens.surface.canvas,
+            position: 'static',
+            top: 'auto',
+            zIndex: 'auto',
           },
         }}
       />

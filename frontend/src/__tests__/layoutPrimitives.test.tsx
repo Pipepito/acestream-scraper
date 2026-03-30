@@ -345,12 +345,12 @@ describe('layout primitives', () => {
     expect(screen.queryByRole('heading', { name: 'Dashboard' })).not.toBeInTheDocument();
     expect(appBar).not.toHaveTextContent('Dashboard');
     expect(selectedItem).toHaveAttribute('aria-current', 'page');
-    expect(selectedItem).toHaveStyle({ backgroundColor: theme.appTokens.action.secondaryBg });
-    expect(selectedLabel).toHaveStyle({ color: theme.appTokens.action.secondaryText });
+    expect(selectedItem).toHaveStyle({ backgroundColor: theme.appTokens.shell.activeNavBg });
+    expect(selectedLabel).toHaveStyle({ color: theme.appTokens.shell.activeNavText });
     expect(appBar).toHaveStyle({
-      backgroundColor: theme.appTokens.surface.panel,
+      backgroundColor: theme.appTokens.shell.appBarBg,
       color: theme.appTokens.text.primary,
-      borderBottom: `1px solid ${theme.appTokens.layout.divider}`,
+      borderBottom: `1px solid ${theme.appTokens.shell.appBarBorder}`,
       boxShadow: 'none',
     });
     expect(screen.getAllByText('Acestream Scraper').length).toBeGreaterThan(0);
@@ -402,10 +402,13 @@ describe('layout primitives', () => {
       backgroundColor: theme.appTokens.surface.canvas,
       minWidth: '0',
       overflowX: 'hidden',
+      backgroundImage: theme.appTokens.shell.contentGlow,
     });
     expect(content).toHaveStyle({
       width: '100%',
       minWidth: '0',
+      backgroundColor: theme.appTokens.surface.raised,
+      border: `1px solid ${theme.appTokens.surface.border}`,
     });
     expect(screen.getByText('Shell content')).toBeInTheDocument();
   });

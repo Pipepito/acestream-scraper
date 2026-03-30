@@ -38,18 +38,18 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
   const isDesktop = !isPhone;
 
   const selectedStyles = {
-    bgcolor: theme.appTokens.action.secondaryBg,
-    color: theme.appTokens.action.secondaryText,
-    boxShadow: `inset 0 0 0 1px ${theme.appTokens.surface.border}`,
+    bgcolor: theme.appTokens.shell.activeNavBg,
+    color: theme.appTokens.shell.activeNavText,
+    boxShadow: `inset 0 0 0 1px ${theme.appTokens.shell.activeNavBorder}`,
     '& .MuiListItemIcon-root': {
-      color: theme.appTokens.action.secondaryText,
+      color: theme.appTokens.shell.activeNavText,
     },
     '& .MuiListItemText-primary': {
-      color: theme.appTokens.action.secondaryText,
+      color: theme.appTokens.shell.activeNavText,
       fontWeight: 600,
     },
     '&:hover': {
-      bgcolor: alpha(theme.appTokens.action.secondaryBg, 0.88),
+      bgcolor: alpha(theme.appTokens.shell.activeNavBg, 0.9),
     },
   };
 
@@ -107,9 +107,10 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        bgcolor: theme.appTokens.surface.panel,
+        bgcolor: theme.appTokens.shell.navBg,
         color: theme.appTokens.text.primary,
         boxShadow: 'none',
+        borderRight: `1px solid ${theme.appTokens.shell.navBorder}`,
       }}
     >
       <Toolbar>
@@ -117,7 +118,7 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
           Acestream Scraper
         </Typography>
       </Toolbar>
-      <Divider sx={{ borderColor: theme.appTokens.layout.divider }} />
+      <Divider sx={{ borderColor: theme.appTokens.shell.navBorder }} />
       <List sx={{ py: 1 }}>
         <ListItem>
           <Chip
@@ -126,14 +127,14 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
             variant="outlined"
             sx={{
               borderColor: theme.appTokens.surface.border,
-              bgcolor: theme.appTokens.surface.muted,
+              bgcolor: alpha(theme.appTokens.shell.accent, 0.08),
               color: theme.appTokens.text.secondary,
             }}
           />
         </ListItem>
         {renderNavItems(operations)}
       </List>
-      <Divider sx={{ mt: 1, borderColor: theme.appTokens.layout.divider }} />
+      <Divider sx={{ mt: 1, borderColor: theme.appTokens.shell.navBorder }} />
       <List sx={{ py: 1, mt: 'auto' }}>
         <ListItem>
           <Chip
@@ -142,7 +143,7 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
             variant="outlined"
             sx={{
               borderColor: theme.appTokens.surface.border,
-              bgcolor: theme.appTokens.surface.muted,
+              bgcolor: alpha(theme.appTokens.shell.accent, 0.08),
               color: theme.appTokens.text.secondary,
             }}
           />
@@ -160,9 +161,9 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
         sx={{
           width: isDesktop ? `calc(100% - ${drawerWidth}px)` : '100%',
           ml: isDesktop ? `${drawerWidth}px` : 0,
-          bgcolor: theme.appTokens.surface.panel,
+          bgcolor: theme.appTokens.shell.appBarBg,
           color: theme.appTokens.text.primary,
-          borderBottom: `1px solid ${theme.appTokens.layout.divider}`,
+          borderBottom: `1px solid ${theme.appTokens.shell.appBarBorder}`,
           boxShadow: 'none',
           backgroundImage: 'none',
         }}
@@ -201,8 +202,8 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
               '& .MuiDrawer-paper': {
                 boxSizing: 'border-box',
                 width: drawerWidth,
-                borderRightColor: theme.appTokens.layout.divider,
-                backgroundColor: theme.appTokens.surface.panel,
+                borderRightColor: theme.appTokens.shell.navBorder,
+                backgroundColor: theme.appTokens.shell.navBg,
               },
             }}
           >
@@ -215,8 +216,8 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
               '& .MuiDrawer-paper': {
                 boxSizing: 'border-box',
                 width: drawerWidth,
-                borderRightColor: theme.appTokens.layout.divider,
-                backgroundColor: theme.appTokens.surface.panel,
+                borderRightColor: theme.appTokens.shell.navBorder,
+                backgroundColor: theme.appTokens.shell.navBg,
               },
             }}
             open

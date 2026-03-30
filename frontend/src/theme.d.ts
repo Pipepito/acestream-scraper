@@ -22,6 +22,24 @@ export interface AppTokens {
     muted: string;
     inverse: string;
   };
+  shell: {
+    navBg: string;
+    navBorder: string;
+    appBarBg: string;
+    appBarBorder: string;
+    accent: string;
+    activeNavBg: string;
+    activeNavText: string;
+    activeNavBorder: string;
+    contentGlow: string;
+  };
+  hero: {
+    bg: string;
+    border: string;
+    accent: string;
+    muted: string;
+    spotlight: string;
+  };
   status: {
     success: AppStatusToken;
     warning: AppStatusToken;

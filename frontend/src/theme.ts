@@ -47,6 +47,24 @@ const tokenSets: Record<ThemeMode, AppTokens> = {
       muted: '#66788a',
       inverse: '#f8fbff',
     },
+    shell: {
+      navBg: '#eef4fa',
+      navBorder: 'rgba(16, 33, 47, 0.08)',
+      appBarBg: 'rgba(251, 253, 255, 0.96)',
+      appBarBorder: 'rgba(16, 33, 47, 0.08)',
+      accent: '#0f766e',
+      activeNavBg: '#dce9fb',
+      activeNavText: '#0b5ed7',
+      activeNavBorder: 'rgba(11, 94, 215, 0.18)',
+      contentGlow: 'radial-gradient(circle at top right, rgba(221, 138, 66, 0.18), transparent 38%)',
+    },
+    hero: {
+      bg: '#f7fbff',
+      border: 'rgba(15, 118, 110, 0.14)',
+      accent: '#dd8a42',
+      muted: '#dce9fb',
+      spotlight: 'linear-gradient(135deg, rgba(15, 118, 110, 0.12), rgba(221, 138, 66, 0.08))',
+    },
     status: {
       success: {
         bg: '#e7f7ef',
@@ -116,6 +134,24 @@ const tokenSets: Record<ThemeMode, AppTokens> = {
       secondary: '#b6c8d8',
       muted: '#89a1b3',
       inverse: '#10212f',
+    },
+    shell: {
+      navBg: '#121d27',
+      navBorder: 'rgba(166, 193, 214, 0.16)',
+      appBarBg: 'rgba(18, 29, 39, 0.94)',
+      appBarBorder: 'rgba(166, 193, 214, 0.16)',
+      accent: '#14b8a6',
+      activeNavBg: '#163355',
+      activeNavText: '#bfd8ff',
+      activeNavBorder: 'rgba(102, 166, 255, 0.26)',
+      contentGlow: 'radial-gradient(circle at top right, rgba(240, 168, 75, 0.16), transparent 42%)',
+    },
+    hero: {
+      bg: '#15212b',
+      border: 'rgba(20, 184, 166, 0.22)',
+      accent: '#f0a84b',
+      muted: '#163355',
+      spotlight: 'linear-gradient(135deg, rgba(20, 184, 166, 0.16), rgba(240, 168, 75, 0.09))',
     },
     status: {
       success: {
@@ -310,9 +346,10 @@ export const createAppTheme = (mode: ThemeMode) => {
         },
         styleOverrides: {
           root: {
-            backgroundColor: appTokens.surface.panel,
+            backgroundColor: appTokens.shell.appBarBg,
             color: appTokens.text.primary,
-            borderBottom: `1px solid ${appTokens.layout.divider}`,
+            borderBottom: `1px solid ${appTokens.shell.appBarBorder}`,
+            backgroundImage: 'none',
           },
         },
       },
@@ -341,6 +378,9 @@ export const createAppTheme = (mode: ThemeMode) => {
         styleOverrides: {
           root: {
             borderRadius: appTokens.layout.cardRadius,
+          },
+          outlined: {
+            borderColor: appTokens.shell.activeNavBorder,
           },
         },
       },

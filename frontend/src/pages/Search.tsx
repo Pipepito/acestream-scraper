@@ -23,6 +23,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useQueryClient } from 'react-query';
+import { alpha, useTheme } from '@mui/material/styles';
 
 import ContentSection from '../components/layout/ContentSection';
 import PageHeader from '../components/layout/PageHeader';
@@ -31,6 +32,7 @@ import { CreateAcestreamChannelDTO } from '../services/channelService';
 import { SearchResultItem } from '../services/searchService';
 
 const Search: React.FC = () => {
+  const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [category, setCategory] = useState<string>('');
   const [page, setPage] = useState<number>(1);
@@ -144,6 +146,27 @@ const Search: React.FC = () => {
         description="Use a plain-language query first, then narrow the category before you run the search."
       >
         <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <Box
+              sx={{
+                p: { xs: 2, md: 2.5 },
+                borderRadius: 2.5,
+                bgcolor: theme.appTokens.hero.bg,
+                border: `1px solid ${theme.appTokens.hero.border}`,
+                backgroundImage: theme.appTokens.hero.spotlight,
+              }}
+            >
+              <Typography variant="statusMeta" sx={{ color: theme.appTokens.hero.accent, mb: 1 }}>
+                Search pulse
+              </Typography>
+              <Typography variant="h4" sx={{ letterSpacing: '-0.03em', mb: 1 }}>
+                Search the upstream catalog, compare likely matches, and add channels with confidence.
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Start with one clear query, then refine only if needed. Selected channels stay ready for batch add so you do not lose momentum while reviewing results.
+              </Typography>
+            </Box>
+          </Grid>
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
@@ -209,6 +232,24 @@ const Search: React.FC = () => {
             ) : null
           }
         >
+          <Box
+            sx={{
+              mb: 2,
+              p: 1.5,
+              borderRadius: 2,
+              bgcolor: hasSelection ? alpha(theme.appTokens.hero.accent, 0.12) : alpha(theme.appTokens.shell.accent, 0.06),
+              border: `1px solid ${hasSelection ? alpha(theme.appTokens.hero.accent, 0.28) : theme.appTokens.surface.border}`,
+            }}
+          >
+            <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>
+              Selection momentum
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              {hasSelection
+                ? `${selectedChannels.length} channel${selectedChannels.length === 1 ? '' : 's'} ready to add.`
+                : 'No channels selected yet. Pick one or more results to prepare a batch add.'}
+            </Typography>
+          </Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'wrap', mb: 2 }}>
             <Typography variant="body2" color="text.secondary">
               {searchResults.pagination?.total_results || 0} results found
@@ -219,6 +260,9 @@ const Search: React.FC = () => {
             <Box sx={{ textAlign: 'center', py: 4 }}>
               <Typography variant="body1" color="text.secondary">
                 No channels found matching your search criteria.
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                Try a broader query or remove the category filter, then search again.
               </Typography>
             </Box>
           ) : (

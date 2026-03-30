@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
+import { useQueryClient } from 'react-query';
 import {
   Box,
   Button,
@@ -24,17 +25,19 @@ import {
   Snackbar,
   SelectChangeEvent,
   Stack,
+  Typography,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Refresh as RefreshIcon,
-  PlayArrow as PlayArrowIcon
+  PlayArrow as PlayArrowIcon,
 } from '@mui/icons-material';
-import { useURLs, useCreateURL, useUpdateURL, useDeleteURL, useScrapeURL, useScrapeAllURLs } from '../hooks/useScrapers';
-import { CreateURLDTO, UpdateURLDTO, ScrapedURL } from '../services/scraperService';
+import { useURLs, useCreateURL, useUpdateURL, useDeleteURL, useScrapeAllURLs } from '../hooks/useScrapers';
+import { CreateURLDTO, UpdateURLDTO, ScrapedURL, scraperService } from '../services/scraperService';
 import { formatDistanceToNow } from 'date-fns';
+import { alpha, useTheme } from '@mui/material/styles';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
 
@@ -51,11 +54,11 @@ const initialFormData: URLFormData = {
 };
 
 const Scraper: React.FC = () => {
+  const theme = useTheme();
+  const queryClient = useQueryClient();
   const [openDialog, setOpenDialog] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
-  // currentId for edit, scrapeId for scraping
   const [currentId, setCurrentId] = useState<number | null>(null);
-  // Use scrapeId state and trigger mutation in useEffect
 
   const [formData, setFormData] = useState<URLFormData>(initialFormData);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
@@ -66,8 +69,40 @@ const Scraper: React.FC = () => {
   const updateURL = useUpdateURL(currentId || 0);
   const deleteURL = useDeleteURL();
   const scrapeAllURLs = useScrapeAllURLs();
-  const [scrapeId, setScrapeId] = useState<number | null>(null);
-  const scrapeURL = useScrapeURL(scrapeId || 0);
+
+  const totalSourceCount = urls?.length ?? 0;
+  const enabledSourceCount = urls?.filter((url) => url.enabled).length ?? 0;
+  const totalExtractedChannels = urls?.reduce((sum, url) => sum + (url.channels_found || 0), 0) ?? 0;
+  const latestProcessedAt = useMemo(() => {
+    if (!urls?.length) {
+      return null;
+    }
+
+    return urls.reduce<string | null>((latest, url) => {
+      if (!url.last_processed) {
+        return latest;
+      }
+
+      if (!latest || new Date(url.last_processed).getTime() > new Date(latest).getTime()) {
+        return url.last_processed;
+      }
+
+      return latest;
+    }, null);
+  }, [urls]);
+  const latestProcessedLabel = latestProcessedAt
+    ? `Latest scrape finished ${formatDistanceToNow(new Date(latestProcessedAt), { addSuffix: true })}`
+    : 'No completed scrape yet';
+  const sourceReadinessLabel = totalSourceCount === 0
+    ? 'No source URLs configured yet.'
+    : enabledSourceCount === 0
+      ? 'Sources are listed, but none are enabled for intake.'
+      : `${enabledSourceCount} of ${totalSourceCount} source${totalSourceCount === 1 ? '' : 's'} enabled for intake.`;
+  const nextStepLabel = totalSourceCount === 0
+    ? 'Add your first source URL to start the pipeline.'
+    : enabledSourceCount === 0
+      ? 'Enable at least one source, then run a scrape.'
+      : 'Run a scrape, then review extracted channels after the scrape completes.';
 
   const handleOpenDialog = (edit = false, url?: ScrapedURL) => {
     setIsEdit(edit);
@@ -91,9 +126,7 @@ const Scraper: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const name = e.target.name as keyof URLFormData;
-    const value = e.target.name === 'enabled'
-      ? (e.target as HTMLInputElement).checked
-      : e.target.value;
+    const value = e.target.value;
 
     setFormData({
       ...formData,
@@ -169,35 +202,32 @@ const Scraper: React.FC = () => {
   };
 
   const [scrapingId, setScrapingId] = useState<number | null>(null);
-  const handleScrape = (id: number) => {
+  const handleScrape = async (id: number) => {
     setScrapingId(id);
-    setScrapeId(id);
-  };
 
-  useEffect(() => {
-    const runScrape = async () => {
-      if (scrapeId === null) return;
-      try {
-        await scrapeURL.mutateAsync();
-        setSnackbar({
-          open: true,
-          message: 'Scraping completed',
-          severity: 'success'
-        });
-      } catch (error) {
-        setSnackbar({
-          open: true,
-          message: `Error: ${(error as Error).message}`,
-          severity: 'error'
-        });
-      } finally {
-        setScrapingId(null);
-        setScrapeId(null);
-      }
-    };
-    runScrape();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scrapeId]);
+    try {
+      await scraperService.scrapeURL(id);
+      await Promise.all([
+        queryClient.invalidateQueries(['url', id]),
+        queryClient.invalidateQueries('urls'),
+        queryClient.invalidateQueries('channels'),
+      ]);
+
+      setSnackbar({
+        open: true,
+        message: 'Scraping completed',
+        severity: 'success'
+      });
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: `Error: ${(error as Error).message}`,
+        severity: 'error'
+      });
+    } finally {
+      setScrapingId(null);
+    }
+  };
 
   const handleScrapeAll = async () => {
     if (window.confirm('Start scraping all enabled URLs?')) {
@@ -237,7 +267,7 @@ const Scraper: React.FC = () => {
               color="secondary"
               startIcon={<PlayArrowIcon />}
               onClick={handleScrapeAll}
-              disabled={scrapeAllURLs.isLoading}
+              disabled={scrapeAllURLs.isLoading || enabledSourceCount === 0}
             >
               Scrape All Enabled
             </Button>
@@ -247,6 +277,118 @@ const Scraper: React.FC = () => {
           </Stack>
         }
       />
+
+      <Box
+        sx={{
+          mb: 3,
+          p: { xs: 2, md: 2.5 },
+          borderRadius: 2.5,
+          bgcolor: theme.appTokens.hero.bg,
+          border: `1px solid ${theme.appTokens.hero.border}`,
+          backgroundImage: theme.appTokens.hero.spotlight,
+        }}
+      >
+        <Stack spacing={2}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, justifyContent: 'space-between' }}>
+            <Box sx={{ minWidth: 0, maxWidth: 760 }}>
+              <Typography variant="statusMeta" sx={{ color: theme.appTokens.hero.accent, mb: 1 }}>
+                Source intake stage
+              </Typography>
+              <Typography variant="h4" sx={{ letterSpacing: '-0.03em', mb: 1 }}>
+                Sources feed the pipeline before extracted-channel review and TV organization.
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Use this intake summary to confirm source coverage, trigger scraping, and hand off to extracted-channel review without guessing what comes next.
+              </Typography>
+            </Box>
+            <Stack spacing={1} sx={{ minWidth: { xs: '100%', sm: 300 } }}>
+              <Box
+                sx={{
+                  p: 1.5,
+                  borderRadius: 2,
+                  bgcolor: alpha(theme.appTokens.shell.accent, 0.08),
+                  border: `1px solid ${alpha(theme.appTokens.shell.accent, 0.18)}`,
+                }}
+              >
+                <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>
+                  Source readiness
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                  {sourceReadinessLabel}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {latestProcessedLabel}
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  p: 1.5,
+                  borderRadius: 2,
+                  bgcolor: theme.appTokens.surface.panel,
+                  border: `1px solid ${theme.appTokens.surface.border}`,
+                }}
+              >
+                <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>
+                  Next step
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                  {nextStepLabel}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {totalExtractedChannels > 0
+                    ? `${totalExtractedChannels} extracted channel${totalExtractedChannels === 1 ? '' : 's'} found in current source results.`
+                    : 'Extracted channel totals appear here after successful scrapes.'}
+                </Typography>
+              </Box>
+            </Stack>
+          </Box>
+
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25 }}>
+            {[
+              {
+                title: 'Sources',
+                label: 'Current intake stage',
+                body: `${enabledSourceCount}/${totalSourceCount} enabled`,
+                active: true,
+              },
+              {
+                title: 'Extracted channels',
+                label: 'Next review stage',
+                body: 'Check scraped channel results and routing.',
+                active: false,
+              },
+              {
+                title: 'TV organization',
+                label: 'Downstream output stage',
+                body: 'Organize the final catalog for downstream workflows.',
+                active: false,
+              },
+            ].map((stage) => (
+              <Box
+                key={stage.title}
+                sx={{
+                  flex: '1 1 180px',
+                  minWidth: { xs: '100%', sm: 180 },
+                  p: 1.5,
+                  borderRadius: 2,
+                  bgcolor: stage.active ? alpha(theme.appTokens.hero.accent, 0.10) : theme.appTokens.surface.panel,
+                  border: `1px solid ${stage.active ? alpha(theme.appTokens.hero.accent, 0.24) : theme.appTokens.surface.border}`,
+                }}
+              >
+                <Typography variant="statusMeta" sx={{ color: stage.active ? theme.appTokens.hero.accent : 'text.secondary', mb: 0.75 }}>
+                  {stage.label}
+                </Typography>
+                <Typography variant="sectionTitle" sx={{ mb: 0.5 }}>
+                  {stage.title}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {stage.body}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        </Stack>
+      </Box>
 
       <ContentSection title="Configured URLs" description="Run single URL checks or scrape all enabled sources.">
         {isLoading && <LinearProgress />}
@@ -281,12 +423,12 @@ const Scraper: React.FC = () => {
                     </TableCell>
                     <TableCell>{url.channels_found || 0}</TableCell>
                     <TableCell>
-                      <IconButton
-                        color="primary"
-                        onClick={() => handleScrape(url.id)}
-                        disabled={scrapeURL.isLoading && scrapingId === url.id}
-                        aria-label={`Scrape URL ${url.url}`}
-                      >
+                        <IconButton
+                          color="primary"
+                          onClick={() => handleScrape(url.id)}
+                         disabled={scrapingId === url.id}
+                          aria-label={`Scrape URL ${url.url}`}
+                        >
                         <PlayArrowIcon />
                       </IconButton>
                       <IconButton color="primary" onClick={() => handleOpenDialog(true, url)} aria-label={`Edit URL ${url.url}`}>
@@ -326,8 +468,10 @@ const Scraper: React.FC = () => {
             sx={{ mb: 2 }}
           />
           <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel>URL Type</InputLabel>
+            <InputLabel id="scraper-url-type-label">URL Type</InputLabel>
             <Select
+              id="scraper-url-type"
+              labelId="scraper-url-type-label"
               name="url_type"
               value={formData.url_type}
               label="URL Type"
@@ -339,8 +483,10 @@ const Scraper: React.FC = () => {
             </Select>
           </FormControl>
           <FormControl fullWidth>
-            <InputLabel>Status</InputLabel>
+            <InputLabel id="scraper-status-label">Status</InputLabel>
             <Select
+              id="scraper-status"
+              labelId="scraper-status-label"
               name="enabled"
               value={formData.enabled ? 'true' : 'false'}
               label="Status"

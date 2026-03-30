@@ -24,11 +24,13 @@ import { useChannelGroups } from '../hooks/usePlaylists';
 import { PlaylistFilters, playlistService } from '../services/playlistService';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
+import { alpha, useTheme } from '@mui/material/styles';
 
 /**
  * Playlist configuration and download page
  */
 const Playlist: React.FC = () => {
+  const theme = useTheme();
   const [filters, setFilters] = useState<PlaylistFilters>({
     only_online: true,
     include_groups: [],
@@ -93,6 +95,31 @@ const Playlist: React.FC = () => {
         }
       >
         <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <Box
+              sx={{
+                p: { xs: 2, md: 2.5 },
+                borderRadius: 2.5,
+                bgcolor: theme.appTokens.hero.bg,
+                border: `1px solid ${theme.appTokens.hero.border}`,
+                backgroundImage: theme.appTokens.hero.spotlight,
+              }}
+            >
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                <Box sx={{ minWidth: 0, maxWidth: 720 }}>
+                  <Box sx={{ typography: 'statusMeta', color: theme.appTokens.hero.accent, mb: 1 }}>Playlist ready</Box>
+                  <Box sx={{ typography: 'h4', letterSpacing: '-0.03em', mb: 1 }}>Download the playlist or share the link first.</Box>
+                  <Box sx={{ typography: 'body2', color: 'text.secondary' }}>
+                    Keep the main path simple: confirm the playlist URL, download the M3U, or share it before you open optional filtering controls.
+                  </Box>
+                </Box>
+                <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: alpha(theme.appTokens.surface.panel, 0.92), border: `1px solid ${theme.appTokens.surface.border}`, minWidth: { xs: '100%', sm: 260 } }}>
+                  <Box sx={{ typography: 'statusMeta', color: 'text.secondary', mb: 0.5 }}>Primary path</Box>
+                  <Box sx={{ typography: 'body2', fontWeight: 600 }}>Download the playlist or copy the URL, then import it into your player.</Box>
+                </Box>
+              </Box>
+            </Box>
+          </Grid>
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
@@ -122,11 +149,11 @@ const Playlist: React.FC = () => {
               </Button>
             </Box>
 
-            <Collapse in={showFilters}>
-              <Box sx={{ mt: 3 }}>
-                <Alert severity="info" sx={{ mb: 2 }}>
-                  Advanced options help you narrow the playlist without changing the main download flow.
-                </Alert>
+              <Collapse in={showFilters} mountOnEnter unmountOnExit>
+                <Box sx={{ mt: 3 }}>
+                  <Alert severity="info" sx={{ mb: 2 }}>
+                    Advanced options are optional. Use them only when the basic download or share path needs extra filtering.
+                  </Alert>
 
                 <FormControl fullWidth margin="normal">
                   <InputLabel>Include Groups</InputLabel>

@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Box, Button, Alert, IconButton, Snackbar, Stack, Tooltip, useMediaQuery, useTheme } from '@mui/material';
+import { Box, Button, Alert, IconButton, Snackbar, Stack, Tooltip, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { Add, FileDownload, Refresh } from '@mui/icons-material';
 import TvIcon from '@mui/icons-material/Tv';
 import type { GridSortModel } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
+import { alpha } from '@mui/material/styles';
 
 import ChannelTable from '../components/ChannelTable';
 import { useAcestreamChannels, useDeleteAcestreamChannel } from '../hooks/useChannels';
@@ -14,7 +15,6 @@ import {
   UpdateAcestreamChannelDTO,
   acestreamChannelService,
 } from '../services/channelService';
-import { ApiError, getApiErrorKindFromStatus } from '../services/apiErrors';
 import { getErrorMessage } from '../utils/errorUtils';
 import BulkOperations from '../components/BulkOperations';
 import AdvancedSearch, { AdvancedSearchFilters } from '../components/AdvancedSearch';
@@ -78,7 +78,7 @@ const AcestreamChannels: React.FC = () => {
   const [quickEditChannel, setQuickEditChannel] = useState<EditableChannel | null>(null);
   const [groups, setGroups] = useState<string[]>([]);
   const [groupError, setGroupError] = useState<string | null>(null);
-  const [groupLoading, setGroupLoading] = useState(false);
+  const [groupLoading, setGroupLoading] = useState(true);
 
   const {
     data: channelsData = { items: [], total: 0 },
@@ -96,13 +96,37 @@ const AcestreamChannels: React.FC = () => {
 
   const channels = channelsData.items;
   const totalCount = channelsData.total;
+  const deleteChannel = useDeleteAcestreamChannel();
+  const { data: tvChannels } = useAllTVChannels(0, 100);
+  const visibleChannelCount = channels.length;
+  const tvChannelOptionsCount = tvChannels?.items.length ?? 0;
+  const groupsLoaded = !groupLoading && !groupError;
   const selectedChannels = useMemo(
     () => channels.filter((channel) => selectedIds.includes(channel.id)),
     [channels, selectedIds]
   );
+  const inventoryStatusLabel = useMemo(() => {
+    if (isLoading) {
+      return 'Loading the latest extracted-channel inventory.';
+    }
 
-  const deleteChannel = useDeleteAcestreamChannel();
-  const { data: tvChannels } = useAllTVChannels(0, 100);
+    if (totalCount === 0) {
+      return 'No extracted channels match the current view yet.';
+    }
+
+    return `${visibleChannelCount} visible now with ${totalCount} matching the current routing view.`;
+  }, [isLoading, totalCount, visibleChannelCount]);
+  const routingActionLabel = selectedIds.length > 0 ? `${selectedIds.length} selected for bulk routing actions.` : 'Select channels to unlock bulk actions and TV assignment.';
+  const routingSupportLabel = groupsLoaded
+    ? groups.length > 0
+      ? `${groups.length} group options loaded for sorting and cleanup.`
+      : 'No saved group options are loaded yet.'
+    : groupError
+      ? 'Group suggestions are unavailable right now, but the inventory still works.'
+      : 'Loading group suggestions for routing.';
+  const tvAssignmentLabel = tvChannelOptionsCount > 0
+    ? `${tvChannelOptionsCount} TV entr${tvChannelOptionsCount === 1 ? 'y is' : 'ies are'} ready for assignment.`
+    : 'TV entries are not available yet, so finish inventory review first.';
 
   useEffect(() => {
     if (!isLoading && page > 0 && page * pageSize >= totalCount) {
@@ -293,25 +317,7 @@ const AcestreamChannels: React.FC = () => {
     setCheckingAll(true);
     setCheckAllResult(null);
     try {
-      const response = await fetch('/api/v1/channels/check_status_all', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
-      if (!response.ok) {
-        const payload = (await response.json()) as { error?: { message?: string }; detail?: string };
-        const error = new ApiError({
-          message: payload.error?.message ?? payload.detail ?? response.statusText ?? 'Request failed',
-          status: response.status,
-          kind: getApiErrorKindFromStatus(response.status),
-          canRetry: response.status >= 500 || response.status === 429,
-          data: payload,
-        });
-
-        setCheckAllResult({ message: getErrorMessage(error), error });
-        return;
-      }
-      const data = (await response.json()) as { message?: string };
+      const data = await acestreamChannelService.checkAllStatuses();
       setCheckAllResult({ message: data.message || 'Acestream status check task triggered successfully.' });
     } catch (err) {
       setCheckAllResult({ message: getErrorMessage(err), error: err });
@@ -345,6 +351,116 @@ const AcestreamChannels: React.FC = () => {
         }
       />
 
+      <Box
+        sx={{
+          mb: 3,
+          p: { xs: 2, md: 2.5 },
+          borderRadius: 2.5,
+          bgcolor: theme.appTokens.hero.bg,
+          border: `1px solid ${theme.appTokens.hero.border}`,
+          backgroundImage: theme.appTokens.hero.spotlight,
+        }}
+      >
+        <Stack spacing={2}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, justifyContent: 'space-between' }}>
+            <Box sx={{ minWidth: 0, maxWidth: 760 }}>
+              <Typography variant="statusMeta" sx={{ color: theme.appTokens.hero.accent, mb: 1 }}>
+                Extracted-channel routing stage
+              </Typography>
+              <Typography variant="h4" sx={{ letterSpacing: '-0.03em', mb: 1 }}>
+                Review extracted inventory first, then route the right channels into TV organization.
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Confirm the channel list, clean up metadata, and route the right channels before you move downstream.
+              </Typography>
+            </Box>
+            <Stack spacing={1} sx={{ minWidth: { xs: '100%', sm: 320 } }}>
+              <Box
+                sx={{
+                  p: 1.5,
+                  borderRadius: 2,
+                  bgcolor: alpha(theme.appTokens.shell.accent, 0.08),
+                  border: `1px solid ${alpha(theme.appTokens.shell.accent, 0.18)}`,
+                }}
+              >
+                <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>
+                  Inventory status
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                  {inventoryStatusLabel}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {routingActionLabel}
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  p: 1.5,
+                  borderRadius: 2,
+                  bgcolor: theme.appTokens.surface.panel,
+                  border: `1px solid ${theme.appTokens.surface.border}`,
+                }}
+              >
+                <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>
+                  Routing guidance
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                  Assign channels to TV entries after you confirm names, groups, and stream health.
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {routingSupportLabel} {tvAssignmentLabel}
+                </Typography>
+              </Box>
+            </Stack>
+          </Box>
+
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25 }}>
+            {[
+              {
+                title: 'Sources',
+                label: 'Completed intake stage',
+                body: 'Scrape sources first so this inventory has current channel results.',
+                active: false,
+              },
+              {
+                title: 'Extracted channels',
+                label: 'Current routing stage',
+                body: 'Review inventory, fix metadata, and route channels into TV entries.',
+                active: true,
+              },
+              {
+                title: 'TV organization',
+                label: 'Next downstream stage',
+                body: 'Finalize the organized TV catalog for EPG and output workflows.',
+                active: false,
+              },
+            ].map((stage) => (
+              <Box
+                key={stage.title}
+                sx={{
+                  flex: '1 1 180px',
+                  minWidth: { xs: '100%', sm: 180 },
+                  p: 1.5,
+                  borderRadius: 2,
+                  bgcolor: stage.active ? alpha(theme.appTokens.hero.accent, 0.10) : theme.appTokens.surface.panel,
+                  border: `1px solid ${stage.active ? alpha(theme.appTokens.hero.accent, 0.24) : theme.appTokens.surface.border}`,
+                }}
+              >
+                <Typography variant="statusMeta" sx={{ color: stage.active ? theme.appTokens.hero.accent : 'text.secondary', mb: 0.75 }}>
+                  {stage.label}
+                </Typography>
+                <Typography variant="sectionTitle" sx={{ mb: 0.5 }}>
+                  {stage.title}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {stage.body}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        </Stack>
+      </Box>
+
       {error ? (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
           {error}
@@ -372,17 +488,9 @@ const AcestreamChannels: React.FC = () => {
         </Box>
       ) : null}
 
-      <ContentSection title="Filters" description="Use table and field filters to narrow channels quickly.">
-        <AdvancedSearch
-          filters={mapFiltersToAdvanced(filters)}
-          groups={groups}
-          onChange={handleAdvancedFilterChange}
-        />
-      </ContentSection>
-
       <ContentSection
         title="Channels"
-        description="Review stream health, edit metadata, and assign channels to TV entries."
+        description="Review stream health, edit metadata, and prepare channels for TV assignment."
         actions={
           selectedIds.length > 0 ? (
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
@@ -401,7 +509,7 @@ const AcestreamChannels: React.FC = () => {
       >
         <ChannelTable
           channels={channels}
-          loading={isLoading || groupLoading}
+          loading={isLoading}
           onCheckStatus={handleCheckStatus}
           onEdit={handleQuickEdit}
           onDelete={handleDelete}
@@ -442,6 +550,14 @@ const AcestreamChannels: React.FC = () => {
               </Tooltip>
             );
           }}
+        />
+      </ContentSection>
+
+      <ContentSection title="Filters" description="Use table and field filters to narrow channels quickly after reviewing inventory.">
+        <AdvancedSearch
+          filters={mapFiltersToAdvanced(filters)}
+          groups={groups}
+          onChange={handleAdvancedFilterChange}
         />
       </ContentSection>
 

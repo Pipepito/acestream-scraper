@@ -24,8 +24,10 @@ import { useWarpStatus, useWarpConnect, useWarpDisconnect, useWarpSetMode, useWa
 import { WarpMode } from '../types/warpTypes';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
+import { alpha, useTheme } from '@mui/material/styles';
 
 const WarpPage: React.FC = () => {
+  const theme = useTheme();
   const { data: status, isLoading, error } = useWarpStatus();
   const connectMutation = useWarpConnect();
   const disconnectMutation = useWarpDisconnect();
@@ -124,6 +126,47 @@ const WarpPage: React.FC = () => {
           </Stack>
         }
       />
+
+      <Box
+        sx={{
+          mb: 3,
+          p: { xs: 2, md: 2.5 },
+          borderRadius: 2.5,
+          bgcolor: theme.appTokens.hero.bg,
+          border: `1px solid ${theme.appTokens.hero.border}`,
+          backgroundImage: theme.appTokens.hero.spotlight,
+        }}
+      >
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, justifyContent: 'space-between' }}>
+          <Box sx={{ minWidth: 0, maxWidth: 760 }}>
+            <Typography variant="statusMeta" sx={{ color: theme.appTokens.hero.accent, mb: 1 }}>
+              Tunnel pulse
+            </Typography>
+            <Typography variant="h4" sx={{ letterSpacing: '-0.03em', mb: 1 }}>
+              {status?.connected
+                ? 'WARP is connected and ready to protect scraper traffic.'
+                : status?.running
+                  ? 'WARP is available, but traffic is not currently protected.'
+                  : 'WARP is not running yet.'}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Use this summary to confirm your protection state before changing modes, refreshing network-sensitive work, or registering a license.
+            </Typography>
+          </Box>
+          <Stack spacing={1} sx={{ minWidth: { xs: '100%', sm: 280 } }}>
+            <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: alpha(theme.appTokens.shell.accent, 0.08), border: `1px solid ${alpha(theme.appTokens.shell.accent, 0.18)}` }}>
+              <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>Protection state</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{status?.connected ? 'Protected and connected' : status?.running ? 'Available but unprotected' : 'Service offline'}</Typography>
+            </Box>
+            <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: theme.appTokens.surface.panel, border: `1px solid ${theme.appTokens.surface.border}` }}>
+              <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>Next step</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                Keep the current tunnel active or change mode before you run more network-sensitive tasks.
+              </Typography>
+            </Box>
+          </Stack>
+        </Box>
+      </Box>
       
       <ContentSection title="Connection status" description="Use the status summary to confirm whether traffic is protected before changing mode or license settings.">
         <Stack spacing={2}>

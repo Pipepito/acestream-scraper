@@ -29,8 +29,10 @@ import { configService } from '../services/configService';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
 import { useAppThemeMode } from '../bootstrap/AppBootstrap';
+import { alpha, useTheme } from '@mui/material/styles';
 
 const Settings: React.FC = () => {
+  const theme = useTheme();
   const { mode, setMode } = useAppThemeMode();
   // Form state
   const [baseUrl, setBaseUrl] = useState<string>('');
@@ -194,6 +196,41 @@ const Settings: React.FC = () => {
         title="Settings"
         subtitle="Keep connection details and automation defaults in one predictable place."
       />
+
+      <Box
+        sx={{
+          mb: 3,
+          p: { xs: 2, md: 2.5 },
+          borderRadius: 2.5,
+          bgcolor: theme.appTokens.hero.bg,
+          border: `1px solid ${theme.appTokens.hero.border}`,
+          backgroundImage: theme.appTokens.hero.spotlight,
+        }}
+      >
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, justifyContent: 'space-between' }}>
+          <Box sx={{ minWidth: 0, maxWidth: 760 }}>
+            <Box sx={{ typography: 'statusMeta', color: theme.appTokens.hero.accent, mb: 1 }}>Control center</Box>
+            <Box sx={{ typography: 'h4', letterSpacing: '-0.03em', mb: 1 }}>Settings are ready for connection checks and automation tuning.</Box>
+            <Box sx={{ typography: 'body2', color: 'text.secondary' }}>
+              Start here when your engine path, playlist behavior, or theme preference needs review. The safest flow is to confirm engine status first and only then change persistent settings.
+            </Box>
+          </Box>
+          <Stack spacing={1} sx={{ minWidth: { xs: '100%', sm: 280 } }}>
+            <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: alpha(theme.appTokens.shell.accent, 0.08), border: `1px solid ${alpha(theme.appTokens.shell.accent, 0.18)}` }}>
+              <Box sx={{ typography: 'statusMeta', color: 'text.secondary', mb: 0.5 }}>Priority check</Box>
+              <Box sx={{ typography: 'body2', fontWeight: 600 }}>
+                {acestreamStatusQuery.data?.status === 'online' ? 'Engine connection looks healthy.' : 'Engine connection needs attention.'}
+              </Box>
+            </Box>
+            <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: theme.appTokens.surface.panel, border: `1px solid ${theme.appTokens.surface.border}` }}>
+              <Box sx={{ typography: 'statusMeta', color: 'text.secondary', mb: 0.5 }}>Next step</Box>
+              <Box sx={{ typography: 'body2', fontWeight: 600 }}>
+                Confirm the engine is reachable, then update URLs or automation only if your environment changed.
+              </Box>
+            </Box>
+          </Stack>
+        </Box>
+      </Box>
 
       <ContentSection
         title="Engine connection"

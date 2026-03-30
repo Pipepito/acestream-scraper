@@ -94,6 +94,10 @@ interface ActivityLogResponse {
   total?: number;
 }
 
+interface CheckAllStatusesResponse {
+  message?: string;
+}
+
 function parseBooleanFilter(value: unknown): boolean | undefined {
   if (typeof value === 'boolean') {
     return value;
@@ -176,6 +180,14 @@ const acestreamChannelService = {
    */
   checkAcestreamChannelStatus: async (id: string): Promise<AcestreamChannel> => {
     const { data } = await apiClient.post(`/v1/acestream-channels/${id}/check_status`);
+    return data;
+  },
+
+  /**
+   * Trigger a bulk status check for all channels
+   */
+  checkAllStatuses: async (): Promise<CheckAllStatusesResponse> => {
+    const { data } = await apiClient.post('/v1/channels/check_status_all', {});
     return data;
   },
 

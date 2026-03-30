@@ -22,6 +22,7 @@ import {
 import type { SelectChangeEvent } from '@mui/material';
 import Snackbar from '@mui/material/Snackbar';
 import { Link as RouterLink } from 'react-router-dom';
+import { alpha, useTheme } from '@mui/material/styles';
 import {
   useRecentActivity,
   useBackgroundTaskStatus,
@@ -70,6 +71,7 @@ interface DashboardConfig {
 }
 
 const Dashboard: React.FC = () => {
+  const theme = useTheme();
   const { data: dashboardConfig, isLoading: configLoading } = useDashboardConfig();
   const updateDashboardConfig = useUpdateDashboardConfig();
   const [retentionDays, setRetentionDays] = useState<number>(dashboardConfig?.retention_days ?? 7);
@@ -107,13 +109,21 @@ const Dashboard: React.FC = () => {
     refetch: refetchTasks,
   } = useBackgroundTaskStatus();
   const { data: streams, isLoading: streamsLoading, error: streamsError, refetch: refetchStreams } = useActiveStreams();
-  const { data: warp, isLoading: warpLoading, error: warpError, refetch: refetchWarp } = useWarpStatus();
+  const { data: warp, isLoading: warpLoading, error: warpQueryError, refetch: refetchWarp } = useWarpStatus();
 
   const rawActivity = (activityRaw as ActivityApiResponse | undefined) ?? {};
   const activityResults = rawActivity.results ?? rawActivity.items ?? [];
   const activityTotalPages = rawActivity.total_pages ?? Math.max(1, Math.ceil((rawActivity.total ?? activityResults.length) / (rawActivity.page_size ?? 10)));
   const activityData: ActivityResponse = { results: activityResults, total_pages: activityTotalPages };
   const backgroundTasks = (backgroundRaw as BackgroundTask[] | undefined) ?? [];
+  const latestTask = backgroundTasks[0];
+  const streamCount = (streams as { count?: number } | undefined)?.count ?? 0;
+  const warpStatus = (warp as { status?: string } | undefined)?.status ?? 'unknown';
+  const warpError = (warp as { error?: string | null } | undefined)?.error;
+  const latestRun = latestTask?.last_run || 'N/A';
+  const freshnessLabel = activityData.results.length > 0 ? 'Fresh activity detected' : 'No recent activity yet';
+  const attentionLabel = warpError ? 'Attention needed: protected routing' : 'Attention needed: none';
+  const nextStepLabel = warpError ? 'Review WARP before running more scraper work.' : 'Open Scraper to review job details or let the next run continue.';
 
   React.useEffect(() => {
     if (!autoRefresh) {
@@ -172,14 +182,14 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  if (activityError || tasksError || streamsError || warpError) {
+  if (activityError || tasksError || streamsError || warpQueryError) {
     return (
       <Box sx={{ p: 2 }}>
         <Alert severity="error" sx={{ mb: 2 }}>
           {activityError ? `Activity error: ${String(activityError)}` : ''}
           {tasksError ? ` Task error: ${String(tasksError)}` : ''}
           {streamsError ? ` Streams error: ${String(streamsError)}` : ''}
-          {warpError ? ` Warp error: ${String(warpError)}` : ''}
+          {warpQueryError ? ` Warp error: ${String(warpQueryError)}` : ''}
         </Alert>
         <Button
           variant="contained"
@@ -252,8 +262,62 @@ const Dashboard: React.FC = () => {
       </ContentSection>
 
       <ContentSection title="System readiness" description="Check the current state, then choose the next workflow.">
-        <Paper variant="outlined" sx={{ p: 2.5 }}>
+        <Paper
+          variant="outlined"
+          sx={{
+            p: { xs: 2, md: 3 },
+            borderColor: theme.appTokens.hero.border,
+            bgcolor: theme.appTokens.hero.bg,
+            backgroundImage: theme.appTokens.hero.spotlight,
+            overflow: 'hidden',
+          }}
+        >
           <Stack spacing={2}>
+            <Stack
+              direction={{ xs: 'column', lg: 'row' }}
+              spacing={2}
+              justifyContent="space-between"
+              sx={{ pb: 2, borderBottom: `1px solid ${alpha(theme.appTokens.hero.border, 0.9)}` }}
+            >
+              <Box sx={{ flex: '1 1 auto', minWidth: 0, maxWidth: 760 }}>
+                <Typography variant="statusMeta" sx={{ color: theme.appTokens.hero.accent, mb: 1 }}>
+                  Scraper pulse
+                </Typography>
+                <Typography variant="h3" sx={{ fontWeight: 700, letterSpacing: '-0.03em', mb: 1.25 }}>
+                  Scraper is active and ready for the next scheduled pass.
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
+                  Keep an eye on freshness, protected routing, and scheduler follow-through here before you move into channel or EPG work.
+                </Typography>
+              </Box>
+              <Stack spacing={1} sx={{ minWidth: { xs: '100%', lg: 280 } }}>
+                <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: alpha(theme.appTokens.shell.accent, 0.08), border: `1px solid ${alpha(theme.appTokens.shell.accent, 0.18)}` }}>
+                  <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>
+                    Freshness
+                  </Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                    {freshnessLabel}
+                  </Typography>
+                </Box>
+                <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: warpError ? theme.appTokens.status.warning.bg : alpha(theme.appTokens.hero.accent, 0.1), border: `1px solid ${warpError ? theme.appTokens.status.warning.border : alpha(theme.appTokens.hero.accent, 0.2)}` }}>
+                  <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>
+                    Attention needed
+                  </Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                    {attentionLabel}
+                  </Typography>
+                </Box>
+                <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: theme.appTokens.surface.panel, border: `1px solid ${theme.appTokens.surface.border}` }}>
+                  <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>
+                    Next step
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    {nextStepLabel}
+                  </Typography>
+                </Box>
+              </Stack>
+            </Stack>
+
             <Alert severity={(warp as { error?: string | null } | undefined)?.error ? 'warning' : 'success'}>
               {(warp as { error?: string | null; status?: string } | undefined)?.error
                 ? `Attention needed: WARP reports ${(warp as { status?: string } | undefined)?.status ?? 'unknown status'}. ${(warp as { error?: string }).error}`
@@ -262,20 +326,20 @@ const Dashboard: React.FC = () => {
 
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} divider={<Divider flexItem orientation="vertical" sx={{ display: { xs: 'none', md: 'block' } }} />}>
               <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography variant="sectionTitle">Stream capacity</Typography>
+                <Typography variant="statusMeta" sx={{ color: 'text.secondary' }}>Stream capacity</Typography>
                 <Typography variant="h4" sx={{ mt: 1 }}>
-                  {(streams as { count?: number } | undefined)?.count ?? 0}
+                  {streamCount}
                 </Typography>
                 <Typography variant="helperText" sx={{ mt: 1 }}>
-                  {(streams as { count?: number } | undefined)?.count ?? 0} streams available right now from{' '}
+                  {streamCount} streams available right now from{' '}
                   {(streams as { source?: string } | undefined)?.source ?? 'N/A'}.
                 </Typography>
               </Box>
 
               <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography variant="sectionTitle">Protected routing</Typography>
+                <Typography variant="statusMeta" sx={{ color: 'text.secondary' }}>Protected routing</Typography>
                 <Typography variant="body1" sx={{ mt: 1, fontWeight: 600 }}>
-                  WARP status: {(warp as { status?: string } | undefined)?.status ?? 'N/A'}
+                  WARP status: {warpStatus}
                 </Typography>
                 <Typography variant="helperText" sx={{ mt: 1 }}>
                   {(warp as { error?: string | null } | undefined)?.error
@@ -285,12 +349,12 @@ const Dashboard: React.FC = () => {
               </Box>
 
               <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography variant="sectionTitle">Scheduler follow-through</Typography>
+                <Typography variant="statusMeta" sx={{ color: 'text.secondary' }}>Scheduler follow-through</Typography>
                 <Typography variant="h4" sx={{ mt: 1 }}>
                   {backgroundTasks.length}
                 </Typography>
                 <Typography variant="helperText" sx={{ mt: 1 }}>
-                  Latest run: {backgroundTasks[0]?.last_run || 'N/A'}.
+                  Latest run: {latestRun}.
                 </Typography>
               </Box>
             </Stack>
@@ -298,7 +362,7 @@ const Dashboard: React.FC = () => {
         </Paper>
       </ContentSection>
 
-      <ContentSection title="Recent Activity">
+      <ContentSection title="Recent Activity" description="Live feed of scraper and system events so you can confirm the latest follow-through.">
         <List>
           {activityData.results.length > 0 ? (
             activityData.results.map((entry) => (

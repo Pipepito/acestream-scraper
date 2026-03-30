@@ -106,7 +106,10 @@ describe('NavBar responsive shell behavior', () => {
     expect(screen.getByRole('button', { name: 'open drawer' })).toBeVisible();
     expect(screen.getByRole('banner')).not.toHaveTextContent('Scraper');
     expect(screen.getByRole('button', { name: /switch to dark theme/i })).toBeVisible();
-    expect(screen.getByRole('main')).toHaveStyle({ width: '100%' });
+    expect(screen.getByRole('main')).toHaveStyle({
+      width: '100%',
+      backgroundImage: createAppTheme('light').appTokens.shell.contentGlow,
+    });
   });
 
   it('keeps the drawer persistent on desktop and uses the standard shared shell width before wide desktop', () => {

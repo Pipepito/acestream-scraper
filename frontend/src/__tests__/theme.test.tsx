@@ -58,6 +58,26 @@ describe('createAppTheme', () => {
       inverse: expect.any(String),
     });
 
+    expect(theme.appTokens.shell).toMatchObject({
+      navBg: expect.any(String),
+      navBorder: expect.any(String),
+      appBarBg: expect.any(String),
+      appBarBorder: expect.any(String),
+      accent: expect.any(String),
+      activeNavBg: expect.any(String),
+      activeNavText: expect.any(String),
+      activeNavBorder: expect.any(String),
+      contentGlow: expect.any(String),
+    });
+
+    expect(theme.appTokens.hero).toMatchObject({
+      bg: expect.any(String),
+      border: expect.any(String),
+      accent: expect.any(String),
+      muted: expect.any(String),
+      spotlight: expect.any(String),
+    });
+
     expect(theme.appTokens.status).toMatchObject({
       success: {
         bg: expect.any(String),
@@ -156,8 +176,9 @@ describe('createAppTheme', () => {
     expect(theme.components?.MuiAppBar?.defaultProps?.elevation).toBe(0);
     expect(theme.components?.MuiAppBar?.styleOverrides?.root).toEqual(
       expect.objectContaining({
-        backgroundColor: theme.appTokens.surface.panel,
+        backgroundColor: theme.appTokens.shell.appBarBg,
         color: theme.appTokens.text.primary,
+        borderBottom: `1px solid ${theme.appTokens.shell.appBarBorder}`,
       })
     );
     expect(theme.components?.MuiPaper?.styleOverrides?.root).toEqual(
@@ -181,6 +202,11 @@ describe('createAppTheme', () => {
     expect(theme.components?.MuiChip?.styleOverrides?.root).toEqual(
       expect.objectContaining({
         borderRadius: theme.appTokens.layout.cardRadius,
+      })
+    );
+    expect(theme.components?.MuiChip?.styleOverrides?.outlined).toEqual(
+      expect.objectContaining({
+        borderColor: theme.appTokens.shell.activeNavBorder,
       })
     );
   });

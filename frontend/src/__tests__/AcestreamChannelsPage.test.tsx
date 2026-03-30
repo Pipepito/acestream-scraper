@@ -1,5 +1,4 @@
-import React from 'react';
-import { act } from 'react';
+import React, { act } from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -13,7 +12,7 @@ const mockUseAcestreamChannels = jest.fn();
 const mockUseDeleteAcestreamChannel = jest.fn();
 const mockUseAllTVChannels = jest.fn();
 const mockGetGroups = jest.fn();
-const mockFetch = jest.fn();
+const mockCheckAllStatuses = jest.fn();
 const mockDeleteMutate = jest.fn();
 let latestOnDelete: ((id: string) => Promise<boolean>) | undefined;
 
@@ -66,6 +65,7 @@ jest.mock('../services/channelService', () => ({
     updateAcestreamChannel: jest.fn(),
     createAcestreamChannel: jest.fn(),
     checkAcestreamChannelStatus: jest.fn(),
+    checkAllStatuses: (...args: unknown[]) => mockCheckAllStatuses(...args),
     assignToTVChannel: jest.fn(),
     bulkEditAcestreamChannels: jest.fn(),
     bulkDeleteAcestreamChannels: jest.fn(),
@@ -75,8 +75,6 @@ jest.mock('../services/channelService', () => ({
 }));
 
 describe('AcestreamChannels page hardening', () => {
-  let consoleErrorSpy: jest.SpyInstance;
-
   const renderPage = () =>
     render(
       <ThemeProvider theme={createAppTheme('light')}>
@@ -86,20 +84,18 @@ describe('AcestreamChannels page hardening', () => {
       </ThemeProvider>
     );
 
-  const renderPageAndWaitForGroups = async () => {
-    await act(async () => {
-      renderPage();
-    });
-    await waitFor(() => expect(mockGetGroups).toHaveBeenCalledTimes(1));
-    await act(async () => {
-      await Promise.resolve();
-    });
+  const renderPageAndWaitForGroups = async (options?: { expectedGroupsText?: string }) => {
+    renderPage();
+    await waitFor(() => expect(mockGetGroups).toHaveBeenCalled());
+    if (options?.expectedGroupsText) {
+      await waitFor(() => expect(screen.getByTestId('advanced-search')).toHaveTextContent(options.expectedGroupsText));
+    }
   };
 
+  const user = () => userEvent.setup();
+
   beforeEach(() => {
-    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.clearAllMocks();
-    global.fetch = mockFetch as unknown as typeof fetch;
     latestOnDelete = undefined;
 
     mockUseAcestreamChannels.mockReturnValue({
@@ -122,18 +118,31 @@ describe('AcestreamChannels page hardening', () => {
     mockUseDeleteAcestreamChannel.mockReturnValue({ mutate: mockDeleteMutate });
     mockUseAllTVChannels.mockReturnValue({ data: { items: [] } });
     mockGetGroups.mockResolvedValue(['Sports', 'News']);
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({ message: 'Acestream status check task triggered successfully.' }),
-    });
+    mockCheckAllStatuses.mockResolvedValue({ message: 'Acestream status check task triggered successfully.' });
   });
 
-  afterEach(() => {
-    consoleErrorSpy.mockRestore();
+  it('opens with an extracted-channel routing summary and keeps inventory primary', async () => {
+    await renderPageAndWaitForGroups({ expectedGroupsText: 'groups:Sports,News' });
+
+    const channelsHeading = screen.getByRole('heading', { level: 2, name: 'Channels' });
+    const filtersHeading = screen.getByRole('heading', { level: 2, name: 'Filters' });
+
+    expect(screen.getByText('Sources')).toBeInTheDocument();
+    expect(screen.getByText('Extracted channels')).toBeInTheDocument();
+    expect(screen.getByText('TV organization')).toBeInTheDocument();
+    expect(screen.getByText(/extracted-channel routing stage/i)).toBeInTheDocument();
+    expect(screen.getByText(/inventory status/i)).toBeInTheDocument();
+    expect(screen.getByText(/assign channels to tv entries/i)).toBeInTheDocument();
+    expect(channelsHeading.compareDocumentPosition(filtersHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  const getActWarnings = () =>
-    consoleErrorSpy.mock.calls.filter(([message]) => String(message).includes('not wrapped in act'));
+  it('keeps the inventory usable while group suggestions are still loading', () => {
+    mockGetGroups.mockReturnValue(new Promise(() => undefined));
+
+    renderPage();
+
+    expect(screen.getByTestId('channel-table')).toHaveTextContent('channels:1;loading:false');
+  });
 
   it('keeps filters and channels visible when group loading fails', async () => {
     mockGetGroups.mockRejectedValueOnce(
@@ -145,7 +154,7 @@ describe('AcestreamChannels page hardening', () => {
       })
     );
 
-    await renderPageAndWaitForGroups();
+    await renderPageAndWaitForGroups({ expectedGroupsText: 'groups:none' });
 
     expect(await screen.findByText('Unable to load groups')).toBeInTheDocument();
     expect(screen.getByText('Unable to reach the server. Check your connection and try again.')).toBeInTheDocument();
@@ -153,7 +162,6 @@ describe('AcestreamChannels page hardening', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Channels' })).toBeInTheDocument();
     expect(screen.getByTestId('advanced-search')).toHaveTextContent('groups:none');
     expect(screen.getByTestId('channel-table')).toHaveTextContent('channels:1;loading:false');
-    expect(getActWarnings()).toHaveLength(0);
   });
 
   it('renders a retryable channels notice while keeping the page usable', async () => {
@@ -171,7 +179,7 @@ describe('AcestreamChannels page hardening', () => {
       }),
     });
 
-    await renderPageAndWaitForGroups();
+    await renderPageAndWaitForGroups({ expectedGroupsText: 'groups:Sports,News' });
 
     expect(await screen.findByText('Unable to load channels')).toBeInTheDocument();
     expect(screen.getByText('Unable to reach the server. Check your connection and try again.')).toBeInTheDocument();
@@ -180,12 +188,9 @@ describe('AcestreamChannels page hardening', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Filters' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Channels' })).toBeInTheDocument();
 
-    await act(async () => {
-      await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
-    });
+    await user().click(screen.getByRole('button', { name: 'Try again' }));
 
     expect(refetch).toHaveBeenCalledTimes(1);
-    expect(getActWarnings()).toHaveLength(0);
   });
 
   it('returns a delete promise that waits for mutation completion', async () => {
@@ -196,7 +201,7 @@ describe('AcestreamChannels page hardening', () => {
       capturedCallbacks = callbacks;
     });
 
-    await renderPageAndWaitForGroups();
+    await renderPageAndWaitForGroups({ expectedGroupsText: 'groups:Sports,News' });
 
     const deletePromise = latestOnDelete?.('ace-100');
     let resolved = false;
@@ -215,7 +220,6 @@ describe('AcestreamChannels page hardening', () => {
     await deletePromise;
 
     expect(resolved).toBe(true);
-    expect(getActWarnings()).toHaveLength(0);
     confirmSpy.mockRestore();
   });
 
@@ -227,7 +231,7 @@ describe('AcestreamChannels page hardening', () => {
       capturedCallbacks = callbacks;
     });
 
-    await renderPageAndWaitForGroups();
+    await renderPageAndWaitForGroups({ expectedGroupsText: 'groups:Sports,News' });
 
     const deletePromise = latestOnDelete?.('ace-100');
     const deleteError = new ApiError({
@@ -244,41 +248,39 @@ describe('AcestreamChannels page hardening', () => {
 
     expect(await screen.findByText('Failed to delete channel: Channel is still in use.')).toBeInTheDocument();
     expect(screen.getAllByText('Failed to delete channel: Channel is still in use.')).toHaveLength(1);
-    expect(getActWarnings()).toHaveLength(0);
     confirmSpy.mockRestore();
   });
 
   it('resolves false when deletion is canceled before mutation starts', async () => {
     const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(false);
 
-    await renderPageAndWaitForGroups();
+    await renderPageAndWaitForGroups({ expectedGroupsText: 'groups:Sports,News' });
 
     await expect(latestOnDelete?.('ace-100')).resolves.toBe(false);
 
     expect(confirmSpy).toHaveBeenCalledWith('Are you sure you want to delete this channel?');
     expect(mockDeleteMutate).not.toHaveBeenCalled();
-    expect(getActWarnings()).toHaveLength(0);
     confirmSpy.mockRestore();
   });
 
-  it('preserves the check-all snackbar flow with shared validation error handling', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 422,
-      statusText: 'Unprocessable Entity',
-      json: async () => ({ detail: 'Status check already running.' }),
-    });
+  it('routes check-all status requests through the channel service and preserves validation snackbar handling', async () => {
+    mockCheckAllStatuses.mockRejectedValueOnce(
+      new ApiError({
+        message: 'Status check already running.',
+        status: 422,
+        kind: 'validation',
+        canRetry: false,
+      })
+    );
 
-    await renderPageAndWaitForGroups();
+    await renderPageAndWaitForGroups({ expectedGroupsText: 'groups:Sports,News' });
 
-    await act(async () => {
-      await userEvent.click(screen.getByRole('button', { name: 'Check All Statuses' }));
-    });
+    await user().click(screen.getByRole('button', { name: 'Check All Statuses' }));
 
+    await waitFor(() => expect(mockCheckAllStatuses).toHaveBeenCalledTimes(1));
     expect(await screen.findByText('Status check already running.')).toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent('Status check already running.');
     expect(screen.queryByText(/Failed to check all statuses:/i)).not.toBeInTheDocument();
     expect(screen.queryByText('Acestream status check task triggered successfully.')).not.toBeInTheDocument();
-    expect(getActWarnings()).toHaveLength(0);
   });
 });

@@ -20,8 +20,10 @@ import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
+import { alpha, useTheme } from '@mui/material/styles';
 
 const Health: React.FC = () => {
+  const theme = useTheme();
   // Queries
   const { data: healthData, isLoading: healthLoading, error: healthError, refetch: refetchHealth } = useHealth({
     refetchInterval: 60000 // Refetch every minute
@@ -107,6 +109,39 @@ const Health: React.FC = () => {
         }
       >
         <Stack spacing={2}>
+          <Paper
+            variant="outlined"
+            sx={{
+              p: { xs: 2, md: 2.5 },
+              borderColor: theme.appTokens.hero.border,
+              bgcolor: theme.appTokens.hero.bg,
+              backgroundImage: theme.appTokens.hero.spotlight,
+            }}
+          >
+            <Stack spacing={1.5}>
+              <Typography variant="statusMeta" sx={{ color: theme.appTokens.hero.accent }}>
+                System readiness
+              </Typography>
+              <Typography variant="h4" sx={{ letterSpacing: '-0.03em' }}>
+                {healthData?.status === 'healthy'
+                  ? 'Healthy and ready for scraper and channel work.'
+                  : healthData?.status === 'degraded'
+                    ? 'Healthy enough to continue, but one or more systems need attention.'
+                    : 'The system needs review before you continue.'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Use this summary to confirm whether the engine is reachable, whether configuration looks right, and where you should go next.
+              </Typography>
+              <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: alpha(theme.appTokens.surface.panel, 0.9), border: `1px solid ${theme.appTokens.surface.border}` }}>
+                <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>
+                  Next step
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  Continue with scraper, playlist, or channel tasks once the engine and core settings look correct.
+                </Typography>
+              </Box>
+            </Stack>
+          </Paper>
           <Alert severity={healthData?.status === 'healthy' ? 'success' : healthData?.status === 'degraded' ? 'warning' : 'error'}>
             {healthData?.status ? `${healthData.status.toUpperCase()} · ${healthData.acestream.message}` : 'Status unknown'}
           </Alert>

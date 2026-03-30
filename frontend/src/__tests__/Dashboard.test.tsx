@@ -57,6 +57,7 @@ describe('Dashboard UI', () => {
   it('renders activity, background tasks, streams, and warp status', async () => {
     renderDashboard();
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    expect(screen.getByText('Scraper pulse')).toBeInTheDocument();
     expect(screen.getByText('Recent Activity')).toBeInTheDocument();
     expect(screen.getByText('Scrape started')).toBeInTheDocument();
     expect(screen.getByText('Scrape finished')).toBeInTheDocument();
@@ -168,9 +169,22 @@ describe('Dashboard UI', () => {
     renderDashboard();
 
     expect(screen.getByRole('heading', { level: 2, name: 'System readiness' })).toBeInTheDocument();
+    expect(screen.getByText(/^Freshness$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Next step$/i)).toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent(/protected connection active/i);
     expect(screen.getByText(/streams available right now/i)).toBeInTheDocument();
     expect(screen.getByText(/latest run:/i)).toBeInTheDocument();
+  });
+
+  it('promotes scraper readiness as the dominant hero and keeps supporting metrics secondary', () => {
+    renderDashboard();
+
+    expect(screen.getByText('Scraper pulse')).toBeInTheDocument();
+    expect(screen.getByText(/scraper is active and ready for the next scheduled pass/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Freshness$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Attention needed$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Next step$/i)).toBeInTheDocument();
+    expect(screen.getByText(/open scraper to review job details/i)).toBeInTheDocument();
   });
 
   it('handles loading state', () => {

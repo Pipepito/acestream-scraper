@@ -30,12 +30,30 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
           px: layout.pagePaddingX,
           py: layout.pagePaddingY,
           bgcolor: theme.appTokens.surface.canvas,
+          backgroundImage: theme.appTokens.shell.contentGlow,
+          backgroundRepeat: 'no-repeat',
+          backgroundSize: '100% 100%',
           display: 'flex',
           flexDirection: 'column',
         }}
       >
         <Toolbar />
-        <Box sx={{ maxWidth: contentMaxWidth, mr: 'auto', width: '100%', minWidth: 0 }}>{children}</Box>
+        <Box
+          sx={{
+            maxWidth: contentMaxWidth,
+            mr: 'auto',
+            width: '100%',
+            minWidth: 0,
+            bgcolor: theme.appTokens.surface.raised,
+            border: `1px solid ${theme.appTokens.surface.border}`,
+            borderRadius: `calc(${theme.appTokens.layout.cardRadius}px + 6px)`,
+            boxShadow: theme.appTokens.layout.elevatedShadow,
+            px: { xs: 1.5, sm: 2.5, md: 3 },
+            py: { xs: 2, sm: 2.5, md: 3 },
+          }}
+        >
+          {children}
+        </Box>
       </Box>
     </Box>
   );

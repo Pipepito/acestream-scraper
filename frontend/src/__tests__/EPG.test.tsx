@@ -121,6 +121,17 @@ describe('EPG page pagination', () => {
     expect(channelInventory.compareDocumentPosition(xmlOutput) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
+  it('opens with an operational EPG summary that explains readiness and next steps', () => {
+    renderPage();
+
+    expect(screen.getByText('EPG pulse')).toBeInTheDocument();
+    expect(screen.getByText(/source inventory is ready for matching and xml output/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Source count$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Matching status$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Next step$/i)).toBeInTheDocument();
+    expect(screen.getByText(/review unmapped channels or generate xml when source coverage looks right/i)).toBeInTheDocument();
+  });
+
   it('exposes accessible names for key row actions', () => {
     renderPage();
 

@@ -257,6 +257,8 @@ const TVChannelDetail: React.FC = () => {
       />
 
       <Box
+        component="section"
+        aria-label="Relationship summary"
         sx={{
           mb: 3,
           p: { xs: 2, md: 2.5 },
@@ -266,7 +268,7 @@ const TVChannelDetail: React.FC = () => {
           backgroundImage: theme.appTokens.hero.spotlight,
         }}
       >
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, justifyContent: 'space-between' }}>
+        <Stack spacing={1.5} sx={{ minWidth: 0 }}>
           <Box sx={{ minWidth: 0, maxWidth: 760 }}>
             <Typography variant="statusMeta" sx={{ color: theme.appTokens.hero.accent, mb: 1 }}>
               Relationship summary
@@ -274,11 +276,9 @@ const TVChannelDetail: React.FC = () => {
             <Typography variant="h4" sx={{ letterSpacing: '-0.03em', mb: 1 }}>
               {identitySummary}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {relationshipSupport}
-            </Typography>
           </Box>
-          <Stack spacing={1} sx={{ minWidth: { xs: '100%', sm: 320 } }}>
+
+          <Stack spacing={1} sx={{ minWidth: { xs: '100%', sm: 320 }, maxWidth: 420 }}>
             <Box
               sx={{
                 p: 1.5,
@@ -297,6 +297,7 @@ const TVChannelDetail: React.FC = () => {
                 {linkedAcestreamCount} linked acestream source{linkedAcestreamCount === 1 ? '' : 's'} {hasEpgLink ? 'with guide linkage in place.' : 'and no guide linkage yet.'}
               </Typography>
             </Box>
+
             <Box
               sx={{
                 p: 1.5,
@@ -313,7 +314,11 @@ const TVChannelDetail: React.FC = () => {
               </Typography>
             </Box>
           </Stack>
-        </Box>
+
+          <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 760 }}>
+            {relationshipSupport}
+          </Typography>
+        </Stack>
       </Box>
 
       {notice ? (

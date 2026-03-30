@@ -1,7 +1,7 @@
 import React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import EPGChannelDetail from '../pages/EPGChannelDetail';
 import { createAppTheme } from '../theme';
@@ -130,25 +130,33 @@ describe('EPGChannelDetail', () => {
     expect(screen.getByRole('button', { name: 'Delete string mapping Late' })).toBeInTheDocument();
   });
 
-  it('shows a diagnostic relationship summary above channel summary and prioritizes mapping when candidates exist', () => {
+  it('shows a diagnostic relationship summary region above channel summary and keeps the blocks ordered', () => {
     renderPage();
 
-    const identity = screen.getByText('EPG source: Late Channel');
-    const relationshipState = screen.getByText(/^Relationship state$/i);
-    const nextStep = screen.getByText(/^Next step$/i);
-    const supportCopy = screen.getByText(/XML ID late-channel is loaded for review/i);
+    const relationshipSummary = screen.getByRole('region', { name: 'Relationship summary' });
+    const identity = within(relationshipSummary).getByText('EPG source: Late Channel');
+    const relationshipState = within(relationshipSummary).getByText(/^Relationship state$/i);
+    const nextStep = within(relationshipSummary).getByText(/^Next step$/i);
+    const supportCopy = within(relationshipSummary).getByText(/XML ID late-channel is loaded for review/i);
     const channelSummary = screen.getByRole('heading', { level: 2, name: 'Channel Summary' });
 
     expect(identity).toBeInTheDocument();
     expect(supportCopy).toBeInTheDocument();
     expect(relationshipState).toBeInTheDocument();
     expect(nextStep).toBeInTheDocument();
-    expect(screen.getByText(/No linked TV channel found in the loaded catalog yet/i)).toBeInTheDocument();
-    expect(screen.getByText(/Map this source to an existing TV channel before tuning schedule rules/i)).toBeInTheDocument();
+    expect(within(relationshipSummary).getByText(/No linked TV channel found in the loaded catalog yet/i)).toBeInTheDocument();
+    expect(within(relationshipSummary).getByText(/Map this source to an existing TV channel before tuning schedule rules/i)).toBeInTheDocument();
     expect(relationshipState.compareDocumentPosition(channelSummary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(identity.compareDocumentPosition(relationshipState) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(relationshipState.compareDocumentPosition(nextStep) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(nextStep.compareDocumentPosition(supportCopy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('adds accessible labels to the dense schedule and mapping tables', () => {
+    renderPage();
+
+    expect(screen.getByRole('table', { name: 'Program schedule table' })).toBeInTheDocument();
+    expect(screen.getByRole('table', { name: 'String mapping rules table' })).toBeInTheDocument();
   });
 
   it('prioritizes create guidance when no inferred link or mapping choices exist', () => {

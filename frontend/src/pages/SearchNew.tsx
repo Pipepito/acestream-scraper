@@ -9,7 +9,7 @@ const SearchNew: React.FC = () => {
   return (
     <LegacyRouteRecovery
       title="Search"
-      summary="This legacy route has moved. Continue in the current Search workflow to find channels from the supported path."
+      summary="This route moved, so continue in Search from the supported path."
       sectionTitle="Continue in the supported search flow"
       sectionDescription="Open the main Search page to keep working with the active search experience."
       actions={
@@ -17,7 +17,7 @@ const SearchNew: React.FC = () => {
           Open Search
         </Button>
       }
-      statusLine="Legacy route: search now runs from the main Search workflow."
+      statusLine="Legacy route: continue from the main Search workflow."
       supportingText="Use the current search page instead of this older entry point."
     />
   );

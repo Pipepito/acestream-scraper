@@ -9,9 +9,9 @@ const ChannelDetail: React.FC = () => {
   return (
     <LegacyRouteRecovery
       title="Channel detail"
-      summary="This legacy detail route is no longer the active workflow. Use the supported channel lists to reopen the item from a current path."
+      summary="This detail route is no longer active, so reopen the item from a supported list before continuing."
       sectionTitle="Choose a supported channel workflow"
-      sectionDescription="Open TV Channels for the primary recovery path, or open EPG if you were trying to continue through guide-based channel details."
+      sectionDescription="Open TV Channels for the main recovery path, or open EPG if you were returning through guide-based channel work."
       actions={
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
           <Button variant="contained" onClick={() => navigate('/tv-channels')}>
@@ -22,8 +22,8 @@ const ChannelDetail: React.FC = () => {
           </Button>
         </Stack>
       }
-      statusLine="Legacy detail route: this page no longer maps directly to a supported detail screen."
-      supportingText="Return to the current lists, then open the channel again from TV Channels or EPG."
+      statusLine="Legacy detail route: reopen the item from TV Channels or EPG."
+      supportingText="Use a current list first, then return to the detail screen from there."
     />
   );
 };

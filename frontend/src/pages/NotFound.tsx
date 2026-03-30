@@ -11,13 +11,17 @@ const NotFound: React.FC = () => {
     <Box sx={{ maxWidth: 720 }}>
       <PageHeader
         title="Page not found"
-        subtitle="This is an unsupported or outdated route. Return to the dashboard to restart from a supported operational view."
+        subtitle="This is an unsupported or outdated route, so restart from a supported workspace."
       />
       <ContentSection
         title="Go to a supported workflow"
         description="If this came from an old bookmark, stale link, or unsupported path, use one of the current routes below."
-        actions={
-          <>
+      >
+        <Stack spacing={1}>
+          <Typography variant="body2" color="text.primary">
+            Unsupported route: restart from Dashboard, TV Channels, or Search.
+          </Typography>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
             <Button variant="contained" color="primary" onClick={() => navigate('/', { replace: true })}>
               Open Dashboard
             </Button>
@@ -27,15 +31,9 @@ const NotFound: React.FC = () => {
             <Button variant="outlined" color="primary" onClick={() => navigate('/search', { replace: true })}>
               Open Search
             </Button>
-          </>
-        }
-      >
-        <Stack spacing={1} sx={{ color: 'text.secondary' }}>
-          <Typography variant="body2">
-            Dashboard is the fastest recovery path when you need to reorient or confirm the current workflow.
-          </Typography>
-          <Typography variant="body2">
-            TV Channels and Search are also likely destinations if you were trying to recover inventory or continue lookup work.
+          </Stack>
+          <Typography variant="body2" color="text.secondary">
+            Use one of the supported routes below to recover quickly from an outdated link or path.
           </Typography>
         </Stack>
       </ContentSection>

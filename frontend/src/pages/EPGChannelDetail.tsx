@@ -304,7 +304,14 @@ const EPGChannelDetail: React.FC = () => {
           ? `${tvChannels?.length || 0} TV channel option${(tvChannels?.length || 0) === 1 ? '' : 's'} available for mapping.`
           : 'No TV channel options are loaded yet.';
 
-  const relationshipSupport = `XML ID ${channel.channel_xml_id} is loaded for review. ${hasRelationshipLoading ? 'Schedule and TV catalog evidence are still arriving.' : hasRelationshipError ? 'Schedule or TV catalog evidence needs attention before this summary can recommend a confident relationship action.' : hasVisiblePrograms ? `${visibleProgramCount} program${visibleProgramCount === 1 ? '' : 's'} visible in the selected date range.` : 'No programs are visible in the selected date range.'} ${stringMappingSupport}`;
+  const scheduleSupport = hasRelationshipLoading
+    ? 'Schedule and TV catalog evidence are still arriving.'
+    : hasRelationshipError
+      ? 'Schedule or TV catalog evidence needs attention before this summary can recommend a confident relationship action.'
+      : hasVisiblePrograms
+        ? `${visibleProgramCount} program${visibleProgramCount === 1 ? '' : 's'} visible in the selected date range.`
+        : 'No programs are visible in the selected date range.';
+  const relationshipSupport = `XML ID ${channel.channel_xml_id} is loaded for review. ${scheduleSupport} ${stringMappingSupport}`;
 
   return (
     <Box sx={{ width: '100%', typography: 'body1' }}>
@@ -350,6 +357,8 @@ const EPGChannelDetail: React.FC = () => {
       />
 
       <Box
+        component="section"
+        aria-label="Relationship summary"
         sx={{
           mb: 3,
           p: { xs: 2, md: 2.5 },
@@ -359,8 +368,7 @@ const EPGChannelDetail: React.FC = () => {
           backgroundImage: theme.appTokens.hero.spotlight,
         }}
       >
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, justifyContent: 'space-between' }}>
-          <Stack spacing={1} sx={{ minWidth: 0, flex: '1 1 520px', maxWidth: 760 }}>
+        <Stack spacing={1.5} sx={{ minWidth: 0, maxWidth: 760 }}>
             <Typography variant="statusMeta" sx={{ color: theme.appTokens.hero.accent, mb: 1 }}>
               Relationship summary
             </Typography>
@@ -405,8 +413,7 @@ const EPGChannelDetail: React.FC = () => {
             <Typography variant="body2" color="text.secondary">
               {relationshipSupport}
             </Typography>
-          </Stack>
-        </Box>
+        </Stack>
       </Box>
 
       <ContentSection title="Channel Summary" description="Confirm identity details before mapping or filtering program results.">
@@ -493,7 +500,7 @@ const EPGChannelDetail: React.FC = () => {
 
         {!programsError ? (
           <TableContainer component={Box} sx={{ overflowX: 'auto' }}>
-          <Table>
+          <Table aria-label="Program schedule table">
             <TableHead>
               <TableRow>
                 <TableCell>Start Time</TableCell>
@@ -594,7 +601,7 @@ const EPGChannelDetail: React.FC = () => {
 
         {!stringMappingsError ? (
           <TableContainer component={Box} sx={{ overflowX: 'auto' }}>
-          <Table>
+          <Table aria-label="String mapping rules table">
             <TableHead>
               <TableRow>
                 <TableCell>Pattern</TableCell>

@@ -9,16 +9,16 @@ const Channels: React.FC = () => {
   return (
     <LegacyRouteRecovery
       title="Channels"
-      summary="This legacy route has moved. Use the current channel inventory views to keep working in a supported workflow."
+      summary="This route now redirects to the supported channel inventory so you can restart from the current workflow."
       sectionTitle="Go to the current channel views"
-      sectionDescription="Open TV Channels for the main inventory path. If you need source-level context, check Acestream Channels separately."
+      sectionDescription="Open TV Channels for the primary inventory path. Acestream Channels remains separate when you need source-level context."
       actions={
         <Button variant="contained" onClick={() => navigate('/tv-channels')}>
           Open TV Channels
         </Button>
       }
-      statusLine="Legacy route: channel management now lives in TV Channels."
-      supportingText="Use the modern inventory routes instead of this older entry point."
+      statusLine="Legacy route: recover channel work from TV Channels."
+      supportingText="Use the supported inventory routes instead of this older entry point."
     />
   );
 };

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 
 import TVChannelDetail from '../pages/TVChannelDetail';
 import { createAppTheme } from '../theme';
@@ -105,16 +105,21 @@ describe('TVChannelDetail', () => {
     );
   });
 
-  it('renders a relationship summary above channel summary with identity, relationship status, and next step', () => {
+  it('renders a relationship summary region with identity, status, next step, and support in order', () => {
     renderPage();
 
+    const relationshipSummary = screen.getByRole('region', { name: 'Relationship summary' });
     const channelSummaryHeading = screen.getByRole('heading', { level: 2, name: 'Channel Summary' });
-    const identitySummary = screen.getByText(/Arena TV is active, marked favorite, and ready for playback and guide review\./i);
+    const identitySummary = within(relationshipSummary).getByText(/Arena TV is active, marked favorite/i);
+    const relationshipStatus = within(relationshipSummary).getByText(/^Relationship status$/i);
+    const nextStep = within(relationshipSummary).getByText(/^Next step$/i);
+    const supportCopy = within(relationshipSummary).getByText(/Linked source coverage and guide linkage are both present/i);
 
-    expect(screen.getByText(/^Relationship status$/i)).toBeInTheDocument();
-    expect(screen.getByText(/^Next step$/i)).toBeInTheDocument();
-    expect(screen.getByText('Operational relationship in place')).toBeInTheDocument();
+    expect(within(relationshipSummary).getByText('Operational relationship in place')).toBeInTheDocument();
     expect(identitySummary.compareDocumentPosition(channelSummaryHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(identitySummary.compareDocumentPosition(relationshipStatus) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(relationshipStatus.compareDocumentPosition(nextStep) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(nextStep.compareDocumentPosition(supportCopy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('prioritizes missing acestream coverage ahead of missing guide linkage', () => {

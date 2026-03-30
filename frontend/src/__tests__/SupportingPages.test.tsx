@@ -287,16 +287,22 @@ describe('Supporting page normalization', () => {
 
     const headerCopy = screen.getByTestId('page-header-copy');
     const sectionCopy = screen.getByTestId('content-section-copy');
+    const recoveryStatus = screen.getByText(/unsupported route: restart from dashboard, tv channels, or search/i);
+    const supportCopy = screen.getByText(/use one of the supported routes below to recover quickly/i);
+    const dashboardAction = screen.getByRole('button', { name: 'Open Dashboard' });
 
     expect(screen.getByRole('heading', { level: 1, name: 'Page not found' })).toBeInTheDocument();
-    expect(headerCopy).toHaveTextContent(/unsupported|outdated/i);
-    expect(headerCopy).toHaveTextContent(/dashboard/i);
+    expect(headerCopy).toHaveTextContent(/unsupported or outdated route/i);
+    expect(headerCopy).toHaveTextContent(/restart from a supported workspace/i);
     expect(screen.getByRole('heading', { level: 2, name: 'Go to a supported workflow' })).toBeInTheDocument();
     expect(sectionCopy).toHaveTextContent(/old bookmark|stale link|unsupported path/i);
     expect(screen.getByRole('button', { name: 'Open Dashboard' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Open TV Channels' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Open Search' })).toBeInTheDocument();
     expect(headerCopy.compareDocumentPosition(sectionCopy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(sectionCopy.compareDocumentPosition(recoveryStatus) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(recoveryStatus.compareDocumentPosition(dashboardAction) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(dashboardAction.compareDocumentPosition(supportCopy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('navigates from NotFound to the primary and likely supported destinations', () => {
@@ -355,16 +361,21 @@ describe('Supporting page normalization', () => {
 
     const headerCopy = screen.getByTestId('page-header-copy');
     const sectionCopy = screen.getByTestId('content-section-copy');
+    const recoveryStatus = screen.getByText(/legacy route: recover channel work from tv channels/i);
+    const supportCopy = screen.getByText(/use the supported inventory routes instead of this older entry point/i);
+    const primaryAction = screen.getByRole('button', { name: 'Open TV Channels' });
 
     expect(screen.getByRole('heading', { level: 1, name: 'Channels' })).toBeInTheDocument();
-    expect(within(headerCopy).getByText(/legacy route has moved/i)).toBeInTheDocument();
-    expect(screen.getByText(/channel management now lives in tv channels/i)).toBeInTheDocument();
-    expect(within(sectionCopy).getByText(/open tv channels for the main inventory path/i)).toBeInTheDocument();
-    expect(within(sectionCopy).getByText(/if you need source-level context, check acestream channels separately/i)).toBeInTheDocument();
+    expect(within(headerCopy).getByText(/route now redirects to the supported channel inventory/i)).toBeInTheDocument();
+    expect(within(sectionCopy).getByText(/open tv channels for the primary inventory path/i)).toBeInTheDocument();
+    expect(within(sectionCopy).getByText(/acestream channels remains separate when you need source-level context/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Go to the current channel views' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Open TV Channels' })).toBeInTheDocument();
+    expect(primaryAction).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Open Acestream Channels' })).not.toBeInTheDocument();
     expect(headerCopy.compareDocumentPosition(sectionCopy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(sectionCopy.compareDocumentPosition(recoveryStatus) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(recoveryStatus.compareDocumentPosition(primaryAction) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(primaryAction.compareDocumentPosition(supportCopy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('navigates from Channels to TV Channels with the recovery action', () => {
@@ -380,15 +391,20 @@ describe('Supporting page normalization', () => {
 
     const headerCopy = screen.getByTestId('page-header-copy');
     const sectionCopy = screen.getByTestId('content-section-copy');
+    const recoveryStatus = screen.getByText(/legacy detail route: reopen the item from tv channels or epg/i);
+    const supportCopy = screen.getByText(/use a current list first, then return to the detail screen from there/i);
+    const primaryAction = screen.getByRole('button', { name: 'Open TV Channels' });
 
     expect(screen.getByRole('heading', { level: 1, name: 'Channel detail' })).toBeInTheDocument();
-    expect(within(headerCopy).getByText(/legacy detail route/i)).toBeInTheDocument();
-    expect(within(headerCopy).getByText(/no longer the active workflow/i)).toBeInTheDocument();
-    expect(screen.getByText(/supported detail screen/i)).toBeInTheDocument();
+    expect(within(headerCopy).getByText(/detail route is no longer active/i)).toBeInTheDocument();
+    expect(within(headerCopy).getByText(/reopen the item from a supported list/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Choose a supported channel workflow' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Open TV Channels' })).toBeInTheDocument();
+    expect(primaryAction).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Open EPG' })).toBeInTheDocument();
     expect(headerCopy.compareDocumentPosition(sectionCopy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(sectionCopy.compareDocumentPosition(recoveryStatus) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(recoveryStatus.compareDocumentPosition(primaryAction) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(primaryAction.compareDocumentPosition(supportCopy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('navigates from ChannelDetail to supported TV Channels and EPG flows', () => {
@@ -409,13 +425,19 @@ describe('Supporting page normalization', () => {
 
     const headerCopy = screen.getByTestId('page-header-copy');
     const sectionCopy = screen.getByTestId('content-section-copy');
+    const recoveryStatus = screen.getByText(/legacy route: continue from the main search workflow/i);
+    const supportCopy = screen.getByText(/use the current search page instead of this older entry point/i);
+    const primaryAction = screen.getByRole('button', { name: 'Open Search' });
 
     expect(screen.getByRole('heading', { level: 1, name: 'Search' })).toBeInTheDocument();
-    expect(within(headerCopy).getByText(/legacy route has moved/i)).toBeInTheDocument();
-    expect(screen.getByText(/search now runs from the main search workflow/i)).toBeInTheDocument();
+    expect(within(headerCopy).getByText(/route moved/i)).toBeInTheDocument();
+    expect(within(headerCopy).getByText(/continue in search from the supported path/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Continue in the supported search flow' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Open Search' })).toBeInTheDocument();
+    expect(primaryAction).toBeInTheDocument();
     expect(headerCopy.compareDocumentPosition(sectionCopy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(sectionCopy.compareDocumentPosition(recoveryStatus) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(recoveryStatus.compareDocumentPosition(primaryAction) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(primaryAction.compareDocumentPosition(supportCopy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('navigates from SearchNew to the supported search flow', () => {

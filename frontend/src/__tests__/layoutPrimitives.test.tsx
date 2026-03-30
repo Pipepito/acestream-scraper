@@ -70,6 +70,7 @@ describe('layout primitives', () => {
     expect(header).toBeInTheDocument();
     expect(copy).toHaveStyle({ minWidth: '0' });
     expect(actions).toHaveStyle({ flexWrap: 'wrap' });
+    expect(screen.getByText('Track operational status.')).toHaveStyle({ marginTop: '4px' });
     expect(screen.getByText('Track operational status.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Run health check' })).toBeInTheDocument();
@@ -226,6 +227,7 @@ describe('layout primitives', () => {
     expect(secondRegion).toBeInTheDocument();
     expect(copy).toHaveStyle({ minWidth: '0' });
     expect(actions).toHaveStyle({ flexWrap: 'wrap' });
+    expect(description).toHaveStyle({ marginTop: '4px' });
     expect(description).toBeInTheDocument();
     expect(screen.getByText('Section body')).toBeInTheDocument();
     expect(screen.getByText('Second section body')).toBeInTheDocument();

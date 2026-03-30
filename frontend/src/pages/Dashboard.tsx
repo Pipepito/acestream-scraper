@@ -200,23 +200,23 @@ const Dashboard: React.FC = () => {
     <Box>
       <PageHeader
         title="Dashboard"
-        subtitle="Track operational status, recent activity, and background jobs."
+        subtitle="Check readiness and move to the next workflow."
         primaryActions={
           <Stack component="nav" aria-label="Dashboard primary actions" direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ width: '100%' }}>
+            <Button component={RouterLink} to="/epg" variant="contained">
+              EPG
+            </Button>
             <Button component={RouterLink} to="/scraper" variant="outlined">
               Open Scraper
             </Button>
             <Button component={RouterLink} to="/acestream-channels" variant="outlined">
               Channels
             </Button>
-            <Button component={RouterLink} to="/epg" variant="contained">
-              EPG
-            </Button>
           </Stack>
         }
       />
 
-      <ContentSection title="Controls" description="Tune refresh cadence and activity retention.">
+      <ContentSection title="Dashboard tools" description="Filter activity and adjust refresh behavior.">
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} flexWrap="wrap">
           <FormControl sx={{ minWidth: 140 }}>
             <InputLabel>Retention</InputLabel>
@@ -251,7 +251,7 @@ const Dashboard: React.FC = () => {
         </Stack>
       </ContentSection>
 
-      <ContentSection title="Operational path" description="Start with connection health, confirm live capacity, then review the scheduler before opening detailed pages.">
+      <ContentSection title="System readiness" description="Check the current state, then choose the next workflow.">
         <Paper variant="outlined" sx={{ p: 2.5 }}>
           <Stack spacing={2}>
             <Alert severity={(warp as { error?: string | null } | undefined)?.error ? 'warning' : 'success'}>
@@ -262,7 +262,7 @@ const Dashboard: React.FC = () => {
 
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} divider={<Divider flexItem orientation="vertical" sx={{ display: { xs: 'none', md: 'block' } }} />}>
               <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography variant="sectionTitle">1. Confirm live stream capacity</Typography>
+                <Typography variant="sectionTitle">Stream capacity</Typography>
                 <Typography variant="h4" sx={{ mt: 1 }}>
                   {(streams as { count?: number } | undefined)?.count ?? 0}
                 </Typography>
@@ -273,7 +273,7 @@ const Dashboard: React.FC = () => {
               </Box>
 
               <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography variant="sectionTitle">2. Review protected routing</Typography>
+                <Typography variant="sectionTitle">Protected routing</Typography>
                 <Typography variant="body1" sx={{ mt: 1, fontWeight: 600 }}>
                   WARP status: {(warp as { status?: string } | undefined)?.status ?? 'N/A'}
                 </Typography>
@@ -285,12 +285,12 @@ const Dashboard: React.FC = () => {
               </Box>
 
               <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography variant="sectionTitle">3. Check scheduler follow-through</Typography>
+                <Typography variant="sectionTitle">Scheduler follow-through</Typography>
                 <Typography variant="h4" sx={{ mt: 1 }}>
                   {backgroundTasks.length}
                 </Typography>
                 <Typography variant="helperText" sx={{ mt: 1 }}>
-                  Scheduler is keeping background tasks on cadence. Latest run: {backgroundTasks[0]?.last_run || 'N/A'}.
+                  Latest run: {backgroundTasks[0]?.last_run || 'N/A'}.
                 </Typography>
               </Box>
             </Stack>
@@ -309,8 +309,8 @@ const Dashboard: React.FC = () => {
                     secondary={
                       <>
                         <Typography component="span" variant="body2" color="text.secondary">
-                          {entry.type} | {new Date(entry.timestamp).toLocaleString()}
-                          {entry.user ? ` | User: ${entry.user}` : ''}
+                          {entry.type} - {new Date(entry.timestamp).toLocaleString()}
+                          {entry.user ? ` - ${entry.user}` : ''}
                         </Typography>
                         {entry.details ? (
                           <Box component="span" sx={{ display: 'block', mt: 0.5, fontSize: '0.82rem', color: 'text.secondary' }}>
@@ -348,7 +348,7 @@ const Dashboard: React.FC = () => {
                     secondary={
                       <>
                         <Typography component="span" variant="body2" color="text.secondary">
-                          Last run: {task.last_run || 'N/A'} | Next run: {task.next_run || 'N/A'} | Status: {task.status || 'N/A'}
+                          Last run {task.last_run || 'N/A'} - Next run {task.next_run || 'N/A'} - Status {task.status || 'N/A'}
                         </Typography>
                         {task.last_error ? (
                           <Box component="span" sx={{ display: 'block', mt: 0.5, fontSize: '0.82rem', color: 'error.main' }}>

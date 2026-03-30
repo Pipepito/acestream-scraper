@@ -51,7 +51,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
           <Typography
             variant="helperText"
             color="text.secondary"
-            sx={{ mt: 1, maxWidth: 720, overflowWrap: 'break-word' }}
+            sx={{ mt: 0.5, maxWidth: 720, overflowWrap: 'break-word' }}
           >
             {subtitle}
           </Typography>

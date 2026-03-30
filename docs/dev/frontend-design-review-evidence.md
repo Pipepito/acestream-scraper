@@ -77,3 +77,26 @@
 - Audit status: method=`npm audit --json`; result=pass; notes=the frontend dependency graph now reports `0` vulnerabilities after removing CRA.
 - Bundle split regression coverage: method=`npm test -- --runInBand src/__tests__/viteConfig.test.ts`; result=pass; notes=added a regression guard that the Vite config preserves explicit manual chunks for React, MUI, data, icons, and the TV Channels page.
 - Bundle size follow-up: method=`npm run build`; result=improved-with-warning; notes=manual chunking split the former monolithic app bundle into `react-vendor`, `mui-vendor`, `mui-icons`, `data-vendor`, and `tv-channels-page`, reducing the main entry chunk substantially; the remaining warning is now isolated to `@mui/x-data-grid` (`mui-data-grid`) rather than the general application bundle.
+
+## Frontend Hardening Sweep
+- TV Channels load and retry resilience: method=`npm test -- --runInBand src/__tests__/TVChannelsPageResponsive.test.tsx`; result=pass; notes=verified catalog load failures now show explicit recovery copy and a retry action instead of a dead-end generic alert.
+- TV Channels form validation and mutation resilience: method=`npm test -- --runInBand src/__tests__/TVChannelsPageResponsive.test.tsx`; result=pass; notes=confirmed whitespace-only channel names are blocked client-side, update failures keep dialogs open, preserved user input remains visible, and retryable API messages are surfaced inline.
+- Filter boundary and empty-result recovery: method=`npm test -- --runInBand src/__tests__/TVChannelsPageResponsive.test.tsx`; result=pass; notes=verified trimmed filter input, page reset/clamping on narrower results, and explicit zero-match recovery guidance with reset support.
+- Long-text / multilingual table resilience: method=`npm test -- --runInBand src/__tests__/TVChannelsTable.test.tsx`; result=pass; notes=confirmed long multilingual names, RTL text, emoji, and long metadata remain readable in compact TV channel cards without losing action controls.
+- Shared empty/status resilience: method=`npm test -- --runInBand src/__tests__/sharedStateComponents.test.tsx`; result=pass; notes=verified long multilingual titles, descriptions, and multiple actions wrap safely in `EmptyState` and `InlineStatusNotice` without dropping semantics or forcing action overflow.
+
+## TV Channels Distillation
+- Page hierarchy simplification: method=`npm test -- --runInBand src/__tests__/TVChannelsPageResponsive.test.tsx`; result=pass; notes=verified the page header copy is shorter, the inventory section no longer repeats nearby guidance, and the filters region remains subordinate in the supporting column.
+- Filter utility simplification: method=`npm test -- --runInBand src/__tests__/TVChannelsPageResponsive.test.tsx`; result=pass; notes=confirmed the filter surface uses shorter utility-focused copy while preserving required fields, mobile disclosure, apply/reset behavior, and hardened empty-result recovery.
+- Dialog simplification: method=`npm test -- --runInBand src/__tests__/TVChannelsPageResponsive.test.tsx`; result=pass; notes=verified create/edit dialogs keep validation and failure recovery while replacing heavier titled subsections with a flatter field flow and one lightweight optional-details label.
+- State copy distillation: method=`npm test -- --runInBand src/__tests__/TVChannelsTable.test.tsx`; result=pass; notes=loading and page-empty inventory states now use shorter copy while keeping one obvious next step for the user.
+
+## Shared Primitives Distillation
+- Layout primitive rhythm: method=`npm test -- --runInBand src/__tests__/layoutPrimitives.test.tsx`; result=pass; notes=`PageHeader` and `ContentSection` now use tighter subtitle/description rhythm while preserving semantics, wrapping, responsive action behavior, and wide-layout hooks.
+- Dashboard consumer validation: method=`npm test -- --runInBand src/__tests__/Dashboard.test.tsx`; result=pass; notes=the calmer shared defaults still support a dense operational page with intact page-header hierarchy, actions, and section scanability.
+- TV Channels consumer validation: method=`npm test -- --runInBand src/__tests__/TVChannelsPageResponsive.test.tsx`; result=pass; notes=the simplified shared defaults carry through the already-distilled TV Channels flow without requiring page-local layout fixes.
+
+## Dashboard Distillation
+- Header hierarchy simplification: method=`npm test -- --runInBand src/__tests__/Dashboard.test.tsx`; result=pass; notes=verified the header subtitle is shorter and the CTA hierarchy is clearer, with `EPG` as the primary next-step action and the remaining routes still accessible as secondary links.
+- Readiness summary simplification: method=`npm test -- --runInBand src/__tests__/Dashboard.test.tsx`; result=pass; notes=confirmed the narrative three-step operational block was replaced by a tighter `System readiness` summary while preserving stream, WARP, and scheduler visibility plus warning-first treatment.
+- Utility and metadata simplification: method=`npm test -- --runInBand src/__tests__/Dashboard.test.tsx`; result=pass; notes=the former controls area now reads as a lighter `Dashboard tools` section, and recent activity/background task rows use more compact metadata formatting without removing required timing, status, or user/error information.

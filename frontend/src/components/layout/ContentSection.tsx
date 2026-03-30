@@ -62,7 +62,7 @@ const ContentSection: React.FC<ContentSectionProps> = ({ title, description, act
               <Typography
                 variant="helperText"
                 color="text.secondary"
-                sx={{ mt: 0.75, overflowWrap: 'break-word' }}
+                sx={{ mt: 0.5, overflowWrap: 'break-word' }}
               >
                 {description}
               </Typography>

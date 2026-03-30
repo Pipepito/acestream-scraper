@@ -62,9 +62,11 @@ describe('Dashboard UI', () => {
     expect(screen.getByText('Scrape finished')).toBeInTheDocument();
     expect(screen.getAllByText('Background Tasks').length).toBeGreaterThan(0);
     expect(screen.getByText('Scrape')).toBeInTheDocument();
-    expect(screen.getByText('1. Confirm live stream capacity')).toBeInTheDocument();
+    expect(screen.queryByText('1. Confirm live stream capacity')).not.toBeInTheDocument();
+    expect(screen.getByText('Stream capacity')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
-    expect(screen.getByText('2. Review protected routing')).toBeInTheDocument();
+    expect(screen.getByText('Protected routing')).toBeInTheDocument();
+    expect(screen.getByText('Scheduler follow-through')).toBeInTheDocument();
     expect(screen.getByText(/warp status: connected/i)).toBeInTheDocument();
   });
 
@@ -92,23 +94,46 @@ describe('Dashboard UI', () => {
       renderDashboard(mode);
 
       expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toHaveClass('MuiTypography-pageTitle');
-      expect(screen.getByText('Controls')).toBeInTheDocument();
-      expect(screen.getByText('Operational path')).toBeInTheDocument();
+      expect(screen.getByText('Check readiness and move to the next workflow.')).toHaveStyle({ marginTop: '4px' });
+      expect(screen.getByText('Dashboard tools')).toBeInTheDocument();
+      expect(screen.getByText('Filter activity and adjust refresh behavior.')).toBeInTheDocument();
+      expect(screen.getByText('System readiness')).toBeInTheDocument();
       expect(screen.getByText('Recent Activity')).toBeInTheDocument();
       expect(screen.getAllByText('Background Tasks').length).toBeGreaterThan(0);
     }
   );
+
+  it('keeps recent activity metadata compact and only shows the user when present', () => {
+    renderDashboard();
+
+    expect(screen.getAllByText(/scrape - .* - system/i).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/User:/i)).not.toBeInTheDocument();
+  });
+
+  it('keeps background task metadata compact while preserving run timing and status', () => {
+    renderDashboard();
+
+    expect(screen.getByText(/last run 2025-07-10T10:00:00Z/i)).toBeInTheDocument();
+    expect(screen.getByText(/next run 2025-07-10T11:00:00Z/i)).toBeInTheDocument();
+    expect(screen.getByText(/status success/i)).toBeInTheDocument();
+  });
 
   it('renders dashboard primary actions inside the shared header action area', () => {
     renderDashboard();
 
     const primaryActions = screen.getByRole('navigation', { name: 'Dashboard primary actions' });
     const headerActions = screen.getByTestId('page-header-actions');
+    const epgButton = within(primaryActions).getByRole('link', { name: 'EPG' });
+    const channelsButton = within(primaryActions).getByRole('link', { name: 'Channels' });
+    const scraperButton = within(primaryActions).getByRole('link', { name: 'Open Scraper' });
 
     expect(headerActions).toContainElement(primaryActions);
-    expect(within(primaryActions).getByRole('link', { name: 'Open Scraper' })).toBeInTheDocument();
-    expect(within(primaryActions).getByRole('link', { name: 'Channels' })).toBeInTheDocument();
-    expect(within(primaryActions).getByRole('link', { name: 'EPG' })).toBeInTheDocument();
+    expect(scraperButton).toBeInTheDocument();
+    expect(channelsButton).toBeInTheDocument();
+    expect(epgButton).toBeInTheDocument();
+    expect(epgButton.className).toContain('MuiButton-contained');
+    expect(scraperButton.className).toContain('MuiButton-outlined');
+    expect(channelsButton.className).toContain('MuiButton-outlined');
   });
 
   it('keeps dashboard header actions in the shared primary group contract', () => {
@@ -142,10 +167,10 @@ describe('Dashboard UI', () => {
   it('communicates operational status with text cues instead of color alone', () => {
     renderDashboard();
 
-    expect(screen.getByRole('heading', { level: 2, name: 'Operational path' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'System readiness' })).toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent(/protected connection active/i);
     expect(screen.getByText(/streams available right now/i)).toBeInTheDocument();
-    expect(screen.getByText(/scheduler is keeping background tasks on cadence/i)).toBeInTheDocument();
+    expect(screen.getByText(/latest run:/i)).toBeInTheDocument();
   });
 
   it('handles loading state', () => {

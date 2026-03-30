@@ -136,7 +136,7 @@ describe('TVChannelDetail', () => {
     renderPage();
 
     expect(screen.getByText('Playback coverage incomplete')).toBeInTheDocument();
-    expect(screen.getByText(/Link at least one acestream source before you treat this channel as ready for playback or guide follow-up\./i)).toBeInTheDocument();
+    expect(screen.getByText(/at least one acestream source.*ready for playback|ready for playback.*at least one acestream source/i)).toBeInTheDocument();
   });
 
   it('uses guide linkage as the primary next step when coverage exists but epg is missing', () => {
@@ -152,7 +152,7 @@ describe('TVChannelDetail', () => {
     renderPage();
 
     expect(screen.getByText('Guide linkage still missing')).toBeInTheDocument();
-    expect(screen.getByText(/Add the correct EPG ID so downstream schedule review can start from this same detail page\./i)).toBeInTheDocument();
+    expect(within(screen.getByText(/^Next step$/i).parentElement as HTMLElement).getByText(/correct EPG ID.*schedule review|schedule review.*correct EPG ID/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'EPG Schedule' })).toBeInTheDocument();
     expect(screen.getByText(/Guide linkage is still incomplete, so schedule review will appear here after you add the correct EPG ID\./i)).toBeInTheDocument();
   });

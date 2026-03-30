@@ -94,10 +94,10 @@ const TVChannelDetail: React.FC = () => {
       ? 'Operational relationship in place'
       : 'Guide linkage still missing';
   const relationshipSupport = linkedAcestreamCount === 0
-    ? 'No linked acestream sources are available yet, so playback coverage is still incomplete for this channel.'
+    ? 'No linked acestream sources are available yet, so playback coverage is still incomplete.'
     : hasEpgLink
-      ? 'Linked source coverage and guide linkage are both present, so this channel is ready for routine review or cleanup.'
-      : 'Playback coverage is in place, but guide linkage is still missing for downstream schedule review.';
+      ? 'Source coverage and guide linkage are in place, so this channel is ready for routine review.'
+      : 'Playback coverage is in place, but guide linkage still needs attention before schedule review.';
   const nextStepLabel = linkedAcestreamCount === 0
     ? 'Link at least one acestream source before you treat this channel as ready for playback or guide follow-up.'
     : hasEpgLink
@@ -273,7 +273,7 @@ const TVChannelDetail: React.FC = () => {
             <Typography variant="statusMeta" sx={{ color: theme.appTokens.hero.accent, mb: 1 }}>
               Relationship summary
             </Typography>
-            <Typography variant="h4" sx={{ letterSpacing: '-0.03em', mb: 1 }}>
+            <Typography variant="h4" sx={{ letterSpacing: '-0.03em' }}>
               {identitySummary}
             </Typography>
           </Box>
@@ -313,11 +313,10 @@ const TVChannelDetail: React.FC = () => {
                 {nextStepLabel}
               </Typography>
             </Box>
+            <Typography variant="body2" color="text.secondary">
+              {relationshipSupport}
+            </Typography>
           </Stack>
-
-          <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 760 }}>
-            {relationshipSupport}
-          </Typography>
         </Stack>
       </Box>
 

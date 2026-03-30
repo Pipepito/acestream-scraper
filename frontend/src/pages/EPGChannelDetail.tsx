@@ -372,7 +372,7 @@ const EPGChannelDetail: React.FC = () => {
             <Typography variant="statusMeta" sx={{ color: theme.appTokens.hero.accent, mb: 1 }}>
               Relationship summary
             </Typography>
-            <Typography variant="h4" sx={{ letterSpacing: '-0.03em', mb: 1 }}>
+            <Typography variant="h4" sx={{ letterSpacing: '-0.03em' }}>
               EPG source: {channel.name}
             </Typography>
             <Box

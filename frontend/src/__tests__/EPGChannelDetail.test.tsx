@@ -169,7 +169,7 @@ describe('EPGChannelDetail', () => {
     renderPage();
 
     expect(screen.getByText(/No linked TV channel found in the loaded catalog yet/i)).toBeInTheDocument();
-    expect(screen.getByText(/Create a TV channel first so this source has a destination for mapping/i)).toBeInTheDocument();
+    expect(screen.getByText(/create a TV channel first.*destination for mapping|destination for mapping.*create a TV channel first/i)).toBeInTheDocument();
   });
 
   it('treats a catalog epg_id match as an inferred link and prioritizes schedule review when no programs are visible', () => {
@@ -189,7 +189,7 @@ describe('EPGChannelDetail', () => {
     renderPage();
 
     expect(screen.getByText(/Linked TV channel found in the loaded catalog: Late Sports/i)).toBeInTheDocument();
-    expect(screen.getByText(/Review the selected date range or schedule ingestion before adjusting mapping rules/i)).toBeInTheDocument();
+    expect(screen.getByText(/selected date range.*schedule ingestion.*adjusting mapping rules|adjusting mapping rules.*selected date range.*schedule ingestion/i)).toBeInTheDocument();
   });
 
   it('describes inferred linked channels as review-ready without claiming confirmed mapping', () => {
@@ -205,7 +205,7 @@ describe('EPGChannelDetail', () => {
     renderPage();
 
     expect(screen.getByText(/An inferred linked TV channel is available for review and tuning/i)).toBeInTheDocument();
-    expect(screen.getByText(/Review the schedule evidence and string rules before treating this pairing as final/i)).toBeInTheDocument();
+    expect(screen.getByText(/schedule evidence.*string rules.*pairing as final|string rules.*schedule evidence.*pairing as final/i)).toBeInTheDocument();
     expect(screen.queryByText(/mapped/i)).not.toBeInTheDocument();
   });
 

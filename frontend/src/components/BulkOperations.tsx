@@ -13,8 +13,10 @@ import {
   FormGroup,
   Switch,
   Alert,
-  CircularProgress
+  CircularProgress,
+  useMediaQuery
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 
 interface BulkOperationsProps {
   open: boolean;
@@ -33,6 +35,8 @@ const BulkOperations: React.FC<BulkOperationsProps> = ({
   onBulkDelete,
   onBulkActivate
 }) => {
+  const theme = useTheme();
+  const isPhone = useMediaQuery(theme.breakpoints.down('sm'));
   const [editFields, setEditFields] = useState({
     category: false,
     country: false,
@@ -52,6 +56,15 @@ const BulkOperations: React.FC<BulkOperationsProps> = ({
   const [operationResults, setOperationResults] = useState<{ id: any; status: 'pending'|'success'|'error'; message?: string }[]>([]);
   const [summary, setSummary] = useState<{ success: number; error: number }>({ success: 0, error: 0 });
 
+  const resetDialogState = () => {
+    setMode(null);
+    setLoading(false);
+    setError(null);
+    setSuccess(null);
+    setOperationResults([]);
+    setSummary({ success: 0, error: 0 });
+  };
+
   const handleFieldToggle = (field: string) => {
     setEditFields(prev => ({ ...prev, [field]: !prev[field as keyof typeof prev] }));
   };
@@ -65,7 +78,10 @@ const BulkOperations: React.FC<BulkOperationsProps> = ({
   };
 
   const handleClose = () => {
-    if (!loading) onClose();
+    if (!loading) {
+      resetDialogState();
+      onClose();
+    }
   };
 
   const runPerChannel = async (fn: (channel: any) => Promise<any>) => {
@@ -91,7 +107,6 @@ const BulkOperations: React.FC<BulkOperationsProps> = ({
     setLoading(false);
     if (error === 0) {
       setSuccess('All operations completed successfully.');
-      setTimeout(() => { setSuccess(null); onClose(); }, 1500);
     } else {
       setError(`${error} operation(s) failed, ${success} succeeded.`);
     }
@@ -122,7 +137,6 @@ const BulkOperations: React.FC<BulkOperationsProps> = ({
       setOperationResults(selectedChannels.map(ch => ({ id: ch.id, status: 'success' as const })));
       setSummary({ success: selectedChannels.length, error: 0 });
       setSuccess('All selected channels deleted successfully.');
-      setTimeout(() => { setSuccess(null); onClose(); }, 1500);
     } catch (err: any) {
       // If error, mark all as failed
       setOperationResults(selectedChannels.map(ch => ({ id: ch.id, status: 'error' as const, message: err?.message || 'Bulk delete failed' })));
@@ -140,7 +154,7 @@ const BulkOperations: React.FC<BulkOperationsProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth fullScreen={window.innerWidth < 600}>
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth fullScreen={isPhone}>
       <DialogTitle>Bulk Operations for {selectedChannels.length} Channels</DialogTitle>
       <DialogContent>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -200,8 +214,8 @@ const BulkOperations: React.FC<BulkOperationsProps> = ({
       </DialogContent>
       <DialogActions>
         <Button onClick={handleClose} color="inherit" disabled={loading}>Cancel</Button>
-        {mode === 'edit' && <Button onClick={handleBulkEdit} color="primary" variant="contained" disabled={loading}>Update</Button>}
-        {mode === 'delete' && <Button onClick={handleBulkDelete} color="error" variant="contained" disabled={loading}>Delete</Button>}
+        {mode === 'edit' && <Button onClick={handleBulkEdit} color="primary" variant="contained" disabled={loading || Boolean(success)}>Update</Button>}
+        {mode === 'delete' && <Button onClick={handleBulkDelete} color="error" variant="contained" disabled={loading || Boolean(success)}>Delete</Button>}
       </DialogActions>
       {loading && <Box display="flex" justifyContent="center" alignItems="center" p={2}><CircularProgress /></Box>}
     </Dialog>

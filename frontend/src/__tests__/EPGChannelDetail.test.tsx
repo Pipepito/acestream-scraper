@@ -116,6 +116,16 @@ describe('EPGChannelDetail', () => {
     expect(mockUseTVChannelCatalog).toHaveBeenCalled();
   });
 
+  it('shows the selected TV channel clearly before confirming the mapping', () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Map to TV Channel' }));
+    fireEvent.click(screen.getByRole('radio', { name: /Late Sports/ }));
+
+    expect(screen.getByText('Selected TV channel: Late Sports')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Map Channel' })).toBeEnabled();
+  });
+
   it('shows an explicit loading state while TV channels are still being fetched for mapping', () => {
     mockUseTVChannelCatalog.mockReturnValue({
       data: undefined,
@@ -159,6 +169,22 @@ describe('EPGChannelDetail', () => {
 
     expect(screen.getByText('No TV channels are available to map yet.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Map Channel' })).toBeDisabled();
+  });
+
+  it('adds contextual loading copy for schedule and string mapping sections', () => {
+    mockUseEPGPrograms.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+    });
+    mockUseEPGStringMappings.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+    });
+
+    renderPage();
+
+    expect(screen.getByText('Loading schedule for the selected date range...')).toBeInTheDocument();
+    expect(screen.getByText('Loading string mapping rules...')).toBeInTheDocument();
   });
 
   it('creates TV channels through the shared mutation layer', async () => {

@@ -115,6 +115,8 @@ const EPGChannelDetail: React.FC = () => {
   const { mutateAsync: mapChannel } = useMapEPGChannel();
   const { mutateAsync: createTVChannel, isLoading: isCreatingTVChannel } = useCreateTVChannel();
 
+  const selectedMappedChannel = tvChannels?.find((tvChannel: TVChannel) => tvChannel.id === selectedTVChannel) || null;
+
   // Pagination
   const totalPages = Math.ceil((programs?.length || 0) / programsPerPage);
   const paginatedPrograms = programs?.slice(
@@ -231,7 +233,7 @@ const EPGChannelDetail: React.FC = () => {
 
   if (isLoadingChannel) {
     return (
-      <Box sx={{ width: '100%', p: 3 }}>
+      <Box sx={{ width: '100%', p: 3 }} role="status" aria-live="polite">
         <LinearProgress />
         <Typography variant="h6" sx={{ mt: 2 }}>
           Loading EPG channel...
@@ -363,7 +365,10 @@ const EPGChannelDetail: React.FC = () => {
         </Box>
 
         {isLoadingPrograms ? (
-          <LinearProgress sx={{ mb: 2 }} />
+          <Box sx={{ mb: 2 }} role="status" aria-live="polite">
+            <LinearProgress sx={{ mb: 1 }} />
+            <Typography variant="body2">Loading schedule for the selected date range...</Typography>
+          </Box>
         ) : null}
 
         <TableContainer component={Box} sx={{ overflowX: 'auto' }}>
@@ -453,7 +458,10 @@ const EPGChannelDetail: React.FC = () => {
         }
       >
         {isLoadingMappings ? (
-          <LinearProgress sx={{ mb: 2 }} />
+          <Box sx={{ mb: 2 }} role="status" aria-live="polite">
+            <LinearProgress sx={{ mb: 1 }} />
+            <Typography variant="body2">Loading string mapping rules...</Typography>
+          </Box>
         ) : null}
 
         <TableContainer component={Box} sx={{ overflowX: 'auto' }}>
@@ -531,36 +539,57 @@ const EPGChannelDetail: React.FC = () => {
           ) : null}
 
           {!isLoadingTVChannels && !tvChannelsError && (tvChannels?.length || 0) > 0 ? (
-            <FormControl component="fieldset" fullWidth>
-              <RadioGroup
-                aria-label="Available TV channels"
-                name="available-tv-channels"
-                value={selectedTVChannel?.toString() || ''}
-                onChange={(_event, value) => setSelectedTVChannel(Number(value))}
-              >
-                <Box sx={{ maxHeight: 400, overflow: 'auto' }}>
-                  {(tvChannels || []).map((tvChannel: TVChannel) => (
-                    <Box key={tvChannel.id} sx={{ p: 2, mb: 1, border: 1, borderColor: 'divider', borderRadius: 2 }}>
-                      <FormControlLabel
-                        value={tvChannel.id.toString()}
-                        control={<Radio />}
-                        label={
-                          <Box>
-                            <Typography variant="body1" fontWeight="bold">
-                              {tvChannel.name}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              Category: {tvChannel.category || 'None'}
-                            </Typography>
-                          </Box>
-                        }
-                        sx={{ alignItems: 'flex-start', m: 0, width: '100%' }}
-                      />
-                    </Box>
-                  ))}
-                </Box>
-              </RadioGroup>
-            </FormControl>
+            <Stack spacing={2}>
+              <Alert severity="info" role="status">
+                {selectedMappedChannel
+                  ? `Selected TV channel: ${selectedMappedChannel.name}`
+                  : 'Select one TV channel before confirming the mapping.'}
+              </Alert>
+              <FormControl component="fieldset" fullWidth>
+                <RadioGroup
+                  aria-label="Available TV channels"
+                  name="available-tv-channels"
+                  value={selectedTVChannel?.toString() || ''}
+                  onChange={(_event, value) => setSelectedTVChannel(Number(value))}
+                >
+                  <Box sx={{ maxHeight: 400, overflow: 'auto' }}>
+                    {(tvChannels || []).map((tvChannel: TVChannel) => {
+                      const isSelected = tvChannel.id === selectedTVChannel;
+
+                      return (
+                        <Box
+                          key={tvChannel.id}
+                          sx={{
+                            p: 2,
+                            mb: 1,
+                            border: 1,
+                            borderColor: isSelected ? 'primary.main' : 'divider',
+                            borderRadius: 2,
+                            bgcolor: isSelected ? 'action.selected' : 'background.paper',
+                          }}
+                        >
+                          <FormControlLabel
+                            value={tvChannel.id.toString()}
+                            control={<Radio />}
+                            label={
+                              <Box>
+                                <Typography variant="body1" fontWeight="bold">
+                                  {tvChannel.name}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                  Category: {tvChannel.category || 'None'}
+                                </Typography>
+                              </Box>
+                            }
+                            sx={{ alignItems: 'flex-start', m: 0, width: '100%' }}
+                          />
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                </RadioGroup>
+              </FormControl>
+            </Stack>
           ) : null}
         </DialogContent>
         <DialogActions>

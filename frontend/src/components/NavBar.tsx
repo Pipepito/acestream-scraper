@@ -18,8 +18,11 @@ import {
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import MenuIcon from '@mui/icons-material/Menu';
-import { getNavTitle, isNavItemSelected, navItems } from './layout/navItems';
+import LightModeIcon from '@mui/icons-material/LightMode';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
+import { isNavItemSelected, navItems } from './layout/navItems';
 import { getShellLayout } from '../styles/layout';
+import { useAppThemeMode } from '../bootstrap/AppBootstrap';
 
 interface NavBarProps {
   drawerWidth?: number;
@@ -29,6 +32,7 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
   const [mobileOpen, setMobileOpen] = useState<boolean>(false);
   const location = useLocation();
   const theme = useTheme();
+  const { mode, toggleMode } = useAppThemeMode();
   const shellLayout = getShellLayout(theme);
   const isPhone = useMediaQuery(`(max-width:${shellLayout.phoneMaxWidth}px)`);
   const isDesktop = !isPhone;
@@ -169,9 +173,15 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
               <MenuIcon />
             </IconButton>
           ) : null}
-          <Typography variant="h6" noWrap component="div">
-            {getNavTitle(location.pathname)}
-          </Typography>
+          <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 1 }}>
+            <IconButton
+              color="inherit"
+              onClick={toggleMode}
+              aria-label={mode === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
+            >
+              {mode === 'light' ? <DarkModeIcon /> : <LightModeIcon />}
+            </IconButton>
+          </Box>
         </Toolbar>
       </AppBar>
       <Box

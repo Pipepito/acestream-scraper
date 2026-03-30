@@ -4,6 +4,7 @@ import {
   Alert,
   Box,
   Button,
+  Checkbox,
   Chip,
   Dialog,
   DialogActions,
@@ -166,7 +167,7 @@ const TVChannelDetail: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Box sx={{ width: '100%', p: 3 }}>
+      <Box sx={{ width: '100%', p: 3 }} role="status" aria-live="polite">
         <LinearProgress />
         <Typography variant="body1" sx={{ mt: 2 }}>
           Loading TV channel details...
@@ -365,8 +366,16 @@ const TVChannelDetail: React.FC = () => {
             sx={{ mb: 2 }}
           />
           {isLoadingAcestreamCandidates ? (
-            <LinearProgress sx={{ mb: 2 }} />
+            <Box sx={{ mb: 2 }} role="status" aria-live="polite">
+              <LinearProgress sx={{ mb: 1 }} />
+              <Typography variant="body2">Loading Acestream candidates...</Typography>
+            </Box>
           ) : null}
+          <Alert severity="info" sx={{ mb: 2 }} role="status">
+            {selectedAcestreams.length === 0
+              ? 'Select one or more Acestream sources before assigning them.'
+              : `${selectedAcestreams.length} acestream selected for assignment.`}
+          </Alert>
           <List sx={{ maxHeight: 350, overflow: 'auto' }}>
             {acestreamCandidateItems.length === 0 ? (
               <ListItem>
@@ -378,34 +387,22 @@ const TVChannelDetail: React.FC = () => {
                   key={acestream.id}
                   divider
                   secondaryAction={
-                    <IconButton
+                    <Checkbox
                       edge="end"
                       color="primary"
-                      aria-label={`Associate acestream ${acestream.name}`}
-                      onClick={async () => {
-                        try {
-                          await associateAcestreamMutation.mutateAsync({
-                            tvChannelId: channelId,
-                            aceStreamId: acestream.id,
-                          });
-                          setOpenAssociateDialog(false);
-                        } catch (error) {
-                          console.error('Error associating acestream:', error);
-                        }
+                      inputProps={{ 'aria-label': `Select acestream ${acestream.name}` }}
+                      checked={selectedAcestreams.includes(acestream.id)}
+                      onChange={(_event, checked) => {
+                        setSelectedAcestreams((prev) =>
+                          checked ? [...prev, acestream.id] : prev.filter((item) => item !== acestream.id)
+                        );
                       }}
-                    >
-                      <AddIcon />
-                    </IconButton>
+                    />
                   }
                 >
                   <ListItemText
                     primary={acestream.name}
                     secondary={`ID: ${acestream.id} | Group: ${acestream.group || 'None'}`}
-                    onClick={() => {
-                      setSelectedAcestreams((prev) =>
-                        prev.includes(acestream.id) ? prev.filter((item) => item !== acestream.id) : [...prev, acestream.id]
-                      );
-                    }}
                   />
                 </ListItem>
               ))

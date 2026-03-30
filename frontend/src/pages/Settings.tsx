@@ -4,8 +4,11 @@ import {
   Grid,
   TextField,
   Button,
+  FormControl,
   FormControlLabel,
   Switch,
+  Radio,
+  RadioGroup,
   Alert,
   CircularProgress,
   Snackbar,
@@ -25,8 +28,10 @@ import {
 import { configService } from '../services/configService';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
+import { useAppThemeMode } from '../bootstrap/AppBootstrap';
 
 const Settings: React.FC = () => {
+  const { mode, setMode } = useAppThemeMode();
   // Form state
   const [baseUrl, setBaseUrl] = useState<string>('');
   const [aceEngineUrl, setAceEngineUrl] = useState<string>('');
@@ -171,8 +176,14 @@ const Settings: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-        <CircularProgress />
+      <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" minHeight="60vh" gap={1.5}>
+        <CircularProgress aria-label="Loading settings" />
+        <Box component="p" sx={{ typography: 'sectionTitle', m: 0 }}>
+          Loading settings
+        </Box>
+        <Box component="p" sx={{ typography: 'body2', color: 'text.secondary', m: 0, textAlign: 'center' }}>
+          Preparing connection defaults, automation preferences, and appearance controls.
+        </Box>
       </Box>
     );
   }
@@ -207,6 +218,21 @@ const Settings: React.FC = () => {
             {acestreamStatusQuery.data?.status === 'online' ? 'Online' : 'Needs attention'} · {acestreamStatusQuery.data?.message || 'Status unknown'}
           </Alert>
         )}
+      </ContentSection>
+
+      <ContentSection
+        title="Appearance"
+        description="Choose the theme mode that keeps the dashboard easiest to read in your environment."
+      >
+        <FormControl component="fieldset">
+          <RadioGroup aria-label="Theme mode" name="theme-mode" value={mode} onChange={(event) => setMode(event.target.value as 'light' | 'dark')}>
+            <FormControlLabel value="light" control={<Radio />} label="Light theme" />
+            <FormControlLabel value="dark" control={<Radio />} label="Dark theme" />
+          </RadioGroup>
+        </FormControl>
+        <Box sx={{ typography: 'body2', color: 'text.secondary', mt: 1.5 }}>
+          The shell toggle changes the theme quickly. This setting is the canonical place to confirm your preference.
+        </Box>
       </ContentSection>
 
       <ContentSection title="Connection settings" description="Update the base URLs only when your environment changes.">

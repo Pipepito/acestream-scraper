@@ -9,6 +9,16 @@ import { createAppTheme } from '../theme';
 import { getShellContentMaxWidth, getShellLayout } from '../styles/layout';
 import { mockResponsiveShellQueries } from '../testUtils/mockResponsiveShell';
 import { TestMemoryRouter } from '../testUtils/router';
+import { useAppThemeMode } from '../bootstrap/AppBootstrap';
+
+jest.mock('../bootstrap/AppBootstrap', () => {
+  const actual = jest.requireActual('../bootstrap/AppBootstrap');
+
+  return {
+    ...actual,
+    useAppThemeMode: jest.fn(),
+  };
+});
 
 type LegacyUserEventWithSetup = typeof userEvent & {
   setup?: () => {
@@ -74,9 +84,14 @@ const tab = async () => {
 describe('NavBar responsive shell behavior', () => {
   beforeEach(() => {
     mockUseMediaQuery.mockReset();
+    (useAppThemeMode as jest.Mock).mockReturnValue({
+      mode: 'light',
+      setMode: jest.fn(),
+      toggleMode: jest.fn(),
+    });
   });
 
-  it('keeps the menu button obvious on phone while showing the current page title', () => {
+  it('keeps the menu button obvious on phone without repeating the current page title', () => {
     renderWithResponsiveMode({
       pathname: '/scraper',
       isPhone: true,
@@ -89,7 +104,8 @@ describe('NavBar responsive shell behavior', () => {
     });
 
     expect(screen.getByRole('button', { name: 'open drawer' })).toBeVisible();
-    expect(screen.getByRole('banner')).toHaveTextContent('Scraper');
+    expect(screen.getByRole('banner')).not.toHaveTextContent('Scraper');
+    expect(screen.getByRole('button', { name: /switch to dark theme/i })).toBeVisible();
     expect(screen.getByRole('main')).toHaveStyle({ width: '100%' });
   });
 
@@ -110,8 +126,9 @@ describe('NavBar responsive shell behavior', () => {
     });
 
     expect(screen.queryByRole('button', { name: 'open drawer' })).not.toBeInTheDocument();
-    expect(screen.getByRole('banner')).toHaveTextContent('TV Channels');
+    expect(screen.getByRole('banner')).not.toHaveTextContent('TV Channels');
     expect(screen.getAllByText('Acestream Scraper').length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: /switch to dark theme/i })).toBeVisible();
     expect(screen.getByRole('main')).toHaveStyle({ width: `calc(100% - ${layout.navWidth}px)` });
     expect(screen.getByText('Desktop content').parentElement).toHaveStyle({
       maxWidth: `${getShellContentMaxWidth(theme, 'standard')}px`,
@@ -145,6 +162,9 @@ describe('NavBar responsive shell behavior', () => {
       isDesktop: true,
       ui: <NavBar />,
     });
+
+    await tab();
+    expect(screen.getByRole('button', { name: /switch to dark theme/i })).toHaveFocus();
 
     await tab();
     expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveFocus();

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 
 import TVChannelDetail from '../pages/TVChannelDetail';
 import { createAppTheme } from '../theme';
@@ -92,5 +92,43 @@ describe('TVChannelDetail', () => {
 
     expect(screen.getByRole('button', { name: 'Play acestream Arena Feed 1' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Remove acestream Arena Feed 1' })).toBeInTheDocument();
+  });
+
+  it('announces TV channel detail loading through a contextual status region', () => {
+    mockUseTVChannel.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      isError: false,
+    });
+
+    renderPage();
+
+    expect(screen.getByRole('status')).toHaveTextContent('Loading TV channel details...');
+  });
+
+  it('uses explicit selection controls when choosing acestream candidates to associate', () => {
+    mockUseAcestreamChannels.mockReturnValue({
+      data: {
+        items: [
+          { id: 'ace-2', name: 'Arena Feed 2', group: 'Sports' },
+          { id: 'ace-3', name: 'Arena Feed 3', group: 'Sports' },
+        ],
+      },
+      isLoading: false,
+    });
+
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add Single' }));
+
+    const firstCheckbox = screen.getByRole('checkbox', { name: 'Select acestream Arena Feed 2' });
+
+    expect(screen.getByRole('button', { name: 'Assign Selected' })).toBeDisabled();
+
+    fireEvent.click(firstCheckbox);
+
+    expect(firstCheckbox).toBeChecked();
+    expect(screen.getByText('1 acestream selected for assignment.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Assign Selected' })).toBeEnabled();
   });
 });

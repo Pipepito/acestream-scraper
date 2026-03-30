@@ -13,6 +13,16 @@ import * as playlistHooks from '../hooks/usePlaylists';
 import * as warpHooks from '../hooks/useWarp';
 import { configService } from '../services/configService';
 import { WarpMode } from '../types/warpTypes';
+import { useAppThemeMode } from '../bootstrap/AppBootstrap';
+
+jest.mock('../bootstrap/AppBootstrap', () => {
+  const actual = jest.requireActual('../bootstrap/AppBootstrap');
+
+  return {
+    ...actual,
+    useAppThemeMode: jest.fn(),
+  };
+});
 
 jest.mock('../services/apiClient', () => ({
   __esModule: true,
@@ -107,6 +117,14 @@ beforeEach(() => {
 });
 
 describe('Supporting page normalization', () => {
+  beforeEach(() => {
+    (useAppThemeMode as jest.Mock).mockReturnValue({
+      mode: 'light',
+      setMode: jest.fn(),
+      toggleMode: jest.fn(),
+    });
+  });
+
   it('renders Health with a shared page title and operational sections', () => {
     renderPage(<Health />);
 
@@ -129,7 +147,25 @@ describe('Supporting page normalization', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Engine connection' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Appearance' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Light theme' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Dark theme' })).not.toBeChecked();
     expect(screen.getByText(/engine online and ready/i)).toBeInTheDocument();
+  });
+
+  it('updates theme mode through the shared settings appearance control', async () => {
+    const setMode = jest.fn();
+    (useAppThemeMode as jest.Mock).mockReturnValue({
+      mode: 'light',
+      setMode,
+      toggleMode: jest.fn(),
+    });
+
+    renderPage(<Settings />);
+
+    fireEvent.click(await screen.findByRole('radio', { name: 'Dark theme' }));
+
+    expect(setMode).toHaveBeenCalledWith('dark');
   });
 
   it('recovers from AppID load failures and re-enables the toggle after update failures', async () => {

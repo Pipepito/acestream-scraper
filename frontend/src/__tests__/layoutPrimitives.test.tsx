@@ -11,6 +11,16 @@ import { createAppTheme, type ThemeMode } from '../theme';
 import * as layoutStyles from '../styles/layout';
 import { mockResponsiveShellQueries } from '../testUtils/mockResponsiveShell';
 import { TestMemoryRouter } from '../testUtils/router';
+import { useAppThemeMode } from '../bootstrap/AppBootstrap';
+
+jest.mock('../bootstrap/AppBootstrap', () => {
+  const actual = jest.requireActual('../bootstrap/AppBootstrap');
+
+  return {
+    ...actual,
+    useAppThemeMode: jest.fn(),
+  };
+});
 
 jest.mock('@mui/material', () => {
   const actual = jest.requireActual('@mui/material');
@@ -43,6 +53,11 @@ const renderWithTheme = (ui: React.ReactElement, mode: ThemeMode = 'light', resp
 describe('layout primitives', () => {
   beforeEach(() => {
     mockUseMediaQuery.mockReset();
+    (useAppThemeMode as jest.Mock).mockReturnValue({
+      mode: 'light',
+      setMode: jest.fn(),
+      toggleMode: jest.fn(),
+    });
   });
 
   it.each<ThemeMode>(['light', 'dark'])('renders PageHeader copy and actions with stable hardening hooks in %s mode', (mode) => {
@@ -326,7 +341,9 @@ describe('layout primitives', () => {
     const selectedLabel = within(selectedItem).getByText('Dashboard');
     const appBar = screen.getByRole('banner');
 
-    expect(screen.getAllByText('Dashboard').length).toBeGreaterThan(0);
+    expect(screen.getByRole('link', { name: 'Dashboard' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Dashboard' })).not.toBeInTheDocument();
+    expect(appBar).not.toHaveTextContent('Dashboard');
     expect(selectedItem).toHaveAttribute('aria-current', 'page');
     expect(selectedItem).toHaveStyle({ backgroundColor: theme.appTokens.action.secondaryBg });
     expect(selectedLabel).toHaveStyle({ color: theme.appTokens.action.secondaryText });
@@ -337,6 +354,7 @@ describe('layout primitives', () => {
       boxShadow: 'none',
     });
     expect(screen.getAllByText('Acestream Scraper').length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: /switch to dark theme/i })).toBeInTheDocument();
   });
 
   it('keeps nav selection segment-aware for boundary routes', () => {
@@ -349,7 +367,7 @@ describe('layout primitives', () => {
     );
 
     expect(screen.getByRole('link', { name: 'Acestream Search' })).not.toHaveAttribute('aria-current', 'page');
-    expect(screen.getByRole('banner')).toHaveTextContent('Not Found');
+    expect(screen.getByRole('banner')).not.toHaveTextContent('Not Found');
 
     unmount();
 
@@ -362,7 +380,7 @@ describe('layout primitives', () => {
     );
 
     expect(screen.getByRole('link', { name: 'EPG Sources' })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByRole('banner')).toHaveTextContent('EPG Sources');
+    expect(screen.getByRole('banner')).not.toHaveTextContent('EPG Sources');
   });
 
   it.each<ThemeMode>(['light', 'dark'])('renders AppShell main background from semantic surface tokens in %s mode', (mode) => {

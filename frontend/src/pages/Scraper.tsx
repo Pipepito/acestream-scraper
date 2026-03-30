@@ -285,13 +285,14 @@ const Scraper: React.FC = () => {
                         color="primary"
                         onClick={() => handleScrape(url.id)}
                         disabled={scrapeURL.isLoading && scrapingId === url.id}
+                        aria-label={`Scrape URL ${url.url}`}
                       >
                         <PlayArrowIcon />
                       </IconButton>
-                      <IconButton color="primary" onClick={() => handleOpenDialog(true, url)}>
+                      <IconButton color="primary" onClick={() => handleOpenDialog(true, url)} aria-label={`Edit URL ${url.url}`}>
                         <EditIcon />
                       </IconButton>
-                      <IconButton color="error" onClick={() => handleDelete(url.id)}>
+                      <IconButton color="error" onClick={() => handleDelete(url.id)} aria-label={`Delete URL ${url.url}`}>
                         <DeleteIcon />
                       </IconButton>
                     </TableCell>

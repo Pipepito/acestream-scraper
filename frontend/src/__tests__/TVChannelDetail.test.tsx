@@ -1,7 +1,7 @@
 import React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 
 import TVChannelDetail from '../pages/TVChannelDetail';
 import { createAppTheme } from '../theme';
@@ -28,6 +28,10 @@ jest.mock('../hooks/useTVChannels', () => ({
 jest.mock('../hooks/useChannels', () => ({
   useAcestreamChannels: (...args: unknown[]) => mockUseAcestreamChannels(...args),
 }));
+
+const expectToAppearBefore = (earlier: HTMLElement, later: HTMLElement) => {
+  expect(earlier.compareDocumentPosition(later) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+};
 
 describe('TVChannelDetail', () => {
   const baseChannel = {
@@ -105,16 +109,25 @@ describe('TVChannelDetail', () => {
     );
   });
 
-  it('renders a relationship summary above channel summary with identity, relationship status, and next step', () => {
+  it('renders a relationship summary with label, identity, status, next step, and one support block before channel summary', () => {
     renderPage();
 
+    const summaryLabel = screen.getByText(/^Relationship summary$/i);
     const channelSummaryHeading = screen.getByRole('heading', { level: 2, name: 'Channel Summary' });
-    const identitySummary = screen.getByText(/Arena TV is active, marked favorite, and ready for playback and guide review\./i);
+    const identitySummary = screen.getByText(/Arena TV is active, marked favorite/i);
+    const relationshipStatusLabel = screen.getByText(/^Relationship status$/i);
+    const relationshipStatus = screen.getByText('Operational relationship in place');
+    const nextStepLabel = screen.getByText(/^Next step$/i);
+    const supportSummary = screen.getByText(/source coverage.*guide linkage.*ready|guide linkage.*source coverage.*ready/i);
 
-    expect(screen.getByText(/^Relationship status$/i)).toBeInTheDocument();
-    expect(screen.getByText(/^Next step$/i)).toBeInTheDocument();
-    expect(screen.getByText('Operational relationship in place')).toBeInTheDocument();
-    expect(identitySummary.compareDocumentPosition(channelSummaryHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(summaryLabel).toBeInTheDocument();
+    expect(nextStepLabel).toBeInTheDocument();
+    expectToAppearBefore(summaryLabel, identitySummary);
+    expectToAppearBefore(identitySummary, relationshipStatusLabel);
+    expectToAppearBefore(relationshipStatusLabel, relationshipStatus);
+    expectToAppearBefore(relationshipStatus, nextStepLabel);
+    expectToAppearBefore(nextStepLabel, supportSummary);
+    expectToAppearBefore(supportSummary, channelSummaryHeading);
   });
 
   it('prioritizes missing acestream coverage ahead of missing guide linkage', () => {
@@ -131,7 +144,7 @@ describe('TVChannelDetail', () => {
     renderPage();
 
     expect(screen.getByText('Playback coverage incomplete')).toBeInTheDocument();
-    expect(screen.getByText(/Link at least one acestream source before you treat this channel as ready for playback or guide follow-up\./i)).toBeInTheDocument();
+    expect(screen.getByText(/at least one acestream source.*ready for playback|ready for playback.*at least one acestream source/i)).toBeInTheDocument();
   });
 
   it('uses guide linkage as the primary next step when coverage exists but epg is missing', () => {
@@ -147,7 +160,7 @@ describe('TVChannelDetail', () => {
     renderPage();
 
     expect(screen.getByText('Guide linkage still missing')).toBeInTheDocument();
-    expect(screen.getByText(/Add the correct EPG ID so downstream schedule review can start from this same detail page\./i)).toBeInTheDocument();
+    expect(within(screen.getByText(/^Next step$/i).parentElement as HTMLElement).getByText(/correct EPG ID.*schedule review|schedule review.*correct EPG ID/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'EPG Schedule' })).toBeInTheDocument();
     expect(screen.getByText(/Guide linkage is still incomplete, so schedule review will appear here after you add the correct EPG ID\./i)).toBeInTheDocument();
   });

@@ -304,7 +304,7 @@ const EPGChannelDetail: React.FC = () => {
           ? `${tvChannels?.length || 0} TV channel option${(tvChannels?.length || 0) === 1 ? '' : 's'} available for mapping.`
           : 'No TV channel options are loaded yet.';
 
-  const relationshipSupport = `XML ID ${channel.channel_xml_id} is loaded for review. ${hasRelationshipLoading ? 'Schedule and TV catalog evidence are still arriving.' : hasRelationshipError ? 'Schedule or TV catalog evidence needs attention before this summary can recommend a confident relationship action.' : hasVisiblePrograms ? `${visibleProgramCount} program${visibleProgramCount === 1 ? '' : 's'} visible in the selected date range.` : 'No programs are visible in the selected date range.'} ${stringMappingSupport}`;
+  const relationshipSupport = `XML ID ${channel.channel_xml_id} is loaded for review. ${hasRelationshipLoading ? 'Schedule and TV catalog evidence are still arriving.' : hasRelationshipError ? 'Schedule or TV catalog evidence needs attention before you choose a relationship action.' : hasVisiblePrograms ? `${visibleProgramCount} program${visibleProgramCount === 1 ? '' : 's'} visible in the selected date range.` : 'No programs are visible in the selected date range.'} ${stringMappingSupport}`;
 
   return (
     <Box sx={{ width: '100%', typography: 'body1' }}>
@@ -360,11 +360,11 @@ const EPGChannelDetail: React.FC = () => {
         }}
       >
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, justifyContent: 'space-between' }}>
-          <Stack spacing={1} sx={{ minWidth: 0, flex: '1 1 520px', maxWidth: 760 }}>
-            <Typography variant="statusMeta" sx={{ color: theme.appTokens.hero.accent, mb: 1 }}>
+          <Stack spacing={1.25} sx={{ minWidth: 0, flex: '1 1 520px', maxWidth: 760 }}>
+            <Typography variant="statusMeta" sx={{ color: theme.appTokens.hero.accent }}>
               Relationship summary
             </Typography>
-            <Typography variant="h4" sx={{ letterSpacing: '-0.03em', mb: 1 }}>
+            <Typography variant="h4" sx={{ letterSpacing: '-0.03em' }}>
               EPG source: {channel.name}
             </Typography>
             <Box

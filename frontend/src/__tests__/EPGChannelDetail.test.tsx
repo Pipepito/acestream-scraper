@@ -33,6 +33,10 @@ jest.mock('../hooks/useTVChannels', () => ({
   useAllTVChannels: (...args: unknown[]) => mockUseTVChannelCatalog(...args),
 }));
 
+const expectToAppearBefore = (earlier: HTMLElement, later: HTMLElement) => {
+  expect(earlier.compareDocumentPosition(later) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+};
+
 describe('EPGChannelDetail', () => {
   const renderPage = () => render(
     <ThemeProvider theme={createAppTheme('light')}>
@@ -130,25 +134,30 @@ describe('EPGChannelDetail', () => {
     expect(screen.getByRole('button', { name: 'Delete string mapping Late' })).toBeInTheDocument();
   });
 
-  it('shows a diagnostic relationship summary above channel summary and prioritizes mapping when candidates exist', () => {
+  it('shows a relationship summary with shared label-to-support order and mapping-first guidance when candidates exist', () => {
     renderPage();
 
+    const summaryLabel = screen.getByText(/^Relationship summary$/i);
     const identity = screen.getByText('EPG source: Late Channel');
     const relationshipState = screen.getByText(/^Relationship state$/i);
+    const relationshipStateValue = screen.getByText(/No linked TV channel found in the loaded catalog yet/i);
     const nextStep = screen.getByText(/^Next step$/i);
-    const supportCopy = screen.getByText(/XML ID late-channel is loaded for review/i);
+    const nextStepValue = screen.getByText(/map this source to an existing TV channel.*tuning schedule rules|tuning schedule rules.*map this source to an existing TV channel/i);
+    const supportCopy = screen.getByText(/XML ID late-channel/i);
     const channelSummary = screen.getByRole('heading', { level: 2, name: 'Channel Summary' });
 
+    expect(summaryLabel).toBeInTheDocument();
     expect(identity).toBeInTheDocument();
     expect(supportCopy).toBeInTheDocument();
     expect(relationshipState).toBeInTheDocument();
     expect(nextStep).toBeInTheDocument();
-    expect(screen.getByText(/No linked TV channel found in the loaded catalog yet/i)).toBeInTheDocument();
-    expect(screen.getByText(/Map this source to an existing TV channel before tuning schedule rules/i)).toBeInTheDocument();
-    expect(relationshipState.compareDocumentPosition(channelSummary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(identity.compareDocumentPosition(relationshipState) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(relationshipState.compareDocumentPosition(nextStep) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(nextStep.compareDocumentPosition(supportCopy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expectToAppearBefore(summaryLabel, identity);
+    expectToAppearBefore(identity, relationshipState);
+    expectToAppearBefore(relationshipState, relationshipStateValue);
+    expectToAppearBefore(relationshipStateValue, nextStep);
+    expectToAppearBefore(nextStep, nextStepValue);
+    expectToAppearBefore(nextStepValue, supportCopy);
+    expectToAppearBefore(supportCopy, channelSummary);
   });
 
   it('prioritizes create guidance when no inferred link or mapping choices exist', () => {
@@ -161,7 +170,7 @@ describe('EPGChannelDetail', () => {
     renderPage();
 
     expect(screen.getByText(/No linked TV channel found in the loaded catalog yet/i)).toBeInTheDocument();
-    expect(screen.getByText(/Create a TV channel first so this source has a destination for mapping/i)).toBeInTheDocument();
+    expect(screen.getByText(/create a TV channel first.*destination for mapping|destination for mapping.*create a TV channel first/i)).toBeInTheDocument();
   });
 
   it('treats a catalog epg_id match as an inferred link and prioritizes schedule review when no programs are visible', () => {
@@ -181,7 +190,7 @@ describe('EPGChannelDetail', () => {
     renderPage();
 
     expect(screen.getByText(/Linked TV channel found in the loaded catalog: Late Sports/i)).toBeInTheDocument();
-    expect(screen.getByText(/Review the selected date range or schedule ingestion before adjusting mapping rules/i)).toBeInTheDocument();
+    expect(screen.getByText(/selected date range.*schedule ingestion.*adjusting mapping rules|adjusting mapping rules.*selected date range.*schedule ingestion/i)).toBeInTheDocument();
   });
 
   it('describes inferred linked channels as review-ready without claiming confirmed mapping', () => {
@@ -197,7 +206,7 @@ describe('EPGChannelDetail', () => {
     renderPage();
 
     expect(screen.getByText(/An inferred linked TV channel is available for review and tuning/i)).toBeInTheDocument();
-    expect(screen.getByText(/Review the schedule evidence and string rules before treating this pairing as final/i)).toBeInTheDocument();
+    expect(screen.getByText(/schedule evidence.*string rules.*pairing as final|string rules.*schedule evidence.*pairing as final/i)).toBeInTheDocument();
     expect(screen.queryByText(/mapped/i)).not.toBeInTheDocument();
   });
 

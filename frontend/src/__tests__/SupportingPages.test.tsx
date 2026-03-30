@@ -1,11 +1,17 @@
 import React, { act } from 'react';
 import { render, screen, within, waitFor, fireEvent } from '@testing-library/react';
 import { ThemeProvider } from '@mui/material/styles';
+import * as routerDom from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import Health from '../pages/Health';
 import Playlist from '../pages/Playlist';
 import Settings from '../pages/Settings';
 import WarpPage from '../pages/WARP';
 import NotFound from '../pages/NotFound';
+import App from '../App';
+import Channels from '../pages/Channels';
+import ChannelDetail from '../pages/ChannelDetail';
+import SearchNew from '../pages/SearchNew';
 import { createAppTheme } from '../theme';
 import { TestMemoryRouter } from '../testUtils/router';
 import * as configHooks from '../hooks/useConfig';
@@ -15,6 +21,17 @@ import { configService } from '../services/configService';
 import { WarpMode } from '../types/warpTypes';
 import { useAppThemeMode } from '../bootstrap/AppBootstrap';
 
+const actualRouterDom = jest.requireActual('react-router-dom');
+
+jest.mock('react-router-dom', () => {
+  const actual = jest.requireActual('react-router-dom');
+
+  return {
+    ...actual,
+    useNavigate: jest.fn(),
+  };
+});
+
 jest.mock('../bootstrap/AppBootstrap', () => {
   const actual = jest.requireActual('../bootstrap/AppBootstrap');
 
@@ -23,6 +40,11 @@ jest.mock('../bootstrap/AppBootstrap', () => {
     useAppThemeMode: jest.fn(),
   };
 });
+
+jest.mock('../components/layout/AppShell', () => ({
+  __esModule: true,
+  default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
 
 jest.mock('../services/apiClient', () => ({
   __esModule: true,
@@ -49,8 +71,47 @@ const renderPage = (ui: React.ReactElement) =>
     </ThemeProvider>
   );
 
+const renderAppAtRoute = (initialEntries: string[]) =>
+  render(
+    <ThemeProvider theme={createAppTheme('light')}>
+      <TestMemoryRouter initialEntries={initialEntries}>
+        <App />
+      </TestMemoryRouter>
+    </ThemeProvider>
+  );
+
+const renderLegacyPageWithRoutes = (routePath: string, page: React.ReactElement) =>
+  render(
+    <ThemeProvider theme={createAppTheme('light')}>
+      <TestMemoryRouter initialEntries={[routePath]}>
+        <Routes>
+          <Route path={routePath} element={page} />
+          <Route path="/tv-channels" element={<div>TV Channels destination</div>} />
+          <Route path="/acestream-channels" element={<div>Acestream Channels destination</div>} />
+          <Route path="/epg" element={<div>EPG destination</div>} />
+          <Route path="/search" element={<div>Search destination</div>} />
+        </Routes>
+      </TestMemoryRouter>
+    </ThemeProvider>
+  );
+
+const renderNotFoundWithRoutes = (initialRoute: string) =>
+  render(
+    <ThemeProvider theme={createAppTheme('light')}>
+      <TestMemoryRouter initialEntries={[initialRoute]}>
+        <Routes>
+          <Route path="*" element={<NotFound />} />
+          <Route path="/" element={<div>Dashboard destination</div>} />
+          <Route path="/tv-channels" element={<div>TV Channels destination</div>} />
+          <Route path="/search" element={<div>Search destination</div>} />
+        </Routes>
+      </TestMemoryRouter>
+    </ThemeProvider>
+  );
+
 beforeEach(() => {
   jest.clearAllMocks();
+  (routerDom.useNavigate as jest.Mock).mockImplementation(() => actualRouterDom.useNavigate());
 
   (configHooks.useHealth as jest.Mock).mockReturnValue({
     data: {
@@ -221,11 +282,147 @@ describe('Supporting page normalization', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(/mode: dot/i);
   });
 
-  it('renders NotFound with the shared page skeleton and recovery action', () => {
+  it('renders NotFound as an unsupported-route recovery surface with stronger navigation paths', () => {
     renderPage(<NotFound />);
 
+    const headerCopy = screen.getByTestId('page-header-copy');
+    const sectionCopy = screen.getByTestId('content-section-copy');
+
     expect(screen.getByRole('heading', { level: 1, name: 'Page not found' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: 'Get back on track' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Return to dashboard' })).toBeInTheDocument();
+    expect(headerCopy).toHaveTextContent(/unsupported|outdated/i);
+    expect(headerCopy).toHaveTextContent(/dashboard/i);
+    expect(screen.getByRole('heading', { level: 2, name: 'Go to a supported workflow' })).toBeInTheDocument();
+    expect(sectionCopy).toHaveTextContent(/old bookmark|stale link|unsupported path/i);
+    expect(screen.getByRole('button', { name: 'Open Dashboard' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open TV Channels' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open Search' })).toBeInTheDocument();
+    expect(headerCopy.compareDocumentPosition(sectionCopy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('navigates from NotFound to the primary and likely supported destinations', () => {
+    const view = renderNotFoundWithRoutes('/unsupported-route');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Dashboard' }));
+    expect(screen.getByText('Dashboard destination')).toBeInTheDocument();
+
+    view.unmount();
+
+    const tvView = renderNotFoundWithRoutes('/unsupported-route');
+    fireEvent.click(screen.getByRole('button', { name: 'Open TV Channels' }));
+    expect(screen.getByText('TV Channels destination')).toBeInTheDocument();
+
+    tvView.unmount();
+
+    renderNotFoundWithRoutes('/unsupported-route');
+    fireEvent.click(screen.getByRole('button', { name: 'Open Search' }));
+    expect(screen.getByText('Search destination')).toBeInTheDocument();
+  });
+
+  it('replaces unsupported-route history entries when using NotFound recovery actions', () => {
+    const navigate = jest.fn();
+    (routerDom.useNavigate as jest.Mock).mockReturnValue(navigate);
+
+    renderPage(<NotFound />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Dashboard' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open TV Channels' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open Search' }));
+
+    expect(navigate).toHaveBeenNthCalledWith(1, '/', { replace: true });
+    expect(navigate).toHaveBeenNthCalledWith(2, '/tv-channels', { replace: true });
+    expect(navigate).toHaveBeenNthCalledWith(3, '/search', { replace: true });
+  });
+
+  it('wires legacy routes in App to explicit recovery pages', () => {
+    const channelsRoute = renderAppAtRoute(['/channels']);
+    expect(screen.getByRole('heading', { level: 1, name: 'Channels' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open TV Channels' })).toBeInTheDocument();
+    channelsRoute.unmount();
+
+    const channelDetailRoute = renderAppAtRoute(['/channels/legacy-id']);
+    expect(screen.getByRole('heading', { level: 1, name: 'Channel detail' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open TV Channels' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open EPG' })).toBeInTheDocument();
+    channelDetailRoute.unmount();
+
+    renderAppAtRoute(['/search-new']);
+    expect(screen.getByRole('heading', { level: 1, name: 'Search' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open Search' })).toBeInTheDocument();
+  });
+
+  it('renders Channels as a legacy recovery surface instead of a blank page', () => {
+    renderPage(<Channels />);
+
+    const headerCopy = screen.getByTestId('page-header-copy');
+    const sectionCopy = screen.getByTestId('content-section-copy');
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Channels' })).toBeInTheDocument();
+    expect(within(headerCopy).getByText(/legacy route has moved/i)).toBeInTheDocument();
+    expect(screen.getByText(/channel management now lives in tv channels/i)).toBeInTheDocument();
+    expect(within(sectionCopy).getByText(/open tv channels for the main inventory path/i)).toBeInTheDocument();
+    expect(within(sectionCopy).getByText(/if you need source-level context, check acestream channels separately/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Go to the current channel views' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open TV Channels' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Open Acestream Channels' })).not.toBeInTheDocument();
+    expect(headerCopy.compareDocumentPosition(sectionCopy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('navigates from Channels to TV Channels with the recovery action', () => {
+    renderLegacyPageWithRoutes('/channels', <Channels />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open TV Channels' }));
+
+    expect(screen.getByText('TV Channels destination')).toBeInTheDocument();
+  });
+
+  it('renders ChannelDetail as a legacy recovery surface with TV Channels and EPG actions', () => {
+    renderPage(<ChannelDetail />);
+
+    const headerCopy = screen.getByTestId('page-header-copy');
+    const sectionCopy = screen.getByTestId('content-section-copy');
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Channel detail' })).toBeInTheDocument();
+    expect(within(headerCopy).getByText(/legacy detail route/i)).toBeInTheDocument();
+    expect(within(headerCopy).getByText(/no longer the active workflow/i)).toBeInTheDocument();
+    expect(screen.getByText(/supported detail screen/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Choose a supported channel workflow' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open TV Channels' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open EPG' })).toBeInTheDocument();
+    expect(headerCopy.compareDocumentPosition(sectionCopy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('navigates from ChannelDetail to supported TV Channels and EPG flows', () => {
+    const view = renderLegacyPageWithRoutes('/channels/legacy-id', <ChannelDetail />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open TV Channels' }));
+    expect(screen.getByText('TV Channels destination')).toBeInTheDocument();
+
+    view.unmount();
+
+    renderLegacyPageWithRoutes('/channels/legacy-id', <ChannelDetail />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open EPG' }));
+    expect(screen.getByText('EPG destination')).toBeInTheDocument();
+  });
+
+  it('renders SearchNew as a legacy recovery surface for the current search workflow', () => {
+    renderPage(<SearchNew />);
+
+    const headerCopy = screen.getByTestId('page-header-copy');
+    const sectionCopy = screen.getByTestId('content-section-copy');
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Search' })).toBeInTheDocument();
+    expect(within(headerCopy).getByText(/legacy route has moved/i)).toBeInTheDocument();
+    expect(screen.getByText(/search now runs from the main search workflow/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Continue in the supported search flow' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open Search' })).toBeInTheDocument();
+    expect(headerCopy.compareDocumentPosition(sectionCopy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('navigates from SearchNew to the supported search flow', () => {
+    renderLegacyPageWithRoutes('/search-new', <SearchNew />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Search' }));
+
+    expect(screen.getByText('Search destination')).toBeInTheDocument();
   });
 });

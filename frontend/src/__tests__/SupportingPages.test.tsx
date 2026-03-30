@@ -6,6 +6,10 @@ import Playlist from '../pages/Playlist';
 import Settings from '../pages/Settings';
 import WarpPage from '../pages/WARP';
 import NotFound from '../pages/NotFound';
+import App from '../App';
+import Channels from '../pages/Channels';
+import ChannelDetail from '../pages/ChannelDetail';
+import SearchNew from '../pages/SearchNew';
 import { createAppTheme } from '../theme';
 import { TestMemoryRouter } from '../testUtils/router';
 import * as configHooks from '../hooks/useConfig';
@@ -32,6 +36,11 @@ jest.mock('../services/apiClient', () => ({
   },
 }));
 
+jest.mock('../components/layout/AppShell', () => ({
+  __esModule: true,
+  default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 jest.mock('../hooks/useConfig');
 jest.mock('../hooks/usePlaylists');
 jest.mock('../hooks/useWarp');
@@ -48,6 +57,19 @@ const renderPage = (ui: React.ReactElement) =>
       <TestMemoryRouter>{ui}</TestMemoryRouter>
     </ThemeProvider>
   );
+
+const renderAppAtPath = (path: string) =>
+  render(
+    <ThemeProvider theme={createAppTheme('light')}>
+      <TestMemoryRouter initialEntries={[path]}>
+        <App />
+      </TestMemoryRouter>
+    </ThemeProvider>
+  );
+
+const expectTextToAppearBefore = (first: HTMLElement, second: HTMLElement) => {
+  expect(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+};
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -227,5 +249,60 @@ describe('Supporting page normalization', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Page not found' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Get back on track' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Return to dashboard' })).toBeInTheDocument();
+  });
+
+  it.each([
+    ['/channels', 'Channels', 'Open TV Channels'],
+    ['/channels/123', 'Channel detail', 'Open TV Channels'],
+    ['/search-new', 'Search', 'Open Search'],
+  ])('wires the legacy path %s to a recovery page', (path, heading, actionLabel) => {
+    renderAppAtPath(path);
+
+    expect(screen.getByRole('heading', { level: 1, name: heading })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: actionLabel })).toBeInTheDocument();
+  });
+
+  it('renders Channels as a legacy recovery surface with summary-first guidance', () => {
+    renderPage(<Channels />);
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Channels' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Continue in TV Channels' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open TV Channels' })).toBeInTheDocument();
+    expect(screen.getByText(/legacy channels route/i)).toBeInTheDocument();
+    expect(screen.getByText(/acestream channels remains available for source inventory checks/i)).toBeInTheDocument();
+
+    expectTextToAppearBefore(
+      screen.getByText(/legacy channels route/i),
+      screen.getByText(/channel management moved into the current inventory views/i)
+    );
+  });
+
+  it('renders ChannelDetail as a legacy recovery surface with TV Channels first and EPG support', () => {
+    renderPage(<ChannelDetail />);
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Channel detail' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Continue in TV Channels' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open TV Channels' })).toBeInTheDocument();
+    expect(screen.getByText(/legacy channel detail route/i)).toBeInTheDocument();
+    expect(screen.getByText(/epg is the secondary path when you need schedule data or guide mapping/i)).toBeInTheDocument();
+
+    expectTextToAppearBefore(
+      screen.getByText(/legacy channel detail route/i),
+      screen.getByText(/this route is no longer the active workflow for single-channel work/i)
+    );
+  });
+
+  it('renders SearchNew as a legacy recovery surface for the current search workflow', () => {
+    renderPage(<SearchNew />);
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Search' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Continue in Search' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open Search' })).toBeInTheDocument();
+    expect(screen.getByText(/legacy search route/i)).toBeInTheDocument();
+
+    expectTextToAppearBefore(
+      screen.getByText(/legacy search route/i),
+      screen.getByText(/the active search workflow now lives on the main search page/i)
+    );
   });
 });

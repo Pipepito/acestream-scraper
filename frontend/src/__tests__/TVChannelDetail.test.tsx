@@ -113,7 +113,7 @@ describe('TVChannelDetail', () => {
     const identitySummary = within(relationshipSummary).getByText(/Arena TV is active, marked favorite/i);
     const relationshipStatus = within(relationshipSummary).getByText(/^Relationship status$/i);
     const nextStep = within(relationshipSummary).getByText(/^Next step$/i);
-    const supportCopy = within(relationshipSummary).getByText(/Linked source coverage and guide linkage are both present/i);
+    const supportCopy = within(relationshipSummary).getByText(/guide linkage.*routine review|routine review.*guide linkage/i);
 
     expect(within(relationshipSummary).getByText('Operational relationship in place')).toBeInTheDocument();
     expect(identitySummary.compareDocumentPosition(channelSummaryHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

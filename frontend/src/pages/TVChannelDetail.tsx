@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
+  alpha,
   Alert,
   Box,
   Button,
@@ -20,6 +21,7 @@ import {
   TextField,
   Typography,
   FormControlLabel,
+  useTheme,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -46,6 +48,7 @@ import {
 const TVChannelDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const theme = useTheme();
   const channelId = id ? parseInt(id, 10) : 0;
 
   const { data: channel, isLoading, isError } = useTVChannel(channelId);
@@ -60,6 +63,7 @@ const TVChannelDetail: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAcestreams, setSelectedAcestreams] = useState<string[]>([]);
   const [isEditing, setIsEditing] = useState(false);
+  const [notice, setNotice] = useState<{ message: string; severity: 'success' | 'error' } | null>(null);
   const [editFormData, setEditFormData] = useState({
     name: '',
     logo_url: '',
@@ -80,6 +84,30 @@ const TVChannelDetail: React.FC = () => {
   );
 
   const acestreamCandidateItems = acestreamCandidates?.items || [];
+  const linkedAcestreamCount = channel?.acestream_channels.length || 0;
+  const hasEpgLink = Boolean(channel?.epg_id);
+
+  const identitySummary = channel
+    ? `${channel.name} is ${channel.is_active ? 'active' : 'inactive'}, ${channel.is_favorite ? 'marked favorite' : 'not marked favorite'}, and ${linkedAcestreamCount === 0 ? 'still waiting for source coverage' : hasEpgLink ? 'ready for playback and guide review' : 'ready for playback but still missing guide linkage'}.`
+    : '';
+
+  const relationshipStatus = linkedAcestreamCount === 0
+    ? 'Playback coverage incomplete'
+    : hasEpgLink
+      ? 'Operational relationship in place'
+      : 'Guide linkage still missing';
+
+  const relationshipGuidance = linkedAcestreamCount === 0
+    ? 'No linked acestream sources are available yet, so this channel cannot deliver playback coverage even if its guide data is ready.'
+    : hasEpgLink
+      ? 'Linked sources and guide coverage are both present, so this channel is ready for routine review and any optional cleanup.'
+      : 'Playback coverage is present, but this channel still needs an EPG link before schedule validation is complete.';
+
+  const nextStepLabel = linkedAcestreamCount === 0
+    ? 'Link at least one acestream source before you treat this channel as ready for playback or guide follow-up.'
+    : hasEpgLink
+      ? 'Keep coverage aligned and remove stale links only when playback or guide cleanup is needed.'
+      : 'Add the correct EPG ID so downstream schedule review can start from this same detail page.';
 
   const handleGoBack = () => {
     navigate('/tv-channels');
@@ -131,7 +159,9 @@ const TVChannelDetail: React.FC = () => {
         },
       });
       setIsEditing(false);
+      setNotice({ message: 'TV channel updated successfully.', severity: 'success' });
     } catch (error) {
+      setNotice({ message: 'Failed to update TV channel.', severity: 'error' });
       console.error('Error updating TV channel:', error);
     }
   };
@@ -144,12 +174,20 @@ const TVChannelDetail: React.FC = () => {
         tvChannelId: channelId,
         aceStreamId,
       });
+      const removedAcestream = channel?.acestream_channels.find((item) => item.channel_id === aceStreamId);
+      setNotice({
+        message: `Removed acestream ${removedAcestream?.name || aceStreamId} successfully.`,
+        severity: 'success',
+      });
     } catch (error) {
+      setNotice({ message: 'Failed to remove acestream.', severity: 'error' });
       console.error('Error removing acestream:', error);
     }
   };
 
   const handleAssociateSelected = async () => {
+    const assignedCount = selectedAcestreams.length;
+
     for (const aceStreamId of selectedAcestreams) {
       try {
         await associateAcestreamMutation.mutateAsync({
@@ -157,12 +195,18 @@ const TVChannelDetail: React.FC = () => {
           aceStreamId,
         });
       } catch (error) {
+        setNotice({ message: 'Failed to assign selected acestream sources.', severity: 'error' });
         console.error('Error associating acestream:', error);
+        return;
       }
     }
 
     setOpenAssociateDialog(false);
     setSelectedAcestreams([]);
+    setNotice({
+      message: `Assigned ${assignedCount} acestream source${assignedCount === 1 ? '' : 's'} successfully.`,
+      severity: 'success',
+    });
   };
 
   if (isLoading) {
@@ -216,6 +260,117 @@ const TVChannelDetail: React.FC = () => {
           </>
         }
       />
+
+      <Box
+        sx={{
+          mb: 3,
+          p: { xs: 2, md: 2.5 },
+          borderRadius: 2.5,
+          bgcolor: theme.appTokens.hero.bg,
+          border: `1px solid ${theme.appTokens.hero.border}`,
+          backgroundImage: theme.appTokens.hero.spotlight,
+        }}
+      >
+        <Stack spacing={2}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, justifyContent: 'space-between' }}>
+            <Box sx={{ minWidth: 0, maxWidth: 760 }}>
+              <Typography variant="statusMeta" sx={{ color: theme.appTokens.hero.accent, mb: 1 }}>
+                Relationship summary
+              </Typography>
+              <Typography variant="h4" sx={{ letterSpacing: '-0.03em', mb: 1 }}>
+                {identitySummary}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {relationshipGuidance}
+              </Typography>
+            </Box>
+            <Stack spacing={1} sx={{ minWidth: { xs: '100%', sm: 320 } }}>
+              <Box
+                sx={{
+                  p: 1.5,
+                  borderRadius: 2,
+                  bgcolor: alpha(theme.appTokens.shell.accent, 0.08),
+                  border: `1px solid ${alpha(theme.appTokens.shell.accent, 0.18)}`,
+                }}
+              >
+                <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>
+                  Relationship status
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                  {relationshipStatus}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {linkedAcestreamCount} linked acestream source{linkedAcestreamCount === 1 ? '' : 's'} {hasEpgLink ? 'with guide linkage in place.' : 'and no guide linkage yet.'}
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  p: 1.5,
+                  borderRadius: 2,
+                  bgcolor: theme.appTokens.surface.panel,
+                  border: `1px solid ${theme.appTokens.surface.border}`,
+                }}
+              >
+                <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>
+                  Next step
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {nextStepLabel}
+                </Typography>
+              </Box>
+            </Stack>
+          </Box>
+
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25 }}>
+            <Box
+              sx={{
+                flex: '1 1 180px',
+                minWidth: { xs: '100%', sm: 180 },
+                p: 1.5,
+                borderRadius: 2,
+                bgcolor: theme.appTokens.surface.panel,
+                border: `1px solid ${theme.appTokens.surface.border}`,
+              }}
+            >
+              <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.75 }}>
+                Coverage
+              </Typography>
+              <Typography variant="sectionTitle" sx={{ mb: 0.5 }}>
+                {linkedAcestreamCount} linked acestream source{linkedAcestreamCount === 1 ? '' : 's'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {linkedAcestreamCount === 0 ? 'Add source coverage before relying on this channel downstream.' : 'Playback source coverage is present for this channel.'}
+              </Typography>
+            </Box>
+            <Box
+              sx={{
+                flex: '1 1 180px',
+                minWidth: { xs: '100%', sm: 180 },
+                p: 1.5,
+                borderRadius: 2,
+                bgcolor: theme.appTokens.surface.panel,
+                border: `1px solid ${theme.appTokens.surface.border}`,
+              }}
+            >
+              <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.75 }}>
+                Guide linkage
+              </Typography>
+              <Typography variant="sectionTitle" sx={{ mb: 0.5 }}>
+                {hasEpgLink ? 'EPG ready' : 'EPG still missing'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {hasEpgLink ? `EPG ID ${channel.epg_id} is available for schedule review.` : 'Add an EPG ID when you are ready to validate schedule coverage.'}
+              </Typography>
+            </Box>
+          </Box>
+        </Stack>
+      </Box>
+
+      {notice ? (
+        <Alert severity={notice.severity} sx={{ mb: 2 }} onClose={() => setNotice(null)}>
+          {notice.message}
+        </Alert>
+      ) : null}
 
       <ContentSection
         title="Channel Summary"

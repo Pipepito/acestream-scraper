@@ -22,6 +22,7 @@ import BatchAssignDialog from '../components/BatchAssignDialog';
 import QuickEditDialog from '../components/QuickEditDialog';
 import AssignTVChannelDialog from '../components/AssignTVChannelDialog';
 import { useAllTVChannels } from '../hooks/useTVChannels';
+import { tvChannelService } from '../services/tvChannelService';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
 import InlineStatusNotice from '../components/state/InlineStatusNotice';
@@ -326,6 +327,21 @@ const AcestreamChannels: React.FC = () => {
     }
   };
 
+  const handleToggleLinkedFavorite = async (channel: AcestreamChannel) => {
+    if (!channel.tv_channel_id) {
+      return;
+    }
+
+    try {
+      await tvChannelService.update(channel.tv_channel_id, {
+        is_favorite: !channel.tv_channel_is_favorite,
+      });
+      refetch();
+    } catch (err) {
+      setError(`Failed to update linked TV favorite: ${getErrorMessage(err)}`);
+    }
+  };
+
   const checkAllSeverity = checkAllResult?.error ? 'error' : 'success';
 
   return (
@@ -532,13 +548,31 @@ const AcestreamChannels: React.FC = () => {
           onActionComplete={refetch}
           extraActions={(row) => {
             const assignedTvChannel = tvChannels?.items.find((tvChannel) => tvChannel.id === row.tv_channel_id);
-            if (row.tv_channel_id && assignedTvChannel) {
+            const linkedTvName = assignedTvChannel?.name || row.tv_channel_name || 'linked TV channel';
+            if (row.tv_channel_id) {
               return (
-                <Tooltip title={`Open TV channel: ${assignedTvChannel.name}`} arrow>
-                  <IconButton color="primary" aria-label={`go to tv channel ${assignedTvChannel.name}`} onClick={() => navigate(`/tv-channels/${assignedTvChannel.id}`)}>
-                    <TvIcon />
-                  </IconButton>
-                </Tooltip>
+                <>
+                  <Tooltip title={row.tv_channel_is_favorite ? `Remove ${linkedTvName} from favorites` : `Add ${linkedTvName} to favorites`} arrow>
+                    <Button
+                      size="small"
+                      variant="text"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void handleToggleLinkedFavorite(row);
+                      }}
+                      aria-label={row.tv_channel_is_favorite ? `Remove ${linkedTvName} from favorites` : `Add ${linkedTvName} to favorites`}
+                    >
+                      {row.tv_channel_is_favorite ? 'Unfavorite TV' : 'Favorite TV'}
+                    </Button>
+                  </Tooltip>
+                  {assignedTvChannel ? (
+                    <Tooltip title={`Open TV channel: ${linkedTvName}`} arrow>
+                      <IconButton color="primary" aria-label={`go to tv channel ${linkedTvName}`} onClick={() => navigate(`/tv-channels/${assignedTvChannel.id}`)}>
+                        <TvIcon />
+                      </IconButton>
+                    </Tooltip>
+                  ) : null}
+                </>
               );
             }
 

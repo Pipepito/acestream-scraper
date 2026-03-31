@@ -52,6 +52,8 @@ class AcestreamChannelResponse(AcestreamChannelBase):
     last_checked: Optional[datetime] = None
     check_error: Optional[str] = None
     tv_channel_id: Optional[int] = None
+    tv_channel_name: Optional[str] = None
+    tv_channel_is_favorite: Optional[bool] = None
     epg_update_protected: Optional[bool] = False
 
     class Config:

@@ -13,14 +13,38 @@ const mockUseDeleteAcestreamChannel = jest.fn();
 const mockUseAllTVChannels = jest.fn();
 const mockGetGroups = jest.fn();
 const mockCheckAllStatuses = jest.fn();
+const mockUpdateTVChannel = jest.fn();
 const mockDeleteMutate = jest.fn();
 let latestOnDelete: ((id: string) => Promise<boolean>) | undefined;
+let latestExtraActions: ((row: { id: string; name: string; tv_channel_id?: number; tv_channel_name?: string; tv_channel_is_favorite?: boolean }) => React.ReactNode) | undefined;
 
 jest.mock('../components/ChannelTable', () => ({
   __esModule: true,
-  default: ({ channels, loading, onDelete }: { channels: Array<{ id: string }>; loading: boolean; onDelete: (id: string) => Promise<boolean> }) => {
+  default: ({
+    channels,
+    loading,
+    onDelete,
+    extraActions,
+  }: {
+    channels: Array<{ id: string; name: string; tv_channel_id?: number; tv_channel_name?: string; tv_channel_is_favorite?: boolean }>;
+    loading: boolean;
+    onDelete: (id: string) => Promise<boolean>;
+    extraActions?: (row: { id: string; name: string; tv_channel_id?: number; tv_channel_name?: string; tv_channel_is_favorite?: boolean }) => React.ReactNode;
+  }) => {
     latestOnDelete = onDelete;
-    return <div data-testid="channel-table">channels:{channels.length};loading:{String(loading)}</div>;
+    latestExtraActions = extraActions;
+    return (
+      <div data-testid="channel-table">
+        channels:{channels.length};loading:{String(loading)}
+        {channels.map((channel) => (
+          <div key={channel.id}>
+            <span>{channel.name}</span>
+            <span>{channel.tv_channel_is_favorite ? 'favorite-tv-linked' : 'not-favorite-tv-linked'}</span>
+            {extraActions ? <div>{extraActions(channel)}</div> : null}
+          </div>
+        ))}
+      </div>
+    );
   },
 }));
 
@@ -74,6 +98,13 @@ jest.mock('../services/channelService', () => ({
   },
 }));
 
+jest.mock('../services/tvChannelService', () => ({
+  __esModule: true,
+  tvChannelService: {
+    update: (...args: unknown[]) => mockUpdateTVChannel(...args),
+  },
+}));
+
 describe('AcestreamChannels page hardening', () => {
   const renderPage = () =>
     render(
@@ -107,6 +138,9 @@ describe('AcestreamChannels page hardening', () => {
             group: 'Sports',
             is_active: true,
             is_online: true,
+            tv_channel_id: 7,
+            tv_channel_name: 'Arena TV',
+            tv_channel_is_favorite: true,
           },
         ],
         total: 1,
@@ -119,6 +153,47 @@ describe('AcestreamChannels page hardening', () => {
     mockUseAllTVChannels.mockReturnValue({ data: { items: [] } });
     mockGetGroups.mockResolvedValue(['Sports', 'News']);
     mockCheckAllStatuses.mockResolvedValue({ message: 'Acestream status check task triggered successfully.' });
+    mockUpdateTVChannel.mockResolvedValue(undefined);
+  });
+
+  it('surfaces linked TV favorite state inside the AceStream inventory', async () => {
+    await renderPageAndWaitForGroups({ expectedGroupsText: 'groups:Sports,News' });
+
+    expect(screen.getByText('favorite-tv-linked')).toBeInTheDocument();
+  });
+
+  it('toggles the linked TV favorite state from the AceStream inventory shortcut', async () => {
+    const refetch = jest.fn();
+    mockUseAcestreamChannels.mockReturnValue({
+      data: {
+        items: [
+          {
+            id: 'ace-100',
+            name: 'Alpha Sports',
+            group: 'Sports',
+            is_active: true,
+            is_online: true,
+            tv_channel_id: 7,
+            tv_channel_name: 'Arena TV',
+            tv_channel_is_favorite: true,
+          },
+        ],
+        total: 1,
+      },
+      isLoading: false,
+      refetch,
+      error: null,
+    });
+
+    await renderPageAndWaitForGroups({ expectedGroupsText: 'groups:Sports,News' });
+
+    expect(latestExtraActions).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Remove Arena TV from favorites' })).toBeInTheDocument();
+
+    await user().click(screen.getByRole('button', { name: 'Remove Arena TV from favorites' }));
+
+    await waitFor(() => expect(mockUpdateTVChannel).toHaveBeenCalledWith(7, { is_favorite: false }));
+    expect(refetch).toHaveBeenCalled();
   });
 
   it('opens with an extracted-channel routing summary and keeps inventory primary', async () => {

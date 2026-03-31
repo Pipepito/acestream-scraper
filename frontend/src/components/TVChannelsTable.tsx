@@ -307,7 +307,20 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
       sortable: false,
       filterable: false,
     },
-    { field: 'name', headerName: 'Name', flex: 1, minWidth: 140 },
+    {
+      field: 'name',
+      headerName: 'Name',
+      flex: 1,
+      minWidth: 140,
+      renderCell: (params: GridRenderCellParams<TVChannel>) => (
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+          <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {params.row.name}
+          </Box>
+          {params.row.is_favorite ? <Chip label="Favorite" size="small" color="warning" variant="outlined" /> : null}
+        </Stack>
+      ),
+    },
     {
       field: 'actions',
       headerName: 'Actions',
@@ -388,6 +401,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
 
                   <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                     {channel.category ? <Chip label={channel.category} size="small" variant="outlined" /> : null}
+                    {channel.is_favorite ? <Chip label="Favorite" size="small" color="warning" variant="outlined" /> : null}
                     <Chip label={`${streamCount} ${streamCount === 1 ? 'stream' : 'streams'}`} size="small" variant="outlined" />
                   </Stack>
 

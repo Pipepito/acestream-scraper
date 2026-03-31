@@ -94,6 +94,51 @@ class TestPlaylistEndpoints:
         assert "Beta Channel" in content
         assert "Gamma Channel" in content
 
+    def test_get_m3u_playlist_favorites_only(self, client, seed_channels, seed_tv_channels, db_session):
+        """Test getting M3U playlist filtered to favorite linked TV channels."""
+        seed_channels[0].tv_channel_id = seed_tv_channels[0].id
+        seed_channels[1].tv_channel_id = seed_tv_channels[1].id
+        seed_tv_channels[0].is_favorite = True
+        seed_tv_channels[1].is_favorite = False
+        db_session.commit()
+
+        response = client.get("/api/v1/playlists/m3u?favorites_only=true")
+
+        assert response.status_code == status.HTTP_200_OK
+        content = response.text
+        assert "#EXTM3U" in content
+        assert "Alpha Channel" in content
+        assert "Beta Channel" not in content
+        assert "Gamma Channel" not in content
+
+    def test_get_m3u_playlist_favorites_only_excludes_unassigned_channels(self, client, seed_channels, seed_tv_channels, db_session):
+        """Test favorites-only playlist excludes unassigned AceStream channels."""
+        seed_channels[0].tv_channel_id = seed_tv_channels[0].id
+        seed_tv_channels[0].is_favorite = True
+        db_session.commit()
+
+        response = client.get("/api/v1/playlists/m3u?favorites_only=true")
+
+        assert response.status_code == status.HTTP_200_OK
+        content = response.text
+        assert "Alpha Channel" in content
+        assert "Beta Channel" not in content
+        assert "Gamma Channel" not in content
+
+    def test_get_m3u_playlist_favorites_only_composes_with_online_filter(self, client, seed_channels, seed_tv_channels, db_session):
+        """Test favorites-only playlist still respects online-only filtering."""
+        seed_channels[0].tv_channel_id = seed_tv_channels[0].id
+        seed_tv_channels[0].is_favorite = True
+        seed_channels[0].is_online = False
+        db_session.commit()
+
+        response = client.get("/api/v1/playlists/m3u?favorites_only=true&only_online=true")
+
+        assert response.status_code == status.HTTP_200_OK
+        content = response.text
+        assert "#EXTM3U" in content
+        assert "Alpha Channel" not in content
+
     def test_get_m3u_playlist_with_custom_base_url(self, client, seed_channels):
         """Test getting M3U playlist with custom base URL."""
         custom_base = "http://custom.example.com"

@@ -73,6 +73,13 @@ const Playlist: React.FC = () => {
     });
   };
 
+  const handleFavoritesOnlyChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setFilters({
+      ...filters,
+      favorites_only: event.target.checked
+    });
+  };
+
   return (
     <Box>
       <PageHeader
@@ -138,6 +145,16 @@ const Playlist: React.FC = () => {
                 />
               }
               label="Only include online channels"
+            />
+
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={filters.favorites_only ?? false}
+                  onChange={handleFavoritesOnlyChange}
+                />
+              }
+              label="Only include favorite TV channels"
             />
 
             <Box sx={{ mt: 2 }}>

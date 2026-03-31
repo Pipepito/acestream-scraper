@@ -11,6 +11,7 @@ export interface PlaylistFilters {
   group?: string;
   search?: string;
   only_online?: boolean;
+  favorites_only?: boolean;
   include_groups?: string[];
   exclude_groups?: string[];
 }
@@ -39,6 +40,7 @@ export const playlistService = {
       if (filters.group) params.append('group', filters.group);
       if (filters.search) params.append('search', filters.search);
       if (filters.only_online !== undefined) params.append('only_online', String(filters.only_online));
+      if (filters.favorites_only !== undefined) params.append('favorites_only', String(filters.favorites_only));
       if (filters.include_groups) {
         filters.include_groups.forEach(g => params.append('include_groups', g));
       }

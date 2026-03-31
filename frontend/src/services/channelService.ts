@@ -25,6 +25,8 @@ export interface AcestreamChannel {
   check_error?: string;
   epg_update_protected: boolean;
   tv_channel_id?: number;
+  tv_channel_name?: string;
+  tv_channel_is_favorite?: boolean;
   is_active?: boolean; // Added for inline edit/quick actions
 }
 

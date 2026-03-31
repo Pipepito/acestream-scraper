@@ -204,6 +204,33 @@ describe('TVChannelsTable', () => {
     expect(screen.queryByRole('grid')).not.toBeInTheDocument();
   });
 
+  it('surfaces favorite state prominently in both desktop and compact views', () => {
+    const favoriteChannel = {
+      id: 42,
+      name: 'Arena TV',
+      logo_url: '',
+      category: 'Sports',
+      language: 'en',
+      country: 'RS',
+      channel_number: 7,
+      is_active: true,
+      created_at: '2024-01-01T00:00:00.000Z',
+      updated_at: '2024-01-01T00:00:00.000Z',
+      is_favorite: true,
+      acestream_channels: [{ channel_id: 'ace-1' }],
+    } as any;
+
+    const { unmount } = renderTable(<TVChannelsTable channels={[favoriteChannel]} {...baseProps} />);
+
+    expect(screen.getByRole('grid')).toHaveTextContent('Favorite');
+
+    unmount();
+
+    renderTable(<TVChannelsTable channels={[favoriteChannel]} {...baseProps} />, true);
+
+    expect(within(screen.getByRole('article', { name: 'Arena TV' })).getByText('Favorite')).toBeInTheDocument();
+  });
+
   it('renders a clear mobile empty state in compact mode', () => {
     renderTable(<TVChannelsTable channels={[]} {...baseProps} totalCount={0} />, true);
 

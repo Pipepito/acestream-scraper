@@ -37,4 +37,24 @@ describe('Playlist bold layout', () => {
     expect(screen.getByText(/use them only when the basic download or share path needs extra filtering/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Download M3U' })).toBeInTheDocument();
   });
+
+  it('adds favorites-only playlist filtering to the primary export path', () => {
+    render(
+      <ThemeProvider theme={createAppTheme('light')}>
+        <TestMemoryRouter>
+          <Playlist />
+        </TestMemoryRouter>
+      </ThemeProvider>
+    );
+
+    const checkbox = screen.getByRole('checkbox', { name: 'Only include favorite TV channels' });
+
+    expect(checkbox).not.toBeChecked();
+    expect(screen.getByDisplayValue(/\/api\/v1\/playlists\/m3u\?/i)).not.toHaveValue(expect.stringContaining('favorites_only=true'));
+
+    fireEvent.click(checkbox);
+
+    expect(checkbox).toBeChecked();
+    expect((screen.getByDisplayValue(/\/api\/v1\/playlists\/m3u\?/i) as HTMLInputElement).value).toContain('favorites_only=true');
+  });
 });

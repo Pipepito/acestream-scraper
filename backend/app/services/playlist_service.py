@@ -25,6 +25,7 @@ class PlaylistService:
         only_online: bool = False,
         include_groups: Optional[List[str]] = None,
         exclude_groups: Optional[List[str]] = None,
+        favorites_only: bool = False,
         base_url: Optional[str] = None,
         format: Optional[str] = None
     ) -> str:
@@ -37,6 +38,7 @@ class PlaylistService:
             only_online: Whether to include only online channels
             include_groups: Optional list of groups to include
             exclude_groups: Optional list of groups to exclude
+            favorites_only: Whether to include only channels linked to favorite TV channels
             base_url: Optional base URL for stream links
             format: Optional format for the playlist output
 
@@ -49,7 +51,8 @@ class PlaylistService:
             group=group,
             only_online=only_online,
             include_groups=include_groups,
-            exclude_groups=exclude_groups
+            exclude_groups=exclude_groups,
+            favorites_only=favorites_only
         )
 
         # Load runtime settings for base URL fallback and addpid toggle.

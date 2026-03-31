@@ -86,7 +86,8 @@ class ChannelRepository:
                              group: Optional[str] = None,
                              only_online: bool = False,
                              include_groups: Optional[List[str]] = None,
-                             exclude_groups: Optional[List[str]] = None) -> List[AcestreamChannel]:
+                             exclude_groups: Optional[List[str]] = None,
+                             favorites_only: bool = False) -> List[AcestreamChannel]:
         """
         Get channels with advanced filtering options
 
@@ -96,11 +97,15 @@ class ChannelRepository:
             only_online: Whether to include only online channels
             include_groups: Optional list of groups to include
             exclude_groups: Optional list of groups to exclude
+            favorites_only: Whether to include only channels linked to favorite TV channels
 
         Returns:
             List of filtered channels
         """
         query = self.db.query(AcestreamChannel)
+
+        if favorites_only:
+            query = query.join(TVChannel, AcestreamChannel.tv_channel_id == TVChannel.id).filter(TVChannel.is_favorite == True)
 
         # Apply filters
         if search:

@@ -55,6 +55,22 @@ class TestChannelEndpoints:
         assert len(data["items"]) == 1
         assert data["items"][0]["group"] == "Group 1"
 
+    def test_get_channels_includes_linked_tv_favorite_metadata(self, client, seed_channels, seed_tv_channels, db_session):
+        """Test getting channels includes linked TV metadata for favorites UI."""
+        seed_tv_channels[0].name = 'Arena TV'
+        seed_tv_channels[0].is_favorite = True
+        seed_channels[0].tv_channel_id = seed_tv_channels[0].id
+        db_session.commit()
+
+        response = client.get('/api/v1/channels/')
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        alpha = next(item for item in data['items'] if item['id'] == seed_channels[0].id)
+        assert alpha['tv_channel_id'] == seed_tv_channels[0].id
+        assert alpha['tv_channel_name'] == 'Arena TV'
+        assert alpha['tv_channel_is_favorite'] is True
+
     def test_get_channel_by_id(self, client, seed_channels):
         """Test getting a specific channel by ID."""
         channel_id = seed_channels[0].id

@@ -68,6 +68,18 @@ class AcestreamChannel(Base):
     tv_channel_id = Column(Integer, ForeignKey("tv_channels.id"), nullable=True)
     tv_channel = relationship("TVChannel", back_populates="acestream_channels")
 
+    @property
+    def tv_channel_name(self):
+        if not self.tv_channel:
+            return None
+        return self.tv_channel.name
+
+    @property
+    def tv_channel_is_favorite(self):
+        if not self.tv_channel:
+            return None
+        return self.tv_channel.is_favorite
+
 
 class EPGSource(Base):
     """Model for EPG sources"""

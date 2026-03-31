@@ -8,6 +8,7 @@ This repository now uses a single root deployment model:
 ## Key Docs
 
 - `docs/architecture/deployment.md`: production and local deployment model for `backend/` + `frontend/`.
+- `docs/ops/jenkins-ci.md`: primary Jenkins CI/CD operator guide, cutover steps, and rollback guidance.
 - `docs/migration/migration-strategy.md`: cutover rules and migration direction.
 - `docs/migration/development-phases.md`: planned phase breakdown.
 - `docs/migration/development-progress.md`: current execution progress and completed work.

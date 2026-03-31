@@ -7,11 +7,15 @@ if [[ "${1:-}" == "--strict" ]]; then
 fi
 
 TARGETS=(
+  "Jenkinsfile"
   ".github/workflows/pull_request.yml"
   ".github/workflows/release.yml"
   ".github/workflows/phase1-safety-gates.yml"
   "Dockerfile"
   "docker-compose.yml"
+  "jenkins/release.Jenkinsfile"
+  "scripts/ci/run_jenkins_validation.sh"
+  "scripts/ci/run_jenkins_release.sh"
   "scripts/ci/run_cutover_required_checks.sh"
 )
 
@@ -19,7 +23,6 @@ FORBIDDEN=(
   "wsgi.py"
   "run_dev.py"
   "manage.py"
-  "entrypoint.sh"
   "v2/"
 )
 

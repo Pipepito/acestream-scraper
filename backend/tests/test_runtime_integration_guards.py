@@ -8,6 +8,11 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
+def _write_executable(path: Path, content: str) -> None:
+    path.write_text(content)
+    path.chmod(0o755)
+
+
 def test_backend_requirements_include_apscheduler():
     requirements = (REPO_ROOT / "backend" / "requirements.txt").read_text()
 
@@ -93,3 +98,119 @@ def test_docker_compose_pins_zeronet_platform_for_arm_hosts():
 
     assert "image: nofish/zeronet:latest" in compose_file
     assert "platform: linux/amd64" in compose_file
+
+
+def test_legacy_path_guard_accepts_current_runtime_contract():
+    result = subprocess.run(
+        ["bash", "scripts/ci/assert_no_legacy_paths.sh", "--strict"],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_legacy_path_guard_covers_jenkins_entrypoints():
+    guard_script = (REPO_ROOT / "scripts" / "ci" / "assert_no_legacy_paths.sh").read_text()
+
+    assert '"Jenkinsfile"' in guard_script
+    assert '"jenkins/release.Jenkinsfile"' in guard_script
+    assert '"scripts/ci/run_jenkins_validation.sh"' in guard_script
+    assert '"scripts/ci/run_jenkins_release.sh"' in guard_script
+
+
+def test_jenkins_validation_wrapper_fails_fast_when_builder_is_missing(tmp_path):
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    fake_bash_log = tmp_path / "fake-bash.log"
+
+    _write_executable(
+        fake_bin / "bash",
+        "#!/bin/bash\n"
+        "set -euo pipefail\n"
+        "printf '%s\\n' \"$*\" >> \"${FAKE_BASH_LOG:?}\"\n"
+        "printf 'unexpected downstream bash call: %s\\n' \"$*\" >&2\n"
+        "exit 99\n",
+    )
+    _write_executable(
+        fake_bin / "docker",
+        "#!/bin/bash\n"
+        "set -euo pipefail\n"
+        "if [ \"${1:-}\" = \"buildx\" ] && [ \"${2:-}\" = \"inspect\" ]; then\n"
+        "  printf 'missing builder: %s\\n' \"${3:-}\" >&2\n"
+        "  exit 1\n"
+        "fi\n"
+        "printf 'unexpected docker call: %s\\n' \"$*\" >&2\n"
+        "exit 98\n",
+    )
+
+    env = os.environ.copy()
+    env["PATH"] = f"{fake_bin}:{env['PATH']}"
+    env["FAKE_BASH_LOG"] = str(fake_bash_log)
+    env["JENKINS_BUILDER"] = "missing-builder"
+
+    result = subprocess.run(
+        ["/bin/bash", str(REPO_ROOT / "scripts/ci/run_jenkins_validation.sh")],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+
+    assert result.returncode != 0
+    assert "missing-builder" in (result.stdout + result.stderr)
+    assert not fake_bash_log.exists() or fake_bash_log.read_text() == ""
+
+
+def test_jenkins_release_wrapper_fails_fast_when_builder_is_missing(tmp_path):
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    fake_bash_log = tmp_path / "fake-bash.log"
+
+    _write_executable(
+        fake_bin / "bash",
+        "#!/bin/bash\n"
+        "set -euo pipefail\n"
+        "printf '%s\\n' \"$*\" >> \"${FAKE_BASH_LOG:?}\"\n"
+        "printf 'unexpected downstream bash call: %s\\n' \"$*\" >&2\n"
+        "exit 99\n",
+    )
+    _write_executable(
+        fake_bin / "docker",
+        "#!/bin/bash\n"
+        "set -euo pipefail\n"
+        "if [ \"${1:-}\" = \"buildx\" ] && [ \"${2:-}\" = \"inspect\" ]; then\n"
+        "  printf 'missing builder: %s\\n' \"${3:-}\" >&2\n"
+        "  exit 1\n"
+        "fi\n"
+        "printf 'unexpected docker call: %s\\n' \"$*\" >&2\n"
+        "exit 98\n",
+    )
+
+    env = os.environ.copy()
+    env["PATH"] = f"{fake_bin}:{env['PATH']}"
+    env["FAKE_BASH_LOG"] = str(fake_bash_log)
+    env["JENKINS_BUILDER"] = "missing-builder"
+
+    result = subprocess.run(
+        ["/bin/bash", str(REPO_ROOT / "scripts/ci/run_jenkins_release.sh"), "--dry-run"],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+
+    assert result.returncode != 0
+    assert "missing-builder" in (result.stdout + result.stderr)
+    assert not fake_bash_log.exists() or fake_bash_log.read_text() == ""
+
+
+def test_jenkins_release_pipeline_verifies_checkout_matches_origin_main():
+    pipeline = (REPO_ROOT / "jenkins" / "release.Jenkinsfile").read_text()
+
+    assert "git fetch --no-tags origin main" in pipeline
+    assert 'test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"' in pipeline

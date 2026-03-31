@@ -122,8 +122,19 @@ bash scripts/ci/phase5_arch_smoke.sh --platforms linux/arm/v7,linux/arm64
 
 CI orchestration:
 
-- `.github/workflows/multiarch-validation.yml`
-- `scripts/phase_gates/phase5_gate_runner.py` (`quick` and `full` profiles)
+- Jenkins multibranch PR validation is the canonical orchestration path after cutover and runs from the repository-root `Jenkinsfile`.
+- Jenkins manual release publication is the canonical release path after cutover and runs from `jenkins/release.Jenkinsfile`.
+- Jenkins validation is intended to mirror `.github/workflows/pull_request.yml`.
+- Jenkins manual release is intended to mirror `.github/workflows/release.yml`.
+- Jenkins agents are expected to provide the named buildx builder `acestream-builder` unless `JENKINS_BUILDER` is explicitly overridden.
+- During setup, the existing GitHub Actions workflows remain unchanged.
+- GitHub Actions workflows can become fallback/manual validation paths after Jenkins cutover:
+  - `.github/workflows/pull_request.yml`
+  - `.github/workflows/release.yml`
+  - `.github/workflows/multiarch-validation.yml`
+  - `.github/workflows/cutover-validation.yml`
+  - `.github/workflows/phase1-safety-gates.yml`
+- `scripts/phase_gates/phase5_gate_runner.py` (`quick` and `full` profiles) remains a canonical script-level entrypoint used by CI flows.
 
 ### Android TV Notes
 

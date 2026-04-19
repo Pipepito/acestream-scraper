@@ -105,6 +105,7 @@ If you prefer to wire Jenkins jobs first and let the repository bootstrap the ru
 - [ ] Install the required plugins.
 - [ ] If you are using SSH-launched nodes, add SSH credential `acestream-build-agent-ssh`.
 - [ ] Add GitHub App credential `github-app-acestream-scraper`.
+      If your live controller already uses a different working credential id such as `github-builder-app`, keep using that live id until you intentionally normalize the controller configuration.
 - [ ] Add Docker Hub credential `dockerhub-publish`.
 - [ ] Create the build executor and apply label `generic-gh-builder`.
 - [ ] Confirm the node comes online.
@@ -123,8 +124,7 @@ If you prefer to wire Jenkins jobs first and let the repository bootstrap the ru
 - [ ] Choose your trigger model: public webhook delivery or private periodic scan/manual scan.
 - [ ] Trigger an initial multibranch scan.
 - [ ] Open or update a test PR.
-- [ ] Confirm Jenkins reports a status/check back to GitHub.
-- [ ] Record the exact Jenkins check name.
+- [ ] Confirm Jenkins reports the `PR Validation` status context back to GitHub.
 - [ ] Run the manual release job with `CONFIRM_RELEASE=true` and `DRY_RUN=true`.
 - [ ] Only after Jenkins is stable, add the Jenkins check to branch protection.
 - [ ] Leave GitHub Actions unchanged until you are happy with the Jenkins setup.
@@ -137,7 +137,7 @@ You are ready to rely on Jenkins for the next phase when all of these are true:
 - [ ] multibranch PR validation runs successfully
 - [ ] GitHub shows the Jenkins PR check
 - [ ] release dry-run succeeds
-- [ ] you know the exact branch-protection check name
+- [ ] GitHub shows `PR Validation`
 
 ### 1. Jenkins Controller Basics
 
@@ -169,6 +169,7 @@ You are ready to rely on Jenkins for the next phase when all of these are true:
   - [ ] Plain Credentials
   - [ ] Timestamper
   - [ ] Workspace Cleanup
+  - [ ] github-scm-trait-notification-context
 - [ ] Install `Multibranch Scan Webhook Trigger` if you want webhook-triggered multibranch scans.
 - [ ] Install `SSH Build Agents` only if you will use the SSH-launch model for the build node.
 - [ ] Install `Docker Pipeline` if your Jenkins setup expects that plugin for Docker-aware pipeline features.
@@ -331,6 +332,7 @@ You are ready to rely on Jenkins for the next phase when all of these are true:
 ### 7. Add Jenkins Credentials
 
 - [ ] In Jenkins, add the GitHub App credential with id `github-app-acestream-scraper`.
+      If your live controller already uses `github-builder-app`, keep that id in the Jenkins job configuration unless you are intentionally normalizing the controller.
 - [ ] In Jenkins, add the Docker Hub username/password credential with id `dockerhub-publish`.
 - [ ] If you are using SSH launch, confirm the SSH credential id is `acestream-build-agent-ssh`.
 - [ ] Do not rename these ids unless you also plan to change the checked-in pipeline files.
@@ -355,9 +357,11 @@ You are ready to rely on Jenkins for the next phase when all of these are true:
 
 - [ ] Create a new `Multibranch Pipeline` job.
 - [ ] Connect it to this GitHub repository using `github-app-acestream-scraper`.
+      If the live controller is already using `github-builder-app`, keep the working live credential id until you explicitly normalize it.
 - [ ] Set script path to `Jenkinsfile`.
 - [ ] Enable branch discovery.
 - [ ] Enable pull request discovery.
+- [ ] Add the custom GitHub notification context trait with label `PR Validation`.
 - [ ] Treat fork PRs as restricted until you explicitly validate that trust model.
 - [ ] Enable either webhook-based indexing, periodic scans, or a manual rescan workflow.
 - [ ] Run an initial scan and confirm Jenkins sees `main` and your working branches.
@@ -365,7 +369,7 @@ You are ready to rely on Jenkins for the next phase when all of these are true:
 Expected parity:
 
 - This job is the Jenkins-side equivalent of `.github/workflows/pull_request.yml`.
-- It should run the same quick validation path through `scripts/ci/run_jenkins_validation.sh`.
+- It should run the complete staged PR validation flow from the root `Jenkinsfile` and report the single GitHub status context `PR Validation`.
 
 ### 11. Create The Manual Release Job In Jenkins UI
 
@@ -396,8 +400,7 @@ Expected parity:
 
 - [ ] Open or update a test PR.
 - [ ] Confirm Jenkins runs automatically.
-- [ ] Confirm GitHub shows the Jenkins-reported check on the PR.
-- [ ] Record the exact check name from the PR UI.
+- [ ] Confirm GitHub shows the Jenkins-reported `PR Validation` status on the PR.
 
 ### 14. Verify The Manual Release Job Safely
 
@@ -416,8 +419,10 @@ Expected parity:
 ### 16. Cutover To Jenkins PR Gates
 
 - [ ] Open GitHub branch protection settings.
-- [ ] Add the observed Jenkins check name as a required status check.
+- [ ] Add `PR Validation` as a required status check.
 - [ ] Keep GitHub Actions required checks until Jenkins has passed repeatedly.
+- [ ] If older temporary Jenkins per-gate contexts are still required, leave them in place only during the proving window.
+- [ ] Once `PR Validation` is proven stable, remove the temporary Jenkins per-gate contexts from required checks.
 - [ ] Once confident, remove GitHub Actions from required checks.
 
 ### 17. Later Cutover Of GitHub Actions
@@ -451,6 +456,7 @@ Install these baseline plugins before creating jobs:
 
 - GitHub Branch Source
 - GitHub Checks
+- github-scm-trait-notification-context
 - Pipeline
 - Credentials
 - Credentials Binding
@@ -465,7 +471,7 @@ Install these optional plugins only when they match your setup:
 - Docker Pipeline if your Jenkins setup expects that plugin for Docker-aware pipeline features
 - Matrix Authorization Strategy if your controller uses role-based access control
 
-`Jenkinsfile` and `jenkins/release.Jenkinsfile` are declarative pipelines, so the Pipeline plugin family is mandatory. GitHub App and multibranch discovery rely on GitHub Branch Source. `Multibranch Scan Webhook Trigger`, `SSH Build Agents`, and `Docker Pipeline` are only needed when your trigger model or agent launch model uses them.
+`Jenkinsfile` and `jenkins/release.Jenkinsfile` are declarative pipelines, so the Pipeline plugin family is mandatory. GitHub App and multibranch discovery rely on GitHub Branch Source. The single-context `PR Validation` status model also relies on `github-scm-trait-notification-context`. `Multibranch Scan Webhook Trigger`, `SSH Build Agents`, and `Docker Pipeline` are only needed when your trigger model or agent launch model uses them.
 
 ## Dedicated VM Requirements
 

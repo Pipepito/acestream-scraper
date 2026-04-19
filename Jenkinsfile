@@ -1,5 +1,5 @@
 pipeline {
-  agent { label 'acestream-docker-multiarch' }
+  agent { label 'generic-gh-builder' }
 
   options {
     disableConcurrentBuilds()
@@ -16,11 +16,8 @@ pipeline {
         }
         sh '''#!/usr/bin/env bash
 set -euo pipefail
-python3 --version
-node --version
-docker version
-docker buildx version
-docker buildx use "${JENKINS_BUILDER:-acestream-builder}" || true
+bash scripts/ci/bootstrap_jenkins_runner.sh
+docker buildx use "${JENKINS_BUILDER:-acestream-builder}"
 bash scripts/ci/run_jenkins_validation.sh
 '''
       }

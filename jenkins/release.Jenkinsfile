@@ -1,5 +1,5 @@
 pipeline {
-  agent { label 'acestream-docker-multiarch' }
+  agent { label 'generic-gh-builder' }
 
   options {
     disableConcurrentBuilds()
@@ -30,12 +30,19 @@ pipeline {
         sh '''#!/usr/bin/env bash
 set -euo pipefail
 git fetch --no-tags origin main
-test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
-python3 --version
-node --version
-docker version
-docker buildx version
-docker buildx use "${JENKINS_BUILDER:-acestream-builder}" || true
+head_sha="$(git rev-parse HEAD)"
+origin_main_sha="$(git rev-parse origin/main)"
+
+if [[ "$head_sha" != "$origin_main_sha" ]]; then
+  printf 'Release pipeline requires the checked-out commit to match origin/main.\n' >&2
+  printf 'Current HEAD: %s\n' "$head_sha" >&2
+  printf 'origin/main: %s\n' "$origin_main_sha" >&2
+  printf 'Merge or push the intended release commit to main, then rerun this pipeline.\n' >&2
+  exit 1
+fi
+
+bash scripts/ci/bootstrap_jenkins_runner.sh
+docker buildx use "${JENKINS_BUILDER:-acestream-builder}"
 '''
         script {
           if (params.DRY_RUN) {

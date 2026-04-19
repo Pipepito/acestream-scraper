@@ -213,4 +213,7 @@ def test_jenkins_release_pipeline_verifies_checkout_matches_origin_main():
     pipeline = (REPO_ROOT / "jenkins" / "release.Jenkinsfile").read_text()
 
     assert "git fetch --no-tags origin main" in pipeline
-    assert 'test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"' in pipeline
+    assert 'head_sha="$(git rev-parse HEAD)"' in pipeline
+    assert 'origin_main_sha="$(git rev-parse origin/main)"' in pipeline
+    assert 'if [[ "$head_sha" != "$origin_main_sha" ]]; then' in pipeline
+    assert "Release pipeline requires the checked-out commit to match origin/main." in pipeline

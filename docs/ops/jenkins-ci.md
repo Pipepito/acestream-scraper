@@ -24,8 +24,11 @@ Current workflow parity goal:
 
 Current limitation:
 
-- The checked-in Jenkins scripts currently assume the VM has already been bootstrapped with the required system packages.
-- Passwordless `sudo` steps are included below so you can prepare the agent for future self-healing bootstrap work, but the current Jenkins scripts do not yet install Docker, Node, or Python for you.
+- The checked-in Jenkinsfiles still run directly on whatever executor matches the label `generic-gh-builder`; they do not currently define Docker-based ephemeral agents for you.
+- After `checkout scm`, both pipelines call `scripts/ci/bootstrap_jenkins_runner.sh` from the repository checkout to prepare the runtime.
+- The first build no longer assumes Python, Node, Docker, Buildx, or Docker Compose are already installed, but `git` must already be present so the initial `checkout scm` can succeed.
+- Passwordless `sudo` is only required when the bootstrap script needs to install missing software.
+- Builds may currently run as the operator runtime user before a dedicated `jenkins` user is fully ready, so Docker access must work for whichever user Jenkins actually uses on that node.
 
 After cutover:
 
@@ -36,7 +39,19 @@ After cutover:
 Responsibility split:
 
 - Repo-owned: `Jenkinsfile`, `jenkins/release.Jenkinsfile`, `scripts/ci/run_jenkins_validation.sh`, `scripts/ci/run_jenkins_release.sh`, build/test scripts, and supporting documentation.
-- User-owned: Jenkins controller installation, dedicated build VM lifecycle, plugin installation, credentials, GitHub App registration, webhook exposure, branch protection cutover, and rollback decisions.
+- User-owned: Jenkins controller installation, build-node launch model, dedicated build VM lifecycle, plugin installation, credentials, GitHub App registration, optional webhook exposure or polling setup, branch protection cutover, and rollback decisions.
+
+Networking model:
+
+- Jenkins does not need to be exposed to the public internet if you are willing to use periodic scans or manual rescans instead of GitHub webhooks.
+- Jenkins only needs outbound access to GitHub to fetch SCM metadata and report commit statuses/checks.
+- GitHub only needs inbound access to Jenkins if you want webhook-triggered scans or builds.
+
+Executor model:
+
+- The repository only requires a Jenkins executor labeled `generic-gh-builder`.
+- That executor can be an SSH-launched node, an inbound or WebSocket agent installed on the VM, or another Jenkins node model that lands builds directly on the Docker-capable host.
+- SSH is a documented example path, not a hard requirement of the checked-in pipelines.
 
 ## User Action Required
 
@@ -44,51 +59,59 @@ The following steps require operator intervention outside the repository:
 
 - Provision a dedicated Jenkins controller and a dedicated Docker-capable build VM.
 - Install the required Jenkins plugins.
-- Bootstrap the Ubuntu 24.04 build VM dependencies.
-- Create or select the named Docker buildx builder `acestream-builder`.
-- Configure the Jenkins SSH agent labeled `acestream-docker-multiarch`.
+- Ensure `git` is already installed on the build node before the first real Jenkins build runs.
+- Decide whether to preinstall the rest of the toolchain or let `scripts/ci/bootstrap_jenkins_runner.sh` install missing software during the build.
+- Ensure Docker access works for the current Jenkins runtime user on the node that will execute the pipelines.
+- Configure a Jenkins executor labeled `generic-gh-builder`.
 - Register the GitHub App, install it on the repository, and store its credentials in Jenkins.
-- Expose Jenkins webhook endpoints over reachable HTTPS with working DNS or a reverse proxy/tunnel.
+- If you want webhook-driven scans, expose Jenkins webhook endpoints over reachable HTTPS with working DNS or a reverse proxy/tunnel.
 - Create the Jenkins multibranch validation job from `Jenkinsfile`.
 - Create the Jenkins manual release job from `jenkins/release.Jenkinsfile`.
 - Observe the Jenkins check name reported back to GitHub and update branch protection to require it.
-- Keep GitHub Actions fallback workflows enabled until Jenkins cutover is verified.
+- Keep GitHub Actions fallback workflows enabled until Jenkins cutover is verified; `main` still auto-publishes through GitHub Actions during this rollout.
 
 ## Complete Setup Checklist
 
 Use this as the end-to-end checklist for a fresh Jenkins controller running in Docker on your homelab.
 
+- `## Start Here` below is the concise operator path for getting Jenkins online quickly.
+- The numbered sections later in this document are the expanded, authoritative reference for the same setup and should win if the shorter checklist feels ambiguous.
+
 ## Start Here
 
 If you want the shortest path from a fresh Jenkins container to working PR and release jobs, do these three checklists in order.
+
+If you prefer to wire Jenkins jobs first and let the repository bootstrap the runner on first use, that also works. The important constraint is simpler than the checklist order: `git` must already exist for `checkout scm`, and Docker access must already work for the current runtime user on the executor labeled `generic-gh-builder`.
 
 ### A. Ubuntu VM First
 
 - [ ] Create the Ubuntu 24.04 VM.
 - [ ] SSH into the VM as your admin user.
-- [ ] Run the bootstrap commands from `## Ubuntu 24.04 Bootstrap`.
-- [ ] Run the passwordless-sudo commands from `## Passwordless Sudo For The Jenkins Agent`.
-- [ ] Create `/home/jenkins/.ssh/authorized_keys` and add the Jenkins SSH public key.
+- [ ] Install `git` so Jenkins can complete the initial `checkout scm`.
+- [ ] Ensure Docker access already works for the user Jenkins will run as on this node.
+- [ ] Decide whether the first builds will run as your operator user or a dedicated `jenkins` user.
+- [ ] If you want repository bootstrap to install missing software, run the passwordless-sudo steps from `## Passwordless Sudo For The Jenkins Agent` for that runtime user.
+- [ ] If you are using SSH-launched nodes with a dedicated `jenkins` user, create `/home/jenkins/.ssh/authorized_keys` and add the Jenkins SSH public key.
 - [ ] Verify:
-  - [ ] `sudo -iu jenkins sudo -n true`
-  - [ ] `sudo -iu jenkins docker version`
-  - [ ] `sudo -iu jenkins docker buildx version`
-- [ ] Create/bootstrap the `acestream-builder` builder.
-- [ ] Confirm the VM is reachable from your Jenkins host over SSH.
+  - [ ] `git --version`
+  - [ ] `docker version`
+  - [ ] If using passwordless bootstrap installs, `sudo -n true`
+- [ ] If you are using SSH-launched nodes, confirm the VM is reachable from your Jenkins host over SSH.
 
 ### B. Jenkins UI Next
 
 - [ ] Log into Jenkins as admin.
 - [ ] Set the Jenkins base URL.
 - [ ] Install the required plugins.
-- [ ] Add SSH credential `acestream-build-agent-ssh`.
+- [ ] If you are using SSH-launched nodes, add SSH credential `acestream-build-agent-ssh`.
 - [ ] Add GitHub App credential `github-app-acestream-scraper`.
 - [ ] Add Docker Hub credential `dockerhub-publish`.
-- [ ] Create the permanent SSH agent labeled `acestream-docker-multiarch`.
+- [ ] Create the build executor and apply label `generic-gh-builder`.
 - [ ] Confirm the node comes online.
 - [ ] Push the repo branch/commit that contains:
   - [ ] `Jenkinsfile`
   - [ ] `jenkins/release.Jenkinsfile`
+  - [ ] `scripts/ci/bootstrap_jenkins_runner.sh`
   - [ ] `scripts/ci/run_jenkins_validation.sh`
   - [ ] `scripts/ci/run_jenkins_release.sh`
 - [ ] Create the multibranch PR-validation job from `Jenkinsfile`.
@@ -97,7 +120,7 @@ If you want the shortest path from a fresh Jenkins container to working PR and r
 ### C. GitHub App And Validation Last
 
 - [ ] Create and install the GitHub App on this repository.
-- [ ] Configure webhook reachability to Jenkins over HTTPS.
+- [ ] Choose your trigger model: public webhook delivery or private periodic scan/manual scan.
 - [ ] Trigger an initial multibranch scan.
 - [ ] Open or update a test PR.
 - [ ] Confirm Jenkins reports a status/check back to GitHub.
@@ -121,13 +144,14 @@ You are ready to rely on Jenkins for the next phase when all of these are true:
 - [ ] Confirm the Jenkins Docker container is running and persistent storage is mounted for Jenkins home.
 - [ ] Sign in to the Jenkins UI with an admin account.
 - [ ] Set the Jenkins base URL under `Manage Jenkins` -> `System`.
-- [ ] Decide how GitHub will reach Jenkins over HTTPS.
-- [ ] Confirm the public URL works from outside your LAN if you are using GitHub webhooks.
+- [ ] Decide whether you want public GitHub webhooks or a private controller with periodic scans/manual rescans.
+- [ ] Only if you are using GitHub webhooks, confirm the public URL works from outside your LAN.
 
 ### 1.5. Push The Jenkins Repo Files First
 
 - [ ] Push the branch or commit that contains `Jenkinsfile`.
 - [ ] Push the branch or commit that contains `jenkins/release.Jenkinsfile`.
+- [ ] Push the branch or commit that contains `scripts/ci/bootstrap_jenkins_runner.sh`.
 - [ ] Push the branch or commit that contains `scripts/ci/run_jenkins_validation.sh`.
 - [ ] Push the branch or commit that contains `scripts/ci/run_jenkins_release.sh`.
 - [ ] Push the updated operator docs so you can follow the checked-in guidance from the same repo state Jenkins will use.
@@ -136,51 +160,155 @@ You are ready to rely on Jenkins for the next phase when all of these are true:
 ### 2. Install Jenkins Plugins
 
 - [ ] Open `Manage Jenkins` -> `Plugins`.
-- [ ] Install:
+- [ ] Install the required baseline plugins:
   - [ ] GitHub Branch Source
   - [ ] GitHub Checks
   - [ ] Pipeline
-  - [ ] Multibranch Scan Webhook Trigger
-  - [ ] SSH Build Agents
   - [ ] Credentials
   - [ ] Credentials Binding
   - [ ] Plain Credentials
-  - [ ] Docker Pipeline
   - [ ] Timestamper
   - [ ] Workspace Cleanup
+- [ ] Install `Multibranch Scan Webhook Trigger` if you want webhook-triggered multibranch scans.
+- [ ] Install `SSH Build Agents` only if you will use the SSH-launch model for the build node.
+- [ ] Install `Docker Pipeline` if your Jenkins setup expects that plugin for Docker-aware pipeline features.
 - [ ] Restart Jenkins if required.
 
 ### 3. Prepare The Build VM
 
 - [ ] Provision the Ubuntu 24.04 VM.
-- [ ] Verify it has enough CPU, RAM, and disk.
-- [ ] Install Git, Python, Docker, Buildx, Compose plugin, Node 20, `jq`, and `curl`.
-- [ ] Create the `jenkins` user.
-- [ ] Enable passwordless `sudo` for the `jenkins` user.
-- [ ] Add the `jenkins` user to the `docker` group.
-- [ ] Verify `jenkins` can run `docker version` and `docker buildx version`.
-- [ ] Create or select the named builder `acestream-builder`.
-- [ ] Bootstrap the builder and confirm it supports the required platforms.
+      There is no single repo-owned command for VM creation because this depends on your hypervisor or cloud. As soon as the VM exists, connect to it as your admin user and use the remaining commands below.
 
-### 4. Prepare SSH Access For The Agent
+  ```bash
+  ssh <admin-user>@<vm-ip>
+  ```
+
+- [ ] Verify it has enough CPU, RAM, and disk.
+      Run on the VM:
+
+  ```bash
+  lscpu | grep -E 'Architecture|CPU\(s\)|Model name'
+  free -h
+  df -h /
+  lsblk -o NAME,SIZE,TYPE,MOUNTPOINT
+  ```
+
+- [ ] Install `git` as a hard prerequisite for the initial Jenkins checkout.
+      Run on the VM:
+
+  ```bash
+  sudo apt-get update
+  sudo apt-get install -y git
+  ```
+
+- [ ] Decide whether to preinstall the rest of the toolchain now or let `scripts/ci/bootstrap_jenkins_runner.sh` handle missing packages during the build.
+      Preinstalling is still a valid operator choice, but it is no longer required for first bootstrapping. If you want the node fully provisioned ahead of time, run on the VM:
+
+  ```bash
+  sudo apt-get update
+  sudo apt-get install -y ca-certificates curl gnupg jq python3 python3-venv python3-pip
+  sudo install -m 0755 -d /etc/apt/keyrings
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  sudo chmod a+r /etc/apt/keyrings/docker.gpg
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo \"$VERSION_CODENAME\") stable" | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
+  curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+  echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" | sudo tee /etc/apt/sources.list.d/nodesource.list >/dev/null
+  sudo apt-get update
+  sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin nodejs
+  sudo systemctl enable --now docker
+  ```
+
+- [ ] Decide which runtime user Jenkins will use on this node.
+      Builds may currently run under your operator user before a dedicated `jenkins` user is ready. If you want a dedicated `jenkins` user, run on the VM:
+
+  ```bash
+  sudo useradd --create-home --shell /bin/bash jenkins || true
+  id jenkins
+  ```
+
+- [ ] Enable passwordless `sudo` only if you want repository bootstrap to install missing software for the runtime user.
+      Replace `jenkins` below with the actual runtime user if the node is still running builds as your operator account. Run on the VM:
+
+  ```bash
+  echo 'jenkins ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/jenkins >/dev/null
+  sudo chmod 440 /etc/sudoers.d/jenkins
+  sudo visudo -cf /etc/sudoers.d/jenkins
+  sudo -iu jenkins sudo -n true
+  ```
+
+- [ ] Ensure the runtime user has Docker access before the first build.
+      Replace `jenkins` below with the actual Jenkins runtime user if needed. Run on the VM:
+
+  ```bash
+  sudo usermod -aG docker,sudo jenkins
+  sudo -iu jenkins id
+  ```
+
+- [ ] If you preinstalled Docker now, verify the runtime user can run Docker commands.
+      Replace `jenkins` below with the actual Jenkins runtime user if needed. Run on the VM:
+
+  ```bash
+  sudo -iu jenkins docker version
+  sudo -iu jenkins docker buildx version
+  sudo -iu jenkins docker compose version
+  ```
+
+- [ ] Optional: if you preinstalled Docker now, pre-create the named builder `acestream-builder`.
+      The repository bootstrap can create/select the builder during the build, but precreating it can shorten the first run. Replace `jenkins` below with the actual Jenkins runtime user if needed. Run on the VM:
+
+  ```bash
+  sudo -iu jenkins docker buildx inspect acestream-builder >/dev/null 2>&1 || sudo -iu jenkins docker buildx create --name acestream-builder --driver docker-container --use
+  sudo -iu jenkins docker buildx use acestream-builder
+  sudo -iu jenkins docker buildx inspect --bootstrap acestream-builder | grep -E 'Name:|Driver:|Platforms:'
+  ```
+
+  Expected baseline platform support for this repository includes `linux/amd64`, `linux/arm/v7`, and `linux/arm64`.
+
+### 4. Prepare SSH Access For The Agent (SSH-Launched Node Option Only)
 
 - [ ] Generate or choose the SSH keypair Jenkins will use.
+      Run on the Jenkins host or whichever machine will hold the SSH private key used by Jenkins:
+
+  ```bash
+  ssh-keygen -t ed25519 -f ~/.ssh/acestream-build-agent -C "jenkins build agent"
+  ```
+
 - [ ] Put the public key into `/home/jenkins/.ssh/authorized_keys` on the VM.
+      Run on the Jenkins host:
+
+  ```bash
+  cat ~/.ssh/acestream-build-agent.pub | ssh <admin-user>@<vm-ip> 'sudo install -d -m 700 -o jenkins -g jenkins /home/jenkins/.ssh && sudo touch /home/jenkins/.ssh/authorized_keys && sudo chmod 600 /home/jenkins/.ssh/authorized_keys && sudo tee -a /home/jenkins/.ssh/authorized_keys >/dev/null && sudo chown -R jenkins:jenkins /home/jenkins/.ssh'
+  ```
+
 - [ ] Verify you can SSH to the VM as `jenkins` using that key.
-- [ ] Verify SSH login still has Docker access.
+      Run on the Jenkins host:
+
+  ```bash
+  ssh -i ~/.ssh/acestream-build-agent jenkins@<vm-ip> 'whoami && id && sudo -n true'
+  ```
+
+- [ ] Optional: if you preinstalled Docker now, verify SSH login already has Docker access.
+      Run on the Jenkins host:
+
+  ```bash
+  ssh -i ~/.ssh/acestream-build-agent jenkins@<vm-ip> 'docker version && docker buildx version && docker buildx inspect acestream-builder'
+  ```
 
 ### 5. Add The Agent In Jenkins UI
 
 - [ ] Open `Manage Jenkins` -> `Credentials`.
-- [ ] Add SSH private key credential with id `acestream-build-agent-ssh`.
+- [ ] If you are using `Launch agents via SSH`, add SSH private key credential with id `acestream-build-agent-ssh`.
 - [ ] Open `Manage Jenkins` -> `Nodes` or `Manage Nodes and Clouds`.
-- [ ] Create a permanent node for the VM.
-- [ ] Set remote root directory to `/home/jenkins`.
-- [ ] Set label to `acestream-docker-multiarch`.
-- [ ] Set launch method to `Launch agents via SSH`.
-- [ ] Select credential `acestream-build-agent-ssh`.
+- [ ] Create a permanent node for the VM or another executor that lands builds directly on the Docker-capable host.
+- [ ] Set remote root directory to the home or workspace path for the actual Jenkins runtime user on that node.
+- [ ] If you are using a dedicated `jenkins` user, `/home/jenkins` is the expected path.
+- [ ] Set label to `generic-gh-builder`.
+- [ ] Choose a launch method that matches your model.
+  - `Launch agents via SSH` if the Jenkins controller can SSH into the VM.
+  - `Launch agent by connecting it to the controller` or WebSocket if the VM should dial out to Jenkins.
+- [ ] If you picked SSH launch, select credential `acestream-build-agent-ssh`.
 - [ ] Save and wait for the node to come online.
-- [ ] Run a simple test job on that label to confirm Python, Node, Docker, and Buildx work.
+- [ ] Run a simple test job on that label to confirm `checkout scm` works with `git` present and `scripts/ci/bootstrap_jenkins_runner.sh` can prepare the runner.
 
 ### 6. Create GitHub App Access
 
@@ -204,15 +332,16 @@ You are ready to rely on Jenkins for the next phase when all of these are true:
 
 - [ ] In Jenkins, add the GitHub App credential with id `github-app-acestream-scraper`.
 - [ ] In Jenkins, add the Docker Hub username/password credential with id `dockerhub-publish`.
-- [ ] Confirm the SSH credential id is `acestream-build-agent-ssh`.
+- [ ] If you are using SSH launch, confirm the SSH credential id is `acestream-build-agent-ssh`.
 - [ ] Do not rename these ids unless you also plan to change the checked-in pipeline files.
 
-### 8. Configure GitHub Webhook Reachability
+### 8. Choose Webhooks Or Polling
 
-- [ ] Expose Jenkins over HTTPS using DNS, reverse proxy, or tunnel.
-- [ ] Configure the webhook secret in GitHub and Jenkins if required by your setup.
-- [ ] Point GitHub webhook delivery to the Jenkins webhook endpoint.
-- [ ] Trigger a test delivery and confirm GitHub receives HTTP 2xx.
+- [ ] If you want event-driven scans, expose Jenkins over HTTPS using DNS, reverse proxy, or tunnel.
+- [ ] If you want event-driven scans, configure the webhook secret in GitHub and Jenkins if required by your setup.
+- [ ] If you want event-driven scans, point GitHub webhook delivery to the Jenkins webhook endpoint.
+- [ ] If you want event-driven scans, trigger a test delivery and confirm GitHub receives HTTP 2xx.
+- [ ] If Jenkins stays private, configure periodic multibranch scans or plan to trigger scans manually from the Jenkins UI.
 
 ### 9. Make Sure Jenkins Can Read This Repo
 
@@ -230,7 +359,7 @@ You are ready to rely on Jenkins for the next phase when all of these are true:
 - [ ] Enable branch discovery.
 - [ ] Enable pull request discovery.
 - [ ] Treat fork PRs as restricted until you explicitly validate that trust model.
-- [ ] Enable webhook-based indexing or scan triggers.
+- [ ] Enable either webhook-based indexing, periodic scans, or a manual rescan workflow.
 - [ ] Run an initial scan and confirm Jenkins sees `main` and your working branches.
 
 Expected parity:
@@ -256,9 +385,11 @@ Expected parity:
 ### 12. Verify The Agent Contract
 
 - [ ] Run a build on the multibranch job.
-- [ ] Confirm Jenkins executes on label `acestream-docker-multiarch`.
+- [ ] Confirm Jenkins executes on label `generic-gh-builder`.
 - [ ] Confirm the job runs on the VM workspace, not inside the controller container.
-- [ ] Confirm `docker buildx use "${JENKINS_BUILDER:-acestream-builder}"` succeeds.
+- [ ] Confirm `checkout scm` succeeds because `git` was already present before bootstrap.
+- [ ] Confirm the build calls `scripts/ci/bootstrap_jenkins_runner.sh` from the repository checkout.
+- [ ] Confirm Docker access works for the current runtime user and `docker buildx use "${JENKINS_BUILDER:-acestream-builder}"` succeeds.
 - [ ] Confirm the validation wrapper runs successfully.
 
 ### 13. Verify GitHub PR Reporting
@@ -314,24 +445,27 @@ That means:
 
 If you find yourself editing files inside the Jenkins Docker container, stop and move that change back into the repository instead.
 
-## Required Jenkins Plugins
+## Jenkins Plugins
 
-Install these plugins before creating jobs:
+Install these baseline plugins before creating jobs:
 
 - GitHub Branch Source
 - GitHub Checks
 - Pipeline
-- Multibranch Scan Webhook Trigger
-- SSH Build Agents
 - Credentials
 - Credentials Binding
 - Plain Credentials
-- Docker Pipeline
-- Matrix Authorization Strategy if your controller uses role-based access control
 - Timestamper
 - Workspace Cleanup
 
-`Jenkinsfile` and `jenkins/release.Jenkinsfile` are declarative pipelines, so the Pipeline plugin family is mandatory. GitHub App and multibranch discovery rely on GitHub Branch Source. SSH Build Agents is required for the dedicated Docker host model described below.
+Install these optional plugins only when they match your setup:
+
+- Multibranch Scan Webhook Trigger if you want webhook-triggered multibranch scans
+- SSH Build Agents if you choose the SSH-launch model for the build node
+- Docker Pipeline if your Jenkins setup expects that plugin for Docker-aware pipeline features
+- Matrix Authorization Strategy if your controller uses role-based access control
+
+`Jenkinsfile` and `jenkins/release.Jenkinsfile` are declarative pipelines, so the Pipeline plugin family is mandatory. GitHub App and multibranch discovery rely on GitHub Branch Source. `Multibranch Scan Webhook Trigger`, `SSH Build Agents`, and `Docker Pipeline` are only needed when your trigger model or agent launch model uses them.
 
 ## Dedicated VM Requirements
 
@@ -344,21 +478,28 @@ Minimum expectations:
 - 16 GB RAM minimum; 32 GB recommended if concurrent builds are allowed later
 - 150 GB SSD minimum, with headroom for Docker layers, buildx cache, and workspace archives
 - Outbound access to GitHub, Docker Hub, Ubuntu package repositories, NodeSource, and any reverse-proxy or tunnel endpoint you use
-- Inbound SSH from the Jenkins controller to the build VM
+- Either inbound SSH from the Jenkins controller to the build VM or an inbound or WebSocket agent connection from the VM to Jenkins
 
 Operational requirements:
 
-- The Docker daemon must be available to the Jenkins agent user.
+- The Docker daemon must be available to the current Jenkins runtime user.
 - The VM should be treated as cattle, not pet infrastructure: document bootstrap and be ready to rebuild.
 - Keep this host dedicated to CI so buildx cache growth and Docker cleanup do not compete with unrelated workloads.
 
 ## Ubuntu 24.04 Bootstrap
 
-These commands are user-run bootstrap steps for the dedicated Jenkins build VM.
+These commands are operator-run preinstall steps for a dedicated Jenkins build VM. The repository bootstrap now handles missing Python, Node, Docker, Buildx, and Docker Compose after checkout, so only `git` is a hard prerequisite before the first build.
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y ca-certificates curl gnupg jq git python3 python3-venv python3-pip
+sudo apt-get install -y git
+```
+
+If you want to preinstall the rest of the toolchain instead of letting `scripts/ci/bootstrap_jenkins_runner.sh` install it on demand, continue with:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl gnupg jq python3 python3-venv python3-pip
 sudo install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 sudo chmod a+r /etc/apt/keyrings/docker.gpg
@@ -376,7 +517,7 @@ After group changes, restart the Jenkins agent session or reboot the VM before f
 
 ## Passwordless Sudo For The Jenkins Agent
 
-This is optional for the current checked-in Jenkins scripts, but it matches the future direction you asked for and is safe to prepare now.
+This is only required when `scripts/ci/bootstrap_jenkins_runner.sh` needs to install missing software. If your node is already fully provisioned, the pipelines can run without passwordless `sudo`.
 
 Run on the VM:
 
@@ -394,7 +535,7 @@ Expected result:
 
 If you prefer to narrow this later, start with full passwordless `sudo` so setup is simple, then replace it with a more restricted sudoers rule after the Jenkins environment is stable.
 
-Validation commands:
+Validation commands for a fully preinstalled node:
 
 ```bash
 git --version
@@ -410,7 +551,7 @@ curl --version
 
 ## Buildx Builder Setup
 
-This repository expects a named buildx builder called `acestream-builder`. Both `Jenkinsfile` and `jenkins/release.Jenkinsfile` run `docker buildx use "${JENKINS_BUILDER:-acestream-builder}" || true`, and the backing scripts fail if the builder does not exist.
+This repository expects a named buildx builder called `acestream-builder`. Both `Jenkinsfile` and `jenkins/release.Jenkinsfile` call `scripts/ci/bootstrap_jenkins_runner.sh` after checkout, then run `docker buildx use "${JENKINS_BUILDER:-acestream-builder}"` before the backing scripts continue. If that builder is missing or cannot be selected, the build fails.
 
 Create or select it on the Jenkins build VM:
 
@@ -445,26 +586,42 @@ docker buildx prune --builder acestream-builder -af
 - Remove abandoned workspaces if jobs are renamed or deleted.
 - If disk pressure is recurring, increase VM disk before aggressively pruning every run; warm cache improves CI stability and duration.
 
-## Jenkins SSH Agent Setup
+## Jenkins Build Node Setup
 
 User action required.
 
 Recommended model:
 
 - Run the Jenkins controller separately from the Docker build VM.
-- Connect the build VM as an SSH agent.
-- Apply the label `acestream-docker-multiarch` because both pipeline files require it.
+- Run builds on any Jenkins executor that lands directly on the Docker-capable host.
+- Apply the label `generic-gh-builder` because both pipeline files require it.
+
+Current repo executor contract:
+
+- The checked-in Jenkinsfiles use `agent { label 'generic-gh-builder' }`.
+- They run `checkout scm`, then call `scripts/ci/bootstrap_jenkins_runner.sh` from the repository checkout before the validation or release wrappers.
+- `git` must already exist on that node so `checkout scm` can work.
+- Python, Node, Docker, Buildx, Docker Compose, and the `acestream-builder` builder may be preinstalled by the operator or prepared by the bootstrap script during the build, but the named builder still must exist and be selectable before the validation or release wrapper continues.
+- Passwordless `sudo` is only needed if that bootstrap step must install missing software.
+- Docker access must already work for the current runtime user. If it does not, the build fails with an explicit remediation message.
+- The node may temporarily run builds as the operator user until a dedicated `jenkins` user is fully ready.
+
+Supported node-launch models for this repository:
+
+- SSH-launched permanent node
+- Inbound or WebSocket permanent agent installed on the VM
+- Another Jenkins node model that still executes the pipeline directly on the Docker-capable host
 
 Suggested steps:
 
 1. Create a dedicated `jenkins` user on the build VM.
-2. Install the agent user's SSH public key in `~jenkins/.ssh/authorized_keys`.
-3. Ensure the `jenkins` user can run Docker via the `docker` group.
-4. In Jenkins, create an SSH credential with id `acestream-build-agent-ssh`.
-5. Add a permanent SSH agent pointing to the VM and assign the label `acestream-docker-multiarch`.
-6. Confirm a test pipeline on that label can run `python3 --version`, `node --version`, and `docker buildx version`.
+2. If using SSH launch, install the agent user's SSH public key in `~jenkins/.ssh/authorized_keys`.
+3. Ensure the runtime user can run Docker via the `docker` group.
+4. If using SSH launch, create an SSH credential with id `acestream-build-agent-ssh`.
+5. Add a permanent node or agent for the VM and assign the label `generic-gh-builder`.
+6. Confirm a test pipeline on that label can run `git --version`, `docker version`, and the repository bootstrap path successfully.
 
-### VM-Side Agent Steps
+### Option A: SSH-Launched Node
 
 Run these on the Ubuntu VM:
 
@@ -488,39 +645,40 @@ Then add the public key that Jenkins will use for SSH authentication into:
 If you want to verify SSH access manually before touching Jenkins:
 
 ```bash
-ssh -i /path/to/private_key jenkins@<vm-ip> 'whoami && docker version && docker buildx version'
+ssh -i /path/to/private_key jenkins@<vm-ip> 'whoami && git --version && sudo -n true'
 ```
 
 Expected result:
 
 - user is `jenkins`
-- Docker server is reachable
-- `docker buildx version` works
+- `git` is available for the initial Jenkins checkout
 - `sudo -n true` succeeds
 
-### Jenkins UI Agent Steps
+### Jenkins UI Node Steps
 
 Do this in the Jenkins UI only.
 
 1. Go to `Manage Jenkins` -> `Credentials`.
-2. Add a new SSH private key credential.
-3. Set the credential id to `acestream-build-agent-ssh`.
-4. Go to `Manage Jenkins` -> `Nodes` or `Manage Nodes and Clouds`.
-5. Create a new permanent agent.
-6. Set:
-   - Node name: `acestream-docker-multiarch`
-   - Remote root directory: `/home/jenkins`
-   - Labels: `acestream-docker-multiarch`
-   - Launch method: `Launch agents via SSH`
-   - Host: `<vm-ip-or-hostname>`
-   - Credentials: `acestream-build-agent-ssh`
-7. Save and let Jenkins connect.
+1. If using SSH launch, add a new SSH private key credential.
+1. If using SSH launch, set the credential id to `acestream-build-agent-ssh`.
+1. Go to `Manage Jenkins` -> `Nodes` or `Manage Nodes and Clouds`.
+1. Create a new permanent agent.
+1. Set the node name to any operator-chosen value that helps you identify the machine.
+1. Set the remote root directory to the home or workspace path for the actual Jenkins runtime user on that node.
+1. If you are using a dedicated `jenkins` user, use `/home/jenkins`.
+1. Set the labels to `generic-gh-builder`.
+1. Choose the launch method that matches your deployment.
+1. If using SSH launch, set the host to `<vm-ip-or-hostname>`.
+1. If using SSH launch, select credential `acestream-build-agent-ssh`.
+1. Save and let Jenkins connect.
 
 Recommended node settings:
 
 - Usage: `Only build jobs with label expressions matching this node`
 - Executors: start with `1`
 - Availability: `Keep this agent online as much as possible`
+
+If you prefer an inbound or WebSocket agent, create the node in Jenkins with the matching launch method and then install or run the Jenkins agent process on the VM. The VM still needs `git` plus working Docker access for the runtime user before the first real build will pass; the repository bootstrap can prepare the rest.
 
 ### Agent Verification Checklist
 
@@ -529,23 +687,26 @@ After Jenkins connects to the VM, use the agent's `Script Console`/test job path
 ```bash
 whoami
 pwd
+git --version
+bash scripts/ci/bootstrap_jenkins_runner.sh
 python3 --version
 node --version
 docker version
 docker buildx version
-docker buildx use "${JENKINS_BUILDER:-acestream-builder}" || true
+docker buildx use "${JENKINS_BUILDER:-acestream-builder}"
 docker buildx inspect acestream-builder
 ```
 
 Expected result:
 
 - workspace is on the VM, not inside the Jenkins controller container
-- Python, Node, Docker, and Buildx are available
+- `checkout scm` succeeded because `git` was already present
+- `scripts/ci/bootstrap_jenkins_runner.sh` completed and prepared Python, Node, Docker, and Buildx as needed
 - `acestream-builder` exists or can be selected
 
 If Jenkins connects but Docker commands fail, the usual causes are:
 
-- `jenkins` user not in the `docker` group
+- current runtime user not in the `docker` group
 - group membership not refreshed after login
 - Docker service not running
 - buildx builder not created for that user context
@@ -554,7 +715,7 @@ If Jenkins connects but Docker commands fail, the usual causes are:
 
 User action required.
 
-Use a GitHub App instead of a personal access token for multibranch discovery and status reporting.
+Use a GitHub App instead of a personal access token for multibranch discovery and status reporting. This works fine with a private Jenkins controller because Jenkins talks out to GitHub; GitHub does not need to call back into Jenkins unless you choose webhook-based scans.
 
 Recommended repository permissions:
 
@@ -579,7 +740,7 @@ Store the app in Jenkins as credential id `github-app-acestream-scraper` and use
 
 User action required.
 
-GitHub must be able to reach Jenkins over HTTPS.
+This section only applies if you want GitHub webhooks to trigger scans or builds automatically. If your Jenkins controller stays private, skip public webhook exposure and use periodic scans or manual rescans instead.
 
 Requirements:
 
@@ -597,12 +758,19 @@ Validation checklist:
 
 Treat local-only HTTP, self-signed certificates, or unstable tunnels as non-production.
 
+Private-controller alternative:
+
+1. Keep Jenkins private.
+2. Configure your multibranch job to run periodic scans, or use manual `Scan Multibranch Pipeline Now` when needed.
+3. Let Jenkins use outbound GitHub API access for repository discovery and PR status reporting.
+4. Accept that builds will not start instantly from GitHub events unless you add a reachable webhook path later.
+
 ## Jenkins Credential IDs
 
 Create these Jenkins credentials with these exact ids so the checked-in pipeline files work without modification:
 
 - `github-app-acestream-scraper`: GitHub App credential used for repository discovery, webhook integration, and commit/check reporting
-- `acestream-build-agent-ssh`: SSH private key credential for the dedicated build VM agent
+- `acestream-build-agent-ssh`: SSH private key credential for the dedicated build VM agent if you use the SSH-launch model
 - `dockerhub-publish`: username/password credential used by `jenkins/release.Jenkinsfile` for Docker Hub publication
 
 Changing these ids would require repository changes, so treat them as part of the CI/CD contract.
@@ -622,11 +790,12 @@ Recommended configuration:
 3. Set the script path to `Jenkinsfile`.
 4. Discover branches and pull requests from the origin repository.
 5. Treat fork pull requests as restricted until you explicitly verify the trust model.
-6. Enable webhook-based indexing or scan triggers.
+6. Enable one trigger model: webhook-based indexing, periodic scans, or manual rescans.
 
 Expected behavior:
 
-- PR validation runs on label `acestream-docker-multiarch`.
+- PR validation runs on label `generic-gh-builder`.
+- After checkout, the pipeline runs `scripts/ci/bootstrap_jenkins_runner.sh`.
 - The pipeline executes `bash scripts/ci/run_jenkins_validation.sh`.
 - Build result JSON artifacts are archived for each flavor validation run.
 
@@ -652,6 +821,7 @@ Release behavior:
 - `DRY_RUN=true` performs preflight only.
 - `DRY_RUN=false` performs Docker Hub login and publishes tags.
 - The job archives release result JSON files and `phase5-build-result-release-metadata.json`.
+- Keep this path manual-only even while GitHub Actions on `main` still auto-publishes during rollout.
 
 ## Branch Protection Cutover
 
@@ -679,7 +849,7 @@ Treat fork PRs as restricted until verified.
 
 ## GitHub Actions During Cutover
 
-Until you finish the Jenkins rollout, the existing GitHub Actions workflows stay in their current automatic form.
+Until you finish the Jenkins rollout, the existing GitHub Actions workflows stay in their current automatic form, including the current release auto-publish behavior on `main`.
 
 After Jenkins cutover, GitHub Actions can be reduced to fallback/manual flows:
 
@@ -709,10 +879,22 @@ Rollback is complete only when GitHub Actions are again sufficient to validate a
 
 ## Ownership Matrix
 
-| Area | Repo-owned | User-owned |
-|---|---|---|
-| Pipeline definitions | `Jenkinsfile`, `jenkins/release.Jenkinsfile`, `scripts/ci/run_jenkins_validation.sh`, `scripts/ci/run_jenkins_release.sh` | Job creation and Jenkins global/job settings |
-| Build environment contract | Required builder name, labels, scripts, result artifacts | VM provisioning, Docker daemon, Node/Python installation, buildx bootstrap |
-| GitHub integration | Documented credential ids and pipeline expectations | GitHub App registration, installation, webhook secret, webhook routing |
-| Branch policy | Documentation of cutover order and fallback behavior | Branch protection updates, required check selection, rollback decision |
-| Release publication | Docker Hub login binding in release pipeline | Docker Hub credential management and manual release approval |
+- Pipeline definitions:
+  Repo-owned: `Jenkinsfile`, `jenkins/release.Jenkinsfile`, `scripts/ci/bootstrap_jenkins_runner.sh`, `scripts/ci/run_jenkins_validation.sh`, `scripts/ci/run_jenkins_release.sh`
+  User-owned: Job creation and Jenkins global or job settings
+
+- Build environment contract:
+  Repo-owned: required builder name, label, `scripts/ci/bootstrap_jenkins_runner.sh`, validation/release wrappers, result artifacts
+  User-owned: VM provisioning, `git` prerequisite, Docker daemon availability, Docker access for the runtime user, optional preinstallation, optional sudoers setup, node launch model
+
+- GitHub integration:
+  Repo-owned: documented credential ids and pipeline expectations
+  User-owned: GitHub App registration, installation, and optional webhook or polling setup
+
+- Branch policy:
+  Repo-owned: documentation of cutover order and fallback behavior
+  User-owned: branch protection updates, required check selection, rollback decision
+
+- Release publication:
+  Repo-owned: Docker Hub login binding in the release pipeline
+  User-owned: Docker Hub credential management and manual release approval

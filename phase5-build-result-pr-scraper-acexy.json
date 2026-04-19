@@ -1,0 +1,20 @@
+{
+  "generated_at": "2026-03-31T17:34:29.588712+00:00",
+  "flavor": "scraper-acexy",
+  "target": "scraper-acexy",
+  "image": "acestream-scraper:multiarch-local",
+  "tags": [
+    "acestream-scraper:multiarch-local"
+  ],
+  "target_tags": [
+    "acestream-scraper:multiarch-local"
+  ],
+  "platforms": [
+    "linux/amd64",
+    "linux/arm/v7",
+    "linux/arm64"
+  ],
+  "push": false,
+  "load": false,
+  "dry_run": true
+}

@@ -32,7 +32,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 
 `docker-compose.yml` runs:
 
-- `app`: `pipepito/acestream-scraper:latest` at port `8000`
+- `app`: includes both `build` and `image` for `pipepito/acestream-scraper:latest`, so Compose can either build from the local repository `Dockerfile` or tag the resulting image with the published name
 - `zeronet`: optional ZeroNet sidecar at port `43110` when the `zeronet` profile is enabled
 
 Bring up stack:
@@ -41,13 +41,21 @@ Bring up stack:
 docker compose up -d
 ```
 
+With the checked-in compose file, `docker compose up -d` uses the configured `build` plus `image` definition and will build locally when the app image is missing. If you want to force a fresh local rebuild from the current checkout, use:
+
+```bash
+docker compose up --build
+```
+
+If you want a prebuilt-image workflow instead of the checked-in local-build default, adjust the compose configuration to remove or override the `build` section and point at the published tag you want to run.
+
 To include the example ZeroNet sidecar:
 
 ```bash
 docker compose --profile zeronet up -d
 ```
 
-`latest` is the same payload as `scraper-acestream-acexy`. Operators can also pin `scraper`, `scraper-acestream`, `scraper-acexy`, or `scraper-acestream-acexy` directly.
+When you use published images, `latest` is the same payload as `scraper-acestream-acexy`. Operators can also pin `scraper`, `scraper-acestream`, `scraper-acexy`, or `scraper-acestream-acexy` directly.
 
 ZeroNet remains an external sidecar/service. The container image keeps the `ZERONET_URL` contract but does not bundle ZeroNet into every flavor.
 
@@ -76,7 +84,7 @@ Docker runtime toggles:
 
 The selected image flavor controls which optional binaries are installed. Runtime env flags control whether those installed services start.
 
-WARP is installed in every flavor, but it only starts when `ENABLE_WARP=true`. WARP-enabled containers require the runtime capabilities `NET_ADMIN` and `SYS_ADMIN`.
+WARP is installed in every flavor, but it only starts when `ENABLE_WARP=true`. For the documented containerized runtime path in this repository, WARP-enabled containers require the runtime capabilities `NET_ADMIN` and `SYS_ADMIN`.
 
 Legacy env aliases remain supported for one release window (`v2-cutover-r1`) with canonical-variable precedence and conflict warnings.
 
@@ -99,9 +107,9 @@ That means `latest` is not a universal multi-arch alias. Its availability follow
 
 Required minimum compatibility claims for release signoff:
 
-- ARM v7 image build succeeds and is included in architecture validation outputs.
-- ARM64 image build succeeds and is included in architecture validation outputs.
-- Runtime smoke checks pass for required ARM targets (`/api/v1/health`, frontend root path).
+- Baseline flavors (`scraper`, `scraper-acexy`) succeed for ARM v7 and ARM64 and are included in architecture validation outputs.
+- AceStream-enabled flavors (`scraper-acestream`, `scraper-acestream-acexy`, `latest`) only need to succeed for the platforms allowed by `docker/manifests/acestream.json`.
+- Runtime smoke checks pass for the ARM targets required by the flavor being signed off (`/api/v1/health`, frontend root path).
 
 ### Build and Validation Path
 
@@ -126,7 +134,10 @@ CI orchestration:
 - Jenkins manual release publication is the canonical release path after cutover and runs from `jenkins/release.Jenkinsfile`.
 - Jenkins validation is intended to mirror `.github/workflows/pull_request.yml`.
 - Jenkins manual release is intended to mirror `.github/workflows/release.yml`.
-- Jenkins agents are expected to provide the named buildx builder `acestream-builder` unless `JENKINS_BUILDER` is explicitly overridden.
+- Jenkins pipelines target the `generic-gh-builder` label and call `scripts/ci/bootstrap_jenkins_runner.sh` after `checkout scm`.
+- `git` remains the practical prerequisite on the Jenkins node because checkout happens before repository bootstrap.
+- Jenkins uses the named buildx builder `acestream-builder` unless `JENKINS_BUILDER` is explicitly overridden; the builder can be precreated by the operator or prepared during bootstrap.
+- Docker access must already work for the current Jenkins runtime user on that node.
 - During setup, the existing GitHub Actions workflows remain unchanged.
 - GitHub Actions workflows can become fallback/manual validation paths after Jenkins cutover:
   - `.github/workflows/pull_request.yml`

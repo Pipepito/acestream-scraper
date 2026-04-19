@@ -16,7 +16,12 @@
     <daysToKeep>-1</daysToKeep>
     <numToKeep>20</numToKeep>
   </orphanedItemStrategy>
-  <triggers/>
+  <triggers>
+    <com.cloudbees.hudson.plugins.folder.computed.PeriodicFolderTrigger>
+      <spec>H/5 * * * *</spec>
+      <interval>300000</interval>
+    </com.cloudbees.hudson.plugins.folder.computed.PeriodicFolderTrigger>
+  </triggers>
   <disabled>false</disabled>
   <sources class="jenkins.branch.MultiBranchProject$BranchSourceList">
     <data>
@@ -28,11 +33,16 @@
           <repository>acestream-scraper</repository>
           <traits>
             <org.jenkinsci.plugins.github_branch_source.BranchDiscoveryTrait>
-              <strategyId>1</strategyId>
+              <strategyId>3</strategyId>
             </org.jenkinsci.plugins.github_branch_source.BranchDiscoveryTrait>
             <org.jenkinsci.plugins.github_branch_source.OriginPullRequestDiscoveryTrait>
               <strategyId>1</strategyId>
             </org.jenkinsci.plugins.github_branch_source.OriginPullRequestDiscoveryTrait>
+            <org.jenkinsci.plugins.githubScmTraitNotificationContext.NotificationContextTrait>
+              <contextLabel>PR Validation</contextLabel>
+              <typeSuffix>false</typeSuffix>
+              <multipleStatuses>false</multipleStatuses>
+            </org.jenkinsci.plugins.githubScmTraitNotificationContext.NotificationContextTrait>
           </traits>
         </source>
         <strategy class="jenkins.branch.DefaultBranchPropertyStrategy">

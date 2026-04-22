@@ -5,7 +5,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision = 'add_activity_log_table'
-down_revision = None
+down_revision = '20250412_add_epg_channels_update_tv_channels'
 branch_labels = None
 depends_on = None
 

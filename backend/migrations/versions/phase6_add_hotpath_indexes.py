@@ -5,6 +5,12 @@ from alembic import op
 import sqlalchemy as sa
 
 
+revision = 'phase6_add_hotpath_indexes'
+down_revision = 'add_channel_id_to_activity_log'
+branch_labels = None
+depends_on = None
+
+
 def _existing_indexes(table_name: str):
     inspector = sa.inspect(op.get_bind())
     return {index["name"] for index in inspector.get_indexes(table_name)}

@@ -18,3 +18,10 @@ This repository now uses a single root deployment model:
 - Backend local run: `cd backend && pip install -r requirements.txt && uvicorn main:app --reload --host 0.0.0.0 --port 8000`
 - Frontend local run: `cd frontend && npm install && npm start`
 - Container stack: `docker compose up --build`
+
+## Backend Alembic
+
+Run Alembic from the repo root with the backend virtualenv active:
+
+- `PYTHONPATH=backend alembic -c backend/migrations/alembic.ini history`
+- `PYTHONPATH=backend alembic -c backend/migrations/alembic.ini upgrade head`

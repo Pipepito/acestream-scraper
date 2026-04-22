@@ -2,11 +2,20 @@
 
 ## Status: **FRONTEND MIGRATION IN PROGRESS** 🟡
 
+## Migration History Recovery Note (2026-04-22)
+
+- Alembic history recovery is complete: a fresh scratch SQLite database now upgrades cleanly through `phase6_add_hotpath_indexes`.
+- Full Alembic/model parity is still pending and remains out of scope for the history-recovery work.
+- Known residual gaps to track:
+  - `dashboard_config` exists in `backend/app/models/models.py` but is not created in the Alembic-reconstructed scratch database.
+  - `ActivityLog.details` is created as `JSON` in `backend/migrations/versions/add_activity_log_table.py` while `backend/app/models/models.py` maps it as `Text`.
+  - Additional `create_all`-era model/schema drift may still exist; the recovery work restored historical continuity and working Alembic execution, not full model-schema parity.
+
 ---
 
 ## Overview
 
-This document tracks the comprehensive migration of functionality from V1 (Flask-based) to V2 (FastAPI-based) architecture. Backend migration is now 100% complete and tested. The remaining work is focused on frontend feature parity and UI enhancements.
+This document tracks the comprehensive migration of functionality from V1 (Flask-based) to V2 (FastAPI-based) architecture. Core backend feature migration is substantially complete and tested, but full Alembic/model parity is still pending after the 2026-04-22 migration-history recovery work. The remaining work is focused on frontend feature parity, UI enhancements, and the residual backend schema-management gaps noted above.
 
 ---
 
@@ -174,6 +183,8 @@ This document tracks the comprehensive migration of functionality from V1 (Flask
 
 ## 📊 **Feature Matrix**
 
+> Historical status snapshot: some backend-related rows in this matrix predate the later backend parity updates and the 2026-04-22 Alembic history recovery note. Use the newer backend parity sections and recovery notes in this document as the authoritative source for current backend status.
+
 | Feature                       | V1 Status | V2 Status | Priority    | Notes                                                                   |
 | ----------------------------- | --------- | --------- | ----------- | ----------------------------------------------------------------------- |
 | **Basic CRUD Operations**     | ✅        | ✅        | ✅ Complete | All entities                                                            |
@@ -185,11 +196,11 @@ This document tracks the comprehensive migration of functionality from V1 (Flask
 | **Channel Management API**    | ✅        | ✅        | ✅ Complete | ✅ **JUST COMPLETED** - Full REST API                                   |
 | **EPG Refresh/Fetch**         | ✅        | ✅        | 🟡 Partial  | All endpoints/tests complete; background/periodic refresh still pending |
 | **URL Refresh Operations**    | ✅        | ✅        | ✅ Complete | All endpoints and tests passing as of 2025-07-09                        |
-| **Automatic Task Scheduling** | ✅        | ❌        | 🔴 Critical | No background processing                                                |
-| **URL Scraping Automation**   | ✅        | ❌        | 🔴 Critical | Manual only in V2                                                       |
-| **Channel Association**       | ✅        | ❌        | 🔴 Critical | No auto-association                                                     |
-| **EPG Auto-mapping**          | ✅        | ❌        | 🟠 High     | String pattern matching                                                 |
-| **Stream URL Management**     | ✅        | ❌        | 🟠 High     | Stream service missing                                                  |
+| **Automatic Task Scheduling** | ✅        | ⚠️        | 🔴 Critical | Historical note: revisit current backend/runtime state before using this row as the source of truth |
+| **URL Scraping Automation**   | ✅        | ⚠️        | 🔴 Critical | Historical note: revisit current backend/runtime state before using this row as the source of truth |
+| **Channel Association**       | ✅        | ⚠️        | 🔴 Critical | Historical note: revisit current backend/runtime state before using this row as the source of truth |
+| **EPG Auto-mapping**          | ✅        | ⚠️        | 🟠 High     | Historical note: revisit current backend/runtime state before using this row as the source of truth |
+| **Stream URL Management**     | ✅        | ⚠️        | 🟠 High     | Historical note: revisit current backend/runtime state before using this row as the source of truth |
 | **Configuration UI**          | ✅        | ❌        | 🟠 High     | No settings page                                                        |
 | **System Health Dashboard**   | ✅        | ❌        | 🟡 Medium   | Health monitoring                                                       |
 | **Statistics Display**        | ✅        | ❌        | 🟡 Medium   | System stats                                                            |
@@ -200,6 +211,8 @@ This document tracks the comprehensive migration of functionality from V1 (Flask
 ---
 
 ## 🎯 **DETAILED IMPLEMENTATION ACTION PLAN**
+
+> Historical action-plan snapshot: the task lists and `NOT STARTED` markers in this section predate the later backend parity updates and the 2026-04-22 Alembic history recovery note. They should not be read as the current source of truth for backend status.
 
 > **Use this section to track progress on each implementation task. Update status as work progresses.**
 
@@ -545,6 +558,8 @@ For each task, update with:
 
 ## 🚨 **CRITICAL ISSUES DISCOVERED**
 
+> Historical snapshot: the items in this section predate the 2025-07-09 backend parity updates and the 2026-04-22 Alembic history recovery note above. Treat them as archival context unless they are reconfirmed against the current backend.
+
 ### **1. Test Infrastructure Issues** 🔴
 
 - **HTTP Exception Handling**: ✅ **FIXED** - SPA exception handler was re-raising API exceptions
@@ -568,6 +583,8 @@ For each task, update with:
 ---
 
 ## 🛠 **Current Implementation Gaps**
+
+> Historical snapshot: this section is not the authoritative source for current backend status. Use the 2025-07-09 parity update and the 2026-04-22 migration-history recovery note above for current backend state.
 
 ### **Most Critical Issues**
 
@@ -615,6 +632,8 @@ For each task, update with:
 ---
 
 ## 📋 **Next Steps**
+
+> Historical planning snapshot: this section predates the later backend parity updates and the 2026-04-22 Alembic history recovery note. Treat it as archival planning context, not the current backend status board.
 
 ### **Immediate Actions Required**:
 
@@ -670,8 +689,8 @@ For each task, update with:
 
 - All core backend endpoints and services (EPG string mapping, health, stats, playlist, and test harness) are now fully implemented and tested in V2.
 - All backend tests pass, including edge cases for health, stats, playlist, and all scraper endpoints.
-- No remaining backend migration gaps; only advanced/legacy/edge-case features remain for review.
-- **Backend migration is 100% complete and all tests pass.**
+- Backend feature parity is effectively complete, but backend migration gaps still remain in schema management: Alembic history recovery is complete, while full Alembic/model parity is still pending.
+- **Backend feature migration is complete and tested, but backend schema-management follow-up still remains.**
 
 ---
 
@@ -703,7 +722,7 @@ The following frontend features are missing or incomplete and must be implemente
 - [ ] Implement BulkOperations component
 - [ ] Test all frontend features and update documentation
 
-**Status:** Frontend migration in progress. Backend is 100% complete and tested. All remaining work is UI/UX and frontend feature parity.
+**Status:** Frontend migration in progress. Backend feature migration is complete and tested, while Alembic/model parity follow-up still remains alongside the remaining UI/UX and frontend feature parity work.
 
 ---
 

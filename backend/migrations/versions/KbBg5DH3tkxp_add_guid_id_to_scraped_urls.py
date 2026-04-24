@@ -38,6 +38,14 @@ def get_column_type(table, column):
     return None
 
 
+def has_index(table, index_name):
+    """Check if an index exists on a table"""
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    indexes = [index['name'] for index in inspector.get_indexes(table)]
+    return index_name in indexes
+
+
 def get_dialect():
     """Get the dialect of the current database connection"""
     return op.get_bind().dialect.name
@@ -49,6 +57,7 @@ def upgrade():
 
     # Check if the id column exists
     has_id = has_column('scraped_urls', 'id')
+    has_temp_guid = has_column('scraped_urls', 'temp_guid')
 
     if has_id:
         # It exists - check its type
@@ -56,19 +65,25 @@ def upgrade():
 
         # If it's not already a UUID/string, convert it
         if not isinstance(id_type, (sa.String, UUID)):
-            # Create a temporary UUID column
-            with op.batch_alter_table('scraped_urls') as batch_op:
-                batch_op.add_column(sa.Column('temp_guid', sa.String(36), nullable=True))
+            # Resume a partial conversion instead of re-adding the same temp column.
+            if not has_temp_guid:
+                with op.batch_alter_table('scraped_urls') as batch_op:
+                    batch_op.add_column(sa.Column('temp_guid', sa.String(36), nullable=True))
 
             # Generate UUIDs for all rows
-            rows = connection.execute(text('SELECT id, url FROM scraped_urls')).fetchall()
+            rows = connection.execute(text('SELECT id, url, temp_guid FROM scraped_urls')).fetchall()
             for row in rows:
-                id_val, url = row
+                id_val, url, temp_guid = row
+                if temp_guid:
+                    continue
                 new_guid = str(uuid.uuid4())
                 connection.execute(
                     text("UPDATE scraped_urls SET temp_guid = :guid WHERE id = :id"),
                     {"guid": new_guid, "id": id_val}
                 )
+
+            if has_index('scraped_urls', 'ix_scraped_urls_id'):
+                op.drop_index('ix_scraped_urls_id', table_name='scraped_urls')
 
             # For SQLite (which doesn't support dropping primary keys directly),
             # we'll recreate the table without the primary key constraint

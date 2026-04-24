@@ -10,6 +10,8 @@ from app.services.playlist_service import PlaylistService
 Main application entry point for Acestream Scraper v2 backend
 """
 import os
+from pathlib import Path
+
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
@@ -20,6 +22,7 @@ from app.api.error_handlers import register_error_handlers
 from app.config.settings import settings, get_env_compat_events
 from app.utils.logging import setup_logging
 from app.services.task_service import task_service
+from app.tasks.activity_log_cleanup import run_activity_log_cleanup
 from app.tasks.epg_refresh_task import run_epg_refresh_task
 from app.tasks.url_scraping_task import run_url_scraping_task
 from app.tasks.channel_cleanup_task import run_channel_cleanup_task
@@ -41,38 +44,37 @@ for event in get_env_compat_events():
     )
 
 # Initialize database on startup
+def _run_alembic_upgrade() -> None:
+    from alembic import command
+    from alembic.config import Config
+
+    repo_root = Path(__file__).resolve().parent.parent
+    alembic_config = Config(str(repo_root / "backend" / "migrations" / "alembic.ini"))
+    command.upgrade(alembic_config, "head")
+
+
 def initialize_database():
     """Initialize database with migration check"""
-    try:
-        from migrate_database import DatabaseMigrator
-        migrator = DatabaseMigrator()
+    from migrate_database import DatabaseMigrator
 
-        # Only run migration if acestream.db exists and hasn't been migrated yet
-        if migrator.should_migrate():
-            print("Found v1 database, running migration...")
-            migrated = migrator.run_migration()
-            if migrated:
-                print("Migration completed successfully!")
-            return
+    migrator = DatabaseMigrator()
 
-        # Check if v2 database exists, create if not
-        if not os.path.exists(migrator.v2_db_path):
-            print("Creating fresh v2 database...")
-            from app.config.database import engine, Base
-            Base.metadata.create_all(bind=engine)
-            print("Fresh v2 database created!")
-        else:
-            print("V2 database ready")
+    # Only run migration if acestream.db exists and hasn't been migrated yet.
+    if migrator.should_migrate():
+        print("Found v1 database, running migration...")
+        migrated = migrator.run_migration()
+        if migrated:
+            print("Migration completed successfully!")
+        return
 
-    except Exception as e:
-        print(f"Database initialization error: {e}")
-        # Create empty database if everything fails
-        try:
-            from app.config.database import engine, Base
-            print("Creating emergency fresh database...")
-            Base.metadata.create_all(bind=engine)
-        except Exception as e2:
-            print(f"Emergency database creation failed: {e2}")
+    # Fresh v2 databases should be provisioned through Alembic so startup uses
+    # the same schema path as tests and deployments.
+    if not os.path.exists(migrator.v2_db_path):
+        print("Creating fresh v2 database via Alembic...")
+        _run_alembic_upgrade()
+        print("Fresh v2 database created!")
+    else:
+        print("V2 database ready")
 
 # Initialize database
 initialize_database()
@@ -181,6 +183,7 @@ def start_background_tasks():
     # Start the background scheduler
     task_service.start()
     # Schedule periodic tasks (intervals in seconds)
+    task_service.add_interval_task(run_activity_log_cleanup, seconds=86400, job_id="activity_log_cleanup")  # daily
     task_service.add_interval_task(run_epg_refresh_task, seconds=3600, job_id="epg_refresh")  # every hour
     task_service.add_interval_task(run_url_scraping_task, seconds=900, job_id="url_scraping")  # every 15 min
     task_service.add_interval_task(run_channel_cleanup_task, seconds=86400, job_id="channel_cleanup")  # daily

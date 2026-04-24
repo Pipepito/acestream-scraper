@@ -4,6 +4,7 @@ Integration tests for V2 API endpoints
 
 import pytest
 import asyncio
+import importlib
 from httpx import AsyncClient
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -15,25 +16,114 @@ from pathlib import Path
 from datetime import datetime, timedelta
 import json
 import uuid
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 import sys
 
 # Add v2/backend to sys.path
 sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent))
 
 
-# Import V2 app components
-from main import app
-from app.config.database import Base, get_db
-from app.models.models import (
-    AcestreamChannel, TVChannel, EPGSource, EPGChannel, EPGProgram,
-    ScrapedURL, EPGStringMapping, Setting
+from migration_test_utils import database_url_for, upgrade_to_head
+
+
+_RESETTABLE_BACKEND_MODULE_PREFIXES = (
+    "app.api",
+    "app.models",
+    "app.repositories",
+    "app.schemas",
+    "app.services",
+    "app.tasks",
+    "app.utils",
 )
+
+
+def _clear_backend_runtime_modules():
+    for module_name in list(sys.modules):
+        if module_name == "main" or module_name == "migrate_database":
+            sys.modules.pop(module_name, None)
+            continue
+        if module_name.startswith(_RESETTABLE_BACKEND_MODULE_PREFIXES):
+            sys.modules.pop(module_name, None)
+
+
+def _import_or_reload(module_name):
+    module = sys.modules.get(module_name)
+    if module is not None:
+        return importlib.reload(module)
+    return importlib.import_module(module_name)
+
+
+def _load_backend_runtime(database_url=None):
+    original_database_url = os.environ.get("DATABASE_URL")
+    if database_url is None:
+        os.environ.pop("DATABASE_URL", None)
+    else:
+        os.environ["DATABASE_URL"] = database_url
+
+    try:
+        _clear_backend_runtime_modules()
+
+        settings_module = _import_or_reload("app.config.settings")
+        database_module = _import_or_reload("app.config.database")
+        main_module = _import_or_reload("main")
+    finally:
+        if original_database_url is None:
+            os.environ.pop("DATABASE_URL", None)
+        else:
+            os.environ["DATABASE_URL"] = original_database_url
+
+    if database_url is not None:
+        expected_db_path = Path(database_url.removeprefix("sqlite:///"))
+        assert Path(database_module.engine.url.database).resolve() == expected_db_path.resolve()
+        assert settings_module.settings.DATABASE_URL == database_url
+
+    return SimpleNamespace(
+        app=main_module.app,
+        get_db=main_module.get_db,
+        Base=database_module.Base,
+        engine=database_module.engine,
+        SessionLocal=database_module.SessionLocal,
+        settings=settings_module.settings,
+    )
+
+
+@pytest.fixture(scope="function")
+def backend_runtime():
+    runtime = _load_backend_runtime()
+    yield runtime
+    runtime.engine.dispose()
+
+
+@pytest.fixture(scope="function")
+def alembic_test_db():
+    db_fd, db_path = tempfile.mkstemp(suffix='.db')
+    os.close(db_fd)
+    db_path = Path(db_path)
+
+    upgrade_to_head(db_path)
+    database_url = database_url_for(db_path)
+
+    yield db_path, database_url
+
+    try:
+        os.unlink(db_path)
+    except (PermissionError, OSError):
+        pass
+
+
+@pytest.fixture(scope="function")
+def alembic_backend_runtime(alembic_test_db):
+    _, database_url = alembic_test_db
+    runtime = _load_backend_runtime(database_url)
+    yield runtime
+    runtime.engine.dispose()
 
 
 # Test database setup
 @pytest.fixture(scope="function")
-def test_db():
+def test_db(backend_runtime):
     """Create a test database for the session."""
     # Create temporary database file
     db_fd, db_path = tempfile.mkstemp(suffix='.db')
@@ -50,8 +140,8 @@ def test_db():
         echo=False
     )
 
-    # Create all tables
-    Base.metadata.create_all(bind=engine)
+    # Keep the legacy create_all path for non-migrated tests.
+    backend_runtime.Base.metadata.create_all(bind=engine)
 
     yield engine, database_url
 
@@ -77,8 +167,133 @@ def db_session(test_db):
     session.close()
 
 
-@pytest.fixture(scope="function", autouse=True)
-def override_get_db(db_session):
+@pytest.fixture(scope="function")
+def alembic_db_session(alembic_backend_runtime):
+    """Create a migrated database session for each test."""
+    session = alembic_backend_runtime.SessionLocal()
+
+    yield session
+
+    session.close()
+
+
+def _seed_channels(session, sample_channel_data):
+    from app.models.models import AcestreamChannel
+
+    channels = []
+    channel_names = ["Alpha Channel", "Beta Channel", "Gamma Channel"]
+    for i in range(3):
+        channel_data = sample_channel_data.copy()
+        channel_data["id"] = str(uuid.uuid4())
+        channel_data["name"] = channel_names[i]
+        channel_data["group"] = f"Group {i+1}"
+
+        channel = AcestreamChannel(**channel_data)
+        session.add(channel)
+        channels.append(channel)
+
+    session.commit()
+    return channels
+
+
+def _seed_tv_channels(session, sample_tv_channel_data):
+    from app.models.models import TVChannel
+
+    tv_channels = []
+    import time
+
+    timestamp = int(time.time() * 1000)
+    for i in range(3):
+        tv_channel_data = sample_tv_channel_data.copy()
+        tv_channel_data["name"] = f"Test TV Channel {i+1} {timestamp}"
+        tv_channel_data["channel_number"] = i+1
+        tv_channel_data["epg_id"] = f"test.tv.{i+1}.{timestamp}"
+
+        tv_channel = TVChannel(**tv_channel_data)
+        session.add(tv_channel)
+        tv_channels.append(tv_channel)
+
+    session.commit()
+    return tv_channels
+
+
+def _seed_epg_sources(session, sample_epg_source_data):
+    from app.models.models import EPGSource
+
+    epg_sources = []
+    for i in range(2):
+        epg_source_data = sample_epg_source_data.copy()
+        epg_source_data["name"] = f"Test EPG Source {i+1}"
+        epg_source_data["url"] = f"https://example.com/epg{i+1}.xml"
+
+        epg_source = EPGSource(**epg_source_data)
+        session.add(epg_source)
+        epg_sources.append(epg_source)
+
+    session.commit()
+    return epg_sources
+
+
+def _seed_epg_channels(session, epg_sources):
+    from app.models.models import EPGChannel
+
+    epg_channels = []
+    for i, epg_source in enumerate(epg_sources):
+        epg_channel_data = {
+            "epg_source_id": epg_source.id,
+            "channel_xml_id": f"test-channel-{i+1}",
+            "name": f"Test EPG Channel {i+1}",
+            "icon_url": f"https://example.com/icon{i+1}.png",
+            "language": "en",
+        }
+
+        epg_channel = EPGChannel(**epg_channel_data)
+        session.add(epg_channel)
+        epg_channels.append(epg_channel)
+
+    session.commit()
+    return epg_channels
+
+
+def _seed_epg_programs(session, epg_channels, sample_epg_program_data):
+    from app.models.models import EPGProgram
+
+    epg_programs = []
+    for i, epg_channel in enumerate(epg_channels):
+        for j in range(3):
+            program_data = sample_epg_program_data.copy()
+            program_data["epg_channel_id"] = epg_channel.id
+            program_data["program_xml_id"] = f"test-program-{i+1}-{j+1}"
+            program_data["title"] = f"Test Program {i+1}-{j+1}"
+            program_data["start_time"] = datetime.now() + timedelta(hours=j)
+            program_data["end_time"] = datetime.now() + timedelta(hours=j+1)
+
+            epg_program = EPGProgram(**program_data)
+            session.add(epg_program)
+            epg_programs.append(epg_program)
+
+    session.commit()
+    return epg_programs
+
+
+def _seed_scraped_urls(session, sample_scraped_url_data):
+    from app.models.models import ScrapedURL
+
+    scraped_urls = []
+    for i in range(3):
+        url_data = sample_scraped_url_data.copy()
+        url_data["url"] = f"https://example.com/playlist{i+1}.m3u"
+
+        scraped_url = ScrapedURL(**url_data)
+        session.add(scraped_url)
+        scraped_urls.append(scraped_url)
+
+    session.commit()
+    return scraped_urls
+
+
+@pytest.fixture(scope="function")
+def override_get_db(backend_runtime, db_session):
     """Override the get_db dependency."""
     def _get_db_override():
         try:
@@ -86,21 +301,48 @@ def override_get_db(db_session):
         finally:
             pass
 
-    app.dependency_overrides[get_db] = _get_db_override
+    backend_runtime.app.dependency_overrides[backend_runtime.get_db] = _get_db_override
     yield
-    del app.dependency_overrides[get_db]
+    del backend_runtime.app.dependency_overrides[backend_runtime.get_db]
 
 
 @pytest.fixture(scope="function")
-def client(override_get_db):
+def alembic_override_get_db(alembic_backend_runtime, alembic_db_session):
+    """Override the migrated app database dependency."""
+    def _get_db_override():
+        try:
+            yield alembic_db_session
+        finally:
+            pass
+
+    alembic_backend_runtime.app.dependency_overrides[alembic_backend_runtime.get_db] = _get_db_override
+    yield
+    del alembic_backend_runtime.app.dependency_overrides[alembic_backend_runtime.get_db]
+
+
+@pytest.fixture(scope="function")
+def client(backend_runtime, override_get_db):
     """Create a test client."""
-    return TestClient(app)
+    return TestClient(backend_runtime.app)
 
 
 @pytest.fixture(scope="function")
-async def async_client(override_get_db):
+def alembic_client(alembic_backend_runtime, alembic_override_get_db):
+    """Create a migrated test client."""
+    return TestClient(alembic_backend_runtime.app)
+
+
+@pytest.fixture(scope="function")
+async def async_client(backend_runtime, override_get_db):
     """Create an async test client."""
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(app=backend_runtime.app, base_url="http://test") as ac:
+        yield ac
+
+
+@pytest.fixture(scope="function")
+async def alembic_async_client(alembic_backend_runtime, alembic_override_get_db):
+    """Create an async migrated test client."""
+    async with AsyncClient(app=alembic_backend_runtime.app, base_url="http://test") as ac:
         yield ac
 
 
@@ -181,115 +423,37 @@ def sample_epg_program_data():
 @pytest.fixture
 def seed_channels(db_session, sample_channel_data):
     """Seed test channels."""
-    channels = []
-    channel_names = ["Alpha Channel", "Beta Channel", "Gamma Channel"]
-    for i in range(3):
-        channel_data = sample_channel_data.copy()
-        channel_data["id"] = str(uuid.uuid4())
-        channel_data["name"] = channel_names[i]
-        channel_data["group"] = f"Group {i+1}"
-
-        channel = AcestreamChannel(**channel_data)
-        db_session.add(channel)
-        channels.append(channel)
-
-    db_session.commit()
-    return channels
+    return _seed_channels(db_session, sample_channel_data)
 
 
 @pytest.fixture
 def seed_tv_channels(db_session, sample_tv_channel_data):
     """Seed test TV channels."""
-    tv_channels = []
-    import time
-    timestamp = int(time.time() * 1000)  # Use milliseconds for uniqueness
-    for i in range(3):
-        tv_channel_data = sample_tv_channel_data.copy()
-        tv_channel_data["name"] = f"Test TV Channel {i+1} {timestamp}"
-        tv_channel_data["channel_number"] = i+1
-        tv_channel_data["epg_id"] = f"test.tv.{i+1}.{timestamp}"  # Make EPG IDs unique too
-
-        tv_channel = TVChannel(**tv_channel_data)
-        db_session.add(tv_channel)
-        tv_channels.append(tv_channel)
-
-    db_session.commit()
-    return tv_channels
+    return _seed_tv_channels(db_session, sample_tv_channel_data)
 
 
 @pytest.fixture
 def seed_epg_sources(db_session, sample_epg_source_data):
     """Seed test EPG sources."""
-    epg_sources = []
-    for i in range(2):
-        epg_source_data = sample_epg_source_data.copy()
-        epg_source_data["name"] = f"Test EPG Source {i+1}"
-        epg_source_data["url"] = f"https://example.com/epg{i+1}.xml"
-
-        epg_source = EPGSource(**epg_source_data)
-        db_session.add(epg_source)
-        epg_sources.append(epg_source)
-
-    db_session.commit()
-    return epg_sources
+    return _seed_epg_sources(db_session, sample_epg_source_data)
 
 
 @pytest.fixture
 def seed_epg_channels(db_session, seed_epg_sources):
     """Seed test EPG channels."""
-    epg_channels = []
-    for i, epg_source in enumerate(seed_epg_sources):
-        epg_channel_data = {
-            "epg_source_id": epg_source.id,
-            "channel_xml_id": f"test-channel-{i+1}",
-            "name": f"Test EPG Channel {i+1}",
-            "icon_url": f"https://example.com/icon{i+1}.png",
-            "language": "en"
-        }
-
-        epg_channel = EPGChannel(**epg_channel_data)
-        db_session.add(epg_channel)
-        epg_channels.append(epg_channel)
-
-    db_session.commit()
-    return epg_channels
+    return _seed_epg_channels(db_session, seed_epg_sources)
 
 
 @pytest.fixture
 def seed_epg_programs(db_session, seed_epg_channels, sample_epg_program_data):
     """Seed test EPG programs."""
-    epg_programs = []
-    for i, epg_channel in enumerate(seed_epg_channels):
-        for j in range(3):  # 3 programs per channel
-            program_data = sample_epg_program_data.copy()
-            program_data["epg_channel_id"] = epg_channel.id
-            program_data["program_xml_id"] = f"test-program-{i+1}-{j+1}"
-            program_data["title"] = f"Test Program {i+1}-{j+1}"
-            program_data["start_time"] = datetime.now() + timedelta(hours=j)
-            program_data["end_time"] = datetime.now() + timedelta(hours=j+1)
-
-            epg_program = EPGProgram(**program_data)
-            db_session.add(epg_program)
-            epg_programs.append(epg_program)
-
-    db_session.commit()
-    return epg_programs
+    return _seed_epg_programs(db_session, seed_epg_channels, sample_epg_program_data)
 
 
 @pytest.fixture
 def seed_scraped_urls(db_session, sample_scraped_url_data):
     """Seed test scraped URLs."""
-    scraped_urls = []
-    for i in range(3):
-        url_data = sample_scraped_url_data.copy()
-        url_data["url"] = f"https://example.com/playlist{i+1}.m3u"
-
-        scraped_url = ScrapedURL(**url_data)
-        db_session.add(scraped_url)
-        scraped_urls.append(scraped_url)
-
-    db_session.commit()
-    return scraped_urls
+    return _seed_scraped_urls(db_session, sample_scraped_url_data)
 
 @pytest.fixture
 def seed_all_data(seed_channels, seed_tv_channels, seed_epg_sources,
@@ -302,6 +466,33 @@ def seed_all_data(seed_channels, seed_tv_channels, seed_epg_sources,
         "epg_channels": seed_epg_channels,
         "epg_programs": seed_epg_programs,
         "scraped_urls": seed_scraped_urls
+    }
+
+
+@pytest.fixture
+def alembic_seed_all_data(
+    alembic_db_session,
+    sample_channel_data,
+    sample_tv_channel_data,
+    sample_epg_source_data,
+    sample_scraped_url_data,
+    sample_epg_program_data,
+):
+    """Seed the Alembic-backed Task 5 subset without constructing the legacy DB path."""
+    channels = _seed_channels(alembic_db_session, sample_channel_data)
+    tv_channels = _seed_tv_channels(alembic_db_session, sample_tv_channel_data)
+    epg_sources = _seed_epg_sources(alembic_db_session, sample_epg_source_data)
+    epg_channels = _seed_epg_channels(alembic_db_session, epg_sources)
+    epg_programs = _seed_epg_programs(alembic_db_session, epg_channels, sample_epg_program_data)
+    scraped_urls = _seed_scraped_urls(alembic_db_session, sample_scraped_url_data)
+
+    return {
+        "channels": channels,
+        "tv_channels": tv_channels,
+        "epg_sources": epg_sources,
+        "epg_channels": epg_channels,
+        "epg_programs": epg_programs,
+        "scraped_urls": scraped_urls,
     }
 
 

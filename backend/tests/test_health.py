@@ -9,9 +9,9 @@ from fastapi import status
 class TestHealthEndpoints:
     """Test health monitoring endpoints."""
 
-    def test_get_health_status(self, client):
+    def test_get_health_status(self, alembic_client):
         """Test getting application health status."""
-        response = client.get("/api/v1/health")
+        response = alembic_client.get("/api/v1/health")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
 
@@ -29,9 +29,9 @@ class TestHealthEndpoints:
         # Acestream status should be checked
         assert "status" in data["acestream"]
 
-    def test_health_status_structure(self, client):
+    def test_health_status_structure(self, alembic_client):
         """Test the structure of health status response."""
-        response = client.get("/api/v1/health")
+        response = alembic_client.get("/api/v1/health")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
 
@@ -50,9 +50,9 @@ class TestHealthEndpoints:
             if field in data:
                 assert data[field] is not None
 
-    def test_health_status_with_database_info(self, client, db_session):
+    def test_health_status_with_database_info(self, alembic_client, alembic_db_session):
         """Test health status includes database information."""
-        response = client.get("/api/v1/health")
+        response = alembic_client.get("/api/v1/health")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
 
@@ -65,12 +65,12 @@ class TestHealthEndpoints:
         if "tables" in data["database"]:
             assert isinstance(data["database"]["tables"], (list, int))
 
-    def test_health_status_response_time(self, client):
+    def test_health_status_response_time(self, alembic_client):
         """Test that health endpoint responds quickly."""
         import time
 
         start_time = time.time()
-        response = client.get("/api/v1/health")
+        response = alembic_client.get("/api/v1/health")
         end_time = time.time()
 
         assert response.status_code == status.HTTP_200_OK
@@ -83,9 +83,9 @@ class TestHealthEndpoints:
 class TestStatsEndpoints:
     """Test statistics endpoints."""
 
-    def test_get_stats(self, client):
+    def test_get_stats(self, alembic_client):
         """Test getting application statistics."""
-        response = client.get("/api/v1/stats")
+        response = alembic_client.get("/api/v1/stats")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
 
@@ -105,9 +105,9 @@ class TestStatsEndpoints:
         for key, value in data.items():
             assert isinstance(value, (int, float, str, dict))
 
-    def test_get_stats_with_data(self, client, seed_all_data):
+    def test_get_stats_with_data(self, alembic_client, alembic_seed_all_data):
         """Test getting statistics with data in database."""
-        response = client.get("/api/v1/stats")
+        response = alembic_client.get("/api/v1/stats")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
 
@@ -125,9 +125,9 @@ class TestStatsEndpoints:
         if "scraped_urls" in data:
             assert data["scraped_urls"] >= 3  # We seeded 3 URLs
 
-    def test_get_stats_categories(self, client, seed_all_data):
+    def test_get_stats_categories(self, alembic_client, alembic_seed_all_data):
         """Test statistics are categorized properly."""
-        response = client.get("/api/v1/stats")
+        response = alembic_client.get("/api/v1/stats")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
 
@@ -140,9 +140,9 @@ class TestStatsEndpoints:
         database_stat_count = sum(1 for stat in database_stats if stat in data)
         assert database_stat_count > 0
 
-    def test_get_stats_numerical_values(self, client, seed_all_data):
+    def test_get_stats_numerical_values(self, alembic_client, alembic_seed_all_data):
         """Test that count statistics are numerical."""
-        response = client.get("/api/v1/stats")
+        response = alembic_client.get("/api/v1/stats")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
 
@@ -154,11 +154,11 @@ class TestStatsEndpoints:
                 assert isinstance(data[field], int)
                 assert data[field] >= 0
 
-    def test_get_stats_consistency(self, client, seed_all_data):
+    def test_get_stats_consistency(self, alembic_client, alembic_seed_all_data):
         """Test that statistics are consistent across multiple calls."""
         # Get stats twice
-        response1 = client.get("/api/v1/stats")
-        response2 = client.get("/api/v1/stats")
+        response1 = alembic_client.get("/api/v1/stats")
+        response2 = alembic_client.get("/api/v1/stats")
 
         assert response1.status_code == status.HTTP_200_OK
         assert response2.status_code == status.HTTP_200_OK
@@ -177,9 +177,9 @@ class TestStatsEndpoints:
 class TestHealthIntegration:
     """Test health endpoints integration with system state."""
 
-    def test_health_reflects_database_state(self, client, db_session):
+    def test_health_reflects_database_state(self, alembic_client, alembic_db_session):
         """Test that health status reflects database connectivity."""
-        response = client.get("/api/v1/health")
+        response = alembic_client.get("/api/v1/health")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
 
@@ -187,10 +187,10 @@ class TestHealthIntegration:
         assert data["status"] == "healthy"
         assert data["database"]["status"] in ["connected", "healthy"]
 
-    def test_stats_update_with_database_changes(self, client, db_session):
+    def test_stats_update_with_database_changes(self, alembic_client, alembic_db_session):
         """Test that stats update when database changes."""
         # Get initial stats
-        response = client.get("/api/v1/stats")
+        response = alembic_client.get("/api/v1/stats")
         assert response.status_code == status.HTTP_200_OK
         initial_data = response.json()
         initial_channels = initial_data.get("channels", 0)
@@ -207,11 +207,11 @@ class TestHealthIntegration:
             is_active=True,
             is_online=True
         )
-        db_session.add(new_channel)
-        db_session.commit()
+        alembic_db_session.add(new_channel)
+        alembic_db_session.commit()
 
         # Get updated stats
-        response = client.get("/api/v1/stats")
+        response = alembic_client.get("/api/v1/stats")
         assert response.status_code == status.HTTP_200_OK
         updated_data = response.json()
         updated_channels = updated_data.get("channels", 0)
@@ -219,9 +219,9 @@ class TestHealthIntegration:
         # Channel count should have increased
         assert updated_channels == initial_channels + 1
 
-    def test_health_endpoint_error_handling(self, client):
+    def test_health_endpoint_error_handling(self, alembic_client):
         """Test health endpoint handles errors gracefully."""
-        response = client.get("/api/v1/health")
+        response = alembic_client.get("/api/v1/health")
 
         # Should always return a response, even if there are issues
         assert response.status_code in [status.HTTP_200_OK, status.HTTP_503_SERVICE_UNAVAILABLE]
@@ -235,12 +235,12 @@ class TestHealthIntegration:
             assert "status" in data
             assert data["status"] in ["unhealthy", "error", "degraded"]
 
-    def test_stats_endpoint_performance(self, client, seed_all_data):
+    def test_stats_endpoint_performance(self, alembic_client, alembic_seed_all_data):
         """Test that stats endpoint performs well with data."""
         import time
 
         start_time = time.time()
-        response = client.get("/api/v1/stats")
+        response = alembic_client.get("/api/v1/stats")
         end_time = time.time()
 
         assert response.status_code == status.HTTP_200_OK
@@ -249,10 +249,10 @@ class TestHealthIntegration:
         response_time = end_time - start_time
         assert response_time < 2.0
 
-    def test_health_and_stats_compatibility(self, client):
+    def test_health_and_stats_compatibility(self, alembic_client):
         """Test that health and stats endpoints are compatible."""
-        health_response = client.get("/api/v1/health")
-        stats_response = client.get("/api/v1/stats")
+        health_response = alembic_client.get("/api/v1/health")
+        stats_response = alembic_client.get("/api/v1/stats")
 
         assert health_response.status_code == status.HTTP_200_OK
         assert stats_response.status_code == status.HTTP_200_OK

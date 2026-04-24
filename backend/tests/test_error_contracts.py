@@ -1,8 +1,5 @@
 """Tests for standardized API error envelope behavior."""
-from app.api.dependencies import get_scraper_service
-from app.api.endpoints.background_tasks import status_service
 from fastapi.testclient import TestClient
-from main import app
 
 
 class _FailingScraperService:
@@ -14,6 +11,8 @@ class _FailingScraperService:
 
 
 def test_error_envelope_shape_for_core_endpoints(client, monkeypatch):
+    from app.api.endpoints.background_tasks import status_service
+
     monkeypatch.setattr(
         status_service,
         "get_all_statuses",
@@ -28,13 +27,15 @@ def test_error_envelope_shape_for_core_endpoints(client, monkeypatch):
     assert data["error"]["correlation_id"]
 
 
-def test_unexpected_error_uses_internal_error_contract(client):
-    app.dependency_overrides[get_scraper_service] = lambda: _FailingScraperService()
+def test_unexpected_error_uses_internal_error_contract(backend_runtime):
+    from app.api.dependencies import get_scraper_service
+
+    backend_runtime.app.dependency_overrides[get_scraper_service] = lambda: _FailingScraperService()
     try:
-        with TestClient(app, raise_server_exceptions=False) as safe_client:
+        with TestClient(backend_runtime.app, raise_server_exceptions=False) as safe_client:
             response = safe_client.get("/api/v1/scrapers/urls")
     finally:
-        app.dependency_overrides.pop(get_scraper_service, None)
+        backend_runtime.app.dependency_overrides.pop(get_scraper_service, None)
 
     assert response.status_code == 500
     data = response.json()
@@ -43,15 +44,17 @@ def test_unexpected_error_uses_internal_error_contract(client):
     assert data["error"]["context"]["path"] == "/api/v1/scrapers/urls"
 
 
-def test_scrape_failures_return_actionable_error_code(client):
-    app.dependency_overrides[get_scraper_service] = lambda: _FailingScraperService()
+def test_scrape_failures_return_actionable_error_code(client, backend_runtime):
+    from app.api.dependencies import get_scraper_service
+
+    backend_runtime.app.dependency_overrides[get_scraper_service] = lambda: _FailingScraperService()
     try:
         response = client.post(
             "/api/v1/scrapers/scrape",
             json={"url": "https://example.com/fail.m3u", "url_type": "regular"},
         )
     finally:
-        app.dependency_overrides.pop(get_scraper_service, None)
+        backend_runtime.app.dependency_overrides.pop(get_scraper_service, None)
 
     assert response.status_code == 502
     data = response.json()

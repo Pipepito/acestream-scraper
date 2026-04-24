@@ -228,6 +228,11 @@ export const epgService = {
     return data;
   },
 
+  getAllStringMappings: async (): Promise<EPGStringMapping[]> => {
+    const { data } = await apiClient.get('/v1/epg/mappings');
+    return data;
+  },
+
   /**
    * Add a string mapping
    */

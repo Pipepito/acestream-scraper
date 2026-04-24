@@ -23,6 +23,7 @@ import {
   useUpdateRescrapeInterval,
   useAddPid,
   useUpdateAddPid,
+  useAllSettings,
   useAcestreamStatus
 } from '../hooks/useConfig';
 import { configService } from '../services/configService';
@@ -30,6 +31,15 @@ import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
 import { useAppThemeMode } from '../bootstrap/AppBootstrap';
 import { alpha, useTheme } from '@mui/material/styles';
+
+const COMMON_CONNECTION_KEYS = ['base_url', 'ace_engine_url'] as const;
+const AUTOMATION_KEYS = ['rescrape_interval', 'addpid', 'appid'] as const;
+
+const INVENTORY_GROUPS = [
+  { title: 'Common connection settings', keys: COMMON_CONNECTION_KEYS },
+  { title: 'Automation settings', keys: AUTOMATION_KEYS },
+  { title: 'Advanced/internal settings', keys: [] as const },
+] as const;
 
 const Settings: React.FC = () => {
   const theme = useTheme();
@@ -52,6 +62,7 @@ const Settings: React.FC = () => {
   const aceEngineUrlQuery = useAceEngineUrl();
   const rescrapeIntervalQuery = useRescrapeInterval();
   const addPidQuery = useAddPid();
+  const allSettingsQuery = useAllSettings();
   const acestreamStatusQuery = useAcestreamStatus({ refetchInterval: 30000 }); // Refetch every 30 seconds
 
   // AppID config (manual, since not in hooks yet)
@@ -144,6 +155,7 @@ const Settings: React.FC = () => {
     configService
       .updateAppId(checked)
       .then(() => {
+        allSettingsQuery.refetch?.();
         setAppIdError('');
         setFeedback({ open: true, message: 'AppID setting updated successfully', severity: 'success' });
       })
@@ -189,6 +201,18 @@ const Settings: React.FC = () => {
       </Box>
     );
   }
+
+  const allSettings = allSettingsQuery.data ?? {};
+  const mappedKeys = new Set([...COMMON_CONNECTION_KEYS, ...AUTOMATION_KEYS]);
+  const advancedKeys = Object.keys(allSettings)
+    .filter((key) => !mappedKeys.has(key))
+    .sort((left, right) => left.localeCompare(right));
+  const inventoryGroups = INVENTORY_GROUPS.map((group) => ({
+    title: group.title,
+    keys: group.title === 'Advanced/internal settings'
+      ? advancedKeys
+      : group.keys.filter((key) => Object.prototype.hasOwnProperty.call(allSettings, key)),
+  })).filter((group) => group.keys.length > 0);
 
   return (
     <Box>
@@ -362,6 +386,62 @@ const Settings: React.FC = () => {
             </Stack>
           </Grid>
         </Grid>
+      </ContentSection>
+
+      <ContentSection
+        title="Settings inventory"
+        description="Review the saved backend values grouped for quick troubleshooting, including settings that are editable elsewhere on this page."
+      >
+        <Stack spacing={2}>
+          <Box sx={{ typography: 'body2', color: 'text.secondary' }}>
+            Saved backend values appear here. Unsaved edits above do not appear here until save succeeds.
+          </Box>
+
+          {allSettingsQuery.isLoading ? (
+            <Alert severity="info">Loading saved settings inventory.</Alert>
+          ) : allSettingsQuery.error ? (
+            <Alert severity="warning">Could not load the saved settings inventory. You can still review and update the editable controls above.</Alert>
+          ) : Object.keys(allSettings).length === 0 ? (
+            <Alert severity="info">No stored settings are available to review right now.</Alert>
+          ) : (
+            <Stack spacing={2.5}>
+              {inventoryGroups.map((group) => (
+                <Box key={group.title}>
+                  <Box component="h3" sx={{ typography: 'sectionTitle', fontSize: '1rem', mb: 1.25 }}>
+                    {group.title}
+                  </Box>
+                  <Stack
+                    spacing={1}
+                    sx={{
+                      p: 1.5,
+                      borderRadius: 2,
+                      bgcolor: alpha(theme.palette.text.primary, theme.palette.mode === 'dark' ? 0.06 : 0.025),
+                      border: `1px solid ${alpha(theme.palette.text.primary, theme.palette.mode === 'dark' ? 0.12 : 0.08)}`,
+                    }}
+                  >
+                    {group.keys.map((key) => (
+                      <Box
+                        key={key}
+                        sx={{
+                          display: 'flex',
+                          flexDirection: { xs: 'column', sm: 'row' },
+                          gap: 0.5,
+                          justifyContent: 'space-between',
+                          alignItems: { xs: 'flex-start', sm: 'center' },
+                        }}
+                      >
+                        <Box sx={{ typography: 'body2', fontWeight: 600, wordBreak: 'break-word' }}>{key}</Box>
+                        <Box sx={{ typography: 'body2', color: allSettings[key] === '' ? 'text.secondary' : 'text.primary', wordBreak: 'break-word' }}>
+                          {allSettings[key] === '' ? 'Not set' : allSettings[key]}
+                        </Box>
+                      </Box>
+                    ))}
+                  </Stack>
+                </Box>
+              ))}
+            </Stack>
+          )}
+        </Stack>
       </ContentSection>
 
       <Snackbar

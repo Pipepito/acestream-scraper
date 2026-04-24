@@ -1,17 +1,46 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { ThemeProvider } from '@mui/material/styles';
+import { useMediaQuery } from '@mui/material';
 
 import Health from '../pages/Health';
 import { createAppTheme } from '../theme';
+import { mockResponsiveShellQueries } from '../testUtils/mockResponsiveShell';
 import { TestMemoryRouter } from '../testUtils/router';
 import * as configHooks from '../hooks/useConfig';
 
 jest.mock('../hooks/useConfig');
 
+jest.mock('@mui/material', () => {
+  const actual = jest.requireActual('@mui/material');
+
+  return {
+    ...actual,
+    useMediaQuery: jest.fn(),
+  };
+});
+
+const mockUseMediaQuery = useMediaQuery as jest.MockedFunction<typeof useMediaQuery>;
+
+const renderHealthPage = (theme = createAppTheme('light')) =>
+  render(
+    <ThemeProvider theme={theme}>
+      <TestMemoryRouter>
+        <Health />
+      </TestMemoryRouter>
+    </ThemeProvider>
+  );
+
 describe('Health bold layout', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseMediaQuery.mockReset();
+    mockResponsiveShellQueries(mockUseMediaQuery, createAppTheme('light'), {
+      isPhone: false,
+      isDesktop: true,
+      isWideDesktop: true,
+    });
+
     (configHooks.useHealth as jest.Mock).mockReturnValue({
       data: {
         status: 'healthy',
@@ -35,20 +64,48 @@ describe('Health bold layout', () => {
     });
   });
 
-  it('renders a readiness-led health summary with next-step guidance', () => {
-    render(
-      <ThemeProvider theme={createAppTheme('light')}>
-        <TestMemoryRouter>
-          <Health />
-        </TestMemoryRouter>
-      </ThemeProvider>
-    );
+  it('leads with readiness and next-step guidance before the later operational sections', () => {
+    renderHealthPage();
 
-    expect(screen.getByRole('heading', { level: 2, name: 'Status overview' })).toBeInTheDocument();
-    expect(screen.getByText('System readiness')).toBeInTheDocument();
-    expect(screen.getByText(/healthy and ready for scraper and channel work/i)).toBeInTheDocument();
-    expect(screen.getByText(/^Next step$/i)).toBeInTheDocument();
-    expect(screen.getByText(/continue with scraper, playlist, or channel tasks/i)).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: 'System totals' })).toBeInTheDocument();
+    const statusOverviewHeading = screen.getByRole('heading', { level: 2, name: 'Status overview' });
+    const operationalDetailsHeading = screen.getByRole('heading', { level: 2, name: 'Operational details' });
+    const supportingTotalsHeading = screen.getByRole('heading', { level: 2, name: 'Supporting totals' });
+    const readinessSummary = screen.getByText('Healthy and ready for scraper, playlist, channel, and EPG work.');
+    const nextStepLabel = screen.getByText('Next step');
+
+    expect(statusOverviewHeading.compareDocumentPosition(readinessSummary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(readinessSummary.compareDocumentPosition(nextStepLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(readinessSummary.compareDocumentPosition(operationalDetailsHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(nextStepLabel.compareDocumentPosition(supportingTotalsHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText('Continue with scraper, playlist, channel, or EPG work.')).toBeInTheDocument();
+  });
+
+  it('keeps runtime details, configuration snapshot, and supporting totals visible after the readiness summary', () => {
+    renderHealthPage();
+
+    expect(screen.getByRole('heading', { level: 3, name: 'Runtime details' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 3, name: 'Configuration snapshot' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Supporting totals' })).toBeInTheDocument();
+  });
+
+  it('keeps the readiness summary, next step, and refresh action visible on narrow widths', () => {
+    const theme = createAppTheme('light');
+
+    mockResponsiveShellQueries(mockUseMediaQuery, theme, {
+      isPhone: true,
+      isDesktop: false,
+      isWideDesktop: false,
+    });
+
+    renderHealthPage(theme);
+
+    const statusOverview = screen.getByRole('heading', { level: 2, name: 'Status overview' }).closest('section');
+
+    expect(statusOverview).not.toBeNull();
+    expect(within(statusOverview as HTMLElement).getByText('Healthy and ready for scraper, playlist, channel, and EPG work.')).toBeInTheDocument();
+    expect(within(statusOverview as HTMLElement).getByText('Next step')).toBeInTheDocument();
+    expect(within(statusOverview as HTMLElement).getByRole('button', { name: 'Refresh status' })).toBeVisible();
+    expect(screen.getByRole('heading', { level: 2, name: 'Operational details' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Supporting totals' })).toBeInTheDocument();
   });
 });

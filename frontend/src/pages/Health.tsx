@@ -33,11 +33,33 @@ const Health: React.FC = () => {
     refetchInterval: 60000 // Refetch every minute
   });
 
+  const refreshAll = () => {
+    refetchHealth();
+    refetchStats();
+  };
+
+  const overallStatus = healthData?.status ?? 'unknown';
+  const engineStatus = healthData?.acestream.status ?? 'unknown';
+  const isReady = overallStatus === 'healthy' && engineStatus === 'online';
+  const isDegraded = overallStatus === 'degraded';
+
+  const readinessSummary = isReady
+    ? 'Healthy and ready for scraper, playlist, channel, and EPG work.'
+    : isDegraded
+      ? 'Healthy enough to continue, but one or more systems need attention.'
+      : 'The system needs review before you continue.';
+
+  const nextStepCopy = isReady
+    ? 'Continue with scraper, playlist, channel, or EPG work.'
+    : isDegraded
+      ? 'Review engine reachability and configuration before continuing.'
+      : 'Stop and review engine connection and saved settings before proceeding.';
+
   // Helper function to render health status
   const renderHealthStatus = () => {
     if (!healthData) return null;
 
-    const { status } = healthData;
+    const status = isReady ? 'healthy' : isDegraded ? 'degraded' : 'error';
     let icon;
     let color;
 
@@ -81,10 +103,7 @@ const Health: React.FC = () => {
           {healthError ? `Health check error: ${healthError.toString()}` : ''}
           {statsError ? `Stats error: ${statsError.toString()}` : ''}
         </Alert>
-        <Button variant="contained" onClick={() => {
-          refetchHealth();
-          refetchStats();
-        }}>
+        <Button variant="contained" onClick={refreshAll}>
           Retry
         </Button>
       </Box>
@@ -103,7 +122,7 @@ const Health: React.FC = () => {
         title="Status overview"
         description="Start here to see whether the service is healthy and what needs attention right now."
         actions={
-          <Button variant="outlined" onClick={() => { refetchHealth(); refetchStats(); }}>
+          <Button variant="outlined" onClick={refreshAll}>
             Refresh status
           </Button>
         }
@@ -123,66 +142,89 @@ const Health: React.FC = () => {
                 System readiness
               </Typography>
               <Typography variant="h4" sx={{ letterSpacing: '-0.03em' }}>
-                {healthData?.status === 'healthy'
-                  ? 'Healthy and ready for scraper and channel work.'
-                  : healthData?.status === 'degraded'
-                    ? 'Healthy enough to continue, but one or more systems need attention.'
-                    : 'The system needs review before you continue.'}
+                {readinessSummary}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Use this summary to confirm whether the engine is reachable, whether configuration looks right, and where you should go next.
               </Typography>
+              <Grid container spacing={1.5}>
+                <Grid item xs={12} sm={6}>
+                  <Paper variant="outlined" sx={{ p: 1.5, height: '100%' }}>
+                    <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>
+                      Overall system status
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 600, textTransform: 'capitalize' }}>
+                      {overallStatus}
+                    </Typography>
+                  </Paper>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Paper variant="outlined" sx={{ p: 1.5, height: '100%' }}>
+                    <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>
+                      Acestream engine status
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 600, textTransform: 'capitalize' }}>
+                      {engineStatus}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              </Grid>
               <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: alpha(theme.appTokens.surface.panel, 0.9), border: `1px solid ${theme.appTokens.surface.border}` }}>
                 <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>
                   Next step
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  Continue with scraper, playlist, or channel tasks once the engine and core settings look correct.
+                  {nextStepCopy}
                 </Typography>
               </Box>
             </Stack>
           </Paper>
-          <Alert severity={healthData?.status === 'healthy' ? 'success' : healthData?.status === 'degraded' ? 'warning' : 'error'}>
-            {healthData?.status ? `${healthData.status.toUpperCase()} · ${healthData.acestream.message}` : 'Status unknown'}
-          </Alert>
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
-              <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
-                <List disablePadding>
-                  <ListItem disableGutters secondaryAction={<Chip label={healthData?.acestream.status.toUpperCase()} color={healthData?.acestream.status === 'online' ? 'success' : healthData?.acestream.status === 'offline' ? 'error' : 'warning'} size="small" />}>
-                    <ListItemText primary="Acestream Engine" secondary={healthData?.acestream.message || 'Status unknown'} />
-                  </ListItem>
-                  <Divider component="li" sx={{ my: 1.5 }} />
-                  <ListItem disableGutters>
-                    <ListItemText primary="Software Version" secondary={healthData?.version || 'Unknown'} />
-                  </ListItem>
-                </List>
-              </Paper>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
-                <Typography variant="sectionTitle" sx={{ mb: 1.5 }}>Configuration snapshot</Typography>
-                <List dense disablePadding>
-                  {healthData?.settings && Object.entries(healthData.settings).map(([key, value]) => (
-                    <React.Fragment key={key}>
-                      <ListItem disableGutters>
-                        <ListItemText primary={key} secondary={value} />
-                      </ListItem>
-                      <Divider component="li" />
-                    </React.Fragment>
-                  ))}
-                </List>
-              </Paper>
-            </Grid>
-          </Grid>
         </Stack>
       </ContentSection>
 
-      <ContentSection title="System totals" description="Review channel, URL, and EPG totals without digging into separate cards.">
+      <ContentSection title="Operational details" description="Review the current engine/runtime response and the saved configuration snapshot.">
+        <Grid container spacing={2}>
+          <Grid item xs={12} md={6}>
+            <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
+              <Typography variant="sectionTitle" component="h3" sx={{ mb: 1.5 }}>Runtime details</Typography>
+              <List disablePadding>
+                <ListItem disableGutters>
+                  <ListItemText primary="Acestream engine status" secondary={engineStatus} />
+                </ListItem>
+                <Divider component="li" sx={{ my: 1.5 }} />
+                <ListItem disableGutters>
+                  <ListItemText primary="Acestream engine message" secondary={healthData?.acestream.message || 'Status unknown'} />
+                </ListItem>
+                <Divider component="li" sx={{ my: 1.5 }} />
+                <ListItem disableGutters>
+                  <ListItemText primary="Software version" secondary={healthData?.version || 'Unknown'} />
+                </ListItem>
+              </List>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
+              <Typography variant="sectionTitle" component="h3" sx={{ mb: 1.5 }}>Configuration snapshot</Typography>
+              <List dense disablePadding>
+                {healthData?.settings && Object.entries(healthData.settings).map(([key, value]) => (
+                  <React.Fragment key={key}>
+                    <ListItem disableGutters>
+                      <ListItemText primary={key} secondary={value} />
+                    </ListItem>
+                    <Divider component="li" />
+                  </React.Fragment>
+                ))}
+              </List>
+            </Paper>
+          </Grid>
+        </Grid>
+      </ContentSection>
+
+      <ContentSection title="Supporting totals" description="Use grouped totals as supporting context while reviewing readiness and configuration.">
         <Grid container spacing={2}>
           <Grid item xs={12} md={4}>
             <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
-              <Typography variant="sectionTitle" sx={{ mb: 1.5 }}>Channel statistics</Typography>
+              <Typography variant="sectionTitle" sx={{ mb: 1.5 }}>Channel totals</Typography>
               {statsData ? (
                 <List dense disablePadding>
                   <ListItem disableGutters><ListItemText primary="Total Channels" secondary={statsData.channels.total.toString()} /></ListItem>
@@ -190,31 +232,31 @@ const Health: React.FC = () => {
                   <ListItem disableGutters><ListItemText primary="Offline Channels" secondary={statsData.channels.offline.toString()} /></ListItem>
                   <ListItem disableGutters><ListItemText primary="Unknown Status" secondary={statsData.channels.unknown.toString()} /></ListItem>
                 </List>
-              ) : <Typography color="text.secondary">No channel statistics available</Typography>}
+              ) : <Typography color="text.secondary">No channel totals available</Typography>}
             </Paper>
           </Grid>
           <Grid item xs={12} md={4}>
             <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
-              <Typography variant="sectionTitle" sx={{ mb: 1.5 }}>URL statistics</Typography>
+              <Typography variant="sectionTitle" sx={{ mb: 1.5 }}>URL totals</Typography>
               {statsData ? (
                 <List dense disablePadding>
                   <ListItem disableGutters><ListItemText primary="Total URLs" secondary={statsData.urls.total.toString()} /></ListItem>
                   <ListItem disableGutters><ListItemText primary="Active URLs" secondary={statsData.urls.active.toString()} /></ListItem>
                   <ListItem disableGutters><ListItemText primary="Error URLs" secondary={statsData.urls.error.toString()} /></ListItem>
                 </List>
-              ) : <Typography color="text.secondary">No URL statistics available</Typography>}
+              ) : <Typography color="text.secondary">No URL totals available</Typography>}
             </Paper>
           </Grid>
           <Grid item xs={12} md={4}>
             <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
-              <Typography variant="sectionTitle" sx={{ mb: 1.5 }}>EPG statistics</Typography>
+              <Typography variant="sectionTitle" sx={{ mb: 1.5 }}>EPG totals</Typography>
               {statsData ? (
                 <List dense disablePadding>
                   <ListItem disableGutters><ListItemText primary="EPG Sources" secondary={statsData.epg.sources.toString()} /></ListItem>
                   <ListItem disableGutters><ListItemText primary="EPG Channels" secondary={statsData.epg.channels.toString()} /></ListItem>
                   <ListItem disableGutters><ListItemText primary="EPG Programs" secondary={statsData.epg.programs.toString()} /></ListItem>
                 </List>
-              ) : <Typography color="text.secondary">No EPG statistics available</Typography>}
+              ) : <Typography color="text.secondary">No EPG totals available</Typography>}
             </Paper>
           </Grid>
         </Grid>

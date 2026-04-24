@@ -177,5 +177,44 @@ describe('NavBar responsive shell behavior', () => {
 
     await tab();
     expect(screen.getByRole('link', { name: 'Acestream Search' })).toHaveFocus();
+
+    await tab();
+    expect(screen.getByRole('link', { name: 'Acestream Channels' })).toHaveFocus();
+
+    await tab();
+    expect(screen.getByRole('link', { name: 'EPG Sources' })).toHaveFocus();
+
+    await tab();
+    expect(screen.getByRole('link', { name: 'EPG Mappings' })).toHaveFocus();
+
+    await tab();
+    expect(screen.getByRole('link', { name: 'TV Channels' })).toHaveFocus();
+
+    await tab();
+    expect(screen.getByRole('link', { name: 'Playlist' })).toHaveFocus();
+
+    await tab();
+    expect(screen.getByRole('link', { name: 'WARP Status' })).toHaveFocus();
+
+    await tab();
+    expect(screen.getByRole('link', { name: 'Settings' })).toHaveFocus();
+
+    await tab();
+    expect(screen.getByRole('link', { name: 'Health' })).toHaveFocus();
+
+    await tab();
+    expect(screen.getByRole('link', { name: 'Stats' })).toHaveFocus();
+  });
+
+  it('selects EPG Mappings instead of EPG Sources for the mappings route', () => {
+    renderWithResponsiveMode({
+      pathname: '/epg/mappings',
+      isPhone: false,
+      isDesktop: true,
+      ui: <NavBar />,
+    });
+
+    expect(screen.getByRole('link', { name: 'EPG Mappings' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'EPG Sources' })).not.toHaveAttribute('aria-current', 'page');
   });
 });

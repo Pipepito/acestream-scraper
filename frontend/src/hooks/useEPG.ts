@@ -239,6 +239,14 @@ export const useEPGStringMappings = (channelId: number, options?: UseQueryOption
   );
 };
 
+export const useAllEPGStringMappings = (options?: UseQueryOptions<EPGStringMapping[]>) => {
+  return useQuery<EPGStringMapping[]>(
+    ['epg-string-mappings', 'all'],
+    () => epgService.getAllStringMappings(),
+    options
+  );
+};
+
 /**
  * Hook for adding an EPG string mapping
  */
@@ -267,6 +275,19 @@ export const useDeleteEPGStringMapping = (channelId: number) => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['epg-string-mappings', channelId]);
+      }
+    }
+  );
+};
+
+export const useDeleteGlobalEPGStringMapping = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    (id: number) => epgService.deleteStringMapping(id),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['epg-string-mappings', 'all']);
       }
     }
   );

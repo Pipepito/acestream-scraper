@@ -51,6 +51,8 @@ const Search: React.FC = () => {
   );
 
   const addChannelMutation = useAddAcestreamChannel();
+  const activeCategoryLabel = activeSearch?.category ? activeSearch.category : 'All categories';
+  const searchErrorMessage = searchError instanceof Error ? searchError.message : String(searchError);
 
   const handleSearch = useCallback(() => {
     if (!searchQuery.trim()) return;
@@ -96,7 +98,8 @@ const Search: React.FC = () => {
   const handleAddChannel = async (channel: SearchResultItem) => {
     try {
       await addChannelMutation.mutateAsync(mapToCreateAcestreamChannelDTO(channel));
-      queryClient.invalidateQueries('channels');
+      queryClient.invalidateQueries('acestream-channels');
+      setSelectedChannels((prev) => prev.filter((item) => item.id !== channel.id));
     } catch (error) {
       console.error('Failed to add channel:', error);
     }
@@ -105,14 +108,22 @@ const Search: React.FC = () => {
   const handleAddSelectedChannels = async () => {
     if (selectedChannels.length === 0) return;
 
+    const successfulChannelIds: string[] = [];
+    let addedChannelCount = 0;
+
     try {
       for (const channel of selectedChannels) {
         await addChannelMutation.mutateAsync(mapToCreateAcestreamChannelDTO(channel));
+        addedChannelCount += 1;
+        successfulChannelIds.push(channel.id);
       }
-      queryClient.invalidateQueries('channels');
-      setSelectedChannels([]);
     } catch (error) {
       console.error('Failed to add channels:', error);
+    } finally {
+      if (addedChannelCount > 0) {
+        queryClient.invalidateQueries('acestream-channels');
+        setSelectedChannels((prev) => prev.filter((channel) => !successfulChannelIds.includes(channel.id)));
+      }
     }
   };
 
@@ -143,7 +154,7 @@ const Search: React.FC = () => {
 
       <ContentSection
         title="Search Filters"
-        description="Use a plain-language query first, then narrow the category before you run the search."
+        description="Use the supported search inputs only: one query plus an optional category before you run the search."
       >
         <Grid container spacing={3}>
           <Grid item xs={12}>
@@ -210,7 +221,7 @@ const Search: React.FC = () => {
 
       {searchError ? (
         <Alert severity="error" sx={{ mb: 3 }}>
-          Search failed: {String(searchError)}
+          {activeSearch ? `Search for "${activeSearch.query}" failed. ${searchErrorMessage}` : `Search failed. ${searchErrorMessage}`}
         </Alert>
       ) : null}
 
@@ -232,6 +243,27 @@ const Search: React.FC = () => {
             ) : null
           }
         >
+          {activeSearch ? (
+            <Box
+              sx={{
+                mb: 2,
+                p: 1.5,
+                borderRadius: 2,
+                bgcolor: alpha(theme.appTokens.shell.accent, 0.06),
+                border: `1px solid ${theme.appTokens.surface.border}`,
+              }}
+            >
+              <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>
+                Active search
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                Current query: {activeSearch.query}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Current category: {activeCategoryLabel}
+              </Typography>
+            </Box>
+          ) : null}
           <Box
             sx={{
               mb: 2,
@@ -246,8 +278,11 @@ const Search: React.FC = () => {
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
               {hasSelection
-                ? `${selectedChannels.length} channel${selectedChannels.length === 1 ? '' : 's'} ready to add.`
+                ? `${selectedChannels.length} selected channel${selectedChannels.length === 1 ? '' : 's'} ready to add.`
                 : 'No channels selected yet. Pick one or more results to prepare a batch add.'}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              Use each row Add action for one channel, or select results to prepare a batch add.
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'wrap', mb: 2 }}>
@@ -262,7 +297,7 @@ const Search: React.FC = () => {
                 No channels found matching your search criteria.
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                Try a broader query or remove the category filter, then search again.
+                Try a broader query or adjust the category, then search again.
               </Typography>
             </Box>
           ) : (

@@ -9,7 +9,7 @@ const Channels: React.FC = () => {
   return (
     <LegacyRouteRecovery
       title="Channels"
-      summary="This route now redirects to the supported channel inventory so you can restart from the current workflow."
+      summary="This route is now a recovery point for the supported channel inventory so you can restart from the current workflow."
       sectionTitle="Go to the current channel views"
       sectionDescription="Open TV Channels for the primary inventory path. Acestream Channels remains separate when you need source-level context."
       actions={

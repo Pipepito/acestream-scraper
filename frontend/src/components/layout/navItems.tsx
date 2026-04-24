@@ -9,6 +9,8 @@ import PlaylistPlayRoundedIcon from '@mui/icons-material/PlaylistPlayRounded';
 import CloudRoundedIcon from '@mui/icons-material/CloudRounded';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import HealthAndSafetyRoundedIcon from '@mui/icons-material/HealthAndSafetyRounded';
+import AnalyticsRoundedIcon from '@mui/icons-material/AnalyticsRounded';
+import RuleFolderRoundedIcon from '@mui/icons-material/RuleFolderRounded';
 
 export interface NavItem {
   text: string;
@@ -48,7 +50,13 @@ export const navItems: NavItem[] = [
     path: '/epg',
     icon: <EventNoteRoundedIcon />,
     section: 'Operations',
-    matchPrefixes: ['/epg', '/epg/channels'],
+    matchPrefixes: ['/epg/channels'],
+  },
+  {
+    text: 'EPG Mappings',
+    path: '/epg/mappings',
+    icon: <RuleFolderRoundedIcon />,
+    section: 'Operations',
   },
   {
     text: 'TV Channels',
@@ -81,23 +89,38 @@ export const navItems: NavItem[] = [
     icon: <HealthAndSafetyRoundedIcon />,
     section: 'System',
   },
+  {
+    text: 'Stats',
+    path: '/stats',
+    icon: <AnalyticsRoundedIcon />,
+    section: 'System',
+  },
 ];
 
-const matchesSegmentPath = (pathname: string, candidatePath: string) => {
+const matchesSegmentPath = (pathname: string, candidatePath: string, allowDescendants = false) => {
   if (candidatePath === '/') {
     return pathname === '/';
   }
 
-  return Boolean(
-    matchPath({ path: candidatePath, end: true }, pathname) ||
-      matchPath({ path: `${candidatePath}/*`, end: false }, pathname)
-  );
+  if (matchPath({ path: candidatePath, end: true }, pathname)) {
+    return true;
+  }
+
+  if (!allowDescendants) {
+    return false;
+  }
+
+  return Boolean(matchPath({ path: `${candidatePath}/*`, end: false }, pathname));
 };
 
 export function isNavItemSelected(item: NavItem, pathname: string): boolean {
-  const candidatePaths = [item.path, ...(item.matchPrefixes ?? [])];
+  if (matchesSegmentPath(pathname, item.path)) {
+    return true;
+  }
 
-  return candidatePaths.some((candidatePath) => matchesSegmentPath(pathname, candidatePath));
+  return (item.matchPrefixes ?? []).some((candidatePath) =>
+    matchesSegmentPath(pathname, candidatePath, true)
+  );
 }
 
 export function getNavTitle(pathname: string): string {

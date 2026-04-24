@@ -1,9 +1,10 @@
 import React from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import { QueryClient, QueryClientProvider } from 'react-query';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import EPG from '../pages/EPG';
+import EPGMappings from '../pages/EPGMappings';
 import { createAppTheme } from '../theme';
 import { TestMemoryRouter } from '../testUtils/router';
 
@@ -24,6 +25,8 @@ const mockUseUpdateEPGSource = jest.fn();
 const mockUseDeleteEPGSource = jest.fn();
 const mockUseRefreshAllEPGSources = jest.fn();
 const mockUseDownloadEPGXML = jest.fn();
+const mockUseAllEPGStringMappings = jest.fn();
+const mockUseDeleteGlobalEPGStringMapping = jest.fn();
 const mockUseTVChannelCatalog = jest.fn();
 
 jest.mock('../hooks/useEPG', () => ({
@@ -34,6 +37,8 @@ jest.mock('../hooks/useEPG', () => ({
   useDeleteEPGSource: (...args: unknown[]) => mockUseDeleteEPGSource(...args),
   useRefreshAllEPGSources: (...args: unknown[]) => mockUseRefreshAllEPGSources(...args),
   useDownloadEPGXML: (...args: unknown[]) => mockUseDownloadEPGXML(...args),
+  useAllEPGStringMappings: (...args: unknown[]) => mockUseAllEPGStringMappings(...args),
+  useDeleteGlobalEPGStringMapping: (...args: unknown[]) => mockUseDeleteGlobalEPGStringMapping(...args),
 }));
 
 jest.mock('../hooks/useTVChannels', () => ({
@@ -198,5 +203,67 @@ describe('EPG page pagination', () => {
     fireEvent.click(screen.getByLabelText('Go to next page'));
 
     expect(mockUseEPGChannels).toHaveBeenLastCalledWith(undefined, 2, 100);
+  });
+});
+
+describe('EPG mappings page', () => {
+  const renderMappingsPage = () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+    return render(
+      <ThemeProvider theme={createAppTheme('light')}>
+        <QueryClientProvider client={queryClient}>
+          <TestMemoryRouter>
+            <EPGMappings />
+          </TestMemoryRouter>
+        </QueryClientProvider>
+      </ThemeProvider>
+    );
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    mockUseAllEPGStringMappings.mockReturnValue({
+      data: [
+        { id: 11, epg_channel_id: 101, search_pattern: 'Sport TV', is_exclusion: false },
+        { id: 12, epg_channel_id: 202, search_pattern: 'Regional Feed', is_exclusion: true },
+      ],
+      isLoading: false,
+      error: undefined,
+      refetch: jest.fn(),
+    });
+
+    mockUseDeleteGlobalEPGStringMapping.mockReturnValue({
+      mutateAsync: jest.fn().mockResolvedValue(undefined),
+      isLoading: false,
+    });
+  });
+
+  it('renders global mappings in a dense operational table', () => {
+    renderMappingsPage();
+
+    expect(screen.getByRole('heading', { level: 1, name: 'EPG Mappings' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Global mapping rules' })).toBeInTheDocument();
+    expect(screen.getByText('Sport TV')).toBeInTheDocument();
+    expect(screen.getByText('Regional Feed')).toBeInTheDocument();
+    expect(screen.getByText('Include')).toBeInTheDocument();
+    expect(screen.getByText('Exclude')).toBeInTheDocument();
+    expect(screen.getByText('101')).toBeInTheDocument();
+    expect(screen.getByText('202')).toBeInTheDocument();
+  });
+
+  it('deletes a selected global mapping from the page', async () => {
+    const mutateAsync = jest.fn().mockResolvedValue(undefined);
+    mockUseDeleteGlobalEPGStringMapping.mockReturnValue({
+      mutateAsync,
+      isLoading: false,
+    });
+
+    renderMappingsPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete mapping Sport TV' }));
+
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledWith(11));
   });
 });

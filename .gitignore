@@ -212,5 +212,6 @@ backend/*.log
 
 # local AI planning artifacts
 docs/superpowers/
+.planning/debug/
 
 list.m3u

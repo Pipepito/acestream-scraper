@@ -6,7 +6,8 @@ This document is the primary operator guide for Jenkins CI/CD in this repository
 
 Current rollout state:
 
-- GitHub Actions remains unchanged and continues to auto-run until Jenkins setup is verified.
+- Jenkins is the canonical path for pull request validation and release publication in this repository.
+- GitHub Actions remain available during the current proving window as fallback/reference workflows while operators build confidence in Jenkins hardening.
 - Jenkins assets in this repository are ready to be wired into your homelab controller and agent.
 
 Important constraint for this setup:
@@ -17,8 +18,8 @@ Important constraint for this setup:
 
 Current workflow parity goal:
 
-- Jenkins multibranch validation is the Jenkins replacement for `.github/workflows/pull_request.yml`.
-- Jenkins manual release is the Jenkins replacement for `.github/workflows/release.yml`.
+- Jenkins multibranch validation mirrors `.github/workflows/pull_request.yml` as the workflow reference for the canonical Jenkins validation path.
+- Jenkins manual release mirrors `.github/workflows/release.yml` as the workflow reference for the canonical Jenkins release path.
 - The repository files that make this work are `Jenkinsfile`, `jenkins/release.Jenkinsfile`, `scripts/ci/run_jenkins_validation.sh`, and `scripts/ci/run_jenkins_release.sh`.
 - Those files must be pushed to GitHub before Jenkins can load them through SCM.
 
@@ -30,11 +31,11 @@ Current limitation:
 - Passwordless `sudo` is only required when the bootstrap script needs to install missing software.
 - Builds may currently run as the operator runtime user before a dedicated `jenkins` user is fully ready, so Docker access must work for whichever user Jenkins actually uses on that node.
 
-After cutover:
+Current ownership stance:
 
 - Jenkins multibranch pipelines are the canonical path for pull request validation.
 - Jenkins manual release jobs are the canonical path for release publication.
-- GitHub Actions can be reduced to fallback and manual validation paths once you decide the Jenkins setup is proven.
+- GitHub Actions should be retained as fallback/reference workflows until you decide the Jenkins setup is proven.
 
 Responsibility split:
 
@@ -68,7 +69,7 @@ The following steps require operator intervention outside the repository:
 - Create the Jenkins multibranch validation job from `Jenkinsfile`.
 - Create the Jenkins manual release job from `jenkins/release.Jenkinsfile`.
 - Observe the Jenkins check name reported back to GitHub and update branch protection to require it.
-- Keep GitHub Actions fallback workflows enabled until Jenkins cutover is verified; `main` still auto-publishes through GitHub Actions during this rollout.
+- Keep GitHub Actions fallback/reference workflows available until Jenkins hardening is verified; do not treat `main` publication through GitHub Actions as the primary operating path.
 
 ## Complete Setup Checklist
 
@@ -127,7 +128,7 @@ If you prefer to wire Jenkins jobs first and let the repository bootstrap the ru
 - [ ] Confirm Jenkins reports the `PR Validation` status context back to GitHub.
 - [ ] Run the manual release job with `CONFIRM_RELEASE=true` and `DRY_RUN=true`.
 - [ ] Only after Jenkins is stable, add the Jenkins check to branch protection.
-- [ ] Leave GitHub Actions unchanged until you are happy with the Jenkins setup.
+- [ ] Keep GitHub Actions available as fallback/reference workflows until you are happy with the Jenkins setup.
 
 ### Quick Outcome Check
 
@@ -418,6 +419,8 @@ Expected parity:
 
 ### 16. Cutover To Jenkins PR Gates
 
+- Jenkins is already the canonical PR-validation path; this checklist is about hardening branch protection around that operating model.
+
 - [ ] Open GitHub branch protection settings.
 - [ ] Add `PR Validation` as a required status check.
 - [ ] Keep GitHub Actions required checks until Jenkins has passed repeatedly.
@@ -425,9 +428,9 @@ Expected parity:
 - [ ] Once `PR Validation` is proven stable, remove the temporary Jenkins per-gate contexts from required checks.
 - [ ] Once confident, remove GitHub Actions from required checks.
 
-### 17. Later Cutover Of GitHub Actions
+### 17. Later Hardening Of GitHub Actions
 
-- [ ] Only after Jenkins is proven stable, convert GitHub Actions to fallback/manual-only.
+- [ ] Keep GitHub Actions positioned as fallback/reference workflows during the proving window.
 - [ ] Keep the workflows in the repo for rollback.
 - [ ] Do not delete them until rollback risk is acceptably low.
 
@@ -827,7 +830,7 @@ Release behavior:
 - `DRY_RUN=true` performs preflight only.
 - `DRY_RUN=false` performs Docker Hub login and publishes tags.
 - The job archives release result JSON files and `phase5-build-result-release-metadata.json`.
-- Keep this path manual-only even while GitHub Actions on `main` still auto-publishes during rollout.
+- Keep this path manual-only while GitHub Actions remain available as fallback/reference workflows during the proving window, with `.github/workflows/release.yml` kept as the manual fallback path.
 
 ## Branch Protection Cutover
 
@@ -841,7 +844,7 @@ Cutover sequence:
 2. Open the PR checks tab and record the exact Jenkins check name shown by GitHub.
 3. Add that observed Jenkins check name to branch protection as a required status check.
 4. Keep the current GitHub Actions PR check requirement in place until Jenkins has passed repeatedly.
-5. Once stable, remove GitHub Actions from required checks and keep them as fallback/manual workflows.
+5. Once stable, remove GitHub Actions from required checks and keep them as fallback/reference workflows.
 
 This avoids blocking merges on a mismatched check name.
 
@@ -853,22 +856,22 @@ Treat fork PRs as restricted until verified.
 - Keep fork PR discovery disabled or non-building until you validate the Jenkins trust settings, credential exposure, and workspace isolation model.
 - If fork PR support is required later, document the exact trust and approval policy before enabling it.
 
-## GitHub Actions During Cutover
+## GitHub Actions During The Proving Window
 
-Until you finish the Jenkins rollout, the existing GitHub Actions workflows stay in their current automatic form, including the current release auto-publish behavior on `main`.
+Jenkins is the canonical CI and release path now. During the current proving window, the existing GitHub Actions workflows remain in the repository as fallback/reference workflows while operators confirm Jenkins stability.
 
-After Jenkins cutover, GitHub Actions can be reduced to fallback/manual flows:
+During this proving window, GitHub Actions can continue to serve these secondary roles:
 
 - `.github/workflows/pull_request.yml`: fallback PR validation reference
-- `.github/workflows/release.yml`: fallback/manual release reference
+- `.github/workflows/release.yml`: manual fallback release workflow reference
 - `.github/workflows/multiarch-validation.yml`: extra multi-arch validation path
 - `.github/workflows/cutover-validation.yml`: cutover verification path
 - `.github/workflows/phase1-safety-gates.yml`: legacy phase 1 safety-gate fallback path
 
-Expected operating model after cutover:
+Expected operating model:
 
-- Jenkins is primary for PR validation and release publication.
-- GitHub Actions are retained for rollback, comparison, or manual assurance runs.
+- Jenkins is the canonical path for PR validation and release publication.
+- GitHub Actions are retained as fallback/reference workflows for rollback and operator verification.
 - Do not delete the workflows until Jenkins has proven stable and rollback is no longer needed.
 
 ## Rollback Guidance

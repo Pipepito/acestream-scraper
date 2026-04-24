@@ -130,16 +130,16 @@ bash scripts/ci/phase5_arch_smoke.sh --platforms linux/arm/v7,linux/arm64
 
 CI orchestration:
 
-- Jenkins multibranch PR validation is the canonical orchestration path after cutover and runs from the repository-root `Jenkinsfile`.
-- Jenkins manual release publication is the canonical release path after cutover and runs from `jenkins/release.Jenkinsfile`.
+- Jenkins multibranch PR validation is the canonical orchestration path and runs from the repository-root `Jenkinsfile`.
+- Jenkins manual release publication is the canonical release path and runs from `jenkins/release.Jenkinsfile`.
 - Jenkins validation is intended to mirror `.github/workflows/pull_request.yml`.
 - Jenkins manual release is intended to mirror `.github/workflows/release.yml`.
 - Jenkins pipelines target the `generic-gh-builder` label and call `scripts/ci/bootstrap_jenkins_runner.sh` after `checkout scm`.
 - `git` remains the practical prerequisite on the Jenkins node because checkout happens before repository bootstrap.
 - Jenkins uses the named buildx builder `acestream-builder` unless `JENKINS_BUILDER` is explicitly overridden; the builder can be precreated by the operator or prepared during bootstrap.
 - Docker access must already work for the current Jenkins runtime user on that node.
-- During setup, the existing GitHub Actions workflows remain unchanged.
-- GitHub Actions workflows can become fallback/manual validation paths after Jenkins cutover:
+- During the current transition and hardening period, the existing GitHub Actions workflows remain available as fallback/reference workflows.
+- GitHub Actions workflows currently serve these secondary fallback/reference roles:
   - `.github/workflows/pull_request.yml`
   - `.github/workflows/release.yml`
   - `.github/workflows/multiarch-validation.yml`

@@ -5,8 +5,6 @@ from unittest.mock import patch
 
 import pytest
 
-from app.models.models import AcestreamChannel
-from app.services.scraper_service import ScraperService
 from .parity_compare import (
     compare_channel_collections,
     compute_gate_score,
@@ -142,6 +140,9 @@ def test_gate_scoring_separates_non_blocking_sources():
 @pytest.mark.asyncio
 @pytest.mark.parametrize("source_id", ["http_m3u_primary", "zeronet_primary"])
 async def test_scraper_parity_against_snapshots(db_session, source_id):
+    from app.models.models import AcestreamChannel
+    from app.services.scraper_service import ScraperService
+
     manifest = load_baseline_manifest(BASELINE_PATH)
     snapshots = _load_scraper_snapshots()
     indexed_sources = source_index(manifest)

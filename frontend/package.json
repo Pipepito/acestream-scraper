@@ -26,7 +26,8 @@
     "preview": "vite preview --host 0.0.0.0 --port 4173",
     "test": "jest",
     "lint": "eslint 'src/**/*.{ts,tsx}'",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "codegen": "openapi-typescript ../backend/openapi.json -o src/types/api-generated.ts"
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
@@ -45,6 +46,7 @@
     "fs-extra": "^11.2.0",
     "jest": "^30.3.0",
     "jest-environment-jsdom": "^30.3.0",
+    "openapi-typescript": "^6.7.6",
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "vite": "^8.0.3"

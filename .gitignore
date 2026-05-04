@@ -222,3 +222,4 @@ phase5-build-result-*.json
 phase5-gate-report-*.json
 phase1-gate-report.json
 scripts/dev/epg/generated_epg.xml
+infra-details.md

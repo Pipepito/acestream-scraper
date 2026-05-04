@@ -10,6 +10,31 @@ on:
   workflow_dispatch:
 
 jobs:
+  changed-files:
+    name: Detect Multi-Arch Surface Changes
+    runs-on: ubuntu-latest
+    outputs:
+      multiarch-touched: ${{ steps.filter.outputs.multiarch-touched }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Filter touched paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            multiarch-touched:
+              - 'Dockerfile'
+              - 'docker/**'
+              - 'scripts/ci/build_multiarch_images.sh'
+              - 'scripts/ci/verify_multiarch_manifest.sh'
+              - 'scripts/ci/phase5_arch_smoke.sh'
+              - 'scripts/ci/flavor_platforms.py'
+              - 'scripts/phase_gates/phase5_*'
+              - 'entrypoint.sh'
+              - 'healthcheck.sh'
+              - 'warp-setup.sh'
+
   multiarch-quick:
     name: Multi-Arch Quick Profile
     runs-on: ubuntu-latest
@@ -92,7 +117,16 @@ jobs:
 
   multiarch-full:
     name: Multi-Arch Full Profile
-    if: github.event_name != 'pull_request'
+    needs: changed-files
+    # Always run on push to main/release. On PRs, only run when
+    # Dockerfile/docker/multiarch scripts/entrypoint changed, OR when the PR
+    # carries the `full-multiarch-test` label, so risky cross-arch changes
+    # get real runtime smoke before merge without spending ~40min per
+    # everyday PR.
+    if: |
+      github.event_name != 'pull_request' ||
+      needs.changed-files.outputs.multiarch-touched == 'true' ||
+      contains(github.event.pull_request.labels.*.name, 'full-multiarch-test')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

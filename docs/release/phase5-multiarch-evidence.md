@@ -1,54 +1,82 @@
 # Phase 5 Multi-Arch Evidence
 
-## Release Metadata
+## How evidence is produced for a release
 
-- Release ref: `Pending (not captured in this quick evidence pass)`
-- Commit SHA: `5aa11f74cfa4b1119c8dcf0092120b61161ca4dd`
-- Date: `2026-04-24`
+The release pipeline (`.github/workflows/release.yml`) requires the
+`multiarch-runtime-smoke` job to pass before any image is built or pushed.
+That job invokes:
 
-## Required Architecture Claims
-
-- Checked-in dry-run metadata shows `linux/arm/v7` in the configured platform matrix for `scraper` and `scraper-acexy`; this pass does not include evidence of a successful `linux/arm/v7` build.
-- Checked-in dry-run metadata shows `linux/arm64` in the configured platform matrix for `scraper` and `scraper-acexy`; this pass does not include evidence of a successful `linux/arm64` build.
-- Runtime smoke checks for non-`amd64` targets remain pending; no supported runtime signoff artifact was captured in this quick evidence pass.
-
-## Evidence Artifacts
-
-- Inspected dry-run PR artifacts: `phase5-build-result-pr-scraper.json`, `phase5-build-result-pr-scraper-acestream.json`, `phase5-build-result-pr-scraper-acexy.json`, `phase5-build-result-pr-scraper-acestream-acexy.json`
-- Inspected dry-run release artifacts: `phase5-build-result-release-scraper.json`, `phase5-build-result-release-scraper-acestream.json`, `phase5-build-result-release-scraper-acexy.json`, `phase5-build-result-release-scraper-acestream-acexy.json`
-- Supported artifact observations from those eight files: all are `dry_run: true`, `push: false`, and `load: false`; PR and release pairs are materially the same except `generated_at`.
-- Supported scope of those artifacts: they prove matrix/configuration encoding only. They do not prove successful builds, pushes, manifest publication, runtime smoke results, or release signoff.
-- Pending artifacts not captured in this quick evidence pass: `phase5-gate-report-full.json`, `phase5-build-result-full.json`, and any release signoff record demonstrating successful multi-arch build/push/runtime completion.
-
-## Command Record
-
-```bash
-git rev-parse HEAD
-date +%F
-bash scripts/ci/run_v2_test_suite.sh --profile quick
-bash scripts/ci/run_cutover_required_checks.sh --profile quick
-rg -n "<placeholder>" docs/release/phase5-multiarch-evidence.md
+```
+python3 scripts/phase_gates/phase5_gate_runner.py --profile full \
+  --json-output > phase5-gate-report-full.json
 ```
 
-Full-profile command/artifact not run in this pass:
+against the release commit. The full profile builds every flavor for every
+required platform, runs `phase5_arch_smoke.sh` against `linux/arm/v7` and
+`linux/arm64` images under QEMU, and probes `/api/v1/health`. The resulting
+`phase5-gate-report-full.json` plus the four
+`phase5-build-result-full-{scraper,scraper-acestream,scraper-acexy,scraper-acestream-acexy}.json`
+files are uploaded as the workflow artifact `phase5-multiarch-full-evidence`.
 
-```bash
-python3 scripts/phase_gates/phase5_gate_runner.py --profile full --json-output > phase5-gate-report-full.json
-```
+For PRs, `multiarch-validation.yml::multiarch-full` runs the same profile
+when the PR touches `Dockerfile`, `docker/**`, `scripts/ci/build_multiarch_*`,
+`scripts/ci/verify_multiarch_*`, `scripts/ci/phase5_arch_smoke.sh`,
+`scripts/ci/flavor_platforms.py`, `scripts/phase_gates/phase5_*`, or any of
+the runtime entrypoint scripts. PRs without changes in those areas only run
+the dry-run quick profile to keep everyday CI cost predictable; risky
+multi-arch changes get real smoke before merge automatically.
 
-## Result Summary
+We deliberately do **not** check `phase5-build-result-*.json` files into the
+repo anymore. They were checked in once, became stale, and started reading
+like signoff evidence when they were really configuration snapshots. The
+current contract: evidence lives on the workflow run, this doc links to the
+specific run for the release SHA.
 
-Configuration evidence from inspected dry-run artifacts is listed separately from quick validation results captured in this pass.
+## Per-release record (template)
 
-| Check | Status | Notes |
-|------|--------|-------|
-| Multi-arch matrix includes `linux/arm/v7` | Configured in inspected dry-run artifacts for `scraper` and `scraper-acexy`; absent from inspected `scraper-acestream` variants | This is configuration evidence only, confirmed from the eight checked-in dry-run JSON artifacts inspected in this pass. |
-| Multi-arch matrix includes `linux/arm64` | Configured in inspected dry-run artifacts for `scraper` and `scraper-acexy`; absent from inspected `scraper-acestream` variants | This is configuration evidence only, confirmed from the eight checked-in dry-run JSON artifacts inspected in this pass. |
-| Quick profile validation result | Passed | Separate from the dry-run matrix/configuration evidence above: fresh repo-level quick verification now passes for `bash scripts/ci/run_v2_test_suite.sh --profile quick` and `bash scripts/ci/run_cutover_required_checks.sh --profile quick` on this commit. |
-| Runtime smoke (`linux/arm/v7`) | Pending | No supported runtime smoke artifact or signoff for `linux/arm/v7` was captured in this quick evidence pass. |
-| Runtime smoke (`linux/arm64`) | Pending | No supported runtime smoke artifact or signoff for `linux/arm64` was captured in this quick evidence pass. |
+When tagging a release, fill in this section by linking the artifact from
+the corresponding GitHub Actions release run.
 
-## Android TV Caveat Acknowledgement
+| Field | Value |
+|---|---|
+| Release tag | `<v2.0.0>` |
+| Commit SHA | `<full sha>` |
+| Tag date | `<YYYY-MM-DD>` |
+| Workflow run | `<https://github.com/.../actions/runs/<id>>` |
+| `phase5-gate-report-full.json` | `<artifact link>` |
+| `linux/amd64` build + smoke | `<Pass / Fail>` |
+| `linux/arm64` build + smoke | `<Pass / Fail>` |
+| `linux/arm/v7` build + smoke | `<Pass / Fail>` |
+| AceStream-flavor platforms | `<from docker/manifests/acestream.json — currently amd64 only>` |
+| Operator signoff | `<name + date>` |
 
-- Android TV deployment-note review status: Pending (not captured in this quick evidence pass).
-- Target device class smoke-check status: Pending (not captured in this quick evidence pass).
+## Architecture coverage by flavor
+
+Source of truth: `docker/manifests/platforms.json` and
+`docker/manifests/acestream.json`, intersected by
+`scripts/ci/flavor_platforms.py`.
+
+| Flavor | Platforms |
+|---|---|
+| `scraper` | `linux/amd64`, `linux/arm/v7`, `linux/arm64` |
+| `scraper-acexy` | `linux/amd64`, `linux/arm/v7`, `linux/arm64` |
+| `scraper-acestream` | intersection of baseline ∩ `acestream.json` (today: `linux/amd64`) |
+| `scraper-acestream-acexy` (== `latest`) | intersection of baseline ∩ `acestream.json` (today: `linux/amd64`) |
+
+To enable ARM for the AceStream-bearing flavors, see
+`docs/ops/multiarch-manifest-updates.md`.
+
+## Android TV caveats
+
+`docs/architecture/deployment.md` "Android TV Notes" calls out:
+
+- Prefer `linux/arm64` over `linux/arm/v7` when the device firmware allows
+  64-bit containers.
+- Reduced background concurrency recommended on lower-memory ARMv7 devices.
+- Validate storage I/O on removable media before production rollouts.
+- Run the Phase 5 smoke checklist (`docs/migration/phase5-architecture-smoke-checklist.md`)
+  before signing off a new device class.
+
+The release workflow's runtime smoke covers QEMU emulation only — first-time
+Android TV class rollouts should still run the manual checklist on a real
+device before declaring a flavor production-ready for that hardware.

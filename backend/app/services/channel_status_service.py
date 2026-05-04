@@ -4,7 +4,7 @@ Service for checking Acestream channel status
 import asyncio
 import logging
 import aiohttp
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 
@@ -47,7 +47,7 @@ class ChannelStatusService:
         Returns:
             Dict with status information
         """
-        check_time = datetime.utcnow()
+        check_time = datetime.now(timezone.utc)
 
         try:
             # Generate unique player ID
@@ -228,7 +228,7 @@ class ChannelStatusService:
                         'is_online': False,
                         'status': 'error',
                         'message': str(e),
-                        'last_checked': datetime.utcnow(),
+                        'last_checked': datetime.now(timezone.utc),
                         'error': str(e)
                     }
 
@@ -278,7 +278,7 @@ class ChannelStatusService:
         active_channels = sum(1 for c in channels if c.is_active is True)
 
         # Get recent checks (last 24 hours)
-        recent_threshold = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        recent_threshold = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
         recent_checks = sum(
             1 for c in channels
             if c.last_checked and c.last_checked >= recent_threshold

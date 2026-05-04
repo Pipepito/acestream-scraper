@@ -81,7 +81,7 @@ const QuickEditDialog: React.FC<QuickEditDialogProps> = ({ open, onClose, channe
             sx={{ mb: 2 }}
             required
             InputProps={{ readOnly: !!channel?.id }}
-            helperText={!!channel?.id ? 'Acestream ID cannot be changed after creation.' : 'Required'}
+            helperText={channel?.id ? 'Acestream ID cannot be changed after creation.' : 'Required'}
           />
           <TextField name="group" label="Group" value={values.group} onChange={handleChange} fullWidth sx={{ mb: 2 }} />
           <TextField name="logo" label="Logo URL" value={values.logo} onChange={handleChange} fullWidth sx={{ mb: 2 }} />

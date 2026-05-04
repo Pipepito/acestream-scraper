@@ -1,5 +1,5 @@
 from typing import List, Optional, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 from ..models.models import ActivityLog
 from ..repositories.activity_log_repository import ActivityLogRepository
@@ -18,7 +18,7 @@ class ActivityLogService:
     ) -> Dict[str, Any]:
         if days < 0 or days > 30:
             raise ValueError("Days must be between 0 and 30")
-        since = datetime.utcnow() - timedelta(days=days)
+        since = datetime.now(timezone.utc) - timedelta(days=days)
         return self.repo.get_activity_logs(since=since, type=type, channel_id=channel_id, page=page, page_size=page_size)
 
     def log_activity(
@@ -34,5 +34,5 @@ class ActivityLogService:
     def cleanup_old_logs(self, retention_days: int = 7) -> int:
         if retention_days <= 0:
             return 0
-        cutoff = datetime.utcnow() - timedelta(days=retention_days)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
         return self.repo.delete_logs_older_than(cutoff)

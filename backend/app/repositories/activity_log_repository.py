@@ -18,14 +18,14 @@ class ActivityLogRepository:
         if type:
             query = query.filter(ActivityLog.type == type)
         if days > 0:
-            from datetime import datetime, timedelta
-            cutoff = datetime.utcnow() - timedelta(days=days)
+            from datetime import datetime, timedelta, timezone
+            cutoff = datetime.now(timezone.utc) - timedelta(days=days)
             query = query.filter(ActivityLog.timestamp >= cutoff)
         return query.order_by(ActivityLog.timestamp.desc()).limit(limit).all()
 
     def delete_older_than(self, days: int):
-        from datetime import datetime, timedelta
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        from datetime import datetime, timedelta, timezone
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         self.db.query(ActivityLog).filter(ActivityLog.timestamp < cutoff).delete()
         self.db.commit()
 

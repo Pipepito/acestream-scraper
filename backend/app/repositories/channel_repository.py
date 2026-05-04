@@ -4,7 +4,7 @@ Repository for channel data operations
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.models.models import AcestreamChannel, EPGChannel, TVChannel
 
@@ -165,7 +165,7 @@ class ChannelRepository:
                 logo=logo or None,
                 tvg_id=tvg_id or None,
                 tvg_name=tvg_name or None,
-                last_seen=datetime.utcnow(),
+                last_seen=datetime.now(timezone.utc),
                 is_active=True,
                 is_online=is_online if is_online is not None else True  # Default to True
             )
@@ -173,7 +173,7 @@ class ChannelRepository:
         else:
             # Update existing channel
             channel.name = name
-            channel.last_seen = datetime.utcnow()
+            channel.last_seen = datetime.now(timezone.utc)
             channel.is_active = True
             if source_url is not None:
                 channel.source_url = source_url
@@ -279,7 +279,7 @@ class ChannelRepository:
             return None
 
         channel.is_online = is_online
-        channel.last_checked = datetime.utcnow()
+        channel.last_checked = datetime.now(timezone.utc)
         channel.check_error = error
         self.db.commit()
         self.db.refresh(channel)
@@ -290,7 +290,7 @@ class ChannelRepository:
         updated_count = (
             self.db.query(AcestreamChannel)
             .filter(AcestreamChannel.is_active == True)
-            .update({"last_checked": datetime.utcnow()}, synchronize_session=False)
+            .update({"last_checked": datetime.now(timezone.utc)}, synchronize_session=False)
         )
         self.db.commit()
         return updated_count
@@ -351,7 +351,7 @@ class ChannelRepository:
             if hasattr(tv_channel, key):
                 setattr(tv_channel, key, value)
 
-        tv_channel.updated_at = datetime.utcnow()
+        tv_channel.updated_at = datetime.now(timezone.utc)
         self.db.commit()
         self.db.refresh(tv_channel)
         return tv_channel

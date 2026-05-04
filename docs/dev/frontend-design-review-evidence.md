@@ -178,3 +178,50 @@
 - Recovery-page rhythm: method=`npm test -- --runInBand src/__tests__/SupportingPages.test.tsx`; result=pass; notes=verified `LegacyRouteRecovery`, `Channels`, `ChannelDetail`, `SearchNew`, and `NotFound` now share the recovery order `summary cue -> route-state line -> action area -> compact support paragraph`, with `SearchNew` still the shortest and `NotFound` still the broadest recovery surface.
 - Broader regression verification: method=`npm test -- --runInBand src/__tests__/TVChannelDetail.test.tsx src/__tests__/EPGChannelDetail.test.tsx src/__tests__/SupportingPages.test.tsx src/__tests__/NavBarResponsive.test.tsx`; result=pass; notes=confirmed the polish pass does not regress responsive shell/navigation expectations around the touched pages.
 - Full frontend verification: method=`npm test -- --runInBand && npm run build`; result=pass; notes=all 32 frontend suites / 231 tests passed and the Vite production build succeeded; the only remaining build output is the pre-existing chunk-size warning isolated to `mui-data-grid`.
+
+## Visual Evidence Capture Contract
+
+Test-based evidence above covers behavior, semantics, and layout structure
+under both themes and all major breakpoints. Screenshot artifacts are not
+required to ship v2 but are useful for changelog illustration and as a
+regression baseline before any future redesign pass. The contract for
+when somebody runs the visual capture is:
+
+### What to capture
+
+For each of the following pages, capture both light and dark themes at
+both desktop (1280px) and mobile (375px) widths:
+
+- Dashboard (default + populated states)
+- AcestreamChannels (table view, filter open, bulk-action drawer)
+- TVChannels (table, create/edit dialog)
+- EPG (sources panel, channels panel, XML generator dialog)
+- Scraper (URL list, add/edit dialog)
+- Settings (common-connection group, advanced/internal group expanded)
+- Health, Stats (loaded + empty states)
+- WARP (connected, disconnected, mode toggle)
+- Search (empty, populated)
+- Playlist export
+- A LegacyRouteRecovery surface (e.g. `/search-new` or `/channels`)
+- 404 NotFound
+
+Plus two cross-cutting captures:
+
+- Reduced-motion variant of the dashboard (settings → motion preference;
+  document via `prefers-reduced-motion: reduce` browser flag).
+- Mobile drawer-open state on any page.
+
+### How to file the captures
+
+Drop the resulting PNGs under `docs/dev/screenshots/` with names like
+`dashboard-light-desktop.png`, `dashboard-dark-mobile.png`, etc. Then
+add a "Visual Evidence Index" subsection here that lists each filename
+and the page/theme/width tuple it covers. We deliberately do not commit
+binary assets without a written index — without it the directory
+becomes archaeology.
+
+### Status
+
+Pending. Captured evidence will be added by whoever runs the visual
+review pass post-release. The behavior-level evidence above is
+sufficient for v2 ship sign-off.

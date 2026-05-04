@@ -51,6 +51,10 @@ else
   PYTHONPATH=backend "$BACKEND_PYTEST" -q backend/tests
 fi
 
+echo "Refreshing OpenAPI schema for codegen..."
+PYTHONPATH=backend "$BACKEND_PYTEST" --version >/dev/null 2>&1 || true
+PYTHONPATH=backend backend/venv/bin/python backend/scripts/dump_openapi.py
+
 echo "Running canonical frontend suite ($PROFILE)..."
 (
   cd frontend
@@ -65,6 +69,22 @@ echo "Running canonical frontend suite ($PROFILE)..."
       exit 1
     fi
   fi
+
+  # Regenerate the typed OpenAPI client and fail the suite if the result
+  # diverges from the committed snapshot. Schema drift between
+  # backend/app/schemas/ and frontend/src/types/api-generated.ts is a
+  # contract bug that would otherwise only surface at runtime.
+  npm run codegen
+  if ! git diff --exit-code src/types/api-generated.ts >/dev/null 2>&1; then
+    echo "ERROR: openapi-typescript output diverges from committed types."
+    echo "Run 'PYTHONPATH=backend backend/venv/bin/python backend/scripts/dump_openapi.py'"
+    echo "from the repo root, then 'cd frontend && npm run codegen', and commit the result."
+    git diff src/types/api-generated.ts | head -40
+    exit 1
+  fi
+
+  npm run lint
+  npm run typecheck
 
   if [[ "$PROFILE" == "quick" ]]; then
     CI=true npm test -- --watch=false --runInBand Dashboard.test.tsx AcestreamChannelsPage.test.tsx

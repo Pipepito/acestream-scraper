@@ -2,7 +2,7 @@
 Service for managing background tasks using APScheduler in FastAPI.
 """
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Dict, Optional
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -38,7 +38,7 @@ class TaskService:
                 },
             )
             if interval_seconds:
-                state["next_run"] = datetime.utcnow() + timedelta(seconds=interval_seconds)
+                state["next_run"] = datetime.now(timezone.utc) + timedelta(seconds=interval_seconds)
             return state
 
     def start(self):
@@ -95,7 +95,7 @@ class TaskService:
                     next_run = job.next_run_time
                 with self._state_lock:
                     state["status"] = "idle"
-                    state["last_run"] = datetime.utcnow()
+                    state["last_run"] = datetime.now(timezone.utc)
                     state["next_run"] = next_run
                     state["last_result"] = result
                 return result
@@ -106,7 +106,7 @@ class TaskService:
                     next_run = job.next_run_time
                 with self._state_lock:
                     state["status"] = "error"
-                    state["last_run"] = datetime.utcnow()
+                    state["last_run"] = datetime.now(timezone.utc)
                     state["next_run"] = next_run
                     state["last_error"] = str(exc)
                     state["last_result"] = None

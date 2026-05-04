@@ -203,15 +203,18 @@ const Settings: React.FC = () => {
   }
 
   const allSettings = allSettingsQuery.data ?? {};
-  const mappedKeys = new Set([...COMMON_CONNECTION_KEYS, ...AUTOMATION_KEYS]);
+  const mappedKeys = new Set<string>([...COMMON_CONNECTION_KEYS, ...AUTOMATION_KEYS]);
   const advancedKeys = Object.keys(allSettings)
     .filter((key) => !mappedKeys.has(key))
     .sort((left, right) => left.localeCompare(right));
-  const inventoryGroups = INVENTORY_GROUPS.map((group) => ({
+  const inventoryGroups: Array<{ title: string; keys: string[] }> = INVENTORY_GROUPS.map((group) => ({
     title: group.title,
-    keys: group.title === 'Advanced/internal settings'
-      ? advancedKeys
-      : group.keys.filter((key) => Object.prototype.hasOwnProperty.call(allSettings, key)),
+    keys:
+      group.title === 'Advanced/internal settings'
+        ? advancedKeys
+        : (group.keys as readonly string[]).filter((key) =>
+            Object.prototype.hasOwnProperty.call(allSettings, key),
+          ),
   })).filter((group) => group.keys.length > 0);
 
   return (

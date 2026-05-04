@@ -666,7 +666,7 @@ acestream://8888888888888888888888888888888888888888
             async def fetch_content(self, url: str) -> str:
                 return ""
 
-        scraper = _FakeScraper(ZeronetURL(original_url))
+        scraper = _FakeScraper(ZeronetURL(original_url), db=db_session)
         asyncio.run(scraper.update_url_status(normalized_url, "OK"))
 
         db_session.expire_all()

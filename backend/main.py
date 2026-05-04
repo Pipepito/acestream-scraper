@@ -1,36 +1,35 @@
-from fastapi import Request, Response, Depends, Query
-from fastapi.responses import PlainTextResponse
-from sqlalchemy.orm import Session
+"""
+Main application entry point for Acestream Scraper v2 backend.
+"""
+import logging
+import os
+from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Optional
 from uuid import uuid4
 
-from app.config.database import get_db
-from app.services.playlist_service import PlaylistService
-"""
-Main application entry point for Acestream Scraper v2 backend
-"""
-import os
-from pathlib import Path
-
 import uvicorn
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Query, Request
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException as StarletteHTTPException
+
 from app.api.api import api_router
 from app.api.error_handlers import register_error_handlers
-from app.config.settings import settings, get_env_compat_events
-from app.utils.logging import setup_logging
+from app.config.database import get_db
+from app.config.settings import get_env_compat_events, settings
+from app.services.playlist_service import PlaylistService
 from app.services.task_service import task_service
 from app.tasks.activity_log_cleanup import run_activity_log_cleanup
-from app.tasks.epg_refresh_task import run_epg_refresh_task
-from app.tasks.url_scraping_task import run_url_scraping_task
 from app.tasks.channel_cleanup_task import run_channel_cleanup_task
 from app.tasks.channel_status_task import run_channel_status_task
+from app.tasks.epg_refresh_task import run_epg_refresh_task
+from app.tasks.url_scraping_task import run_url_scraping_task
+from app.utils.logging import setup_logging
 
 # Setup logging before anything else
 setup_logging()
-import logging
 logging.getLogger().warning("[MAIN] Root logger active at startup")
 
 for event in get_env_compat_events():
@@ -43,7 +42,7 @@ for event in get_env_compat_events():
         event.get("window"),
     )
 
-# Initialize database on startup
+
 def _run_alembic_upgrade() -> None:
     from alembic import command
     from alembic.config import Config
@@ -54,7 +53,7 @@ def _run_alembic_upgrade() -> None:
 
 
 def initialize_database():
-    """Initialize database with migration check"""
+    """Initialize database with migration check."""
     from migrate_database import DatabaseMigrator
 
     migrator = DatabaseMigrator()
@@ -76,13 +75,31 @@ def initialize_database():
     else:
         print("V2 database ready")
 
-# Initialize database
-initialize_database()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan: provision the database, start the scheduler, and
+    register periodic tasks on startup; tear the scheduler down on shutdown.
+    Replaces the deprecated ``@app.on_event("startup"|"shutdown")`` hooks.
+    """
+    initialize_database()
+    task_service.start()
+    task_service.add_interval_task(run_activity_log_cleanup, seconds=86400, job_id="activity_log_cleanup")  # daily
+    task_service.add_interval_task(run_epg_refresh_task, seconds=3600, job_id="epg_refresh")  # every hour
+    task_service.add_interval_task(run_url_scraping_task, seconds=900, job_id="url_scraping")  # every 15 min
+    task_service.add_interval_task(run_channel_cleanup_task, seconds=86400, job_id="channel_cleanup")  # daily
+    task_service.add_interval_task(run_channel_status_task, seconds=600, job_id="channel_status")  # every 10 min
+    try:
+        yield
+    finally:
+        task_service.shutdown()
+
 
 app = FastAPI(
     title="Acestream Scraper API",
     description="API for scraping and managing Acestream channels",
     version="2.0.0",
+    lifespan=lifespan,
 )
 
 
@@ -177,21 +194,6 @@ async def read_index():
     except FileNotFoundError:
         # If frontend build doesn't exist yet, return a placeholder
         return HTMLResponse(content="<html><body><h1>Acestream Scraper</h1><p>Frontend not built yet. Please run 'npm run build' in the frontend directory.</p></body></html>")
-
-@app.on_event("startup")
-def start_background_tasks():
-    # Start the background scheduler
-    task_service.start()
-    # Schedule periodic tasks (intervals in seconds)
-    task_service.add_interval_task(run_activity_log_cleanup, seconds=86400, job_id="activity_log_cleanup")  # daily
-    task_service.add_interval_task(run_epg_refresh_task, seconds=3600, job_id="epg_refresh")  # every hour
-    task_service.add_interval_task(run_url_scraping_task, seconds=900, job_id="url_scraping")  # every 15 min
-    task_service.add_interval_task(run_channel_cleanup_task, seconds=86400, job_id="channel_cleanup")  # daily
-    task_service.add_interval_task(run_channel_status_task, seconds=600, job_id="channel_status")  # every 10 min
-
-@app.on_event("shutdown")
-def shutdown_background_tasks():
-    task_service.shutdown()
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

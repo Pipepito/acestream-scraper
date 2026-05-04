@@ -3,7 +3,7 @@ Schemas for channel status operations
 """
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class ChannelStatusResponse(BaseModel):
@@ -15,8 +15,7 @@ class ChannelStatusResponse(BaseModel):
     last_checked: datetime
     error: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ChannelStatusSummary(BaseModel):
@@ -33,8 +32,7 @@ class ChannelStatusSummary(BaseModel):
     online_percentage: float
     checked_percentage: float
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class BulkStatusCheckResponse(BaseModel):
@@ -46,8 +44,7 @@ class BulkStatusCheckResponse(BaseModel):
     results: List[ChannelStatusResponse]
     summary: ChannelStatusSummary
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class StatusCheckRequest(BaseModel):
@@ -55,5 +52,4 @@ class StatusCheckRequest(BaseModel):
     channel_ids: Optional[List[str]] = None
     concurrency: Optional[int] = 3
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

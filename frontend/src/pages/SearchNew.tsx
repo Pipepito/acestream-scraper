@@ -1,3 +1,15 @@
+/**
+ * Legacy redirect page mounted at /search-new. The original v1 search route
+ * lived here; v2 consolidated everything into the canonical /search page.
+ * This component renders LegacyRouteRecovery (the shared shell used by the
+ * other legacy redirects under src/components/LegacyRouteRecovery.tsx) and
+ * exposes a single "Open Search" affordance that bumps the user to /search.
+ *
+ * Keep this file as a route handler — inlining the redirect into App.tsx
+ * would lose the operator-facing recovery messaging, which is the point of
+ * the LegacyRouteRecovery pattern: explain to the user *why* they were sent
+ * elsewhere instead of bouncing them silently.
+ */
 import React from 'react';
 import { Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';

@@ -1,24 +1,43 @@
-"""
-Integration tests for V2 API endpoints
+"""Shared fixtures for the V2 backend test suite.
+
+Design note (post-B1 refactor): the previous version of this file cleared and
+re-imported ``app.api``, ``app.models``, ``app.repositories``, ``app.schemas``,
+``app.services``, ``app.tasks``, ``app.utils``, plus ``app.config.settings``,
+``app.config.database``, and ``main`` once per fixture call. That worked for
+settings/engine rebinding but came at a heavy cost: SQLAlchemy's declarative
+``Base`` was reconstructed on every reload, splitting the mapper registry.
+Test files that import ORM classes at module-import time held pre-reload class
+objects whose registry could no longer resolve relationship names — the
+``Mapper[TVChannel(tv_channels)] expression 'AcestreamChannel' failed to locate
+a name`` crash documented in ``.planning/debug/epg-test-failure-domain.md``.
+
+The runtime now binds the engine and session factory lazily (see
+``app/config/database.py``) and the FastAPI startup hook lives in a
+``lifespan`` context manager (see ``main.py``). That makes module reload
+unnecessary: tests can override ``DATABASE_URL`` in the environment, clear
+``get_settings``'s ``lru_cache``, and call ``reset_engine()`` to rebind the
+runtime to a per-test database — without ever rebuilding ``Base`` or
+recreating ORM classes. ``main`` and the model modules are imported exactly
+once at conftest import time and reused by every fixture.
 """
 
-import pytest
 import asyncio
-import importlib
-from httpx import AsyncClient
+import json
+import os
+import sys
+import tempfile
+import uuid
+from datetime import datetime, timedelta
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
+
+import pytest
 from fastapi.testclient import TestClient
+from httpx import AsyncClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
-import tempfile
-import os
-from pathlib import Path
-from datetime import datetime, timedelta
-import json
-import uuid
-from types import SimpleNamespace
-from unittest.mock import Mock, patch
-import sys
 
 # Add v2/backend to sys.path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -27,77 +46,67 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from migration_test_utils import database_url_for, upgrade_to_head
 
-
-_RESETTABLE_BACKEND_MODULE_PREFIXES = (
-    "app.api",
-    "app.models",
-    "app.repositories",
-    "app.schemas",
-    "app.services",
-    "app.tasks",
-    "app.utils",
-)
+# Import the runtime ONCE. Never reloaded — that's the point of the refactor.
+import main as _main_module  # noqa: E402
+from app.config import database as _database_module  # noqa: E402
+from app.config import settings as _settings_module  # noqa: E402
 
 
-def _clear_backend_runtime_modules():
-    for module_name in list(sys.modules):
-        if module_name == "main" or module_name == "migrate_database":
-            sys.modules.pop(module_name, None)
-            continue
-        if module_name.startswith(_RESETTABLE_BACKEND_MODULE_PREFIXES):
-            sys.modules.pop(module_name, None)
+def _refresh_settings_cache():
+    """Drop the ``get_settings`` ``lru_cache`` and refresh the module-level
+    ``settings`` symbol so it reflects the current environment.
+    """
+    _settings_module.get_settings.cache_clear()
+    _settings_module.settings = _settings_module.get_settings()
 
 
-def _import_or_reload(module_name):
-    module = sys.modules.get(module_name)
-    if module is not None:
-        return importlib.reload(module)
-    return importlib.import_module(module_name)
+def _bind_runtime_to(database_url):
+    """Bind the singleton runtime (``app``, engine, settings) to ``database_url``.
 
-
-def _load_backend_runtime(database_url=None):
-    original_database_url = os.environ.get("DATABASE_URL")
+    ``database_url`` may be ``None`` to clear the override and fall back to
+    whatever the default ``Settings.DATABASE_URL`` resolves to.
+    """
     if database_url is None:
         os.environ.pop("DATABASE_URL", None)
     else:
         os.environ["DATABASE_URL"] = database_url
 
-    try:
-        _clear_backend_runtime_modules()
+    _refresh_settings_cache()
+    _database_module.reset_engine()
 
-        settings_module = _import_or_reload("app.config.settings")
-        database_module = _import_or_reload("app.config.database")
-        main_module = _import_or_reload("main")
-    finally:
-        if original_database_url is None:
-            os.environ.pop("DATABASE_URL", None)
-        else:
-            os.environ["DATABASE_URL"] = original_database_url
 
-    if database_url is not None:
-        expected_db_path = Path(database_url.removeprefix("sqlite:///"))
-        assert Path(database_module.engine.url.database).resolve() == expected_db_path.resolve()
-        assert settings_module.settings.DATABASE_URL == database_url
-
+def _runtime_namespace():
+    """Yield the back-compat namespace expected by existing fixtures and tests."""
     return SimpleNamespace(
-        app=main_module.app,
-        get_db=main_module.get_db,
-        Base=database_module.Base,
-        engine=database_module.engine,
-        SessionLocal=database_module.SessionLocal,
-        settings=settings_module.settings,
+        app=_main_module.app,
+        get_db=_main_module.get_db,
+        Base=_database_module.Base,
+        engine=_database_module.get_engine(),
+        SessionLocal=_database_module.SessionLocal,
+        settings=_settings_module.settings,
     )
 
 
 @pytest.fixture(scope="function")
 def backend_runtime():
-    runtime = _load_backend_runtime()
-    yield runtime
-    runtime.engine.dispose()
+    """Yield the live FastAPI runtime bound to the default DB URL.
+
+    Tests that need a per-test database override should depend on
+    ``test_db`` / ``db_session`` (which create a separate engine and bind it
+    via ``app.dependency_overrides``).
+    """
+    original = os.environ.get("DATABASE_URL")
+    _bind_runtime_to(None)
+    try:
+        yield _runtime_namespace()
+    finally:
+        _bind_runtime_to(original)
+        _database_module.reset_engine()
 
 
 @pytest.fixture(scope="function")
 def alembic_test_db():
+    """Create a temp SQLite file and run Alembic to head against it."""
     db_fd, db_path = tempfile.mkstemp(suffix='.db')
     os.close(db_fd)
     db_path = Path(db_path)
@@ -115,24 +124,31 @@ def alembic_test_db():
 
 @pytest.fixture(scope="function")
 def alembic_backend_runtime(alembic_test_db):
+    """Yield the live runtime bound to a freshly-migrated per-test SQLite DB."""
     _, database_url = alembic_test_db
-    runtime = _load_backend_runtime(database_url)
-    yield runtime
-    runtime.engine.dispose()
+    original = os.environ.get("DATABASE_URL")
+    _bind_runtime_to(database_url)
+
+    expected_db_path = Path(database_url.removeprefix("sqlite:///"))
+    assert Path(_database_module.get_engine().url.database).resolve() == expected_db_path.resolve()
+    assert _settings_module.settings.DATABASE_URL == database_url
+
+    try:
+        yield _runtime_namespace()
+    finally:
+        _bind_runtime_to(original)
+        _database_module.reset_engine()
 
 
 # Test database setup
 @pytest.fixture(scope="function")
 def test_db(backend_runtime):
-    """Create a test database for the session."""
-    # Create temporary database file
+    """Create a temp SQLite engine using ``Base.metadata.create_all`` (legacy fast path)."""
     db_fd, db_path = tempfile.mkstemp(suffix='.db')
     os.close(db_fd)
 
-    # Create test database URL
     database_url = f"sqlite:///{db_path}"
 
-    # Create engine with test database
     engine = create_engine(
         database_url,
         connect_args={"check_same_thread": False},
@@ -140,14 +156,12 @@ def test_db(backend_runtime):
         echo=False
     )
 
-    # Keep the legacy create_all path for non-migrated tests.
     backend_runtime.Base.metadata.create_all(bind=engine)
 
     yield engine, database_url
 
-    # Clean up - handle Windows file locking issues
     try:
-        engine.dispose()  # Close all connections
+        engine.dispose()
         os.unlink(db_path)
     except (PermissionError, OSError):
         # On Windows, SQLite files can be locked, ignore cleanup errors

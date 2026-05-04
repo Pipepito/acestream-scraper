@@ -457,7 +457,6 @@ const Scraper: React.FC = () => {
         <DialogTitle>{isEdit ? 'Edit URL' : 'Add URL'}</DialogTitle>
         <DialogContent>
           <TextField
-            autoFocus
             margin="dense"
             name="url"
             label="URL"

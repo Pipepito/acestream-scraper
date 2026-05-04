@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import List, Optional
 
 class SearchResultItem(BaseModel):
@@ -7,8 +7,7 @@ class SearchResultItem(BaseModel):
     bitrate: Optional[int] = Field(None, description="Channel bitrate")
     categories: List[str] = Field(default_factory=list, description="Categories of the channel")
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class SearchPagination(BaseModel):
     page: int = Field(..., description="Current page number")

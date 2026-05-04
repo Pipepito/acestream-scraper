@@ -1,16 +1,16 @@
 """
 Service for managing EPG operations
 """
-from sqlalchemy.orm import Session
-from sqlalchemy import and_
-from typing import List, Optional, Dict, Any, Tuple
-from datetime import datetime
-import logging
-import xml.etree.ElementTree as ET
-import requests
-from datetime import datetime, timedelta
 import html
+import logging
 import re
+import xml.etree.ElementTree as ET
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional, Tuple
+
+import requests
+from sqlalchemy import and_
+from sqlalchemy.orm import Session
 
 from app.models.models import EPGSource, EPGChannel, EPGProgram, EPGStringMapping, TVChannel
 from app.schemas.epg import EPGSourceCreate, EPGSourceUpdate
@@ -453,7 +453,7 @@ class EPGService:
 
         xml_lines.append('')
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         start_time = now - timedelta(days=days_back)
         end_time = now + timedelta(days=days_forward)
 
@@ -696,10 +696,13 @@ class EPGService:
         else:
             raise ValueError(f"Invalid XMLTV time format: {time_str}")
 
-        # Create datetime object
-        dt = datetime(year, month, day, hour, minute, second)
+        # Create the datetime as UTC. ``timezone_offset`` is the offset of the
+        # source clock relative to UTC; subtracting it converts the local time
+        # back to the UTC instant. Returned datetimes are timezone-aware so
+        # they round-trip equality against values reloaded from the DB
+        # through ``UtcDateTime`` in ``app/models/models.py``.
+        dt = datetime(year, month, day, hour, minute, second, tzinfo=timezone.utc)
 
-        # Apply timezone offset (convert to UTC)
         if timezone_offset != 0:
             dt = dt - timedelta(minutes=timezone_offset)
 

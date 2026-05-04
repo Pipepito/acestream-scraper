@@ -1,7 +1,7 @@
 """
 Pydantic schemas for scraper data
 """
-from pydantic import BaseModel, HttpUrl, Field
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
@@ -44,8 +44,7 @@ class URLResponse(BaseModel):
 
     channels_found: int = 0  # Number of acestream channels found for this URL
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class URLCreate(BaseModel):

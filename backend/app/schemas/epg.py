@@ -1,7 +1,7 @@
 """
 Pydantic schemas for EPG
 """
-from pydantic import BaseModel, HttpUrl, Field
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 from typing import Optional, List
 from datetime import datetime
 
@@ -32,8 +32,7 @@ class EPGSourceResponse(EPGSourceBase):
     error_count: int = 0
     last_error: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class EPGChannelBase(BaseModel):
@@ -51,8 +50,7 @@ class EPGChannelResponse(EPGChannelBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class EPGChannelListResponse(BaseModel):
@@ -79,8 +77,7 @@ class EPGProgramResponse(EPGProgramBase):
     id: int
     program_xml_id: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class EPGStringMappingBase(BaseModel):
@@ -104,8 +101,7 @@ class EPGStringMappingResponse(EPGStringMappingBase):
     id: int
     epg_channel_id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class EPGChannelMappingRequest(BaseModel):

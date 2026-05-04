@@ -56,8 +56,7 @@ class AcestreamChannelResponse(AcestreamChannelBase):
     tv_channel_is_favorite: Optional[bool] = None
     epg_update_protected: Optional[bool] = False
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TVChannelBase(BaseModel):
@@ -107,8 +106,7 @@ class TVChannelResponse(TVChannelBase):
     is_favorite: bool
     acestream_channels: List[AcestreamChannelResponse] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ChannelStatusCheck(BaseModel):

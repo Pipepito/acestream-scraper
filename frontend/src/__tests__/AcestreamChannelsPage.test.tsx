@@ -118,8 +118,9 @@ describe('AcestreamChannels page hardening', () => {
   const renderPageAndWaitForGroups = async (options?: { expectedGroupsText?: string }) => {
     renderPage();
     await waitFor(() => expect(mockGetGroups).toHaveBeenCalled());
-    if (options?.expectedGroupsText) {
-      await waitFor(() => expect(screen.getByTestId('advanced-search')).toHaveTextContent(options.expectedGroupsText));
+    const expectedGroupsText = options?.expectedGroupsText;
+    if (expectedGroupsText) {
+      await waitFor(() => expect(screen.getByTestId('advanced-search')).toHaveTextContent(expectedGroupsText));
     }
   };
 

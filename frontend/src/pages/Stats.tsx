@@ -44,7 +44,7 @@ const Stats: React.FC = () => {
     );
   }
 
-  const hasStats = Boolean(statsData);
+  const stats = statsData;
 
   return (
     <Box>
@@ -62,7 +62,7 @@ const Stats: React.FC = () => {
         title="Inventory snapshot"
         description="Use this summary to confirm how much channel, URL, and EPG data is currently available."
       >
-        {hasStats ? (
+        {stats ? (
           <Stack
             data-testid="stats-summary-metrics"
             direction={isPhone ? 'column' : 'row'}
@@ -72,7 +72,7 @@ const Stats: React.FC = () => {
               <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 1 }}>
                 Channels
               </Typography>
-              <Typography variant="h4">{statsData.channels.total}</Typography>
+              <Typography variant="h4">{stats.channels.total}</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                 Review channel health next if online coverage looks lower than expected.
               </Typography>
@@ -81,7 +81,7 @@ const Stats: React.FC = () => {
               <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 1 }}>
                 URLs
               </Typography>
-              <Typography variant="h4">{statsData.urls.total}</Typography>
+              <Typography variant="h4">{stats.urls.total}</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                 Check source activity if active URLs drop or error totals climb.
               </Typography>
@@ -90,7 +90,7 @@ const Stats: React.FC = () => {
               <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 1 }}>
                 EPG records
               </Typography>
-              <Typography variant="h4">{statsData.epg.programs}</Typography>
+              <Typography variant="h4">{stats.epg.programs}</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                 Inspect EPG coverage when channel matching or program depth looks light.
               </Typography>
@@ -105,7 +105,7 @@ const Stats: React.FC = () => {
         title="Totals by source"
         description="Break the current inventory into channel, URL, and EPG totals without leaving the page."
       >
-        {hasStats ? (
+        {stats ? (
           <Stack
             data-testid="stats-breakdown-groups"
             direction={isPhone ? 'column' : 'row'}
@@ -117,16 +117,16 @@ const Stats: React.FC = () => {
               </Typography>
               <List dense disablePadding>
                 <ListItem disableGutters>
-                  <ListItemText primary="Total channels" secondary={statsData.channels.total.toString()} />
+                  <ListItemText primary="Total channels" secondary={stats.channels.total.toString()} />
                 </ListItem>
                 <ListItem disableGutters>
-                  <ListItemText primary="Online channels" secondary={statsData.channels.online.toString()} />
+                  <ListItemText primary="Online channels" secondary={stats.channels.online.toString()} />
                 </ListItem>
                 <ListItem disableGutters>
-                  <ListItemText primary="Offline channels" secondary={statsData.channels.offline.toString()} />
+                  <ListItemText primary="Offline channels" secondary={stats.channels.offline.toString()} />
                 </ListItem>
                 <ListItem disableGutters>
-                  <ListItemText primary="Unknown status" secondary={statsData.channels.unknown.toString()} />
+                  <ListItemText primary="Unknown status" secondary={stats.channels.unknown.toString()} />
                 </ListItem>
               </List>
             </Paper>
@@ -137,13 +137,13 @@ const Stats: React.FC = () => {
               </Typography>
               <List dense disablePadding>
                 <ListItem disableGutters>
-                  <ListItemText primary="Total URLs" secondary={statsData.urls.total.toString()} />
+                  <ListItemText primary="Total URLs" secondary={stats.urls.total.toString()} />
                 </ListItem>
                 <ListItem disableGutters>
-                  <ListItemText primary="Active URLs" secondary={statsData.urls.active.toString()} />
+                  <ListItemText primary="Active URLs" secondary={stats.urls.active.toString()} />
                 </ListItem>
                 <ListItem disableGutters>
-                  <ListItemText primary="Error URLs" secondary={statsData.urls.error.toString()} />
+                  <ListItemText primary="Error URLs" secondary={stats.urls.error.toString()} />
                 </ListItem>
               </List>
             </Paper>
@@ -154,13 +154,13 @@ const Stats: React.FC = () => {
               </Typography>
               <List dense disablePadding>
                 <ListItem disableGutters>
-                  <ListItemText primary="EPG sources" secondary={statsData.epg.sources.toString()} />
+                  <ListItemText primary="EPG sources" secondary={stats.epg.sources.toString()} />
                 </ListItem>
                 <ListItem disableGutters>
-                  <ListItemText primary="EPG channels" secondary={statsData.epg.channels.toString()} />
+                  <ListItemText primary="EPG channels" secondary={stats.epg.channels.toString()} />
                 </ListItem>
                 <ListItem disableGutters>
-                  <ListItemText primary="EPG programs" secondary={statsData.epg.programs.toString()} />
+                  <ListItemText primary="EPG programs" secondary={stats.epg.programs.toString()} />
                 </ListItem>
               </List>
             </Paper>

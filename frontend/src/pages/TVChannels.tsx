@@ -285,7 +285,6 @@ const TVChannels: React.FC = () => {
   const renderDialogSections = (mode: 'create' | 'edit') => (
     <Stack spacing={2.5} sx={{ py: 1 }}>
       <TextField
-        autoFocus
         name="name"
         label="Channel Name"
         fullWidth

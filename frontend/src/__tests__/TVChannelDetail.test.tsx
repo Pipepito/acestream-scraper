@@ -14,8 +14,16 @@ const mockUseRemoveAcestreamAssociation = jest.fn();
 const mockUseUpdateTVChannel = jest.fn();
 const mockUseAcestreamChannels = jest.fn();
 
-jest.mock('../components/BatchAcestreamAssignment', () => () => <div data-testid="batch-assignment-dialog" />);
-jest.mock('../components/EPGProgramsTable', () => () => <div data-testid="epg-programs-table" />);
+jest.mock('../components/BatchAcestreamAssignment', () => {
+  const MockBatchAssignment = () => <div data-testid="batch-assignment-dialog" />;
+  MockBatchAssignment.displayName = 'MockBatchAssignment';
+  return MockBatchAssignment;
+});
+jest.mock('../components/EPGProgramsTable', () => {
+  const MockEPGProgramsTable = () => <div data-testid="epg-programs-table" />;
+  MockEPGProgramsTable.displayName = 'MockEPGProgramsTable';
+  return MockEPGProgramsTable;
+});
 
 jest.mock('../hooks/useTVChannels', () => ({
   useTVChannel: (...args: unknown[]) => mockUseTVChannel(...args),

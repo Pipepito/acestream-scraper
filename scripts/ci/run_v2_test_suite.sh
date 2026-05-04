@@ -66,6 +66,9 @@ echo "Running canonical frontend suite ($PROFILE)..."
     fi
   fi
 
+  npm run lint
+  npm run typecheck
+
   if [[ "$PROFILE" == "quick" ]]; then
     CI=true npm test -- --watch=false --runInBand Dashboard.test.tsx AcestreamChannelsPage.test.tsx
   else

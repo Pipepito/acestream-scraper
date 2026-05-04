@@ -1,6 +1,6 @@
 import json
 import xml.etree.ElementTree as ET
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from app.models.models import AcestreamChannel, EPGChannel, EPGProgram, EPGSource, TVChannel
@@ -66,7 +66,7 @@ def _seed_output_parity_data(db_session):
     db_session.add(epg_channel)
     db_session.flush()
 
-    start = datetime.utcnow() - timedelta(minutes=15)
+    start = datetime.now(timezone.utc) - timedelta(minutes=15)
     end = start + timedelta(minutes=45)
     program = EPGProgram(
         epg_channel_id=epg_channel.id,

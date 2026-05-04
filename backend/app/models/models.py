@@ -1,12 +1,61 @@
 """
 SQLAlchemy models for the application
 """
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey, Text, Index
+from datetime import datetime, timezone
+
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from datetime import datetime
+from sqlalchemy.types import TypeDecorator
 
 from app.config.database import Base
+
+
+def _utcnow() -> datetime:
+    """Return the current UTC time as a timezone-aware datetime.
+
+    Replacement for the deprecated ``datetime.utcnow()`` callable used as a
+    column default and direct assignment throughout the codebase.
+    """
+    return datetime.now(timezone.utc)
+
+
+class UtcDateTime(TypeDecorator):
+    """DateTime that always reads back as a timezone-aware UTC value.
+
+    Backends like SQLite have no native timezone-aware datetime storage —
+    SQLAlchemy returns naive ``datetime`` instances even when the column
+    metadata is declared ``DateTime(timezone=True)``. Mixing naive and
+    aware values in Python comparisons raises ``TypeError``.
+
+    This decorator normalises both directions:
+
+    * On write, naive values are interpreted as UTC and converted to aware;
+      aware values are coerced to UTC.
+    * On read, naive values gain a UTC tzinfo so callers always work with
+      timezone-aware datetimes regardless of when the row was originally
+      written.
+
+    Use ``UtcDateTime()`` in place of ``DateTime(timezone=True)`` in column
+    definitions for any timestamp the application persists.
+    """
+
+    impl = DateTime(timezone=True)
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)
 
 
 class ScrapedURL(Base):
@@ -21,19 +70,19 @@ class ScrapedURL(Base):
     url = Column(String(2048), unique=True, index=True, nullable=False)
     url_type = Column(String(255), default="regular")  # 'regular', 'zeronet', etc.
     status = Column(String(255), default="pending")
-    last_processed = Column(DateTime, nullable=True)
-    last_scraped = Column(DateTime, default=datetime.utcnow)  # Keep for backward compatibility
+    last_processed = Column(UtcDateTime(), nullable=True)
+    last_scraped = Column(UtcDateTime(), default=_utcnow)  # Keep for backward compatibility
     error_count = Column(Integer, default=0)
     last_error = Column(Text, nullable=True)
     error = Column(Text, nullable=True)  # Keep for backward compatibility
     enabled = Column(Boolean, default=True)
-    added_at = Column(DateTime, default=datetime.utcnow)
+    added_at = Column(UtcDateTime(), default=_utcnow)
 
     def update_status(self, status: str, error: str = None) -> None:
         """Update the status of this URL"""
         self.status = status
-        self.last_processed = datetime.utcnow()
-        self.last_scraped = datetime.utcnow()  # Keep for backward compatibility
+        self.last_processed = _utcnow()
+        self.last_scraped = _utcnow()  # Keep for backward compatibility
 
         if status in ['failed', 'error']:
             self.error_count += 1
@@ -56,10 +105,10 @@ class AcestreamChannel(Base):
     tvg_id = Column(String(255), nullable=True)
     tvg_name = Column(String(255), nullable=True)
     source_url = Column(String(2048), nullable=True)
-    last_seen = Column(DateTime, default=datetime.utcnow)
+    last_seen = Column(UtcDateTime(), default=_utcnow)
     is_active = Column(Boolean, default=True)
     is_online = Column(Boolean, nullable=True)
-    last_checked = Column(DateTime, nullable=True)
+    last_checked = Column(UtcDateTime(), nullable=True)
     check_error = Column(Text, nullable=True)
     original_url = Column(String(2048), nullable=True)
     epg_update_protected = Column(Boolean, default=False)
@@ -89,7 +138,7 @@ class EPGSource(Base):
     url = Column(String(2048), nullable=False)
     name = Column(String(255), nullable=False)
     enabled = Column(Boolean, default=True)
-    last_updated = Column(DateTime, nullable=True)
+    last_updated = Column(UtcDateTime(), nullable=True)
     error_count = Column(Integer, default=0)
     last_error = Column(Text, nullable=True)
 
@@ -115,8 +164,8 @@ class TVChannel(Base):
     website = Column(String(2048), nullable=True)
     epg_id = Column(String(255), nullable=True)
     epg_source_id = Column(Integer, ForeignKey("epg_sources.id"), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(UtcDateTime(), default=_utcnow)
+    updated_at = Column(UtcDateTime(), default=_utcnow, onupdate=_utcnow)
     is_active = Column(Boolean, default=True)
     is_favorite = Column(Boolean, default=False)
     channel_number = Column(Integer, nullable=True)
@@ -138,8 +187,8 @@ class EPGChannel(Base):
     name = Column(String(255), nullable=False)
     icon_url = Column(String(2048), nullable=True)
     language = Column(String(50), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(UtcDateTime(), default=_utcnow)
+    updated_at = Column(UtcDateTime(), default=_utcnow, onupdate=_utcnow)
 
     # Relationships
     epg_source = relationship("EPGSource", back_populates="epg_channels")
@@ -157,8 +206,8 @@ class EPGProgram(Base):
     id = Column(Integer, primary_key=True, index=True)
     epg_channel_id = Column(Integer, ForeignKey("epg_channels.id"), nullable=False)
     program_xml_id = Column(String(255), nullable=True)
-    start_time = Column(DateTime, nullable=False, index=True)
-    end_time = Column(DateTime, nullable=False, index=True)
+    start_time = Column(UtcDateTime(), nullable=False, index=True)
+    end_time = Column(UtcDateTime(), nullable=False, index=True)
     title = Column(String(255), nullable=False)
     subtitle = Column(String(255), nullable=True)
     description = Column(Text, nullable=True)
@@ -217,7 +266,7 @@ class ActivityLog(Base):
     __tablename__ = "activity_log"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    timestamp = Column(DateTime(timezone=True), server_default=func.now(), index=True, nullable=False)
+    timestamp = Column(UtcDateTime(), server_default=func.now(), index=True, nullable=False)
     type = Column(String(32), nullable=False, index=True)  # e.g. scrape, task, error, user_action, system
     message = Column(String(255), nullable=False)
     details = Column(Text, nullable=True)  # Use Text for compatibility; change to JSON if supported

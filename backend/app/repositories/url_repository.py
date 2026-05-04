@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.future import select
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.models.models import ScrapedURL
 
@@ -54,7 +54,7 @@ class URLRepository:
         scraped_url = ScrapedURL(
             url=url,
             url_type=url_type,
-            added_at=datetime.utcnow(),
+            added_at=datetime.now(timezone.utc),
             last_scraped=None
         )
 
@@ -89,7 +89,7 @@ class URLRepository:
             .filter(ScrapedURL.id == url_id)
             .update(
                 {
-                    "last_scraped": datetime.utcnow(),
+                    "last_scraped": datetime.now(timezone.utc),
                     "status": "refreshing",
                 },
                 synchronize_session=False,
@@ -102,7 +102,7 @@ class URLRepository:
 
     def refresh_all_urls(self) -> int:
         """Mark all URLs as refreshing and update the last scrape timestamp."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         updated = (
             self.db.query(ScrapedURL)
             .update(

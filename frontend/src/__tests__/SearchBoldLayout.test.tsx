@@ -53,7 +53,7 @@ describe('Search bold layout', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: 'select search result Arena Premium' }));
 
     expect(screen.getByText(/^Selection momentum$/i)).toBeInTheDocument();
-    expect(screen.getByText(/1 channel ready to add/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 selected channel ready to add/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add 1 selected channels' })).toBeInTheDocument();
   });
 });

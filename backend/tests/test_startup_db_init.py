@@ -20,6 +20,13 @@ def _run_main_import(
     legacy_database_url: str,
     extra_pythonpath: list[Path] | None = None,
 ) -> subprocess.CompletedProcess[str]:
+    """Boot ``main.app`` through its lifespan so DB init actually runs.
+
+    ``initialize_database()`` lives inside the FastAPI ``lifespan`` context
+    manager (see ``backend/main.py``); a bare ``import main`` no longer triggers
+    it. Driving the lifespan via ``TestClient`` as a context manager exercises
+    the same startup path used by ``uvicorn`` in production.
+    """
     frontend_build_path.mkdir(parents=True, exist_ok=True)
     env = os.environ.copy()
     pythonpath_entries = [str(path) for path in extra_pythonpath or []]
@@ -38,8 +45,15 @@ def _run_main_import(
         }
     )
 
+    boot_script = (
+        "import main\n"
+        "from fastapi.testclient import TestClient\n"
+        "with TestClient(main.app):\n"
+        "    pass\n"
+    )
+
     return subprocess.run(
-        [sys.executable, "-c", "import main"],
+        [sys.executable, "-c", boot_script],
         cwd=REPO_ROOT,
         env=env,
         capture_output=True,

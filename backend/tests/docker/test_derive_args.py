@@ -32,12 +32,35 @@ def test_python_module_flavor_emits_expected_keys():
     assert pairs["ACESTREAM_INSTALL_KIND"] == "python_module"
     assert pairs["ACESTREAM_PYTHON_MODULE"] == "acestreamengine"
     assert pairs["ACESTREAM_PYTHON_VERSION"] == "3.10"
-    assert pairs["ACESTREAM_DOWNLOAD_URL"].endswith("py3.10.tar.gz")
-    assert len(pairs["ACESTREAM_DOWNLOAD_SHA256"]) == 64
+    expected = json.loads((REPO_ROOT / "docker" / "manifests" / "acestream.json").read_text())
+    expected_url = expected["platforms"]["linux/amd64"]["url"]
+    expected_sha = expected["platforms"]["linux/amd64"]["sha256"]
+    assert pairs["ACESTREAM_DOWNLOAD_URL"] == expected_url
+    assert pairs["ACESTREAM_DOWNLOAD_SHA256"] == expected_sha
 
 
-def test_unknown_platform_errors():
-    manifest = REPO_ROOT / "docker" / "manifests" / "acestream.json"
-    rc, _, err = _run(manifest, "scraper-acestream", "linux/arm64")
+def test_unknown_platform_errors(tmp_path: Path):
+    manifest = tmp_path / "ace.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "version": "9.9.9",
+                "platforms": {
+                    "linux/amd64": {
+                        "url": "https://example.invalid/x.tar.gz",
+                        "sha256": "",
+                        "archive_type": "tar.gz",
+                        "install": {
+                            "strip_components": 1,
+                            "kind": "executable",
+                            "binary_path": "engine",
+                            "engine_http_port": 6878,
+                        },
+                    }
+                },
+            }
+        )
+    )
+    rc, _, err = _run(manifest, "scraper-acestream", "linux/does-not-exist")
     assert rc != 0
-    assert "linux/arm64" in err
+    assert "linux/does-not-exist" in err

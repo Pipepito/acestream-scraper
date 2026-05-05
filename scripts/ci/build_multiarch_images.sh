@@ -163,7 +163,28 @@ PLATFORMS="$resolved_platforms"
 
 ACESTREAM_ARG_HELPER="$ROOT_DIR/scripts/ci/derive_acestream_build_args.py"
 if [[ -f "$ACESTREAM_ARG_HELPER" ]]; then
-    derived="$(python3 "$ACESTREAM_ARG_HELPER" "$ACESTREAM_MANIFEST" "$FLAVOR" "${PLATFORMS%%,*}" || true)"
+    ACESTREAM_BEARING_FLAVORS=("scraper-acestream" "scraper-acestream-acexy")
+    flavor_needs_acestream=0
+    for f in "${ACESTREAM_BEARING_FLAVORS[@]}"; do
+        if [[ "$FLAVOR" == "$f" ]]; then
+            flavor_needs_acestream=1
+            break
+        fi
+    done
+
+    if ! derived="$(python3 "$ACESTREAM_ARG_HELPER" "$ACESTREAM_MANIFEST" "$FLAVOR" "${PLATFORMS%%,*}" 2>&1)"; then
+        helper_rc=$?
+        if [[ "$flavor_needs_acestream" -eq 1 ]]; then
+            printf 'ERROR: failed to derive acestream build args for flavor=%s platform=%s\n%s\n' \
+                "$FLAVOR" "${PLATFORMS%%,*}" "$derived" >&2
+            exit "$helper_rc"
+        else
+            # Non-acestream flavor: helper crash is unexpected but not fatal.
+            printf 'WARNING: derive helper exited %d for non-acestream flavor %s; continuing\n%s\n' \
+                "$helper_rc" "$FLAVOR" "$derived" >&2
+            derived=""
+        fi
+    fi
     while IFS= read -r line; do
         [[ -z "$line" ]] && continue
         # Don't override args the caller already passed via --build-arg.

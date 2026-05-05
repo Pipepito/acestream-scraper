@@ -161,6 +161,26 @@ fi
 
 PLATFORMS="$resolved_platforms"
 
+ACESTREAM_ARG_HELPER="$ROOT_DIR/scripts/ci/derive_acestream_build_args.py"
+if [[ -f "$ACESTREAM_ARG_HELPER" ]]; then
+    derived="$(python3 "$ACESTREAM_ARG_HELPER" "$ACESTREAM_MANIFEST" "$FLAVOR" "${PLATFORMS%%,*}" || true)"
+    while IFS= read -r line; do
+        [[ -z "$line" ]] && continue
+        # Don't override args the caller already passed via --build-arg.
+        key="${line%%=*}"
+        already=0
+        for existing in "${BUILD_ARGS[@]:-}"; do
+            if [[ "$existing" == "$key="* ]]; then
+                already=1
+                break
+            fi
+        done
+        if [[ "$already" -eq 0 ]]; then
+            BUILD_ARGS+=("--build-arg" "$line")
+        fi
+    done <<< "$derived"
+fi
+
 if [[ "$LOAD" -eq 1 && "$PLATFORMS" == *","* ]]; then
   echo "--load supports a single platform only. Use --push for multi-platform manifests."
   exit 1

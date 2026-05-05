@@ -87,6 +87,18 @@ jobs:
             --result-file phase5-build-result-pr-scraper-acestream-acexy.json \
             --flavor scraper-acestream-acexy
 
+      - name: Build scraper-acestream image with manifest-derived args
+        run: |
+          bash scripts/ci/build_multiarch_images.sh \
+            --flavor scraper-acestream \
+            --load \
+            --tag acestream-scraper:smoke
+
+      - name: Run AceStream engine runtime smoke
+        env:
+          PYTHONPATH: backend
+        run: backend/venv/bin/pytest -q backend/tests/docker/test_acestream_runtime_smoke.py -v
+
       - name: Enforce legacy path guardrails
         run: |
           bash scripts/ci/assert_no_legacy_paths.sh --strict

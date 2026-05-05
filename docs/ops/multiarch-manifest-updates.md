@@ -33,22 +33,22 @@ container surface need explicit human approval before they ship.
      "version": "<upstream release tag>",
      "platforms": {
        "linux/amd64": {
-         "download_url": "...",
+         "url": "...",
          "sha256": "...",
          "archive_type": "tar.gz",
-         "strip_components": 1,
-         "binary_path": "acestreamengine"
-       },
-       "linux/arm64": {
-         "download_url": "...",
-         "sha256": "...",
-         "archive_type": "tar.gz",
-         "strip_components": 1,
-         "binary_path": "acestreamengine"
+         "install": {
+           "strip_components": 0,
+           "kind": "executable",
+           "binary_path": "start-engine",
+           "engine_http_port": 6878
+         }
        }
      }
    }
    ```
+
+   See **Bumping the AceStream version** below for the canonical step-by-step
+   when only updating the version pin.
 3. **Do not** edit `docker/manifests/platforms.json` — that file declares the
    baseline platform matrix per flavor and is correct as-is. The intersection
    logic in `flavor_platforms.py` handles the rest.

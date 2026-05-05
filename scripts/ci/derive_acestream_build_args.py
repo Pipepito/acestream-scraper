@@ -59,8 +59,11 @@ def main() -> int:
     if pairs["ACESTREAM_INSTALL_KIND"] == "executable":
         pairs["ACESTREAM_BINARY_PATH"] = install.get("binary_path", "acestreamengine")
     else:
-        pairs["ACESTREAM_PYTHON_MODULE"] = install.get("python_module", "acestreamengine")
-        pairs["ACESTREAM_PYTHON_VERSION"] = install.get("python_version", "3.10")
+        sys.stderr.write(
+            f"unsupported install kind: {pairs['ACESTREAM_INSTALL_KIND']!r} "
+            "(only 'executable' is implemented)\n"
+        )
+        return 1
 
     for key, value in pairs.items():
         print(f"{key}={value}")

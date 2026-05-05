@@ -7,18 +7,17 @@
 #   ACESTREAM_DOWNLOAD_SHA256    Optional. If set, verified after download.
 #   ACESTREAM_ARCHIVE_TYPE       Default tar.gz.
 #   ACESTREAM_STRIP_COMPONENTS   Default 1.
-#   ACESTREAM_INSTALL_KIND       executable | python_module. Default executable.
-#   ACESTREAM_BINARY_PATH        For kind=executable: path inside extracted tree.
+#   ACESTREAM_INSTALL_KIND       executable (only supported kind). Default executable.
+#   ACESTREAM_BINARY_PATH        Path inside extracted tree to the entry binary.
 #                                Default acestreamengine.
-#   ACESTREAM_PYTHON_MODULE      For kind=python_module: dotted module name.
-#                                Default acestreamengine.
-#   ACESTREAM_PYTHON_VERSION     For kind=python_module: e.g. "3.10". Informational.
+#   ACESTREAM_PYTHON_VERSION     Python version for pip-installing requirements.txt.
+#                                Default 3.10.
 #   ACESTREAM_FIXTURE_DIR        Where to copy the fixture from when URL is empty.
 #                                Default /tmp/acestream-fixture.
 #
-# Output: /opt/acestream populated; /opt/acestream/bin/acestreamengine is an
-# executable file (real binary or wrapper script). /opt/acestream/install-metadata.txt
-# records source URL, kind, and resolved binary for diagnostics.
+# Output: /opt/acestream populated; /opt/acestream/bin/acestreamengine is a
+# symlink to the entry binary. /opt/acestream/install-metadata.txt records
+# source URL, kind, and resolved binary for diagnostics.
 
 set -euo pipefail
 
@@ -66,72 +65,33 @@ case "$INSTALL_KIND" in
         fi
         chmod +x "$resolved_binary"
         ln -sf "$resolved_binary" "$ACE_BIN_DIR/acestreamengine"
-        ;;
-    python_module)
-        PYTHON_VERSION="${ACESTREAM_PYTHON_VERSION:-3.10}"
-        PYTHON_BIN="${ACESTREAM_PYTHON_BIN:-python${PYTHON_VERSION}}"
-        PY_MODULE="${ACESTREAM_PYTHON_MODULE:-acestreamengine}"
-        TEMPLATE_PATH="${ACESTREAM_WRAPPER_TEMPLATE:-/usr/local/share/acestream/wrapper.sh.tpl}"
 
-        if ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
-            printf 'install-acestream: %s not found in installer image\n' "$PYTHON_BIN" >&2
-            exit 1
+        # If the upstream tarball ships a requirements.txt for engine
+        # runtime deps (3.2.x does), pip-install it into a self-contained
+        # site-packages dir so the runtime image can put it on PYTHONPATH.
+        if [ -f "$ACE_DIR/requirements.txt" ]; then
+            PYTHON_VERSION="${ACESTREAM_PYTHON_VERSION:-3.10}"
+            PYTHON_BIN="${ACESTREAM_PYTHON_BIN:-python${PYTHON_VERSION}}"
+            if ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
+                printf 'install-acestream: %s required to install requirements.txt but not found\n' \
+                    "$PYTHON_BIN" >&2
+                exit 1
+            fi
+            mkdir -p "$ACE_DIR/python-deps"
+            "$PYTHON_BIN" -m pip install \
+                --no-warn-script-location \
+                --target="$ACE_DIR/python-deps" \
+                -r "$ACE_DIR/requirements.txt"
+            # Fast-fail: try importing one of the deps to surface ABI issues
+            # at build time rather than at first engine launch.
+            # apsw >= 3.x exposes apswversion(); older builds use __version__.
+            PYTHONPATH="$ACE_DIR/python-deps" "$PYTHON_BIN" -c \
+                "import apsw; print('apsw ok')"
         fi
-
-        # Verify the python package directory we expect actually exists.
-        if [ ! -d "$ACE_DIR/$PY_MODULE" ]; then
-            printf 'install-acestream: expected python package dir %s/%s\n' "$ACE_DIR" "$PY_MODULE" >&2
-            exit 1
-        fi
-
-        # Install bundled wheels into a self-contained site-packages dir.
-        # The tarball may bundle wheels for multiple architectures (e.g. x86_64
-        # and s390x). Install each wheel individually, silently skipping any
-        # that are not supported on this platform.
-        mkdir -p "$ACE_DIR/site-packages"
-        wheel_glob=("$ACE_DIR"/*.whl)
-        if [ -e "${wheel_glob[0]}" ]; then
-            for whl in "${wheel_glob[@]}"; do
-                set +e
-                pip_out=$("$PYTHON_BIN" -m pip install \
-                    --no-deps \
-                    --no-warn-script-location \
-                    --target="$ACE_DIR/site-packages" \
-                    "$whl" 2>&1)
-                pip_rc=$?
-                set -e
-                if [ $pip_rc -ne 0 ]; then
-                    if printf '%s' "$pip_out" | grep -qi 'not a supported wheel'; then
-                        printf 'install-acestream: skipping incompatible wheel %s\n' "$(basename "$whl")"
-                    else
-                        printf '%s\n' "$pip_out" >&2
-                        exit $pip_rc
-                    fi
-                fi
-            done
-        fi
-
-        # Render the wrapper template.
-        if [ ! -f "$TEMPLATE_PATH" ]; then
-            printf 'install-acestream: wrapper template missing at %s\n' "$TEMPLATE_PATH" >&2
-            exit 1
-        fi
-        sed \
-            -e "s|__ACE_HOME__|$ACE_DIR|g" \
-            -e "s|__PYTHON_BIN__|$PYTHON_BIN|g" \
-            -e "s|__PY_MODULE__|$PY_MODULE|g" \
-            "$TEMPLATE_PATH" > "$ACE_BIN_DIR/acestreamengine"
-        chmod +x "$ACE_BIN_DIR/acestreamengine"
-        resolved_binary="$ACE_BIN_DIR/acestreamengine"
-
-        # Smoke import inside the installer image — fast-fail at build time
-        # if the Python version / .so ABI is incompatible.
-        LD_LIBRARY_PATH="$ACE_DIR" \
-            PYTHONPATH="$ACE_DIR:$ACE_DIR/site-packages" \
-            "$PYTHON_BIN" -c "import $PY_MODULE; print('imported', $PY_MODULE.__name__)"
         ;;
     *)
-        printf 'install-acestream: unknown ACESTREAM_INSTALL_KIND=%s\n' "$INSTALL_KIND" >&2
+        printf 'install-acestream: unknown ACESTREAM_INSTALL_KIND=%s (expected executable)\n' \
+            "$INSTALL_KIND" >&2
         exit 1
         ;;
 esac

@@ -101,14 +101,47 @@ def test_scraper_acestream_starts_real_engine():
     )
     try:
         assert _wait_for_port(host_port, timeout=60), "app port did not open"
-        # Engine should be reachable inside the container
-        ace_check = subprocess.run(
-            ["docker", "exec", container, "curl", "-fsS", "http://localhost:6878/webui/api/service?method=get_version"],
-            capture_output=True, text=True, timeout=30,
-        )
-        # Some 3.2.x builds gate webui behind auth; accept either real JSON
-        # or a 401-style response, but reject "connection refused".
+        # The engine and the app are independent processes spawned by
+        # entrypoint.sh; engine startup is heavier than uvicorn, so the
+        # engine port may bind seconds after the app port. Retry the
+        # webui curl until it stops returning "connection refused".
+        ace_check = None
+        engine_deadline = time.time() + 60
+        while time.time() < engine_deadline:
+            ace_check = subprocess.run(
+                [
+                    "docker", "exec", container, "curl", "-fsS",
+                    "http://localhost:6878/webui/api/service?method=get_version",
+                ],
+                capture_output=True, text=True, timeout=10,
+            )
+            combined = ace_check.stdout + ace_check.stderr
+            # curl rc=7 means "Failed to connect" — could be phrased as
+            # "connection refused" (Linux) or "Could not connect to server"
+            # (macOS/QEMU emulation). Retry on any rc=7.
+            if ace_check.returncode != 7:
+                break
+            time.sleep(2)
+        assert ace_check is not None, "engine curl never executed"
         combined = ace_check.stdout + ace_check.stderr
-        assert "connection refused" not in combined.lower(), combined
+        assert ace_check.returncode != 7, (
+            f"engine never bound :6878 within 60s. last rc={ace_check.returncode} "
+            f"stderr={ace_check.stderr!r}"
+        )
+        # Stronger positive: the engine produced *some* HTTP response (any body
+        # or any non-empty stderr from curl that isn't a connection-refused).
+        # This rejects "engine bound the port but never wrote a response".
+        engine_responded = (
+            ace_check.returncode == 0
+            or bool(ace_check.stdout)
+            or any(
+                tok in combined.lower()
+                for tok in ("http/", "401", "403", "404", "html", "{")
+            )
+        )
+        assert engine_responded, (
+            f"engine port :6878 reachable but no HTTP response detected: "
+            f"rc={ace_check.returncode} stdout={ace_check.stdout!r} stderr={ace_check.stderr!r}"
+        )
     finally:
         subprocess.run(["docker", "rm", "-f", container], capture_output=True)

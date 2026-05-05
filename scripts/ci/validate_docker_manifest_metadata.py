@@ -46,23 +46,16 @@ def require_platform_entry(entry: dict, platform: str) -> None:
         f"acestream.json platform {platform} install",
     )
     kind = install["kind"]
-    if kind not in {"executable", "python_module"}:
+    if kind != "executable":
         raise AssertionError(
             f"acestream.json platform {platform} install.kind must be "
-            f"'executable' or 'python_module', got {kind!r}"
+            f"'executable', got {kind!r}"
         )
-    if kind == "executable":
-        require_keys(
-            install,
-            ["binary_path"],
-            f"acestream.json platform {platform} install (kind=executable)",
-        )
-    else:
-        require_keys(
-            install,
-            ["python_version", "python_module"],
-            f"acestream.json platform {platform} install (kind=python_module)",
-        )
+    require_keys(
+        install,
+        ["binary_path"],
+        f"acestream.json platform {platform} install (kind=executable)",
+    )
     if not isinstance(entry["sha256"], str):
         raise AssertionError(
             f"acestream.json platform {platform} sha256 must be a string"

@@ -27,14 +27,10 @@ def test_each_platform_install_declares_kind():
         install = entry.get("install")
         assert isinstance(install, dict), f"{platform}: install must be an object"
         kind = install.get("kind")
-        assert kind in {"executable", "python_module"}, (
-            f"{platform}: install.kind must be 'executable' or 'python_module', got {kind!r}"
+        assert kind == "executable", (
+            f"{platform}: install.kind must be 'executable', got {kind!r}"
         )
-        if kind == "executable":
-            assert isinstance(install.get("binary_path"), str) and install["binary_path"]
-        else:
-            assert isinstance(install.get("python_version"), str) and install["python_version"]
-            assert isinstance(install.get("python_module"), str) and install["python_module"]
+        assert isinstance(install.get("binary_path"), str) and install["binary_path"]
 
 
 def test_validator_passes_on_current_manifest():
@@ -50,11 +46,11 @@ def test_validator_passes_on_current_manifest():
     assert result.returncode == 0, result.stderr or result.stdout
 
 
-def test_amd64_install_is_python_module_for_3_2_x():
+def test_amd64_install_is_executable_for_3_2_x():
     payload = load_manifest()
     if not payload["version"].startswith("3.2."):
         pytest.skip("test only meaningful while pinned to AceStream 3.2.x")
     install = payload["platforms"]["linux/amd64"]["install"]
-    assert install["kind"] == "python_module"
-    assert install["python_version"] == "3.10"
-    assert install["python_module"] == "acestreamengine"
+    assert install["kind"] == "executable"
+    assert install["binary_path"] == "start-engine"
+    assert install["strip_components"] == 0

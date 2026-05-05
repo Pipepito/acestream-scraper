@@ -35,7 +35,6 @@ ARG ACESTREAM_ARCHIVE_TYPE=tar.gz
 ARG ACESTREAM_STRIP_COMPONENTS=1
 ARG ACESTREAM_INSTALL_KIND=executable
 ARG ACESTREAM_BINARY_PATH=acestreamengine
-ARG ACESTREAM_PYTHON_MODULE=acestreamengine
 ARG ACESTREAM_PYTHON_VERSION=3.10
 
 ENV ACESTREAM_DOWNLOAD_URL=${ACESTREAM_DOWNLOAD_URL} \
@@ -44,7 +43,6 @@ ENV ACESTREAM_DOWNLOAD_URL=${ACESTREAM_DOWNLOAD_URL} \
     ACESTREAM_STRIP_COMPONENTS=${ACESTREAM_STRIP_COMPONENTS} \
     ACESTREAM_INSTALL_KIND=${ACESTREAM_INSTALL_KIND} \
     ACESTREAM_BINARY_PATH=${ACESTREAM_BINARY_PATH} \
-    ACESTREAM_PYTHON_MODULE=${ACESTREAM_PYTHON_MODULE} \
     ACESTREAM_PYTHON_VERSION=${ACESTREAM_PYTHON_VERSION}
 
 RUN apt-get update \
@@ -56,7 +54,6 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY docker/testdata/acestream/ /tmp/acestream-fixture/
-COPY docker/scripts/acestream-engine-wrapper.sh.tpl /usr/local/share/acestream/wrapper.sh.tpl
 COPY docker/scripts/install-acestream.sh /usr/local/bin/install-acestream.sh
 RUN chmod +x /usr/local/bin/install-acestream.sh \
     && /usr/local/bin/install-acestream.sh
@@ -151,7 +148,7 @@ FROM scraper AS scraper-acestream
 
 # Pull a working python3.10 interpreter from the official slim image. Two
 # Pythons coexist: 3.11 for the FastAPI app, 3.10 for the AceStream engine
-# (its bundled .so extensions are compiled against CPython 3.10).
+# (its binary links libpython3.10.so.1.0 directly).
 COPY --from=python:3.10-slim /usr/local/bin/python3.10 /usr/local/bin/python3.10
 COPY --from=python:3.10-slim /usr/local/lib/python3.10 /usr/local/lib/python3.10
 COPY --from=python:3.10-slim /usr/local/lib/libpython3.10.so.1.0 /usr/local/lib/libpython3.10.so.1.0
@@ -161,7 +158,7 @@ COPY --from=acestream-installer /opt/acestream/ /opt/acestream/
 
 ENV IMAGE_HAS_ACESTREAM=true \
     ACESTREAM_BINARY_PATH=/opt/acestream/bin/acestreamengine \
-    ACESTREAM_START_COMMAND=/opt/acestream/bin/acestreamengine
+    ACESTREAM_START_COMMAND="env PYTHONPATH=/opt/acestream/python-deps /opt/acestream/start-engine --client-console --http-port 6878"
 
 
 FROM scraper AS scraper-acexy

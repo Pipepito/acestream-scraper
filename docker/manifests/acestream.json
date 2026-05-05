@@ -6,10 +6,9 @@
       "sha256": "9b6bbd76a55e5a434641afae3b9cf8e6154ce1cf392152ec3aed5ac265432b2e",
       "archive_type": "tar.gz",
       "install": {
-        "strip_components": 1,
-        "kind": "python_module",
-        "python_version": "3.10",
-        "python_module": "acestreamengine",
+        "strip_components": 0,
+        "kind": "executable",
+        "binary_path": "start-engine",
         "engine_http_port": 6878
       }
     }

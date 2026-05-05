@@ -47,8 +47,17 @@ def _run_alembic_upgrade() -> None:
     from alembic import command
     from alembic.config import Config
 
-    repo_root = Path(__file__).resolve().parent.parent
-    alembic_config = Config(str(repo_root / "backend" / "migrations" / "alembic.ini"))
+    # When deployed in Docker, main.py lives at /app/main.py; migrations/ is
+    # a sibling directory.  During local dev/tests, main.py is at
+    # backend/main.py so migrations/ is also a sibling.  parent.parent would
+    # give the repo root only when the CWD happens to equal backend/, which is
+    # fragile — derive the path relative to __file__ instead.
+    app_dir = Path(__file__).resolve().parent
+    ini_path = app_dir / "migrations" / "alembic.ini"
+    alembic_config = Config(str(ini_path))
+    # Override script_location to an absolute path so Alembic can find the
+    # env.py and versions/ regardless of the process CWD.
+    alembic_config.set_main_option("script_location", str(app_dir / "migrations"))
     command.upgrade(alembic_config, "head")
 
 

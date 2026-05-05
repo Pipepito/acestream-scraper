@@ -24,19 +24,20 @@ def test_non_acestream_flavor_emits_nothing(tmp_path: Path):
     assert rc == 0 and out == ""
 
 
-def test_python_module_flavor_emits_expected_keys():
+def test_executable_flavor_emits_expected_keys():
     manifest = REPO_ROOT / "docker" / "manifests" / "acestream.json"
     rc, out, err = _run(manifest, "scraper-acestream-acexy", "linux/amd64")
     assert rc == 0, err
     pairs = dict(line.split("=", 1) for line in out.strip().splitlines())
-    assert pairs["ACESTREAM_INSTALL_KIND"] == "python_module"
-    assert pairs["ACESTREAM_PYTHON_MODULE"] == "acestreamengine"
-    assert pairs["ACESTREAM_PYTHON_VERSION"] == "3.10"
+    assert pairs["ACESTREAM_INSTALL_KIND"] == "executable"
+    assert pairs["ACESTREAM_BINARY_PATH"] == "start-engine"
     expected = json.loads((REPO_ROOT / "docker" / "manifests" / "acestream.json").read_text())
     expected_url = expected["platforms"]["linux/amd64"]["url"]
     expected_sha = expected["platforms"]["linux/amd64"]["sha256"]
     assert pairs["ACESTREAM_DOWNLOAD_URL"] == expected_url
     assert pairs["ACESTREAM_DOWNLOAD_SHA256"] == expected_sha
+    assert "ACESTREAM_PYTHON_MODULE" not in pairs
+    assert "ACESTREAM_PYTHON_VERSION" not in pairs
 
 
 def test_unknown_platform_errors(tmp_path: Path):

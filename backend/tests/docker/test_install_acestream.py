@@ -73,11 +73,10 @@ def test_fixture_mode_creates_executable_symlink():
     assert "acestreamengine" in listing
 
 
-def test_python_module_install_against_real_tarball():
-    """Build the installer with the real 3.2.x manifest values and assert the
-    wrapper script exists, is executable, and `python3.10 -m acestreamengine`
-    imports cleanly inside the resulting image."""
-    tag = "acestream-installer-test:pymod-real"
+def test_executable_install_against_real_tarball():
+    """Build the installer with the real 3.2.x manifest values; assert
+    start-engine is the symlink target and python deps were installed."""
+    tag = "acestream-installer-test:exec-real"
     _build_installer(
         tag,
         build_args={
@@ -85,40 +84,33 @@ def test_python_module_install_against_real_tarball():
                 "https://download.acestream.media/linux/acestream_3.2.11_ubuntu_22.04_x86_64_py3.10.tar.gz",
             "ACESTREAM_DOWNLOAD_SHA256":
                 "9b6bbd76a55e5a434641afae3b9cf8e6154ce1cf392152ec3aed5ac265432b2e",
-            "ACESTREAM_INSTALL_KIND": "python_module",
-            "ACESTREAM_PYTHON_MODULE": "acestreamengine",
-            "ACESTREAM_PYTHON_VERSION": "3.10",
-            "ACESTREAM_BINARY_PATH": "acestreamengine",  # unused for python_module
+            "ACESTREAM_INSTALL_KIND": "executable",
+            "ACESTREAM_BINARY_PATH": "start-engine",
+            "ACESTREAM_STRIP_COMPONENTS": "0",
         },
     )
 
     metadata = _read_file_in_image(tag, "/opt/acestream/install-metadata.txt")
-    assert "kind=python_module" in metadata
-    assert "resolved_binary=/opt/acestream/bin/acestreamengine" in metadata
+    assert "kind=executable" in metadata
+    assert "resolved_binary=/opt/acestream/start-engine" in metadata
 
-    # Wrapper should be a script (not a directory or symlink to one)
+    # start-engine wrapper from the upstream tarball must be present + executable
     file_check = subprocess.run(
         [
             "docker", "run", "--rm", "--entrypoint", "test",
-            tag, "-x", "/opt/acestream/bin/acestreamengine",
+            tag, "-x", "/opt/acestream/start-engine",
         ],
         check=False,
     )
     assert file_check.returncode == 0
 
-    # Re-importing the module via the installer image's python3.10 must succeed
-    import_check = subprocess.run(
-        [
-            "docker", "run", "--rm", "--entrypoint", "/opt/acestream/bin/acestreamengine",
-            tag, "--help",
-        ],
-        capture_output=True, text=True,
-    )
-    # acestreamengine doesn't necessarily implement --help; allow non-zero
-    # exit but require that the wrapper actually invoked python and produced
-    # output (i.e. the file exists and is executable end-to-end).
-    combined = import_check.stdout + import_check.stderr
-    assert "Traceback" not in combined or "acestreamengine" in combined, combined
+    # bin/acestreamengine should symlink to start-engine
+    listing = _list_dir_in_image(tag, "/opt/acestream/bin")
+    assert "acestreamengine" in listing
+
+    # Python deps installed into /opt/acestream/python-deps
+    listing = _list_dir_in_image(tag, "/opt/acestream/python-deps")
+    assert "apsw" in listing or any("apsw" in entry for entry in listing)
 
 
 def test_scraper_acestream_runtime_has_python310():

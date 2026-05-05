@@ -7,6 +7,7 @@
       "archive_type": "tar.gz",
       "install": {
         "strip_components": 1,
+        "kind": "executable",
         "binary_path": "acestreamengine",
         "engine_http_port": 6878
       }

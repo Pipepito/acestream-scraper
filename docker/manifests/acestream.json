@@ -7,8 +7,9 @@
       "archive_type": "tar.gz",
       "install": {
         "strip_components": 1,
-        "kind": "executable",
-        "binary_path": "acestreamengine",
+        "kind": "python_module",
+        "python_version": "3.10",
+        "python_module": "acestreamengine",
         "engine_http_port": 6878
       }
     }

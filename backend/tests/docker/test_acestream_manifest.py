@@ -48,3 +48,13 @@ def test_validator_passes_on_current_manifest():
         text=True,
     )
     assert result.returncode == 0, result.stderr or result.stdout
+
+
+def test_amd64_install_is_python_module_for_3_2_x():
+    payload = load_manifest()
+    if not payload["version"].startswith("3.2."):
+        pytest.skip("test only meaningful while pinned to AceStream 3.2.x")
+    install = payload["platforms"]["linux/amd64"]["install"]
+    assert install["kind"] == "python_module"
+    assert install["python_version"] == "3.10"
+    assert install["python_module"] == "acestreamengine"

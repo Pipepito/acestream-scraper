@@ -27,7 +27,7 @@ RUN pip install --upgrade pip \
     && pip install --prefix=/install -r requirements.txt
 
 
-FROM debian:bookworm-slim AS acestream-installer
+FROM python:3.10-slim AS acestream-installer
 
 ARG ACESTREAM_DOWNLOAD_URL
 ARG ACESTREAM_DOWNLOAD_SHA256=
@@ -56,6 +56,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY docker/testdata/acestream/ /tmp/acestream-fixture/
+COPY docker/scripts/acestream-engine-wrapper.sh.tpl /usr/local/share/acestream/wrapper.sh.tpl
 COPY docker/scripts/install-acestream.sh /usr/local/bin/install-acestream.sh
 RUN chmod +x /usr/local/bin/install-acestream.sh \
     && /usr/local/bin/install-acestream.sh

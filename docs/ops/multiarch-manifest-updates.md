@@ -101,3 +101,68 @@ If a freshly-published manifest breaks runtime smoke on a new platform:
 2. Re-run the release workflow on the previous SHA.
 3. Open an issue with the failing gate report attached so the next
    manifest attempt has the failure record to work from.
+
+## Bumping the AceStream version
+
+The AceStream payload is described entirely by `docker/manifests/acestream.json`.
+The manifest is consumed at build time by `scripts/ci/build_multiarch_images.sh`
+(via `scripts/ci/derive_acestream_build_args.py`), which converts each field
+into a `--build-arg` for `docker buildx`. The CI runtime smoke
+(`backend/tests/docker/test_acestream_runtime_smoke.py`, gated by
+`.github/workflows/pull_request.yml`) verifies the engine actually starts
+and responds on port 6878 in the resulting image.
+
+### Steps
+
+1. Find the upstream tarball URL on https://download.acestream.media/. As of
+   AceStream 3.2.x, the URL pattern is
+   `acestream_<VERSION>_ubuntu_22.04_x86_64_py3.10.tar.gz` and the tarball
+   ships a top-level `start-engine` shell wrapper plus a real ELF binary
+   `acestreamengine`. Older releases may use different filenames.
+2. Compute the sha256: `curl -sL <url> | shasum -a 256`.
+3. Update `docker/manifests/acestream.json`:
+   - Set `version`, `platforms.linux/amd64.url`, and `sha256`.
+   - For the standard 3.2.x layout, leave `install` as
+     `{ "strip_components": 0, "kind": "executable", "binary_path": "start-engine", "engine_http_port": 6878 }`.
+4. Run the manifest validator + docker tests locally:
+
+   ```bash
+   python3 scripts/ci/validate_docker_manifest_metadata.py
+   PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker
+   ```
+
+5. (Optional) run the full flavor validator to catch fixture-mode regressions:
+
+   ```bash
+   bash scripts/ci/validate_docker_flavor_targets.sh
+   ```
+
+6. Open a PR. CI's `required-checks` job will (a) re-derive the manifest's
+   build args via `derive_acestream_build_args.py`, (b) build
+   `scraper-acestream` against the upstream URL with sha256 verification,
+   and (c) run the runtime smoke that exercises the engine end-to-end.
+
+### Notes for non-3.2.x releases
+
+The current install pipeline supports a single `install.kind` value:
+`executable`. The runtime image grafts a `python3.10` interpreter from
+`python:3.10-slim` because the ELF binary directly links
+`libpython3.10.so.1.0`. If a future release moves to a different Python
+version, update the `COPY --from=python:3.10-slim …` block in the
+`scraper-acestream` stage of the `Dockerfile` accordingly.
+
+The bundled engine runtime deps in the tarball's `requirements.txt`
+(currently `apsw`, `lxml`, `pycryptodome`, `pynacl`, `iso8601`, `aiohttp`,
+`psutil`) are pip-installed at build time into `/opt/acestream/python-deps`
+and added to `PYTHONPATH` at engine launch via the `ACESTREAM_START_COMMAND`
+ENV in the Dockerfile. If the upstream `requirements.txt` ever changes in
+ways that break the install, the failure surfaces during
+`bash scripts/ci/build_multiarch_images.sh --flavor scraper-acestream` —
+no manifest schema change is needed for typical dep bumps.
+
+If a future release ships a tarball that does NOT include `start-engine`
+at the root, you will need to add support for a different install kind
+(e.g., a `python_module` or `command` kind that synthesizes a wrapper).
+The schema has the `kind` discriminator in place — only
+`scripts/ci/validate_docker_manifest_metadata.py` and
+`docker/scripts/install-acestream.sh` need new branches.

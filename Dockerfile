@@ -1,174 +1,191 @@
-# Use a multi-stage build for Acexy
-FROM golang:1.22 AS acexy-builder
-WORKDIR /app
-RUN git clone https://github.com/Javinator9889/acexy.git . && \
-    cd acexy && \
-    CGO_ENABLED=0 GOOS=linux go build -o /acexy
+FROM node:20-slim AS frontend-builder
 
-# Create base image with all dependencies
-FROM python:3.10-slim AS base
+WORKDIR /build/frontend
 
-# Add metadata labels
-LABEL maintainer="pipepito" \
-      description="Base image for Acestream channel scraper" \
-      version="1.2.14"
+COPY frontend/package*.json ./
+RUN npm install
 
-# Set the working directory
-WORKDIR /app
+COPY frontend/ ./
+RUN npm run build
 
-# Create the config directory
-RUN mkdir -p /app/config
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    wget \
-    curl \
-    gnupg \
-    gcc \
-    python3-dev \
-    build-essential \
-    tor
+FROM python:3.11-slim AS python-deps
 
-# Add TOR configuration
-RUN echo "ControlPort 9051" >> /etc/tor/torrc && \
-    echo "CookieAuthentication 1" >> /etc/tor/torrc
+WORKDIR /build/backend
 
-# Install ZeroNet dependencies with specific versions
-RUN pip install --no-cache-dir \
-    "msgpack-python" \
-    "gevent==22.10.2" \
-    "PySocks" \
-    "gevent-websocket" \
-    "python-bitcoinlib" \
-    "bencode.py" \
-    "merkletools" \
-    "pysha3" \
-    "cgi-tools" \
-    "urllib3<2.0.0" \
-    "rich" \
-    "requests" \
-    "pyaes" \
-    "coincurve" \
-    "base58" \
-    "defusedxml" \
-    "rsa"
+ENV PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Download and install ZeroNet
-RUN mkdir -p ZeroNet && \
-    wget https://github.com/zeronet-conservancy/zeronet-conservancy/archive/refs/heads/master.tar.gz -O ZeroNet.tar.gz && \
-    tar xvf ZeroNet.tar.gz && \
-    mv zeronet-conservancy-master/* ZeroNet/ && \
-    rm -rf ZeroNet.tar.gz zeronet-conservancy-master
-
-ENV ACESTREAM_VERSION="3.2.11_ubuntu_22.04_x86_64_py3.10"
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-
-# Install acestream dependencies
 RUN apt-get update \
-  && apt-get install --no-install-recommends -y \
-      python3.10 ca-certificates wget sudo \
-  && rm -rf /var/lib/apt/lists/* \
-  #
-  # Download acestream
-  && wget --progress=dot:giga "https://download.acestream.media/linux/acestream_${ACESTREAM_VERSION}.tar.gz" \
-  && mkdir acestream \
-  && tar zxf "acestream_${ACESTREAM_VERSION}.tar.gz" -C acestream \
-  && rm "acestream_${ACESTREAM_VERSION}.tar.gz" \
-  && mv acestream /opt/acestream \
-  && pushd /opt/acestream || exit \
-  && bash ./install_dependencies.sh \
-  && popd || exit
-
-# Copy the acexy binary from the builder stage
-COPY --from=acexy-builder /acexy /usr/local/bin/acexy
-RUN chmod +x /usr/local/bin/acexy
-
-# Install Cloudflare WARP dependencies
-RUN apt-get update && apt-get install -y \
-    apt-transport-https \
-    gnupg \
-    curl \
-    lsb-release \
-    dirmngr \
-    ca-certificates \
-    --no-install-recommends
-
-# Add Cloudflare GPG key and repository
-RUN curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg \
-    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/cloudflare-client.list
-
-# Install Cloudflare WARP
-RUN apt-get update && apt-get install -y cloudflare-warp \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Clean up APT in base image
-RUN apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+COPY backend/requirements.txt ./requirements.txt
+RUN pip install --upgrade pip \
+    && pip install --prefix=/install -r requirements.txt
 
-# Set default environment variables for base image
-ENV DOCKER_ENV=true
-ENV TZ='Europe/Madrid'
-ENV ENABLE_TOR=false
-ENV ENABLE_ACEXY=false
-ENV ENABLE_ACESTREAM_ENGINE=false
-ENV ENABLE_WARP=false
-ENV WARP_ENABLE_NAT=true
-ENV WARP_ENABLE_IPV6=false
-ENV ACESTREAM_HTTP_PORT=6878
-ENV IPV6_DISABLED=true
-ENV FLASK_PORT=8000
-ENV ACEXY_LISTEN_ADDR=":8080"
-ENV ACEXY_HOST="localhost"
-ENV ACEXY_PORT=6878
-ENV ALLOW_REMOTE_ACCESS="no"
-ENV ACEXY_NO_RESPONSE_TIMEOUT=15s
-ENV ACEXY_BUFFER_SIZE=5MiB
-ENV ACESTREAM_HTTP_HOST=ACEXY_HOST
-ENV EXTRA_FLAGS="--cache-dir /tmp --cache-limit 2 --cache-auto 1 --log-stderr --log-stderr-level error"
 
-# Final image with application code
-FROM base
+FROM debian:bookworm-slim AS acestream-installer
 
-# Update metadata labels for the final image
-LABEL description="Acestream channel scraper with ZeroNet support" \
-      version="1.2.14"
+ARG ACESTREAM_DOWNLOAD_URL
+ARG ACESTREAM_DOWNLOAD_SHA256=
+ARG ACESTREAM_ARCHIVE_TYPE=tar.gz
+ARG ACESTREAM_STRIP_COMPONENTS=1
+ARG ACESTREAM_BINARY_PATH=acestreamengine
 
-# Copy application files
-COPY --chmod=0755 entrypoint.sh /app/entrypoint.sh
-COPY --chmod=0755 healthcheck.sh /app/healthcheck.sh
-COPY --chmod=0755 warp-setup.sh /app/warp-setup.sh
-COPY requirements.txt requirements-prod.txt ./
-COPY migrations/ ./migrations/
-COPY migrations_app.py manage.py ./
-COPY wsgi.py ./
-COPY app/ ./app/
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        bash \
+        ca-certificates \
+        curl \
+        tar \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install the application dependencies
-RUN pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir -r requirements-prod.txt
+COPY docker/testdata/acestream/ /tmp/acestream-fixture/
 
-# Expose the ports
-EXPOSE 8000
-EXPOSE 43110
-EXPOSE 43111
-EXPOSE 26552
-EXPOSE 8080
-EXPOSE 8621
+RUN mkdir -p /opt/acestream /opt/acestream/bin /tmp/acestream-src \
+    && if [ -n "$ACESTREAM_DOWNLOAD_URL" ]; then \
+        curl -fsSL "$ACESTREAM_DOWNLOAD_URL" -o /tmp/acestream.tar.gz; \
+        if [ -n "$ACESTREAM_DOWNLOAD_SHA256" ]; then \
+            printf '%s  %s\n' "$ACESTREAM_DOWNLOAD_SHA256" /tmp/acestream.tar.gz | sha256sum -c -; \
+        fi; \
+        case "$ACESTREAM_ARCHIVE_TYPE" in \
+            tar.gz) tar -xzf /tmp/acestream.tar.gz -C /tmp/acestream-src --strip-components="$ACESTREAM_STRIP_COMPONENTS" ;; \
+            *) printf 'Unsupported ACESTREAM_ARCHIVE_TYPE: %s\n' "$ACESTREAM_ARCHIVE_TYPE" >&2; exit 1 ;; \
+        esac; \
+        cp -R /tmp/acestream-src/. /opt/acestream/; \
+      else \
+        cp -R /tmp/acestream-fixture/. /opt/acestream/; \
+      fi \
+    && binary_source="$ACESTREAM_BINARY_PATH" \
+    && case "$binary_source" in \
+        /*) resolved_binary="$binary_source" ;; \
+        *) resolved_binary="/opt/acestream/$binary_source" ;; \
+    esac \
+    && [ -f "$resolved_binary" ] \
+    && chmod +x "$resolved_binary" \
+    && ln -sf "$resolved_binary" /opt/acestream/bin/acestreamengine \
+    && printf 'source_url=%s\narchive_type=%s\nstrip_components=%s\nsha256=%s\nresolved_binary=%s\n' \
+        "$ACESTREAM_DOWNLOAD_URL" \
+        "$ACESTREAM_ARCHIVE_TYPE" \
+        "$ACESTREAM_STRIP_COMPONENTS" \
+        "$ACESTREAM_DOWNLOAD_SHA256" \
+        "$resolved_binary" > /opt/acestream/install-metadata.txt
 
-# Set the volume
-VOLUME ["/app/ZeroNet/data"]
 
-# Make sure WORKDIR is set correctly
+FROM golang:1.22 AS acexy-builder
+
+ARG ACEXY_REPO
+ARG ACEXY_REF
+ARG ACEXY_BINARY_NAME=acexy
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates git \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY docker/testdata/acexy/ /tmp/acexy-fixture/
+
+RUN mkdir -p /src /out \
+    && if [ -n "${ACEXY_REPO:-}" ] && [ "$ACEXY_REPO" != "fixture" ]; then \
+        git clone --depth 1 "$ACEXY_REPO" /src; \
+        cd /src; \
+        git fetch --depth 1 origin "$ACEXY_REF"; \
+        git checkout FETCH_HEAD; \
+      else \
+        cp -R /tmp/acexy-fixture/. /src/; \
+      fi \
+    && cd /src \
+    && CGO_ENABLED=0 GOOS=linux go build -o "/out/$ACEXY_BINARY_NAME" .
+
+
+FROM python:3.11-slim AS runtime-base
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    FRONTEND_BUILD_PATH=frontend_build \
+    LOG_DIR=/app/logs \
+    ENABLE_WARP=false \
+    ENABLE_ACESTREAM_ENGINE=false \
+    ENABLE_ACEXY=false \
+    IMAGE_HAS_ACESTREAM=false \
+    IMAGE_HAS_ACEXY=false \
+    FLASK_PORT=8000 \
+    ACESTREAM_HTTP_HOST=localhost \
+    ACESTREAM_HTTP_PORT=6878 \
+    ACEXY_HOST=localhost \
+    ACEXY_PORT=6878 \
+    ACEXY_STATUS_PORT=8080 \
+    ZERONET_URL=http://127.0.0.1:43110
+
 WORKDIR /app
 
-# Define the healthcheck
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s \
-    CMD /app/healthcheck.sh
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        dbus \
+        iproute2 \
+        iptables \
+        logrotate \
+        nftables \
+        procps \
+        tini \
+        wget \
+    && wget -q https://pkg.cloudflareclient.com/pubkey.gpg -O /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg \
+    && printf 'deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ bookworm main\n' > /etc/apt/sources.list.d/cloudflare-client.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends cloudflare-warp \
+    && rm -rf /var/lib/apt/lists/*
 
-# IMPORTANT: The following capabilities must be added when running the container with WARP enabled:
-# --cap-add NET_ADMIN
-# --cap-add SYS_ADMIN
-# Example: docker run --cap-add NET_ADMIN --cap-add SYS_ADMIN -e ENABLE_WARP=true ...
-# Note: Container runs with IPv6 disabled to avoid DNS lookup issues
+COPY --from=python-deps /install /usr/local
+COPY backend/ /app/
+RUN mkdir -p /app/frontend_build /app/logs /opt/acestream/bin /opt/acexy/bin
+COPY --from=frontend-builder /build/frontend/dist/ /app/frontend_build/
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY warp-setup.sh /usr/local/bin/warp-setup.sh
+COPY healthcheck.sh /usr/local/bin/healthcheck.sh
 
-ENTRYPOINT ["/app/entrypoint.sh"]
+RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/warp-setup.sh /usr/local/bin/healthcheck.sh
+
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/entrypoint.sh"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 CMD ["/usr/local/bin/healthcheck.sh"]
+
+
+FROM runtime-base AS scraper
+
+
+FROM scraper AS scraper-acestream
+
+COPY --from=acestream-installer /opt/acestream/ /opt/acestream/
+
+ENV IMAGE_HAS_ACESTREAM=true \
+    ACESTREAM_BINARY_PATH=/opt/acestream/bin/acestreamengine \
+    ACESTREAM_START_COMMAND=/opt/acestream/bin/acestreamengine
+
+
+FROM scraper AS scraper-acexy
+
+ARG ACEXY_BINARY_NAME=acexy
+
+COPY --from=acexy-builder /out/${ACEXY_BINARY_NAME} /opt/acexy/bin/${ACEXY_BINARY_NAME}
+
+ENV IMAGE_HAS_ACEXY=true \
+    ACEXY_BINARY_PATH=/opt/acexy/bin/${ACEXY_BINARY_NAME} \
+    ACEXY_START_COMMAND=/opt/acexy/bin/${ACEXY_BINARY_NAME}
+
+
+FROM scraper-acestream AS scraper-acestream-acexy
+
+ARG ACEXY_BINARY_NAME=acexy
+
+COPY --from=acexy-builder /out/${ACEXY_BINARY_NAME} /opt/acexy/bin/${ACEXY_BINARY_NAME}
+
+ENV IMAGE_HAS_ACEXY=true \
+    ACEXY_BINARY_PATH=/opt/acexy/bin/${ACEXY_BINARY_NAME} \
+    ACEXY_START_COMMAND=/opt/acexy/bin/${ACEXY_BINARY_NAME}

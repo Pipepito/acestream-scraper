@@ -1,0 +1,135 @@
+{
+  "version": "2026-03-25.1",
+  "profiles": {
+    "quick": {
+      "description": "PR-friendly architecture validation profile",
+      "commands": [
+        {
+          "id": "workflow_flavor_publish_guard",
+          "description": "Assert workflow release and validation files use flavor-aware Docker tagging",
+          "command": "python3 -c \"from pathlib import Path; root = Path('.'); release = (root / '.github/workflows/release.yml').read_text(encoding='utf-8'); validation = (root / '.github/workflows/multiarch-validation.yml').read_text(encoding='utf-8'); pr = (root / '.github/workflows/pull_request.yml').read_text(encoding='utf-8'); flavor_tokens = ['--flavor scraper', '--flavor scraper-acestream', '--flavor scraper-acexy', '--flavor scraper-acestream-acexy']; release_required_check_results = ['phase5-build-result-release-scraper.json', 'phase5-build-result-release-scraper-acestream.json', 'phase5-build-result-release-scraper-acexy.json', 'phase5-build-result-release-scraper-acestream-acexy.json']; checks = [('release cutover', 'pipepito/acestream-scraper-v2' not in release), ('release full aliases', all(item in release for item in ['--flavor scraper-acestream-acexy', '--tag pipepito/acestream-scraper:latest', '--tag pipepito/acestream-scraper:\\${VERSION}', '--tag pipepito/acestream-scraper:scraper-acestream-acexy', '--tag pipepito/acestream-scraper:\\${VERSION}-scraper-acestream-acexy'])), ('release explicit flavors', all(item in release for item in ['--tag pipepito/acestream-scraper:scraper', '--tag pipepito/acestream-scraper:\\${VERSION}-scraper', '--tag pipepito/acestream-scraper:scraper-acestream', '--tag pipepito/acestream-scraper:\\${VERSION}-scraper-acestream', '--tag pipepito/acestream-scraper:scraper-acexy', '--tag pipepito/acestream-scraper:\\${VERSION}-scraper-acexy'])), ('release required-check flavors', all(item in release for item in flavor_tokens + release_required_check_results)), ('release publish pushes', release.count('--push') >= 4), ('release flavor verification', release.count('bash scripts/ci/verify_multiarch_manifest.sh') >= 4 and all(item in release for item in flavor_tokens)), ('multiarch validation flavors', all(item in validation for item in flavor_tokens)), ('pull request flavors', all(item in pr for item in flavor_tokens))]; failed = [name for name, passed in checks if not passed]; [print(('PASS' if passed else 'FAIL') + ': ' + name) for name, passed in checks]; raise SystemExit(1 if failed else 0)\"",
+          "blocking": true
+        },
+        {
+          "id": "multiarch_build_scraper_dryrun",
+          "description": "Validate baseline scraper flavor build matrix without heavy build execution",
+          "command": "bash scripts/ci/build_multiarch_images.sh --dry-run --flavor scraper --result-file phase5-build-result-quick-scraper.json",
+          "blocking": true
+        },
+        {
+          "id": "manifest_matrix_guard_scraper",
+          "description": "Assert scraper flavor platforms in generated build result",
+          "command": "bash scripts/ci/verify_multiarch_manifest.sh --result-file phase5-build-result-quick-scraper.json --flavor scraper",
+          "blocking": true
+        },
+        {
+          "id": "multiarch_build_scraper_acestream_dryrun",
+          "description": "Validate scraper-acestream flavor build matrix without heavy build execution",
+          "command": "bash scripts/ci/build_multiarch_images.sh --dry-run --flavor scraper-acestream --result-file phase5-build-result-quick-scraper-acestream.json",
+          "blocking": true
+        },
+        {
+          "id": "manifest_matrix_guard_scraper_acestream",
+          "description": "Assert scraper-acestream flavor platforms in generated build result",
+          "command": "bash scripts/ci/verify_multiarch_manifest.sh --result-file phase5-build-result-quick-scraper-acestream.json --flavor scraper-acestream",
+          "blocking": true
+        },
+        {
+          "id": "multiarch_build_scraper_acexy_dryrun",
+          "description": "Validate scraper-acexy flavor build matrix without heavy build execution",
+          "command": "bash scripts/ci/build_multiarch_images.sh --dry-run --flavor scraper-acexy --result-file phase5-build-result-quick-scraper-acexy.json",
+          "blocking": true
+        },
+        {
+          "id": "manifest_matrix_guard_scraper_acexy",
+          "description": "Assert scraper-acexy flavor platforms in generated build result",
+          "command": "bash scripts/ci/verify_multiarch_manifest.sh --result-file phase5-build-result-quick-scraper-acexy.json --flavor scraper-acexy",
+          "blocking": true
+        },
+        {
+          "id": "multiarch_build_scraper_acestream_acexy_dryrun",
+          "description": "Validate scraper-acestream-acexy flavor build matrix without heavy build execution",
+          "command": "bash scripts/ci/build_multiarch_images.sh --dry-run --flavor scraper-acestream-acexy --result-file phase5-build-result-quick-scraper-acestream-acexy.json",
+          "blocking": true
+        },
+        {
+          "id": "manifest_matrix_guard_scraper_acestream_acexy",
+          "description": "Assert scraper-acestream-acexy flavor platforms in generated build result",
+          "command": "bash scripts/ci/verify_multiarch_manifest.sh --result-file phase5-build-result-quick-scraper-acestream-acexy.json --flavor scraper-acestream-acexy",
+          "blocking": true
+        },
+        {
+          "id": "runtime_smoke_dryrun",
+          "description": "Validate architecture smoke plan shape",
+          "command": "bash scripts/ci/phase5_arch_smoke.sh --dry-run --platforms linux/arm/v7,linux/arm64",
+          "blocking": true
+        }
+      ]
+    },
+    "full": {
+      "description": "Full architecture build/runtime validation profile",
+      "commands": [
+        {
+          "id": "workflow_flavor_publish_guard",
+          "description": "Assert workflow release and validation files use flavor-aware Docker tagging",
+          "command": "python3 -c \"from pathlib import Path; root = Path('.'); release = (root / '.github/workflows/release.yml').read_text(encoding='utf-8'); validation = (root / '.github/workflows/multiarch-validation.yml').read_text(encoding='utf-8'); pr = (root / '.github/workflows/pull_request.yml').read_text(encoding='utf-8'); flavor_tokens = ['--flavor scraper', '--flavor scraper-acestream', '--flavor scraper-acexy', '--flavor scraper-acestream-acexy']; release_required_check_results = ['phase5-build-result-release-scraper.json', 'phase5-build-result-release-scraper-acestream.json', 'phase5-build-result-release-scraper-acexy.json', 'phase5-build-result-release-scraper-acestream-acexy.json']; checks = [('release cutover', 'pipepito/acestream-scraper-v2' not in release), ('release full aliases', all(item in release for item in ['--flavor scraper-acestream-acexy', '--tag pipepito/acestream-scraper:latest', '--tag pipepito/acestream-scraper:\\${VERSION}', '--tag pipepito/acestream-scraper:scraper-acestream-acexy', '--tag pipepito/acestream-scraper:\\${VERSION}-scraper-acestream-acexy'])), ('release explicit flavors', all(item in release for item in ['--tag pipepito/acestream-scraper:scraper', '--tag pipepito/acestream-scraper:\\${VERSION}-scraper', '--tag pipepito/acestream-scraper:scraper-acestream', '--tag pipepito/acestream-scraper:\\${VERSION}-scraper-acestream', '--tag pipepito/acestream-scraper:scraper-acexy', '--tag pipepito/acestream-scraper:\\${VERSION}-scraper-acexy'])), ('release required-check flavors', all(item in release for item in flavor_tokens + release_required_check_results)), ('release publish pushes', release.count('--push') >= 4), ('release flavor verification', release.count('bash scripts/ci/verify_multiarch_manifest.sh') >= 4 and all(item in release for item in flavor_tokens)), ('multiarch validation flavors', all(item in validation for item in flavor_tokens)), ('pull request flavors', all(item in pr for item in flavor_tokens))]; failed = [name for name, passed in checks if not passed]; [print(('PASS' if passed else 'FAIL') + ': ' + name) for name, passed in checks]; raise SystemExit(1 if failed else 0)\"",
+          "blocking": true
+        },
+        {
+          "id": "multiarch_build_scraper_exec",
+          "description": "Execute baseline scraper flavor build matrix",
+          "command": "bash scripts/ci/build_multiarch_images.sh --flavor scraper --result-file phase5-build-result-full-scraper.json",
+          "blocking": true
+        },
+        {
+          "id": "manifest_matrix_guard_scraper",
+          "description": "Assert scraper flavor platforms in build result",
+          "command": "bash scripts/ci/verify_multiarch_manifest.sh --result-file phase5-build-result-full-scraper.json --flavor scraper",
+          "blocking": true
+        },
+        {
+          "id": "multiarch_build_scraper_acestream_exec",
+          "description": "Execute scraper-acestream flavor build matrix",
+          "command": "bash scripts/ci/build_multiarch_images.sh --flavor scraper-acestream --result-file phase5-build-result-full-scraper-acestream.json",
+          "blocking": true
+        },
+        {
+          "id": "manifest_matrix_guard_scraper_acestream",
+          "description": "Assert scraper-acestream flavor platforms in build result",
+          "command": "bash scripts/ci/verify_multiarch_manifest.sh --result-file phase5-build-result-full-scraper-acestream.json --flavor scraper-acestream",
+          "blocking": true
+        },
+        {
+          "id": "multiarch_build_scraper_acexy_exec",
+          "description": "Execute scraper-acexy flavor build matrix",
+          "command": "bash scripts/ci/build_multiarch_images.sh --flavor scraper-acexy --result-file phase5-build-result-full-scraper-acexy.json",
+          "blocking": true
+        },
+        {
+          "id": "manifest_matrix_guard_scraper_acexy",
+          "description": "Assert scraper-acexy flavor platforms in build result",
+          "command": "bash scripts/ci/verify_multiarch_manifest.sh --result-file phase5-build-result-full-scraper-acexy.json --flavor scraper-acexy",
+          "blocking": true
+        },
+        {
+          "id": "multiarch_build_scraper_acestream_acexy_exec",
+          "description": "Execute scraper-acestream-acexy flavor build matrix",
+          "command": "bash scripts/ci/build_multiarch_images.sh --flavor scraper-acestream-acexy --result-file phase5-build-result-full-scraper-acestream-acexy.json",
+          "blocking": true
+        },
+        {
+          "id": "manifest_matrix_guard_scraper_acestream_acexy",
+          "description": "Assert scraper-acestream-acexy flavor platforms in build result",
+          "command": "bash scripts/ci/verify_multiarch_manifest.sh --result-file phase5-build-result-full-scraper-acestream-acexy.json --flavor scraper-acestream-acexy",
+          "blocking": true
+        },
+        {
+          "id": "runtime_smoke_exec",
+          "description": "Run architecture runtime smoke checks",
+          "command": "bash scripts/ci/phase5_arch_smoke.sh --platforms linux/arm/v7,linux/arm64",
+          "blocking": true
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,112 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Common Commands
+
+Backend (run from repo root unless noted):
+
+- Install: `python3 -m venv backend/venv && source backend/venv/bin/activate && pip install -r backend/requirements.txt`
+- Dev server: `cd backend && uvicorn main:app --reload --host 0.0.0.0 --port 8000`
+- Full pytest suite: `PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests`
+- Single file: `PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/test_channels.py`
+- Single test: `PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/test_channels.py::test_name`
+- Curated v2 runner: `python backend/run_tests.py [name]` (groups: channels, tv, epg, scrapers, search, playlists, config, health, warp; or `coverage`)
+- Alembic (always run from repo root with PYTHONPATH set so `backend/` is importable):
+  - History: `PYTHONPATH=backend alembic -c backend/migrations/alembic.ini history`
+  - Upgrade: `PYTHONPATH=backend alembic -c backend/migrations/alembic.ini upgrade head`
+
+Frontend (`cd frontend`):
+
+- Install: `npm ci`
+- Dev (proxies `/api` → `:8000`): `npm start` (Vite, port 3000)
+- Build for backend serving: `npm run build:backend` (runs `vite build` then copies `dist/` → `backend/frontend_build/` via `scripts/copy-build.js`; set `COPY_BUILD_SOURCE`/`COPY_BUILD_DESTINATION` to override)
+- Tests: `npm test` (Jest + RTL); single file: `npm test -- Dashboard.test.tsx`
+
+Cutover / CI:
+
+- Quick canonical suite (backend contracts + key frontend tests + frontend build): `bash scripts/ci/run_v2_test_suite.sh --profile quick` (or `--profile full`)
+- Same target via the cutover wrapper: `bash scripts/ci/run_cutover_required_checks.sh --profile quick`
+- Strict legacy-path guard: `bash scripts/ci/assert_no_legacy_paths.sh --strict`
+- Pre-deploy DB safety check (creates timestamped backup under `config/backups/`): `bash scripts/ops/preflight_v2_deploy.sh`
+
+Docker:
+
+- `docker compose up -d` (uses `pipepito/acestream-scraper:latest` = `scraper-acestream-acexy` payload; published flavors: `scraper`, `scraper-acestream`, `scraper-acexy`, `scraper-acestream-acexy`)
+- Optional ZeroNet sidecar: `docker compose --profile zeronet up -d`
+
+## Architecture
+
+### Top-level layout
+
+`backend/` (FastAPI app, source of truth for runtime) and `frontend/` (React 18 + TypeScript + Vite + MUI v5) are the only canonical app paths. The backend serves the built SPA from `backend/frontend_build/` at `/`; the frontend's build script writes there. Legacy root entrypoints have been retired — `scripts/ci/assert_no_legacy_paths.sh --strict` enforces this.
+
+### Backend startup sequence (`backend/main.py`)
+
+1. `app.config.settings` loads `Settings` (pydantic-settings) and on import calls `apply_legacy_env_aliases()` to map one-release-window legacy env names to canonical ones (e.g., `SCRAPER_DB_URL` → `DATABASE_URL`, `ACESTREAM_ENGINE_URL` → `ACE_ENGINE_URL`); canonical wins on conflict, both-set conflicts log a warning. Disable with `ENABLE_LEGACY_ENV_ALIASES=false`.
+2. `initialize_database()` runs **before** `FastAPI(...)` is constructed:
+   - If a v1 SQLite db exists at `LEGACY_DATABASE_URL` and is not yet marked `.migrated`, `migrate_database.DatabaseMigrator` performs the v1→v2 data migration in-process.
+   - Otherwise, if the v2 db file is missing, it provisions the schema by calling Alembic `upgrade head` (same path as tests/deployments). Existing v2 dbs are left alone.
+3. `api_router` is mounted at `/api/v1`. Routers include a backward-compatible alias: `/api/v1/channels` and `/api/v1/acestream-channels` route to the same router (kept for parity tests).
+4. A non-API public M3U route is exposed at `/playlists/m3u` (no `/api` prefix) for user-friendly playlist URLs.
+5. SPA fallback: a `StarletteHTTPException` handler returns `frontend_build/index.html` for any non-`/api` 404, enabling client-side routing.
+6. APScheduler (`task_service`) starts on the FastAPI `startup` event and registers fixed-interval jobs: activity-log cleanup (24h), EPG refresh (1h), URL scraping (15m), channel cleanup (24h), channel status (10m). Edit intervals in `main.start_background_tasks()`.
+
+### Backend module shape (`backend/app/`)
+
+- `api/api.py` is the only place routers are wired. Endpoint modules under `api/endpoints/` are thin and call services.
+- `services/` holds business logic — one module per domain (channels, tv channels, EPG sources/channels/programs, scrapers, search, playlists, stats, activity log, dashboard config, WARP, streams, task scheduler, etc.). Endpoints inject `Session` via `Depends(get_db)` and instantiate the relevant service.
+- `models/models.py` is the SQLAlchemy model hub; some additional models live in sibling files (`activity_log.py`, `dashboard_config.py`, `background_task_status.py`). `Base` comes from `app/config/database.py`.
+- `repositories/` — DB-only access helpers (no business logic).
+- `schemas/` — Pydantic DTOs for request/response.
+- `scrapers/` — `BaseScraper` ABC plus `HTTPScraper` and `ZeronetScraper` concrete implementations. `create_scraper_for_url(url, url_type)` is the factory; `url_type` of `"auto"`, `"zeronet"`, or `"regular"` resolves to a `BaseURL` subclass that controls timeout/retry defaults.
+- `tasks/` — function bodies invoked by the APScheduler jobs registered in `main.py`.
+- `migrations/` — Alembic; mixed naming style (timestamped + hash slugs). Two recent revisions (`20260423_…align_runtime_schema`, `…align_channel_and_url_runtime_schema`) backfill the runtime model — keep them in any reset path. Tests use `tests/migration_test_utils.upgrade_to_head` rather than `Base.metadata.create_all` to ensure parity with prod.
+
+### Test fixtures (`backend/tests/conftest.py`)
+
+Two parallel runtimes coexist:
+
+- `backend_runtime` / `client` / `db_session` — fast path that creates schema with `Base.metadata.create_all` on a temp SQLite file. Use for most service/endpoint tests.
+- `alembic_backend_runtime` / `alembic_client` / `alembic_db_session` — provisions the temp DB by running Alembic `upgrade head`. Use this when behavior depends on real migration state (schema parity, contract tests, regression suites).
+
+`_load_backend_runtime()` reloads `app.config.settings`, `app.config.database`, and `main` with `DATABASE_URL` overridden, so settings-cache invalidation happens correctly between tests. Tests pulling models or config inside fixtures must `import` lazily after the fixture runs; the helper resets `_RESETTABLE_BACKEND_MODULE_PREFIXES` between runs.
+
+### Frontend
+
+- Routing is declared in `src/App.tsx` and wrapped in `components/layout/AppShell`. Pages under `src/pages/` are the route-level views; reusable components live under `src/components/`.
+- API access goes through `src/services/*.ts`, all built on `apiClient.ts` (axios). React Query (v3) is the data layer.
+- Vite config (`frontend/vite.config.ts`) hand-tunes `manualChunks` for MUI / data-grid / data-vendor / TVChannels page splits. Preserve the chunking rules unless deliberately retuning bundle size.
+- Dev server proxies `/api` → `http://localhost:8000`. Backend `CORS_ORIGINS` defaults to `http://localhost:3000` and accepts a comma-separated string in env (normalized in `Settings.normalize_cors_origins`).
+
+### Docker image flavors
+
+The root `Dockerfile` is multi-stage with named targets `scraper`, `scraper-acestream`, `scraper-acexy`, `scraper-acestream-acexy`. `latest` is the same payload as `scraper-acestream-acexy`. AceStream-enabled flavors (`scraper-acestream`, `scraper-acestream-acexy`, `latest`) are platform-gated by `docker/manifests/acestream.json`; the baseline flavors (`scraper`, `scraper-acexy`) cover ARMv7/ARM64.
+
+`entrypoint.sh` enforces the install/runtime split: which binaries are installed is set by the chosen flavor (`IMAGE_HAS_ACESTREAM`, `IMAGE_HAS_ACEXY`); whether they actually start is controlled by `ENABLE_ACESTREAM_ENGINE`, `ENABLE_ACEXY`, `ENABLE_WARP`. WARP requires `NET_ADMIN` + `SYS_ADMIN` capabilities. Acexy refuses to target `localhost:6878` if the in-container engine is disabled.
+
+### Engineering norms (project-specific)
+
+- TypeScript-only frontend: no `.js`/`.jsx` files; all components typed via named interfaces, no `any`. See `docs/dev/typescript-standards.md`.
+- Backend uses Python 3.11+, pydantic v2, SQLAlchemy 2.x; type hints required; every endpoint round-trips through Pydantic DTOs and surfaces in `/openapi.json`.
+- `docs/migration/development-progress.md` is the live status doc; `docs/migration/migration-strategy.md` and `docs/migration/development-phases.md` define cutover rules.
+
+## Design Context
+
+For frontend design guidance in this worktree, also use `docs/dev/frontend-design-checklist.md` and `docs/dev/frontend-theme-reference.md` alongside this context.
+
+### Users
+This product is for single users with little or no technical knowledge who need guidance while managing an AceStream setup. They use the interface as an operational control panel for channels, EPG data, playlists, scraper tasks, WARP, and system health, and the product should help them move through each workflow without assuming deep technical expertise.
+
+### Brand Personality
+The brand should feel bold, powerful, and operational. The voice should be clear, direct, and supportive so users feel fast, confident, and slightly delighted rather than intimidated by a technical tool.
+
+### Aesthetic Direction
+The current product already points toward a structured operational dashboard: Material UI, IBM Plex Sans, a left-nav app shell, light-mode defaults, teal and blue as primary accents, and compact cards and sections for dense information. Future design work should support both light and dark themes, keep the product feeling Linear-like in polish and clarity, introduce warmer accents where they add emphasis or friendliness, and avoid looking like a playful consumer app, a generic admin template, or an overly dark hacker interface.
+
+### Design Principles
+- Prefer guided, low-friction flows over expert-only controls so non-technical users can complete operational tasks with confidence.
+- Keep information dense but well-structured, using clear hierarchy, sectioning, and status signals to make the system feel fast and controllable.
+- Make operational state obvious: health, progress, errors, and next actions should be easy to scan and hard to misunderstand.
+- Build a polished dual-theme system that starts from the existing teal/blue foundation and uses warmer accents sparingly for emphasis, feedback, and approachability.
+- Meet WCAG AA expectations, respect reduced-motion preferences, and use more than color alone to communicate status or meaning.

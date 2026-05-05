@@ -1,0 +1,15 @@
+{
+  "version": "3.2.11",
+  "platforms": {
+    "linux/amd64": {
+      "url": "https://download.acestream.media/linux/acestream_3.2.11_ubuntu_22.04_x86_64_py3.10.tar.gz",
+      "sha256": "",
+      "archive_type": "tar.gz",
+      "install": {
+        "strip_components": 1,
+        "binary_path": "acestreamengine",
+        "engine_http_port": 6878
+      }
+    }
+  }
+}

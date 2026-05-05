@@ -1,0 +1,37 @@
+name: Phase 1 Safety Gates
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  phase1-gates:
+    name: Run Phase 1 Parity Safety Gates
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Prepare backend virtualenv
+        run: |
+          python -m venv backend/venv
+          backend/venv/bin/python -m pip install --upgrade pip
+          backend/venv/bin/pip install -r backend/requirements.txt
+
+      - name: Run quick parity safety gates
+        run: |
+          python scripts/phase_gates/phase1_gate_runner.py --profile quick --json-output > phase1-gate-report.json
+
+      - name: Upload gate report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase1-gate-report
+          path: phase1-gate-report.json

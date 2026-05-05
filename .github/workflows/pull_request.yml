@@ -2,60 +2,95 @@ name: Pull Request Checks
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [main]
     types: [opened, synchronize, reopened]
 
 jobs:
-  code-quality:
-    name: Lint and Test
-    runs-on: [self-hosted, unraid, docker]
+  required-checks:
+    name: Required Cutover Checks
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-          
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -r requirements-dev.txt
-          pip install flake8
-          
-      - name: Lint with flake8
-        run: |
-          # stop the build if there are Python syntax errors or undefined names
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          # exit-zero treats all errors as warnings
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-          
-      - name: Run tests
-        run: |
-          pytest tests/
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  docker-validation:
-    name: Validate Docker Build
-    runs-on: [self-hosted, unraid, docker]
-    steps:
-      - uses: actions/checkout@v3
-      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Run cutover test suite (quick)
+        run: |
+          bash scripts/ci/run_v2_test_suite.sh --profile quick
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-        with:
-          driver-opts: |
-            network=host
-      
-      - name: Build Docker image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          push: false
-          tags: pipepito/acestream-scraper:test
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          outputs: type=docker,dest=/tmp/docker-image.tar
-          build-args: |
-            BUILDKIT_CONTEXT_KEEP_GIT_DIR=1
-          network: host
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate scraper flavor build matrix (dry-run)
+        run: |
+          bash scripts/ci/build_multiarch_images.sh \
+            --dry-run \
+            --flavor scraper \
+            --result-file phase5-build-result-pr-scraper.json
+
+      - name: Verify scraper flavor platform matrix
+        run: |
+          bash scripts/ci/verify_multiarch_manifest.sh \
+            --result-file phase5-build-result-pr-scraper.json \
+            --flavor scraper
+
+      - name: Validate scraper-acestream flavor build matrix (dry-run)
+        run: |
+          bash scripts/ci/build_multiarch_images.sh \
+            --dry-run \
+            --flavor scraper-acestream \
+            --result-file phase5-build-result-pr-scraper-acestream.json
+
+      - name: Verify scraper-acestream flavor platform matrix
+        run: |
+          bash scripts/ci/verify_multiarch_manifest.sh \
+            --result-file phase5-build-result-pr-scraper-acestream.json \
+            --flavor scraper-acestream
+
+      - name: Validate scraper-acexy flavor build matrix (dry-run)
+        run: |
+          bash scripts/ci/build_multiarch_images.sh \
+            --dry-run \
+            --flavor scraper-acexy \
+            --result-file phase5-build-result-pr-scraper-acexy.json
+
+      - name: Verify scraper-acexy flavor platform matrix
+        run: |
+          bash scripts/ci/verify_multiarch_manifest.sh \
+            --result-file phase5-build-result-pr-scraper-acexy.json \
+            --flavor scraper-acexy
+
+      - name: Validate scraper-acestream-acexy flavor build matrix (dry-run)
+        run: |
+          bash scripts/ci/build_multiarch_images.sh \
+            --dry-run \
+            --flavor scraper-acestream-acexy \
+            --result-file phase5-build-result-pr-scraper-acestream-acexy.json
+
+      - name: Verify scraper-acestream-acexy flavor platform matrix
+        run: |
+          bash scripts/ci/verify_multiarch_manifest.sh \
+            --result-file phase5-build-result-pr-scraper-acestream-acexy.json \
+            --flavor scraper-acestream-acexy
+
+      - name: Enforce legacy path guardrails
+        run: |
+          bash scripts/ci/assert_no_legacy_paths.sh --strict
+
+      - name: Run cutover required checks (quick profile)
+        run: |
+          bash scripts/ci/run_cutover_required_checks.sh --profile quick

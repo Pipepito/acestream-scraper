@@ -1,11 +1,13 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Create logs directory
-LOG_DIR="/app/logs"
-mkdir -p $LOG_DIR
+LOG_DIR=${LOG_DIR:-/app/logs}
+mkdir -p "$LOG_DIR"
+LOGROTATE_DIR=${LOGROTATE_DIR:-/tmp/acestream-scraper-logrotate}
+mkdir -p "$LOGROTATE_DIR"
+LOGROTATE_CONF="$LOGROTATE_DIR/acestream-services"
 
-# Configure log rotation - hourly rotation, keep 1 day of logs
-cat > /etc/logrotate.d/acestream-services << EOF
+cat > "$LOGROTATE_CONF" <<EOF
 $LOG_DIR/*.log {
     hourly
     rotate 7
@@ -16,111 +18,169 @@ $LOG_DIR/*.log {
 }
 EOF
 
-# Run logrotate once to ensure config is valid
-logrotate /etc/logrotate.d/acestream-services --debug
+normalize_bool() {
+    case "${1:-false}" in
+        1|true|TRUE|True|yes|YES|on|ON) printf 'true\n' ;;
+        *) printf 'false\n' ;;
+    esac
+}
 
-# Initialize WARP if enabled
-if [ "${ENABLE_WARP}" = "true" ]; then
-    echo "Initializing Cloudflare WARP..."
-    /app/warp-setup.sh
-fi
+log() {
+    printf '[entrypoint] %s\n' "$1"
+}
 
-# Set ENABLE_ACESTREAM_ENGINE to match ENABLE_ACEXY if not explicitly set
-if [ -z "${ENABLE_ACESTREAM_ENGINE+x}" ]; then
-    export ENABLE_ACESTREAM_ENGINE=$ENABLE_ACEXY
-    echo "ENABLE_ACESTREAM_ENGINE not set, using ENABLE_ACEXY value: $ENABLE_ACESTREAM_ENGINE"
-fi
-# Update ACESTREAM_HTTP_HOST to use the actual value of ACEXY_HOST
-if [ "$ACESTREAM_HTTP_HOST" = "ACEXY_HOST" ]; then
-    export ACESTREAM_HTTP_HOST="$ACEXY_HOST"
-    echo "Setting ACESTREAM_HTTP_HOST to $ACEXY_HOST"
-fi
-# Note: Database migrations are now automatically handled in the Flask app startup
-# rather than in this script, preventing duplication of migration execution
+fail() {
+    printf '[entrypoint] %s\n' "$1" >&2
+    exit 1
+}
 
-# Setup ZeroNet config if not exists
-ZERONET_CONFIG="/app/config/zeronet.conf"
-if [ ! -f "$ZERONET_CONFIG" ]; then
-    echo "Creating default ZeroNet config..."
-    cat > "$ZERONET_CONFIG" << EOF
-[global]
-ui_ip = *
-ui_host =
- 0.0.0.0
- localhost
-ui_port = 43110
-EOF
-fi
+feature_enabled() {
+    [ "$(normalize_bool "${1:-false}")" = "true" ]
+}
 
-# Create symlink to config
-ln -sf "$ZERONET_CONFIG" /app/ZeroNet/zeronet.conf
+image_has_feature() {
+    [ "$(normalize_bool "${1:-false}")" = "true" ]
+}
 
-# Start Tor if enabled
-if [ "$ENABLE_TOR" = "true" ]; then
-    echo "Starting Tor service..."
-    service tor start >> "$LOG_DIR/tor.log" 2>&1
-    # Add a brief pause to ensure Tor has time to start
-    sleep 3
-    echo "Tor service logs available at $LOG_DIR/tor.log"
-fi
+shutdown_children() {
+    local pid
+    for pid in "$@"; do
+        if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+            kill "$pid" 2>/dev/null || true
+            wait "$pid" 2>/dev/null || true
+        fi
+    done
+}
 
-# Start Acestream Engine if enabled
-if [ "$ENABLE_ACESTREAM_ENGINE" = "true" ]; then
-    echo "Starting Acestream engine..."
-    if [ "$ALLOW_REMOTE_ACCESS" = "yes" ]; then
-        EXTRA_FLAGS="$EXTRA_FLAGS --bind-all"
+prune_finished_children() {
+    local remaining_pids=()
+    local remaining_labels=()
+    local pid
+    local label
+    local status
+    local index=0
+
+    for pid in "${child_pids[@]:-}"; do
+        label=${child_names[$index]:-Auxiliary service}
+        [ -n "$pid" ] || continue
+        if kill -0 "$pid" 2>/dev/null; then
+            remaining_pids+=("$pid")
+            remaining_labels+=("$label")
+        else
+            if wait "$pid" 2>/dev/null; then
+                :
+            else
+                status=$?
+                fail "$label startup command exited with status $status"
+            fi
+        fi
+        index=$((index + 1))
+    done
+
+    child_pids=()
+    child_names=()
+    for pid in "${remaining_pids[@]:-}"; do
+        child_pids+=("$pid")
+    done
+    for label in "${remaining_labels[@]:-}"; do
+        child_names+=("$label")
+    done
+}
+
+ENABLE_WARP=$(normalize_bool "${ENABLE_WARP:-false}")
+ENABLE_ACESTREAM_ENGINE=$(normalize_bool "${ENABLE_ACESTREAM_ENGINE:-false}")
+ENABLE_ACEXY=$(normalize_bool "${ENABLE_ACEXY:-false}")
+IMAGE_HAS_ACESTREAM=$(normalize_bool "${IMAGE_HAS_ACESTREAM:-false}")
+IMAGE_HAS_ACEXY=$(normalize_bool "${IMAGE_HAS_ACEXY:-false}")
+
+export ENABLE_WARP ENABLE_ACESTREAM_ENGINE ENABLE_ACEXY IMAGE_HAS_ACESTREAM IMAGE_HAS_ACEXY
+export FLASK_PORT="${FLASK_PORT:-8000}"
+export ACESTREAM_HTTP_HOST="${ACESTREAM_HTTP_HOST:-localhost}"
+export ACESTREAM_HTTP_PORT="${ACESTREAM_HTTP_PORT:-6878}"
+export ZERONET_URL="${ZERONET_URL:-http://127.0.0.1:43110}"
+
+if feature_enabled "$ENABLE_WARP"; then
+    if ! bash "$(dirname "$0")/warp-setup.sh"; then
+        fail "WARP setup failed"
     fi
-    /opt/acestream/start-engine --client-console --http-port $ACESTREAM_HTTP_PORT $EXTRA_FLAGS >> "$LOG_DIR/acestream.log" 2>&1 &  
-    sleep 3 # Brief pause to allow Acestream engine to start
-    echo "Acestream engine logs available at $LOG_DIR/acestream.log"
-fi
-
-# Start Acexy if enabled
-if [ "$ENABLE_ACEXY" = "true" ]; then
-    if [ "$ENABLE_ACESTREAM_ENGINE" = "false" ] && [ "$ACEXY_HOST" = "localhost" ] && [ "$ACEXY_PORT" = "6878" ]; then
-        echo "ERROR: When Acestream Engine is disabled, you must specify ACEXY_HOST and ACEXY_PORT other than localhost to connect to an external Acestream Engine instance"
-        exit 1
-    fi
-    
-    echo "Starting Acexy proxy..."
-    export ACEXY_HOST
-    export ACEXY_PORT
-    /usr/local/bin/acexy >> "$LOG_DIR/acexy.log" 2>&1 &
-    echo "Acexy proxy logs available at $LOG_DIR/acexy.log"
 else
-    echo "Acexy is disabled."
+    log "WARP disabled; skipping setup"
 fi
 
-# Start ZeroNet in the background
-cd /app/ZeroNet
-echo "Starting ZeroNet..."
-python3 zeronet.py main >> "$LOG_DIR/zeronet.log" 2>&1 &
-ZERONET_PID=$!
-echo "ZeroNet logs available at $LOG_DIR/zeronet.log"
+if feature_enabled "$ENABLE_ACESTREAM_ENGINE" && ! image_has_feature "$IMAGE_HAS_ACESTREAM"; then
+    fail "AceStream is enabled but not installed in this image flavor"
+fi
 
-# Wait for ZeroNet to start
-echo "Waiting for ZeroNet to initialize..."
-sleep 10
+if feature_enabled "$ENABLE_ACEXY" && ! image_has_feature "$IMAGE_HAS_ACEXY"; then
+    fail "Acexy is enabled but not installed in this image flavor"
+fi
 
-# Start Flask app with Gunicorn
-cd /app
-echo "Starting Flask application on port $FLASK_PORT..."
-exec gunicorn \
-    --bind "0.0.0.0:$FLASK_PORT" \
-    --workers 3 \
-    --timeout 300 \
-    --keep-alive 5 \
-    --worker-class uvicorn.workers.UvicornWorker \
-    --log-level info \
-    --access-logfile "$LOG_DIR/gunicorn-access.log" \
-    --error-logfile "$LOG_DIR/gunicorn-error.log" \
-    "wsgi:asgi_app" &
-GUNICORN_PID=$!
-echo "Flask application logs available at $LOG_DIR/gunicorn-access.log and $LOG_DIR/gunicorn-error.log"
+if feature_enabled "$ENABLE_ACESTREAM_ENGINE"; then
+    export ACEXY_HOST="${ACEXY_HOST:-$ACESTREAM_HTTP_HOST}"
+    export ACEXY_PORT="${ACEXY_PORT:-$ACESTREAM_HTTP_PORT}"
+else
+    export ACEXY_HOST="${ACEXY_HOST:-localhost}"
+    export ACEXY_PORT="${ACEXY_PORT:-6878}"
+fi
 
-# Monitor processes
-echo "Services started. Monitoring processes..."
-trap "echo 'Shutting down services...'; kill $(jobs -p)" EXIT INT TERM QUIT
+if feature_enabled "$ENABLE_ACEXY" && ! feature_enabled "$ENABLE_ACESTREAM_ENGINE"; then
+    case "$ACEXY_HOST:$ACEXY_PORT" in
+        localhost:6878|127.0.0.1:6878)
+            fail "Acexy cannot target localhost:6878 when in-container AceStream is disabled"
+            ;;
+    esac
+fi
 
-# Wait for any process to exit
-wait
+export ACE_ENGINE_URL="${ACE_ENGINE_URL:-http://$ACESTREAM_HTTP_HOST:$ACESTREAM_HTTP_PORT}"
+
+log "ZeroNet compatibility mode enabled via ZERONET_URL=$ZERONET_URL"
+
+child_pids=()
+child_names=()
+
+if feature_enabled "$ENABLE_ACESTREAM_ENGINE" && [ -n "${ACESTREAM_START_COMMAND:-}" ]; then
+    bash -lc "$ACESTREAM_START_COMMAND" &
+    child_pids+=("$!")
+    child_names+=("AceStream")
+fi
+
+if feature_enabled "$ENABLE_ACEXY" && [ -n "${ACEXY_START_COMMAND:-}" ]; then
+    bash -lc "$ACEXY_START_COMMAND" &
+    child_pids+=("$!")
+    child_names+=("Acexy")
+fi
+
+APP_COMMAND=("$@")
+if [ "${#APP_COMMAND[@]}" -eq 0 ]; then
+    APP_COMMAND=(uvicorn main:app --host 0.0.0.0 --port "$FLASK_PORT")
+fi
+
+wait_for_supervised_exit() {
+    while :; do
+        local pid
+        prune_finished_children
+
+        if ! kill -0 "$app_pid" 2>/dev/null; then
+            wait "$app_pid" 2>/dev/null
+            return $?
+        fi
+
+        sleep 1
+    done
+}
+
+trap 'shutdown_children "${child_pids[@]:-}" "$app_pid"' INT TERM EXIT
+
+"${APP_COMMAND[@]}" &
+app_pid=$!
+
+if wait_for_supervised_exit; then
+    app_status=0
+else
+    app_status=$?
+fi
+
+shutdown_children "$app_pid" "${child_pids[@]:-}"
+
+trap - INT TERM EXIT
+exit "$app_status"

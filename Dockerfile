@@ -149,6 +149,14 @@ FROM runtime-base AS scraper
 
 FROM scraper AS scraper-acestream
 
+# Pull a working python3.10 interpreter from the official slim image. Two
+# Pythons coexist: 3.11 for the FastAPI app, 3.10 for the AceStream engine
+# (its bundled .so extensions are compiled against CPython 3.10).
+COPY --from=python:3.10-slim /usr/local/bin/python3.10 /usr/local/bin/python3.10
+COPY --from=python:3.10-slim /usr/local/lib/python3.10 /usr/local/lib/python3.10
+COPY --from=python:3.10-slim /usr/local/lib/libpython3.10.so.1.0 /usr/local/lib/libpython3.10.so.1.0
+RUN ldconfig
+
 COPY --from=acestream-installer /opt/acestream/ /opt/acestream/
 
 ENV IMAGE_HAS_ACESTREAM=true \

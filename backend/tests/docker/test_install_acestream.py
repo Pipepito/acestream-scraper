@@ -119,3 +119,36 @@ def test_python_module_install_against_real_tarball():
     # output (i.e. the file exists and is executable end-to-end).
     combined = import_check.stdout + import_check.stderr
     assert "Traceback" not in combined or "acestreamengine" in combined, combined
+
+
+def test_scraper_acestream_runtime_has_python310():
+    """The scraper-acestream image must ship a working python3.10 binary."""
+    tag = "acestream-scraper-task3:scraper-acestream"
+    # Build using fixture mode so this test is fast and self-contained.
+    # ACESTREAM_BINARY_PATH=start-engine selects the fixture binary (no download URL).
+    cmd = [
+        "docker", "buildx", "build",
+        "--platform", "linux/amd64",
+        "--load",
+        "--target", "scraper-acestream",
+        "--build-arg", "ACESTREAM_BINARY_PATH=start-engine",
+        "--tag", tag,
+        str(REPO_ROOT),
+    ]
+    subprocess.run(cmd, check=True)
+    result = subprocess.run(
+        ["docker", "run", "--rm", "--entrypoint", "python3.10", tag, "--version"],
+        capture_output=True, text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.startswith("Python 3.10."), result.stdout
+
+    # Verify the engine binary is reachable end-to-end from the scraper-acestream image
+    engine_check = subprocess.run(
+        ["docker", "run", "--rm", "--entrypoint", "/opt/acestream/bin/acestreamengine", tag],
+        capture_output=True, text=True, timeout=15,
+    )
+    # In fixture mode the binary is a 1-line bash script that prints "fixture acestream engine".
+    # The point is to prove the binary is present, executable, and invocable from the runtime image.
+    assert engine_check.returncode == 0, engine_check.stderr
+    assert "fixture acestream engine" in engine_check.stdout, engine_check.stdout

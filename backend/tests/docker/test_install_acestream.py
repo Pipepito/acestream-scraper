@@ -64,8 +64,19 @@ def _list_dir_in_image(tag: str, path: str) -> list[str]:
     return [line for line in result.stdout.splitlines() if line]
 
 
-def test_fixture_mode_creates_executable_symlink():
+def _register_image_cleanup(request: pytest.FixtureRequest, tag: str) -> None:
+    """Schedule `docker image rm -f <tag>` as a pytest finalizer."""
+    request.addfinalizer(
+        lambda: subprocess.run(
+            ["docker", "image", "rm", "-f", tag],
+            capture_output=True,
+        )
+    )
+
+
+def test_fixture_mode_creates_executable_symlink(request: pytest.FixtureRequest):
     tag = "acestream-installer-test:fixture"
+    _register_image_cleanup(request, tag)
     _build_installer(tag, build_args={"ACESTREAM_BINARY_PATH": "start-engine"})
     metadata = _read_file_in_image(tag, "/opt/acestream/install-metadata.txt")
     assert "kind=executable" in metadata
@@ -73,10 +84,11 @@ def test_fixture_mode_creates_executable_symlink():
     assert "acestreamengine" in listing
 
 
-def test_executable_install_against_real_tarball():
+def test_executable_install_against_real_tarball(request: pytest.FixtureRequest):
     """Build the installer with the real 3.2.x manifest values; assert
     start-engine is the symlink target and python deps were installed."""
     tag = "acestream-installer-test:exec-real"
+    _register_image_cleanup(request, tag)
     _build_installer(
         tag,
         build_args={
@@ -113,9 +125,10 @@ def test_executable_install_against_real_tarball():
     assert "apsw" in listing or any("apsw" in entry for entry in listing)
 
 
-def test_scraper_acestream_runtime_has_python310():
+def test_scraper_acestream_runtime_has_python310(request: pytest.FixtureRequest):
     """The scraper-acestream image must ship a working python3.10 binary."""
     tag = "acestream-scraper-task3:scraper-acestream"
+    _register_image_cleanup(request, tag)
     # Build using fixture mode so this test is fast and self-contained.
     # ACESTREAM_BINARY_PATH=start-engine selects the fixture binary (no download URL).
     cmd = [

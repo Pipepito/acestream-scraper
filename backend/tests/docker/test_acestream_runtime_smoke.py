@@ -40,8 +40,19 @@ def _wait_for_port(port: int, timeout: float = 30.0) -> bool:
     return False
 
 
-def test_scraper_acestream_starts_real_engine():
+def _register_image_cleanup(request: pytest.FixtureRequest, tag: str) -> None:
+    """Schedule `docker image rm -f <tag>` as a pytest finalizer."""
+    request.addfinalizer(
+        lambda: subprocess.run(
+            ["docker", "image", "rm", "-f", tag],
+            capture_output=True,
+        )
+    )
+
+
+def test_scraper_acestream_starts_real_engine(request: pytest.FixtureRequest):
     tag = "acestream-scraper-smoke:scraper-acestream"
+    _register_image_cleanup(request, tag)
 
     # Pull manifest-derived build args via the helper
     derived = subprocess.run(

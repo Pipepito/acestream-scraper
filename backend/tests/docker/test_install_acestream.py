@@ -26,6 +26,13 @@ pytestmark = pytest.mark.skipif(
 
 
 def _build_installer(tag: str, build_args: dict[str, str]) -> None:
+    # Builder selection is controlled by the BUILDX_BUILDER env var (honored
+    # by docker buildx natively). On Jenkins we set it to the docker-driver
+    # builder so RUN steps inherit the host's WARP-routed network — the
+    # docker-container driver runs BuildKit in an isolated container whose
+    # network does NOT inherit host routes, breaking egress to ISP-blocked
+    # domains like download.acestream.media. Locally (Mac/Linux dev) the
+    # default builder is fine.
     cmd = [
         "docker",
         "buildx",
@@ -133,6 +140,7 @@ def test_scraper_acestream_runtime_has_python310(request: pytest.FixtureRequest)
     _register_image_cleanup(request, tag)
     # Build using fixture mode so this test is fast and self-contained.
     # ACESTREAM_BINARY_PATH=start-engine selects the fixture binary (no download URL).
+    # BUILDX_BUILDER (env) selects the buildx instance; see _build_installer for rationale.
     cmd = [
         "docker", "buildx", "build",
         "--platform", "linux/amd64",

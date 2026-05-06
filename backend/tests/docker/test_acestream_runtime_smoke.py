@@ -69,6 +69,11 @@ def test_scraper_acestream_starts_real_engine(request: pytest.FixtureRequest):
     for line in derived.stdout.strip().splitlines():
         build_args.extend(["--build-arg", line])
 
+    # BUILDX_BUILDER (env) controls the buildx instance selection. On Jenkins
+    # we set it to the docker-driver builder so RUN steps inherit the host's
+    # WARP-routed network; the docker-container driver runs BuildKit in an
+    # isolated container that does NOT inherit host routes, breaking egress
+    # to ISP-blocked domains. Locally we let buildx use the default.
     subprocess.run(
         [
             "docker", "buildx", "build",

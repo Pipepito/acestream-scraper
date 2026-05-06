@@ -21,6 +21,7 @@ Options:
   --build-arg <k=v>        Build arg (repeatable)
   --builder <name>         Buildx builder name (default: default)
   --result-file <path>     Write JSON build result metadata to this file
+  --network <mode>         BuildKit network mode for RUN steps (e.g. host)
   --dry-run                Print build command and metadata only
   --help                   Show this help
 
@@ -44,6 +45,7 @@ PUSH=0
 LOAD=0
 DRY_RUN=0
 BUILDER="default"
+NETWORK=""
 RESULT_FILE=""
 BUILD_ARGS=()
 TAGS=("acestream-scraper:multiarch-local")
@@ -105,6 +107,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --result-file)
       RESULT_FILE="${2:-}"
+      shift 2
+      ;;
+    --network)
+      NETWORK="${2:-}"
       shift 2
       ;;
     --dry-run)
@@ -225,6 +231,10 @@ BUILD_CMD=(
 for tag in "${TAGS[@]}"; do
   BUILD_CMD+=(--tag "$tag")
 done
+
+if [[ -n "$NETWORK" ]]; then
+    BUILD_CMD+=(--network "$NETWORK")
+fi
 
 if [[ "$PUSH" -eq 1 ]]; then
   BUILD_CMD+=(--push)

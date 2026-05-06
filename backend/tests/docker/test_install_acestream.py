@@ -32,6 +32,8 @@ def _build_installer(tag: str, build_args: dict[str, str]) -> None:
         "build",
         "--platform",
         "linux/amd64",
+        "--network",
+        "host",
         "--load",
         "--target",
         "acestream-installer",
@@ -134,6 +136,7 @@ def test_scraper_acestream_runtime_has_python310(request: pytest.FixtureRequest)
     cmd = [
         "docker", "buildx", "build",
         "--platform", "linux/amd64",
+        "--network", "host",
         "--load",
         "--target", "scraper-acestream",
         "--build-arg", "ACESTREAM_BINARY_PATH=start-engine",

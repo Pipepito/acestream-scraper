@@ -68,7 +68,7 @@ bash scripts/ci/run_cutover_required_checks.sh --profile quick
       steps {
         sh '''#!/usr/bin/env bash
 set -euo pipefail
-bash scripts/ci/build_multiarch_images.sh --flavor scraper-acestream --load --tag acestream-scraper:smoke
+bash scripts/ci/build_multiarch_images.sh --flavor scraper-acestream --load --network host --tag acestream-scraper:smoke
 PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_acestream_runtime_smoke.py -v
 '''
       }

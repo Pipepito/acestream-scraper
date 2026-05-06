@@ -73,6 +73,7 @@ def test_scraper_acestream_starts_real_engine(request: pytest.FixtureRequest):
         [
             "docker", "buildx", "build",
             "--platform", "linux/amd64",
+            "--network", "host",
             "--load",
             "--target", "scraper-acestream",
             "--tag", tag,

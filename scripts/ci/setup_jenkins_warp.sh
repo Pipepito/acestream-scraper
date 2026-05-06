@@ -50,32 +50,48 @@ ensure_service() {
 }
 ensure_service
 
-# 3. Wait for warp-cli to talk to the daemon.
-for _ in $(seq 1 15); do
-    if "${WARP_CLI[@]}" status >/dev/null 2>&1; then
+# 3. Wait for warp-cli to reach a stable state. The daemon may briefly
+# return "Status update: Unable / Reason: Daemon Startup" right after
+# install/start; we want either Connected, Disconnected, or
+# Registration Missing before we do anything.
+status_text=""
+for _ in $(seq 1 30); do
+    status_text="$( "${WARP_CLI[@]}" status 2>&1 || true )"
+    if grep -qiE 'connected|disconnected|registration missing|not registered' <<<"$status_text"; then
         break
     fi
     sleep 1
 done
 
-if ! "${WARP_CLI[@]}" status >/dev/null 2>&1; then
-    warn "warp-cli not responsive after 15s"
+if ! grep -qiE 'connected|disconnected|registration missing|not registered' <<<"$status_text"; then
+    warn "warp-cli daemon never reached a stable state"
+    printf '%s\n' "$status_text" >&2
     exit 1
 fi
 
-# 4. Register if needed.
-status_text="$( "${WARP_CLI[@]}" status 2>&1 || true )"
-if grep -qiE 'not registered|missing registration|register first' <<<"$status_text"; then
+# 4. Register if needed. The daemon reports "Registration Missing"
+# (sometimes with "due to: Daemon Startup") when no registration exists.
+if grep -qiE 'registration missing|not registered|register first' <<<"$status_text"; then
     log "registering WARP"
     "${WARP_CLI[@]}" registration new
+    # After registration, give the daemon a moment to refresh state.
+    for _ in $(seq 1 10); do
+        status_text="$( "${WARP_CLI[@]}" status 2>&1 || true )"
+        if ! grep -qiE 'registration missing|not registered' <<<"$status_text"; then
+            break
+        fi
+        sleep 1
+    done
 fi
 
 # 5. Set full-tunnel mode (idempotent: warp-cli noop if already that mode).
+# Must run AFTER registration; set-mode is rejected on an unregistered daemon.
 "${WARP_CLI[@]}" set-mode warp >/dev/null 2>&1 || warn "set-mode warp failed (continuing)"
 
-# 6. Connect if not connected.
+# 6. Connect if not already connected. Match only the "Connected" steady
+# state — "Status update: Unable" with reason "Connecting" must NOT count.
 status_text="$( "${WARP_CLI[@]}" status 2>&1 || true )"
-if ! grep -qiE 'status update: connected|status: connected' <<<"$status_text"; then
+if ! grep -qiE 'status update: connected|^connected|status: connected' <<<"$status_text"; then
     log "connecting WARP"
     "${WARP_CLI[@]}" connect
 fi

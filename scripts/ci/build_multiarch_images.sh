@@ -21,6 +21,7 @@ Options:
   --build-arg <k=v>        Build arg (repeatable)
   --builder <name>         Buildx builder name (default: default)
   --result-file <path>     Write JSON build result metadata to this file
+  --network <mode>         BuildKit network mode for RUN steps (e.g. host)
   --dry-run                Print build command and metadata only
   --help                   Show this help
 
@@ -44,6 +45,7 @@ PUSH=0
 LOAD=0
 DRY_RUN=0
 BUILDER="default"
+NETWORK=""
 RESULT_FILE=""
 BUILD_ARGS=()
 TAGS=("acestream-scraper:multiarch-local")
@@ -107,6 +109,10 @@ while [[ $# -gt 0 ]]; do
       RESULT_FILE="${2:-}"
       shift 2
       ;;
+    --network)
+      NETWORK="${2:-}"
+      shift 2
+      ;;
     --dry-run)
       DRY_RUN=1
       shift
@@ -161,6 +167,47 @@ fi
 
 PLATFORMS="$resolved_platforms"
 
+ACESTREAM_ARG_HELPER="$ROOT_DIR/scripts/ci/derive_acestream_build_args.py"
+if [[ -f "$ACESTREAM_ARG_HELPER" ]]; then
+    ACESTREAM_BEARING_FLAVORS=("scraper-acestream" "scraper-acestream-acexy")
+    flavor_needs_acestream=0
+    for f in "${ACESTREAM_BEARING_FLAVORS[@]}"; do
+        if [[ "$FLAVOR" == "$f" ]]; then
+            flavor_needs_acestream=1
+            break
+        fi
+    done
+
+    if ! derived="$(python3 "$ACESTREAM_ARG_HELPER" "$ACESTREAM_MANIFEST" "$FLAVOR" "${PLATFORMS%%,*}" 2>&1)"; then
+        helper_rc=$?
+        if [[ "$flavor_needs_acestream" -eq 1 ]]; then
+            printf 'ERROR: failed to derive acestream build args for flavor=%s platform=%s\n%s\n' \
+                "$FLAVOR" "${PLATFORMS%%,*}" "$derived" >&2
+            exit "$helper_rc"
+        else
+            # Non-acestream flavor: helper crash is unexpected but not fatal.
+            printf 'WARNING: derive helper exited %d for non-acestream flavor %s; continuing\n%s\n' \
+                "$helper_rc" "$FLAVOR" "$derived" >&2
+            derived=""
+        fi
+    fi
+    while IFS= read -r line; do
+        [[ -z "$line" ]] && continue
+        # Don't override args the caller already passed via --build-arg.
+        key="${line%%=*}"
+        already=0
+        for existing in "${BUILD_ARGS[@]:-}"; do
+            if [[ "$existing" == "$key="* ]]; then
+                already=1
+                break
+            fi
+        done
+        if [[ "$already" -eq 0 ]]; then
+            BUILD_ARGS+=("--build-arg" "$line")
+        fi
+    done <<< "$derived"
+fi
+
 if [[ "$LOAD" -eq 1 && "$PLATFORMS" == *","* ]]; then
   echo "--load supports a single platform only. Use --push for multi-platform manifests."
   exit 1
@@ -184,6 +231,10 @@ BUILD_CMD=(
 for tag in "${TAGS[@]}"; do
   BUILD_CMD+=(--tag "$tag")
 done
+
+if [[ -n "$NETWORK" ]]; then
+    BUILD_CMD+=(--network "$NETWORK")
+fi
 
 if [[ "$PUSH" -eq 1 ]]; then
   BUILD_CMD+=(--push)

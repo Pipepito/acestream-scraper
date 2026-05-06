@@ -572,6 +572,18 @@ docker buildx inspect --bootstrap acestream-builder
 
 If you intentionally use another builder name, set `JENKINS_BUILDER` in the Jenkins job or agent environment, but the default and documented expectation is `acestream-builder`.
 
+## Cloudflare WARP On The Build Host
+
+Some upstream artifacts (`download.acestream.media`, etc.) are blocked at certain ISPs. The Jenkins bootstrap script (`scripts/ci/setup_jenkins_warp.sh`) installs and connects Cloudflare WARP on the build VM, idempotently, so all host (and inherited Docker daemon) egress flows through Cloudflare.
+
+Operator notes:
+
+- WARP runs in `warp` (full-tunnel) mode on the build host, registered as a free WARP user. No Zero Trust subscription is required for the default routing this repository needs.
+- Installation requires the runtime user to have passwordless `sudo`. This is already a stated bootstrap prerequisite.
+- Once WARP is connected, the bootstrap on subsequent builds is a no-op verification (one HTTP fetch to `https://www.cloudflare.com/cdn-cgi/trace`).
+- If you ever need to disconnect WARP for diagnosis: `warp-cli --accept-tos disconnect`. Reconnect: `warp-cli --accept-tos connect`. The next bootstrap will reconnect automatically.
+- WARP affects the host's network stack. The Docker daemon inherits WARP routes by default; no additional Docker config is required.
+
 ## Cache, Disk Growth, and Cleanup
 
 Multi-arch Docker builds will grow disk usage quickly.

@@ -27,13 +27,23 @@ RUN pip install --upgrade pip \
     && pip install --prefix=/install -r requirements.txt
 
 
-FROM debian:bookworm-slim AS acestream-installer
+FROM python:3.10-slim AS acestream-installer
 
 ARG ACESTREAM_DOWNLOAD_URL
 ARG ACESTREAM_DOWNLOAD_SHA256=
 ARG ACESTREAM_ARCHIVE_TYPE=tar.gz
 ARG ACESTREAM_STRIP_COMPONENTS=1
+ARG ACESTREAM_INSTALL_KIND=executable
 ARG ACESTREAM_BINARY_PATH=acestreamengine
+ARG ACESTREAM_PYTHON_VERSION=3.10
+
+ENV ACESTREAM_DOWNLOAD_URL=${ACESTREAM_DOWNLOAD_URL} \
+    ACESTREAM_DOWNLOAD_SHA256=${ACESTREAM_DOWNLOAD_SHA256} \
+    ACESTREAM_ARCHIVE_TYPE=${ACESTREAM_ARCHIVE_TYPE} \
+    ACESTREAM_STRIP_COMPONENTS=${ACESTREAM_STRIP_COMPONENTS} \
+    ACESTREAM_INSTALL_KIND=${ACESTREAM_INSTALL_KIND} \
+    ACESTREAM_BINARY_PATH=${ACESTREAM_BINARY_PATH} \
+    ACESTREAM_PYTHON_VERSION=${ACESTREAM_PYTHON_VERSION}
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -44,35 +54,9 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY docker/testdata/acestream/ /tmp/acestream-fixture/
-
-RUN mkdir -p /opt/acestream /opt/acestream/bin /tmp/acestream-src \
-    && if [ -n "$ACESTREAM_DOWNLOAD_URL" ]; then \
-        curl -fsSL "$ACESTREAM_DOWNLOAD_URL" -o /tmp/acestream.tar.gz; \
-        if [ -n "$ACESTREAM_DOWNLOAD_SHA256" ]; then \
-            printf '%s  %s\n' "$ACESTREAM_DOWNLOAD_SHA256" /tmp/acestream.tar.gz | sha256sum -c -; \
-        fi; \
-        case "$ACESTREAM_ARCHIVE_TYPE" in \
-            tar.gz) tar -xzf /tmp/acestream.tar.gz -C /tmp/acestream-src --strip-components="$ACESTREAM_STRIP_COMPONENTS" ;; \
-            *) printf 'Unsupported ACESTREAM_ARCHIVE_TYPE: %s\n' "$ACESTREAM_ARCHIVE_TYPE" >&2; exit 1 ;; \
-        esac; \
-        cp -R /tmp/acestream-src/. /opt/acestream/; \
-      else \
-        cp -R /tmp/acestream-fixture/. /opt/acestream/; \
-      fi \
-    && binary_source="$ACESTREAM_BINARY_PATH" \
-    && case "$binary_source" in \
-        /*) resolved_binary="$binary_source" ;; \
-        *) resolved_binary="/opt/acestream/$binary_source" ;; \
-    esac \
-    && [ -f "$resolved_binary" ] \
-    && chmod +x "$resolved_binary" \
-    && ln -sf "$resolved_binary" /opt/acestream/bin/acestreamengine \
-    && printf 'source_url=%s\narchive_type=%s\nstrip_components=%s\nsha256=%s\nresolved_binary=%s\n' \
-        "$ACESTREAM_DOWNLOAD_URL" \
-        "$ACESTREAM_ARCHIVE_TYPE" \
-        "$ACESTREAM_STRIP_COMPONENTS" \
-        "$ACESTREAM_DOWNLOAD_SHA256" \
-        "$resolved_binary" > /opt/acestream/install-metadata.txt
+COPY docker/scripts/install-acestream.sh /usr/local/bin/install-acestream.sh
+RUN chmod +x /usr/local/bin/install-acestream.sh \
+    && /usr/local/bin/install-acestream.sh
 
 
 FROM golang:1.22 AS acexy-builder
@@ -162,11 +146,19 @@ FROM runtime-base AS scraper
 
 FROM scraper AS scraper-acestream
 
+# Pull a working python3.10 interpreter from the official slim image. Two
+# Pythons coexist: 3.11 for the FastAPI app, 3.10 for the AceStream engine
+# (its binary links libpython3.10.so.1.0 directly).
+COPY --from=python:3.10-slim /usr/local/bin/python3.10 /usr/local/bin/python3.10
+COPY --from=python:3.10-slim /usr/local/lib/python3.10 /usr/local/lib/python3.10
+COPY --from=python:3.10-slim /usr/local/lib/libpython3.10.so.1.0 /usr/local/lib/libpython3.10.so.1.0
+RUN ldconfig
+
 COPY --from=acestream-installer /opt/acestream/ /opt/acestream/
 
 ENV IMAGE_HAS_ACESTREAM=true \
     ACESTREAM_BINARY_PATH=/opt/acestream/bin/acestreamengine \
-    ACESTREAM_START_COMMAND=/opt/acestream/bin/acestreamengine
+    ACESTREAM_START_COMMAND="env PYTHONPATH=/opt/acestream/python-deps /opt/acestream/start-engine --client-console --http-port 6878"
 
 
 FROM scraper AS scraper-acexy

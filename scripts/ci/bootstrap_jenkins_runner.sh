@@ -377,6 +377,21 @@ bootstrap_builder() {
   log "Builder ready: $BUILDER"
 }
 
+warn() {
+  printf '[bootstrap] WARN: %s\n' "$*" >&2
+}
+
+setup_warp_if_needed() {
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  if [[ -x "${script_dir}/setup_jenkins_warp.sh" ]]; then
+    log "running setup_jenkins_warp.sh"
+    "${script_dir}/setup_jenkins_warp.sh"
+  else
+    warn "setup_jenkins_warp.sh missing or not executable; skipping WARP setup"
+  fi
+}
+
 print_versions() {
   log "git --version"
   git --version
@@ -418,6 +433,7 @@ main() {
   install_node_if_needed
   install_docker_if_needed
   ensure_docker_service
+  setup_warp_if_needed
 
   verify_required_commands
   verify_docker_access

@@ -37,8 +37,8 @@ Blocking failures return non-zero exit code and must be fixed before merge/cutov
 
 1. Run quick profile locally:
    - `python scripts/phase_gates/phase1_gate_runner.py --profile quick`
-2. Confirm CI workflow passes:
-   - `.github/workflows/phase1-safety-gates.yml`
+2. Confirm CI gate passes:
+   - The `Phase 1 Safety Gates` stage in the canonical Jenkins `acestream-scraper-pr` pipeline (`Jenkinsfile`) runs the gate runner and blocks on failure. The standalone `.github/workflows/phase1-safety-gates.yml` was retired once the gate was absorbed into the canonical pipelines.
 3. Run full profile before cutover milestone:
    - `python scripts/phase_gates/phase1_gate_runner.py --profile full`
 4. Inspect report for blocking/non-blocking sections:

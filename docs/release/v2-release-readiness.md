@@ -36,7 +36,7 @@ The v2 consolidation is structurally complete: all six phases shipped their plan
 - `backend/tests/parity/baseline_sources.yaml`, `parity_compare.py`, `parity_manifest.py` — all present.
 - Snapshots: `backend/tests/parity/snapshots/scraper_channels_snapshot.json`, `output_validity_snapshot.json`.
 - `backend/tests/parity/test_scraper_parity.py` and `test_output_parity.py` — 10 passed locally.
-- Gate runner: `scripts/phase_gates/phase1_gate_runner.py` exits `0/1` based on aggregated result; CI workflow `.github/workflows/phase1-safety-gates.yml` runs the runner and the `>` redirect does not suppress the exit code, so failed gates do block the job. (Earlier audit was wrong about this — the gate is wired.)
+- Gate runner: `scripts/phase_gates/phase1_gate_runner.py` exits `0/1` based on aggregated result. The runner is invoked from the canonical `Jenkinsfile` ("Phase 1 Safety Gates" stage); failed gates block the Jenkins PR job. (The standalone `.github/workflows/phase1-safety-gates.yml` was retired once the canonical pipelines absorbed the gate.)
 - Operator checklist: `docs/migration/phase1-parity-gates.md`.
 
 **Originally failing scraper parity tests** (per `.planning/debug/scraper-failure-domain.md`) — fixed in commit `6c36680 test: fix scraper parity runtime imports` by moving `ScraperService` and `AcestreamChannel` imports inside test functions (workaround for the conftest module-reload bug).
@@ -116,7 +116,7 @@ The v2 consolidation is structurally complete: all six phases shipped their plan
 - Docs: `docs/migration/phase5-architecture-smoke-checklist.md`, `docs/architecture/deployment.md` (Multi-Arch + Android TV section), `docs/release/phase5-multiarch-evidence.md`.
 
 **Outstanding (release-blocker territory):**
-- `multiarch-validation.yml::multiarch-full` has `if: github.event_name != 'pull_request'` — actual runtime smoke runs on push/main and release only, never on a PR. The current branch has not run a `full` profile. **Capture fresh `phase5-gate-report-full.json` and runtime smoke output before tagging the release.**
+- The full multi-arch profile (`phase5_gate_runner.py --profile full`) runs only on the manual `Release Pipeline` (`workflow_dispatch`) and on Jenkins `acestream-scraper-release`; it does not fire on PRs (the standalone `multiarch-validation.yml` was retired). **Trigger the manual Release Pipeline once on `ai-coding-documentation` to capture fresh `phase5-gate-report-full.json` and runtime smoke output before tagging the release.**
 - Committed `phase5-build-result-*.json` files at repo root are dated 2026-04-19, marked `dry_run: true, push: false, load: false` — they are config snapshots, not build evidence. They should not be relied on for signoff.
 - `docs/release/phase5-multiarch-evidence.md` lists ARMv7 and ARM64 runtime smoke as **Pending**.
 - No documented manifest-update procedure for `docker/manifests/acestream.json` when AceStream gains ARM platforms.

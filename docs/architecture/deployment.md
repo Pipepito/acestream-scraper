@@ -139,12 +139,10 @@ CI orchestration:
 - Jenkins uses the named buildx builder `acestream-builder` unless `JENKINS_BUILDER` is explicitly overridden; the builder can be precreated by the operator or prepared during bootstrap.
 - Docker access must already work for the current Jenkins runtime user on that node.
 - During the current transition and hardening period, the existing GitHub Actions workflows remain available as fallback/reference workflows.
-- GitHub Actions workflows currently serve these secondary fallback/reference roles:
-  - `.github/workflows/pull_request.yml`
-  - `.github/workflows/release.yml`
-  - `.github/workflows/multiarch-validation.yml`
-  - `.github/workflows/cutover-validation.yml`
-  - `.github/workflows/phase1-safety-gates.yml`
+- GitHub Actions workflows serve these secondary parity roles:
+  - `.github/workflows/pull_request.yml` — parity PR validation, fires on every PR
+  - `.github/workflows/release.yml` — manual `workflow_dispatch` release readiness check (validation only; never publishes to Docker Hub)
+  The phase-specific scaffolding workflows (`phase1-safety-gates.yml`, `cutover-validation.yml`, `multiarch-validation.yml`) were retired once their gate runners landed in the canonical PR + release pipelines.
 - `scripts/phase_gates/phase5_gate_runner.py` (`quick` and `full` profiles) remains a canonical script-level entrypoint used by CI flows.
 
 ### Android TV Notes

@@ -81,11 +81,14 @@ not enough — pitfall #4 in `.planning/research/PITFALLS.md` calls out the
 
 ## How to verify in CI
 
-A PR that touches `docker/manifests/acestream.json` automatically activates
-the `multiarch-full` job in `.github/workflows/multiarch-validation.yml`
-(see the `paths-filter` config — the manifest path is on that watch list
-indirectly via the `docker/**` filter). The job runs the full profile
-across every flavor and uploads the gate report as a workflow artifact.
+A PR that touches `docker/manifests/acestream.json` runs the canonical
+PR pipeline (`Jenkinsfile` and `.github/workflows/pull_request.yml`),
+which exercises the full four-flavor multi-arch dry-run and the real
+AceStream engine runtime smoke. To run the heavier multi-arch full
+profile (QEMU runtime smoke per architecture), trigger the manual
+`Release Pipeline` workflow via `workflow_dispatch` on the GitHub
+Actions tab; it runs the same `phase5_gate_runner.py --profile full`
+formerly hosted in the standalone multiarch-validation workflow.
 
 For release branches, `.github/workflows/release.yml` requires the
 `multiarch-runtime-smoke` job to pass before any image is pushed. That job

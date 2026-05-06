@@ -18,13 +18,14 @@ required platform, runs `phase5_arch_smoke.sh` against `linux/arm/v7` and
 `phase5-build-result-full-{scraper,scraper-acestream,scraper-acexy,scraper-acestream-acexy}.json`
 files are uploaded as the workflow artifact `phase5-multiarch-full-evidence`.
 
-For PRs, `multiarch-validation.yml::multiarch-full` runs the same profile
-when the PR touches `Dockerfile`, `docker/**`, `scripts/ci/build_multiarch_*`,
-`scripts/ci/verify_multiarch_*`, `scripts/ci/phase5_arch_smoke.sh`,
-`scripts/ci/flavor_platforms.py`, `scripts/phase_gates/phase5_*`, or any of
-the runtime entrypoint scripts. PRs without changes in those areas only run
-the dry-run quick profile to keep everyday CI cost predictable; risky
-multi-arch changes get real smoke before merge automatically.
+PRs always run the dry-run quick profile via the canonical `Jenkinsfile`
+and `.github/workflows/pull_request.yml` (which also exercises the real
+AceStream engine runtime smoke for the `scraper-acestream` flavor). The
+heavier multi-arch full profile (QEMU runtime smoke per architecture) runs
+only on the manual `Release Pipeline` (`workflow_dispatch`) and on Jenkins
+`acestream-scraper-release`. The standalone `multiarch-validation.yml`
+workflow was retired; trigger the manual Release Pipeline before merging
+risky multi-arch changes to capture full-profile evidence.
 
 We deliberately do **not** check `phase5-build-result-*.json` files into the
 repo anymore. They were checked in once, became stale, and started reading

@@ -106,6 +106,22 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
   exit 0
 fi
 
+# Real AceStream engine runtime smoke. Mirrors Jenkinsfile's
+# 'Acestream Engine Runtime Smoke' stage so the release path validates that
+# the published image will actually start the engine before any tags reach
+# Docker Hub. BUILDX_BUILDER=default forces the docker driver because the
+# docker-container driver's isolated network breaks curl to
+# download.acestream.media on WARP-routed builders.
+(
+  export BUILDX_BUILDER=default
+  bash scripts/ci/build_multiarch_images.sh \
+    --flavor scraper-acestream \
+    --load \
+    --network host \
+    --tag acestream-scraper:release-smoke
+)
+PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_acestream_runtime_smoke.py -v
+
 : "${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}"
 : "${DOCKERHUB_TOKEN:?DOCKERHUB_TOKEN is required}"
 

@@ -10,7 +10,6 @@ TARGETS=(
   "Jenkinsfile"
   ".github/workflows/pull_request.yml"
   ".github/workflows/release.yml"
-  ".github/workflows/phase1-safety-gates.yml"
   "Dockerfile"
   "docker-compose.yml"
   "jenkins/release.Jenkinsfile"

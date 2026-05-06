@@ -88,8 +88,8 @@ If you are upgrading from v1, run `bash scripts/ops/preflight_v2_deploy.sh` firs
 - **Single canonical runner.** `bash scripts/ci/run_v2_test_suite.sh --profile {quick,full}` is the one entry point.
 - **Strict legacy guard.** `bash scripts/ci/assert_no_legacy_paths.sh --strict` blocks reintroduction of retired root paths.
 - **Cutover checks.** `bash scripts/ci/run_cutover_required_checks.sh --profile quick` for fast pre-deploy validation.
-- **Phase gates.** Phase-1 parity safety gates run on PRs (`.github/workflows/phase1-safety-gates.yml`); multi-arch quick (dry-run) profile runs on PRs, full profile on push/release.
-- **Jenkins.** Canonical PR validation pipeline (`Jenkinsfile`) and manual release pipeline (`jenkins/release.Jenkinsfile`); GitHub Actions remain as fallbacks during the transition.
+- **Phase gates.** Phase-1 parity safety gates and multi-arch quick (dry-run) profile run on every PR via the canonical pipelines (`Jenkinsfile` and `.github/workflows/pull_request.yml`). Full multi-arch profile runs on the manual `Release Pipeline` (`workflow_dispatch`) and on Jenkins `acestream-scraper-release`.
+- **Jenkins.** Canonical PR validation pipeline (`Jenkinsfile`) and manual release pipeline (`jenkins/release.Jenkinsfile`, sole publisher); `.github/workflows/release.yml` is now a manual validation-only mirror.
 
 ---
 

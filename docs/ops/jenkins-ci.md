@@ -842,7 +842,20 @@ Release behavior:
 - `DRY_RUN=true` performs preflight only.
 - `DRY_RUN=false` performs Docker Hub login and publishes tags.
 - The job archives release result JSON files and `phase5-build-result-release-metadata.json`.
-- Keep this path manual-only while GitHub Actions remain available as fallback/reference workflows during the proving window, with `.github/workflows/release.yml` kept as the manual fallback path.
+- Before publishing, the script builds `scraper-acestream` locally and runs `backend/tests/docker/test_acestream_runtime_smoke.py`. If the engine smoke fails, no Docker Hub login or push happens.
+- Keep this path manual-only while GitHub Actions remain available as a parity validator. `.github/workflows/release.yml` is now validation-only (no Docker Hub push); Jenkins is the sole publisher.
+
+## v2.0.0 Release Runbook
+
+Sequence for shipping the v2 codebase from `ai-coding-documentation` (or any subsequent feature branch) to Docker Hub:
+
+1. Confirm `version.txt` reads the intended release tag (currently `v2.0.0`).
+2. Open a pull request from the release branch to `main`. Wait for `acestream-scraper-pr` (Jenkins multibranch) to go green; the same gates run as `.github/workflows/pull_request.yml` for parity.
+3. Merge the PR to `main`. No automatic Docker Hub publish happens — the GA `release.yml` workflow no longer pushes, and Jenkins requires a manual trigger.
+4. In Jenkins, build `acestream-scraper-release` with parameters `CONFIRM_RELEASE=true` and `DRY_RUN=true`. This runs the full cutover suite, the multi-arch dry-run preflight, and the AceStream engine smoke without binding Docker Hub credentials. Verify it goes green.
+5. Re-run `acestream-scraper-release` with `CONFIRM_RELEASE=true` and `DRY_RUN=false`. The pipeline will rerun the full cutover suite, dry-run preflight, AceStream engine smoke, then log into Docker Hub and push the four flavors.
+6. Verify the published tags on Docker Hub: `pipepito/acestream-scraper:latest`, `:${VERSION}`, plus the four flavor tags (`scraper`, `scraper-acestream`, `scraper-acexy`, `scraper-acestream-acexy`) and their version-prefixed variants.
+7. Smoke-test on a fresh amd64 host: `docker pull pipepito/acestream-scraper:latest && docker run --rm -p 8000:8000 -p 6878:6878 -e ENABLE_ACESTREAM_ENGINE=true pipepito/acestream-scraper:latest` and confirm the FastAPI app and engine respond.
 
 ## Branch Protection Cutover
 
@@ -870,21 +883,18 @@ Treat fork PRs as restricted until verified.
 
 ## GitHub Actions During The Proving Window
 
-Jenkins is the canonical CI and release path now. During the current proving window, the existing GitHub Actions workflows remain in the repository as fallback/reference workflows while operators confirm Jenkins stability.
+Jenkins is the canonical CI and release path. During the proving window, two GitHub Actions workflows remain as parity validators:
 
-During this proving window, GitHub Actions can continue to serve these secondary roles:
+- `.github/workflows/pull_request.yml`: parity PR validation. Fires on every pull request and runs the same suite as `acestream-scraper-pr` (tests, four-flavor dry-run multi-arch builds, AceStream engine runtime smoke, cutover required checks).
+- `.github/workflows/release.yml`: validation-only release readiness check. Triggered manually via `workflow_dispatch`. Runs the full release preflight (cutover, four-flavor dry-run, AceStream engine smoke, phase-5 multi-arch full gate) **without** logging into Docker Hub or pushing tags. Jenkins is the sole publisher.
 
-- `.github/workflows/pull_request.yml`: fallback PR validation reference
-- `.github/workflows/release.yml`: manual fallback release workflow reference
-- `.github/workflows/multiarch-validation.yml`: extra multi-arch validation path
-- `.github/workflows/cutover-validation.yml`: cutover verification path
-- `.github/workflows/phase1-safety-gates.yml`: legacy phase 1 safety-gate fallback path
+The phase-specific GA scaffolding workflows (`phase1-safety-gates.yml`, `cutover-validation.yml`, `multiarch-validation.yml`) were removed once their gate runners were absorbed into the canonical PR + release pipelines.
 
 Expected operating model:
 
 - Jenkins is the canonical path for PR validation and release publication.
-- GitHub Actions are retained as fallback/reference workflows for rollback and operator verification.
-- Do not delete the workflows until Jenkins has proven stable and rollback is no longer needed.
+- GitHub Actions PR workflow stays on for parity. GA release workflow is manual-only validation; it never pushes to Docker Hub.
+- Removing GA entirely is a future cleanup once Jenkins has proven stable across multiple releases.
 
 ## Rollback Guidance
 
@@ -893,7 +903,7 @@ If Jenkins cutover causes merge or release risk:
 1. Re-enable GitHub Actions checks in branch protection immediately.
 2. Remove the Jenkins check from required branch protection if it is unstable or unreachable.
 3. Pause manual Jenkins releases.
-4. Use `.github/workflows/release.yml` or `.github/workflows/multiarch-validation.yml` for temporary fallback validation/publish flow.
+4. Use `.github/workflows/release.yml` (manual `workflow_dispatch`) for temporary fallback validation. The GA release workflow no longer publishes to Docker Hub; if Jenkins is unavailable, restore the deleted `build-image` job from git history (`git show HEAD~1:.github/workflows/release.yml`) into a short-lived branch, or run the publish steps manually with `bash scripts/ci/run_jenkins_release.sh` from a workstation that has the `dockerhub-publish` credential.
 5. Preserve Jenkins logs, webhook delivery logs, and agent diagnostics before making major controller changes.
 
 Rollback is complete only when GitHub Actions are again sufficient to validate and ship the repository without Jenkins.

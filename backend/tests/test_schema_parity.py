@@ -141,6 +141,7 @@ def test_scraped_urls_schema_matches_runtime_contract(tmp_path):
             'last_error',
             'error',
             'enabled',
+            'scrape_bare_ids',
             'added_at',
         }
 

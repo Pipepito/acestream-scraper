@@ -51,6 +51,8 @@ class ScraperService:
             scraper.db = self.db
             scraper.epg_service = epg_service
             scraper.tv_channel_service = tv_channel_service
+            url_record = self.url_repository.get_by_url(url) or self.url_repository.get_by_url(source_url)
+            scraper.scrape_bare_ids = bool(url_record.scrape_bare_ids) if url_record else False
             raw_channels, status = await scraper.scrape()
 
             # Auto-create TV channels from EPG and assign tv_channel_id
@@ -151,6 +153,7 @@ class ScraperService:
             url.url_type = url_data.url_type
             url.enabled = url_data.enabled
             url.status = url_data.status
+            url.scrape_bare_ids = url_data.scrape_bare_ids
             url = self.url_repository.update(url)
             return URLResponse.model_validate(url)
         # Create new if not exists
@@ -158,7 +161,8 @@ class ScraperService:
             url=url_data.url,
             url_type=url_data.url_type,
             enabled=url_data.enabled,
-            status=url_data.status
+            status=url_data.status,
+            scrape_bare_ids=url_data.scrape_bare_ids
         )
         self.url_repository.add(url)
         self.db.refresh(url)

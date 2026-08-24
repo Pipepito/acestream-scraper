@@ -39,6 +39,7 @@ class URLResponse(BaseModel):
     last_error: Optional[str] = None
     error: Optional[str] = None  # Keep for backward compatibility
     enabled: bool = True
+    scrape_bare_ids: bool = False
     added_at: datetime
 
 
@@ -53,6 +54,7 @@ class URLCreate(BaseModel):
     url_type: str = "regular"
     enabled: bool = True
     status: str = "active"
+    scrape_bare_ids: bool = False
 
 
 class URLUpdate(BaseModel):
@@ -61,3 +63,4 @@ class URLUpdate(BaseModel):
     url_type: Optional[str] = None
     enabled: Optional[bool] = None
     status: Optional[str] = None
+    scrape_bare_ids: Optional[bool] = None

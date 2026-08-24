@@ -2981,6 +2981,11 @@
             "title": "Enabled",
             "type": "boolean"
           },
+          "scrape_bare_ids": {
+            "default": false,
+            "title": "Scrape Bare Ids",
+            "type": "boolean"
+          },
           "status": {
             "default": "active",
             "title": "Status",
@@ -3074,6 +3079,11 @@
               }
             ],
             "title": "Last Scraped"
+          },
+          "scrape_bare_ids": {
+            "default": false,
+            "title": "Scrape Bare Ids",
+            "type": "boolean"
           },
           "status": {
             "title": "Status",
@@ -3176,6 +3186,17 @@
               }
             ],
             "title": "Enabled"
+          },
+          "scrape_bare_ids": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scrape Bare Ids"
           },
           "status": {
             "anyOf": [

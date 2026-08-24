@@ -2030,6 +2030,11 @@ export interface components {
        */
       enabled?: boolean;
       /**
+       * Scrape Bare Ids
+       * @default false
+       */
+      scrape_bare_ids?: boolean;
+      /**
        * Status
        * @default active
        */
@@ -2077,6 +2082,11 @@ export interface components {
       last_processed?: string | null;
       /** Last Scraped */
       last_scraped?: string | null;
+      /**
+       * Scrape Bare Ids
+       * @default false
+       */
+      scrape_bare_ids?: boolean;
       /** Status */
       status: string;
       /** Url */
@@ -2112,6 +2122,8 @@ export interface components {
     URLUpdate: {
       /** Enabled */
       enabled?: boolean | null;
+      /** Scrape Bare Ids */
+      scrape_bare_ids?: boolean | null;
       /** Status */
       status?: string | null;
       /** Url */

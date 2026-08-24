@@ -25,6 +25,10 @@ class BaseScraper(ABC):
         self.timeout = timeout
         self.retries = retries
         self.acestream_pattern = re.compile(r'acestream://([\w\d]+)')
+        # Bare acestream content IDs are 40 lowercase hex chars. Only used
+        # when the source URL opts in via scrape_bare_ids (#81).
+        self.bare_id_pattern = re.compile(r'\b([0-9a-f]{40})\b')
+        self.scrape_bare_ids = False
         self.m3u_pattern = re.compile(r'https?://[^\s<>"]+?\.m3u[8]?(?=[\s<>"]|$)')
         self.identified_ids: Set[str] = set()
         self.m3u_service = M3UService()
@@ -123,6 +127,36 @@ class BaseScraper(ABC):
                     self.identified_ids.add(id)
                 # Do NOT add channels with generated names based on IDs
 
+        return channels
+
+    def extract_bare_ids(self, content: str) -> List[Tuple[str, str]]:
+        """Extract bare 40-hex content IDs from text (opt-in per URL, #81).
+
+        Sites covered by this mode list raw hashes, optionally prefixed by a
+        channel name on the same line ("Channel Name: <40-hex>"). IDs already
+        harvested through acestream:// links are skipped. When no name
+        precedes the hash, the hash itself becomes the (editable) name.
+        """
+        channels = []
+        # Strip markup so IDs inside HTML still sit on one text line
+        text = BeautifulSoup(content, 'html.parser').get_text('\n')
+
+        for line in text.splitlines():
+            # acestream:// lines belong to the dedicated extractor; never
+            # re-capture their hashes here.
+            if 'acestream://' in line.lower():
+                continue
+            for match in self.bare_id_pattern.finditer(line):
+                channel_id = match.group(1)
+                if channel_id in self.identified_ids:
+                    continue
+                name_part = line[:match.start()].strip().rstrip(':- ')
+                name = self.clean_channel_name(name_part) if name_part else channel_id
+                channels.append((channel_id, name))
+                self.identified_ids.add(channel_id)
+
+        if channels:
+            logger.info(f"Extracted {len(channels)} bare content IDs")
         return channels
 
     async def extract_from_m3u_links(self, content: str) -> List[Tuple[str, str, Dict[str, Any]]]:
@@ -236,6 +270,8 @@ class BaseScraper(ABC):
                     channels.extend(iframe_channels)
                     channels.extend(content_channels)
                     channels.extend(m3u_channels)
+                if self.scrape_bare_ids:
+                    channels.extend((id, name, {}) for id, name in self.extract_bare_ids(content))
                 break
             except Exception as e:
                 logger.error(f"Error scraping {url_to_scrape}: {str(e)}")

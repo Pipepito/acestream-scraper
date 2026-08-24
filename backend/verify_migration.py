@@ -49,6 +49,7 @@ EXPECTED_SCRAPED_URL_COLUMNS = {
     'last_error',
     'error',
     'enabled',
+    'scrape_bare_ids',
     'added_at',
 }
 

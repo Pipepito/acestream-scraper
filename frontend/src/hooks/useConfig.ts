@@ -1,11 +1,13 @@
-import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { configService, HealthResponse, Stats } from '../services/configService';
+import { useQuery, useMutation, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
+import { configService, HealthResponse, Stats, StatusResponse } from '../services/configService';
+
+type QueryOpts<T> = Omit<UseQueryOptions<T>, 'queryKey' | 'queryFn'>;
 
 /**
  * Hook for getting the base URL setting
  */
 export const useBaseUrl = () => {
-  return useQuery('baseUrl', configService.getBaseUrl);
+  return useQuery({ queryKey: ['baseUrl'], queryFn: configService.getBaseUrl });
 };
 
 /**
@@ -13,22 +15,20 @@ export const useBaseUrl = () => {
  */
 export const useUpdateBaseUrl = () => {
   const queryClient = useQueryClient();
-  return useMutation(
-    (baseUrl: string) => configService.updateBaseUrl(baseUrl),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries('baseUrl');
-        queryClient.invalidateQueries('allSettings');
-      }
-    }
-  );
+  return useMutation({
+    mutationFn: (baseUrl: string) => configService.updateBaseUrl(baseUrl),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['baseUrl'] });
+      queryClient.invalidateQueries({ queryKey: ['allSettings'] });
+    },
+  });
 };
 
 /**
  * Hook for getting the Acestream Engine URL setting
  */
 export const useAceEngineUrl = () => {
-  return useQuery('aceEngineUrl', configService.getAceEngineUrl);
+  return useQuery({ queryKey: ['aceEngineUrl'], queryFn: configService.getAceEngineUrl });
 };
 
 /**
@@ -36,22 +36,20 @@ export const useAceEngineUrl = () => {
  */
 export const useUpdateAceEngineUrl = () => {
   const queryClient = useQueryClient();
-  return useMutation(
-    (aceEngineUrl: string) => configService.updateAceEngineUrl(aceEngineUrl),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries('aceEngineUrl');
-        queryClient.invalidateQueries('allSettings');
-      }
-    }
-  );
+  return useMutation({
+    mutationFn: (aceEngineUrl: string) => configService.updateAceEngineUrl(aceEngineUrl),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['aceEngineUrl'] });
+      queryClient.invalidateQueries({ queryKey: ['allSettings'] });
+    },
+  });
 };
 
 /**
  * Hook for getting the rescrape interval setting
  */
 export const useRescrapeInterval = () => {
-  return useQuery('rescrapeInterval', configService.getRescrapeInterval);
+  return useQuery({ queryKey: ['rescrapeInterval'], queryFn: configService.getRescrapeInterval });
 };
 
 /**
@@ -59,22 +57,20 @@ export const useRescrapeInterval = () => {
  */
 export const useUpdateRescrapeInterval = () => {
   const queryClient = useQueryClient();
-  return useMutation(
-    (hours: number) => configService.updateRescrapeInterval(hours),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries('rescrapeInterval');
-        queryClient.invalidateQueries('allSettings');
-      }
-    }
-  );
+  return useMutation({
+    mutationFn: (hours: number) => configService.updateRescrapeInterval(hours),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rescrapeInterval'] });
+      queryClient.invalidateQueries({ queryKey: ['allSettings'] });
+    },
+  });
 };
 
 /**
  * Hook for getting the addpid setting
  */
 export const useAddPid = () => {
-  return useQuery('addPid', configService.getAddPid);
+  return useQuery({ queryKey: ['addPid'], queryFn: configService.getAddPid });
 };
 
 /**
@@ -82,41 +78,39 @@ export const useAddPid = () => {
  */
 export const useUpdateAddPid = () => {
   const queryClient = useQueryClient();
-  return useMutation(
-    (enabled: boolean) => configService.updateAddPid(enabled),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries('addPid');
-        queryClient.invalidateQueries('allSettings');
-      }
-    }
-  );
+  return useMutation({
+    mutationFn: (enabled: boolean) => configService.updateAddPid(enabled),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['addPid'] });
+      queryClient.invalidateQueries({ queryKey: ['allSettings'] });
+    },
+  });
 };
 
 /**
  * Hook for getting all settings
  */
 export const useAllSettings = () => {
-  return useQuery('allSettings', configService.getAllSettings);
+  return useQuery({ queryKey: ['allSettings'], queryFn: configService.getAllSettings });
 };
 
 /**
  * Hook for checking the Acestream Engine status
  */
-export const useAcestreamStatus = (options = {}) => {
-  return useQuery('acestreamStatus', configService.checkAcestreamStatus, options);
+export const useAcestreamStatus = (options: QueryOpts<StatusResponse> = {}) => {
+  return useQuery({ queryKey: ['acestreamStatus'], queryFn: configService.checkAcestreamStatus, ...options });
 };
 
 /**
  * Hook for checking system health
  */
-export const useHealth = (options = {}) => {
-  return useQuery<HealthResponse>('health', configService.checkHealth, options);
+export const useHealth = (options: QueryOpts<HealthResponse> = {}) => {
+  return useQuery<HealthResponse>({ queryKey: ['health'], queryFn: configService.checkHealth, ...options });
 };
 
 /**
  * Hook for getting system statistics
  */
-export const useStats = (options = {}) => {
-  return useQuery<Stats>('stats', configService.getStats, options);
+export const useStats = (options: QueryOpts<Stats> = {}) => {
+  return useQuery<Stats>({ queryKey: ['stats'], queryFn: configService.getStats, ...options });
 };

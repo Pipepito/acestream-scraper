@@ -2,7 +2,6 @@ import React, { act } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { useMediaQuery } from '@mui/material';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import userEvent from '@testing-library/user-event';
 import BulkOperations from '../components/BulkOperations';
 
 jest.mock('@mui/material', () => {
@@ -15,12 +14,6 @@ jest.mock('@mui/material', () => {
 });
 
 const mockUseMediaQuery = useMediaQuery as jest.MockedFunction<typeof useMediaQuery>;
-
-type LegacyUserEventWithSetup = typeof userEvent & {
-  setup?: () => {
-    click: (element: Element) => Promise<void>;
-  };
-};
 
 describe('BulkOperations', () => {
   let consoleErrorSpy: jest.SpyInstance;
@@ -51,18 +44,11 @@ describe('BulkOperations', () => {
   });
 
   const click = async (element: Element) => {
-    const legacyUserEvent = userEvent as LegacyUserEventWithSetup;
-
-    if (typeof legacyUserEvent.setup === 'function') {
-      const user = legacyUserEvent.setup();
-      await act(async () => {
-        await user.click(element);
-      });
-      return;
-    }
-
+    fireEvent.click(element);
+    // Flush the component's queued per-channel promise chain inside act so
+    // the resulting state updates land before the next assertion.
     await act(async () => {
-      userEvent.click(element);
+      await Promise.resolve();
     });
   };
 
@@ -110,7 +96,7 @@ describe('BulkOperations', () => {
       </ThemeProvider>
     );
 
-    expect(document.querySelector('.MuiDialog-paperFullScreen')).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog')).not.toHaveClass('MuiDialog-paperFullScreen');
   });
 
   it('keeps success feedback visible until the user dismisses the dialog', async () => {

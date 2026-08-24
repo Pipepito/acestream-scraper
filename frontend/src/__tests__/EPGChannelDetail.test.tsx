@@ -421,7 +421,7 @@ describe('EPGChannelDetail', () => {
 
   it('creates TV channels through the shared mutation layer', async () => {
     const mutateAsync = jest.fn().mockResolvedValue({ id: 55 });
-    mockUseCreateTVChannel.mockReturnValue({ mutateAsync, isLoading: false });
+    mockUseCreateTVChannel.mockReturnValue({ mutateAsync, isPending: false });
 
     renderPage();
 
@@ -446,7 +446,7 @@ describe('EPGChannelDetail', () => {
 
     try {
       const mutateAsync = jest.fn().mockResolvedValue({ id: 55 });
-      mockUseCreateTVChannel.mockReturnValue({ mutateAsync, isLoading: false });
+      mockUseCreateTVChannel.mockReturnValue({ mutateAsync, isPending: false });
 
       renderPage();
 

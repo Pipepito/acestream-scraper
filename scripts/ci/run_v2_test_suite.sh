@@ -83,7 +83,7 @@ echo "Running canonical frontend suite ($PROFILE)..."
     exit 1
   fi
 
-  npm run lint
+  npm run lint -- --max-warnings=0
   npm run typecheck
 
   if [[ "$PROFILE" == "quick" ]]; then

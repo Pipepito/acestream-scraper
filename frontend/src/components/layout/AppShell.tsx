@@ -18,7 +18,7 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const contentMaxWidth = getShellContentMaxWidth(theme, isWideDesktop ? 'wide' : 'standard');
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', minWidth: 0, bgcolor: theme.appTokens.surface.canvas }}>
+    <Box data-testid="app-shell-root" sx={{ display: 'flex', minHeight: '100vh', minWidth: 0, bgcolor: theme.appTokens.surface.canvas }}>
       <NavBar drawerWidth={layout.navWidth} />
       <Box
         component="main"
@@ -39,6 +39,7 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
       >
         <Toolbar />
         <Box
+          data-testid="app-shell-content"
           sx={{
             maxWidth: contentMaxWidth,
             mr: 'auto',

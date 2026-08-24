@@ -58,7 +58,7 @@ describe('BatchAssignDialog', () => {
 
     renderDialog();
 
-    expect(document.querySelector('.MuiDialog-paperFullScreen')).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog')).not.toHaveClass('MuiDialog-paperFullScreen');
   });
 
   it('keeps success feedback visible until the user dismisses the dialog', async () => {

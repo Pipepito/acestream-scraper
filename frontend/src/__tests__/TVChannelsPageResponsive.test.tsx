@@ -219,9 +219,9 @@ describe('TVChannels responsive page behavior', () => {
       Promise.resolve({ id, is_favorite: value ?? true })
     );
     mockUseDeleteTVChannel.mockReturnValue({ mutateAsync: deleteMutateAsync });
-    mockUseCreateTVChannel.mockReturnValue({ mutateAsync: createMutateAsync, isLoading: false });
-    mockUseUpdateTVChannel.mockReturnValue({ mutateAsync: updateMutateAsync, isLoading: false });
-    mockUseToggleTVChannelFavorite.mockReturnValue({ mutateAsync: toggleFavoriteMutateAsync, isLoading: false });
+    mockUseCreateTVChannel.mockReturnValue({ mutateAsync: createMutateAsync, isPending: false });
+    mockUseUpdateTVChannel.mockReturnValue({ mutateAsync: updateMutateAsync, isPending: false });
+    mockUseToggleTVChannelFavorite.mockReturnValue({ mutateAsync: toggleFavoriteMutateAsync, isPending: false });
   });
 
   it('keeps primary actions visible while collapsing filters on phone', async () => {

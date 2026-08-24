@@ -185,7 +185,7 @@ const Health: React.FC = () => {
       <ContentSection title="Operational details" description="Review the current engine/runtime response and the saved configuration snapshot.">
         <Grid container spacing={2}>
           <Grid item xs={12} md={6}>
-            <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
+            <Paper component="section" aria-label="Runtime details" variant="outlined" sx={{ p: 2, height: '100%' }}>
               <Typography variant="sectionTitle" component="h3" sx={{ mb: 1.5 }}>Runtime details</Typography>
               <List disablePadding>
                 <ListItem disableGutters>
@@ -203,7 +203,7 @@ const Health: React.FC = () => {
             </Paper>
           </Grid>
           <Grid item xs={12} md={6}>
-            <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
+            <Paper component="section" aria-label="Configuration snapshot" variant="outlined" sx={{ p: 2, height: '100%' }}>
               <Typography variant="sectionTitle" component="h3" sx={{ mb: 1.5 }}>Configuration snapshot</Typography>
               <List dense disablePadding>
                 {healthData?.settings && Object.entries(healthData.settings).map(([key, value]) => (

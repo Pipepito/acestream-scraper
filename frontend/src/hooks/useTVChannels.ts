@@ -1,5 +1,5 @@
 
-import { useMutation, useQuery, useQueryClient } from 'react-query';
+import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { TVChannel, TVChannelCreate, TVChannelUpdate } from '../types/tvChannelTypes';
 import { tvChannelService, TVChannelListFilters } from '../services/tvChannelService';
 
@@ -18,54 +18,46 @@ const QUERY_KEYS = {
  * Hook for fetching all TV channels
  */
 export const useAllTVChannels = (skip = 0, limit = 100) => {
-  return useQuery<PaginatedTVChannels>(
-    [QUERY_KEYS.ALL_TV_CHANNELS, skip, limit],
-    () => tvChannelService.getAll(skip, limit),
-    {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-    }
-  );
+  return useQuery<PaginatedTVChannels>({
+    queryKey: [QUERY_KEYS.ALL_TV_CHANNELS, skip, limit],
+    queryFn: () => tvChannelService.getAll(skip, limit),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
 };
 
 export const useTVChannelCatalog = (filters?: TVChannelListFilters) => {
-  return useQuery<TVChannel[]>(
-    [QUERY_KEYS.ALL_TV_CHANNELS, 'catalog', { favorites: filters?.favorites ?? false, search: filters?.search ?? '' }],
-    () => tvChannelService.getCatalog(undefined, filters),
-    {
-      staleTime: 1000 * 60 * 5,
-      // Keep the previous list rendered while a filter change refetches, so
-      // toggling the favorites switch doesn't unmount the whole page.
-      keepPreviousData: true,
-    }
-  );
+  return useQuery<TVChannel[]>({
+    queryKey: [QUERY_KEYS.ALL_TV_CHANNELS, 'catalog', { favorites: filters?.favorites ?? false, search: filters?.search ?? '' }],
+    queryFn: () => tvChannelService.getCatalog(undefined, filters),
+    staleTime: 1000 * 60 * 5,
+    // Keep the previous list rendered while a filter change refetches, so
+    // toggling the favorites switch doesn't unmount the whole page.
+    placeholderData: keepPreviousData,
+  });
 };
 
 /**
  * Hook for fetching a single TV channel by ID
  */
 export const useTVChannel = (id: number) => {
-  return useQuery(
-    [QUERY_KEYS.TV_CHANNEL_DETAIL, id],
-    () => tvChannelService.getById(id),
-    {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      enabled: !!id,
-    }
-  );
+  return useQuery({
+    queryKey: [QUERY_KEYS.TV_CHANNEL_DETAIL, id],
+    queryFn: () => tvChannelService.getById(id),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: !!id,
+  });
 };
 
 /**
  * Hook for fetching acestreams associated with a TV channel
  */
 export const useTVChannelAcestreams = (id: number) => {
-  return useQuery(
-    [QUERY_KEYS.TV_CHANNEL_ACESTREAMS, id],
-    () => tvChannelService.getAcestreams(id),
-    {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      enabled: !!id,
-    }
-  );
+  return useQuery({
+    queryKey: [QUERY_KEYS.TV_CHANNEL_ACESTREAMS, id],
+    queryFn: () => tvChannelService.getAcestreams(id),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: !!id,
+  });
 };
 
 /**
@@ -74,14 +66,12 @@ export const useTVChannelAcestreams = (id: number) => {
 export const useCreateTVChannel = () => {
   const queryClient = useQueryClient();
 
-  return useMutation(
-    (tvChannel: TVChannelCreate) => tvChannelService.create(tvChannel),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(QUERY_KEYS.ALL_TV_CHANNELS);
-      },
-    }
-  );
+  return useMutation({
+    mutationFn: (tvChannel: TVChannelCreate) => tvChannelService.create(tvChannel),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.ALL_TV_CHANNELS] });
+    },
+  });
 };
 
 /**
@@ -90,16 +80,14 @@ export const useCreateTVChannel = () => {
 export const useUpdateTVChannel = () => {
   const queryClient = useQueryClient();
 
-  return useMutation(
-    ({ id, updates }: { id: number; updates: TVChannelUpdate }) =>
+  return useMutation({
+    mutationFn: ({ id, updates }: { id: number; updates: TVChannelUpdate }) =>
       tvChannelService.update(id, updates),
-    {
-      onSuccess: (data, { id }) => {
-        queryClient.invalidateQueries([QUERY_KEYS.TV_CHANNEL_DETAIL, id]);
-        queryClient.invalidateQueries(QUERY_KEYS.ALL_TV_CHANNELS);
-      },
-    }
-  );
+    onSuccess: (data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TV_CHANNEL_DETAIL, id] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.ALL_TV_CHANNELS] });
+    },
+  });
 };
 
 /**
@@ -108,15 +96,13 @@ export const useUpdateTVChannel = () => {
 export const useToggleTVChannelFavorite = () => {
   const queryClient = useQueryClient();
 
-  return useMutation(
-    ({ id, value }: { id: number; value?: boolean }) => tvChannelService.toggleFavorite(id, value),
-    {
-      onSuccess: (data, { id }) => {
-        queryClient.invalidateQueries([QUERY_KEYS.TV_CHANNEL_DETAIL, id]);
-        queryClient.invalidateQueries(QUERY_KEYS.ALL_TV_CHANNELS);
-      },
-    }
-  );
+  return useMutation({
+    mutationFn: ({ id, value }: { id: number; value?: boolean }) => tvChannelService.toggleFavorite(id, value),
+    onSuccess: (data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TV_CHANNEL_DETAIL, id] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.ALL_TV_CHANNELS] });
+    },
+  });
 };
 
 /**
@@ -125,14 +111,12 @@ export const useToggleTVChannelFavorite = () => {
 export const useDeleteTVChannel = () => {
   const queryClient = useQueryClient();
 
-  return useMutation(
-    (id: number) => tvChannelService.delete(id),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(QUERY_KEYS.ALL_TV_CHANNELS);
-      },
-    }
-  );
+  return useMutation({
+    mutationFn: (id: number) => tvChannelService.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.ALL_TV_CHANNELS] });
+    },
+  });
 };
 
 /**
@@ -141,16 +125,14 @@ export const useDeleteTVChannel = () => {
 export const useAssociateAcestream = () => {
   const queryClient = useQueryClient();
 
-  return useMutation(
-    ({ tvChannelId, aceStreamId }: { tvChannelId: number; aceStreamId: string }) =>
+  return useMutation({
+    mutationFn: ({ tvChannelId, aceStreamId }: { tvChannelId: number; aceStreamId: string }) =>
       tvChannelService.associateAcestream(tvChannelId, aceStreamId),
-    {
-      onSuccess: (_, { tvChannelId }) => {
-        queryClient.invalidateQueries([QUERY_KEYS.TV_CHANNEL_DETAIL, tvChannelId]);
-        queryClient.invalidateQueries([QUERY_KEYS.TV_CHANNEL_ACESTREAMS, tvChannelId]);
-      },
-    }
-  );
+    onSuccess: (_, { tvChannelId }) => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TV_CHANNEL_DETAIL, tvChannelId] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TV_CHANNEL_ACESTREAMS, tvChannelId] });
+    },
+  });
 };
 
 /**
@@ -159,16 +141,14 @@ export const useAssociateAcestream = () => {
 export const useRemoveAcestreamAssociation = () => {
   const queryClient = useQueryClient();
 
-  return useMutation(
-    ({ tvChannelId, aceStreamId }: { tvChannelId: number; aceStreamId: string }) =>
+  return useMutation({
+    mutationFn: ({ tvChannelId, aceStreamId }: { tvChannelId: number; aceStreamId: string }) =>
       tvChannelService.removeAcestreamAssociation(tvChannelId, aceStreamId),
-    {
-      onSuccess: (_, { tvChannelId }) => {
-        queryClient.invalidateQueries([QUERY_KEYS.TV_CHANNEL_DETAIL, tvChannelId]);
-        queryClient.invalidateQueries([QUERY_KEYS.TV_CHANNEL_ACESTREAMS, tvChannelId]);
-      },
-    }
-  );
+    onSuccess: (_, { tvChannelId }) => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TV_CHANNEL_DETAIL, tvChannelId] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TV_CHANNEL_ACESTREAMS, tvChannelId] });
+    },
+  });
 };
 
 /**
@@ -177,16 +157,14 @@ export const useRemoveAcestreamAssociation = () => {
 export const useBatchAssignAcestreams = () => {
   const queryClient = useQueryClient();
 
-  return useMutation(
-    (assignments: Record<string, string[]>) => tvChannelService.batchAssignAcestreams(assignments),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(QUERY_KEYS.ALL_TV_CHANNELS);
-        queryClient.invalidateQueries(QUERY_KEYS.TV_CHANNEL_DETAIL);
-        queryClient.invalidateQueries(QUERY_KEYS.TV_CHANNEL_ACESTREAMS);
-      },
-    }
-  );
+  return useMutation({
+    mutationFn: (assignments: Record<string, string[]>) => tvChannelService.batchAssignAcestreams(assignments),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.ALL_TV_CHANNELS] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TV_CHANNEL_DETAIL] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TV_CHANNEL_ACESTREAMS] });
+    },
+  });
 };
 
 /**
@@ -195,16 +173,14 @@ export const useBatchAssignAcestreams = () => {
 export const useAssociateByEpg = () => {
   const queryClient = useQueryClient();
 
-  return useMutation(
-    () => tvChannelService.associateByEpg(),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(QUERY_KEYS.ALL_TV_CHANNELS);
-        queryClient.invalidateQueries(QUERY_KEYS.TV_CHANNEL_DETAIL);
-        queryClient.invalidateQueries(QUERY_KEYS.TV_CHANNEL_ACESTREAMS);
-      },
-    }
-  );
+  return useMutation({
+    mutationFn: () => tvChannelService.associateByEpg(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.ALL_TV_CHANNELS] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TV_CHANNEL_DETAIL] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TV_CHANNEL_ACESTREAMS] });
+    },
+  });
 };
 
 /**
@@ -213,13 +189,11 @@ export const useAssociateByEpg = () => {
 export const useBulkUpdateEpg = () => {
   const queryClient = useQueryClient();
 
-  return useMutation(
-    () => tvChannelService.bulkUpdateEpg(),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(QUERY_KEYS.ALL_TV_CHANNELS);
-        queryClient.invalidateQueries(QUERY_KEYS.TV_CHANNEL_DETAIL);
-      },
-    }
-  );
+  return useMutation({
+    mutationFn: () => tvChannelService.bulkUpdateEpg(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.ALL_TV_CHANNELS] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TV_CHANNEL_DETAIL] });
+    },
+  });
 };

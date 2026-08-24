@@ -492,6 +492,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
         sortingMode="server"
         onSortModelChange={onSortChange}
         slots={{ toolbar: GridToolbar, noRowsOverlay: DesktopEmptyState }}
+        slotProps={{ toolbar: { 'data-testid': 'tv-channels-toolbar' } as any }}
         sx={{
           border: 0,
           backgroundColor: 'transparent',

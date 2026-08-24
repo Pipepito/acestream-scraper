@@ -117,11 +117,11 @@ const WarpPage: React.FC = () => {
         subtitle="Check tunnel status, switch modes, and manage your license from one operational flow."
         actions={
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ width: { xs: '100%', sm: 'auto' } }}>
-            <Button variant="contained" color="primary" onClick={() => connectMutation.mutate()} disabled={!status?.running || status?.connected || connectMutation.isLoading}>
-              {connectMutation.isLoading ? <CircularProgress size={24} color="inherit" /> : 'Connect'}
+            <Button variant="contained" color="primary" onClick={() => connectMutation.mutate()} disabled={!status?.running || status?.connected || connectMutation.isPending}>
+              {connectMutation.isPending ? <CircularProgress size={24} color="inherit" /> : 'Connect'}
             </Button>
-            <Button variant="outlined" onClick={() => disconnectMutation.mutate()} disabled={!status?.running || !status?.connected || disconnectMutation.isLoading}>
-              {disconnectMutation.isLoading ? <CircularProgress size={24} color="inherit" /> : 'Disconnect'}
+            <Button variant="outlined" onClick={() => disconnectMutation.mutate()} disabled={!status?.running || !status?.connected || disconnectMutation.isPending}>
+              {disconnectMutation.isPending ? <CircularProgress size={24} color="inherit" /> : 'Disconnect'}
             </Button>
           </Stack>
         }
@@ -208,8 +208,8 @@ const WarpPage: React.FC = () => {
                   <MenuItem value={WarpMode.PROXY}>PROXY</MenuItem>
                   <MenuItem value={WarpMode.OFF}>OFF</MenuItem>
                 </Select>
-                <Button variant="contained" color="primary" onClick={handleSetMode} disabled={!status?.running || (status?.mode === selectedMode) || setModeMutation.isLoading} sx={{ mt: 2 }}>
-                  {setModeMutation.isLoading ? <CircularProgress size={24} /> : 'Set Mode'}
+                <Button variant="contained" color="primary" onClick={handleSetMode} disabled={!status?.running || (status?.mode === selectedMode) || setModeMutation.isPending} sx={{ mt: 2 }}>
+                  {setModeMutation.isPending ? <CircularProgress size={24} /> : 'Set Mode'}
                 </Button>
             </FormControl>
           </Grid>
@@ -222,8 +222,8 @@ const WarpPage: React.FC = () => {
                   disabled={!status?.running}
                   placeholder="Enter your WARP+ or WARP Teams license key"
                 />
-                <Button variant="contained" color="primary" onClick={handleRegisterLicense} disabled={!status?.running || !licenseKey.trim() || registerLicenseMutation.isLoading} sx={{ mt: 2 }}>
-                  {registerLicenseMutation.isLoading ? <CircularProgress size={24} /> : 'Register License'}
+                <Button variant="contained" color="primary" onClick={handleRegisterLicense} disabled={!status?.running || !licenseKey.trim() || registerLicenseMutation.isPending} sx={{ mt: 2 }}>
+                  {registerLicenseMutation.isPending ? <CircularProgress size={24} /> : 'Register License'}
                 </Button>
             </FormControl>
           </Grid>

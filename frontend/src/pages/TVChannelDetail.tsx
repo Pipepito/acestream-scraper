@@ -299,6 +299,7 @@ const TVChannelDetail: React.FC = () => {
             </Box>
 
             <Box
+              data-testid="tv-channel-next-step"
               sx={{
                 p: 1.5,
                 borderRadius: 2,

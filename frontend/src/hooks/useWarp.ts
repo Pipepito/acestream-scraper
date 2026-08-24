@@ -1,7 +1,7 @@
 /**
  * React Query hooks for WARP service
  */
-import { useQuery, useMutation, UseQueryResult, UseMutationResult, useQueryClient } from 'react-query';
+import { useQuery, useMutation, UseQueryResult, UseMutationResult, useQueryClient } from '@tanstack/react-query';
 import {
   getWarpStatus,
   connectWarp,
@@ -21,7 +21,9 @@ const WARP_KEYS = {
  * Hook for fetching WARP status
  */
 export function useWarpStatus(): UseQueryResult<WarpStatus, Error> {
-  return useQuery(WARP_KEYS.status, getWarpStatus, {
+  return useQuery({
+    queryKey: WARP_KEYS.status,
+    queryFn: getWarpStatus,
     refetchInterval: 10000, // Refetch status every 10 seconds
     staleTime: 5000
   });
@@ -32,10 +34,11 @@ export function useWarpStatus(): UseQueryResult<WarpStatus, Error> {
  */
 export function useWarpConnect(): UseMutationResult<WarpResponse, Error, void> {
   const queryClient = useQueryClient();
-  
-  return useMutation(connectWarp, {
+
+  return useMutation({
+    mutationFn: connectWarp,
     onSuccess: () => {
-      queryClient.invalidateQueries(WARP_KEYS.all);
+      queryClient.invalidateQueries({ queryKey: WARP_KEYS.all });
     }
   });
 }
@@ -45,10 +48,11 @@ export function useWarpConnect(): UseMutationResult<WarpResponse, Error, void> {
  */
 export function useWarpDisconnect(): UseMutationResult<WarpResponse, Error, void> {
   const queryClient = useQueryClient();
-  
-  return useMutation(disconnectWarp, {
+
+  return useMutation({
+    mutationFn: disconnectWarp,
     onSuccess: () => {
-      queryClient.invalidateQueries(WARP_KEYS.all);
+      queryClient.invalidateQueries({ queryKey: WARP_KEYS.all });
     }
   });
 }
@@ -58,10 +62,11 @@ export function useWarpDisconnect(): UseMutationResult<WarpResponse, Error, void
  */
 export function useWarpSetMode(): UseMutationResult<WarpResponse, Error, WarpMode> {
   const queryClient = useQueryClient();
-  
-  return useMutation(setWarpMode, {
+
+  return useMutation({
+    mutationFn: setWarpMode,
     onSuccess: () => {
-      queryClient.invalidateQueries(WARP_KEYS.all);
+      queryClient.invalidateQueries({ queryKey: WARP_KEYS.all });
     }
   });
 }
@@ -71,10 +76,11 @@ export function useWarpSetMode(): UseMutationResult<WarpResponse, Error, WarpMod
  */
 export function useWarpRegisterLicense(): UseMutationResult<WarpResponse, Error, string> {
   const queryClient = useQueryClient();
-  
-  return useMutation(registerWarpLicense, {
+
+  return useMutation({
+    mutationFn: registerWarpLicense,
     onSuccess: () => {
-      queryClient.invalidateQueries(WARP_KEYS.all);
+      queryClient.invalidateQueries({ queryKey: WARP_KEYS.all });
     }
   });
 }

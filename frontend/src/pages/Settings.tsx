@@ -95,7 +95,7 @@ const StreamBaseUrlsSection: React.FC<StreamBaseUrlsSectionProps> = ({ notify })
 
   const entries = baseUrlsQuery.data ?? [];
   const isMutating =
-    createBaseUrlMutation.isLoading || patchBaseUrlMutation.isLoading || deleteBaseUrlMutation.isLoading;
+    createBaseUrlMutation.isPending || patchBaseUrlMutation.isPending || deleteBaseUrlMutation.isPending;
 
   const describeSaveError = (error: unknown, attemptedName: string, fallback: string): string => {
     if (error instanceof ApiError && error.status === 409) {
@@ -296,9 +296,9 @@ const StreamBaseUrlsSection: React.FC<StreamBaseUrlsSectionProps> = ({ notify })
                 type="submit"
                 variant="contained"
                 color="primary"
-                disabled={!newName.trim() || !newPattern.trim() || createBaseUrlMutation.isLoading}
+                disabled={!newName.trim() || !newPattern.trim() || createBaseUrlMutation.isPending}
               >
-                {createBaseUrlMutation.isLoading ? <CircularProgress size={24} color="inherit" /> : 'Add base URL'}
+                {createBaseUrlMutation.isPending ? <CircularProgress size={24} color="inherit" /> : 'Add base URL'}
               </Button>
             </Box>
           </Stack>
@@ -333,7 +333,7 @@ const StreamBaseUrlsSection: React.FC<StreamBaseUrlsSectionProps> = ({ notify })
               type="submit"
               variant="contained"
               color="primary"
-              disabled={!editName.trim() || !editPattern.trim() || patchBaseUrlMutation.isLoading}
+              disabled={!editName.trim() || !editPattern.trim() || patchBaseUrlMutation.isPending}
             >
               Save changes
             </Button>
@@ -513,10 +513,10 @@ const Settings: React.FC = () => {
 
 
   const isSubmitting =
-    updateBaseUrlMutation.isLoading ||
-    updateAceEngineUrlMutation.isLoading ||
-    updateRescrapeIntervalMutation.isLoading ||
-    updateAddPidMutation.isLoading ||
+    updateBaseUrlMutation.isPending ||
+    updateAceEngineUrlMutation.isPending ||
+    updateRescrapeIntervalMutation.isPending ||
+    updateAddPidMutation.isPending ||
     appidSubmitting;
 
   if (isLoading) {
@@ -644,7 +644,7 @@ const Settings: React.FC = () => {
                   helperText="The base URL for Acestream links (e.g., acestream://)"
                 />
                 <Button type="submit" variant="contained" color="primary" disabled={isSubmitting || baseUrl === baseUrlQuery.data}>
-                  {updateBaseUrlMutation.isLoading ? <CircularProgress size={24} color="inherit" /> : 'Save base URL'}
+                  {updateBaseUrlMutation.isPending ? <CircularProgress size={24} color="inherit" /> : 'Save base URL'}
                 </Button>
               </Stack>
             </form>
@@ -661,7 +661,7 @@ const Settings: React.FC = () => {
                   helperText="The URL of your Acestream Engine (e.g., http://localhost:6878)"
                 />
                 <Button type="submit" variant="contained" color="primary" disabled={isSubmitting || aceEngineUrl === aceEngineUrlQuery.data}>
-                  {updateAceEngineUrlMutation.isLoading ? <CircularProgress size={24} color="inherit" /> : 'Save engine URL'}
+                  {updateAceEngineUrlMutation.isPending ? <CircularProgress size={24} color="inherit" /> : 'Save engine URL'}
                 </Button>
               </Stack>
             </form>
@@ -735,7 +735,7 @@ const Settings: React.FC = () => {
                   helperText="Hours between automatic rescrapes (1-168)"
                 />
                 <Button type="submit" variant="contained" color="primary" disabled={isSubmitting || rescrapeInterval === rescrapeIntervalQuery.data}>
-                  {updateRescrapeIntervalMutation.isLoading ? <CircularProgress size={24} color="inherit" /> : 'Save rescrape interval'}
+                  {updateRescrapeIntervalMutation.isPending ? <CircularProgress size={24} color="inherit" /> : 'Save rescrape interval'}
                 </Button>
               </Stack>
             </form>
@@ -790,7 +790,7 @@ const Settings: React.FC = () => {
           ) : (
             <Stack spacing={2.5}>
               {inventoryGroups.map((group) => (
-                <Box key={group.title}>
+                <Box key={group.title} component="section" aria-label={group.title}>
                   <Box component="h3" sx={{ typography: 'sectionTitle', fontSize: '1rem', mb: 1.25 }}>
                     {group.title}
                   </Box>
@@ -806,6 +806,7 @@ const Settings: React.FC = () => {
                     {group.keys.map((key) => (
                       <Box
                         key={key}
+                        data-testid={`settings-inventory-row-${key}`}
                         sx={{
                           display: 'flex',
                           flexDirection: { xs: 'column', sm: 'row' },

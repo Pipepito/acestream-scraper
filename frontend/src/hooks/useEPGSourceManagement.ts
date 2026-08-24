@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQueryClient } from 'react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   useCreateEPGSource,
   useUpdateEPGSource,
@@ -34,7 +34,7 @@ export const useEPGSourceManagement = (
   const { mutateAsync: createSource } = useCreateEPGSource();
   const { mutateAsync: updateSource } = useUpdateEPGSource(editSourceId || 0);
   const { mutateAsync: deleteSource } = useDeleteEPGSource();
-  const { mutateAsync: refreshAllSources, isLoading: isRefreshingAll } = useRefreshAllEPGSources();
+  const { mutateAsync: refreshAllSources, isPending: isRefreshingAll } = useRefreshAllEPGSources();
 
   // State for tracking which source is being refreshed
   const [refreshingSourceId, setRefreshingSourceId] = useState<number | null>(null);
@@ -111,8 +111,8 @@ export const useEPGSourceManagement = (
         showSnackbar(`Error refreshing EPG source: ${result.error || 'Unknown error'}`, 'error');
       }
       // Invalidate queries to refresh the data
-      queryClient.invalidateQueries('epg-sources');
-      queryClient.invalidateQueries('epg-channels');
+      queryClient.invalidateQueries({ queryKey: ['epg-sources'] });
+      queryClient.invalidateQueries({ queryKey: ['epg-channels'] });
     } catch (error) {
       showSnackbar(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
     } finally {

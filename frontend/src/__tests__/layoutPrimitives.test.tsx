@@ -201,7 +201,8 @@ describe('layout primitives', () => {
       flexDirection: 'column',
       alignItems: 'stretch',
     });
-    expect(actions.firstChild).toBe(primaryGroup);
+    const actionGroups = within(actions).getAllByTestId(/page-header-(primary|secondary)-actions/);
+    expect(actionGroups[0]).toBe(primaryGroup);
     expect(primaryGroup).toHaveStyle({ width: '100%' });
     expect(secondaryGroup).toHaveStyle({ width: '100%' });
     expect(within(primaryGroup).getByRole('button', { name: 'Run now' })).toBeInTheDocument();
@@ -394,8 +395,10 @@ describe('layout primitives', () => {
     );
 
     const main = screen.getByRole('main');
-    const shell = main.parentElement;
-    const content = screen.getByText('Shell content').parentElement;
+    const shell = screen.getByTestId('app-shell-root');
+    const content = screen.getByTestId('app-shell-content');
+
+    expect(within(content).getByText('Shell content')).toBeInTheDocument();
 
     expect(shell).toHaveStyle({ minWidth: '0' });
     expect(main).toHaveStyle({
@@ -423,8 +426,9 @@ describe('layout primitives', () => {
       mode
     );
 
-    const content = screen.getByText('Shell content').parentElement;
+    const content = screen.getByTestId('app-shell-content');
 
+    expect(within(content).getByText('Shell content')).toBeInTheDocument();
     expect(content).toHaveStyle({
       maxWidth: `${layoutStyles.getShellContentMaxWidth(theme, 'wide')}px`,
     });

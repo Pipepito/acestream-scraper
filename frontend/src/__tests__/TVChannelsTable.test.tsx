@@ -1,5 +1,4 @@
 import React from 'react';
-import { act } from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { ThemeProvider } from '@mui/material/styles';
 import { useMediaQuery } from '@mui/material';
@@ -20,12 +19,6 @@ jest.mock('@mui/material', () => {
 describe('TVChannelsTable', () => {
   const mockUseMediaQuery = useMediaQuery as jest.MockedFunction<typeof useMediaQuery>;
 
-  type LegacyUserEventWithSetup = typeof userEvent & {
-    setup?: () => {
-      tab: () => Promise<void>;
-    };
-  };
-
   const renderTable = (ui: React.ReactElement, isCompact = false) => {
     mockUseMediaQuery.mockReturnValue(isCompact);
 
@@ -37,28 +30,23 @@ describe('TVChannelsTable', () => {
   };
 
   const tab = async () => {
-    const legacyUserEvent = userEvent as LegacyUserEventWithSetup;
-
-    if (typeof legacyUserEvent.setup === 'function') {
-      const user = legacyUserEvent.setup();
-      await act(async () => {
-        await user.tab();
-      });
-      return;
-    }
-
-    await act(async () => {
-      userEvent.tab();
-    });
+    await userEvent.tab();
   };
 
   const tabUntilFocus = async (element: HTMLElement, maxSteps = 20) => {
-    for (let index = 0; index < maxSteps; index += 1) {
-      await tab();
+    let focused = false;
+    const handleFocus = () => {
+      focused = true;
+    };
 
-      if (element === document.activeElement) {
-        return;
+    element.addEventListener('focus', handleFocus);
+
+    try {
+      for (let index = 0; index < maxSteps && !focused; index += 1) {
+        await tab();
       }
+    } finally {
+      element.removeEventListener('focus', handleFocus);
     }
   };
 
@@ -110,7 +98,7 @@ describe('TVChannelsTable', () => {
   });
 
   it('keeps the desktop table toolbar in normal flow instead of sticky positioning', () => {
-    const { container } = renderTable(
+    renderTable(
       <TVChannelsTable
         channels={[
           {
@@ -129,9 +117,9 @@ describe('TVChannelsTable', () => {
       />
     );
 
-    const toolbar = container.querySelector('.MuiDataGrid-toolbarContainer');
+    const toolbar = screen.getByTestId('tv-channels-toolbar');
 
-    expect(toolbar).toBeInTheDocument();
+    expect(toolbar).toHaveClass('MuiDataGrid-toolbarContainer');
     expect(toolbar).toHaveStyle({ position: 'static' });
   });
 
@@ -362,9 +350,7 @@ describe('TVChannelsTable', () => {
     expect(screen.getByText('1-25 of 30')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Go to previous page' })).toBeDisabled();
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Go to next page' }));
-    });
+    fireEvent.click(screen.getByRole('button', { name: 'Go to next page' }));
 
     expect(onPageChange).toHaveBeenCalledWith(1);
 
@@ -405,9 +391,7 @@ describe('TVChannelsTable', () => {
     expect(screen.getByRole('button', { name: 'play tv channel Arena TV' })).not.toHaveClass('MuiButton-sizeSmall');
     expect(screen.getByRole('button', { name: 'Go to previous page' })).not.toHaveClass('MuiButton-sizeSmall');
     expect(screen.getByRole('button', { name: 'Go to next page' })).not.toHaveClass('MuiButton-sizeSmall');
-    expect(screen.getByRole('combobox', { name: 'Rows per page' }).closest('.MuiInputBase-root')).not.toHaveClass(
-      'MuiInputBase-sizeSmall'
-    );
+    expect(screen.getByRole('combobox', { name: 'Rows per page' })).not.toHaveClass('MuiInputBase-inputSizeSmall');
   });
 
   it('keeps long multilingual mobile content readable without losing actions', () => {

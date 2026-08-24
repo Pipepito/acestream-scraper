@@ -350,7 +350,7 @@ const TVChannels: React.FC = () => {
         open={openCreateDialog}
         formData={formData}
         formErrors={formErrors}
-        submitting={createMutation.isLoading}
+        submitting={createMutation.isPending}
         dialogProps={dialogMobileProps}
         onChange={handleFormChange}
         onClose={() => setOpenCreateDialog(false)}
@@ -362,7 +362,7 @@ const TVChannels: React.FC = () => {
         open={openEditDialog}
         formData={formData}
         formErrors={formErrors}
-        submitting={updateMutation.isLoading}
+        submitting={updateMutation.isPending}
         dialogProps={dialogMobileProps}
         onChange={handleFormChange}
         onClose={() => setOpenEditDialog(false)}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from 'react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import Scraper from '../pages/Scraper';
 import { createAppTheme } from '../theme';
@@ -60,11 +60,11 @@ describe('Scraper', () => {
       isLoading: false,
       refetch: jest.fn(),
     });
-    mockUseCreateURL.mockReturnValue({ mutateAsync: jest.fn(), isLoading: false });
-    mockUseUpdateURL.mockReturnValue({ mutateAsync: jest.fn(), isLoading: false });
-    mockUsePatchURL.mockReturnValue({ mutateAsync: jest.fn().mockResolvedValue({}), isLoading: false });
+    mockUseCreateURL.mockReturnValue({ mutateAsync: jest.fn(), isPending: false });
+    mockUseUpdateURL.mockReturnValue({ mutateAsync: jest.fn(), isPending: false });
+    mockUsePatchURL.mockReturnValue({ mutateAsync: jest.fn().mockResolvedValue({}), isPending: false });
     mockUseDeleteURL.mockReturnValue({ mutateAsync: jest.fn() });
-    mockUseScrapeAllURLs.mockReturnValue({ mutateAsync: jest.fn(), isLoading: false });
+    mockUseScrapeAllURLs.mockReturnValue({ mutateAsync: jest.fn(), isPending: false });
   });
 
   it('adds explicit accessible labels to row action buttons', () => {
@@ -77,7 +77,7 @@ describe('Scraper', () => {
 
   it('toggles bare content ID harvesting on a row via the patch mutation', async () => {
     const mutateAsync = jest.fn().mockResolvedValue({});
-    mockUsePatchURL.mockReturnValue({ mutateAsync, isLoading: false });
+    mockUsePatchURL.mockReturnValue({ mutateAsync, isPending: false });
 
     renderPage();
 

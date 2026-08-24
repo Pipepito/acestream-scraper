@@ -22,7 +22,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useQueryClient } from 'react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { alpha, useTheme } from '@mui/material/styles';
 
 import ContentSection from '../components/layout/ContentSection';
@@ -98,7 +98,7 @@ const Search: React.FC = () => {
   const handleAddChannel = async (channel: SearchResultItem) => {
     try {
       await addChannelMutation.mutateAsync(mapToCreateAcestreamChannelDTO(channel));
-      queryClient.invalidateQueries('acestream-channels');
+      queryClient.invalidateQueries({ queryKey: ['acestream-channels'] });
       setSelectedChannels((prev) => prev.filter((item) => item.id !== channel.id));
     } catch (error) {
       console.error('Failed to add channel:', error);
@@ -121,7 +121,7 @@ const Search: React.FC = () => {
       console.error('Failed to add channels:', error);
     } finally {
       if (addedChannelCount > 0) {
-        queryClient.invalidateQueries('acestream-channels');
+        queryClient.invalidateQueries({ queryKey: ['acestream-channels'] });
         setSelectedChannels((prev) => prev.filter((channel) => !successfulChannelIds.includes(channel.id)));
       }
     }
@@ -235,10 +235,10 @@ const Search: React.FC = () => {
                 variant="contained"
                 color="primary"
                 onClick={handleAddSelectedChannels}
-                disabled={addChannelMutation.isLoading}
+                disabled={addChannelMutation.isPending}
                 aria-label={`Add ${selectedChannels.length} selected channels`}
               >
-                {addChannelMutation.isLoading ? <CircularProgress size={24} /> : `Add ${selectedChannels.length} selected channels`}
+                {addChannelMutation.isPending ? <CircularProgress size={24} /> : `Add ${selectedChannels.length} selected channels`}
               </Button>
             ) : null
           }
@@ -351,10 +351,10 @@ const Search: React.FC = () => {
                             variant="outlined"
                             size="small"
                             onClick={() => handleAddChannel(channel)}
-                            disabled={addChannelMutation.isLoading}
+                            disabled={addChannelMutation.isPending}
                             aria-label={`Add ${channel.name}`}
                           >
-                            {addChannelMutation.isLoading ? <CircularProgress size={16} /> : 'Add'}
+                            {addChannelMutation.isPending ? <CircularProgress size={16} /> : 'Add'}
                           </Button>
                         </TableCell>
                       </TableRow>

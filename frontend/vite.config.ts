@@ -37,7 +37,7 @@ export default defineConfig(({ mode }) => ({
             return 'mui-vendor';
           }
 
-          if (id.includes('node_modules/react-query') || id.includes('node_modules/axios')) {
+          if (id.includes('node_modules/@tanstack/react-query') || id.includes('node_modules/@tanstack/query-core') || id.includes('node_modules/axios')) {
             return 'data-vendor';
           }
 

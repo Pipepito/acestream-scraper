@@ -31,7 +31,7 @@ const EPGMappings: React.FC = () => {
   });
 
   const { data: mappings, isLoading, error } = useAllEPGStringMappings();
-  const { mutateAsync: deleteMapping, isLoading: isDeleting } = useDeleteGlobalEPGStringMapping();
+  const { mutateAsync: deleteMapping, isPending: isDeleting } = useDeleteGlobalEPGStringMapping();
 
   const handleDeleteMapping = async (id: number, pattern: string) => {
     try {

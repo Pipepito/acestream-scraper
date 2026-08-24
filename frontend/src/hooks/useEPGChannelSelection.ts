@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useQueryClient } from 'react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { EPGChannel } from '../services/epgService';
 import { tvChannelService } from '../services/tvChannelService';
 import { TVChannel } from '../types/tvChannelTypes';
@@ -92,8 +92,8 @@ export const useEPGChannelSelection = ({
     }
     try {
       const result = await tvChannelService.createFromEpg(unmappedIds);
-      queryClient.invalidateQueries('tvChannels');
-      queryClient.invalidateQueries('epg-channels');
+      queryClient.invalidateQueries({ queryKey: ['tvChannels'] });
+      queryClient.invalidateQueries({ queryKey: ['epg-channels'] });
       showSnackbar(
         `Created ${result.created_count} TV channels, skipped ${result.skipped_count}, auto-matched ${result.associated_count} Acestream channels`,
         'success'

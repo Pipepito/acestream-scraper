@@ -143,7 +143,8 @@ describe('Dashboard UI', () => {
     const primaryGroup = screen.getByTestId('page-header-primary-actions');
     const headerActions = screen.getByTestId('page-header-actions');
 
-    expect(headerActions.firstChild).toBe(primaryGroup);
+    const actionGroups = within(headerActions).getAllByTestId(/page-header-(primary|secondary)-actions/);
+    expect(actionGroups[0]).toBe(primaryGroup);
     expect(within(primaryGroup).getByRole('navigation', { name: 'Dashboard primary actions' })).toBeInTheDocument();
   });
 

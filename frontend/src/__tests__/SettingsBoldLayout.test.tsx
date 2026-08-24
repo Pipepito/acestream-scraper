@@ -34,13 +34,13 @@ describe('Settings bold layout', () => {
       toggleMode: jest.fn(),
     });
     (configHooks.useBaseUrl as jest.Mock).mockReturnValue({ data: 'acestream://', isLoading: false });
-    (configHooks.useUpdateBaseUrl as jest.Mock).mockReturnValue({ mutate: jest.fn(), isLoading: false });
+    (configHooks.useUpdateBaseUrl as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
     (configHooks.useAceEngineUrl as jest.Mock).mockReturnValue({ data: 'http://localhost:6878', isLoading: false });
-    (configHooks.useUpdateAceEngineUrl as jest.Mock).mockReturnValue({ mutate: jest.fn(), isLoading: false });
+    (configHooks.useUpdateAceEngineUrl as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
     (configHooks.useRescrapeInterval as jest.Mock).mockReturnValue({ data: 24, isLoading: false });
-    (configHooks.useUpdateRescrapeInterval as jest.Mock).mockReturnValue({ mutate: jest.fn(), isLoading: false });
+    (configHooks.useUpdateRescrapeInterval as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
     (configHooks.useAddPid as jest.Mock).mockReturnValue({ data: true, isLoading: false });
-    (configHooks.useUpdateAddPid as jest.Mock).mockReturnValue({ mutate: jest.fn(), isLoading: false });
+    (configHooks.useUpdateAddPid as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
     (configHooks.useAllSettings as jest.Mock).mockReturnValue({
       data: {
         base_url: 'acestream://',
@@ -75,9 +75,9 @@ describe('Settings bold layout', () => {
       isLoading: false,
       error: undefined,
     });
-    (baseUrlHooks.useCreateBaseUrl as jest.Mock).mockReturnValue({ mutate: jest.fn(), isLoading: false });
-    (baseUrlHooks.usePatchBaseUrl as jest.Mock).mockReturnValue({ mutate: jest.fn(), isLoading: false });
-    (baseUrlHooks.useDeleteBaseUrl as jest.Mock).mockReturnValue({ mutate: jest.fn(), isLoading: false });
+    (baseUrlHooks.useCreateBaseUrl as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
+    (baseUrlHooks.usePatchBaseUrl as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
+    (baseUrlHooks.useDeleteBaseUrl as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
   });
 
   it('renders a settings summary hero that frames connection status and next actions', async () => {
@@ -145,7 +145,7 @@ describe('Settings bold layout', () => {
 
   it('promotes a non-default entry when its make-default action is used', async () => {
     const patchMutate = jest.fn();
-    (baseUrlHooks.usePatchBaseUrl as jest.Mock).mockReturnValue({ mutate: patchMutate, isLoading: false });
+    (baseUrlHooks.usePatchBaseUrl as jest.Mock).mockReturnValue({ mutate: patchMutate, isPending: false });
 
     render(
       <ThemeProvider theme={createAppTheme('light')}>
@@ -174,7 +174,7 @@ describe('Settings bold layout', () => {
         })
       );
     });
-    (baseUrlHooks.useCreateBaseUrl as jest.Mock).mockReturnValue({ mutate: createMutate, isLoading: false });
+    (baseUrlHooks.useCreateBaseUrl as jest.Mock).mockReturnValue({ mutate: createMutate, isPending: false });
 
     render(
       <ThemeProvider theme={createAppTheme('light')}>

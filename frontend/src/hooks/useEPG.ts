@@ -1,44 +1,44 @@
 /**
  * React Query hooks for EPG
  */
-import { useQuery, useMutation, useQueryClient, UseQueryOptions } from 'react-query';
-import { 
-  epgService, 
-  EPGSource, 
-  EPGChannel, 
+import { useQuery, useMutation, useQueryClient, keepPreviousData, UseQueryOptions } from '@tanstack/react-query';
+import {
+  epgService,
+  EPGSource,
+  EPGChannel,
   PaginatedEPGChannels,
-  EPGProgram, 
+  EPGProgram,
   EPGStringMapping,
-  CreateEPGSourceDTO, 
-  UpdateEPGSourceDTO, 
-  EPGChannelMappingDTO, 
+  CreateEPGSourceDTO,
+  UpdateEPGSourceDTO,
+  EPGChannelMappingDTO,
   EPGRefreshResult,
   EPGXMLGenerationParams
 } from '../services/epgService';
 
+type QueryOpts<T> = Omit<UseQueryOptions<T>, 'queryKey' | 'queryFn'>;
+
 /**
  * Hook for fetching EPG sources
  */
-export const useEPGSources = (options?: UseQueryOptions<EPGSource[]>) => {
-  return useQuery<EPGSource[]>(
-    ['epg-sources'],
-    () => epgService.getSources(),
-    options
-  );
+export const useEPGSources = (options?: QueryOpts<EPGSource[]>) => {
+  return useQuery<EPGSource[]>({
+    queryKey: ['epg-sources'],
+    queryFn: () => epgService.getSources(),
+    ...options,
+  });
 };
 
 /**
  * Hook for fetching a single EPG source
  */
-export const useEPGSource = (id: number, options?: UseQueryOptions<EPGSource>) => {
-  return useQuery<EPGSource>(
-    ['epg-source', id],
-    () => epgService.getSource(id),
-    {
-      enabled: !!id,
-      ...options
-    }
-  );
+export const useEPGSource = (id: number, options?: QueryOpts<EPGSource>) => {
+  return useQuery<EPGSource>({
+    queryKey: ['epg-source', id],
+    queryFn: () => epgService.getSource(id),
+    enabled: !!id,
+    ...options,
+  });
 };
 
 /**
@@ -46,15 +46,13 @@ export const useEPGSource = (id: number, options?: UseQueryOptions<EPGSource>) =
  */
 export const useCreateEPGSource = () => {
   const queryClient = useQueryClient();
-  
-  return useMutation(
-    (sourceData: CreateEPGSourceDTO) => epgService.createSource(sourceData),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries('epg-sources');
-      }
-    }
-  );
+
+  return useMutation({
+    mutationFn: (sourceData: CreateEPGSourceDTO) => epgService.createSource(sourceData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['epg-sources'] });
+    },
+  });
 };
 
 /**
@@ -62,16 +60,14 @@ export const useCreateEPGSource = () => {
  */
 export const useUpdateEPGSource = (id: number) => {
   const queryClient = useQueryClient();
-  
-  return useMutation(
-    (sourceData: UpdateEPGSourceDTO) => epgService.updateSource(id, sourceData),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['epg-source', id]);
-        queryClient.invalidateQueries('epg-sources');
-      }
-    }
-  );
+
+  return useMutation({
+    mutationFn: (sourceData: UpdateEPGSourceDTO) => epgService.updateSource(id, sourceData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['epg-source', id] });
+      queryClient.invalidateQueries({ queryKey: ['epg-sources'] });
+    },
+  });
 };
 
 /**
@@ -79,15 +75,13 @@ export const useUpdateEPGSource = (id: number) => {
  */
 export const useDeleteEPGSource = () => {
   const queryClient = useQueryClient();
-  
-  return useMutation(
-    (id: number) => epgService.deleteSource(id),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries('epg-sources');
-      }
-    }
-  );
+
+  return useMutation({
+    mutationFn: (id: number) => epgService.deleteSource(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['epg-sources'] });
+    },
+  });
 };
 
 /**
@@ -95,17 +89,15 @@ export const useDeleteEPGSource = () => {
  */
 export const useRefreshEPGSource = (id: number) => {
   const queryClient = useQueryClient();
-  
-  return useMutation<EPGRefreshResult, Error>(
-    () => epgService.refreshSource(id),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['epg-source', id]);
-        queryClient.invalidateQueries('epg-sources');
-        queryClient.invalidateQueries('epg-channels');
-      }
-    }
-  );
+
+  return useMutation<EPGRefreshResult, Error>({
+    mutationFn: () => epgService.refreshSource(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['epg-source', id] });
+      queryClient.invalidateQueries({ queryKey: ['epg-sources'] });
+      queryClient.invalidateQueries({ queryKey: ['epg-channels'] });
+    },
+  });
 };
 
 /**
@@ -113,16 +105,14 @@ export const useRefreshEPGSource = (id: number) => {
  */
 export const useRefreshAllEPGSources = () => {
   const queryClient = useQueryClient();
-  
-  return useMutation<EPGRefreshResult[], Error>(
-    () => epgService.refreshAllSources(),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries('epg-sources');
-        queryClient.invalidateQueries('epg-channels');
-      }
-    }
-  );
+
+  return useMutation<EPGRefreshResult[], Error>({
+    mutationFn: () => epgService.refreshAllSources(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['epg-sources'] });
+      queryClient.invalidateQueries({ queryKey: ['epg-channels'] });
+    },
+  });
 };
 
 /**
@@ -132,45 +122,39 @@ export const useEPGChannels = (
   sourceId?: number,
   page = 1,
   pageSize = 50,
-  options?: UseQueryOptions<PaginatedEPGChannels>
+  options?: QueryOpts<PaginatedEPGChannels>
 ) => {
-  return useQuery<PaginatedEPGChannels>(
-    ['epg-channels', sourceId ?? 'all', page, pageSize],
-    () => epgService.getChannels(sourceId, (page - 1) * pageSize, pageSize),
-    {
-      keepPreviousData: true,
-      ...options,
-    }
-  );
+  return useQuery<PaginatedEPGChannels>({
+    queryKey: ['epg-channels', sourceId ?? 'all', page, pageSize],
+    queryFn: () => epgService.getChannels(sourceId, (page - 1) * pageSize, pageSize),
+    placeholderData: keepPreviousData,
+    ...options,
+  });
 };
 
 export const useResolveEPGChannel = (
   sourceId?: number,
   channelXmlId?: string,
-  options?: UseQueryOptions<EPGChannel>
+  options?: QueryOpts<EPGChannel>
 ) => {
-  return useQuery<EPGChannel>(
-    ['epg-channel-resolve', sourceId ?? 'none', channelXmlId ?? 'none'],
-    () => epgService.resolveChannel(sourceId as number, channelXmlId as string),
-    {
-      enabled: !!sourceId && !!channelXmlId,
-      ...options,
-    }
-  );
+  return useQuery<EPGChannel>({
+    queryKey: ['epg-channel-resolve', sourceId ?? 'none', channelXmlId ?? 'none'],
+    queryFn: () => epgService.resolveChannel(sourceId as number, channelXmlId as string),
+    enabled: !!sourceId && !!channelXmlId,
+    ...options,
+  });
 };
 
 /**
  * Hook for fetching a single EPG channel
  */
-export const useEPGChannel = (id: number, options?: UseQueryOptions<EPGChannel>) => {
-  return useQuery<EPGChannel>(
-    ['epg-channel', id],
-    () => epgService.getChannel(id),
-    {
-      enabled: !!id,
-      ...options
-    }
-  );
+export const useEPGChannel = (id: number, options?: QueryOpts<EPGChannel>) => {
+  return useQuery<EPGChannel>({
+    queryKey: ['epg-channel', id],
+    queryFn: () => epgService.getChannel(id),
+    enabled: !!id,
+    ...options,
+  });
 };
 
 /**
@@ -178,15 +162,13 @@ export const useEPGChannel = (id: number, options?: UseQueryOptions<EPGChannel>)
  */
 export const useMapEPGChannel = () => {
   const queryClient = useQueryClient();
-  
-  return useMutation(
-    (mapping: EPGChannelMappingDTO) => epgService.mapChannelToTV(mapping),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries('tv-channels');
-      }
-    }
-  );
+
+  return useMutation({
+    mutationFn: (mapping: EPGChannelMappingDTO) => epgService.mapChannelToTV(mapping),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tv-channels'] });
+    },
+  });
 };
 
 /**
@@ -194,57 +176,51 @@ export const useMapEPGChannel = () => {
  */
 export const useUnmapEPGChannel = () => {
   const queryClient = useQueryClient();
-  
-  return useMutation(
-    ({ epgChannelId, tvChannelId }: { epgChannelId: number, tvChannelId: number }) => 
+
+  return useMutation({
+    mutationFn: ({ epgChannelId, tvChannelId }: { epgChannelId: number, tvChannelId: number }) =>
       epgService.unmapChannel(epgChannelId, tvChannelId),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries('tv-channels');
-      }
-    }
-  );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tv-channels'] });
+    },
+  });
 };
 
 /**
  * Hook for fetching EPG programs
  */
 export const useEPGPrograms = (
-  channelId: number, 
-  startDate?: string, 
+  channelId: number,
+  startDate?: string,
   endDate?: string,
-  options?: UseQueryOptions<EPGProgram[]>
+  options?: QueryOpts<EPGProgram[]>
 ) => {
-  return useQuery<EPGProgram[]>(
-    ['epg-programs', channelId, startDate, endDate],
-    () => epgService.getPrograms(channelId, startDate, endDate),
-    {
-      enabled: !!channelId,
-      ...options
-    }
-  );
+  return useQuery<EPGProgram[]>({
+    queryKey: ['epg-programs', channelId, startDate, endDate],
+    queryFn: () => epgService.getPrograms(channelId, startDate, endDate),
+    enabled: !!channelId,
+    ...options,
+  });
 };
 
 /**
  * Hook for fetching EPG string mappings
  */
-export const useEPGStringMappings = (channelId: number, options?: UseQueryOptions<EPGStringMapping[]>) => {
-  return useQuery<EPGStringMapping[]>(
-    ['epg-string-mappings', channelId],
-    () => epgService.getStringMappings(channelId),
-    {
-      enabled: !!channelId,
-      ...options
-    }
-  );
+export const useEPGStringMappings = (channelId: number, options?: QueryOpts<EPGStringMapping[]>) => {
+  return useQuery<EPGStringMapping[]>({
+    queryKey: ['epg-string-mappings', channelId],
+    queryFn: () => epgService.getStringMappings(channelId),
+    enabled: !!channelId,
+    ...options,
+  });
 };
 
-export const useAllEPGStringMappings = (options?: UseQueryOptions<EPGStringMapping[]>) => {
-  return useQuery<EPGStringMapping[]>(
-    ['epg-string-mappings', 'all'],
-    () => epgService.getAllStringMappings(),
-    options
-  );
+export const useAllEPGStringMappings = (options?: QueryOpts<EPGStringMapping[]>) => {
+  return useQuery<EPGStringMapping[]>({
+    queryKey: ['epg-string-mappings', 'all'],
+    queryFn: () => epgService.getAllStringMappings(),
+    ...options,
+  });
 };
 
 /**
@@ -252,16 +228,14 @@ export const useAllEPGStringMappings = (options?: UseQueryOptions<EPGStringMappi
  */
 export const useAddEPGStringMapping = (channelId: number) => {
   const queryClient = useQueryClient();
-  
-  return useMutation(
-    ({ pattern, isExclusion }: { pattern: string, isExclusion: boolean }) => 
+
+  return useMutation({
+    mutationFn: ({ pattern, isExclusion }: { pattern: string, isExclusion: boolean }) =>
       epgService.addStringMapping(channelId, pattern, isExclusion),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['epg-string-mappings', channelId]);
-      }
-    }
-  );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['epg-string-mappings', channelId] });
+    },
+  });
 };
 
 /**
@@ -269,44 +243,40 @@ export const useAddEPGStringMapping = (channelId: number) => {
  */
 export const useDeleteEPGStringMapping = (channelId: number) => {
   const queryClient = useQueryClient();
-  
-  return useMutation(
-    (id: number) => epgService.deleteStringMapping(id),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['epg-string-mappings', channelId]);
-      }
-    }
-  );
+
+  return useMutation({
+    mutationFn: (id: number) => epgService.deleteStringMapping(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['epg-string-mappings', channelId] });
+    },
+  });
 };
 
 export const useDeleteGlobalEPGStringMapping = () => {
   const queryClient = useQueryClient();
 
-  return useMutation(
-    (id: number) => epgService.deleteStringMapping(id),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['epg-string-mappings', 'all']);
-      }
-    }
-  );
+  return useMutation({
+    mutationFn: (id: number) => epgService.deleteStringMapping(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['epg-string-mappings', 'all'] });
+    },
+  });
 };
 
 /**
  * Hook for generating and downloading EPG XML
  */
 export const useDownloadEPGXML = () => {
-  return useMutation(
-    (params?: EPGXMLGenerationParams) => epgService.downloadEPGXML(params)
-  );
+  return useMutation({
+    mutationFn: (params?: EPGXMLGenerationParams) => epgService.downloadEPGXML(params),
+  });
 };
 
 /**
  * Hook for generating EPG XML URL
  */
 export const useGenerateEPGXML = () => {
-  return useMutation<string, Error, EPGXMLGenerationParams | undefined>(
-    (params?: EPGXMLGenerationParams) => epgService.generateEPGXML(params)
-  );
+  return useMutation<string, Error, EPGXMLGenerationParams | undefined>({
+    mutationFn: (params?: EPGXMLGenerationParams) => epgService.generateEPGXML(params),
+  });
 };

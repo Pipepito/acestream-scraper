@@ -114,9 +114,9 @@ const BatchAcestreamAssignment: React.FC<BatchAcestreamAssignmentProps> = ({
           onClick={handleSubmit} 
           color="primary" 
           variant="contained"
-          disabled={!aceStreamIds.trim() || batchAssignMutation.isLoading}
+          disabled={!aceStreamIds.trim() || batchAssignMutation.isPending}
         >
-          {batchAssignMutation.isLoading ? (
+          {batchAssignMutation.isPending ? (
             <CircularProgress size={24} color="inherit" />
           ) : (
             'Associate'

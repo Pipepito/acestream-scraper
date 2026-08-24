@@ -83,12 +83,11 @@ jest.mock('@mui/x-data-grid', () => {
             {columns.map((column) => {
               const field = String(column.field);
               const valueGetter = column.valueGetter;
-              const renderCell = column.renderCell;
               const value = valueGetter ? valueGetter({ row }) : row[field];
 
               return (
                 <div key={field} data-field={field}>
-                  {renderCell ? renderCell({ row, value }) : value as React.ReactNode}
+                  {column.renderCell ? column.renderCell({ row, value }) : value as React.ReactNode}
                 </div>
               );
             })}

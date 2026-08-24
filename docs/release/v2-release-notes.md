@@ -157,8 +157,7 @@ basket of hardening items. All are closed before tag. Headline changes:
 - **Frontend lint + typecheck gates.** Added ESLint baseline (TS, React,
   React Hooks, jsx-a11y, testing-library) plus `tsc --noEmit` typecheck.
   Both run before Jest in `run_v2_test_suite.sh`. Lint baseline: 0
-  errors, 57 warnings (mostly aspirational test-style nits surfaced for
-  later cleanup).
+  errors, 0 warnings — enforced in CI with `--max-warnings=0`.
 - **Legacy alias expiry gate.** `LEGACY_ENV_ALIAS_WINDOW = "v2-cutover-r1"`
   is now enforced by a CI test that reads `version.txt` and fails the
   build the moment the project version reaches v2.1.0 with the alias
@@ -172,10 +171,8 @@ basket of hardening items. All are closed before tag. Headline changes:
 
 ## Known issues
 
-- The frontend lint baseline carries 57 warnings. Most are testing-library
-  no-node-access / no-container findings in legacy test code — gated as
-  warnings (not errors) so the lint check is green; address in a
-  dedicated test-modernisation pass post-release.
+- ~~Frontend lint warning baseline~~ — resolved: the lint baseline is now
+  zero warnings and CI enforces it with `--max-warnings=0`.
 - AceStream-bearing flavors (`scraper-acestream`, `scraper-acestream-acexy`,
   `latest`) currently publish for `linux/amd64` only because upstream
   AceStream binaries are amd64-only. ARM availability tracks upstream

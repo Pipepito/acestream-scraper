@@ -1,4 +1,4 @@
-import React, { act } from 'react';
+import React from 'react';
 import { render, screen, within, waitFor, fireEvent } from '@testing-library/react';
 import { ThemeProvider } from '@mui/material/styles';
 import * as routerDom from 'react-router-dom';
@@ -75,9 +75,9 @@ jest.mock('../hooks/usePlaylists');
 jest.mock('../hooks/useWarp');
 jest.mock('../hooks/useBaseUrls', () => ({
   useBaseUrls: () => ({ data: [], isLoading: false, error: undefined }),
-  useCreateBaseUrl: () => ({ mutate: jest.fn(), isLoading: false }),
-  usePatchBaseUrl: () => ({ mutate: jest.fn(), isLoading: false }),
-  useDeleteBaseUrl: () => ({ mutate: jest.fn(), isLoading: false }),
+  useCreateBaseUrl: () => ({ mutate: jest.fn(), isPending: false }),
+  usePatchBaseUrl: () => ({ mutate: jest.fn(), isPending: false }),
+  useDeleteBaseUrl: () => ({ mutate: jest.fn(), isPending: false }),
 }));
 jest.mock('../services/configService', () => ({
   configService: {
@@ -176,17 +176,17 @@ beforeEach(() => {
 
   (epgHooks.useDeleteGlobalEPGStringMapping as jest.Mock).mockReturnValue({
     mutateAsync: jest.fn(),
-    isLoading: false,
+    isPending: false,
   });
 
   (configHooks.useBaseUrl as jest.Mock).mockReturnValue({ data: 'acestream://', isLoading: false });
-  (configHooks.useUpdateBaseUrl as jest.Mock).mockReturnValue({ mutate: jest.fn(), isLoading: false });
+  (configHooks.useUpdateBaseUrl as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
   (configHooks.useAceEngineUrl as jest.Mock).mockReturnValue({ data: 'http://localhost:6878', isLoading: false });
-  (configHooks.useUpdateAceEngineUrl as jest.Mock).mockReturnValue({ mutate: jest.fn(), isLoading: false });
+  (configHooks.useUpdateAceEngineUrl as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
   (configHooks.useRescrapeInterval as jest.Mock).mockReturnValue({ data: 24, isLoading: false });
-  (configHooks.useUpdateRescrapeInterval as jest.Mock).mockReturnValue({ mutate: jest.fn(), isLoading: false });
+  (configHooks.useUpdateRescrapeInterval as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
   (configHooks.useAddPid as jest.Mock).mockReturnValue({ data: true, isLoading: false });
-  (configHooks.useUpdateAddPid as jest.Mock).mockReturnValue({ mutate: jest.fn(), isLoading: false });
+  (configHooks.useUpdateAddPid as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
   (configHooks.useAllSettings as jest.Mock).mockReturnValue({
     data: {
       base_url: 'acestream://',
@@ -224,10 +224,10 @@ beforeEach(() => {
     isLoading: false,
     error: undefined,
   });
-  (warpHooks.useWarpConnect as jest.Mock).mockReturnValue({ mutate: jest.fn(), isLoading: false });
-  (warpHooks.useWarpDisconnect as jest.Mock).mockReturnValue({ mutate: jest.fn(), isLoading: false });
-  (warpHooks.useWarpSetMode as jest.Mock).mockReturnValue({ mutateAsync: jest.fn(), isLoading: false });
-  (warpHooks.useWarpRegisterLicense as jest.Mock).mockReturnValue({ mutateAsync: jest.fn(), isLoading: false });
+  (warpHooks.useWarpConnect as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
+  (warpHooks.useWarpDisconnect as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
+  (warpHooks.useWarpSetMode as jest.Mock).mockReturnValue({ mutateAsync: jest.fn(), isPending: false });
+  (warpHooks.useWarpRegisterLicense as jest.Mock).mockReturnValue({ mutateAsync: jest.fn(), isPending: false });
 
   (configService.getAppId as jest.Mock).mockResolvedValue(true);
   (configService.updateAppId as jest.Mock).mockResolvedValue(undefined);
@@ -433,16 +433,16 @@ describe('Supporting page normalization', () => {
   it('shows Acestream engine status, Acestream engine message, software version, and current settings in the supporting detail groups', () => {
     renderHealthPage();
 
-    const runtimeDetails = screen.getByRole('heading', { level: 3, name: 'Runtime details' }).closest('div');
-    const configurationSnapshot = screen.getByRole('heading', { level: 3, name: 'Configuration snapshot' }).closest('div');
+    const runtimeDetails = screen.getByRole('region', { name: 'Runtime details' });
+    const configurationSnapshot = screen.getByRole('region', { name: 'Configuration snapshot' });
 
-    expect(runtimeDetails).not.toBeNull();
-    expect(configurationSnapshot).not.toBeNull();
-    expect(within(runtimeDetails as HTMLElement).getByText('Acestream engine status')).toBeInTheDocument();
-    expect(within(runtimeDetails as HTMLElement).getByText('Acestream engine message')).toBeInTheDocument();
-    expect(within(runtimeDetails as HTMLElement).getByText('Software version')).toBeInTheDocument();
-    expect(within(configurationSnapshot as HTMLElement).getByText('region')).toBeInTheDocument();
-    expect(within(configurationSnapshot as HTMLElement).getByText('profile')).toBeInTheDocument();
+    expect(within(runtimeDetails).getByRole('heading', { level: 3, name: 'Runtime details' })).toBeInTheDocument();
+    expect(within(configurationSnapshot).getByRole('heading', { level: 3, name: 'Configuration snapshot' })).toBeInTheDocument();
+    expect(within(runtimeDetails).getByText('Acestream engine status')).toBeInTheDocument();
+    expect(within(runtimeDetails).getByText('Acestream engine message')).toBeInTheDocument();
+    expect(within(runtimeDetails).getByText('Software version')).toBeInTheDocument();
+    expect(within(configurationSnapshot).getByText('region')).toBeInTheDocument();
+    expect(within(configurationSnapshot).getByText('profile')).toBeInTheDocument();
   });
 
   it('renders Playlist with the shared header and a clearer primary action path', () => {
@@ -482,26 +482,28 @@ describe('Supporting page normalization', () => {
   it('keeps editable connection and automation keys visible in the read-only inventory', async () => {
     renderPage(<Settings />);
 
-    const commonGroup = (await screen.findByRole('heading', { level: 3, name: 'Common connection settings' })).closest('div');
-    const automationGroup = screen.getByRole('heading', { level: 3, name: 'Automation settings' }).closest('div');
+    const inventorySection = await screen.findByRole('region', { name: 'Settings inventory' });
+    const commonGroup = within(inventorySection).getByRole('region', { name: 'Common connection settings' });
+    const automationGroup = within(inventorySection).getByRole('region', { name: 'Automation settings' });
 
-    expect(commonGroup).not.toBeNull();
-    expect(automationGroup).not.toBeNull();
-    expect(within(commonGroup as HTMLElement).getByText('base_url')).toBeInTheDocument();
-    expect(within(commonGroup as HTMLElement).getByText('ace_engine_url')).toBeInTheDocument();
-    expect(within(automationGroup as HTMLElement).getByText('rescrape_interval')).toBeInTheDocument();
-    expect(within(automationGroup as HTMLElement).getByText('addpid')).toBeInTheDocument();
-    expect(within(automationGroup as HTMLElement).getByText('appid')).toBeInTheDocument();
+    expect(within(commonGroup).getByRole('heading', { level: 3, name: 'Common connection settings' })).toBeInTheDocument();
+    expect(within(automationGroup).getByRole('heading', { level: 3, name: 'Automation settings' })).toBeInTheDocument();
+    expect(within(commonGroup).getByText('base_url')).toBeInTheDocument();
+    expect(within(commonGroup).getByText('ace_engine_url')).toBeInTheDocument();
+    expect(within(automationGroup).getByText('rescrape_interval')).toBeInTheDocument();
+    expect(within(automationGroup).getByText('addpid')).toBeInTheDocument();
+    expect(within(automationGroup).getByText('appid')).toBeInTheDocument();
   });
 
   it('renders unknown keys under advanced internal settings', async () => {
     renderPage(<Settings />);
 
-    const advancedGroup = (await screen.findByRole('heading', { level: 3, name: 'Advanced/internal settings' })).closest('div');
+    const inventorySection = await screen.findByRole('region', { name: 'Settings inventory' });
+    const advancedGroup = within(inventorySection).getByRole('region', { name: 'Advanced/internal settings' });
 
-    expect(advancedGroup).not.toBeNull();
-    expect(within(advancedGroup as HTMLElement).getByText('playlist_name')).toBeInTheDocument();
-    expect(within(advancedGroup as HTMLElement).getByText('xmltv_url')).toBeInTheDocument();
+    expect(within(advancedGroup).getByRole('heading', { level: 3, name: 'Advanced/internal settings' })).toBeInTheDocument();
+    expect(within(advancedGroup).getByText('playlist_name')).toBeInTheDocument();
+    expect(within(advancedGroup).getByText('xmltv_url')).toBeInTheDocument();
   });
 
   it('renders not set when an inventory value is empty', async () => {
@@ -587,10 +589,7 @@ describe('Supporting page normalization', () => {
 
     const appIdToggle = screen.getByRole('checkbox', { name: /use appid in acestream links/i });
 
-    await act(async () => {
-      fireEvent.click(appIdToggle);
-      await Promise.resolve();
-    });
+    fireEvent.click(appIdToggle);
 
     await waitFor(() => expect(configService.updateAppId).toHaveBeenCalledWith(true));
     await waitFor(() => expect(appIdToggle).not.toBeDisabled());
@@ -627,18 +626,15 @@ describe('Supporting page normalization', () => {
 
     renderPage(<Settings />);
 
-    const automationGroup = await screen.findByRole('heading', { level: 3, name: 'Automation settings' });
-    const automationInventory = automationGroup.parentElement as HTMLElement;
-    const getAppidRow = () => within(automationInventory).getByText('appid').parentElement as HTMLElement;
+    const inventorySection = await screen.findByRole('region', { name: 'Settings inventory' });
+    const automationInventory = within(inventorySection).getByRole('region', { name: 'Automation settings' });
+    const getAppidRow = () => within(automationInventory).getByTestId('settings-inventory-row-appid');
 
     expect(within(automationInventory).getByText('appid')).toBeInTheDocument();
     expect(getAppidRow()).toHaveTextContent('appid');
     expect(getAppidRow()).toHaveTextContent('true');
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole('checkbox', { name: /use appid in acestream links/i }));
-      await Promise.resolve();
-    });
+    fireEvent.click(screen.getByRole('checkbox', { name: /use appid in acestream links/i }));
 
     await waitFor(() => expect(configService.updateAppId).toHaveBeenCalledWith(false));
     await waitFor(() => expect(getAppidRow()).toHaveTextContent('false'));
@@ -706,11 +702,11 @@ describe('Supporting page normalization', () => {
 
     view.unmount();
 
-    const tvView = renderNotFoundWithRoutes('/unsupported-route');
+    const { unmount: unmountTvRecovery } = renderNotFoundWithRoutes('/unsupported-route');
     fireEvent.click(screen.getByRole('button', { name: 'Open TV Channels' }));
     expect(screen.getByText('TV Channels destination')).toBeInTheDocument();
 
-    tvView.unmount();
+    unmountTvRecovery();
 
     renderNotFoundWithRoutes('/unsupported-route');
     fireEvent.click(screen.getByRole('button', { name: 'Open Search' }));
@@ -733,16 +729,16 @@ describe('Supporting page normalization', () => {
   });
 
   it('wires legacy routes in App to explicit recovery pages', () => {
-    const channelsRoute = renderAppAtRoute(['/channels']);
+    const { unmount: unmountChannelsRoute } = renderAppAtRoute(['/channels']);
     expect(screen.getByRole('heading', { level: 1, name: 'Channels' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Open TV Channels' })).toBeInTheDocument();
-    channelsRoute.unmount();
+    unmountChannelsRoute();
 
-    const channelDetailRoute = renderAppAtRoute(['/channels/legacy-id']);
+    const { unmount: unmountChannelDetailRoute } = renderAppAtRoute(['/channels/legacy-id']);
     expect(screen.getByRole('heading', { level: 1, name: 'Channel detail' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Open TV Channels' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Open EPG' })).toBeInTheDocument();
-    channelDetailRoute.unmount();
+    unmountChannelDetailRoute();
 
     renderAppAtRoute(['/search-new']);
     expect(screen.getByRole('heading', { level: 1, name: 'Search' })).toBeInTheDocument();

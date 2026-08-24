@@ -1,5 +1,5 @@
-import React, { act } from 'react';
-import { render, screen } from '@testing-library/react';
+import React from 'react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from '@mui/material/styles';
 import { useMediaQuery } from '@mui/material';
@@ -19,12 +19,6 @@ jest.mock('../bootstrap/AppBootstrap', () => {
     useAppThemeMode: jest.fn(),
   };
 });
-
-type LegacyUserEventWithSetup = typeof userEvent & {
-  setup?: () => {
-    tab: () => Promise<void>;
-  };
-};
 
 jest.mock('@mui/material', () => {
   const actual = jest.requireActual('@mui/material');
@@ -66,19 +60,7 @@ const renderWithResponsiveMode = ({
 };
 
 const tab = async () => {
-  const legacyUserEvent = userEvent as LegacyUserEventWithSetup;
-
-  if (typeof legacyUserEvent.setup === 'function') {
-    const user = legacyUserEvent.setup();
-    await act(async () => {
-      await user.tab();
-    });
-    return;
-  }
-
-  await act(async () => {
-    userEvent.tab();
-  });
+  await userEvent.tab();
 };
 
 describe('NavBar responsive shell behavior', () => {
@@ -133,7 +115,9 @@ describe('NavBar responsive shell behavior', () => {
     expect(screen.getAllByText('Acestream Scraper').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: /switch to dark theme/i })).toBeVisible();
     expect(screen.getByRole('main')).toHaveStyle({ width: `calc(100% - ${layout.navWidth}px)` });
-    expect(screen.getByText('Desktop content').parentElement).toHaveStyle({
+    const contentWrapper = screen.getByTestId('app-shell-content');
+    expect(within(contentWrapper).getByText('Desktop content')).toBeInTheDocument();
+    expect(contentWrapper).toHaveStyle({
       maxWidth: `${getShellContentMaxWidth(theme, 'standard')}px`,
     });
   });
@@ -153,7 +137,9 @@ describe('NavBar responsive shell behavior', () => {
       ),
     });
 
-    expect(screen.getByText('Wide desktop content').parentElement).toHaveStyle({
+    const contentWrapper = screen.getByTestId('app-shell-content');
+    expect(within(contentWrapper).getByText('Wide desktop content')).toBeInTheDocument();
+    expect(contentWrapper).toHaveStyle({
       maxWidth: `${getShellContentMaxWidth(theme, 'wide')}px`,
     });
   });

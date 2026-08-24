@@ -1,5 +1,5 @@
 import React from 'react';
-import { QueryClient, QueryClientProvider } from 'react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@mui/material/styles';
 import { fireEvent, render, screen } from '@testing-library/react';
 
@@ -40,7 +40,7 @@ describe('Search bold layout', () => {
       isLoading: false,
       error: null,
     });
-    mockUseAddAcestreamChannel.mockReturnValue({ mutateAsync: jest.fn(), isLoading: false });
+    mockUseAddAcestreamChannel.mockReturnValue({ mutateAsync: jest.fn(), isPending: false });
   });
 
   it('renders a guided search action area with selection momentum feedback', () => {

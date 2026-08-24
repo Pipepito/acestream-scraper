@@ -25,10 +25,10 @@ describe('WARP bold layout', () => {
       isLoading: false,
       error: undefined,
     });
-    (warpHooks.useWarpConnect as jest.Mock).mockReturnValue({ mutate: jest.fn(), isLoading: false });
-    (warpHooks.useWarpDisconnect as jest.Mock).mockReturnValue({ mutate: jest.fn(), isLoading: false });
-    (warpHooks.useWarpSetMode as jest.Mock).mockReturnValue({ mutateAsync: jest.fn(), isLoading: false });
-    (warpHooks.useWarpRegisterLicense as jest.Mock).mockReturnValue({ mutateAsync: jest.fn(), isLoading: false });
+    (warpHooks.useWarpConnect as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
+    (warpHooks.useWarpDisconnect as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
+    (warpHooks.useWarpSetMode as jest.Mock).mockReturnValue({ mutateAsync: jest.fn(), isPending: false });
+    (warpHooks.useWarpRegisterLicense as jest.Mock).mockReturnValue({ mutateAsync: jest.fn(), isPending: false });
   });
 
   it('renders a connection-readiness hero with next-step guidance', () => {

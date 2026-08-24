@@ -4,6 +4,7 @@ import { Add, FileDownload, Refresh } from '@mui/icons-material';
 import TvIcon from '@mui/icons-material/Tv';
 import type { GridSortModel } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
+import { keepPreviousData } from '@tanstack/react-query';
 import { alpha } from '@mui/material/styles';
 
 import ChannelTable from '../components/ChannelTable';
@@ -92,7 +93,7 @@ const AcestreamChannels: React.FC = () => {
       page: page + 1,
       page_size: pageSize,
     },
-    { keepPreviousData: true }
+    { placeholderData: keepPreviousData }
   );
 
   const channels = channelsData.items;

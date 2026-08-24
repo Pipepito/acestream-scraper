@@ -28,7 +28,7 @@ const ChannelActivityLog: React.FC<ChannelActivityLogProps> = ({ channelId }) =>
         setLog(data.items || []);
         setLoading(false);
       })
-      .catch((err) => {
+      .catch(() => {
         setError('Failed to load activity log');
         setLoading(false);
       });

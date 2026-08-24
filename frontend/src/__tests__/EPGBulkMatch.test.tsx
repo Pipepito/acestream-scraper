@@ -1,5 +1,5 @@
 import React from 'react';
-import { QueryClient, QueryClientProvider } from 'react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@mui/material/styles';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
@@ -247,8 +247,8 @@ describe('EPG bulk match workflow', () => {
     mockUseCreateEPGSource.mockReturnValue({ mutateAsync: jest.fn() });
     mockUseUpdateEPGSource.mockReturnValue({ mutateAsync: jest.fn() });
     mockUseDeleteEPGSource.mockReturnValue({ mutateAsync: jest.fn() });
-    mockUseRefreshAllEPGSources.mockReturnValue({ mutateAsync: jest.fn(), isLoading: false });
-    mockUseDownloadEPGXML.mockReturnValue({ mutateAsync: jest.fn(), isLoading: false });
+    mockUseRefreshAllEPGSources.mockReturnValue({ mutateAsync: jest.fn(), isPending: false });
+    mockUseDownloadEPGXML.mockReturnValue({ mutateAsync: jest.fn(), isPending: false });
     mockUseAllTVChannels.mockReturnValue({ data: { items: [], total: 0 } });
     mockUseTVChannelCatalog.mockReturnValue({ data: [], isLoading: false, error: null });
     mockAnalyzeEPGMatches.mockResolvedValue(analysisResponse);

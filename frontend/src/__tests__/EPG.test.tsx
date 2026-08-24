@@ -1,6 +1,6 @@
 import React from 'react';
 import { ThemeProvider } from '@mui/material/styles';
-import { QueryClient, QueryClientProvider } from 'react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import EPG from '../pages/EPG';
@@ -78,7 +78,7 @@ describe('EPG page pagination', () => {
       isLoading: false,
     });
 
-    mockUseEPGChannels.mockImplementation((sourceId?: number, page = 1, pageSize = 50) => ({
+    mockUseEPGChannels.mockImplementation((sourceId?: number, page = 1) => ({
       data: {
         items: sourceId === 2 ? [] : [
           { id: page * 10, epg_source_id: 1, channel_xml_id: `alpha-${page}`, name: `Alpha ${page}`, language: 'en', created_at: '', updated_at: '' },
@@ -93,8 +93,8 @@ describe('EPG page pagination', () => {
     mockUseCreateEPGSource.mockReturnValue({ mutateAsync: jest.fn() });
     mockUseUpdateEPGSource.mockReturnValue({ mutateAsync: jest.fn() });
     mockUseDeleteEPGSource.mockReturnValue({ mutateAsync: jest.fn() });
-    mockUseRefreshAllEPGSources.mockReturnValue({ mutateAsync: jest.fn(), isLoading: false });
-    mockUseDownloadEPGXML.mockReturnValue({ mutateAsync: jest.fn(), isLoading: false });
+    mockUseRefreshAllEPGSources.mockReturnValue({ mutateAsync: jest.fn(), isPending: false });
+    mockUseDownloadEPGXML.mockReturnValue({ mutateAsync: jest.fn(), isPending: false });
     mockUseTVChannelCatalog.mockReturnValue({
       data: [
         { id: 1001, name: 'Mapped Alpha', epg_id: 'alpha-1' },
@@ -191,7 +191,7 @@ describe('EPG page pagination', () => {
         isLoading: false,
         isPreviousData: false,
       }))
-      .mockImplementationOnce((_sourceId?: number, page = 1, pageSize = 50) => ({
+      .mockImplementationOnce(() => ({
         data: undefined,
         isLoading: true,
         isPreviousData: true,
@@ -236,7 +236,7 @@ describe('EPG mappings page', () => {
 
     mockUseDeleteGlobalEPGStringMapping.mockReturnValue({
       mutateAsync: jest.fn().mockResolvedValue(undefined),
-      isLoading: false,
+      isPending: false,
     });
   });
 
@@ -257,7 +257,7 @@ describe('EPG mappings page', () => {
     const mutateAsync = jest.fn().mockResolvedValue(undefined);
     mockUseDeleteGlobalEPGStringMapping.mockReturnValue({
       mutateAsync,
-      isLoading: false,
+      isPending: false,
     });
 
     renderMappingsPage();

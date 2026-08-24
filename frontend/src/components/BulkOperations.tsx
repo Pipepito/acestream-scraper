@@ -91,7 +91,7 @@ const BulkOperations: React.FC<BulkOperationsProps> = ({
     setError(null);
     setSuccess(null);
     let success = 0, error = 0;
-    const results = await Promise.all(selectedChannels.map(async (ch, idx) => {
+    const results = await Promise.all(selectedChannels.map(async (ch) => {
       try {
         await fn(ch);
         success++;
@@ -148,7 +148,7 @@ const BulkOperations: React.FC<BulkOperationsProps> = ({
   };
 
   const handleBulkActivate = async (active: boolean) => {
-    await runPerChannel(async (ch) => {
+    await runPerChannel(async () => {
       await onBulkActivate(active);
     });
   };

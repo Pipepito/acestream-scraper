@@ -28,7 +28,7 @@ const EPGXmlOutputPanel: React.FC<EPGXmlOutputPanelProps> = ({ onNotify }) => {
     days_forward: 7
   });
 
-  const { mutateAsync: downloadEPGXML, isLoading: isDownloadingXML } = useDownloadEPGXML();
+  const { mutateAsync: downloadEPGXML, isPending: isDownloadingXML } = useDownloadEPGXML();
 
   // Handle XML options changes
   const handleXmlOptionChange = (event: React.ChangeEvent<HTMLInputElement>) => {

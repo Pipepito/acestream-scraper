@@ -4,7 +4,7 @@
  * Kept in its own module (separate from useConfig) so page tests that mock
  * hook modules wholesale stay valid.
  */
-import { useQuery, useMutation, useQueryClient, UseQueryOptions } from 'react-query';
+import { useQuery, useMutation, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
 import {
   baseUrlService,
   StreamBaseUrl,
@@ -12,15 +12,17 @@ import {
   UpdateBaseUrlDTO,
 } from '../services/baseUrlService';
 
+type QueryOpts<T> = Omit<UseQueryOptions<T>, 'queryKey' | 'queryFn'>;
+
 /**
  * Hook for fetching the named base URL list
  */
-export const useBaseUrls = (options?: UseQueryOptions<StreamBaseUrl[]>) => {
-  return useQuery<StreamBaseUrl[]>(
-    'base-urls',
-    () => baseUrlService.getBaseUrls(),
-    options
-  );
+export const useBaseUrls = (options?: QueryOpts<StreamBaseUrl[]>) => {
+  return useQuery<StreamBaseUrl[]>({
+    queryKey: ['base-urls'],
+    queryFn: () => baseUrlService.getBaseUrls(),
+    ...options,
+  });
 };
 
 /**
@@ -29,14 +31,12 @@ export const useBaseUrls = (options?: UseQueryOptions<StreamBaseUrl[]>) => {
 export const useCreateBaseUrl = () => {
   const queryClient = useQueryClient();
 
-  return useMutation(
-    (baseUrlData: CreateBaseUrlDTO) => baseUrlService.createBaseUrl(baseUrlData),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries('base-urls');
-      }
-    }
-  );
+  return useMutation({
+    mutationFn: (baseUrlData: CreateBaseUrlDTO) => baseUrlService.createBaseUrl(baseUrlData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['base-urls'] });
+    },
+  });
 };
 
 /**
@@ -46,14 +46,12 @@ export const useCreateBaseUrl = () => {
 export const usePatchBaseUrl = () => {
   const queryClient = useQueryClient();
 
-  return useMutation(
-    ({ id, data }: { id: number; data: UpdateBaseUrlDTO }) => baseUrlService.updateBaseUrl(id, data),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries('base-urls');
-      }
-    }
-  );
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: UpdateBaseUrlDTO }) => baseUrlService.updateBaseUrl(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['base-urls'] });
+    },
+  });
 };
 
 /**
@@ -62,12 +60,10 @@ export const usePatchBaseUrl = () => {
 export const useDeleteBaseUrl = () => {
   const queryClient = useQueryClient();
 
-  return useMutation(
-    (id: number) => baseUrlService.deleteBaseUrl(id),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries('base-urls');
-      }
-    }
-  );
+  return useMutation({
+    mutationFn: (id: number) => baseUrlService.deleteBaseUrl(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['base-urls'] });
+    },
+  });
 };

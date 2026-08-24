@@ -160,7 +160,9 @@ describe('TVChannelDetail', () => {
     renderPage();
 
     expect(screen.getByText('Guide linkage still missing')).toBeInTheDocument();
-    expect(within(screen.getByText(/^Next step$/i).parentElement as HTMLElement).getByText(/correct EPG ID.*schedule review|schedule review.*correct EPG ID/i)).toBeInTheDocument();
+    const nextStepPanel = screen.getByTestId('tv-channel-next-step');
+    expect(within(nextStepPanel).getByText(/^Next step$/i)).toBeInTheDocument();
+    expect(within(nextStepPanel).getByText(/correct EPG ID.*schedule review|schedule review.*correct EPG ID/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'EPG Schedule' })).toBeInTheDocument();
     expect(screen.getByText(/Guide linkage is still incomplete, so schedule review will appear here after you add the correct EPG ID\./i)).toBeInTheDocument();
   });

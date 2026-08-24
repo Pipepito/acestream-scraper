@@ -115,7 +115,7 @@ const EPGChannelDetail: React.FC = () => {
   const { mutateAsync: addStringMapping } = useAddEPGStringMapping(channelId);
   const { mutateAsync: deleteStringMapping } = useDeleteEPGStringMapping(channelId);
   const { mutateAsync: mapChannel } = useMapEPGChannel();
-  const { mutateAsync: createTVChannel, isLoading: isCreatingTVChannel } = useCreateTVChannel();
+  const { mutateAsync: createTVChannel, isPending: isCreatingTVChannel } = useCreateTVChannel();
 
   const selectedMappedChannel = tvChannels?.find((tvChannel: TVChannel) => tvChannel.id === selectedTVChannel) || null;
 
@@ -204,7 +204,7 @@ const EPGChannelDetail: React.FC = () => {
       await createTVChannel({ ...createTVForm, epg_id: channel.channel_xml_id });
       showSnackbar('TV channel created successfully', 'success');
       setOpenCreateTVDialog(false);
-    } catch (_error) {
+    } catch {
       showSnackbar('Failed to create TV Channel', 'error');
     }
   };
@@ -212,7 +212,7 @@ const EPGChannelDetail: React.FC = () => {
   const formatDateTime = (dateTimeString: string) => {
     try {
       return format(parseISO(dateTimeString), 'PPP p');
-    } catch (error) {
+    } catch {
       return dateTimeString;
     }
   };
@@ -230,7 +230,7 @@ const EPGChannelDetail: React.FC = () => {
       } else {
         return `${minutes}m`;
       }
-    } catch (error) {
+    } catch {
       return '-';
     }
   };

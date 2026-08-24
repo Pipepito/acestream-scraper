@@ -99,12 +99,11 @@ describe('Health bold layout', () => {
 
     renderHealthPage(theme);
 
-    const statusOverview = screen.getByRole('heading', { level: 2, name: 'Status overview' }).closest('section');
+    const statusOverview = screen.getByRole('region', { name: 'Status overview' });
 
-    expect(statusOverview).not.toBeNull();
-    expect(within(statusOverview as HTMLElement).getByText('Healthy and ready for scraper, playlist, channel, and EPG work.')).toBeInTheDocument();
-    expect(within(statusOverview as HTMLElement).getByText('Next step')).toBeInTheDocument();
-    expect(within(statusOverview as HTMLElement).getByRole('button', { name: 'Refresh status' })).toBeVisible();
+    expect(within(statusOverview).getByText('Healthy and ready for scraper, playlist, channel, and EPG work.')).toBeInTheDocument();
+    expect(within(statusOverview).getByText('Next step')).toBeInTheDocument();
+    expect(within(statusOverview).getByRole('button', { name: 'Refresh status' })).toBeVisible();
     expect(screen.getByRole('heading', { level: 2, name: 'Operational details' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Supporting totals' })).toBeInTheDocument();
   });

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useQueryClient } from 'react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Box,
   Button,
@@ -239,9 +239,9 @@ const Scraper: React.FC = () => {
     try {
       await scraperService.scrapeURL(id);
       await Promise.all([
-        queryClient.invalidateQueries(['url', id]),
-        queryClient.invalidateQueries('urls'),
-        queryClient.invalidateQueries('channels'),
+        queryClient.invalidateQueries({ queryKey: ['url', id] }),
+        queryClient.invalidateQueries({ queryKey: ['urls'] }),
+        queryClient.invalidateQueries({ queryKey: ['channels'] }),
       ]);
 
       setSnackbar({
@@ -298,7 +298,7 @@ const Scraper: React.FC = () => {
               color="secondary"
               startIcon={<PlayArrowIcon />}
               onClick={handleScrapeAll}
-              disabled={scrapeAllURLs.isLoading || enabledSourceCount === 0}
+              disabled={scrapeAllURLs.isPending || enabledSourceCount === 0}
             >
               Scrape All Enabled
             </Button>
@@ -557,7 +557,7 @@ const Scraper: React.FC = () => {
             onClick={handleSubmit}
             variant="contained"
             color="primary"
-            disabled={!formData.url || createURL.isLoading || updateURL.isLoading}
+            disabled={!formData.url || createURL.isPending || updateURL.isPending}
           >
             {isEdit ? 'Update' : 'Add'}
           </Button>

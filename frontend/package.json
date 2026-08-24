@@ -8,6 +8,7 @@
     "@mui/icons-material": "^5.14.13",
     "@mui/material": "^5.14.13",
     "@mui/x-data-grid": "^6.16.2",
+    "@tanstack/react-query": "^5.102.2",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^14.3.1",
     "@testing-library/user-event": "^14.6.1",
@@ -15,9 +16,7 @@
     "date-fns": "^2.30.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-query": "^3.39.3",
-    "react-router-dom": "^6.16.0",
-    "typescript": "~4.9.5"
+    "react-router-dom": "^6.16.0"
   },
   "scripts": {
     "start": "vite --host 0.0.0.0 --port 3000",
@@ -35,8 +34,8 @@
     "@types/node": "^24.6.0",
     "@types/react": "^18.3.24",
     "@types/react-dom": "^18.3.7",
-    "@typescript-eslint/eslint-plugin": "^6.21.0",
-    "@typescript-eslint/parser": "^6.21.0",
+    "@typescript-eslint/eslint-plugin": "^8.67.0",
+    "@typescript-eslint/parser": "^8.67.0",
     "@vitejs/plugin-react": "^6.0.1",
     "eslint": "^8.57.1",
     "eslint-plugin-jsx-a11y": "^6.10.2",
@@ -49,6 +48,7 @@
     "openapi-typescript": "^6.7.6",
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
     "vite": "^8.0.3"
   },
   "browserslist": {

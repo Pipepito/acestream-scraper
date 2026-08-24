@@ -15,6 +15,7 @@ const mockCatalogRefetch = jest.fn();
 const mockUseDeleteTVChannel = jest.fn();
 const mockUseCreateTVChannel = jest.fn();
 const mockUseUpdateTVChannel = jest.fn();
+const mockUseToggleTVChannelFavorite = jest.fn();
 
 jest.mock('@mui/material', () => {
   const actual = jest.requireActual('@mui/material');
@@ -40,6 +41,7 @@ jest.mock('../hooks/useTVChannels', () => ({
   useDeleteTVChannel: (...args: unknown[]) => mockUseDeleteTVChannel(...args),
   useCreateTVChannel: (...args: unknown[]) => mockUseCreateTVChannel(...args),
   useUpdateTVChannel: (...args: unknown[]) => mockUseUpdateTVChannel(...args),
+  useToggleTVChannelFavorite: (...args: unknown[]) => mockUseToggleTVChannelFavorite(...args),
 }));
 
 jest.mock('../components/TVChannelsTable', () => ({
@@ -53,6 +55,7 @@ jest.mock('../components/TVChannelsTable', () => ({
     onPageSizeChange,
     onEdit,
     onDelete,
+    onToggleFavorite,
   }: {
     channels: Array<{ id: number; name: string }>;
     totalCount: number;
@@ -62,6 +65,7 @@ jest.mock('../components/TVChannelsTable', () => ({
     onPageSizeChange: (pageSize: number) => void;
     onEdit: (channel: { id: number; name: string }) => void;
     onDelete: (id: number) => void;
+    onToggleFavorite: (channel: { id: number; name: string }) => void;
   }) => (
     <div data-testid="tv-channels-table">
       rows:{channels.length}
@@ -82,6 +86,9 @@ jest.mock('../components/TVChannelsTable', () => ({
           <button type="button" onClick={() => onDelete(channels[0].id)}>
             Open delete dialog
           </button>
+          <button type="button" onClick={() => onToggleFavorite(channels[0])}>
+            Toggle first favorite
+          </button>
         </>
       ) : null}
     </div>
@@ -98,6 +105,7 @@ const mockUseMediaQuery = useMediaQuery as jest.MockedFunction<typeof useMediaQu
 let deleteMutateAsync: jest.Mock;
 let createMutateAsync: jest.Mock;
 let updateMutateAsync: jest.Mock;
+let toggleFavoriteMutateAsync: jest.Mock;
 
 const renderPage = ({
   isPhone = false,
@@ -207,9 +215,13 @@ describe('TVChannels responsive page behavior', () => {
     deleteMutateAsync = jest.fn().mockResolvedValue(undefined);
     createMutateAsync = jest.fn().mockResolvedValue(undefined);
     updateMutateAsync = jest.fn().mockResolvedValue(undefined);
+    toggleFavoriteMutateAsync = jest.fn().mockImplementation(({ id, value }: { id: number; value?: boolean }) =>
+      Promise.resolve({ id, is_favorite: value ?? true })
+    );
     mockUseDeleteTVChannel.mockReturnValue({ mutateAsync: deleteMutateAsync });
     mockUseCreateTVChannel.mockReturnValue({ mutateAsync: createMutateAsync, isLoading: false });
     mockUseUpdateTVChannel.mockReturnValue({ mutateAsync: updateMutateAsync, isLoading: false });
+    mockUseToggleTVChannelFavorite.mockReturnValue({ mutateAsync: toggleFavoriteMutateAsync, isLoading: false });
   });
 
   it('keeps primary actions visible while collapsing filters on phone', async () => {
@@ -378,6 +390,34 @@ describe('TVChannels responsive page behavior', () => {
     await click(screen.getByRole('button', { name: 'Refresh' }));
 
     expect(mockCatalogRefetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('requests only favorite channels from the catalog when Favorites only is enabled', async () => {
+    renderPage({ isPhone: false, isDesktop: true, isWideDesktop: false });
+
+    expect(mockUseTVChannelCatalog).toHaveBeenLastCalledWith(undefined);
+
+    const filtersRegion = screen.getByRole('region', { name: 'Filters' });
+    const favoritesSwitch = within(filtersRegion).getByRole('checkbox', { name: 'Favorites only' });
+
+    await click(favoritesSwitch);
+
+    expect(mockUseTVChannelCatalog).toHaveBeenLastCalledWith({ favorites: true });
+
+    await click(favoritesSwitch);
+
+    expect(mockUseTVChannelCatalog).toHaveBeenLastCalledWith(undefined);
+  });
+
+  it('toggles a channel favorite from the inventory and confirms the change', async () => {
+    renderPage({ isPhone: false, isDesktop: true, isWideDesktop: false });
+
+    await click(screen.getByRole('button', { name: 'Toggle first favorite' }));
+
+    await waitFor(() => {
+      expect(toggleFavoriteMutateAsync).toHaveBeenCalledWith({ id: 7, value: true });
+    });
+    expect(await screen.findByText('Added Arena TV to favorites.')).toBeInTheDocument();
   });
 
   it('resets to the first page immediately when applying filters', async () => {

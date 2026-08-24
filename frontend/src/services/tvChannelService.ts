@@ -69,24 +69,34 @@ export interface CreateFromEPGAnalysisResult {
   }>;
 }
 
+export interface TVChannelListFilters {
+  favorites?: boolean;
+  search?: string;
+}
+
 export const tvChannelService = {
   /**
    * Get all TV channels
    */
-  getAll: async (skip = 0, limit = 100): Promise<{ items: TVChannel[]; total: number }> => {
+  getAll: async (skip = 0, limit = 100, filters?: TVChannelListFilters): Promise<{ items: TVChannel[]; total: number }> => {
     const response = await apiClient.get(BASE_URL, {
-      params: { skip, limit }
+      params: {
+        skip,
+        limit,
+        ...(filters?.favorites ? { favorites: true } : {}),
+        ...(filters?.search ? { search: filters.search } : {}),
+      }
     });
     return response.data;
   },
 
-  getCatalog: async (pageSize = 500): Promise<TVChannel[]> => {
+  getCatalog: async (pageSize = 500, filters?: TVChannelListFilters): Promise<TVChannel[]> => {
     const items: TVChannel[] = [];
     let skip = 0;
     let total = 0;
 
     do {
-      const response = await tvChannelService.getAll(skip, pageSize);
+      const response = await tvChannelService.getAll(skip, pageSize, filters);
       items.push(...response.items);
       total = response.total;
       skip += response.items.length;
@@ -138,6 +148,16 @@ export const tvChannelService = {
    */
   update: async (id: number, updates: TVChannelUpdate): Promise<TVChannel> => {
     const response = await apiClient.put(`${BASE_URL}/${id}`, updates);
+    return response.data;
+  },
+
+  /**
+   * Toggle (or explicitly set, via value) a TV channel's favorite flag
+   */
+  toggleFavorite: async (id: number, value?: boolean): Promise<TVChannel> => {
+    const response = await apiClient.post(`${BASE_URL}/${id}/favorite`, null, {
+      params: value === undefined ? {} : { value },
+    });
     return response.data;
   },
 

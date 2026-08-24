@@ -19,7 +19,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { useTVChannelCatalog, useDeleteTVChannel, useCreateTVChannel, useUpdateTVChannel } from '../hooks/useTVChannels';
+import { useTVChannelCatalog, useDeleteTVChannel, useCreateTVChannel, useUpdateTVChannel, useToggleTVChannelFavorite } from '../hooks/useTVChannels';
 import { AdvancedSearchFilters } from '../components/AdvancedSearch';
 import TVChannelsTable from '../components/TVChannelsTable';
 import { TVChannel, TVChannelCreate, TVChannelUpdate } from '../types/tvChannelTypes';
@@ -46,6 +46,7 @@ const TVChannels: React.FC = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[1]);
   const [filters, setFilters] = useState<AdvancedSearchFilters>({});
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
@@ -69,10 +70,11 @@ const TVChannels: React.FC = () => {
     isLoading: isCatalogLoading,
     isError: isCatalogError,
     refetch: refetchCatalog,
-  } = useTVChannelCatalog();
+  } = useTVChannelCatalog(favoritesOnly ? { favorites: true } : undefined);
   const deleteMutation = useDeleteTVChannel();
   const createMutation = useCreateTVChannel();
   const updateMutation = useUpdateTVChannel();
+  const toggleFavoriteMutation = useToggleTVChannelFavorite();
 
   const channels = useMemo(() => channelCatalog ?? [], [channelCatalog]);
   const filteredChannels = useMemo(() => {
@@ -157,6 +159,23 @@ const TVChannels: React.FC = () => {
   const handleFiltersChange = (nextFilters: AdvancedSearchFilters) => {
     setPage(1);
     setFilters(nextFilters);
+  };
+
+  const handleFavoritesOnlyChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setPage(1);
+    setFavoritesOnly(event.target.checked);
+  };
+
+  const handleToggleFavorite = async (channel: TVChannel) => {
+    try {
+      // Send the intended state explicitly (idempotent under double-clicks)
+      // and derive the notice from the server's response, not the possibly
+      // stale row the user clicked.
+      const updated = await toggleFavoriteMutation.mutateAsync({ id: channel.id, value: !channel.is_favorite });
+      setNotice(updated.is_favorite ? `Added ${channel.name} to favorites.` : `Removed ${channel.name} from favorites.`);
+    } catch {
+      setNotice('Failed to update favorite state.');
+    }
   };
 
   const handleOpenCreateDialog = () => {
@@ -346,7 +365,7 @@ const TVChannels: React.FC = () => {
     );
   }
 
-  if (isCatalogError) {
+  if (isCatalogError && !channelCatalog) {
     return (
       <Box p={3}>
         <Stack spacing={2} alignItems="flex-start">
@@ -532,8 +551,9 @@ const TVChannels: React.FC = () => {
             onEdit={handleOpenEditDialog}
             onDelete={handleRequestDelete}
             onPlay={(id) => navigate(`/tv-channels/${id}`)}
+            onToggleFavorite={handleToggleFavorite}
           />
-          {totalChannels === 0 && Object.values(filters).some(Boolean) ? (
+          {totalChannels === 0 && (favoritesOnly || Object.values(filters).some(Boolean)) ? (
             <Alert severity="info" sx={{ mt: 2 }}>
               <Typography component="span" sx={{ display: 'block', fontWeight: 600 }}>
                 No TV channels match the current filters
@@ -549,6 +569,11 @@ const TVChannels: React.FC = () => {
           title="Filters"
           description="Focus the list before you act."
         >
+          <FormControlLabel
+            control={<Switch checked={favoritesOnly} onChange={handleFavoritesOnlyChange} name="favorites_only" color="primary" />}
+            label="Favorites only"
+            sx={{ mb: 1 }}
+          />
           {isPhone ? (
             <Collapse in={showFilters} id="tv-channels-filters-panel" unmountOnExit>
               <AdvancedSearch

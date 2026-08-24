@@ -73,6 +73,7 @@ describe('TVChannelsTable', () => {
     onEdit: jest.fn(),
     onDelete: jest.fn(),
     onPlay: jest.fn(),
+    onToggleFavorite: jest.fn(),
   };
 
   beforeEach(() => {
@@ -229,6 +230,54 @@ describe('TVChannelsTable', () => {
     renderTable(<TVChannelsTable channels={[favoriteChannel]} {...baseProps} />, true);
 
     expect(within(screen.getByRole('article', { name: 'Arena TV' })).getByText('Favorite')).toBeInTheDocument();
+  });
+
+  it('exposes a favorite star toggle that reports the channel in desktop and compact modes', () => {
+    const channel = {
+      id: 42,
+      name: 'Arena TV',
+      logo_url: '',
+      category: 'Sports',
+      language: 'en',
+      country: 'RS',
+      channel_number: 7,
+      is_active: true,
+      created_at: '2024-01-01T00:00:00.000Z',
+      updated_at: '2024-01-01T00:00:00.000Z',
+      is_favorite: false,
+      acestream_channels: [{ channel_id: 'ace-1' }],
+    } as any;
+    const onToggleFavorite = jest.fn();
+
+    const { unmount } = renderTable(
+      <TVChannelsTable channels={[channel]} {...baseProps} onToggleFavorite={onToggleFavorite} />
+    );
+
+    const desktopStar = screen.getByRole('button', { name: 'toggle favorite for tv channel Arena TV' });
+
+    expect(desktopStar).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(desktopStar);
+
+    expect(onToggleFavorite).toHaveBeenCalledWith(channel);
+
+    unmount();
+    onToggleFavorite.mockClear();
+
+    renderTable(
+      <TVChannelsTable channels={[{ ...channel, is_favorite: true }]} {...baseProps} onToggleFavorite={onToggleFavorite} />,
+      true
+    );
+
+    const compactStar = within(screen.getByRole('article', { name: 'Arena TV' })).getByRole('button', {
+      name: 'toggle favorite for tv channel Arena TV',
+    });
+
+    expect(compactStar).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.click(compactStar);
+
+    expect(onToggleFavorite).toHaveBeenCalledWith(expect.objectContaining({ id: 42, is_favorite: true }));
   });
 
   it('renders a clear mobile empty state in compact mode', () => {

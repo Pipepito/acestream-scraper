@@ -3307,6 +3307,105 @@
         "summary": "Read Index"
       }
     },
+    "/api/playlists/all-streams/m3u": {
+      "get": {
+        "description": "Legacy v1 all-streams playlist URL. Behaves identically to\n/api/v1/playlists/all-streams/m3u.",
+        "operationId": "legacy_all_streams_playlist_api_playlists_all_streams_m3u_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_unassigned",
+            "required": false,
+            "schema": {
+              "default": true,
+              "title": "Include Unassigned",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "base_url",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Base Url"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Format"
+            }
+          },
+          {
+            "in": "query",
+            "name": "refresh",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Refresh",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Legacy All Streams Playlist"
+      }
+    },
     "/api/playlists/epg.xml": {
       "get": {
         "description": "Legacy v1 EPG XML URL. Behaves identically to /api/v1/epg/xml.",
@@ -3382,9 +3481,255 @@
         "summary": "Legacy Epg Xml"
       }
     },
+    "/api/playlists/m3u": {
+      "get": {
+        "description": "Legacy v1 playlist API URL. Behaves identically to /api/v1/playlists/m3u\n(API error contract, unlike the player-facing /playlists/m3u route).",
+        "operationId": "legacy_api_m3u_playlist_api_playlists_m3u_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          },
+          {
+            "in": "query",
+            "name": "group",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group"
+            }
+          },
+          {
+            "in": "query",
+            "name": "only_online",
+            "required": false,
+            "schema": {
+              "default": true,
+              "title": "Only Online",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_groups",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Include Groups"
+            }
+          },
+          {
+            "in": "query",
+            "name": "exclude_groups",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Exclude Groups"
+            }
+          },
+          {
+            "in": "query",
+            "name": "base_url",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Base Url"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Format"
+            }
+          },
+          {
+            "in": "query",
+            "name": "refresh",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Refresh",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Legacy Api M3U Playlist"
+      }
+    },
+    "/api/playlists/tv-channels/m3u": {
+      "get": {
+        "description": "Legacy v1 TV-channels playlist URL. Behaves identically to\n/api/v1/playlists/tv-channels/m3u.",
+        "operationId": "legacy_tv_channels_playlist_api_playlists_tv_channels_m3u_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          },
+          {
+            "in": "query",
+            "name": "favorites_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Favorites Only",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "base_url",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Base Url"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Format"
+            }
+          },
+          {
+            "in": "query",
+            "name": "refresh",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Refresh",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Legacy Tv Channels Playlist"
+      }
+    },
     "/api/v1/acestream-channels/": {
       "get": {
-        "description": "Get all channels with optional filtering.\nSupports both skip/limit and page/page_size parameters.\nReturns paginated items and total count.",
+        "description": "Get all channels with optional filtering.\nSupports both skip/limit and page/page_size parameters.\nSet assigned=false to list only streams not linked to a TV channel.\nReturns paginated items and total count.",
         "operationId": "get_acestream_channels_api_v1_acestream_channels__get",
         "parameters": [
           {
@@ -3535,6 +3880,22 @@
                 }
               ],
               "title": "Is Online"
+            }
+          },
+          {
+            "in": "query",
+            "name": "assigned",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Assigned"
             }
           }
         ],
@@ -4324,7 +4685,7 @@
     },
     "/api/v1/channels/": {
       "get": {
-        "description": "Get all channels with optional filtering.\nSupports both skip/limit and page/page_size parameters.\nReturns paginated items and total count.",
+        "description": "Get all channels with optional filtering.\nSupports both skip/limit and page/page_size parameters.\nSet assigned=false to list only streams not linked to a TV channel.\nReturns paginated items and total count.",
         "operationId": "get_acestream_channels_api_v1_channels__get",
         "parameters": [
           {
@@ -4475,6 +4836,22 @@
                 }
               ],
               "title": "Is Online"
+            }
+          },
+          {
+            "in": "query",
+            "name": "assigned",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Assigned"
             }
           }
         ],
@@ -6552,6 +6929,108 @@
         ]
       }
     },
+    "/api/v1/playlists/all-streams/m3u": {
+      "get": {
+        "description": "Generate an M3U playlist of numbered TV channels followed by unassigned\nacestreams (numbered from 9000).\n\n- **search**: Optional search term for channel names\n- **include_unassigned**: Append streams not assigned to any TV channel\n- **refresh**: Trigger a background rescrape of all enabled URLs",
+        "operationId": "get_all_streams_playlist_api_v1_playlists_all_streams_m3u_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_unassigned",
+            "required": false,
+            "schema": {
+              "default": true,
+              "title": "Include Unassigned",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "base_url",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Base Url"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Format"
+            }
+          },
+          {
+            "in": "query",
+            "name": "refresh",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Refresh",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get All Streams Playlist",
+        "tags": [
+          "playlists"
+        ]
+      }
+    },
     "/api/v1/playlists/groups": {
       "get": {
         "description": "Get list of all available channel groups",
@@ -6580,7 +7059,7 @@
     },
     "/api/v1/playlists/m3u": {
       "get": {
-        "description": "Generate M3U playlist with specified filters\n\n- **search**: Optional search term for channel names\n- **group**: Optional specific group to filter by\n- **only_online**: Whether to include only online channels (default: True)\n- **include_groups**: Comma-separated list of groups to include\n- **exclude_groups**: Comma-separated list of groups to exclude",
+        "description": "Generate M3U playlist with specified filters\n\n- **search**: Optional search term for channel names\n- **group**: Optional specific group to filter by\n- **only_online**: Whether to include only online channels (default: True)\n- **include_groups**: Comma-separated list of groups to include\n- **exclude_groups**: Comma-separated list of groups to exclude\n- **refresh**: Trigger a background rescrape of all enabled URLs",
         "operationId": "get_m3u_playlist_api_v1_playlists_m3u_get",
         "parameters": [
           {
@@ -6697,6 +7176,16 @@
                 }
               ],
               "title": "Format"
+            }
+          },
+          {
+            "in": "query",
+            "name": "refresh",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Refresh",
+              "type": "boolean"
             }
           }
         ],
@@ -6848,6 +7337,16 @@
               ],
               "title": "Format"
             }
+          },
+          {
+            "in": "query",
+            "name": "refresh",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Refresh",
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -6873,6 +7372,108 @@
           }
         },
         "summary": "Get M3U Playlist Compat",
+        "tags": [
+          "playlists"
+        ]
+      }
+    },
+    "/api/v1/playlists/tv-channels/m3u": {
+      "get": {
+        "description": "Generate a curated M3U playlist of TV channels with their assigned\nacestreams, ordered by channel number then name.\n\n- **search**: Optional search term for TV channel names\n- **favorites_only**: Only include favorite TV channels\n- **refresh**: Trigger a background rescrape of all enabled URLs",
+        "operationId": "get_tv_channels_playlist_api_v1_playlists_tv_channels_m3u_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          },
+          {
+            "in": "query",
+            "name": "favorites_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Favorites Only",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "base_url",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Base Url"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Format"
+            }
+          },
+          {
+            "in": "query",
+            "name": "refresh",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Refresh",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Tv Channels Playlist",
         "tags": [
           "playlists"
         ]
@@ -7503,7 +8104,7 @@
     },
     "/api/v1/tv-channels/": {
       "get": {
-        "description": "Get all TV channels with pagination and total count.",
+        "description": "Get all TV channels with pagination and total count.\nOptional filters: search (name substring), favorites=true.",
         "operationId": "get_tv_channels_api_v1_tv_channels__get",
         "parameters": [
           {
@@ -7542,6 +8143,24 @@
             "schema": {
               "title": "Page Size",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "title": "Search",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "favorites",
+            "required": false,
+            "schema": {
+              "title": "Favorites",
+              "type": "boolean"
             }
           }
         ],
@@ -7968,6 +8587,53 @@
         ]
       }
     },
+    "/api/v1/tv-channels/{tv_channel_id}/acestream-matches": {
+      "get": {
+        "description": "Suggest unassigned acestreams matching this TV channel by EPG id or\nnormalized name, for the assign flow.",
+        "operationId": "get_tv_channel_acestream_matches_api_v1_tv_channels__tv_channel_id__acestream_matches_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tv_channel_id",
+            "required": true,
+            "schema": {
+              "title": "Tv Channel Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AcestreamChannelResponse"
+                  },
+                  "title": "Response Get Tv Channel Acestream Matches Api V1 Tv Channels  Tv Channel Id  Acestream Matches Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Tv Channel Acestream Matches",
+        "tags": [
+          "tv-channels"
+        ]
+      }
+    },
     "/api/v1/tv-channels/{tv_channel_id}/acestreams": {
       "get": {
         "description": "Get all acestream channels associated with a TV channel.",
@@ -8106,6 +8772,60 @@
           }
         },
         "summary": "Remove Acestream Association",
+        "tags": [
+          "tv-channels"
+        ]
+      }
+    },
+    "/api/v1/tv-channels/{tv_channel_id}/favorite": {
+      "post": {
+        "description": "Toggle (or explicitly set, via ?value=) a TV channel's favorite flag.",
+        "operationId": "set_tv_channel_favorite_api_v1_tv_channels__tv_channel_id__favorite_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tv_channel_id",
+            "required": true,
+            "schema": {
+              "title": "Tv Channel Id",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Explicit favorite state; omit to toggle",
+            "in": "query",
+            "name": "value",
+            "required": false,
+            "schema": {
+              "description": "Explicit favorite state; omit to toggle",
+              "title": "Value",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TVChannelResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Tv Channel Favorite",
         "tags": [
           "tv-channels"
         ]
@@ -8419,6 +9139,16 @@
               ],
               "title": "Format"
             }
+          },
+          {
+            "in": "query",
+            "name": "refresh",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Refresh",
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -8555,6 +9285,16 @@
                 }
               ],
               "title": "Format"
+            }
+          },
+          {
+            "in": "query",
+            "name": "refresh",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Refresh",
+              "type": "boolean"
             }
           }
         ],

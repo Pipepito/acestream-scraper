@@ -42,11 +42,13 @@ async def get_acestream_channels(
     language: Optional[str] = None,
     is_active: Optional[bool] = None,
     is_online: Optional[bool] = None,
+    assigned: Optional[bool] = None,
     db: Session = Depends(get_db)
 ):
     """
     Get all channels with optional filtering.
     Supports both skip/limit and page/page_size parameters.
+    Set assigned=false to list only streams not linked to a TV channel.
     Returns paginated items and total count.
     """
     # Convert page/page_size to skip/limit if provided
@@ -69,7 +71,8 @@ async def get_acestream_channels(
         country=country,
         language=language,
         is_active=is_active,
-        is_online=is_online
+        is_online=is_online,
+        assigned=assigned
     )
     return {"items": items, "total": total}
 

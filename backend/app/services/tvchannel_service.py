@@ -10,8 +10,12 @@ from app.models.models import AcestreamChannel, EPGChannel, TVChannel
 from app.services.epg_match_service import EPGMatchService
 
 class TVChannelService:
-    def get_tv_channels_with_total(self, skip: int = 0, limit: int = 100):
-        return self.repository.get_tv_channels_with_total(skip=skip, limit=limit)
+    def get_tv_channels_with_total(self, skip: int = 0, limit: int = 100,
+                                   search: Optional[str] = None,
+                                   favorites_only: bool = False):
+        return self.repository.get_tv_channels_with_total(
+            skip=skip, limit=limit, search=search, favorites_only=favorites_only
+        )
     def get_tv_channel_by_epg_id(self, epg_id: str) -> Optional[TVChannel]:
         return self.repository.get_tv_channel_by_epg_id(epg_id)
     """Service for TVChannel-related operations"""
@@ -234,6 +238,23 @@ class TVChannelService:
             "failure_count": failure_count,
             "row_outcomes": row_outcomes,
         }
+
+    def set_favorite(self, tv_channel_id: int, value: Optional[bool] = None) -> Optional[TVChannel]:
+        """Set (or toggle when value is None) a TV channel's favorite flag."""
+        tv_channel = self.repository.get_tv_channel_by_id(tv_channel_id)
+        if tv_channel is None:
+            return None
+        new_value = (not tv_channel.is_favorite) if value is None else value
+        return self.repository.update_tv_channel(tv_channel_id, {"is_favorite": new_value})
+
+    def find_unassigned_matches(self, tv_channel_id: int) -> Optional[List[AcestreamChannel]]:
+        """Suggest unassigned acestreams matching a TV channel by EPG id or
+        normalized name. Returns None when the TV channel does not exist."""
+        tv_channel = self.repository.get_tv_channel_by_id(tv_channel_id)
+        if tv_channel is None:
+            return None
+        candidates = self._find_matching_acestreams(tv_channel)
+        return [candidate for candidate in candidates if candidate.tv_channel_id is None]
 
     def auto_associate_acestreams(self, tv_channel: TVChannel) -> int:
         candidates = self._find_matching_acestreams(tv_channel)

@@ -25,7 +25,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import { Edit, Delete, PlayArrow } from '@mui/icons-material';
+import { Edit, Delete, PlayArrow, Star, StarBorder } from '@mui/icons-material';
 import { TVChannel } from '../types/tvChannelTypes';
 import EmptyState from './state/EmptyState';
 
@@ -41,6 +41,7 @@ interface TVChannelsTableProps {
   onEdit: (channel: TVChannel) => void;
   onDelete: (id: number) => void;
   onPlay: (id: number) => void;
+  onToggleFavorite: (channel: TVChannel) => void;
 }
 
 const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
@@ -55,6 +56,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
   onEdit,
   onDelete,
   onPlay,
+  onToggleFavorite,
 }) => {
   const theme = useTheme();
   const isCompact = useMediaQuery(theme.breakpoints.down('md'));
@@ -72,10 +74,24 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
 
   const renderActions = (channel: TVChannel, isMobile = false) => {
     const hasStreams = Boolean(channel.acestream_channels?.length);
+    const favoriteButton = (
+      <Tooltip title={channel.is_favorite ? 'Remove from favorites' : 'Add to favorites'}>
+        <IconButton
+          size={isMobile ? 'medium' : 'small'}
+          color={channel.is_favorite ? 'warning' : 'default'}
+          aria-label={`toggle favorite for tv channel ${channel.name}`}
+          aria-pressed={channel.is_favorite}
+          onClick={() => onToggleFavorite(channel)}
+        >
+          {channel.is_favorite ? <Star fontSize="small" /> : <StarBorder fontSize="small" />}
+        </IconButton>
+      </Tooltip>
+    );
 
     if (isMobile) {
       return (
-        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
+          {favoriteButton}
           <Button
             variant="outlined"
             startIcon={<Edit fontSize="small" />}
@@ -108,6 +124,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
 
     return (
       <Box display="flex" gap={1} role="group" aria-label={`TV channel actions for ${channel.name}`}>
+        {favoriteButton}
         <Tooltip title="Edit">
           <IconButton size="small" aria-label={`edit tv channel ${channel.name}`} onClick={() => onEdit(channel)}>
             <Edit fontSize="small" />
@@ -324,7 +341,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 160,
+      width: 200,
       sortable: false,
       renderCell: (params: GridRenderCellParams<TVChannel>) => renderActions(params.row),
     },

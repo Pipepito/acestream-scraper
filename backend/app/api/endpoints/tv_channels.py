@@ -41,19 +41,56 @@ async def get_tv_channels(
     limit: int = Query(100, alias="limit"),
     page: int = Query(None, alias="page"),
     page_size: int = Query(None, alias="page_size"),
+    search: str = Query(None),
+    favorites: bool = Query(None),
     db: Session = Depends(get_db)
 ):
     """
     Get all TV channels with pagination and total count.
+    Optional filters: search (name substring), favorites=true.
     """
     # Convert page/page_size to skip/limit if provided
     if page is not None and page_size is not None:
         skip = (page - 1) * page_size
         limit = page_size
     service = TVChannelService(db)
-    items, total = service.get_tv_channels_with_total(skip=skip, limit=limit)
+    items, total = service.get_tv_channels_with_total(
+        skip=skip, limit=limit, search=search, favorites_only=bool(favorites)
+    )
     items_serialized = [TVChannelResponse.model_validate(item) for item in items]
     return {"items": items_serialized, "total": total}
+
+
+@router.post("/{tv_channel_id}/favorite", response_model=TVChannelResponse)
+async def set_tv_channel_favorite(
+    tv_channel_id: int,
+    value: bool = Query(None, description="Explicit favorite state; omit to toggle"),
+    db: Session = Depends(get_db)
+):
+    """
+    Toggle (or explicitly set, via ?value=) a TV channel's favorite flag.
+    """
+    service = TVChannelService(db)
+    tv_channel = service.set_favorite(tv_channel_id, value)
+    if tv_channel is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="TV channel not found")
+    return TVChannelResponse.model_validate(tv_channel)
+
+
+@router.get("/{tv_channel_id}/acestream-matches", response_model=List[AcestreamChannelResponse])
+async def get_tv_channel_acestream_matches(
+    tv_channel_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Suggest unassigned acestreams matching this TV channel by EPG id or
+    normalized name, for the assign flow.
+    """
+    service = TVChannelService(db)
+    matches = service.find_unassigned_matches(tv_channel_id)
+    if matches is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="TV channel not found")
+    return matches
 
 
 @router.post(

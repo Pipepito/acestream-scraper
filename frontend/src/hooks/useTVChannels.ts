@@ -1,7 +1,7 @@
 
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { TVChannel, TVChannelCreate, TVChannelUpdate } from '../types/tvChannelTypes';
-import { tvChannelService } from '../services/tvChannelService';
+import { tvChannelService, TVChannelListFilters } from '../services/tvChannelService';
 
 export interface PaginatedTVChannels {
   items: TVChannel[];
@@ -27,12 +27,15 @@ export const useAllTVChannels = (skip = 0, limit = 100) => {
   );
 };
 
-export const useTVChannelCatalog = () => {
+export const useTVChannelCatalog = (filters?: TVChannelListFilters) => {
   return useQuery<TVChannel[]>(
-    [QUERY_KEYS.ALL_TV_CHANNELS, 'catalog'],
-    () => tvChannelService.getCatalog(),
+    [QUERY_KEYS.ALL_TV_CHANNELS, 'catalog', { favorites: filters?.favorites ?? false, search: filters?.search ?? '' }],
+    () => tvChannelService.getCatalog(undefined, filters),
     {
       staleTime: 1000 * 60 * 5,
+      // Keep the previous list rendered while a filter change refetches, so
+      // toggling the favorites switch doesn't unmount the whole page.
+      keepPreviousData: true,
     }
   );
 };
@@ -90,6 +93,23 @@ export const useUpdateTVChannel = () => {
   return useMutation(
     ({ id, updates }: { id: number; updates: TVChannelUpdate }) =>
       tvChannelService.update(id, updates),
+    {
+      onSuccess: (data, { id }) => {
+        queryClient.invalidateQueries([QUERY_KEYS.TV_CHANNEL_DETAIL, id]);
+        queryClient.invalidateQueries(QUERY_KEYS.ALL_TV_CHANNELS);
+      },
+    }
+  );
+};
+
+/**
+ * Hook for toggling a TV channel's favorite flag
+ */
+export const useToggleTVChannelFavorite = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    ({ id, value }: { id: number; value?: boolean }) => tvChannelService.toggleFavorite(id, value),
     {
       onSuccess: (data, { id }) => {
         queryClient.invalidateQueries([QUERY_KEYS.TV_CHANNEL_DETAIL, id]);

@@ -12,6 +12,14 @@ export interface paths {
      */
     get: operations["read_index__get"];
   };
+  "/api/playlists/all-streams/m3u": {
+    /**
+     * Legacy All Streams Playlist
+     * @description Legacy v1 all-streams playlist URL. Behaves identically to
+     * /api/v1/playlists/all-streams/m3u.
+     */
+    get: operations["legacy_all_streams_playlist_api_playlists_all_streams_m3u_get"];
+  };
   "/api/playlists/epg.xml": {
     /**
      * Legacy Epg Xml
@@ -19,11 +27,28 @@ export interface paths {
      */
     get: operations["legacy_epg_xml_api_playlists_epg_xml_get"];
   };
+  "/api/playlists/m3u": {
+    /**
+     * Legacy Api M3U Playlist
+     * @description Legacy v1 playlist API URL. Behaves identically to /api/v1/playlists/m3u
+     * (API error contract, unlike the player-facing /playlists/m3u route).
+     */
+    get: operations["legacy_api_m3u_playlist_api_playlists_m3u_get"];
+  };
+  "/api/playlists/tv-channels/m3u": {
+    /**
+     * Legacy Tv Channels Playlist
+     * @description Legacy v1 TV-channels playlist URL. Behaves identically to
+     * /api/v1/playlists/tv-channels/m3u.
+     */
+    get: operations["legacy_tv_channels_playlist_api_playlists_tv_channels_m3u_get"];
+  };
   "/api/v1/acestream-channels/": {
     /**
      * Get Acestream Channels
      * @description Get all channels with optional filtering.
      * Supports both skip/limit and page/page_size parameters.
+     * Set assigned=false to list only streams not linked to a TV channel.
      * Returns paginated items and total count.
      */
     get: operations["get_acestream_channels_api_v1_acestream_channels__get"];
@@ -136,6 +161,7 @@ export interface paths {
      * Get Acestream Channels
      * @description Get all channels with optional filtering.
      * Supports both skip/limit and page/page_size parameters.
+     * Set assigned=false to list only streams not linked to a TV channel.
      * Returns paginated items and total count.
      */
     get: operations["get_acestream_channels_api_v1_channels__get"];
@@ -476,6 +502,18 @@ export interface paths {
      */
     get: operations["check_health_api_v1_health_get"];
   };
+  "/api/v1/playlists/all-streams/m3u": {
+    /**
+     * Get All Streams Playlist
+     * @description Generate an M3U playlist of numbered TV channels followed by unassigned
+     * acestreams (numbered from 9000).
+     *
+     * - **search**: Optional search term for channel names
+     * - **include_unassigned**: Append streams not assigned to any TV channel
+     * - **refresh**: Trigger a background rescrape of all enabled URLs
+     */
+    get: operations["get_all_streams_playlist_api_v1_playlists_all_streams_m3u_get"];
+  };
   "/api/v1/playlists/groups": {
     /**
      * Get Channel Groups
@@ -493,6 +531,7 @@ export interface paths {
      * - **only_online**: Whether to include only online channels (default: True)
      * - **include_groups**: Comma-separated list of groups to include
      * - **exclude_groups**: Comma-separated list of groups to exclude
+     * - **refresh**: Trigger a background rescrape of all enabled URLs
      */
     get: operations["get_m3u_playlist_api_v1_playlists_m3u_get"];
   };
@@ -505,6 +544,18 @@ export interface paths {
      * /m3u endpoint.
      */
     get: operations["get_m3u_playlist_compat_api_v1_playlists_playlists_m3u_get"];
+  };
+  "/api/v1/playlists/tv-channels/m3u": {
+    /**
+     * Get Tv Channels Playlist
+     * @description Generate a curated M3U playlist of TV channels with their assigned
+     * acestreams, ordered by channel number then name.
+     *
+     * - **search**: Optional search term for TV channel names
+     * - **favorites_only**: Only include favorite TV channels
+     * - **refresh**: Trigger a background rescrape of all enabled URLs
+     */
+    get: operations["get_tv_channels_playlist_api_v1_playlists_tv_channels_m3u_get"];
   };
   "/api/v1/scrapers/scrape": {
     /**
@@ -605,6 +656,7 @@ export interface paths {
     /**
      * Get Tv Channels
      * @description Get all TV channels with pagination and total count.
+     * Optional filters: search (name substring), favorites=true.
      */
     get: operations["get_tv_channels_api_v1_tv_channels__get"];
     /**
@@ -685,6 +737,14 @@ export interface paths {
      */
     delete: operations["delete_tv_channel_api_v1_tv_channels__tv_channel_id__delete"];
   };
+  "/api/v1/tv-channels/{tv_channel_id}/acestream-matches": {
+    /**
+     * Get Tv Channel Acestream Matches
+     * @description Suggest unassigned acestreams matching this TV channel by EPG id or
+     * normalized name, for the assign flow.
+     */
+    get: operations["get_tv_channel_acestream_matches_api_v1_tv_channels__tv_channel_id__acestream_matches_get"];
+  };
   "/api/v1/tv-channels/{tv_channel_id}/acestreams": {
     /**
      * Get Tv Channel Acestreams
@@ -703,6 +763,13 @@ export interface paths {
      * @description Remove association between an acestream channel and a TV channel.
      */
     delete: operations["remove_acestream_association_api_v1_tv_channels__tv_channel_id__acestreams__acestream_id__delete"];
+  };
+  "/api/v1/tv-channels/{tv_channel_id}/favorite": {
+    /**
+     * Set Tv Channel Favorite
+     * @description Toggle (or explicitly set, via ?value=) a TV channel's favorite flag.
+     */
+    post: operations["set_tv_channel_favorite_api_v1_tv_channels__tv_channel_id__favorite_post"];
   };
   "/api/v1/urls/refresh-all": {
     /**
@@ -2108,6 +2175,36 @@ export interface operations {
     };
   };
   /**
+   * Legacy All Streams Playlist
+   * @description Legacy v1 all-streams playlist URL. Behaves identically to
+   * /api/v1/playlists/all-streams/m3u.
+   */
+  legacy_all_streams_playlist_api_playlists_all_streams_m3u_get: {
+    parameters: {
+      query?: {
+        search?: string | null;
+        include_unassigned?: boolean;
+        base_url?: string | null;
+        format?: string | null;
+        refresh?: boolean;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "text/plain": string;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
    * Legacy Epg Xml
    * @description Legacy v1 EPG XML URL. Behaves identically to /api/v1/epg/xml.
    */
@@ -2136,9 +2233,73 @@ export interface operations {
     };
   };
   /**
+   * Legacy Api M3U Playlist
+   * @description Legacy v1 playlist API URL. Behaves identically to /api/v1/playlists/m3u
+   * (API error contract, unlike the player-facing /playlists/m3u route).
+   */
+  legacy_api_m3u_playlist_api_playlists_m3u_get: {
+    parameters: {
+      query?: {
+        search?: string | null;
+        group?: string | null;
+        only_online?: boolean;
+        include_groups?: string | null;
+        exclude_groups?: string | null;
+        base_url?: string | null;
+        format?: string | null;
+        refresh?: boolean;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "text/plain": string;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Legacy Tv Channels Playlist
+   * @description Legacy v1 TV-channels playlist URL. Behaves identically to
+   * /api/v1/playlists/tv-channels/m3u.
+   */
+  legacy_tv_channels_playlist_api_playlists_tv_channels_m3u_get: {
+    parameters: {
+      query?: {
+        search?: string | null;
+        favorites_only?: boolean;
+        base_url?: string | null;
+        format?: string | null;
+        refresh?: boolean;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "text/plain": string;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
    * Get Acestream Channels
    * @description Get all channels with optional filtering.
    * Supports both skip/limit and page/page_size parameters.
+   * Set assigned=false to list only streams not linked to a TV channel.
    * Returns paginated items and total count.
    */
   get_acestream_channels_api_v1_acestream_channels__get: {
@@ -2155,6 +2316,7 @@ export interface operations {
         language?: string | null;
         is_active?: boolean | null;
         is_online?: boolean | null;
+        assigned?: boolean | null;
       };
     };
     responses: {
@@ -2560,6 +2722,7 @@ export interface operations {
    * Get Acestream Channels
    * @description Get all channels with optional filtering.
    * Supports both skip/limit and page/page_size parameters.
+   * Set assigned=false to list only streams not linked to a TV channel.
    * Returns paginated items and total count.
    */
   get_acestream_channels_api_v1_channels__get: {
@@ -2576,6 +2739,7 @@ export interface operations {
         language?: string | null;
         is_active?: boolean | null;
         is_online?: boolean | null;
+        assigned?: boolean | null;
       };
     };
     responses: {
@@ -3747,6 +3911,40 @@ export interface operations {
     };
   };
   /**
+   * Get All Streams Playlist
+   * @description Generate an M3U playlist of numbered TV channels followed by unassigned
+   * acestreams (numbered from 9000).
+   *
+   * - **search**: Optional search term for channel names
+   * - **include_unassigned**: Append streams not assigned to any TV channel
+   * - **refresh**: Trigger a background rescrape of all enabled URLs
+   */
+  get_all_streams_playlist_api_v1_playlists_all_streams_m3u_get: {
+    parameters: {
+      query?: {
+        search?: string | null;
+        include_unassigned?: boolean;
+        base_url?: string | null;
+        format?: string | null;
+        refresh?: boolean;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "text/plain": string;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
    * Get Channel Groups
    * @description Get list of all available channel groups
    */
@@ -3769,6 +3967,7 @@ export interface operations {
    * - **only_online**: Whether to include only online channels (default: True)
    * - **include_groups**: Comma-separated list of groups to include
    * - **exclude_groups**: Comma-separated list of groups to exclude
+   * - **refresh**: Trigger a background rescrape of all enabled URLs
    */
   get_m3u_playlist_api_v1_playlists_m3u_get: {
     parameters: {
@@ -3781,6 +3980,7 @@ export interface operations {
         exclude_groups?: string | null;
         base_url?: string | null;
         format?: string | null;
+        refresh?: boolean;
       };
     };
     responses: {
@@ -3816,6 +4016,41 @@ export interface operations {
         exclude_groups?: string | null;
         base_url?: string | null;
         format?: string | null;
+        refresh?: boolean;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "text/plain": string;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Get Tv Channels Playlist
+   * @description Generate a curated M3U playlist of TV channels with their assigned
+   * acestreams, ordered by channel number then name.
+   *
+   * - **search**: Optional search term for TV channel names
+   * - **favorites_only**: Only include favorite TV channels
+   * - **refresh**: Trigger a background rescrape of all enabled URLs
+   */
+  get_tv_channels_playlist_api_v1_playlists_tv_channels_m3u_get: {
+    parameters: {
+      query?: {
+        search?: string | null;
+        favorites_only?: boolean;
+        base_url?: string | null;
+        format?: string | null;
+        refresh?: boolean;
       };
     };
     responses: {
@@ -4174,6 +4409,7 @@ export interface operations {
   /**
    * Get Tv Channels
    * @description Get all TV channels with pagination and total count.
+   * Optional filters: search (name substring), favorites=true.
    */
   get_tv_channels_api_v1_tv_channels__get: {
     parameters: {
@@ -4182,6 +4418,8 @@ export interface operations {
         limit?: number;
         page?: number;
         page_size?: number;
+        search?: string;
+        favorites?: boolean;
       };
     };
     responses: {
@@ -4455,6 +4693,32 @@ export interface operations {
     };
   };
   /**
+   * Get Tv Channel Acestream Matches
+   * @description Suggest unassigned acestreams matching this TV channel by EPG id or
+   * normalized name, for the assign flow.
+   */
+  get_tv_channel_acestream_matches_api_v1_tv_channels__tv_channel_id__acestream_matches_get: {
+    parameters: {
+      path: {
+        tv_channel_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AcestreamChannelResponse"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
    * Get Tv Channel Acestreams
    * @description Get all acestream channels associated with a TV channel.
    */
@@ -4524,6 +4788,35 @@ export interface operations {
       /** @description Successful Response */
       204: {
         content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Set Tv Channel Favorite
+   * @description Toggle (or explicitly set, via ?value=) a TV channel's favorite flag.
+   */
+  set_tv_channel_favorite_api_v1_tv_channels__tv_channel_id__favorite_post: {
+    parameters: {
+      query?: {
+        /** @description Explicit favorite state; omit to toggle */
+        value?: boolean;
+      };
+      path: {
+        tv_channel_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TVChannelResponse"];
+        };
       };
       /** @description Validation Error */
       422: {
@@ -4665,6 +4958,7 @@ export interface operations {
         exclude_groups?: string | null;
         base_url?: string | null;
         format?: string | null;
+        refresh?: boolean;
       };
     };
     responses: {
@@ -4696,6 +4990,7 @@ export interface operations {
         exclude_groups?: string | null;
         base_url?: string | null;
         format?: string | null;
+        refresh?: boolean;
       };
     };
     responses: {

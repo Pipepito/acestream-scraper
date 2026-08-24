@@ -19,7 +19,8 @@ Options:
   --push                   Push image/manifest to registry
   --load                   Load image into local docker daemon (single-platform only)
   --build-arg <k=v>        Build arg (repeatable)
-  --builder <name>         Buildx builder name (default: default)
+  --builder <name>         Buildx builder name (default: $BUILDX_BUILDER if set,
+                           otherwise the currently selected buildx builder)
   --result-file <path>     Write JSON build result metadata to this file
   --network <mode>         BuildKit network mode for RUN steps (e.g. host)
   --dry-run                Print build command and metadata only
@@ -44,7 +45,12 @@ ACESTREAM_MANIFEST="$ROOT_DIR/docker/manifests/acestream.json"
 PUSH=0
 LOAD=0
 DRY_RUN=0
-BUILDER="default"
+# Respect buildx's own instance-selection env var; when neither it nor
+# --builder is set, let buildx use the currently selected builder. Forcing
+# "default" here would bypass the multi-platform-capable docker-container
+# builder that docker/setup-buildx-action creates in GitHub Actions (the
+# default docker-driver builder cannot build multi-platform matrices).
+BUILDER="${BUILDX_BUILDER:-}"
 NETWORK=""
 RESULT_FILE=""
 BUILD_ARGS=()
@@ -222,7 +228,13 @@ fi
 
 BUILD_CMD=(
   docker buildx build
-  --builder "$BUILDER"
+)
+
+if [[ -n "$BUILDER" ]]; then
+  BUILD_CMD+=(--builder "$BUILDER")
+fi
+
+BUILD_CMD+=(
   --platform "$PLATFORMS"
   --file "$DOCKERFILE"
   --target "$TARGET"

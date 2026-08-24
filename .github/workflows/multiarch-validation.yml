@@ -105,6 +105,7 @@ jobs:
           python3 scripts/phase_gates/phase5_gate_runner.py --profile quick --json-output > phase5-gate-report-quick.json
 
       - name: Upload quick profile artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: phase5-multiarch-quick
@@ -143,6 +144,7 @@ jobs:
           python3 scripts/phase_gates/phase5_gate_runner.py --profile full --json-output > phase5-gate-report-full.json
 
       - name: Upload full profile artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: phase5-multiarch-full

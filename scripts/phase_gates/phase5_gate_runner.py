@@ -100,6 +100,10 @@ def main() -> int:
         stdout_lines = completed.stdout.strip().splitlines()
         stderr_lines = completed.stderr.strip().splitlines()
 
+        # A single trailing line is rarely enough to diagnose a failed build;
+        # keep a real tail so the JSON report is actionable on its own.
+        tail_lines = 1 if completed.returncode == 0 else 30
+
         results.append(
             {
                 "id": command["id"],
@@ -109,8 +113,8 @@ def main() -> int:
                 "status": "passed" if completed.returncode == 0 else "failed",
                 "exit_code": completed.returncode,
                 "duration_ms": duration_ms,
-                "stdout_tail": stdout_lines[-1] if stdout_lines else "",
-                "stderr_tail": stderr_lines[-1] if stderr_lines else "",
+                "stdout_tail": "\n".join(stdout_lines[-tail_lines:]) if stdout_lines else "",
+                "stderr_tail": "\n".join(stderr_lines[-tail_lines:]) if stderr_lines else "",
             }
         )
 

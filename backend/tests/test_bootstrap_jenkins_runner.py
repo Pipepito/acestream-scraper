@@ -373,8 +373,10 @@ def test_bootstrap_jenkins_runner_repairs_nodesource_keyring_and_enforces_node_2
     apt_root = tmp_path / "apt-root"
     keyring_dir = apt_root / "keyrings"
     sources_dir = apt_root / "sources.list.d"
+    prefs_dir = apt_root / "preferences.d"
     keyring_dir.mkdir(parents=True)
     sources_dir.mkdir(parents=True)
+    prefs_dir.mkdir(parents=True)
     (keyring_dir / "nodesource.gpg").write_text("")
     apt_log = tmp_path / "apt.log"
 
@@ -392,6 +394,7 @@ def test_bootstrap_jenkins_runner_repairs_nodesource_keyring_and_enforces_node_2
             "BOOTSTRAP_TEST_NODE_VERSION": "v18.19.0",
             "BOOTSTRAP_KEYRING_DIR": str(keyring_dir),
             "BOOTSTRAP_SOURCES_LIST_DIR": str(sources_dir),
+            "BOOTSTRAP_PREFERENCES_DIR": str(prefs_dir),
             "APT_LOG": str(apt_log),
         },
     )
@@ -400,6 +403,67 @@ def test_bootstrap_jenkins_runner_repairs_nodesource_keyring_and_enforces_node_2
     assert "install -y nodejs" in apt_log.read_text()
     assert (keyring_dir / "nodesource.gpg").read_text() == "VALID-KEY\n"
     assert "node_20.x" in (sources_dir / "nodesource.list").read_text()
+    prefs = (prefs_dir / "nodesource").read_text()
+    assert "Pin: origin deb.nodesource.com" in prefs
+    assert "Pin-Priority: 1001" in prefs
+
+
+def test_bootstrap_jenkins_runner_installs_npm_when_distro_nodejs_shadows(tmp_path):
+    """A distro nodejs (e.g. Ubuntu's node 24) without npm must not satisfy
+    the bootstrap: the NodeSource pin is written and nodejs is (re)installed,
+    after which npm exists."""
+    env, _, _ = _bootstrap_env(tmp_path)
+    fake_bin = tmp_path / "bin"
+    apt_root = tmp_path / "apt-root"
+    keyring_dir = apt_root / "keyrings"
+    sources_dir = apt_root / "sources.list.d"
+    prefs_dir = apt_root / "preferences.d"
+    keyring_dir.mkdir(parents=True)
+    sources_dir.mkdir(parents=True)
+    prefs_dir.mkdir(parents=True)
+    apt_log = tmp_path / "apt.log"
+
+    _write_install_path_stubs(fake_bin)
+    _write_sudo_stub(fake_bin, allow=True)
+
+    # The runner image ships a distro nodejs without npm.
+    (fake_bin / "npm").unlink()
+    # Installing nodejs (now pinned to NodeSource) brings npm with it.
+    _write_executable(
+        fake_bin / "apt-get",
+        "#!/bin/bash\n"
+        "set -euo pipefail\n"
+        "printf '%s\\n' \"$*\" >> \"${APT_LOG:?}\"\n"
+        "if [[ \"$*\" == *install* && \"$*\" == *nodejs* ]]; then\n"
+        f"  printf '#!/bin/bash\\nprintf 10.8.2\\\\n\\n' > \"{fake_bin}/npm\"\n"
+        f"  chmod +x \"{fake_bin}/npm\"\n"
+        "fi\n"
+        "exit 0\n",
+    )
+
+    result = subprocess.run(
+        ["/bin/bash", str(BOOTSTRAP_SCRIPT)],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+        env={
+            **env,
+            "BOOTSTRAP_TEST_NODE_VERSION": "v24.4.0",
+            "BOOTSTRAP_KEYRING_DIR": str(keyring_dir),
+            "BOOTSTRAP_SOURCES_LIST_DIR": str(sources_dir),
+            "BOOTSTRAP_PREFERENCES_DIR": str(prefs_dir),
+            "APT_LOG": str(apt_log),
+        },
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "install -y nodejs" in apt_log.read_text()
+    prefs = (prefs_dir / "nodesource").read_text()
+    assert "Package: nodejs" in prefs
+    assert "Pin: origin deb.nodesource.com" in prefs
+    assert "Pin-Priority: 1001" in prefs
+    assert (fake_bin / "npm").exists()
 
 
 def test_bootstrap_jenkins_runner_repairs_invalid_nodesource_keyring(tmp_path):
@@ -408,8 +472,10 @@ def test_bootstrap_jenkins_runner_repairs_invalid_nodesource_keyring(tmp_path):
     apt_root = tmp_path / "apt-root"
     keyring_dir = apt_root / "keyrings"
     sources_dir = apt_root / "sources.list.d"
+    prefs_dir = apt_root / "preferences.d"
     keyring_dir.mkdir(parents=True)
     sources_dir.mkdir(parents=True)
+    prefs_dir.mkdir(parents=True)
     (keyring_dir / "nodesource.gpg").write_text("truncated-but-nonempty\n")
     apt_log = tmp_path / "apt.log"
 
@@ -427,6 +493,7 @@ def test_bootstrap_jenkins_runner_repairs_invalid_nodesource_keyring(tmp_path):
             "BOOTSTRAP_TEST_NODE_VERSION": "v18.19.0",
             "BOOTSTRAP_KEYRING_DIR": str(keyring_dir),
             "BOOTSTRAP_SOURCES_LIST_DIR": str(sources_dir),
+            "BOOTSTRAP_PREFERENCES_DIR": str(prefs_dir),
             "APT_LOG": str(apt_log),
         },
     )

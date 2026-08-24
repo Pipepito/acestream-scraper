@@ -5,6 +5,7 @@ BUILDER="${JENKINS_BUILDER:-acestream-builder}"
 OS_RELEASE_FILE="${BOOTSTRAP_OS_RELEASE_FILE:-/etc/os-release}"
 KEYRING_DIR="${BOOTSTRAP_KEYRING_DIR:-/etc/apt/keyrings}"
 SOURCES_LIST_DIR="${BOOTSTRAP_SOURCES_LIST_DIR:-/etc/apt/sources.list.d}"
+PREFERENCES_DIR="${BOOTSTRAP_PREFERENCES_DIR:-/etc/apt/preferences.d}"
 APT_UPDATED=0
 DOCKER_INSTALLED=0
 SUDO=()
@@ -151,6 +152,23 @@ ensure_nodesource_repo() {
     changed=1
   fi
 
+  # Without a pin, apt prefers a newer distro nodejs (e.g. Ubuntu ships
+  # nodejs 24 without npm) over NodeSource's node 20, so 'apt-get install
+  # nodejs' becomes a no-op and npm never appears. Priority > 1000 makes
+  # apt select the NodeSource build even when that is a downgrade.
+  local prefs_file="${PREFERENCES_DIR}/nodesource"
+  local desired_prefs=$'Package: nodejs\nPin: origin deb.nodesource.com\nPin-Priority: 1001'
+  local current_prefs=""
+  "${SUDO[@]}" install -m 0755 -d "$PREFERENCES_DIR"
+  if [[ -f "$prefs_file" ]]; then
+    current_prefs="$(<"$prefs_file")"
+  fi
+  if [[ "$current_prefs" != "$desired_prefs" ]]; then
+    log "Configuring NodeSource apt pin"
+    printf '%s\n' "$desired_prefs" | "${SUDO[@]}" tee "$prefs_file" >/dev/null
+    changed=1
+  fi
+
   if [[ "$changed" -eq 1 ]]; then
     APT_UPDATED=0
   fi
@@ -242,6 +260,10 @@ install_node_if_needed() {
 
   ensure_nodesource_repo
   install_packages nodejs
+
+  if ! have_command npm; then
+    fail "nodejs was installed but npm is still unavailable — a distro nodejs package likely shadowed NodeSource's; check ${PREFERENCES_DIR}/nodesource and 'apt-cache policy nodejs'."
+  fi
 }
 
 start_docker_with_systemctl() {

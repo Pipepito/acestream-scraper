@@ -16,7 +16,6 @@ def run_alembic(db_path: Path, *args: str) -> subprocess.CompletedProcess[str]:
     db_path.touch()
     database_url = database_url_for(db_path)
     command = ['alembic', '-c', 'backend/migrations/alembic.ini', *args]
-    command_display = f'DATABASE_URL="{database_url}" PYTHONPATH=backend {' '.join(command)}'
     env = os.environ.copy()
     env['DATABASE_URL'] = database_url
     env['PYTHONPATH'] = 'backend'

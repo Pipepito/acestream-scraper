@@ -27,12 +27,31 @@ class AcestreamStatusService:
     def is_enabled(self) -> bool:
         return os.environ.get('ENABLE_ACESTREAM_ENGINE', 'false').lower() == 'true'
 
+    def _get_timeout(self) -> float:
+        """Status probe timeout in seconds (env ACESTREAM_STATUS_TIMEOUT, default 10)."""
+        raw = os.environ.get('ACESTREAM_STATUS_TIMEOUT', '10')
+        try:
+            value = float(raw)
+        except (TypeError, ValueError):
+            return 10.0
+        return value if value > 0 else 10.0
+
+    def _probe(self, url: str, timeout: float):
+        """GET the engine once, retrying a single time with a doubled timeout
+        on timeout — a busy engine answering slowly is not down (#129)."""
+        try:
+            return requests.get(url, timeout=timeout)
+        except requests.exceptions.Timeout:
+            logger.warning("Engine status probe timed out; retrying with %.0fs timeout url=%s", timeout * 2, url)
+            return requests.get(url, timeout=timeout * 2)
+
     def check_status(self) -> Dict[str, Any]:
         try:
             status_url = f"{self.engine_url}/server/api?api_version=3&method=get_status"
             network_url = f"{self.engine_url}/server/api?api_version=3&method=get_network_connection_status"
-            status_response = requests.get(status_url, timeout=10)
-            network_response = requests.get(network_url, timeout=10)
+            timeout = self._get_timeout()
+            status_response = self._probe(status_url, timeout)
+            network_response = self._probe(network_url, timeout)
             if status_response.status_code == 200 and network_response.status_code == 200:
                 status_data = status_response.json()
                 network_data = network_response.json()

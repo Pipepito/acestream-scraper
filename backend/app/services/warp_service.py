@@ -63,6 +63,17 @@ class WarpService:
             self.logger.error(f"Error executing warp-cli: {str(e)}")
             return 1, "", str(e)
 
+    async def _run_with_fallback(
+        self, primary: List[str], legacy: List[str]
+    ) -> Tuple[int, str, str]:
+        """Run a modern warp-cli subcommand, falling back to its pre-2024
+        spelling when the installed client doesn't know the new one (and
+        vice versa for modern clients that removed the legacy spelling)."""
+        code, stdout, stderr = await self._run_command(primary)
+        if code != 0 and "unrecognized subcommand" in (stderr or "").lower():
+            return await self._run_command(legacy)
+        return code, stdout, stderr
+
     async def is_running(self) -> bool:
         """Check if the WARP daemon is running"""
         try:
@@ -225,18 +236,25 @@ class WarpService:
         mode = await self.get_mode()
         status["mode"] = mode.value if mode else None
 
-        # Get account type
-        code, stdout, _ = await self._run_command(["account"])
+        # Get account type. Modern warp-cli replaced 'account' with
+        # 'registration show' (both print an 'Account type:'/'Type:' line).
+        code, stdout, _ = await self._run_with_fallback(
+            ["registration", "show"], ["account"]
+        )
         if code == 0:
             for line in stdout.splitlines():
-                if "Type:" in line and "Team" in line:
-                    status["account_type"] = "team"
-                elif "Type:" in line and "Premium" in line:
-                    status["account_type"] = "premium"
+                if "type:" in line.lower():
+                    if "team" in line.lower():
+                        status["account_type"] = "team"
+                    elif "premium" in line.lower():
+                        status["account_type"] = "premium"
 
-        # Get current IP
+        # Get current IP. Modern warp-cli replaced 'warp-stats' with
+        # 'tunnel stats'.
         if status["connected"]:
-            code, stdout, _ = await self._run_command(["warp-stats"])
+            code, stdout, _ = await self._run_with_fallback(
+                ["tunnel", "stats"], ["warp-stats"]
+            )
             for line in stdout.splitlines():
                 if "WAN IP:" in line:
                     status["ip"] = line.split("WAN IP:")[1].strip()

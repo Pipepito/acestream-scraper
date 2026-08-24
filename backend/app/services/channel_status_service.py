@@ -28,6 +28,35 @@ class ChannelStatusService:
         self.timeout = 10
         self._next_player_id = 0
 
+    def _get_timeout(self) -> float:
+        """Engine status timeout in seconds, configurable via the
+        acestream_check_timeout setting (default 10)."""
+        raw = self.settings_repo.get_setting(
+            self.settings_repo.ACESTREAM_CHECK_TIMEOUT,
+            self.settings_repo.DEFAULT_ACESTREAM_CHECK_TIMEOUT,
+        )
+        try:
+            value = float(raw)
+        except (TypeError, ValueError):
+            return float(self.timeout)
+        return value if value > 0 else float(self.timeout)
+
+    async def _fetch_engine_response(self, status_url: str, params: Dict[str, str], timeout: float):
+        """Query the engine once. Returns (http_status, parsed_json_or_None,
+        parse_error_message_or_None). Raises asyncio.TimeoutError on timeout."""
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                status_url,
+                params=params,
+                timeout=aiohttp.ClientTimeout(total=timeout)
+            ) as response:
+                if response.status != 200:
+                    return response.status, None, None
+                try:
+                    return response.status, await response.json(), None
+                except Exception as e:
+                    return response.status, None, f"Invalid response format: {str(e)}"
+
     def _get_engine_url(self) -> str:
         url = self.settings_repo.get_setting(self.settings_repo.ACE_ENGINE_URL, None)
         if not url:
@@ -63,97 +92,64 @@ class ChannelStatusService:
                 'pid': str(self._next_player_id)
             }
 
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    status_url,
-                    params=params,
-                    timeout=aiohttp.ClientTimeout(total=self.timeout)
-                ) as response:
+            timeout = self._get_timeout()
+            try:
+                http_status, data, parse_error = await self._fetch_engine_response(
+                    status_url, params, timeout
+                )
+            except asyncio.TimeoutError:
+                # A busy-but-alive engine often just responds slowly; retry
+                # once with a doubled timeout before declaring the channel
+                # offline (#129).
+                logger.warning(
+                    "Timeout checking channel channel_id=%s channel_name=%s; retrying with %.0fs timeout",
+                    channel.id,
+                    channel.name,
+                    timeout * 2,
+                )
+                http_status, data, parse_error = await self._fetch_engine_response(
+                    status_url, params, timeout * 2
+                )
 
-                    if response.status == 200:
-                        try:
-                            data = await response.json()
+            if http_status == 200 and parse_error is None:
+                if isinstance(data, dict):
+                    response_data = data.get('response', {})
+                    error = data.get('error')
 
-                            if isinstance(data, dict):
-                                response_data = data.get('response', {})
-                                error = data.get('error')
+                    # Check for "got newer download" message (indicates channel exists)
+                    if error and "got newer download" in str(error).lower():
+                        self.channel_repository.update_channel_status(
+                            channel.id, True, None
+                        )
+                        return {
+                            'channel_id': channel.id,
+                            'is_online': True,
+                            'status': 'online',
+                            'message': 'Channel is available',
+                            'last_checked': check_time,
+                            'error': None
+                        }
 
-                                # Check for "got newer download" message (indicates channel exists)
-                                if error and "got newer download" in str(error).lower():
-                                    self.channel_repository.update_channel_status(
-                                        channel.id, True, None
-                                    )
-                                    return {
-                                        'channel_id': channel.id,
-                                        'is_online': True,
-                                        'status': 'online',
-                                        'message': 'Channel is available',
-                                        'last_checked': check_time,
-                                        'error': None
-                                    }
+                    # Check regular online status
+                    if (error is None and
+                        response_data and
+                        response_data.get('is_live') == 1):
+                        self.channel_repository.update_channel_status(
+                            channel.id, True, None
+                        )
+                        return {
+                            'channel_id': channel.id,
+                            'is_online': True,
+                            'status': 'online',
+                            'message': 'Channel is live',
+                            'last_checked': check_time,
+                            'error': None
+                        }
 
-                                # Check regular online status
-                                if (error is None and
-                                    response_data and
-                                    response_data.get('is_live') == 1):
-                                    self.channel_repository.update_channel_status(
-                                        channel.id, True, None
-                                    )
-                                    return {
-                                        'channel_id': channel.id,
-                                        'is_online': True,
-                                        'status': 'online',
-                                        'message': 'Channel is live',
-                                        'last_checked': check_time,
-                                        'error': None
-                                    }
-
-                                # Channel exists but not available
-                                error_msg = error if error else "Channel is not live"
-                                self.channel_repository.update_channel_status(
-                                    channel.id, False, str(error_msg)
-                                )
-                                return {
-                                    'channel_id': channel.id,
-                                    'is_online': False,
-                                    'status': 'offline',
-                                    'message': error_msg,
-                                    'last_checked': check_time,
-                                    'error': error_msg
-                                }
-
-                            # Invalid response format
-                            error_msg = "Invalid response format"
-                            self.channel_repository.update_channel_status(
-                                channel.id, False, error_msg
-                            )
-                            return {
-                                'channel_id': channel.id,
-                                'is_online': False,
-                                'status': 'offline',
-                                'message': error_msg,
-                                'last_checked': check_time,
-                                'error': error_msg
-                            }
-
-                        except Exception as e:
-                            error_msg = f"Invalid response format: {str(e)}"
-                            self.channel_repository.update_channel_status(
-                                channel.id, False, error_msg
-                            )
-                            return {
-                                'channel_id': channel.id,
-                                'is_online': False,
-                                'status': 'offline',
-                                'message': error_msg,
-                                'last_checked': check_time,
-                                'error': error_msg
-                            }
-
-                    # HTTP error
-                    error_msg = f"HTTP {response.status}"
+                    # Channel exists but not available
+                    error_msg = error if error else "Channel is not live"
                     self.channel_repository.update_channel_status(
-                        channel.id, False, error_msg
+                        channel.id, False, str(error_msg)
                     )
                     return {
                         'channel_id': channel.id,
@@ -164,13 +160,54 @@ class ChannelStatusService:
                         'error': error_msg
                     }
 
+                # Invalid response format
+                error_msg = "Invalid response format"
+                self.channel_repository.update_channel_status(
+                    channel.id, False, error_msg
+                )
+                return {
+                    'channel_id': channel.id,
+                    'is_online': False,
+                    'status': 'offline',
+                    'message': error_msg,
+                    'last_checked': check_time,
+                    'error': error_msg
+                }
+
+            if http_status == 200 and parse_error is not None:
+                self.channel_repository.update_channel_status(
+                    channel.id, False, parse_error
+                )
+                return {
+                    'channel_id': channel.id,
+                    'is_online': False,
+                    'status': 'offline',
+                    'message': parse_error,
+                    'last_checked': check_time,
+                    'error': parse_error
+                }
+
+            # HTTP error
+            error_msg = f"HTTP {http_status}"
+            self.channel_repository.update_channel_status(
+                channel.id, False, error_msg
+            )
+            return {
+                'channel_id': channel.id,
+                'is_online': False,
+                'status': 'offline',
+                'message': error_msg,
+                'last_checked': check_time,
+                'error': error_msg
+            }
+
         except asyncio.TimeoutError:
             error_msg = "Request timeout"
             self.channel_repository.update_channel_status(
                 channel.id, False, error_msg
             )
             logger.warning(
-                "Timeout checking channel channel_id=%s channel_name=%s",
+                "Timeout checking channel channel_id=%s channel_name=%s after retry",
                 channel.id,
                 channel.name,
             )

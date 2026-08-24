@@ -15,6 +15,7 @@ class SettingsRepository:
     RESCRAPE_INTERVAL = 'rescrape_interval'
     ADDPID = 'addpid'
     EPG_REFRESH_INTERVAL = 'epg_refresh_interval'
+    ACESTREAM_CHECK_TIMEOUT = 'acestream_check_timeout'
 
     # Constants for default values
     DEFAULT_BASE_URL = 'acestream://'
@@ -22,6 +23,7 @@ class SettingsRepository:
     DEFAULT_RESCRAPE_INTERVAL = '24'
     DEFAULT_ADDPID = 'false'
     DEFAULT_EPG_REFRESH_INTERVAL = '6'
+    DEFAULT_ACESTREAM_CHECK_TIMEOUT = '10'
 
     def __init__(self, db: Session):
         self.db = db
@@ -89,7 +91,8 @@ class SettingsRepository:
             self.ACE_ENGINE_URL: (self.DEFAULT_ACE_ENGINE_URL, "Acestream Engine URL"),
             self.RESCRAPE_INTERVAL: (self.DEFAULT_RESCRAPE_INTERVAL, "Hours between automatic rescrapes"),
             self.ADDPID: (self.DEFAULT_ADDPID, "Add PID to Acestream links"),
-            self.EPG_REFRESH_INTERVAL: (self.DEFAULT_EPG_REFRESH_INTERVAL, "Hours between EPG refreshes")
+            self.EPG_REFRESH_INTERVAL: (self.DEFAULT_EPG_REFRESH_INTERVAL, "Hours between EPG refreshes"),
+            self.ACESTREAM_CHECK_TIMEOUT: (self.DEFAULT_ACESTREAM_CHECK_TIMEOUT, "Seconds before an engine status check times out")
         }
 
         success = True

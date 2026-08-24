@@ -104,6 +104,10 @@ jobs:
         run: |
           python3 scripts/phase_gates/phase5_gate_runner.py --profile quick --json-output > phase5-gate-report-quick.json
 
+      - name: Print gate report on failure
+        if: failure()
+        run: cat phase5-gate-report-quick.json || true
+
       - name: Upload quick profile artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -142,6 +146,10 @@ jobs:
       - name: Run phase-5 full gate profile
         run: |
           python3 scripts/phase_gates/phase5_gate_runner.py --profile full --json-output > phase5-gate-report-full.json
+
+      - name: Print gate report on failure
+        if: failure()
+        run: cat phase5-gate-report-full.json || true
 
       - name: Upload full profile artifacts
         if: always()

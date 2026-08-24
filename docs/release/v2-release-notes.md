@@ -48,6 +48,19 @@ If you are upgrading from v1, run `bash scripts/ops/preflight_v2_deploy.sh` firs
 - **Set-based bulk mutations.** Per-record commit/refresh loops in URL/channel updates were replaced by transaction-scoped batch updates. `phase6-db-baseline.json` documents query budgets (e.g., bulk channel activate: 2 queries; refresh-all-URLs: 1 query; idempotent EPG re-import: 4 queries).
 - **Operational runbook.** `docs/ops/reliability-runbook.md` is the new starting point for diagnosing stuck tasks, scheduler hangs, or DB lock pressure.
 
+### Security and hardening
+
+- **Optional API token.** Set the `API_TOKEN` environment variable to require a token on every `/api/v1` route and on the player-facing playlist/EPG URLs. Credentials are accepted as `Authorization: Bearer <token>`, `X-Api-Token: <token>`, or `?token=<token>` (the query form exists for IPTV players and XMLTV grabbers that can only be configured with a bare URL). `/api/v1/health` stays public so container health probes keep working. Unset (the default) leaves the API open — the historical trusted-network behavior. For internet exposure, pair it with TLS at a reverse proxy (see `docs/ops/reverse-proxy.md`).
+- **Outbound URL guard (SSRF).** Scrape URLs and EPG sources are validated before fetching: only `http`/`https` schemes, and the cloud metadata endpoint (`169.254.169.254`) is always refused. Setting `ALLOW_PRIVATE_SCRAPE_TARGETS=false` additionally blocks destinations resolving to loopback/private/link-local ranges (the configured `ZERONET_URL` host stays exempt). The default is permissive because scraping LAN sources is a first-class self-hosting use case.
+- **Reverse proxy / HTTPS guide.** New `docs/ops/reverse-proxy.md` with working nginx, Caddy, and Traefik configs, proxy-level auth patterns for IPTV players, `base_url` interplay, and a per-flavor port-exposure table.
+- **Service supervision in the container.** The entrypoint now supervises the AceStream engine and Acexy: a crashed process is restarted after `SUPERVISED_RESTART_DELAY_SECONDS` (default 5), and a crash loop (`SUPERVISED_FAST_EXIT_LIMIT` consecutive exits within `SUPERVISED_FAST_EXIT_WINDOW` seconds) fails the container so orchestrators can act on it.
+- **warp-cli compatibility.** WARP status parsing falls back to legacy `warp-cli` subcommands (`account`, `warp-stats`) when the modern ones (`registration show`, `tunnel stats`) are unavailable, so status reporting works across warp-cli generations.
+- **Configurable status-check timeouts.** Channel status checks read their timeout from the `acestream_check_timeout` setting (default 10s), the standalone engine probe from `ACESTREAM_STATUS_TIMEOUT`; a timed-out probe is retried once with a doubled timeout before the channel is marked offline, so slow engines stop producing false offline sweeps.
+
+### Scraping
+
+- **Bare content-ID harvesting.** A per-URL `scrape_bare_ids` flag (off by default) makes the scraper also collect raw 40-hex acestream IDs from pages that list hashes without the `acestream://` scheme, using the preceding line text as the channel name when present.
+
 ### Migration safety net
 
 - **Auto v1→v2 migration.** On startup, if the legacy `acestream.db` exists and isn't yet marked `.migrated`, the data migrator runs in-process and converts it. Subsequent starts skip the migrator. Fresh installs provision the v2 schema via Alembic.

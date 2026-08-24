@@ -138,6 +138,7 @@ bash scripts/ci/assert_no_legacy_paths.sh --strict
 
 - [Docs Home](docs/README.md)
 - [Deployment](docs/architecture/deployment.md)
+- [Reverse Proxy / HTTPS](docs/ops/reverse-proxy.md) — TLS, proxy-level auth, and safe port exposure for access beyond a trusted network
 - [Migration Strategy](docs/migration/migration-strategy.md)
 - [Development Phases](docs/migration/development-phases.md)
 - [Development Progress](docs/migration/development-progress.md)

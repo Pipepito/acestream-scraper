@@ -60,6 +60,11 @@ Create or edit `config/config.json`:
 |----------|-------------|---------|-------|
 | `FLASK_PORT` | Port the Flask application runs on | `8000` | Can be changed if port 8000 is in use |
 | `FLASK_ENV` | Flask environment mode | `production` | Use `development` for debugging |
+| `API_TOKEN` | Require a token on API and playlist routes | unset (open) | Sent as `Authorization: Bearer`, `X-Api-Token`, or `?token=` (for IPTV players); `/api/v1/health` stays public |
+| `ALLOW_PRIVATE_SCRAPE_TARGETS` | Allow scrape/EPG URLs on private/LAN addresses | `true` | Set `false` to block loopback/private/link-local targets; the cloud metadata endpoint is always blocked |
+| `ACESTREAM_STATUS_TIMEOUT` | Timeout (seconds) for the engine status probe | `10` | A timed-out probe retries once with a doubled timeout |
+| `SUPERVISED_RESTART_DELAY_SECONDS` | Delay before restarting a crashed engine/Acexy process | `5` | Supervision applies to in-container AceStream and Acexy |
+| `SUPERVISED_FAST_EXIT_LIMIT` | Consecutive fast exits before giving up | `3` | With `SUPERVISED_FAST_EXIT_WINDOW` (default `10`s); a crash loop fails the container |
 
 ### Acestream Configuration
 

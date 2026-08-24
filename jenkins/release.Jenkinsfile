@@ -1,5 +1,5 @@
 pipeline {
-  agent { label 'generic-gh-builder' }
+  agent { label 'dorat-nuc-ci' }
 
   options {
     disableConcurrentBuilds()

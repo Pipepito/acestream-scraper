@@ -25,7 +25,7 @@ Current workflow parity goal:
 
 Current limitation:
 
-- The checked-in Jenkinsfiles still run directly on whatever executor matches the label `generic-gh-builder`; they do not currently define Docker-based ephemeral agents for you.
+- The checked-in Jenkinsfiles still run directly on whatever executor matches the label `dorat-nuc-ci`; they do not currently define Docker-based ephemeral agents for you.
 - After `checkout scm`, both pipelines call `scripts/ci/bootstrap_jenkins_runner.sh` from the repository checkout to prepare the runtime.
 - The first build no longer assumes Python, Node, Docker, Buildx, or Docker Compose are already installed, but `git` must already be present so the initial `checkout scm` can succeed.
 - Passwordless `sudo` is only required when the bootstrap script needs to install missing software.
@@ -50,7 +50,7 @@ Networking model:
 
 Executor model:
 
-- The repository only requires a Jenkins executor labeled `generic-gh-builder`.
+- The repository only requires a Jenkins executor labeled `dorat-nuc-ci`.
 - That executor can be an SSH-launched node, an inbound or WebSocket agent installed on the VM, or another Jenkins node model that lands builds directly on the Docker-capable host.
 - SSH is a documented example path, not a hard requirement of the checked-in pipelines.
 
@@ -63,7 +63,7 @@ The following steps require operator intervention outside the repository:
 - Ensure `git` is already installed on the build node before the first real Jenkins build runs.
 - Decide whether to preinstall the rest of the toolchain or let `scripts/ci/bootstrap_jenkins_runner.sh` install missing software during the build.
 - Ensure Docker access works for the current Jenkins runtime user on the node that will execute the pipelines.
-- Configure a Jenkins executor labeled `generic-gh-builder`.
+- Configure a Jenkins executor labeled `dorat-nuc-ci`.
 - Register the GitHub App, install it on the repository, and store its credentials in Jenkins.
 - If you want webhook-driven scans, expose Jenkins webhook endpoints over reachable HTTPS with working DNS or a reverse proxy/tunnel.
 - Create the Jenkins multibranch validation job from `Jenkinsfile`.
@@ -82,7 +82,7 @@ Use this as the end-to-end checklist for a fresh Jenkins controller running in D
 
 If you want the shortest path from a fresh Jenkins container to working PR and release jobs, do these three checklists in order.
 
-If you prefer to wire Jenkins jobs first and let the repository bootstrap the runner on first use, that also works. The important constraint is simpler than the checklist order: `git` must already exist for `checkout scm`, and Docker access must already work for the current runtime user on the executor labeled `generic-gh-builder`.
+If you prefer to wire Jenkins jobs first and let the repository bootstrap the runner on first use, that also works. The important constraint is simpler than the checklist order: `git` must already exist for `checkout scm`, and Docker access must already work for the current runtime user on the executor labeled `dorat-nuc-ci`.
 
 ### A. Ubuntu VM First
 
@@ -108,7 +108,7 @@ If you prefer to wire Jenkins jobs first and let the repository bootstrap the ru
 - [ ] Add GitHub App credential `github-app-acestream-scraper`.
       If your live controller already uses a different working credential id such as `github-builder-app`, keep using that live id until you intentionally normalize the controller configuration.
 - [ ] Add Docker Hub credential `dockerhub-publish`.
-- [ ] Create the build executor and apply label `generic-gh-builder`.
+- [ ] Create the build executor and apply label `dorat-nuc-ci`.
 - [ ] Confirm the node comes online.
 - [ ] Push the repo branch/commit that contains:
   - [ ] `Jenkinsfile`
@@ -304,7 +304,7 @@ You are ready to rely on Jenkins for the next phase when all of these are true:
 - [ ] Create a permanent node for the VM or another executor that lands builds directly on the Docker-capable host.
 - [ ] Set remote root directory to the home or workspace path for the actual Jenkins runtime user on that node.
 - [ ] If you are using a dedicated `jenkins` user, `/home/jenkins` is the expected path.
-- [ ] Set label to `generic-gh-builder`.
+- [ ] Set label to `dorat-nuc-ci`.
 - [ ] Choose a launch method that matches your model.
   - `Launch agents via SSH` if the Jenkins controller can SSH into the VM.
   - `Launch agent by connecting it to the controller` or WebSocket if the VM should dial out to Jenkins.
@@ -390,7 +390,7 @@ Expected parity:
 ### 12. Verify The Agent Contract
 
 - [ ] Run a build on the multibranch job.
-- [ ] Confirm Jenkins executes on label `generic-gh-builder`.
+- [ ] Confirm Jenkins executes on label `dorat-nuc-ci`.
 - [ ] Confirm the job runs on the VM workspace, not inside the controller container.
 - [ ] Confirm `checkout scm` succeeds because `git` was already present before bootstrap.
 - [ ] Confirm the build calls `scripts/ci/bootstrap_jenkins_runner.sh` from the repository checkout.
@@ -615,11 +615,11 @@ Recommended model:
 
 - Run the Jenkins controller separately from the Docker build VM.
 - Run builds on any Jenkins executor that lands directly on the Docker-capable host.
-- Apply the label `generic-gh-builder` because both pipeline files require it.
+- Apply the label `dorat-nuc-ci` because both pipeline files require it.
 
 Current repo executor contract:
 
-- The checked-in Jenkinsfiles use `agent { label 'generic-gh-builder' }`.
+- The checked-in Jenkinsfiles use `agent { label 'dorat-nuc-ci' }`.
 - They run `checkout scm`, then call `scripts/ci/bootstrap_jenkins_runner.sh` from the repository checkout before the validation or release wrappers.
 - `git` must already exist on that node so `checkout scm` can work.
 - Python, Node, Docker, Buildx, Docker Compose, and the `acestream-builder` builder may be preinstalled by the operator or prepared by the bootstrap script during the build, but the named builder still must exist and be selectable before the validation or release wrapper continues.
@@ -639,7 +639,7 @@ Suggested steps:
 2. If using SSH launch, install the agent user's SSH public key in `~jenkins/.ssh/authorized_keys`.
 3. Ensure the runtime user can run Docker via the `docker` group.
 4. If using SSH launch, create an SSH credential with id `acestream-build-agent-ssh`.
-5. Add a permanent node or agent for the VM and assign the label `generic-gh-builder`.
+5. Add a permanent node or agent for the VM and assign the label `dorat-nuc-ci`.
 6. Confirm a test pipeline on that label can run `git --version`, `docker version`, and the repository bootstrap path successfully.
 
 ### Option A: SSH-Launched Node
@@ -687,7 +687,7 @@ Do this in the Jenkins UI only.
 1. Set the node name to any operator-chosen value that helps you identify the machine.
 1. Set the remote root directory to the home or workspace path for the actual Jenkins runtime user on that node.
 1. If you are using a dedicated `jenkins` user, use `/home/jenkins`.
-1. Set the labels to `generic-gh-builder`.
+1. Set the labels to `dorat-nuc-ci`.
 1. Choose the launch method that matches your deployment.
 1. If using SSH launch, set the host to `<vm-ip-or-hostname>`.
 1. If using SSH launch, select credential `acestream-build-agent-ssh`.
@@ -815,7 +815,7 @@ Recommended configuration:
 
 Expected behavior:
 
-- PR validation runs on label `generic-gh-builder`.
+- PR validation runs on label `dorat-nuc-ci`.
 - After checkout, the pipeline runs `scripts/ci/bootstrap_jenkins_runner.sh`.
 - The pipeline executes `bash scripts/ci/run_jenkins_validation.sh`.
 - Build result JSON artifacts are archived for each flavor validation run.

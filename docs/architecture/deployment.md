@@ -134,7 +134,7 @@ CI orchestration:
 - Jenkins manual release publication is the canonical release path and runs from `jenkins/release.Jenkinsfile`.
 - Jenkins validation is intended to mirror `.github/workflows/pull_request.yml`.
 - Jenkins manual release is intended to mirror `.github/workflows/release.yml`.
-- Jenkins pipelines target the `generic-gh-builder` label and call `scripts/ci/bootstrap_jenkins_runner.sh` after `checkout scm`.
+- Jenkins pipelines target the `dorat-nuc-ci` label and call `scripts/ci/bootstrap_jenkins_runner.sh` after `checkout scm`.
 - `git` remains the practical prerequisite on the Jenkins node because checkout happens before repository bootstrap.
 - Jenkins uses the named buildx builder `acestream-builder` unless `JENKINS_BUILDER` is explicitly overridden; the builder can be precreated by the operator or prepared during bootstrap.
 - Docker access must already work for the current Jenkins runtime user on that node.

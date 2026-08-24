@@ -236,7 +236,10 @@ install_base_dependencies() {
     if ! python3 -m pip --version >/dev/null 2>&1; then
       packages+=(python3-pip)
     fi
-    if ! python3 -m venv --help >/dev/null 2>&1; then
+    # 'python3 -m venv --help' succeeds even when ensurepip is missing
+    # (Ubuntu strips it into the versioned python3.X-venv package), so probe
+    # what venv creation actually needs.
+    if ! python3 -c "import ensurepip" >/dev/null 2>&1; then
       packages+=(python3-venv)
     fi
   elif [[ ! " ${packages[*]} " == *" python3-pip "* ]]; then
@@ -352,7 +355,7 @@ verify_required_commands() {
   have_command git || fail "git is required but unavailable. Jenkins checked out SCM before bootstrap, so install git on the runner image."
   have_command python3 || fail "python3 is required but unavailable."
   python3 -m pip --version >/dev/null 2>&1 || fail "python3 pip support is required. Install python3-pip."
-  python3 -m venv --help >/dev/null 2>&1 || fail "python3 venv support is required. Install python3-venv."
+  python3 -c "import ensurepip" >/dev/null 2>&1 || fail "python3 venv support (ensurepip) is required. Install python3-venv."
   have_command node || fail "node is required but unavailable."
   have_command npm || fail "npm is required but unavailable."
   have_command rg || fail "rg (ripgrep) is required but unavailable."

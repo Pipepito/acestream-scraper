@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.api import api_router
+from app.api.auth import require_api_token
 from app.api.endpoints.playlists import (
     get_all_streams_playlist,
     get_m3u_playlist,
@@ -137,8 +138,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Add API routes with versioning
-app.include_router(api_router, prefix="/api/v1")
+# Add API routes with versioning. The token dependency is a no-op unless the
+# API_TOKEN environment variable is set (see app/api/auth.py); /api/v1/health
+# stays public for container health probes.
+app.include_router(api_router, prefix="/api/v1", dependencies=[Depends(require_api_token)])
 register_error_handlers(app)
 
 # Static files serving
@@ -156,7 +159,7 @@ for dirname in static_dirs:
     app.mount(f"/{dirname}", StaticFiles(directory=os.path.join(frontend_dir, dirname)), name=dirname)
 
 # Public playlist route for user-friendly URLs (no /api prefix)
-@app.get("/playlists/m3u", response_class=PlainTextResponse)
+@app.get("/playlists/m3u", response_class=PlainTextResponse, dependencies=[Depends(require_api_token)])
 async def public_m3u_playlist(
     search: Optional[str] = None,
     group: Optional[str] = None,
@@ -195,7 +198,7 @@ async def public_m3u_playlist(
 # Legacy v1 playlist route. v1 served the playlist at /playlist.m3u and IPTV
 # players are configured with that exact URL; without this route the SPA
 # fallback would answer with index.html and HTTP 200, silently breaking them.
-@app.get("/playlist.m3u", response_class=PlainTextResponse)
+@app.get("/playlist.m3u", response_class=PlainTextResponse, dependencies=[Depends(require_api_token)])
 async def legacy_m3u_playlist(
     search: Optional[str] = None,
     group: Optional[str] = None,
@@ -224,7 +227,7 @@ async def legacy_m3u_playlist(
 
 # Legacy v1 playlist API routes. v1 served these under /api/playlists/*;
 # the canonical v2 routes live under /api/v1/playlists/*.
-@app.get("/api/playlists/m3u", response_class=PlainTextResponse)
+@app.get("/api/playlists/m3u", response_class=PlainTextResponse, dependencies=[Depends(require_api_token)])
 async def legacy_api_m3u_playlist(
     search: Optional[str] = None,
     group: Optional[str] = None,
@@ -252,7 +255,7 @@ async def legacy_api_m3u_playlist(
         db=db
     )
 
-@app.get("/api/playlists/tv-channels/m3u", response_class=PlainTextResponse)
+@app.get("/api/playlists/tv-channels/m3u", response_class=PlainTextResponse, dependencies=[Depends(require_api_token)])
 async def legacy_tv_channels_playlist(
     search: Optional[str] = None,
     favorites_only: bool = False,
@@ -274,7 +277,7 @@ async def legacy_tv_channels_playlist(
         db=db
     )
 
-@app.get("/api/playlists/all-streams/m3u", response_class=PlainTextResponse)
+@app.get("/api/playlists/all-streams/m3u", response_class=PlainTextResponse, dependencies=[Depends(require_api_token)])
 async def legacy_all_streams_playlist(
     search: Optional[str] = None,
     include_unassigned: bool = True,
@@ -299,7 +302,7 @@ async def legacy_all_streams_playlist(
 # Legacy v1 EPG XML route. v1 served XMLTV data at /api/playlists/epg.xml and
 # that URL is configured once in players/XMLTV grabbers; in v2 the canonical
 # route moved to /api/v1/epg/xml, so keep the old URL answering.
-@app.get("/api/playlists/epg.xml")
+@app.get("/api/playlists/epg.xml", dependencies=[Depends(require_api_token)])
 async def legacy_epg_xml(
     search_term: Optional[str] = None,
     favorites_only: bool = False,
@@ -332,10 +335,12 @@ async def spa_server(request: Request, exc: StarletteHTTPException):
     # Only handle 404s for non-API routes (client-side routing)
     if exc.status_code == 404 and not request.url.path.startswith("/api"):
         return FileResponse(os.path.join(frontend_dir, "index.html"))
-    # For API routes or other status codes, return the exception as an HTTP response
+    # For API routes or other status codes, return the exception as an HTTP
+    # response, preserving headers such as WWW-Authenticate on 401s.
     return JSONResponse(
         status_code=exc.status_code,
-        content={"detail": exc.detail}
+        content={"detail": exc.detail},
+        headers=getattr(exc, "headers", None)
     )
 
 @app.get("/", response_class=HTMLResponse)

@@ -4,11 +4,6 @@ import {
   Box,
   Button,
   CircularProgress,
-  TextField,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   FormControlLabel,
   Switch,
   Alert,
@@ -18,10 +13,13 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import { alpha } from '@mui/material/styles';
 import { useTVChannelCatalog, useDeleteTVChannel, useCreateTVChannel, useUpdateTVChannel, useToggleTVChannelFavorite } from '../hooks/useTVChannels';
+import { useTVChannelForm } from '../hooks/useTVChannelForm';
 import { AdvancedSearchFilters } from '../components/AdvancedSearch';
 import TVChannelsTable from '../components/TVChannelsTable';
+import TVChannelsPageHero from '../components/TVChannelsPageHero';
+import TVChannelFormDialog from '../components/TVChannelFormDialog';
+import TVChannelDeleteDialog from '../components/TVChannelDeleteDialog';
 import { TVChannel, TVChannelCreate, TVChannelUpdate } from '../types/tvChannelTypes';
 import AdvancedSearch from '../components/AdvancedSearch';
 import PageHeader from '../components/layout/PageHeader';
@@ -30,13 +28,6 @@ import { getShellLayout } from '../styles/layout';
 import { normalizeApiError } from '../services/apiErrors';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
-
-type FormErrors = {
-  name?: string;
-  submit?: string;
-};
-
-const sanitizeTextInput = (value: string | undefined): string => value?.trim() ?? '';
 
 const TVChannels: React.FC = () => {
   const theme = useTheme();
@@ -48,21 +39,22 @@ const TVChannels: React.FC = () => {
   const [filters, setFilters] = useState<AdvancedSearchFilters>({});
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [openCreateDialog, setOpenCreateDialog] = useState(false);
-  const [openEditDialog, setOpenEditDialog] = useState(false);
-  const [selectedChannel, setSelectedChannel] = useState<TVChannel | null>(null);
   const [deleteCandidate, setDeleteCandidate] = useState<TVChannel | null>(null);
-  const [formData, setFormData] = useState<TVChannelCreate | TVChannelUpdate>({
-    name: '',
-    logo_url: '',
-    description: '',
-    category: '',
-    country: '',
-    language: '',
-    is_active: true,
-  });
   const [notice, setNotice] = useState<string | null>(null);
-  const [formErrors, setFormErrors] = useState<FormErrors>({});
+  const {
+    openCreateDialog,
+    setOpenCreateDialog,
+    openEditDialog,
+    setOpenEditDialog,
+    selectedChannel,
+    formData,
+    formErrors,
+    setFormErrors,
+    handleOpenCreateDialog,
+    handleOpenEditDialog,
+    handleFormChange,
+    validateForm,
+  } = useTVChannelForm();
 
   const skip = (page - 1) * pageSize;
   const {
@@ -125,22 +117,6 @@ const TVChannels: React.FC = () => {
     [channels]
   );
   const totalChannels = filteredChannels.length;
-  const filteredActiveCount = useMemo(() => filteredChannels.filter((channel) => channel.is_active).length, [filteredChannels]);
-  const filteredInactiveCount = totalChannels - filteredActiveCount;
-  const filteredCategoryCount = useMemo(
-    () => new Set(filteredChannels.map((channel) => channel.category).filter(Boolean)).size,
-    [filteredChannels]
-  );
-  const outputReadinessLabel =
-    channels.length === 0
-      ? 'No TV channels are organized yet, so downstream output work cannot start.'
-      : totalChannels === 0
-        ? 'The current filters hide the organized catalog, so reset them before continuing downstream.'
-        : `${totalChannels} organized TV channel${totalChannels === 1 ? '' : 's'} in view with ${filteredActiveCount} active and ${filteredInactiveCount} inactive.`;
-  const organizationSupportLabel =
-    filteredCategoryCount > 0
-      ? `${filteredCategoryCount} categor${filteredCategoryCount === 1 ? 'y is' : 'ies are'} represented in this working set.`
-      : 'Categories appear here once channel metadata is organized.';
   const visibleFilterFields = {
     search: true,
     category: true,
@@ -152,10 +128,6 @@ const TVChannels: React.FC = () => {
     sort: false,
     is_online: false,
   };
-  const nextStepLabel =
-    totalChannels === 0
-      ? 'Reset filters or add channels so you can continue organizing the catalog.'
-      : 'Organize the final catalog before moving into EPG and output workflows.';
   const handleFiltersChange = (nextFilters: AdvancedSearchFilters) => {
     setPage(1);
     setFilters(nextFilters);
@@ -176,71 +148,6 @@ const TVChannels: React.FC = () => {
     } catch {
       setNotice('Failed to update favorite state.');
     }
-  };
-
-  const handleOpenCreateDialog = () => {
-    setFormErrors({});
-    setFormData({
-      name: '',
-      logo_url: '',
-      description: '',
-      category: '',
-      country: '',
-      language: '',
-      is_active: true,
-      is_favorite: false,
-    });
-    setOpenCreateDialog(true);
-  };
-
-  const handleOpenEditDialog = (channel: TVChannel) => {
-    setFormErrors({});
-    setSelectedChannel(channel);
-    setFormData({
-      name: channel.name,
-      logo_url: channel.logo_url || '',
-      description: channel.description || '',
-      category: channel.category || '',
-      country: channel.country || '',
-      language: channel.language || '',
-      is_active: channel.is_active,
-      is_favorite: channel.is_favorite,
-      epg_id: channel.epg_id || '',
-      channel_number: channel.channel_number,
-    });
-    setOpenEditDialog(true);
-  };
-
-  const handleFormChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = event.target;
-    setFormErrors((prev) => ({ ...prev, [name]: undefined, submit: undefined }));
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : name === 'channel_number' ? (value === '' ? '' : Number(value)) : value,
-    }));
-  };
-
-  const getSanitizedPayload = (): TVChannelCreate | TVChannelUpdate => ({
-    ...formData,
-    name: sanitizeTextInput(formData.name),
-    logo_url: sanitizeTextInput(formData.logo_url),
-    description: sanitizeTextInput(formData.description),
-    category: sanitizeTextInput(formData.category),
-    country: sanitizeTextInput(formData.country),
-    language: sanitizeTextInput(formData.language),
-    epg_id: 'epg_id' in formData ? sanitizeTextInput(formData.epg_id) : undefined,
-  });
-
-  const validateForm = (): TVChannelCreate | TVChannelUpdate | null => {
-    const payload = getSanitizedPayload();
-
-    if (!payload.name) {
-      setFormErrors({ name: 'Enter a channel name before saving.' });
-      return null;
-    }
-
-    setFormErrors({});
-    return payload;
   };
 
   const handleCreate = async () => {
@@ -301,56 +208,6 @@ const TVChannels: React.FC = () => {
     }
   };
 
-  const renderDialogSections = (mode: 'create' | 'edit') => (
-    <Stack spacing={2.5} sx={{ py: 1 }}>
-      <TextField
-        name="name"
-        label="Channel Name"
-        fullWidth
-        value={formData.name || ''}
-        onChange={handleFormChange}
-        required
-        error={Boolean(formErrors.name)}
-        helperText={formErrors.name}
-      />
-      <TextField
-        name="description"
-        label="Description"
-        fullWidth
-        value={formData.description || ''}
-        onChange={handleFormChange}
-        multiline
-        rows={3}
-        inputProps={{ maxLength: 1000 }}
-      />
-
-      <Box>
-        <Typography variant="helperText" sx={{ display: 'block', mb: 1 }}>
-          Optional details
-        </Typography>
-        <Stack spacing={2}>
-          <TextField name="logo_url" label="Logo URL" fullWidth value={formData.logo_url || ''} onChange={handleFormChange} />
-          <TextField name="category" label="Category" fullWidth value={formData.category || ''} onChange={handleFormChange} />
-          <TextField name="country" label="Country" fullWidth value={formData.country || ''} onChange={handleFormChange} />
-          <TextField name="language" label="Language" fullWidth value={formData.language || ''} onChange={handleFormChange} />
-          {mode === 'edit' ? <TextField name="epg_id" label="EPG ID" fullWidth value={formData.epg_id || ''} onChange={handleFormChange} /> : null}
-          <TextField name="channel_number" label="Channel Number" type="number" fullWidth value={formData.channel_number || ''} onChange={handleFormChange} />
-        </Stack>
-      </Box>
-
-      <Stack spacing={1}>
-        <FormControlLabel
-          control={<Switch checked={formData.is_active === true} onChange={handleFormChange} name="is_active" color="primary" />}
-          label="Active"
-        />
-        <FormControlLabel
-          control={<Switch checked={formData.is_favorite === true} onChange={handleFormChange} name="is_favorite" color="primary" />}
-          label="Favorite"
-        />
-      </Stack>
-    </Stack>
-  );
-
   if (isCatalogLoading) {
     return (
       <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" minHeight="50vh" gap={1.5}>
@@ -406,115 +263,7 @@ const TVChannels: React.FC = () => {
         }
       />
 
-      <Box
-        sx={{
-          mb: 3,
-          p: { xs: 2, md: 2.5 },
-          borderRadius: 2.5,
-          bgcolor: theme.appTokens.hero.bg,
-          border: `1px solid ${theme.appTokens.hero.border}`,
-          backgroundImage: theme.appTokens.hero.spotlight,
-        }}
-      >
-        <Stack spacing={2}>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, justifyContent: 'space-between' }}>
-            <Box sx={{ minWidth: 0, maxWidth: 760 }}>
-              <Typography variant="statusMeta" sx={{ color: theme.appTokens.hero.accent, mb: 1 }}>
-                TV organization stage
-              </Typography>
-              <Typography variant="h4" sx={{ letterSpacing: '-0.03em', mb: 1 }}>
-                Organize the downstream catalog before you hand it off to EPG and output workflows.
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Keep the inventory first, confirm what stays active, and use filters as a support tool when the catalog needs cleanup.
-              </Typography>
-            </Box>
-            <Stack spacing={1} sx={{ minWidth: { xs: '100%', sm: 320 } }}>
-              <Box
-                sx={{
-                  p: 1.5,
-                  borderRadius: 2,
-                  bgcolor: alpha(theme.appTokens.shell.accent, 0.08),
-                  border: `1px solid ${alpha(theme.appTokens.shell.accent, 0.18)}`,
-                }}
-              >
-                <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>
-                  Output readiness
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                  {outputReadinessLabel}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {organizationSupportLabel}
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  p: 1.5,
-                  borderRadius: 2,
-                  bgcolor: theme.appTokens.surface.panel,
-                  border: `1px solid ${theme.appTokens.surface.border}`,
-                }}
-              >
-                <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>
-                  Next step guidance
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                  {nextStepLabel}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Use the organized inventory to spot stale entries, confirm active channels, and prepare safer downstream decisions.
-                </Typography>
-              </Box>
-            </Stack>
-          </Box>
-
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25 }}>
-            {[
-              {
-                title: 'Sources',
-                label: 'Upstream intake stage',
-                body: 'Source intake feeds the catalog that eventually reaches TV organization.',
-                active: false,
-              },
-              {
-                title: 'Extracted channels',
-                label: 'Upstream review stage',
-                body: 'Extracted-channel review shapes what enters the organized TV catalog.',
-                active: false,
-              },
-              {
-                title: 'TV organization',
-                label: 'Current downstream stage',
-                body: 'Organize the final catalog for EPG and output workflows.',
-                active: true,
-              },
-            ].map((stage) => (
-              <Box
-                key={stage.title}
-                sx={{
-                  flex: '1 1 180px',
-                  minWidth: { xs: '100%', sm: 180 },
-                  p: 1.5,
-                  borderRadius: 2,
-                  bgcolor: stage.active ? alpha(theme.appTokens.hero.accent, 0.10) : theme.appTokens.surface.panel,
-                  border: `1px solid ${stage.active ? alpha(theme.appTokens.hero.accent, 0.24) : theme.appTokens.surface.border}`,
-                }}
-              >
-                <Typography variant="statusMeta" sx={{ color: stage.active ? theme.appTokens.hero.accent : 'text.secondary', mb: 0.75 }}>
-                  {stage.label}
-                </Typography>
-                <Typography variant="sectionTitle" sx={{ mb: 0.5 }}>
-                  {stage.title}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {stage.body}
-                </Typography>
-              </Box>
-            ))}
-          </Box>
-        </Stack>
-      </Box>
+      <TVChannelsPageHero channelCount={channels.length} filteredChannels={filteredChannels} />
 
       {notice ? (
         <Alert severity={notice.startsWith('Failed') ? 'error' : 'success'} sx={{ mb: 2 }} onClose={() => setNotice(null)}>
@@ -596,58 +345,35 @@ const TVChannels: React.FC = () => {
         </ContentSection>
       </Box>
 
-      <Dialog open={openCreateDialog} onClose={() => setOpenCreateDialog(false)} {...dialogMobileProps}>
-        <DialogTitle>Add TV Channel</DialogTitle>
-        <DialogContent dividers>
-          {formErrors.submit ? (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {formErrors.submit}
-            </Alert>
-          ) : null}
-          {renderDialogSections('create')}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenCreateDialog(false)}>Cancel</Button>
-          <Button onClick={handleCreate} variant="contained" color="primary" disabled={createMutation.isLoading}>
-            Create
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <TVChannelFormDialog
+        mode="create"
+        open={openCreateDialog}
+        formData={formData}
+        formErrors={formErrors}
+        submitting={createMutation.isLoading}
+        dialogProps={dialogMobileProps}
+        onChange={handleFormChange}
+        onClose={() => setOpenCreateDialog(false)}
+        onSubmit={handleCreate}
+      />
 
-      <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)} {...dialogMobileProps}>
-        <DialogTitle>Edit TV Channel</DialogTitle>
-        <DialogContent dividers>
-          {formErrors.submit ? (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {formErrors.submit}
-            </Alert>
-          ) : null}
-          {renderDialogSections('edit')}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenEditDialog(false)}>Cancel</Button>
-          <Button onClick={handleUpdate} variant="contained" color="primary" disabled={updateMutation.isLoading}>
-            Update
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <TVChannelFormDialog
+        mode="edit"
+        open={openEditDialog}
+        formData={formData}
+        formErrors={formErrors}
+        submitting={updateMutation.isLoading}
+        dialogProps={dialogMobileProps}
+        onChange={handleFormChange}
+        onClose={() => setOpenEditDialog(false)}
+        onSubmit={handleUpdate}
+      />
 
-      <Dialog open={deleteCandidate !== null} onClose={() => setDeleteCandidate(null)} fullWidth maxWidth="xs">
-        <DialogTitle>Delete TV Channel</DialogTitle>
-        <DialogContent dividers>
-          <Typography>
-            Remove {deleteCandidate?.name || 'this TV channel'} from the TV channel inventory? This cannot be undone.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteCandidate(null)} variant="contained" data-action-priority="primary">
-            Cancel
-          </Button>
-          <Button onClick={handleConfirmDelete} color="error" variant="outlined" data-action-priority="danger">
-            Delete TV Channel
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <TVChannelDeleteDialog
+        channel={deleteCandidate}
+        onCancel={() => setDeleteCandidate(null)}
+        onConfirm={handleConfirmDelete}
+      />
     </Box>
   );
 };

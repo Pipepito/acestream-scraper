@@ -73,7 +73,14 @@ set -euo pipefail
 # the docker-container driver whose isolated buildkit network does NOT
 # inherit host routes, causing curl to download.acestream.media to fail.
 export BUILDX_BUILDER=default
-bash scripts/ci/build_multiarch_images.sh --flavor scraper-acestream --load --network host --tag acestream-scraper:smoke
+# The self-hosted runner's build cache can rot ("failed to prepare
+# extraction snapshot ... parent snapshot ... does not exist" at the image
+# export step). Prune the corrupted cache and retry once before failing.
+if ! bash scripts/ci/build_multiarch_images.sh --flavor scraper-acestream --load --network host --tag acestream-scraper:smoke; then
+  echo "Smoke image build failed; pruning builder cache and retrying once"
+  docker builder prune -af || true
+  bash scripts/ci/build_multiarch_images.sh --flavor scraper-acestream --load --network host --tag acestream-scraper:smoke
+fi
 PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_acestream_runtime_smoke.py -v
 '''
       }

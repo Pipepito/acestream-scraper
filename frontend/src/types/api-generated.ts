@@ -156,6 +156,18 @@ export interface paths {
     /** Get Background Tasks Status */
     get: operations["get_background_tasks_status_api_v1_background_tasks_status_get"];
   };
+  "/api/v1/base-urls": {
+    /** List Base Urls */
+    get: operations["list_base_urls_api_v1_base_urls_get"];
+    /** Create Base Url */
+    post: operations["create_base_url_api_v1_base_urls_post"];
+  };
+  "/api/v1/base-urls/{base_url_id}": {
+    /** Delete Base Url */
+    delete: operations["delete_base_url_api_v1_base_urls__base_url_id__delete"];
+    /** Update Base Url */
+    patch: operations["update_base_url_api_v1_base_urls__base_url_id__patch"];
+  };
   "/api/v1/channels/": {
     /**
      * Get Acestream Channels
@@ -1036,21 +1048,37 @@ export interface components {
        */
       value: string;
     };
-    /**
-     * BaseUrlUpdate
-     * @description Schema for updating the base URL for Acestream links
-     */
-    BaseUrlUpdate: {
+    /** BaseUrlCreate */
+    BaseUrlCreate: {
       /**
-       * Base Url
-       * @description Base URL for Acestream links
+       * Is Default
+       * @default false
        */
-      base_url?: string | null;
+      is_default?: boolean;
+      /** Name */
+      name: string;
       /**
-       * Value
-       * @description Compatibility alias for base_url
+       * Pattern
+       * @description Prefix, or a mask using {channel_id} and optionally {pid}
        */
-      value?: string | null;
+      pattern: string;
+    };
+    /** BaseUrlResponse */
+    BaseUrlResponse: {
+      /** Id */
+      id: number;
+      /**
+       * Is Default
+       * @default false
+       */
+      is_default?: boolean;
+      /** Name */
+      name: string;
+      /**
+       * Pattern
+       * @description Prefix, or a mask using {channel_id} and optionally {pid}
+       */
+      pattern: string;
     };
     /** Body_bulk_delete_acestream_channels_api_v1_acestream_channels_bulk_delete_post */
     Body_bulk_delete_acestream_channels_api_v1_acestream_channels_bulk_delete_post: {
@@ -2158,6 +2186,31 @@ export interface components {
       /** @description The WARP mode to set */
       mode: components["schemas"]["WarpModeEnum"];
     };
+    /** BaseUrlUpdate */
+    app__schemas__base_url__BaseUrlUpdate: {
+      /** Is Default */
+      is_default?: boolean | null;
+      /** Name */
+      name?: string | null;
+      /** Pattern */
+      pattern?: string | null;
+    };
+    /**
+     * BaseUrlUpdate
+     * @description Schema for updating the base URL for Acestream links
+     */
+    app__schemas__config__BaseUrlUpdate: {
+      /**
+       * Base Url
+       * @description Base URL for Acestream links
+       */
+      base_url?: string | null;
+      /**
+       * Value
+       * @description Compatibility alias for base_url
+       */
+      value?: string | null;
+    };
   };
   responses: never;
   parameters: never;
@@ -2197,6 +2250,7 @@ export interface operations {
         search?: string | null;
         include_unassigned?: boolean;
         base_url?: string | null;
+        base_url_id?: number | null;
         format?: string | null;
         refresh?: boolean;
       };
@@ -2258,6 +2312,7 @@ export interface operations {
         include_groups?: string | null;
         exclude_groups?: string | null;
         base_url?: string | null;
+        base_url_id?: number | null;
         format?: string | null;
         refresh?: boolean;
       };
@@ -2288,6 +2343,7 @@ export interface operations {
         search?: string | null;
         favorites_only?: boolean;
         base_url?: string | null;
+        base_url_id?: number | null;
         format?: string | null;
         refresh?: boolean;
       };
@@ -2726,6 +2782,86 @@ export interface operations {
       200: {
         content: {
           "application/json": unknown;
+        };
+      };
+    };
+  };
+  /** List Base Urls */
+  list_base_urls_api_v1_base_urls_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["BaseUrlResponse"][];
+        };
+      };
+    };
+  };
+  /** Create Base Url */
+  create_base_url_api_v1_base_urls_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["BaseUrlCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        content: {
+          "application/json": components["schemas"]["BaseUrlResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Delete Base Url */
+  delete_base_url_api_v1_base_urls__base_url_id__delete: {
+    parameters: {
+      path: {
+        base_url_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Update Base Url */
+  update_base_url_api_v1_base_urls__base_url_id__patch: {
+    parameters: {
+      path: {
+        base_url_id: number;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["app__schemas__base_url__BaseUrlUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["BaseUrlResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };
@@ -3236,7 +3372,7 @@ export interface operations {
   update_base_url_api_v1_config_base_url_put: {
     requestBody: {
       content: {
-        "application/json": components["schemas"]["BaseUrlUpdate"];
+        "application/json": components["schemas"]["app__schemas__config__BaseUrlUpdate"];
       };
     };
     responses: {
@@ -3937,6 +4073,7 @@ export interface operations {
         search?: string | null;
         include_unassigned?: boolean;
         base_url?: string | null;
+        base_url_id?: number | null;
         format?: string | null;
         refresh?: boolean;
       };
@@ -3991,6 +4128,7 @@ export interface operations {
         include_groups?: string | null;
         exclude_groups?: string | null;
         base_url?: string | null;
+        base_url_id?: number | null;
         format?: string | null;
         refresh?: boolean;
       };
@@ -4027,6 +4165,7 @@ export interface operations {
         include_groups?: string | null;
         exclude_groups?: string | null;
         base_url?: string | null;
+        base_url_id?: number | null;
         format?: string | null;
         refresh?: boolean;
       };
@@ -4061,6 +4200,7 @@ export interface operations {
         search?: string | null;
         favorites_only?: boolean;
         base_url?: string | null;
+        base_url_id?: number | null;
         format?: string | null;
         refresh?: boolean;
       };
@@ -4969,6 +5109,7 @@ export interface operations {
         include_groups?: string | null;
         exclude_groups?: string | null;
         base_url?: string | null;
+        base_url_id?: number | null;
         format?: string | null;
         refresh?: boolean;
       };
@@ -5001,6 +5142,7 @@ export interface operations {
         include_groups?: string | null;
         exclude_groups?: string | null;
         base_url?: string | null;
+        base_url_id?: number | null;
         format?: string | null;
         refresh?: boolean;
       };

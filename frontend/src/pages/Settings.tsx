@@ -4,6 +4,12 @@ import {
   Grid,
   TextField,
   Button,
+  Checkbox,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControl,
   FormControlLabel,
   Switch,
@@ -17,6 +23,8 @@ import {
   Stack,
 } from '@mui/material';
 import {
+  Delete as DeleteIcon,
+  Edit as EditIcon,
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
 } from '@mui/icons-material';
@@ -32,6 +40,14 @@ import {
   useAllSettings,
   useAcestreamStatus
 } from '../hooks/useConfig';
+import {
+  useBaseUrls,
+  useCreateBaseUrl,
+  usePatchBaseUrl,
+  useDeleteBaseUrl,
+} from '../hooks/useBaseUrls';
+import { StreamBaseUrl } from '../services/baseUrlService';
+import { ApiError } from '../services/apiErrors';
 import { configService } from '../services/configService';
 import {
   getApiToken,
@@ -53,6 +69,280 @@ const INVENTORY_GROUPS = [
   { title: 'Automation settings', keys: AUTOMATION_KEYS },
   { title: 'Advanced/internal settings', keys: [] as const },
 ] as const;
+
+type FeedbackSeverity = 'success' | 'error';
+
+interface StreamBaseUrlsSectionProps {
+  notify: (message: string, severity: FeedbackSeverity) => void;
+}
+
+/**
+ * "Stream base URLs" settings section: named base URL entries used when
+ * generating playlist links (GitHub issue #62).
+ */
+const StreamBaseUrlsSection: React.FC<StreamBaseUrlsSectionProps> = ({ notify }) => {
+  const baseUrlsQuery = useBaseUrls();
+  const createBaseUrlMutation = useCreateBaseUrl();
+  const patchBaseUrlMutation = usePatchBaseUrl();
+  const deleteBaseUrlMutation = useDeleteBaseUrl();
+
+  const [newName, setNewName] = useState<string>('');
+  const [newPattern, setNewPattern] = useState<string>('');
+  const [newIsDefault, setNewIsDefault] = useState<boolean>(false);
+  const [editingEntry, setEditingEntry] = useState<StreamBaseUrl | null>(null);
+  const [editName, setEditName] = useState<string>('');
+  const [editPattern, setEditPattern] = useState<string>('');
+
+  const entries = baseUrlsQuery.data ?? [];
+  const isMutating =
+    createBaseUrlMutation.isLoading || patchBaseUrlMutation.isLoading || deleteBaseUrlMutation.isLoading;
+
+  const describeSaveError = (error: unknown, attemptedName: string, fallback: string): string => {
+    if (error instanceof ApiError && error.status === 409) {
+      return `A base URL named "${attemptedName}" already exists. Choose a different name.`;
+    }
+    if (error instanceof ApiError && error.message) {
+      return error.message;
+    }
+    return fallback;
+  };
+
+  const handleAddSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = newName.trim();
+    const pattern = newPattern.trim();
+    if (!name || !pattern) {
+      return;
+    }
+    createBaseUrlMutation.mutate(
+      { name, pattern, is_default: newIsDefault },
+      {
+        onSuccess: () => {
+          setNewName('');
+          setNewPattern('');
+          setNewIsDefault(false);
+          notify(`Base URL "${name}" added`, 'success');
+        },
+        onError: (error) => {
+          notify(describeSaveError(error, name, 'Failed to add the base URL'), 'error');
+        },
+      }
+    );
+  };
+
+  const handleMakeDefault = (entry: StreamBaseUrl) => {
+    patchBaseUrlMutation.mutate(
+      { id: entry.id, data: { is_default: true } },
+      {
+        onSuccess: () => {
+          notify(`"${entry.name}" is now the default base URL`, 'success');
+        },
+        onError: (error) => {
+          notify(describeSaveError(error, entry.name, 'Failed to update the default base URL'), 'error');
+        },
+      }
+    );
+  };
+
+  const handleDelete = (entry: StreamBaseUrl) => {
+    deleteBaseUrlMutation.mutate(entry.id, {
+      onSuccess: () => {
+        notify(`Base URL "${entry.name}" deleted`, 'success');
+      },
+      onError: (error) => {
+        notify(describeSaveError(error, entry.name, 'Failed to delete the base URL'), 'error');
+      },
+    });
+  };
+
+  const openEditDialog = (entry: StreamBaseUrl) => {
+    setEditingEntry(entry);
+    setEditName(entry.name);
+    setEditPattern(entry.pattern);
+  };
+
+  const closeEditDialog = () => {
+    setEditingEntry(null);
+  };
+
+  const handleEditSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingEntry) {
+      return;
+    }
+    const name = editName.trim();
+    const pattern = editPattern.trim();
+    if (!name || !pattern) {
+      return;
+    }
+    patchBaseUrlMutation.mutate(
+      { id: editingEntry.id, data: { name, pattern } },
+      {
+        onSuccess: () => {
+          closeEditDialog();
+          notify(`Base URL "${name}" updated`, 'success');
+        },
+        onError: (error) => {
+          notify(describeSaveError(error, name, 'Failed to update the base URL'), 'error');
+        },
+      }
+    );
+  };
+
+  return (
+    <ContentSection
+      title="Stream base URLs"
+      description="Save named link formats so playlists can switch between players without retyping URLs."
+    >
+      <Stack spacing={2.5}>
+        <Box sx={{ typography: 'body2', color: 'text.secondary' }}>
+          A pattern without placeholders is used as a prefix in front of each channel ID (like the classic{' '}
+          <Box component="code">acestream://</Box>). A pattern containing{' '}
+          <Box component="code">{'{channel_id}'}</Box> is a mask and may also use{' '}
+          <Box component="code">{'{pid}'}</Box> — for example{' '}
+          <Box component="code">{'http://127.0.0.1:6878/ace/getstream?id={channel_id}&pid={pid}'}</Box>.
+          The default entry is applied to playlists when no other base URL is requested.
+        </Box>
+
+        {baseUrlsQuery.isLoading ? (
+          <Box display="flex" alignItems="center">
+            <CircularProgress size={20} sx={{ mr: 2 }} />
+            <Box component="span">Loading stream base URLs...</Box>
+          </Box>
+        ) : baseUrlsQuery.error ? (
+          <Alert severity="warning">Could not load the saved stream base URLs. Try reloading the page.</Alert>
+        ) : entries.length === 0 ? (
+          <Alert severity="info">No named base URLs yet. Add one below to reuse it from the playlist page.</Alert>
+        ) : (
+          <Stack spacing={1} divider={<Box sx={{ borderBottom: 1, borderColor: 'divider' }} />}>
+            {entries.map((entry) => (
+              <Box
+                key={entry.id}
+                sx={{
+                  display: 'flex',
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  gap: 1,
+                  justifyContent: 'space-between',
+                  alignItems: { xs: 'flex-start', sm: 'center' },
+                  py: 0.5,
+                }}
+              >
+                <Box sx={{ minWidth: 0 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                    <Box sx={{ typography: 'body2', fontWeight: 600, wordBreak: 'break-word' }}>{entry.name}</Box>
+                    {entry.is_default ? <Chip label="Default" color="primary" size="small" /> : null}
+                  </Box>
+                  <Box
+                    sx={{
+                      typography: 'body2',
+                      color: 'text.secondary',
+                      fontFamily: 'monospace',
+                      wordBreak: 'break-all',
+                    }}
+                  >
+                    {entry.pattern}
+                  </Box>
+                </Box>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
+                  {!entry.is_default ? (
+                    <Button size="small" variant="outlined" onClick={() => handleMakeDefault(entry)} disabled={isMutating}>
+                      Make default
+                    </Button>
+                  ) : null}
+                  <IconButton
+                    size="small"
+                    aria-label={`Edit base URL ${entry.name}`}
+                    onClick={() => openEditDialog(entry)}
+                    disabled={isMutating}
+                  >
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    aria-label={`Delete base URL ${entry.name}`}
+                    onClick={() => handleDelete(entry)}
+                    disabled={isMutating}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Stack>
+              </Box>
+            ))}
+          </Stack>
+        )}
+
+        <form onSubmit={handleAddSubmit}>
+          <Stack spacing={2} sx={{ maxWidth: 640 }}>
+            <TextField
+              label="Name"
+              fullWidth
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              helperText="A short label, e.g. VLC or Ace player"
+            />
+            <TextField
+              label="Pattern"
+              fullWidth
+              value={newPattern}
+              onChange={(e) => setNewPattern(e.target.value)}
+              helperText={'A prefix like acestream://, or a mask using {channel_id} and optionally {pid}'}
+            />
+            <FormControlLabel
+              control={<Checkbox checked={newIsDefault} onChange={(e) => setNewIsDefault(e.target.checked)} />}
+              label="Set as default"
+            />
+            <Box>
+              <Button
+                type="submit"
+                variant="contained"
+                color="primary"
+                disabled={!newName.trim() || !newPattern.trim() || createBaseUrlMutation.isLoading}
+              >
+                {createBaseUrlMutation.isLoading ? <CircularProgress size={24} color="inherit" /> : 'Add base URL'}
+              </Button>
+            </Box>
+          </Stack>
+        </form>
+      </Stack>
+
+      <Dialog open={Boolean(editingEntry)} onClose={closeEditDialog} fullWidth maxWidth="sm">
+        <form onSubmit={handleEditSave}>
+          <DialogTitle>Edit base URL</DialogTitle>
+          <DialogContent>
+            <Stack spacing={2} sx={{ mt: 1 }}>
+              <TextField
+                label="Name"
+                fullWidth
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+              />
+              <TextField
+                label="Pattern"
+                fullWidth
+                value={editPattern}
+                onChange={(e) => setEditPattern(e.target.value)}
+                helperText={'A prefix like acestream://, or a mask using {channel_id} and optionally {pid}'}
+              />
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={closeEditDialog} color="inherit">
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              disabled={!editName.trim() || !editPattern.trim() || patchBaseUrlMutation.isLoading}
+            >
+              Save changes
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+    </ContentSection>
+  );
+};
 
 const Settings: React.FC = () => {
   const theme = useTheme();
@@ -207,6 +497,10 @@ const Settings: React.FC = () => {
 
   const handleCloseSnackbar = () => {
     setFeedback((current) => ({ ...current, open: false }));
+  };
+
+  const notify = (message: string, severity: FeedbackSeverity) => {
+    setFeedback({ open: true, message, severity });
   };
 
 
@@ -374,6 +668,8 @@ const Settings: React.FC = () => {
           </Grid>
         </Grid>
       </ContentSection>
+
+      <StreamBaseUrlsSection notify={notify} />
 
       <ContentSection
         title="API access"

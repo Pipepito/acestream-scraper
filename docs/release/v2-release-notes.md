@@ -57,6 +57,10 @@ If you are upgrading from v1, run `bash scripts/ops/preflight_v2_deploy.sh` firs
 - **warp-cli compatibility.** WARP status parsing falls back to legacy `warp-cli` subcommands (`account`, `warp-stats`) when the modern ones (`registration show`, `tunnel stats`) are unavailable, so status reporting works across warp-cli generations.
 - **Configurable status-check timeouts.** Channel status checks read their timeout from the `acestream_check_timeout` setting (default 10s), the standalone engine probe from `ACESTREAM_STATUS_TIMEOUT`; a timed-out probe is retried once with a doubled timeout before the channel is marked offline, so slow engines stop producing false offline sweeps.
 
+### Playlists
+
+- **Named base URLs.** Base URLs are now stored in the database with a name and a default (`/api/v1/base-urls` CRUD, managed from Settings). A pattern containing `{channel_id}` is rendered as a mask — e.g. `http://host:8080/ace/stream?id={channel_id}&pid={pid}` — while a pattern without placeholders keeps the legacy prefix behavior. Playlist endpoints accept `?base_url_id=<id>` to pick a named entry; an explicit `?base_url=` string still overrides, and existing deployments are seeded with their current `base_url` setting as the default entry so generated links don't change.
+
 ### Scraping
 
 - **Bare content-ID harvesting.** A per-URL `scrape_bare_ids` flag (off by default) makes the scraper also collect raw 40-hex acestream IDs from pages that list hashes without the `acestream://` scheme, using the preceding line text as the channel name when present.

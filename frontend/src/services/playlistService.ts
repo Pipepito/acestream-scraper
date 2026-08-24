@@ -14,6 +14,8 @@ export interface PlaylistFilters {
   favorites_only?: boolean;
   include_groups?: string[];
   exclude_groups?: string[];
+  /** ID of a named stream base URL entry (see baseUrlService) */
+  base_url_id?: number;
 }
 
 /**
@@ -47,6 +49,7 @@ export const playlistService = {
       if (filters.exclude_groups) {
         filters.exclude_groups.forEach(g => params.append('exclude_groups', g));
       }
+      if (filters.base_url_id !== undefined) params.append('base_url_id', String(filters.base_url_id));
     }
     const base = getPlaylistDownloadBaseUrl({
       dev: process.env.NODE_ENV === 'development',

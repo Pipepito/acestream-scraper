@@ -45,7 +45,7 @@ Create or edit `config/config.json`:
 ### Key Settings
 
 - **urls**: Array of URLs to scrape for Acestream channels
-- **base_url**: Base URL format for playlist generation
+- **base_url**: Base URL format for playlist generation. You can also store multiple *named* base URLs (Settings → Stream base URLs) with one marked as default; a pattern containing `{channel_id}` (and optionally `{pid}`) is filled in per entry, while a pattern without placeholders is used as a plain prefix. Playlist URLs accept `?base_url_id=<id>` to pick a named entry.
   - `acestream://` - For players with Acestream protocol support
   - `http://localhost:6878/ace/getstream?id=` - For local HTTP streaming
   - `http://server-ip:acexy_port/ace/getstream?id=` - For using built-in Acexy proxy

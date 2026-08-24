@@ -21,6 +21,7 @@ import {
 } from '@mui/material';
 import { Download, QrCode } from '@mui/icons-material';
 import { useChannelGroups } from '../hooks/usePlaylists';
+import { useBaseUrls } from '../hooks/useBaseUrls';
 import { PlaylistFilters, playlistService } from '../services/playlistService';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
@@ -39,6 +40,7 @@ const Playlist: React.FC = () => {
 
   const [showFilters, setShowFilters] = useState<boolean>(false);
   const [search, setSearch] = useState<string>('');
+  const [selectedBaseUrlId, setSelectedBaseUrlId] = useState<number | ''>('');
 
   // Get available channel groups
   const {
@@ -46,10 +48,17 @@ const Playlist: React.FC = () => {
     isLoading: loadingGroups
   } = useChannelGroups();
 
+  // Named stream base URLs (Settings > Stream base URLs)
+  const {
+    data: namedBaseUrls = [],
+    isLoading: loadingBaseUrls
+  } = useBaseUrls();
+
   // Get M3U playlist URL based on current filters (use absolute in dev, relative in prod)
   const playlistUrl = playlistService.getPlaylistDownloadUrl({
     ...filters,
-    search: search || filters.search
+    search: search || filters.search,
+    base_url_id: selectedBaseUrlId === '' ? undefined : selectedBaseUrlId
   });
 
   const handleIncludeGroupsChange = (event: SelectChangeEvent<string[]>) => {
@@ -156,6 +165,30 @@ const Playlist: React.FC = () => {
               }
               label="Only include favorite TV channels"
             />
+
+            <FormControl fullWidth margin="normal">
+              <InputLabel id="stream-base-url-label">Stream base URL</InputLabel>
+              <Select
+                labelId="stream-base-url-label"
+                value={selectedBaseUrlId}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setSelectedBaseUrlId(value === '' ? '' : Number(value));
+                }}
+                input={<OutlinedInput label="Stream base URL" />}
+                disabled={loadingBaseUrls}
+              >
+                <MenuItem value="">Default</MenuItem>
+                {namedBaseUrls.map((entry) => (
+                  <MenuItem key={entry.id} value={entry.id}>
+                    {entry.is_default ? `${entry.name} (default)` : entry.name}
+                  </MenuItem>
+                ))}
+              </Select>
+              <Box sx={{ typography: 'caption', color: 'text.secondary', mt: 0.5 }}>
+                Pick a named link format from Settings, or keep Default to use the configured one.
+              </Box>
+            </FormControl>
 
             <Box sx={{ mt: 2 }}>
               <Button

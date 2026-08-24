@@ -265,6 +265,21 @@ class Setting(Base):
         return setting
 
 
+class BaseUrl(Base):
+    """Named stream base URL (#62): a pattern used to build playlist links.
+
+    A pattern containing the {channel_id} placeholder is rendered by
+    substitution (optionally with {pid}); a pattern without placeholders is
+    treated as a plain prefix, matching the legacy base_url setting.
+    """
+    __tablename__ = "base_urls"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(255), unique=True, nullable=False)
+    pattern = Column(String(1024), nullable=False)
+    is_default = Column(Boolean, default=False, nullable=False)
+
+
 class ActivityLog(Base):
     """Model for tracking user activity and system events"""
     __tablename__ = "activity_log"

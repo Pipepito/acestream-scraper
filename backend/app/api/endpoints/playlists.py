@@ -43,6 +43,7 @@ async def get_m3u_playlist(
     include_groups: Optional[str] = Query(None),
     exclude_groups: Optional[str] = Query(None),
     base_url: Optional[str] = Query(None),
+    base_url_id: Optional[int] = Query(None),
     format: Optional[str] = Query(None),
     refresh: bool = False,
     db: Session = Depends(get_db)
@@ -75,6 +76,7 @@ async def get_m3u_playlist(
             include_groups=include_groups_list,
             exclude_groups=exclude_groups_list,
             base_url=base_url,
+            base_url_id=base_url_id,
             format=format
         )
 
@@ -83,6 +85,8 @@ async def get_m3u_playlist(
         }
         # Return the M3U content with proper headers
         return PlainTextResponse(m3u_content, headers=headers)
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -99,6 +103,7 @@ async def get_m3u_playlist_compat(
     include_groups: Optional[str] = Query(None),
     exclude_groups: Optional[str] = Query(None),
     base_url: Optional[str] = Query(None),
+    base_url_id: Optional[int] = Query(None),
     format: Optional[str] = Query(None),
     refresh: bool = False,
     db: Session = Depends(get_db)
@@ -117,6 +122,7 @@ async def get_m3u_playlist_compat(
         include_groups=include_groups,
         exclude_groups=exclude_groups,
         base_url=base_url,
+        base_url_id=base_url_id,
         format=format,
         refresh=refresh,
         db=db
@@ -128,6 +134,7 @@ async def get_tv_channels_playlist(
     search: Optional[str] = None,
     favorites_only: bool = False,
     base_url: Optional[str] = Query(None),
+    base_url_id: Optional[int] = Query(None),
     format: Optional[str] = Query(None),
     refresh: bool = False,
     db: Session = Depends(get_db)
@@ -149,9 +156,12 @@ async def get_tv_channels_playlist(
             search=search,
             favorites_only=favorites_only,
             base_url=base_url,
+            base_url_id=base_url_id,
             format=format
         )
         return PlainTextResponse(m3u_content, headers=M3U_DOWNLOAD_HEADERS)
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -164,6 +174,7 @@ async def get_all_streams_playlist(
     search: Optional[str] = None,
     include_unassigned: bool = True,
     base_url: Optional[str] = Query(None),
+    base_url_id: Optional[int] = Query(None),
     format: Optional[str] = Query(None),
     refresh: bool = False,
     db: Session = Depends(get_db)
@@ -185,9 +196,12 @@ async def get_all_streams_playlist(
             search=search,
             include_unassigned=include_unassigned,
             base_url=base_url,
+            base_url_id=base_url_id,
             format=format
         )
         return PlainTextResponse(m3u_content, headers=M3U_DOWNLOAD_HEADERS)
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -207,6 +221,8 @@ async def get_channel_groups(
     try:
         groups = await playlist_service.get_channel_groups()
         return groups
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=500,

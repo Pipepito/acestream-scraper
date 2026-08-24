@@ -167,6 +167,7 @@ async def public_m3u_playlist(
     include_groups: Optional[str] = Query(None),
     exclude_groups: Optional[str] = Query(None),
     base_url: Optional[str] = Query(None),
+    base_url_id: Optional[int] = Query(None),
     format: Optional[str] = Query(None),
     refresh: bool = False,
     db: Session = Depends(get_db)
@@ -188,6 +189,7 @@ async def public_m3u_playlist(
             include_groups=include_groups_list,
             exclude_groups=exclude_groups_list,
             base_url=base_url,
+            base_url_id=base_url_id,
             format=format
         )
         headers = {"Content-Disposition": "attachment; filename=playlist.m3u"}
@@ -206,6 +208,7 @@ async def legacy_m3u_playlist(
     include_groups: Optional[str] = Query(None),
     exclude_groups: Optional[str] = Query(None),
     base_url: Optional[str] = Query(None),
+    base_url_id: Optional[int] = Query(None),
     format: Optional[str] = Query(None),
     refresh: bool = False,
     db: Session = Depends(get_db)
@@ -220,6 +223,7 @@ async def legacy_m3u_playlist(
         include_groups=include_groups,
         exclude_groups=exclude_groups,
         base_url=base_url,
+        base_url_id=base_url_id,
         format=format,
         refresh=refresh,
         db=db
@@ -235,6 +239,7 @@ async def legacy_api_m3u_playlist(
     include_groups: Optional[str] = Query(None),
     exclude_groups: Optional[str] = Query(None),
     base_url: Optional[str] = Query(None),
+    base_url_id: Optional[int] = Query(None),
     format: Optional[str] = Query(None),
     refresh: bool = False,
     db: Session = Depends(get_db)
@@ -250,6 +255,7 @@ async def legacy_api_m3u_playlist(
         include_groups=include_groups,
         exclude_groups=exclude_groups,
         base_url=base_url,
+        base_url_id=base_url_id,
         format=format,
         refresh=refresh,
         db=db
@@ -260,6 +266,7 @@ async def legacy_tv_channels_playlist(
     search: Optional[str] = None,
     favorites_only: bool = False,
     base_url: Optional[str] = Query(None),
+    base_url_id: Optional[int] = Query(None),
     format: Optional[str] = Query(None),
     refresh: bool = False,
     db: Session = Depends(get_db)
@@ -272,6 +279,7 @@ async def legacy_tv_channels_playlist(
         search=search,
         favorites_only=favorites_only,
         base_url=base_url,
+        base_url_id=base_url_id,
         format=format,
         refresh=refresh,
         db=db
@@ -282,6 +290,7 @@ async def legacy_all_streams_playlist(
     search: Optional[str] = None,
     include_unassigned: bool = True,
     base_url: Optional[str] = Query(None),
+    base_url_id: Optional[int] = Query(None),
     format: Optional[str] = Query(None),
     refresh: bool = False,
     db: Session = Depends(get_db)
@@ -294,6 +303,7 @@ async def legacy_all_streams_playlist(
         search=search,
         include_unassigned=include_unassigned,
         base_url=base_url,
+        base_url_id=base_url_id,
         format=format,
         refresh=refresh,
         db=db

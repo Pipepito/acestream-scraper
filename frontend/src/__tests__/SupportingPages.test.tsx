@@ -73,6 +73,12 @@ jest.mock('../hooks/useConfig');
 jest.mock('../hooks/useEPG');
 jest.mock('../hooks/usePlaylists');
 jest.mock('../hooks/useWarp');
+jest.mock('../hooks/useBaseUrls', () => ({
+  useBaseUrls: () => ({ data: [], isLoading: false, error: undefined }),
+  useCreateBaseUrl: () => ({ mutate: jest.fn(), isLoading: false }),
+  usePatchBaseUrl: () => ({ mutate: jest.fn(), isLoading: false }),
+  useDeleteBaseUrl: () => ({ mutate: jest.fn(), isLoading: false }),
+}));
 jest.mock('../services/configService', () => ({
   configService: {
     getAppId: jest.fn(),

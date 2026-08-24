@@ -16,6 +16,7 @@ EXPECTED_TABLES = {
     'epg_string_mappings',
     'acestream_channels',
     'activity_log',
+    'base_urls',
 }
 
 EXPECTED_SETTINGS_COLUMNS = {'id', 'key', 'value', 'description'}

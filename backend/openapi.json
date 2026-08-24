@@ -613,35 +613,65 @@
         "title": "AppIdUpdate",
         "type": "object"
       },
-      "BaseUrlUpdate": {
-        "description": "Schema for updating the base URL for Acestream links",
+      "BaseUrlCreate": {
         "properties": {
-          "base_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Base URL for Acestream links",
-            "title": "Base Url"
+          "is_default": {
+            "default": false,
+            "title": "Is Default",
+            "type": "boolean"
           },
-          "value": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Compatibility alias for base_url",
-            "title": "Value"
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "pattern": {
+            "description": "Prefix, or a mask using {channel_id} and optionally {pid}",
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Pattern",
+            "type": "string"
           }
         },
-        "title": "BaseUrlUpdate",
+        "required": [
+          "name",
+          "pattern"
+        ],
+        "title": "BaseUrlCreate",
+        "type": "object"
+      },
+      "BaseUrlResponse": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "is_default": {
+            "default": false,
+            "title": "Is Default",
+            "type": "boolean"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "pattern": {
+            "description": "Prefix, or a mask using {channel_id} and optionally {pid}",
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Pattern",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "pattern",
+          "id"
+        ],
+        "title": "BaseUrlResponse",
         "type": "object"
       },
       "Body_bulk_delete_acestream_channels_api_v1_acestream_channels_bulk_delete_post": {
@@ -3299,6 +3329,80 @@
         ],
         "title": "WarpModeRequest",
         "type": "object"
+      },
+      "app__schemas__base_url__BaseUrlUpdate": {
+        "properties": {
+          "is_default": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Default"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "pattern": {
+            "anyOf": [
+              {
+                "maxLength": 1024,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pattern"
+          }
+        },
+        "title": "BaseUrlUpdate",
+        "type": "object"
+      },
+      "app__schemas__config__BaseUrlUpdate": {
+        "description": "Schema for updating the base URL for Acestream links",
+        "properties": {
+          "base_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Base URL for Acestream links",
+            "title": "Base Url"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Compatibility alias for base_url",
+            "title": "Value"
+          }
+        },
+        "title": "BaseUrlUpdate",
+        "type": "object"
       }
     }
   },
@@ -3373,6 +3477,22 @@
                 }
               ],
               "title": "Base Url"
+            }
+          },
+          {
+            "in": "query",
+            "name": "base_url_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Base Url Id"
             }
           },
           {
@@ -3599,6 +3719,22 @@
           },
           {
             "in": "query",
+            "name": "base_url_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Base Url Id"
+            }
+          },
+          {
+            "in": "query",
             "name": "format",
             "required": false,
             "schema": {
@@ -3694,6 +3830,22 @@
                 }
               ],
               "title": "Base Url"
+            }
+          },
+          {
+            "in": "query",
+            "name": "base_url_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Base Url Id"
             }
           },
           {
@@ -4704,6 +4856,155 @@
         ]
       }
     },
+    "/api/v1/base-urls": {
+      "get": {
+        "operationId": "list_base_urls_api_v1_base_urls_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BaseUrlResponse"
+                  },
+                  "title": "Response List Base Urls Api V1 Base Urls Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Base Urls",
+        "tags": [
+          "base-urls"
+        ]
+      },
+      "post": {
+        "operationId": "create_base_url_api_v1_base_urls_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BaseUrlCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseUrlResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Base Url",
+        "tags": [
+          "base-urls"
+        ]
+      }
+    },
+    "/api/v1/base-urls/{base_url_id}": {
+      "delete": {
+        "operationId": "delete_base_url_api_v1_base_urls__base_url_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "base_url_id",
+            "required": true,
+            "schema": {
+              "title": "Base Url Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Base Url",
+        "tags": [
+          "base-urls"
+        ]
+      },
+      "patch": {
+        "operationId": "update_base_url_api_v1_base_urls__base_url_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "base_url_id",
+            "required": true,
+            "schema": {
+              "title": "Base Url Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/app__schemas__base_url__BaseUrlUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseUrlResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Base Url",
+        "tags": [
+          "base-urls"
+        ]
+      }
+    },
     "/api/v1/channels/": {
       "get": {
         "description": "Get all channels with optional filtering.\nSupports both skip/limit and page/page_size parameters.\nSet assigned=false to list only streams not linked to a TV channel.\nReturns paginated items and total count.",
@@ -5694,7 +5995,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/BaseUrlUpdate"
+                "$ref": "#/components/schemas/app__schemas__config__BaseUrlUpdate"
               }
             }
           },
@@ -6999,6 +7300,22 @@
           },
           {
             "in": "query",
+            "name": "base_url_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Base Url Id"
+            }
+          },
+          {
+            "in": "query",
             "name": "format",
             "required": false,
             "schema": {
@@ -7185,6 +7502,22 @@
           },
           {
             "in": "query",
+            "name": "base_url_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Base Url Id"
+            }
+          },
+          {
+            "in": "query",
             "name": "format",
             "required": false,
             "schema": {
@@ -7345,6 +7678,22 @@
           },
           {
             "in": "query",
+            "name": "base_url_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Base Url Id"
+            }
+          },
+          {
+            "in": "query",
             "name": "format",
             "required": false,
             "schema": {
@@ -7443,6 +7792,22 @@
                 }
               ],
               "title": "Base Url"
+            }
+          },
+          {
+            "in": "query",
+            "name": "base_url_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Base Url Id"
             }
           },
           {
@@ -9147,6 +9512,22 @@
           },
           {
             "in": "query",
+            "name": "base_url_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Base Url Id"
+            }
+          },
+          {
+            "in": "query",
             "name": "format",
             "required": false,
             "schema": {
@@ -9290,6 +9671,22 @@
                 }
               ],
               "title": "Base Url"
+            }
+          },
+          {
+            "in": "query",
+            "name": "base_url_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Base Url Id"
             }
           },
           {

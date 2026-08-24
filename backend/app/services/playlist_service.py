@@ -1,6 +1,7 @@
 """
 Service for managing and generating M3U playlists
 """
+import re
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -27,6 +28,7 @@ class PlaylistService:
         exclude_groups: Optional[List[str]] = None,
         favorites_only: bool = False,
         base_url: Optional[str] = None,
+        base_url_id: Optional[int] = None,
         format: Optional[str] = None
     ) -> str:
         """
@@ -56,7 +58,7 @@ class PlaylistService:
         )
 
         # Load runtime settings for base URL fallback and addpid toggle.
-        base_url, addpid_enabled = self._resolve_output_settings(base_url)
+        base_url, addpid_enabled = self._resolve_output_settings(base_url, base_url_id)
 
         # Generate M3U content
         m3u_content = self._generate_m3u_content(
@@ -72,6 +74,7 @@ class PlaylistService:
         search: Optional[str] = None,
         favorites_only: bool = False,
         base_url: Optional[str] = None,
+        base_url_id: Optional[int] = None,
         format: Optional[str] = None
     ) -> str:
         """
@@ -83,7 +86,7 @@ class PlaylistService:
             search=search,
             favorites_only=favorites_only,
         )
-        base_url, addpid = self._resolve_output_settings(base_url)
+        base_url, addpid = self._resolve_output_settings(base_url, base_url_id)
 
         lines: List[str] = ["#EXTM3U"]
         pid_counter = 1
@@ -99,6 +102,7 @@ class PlaylistService:
         search: Optional[str] = None,
         include_unassigned: bool = True,
         base_url: Optional[str] = None,
+        base_url_id: Optional[int] = None,
         format: Optional[str] = None
     ) -> str:
         """
@@ -106,7 +110,7 @@ class PlaylistService:
         acestreams not assigned to any TV channel (numbered from 9000).
         """
         tv_channels = self.channel_repository.get_playlist_tv_channels(search=search)
-        base_url, addpid = self._resolve_output_settings(base_url)
+        base_url, addpid = self._resolve_output_settings(base_url, base_url_id)
 
         lines: List[str] = ["#EXTM3U"]
         pid_counter = 1
@@ -254,15 +258,45 @@ class PlaylistService:
 
     @staticmethod
     def _stream_link(base_url: str, channel_id: str, pid: Optional[int] = None) -> str:
+        """Build a stream link from a base-URL pattern (#62).
+
+        A pattern containing {channel_id} is rendered by substitution
+        (with {pid} filled from the per-entry counter, or stripped when
+        pids are disabled); a pattern without placeholders is a plain
+        prefix, matching the legacy base_url behavior.
+        """
+        if "{channel_id}" in base_url:
+            link = base_url.replace("{channel_id}", str(channel_id))
+            if "{pid}" in link:
+                if pid is not None:
+                    link = link.replace("{pid}", str(pid))
+                else:
+                    link = re.sub(r"[?&]pid=\{pid\}", "", link).replace("{pid}", "")
+            return link
         link = f"{base_url}{channel_id}"
         if pid is not None:
             link += f"&pid={pid}"
         return link
 
-    def _resolve_output_settings(self, base_url: Optional[str]):
-        """Resolve the effective base URL and addpid toggle from settings."""
+    def _resolve_output_settings(self, base_url: Optional[str],
+                                 base_url_id: Optional[int] = None):
+        """Resolve the effective base URL and addpid toggle.
+
+        Precedence: explicit base_url string > base_url_id lookup > the
+        default named base URL > the legacy base_url setting.
+        """
+        from app.repositories.base_url_repository import BaseUrlRepository
         from app.repositories.settings_repository import SettingsRepository
         settings_repo = SettingsRepository(self.db)
+        if not base_url and base_url_id is not None:
+            entry = BaseUrlRepository(self.db).get(base_url_id)
+            if entry is None:
+                raise LookupError(f"Base URL id {base_url_id} not found")
+            base_url = entry.pattern
+        if not base_url:
+            default_entry = BaseUrlRepository(self.db).get_default()
+            if default_entry is not None:
+                base_url = default_entry.pattern
         if not base_url:
             base_url = settings_repo.get_setting(
                 SettingsRepository.BASE_URL,
@@ -326,10 +360,7 @@ class PlaylistService:
             # Generate entry
             entry = f'#EXTINF:-1 {" ".join(attrs)}, {channel.name}\n'
 
-            # Use base_url as-is, concatenate channel.id
-            link = f'{base_url}{channel.id}'
-            if addpid:
-                link += f'&pid={pid_counter}'
+            link = self._stream_link(base_url, channel.id, pid_counter if addpid else None)
             entry += link + '\n'
 
             entries.append(entry)

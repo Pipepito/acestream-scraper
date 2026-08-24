@@ -9,7 +9,7 @@ from typing import Optional
 from uuid import uuid4
 
 import uvicorn
-from fastapi import Depends, FastAPI, Query, Request
+from fastapi import Depends, FastAPI, Query, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
@@ -19,6 +19,7 @@ from app.api.api import api_router
 from app.api.error_handlers import register_error_handlers
 from app.config.database import get_db
 from app.config.settings import get_env_compat_events, settings
+from app.services.epg_service import EPGService
 from app.services.playlist_service import PlaylistService
 from app.services.task_service import task_service
 from app.tasks.activity_log_cleanup import run_activity_log_cleanup
@@ -207,6 +208,35 @@ async def legacy_m3u_playlist(
         base_url=base_url,
         format=format,
         db=db
+    )
+
+# Legacy v1 EPG XML route. v1 served XMLTV data at /api/playlists/epg.xml and
+# that URL is configured once in players/XMLTV grabbers; in v2 the canonical
+# route moved to /api/v1/epg/xml, so keep the old URL answering.
+@app.get("/api/playlists/epg.xml")
+async def legacy_epg_xml(
+    search_term: Optional[str] = None,
+    favorites_only: bool = False,
+    days_back: int = 1,
+    days_forward: int = 7,
+    db: Session = Depends(get_db)
+):
+    """
+    Legacy v1 EPG XML URL. Behaves identically to /api/v1/epg/xml.
+    """
+    epg_service = EPGService(db)
+    xml_content = epg_service.generate_epg_xml(
+        search_term=search_term,
+        favorites_only=favorites_only,
+        days_back=days_back,
+        days_forward=days_forward
+    )
+    return Response(
+        content=xml_content,
+        media_type="application/xml",
+        headers={
+            "Content-Disposition": "attachment; filename=epg.xml"
+        }
     )
 
 # Serve React app - handle all other routes to support client-side routing

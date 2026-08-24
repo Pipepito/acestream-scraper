@@ -12,6 +12,13 @@ export interface paths {
      */
     get: operations["read_index__get"];
   };
+  "/api/playlists/epg.xml": {
+    /**
+     * Legacy Epg Xml
+     * @description Legacy v1 EPG XML URL. Behaves identically to /api/v1/epg/xml.
+     */
+    get: operations["legacy_epg_xml_api_playlists_epg_xml_get"];
+  };
   "/api/v1/acestream-channels/": {
     /**
      * Get Acestream Channels
@@ -2096,6 +2103,34 @@ export interface operations {
       200: {
         content: {
           "text/html": string;
+        };
+      };
+    };
+  };
+  /**
+   * Legacy Epg Xml
+   * @description Legacy v1 EPG XML URL. Behaves identically to /api/v1/epg/xml.
+   */
+  legacy_epg_xml_api_playlists_epg_xml_get: {
+    parameters: {
+      query?: {
+        search_term?: string | null;
+        favorites_only?: boolean;
+        days_back?: number;
+        days_forward?: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };

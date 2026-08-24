@@ -3307,6 +3307,81 @@
         "summary": "Read Index"
       }
     },
+    "/api/playlists/epg.xml": {
+      "get": {
+        "description": "Legacy v1 EPG XML URL. Behaves identically to /api/v1/epg/xml.",
+        "operationId": "legacy_epg_xml_api_playlists_epg_xml_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search_term",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search Term"
+            }
+          },
+          {
+            "in": "query",
+            "name": "favorites_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Favorites Only",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "days_back",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "title": "Days Back",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "days_forward",
+            "required": false,
+            "schema": {
+              "default": 7,
+              "title": "Days Forward",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Legacy Epg Xml"
+      }
+    },
     "/api/v1/acestream-channels/": {
       "get": {
         "description": "Get all channels with optional filtering.\nSupports both skip/limit and page/page_size parameters.\nReturns paginated items and total count.",

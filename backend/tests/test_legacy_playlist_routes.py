@@ -65,3 +65,28 @@ class TestPublicPlaylistRoute:
         assert response.status_code == status.HTTP_200_OK
         assert response.headers["content-type"] == "text/plain; charset=utf-8"
         assert response.text.startswith("#EXTM3U")
+
+
+class TestLegacyEpgXmlRoute:
+    """Test the legacy /api/playlists/epg.xml route."""
+
+    def test_epg_xml_returns_xmltv(self, client):
+        """The legacy URL must serve XMLTV content, not a 404."""
+        response = client.get("/api/playlists/epg.xml")
+        assert response.status_code == status.HTTP_200_OK
+        assert "application/xml" in response.headers["content-type"]
+        assert "<tv" in response.text
+
+    def test_epg_xml_matches_v2_route(self, client, seed_all_data):
+        """The legacy URL must return the same XMLTV as /api/v1/epg/xml."""
+        legacy = client.get("/api/playlists/epg.xml")
+        canonical = client.get("/api/v1/epg/xml")
+        assert legacy.status_code == status.HTTP_200_OK
+        assert canonical.status_code == status.HTTP_200_OK
+        assert legacy.text == canonical.text
+
+    def test_epg_xml_download_headers(self, client):
+        """The legacy URL must offer the EPG as an .xml download."""
+        response = client.get("/api/playlists/epg.xml")
+        assert "attachment" in response.headers["content-disposition"]
+        assert "epg.xml" in response.headers["content-disposition"]

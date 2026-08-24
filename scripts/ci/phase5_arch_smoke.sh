@@ -13,6 +13,11 @@ Options:
   --base-tag <prefix>      Base image tag prefix (default: acestream-scraper-smoke)
   --context <path>         Build context (default: .)
   --dockerfile <path>      Dockerfile path (default: Dockerfile)
+  --target <name>          Dockerfile target to build (default: scraper — the
+                           baseline flavor, which is the only one shipping the
+                           smoke platforms; without an explicit target the
+                           build would default to the last stage, the
+                           amd64-only scraper-acestream-acexy flavor)
   --timeout <sec>          Per-platform startup timeout (default: 60)
   --dry-run                Print planned actions only
   --help                   Show this help
@@ -23,6 +28,7 @@ PLATFORMS="linux/arm/v7,linux/arm64"
 BASE_TAG="acestream-scraper-smoke"
 CONTEXT="."
 DOCKERFILE="Dockerfile"
+TARGET="scraper"
 TIMEOUT=60
 DRY_RUN=0
 
@@ -42,6 +48,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --dockerfile)
       DOCKERFILE="${2:-}"
+      shift 2
+      ;;
+    --target)
+      TARGET="${2:-}"
       shift 2
       ;;
     --timeout)
@@ -76,7 +86,7 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
     [[ -z "$platform" ]] && continue
     tag_suffix="${platform//\//-}"
     image_tag="${BASE_TAG}:${tag_suffix}"
-    echo "[DRY RUN] build: docker buildx build --platform ${platform} --load -f ${DOCKERFILE} -t ${image_tag} ${CONTEXT}"
+    echo "[DRY RUN] build: docker buildx build --platform ${platform} --target ${TARGET} --load -f ${DOCKERFILE} -t ${image_tag} ${CONTEXT}"
     echo "[DRY RUN] run: docker run --rm -d --name phase5-smoke-${tag_suffix} -p <ephemeral>:8000 ${image_tag}"
     echo "[DRY RUN] probe: GET /api/v1/health and GET /"
   done
@@ -105,6 +115,7 @@ run_smoke_for_platform() {
   echo "Building platform image: ${platform_trimmed}"
   docker buildx build \
     --platform "${platform_trimmed}" \
+    --target "${TARGET}" \
     --file "${DOCKERFILE}" \
     --tag "${image_tag}" \
     --load \

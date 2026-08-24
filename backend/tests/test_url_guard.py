@@ -53,6 +53,11 @@ class TestAlwaysBlocked:
         with pytest.raises(BlockedURLError, match="metadata"):
             validate_outbound_url("http://169.254.169.254/latest/meta-data/")
 
+    def test_ipv6_mapped_metadata_blocked_in_permissive_mode(self, monkeypatch):
+        monkeypatch.setenv("ALLOW_PRIVATE_SCRAPE_TARGETS", "true")
+        with pytest.raises(BlockedURLError, match="metadata"):
+            validate_outbound_url("http://[::ffff:169.254.169.254]/latest/meta-data/")
+
 
 class TestPermissiveDefault:
     def test_private_targets_allowed_by_default(self, resolver, monkeypatch):
@@ -97,3 +102,46 @@ class TestStrictMode:
         resolver({"other.internal": "172.17.0.2"})
         with pytest.raises(BlockedURLError):
             validate_outbound_url("http://other.internal/")
+
+
+class TestRedirectGuarding:
+    def test_epg_fetch_blocks_redirect_to_metadata(self, resolver, monkeypatch):
+        """A public EPG source 302ing to the metadata endpoint must be
+        stopped at the hop, not transparently followed."""
+        from types import SimpleNamespace
+
+        from app.services import epg_service as epg_module
+
+        monkeypatch.setenv("ALLOW_PRIVATE_SCRAPE_TARGETS", "true")
+        resolver({
+            "public.example.com": "93.184.216.34",
+            "169.254.169.254": "169.254.169.254",
+        })
+
+        calls = []
+
+        class FakeResponse:
+            status_code = 302
+            headers = {"Location": "http://169.254.169.254/latest/meta-data/"}
+            content = b""
+            is_redirect = True
+            is_permanent_redirect = False
+
+            def raise_for_status(self):
+                pass
+
+        def fake_get(url, timeout=None, allow_redirects=True):
+            assert allow_redirects is False
+            calls.append(url)
+            return FakeResponse()
+
+        monkeypatch.setattr(epg_module.requests, "get", fake_get)
+
+        service = epg_module.EPGService(db=None)
+        source = SimpleNamespace(id=1, url="http://public.example.com/epg.xml")
+        result = service._fetch_epg_from_source(source)
+
+        assert result["success"] is False
+        assert "metadata" in result["error"]
+        # The metadata URL itself was never fetched
+        assert calls == ["http://public.example.com/epg.xml"]

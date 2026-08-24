@@ -7,6 +7,7 @@ import re
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import urljoin
 
 import requests
 from sqlalchemy import and_
@@ -14,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.models.models import EPGSource, EPGChannel, EPGProgram, EPGStringMapping, TVChannel
 from app.schemas.epg import EPGSourceCreate, EPGSourceUpdate
-from app.utils.url_guard import validate_outbound_url
+from app.utils.url_guard import BlockedURLError, validate_outbound_url
 
 logger = logging.getLogger(__name__)
 
@@ -596,9 +597,23 @@ class EPGService:
         try:
             logger.info(f"Fetching EPG data from {source.url}")
 
-            # Make HTTP request with timeout
-            validate_outbound_url(source.url)
-            response = requests.get(source.url, timeout=60)
+            # Make HTTP request with timeout. Redirects are followed
+            # manually so every hop passes the outbound URL guard.
+            current_url = source.url
+            validate_outbound_url(current_url)
+            response = None
+            for _ in range(6):
+                response = requests.get(current_url, timeout=60, allow_redirects=False)
+                if response.is_redirect or response.is_permanent_redirect:
+                    location = response.headers.get('Location')
+                    if not location:
+                        break
+                    current_url = urljoin(current_url, location)
+                    validate_outbound_url(current_url)
+                    continue
+                break
+            else:
+                raise BlockedURLError(f"Too many redirects fetching '{source.url}'")
             response.raise_for_status()
 
             # Handle gzipped content

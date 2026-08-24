@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 from app.models.url_types import ZeronetURL
 from app.scrapers.base import BaseScraper
 from app.config.settings import settings
+from app.utils.url_guard import BlockedURLError, validate_outbound_url
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +83,12 @@ class ZeronetScraper(BaseScraper):
         # Get the internal HTTP URL for ZeroNet service
         internal_url = self.url_obj.get_internal_url(zeronet_host)
 
+        # SSRF guard: zeronet-type URLs pass through get_internal_url
+        # verbatim when they aren't real zero.net addresses, so they must not
+        # become an unguarded escape hatch. The configured ZERONET_URL host
+        # is exempt inside the guard.
+        validate_outbound_url(internal_url)
+
         # Check if URL is directly pointing to an M3U file
         is_m3u_file = internal_url.lower().endswith(('.m3u', '.m3u8'))
         if is_m3u_file:
@@ -132,6 +139,7 @@ class ZeronetScraper(BaseScraper):
                                 iframe_url = base_url + iframe_url
 
                             try:
+                                validate_outbound_url(iframe_url)
                                 # Try to fetch iframe content
                                 async with session.get(
                                     iframe_url,
@@ -146,12 +154,16 @@ class ZeronetScraper(BaseScraper):
                                         'fileContents' in iframe_content or
                                         'channel-item' in iframe_content):
                                         return iframe_content
-                            except aiohttp.ClientError as e:
+                            except (aiohttp.ClientError, BlockedURLError) as e:
                                 logger.warning(f"Failed to fetch iframe content: {e}")
                                 # Don't retry on iframe errors, continue with main content
 
-                        # Check main content as fallback
-                        if 'acestream://' in content or 'const linksData' in content or 'fileContents' in content:
+                        # Check main content as fallback. With bare-ID
+                        # harvesting enabled (#81), a page of raw 40-hex
+                        # hashes is also acceptable content.
+                        if ('acestream://' in content or 'const linksData' in content
+                                or 'fileContents' in content
+                                or (self.scrape_bare_ids and self.bare_id_pattern.search(content))):
                             return content
 
                         # If we get here, no expected content was found in this attempt

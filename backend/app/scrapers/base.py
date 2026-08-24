@@ -12,6 +12,7 @@ from bs4 import BeautifulSoup
 from app.models.url_types import BaseURL
 from app.services.m3u_service import M3UService
 from app.config.database import get_db
+from app.utils.url_guard import BlockedURLError
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
@@ -138,20 +139,39 @@ class BaseScraper(ABC):
         precedes the hash, the hash itself becomes the (editable) name.
         """
         channels = []
-        # Strip markup so IDs inside HTML still sit on one text line
-        text = BeautifulSoup(content, 'html.parser').get_text('\n')
+        # Build logical lines at block-element boundaries only: inline markup
+        # (<b>, <code>, table cells within a row) must not split a channel
+        # name from its hash, while rows/paragraphs/list items must.
+        soup = BeautifulSoup(content, 'html.parser')
+        for br in soup.find_all('br'):
+            br.replace_with('\n')
+        for tag in soup.find_all(['p', 'li', 'tr', 'div', 'section', 'article',
+                                  'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre']):
+            tag.append('\n')
+        text = soup.get_text(' ')
 
-        for line in text.splitlines():
+        for raw_line in text.splitlines():
+            line = ' '.join(raw_line.split())
             # acestream:// lines belong to the dedicated extractor; never
             # re-capture their hashes here.
-            if 'acestream://' in line.lower():
+            lowered = line.lower()
+            if not line or 'acestream://' in lowered:
+                continue
+            # 40-hex strings inside URLs (git SHAs, gateway paths) or torrent
+            # infohashes are not acestream IDs.
+            if '://' in lowered or 'btih' in lowered:
                 continue
             for match in self.bare_id_pattern.finditer(line):
                 channel_id = match.group(1)
                 if channel_id in self.identified_ids:
                     continue
-                name_part = line[:match.start()].strip().rstrip(':- ')
-                name = self.clean_channel_name(name_part) if name_part else channel_id
+                name_part = line[:match.start()].strip().rstrip(':-–— ').strip()
+                if name_part and len(name_part) <= 100:
+                    name = self.clean_channel_name(name_part)
+                else:
+                    # No label (or the "label" is a wall of page text): the
+                    # hash doubles as the editable name.
+                    name = channel_id
                 channels.append((channel_id, name))
                 self.identified_ids.add(channel_id)
 
@@ -272,6 +292,12 @@ class BaseScraper(ABC):
                     channels.extend(m3u_channels)
                 if self.scrape_bare_ids:
                     channels.extend((id, name, {}) for id, name in self.extract_bare_ids(content))
+                break
+            except BlockedURLError as e:
+                # The block is deterministic — retrying only repeats DNS
+                # lookups. Record the status and stop immediately.
+                logger.error(f"Blocked URL {url_to_scrape}: {str(e)}")
+                status = f"Error: {str(e)}"
                 break
             except Exception as e:
                 logger.error(f"Error scraping {url_to_scrape}: {str(e)}")

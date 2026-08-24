@@ -17,6 +17,9 @@ async def test_http_scraper_uses_certifi_ssl_context(monkeypatch):
     session_kwargs = {}
 
     class MockResponse:
+        status = 200
+        headers = {}
+
         async def text(self):
             return "#EXTM3U\n#EXTINF:-1,Example\nacestream://abc\n"
 

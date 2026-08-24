@@ -37,6 +37,12 @@ class TestTokenEnforced:
         )
         assert response.status_code == 401
 
+    def test_non_ascii_token_is_401_not_500(self, client, token_enabled):
+        # compare_digest raises TypeError on non-ASCII str input; the
+        # dependency must compare bytes so this stays a clean 401.
+        response = client.get("/api/v1/channels/?token=se%C3%B1or")
+        assert response.status_code == 401
+
     def test_api_accepts_bearer_token(self, client, token_enabled):
         response = client.get(
             "/api/v1/channels", headers={"Authorization": f"Bearer {TOKEN}"}

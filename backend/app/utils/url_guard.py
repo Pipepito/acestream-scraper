@@ -13,10 +13,11 @@ Behavior:
   LAN/localhost sources is a first-class use case for self-hosters. Flip it
   to false when exposing the app beyond a trusted network.
 
-The check resolves the destination immediately before the fetch. It does
-not pin the resolved IP into the actual connection, so a hostile DNS server
-could still rebind between check and fetch in strict deployments; treat
-strict mode as hardening, not a sandbox.
+Callers follow HTTP redirects manually and re-validate every hop through
+this guard. The check resolves the destination immediately before the
+fetch, but does not pin the resolved IP into the actual connection, so a
+hostile DNS server could still rebind between check and fetch in strict
+deployments; treat strict mode as hardening, not a sandbox.
 """
 
 import ipaddress
@@ -27,7 +28,16 @@ from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
-METADATA_ADDRESSES = {"169.254.169.254", "fd00:ec2::254"}
+METADATA_ADDRESSES = frozenset(
+    ipaddress.ip_address(value) for value in ("169.254.169.254", "fd00:ec2::254")
+)
+
+
+def _canonical_address(address):
+    """Unwrap IPv6-mapped IPv4 (::ffff:a.b.c.d) so literal-form tricks can't
+    dodge the address checks."""
+    mapped = getattr(address, "ipv4_mapped", None)
+    return mapped if mapped is not None else address
 
 
 class BlockedURLError(ValueError):
@@ -81,8 +91,10 @@ def validate_outbound_url(url: str) -> None:
 
     addresses = _resolve_addresses(host)
 
+    addresses = [_canonical_address(address) for address in addresses]
+
     for address in addresses:
-        if str(address) in METADATA_ADDRESSES:
+        if address in METADATA_ADDRESSES:
             raise BlockedURLError(
                 f"Refusing to fetch '{url}': resolves to the cloud metadata endpoint"
             )

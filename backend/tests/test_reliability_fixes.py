@@ -62,6 +62,29 @@ class TestWarpCliFallback:
         assert ["account"] in calls
         assert ["warp-stats"] in calls
 
+    def test_falls_back_on_clap2_style_errors(self):
+        """Pre-2024 warp-cli builds (clap 2/3) phrase unknown subcommands as
+        "wasn't recognized" / "Found argument ... isn't valid in this
+        context" — the fallback must trigger on those too."""
+        responses = {
+            "status": (0, "Status update: Connected", ""),
+            "settings": (0, "Mode: Warp", ""),
+            "registration show": (
+                1, "",
+                "error: Found argument 'registration' which wasn't expected, or isn't valid in this context",
+            ),
+            "account": (0, "Type: Team", ""),
+            "tunnel stats": (1, "", "error: The subcommand 'tunnel' wasn't recognized"),
+            "warp-stats": (0, "WAN IP: 104.28.3.3", ""),
+        }
+        service, calls = self._make_service(responses)
+        status = asyncio.run(service.get_status())
+
+        assert status["account_type"] == "team"
+        assert status["ip"] == "104.28.3.3"
+        assert ["account"] in calls
+        assert ["warp-stats"] in calls
+
     def test_non_subcommand_errors_do_not_trigger_fallback(self):
         """A modern subcommand failing for another reason must not run the
         legacy spelling (which modern clients reject noisily)."""

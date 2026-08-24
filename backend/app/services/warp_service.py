@@ -70,7 +70,21 @@ class WarpService:
         spelling when the installed client doesn't know the new one (and
         vice versa for modern clients that removed the legacy spelling)."""
         code, stdout, stderr = await self._run_command(primary)
-        if code != 0 and "unrecognized subcommand" in (stderr or "").lower():
+        # clap 4 says "unrecognized subcommand"; the clap 2/3 builds the
+        # legacy spellings exist for say "The subcommand '...' wasn't
+        # recognized" or "Found argument '...' which wasn't expected, or
+        # isn't valid in this context".
+        lowered = (stderr or "").lower()
+        unknown_subcommand = any(
+            marker in lowered
+            for marker in (
+                "unrecognized subcommand",
+                "wasn't recognized",
+                "found argument",
+                "isn't valid in this context",
+            )
+        )
+        if code != 0 and unknown_subcommand:
             return await self._run_command(legacy)
         return code, stdout, stderr
 

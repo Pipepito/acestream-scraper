@@ -49,7 +49,11 @@ async def require_api_token(request: Request) -> None:
     if request.url.path in PUBLIC_PATHS:
         return
     presented = _presented_token(request)
-    if presented and secrets.compare_digest(presented, expected):
+    # Compare bytes: compare_digest raises TypeError on non-ASCII str input,
+    # which would turn a garbage token into a 500 instead of a 401.
+    if presented and secrets.compare_digest(
+        presented.encode("utf-8"), expected.encode("utf-8")
+    ):
         return
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,

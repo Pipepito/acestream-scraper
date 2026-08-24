@@ -56,7 +56,10 @@ shutdown_children() {
 # wedge or crash under fast stream switching), but fail the container on a
 # crash loop (SUPERVISED_FAST_EXIT_LIMIT consecutive exits within
 # SUPERVISED_FAST_EXIT_WINDOW seconds) so a genuine misconfiguration still
-# surfaces instead of restarting forever.
+# surfaces instead of restarting forever. Exit 0 stops supervision (a
+# daemonizing launcher or intentional stop must not be respawned), and a
+# first launch that fails fast propagates its real status immediately — the
+# runtime contract expects "<label> startup command exited with status N".
 supervise_service() {
     local label="$1"
     local command="$2"
@@ -64,14 +67,20 @@ supervise_service() {
     local fast_exit_limit="${SUPERVISED_FAST_EXIT_LIMIT:-3}"
     local fast_exit_window="${SUPERVISED_FAST_EXIT_WINDOW:-10}"
     local fast_exits=0
+    local launches=0
     local inner_pid=""
     local sleeper_pid=""
 
     trap '
+        for p in ${inner_pid:-$(jobs -p)}; do
+            kill -TERM -- "-$p" 2>/dev/null || kill -TERM "$p" 2>/dev/null || true
+        done
+        if [ -n "$sleeper_pid" ]; then kill "$sleeper_pid" 2>/dev/null || true; fi
         if [ -n "$inner_pid" ]; then
-            kill -TERM -- "-$inner_pid" 2>/dev/null || kill -TERM "$inner_pid" 2>/dev/null
+            # Give the service its TERM grace period before the entrypoint
+            # (PID 1) exits and the runtime SIGKILLs the namespace.
+            wait "$inner_pid" 2>/dev/null || true
         fi
-        [ -n "$sleeper_pid" ] && kill "$sleeper_pid" 2>/dev/null
         exit 0
     ' INT TERM
 
@@ -82,6 +91,7 @@ supervise_service() {
         # kill the whole tree, not just the bash wrapper.
         setsid bash -lc "$command" &
         inner_pid=$!
+        launches=$((launches + 1))
         if wait "$inner_pid"; then
             status=0
         else
@@ -90,15 +100,28 @@ supervise_service() {
         inner_pid=""
         ended_at=$(date +%s)
 
+        if [ "$status" -eq 0 ]; then
+            # Clean exit: the launcher daemonized (its children keep running
+            # in the setsid group) or the service stopped on purpose.
+            # Restarting would spawn duplicates.
+            log "$label exited cleanly; not restarting"
+            exit 0
+        fi
+
         if [ $((ended_at - started_at)) -lt "$fast_exit_window" ]; then
             fast_exits=$((fast_exits + 1))
         else
             fast_exits=0
         fi
 
+        if [ "$launches" -eq 1 ] && [ "$fast_exits" -gt 0 ]; then
+            log "$label startup command exited with status $status"
+            exit "$status"
+        fi
+
         if [ "$fast_exits" -ge "$fast_exit_limit" ]; then
             log "$label exited with status $status $fast_exits times within ${fast_exit_window}s of starting; giving up"
-            exit 1
+            exit "$status"
         fi
 
         log "$label exited with status $status; restarting in ${restart_delay}s"

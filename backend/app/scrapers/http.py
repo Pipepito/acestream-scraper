@@ -6,10 +6,13 @@ import certifi
 import logging
 import ssl
 from typing import Optional
+from urllib.parse import urljoin
 
 from app.models.url_types import RegularURL
 from app.scrapers.base import BaseScraper
-from app.utils.url_guard import validate_outbound_url
+from app.utils.url_guard import BlockedURLError, validate_outbound_url
+
+MAX_REDIRECTS = 5
 
 logger = logging.getLogger(__name__)
 
@@ -39,20 +42,34 @@ class HTTPScraper(BaseScraper):
             ssl_context = ssl.create_default_context(cafile=certifi.where())
             connector = aiohttp.TCPConnector(ssl=ssl_context)
             async with aiohttp.ClientSession(connector=connector) as session:
-                async with session.get(url, 
-                                     headers=self.headers,
-                                     timeout=self.timeout) as response:
-                    response.raise_for_status()
-                    content = await response.text()
-                    
-                    # If it's an M3U file, validate and log appropriately
-                    if is_m3u_file:
-                        if content.strip().startswith('#EXTM3U') or 'acestream://' in content:
-                            logger.info(f"Successfully fetched M3U file content ({len(content)} bytes)")
-                        else:
-                            logger.warning(f"Content doesn't appear to be a valid M3U file. First 100 chars: {content[:100]}")
-                    
-                    return content
+                # Redirects are followed manually so every hop goes through
+                # the outbound URL guard — a public host 302ing to a private
+                # or metadata address must not slip past the initial check.
+                current_url = url
+                for _ in range(MAX_REDIRECTS + 1):
+                    async with session.get(current_url,
+                                         headers=self.headers,
+                                         timeout=self.timeout,
+                                         allow_redirects=False) as response:
+                        if response.status in (301, 302, 303, 307, 308):
+                            location = response.headers.get('Location')
+                            if not location:
+                                response.raise_for_status()
+                            current_url = urljoin(current_url, location)
+                            validate_outbound_url(current_url)
+                            continue
+                        response.raise_for_status()
+                        content = await response.text()
+
+                        # If it's an M3U file, validate and log appropriately
+                        if is_m3u_file:
+                            if content.strip().startswith('#EXTM3U') or 'acestream://' in content:
+                                logger.info(f"Successfully fetched M3U file content ({len(content)} bytes)")
+                            else:
+                                logger.warning(f"Content doesn't appear to be a valid M3U file. First 100 chars: {content[:100]}")
+
+                        return content
+                raise BlockedURLError(f"Too many redirects fetching '{url}'")
         except Exception as e:
             logger.error(f"Error fetching content from {url}: {str(e)}")
             raise

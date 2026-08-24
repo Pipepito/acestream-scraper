@@ -68,6 +68,53 @@ class TestBareIdExtraction:
         assert ID_A not in ids
         assert ID_B in ids
 
+    def test_markup_between_name_and_hash_keeps_the_name(self):
+        """Inline markup and table cells must not orphan the label."""
+        id_d = "d" * 40
+        id_e = "e" * 40
+        id_f = "f" * 40
+        page = f"""
+        <table><tr><td>Sports Two</td><td>{ID_A}</td></tr>
+        <tr><td>Sports Three</td><td>{id_d}</td></tr></table>
+        <p><b>News HD</b>: {id_e}</p>
+        <p>Movie: <code>{id_f}</code></p>
+        """
+        scraper = _make_scraper(bare=True)
+        by_id = {c[0]: c[1] for c in scraper.extract_bare_ids(page)}
+        assert by_id[ID_A] == "Sports Two"
+        assert by_id[id_d] == "Sports Three"
+        assert by_id[id_e] == "News HD"
+        assert by_id[id_f] == "Movie"
+
+    def test_hashes_inside_urls_and_infohashes_are_ignored(self):
+        sha = "0123456789abcdef0123456789abcdef01234567"
+        page = f"""
+        <p>see https://github.com/o/r/commit/{sha}</p>
+        <p>magnet:?xt=urn:btih:{ID_A}</p>
+        <p>Good Channel: {ID_C}</p>
+        """
+        scraper = _make_scraper(bare=True)
+        by_id = {c[0]: c[1] for c in scraper.extract_bare_ids(page)}
+        assert sha not in by_id
+        assert ID_A not in by_id
+        assert by_id == {ID_C: "Good Channel"}
+
+    def test_blocked_url_fails_fast_without_retries(self):
+        from app.utils.url_guard import BlockedURLError
+
+        scraper = _make_scraper(bare=False)
+        attempts = []
+
+        async def blocked_fetch(url):
+            attempts.append(url)
+            raise BlockedURLError("Refusing to fetch: metadata endpoint")
+
+        scraper.fetch_content = blocked_fetch
+        channels, scrape_status = asyncio.run(scraper.scrape())
+        assert channels == []
+        assert "Refusing to fetch" in scrape_status
+        assert len(attempts) == 1
+
 
 class TestBareIdUrlApi:
     def test_create_url_with_flag(self, client):

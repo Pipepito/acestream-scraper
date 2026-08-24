@@ -24,7 +24,6 @@ async def get_m3u_playlist(
     format: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
-    print("[DEBUG] /api/v1/playlists/m3u endpoint called")
     """
     Generate M3U playlist with specified filters
 
@@ -40,10 +39,6 @@ async def get_m3u_playlist(
         # Parse comma-separated strings into lists
         include_groups_list = include_groups.split(",") if include_groups else None
         exclude_groups_list = exclude_groups.split(",") if exclude_groups else None
-
-        # TEMP: Test if endpoint is hit
-        if search == "__test__":
-            return PlainTextResponse("#EXTM3U\n#EXTINF:-1,Test Channel\nacestream://TEST_ID\n", headers={"Content-Disposition": "attachment; filename=playlist.m3u"})
 
         m3u_content = await playlist_service.generate_playlist(
             search=search,

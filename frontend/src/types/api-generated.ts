@@ -477,7 +477,16 @@ export interface paths {
     get: operations["get_channel_groups_api_v1_playlists_groups_get"];
   };
   "/api/v1/playlists/m3u": {
-    /** Get M3U Playlist */
+    /**
+     * Get M3U Playlist
+     * @description Generate M3U playlist with specified filters
+     *
+     * - **search**: Optional search term for channel names
+     * - **group**: Optional specific group to filter by
+     * - **only_online**: Whether to include only online channels (default: True)
+     * - **include_groups**: Comma-separated list of groups to include
+     * - **exclude_groups**: Comma-separated list of groups to exclude
+     */
     get: operations["get_m3u_playlist_api_v1_playlists_m3u_get"];
   };
   "/api/v1/playlists/playlists/m3u": {
@@ -721,6 +730,13 @@ export interface paths {
   "/api/v1/warp/status": {
     /** Get WARP status */
     get: operations["get_warp_status_api_v1_warp_status_get"];
+  };
+  "/playlist.m3u": {
+    /**
+     * Legacy M3U Playlist
+     * @description Legacy v1 playlist URL. Behaves identically to /playlists/m3u.
+     */
+    get: operations["legacy_m3u_playlist_playlist_m3u_get"];
   };
   "/playlists/m3u": {
     /**
@@ -3709,7 +3725,16 @@ export interface operations {
       };
     };
   };
-  /** Get M3U Playlist */
+  /**
+   * Get M3U Playlist
+   * @description Generate M3U playlist with specified filters
+   *
+   * - **search**: Optional search term for channel names
+   * - **group**: Optional specific group to filter by
+   * - **only_online**: Whether to include only online channels (default: True)
+   * - **include_groups**: Comma-separated list of groups to include
+   * - **exclude_groups**: Comma-separated list of groups to exclude
+   */
   get_m3u_playlist_api_v1_playlists_m3u_get: {
     parameters: {
       query?: {
@@ -4587,6 +4612,37 @@ export interface operations {
       200: {
         content: {
           "application/json": unknown;
+        };
+      };
+    };
+  };
+  /**
+   * Legacy M3U Playlist
+   * @description Legacy v1 playlist URL. Behaves identically to /playlists/m3u.
+   */
+  legacy_m3u_playlist_playlist_m3u_get: {
+    parameters: {
+      query?: {
+        search?: string | null;
+        group?: string | null;
+        only_online?: boolean;
+        include_groups?: string | null;
+        exclude_groups?: string | null;
+        base_url?: string | null;
+        format?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "text/plain": string;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };

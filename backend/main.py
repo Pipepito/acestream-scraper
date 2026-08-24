@@ -181,6 +181,34 @@ async def public_m3u_playlist(
     except Exception as e:
         return PlainTextResponse(f"#EXTM3U\n#EXTINF:-1,Error: {str(e)}\n", status_code=500)
 
+# Legacy v1 playlist route. v1 served the playlist at /playlist.m3u and IPTV
+# players are configured with that exact URL; without this route the SPA
+# fallback would answer with index.html and HTTP 200, silently breaking them.
+@app.get("/playlist.m3u", response_class=PlainTextResponse)
+async def legacy_m3u_playlist(
+    search: Optional[str] = None,
+    group: Optional[str] = None,
+    only_online: bool = True,
+    include_groups: Optional[str] = Query(None),
+    exclude_groups: Optional[str] = Query(None),
+    base_url: Optional[str] = Query(None),
+    format: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Legacy v1 playlist URL. Behaves identically to /playlists/m3u.
+    """
+    return await public_m3u_playlist(
+        search=search,
+        group=group,
+        only_online=only_online,
+        include_groups=include_groups,
+        exclude_groups=exclude_groups,
+        base_url=base_url,
+        format=format,
+        db=db
+    )
+
 # Serve React app - handle all other routes to support client-side routing
 @app.exception_handler(StarletteHTTPException)
 async def spa_server(request: Request, exc: StarletteHTTPException):

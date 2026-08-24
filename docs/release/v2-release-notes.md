@@ -19,7 +19,7 @@ If you are upgrading from v1, run `bash scripts/ops/preflight_v2_deploy.sh` firs
 - **Single canonical stack.** Production runtime, build, and release flow run only on `backend/` + `frontend/`. The legacy root entrypoints (`wsgi.py`, `run_dev.py`, `manage.py`, root `app/`, root `migrations/`) are gone.
 - **FastAPI replaces Flask.** Typed request/response models, OpenAPI auto-docs at `/docs`, async-friendly endpoints, structured exception handling.
 - **Layered backend.** Endpoint → service → repository boundaries are enforced with an architecture-guard test (`backend/tests/architecture/test_layer_boundaries.py`). New code follows the same shape.
-- **Unified API contract.** All endpoints under `/api/v1/`; `/api/v1/channels` and `/api/v1/acestream-channels` route to the same handler for parity. Public M3U is exposed (no `/api` prefix) at `/playlists/m3u` for friendlier URLs.
+- **Unified API contract.** All endpoints under `/api/v1/`; `/api/v1/channels` and `/api/v1/acestream-channels` route to the same handler for parity. Public M3U is exposed (no `/api` prefix) at `/playlists/m3u` for friendlier URLs, and the v1 player URL `/playlist.m3u` keeps working as a compatibility alias — IPTV players configured against v1 do not need to be reconfigured.
 - **Correlation IDs.** Every request gets an `X-Correlation-ID` (incoming or generated) propagated through logs and into error responses, making operational traces easier to follow.
 - **Standard error envelope.** Errors return a consistent shape (`{detail, code, ...}`) across the API surface. Operational failure paths (scrape, EPG refresh, status checks, task lifecycle) emit structured logs.
 

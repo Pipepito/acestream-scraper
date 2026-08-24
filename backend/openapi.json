@@ -6505,6 +6505,7 @@
     },
     "/api/v1/playlists/m3u": {
       "get": {
+        "description": "Generate M3U playlist with specified filters\n\n- **search**: Optional search term for channel names\n- **group**: Optional specific group to filter by\n- **only_online**: Whether to include only online channels (default: True)\n- **include_groups**: Comma-separated list of groups to include\n- **exclude_groups**: Comma-separated list of groups to exclude",
         "operationId": "get_m3u_playlist_api_v1_playlists_m3u_get",
         "parameters": [
           {
@@ -8231,6 +8232,143 @@
         "tags": [
           "warp"
         ]
+      }
+    },
+    "/playlist.m3u": {
+      "get": {
+        "description": "Legacy v1 playlist URL. Behaves identically to /playlists/m3u.",
+        "operationId": "legacy_m3u_playlist_playlist_m3u_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          },
+          {
+            "in": "query",
+            "name": "group",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group"
+            }
+          },
+          {
+            "in": "query",
+            "name": "only_online",
+            "required": false,
+            "schema": {
+              "default": true,
+              "title": "Only Online",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_groups",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Include Groups"
+            }
+          },
+          {
+            "in": "query",
+            "name": "exclude_groups",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Exclude Groups"
+            }
+          },
+          {
+            "in": "query",
+            "name": "base_url",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Base Url"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Format"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Legacy M3U Playlist"
       }
     },
     "/playlists/m3u": {

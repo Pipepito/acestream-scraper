@@ -400,7 +400,7 @@ def test_bootstrap_jenkins_runner_repairs_nodesource_keyring_and_enforces_node_2
     )
 
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "install -y nodejs" in apt_log.read_text()
+    assert "install -y --allow-downgrades nodejs" in apt_log.read_text()
     assert (keyring_dir / "nodesource.gpg").read_text() == "VALID-KEY\n"
     assert "node_20.x" in (sources_dir / "nodesource.list").read_text()
     prefs = (prefs_dir / "nodesource").read_text()
@@ -458,7 +458,7 @@ def test_bootstrap_jenkins_runner_installs_npm_when_distro_nodejs_shadows(tmp_pa
     )
 
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "install -y nodejs" in apt_log.read_text()
+    assert "install -y --allow-downgrades nodejs" in apt_log.read_text()
     prefs = (prefs_dir / "nodesource").read_text()
     assert "Package: nodejs" in prefs
     assert "Pin: origin deb.nodesource.com" in prefs
@@ -501,7 +501,7 @@ def test_bootstrap_jenkins_runner_repairs_invalid_nodesource_keyring(tmp_path):
     assert result.returncode == 0, result.stdout + result.stderr
     assert "Configuring NodeSource apt key" in result.stdout
     assert (keyring_dir / "nodesource.gpg").read_text() == "VALID-KEY\n"
-    assert "install -y nodejs" in apt_log.read_text()
+    assert "install -y --allow-downgrades nodejs" in apt_log.read_text()
 
 
 def test_bootstrap_jenkins_runner_is_idempotent_on_second_run(tmp_path):

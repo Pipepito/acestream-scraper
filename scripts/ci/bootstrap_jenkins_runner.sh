@@ -259,7 +259,12 @@ install_node_if_needed() {
   fi
 
   ensure_nodesource_repo
-  install_packages nodejs
+  require_passwordless_sudo
+  apt_update
+  log "Installing packages: nodejs"
+  # The pinned NodeSource nodejs is a downgrade relative to a newer distro
+  # nodejs; apt refuses -y downgrades unless explicitly allowed.
+  "${SUDO[@]}" apt-get install -y --allow-downgrades nodejs
 
   if ! have_command npm; then
     fail "nodejs was installed but npm is still unavailable — a distro nodejs package likely shadowed NodeSource's; check ${PREFERENCES_DIR}/nodesource and 'apt-cache policy nodejs'."

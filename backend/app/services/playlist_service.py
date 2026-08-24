@@ -271,12 +271,32 @@ class PlaylistService:
                 if pid is not None:
                     link = link.replace("{pid}", str(pid))
                 else:
-                    link = re.sub(r"[?&]pid=\{pid\}", "", link).replace("{pid}", "")
+                    link = PlaylistService._strip_pid_placeholder(link)
             return link
+        # Legacy prefix behavior. A stray {pid} without {channel_id} can't be
+        # persisted (schema validation) but can arrive via an explicit
+        # ?base_url= string — never leak the literal placeholder to players.
+        if "{pid}" in base_url:
+            if pid is not None:
+                base_url = base_url.replace("{pid}", str(pid))
+                link = f"{base_url}{channel_id}"
+                return link
+            base_url = PlaylistService._strip_pid_placeholder(base_url)
         link = f"{base_url}{channel_id}"
         if pid is not None:
             link += f"&pid={pid}"
         return link
+
+    @staticmethod
+    def _strip_pid_placeholder(link: str) -> str:
+        """Remove an unfilled pid={pid} query parameter, keeping the query
+        string valid whether the parameter was first, middle, or last."""
+        # pid param followed by another parameter: keep the leading separator
+        link = re.sub(r"([?&])pid=\{pid\}&", r"\1", link)
+        # pid param at the end of the query string
+        link = re.sub(r"[?&]pid=\{pid\}$", "", link)
+        # any remaining bare occurrence
+        return link.replace("{pid}", "")
 
     def _resolve_output_settings(self, base_url: Optional[str],
                                  base_url_id: Optional[int] = None):

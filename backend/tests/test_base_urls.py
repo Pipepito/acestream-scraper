@@ -29,11 +29,26 @@ class TestStreamLinkRendering:
         assert link == f"http://h:8080/ace/stream?id={CID}"
 
     def test_mask_with_pid_as_first_query_param(self):
-        link = PlaylistService._stream_link(
-            "http://h/play?pid={pid}", CID
+        pattern = "http://h/ace/stream?pid={pid}&id={channel_id}"
+        # pid filled: straightforward substitution
+        assert PlaylistService._stream_link(pattern, CID, pid=4) == (
+            f"http://h/ace/stream?pid=4&id={CID}"
         )
-        # No {channel_id} placeholder: legacy prefix behavior applies
-        assert CID in link
+        # pid disabled: the parameter is removed and the next one is
+        # promoted to '?' so the URL stays valid
+        assert PlaylistService._stream_link(pattern, CID) == (
+            f"http://h/ace/stream?id={CID}"
+        )
+
+    def test_pid_without_channel_id_never_leaks_the_placeholder(self):
+        # Can't be persisted (schema validation) but can arrive via an
+        # explicit ?base_url= string.
+        with_pid = PlaylistService._stream_link("http://h/play?pid={pid}", CID, pid=5)
+        without_pid = PlaylistService._stream_link("http://h/play?pid={pid}", CID)
+        assert "{pid}" not in with_pid
+        assert "{pid}" not in without_pid
+        assert CID in with_pid
+        assert CID in without_pid
 
 
 class TestBaseUrlCrud:
@@ -69,6 +84,21 @@ class TestBaseUrlCrud:
         listed = {e["name"]: e for e in client.get("/api/v1/base-urls").json()}
         assert listed["Two"]["is_default"] is True
         assert listed["One"]["is_default"] is False
+
+    def test_pid_only_pattern_is_rejected(self, client):
+        response = client.post(
+            "/api/v1/base-urls",
+            json={"name": "Broken", "pattern": "http://h/play?pid={pid}"},
+        )
+        assert response.status_code == 422
+
+        entry = client.post(
+            "/api/v1/base-urls", json={"name": "Fine", "pattern": "acestream://"}
+        ).json()
+        response = client.patch(
+            f"/api/v1/base-urls/{entry['id']}", json={"pattern": "x?pid={pid}"}
+        )
+        assert response.status_code == 422
 
     def test_delete_and_missing(self, client):
         entry = client.post(
@@ -134,6 +164,13 @@ class TestPlaylistResolution:
         self._add_channel(client)
         response = client.get("/api/v1/playlists/m3u?only_online=false&base_url_id=99999")
         assert response.status_code == 404
+
+    def test_unknown_base_url_id_is_404_on_player_routes(self, client):
+        self._add_channel(client)
+        for path in ("/playlists/m3u", "/playlist.m3u"):
+            response = client.get(f"{path}?only_online=false&base_url_id=99999")
+            assert response.status_code == 404, path
+            assert response.text.startswith("#EXTM3U")
 
     def test_without_entries_falls_back_to_legacy_setting(self, client):
         self._add_channel(client)

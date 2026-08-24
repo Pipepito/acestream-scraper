@@ -194,6 +194,10 @@ async def public_m3u_playlist(
         )
         headers = {"Content-Disposition": "attachment; filename=playlist.m3u"}
         return PlainTextResponse(m3u_content, headers=headers)
+    except LookupError as e:
+        # Client error (unknown base_url_id): keep the error-playlist body
+        # players expect, but with the right status class.
+        return PlainTextResponse(f"#EXTM3U\n#EXTINF:-1,Error: {str(e)}\n", status_code=404)
     except Exception as e:
         return PlainTextResponse(f"#EXTM3U\n#EXTINF:-1,Error: {str(e)}\n", status_code=500)
 

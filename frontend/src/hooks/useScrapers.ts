@@ -63,6 +63,24 @@ export const useUpdateURL = (id: number) => {
 };
 
 /**
+ * Hook for patching a URL when the ID is only known at call time
+ * (e.g. inline row toggles). Invalidates the same queries as useUpdateURL.
+ */
+export const usePatchURL = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    ({ id, data }: { id: number; data: UpdateURLDTO }) => scraperService.updateURL(id, data),
+    {
+      onSuccess: (_result, variables) => {
+        queryClient.invalidateQueries(['url', variables.id]);
+        queryClient.invalidateQueries('urls');
+      }
+    }
+  );
+};
+
+/**
  * Hook for deleting a URL
  */
 export const useDeleteURL = () => {

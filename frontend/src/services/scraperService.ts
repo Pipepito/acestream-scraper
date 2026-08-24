@@ -16,6 +16,7 @@ export interface ScrapedURL {
   last_error?: string;
   added_at: string;
   channels_found?: number;
+  scrape_bare_ids?: boolean;
 }
 
 /**
@@ -25,6 +26,7 @@ export interface CreateURLDTO {
   url: string;
   url_type: string;
   enabled?: boolean;
+  scrape_bare_ids?: boolean;
 }
 
 /**
@@ -34,6 +36,7 @@ export interface UpdateURLDTO {
   url?: string;
   url_type?: string;
   enabled?: boolean;
+  scrape_bare_ids?: boolean;
 }
 
 /**

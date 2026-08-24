@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import AppShell from './components/layout/AppShell';
+import ApiTokenNotice from './components/ApiTokenNotice';
 import Dashboard from './pages/Dashboard';
 import AcestreamChannels from './pages/AcestreamChannels';
 import TVChannels from './pages/TVChannels';
@@ -43,6 +44,7 @@ const App: React.FC = () => {
           <Route path="/stats" element={<Stats />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <ApiTokenNotice />
     </AppShell>
   );
 };

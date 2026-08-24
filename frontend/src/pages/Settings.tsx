@@ -11,9 +11,15 @@ import {
   RadioGroup,
   Alert,
   CircularProgress,
+  IconButton,
+  InputAdornment,
   Snackbar,
   Stack,
 } from '@mui/material';
+import {
+  Visibility as VisibilityIcon,
+  VisibilityOff as VisibilityOffIcon,
+} from '@mui/icons-material';
 import {
   useBaseUrl,
   useUpdateBaseUrl,
@@ -27,6 +33,13 @@ import {
   useAcestreamStatus
 } from '../hooks/useConfig';
 import { configService } from '../services/configService';
+import {
+  getApiToken,
+  setApiToken as storeApiToken,
+  clearApiToken as removeStoredApiToken,
+  isApiTokenRequired,
+  resetApiTokenRequired,
+} from '../services/apiToken';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
 import { useAppThemeMode } from '../bootstrap/AppBootstrap';
@@ -56,6 +69,9 @@ const Settings: React.FC = () => {
     severity: 'success',
   });
   const [appIdError, setAppIdError] = useState<string>('');
+  const [apiTokenInput, setApiTokenInput] = useState<string>(() => getApiToken() ?? '');
+  const [showApiToken, setShowApiToken] = useState<boolean>(false);
+  const [apiTokenRequired, setApiTokenRequired] = useState<boolean>(() => isApiTokenRequired());
 
   // Queries
   const baseUrlQuery = useBaseUrl();
@@ -166,6 +182,27 @@ const Settings: React.FC = () => {
       .finally(() => {
         setAppidSubmitting(false);
       });
+  };
+
+  const handleApiTokenSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = apiTokenInput.trim();
+    if (!trimmed) {
+      return;
+    }
+    storeApiToken(trimmed);
+    setApiTokenInput(trimmed);
+    resetApiTokenRequired();
+    setApiTokenRequired(false);
+    setFeedback({ open: true, message: 'API token saved. It will be sent with future API requests.', severity: 'success' });
+  };
+
+  const handleApiTokenClear = () => {
+    removeStoredApiToken();
+    setApiTokenInput('');
+    resetApiTokenRequired();
+    setApiTokenRequired(false);
+    setFeedback({ open: true, message: 'API token cleared', severity: 'success' });
   };
 
   const handleCloseSnackbar = () => {
@@ -336,6 +373,54 @@ const Settings: React.FC = () => {
             </form>
           </Grid>
         </Grid>
+      </ContentSection>
+
+      <ContentSection
+        title="API access"
+        description="Store the API token this browser sends with every request to the backend."
+      >
+        <Stack spacing={2} sx={{ maxWidth: 520 }}>
+          {apiTokenRequired ? (
+            <Alert severity="warning">
+              The server rejected an API request because a valid token is missing. Enter the token below to restore access.
+            </Alert>
+          ) : null}
+          <form onSubmit={handleApiTokenSave}>
+            <Stack spacing={2}>
+              <TextField
+                id="api-token"
+                label="API token"
+                type={showApiToken ? 'text' : 'password'}
+                fullWidth
+                value={apiTokenInput}
+                onChange={(e) => setApiTokenInput(e.target.value)}
+                autoComplete="off"
+                helperText="Only needed when the server sets the API_TOKEN environment variable. Stored in this browser and sent as an X-Api-Token header with every API request."
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label={showApiToken ? 'Hide API token' : 'Show API token'}
+                        onClick={() => setShowApiToken((current) => !current)}
+                        edge="end"
+                      >
+                        {showApiToken ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <Stack direction="row" spacing={1}>
+                <Button type="submit" variant="contained" color="primary" disabled={!apiTokenInput.trim()}>
+                  Save token
+                </Button>
+                <Button variant="outlined" color="inherit" onClick={handleApiTokenClear}>
+                  Clear token
+                </Button>
+              </Stack>
+            </Stack>
+          </form>
+        </Stack>
       </ContentSection>
 
       <ContentSection title="Automation settings" description="Adjust scraper timing and playlist link options without mixing them into connection details.">

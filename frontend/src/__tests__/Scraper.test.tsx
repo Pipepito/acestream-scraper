@@ -1,6 +1,6 @@
 import React from 'react';
 import { ThemeProvider } from '@mui/material/styles';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from 'react-query';
 
 import Scraper from '../pages/Scraper';
@@ -10,6 +10,7 @@ import { TestMemoryRouter } from '../testUtils/router';
 const mockUseURLs = jest.fn();
 const mockUseCreateURL = jest.fn();
 const mockUseUpdateURL = jest.fn();
+const mockUsePatchURL = jest.fn();
 const mockUseDeleteURL = jest.fn();
 const mockUseScrapeAllURLs = jest.fn();
 
@@ -17,6 +18,7 @@ jest.mock('../hooks/useScrapers', () => ({
   useURLs: (...args: unknown[]) => mockUseURLs(...args),
   useCreateURL: (...args: unknown[]) => mockUseCreateURL(...args),
   useUpdateURL: (...args: unknown[]) => mockUseUpdateURL(...args),
+  usePatchURL: (...args: unknown[]) => mockUsePatchURL(...args),
   useDeleteURL: (...args: unknown[]) => mockUseDeleteURL(...args),
   useScrapeAllURLs: (...args: unknown[]) => mockUseScrapeAllURLs(...args),
 }));
@@ -60,6 +62,7 @@ describe('Scraper', () => {
     });
     mockUseCreateURL.mockReturnValue({ mutateAsync: jest.fn(), isLoading: false });
     mockUseUpdateURL.mockReturnValue({ mutateAsync: jest.fn(), isLoading: false });
+    mockUsePatchURL.mockReturnValue({ mutateAsync: jest.fn().mockResolvedValue({}), isLoading: false });
     mockUseDeleteURL.mockReturnValue({ mutateAsync: jest.fn() });
     mockUseScrapeAllURLs.mockReturnValue({ mutateAsync: jest.fn(), isLoading: false });
   });
@@ -70,6 +73,24 @@ describe('Scraper', () => {
     expect(screen.getByRole('button', { name: 'Scrape URL https://source-one.test/feed' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Edit URL https://source-one.test/feed' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Delete URL https://source-one.test/feed' })).toBeInTheDocument();
+  });
+
+  it('toggles bare content ID harvesting on a row via the patch mutation', async () => {
+    const mutateAsync = jest.fn().mockResolvedValue({});
+    mockUsePatchURL.mockReturnValue({ mutateAsync, isLoading: false });
+
+    renderPage();
+
+    const bareIdsSwitch = screen.getByRole('checkbox', {
+      name: 'Harvest bare content IDs for https://source-one.test/feed',
+    });
+    expect(bareIdsSwitch).not.toBeChecked();
+
+    fireEvent.click(bareIdsSwitch);
+
+    await waitFor(() => {
+      expect(mutateAsync).toHaveBeenCalledWith({ id: 11, data: { scrape_bare_ids: true } });
+    });
   });
 
   it('opens with a source-intake summary that shows the pipeline and next step', () => {

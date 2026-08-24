@@ -7,6 +7,9 @@ const createAxiosConfig = (): InternalAxiosRequestConfig => ({
 jest.mock('axios', () => {
   const instance = {
     interceptors: {
+      request: {
+        use: jest.fn(),
+      },
       response: {
         use: jest.fn(),
       },

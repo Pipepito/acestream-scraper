@@ -25,6 +25,9 @@ import {
   Snackbar,
   SelectChangeEvent,
   Stack,
+  Switch,
+  FormControlLabel,
+  FormHelperText,
   Typography,
 } from '@mui/material';
 import {
@@ -34,7 +37,7 @@ import {
   Refresh as RefreshIcon,
   PlayArrow as PlayArrowIcon,
 } from '@mui/icons-material';
-import { useURLs, useCreateURL, useUpdateURL, useDeleteURL, useScrapeAllURLs } from '../hooks/useScrapers';
+import { useURLs, useCreateURL, useUpdateURL, usePatchURL, useDeleteURL, useScrapeAllURLs } from '../hooks/useScrapers';
 import { CreateURLDTO, UpdateURLDTO, ScrapedURL, scraperService } from '../services/scraperService';
 import { formatDistanceToNow } from 'date-fns';
 import { alpha, useTheme } from '@mui/material/styles';
@@ -45,12 +48,14 @@ interface URLFormData {
   url: string;
   url_type: string;
   enabled: boolean;
+  scrape_bare_ids: boolean;
 }
 
 const initialFormData: URLFormData = {
   url: '',
   url_type: 'auto',
-  enabled: true
+  enabled: true,
+  scrape_bare_ids: false
 };
 
 const Scraper: React.FC = () => {
@@ -67,6 +72,7 @@ const Scraper: React.FC = () => {
   const { data: urls, isLoading, refetch } = useURLs();
   const createURL = useCreateURL();
   const updateURL = useUpdateURL(currentId || 0);
+  const patchURL = usePatchURL();
   const deleteURL = useDeleteURL();
   const scrapeAllURLs = useScrapeAllURLs();
 
@@ -110,7 +116,8 @@ const Scraper: React.FC = () => {
       setFormData({
         url: url.url,
         url_type: url.url_type,
-        enabled: url.enabled
+        enabled: url.enabled,
+        scrape_bare_ids: url.scrape_bare_ids ?? false
       });
       setCurrentId(url.id);
     } else {
@@ -198,6 +205,30 @@ const Scraper: React.FC = () => {
           severity: 'error'
         });
       }
+    }
+  };
+
+  const [bareIdsUpdatingId, setBareIdsUpdatingId] = useState<number | null>(null);
+  const handleToggleBareIds = async (url: ScrapedURL, checked: boolean) => {
+    setBareIdsUpdatingId(url.id);
+
+    try {
+      await patchURL.mutateAsync({ id: url.id, data: { scrape_bare_ids: checked } });
+      setSnackbar({
+        open: true,
+        message: checked
+          ? 'Bare content ID harvesting enabled'
+          : 'Bare content ID harvesting disabled',
+        severity: 'success'
+      });
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: `Error: ${(error as Error).message}`,
+        severity: 'error'
+      });
+    } finally {
+      setBareIdsUpdatingId(null);
     }
   };
 
@@ -402,6 +433,7 @@ const Scraper: React.FC = () => {
                 <TableCell>Status</TableCell>
                 <TableCell>Last Scraped</TableCell>
                 <TableCell>Channels Found</TableCell>
+                <TableCell>Bare IDs</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -423,6 +455,15 @@ const Scraper: React.FC = () => {
                     </TableCell>
                     <TableCell>{url.channels_found || 0}</TableCell>
                     <TableCell>
+                      <Switch
+                        size="small"
+                        checked={url.scrape_bare_ids ?? false}
+                        onChange={(e) => handleToggleBareIds(url, e.target.checked)}
+                        disabled={bareIdsUpdatingId === url.id}
+                        inputProps={{ 'aria-label': `Harvest bare content IDs for ${url.url}` }}
+                      />
+                    </TableCell>
+                    <TableCell>
                         <IconButton
                           color="primary"
                           onClick={() => handleScrape(url.id)}
@@ -442,7 +483,7 @@ const Scraper: React.FC = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} align="center">
+                  <TableCell colSpan={7} align="center">
                     {isLoading ? 'Loading...' : 'No URLs found'}
                   </TableCell>
                 </TableRow>
@@ -495,6 +536,20 @@ const Scraper: React.FC = () => {
               <MenuItem value="false">Disabled</MenuItem>
             </Select>
           </FormControl>
+          <Box sx={{ mt: 2 }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.scrape_bare_ids}
+                  onChange={(e) => setFormData({ ...formData, scrape_bare_ids: e.target.checked })}
+                />
+              }
+              label="Harvest bare content IDs"
+            />
+            <FormHelperText sx={{ ml: 0 }}>
+              Also collect raw 40-character acestream hashes from pages that don&apos;t use acestream:// links.
+            </FormHelperText>
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Cancel</Button>

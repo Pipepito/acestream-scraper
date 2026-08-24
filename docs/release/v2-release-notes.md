@@ -19,7 +19,8 @@ If you are upgrading from v1, run `bash scripts/ops/preflight_v2_deploy.sh` firs
 - **Single canonical stack.** Production runtime, build, and release flow run only on `backend/` + `frontend/`. The legacy root entrypoints (`wsgi.py`, `run_dev.py`, `manage.py`, root `app/`, root `migrations/`) are gone.
 - **FastAPI replaces Flask.** Typed request/response models, OpenAPI auto-docs at `/docs`, async-friendly endpoints, structured exception handling.
 - **Layered backend.** Endpoint → service → repository boundaries are enforced with an architecture-guard test (`backend/tests/architecture/test_layer_boundaries.py`). New code follows the same shape.
-- **Unified API contract.** All endpoints under `/api/v1/`; `/api/v1/channels` and `/api/v1/acestream-channels` route to the same handler for parity. Public M3U is exposed (no `/api` prefix) at `/playlists/m3u` for friendlier URLs, and the v1 player URLs `/playlist.m3u` and `/api/playlists/epg.xml` keep working as compatibility aliases — IPTV players and XMLTV grabbers configured against v1 do not need to be reconfigured.
+- **Unified API contract.** All endpoints under `/api/v1/`; `/api/v1/channels` and `/api/v1/acestream-channels` route to the same handler for parity. Public M3U is exposed (no `/api` prefix) at `/playlists/m3u` for friendlier URLs, and the v1 player URLs keep working as compatibility aliases — `/playlist.m3u`, `/api/playlists/m3u`, `/api/playlists/epg.xml`, `/api/playlists/tv-channels/m3u`, and `/api/playlists/all-streams/m3u` — so IPTV players and XMLTV grabbers configured against v1 do not need to be reconfigured.
+- **Curated playlists.** The v1 curated playlists are back with the same semantics: `/api/v1/playlists/tv-channels/m3u` (one entry per TV channel with its assigned streams, quality-ranked, `tvg-chno` numbering) and `/api/v1/playlists/all-streams/m3u` (numbered TV channels followed by unassigned streams from `tvg-chno` 9000). Multi-stream channels are disambiguated as `Name (2)` instead of `Name 2` so they can't be confused with distinct channels, and all streams of a channel keep the channel's own `tvg-id` so EPG mapping stays intact. `refresh=true` on any playlist URL triggers a background rescrape of enabled sources (v1 semantics: fire-and-forget, the playlist itself is served from current data; the trigger is skipped when a scrape is already running).
 - **Correlation IDs.** Every request gets an `X-Correlation-ID` (incoming or generated) propagated through logs and into error responses, making operational traces easier to follow.
 - **Standard error envelope.** Errors return a consistent shape (`{detail, code, ...}`) across the API surface. Operational failure paths (scrape, EPG refresh, status checks, task lifecycle) emit structured logs.
 
@@ -163,6 +164,9 @@ basket of hardening items. All are closed before tag. Headline changes:
   AceStream binaries are amd64-only. ARM availability tracks upstream
   releases; the playbook for enabling ARM lives in
   `docs/ops/multiarch-manifest-updates.md`.
+- Cloudflare WARP (`warp-cli`) is only packaged for amd64 upstream, so the
+  `linux/arm/v7` and `linux/arm64` images ship without it. Setting
+  `ENABLE_WARP=true` on an ARM image fails at startup with a clear error.
 
 ---
 

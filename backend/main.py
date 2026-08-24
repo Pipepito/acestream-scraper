@@ -16,6 +16,12 @@ from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.api import api_router
+from app.api.endpoints.playlists import (
+    get_all_streams_playlist,
+    get_m3u_playlist,
+    get_tv_channels_playlist,
+    trigger_url_scrape_refresh,
+)
 from app.api.error_handlers import register_error_handlers
 from app.config.database import get_db
 from app.config.settings import get_env_compat_events, settings
@@ -159,11 +165,15 @@ async def public_m3u_playlist(
     exclude_groups: Optional[str] = Query(None),
     base_url: Optional[str] = Query(None),
     format: Optional[str] = Query(None),
+    refresh: bool = False,
     db: Session = Depends(get_db)
 ):
     """
     Public route for M3U playlist (no /api prefix)
     """
+    if refresh:
+        trigger_url_scrape_refresh()
+
     playlist_service = PlaylistService(db)
     try:
         include_groups_list = include_groups.split(",") if include_groups else None
@@ -194,6 +204,7 @@ async def legacy_m3u_playlist(
     exclude_groups: Optional[str] = Query(None),
     base_url: Optional[str] = Query(None),
     format: Optional[str] = Query(None),
+    refresh: bool = False,
     db: Session = Depends(get_db)
 ):
     """
@@ -207,6 +218,81 @@ async def legacy_m3u_playlist(
         exclude_groups=exclude_groups,
         base_url=base_url,
         format=format,
+        refresh=refresh,
+        db=db
+    )
+
+# Legacy v1 playlist API routes. v1 served these under /api/playlists/*;
+# the canonical v2 routes live under /api/v1/playlists/*.
+@app.get("/api/playlists/m3u", response_class=PlainTextResponse)
+async def legacy_api_m3u_playlist(
+    search: Optional[str] = None,
+    group: Optional[str] = None,
+    only_online: bool = True,
+    include_groups: Optional[str] = Query(None),
+    exclude_groups: Optional[str] = Query(None),
+    base_url: Optional[str] = Query(None),
+    format: Optional[str] = Query(None),
+    refresh: bool = False,
+    db: Session = Depends(get_db)
+):
+    """
+    Legacy v1 playlist API URL. Behaves identically to /api/v1/playlists/m3u
+    (API error contract, unlike the player-facing /playlists/m3u route).
+    """
+    return await get_m3u_playlist(
+        search=search,
+        group=group,
+        only_online=only_online,
+        include_groups=include_groups,
+        exclude_groups=exclude_groups,
+        base_url=base_url,
+        format=format,
+        refresh=refresh,
+        db=db
+    )
+
+@app.get("/api/playlists/tv-channels/m3u", response_class=PlainTextResponse)
+async def legacy_tv_channels_playlist(
+    search: Optional[str] = None,
+    favorites_only: bool = False,
+    base_url: Optional[str] = Query(None),
+    format: Optional[str] = Query(None),
+    refresh: bool = False,
+    db: Session = Depends(get_db)
+):
+    """
+    Legacy v1 TV-channels playlist URL. Behaves identically to
+    /api/v1/playlists/tv-channels/m3u.
+    """
+    return await get_tv_channels_playlist(
+        search=search,
+        favorites_only=favorites_only,
+        base_url=base_url,
+        format=format,
+        refresh=refresh,
+        db=db
+    )
+
+@app.get("/api/playlists/all-streams/m3u", response_class=PlainTextResponse)
+async def legacy_all_streams_playlist(
+    search: Optional[str] = None,
+    include_unassigned: bool = True,
+    base_url: Optional[str] = Query(None),
+    format: Optional[str] = Query(None),
+    refresh: bool = False,
+    db: Session = Depends(get_db)
+):
+    """
+    Legacy v1 all-streams playlist URL. Behaves identically to
+    /api/v1/playlists/all-streams/m3u.
+    """
+    return await get_all_streams_playlist(
+        search=search,
+        include_unassigned=include_unassigned,
+        base_url=base_url,
+        format=format,
+        refresh=refresh,
         db=db
     )
 

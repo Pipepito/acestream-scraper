@@ -8,8 +8,30 @@ from typing import List, Optional
 
 from app.config.database import get_db
 from app.services.playlist_service import PlaylistService
+from app.services.task_service import task_service
 
 router = APIRouter()
+
+M3U_DOWNLOAD_HEADERS = {"Content-Disposition": "attachment; filename=playlist.m3u"}
+
+
+def trigger_url_scrape_refresh() -> None:
+    """Kick off the URL-scraping background task for playlist refresh=true.
+
+    Matches v1 semantics: the scrape is fire-and-forget and the playlist is
+    generated from current data. Skipped when a scrape is already running or
+    the scheduler is unavailable (e.g. under tests); never fails the request.
+    """
+    import logging
+    try:
+        outcome = task_service.run_task_now("url_scraping")
+        logging.getLogger("app.api.playlists").info(
+            "playlist refresh requested url_scraping trigger=%s", outcome
+        )
+    except Exception as exc:
+        logging.getLogger("app.api.playlists").warning(
+            "playlist refresh trigger failed error=%s", exc
+        )
 
 
 @router.get("/m3u", response_class=PlainTextResponse)
@@ -22,6 +44,7 @@ async def get_m3u_playlist(
     exclude_groups: Optional[str] = Query(None),
     base_url: Optional[str] = Query(None),
     format: Optional[str] = Query(None),
+    refresh: bool = False,
     db: Session = Depends(get_db)
 ):
     """
@@ -32,7 +55,11 @@ async def get_m3u_playlist(
     - **only_online**: Whether to include only online channels (default: True)
     - **include_groups**: Comma-separated list of groups to include
     - **exclude_groups**: Comma-separated list of groups to exclude
+    - **refresh**: Trigger a background rescrape of all enabled URLs
     """
+    if refresh:
+        trigger_url_scrape_refresh()
+
     playlist_service = PlaylistService(db)
 
     try:
@@ -73,6 +100,7 @@ async def get_m3u_playlist_compat(
     exclude_groups: Optional[str] = Query(None),
     base_url: Optional[str] = Query(None),
     format: Optional[str] = Query(None),
+    refresh: bool = False,
     db: Session = Depends(get_db)
 ):
     """
@@ -90,8 +118,81 @@ async def get_m3u_playlist_compat(
         exclude_groups=exclude_groups,
         base_url=base_url,
         format=format,
+        refresh=refresh,
         db=db
     )
+
+
+@router.get("/tv-channels/m3u", response_class=PlainTextResponse)
+async def get_tv_channels_playlist(
+    search: Optional[str] = None,
+    favorites_only: bool = False,
+    base_url: Optional[str] = Query(None),
+    format: Optional[str] = Query(None),
+    refresh: bool = False,
+    db: Session = Depends(get_db)
+):
+    """
+    Generate a curated M3U playlist of TV channels with their assigned
+    acestreams, ordered by channel number then name.
+
+    - **search**: Optional search term for TV channel names
+    - **favorites_only**: Only include favorite TV channels
+    - **refresh**: Trigger a background rescrape of all enabled URLs
+    """
+    if refresh:
+        trigger_url_scrape_refresh()
+
+    playlist_service = PlaylistService(db)
+    try:
+        m3u_content = await playlist_service.generate_tv_channels_playlist(
+            search=search,
+            favorites_only=favorites_only,
+            base_url=base_url,
+            format=format
+        )
+        return PlainTextResponse(m3u_content, headers=M3U_DOWNLOAD_HEADERS)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate TV channels playlist: {str(e)}"
+        )
+
+
+@router.get("/all-streams/m3u", response_class=PlainTextResponse)
+async def get_all_streams_playlist(
+    search: Optional[str] = None,
+    include_unassigned: bool = True,
+    base_url: Optional[str] = Query(None),
+    format: Optional[str] = Query(None),
+    refresh: bool = False,
+    db: Session = Depends(get_db)
+):
+    """
+    Generate an M3U playlist of numbered TV channels followed by unassigned
+    acestreams (numbered from 9000).
+
+    - **search**: Optional search term for channel names
+    - **include_unassigned**: Append streams not assigned to any TV channel
+    - **refresh**: Trigger a background rescrape of all enabled URLs
+    """
+    if refresh:
+        trigger_url_scrape_refresh()
+
+    playlist_service = PlaylistService(db)
+    try:
+        m3u_content = await playlist_service.generate_all_streams_playlist(
+            search=search,
+            include_unassigned=include_unassigned,
+            base_url=base_url,
+            format=format
+        )
+        return PlainTextResponse(m3u_content, headers=M3U_DOWNLOAD_HEADERS)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate all-streams playlist: {str(e)}"
+        )
 
 
 @router.get("/groups", response_model=List[str])

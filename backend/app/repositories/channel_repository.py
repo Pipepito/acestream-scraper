@@ -10,11 +10,52 @@ from app.models.models import AcestreamChannel, EPGChannel, TVChannel
 
 
 class ChannelRepository:
-    def get_tv_channels_with_total(self, skip: int = 0, limit: int = 100) -> (list, int):
+    def get_tv_channels_with_total(self, skip: int = 0, limit: int = 100,
+                                   search: Optional[str] = None,
+                                   favorites_only: bool = False) -> (list, int):
         query = self.db.query(TVChannel)
+        if search:
+            query = query.filter(TVChannel.name.ilike(f"%{search}%"))
+        if favorites_only:
+            query = query.filter(TVChannel.is_favorite == True)
         total = query.count()
-        items = query.offset(skip).limit(limit).all()
+        items = query.order_by(*self._tv_channel_ordering()).offset(skip).limit(limit).all()
         return items, total
+
+    @staticmethod
+    def _tv_channel_ordering():
+        # channel_number first (NULLs last), then name — the ordering both the
+        # channel list and the curated playlists present to users.
+        from sqlalchemy import func
+        return (
+            TVChannel.channel_number.is_(None),
+            TVChannel.channel_number,
+            func.lower(TVChannel.name),
+        )
+
+    def get_playlist_tv_channels(self,
+                                 search: Optional[str] = None,
+                                 favorites_only: bool = False) -> List[TVChannel]:
+        """Get active TV channels for playlist generation, unpaginated, in
+        playlist order (channel_number NULLs last, then name)."""
+        from sqlalchemy.orm import selectinload
+        query = (
+            self.db.query(TVChannel)
+            .options(selectinload(TVChannel.acestream_channels))
+            .filter(TVChannel.is_active == True)
+        )
+        if search:
+            query = query.filter(TVChannel.name.ilike(f"%{search}%"))
+        if favorites_only:
+            query = query.filter(TVChannel.is_favorite == True)
+        return query.order_by(*self._tv_channel_ordering()).all()
+
+    def get_unassigned_channels(self, search: Optional[str] = None) -> List[AcestreamChannel]:
+        """Get acestream channels not assigned to any TV channel."""
+        query = self.db.query(AcestreamChannel).filter(AcestreamChannel.tv_channel_id.is_(None))
+        if search:
+            query = query.filter(AcestreamChannel.name.ilike(f"%{search}%"))
+        return query.order_by(AcestreamChannel.group, AcestreamChannel.name).all()
     def assign_acestreams_to_tv_channel(self, acestream_ids: list, tv_channel_id: int) -> int:
         """Assign multiple acestream channels to a TV channel by setting their tv_channel_id."""
         if not acestream_ids:
@@ -402,7 +443,8 @@ class ChannelRepository:
                                       country: Optional[str] = None,
                                       language: Optional[str] = None,
                                       is_active: Optional[bool] = None,
-                                      is_online: Optional[bool] = None) -> List[AcestreamChannel]:
+                                      is_online: Optional[bool] = None,
+                                      assigned: Optional[bool] = None) -> List[AcestreamChannel]:
         """
         Get channels with advanced/custom field filtering
         """
@@ -421,6 +463,11 @@ class ChannelRepository:
             query = query.filter(AcestreamChannel.is_active == is_active)
         if is_online is not None:
             query = query.filter(AcestreamChannel.is_online == is_online)
+        if assigned is not None:
+            if assigned:
+                query = query.filter(AcestreamChannel.tv_channel_id.isnot(None))
+            else:
+                query = query.filter(AcestreamChannel.tv_channel_id.is_(None))
         return query.offset(skip).limit(limit).all()
 
     def get_advanced_filtered_channels_with_total(self,
@@ -432,7 +479,8 @@ class ChannelRepository:
                                       country: Optional[str] = None,
                                       language: Optional[str] = None,
                                       is_active: Optional[bool] = None,
-                                      is_online: Optional[bool] = None):
+                                      is_online: Optional[bool] = None,
+                                      assigned: Optional[bool] = None):
         """
         Get paginated channels and total count for current filter
         """
@@ -451,6 +499,11 @@ class ChannelRepository:
             query = query.filter(AcestreamChannel.is_active == is_active)
         if is_online is not None:
             query = query.filter(AcestreamChannel.is_online == is_online)
+        if assigned is not None:
+            if assigned:
+                query = query.filter(AcestreamChannel.tv_channel_id.isnot(None))
+            else:
+                query = query.filter(AcestreamChannel.tv_channel_id.is_(None))
         total = query.count()
         items = query.offset(skip).limit(limit).all()
         return items, total

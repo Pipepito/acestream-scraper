@@ -123,9 +123,34 @@ class TaskService:
             id=job_id,
             args=args or [],
             kwargs=kwargs or {},
-            replace_existing=True
+            replace_existing=True,
+            # APScheduler's default misfire_grace_time of 1s silently DROPS a
+            # run dispatched late (including run_task_now triggers on a busy
+            # executor). These maintenance tasks should run late, not skip;
+            # coalesce (default True) collapses bursts into one run.
+            misfire_grace_time=None
         )
         self.logger.info(f"Scheduled task '{job_id}' every {seconds} seconds.")
+
+    def run_task_now(self, job_id: str) -> str:
+        """Trigger a scheduled job to run immediately, outside its interval.
+
+        Returns one of:
+        - "triggered": the job was rescheduled to run now.
+        - "already_running": the job is currently executing; not re-triggered.
+        - "unavailable": the scheduler is not running or the job is not registered.
+        """
+        state = self.get_task_state(job_id)
+        if state and state.get("status") == "running":
+            return "already_running"
+        if not self.scheduler.running:
+            return "unavailable"
+        job = self.scheduler.get_job(job_id)
+        if job is None:
+            return "unavailable"
+        self.scheduler.modify_job(job_id, next_run_time=datetime.now(timezone.utc))
+        self.logger.info(f"Triggered immediate run of task '{job_id}'.")
+        return "triggered"
 
     def remove_task(self, job_id):
         try:

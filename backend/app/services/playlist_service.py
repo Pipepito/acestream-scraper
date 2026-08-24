@@ -56,19 +56,7 @@ class PlaylistService:
         )
 
         # Load runtime settings for base URL fallback and addpid toggle.
-        from app.repositories.settings_repository import SettingsRepository
-        settings_repo = SettingsRepository(self.db)
-
-        # Always get base_url from settings if not provided.
-        if not base_url:
-            base_url = settings_repo.get_setting(
-                SettingsRepository.BASE_URL,
-                SettingsRepository.DEFAULT_BASE_URL
-            )
-
-        # Get addpid config only.
-        addpid = settings_repo.get_setting(SettingsRepository.ADDPID, SettingsRepository.DEFAULT_ADDPID)
-        addpid_enabled = str(addpid).lower() in ("true", "1")
+        base_url, addpid_enabled = self._resolve_output_settings(base_url)
 
         # Generate M3U content
         m3u_content = self._generate_m3u_content(
@@ -78,6 +66,211 @@ class PlaylistService:
             addpid=addpid_enabled
         )
         return m3u_content
+
+    async def generate_tv_channels_playlist(
+        self,
+        search: Optional[str] = None,
+        favorites_only: bool = False,
+        base_url: Optional[str] = None,
+        format: Optional[str] = None
+    ) -> str:
+        """
+        Generate a curated M3U playlist of TV channels with their assigned
+        acestreams, ordered by channel number then name. Channels without
+        assigned streams are skipped.
+        """
+        tv_channels = self.channel_repository.get_playlist_tv_channels(
+            search=search,
+            favorites_only=favorites_only,
+        )
+        base_url, addpid = self._resolve_output_settings(base_url)
+
+        lines: List[str] = ["#EXTM3U"]
+        pid_counter = 1
+        name_counts: Dict[str, int] = {}
+        entry_lines, pid_counter, _ = self._tv_channel_entries(
+            tv_channels, base_url, addpid, pid_counter, name_counts
+        )
+        lines.extend(entry_lines)
+        return "\n".join(lines) + "\n"
+
+    async def generate_all_streams_playlist(
+        self,
+        search: Optional[str] = None,
+        include_unassigned: bool = True,
+        base_url: Optional[str] = None,
+        format: Optional[str] = None
+    ) -> str:
+        """
+        Generate an M3U playlist of numbered TV channels followed by
+        acestreams not assigned to any TV channel (numbered from 9000).
+        """
+        tv_channels = self.channel_repository.get_playlist_tv_channels(search=search)
+        base_url, addpid = self._resolve_output_settings(base_url)
+
+        lines: List[str] = ["#EXTM3U"]
+        pid_counter = 1
+        name_counts: Dict[str, int] = {}
+        entry_lines, pid_counter, processed_ids = self._tv_channel_entries(
+            tv_channels, base_url, addpid, pid_counter, name_counts
+        )
+        lines.extend(entry_lines)
+
+        if include_unassigned:
+            unassigned = self.channel_repository.get_unassigned_channels(search=search)
+
+            # Number unassigned streams after the TV-channel range, starting
+            # at 9000 (matching v1 behavior).
+            next_channel_number = 9000
+            numbers = [c.channel_number for c in tv_channels if c.channel_number is not None]
+            if numbers:
+                next_channel_number = max(next_channel_number, max(numbers) + 1)
+
+            for channel in unassigned:
+                if channel.id in processed_ids or not channel.id:
+                    continue
+                display_name = self._attr(channel.name) if channel.name else f"Stream {channel.id[:8]}"
+                display_name = self._dedupe_name(display_name, name_counts)
+
+                attrs = [f'tvg-chno="{next_channel_number}"']
+                next_channel_number += 1
+                if channel.tvg_id:
+                    attrs.append(f'tvg-id="{self._attr(channel.tvg_id)}"')
+                attrs.append(f'tvg-name="{display_name}"')
+                if channel.logo:
+                    attrs.append(f'tvg-logo="{self._attr(channel.logo)}"')
+                attrs.append(f'group-title="{self._attr(channel.group) if channel.group else "Unassigned Streams"}"')
+
+                lines.append(f'#EXTINF:-1 {" ".join(attrs)},{display_name}')
+                lines.append(self._stream_link(base_url, channel.id, pid_counter if addpid else None))
+                if addpid:
+                    pid_counter += 1
+
+        return "\n".join(lines) + "\n"
+
+    def _tv_channel_entries(
+        self,
+        tv_channels: List["TVChannel"],
+        base_url: str,
+        addpid: bool,
+        pid_counter: int,
+        name_counts: Dict[str, int],
+    ):
+        """Build EXTINF/link line pairs for TV channels with their assigned
+        streams. Returns (lines, next_pid_counter, processed_acestream_ids)."""
+        lines: List[str] = []
+        processed_ids = set()
+
+        for tv_channel in tv_channels:
+            streams = [s for s in tv_channel.acestream_channels if s.id]
+            if not streams:
+                continue
+            streams = sorted(streams, key=lambda s: (-self._score_acestream(s), s.id))
+            multi = len(streams) > 1
+
+            for index, stream in enumerate(streams, start=1):
+                processed_ids.add(stream.id)
+
+                # Disambiguate multi-stream channels with a parenthesized
+                # suffix so "DAZN 1 (2)" can't be confused with a channel
+                # actually named "DAZN 1 2" (#125). Route the generated name
+                # through the shared registry so later duplicates can't
+                # collide with it.
+                base_name = self._attr(tv_channel.name)
+                if multi:
+                    display_name = self._dedupe_name(f"{base_name} ({index})", name_counts)
+                else:
+                    display_name = self._dedupe_name(base_name, name_counts)
+
+                attrs = []
+                if tv_channel.channel_number is not None:
+                    if multi:
+                        # Zero-pad the sub-number so 10+ streams stay distinct
+                        # when players parse tvg-chno as a decimal (5.1 vs 5.10).
+                        width = len(str(len(streams)))
+                        attrs.append(f'tvg-chno="{tv_channel.channel_number}.{index:0{width}d}"')
+                    else:
+                        attrs.append(f'tvg-chno="{tv_channel.channel_number}"')
+                # All streams of a channel share the channel's EPG listing, so
+                # tvg-id stays un-suffixed and keeps matching the EPG XML ids.
+                if tv_channel.epg_id:
+                    attrs.append(f'tvg-id="{self._attr(tv_channel.epg_id)}"')
+                elif stream.tvg_id:
+                    attrs.append(f'tvg-id="{self._attr(stream.tvg_id)}"')
+                attrs.append(f'tvg-name="{display_name}"')
+                if tv_channel.logo_url:
+                    attrs.append(f'tvg-logo="{self._attr(tv_channel.logo_url)}"')
+                elif stream.logo:
+                    attrs.append(f'tvg-logo="{self._attr(stream.logo)}"')
+                if tv_channel.category:
+                    attrs.append(f'group-title="{self._attr(tv_channel.category)}"')
+
+                lines.append(f'#EXTINF:-1 {" ".join(attrs)},{display_name}')
+                lines.append(self._stream_link(base_url, stream.id, pid_counter if addpid else None))
+                if addpid:
+                    pid_counter += 1
+
+        return lines, pid_counter, processed_ids
+
+    @staticmethod
+    def _score_acestream(stream: AcestreamChannel) -> int:
+        """Rank a stream's quality for best-stream-first ordering."""
+        score = 0
+        if stream.is_online:
+            score += 10
+        if stream.logo:
+            score += 3
+        if stream.tvg_id:
+            score += 2
+        if stream.tvg_name:
+            score += 1
+        return score
+
+    @staticmethod
+    def _dedupe_name(name: str, name_counts: Dict[str, int]) -> str:
+        """Claim a unique display name: second 'X' becomes 'X (2)'.
+
+        Every returned name is registered in name_counts, and generated
+        suffixed candidates are probed against the registry, so the multi-
+        stream '(n)' suffixes and duplicate-name suffixes can never collide
+        with each other or with literal 'X (n)' channel names.
+        """
+        count = name_counts.get(name, 0) + 1
+        name_counts[name] = count
+        if count == 1:
+            return name
+        candidate = f"{name} ({count})"
+        while candidate in name_counts:
+            count += 1
+            name_counts[name] = count
+            candidate = f"{name} ({count})"
+        name_counts[candidate] = 1
+        return candidate
+
+    @staticmethod
+    def _attr(value) -> str:
+        """Sanitize a value for use inside a double-quoted EXTINF attribute."""
+        return str(value).replace('"', "'").replace("\r", " ").replace("\n", " ")
+
+    @staticmethod
+    def _stream_link(base_url: str, channel_id: str, pid: Optional[int] = None) -> str:
+        link = f"{base_url}{channel_id}"
+        if pid is not None:
+            link += f"&pid={pid}"
+        return link
+
+    def _resolve_output_settings(self, base_url: Optional[str]):
+        """Resolve the effective base URL and addpid toggle from settings."""
+        from app.repositories.settings_repository import SettingsRepository
+        settings_repo = SettingsRepository(self.db)
+        if not base_url:
+            base_url = settings_repo.get_setting(
+                SettingsRepository.BASE_URL,
+                SettingsRepository.DEFAULT_BASE_URL
+            )
+        addpid = settings_repo.get_setting(SettingsRepository.ADDPID, SettingsRepository.DEFAULT_ADDPID)
+        addpid_enabled = str(addpid).lower() in ("true", "1")
+        return base_url, addpid_enabled
 
     async def get_channel_groups(self) -> List[str]:
         """

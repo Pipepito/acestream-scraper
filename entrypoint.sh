@@ -52,6 +52,63 @@ shutdown_children() {
     done
 }
 
+# Supervise an auxiliary service: restart it when it dies (#119 — Acexy can
+# wedge or crash under fast stream switching), but fail the container on a
+# crash loop (SUPERVISED_FAST_EXIT_LIMIT consecutive exits within
+# SUPERVISED_FAST_EXIT_WINDOW seconds) so a genuine misconfiguration still
+# surfaces instead of restarting forever.
+supervise_service() {
+    local label="$1"
+    local command="$2"
+    local restart_delay="${SUPERVISED_RESTART_DELAY_SECONDS:-5}"
+    local fast_exit_limit="${SUPERVISED_FAST_EXIT_LIMIT:-3}"
+    local fast_exit_window="${SUPERVISED_FAST_EXIT_WINDOW:-10}"
+    local fast_exits=0
+    local inner_pid=""
+    local sleeper_pid=""
+
+    trap '
+        if [ -n "$inner_pid" ]; then
+            kill -TERM -- "-$inner_pid" 2>/dev/null || kill -TERM "$inner_pid" 2>/dev/null
+        fi
+        [ -n "$sleeper_pid" ] && kill "$sleeper_pid" 2>/dev/null
+        exit 0
+    ' INT TERM
+
+    while :; do
+        local started_at ended_at status
+        started_at=$(date +%s)
+        # setsid puts the service in its own process group so shutdown can
+        # kill the whole tree, not just the bash wrapper.
+        setsid bash -lc "$command" &
+        inner_pid=$!
+        if wait "$inner_pid"; then
+            status=0
+        else
+            status=$?
+        fi
+        inner_pid=""
+        ended_at=$(date +%s)
+
+        if [ $((ended_at - started_at)) -lt "$fast_exit_window" ]; then
+            fast_exits=$((fast_exits + 1))
+        else
+            fast_exits=0
+        fi
+
+        if [ "$fast_exits" -ge "$fast_exit_limit" ]; then
+            log "$label exited with status $status $fast_exits times within ${fast_exit_window}s of starting; giving up"
+            exit 1
+        fi
+
+        log "$label exited with status $status; restarting in ${restart_delay}s"
+        sleep "$restart_delay" &
+        sleeper_pid=$!
+        wait "$sleeper_pid" 2>/dev/null || exit 0
+        sleeper_pid=""
+    done
+}
+
 prune_finished_children() {
     local remaining_pids=()
     local remaining_labels=()
@@ -139,13 +196,13 @@ child_pids=()
 child_names=()
 
 if feature_enabled "$ENABLE_ACESTREAM_ENGINE" && [ -n "${ACESTREAM_START_COMMAND:-}" ]; then
-    bash -lc "$ACESTREAM_START_COMMAND" &
+    supervise_service "AceStream" "$ACESTREAM_START_COMMAND" &
     child_pids+=("$!")
     child_names+=("AceStream")
 fi
 
 if feature_enabled "$ENABLE_ACEXY" && [ -n "${ACEXY_START_COMMAND:-}" ]; then
-    bash -lc "$ACEXY_START_COMMAND" &
+    supervise_service "Acexy" "$ACEXY_START_COMMAND" &
     child_pids+=("$!")
     child_names+=("Acexy")
 fi

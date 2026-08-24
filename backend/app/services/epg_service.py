@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.models.models import EPGSource, EPGChannel, EPGProgram, EPGStringMapping, TVChannel
 from app.schemas.epg import EPGSourceCreate, EPGSourceUpdate
+from app.utils.url_guard import validate_outbound_url
 
 logger = logging.getLogger(__name__)
 
@@ -596,6 +597,7 @@ class EPGService:
             logger.info(f"Fetching EPG data from {source.url}")
 
             # Make HTTP request with timeout
+            validate_outbound_url(source.url)
             response = requests.get(source.url, timeout=60)
             response.raise_for_status()
 

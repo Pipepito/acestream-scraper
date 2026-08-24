@@ -9,6 +9,7 @@ from typing import Optional
 
 from app.models.url_types import RegularURL
 from app.scrapers.base import BaseScraper
+from app.utils.url_guard import validate_outbound_url
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,8 @@ class HTTPScraper(BaseScraper):
 
     async def fetch_content(self, url: str) -> str:
         """Fetch content from regular HTTP/HTTPS URLs."""
+        validate_outbound_url(url)
+
         # Check if URL is directly pointing to an M3U file
         is_m3u_file = url.lower().endswith(('.m3u', '.m3u8'))
         if is_m3u_file:

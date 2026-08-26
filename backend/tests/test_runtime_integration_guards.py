@@ -217,3 +217,86 @@ def test_jenkins_release_pipeline_verifies_checkout_matches_origin_main():
     assert 'origin_main_sha="$(git rev-parse origin/main)"' in pipeline
     assert 'if [[ "$head_sha" != "$origin_main_sha" ]]; then' in pipeline
     assert "Release pipeline requires the checked-out commit to match origin/main." in pipeline
+
+
+def test_jenkins_release_pipeline_exposes_publish_latest_parameter():
+    pipeline = (REPO_ROOT / "jenkins" / "release.Jenkinsfile").read_text()
+
+    assert "name: 'PUBLISH_LATEST'" in pipeline
+    assert "defaultValue: false" in pipeline
+    assert "PUBLISH_LATEST=${params.PUBLISH_LATEST ? '1' : '0'}" in pipeline
+    assert "run_jenkins_release.sh --print-publish-plan" in pipeline
+
+
+def test_run_jenkins_release_print_publish_plan_default_excludes_latest():
+    # Without PUBLISH_LATEST set, the publish plan must not include the
+    # floating :latest tag. This protects the canary flow: the first publish
+    # of a new version pushes only the versioned + flavor-channel tags so
+    # users on :latest are unaffected until an opt-in promotion run.
+    env = os.environ.copy()
+    env.pop("PUBLISH_LATEST", None)
+
+    result = subprocess.run(
+        [
+            "/bin/bash",
+            str(REPO_ROOT / "scripts/ci/run_jenkins_release.sh"),
+            "--print-publish-plan",
+        ],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "pipepito/acestream-scraper:latest" not in result.stdout, result.stdout
+    assert "pipepito/acestream-scraper:scraper-acestream-acexy" in result.stdout
+    assert "pipepito/acestream-scraper:scraper" in result.stdout
+
+
+def test_run_jenkins_release_print_publish_plan_with_publish_latest_includes_latest():
+    env = os.environ.copy()
+    env["PUBLISH_LATEST"] = "1"
+
+    result = subprocess.run(
+        [
+            "/bin/bash",
+            str(REPO_ROOT / "scripts/ci/run_jenkins_release.sh"),
+            "--print-publish-plan",
+        ],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "pipepito/acestream-scraper:latest" in result.stdout, result.stdout
+
+
+def test_run_jenkins_release_publish_latest_only_promotes_full_payload_flavor():
+    # Even when PUBLISH_LATEST=1, only the scraper-acestream-acexy flavor
+    # (the canonical :latest payload) should receive the floating :latest tag.
+    # The partial flavors must continue to be addressable only via channel +
+    # versioned tags so an operator can never accidentally promote a partial
+    # build to :latest.
+    env = os.environ.copy()
+    env["PUBLISH_LATEST"] = "1"
+
+    result = subprocess.run(
+        [
+            "/bin/bash",
+            str(REPO_ROOT / "scripts/ci/run_jenkins_release.sh"),
+            "--print-publish-plan",
+        ],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert result.stdout.count(":latest") == 1, result.stdout

@@ -210,3 +210,44 @@ These aren't release blockers; they're explicitly marked v2+ in the requirements
 - A fresh `phase5-gate-report-full.json` exists from CI for this release SHA, attached or linked from `docs/release/phase5-multiarch-evidence.md`.
 - `bash scripts/ci/assert_no_legacy_paths.sh --strict` exits 0.
 - `bash scripts/ops/preflight_v2_deploy.sh` reports SAFE on a representative v1 production DB (or the operator has documented and accepted the UNSAFE path with rescue export in place).
+
+---
+
+## Two-phase publish (canary `:latest` promotion)
+
+The Jenkins release pipeline (`jenkins/release.Jenkinsfile`) exposes a
+`PUBLISH_LATEST` boolean parameter (default **off**). The underlying
+publisher (`scripts/ci/run_jenkins_release.sh`) honours `PUBLISH_LATEST=1`
+to add `pipepito/acestream-scraper:latest` to the publish set; otherwise
+only the versioned and flavor-channel tags ship. This decouples "publish
+the new build" from "promote it to the floating `:latest` tag" so the
+floating tag can soak before users on `:latest` are affected.
+
+### Recommended flow per release
+
+1. **Initial publish** — run `Release Pipeline` with
+   `CONFIRM_RELEASE=true`, `DRY_RUN=false`, `PUBLISH_LATEST=false`. The
+   pipeline will:
+   - Re-verify HEAD == `origin/main`
+   - Run the cutover-required-checks full profile
+   - Real AceStream engine runtime smoke
+   - Echo the publish plan via `--print-publish-plan`
+   - Push the versioned + flavor-channel tags only
+     (`pipepito/acestream-scraper:v2.0.0`, `:scraper-acestream-acexy`,
+     `:v2.0.0-scraper-acestream-acexy`, plus the partial flavors)
+2. **Canary** — pin one or more deployments (your own first) to
+   `pipepito/acestream-scraper:v2.0.0` for at least 24–48h. Watch
+   `/api/v1/health`, scrape jobs, and EPG refreshes.
+3. **Promote `:latest`** — once the canary is green, re-run the same
+   pipeline with `PUBLISH_LATEST=true`. This re-runs the full preflight
+   (so Docker Hub never gets a `:latest` that didn't pass the same
+   gates) and adds the `:latest` tag to `scraper-acestream-acexy`. The
+   partial flavors never receive `:latest` regardless of this flag.
+
+### Operator preview
+
+Run `bash scripts/ci/run_jenkins_release.sh --print-publish-plan` (or
+`PUBLISH_LATEST=1 bash scripts/ci/run_jenkins_release.sh --print-publish-plan`)
+locally to see exactly which tags would be pushed before authorising the
+real run. The flag short-circuits before any docker/buildx work, so it
+is safe to run on a workstation.

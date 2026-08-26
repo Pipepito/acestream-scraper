@@ -51,6 +51,7 @@ def main() -> int:
     pr = read(".github/workflows/pull_request.yml")
     release_yml = read(".github/workflows/release.yml")
     release_sh = read("scripts/ci/run_jenkins_release.sh")
+    release_jenkinsfile = read("jenkins/release.Jenkinsfile")
 
     checks = [
         ("pull request exercises all flavors",
@@ -67,6 +68,17 @@ def main() -> int:
          "--push" in release_sh),
         ("release script targets pipepito Docker Hub repo",
          "pipepito/acestream-scraper-v2" not in release_sh),
+        # Two-phase publish: :latest is gated behind PUBLISH_LATEST so the
+        # first publish of a new version touches versioned + flavor-channel
+        # tags only and a follow-up run promotes :latest after canary.
+        ("release script gates :latest behind PUBLISH_LATEST",
+         'include_latest="${PUBLISH_LATEST:-0}"' in release_sh
+         and 'if [[ "$include_latest" == "1" ]]; then' in release_sh),
+        ("release script supports --print-publish-plan preview",
+         "--print-publish-plan" in release_sh),
+        ("release Jenkinsfile exposes PUBLISH_LATEST parameter",
+         "name: 'PUBLISH_LATEST'" in release_jenkinsfile
+         and "PUBLISH_LATEST=${params.PUBLISH_LATEST ? '1' : '0'}" in release_jenkinsfile),
     ]
 
     failed = []

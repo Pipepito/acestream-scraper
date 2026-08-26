@@ -5,19 +5,26 @@ ROOT_DIR=$(cd "$(dirname "$0")/../.." && pwd)
 cd "$ROOT_DIR"
 
 DRY_RUN=0
-if [[ "${1:-}" == "--dry-run" ]]; then
-  DRY_RUN=1
-  shift
-fi
-
-if [[ $# -gt 0 ]]; then
-  echo "Usage: bash scripts/ci/run_jenkins_release.sh [--dry-run]"
-  exit 1
-fi
+PRINT_PLAN=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run)
+      DRY_RUN=1
+      shift
+      ;;
+    --print-publish-plan)
+      PRINT_PLAN=1
+      shift
+      ;;
+    *)
+      echo "Usage: bash scripts/ci/run_jenkins_release.sh [--dry-run | --print-publish-plan]"
+      exit 1
+      ;;
+  esac
+done
 
 BUILDER="${JENKINS_BUILDER:-acestream-builder}"
 VERSION=$(tr -d '\n' < version.txt)
-GIT_SHA=$(git rev-parse HEAD)
 
 FLAVORS=(
   "scraper"
@@ -32,11 +39,6 @@ PUBLISH_FLAVORS=(
   "scraper-acestream"
   "scraper-acexy"
 )
-
-if ! docker buildx inspect "$BUILDER" >/dev/null 2>&1; then
-  echo "Required buildx builder not found: $BUILDER"
-  exit 1
-fi
 
 preflight_result_file_for_flavor() {
   case "$1" in
@@ -65,9 +67,19 @@ publish_result_file_for_flavor() {
 }
 
 publish_tags_for_flavor() {
+  # Only the full payload flavor (scraper-acestream-acexy) is eligible for
+  # the floating :latest tag, and only when PUBLISH_LATEST=1. Default off so
+  # the first publish of a new version touches versioned + flavor-channel
+  # tags only; a follow-up run with PUBLISH_LATEST=1 promotes :latest after
+  # the canary window.
+  local include_latest="${PUBLISH_LATEST:-0}"
   case "$1" in
     scraper-acestream-acexy)
-      printf '%s\n' "pipepito/acestream-scraper:latest pipepito/acestream-scraper:${VERSION} pipepito/acestream-scraper:scraper-acestream-acexy pipepito/acestream-scraper:${VERSION}-scraper-acestream-acexy"
+      local tags="pipepito/acestream-scraper:${VERSION} pipepito/acestream-scraper:scraper-acestream-acexy pipepito/acestream-scraper:${VERSION}-scraper-acestream-acexy"
+      if [[ "$include_latest" == "1" ]]; then
+        tags="pipepito/acestream-scraper:latest $tags"
+      fi
+      printf '%s\n' "$tags"
       ;;
     scraper)
       printf '%s\n' "pipepito/acestream-scraper:scraper pipepito/acestream-scraper:${VERSION}-scraper"
@@ -84,6 +96,21 @@ publish_tags_for_flavor() {
       ;;
   esac
 }
+
+if [[ "$PRINT_PLAN" -eq 1 ]]; then
+  echo "Release publish plan (PUBLISH_LATEST=${PUBLISH_LATEST:-0}, VERSION=${VERSION}):"
+  for flavor in "${PUBLISH_FLAVORS[@]}"; do
+    printf '  %s: %s\n' "$flavor" "$(publish_tags_for_flavor "$flavor")"
+  done
+  exit 0
+fi
+
+GIT_SHA=$(git rev-parse HEAD)
+
+if ! docker buildx inspect "$BUILDER" >/dev/null 2>&1; then
+  echo "Required buildx builder not found: $BUILDER"
+  exit 1
+fi
 
 bash scripts/ci/run_cutover_required_checks.sh --profile full
 

@@ -10,6 +10,7 @@ pipeline {
   parameters {
     booleanParam(name: 'CONFIRM_RELEASE', defaultValue: false, description: 'Required to run the release pipeline.')
     booleanParam(name: 'DRY_RUN', defaultValue: true, description: 'Run preflight only without Docker Hub credentials.')
+    booleanParam(name: 'PUBLISH_LATEST', defaultValue: false, description: 'Promote :latest to point at this release. Leave OFF for the first publish of a new version; re-run with this enabled after canary validation.')
   }
 
   stages {
@@ -55,7 +56,10 @@ docker buildx use "${JENKINS_BUILDER:-acestream-builder}"
                 passwordVariable: 'DOCKERHUB_TOKEN'
               )
             ]) {
-              sh 'bash scripts/ci/run_jenkins_release.sh'
+              withEnv(["PUBLISH_LATEST=${params.PUBLISH_LATEST ? '1' : '0'}"]) {
+                sh 'bash scripts/ci/run_jenkins_release.sh --print-publish-plan'
+                sh 'bash scripts/ci/run_jenkins_release.sh'
+              }
             }
           }
         }

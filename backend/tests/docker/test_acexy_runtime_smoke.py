@@ -10,6 +10,7 @@ import socket
 import subprocess
 import time
 import urllib.request
+import uuid
 from pathlib import Path
 
 import pytest
@@ -39,7 +40,10 @@ def _register_image_cleanup(request: pytest.FixtureRequest, tag: str) -> None:
 
 
 def test_scraper_acexy_ships_real_acexy_and_serves_status(request: pytest.FixtureRequest):
-    tag = "acestream-scraper-smoke:scraper-acexy"
+    # Unique per run: the PR job and the branch job can build the same
+    # commit concurrently on one runner, and the containerd image store
+    # refuses a duplicate name mid-export ("already exists").
+    tag = f"acestream-scraper-smoke:scraper-acexy-{uuid.uuid4().hex[:8]}"
     _register_image_cleanup(request, tag)
     plat = _native_platform()
 

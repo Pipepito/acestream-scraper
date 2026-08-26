@@ -4,6 +4,7 @@ from __future__ import annotations
 import shutil
 import socket
 import subprocess
+import uuid
 import time
 from pathlib import Path
 
@@ -51,7 +52,10 @@ def _register_image_cleanup(request: pytest.FixtureRequest, tag: str) -> None:
 
 
 def test_scraper_acestream_starts_real_engine(request: pytest.FixtureRequest):
-    tag = "acestream-scraper-smoke:scraper-acestream"
+    # Unique per run: the PR job and the branch job can build the same
+    # commit concurrently on one runner, and the containerd image store
+    # refuses a duplicate name mid-export ("already exists").
+    tag = f"acestream-scraper-smoke:scraper-acestream-{uuid.uuid4().hex[:8]}"
     _register_image_cleanup(request, tag)
 
     # Pull manifest-derived build args via the helper

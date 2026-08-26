@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Assert the canonical CI surface still references all four image flavors.
 
-Replaces an inline python guard that previously read three GitHub Actions
-files and verified flavor tokens + Docker Hub publish tags. Post-cleanup the
-publish logic lives in scripts/ci/run_jenkins_release.sh (Jenkins is the
-sole publisher); the GA release workflow is validation-only. This guard
-checks the surfaces where flavor coverage and tag scheme actually live.
+Replaces an inline python guard that previously read GitHub Actions
+files. All CI now lives on Jenkins: the PR pipeline (Jenkinsfile) must
+exercise every image flavor, and the publish logic lives in
+scripts/ci/run_jenkins_release.sh (Jenkins is the sole publisher). This
+guard checks the surfaces where flavor coverage and tag scheme actually
+live.
 """
 
 from __future__ import annotations
@@ -48,18 +49,15 @@ def read(rel: str) -> str:
 
 
 def main() -> int:
-    pr = read(".github/workflows/pull_request.yml")
-    release_yml = read(".github/workflows/release.yml")
+    pr_jenkinsfile = read("Jenkinsfile")
     release_sh = read("scripts/ci/run_jenkins_release.sh")
     release_jenkinsfile = read("jenkins/release.Jenkinsfile")
 
     checks = [
-        ("pull request exercises all flavors",
-         all(token in pr for token in FLAVOR_TOKENS)),
-        ("release readiness workflow exercises all flavors",
-         all(token in release_yml for token in FLAVOR_TOKENS)),
-        ("release readiness workflow does not push to Docker Hub",
-         "--push" not in release_yml and "DOCKERHUB_TOKEN" not in release_yml),
+        ("PR pipeline (Jenkinsfile) exercises all flavors",
+         all(token in pr_jenkinsfile for token in FLAVOR_TOKENS)),
+        ("PR pipeline does not push to Docker Hub",
+         "--push" not in pr_jenkinsfile),
         ("release script declares all flavors",
          all(f'"{flavor}"' in release_sh for flavor in FLAVORS)),
         ("release script publishes all required tags",

@@ -8,8 +8,6 @@ fi
 
 TARGETS=(
   "Jenkinsfile"
-  ".github/workflows/pull_request.yml"
-  ".github/workflows/release.yml"
   "Dockerfile"
   "docker-compose.yml"
   "jenkins/release.Jenkinsfile"

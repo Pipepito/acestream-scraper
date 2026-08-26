@@ -82,7 +82,7 @@ not enough — pitfall #4 in `.planning/research/PITFALLS.md` calls out the
 ## How to verify in CI
 
 A PR that touches `docker/manifests/acestream.json` runs the canonical
-PR pipeline (`Jenkinsfile` and `.github/workflows/pull_request.yml`),
+PR pipeline (`Jenkinsfile`),
 which exercises the full four-flavor multi-arch dry-run and the real
 AceStream engine runtime smoke. To run the heavier multi-arch full
 profile (QEMU runtime smoke per architecture), trigger the manual
@@ -90,7 +90,7 @@ profile (QEMU runtime smoke per architecture), trigger the manual
 Actions tab; it runs the same `phase5_gate_runner.py --profile full`
 formerly hosted in the standalone multiarch-validation workflow.
 
-For release branches, `.github/workflows/release.yml` requires the
+For release branches, the Jenkins release pipeline requires the
 `multiarch-runtime-smoke` job to pass before any image is pushed. That job
 runs the full profile too and uploads `phase5-gate-report-full.json` as a
 release artifact, so the evidence link in
@@ -112,7 +112,7 @@ The manifest is consumed at build time by `scripts/ci/build_multiarch_images.sh`
 (via `scripts/ci/derive_acestream_build_args.py`), which converts each field
 into a `--build-arg` for `docker buildx`. The CI runtime smoke
 (`backend/tests/docker/test_acestream_runtime_smoke.py`, gated by
-`.github/workflows/pull_request.yml`) verifies the engine actually starts
+`Jenkinsfile`) verifies the engine actually starts
 and responds on port 6878 in the resulting image.
 
 ### Steps

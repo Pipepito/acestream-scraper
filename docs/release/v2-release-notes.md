@@ -88,8 +88,8 @@ If you are upgrading from v1, run `bash scripts/ops/preflight_v2_deploy.sh` firs
 - **Single canonical runner.** `bash scripts/ci/run_v2_test_suite.sh --profile {quick,full}` is the one entry point.
 - **Strict legacy guard.** `bash scripts/ci/assert_no_legacy_paths.sh --strict` blocks reintroduction of retired root paths.
 - **Cutover checks.** `bash scripts/ci/run_cutover_required_checks.sh --profile quick` for fast pre-deploy validation.
-- **Phase gates.** Phase-1 parity safety gates and multi-arch quick (dry-run) profile run on every PR via the canonical pipelines (`Jenkinsfile` and `.github/workflows/pull_request.yml`). Full multi-arch profile runs on the manual `Release Pipeline` (`workflow_dispatch`) and on Jenkins `acestream-scraper-release`.
-- **Jenkins.** Canonical PR validation pipeline (`Jenkinsfile`) and manual release pipeline (`jenkins/release.Jenkinsfile`, sole publisher); `.github/workflows/release.yml` is now a manual validation-only mirror.
+- **Phase gates.** Phase-1 parity safety gates and multi-arch quick (dry-run) profile run on every PR via the Jenkins PR pipeline (`Jenkinsfile`). The full multi-arch profile runs on Jenkins `acestream-scraper-release`.
+- **Jenkins.** All CI lives on Jenkins: the PR validation pipeline (`Jenkinsfile`) and the manual release pipeline (`jenkins/release.Jenkinsfile`, sole publisher). The GitHub Actions workflows have been retired.
 - **Two-phase publish.** The release pipeline exposes a `PUBLISH_LATEST` boolean (default off). The first publish of a new version pushes versioned + flavor-channel tags only (`:v2.0.0`, `:scraper-acestream-acexy`, `:v2.0.0-scraper-acestream-acexy`, plus the partial flavors); a follow-up run with `PUBLISH_LATEST=true` promotes the floating `:latest` tag once the new build has soaked. See `docs/release/v2-release-readiness.md` for the full canary flow. Preview locally with `bash scripts/ci/run_jenkins_release.sh --print-publish-plan`.
 
 ---

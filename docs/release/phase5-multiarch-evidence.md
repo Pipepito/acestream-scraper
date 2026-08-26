@@ -2,7 +2,7 @@
 
 ## How evidence is produced for a release
 
-The release pipeline (`.github/workflows/release.yml`) requires the
+The Jenkins release pipeline (`jenkins/release.Jenkinsfile`) requires the
 `multiarch-runtime-smoke` job to pass before any image is built or pushed.
 That job invokes:
 
@@ -19,7 +19,7 @@ required platform, runs `phase5_arch_smoke.sh` against `linux/arm/v7` and
 files are uploaded as the workflow artifact `phase5-multiarch-full-evidence`.
 
 PRs always run the dry-run quick profile via the canonical `Jenkinsfile`
-and `.github/workflows/pull_request.yml` (which also exercises the real
+and the Jenkins PR pipeline (which also exercises the real
 AceStream engine runtime smoke for the `scraper-acestream` flavor). The
 heavier multi-arch full profile (QEMU runtime smoke per architecture) runs
 only on the manual `Release Pipeline` (`workflow_dispatch`) and on Jenkins

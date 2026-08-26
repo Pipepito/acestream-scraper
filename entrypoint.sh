@@ -88,8 +88,14 @@ supervise_service() {
         local started_at ended_at status
         started_at=$(date +%s)
         # setsid puts the service in its own process group so shutdown can
-        # kill the whole tree, not just the bash wrapper.
-        setsid bash -lc "$command" &
+        # kill the whole tree, not just the bash wrapper. It is absent on
+        # macOS (developer runs of the runtime contract); fall back to a
+        # plain background job there — the trap already handles both.
+        if command -v setsid >/dev/null 2>&1; then
+            setsid bash -lc "$command" &
+        else
+            bash -lc "$command" &
+        fi
         inner_pid=$!
         launches=$((launches + 1))
         if wait "$inner_pid"; then

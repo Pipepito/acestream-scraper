@@ -82,6 +82,8 @@ if ! bash scripts/ci/build_multiarch_images.sh --flavor scraper-acestream --load
   bash scripts/ci/build_multiarch_images.sh --flavor scraper-acestream --load --network host --tag acestream-scraper:smoke
 fi
 PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_acestream_runtime_smoke.py -v
+# The acexy flavor must ship the real upstream proxy, not the build fixture.
+PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_acexy_runtime_smoke.py -v
 '''
       }
     }

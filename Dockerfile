@@ -81,7 +81,10 @@ RUN mkdir -p /src /out \
         cp -R /tmp/acexy-fixture/. /src/; \
       fi \
     && cd /src \
-    && CGO_ENABLED=0 GOOS=linux go build -o "/out/$ACEXY_BINARY_NAME" .
+    # Upstream acexy keeps its Go module in the acexy/ subdirectory; the
+    # build fixture (and any flat fork) keeps go.mod at the root.
+    && if [ ! -f go.mod ] && [ -f acexy/go.mod ]; then cd acexy; fi \
+    && CGO_ENABLED=0 GOOS=linux go build -ldflags "-s -w" -o "/out/$ACEXY_BINARY_NAME" .
 
 
 FROM python:3.11-slim AS runtime-base

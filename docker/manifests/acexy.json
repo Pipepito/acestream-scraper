@@ -1,6 +1,6 @@
 {
   "repo": "https://github.com/Javinator9889/acexy.git",
-  "ref": "refs/tags/v1.2.2",
-  "version": "v1.2.2",
+  "ref": "refs/tags/0.2.2",
+  "version": "0.2.2",
   "expected_binary_name": "acexy"
 }

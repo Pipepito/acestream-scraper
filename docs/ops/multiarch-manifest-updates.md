@@ -169,3 +169,17 @@ at the root, you will need to add support for a different install kind
 The schema has the `kind` discriminator in place — only
 `scripts/ci/validate_docker_manifest_metadata.py` and
 `docker/scripts/install-acestream.sh` need new branches.
+
+## Acexy pin (`docker/manifests/acexy.json`)
+
+`scripts/ci/build_multiarch_images.sh` derives `ACEXY_REPO`, `ACEXY_REF` and
+`ACEXY_BINARY_NAME` from this manifest for the `scraper-acexy` and
+`scraper-acestream-acexy` flavors. Without them the Dockerfile compiles the
+build fixture (a stub that only prints `fixture acexy`), so after bumping the
+pin always confirm the ref exists upstream and re-run the runtime smoke:
+
+```bash
+git ls-remote --tags https://github.com/Javinator9889/acexy.git
+bash scripts/ci/build_multiarch_images.sh --dry-run --flavor scraper-acexy | grep ACEXY_
+PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_acexy_runtime_smoke.py
+```

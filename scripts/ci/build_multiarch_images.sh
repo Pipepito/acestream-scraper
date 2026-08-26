@@ -16,6 +16,7 @@ Options:
   --dockerfile <path>      Dockerfile path (default: Dockerfile)
   --platform-manifest <p>  platforms.json path (default: docker/manifests/platforms.json)
   --acestream-manifest <p> acestream.json path (default: docker/manifests/acestream.json)
+  --acexy-manifest <p>     acexy.json path (default: docker/manifests/acexy.json)
   --push                   Push image/manifest to registry
   --load                   Load image into local docker daemon (single-platform only)
   --build-arg <k=v>        Build arg (repeatable)
@@ -42,6 +43,7 @@ CONTEXT="."
 DOCKERFILE="Dockerfile"
 PLATFORM_MANIFEST="$ROOT_DIR/docker/manifests/platforms.json"
 ACESTREAM_MANIFEST="$ROOT_DIR/docker/manifests/acestream.json"
+ACEXY_MANIFEST="$ROOT_DIR/docker/manifests/acexy.json"
 PUSH=0
 LOAD=0
 DRY_RUN=0
@@ -93,6 +95,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --acestream-manifest)
       ACESTREAM_MANIFEST="${2:-}"
+      shift 2
+      ;;
+    --acexy-manifest)
+      ACEXY_MANIFEST="${2:-}"
       shift 2
       ;;
     --push)
@@ -213,6 +219,51 @@ if [[ -f "$ACESTREAM_ARG_HELPER" ]]; then
         fi
     done <<< "$derived"
 fi
+
+# Acexy-bearing flavors must compile the real proxy from the pinned upstream
+# source in docker/manifests/acexy.json. Without ACEXY_REPO/ACEXY_REF the
+# Dockerfile silently builds the test fixture (a stub that prints
+# "fixture acexy" and exits), which is only ever wanted for contract tests
+# that pass the args explicitly via --build-arg.
+ACEXY_BEARING_FLAVORS=("scraper-acexy" "scraper-acestream-acexy")
+for f in "${ACEXY_BEARING_FLAVORS[@]}"; do
+    if [[ "$FLAVOR" == "$f" ]]; then
+        if [[ ! -f "$ACEXY_MANIFEST" ]]; then
+            echo "Acexy manifest not found: $ACEXY_MANIFEST" >&2
+            exit 1
+        fi
+        if ! acexy_derived="$(python3 - "$ACEXY_MANIFEST" <<'PY'
+import json, sys
+m = json.load(open(sys.argv[1]))
+for key in ("repo", "ref"):
+    if not m.get(key):
+        raise SystemExit(f"acexy manifest missing required key: {key}")
+print(f"ACEXY_REPO={m['repo']}")
+print(f"ACEXY_REF={m['ref']}")
+if m.get("expected_binary_name"):
+    print(f"ACEXY_BINARY_NAME={m['expected_binary_name']}")
+PY
+)"; then
+            printf 'ERROR: failed to derive acexy build args for flavor=%s\n%s\n' "$FLAVOR" "$acexy_derived" >&2
+            exit 1
+        fi
+        while IFS= read -r line; do
+            [[ -z "$line" ]] && continue
+            key="${line%%=*}"
+            already=0
+            for existing in "${BUILD_ARGS[@]:-}"; do
+                if [[ "$existing" == "$key="* ]]; then
+                    already=1
+                    break
+                fi
+            done
+            if [[ "$already" -eq 0 ]]; then
+                BUILD_ARGS+=("--build-arg" "$line")
+            fi
+        done <<< "$acexy_derived"
+        break
+    fi
+done
 
 if [[ "$LOAD" -eq 1 && "$PLATFORMS" == *","* ]]; then
   echo "--load supports a single platform only. Use --push for multi-platform manifests."

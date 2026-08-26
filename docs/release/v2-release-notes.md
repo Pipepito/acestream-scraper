@@ -39,6 +39,7 @@ If you are upgrading from v1, run `bash scripts/ops/preflight_v2_deploy.sh` firs
 - **Image flavors.** `scraper`, `scraper-acestream`, `scraper-acexy`, `scraper-acestream-acexy`. `latest` = `scraper-acestream-acexy`.
 - **Install / runtime split.** Image flavor controls which optional binaries are *installed*; env flags (`ENABLE_ACESTREAM_ENGINE`, `ENABLE_ACEXY`, `ENABLE_WARP`) control whether they actually *start*. WARP requires `NET_ADMIN` + `SYS_ADMIN` capabilities and refuses to target `localhost:6878` without an in-container engine running.
 - **Platform matrix.** Baseline flavors (`scraper`, `scraper-acexy`) build for `linux/amd64`, `linux/arm/v7`, `linux/arm64`. AceStream flavors are gated by `docker/manifests/acestream.json` (currently amd64 only — ARM availability tracks upstream AceStream releases).
+- **Real Acexy in the acexy flavors.** The `scraper-acexy` and `scraper-acestream-acexy` images now compile the upstream Acexy proxy pinned in `docker/manifests/acexy.json` (0.2.2). Previously no build path passed the manifest's `ACEXY_REPO`/`ACEXY_REF` args, so the images silently shipped the build-test stub. A runtime smoke (`backend/tests/docker/test_acexy_runtime_smoke.py`) now gates the Jenkins PR pipeline on the real proxy answering `/ace/status`.
 - **Android TV deployment notes.** New `docs/architecture/deployment.md` "Android TV Notes" section covers ARM64 preference, ARMv7 caveats, and conservative runtime tuning.
 
 ### Reliability and performance

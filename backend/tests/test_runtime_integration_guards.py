@@ -300,3 +300,41 @@ def test_run_jenkins_release_publish_latest_only_promotes_full_payload_flavor():
 
     assert result.returncode == 0, result.stdout + result.stderr
     assert result.stdout.count(":latest") == 1, result.stdout
+
+
+def test_build_script_derives_real_acexy_source_from_manifest():
+    # Without ACEXY_REPO/ACEXY_REF the Dockerfile compiles the test fixture
+    # (a stub that prints "fixture acexy" and exits). The canonical build
+    # script must derive them from docker/manifests/acexy.json for every
+    # acexy-bearing flavor so published images ship the real proxy.
+    script = (REPO_ROOT / "scripts" / "ci" / "build_multiarch_images.sh").read_text()
+    assert 'ACEXY_MANIFEST="$ROOT_DIR/docker/manifests/acexy.json"' in script
+    assert 'ACEXY_BEARING_FLAVORS=("scraper-acexy" "scraper-acestream-acexy")' in script
+    manifest = json.loads((REPO_ROOT / "docker" / "manifests" / "acexy.json").read_text())
+
+    for flavor in ("scraper-acexy", "scraper-acestream-acexy"):
+        result = subprocess.run(
+            [
+                "/bin/bash",
+                str(REPO_ROOT / "scripts/ci/build_multiarch_images.sh"),
+                "--dry-run", "--flavor", flavor,
+                "--result-file", f"/tmp/acexy-dryrun-{flavor}.json",
+            ],
+            cwd=REPO_ROOT, check=False, capture_output=True, text=True,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        out = result.stdout + result.stderr
+        assert f"ACEXY_REPO={manifest['repo']}" in out, out
+        assert f"ACEXY_REF={manifest['ref']}" in out, out
+
+    result = subprocess.run(
+        [
+            "/bin/bash",
+            str(REPO_ROOT / "scripts/ci/build_multiarch_images.sh"),
+            "--dry-run", "--flavor", "scraper",
+            "--result-file", "/tmp/acexy-dryrun-scraper.json",
+        ],
+        cwd=REPO_ROOT, check=False, capture_output=True, text=True,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "ACEXY_REPO" not in result.stdout + result.stderr

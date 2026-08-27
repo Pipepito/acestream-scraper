@@ -28,7 +28,7 @@ Services:
 
 The checked-in `docker-compose.yml` uses `pipepito/acestream-scraper:latest`. `latest` is the full `scraper-acestream-acexy` image, while the explicit flavor tags are `scraper`, `scraper-acestream`, `scraper-acexy`, and `scraper-acestream-acexy`.
 
-WARP is installed in every flavor, but it only starts when `ENABLE_WARP=true`. WARP-enabled containers need the runtime capabilities `NET_ADMIN` and `SYS_ADMIN`.
+WARP is installed in every flavor's `linux/amd64` image (ARM images ship without it), but it only starts when `ENABLE_WARP=true`. WARP-enabled containers need the runtime capabilities `NET_ADMIN` and `SYS_ADMIN`.
 
 ZeroNet remains an external sidecar/service. It is not bundled into every image, and the app talks to it through `ZERONET_URL`.
 
@@ -37,6 +37,10 @@ The default compose file points `ZERONET_URL` at `http://host.docker.internal:43
 Runtime behavior is env-driven even when binaries are installed in the selected image. `ENABLE_ACESTREAM_ENGINE` controls the in-container AceStream engine, `ENABLE_ACEXY` controls Acexy, `ACESTREAM_HTTP_HOST` and `ACESTREAM_HTTP_PORT` define the engine endpoint, and `ACEXY_HOST` and `ACEXY_PORT` define where Acexy connects.
 
 AceStream platform availability is manifest-driven via `docker/manifests/acestream.json`. `latest` and `scraper-acestream-acexy` are only published for platforms listed there.
+
+The manifest currently covers `linux/amd64` (native Linux engine 3.2.11), `linux/arm64` (stable: the official AceStream Android engine 3.1.80.0 running natively on a minimal Android bionic userland inside the image) and `linux/arm/v7` (experimental: builds and installs, but has not been runtime-tested on real ARMv7 hardware yet). `latest`, `scraper-acestream`, and `scraper-acestream-acexy` are therefore published for all three platforms. The engine stays opt-in (`ENABLE_ACESTREAM_ENGINE=false` by default), and no extra privileges, capabilities, or seccomp changes are needed to run it on ARM.
+
+When you enable the engine on ARM, it keeps its config, cache, and logs under `/var/lib/acestream` (`ACESTREAM_HOME`); mount a volume there (for example `-v acestream-state:/var/lib/acestream`) so they survive container replacement, and publish `6878` (engine HTTP API — unauthenticated, so only on trusted networks) plus `8621` tcp/udp (P2P) if they must be reachable from outside the container. Raspberry Pi 5: the Android engine needs a 4 KB kernel page size, so set `kernel=kernel8.img` in `config.txt` (the default `kernel_2712` kernel uses 16 KB pages and the engine refuses to start). ARM images ship without WARP. See [wiki/Docker.md](wiki/Docker.md) for the full ARM engine notes and caveats.
 
 ### Local Development
 
@@ -91,6 +95,7 @@ npm start
 - `ACESTREAM_HTTP_PORT` (default: `6878`)
 - `ACEXY_HOST` (default: `localhost`)
 - `ACEXY_PORT` (default: `6878`)
+- `ACESTREAM_HOME` (default: `/var/lib/acestream`; state, cache, and logs of the ARM Android engine — mount a volume there)
 
 Docker flavor choice controls which optional binaries are installed. Runtime env vars control whether those installed services actually start.
 

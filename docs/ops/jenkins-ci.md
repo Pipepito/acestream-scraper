@@ -583,6 +583,25 @@ Operator notes:
 - Once WARP is connected, the bootstrap on subsequent builds is a no-op verification (one HTTP fetch to `https://www.cloudflare.com/cdn-cgi/trace`).
 - If you ever need to disconnect WARP for diagnosis: `warp-cli --accept-tos disconnect`. Reconnect: `warp-cli --accept-tos connect`. The next bootstrap will reconnect automatically.
 - WARP affects the host's network stack. The Docker daemon inherits WARP routes by default; no additional Docker config is required.
+- Since 2026-08-27 the AceStream engine archives (amd64 tarball, arm64 and armv7 Android APKs) and the bionic runtime packages for ARM are vendored under `docker/vendor/` and mirrored on the GitHub Release `acestream-binaries-3.2.11-3.1.80.0`; `docker/scripts/install-acestream.sh` resolves vendored copy -> upstream URL -> mirror, sha256-verified. Image builds therefore no longer need WARP to reach `download.acestream.media`. WARP stays installed for other geo-blocked artifacts and is harmless otherwise; the engine smoke stages still set `BUILDX_BUILDER=default --network host`, which is only load-bearing when a pin points at a file that is not vendored yet.
+
+## AceStream Engine Smoke Coverage
+
+Both pipelines run the engine checks below — the `Acestream Engine Runtime Smoke` stage in `Jenkinsfile` and the pre-publish block in `scripts/ci/run_jenkins_release.sh` (publish runs only; `DRY_RUN=true` exits after the dry-run preflight) — except the Acexy runtime smoke, which is PR-job only.
+
+| Check | Platform | What it proves |
+|---|---|---|
+| `bash scripts/ci/build_multiarch_images.sh --flavor scraper-acestream --platforms linux/amd64 --load --network host --tag ...` | `linux/amd64` | The manifest-driven install works from the vendored tarball. The flavor now resolves to `linux/amd64,linux/arm/v7,linux/arm64`, and `--load` accepts a single platform, so the runner's native one is pinned. |
+| `PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_acestream_runtime_smoke.py -v` | `linux/amd64` on the amd64 runner; `linux/arm64` is added automatically only when the host is arm64 | The engine boots, `get_version` matches the manifest's `engine_version`, and `get_status` answers. |
+| `PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_acexy_runtime_smoke.py -v` | `linux/amd64` (PR job only) | The acexy flavors ship the real proxy, not the build fixture. |
+| `PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_install_acestream.py -v -k android_apk_install_layout` | `linux/arm64`, `linux/arm/v7` (QEMU builds of the installer stage) | The Android engine payload and the Android 9 bionic userland install with the expected layout. No engine execution. |
+
+Coverage gaps and how to close them:
+
+- `linux/arm64` runtime: the Android engine cannot run under qemu-user, so the runtime smoke only covers arm64 when pytest runs on an arm64 host. `dorat-nuc-ci` is amd64. Until an arm64 Jenkins node exists, run `PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_acestream_runtime_smoke.py -v` on an arm64 machine (Raspberry Pi 4/5 64-bit with a 4 KB-page kernel, or any aarch64 Docker host) before publishing a new ARM engine pin; the test parametrizes `linux/arm64` there automatically.
+- `linux/arm/v7` runtime: needs real ARMv7 hardware; the platform is `support: experimental` in `docker/manifests/acestream.json` for that reason.
+- The published `scraper-acestream`, `scraper-acestream-acexy`, `latest`, and version tags include `linux/arm64` and `linux/arm/v7`; `verify_multiarch_manifest.sh --image <tag> --flavor <flavor>` checks each remote manifest after the push.
+- Operator guide with the manual procedure: `docs/ops/acestream-arm-engine.md`.
 
 ## Cache, Disk Growth, and Cleanup
 
@@ -819,6 +838,7 @@ Expected behavior:
 - After checkout, the pipeline runs `scripts/ci/bootstrap_jenkins_runner.sh`.
 - The pipeline executes `bash scripts/ci/run_jenkins_validation.sh`.
 - Build result JSON artifacts are archived for each flavor validation run.
+- The `Acestream Engine Runtime Smoke` stage builds `scraper-acestream` pinned to `--platforms linux/amd64 --load`, runs the amd64 engine runtime smoke and the Acexy runtime smoke, then builds the arm64 + armv7 installer stages under QEMU (`test_install_acestream.py -k android_apk_install_layout`). See `## AceStream Engine Smoke Coverage`.
 
 ## Manual Release Job
 
@@ -842,7 +862,8 @@ Release behavior:
 - `DRY_RUN=true` performs preflight only.
 - `DRY_RUN=false` performs Docker Hub login and publishes tags.
 - The job archives release result JSON files and `phase5-build-result-release-metadata.json`.
-- Before publishing, the script builds `scraper-acestream` locally and runs `backend/tests/docker/test_acestream_runtime_smoke.py`. If the engine smoke fails, no Docker Hub login or push happens.
+- Before publishing, the script builds `scraper-acestream` locally pinned to `--platforms linux/amd64 --load` (the flavor now resolves to `linux/amd64,linux/arm/v7,linux/arm64` and `--load` needs a single platform), runs `backend/tests/docker/test_acestream_runtime_smoke.py` (the amd64 engine boots and answers on `:6878`), and then `backend/tests/docker/test_install_acestream.py -k android_apk_install_layout` (QEMU builds of the arm64 + armv7 installer stages; layout only, no engine execution). If either fails, no Docker Hub login or push happens. The engine archives are vendored, so this step does not depend on WARP.
+- The pushed `scraper-acestream`, `scraper-acestream-acexy`, `latest`, and version tags are multi-platform manifests that include `linux/arm64` and `linux/arm/v7`; `verify_multiarch_manifest.sh --image <tag> --flavor <flavor>` checks each remote manifest after the push. The arm64 engine runtime is not exercised by this job (amd64 runner); see `## AceStream Engine Smoke Coverage`.
 - Keep this path manual-only. Jenkins is the sole publisher; the GitHub Actions release workflow has been retired.
 
 ## v2.0.0 Release Runbook
@@ -852,10 +873,10 @@ Sequence for shipping the v2 codebase from `ai-coding-documentation` (or any sub
 1. Confirm `version.txt` reads the intended release tag (currently `v2.0.0`).
 2. Open a pull request from the release branch to `main`. Wait for `acestream-scraper-pr` (Jenkins multibranch) to go green.
 3. Merge the PR to `main`. No automatic Docker Hub publish happens — Jenkins requires a manual trigger.
-4. In Jenkins, build `acestream-scraper-release` with parameters `CONFIRM_RELEASE=true` and `DRY_RUN=true`. This runs the full cutover suite, the multi-arch dry-run preflight, and the AceStream engine smoke without binding Docker Hub credentials. Verify it goes green.
-5. Re-run `acestream-scraper-release` with `CONFIRM_RELEASE=true` and `DRY_RUN=false`. The pipeline will rerun the full cutover suite, dry-run preflight, AceStream engine smoke, then log into Docker Hub and push the four flavors.
-6. Verify the published tags on Docker Hub: `pipepito/acestream-scraper:latest`, `:${VERSION}`, plus the four flavor tags (`scraper`, `scraper-acestream`, `scraper-acexy`, `scraper-acestream-acexy`) and their version-prefixed variants.
-7. Smoke-test on a fresh amd64 host: `docker pull pipepito/acestream-scraper:latest && docker run --rm -p 8000:8000 -p 6878:6878 -e ENABLE_ACESTREAM_ENGINE=true pipepito/acestream-scraper:latest` and confirm the FastAPI app and engine respond.
+4. In Jenkins, build `acestream-scraper-release` with parameters `CONFIRM_RELEASE=true` and `DRY_RUN=true`. This runs the full cutover suite and the multi-arch dry-run preflight without binding Docker Hub credentials (the engine smoke only runs on the publish run; `scripts/ci/run_jenkins_release.sh --dry-run` exits after the preflight). Verify it goes green.
+5. Re-run `acestream-scraper-release` with `CONFIRM_RELEASE=true` and `DRY_RUN=false`. The pipeline will rerun the full cutover suite, dry-run preflight, the AceStream engine smoke (amd64 runtime + ARM installer layout, see `## AceStream Engine Smoke Coverage`), then log into Docker Hub and push the four flavors as multi-platform manifests (`linux/amd64`, `linux/arm64`, `linux/arm/v7`).
+6. Verify the published tags on Docker Hub: `pipepito/acestream-scraper:latest`, `:${VERSION}`, plus the four flavor tags (`scraper`, `scraper-acestream`, `scraper-acexy`, `scraper-acestream-acexy`) and their version-prefixed variants. Each should list all three platforms (`docker buildx imagetools inspect <tag>`).
+7. Smoke-test on a fresh amd64 host: `docker pull pipepito/acestream-scraper:latest && docker run --rm -p 8000:8000 -p 6878:6878 -e ENABLE_ACESTREAM_ENGINE=true pipepito/acestream-scraper:latest` and confirm the FastAPI app and engine respond. Repeat on an arm64 host (Raspberry Pi 4/5 64-bit, 4 KB-page kernel) to confirm the Android engine answers `curl "http://localhost:6878/webui/api/service?method=get_version"` with `"platform":"android"`; CI does not cover that path. See `docs/ops/acestream-arm-engine.md`.
 
 ## Branch Protection Cutover
 

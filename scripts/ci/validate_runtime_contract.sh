@@ -335,14 +335,14 @@ assert_log_not_contains "$TMP_DIR/health-disabled.log" "/ace/status"
 expect_success \
     "Healthcheck uses explicit external engine host and port" \
     env PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR" CURL_LOG_FILE="$TMP_DIR/health-external.log" FLASK_PORT=8000 ENABLE_ACEXY=true ENABLE_ACESTREAM_ENGINE=false ACEXY_HOST=engine.example ACEXY_PORT=9999 bash "$HEALTHCHECK_SCRIPT"
-assert_log_contains "$TMP_DIR/health-external.log" "http://engine.example:9999"
+assert_log_contains "$TMP_DIR/health-external.log" "http://engine.example:9999/webui/api/service?method=get_version"
 assert_log_contains "$TMP_DIR/health-external.log" "http://localhost:8080/ace/status"
 
 : > "$TMP_DIR/health-engine-only.log"
 expect_success \
     "Healthcheck probes in-container AceStream engine when enabled without Acexy" \
     env PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR" CURL_LOG_FILE="$TMP_DIR/health-engine-only.log" FLASK_PORT=8000 ENABLE_ACEXY=false ENABLE_ACESTREAM_ENGINE=true ACESTREAM_HTTP_HOST=engine.local ACESTREAM_HTTP_PORT=7000 bash "$HEALTHCHECK_SCRIPT"
-assert_log_contains "$TMP_DIR/health-engine-only.log" "http://engine.local:7000"
+assert_log_contains "$TMP_DIR/health-engine-only.log" "http://engine.local:7000/webui/api/service?method=get_version"
 
 expect_failure_contains \
     "Healthcheck fails when in-container AceStream engine is down" \

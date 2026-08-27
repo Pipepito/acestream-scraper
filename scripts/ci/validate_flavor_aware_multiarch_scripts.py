@@ -9,6 +9,15 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BUILD_SCRIPT = REPO_ROOT / "scripts" / "ci" / "build_multiarch_images.sh"
 VERIFY_SCRIPT = REPO_ROOT / "scripts" / "ci" / "verify_multiarch_manifest.sh"
+PLATFORM_MANIFEST = REPO_ROOT / "docker" / "manifests" / "platforms.json"
+ACESTREAM_MANIFEST = REPO_ROOT / "docker" / "manifests" / "acestream.json"
+
+
+def acestream_platforms() -> list[str]:
+    """Baseline platforms that have an AceStream engine (same rule as flavor_platforms.py)."""
+    baseline = json.loads(PLATFORM_MANIFEST.read_text(encoding="utf-8"))["baseline_platforms"]
+    supported = set(json.loads(ACESTREAM_MANIFEST.read_text(encoding="utf-8"))["platforms"])
+    return [platform for platform in baseline if platform in supported]
 
 
 def run(command: list[str], *, expect_success: bool = True) -> subprocess.CompletedProcess[str]:
@@ -93,17 +102,24 @@ def main() -> int:
                 str(acestream_result),
             ]
         )
-        if "Platforms: linux/amd64" not in acestream_build.stdout:
-            raise AssertionError("dry-run output did not restrict AceStream flavor platforms")
+        expected_acestream_platforms = acestream_platforms()
+        if f"Platforms: {','.join(expected_acestream_platforms)}" not in acestream_build.stdout:
+            raise AssertionError(
+                "dry-run output did not derive AceStream flavor platforms from the manifest"
+            )
+        for platform in expected_acestream_platforms:
+            if f"AceStream engine for {platform}:" not in acestream_build.stdout:
+                raise AssertionError(f"dry-run output did not report the engine source for {platform}")
         acestream_payload = load_json(acestream_result)
         assert_build_metadata(
             acestream_payload,
             flavor="scraper-acestream",
             target="scraper-acestream",
-            platforms=["linux/amd64"],
+            platforms=expected_acestream_platforms,
             tags=["example.com/acestream-scraper:test-acestream"],
         )
 
+        # A platform outside the baseline matrix must be rejected explicitly.
         invalid_platforms = run(
             [
                 "bash",
@@ -112,7 +128,7 @@ def main() -> int:
                 "--flavor",
                 "scraper-acestream",
                 "--platforms",
-                "linux/arm64",
+                "linux/ppc64le",
             ],
             expect_success=False,
         )
@@ -143,7 +159,8 @@ def main() -> int:
                 "scraper-acestream",
             ]
         )
-        if "Required platforms: linux/amd64" not in verify_acestream.stdout:
+        expected_required = "Required platforms: " + ", ".join(sorted(expected_acestream_platforms))
+        if expected_required not in verify_acestream.stdout:
             raise AssertionError("AceStream flavor verification did not derive expected platforms")
 
     print("Flavor-aware multiarch script validation passed.")

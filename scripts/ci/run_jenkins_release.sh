@@ -139,15 +139,20 @@ fi
 # Docker Hub. BUILDX_BUILDER=default forces the docker driver because the
 # docker-container driver's isolated network breaks curl to
 # download.acestream.media on WARP-routed builders.
+# scraper-acestream resolves to amd64 + arm64 + arm/v7; --load needs a single
+# platform, so pin the runner's native one. The ARM engine layouts are
+# verified by the installer-stage tests (QEMU build, no execution).
 (
   export BUILDX_BUILDER=default
   bash scripts/ci/build_multiarch_images.sh \
     --flavor scraper-acestream \
+    --platforms linux/amd64 \
     --load \
     --network host \
     --tag acestream-scraper:release-smoke
 )
 PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_acestream_runtime_smoke.py -v
+PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_install_acestream.py -v -k "android_apk_install_layout"
 
 : "${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}"
 : "${DOCKERHUB_TOKEN:?DOCKERHUB_TOKEN is required}"

@@ -35,12 +35,15 @@ if [ "$ENABLE_ACEXY" = "true" ]; then
                 ;;
         esac
 
-        curl -fsS "http://${ACEXY_HOST}:${ACEXY_PORT}" > /dev/null || fail "External AceStream engine not accessible"
+        curl -fsS "http://${ACEXY_HOST}:${ACEXY_PORT}/webui/api/service?method=get_version" > /dev/null || fail "External AceStream engine not accessible"
     fi
 
     curl -fsS "http://localhost:${ACEXY_STATUS_PORT}/ace/status" > /dev/null || fail "Acexy healthcheck failed"
 elif [ "$ENABLE_ACESTREAM_ENGINE" = "true" ]; then
-    curl -fsS "http://${ACESTREAM_HTTP_HOST}:${ACESTREAM_HTTP_PORT}" > /dev/null || fail "In-container AceStream engine not accessible"
+    # The engine root URL answers HTTP 500 ("couldn't find resource") on both
+    # the native 3.2.x and the Android engine; get_version is the lightest
+    # unauthenticated endpoint they all serve.
+    curl -fsS "http://${ACESTREAM_HTTP_HOST}:${ACESTREAM_HTTP_PORT}/webui/api/service?method=get_version" > /dev/null || fail "In-container AceStream engine not accessible"
 fi
 
 printf 'All health checks passed\n'

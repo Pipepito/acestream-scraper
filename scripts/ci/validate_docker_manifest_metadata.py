@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
+"""Validate docker/manifests/{platforms,acestream,acexy}.json and the vendored payloads.
+
+Run from anywhere: ``python3 scripts/ci/validate_docker_manifest_metadata.py``.
+Exit 1 with ``VALIDATION FAILED: ...`` on the first problem.
+"""
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -13,6 +19,10 @@ EXPECTED_FLAVORS = {
     "scraper-acexy",
     "scraper-acestream-acexy",
 }
+INSTALL_KINDS = {"executable", "android-apk"}
+SUPPORT_LEVELS = {"stable", "experimental"}
+ARCHIVE_TYPES_BY_KIND = {"executable": {"tar.gz"}, "android-apk": {"apk"}}
+SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 def load_json(relative_path: str) -> dict:
@@ -29,36 +39,102 @@ def require_keys(payload: dict, keys: list[str], label: str) -> None:
             raise AssertionError(f"{label} missing required key: {key}")
 
 
-def require_platform_entry(entry: dict, platform: str) -> None:
-    require_keys(
-        entry,
-        ["url", "sha256", "archive_type", "install"],
-        f"acestream.json platform {platform}",
-    )
+def load_sha256sums(vendor_dir: Path, label: str) -> dict[str, str]:
+    sums_path = vendor_dir / "SHA256SUMS"
+    if not sums_path.is_file():
+        raise AssertionError(f"{label}: missing {sums_path.relative_to(REPO_ROOT)}")
+    sums: dict[str, str] = {}
+    for line in sums_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        digest, _, name = line.partition("  ")
+        sums[name.strip()] = digest.strip()
+    return sums
+
+
+def require_vendored(label: str, vendor_dir_rel: str, vendored_file: str, sha256: str, mirror_urls: list, mirror_base: str) -> None:
+    vendor_dir = REPO_ROOT / vendor_dir_rel
+    if not vendor_dir.is_dir():
+        raise AssertionError(f"{label}: vendor_dir {vendor_dir_rel} does not exist")
+    if not isinstance(vendored_file, str) or not vendored_file or "/" in vendored_file:
+        raise AssertionError(f"{label}: vendored_file must be a bare file name")
+    vendored_path = vendor_dir / vendored_file
+    if not vendored_path.is_file():
+        raise AssertionError(f"{label}: vendored file missing: {vendor_dir_rel}/{vendored_file}")
+    sums = load_sha256sums(vendor_dir, label)
+    if sums.get(vendored_file) != sha256:
+        raise AssertionError(
+            f"{label}: {vendor_dir_rel}/SHA256SUMS entry for {vendored_file} does not match the manifest sha256"
+        )
+    if not isinstance(mirror_urls, list) or not mirror_urls:
+        raise AssertionError(f"{label}: mirror_urls must be a non-empty list")
+    for url in mirror_urls:
+        if not isinstance(url, str) or not url.startswith("https://"):
+            raise AssertionError(f"{label}: mirror url must be https: {url!r}")
+        if not url.endswith("/" + vendored_file):
+            raise AssertionError(f"{label}: mirror url must end with /{vendored_file}: {url}")
+    if mirror_base and not any(url.startswith(mirror_base.rstrip("/") + "/") for url in mirror_urls):
+        raise AssertionError(f"{label}: no mirror url under mirror_base_url {mirror_base}")
+
+
+def require_platform_entry(entry: dict, platform: str, acestream: dict) -> None:
+    label = f"acestream.json platform {platform}"
+    require_keys(entry, ["url", "sha256", "archive_type", "install", "vendored_file", "mirror_urls", "support", "engine_version"], label)
+    if not isinstance(entry["sha256"], str) or not SHA256_RE.match(entry["sha256"]):
+        raise AssertionError(f"{label} sha256 must be a 64-hex string")
+    if not isinstance(entry["url"], str) or not entry["url"].startswith("https://"):
+        raise AssertionError(f"{label} url must be https")
+    if entry["support"] not in SUPPORT_LEVELS:
+        raise AssertionError(f"{label} support must be one of {sorted(SUPPORT_LEVELS)}, got {entry['support']!r}")
+    if not isinstance(entry["engine_version"], str) or not entry["engine_version"]:
+        raise AssertionError(f"{label} engine_version must be a non-empty string")
+
     install = entry["install"]
     if not isinstance(install, dict):
-        raise AssertionError(
-            f"acestream.json platform {platform} install must be an object"
-        )
-    require_keys(
-        install,
-        ["strip_components", "engine_http_port", "kind"],
-        f"acestream.json platform {platform} install",
-    )
+        raise AssertionError(f"{label} install must be an object")
+    require_keys(install, ["engine_http_port", "kind"], f"{label} install")
     kind = install["kind"]
-    if kind != "executable":
+    if kind not in INSTALL_KINDS:
+        raise AssertionError(f"{label} install.kind must be one of {sorted(INSTALL_KINDS)}, got {kind!r}")
+    if entry["archive_type"] not in ARCHIVE_TYPES_BY_KIND[kind]:
         raise AssertionError(
-            f"acestream.json platform {platform} install.kind must be "
-            f"'executable', got {kind!r}"
+            f"{label} archive_type {entry['archive_type']!r} is not valid for kind {kind} "
+            f"(expected {sorted(ARCHIVE_TYPES_BY_KIND[kind])})"
         )
-    require_keys(
-        install,
-        ["binary_path"],
-        f"acestream.json platform {platform} install (kind=executable)",
+
+    require_vendored(
+        label,
+        acestream.get("vendor_dir", "docker/vendor/acestream"),
+        entry["vendored_file"],
+        entry["sha256"],
+        entry["mirror_urls"],
+        acestream.get("mirror_base_url", ""),
     )
-    if not isinstance(entry["sha256"], str):
-        raise AssertionError(
-            f"acestream.json platform {platform} sha256 must be a string"
+
+    if kind == "executable":
+        require_keys(install, ["binary_path", "strip_components"], f"{label} install (kind=executable)")
+        if not isinstance(install["binary_path"], str) or not install["binary_path"]:
+            raise AssertionError(f"{label} install.binary_path must be a non-empty string")
+    else:  # android-apk
+        require_keys(install, ["abi", "bionic"], f"{label} install (kind=android-apk)")
+        if install["abi"] not in {"arm64-v8a", "armeabi-v7a"}:
+            raise AssertionError(f"{label} install.abi must be arm64-v8a or armeabi-v7a, got {install['abi']!r}")
+        bionic = install["bionic"]
+        if not isinstance(bionic, dict):
+            raise AssertionError(f"{label} install.bionic must be an object")
+        require_keys(bionic, ["url", "sha256", "vendor_dir", "vendored_file", "mirror_urls", "libdir", "linker"], f"{label} install.bionic")
+        if not SHA256_RE.match(str(bionic["sha256"])):
+            raise AssertionError(f"{label} install.bionic.sha256 must be a 64-hex string")
+        if (bionic["libdir"], bionic["linker"]) not in {("lib64", "linker64"), ("lib", "linker")}:
+            raise AssertionError(f"{label} install.bionic libdir/linker must be lib64/linker64 or lib/linker")
+        require_vendored(
+            f"{label} install.bionic",
+            bionic["vendor_dir"],
+            bionic["vendored_file"],
+            bionic["sha256"],
+            bionic["mirror_urls"],
+            acestream.get("mirror_base_url", ""),
         )
 
 
@@ -92,13 +168,15 @@ def main() -> int:
     if tag_aliases.get("version") != FULL_FLAVOR:
         raise AssertionError(f"platforms.json version must map to {FULL_FLAVOR}")
 
-    require_keys(acestream, ["version", "platforms"], "acestream.json")
+    require_keys(acestream, ["version", "platforms", "vendor_dir", "mirror_base_url"], "acestream.json")
     if not isinstance(acestream["platforms"], dict) or not acestream["platforms"]:
         raise AssertionError("acestream.json platforms must be a non-empty object")
+    if "linux/amd64" not in acestream["platforms"]:
+        raise AssertionError("acestream.json must keep a linux/amd64 entry")
     for platform, entry in acestream["platforms"].items():
         if not isinstance(entry, dict):
             raise AssertionError(f"acestream.json platform {platform} must be an object")
-        require_platform_entry(entry, platform)
+        require_platform_entry(entry, platform, acestream)
 
     require_keys(acexy, ["repo", "ref", "version"], "acexy.json")
     if "expected_binary_name" in acexy and (

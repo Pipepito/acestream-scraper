@@ -1,6 +1,15 @@
-"""End-to-end smoke: build scraper-acestream and run the engine wrapper."""
+"""End-to-end smoke: build scraper-acestream and run the real engine.
+
+Parametrized over the manifest's platforms that this host can execute:
+linux/amd64 always (natively or under QEMU) and linux/arm64 when the host is
+arm64 (the Android engine's bionic runtime cannot be exercised under
+qemu-user). linux/arm/v7 needs real 32-bit ARM hardware and is build-tested
+only (see test_install_acestream.py).
+"""
 from __future__ import annotations
 
+import json
+import platform as host_platform
 import shutil
 import socket
 import subprocess
@@ -10,6 +19,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+MANIFEST = json.loads((REPO_ROOT / "docker" / "manifests" / "acestream.json").read_text(encoding="utf-8"))
 
 
 def _docker_available() -> bool:
@@ -19,6 +29,13 @@ def _docker_available() -> bool:
 pytestmark = pytest.mark.skipif(
     not _docker_available(), reason="docker not available on this runner"
 )
+
+
+def _runnable_platforms() -> list[str]:
+    platforms = ["linux/amd64"]
+    if host_platform.machine() in ("arm64", "aarch64"):
+        platforms.append("linux/arm64")
+    return [p for p in platforms if p in MANIFEST["platforms"]]
 
 
 def _free_port() -> int:
@@ -50,56 +67,41 @@ def _register_image_cleanup(request: pytest.FixtureRequest, tag: str) -> None:
     )
 
 
-def test_scraper_acestream_starts_real_engine(request: pytest.FixtureRequest):
-    tag = "acestream-scraper-smoke:scraper-acestream"
+@pytest.mark.parametrize("platform", _runnable_platforms())
+def test_scraper_acestream_starts_real_engine(request: pytest.FixtureRequest, platform: str):
+    tag = f"acestream-scraper-smoke:scraper-acestream-{platform.replace('/', '-')}"
     _register_image_cleanup(request, tag)
 
-    # Pull manifest-derived build args via the helper
-    derived = subprocess.run(
-        [
-            "python3",
-            str(REPO_ROOT / "scripts" / "ci" / "derive_acestream_build_args.py"),
-            str(REPO_ROOT / "docker" / "manifests" / "acestream.json"),
-            "scraper-acestream",
-            "linux/amd64",
-        ],
-        check=True, capture_output=True, text=True,
-    )
-    build_args: list[str] = []
-    for line in derived.stdout.strip().splitlines():
-        build_args.extend(["--build-arg", line])
-
-    # BUILDX_BUILDER (env) controls the buildx instance selection. On Jenkins
-    # we set it to the docker-driver builder so RUN steps inherit the host's
-    # WARP-routed network; the docker-container driver runs BuildKit in an
-    # isolated container that does NOT inherit host routes, breaking egress
-    # to ISP-blocked domains. Locally we let buildx use the default.
+    # Build through the canonical script so the manifest-driven, per-platform
+    # engine selection is exercised exactly as in CI/release. BUILDX_BUILDER
+    # (env) controls the buildx instance; on Jenkins it is the docker driver
+    # so RUN steps inherit the host's WARP-routed network (only needed when
+    # the vendored archives are missing).
     subprocess.run(
         [
-            "docker", "buildx", "build",
-            "--platform", "linux/amd64",
-            "--network", "host",
+            "bash", str(REPO_ROOT / "scripts" / "ci" / "build_multiarch_images.sh"),
+            "--flavor", "scraper-acestream",
+            "--platforms", platform,
             "--load",
-            "--target", "scraper-acestream",
+            "--network", "host",
             "--tag", tag,
-            *build_args,
-            str(REPO_ROOT),
         ],
-        check=True,
+        check=True, cwd=REPO_ROOT,
     )
 
-    # acestream 3.2.x has no --version flag; rely on the run-d smoke below.
-    # Instead, confirm the wrapper file exists and is executable inside the image.
+    # Confirm the launcher exists and is executable inside the image.
     file_check = subprocess.run(
         [
             "docker", "run", "--rm",
-            "--platform", "linux/amd64",
+            "--platform", platform,
             "--entrypoint", "test",
             tag, "-x", "/opt/acestream/bin/acestreamengine",
         ],
         check=False,
     )
     assert file_check.returncode == 0, "wrapper /opt/acestream/bin/acestreamengine is not executable"
+
+    expected_version = MANIFEST["platforms"][platform]["engine_version"]
 
     # Start the full container (engine + app via entrypoint.sh)
     host_port = _free_port()
@@ -108,7 +110,7 @@ def test_scraper_acestream_starts_real_engine(request: pytest.FixtureRequest):
     subprocess.run(
         [
             "docker", "run", "-d",
-            "--platform", "linux/amd64",
+            "--platform", platform,
             "--name", container,
             "-e", "ENABLE_ACESTREAM_ENGINE=true",
             "-p", f"{host_port}:8000",
@@ -117,48 +119,43 @@ def test_scraper_acestream_starts_real_engine(request: pytest.FixtureRequest):
         check=True,
     )
     try:
-        assert _wait_for_port(host_port, timeout=60), "app port did not open"
+        assert _wait_for_port(host_port, timeout=120), "app port did not open"
         # The engine and the app are independent processes spawned by
-        # entrypoint.sh; engine startup is heavier than uvicorn, so the
-        # engine port may bind seconds after the app port. Retry the
-        # webui curl until it stops returning "connection refused".
+        # entrypoint.sh; engine startup is heavier than uvicorn (much heavier
+        # under QEMU), so retry the webui probe until it answers.
         ace_check = None
-        engine_deadline = time.time() + 60
+        engine_deadline = time.time() + 240
         while time.time() < engine_deadline:
             ace_check = subprocess.run(
                 [
                     "docker", "exec", container, "curl", "-fsS",
                     "http://localhost:6878/webui/api/service?method=get_version",
                 ],
-                capture_output=True, text=True, timeout=10,
+                capture_output=True, text=True, timeout=15,
             )
-            combined = ace_check.stdout + ace_check.stderr
-            # curl rc=7 means "Failed to connect" — could be phrased as
-            # "connection refused" (Linux) or "Could not connect to server"
-            # (macOS/QEMU emulation). Retry on any rc=7.
-            if ace_check.returncode != 7:
+            if ace_check.returncode == 0 and ace_check.stdout.strip():
                 break
-            time.sleep(2)
+            time.sleep(3)
         assert ace_check is not None, "engine curl never executed"
-        combined = ace_check.stdout + ace_check.stderr
-        assert ace_check.returncode != 7, (
-            f"engine never bound :6878 within 60s. last rc={ace_check.returncode} "
-            f"stderr={ace_check.stderr!r}"
-        )
-        # Stronger positive: the engine produced *some* HTTP response (any body
-        # or any non-empty stderr from curl that isn't a connection-refused).
-        # This rejects "engine bound the port but never wrote a response".
-        engine_responded = (
-            ace_check.returncode == 0
-            or bool(ace_check.stdout)
-            or any(
-                tok in combined.lower()
-                for tok in ("http/", "401", "403", "404", "html", "{")
+        if ace_check.returncode != 0:
+            logs = subprocess.run(["docker", "logs", container], capture_output=True, text=True)
+            pytest.fail(
+                f"engine never answered on :6878 for {platform}: rc={ace_check.returncode} "
+                f"stderr={ace_check.stderr!r}\n{logs.stdout[-3000:]}{logs.stderr[-3000:]}"
             )
+        payload = json.loads(ace_check.stdout)
+        assert payload.get("error") is None, payload
+        reported = str(payload["result"]["version"])
+        assert expected_version.startswith(reported), (
+            f"{platform}: engine reports {reported}, manifest pins {expected_version}"
         )
-        assert engine_responded, (
-            f"engine port :6878 reachable but no HTTP response detected: "
-            f"rc={ace_check.returncode} stdout={ace_check.stdout!r} stderr={ace_check.stderr!r}"
+
+        # The backend's engine status probe must succeed against this engine.
+        status = subprocess.run(
+            ["docker", "exec", container, "curl", "-fsS",
+             "http://localhost:6878/server/api?api_version=3&method=get_status"],
+            capture_output=True, text=True, timeout=15,
         )
+        assert status.returncode == 0, status.stderr
     finally:
         subprocess.run(["docker", "rm", "-f", container], capture_output=True)

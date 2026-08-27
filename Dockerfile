@@ -29,21 +29,52 @@ RUN pip install --upgrade pip \
 
 FROM python:3.10-slim AS acestream-installer
 
-ARG ACESTREAM_DOWNLOAD_URL
+# Engine selection is manifest-driven per target platform: install-acestream.sh
+# reads docker/manifests/acestream.json for $TARGETPLATFORM (linux/amd64 ->
+# upstream x86_64 tarball, linux/arm64 + linux/arm/v7 -> official Android
+# engine APK on a bionic runtime) and prefers the vendored archives under
+# docker/vendor/ over network downloads. Explicit build-args override the
+# manifest; ACESTREAM_SOURCE=fixture installs the contract-test fixture.
+ARG TARGETPLATFORM
+ARG ACESTREAM_SOURCE=auto
+ARG ACESTREAM_DOWNLOAD_URL=
 ARG ACESTREAM_DOWNLOAD_SHA256=
-ARG ACESTREAM_ARCHIVE_TYPE=tar.gz
-ARG ACESTREAM_STRIP_COMPONENTS=1
-ARG ACESTREAM_INSTALL_KIND=executable
-ARG ACESTREAM_BINARY_PATH=acestreamengine
+ARG ACESTREAM_ARCHIVE_TYPE=
+ARG ACESTREAM_STRIP_COMPONENTS=
+ARG ACESTREAM_INSTALL_KIND=
+ARG ACESTREAM_BINARY_PATH=
+ARG ACESTREAM_VENDORED_FILE=
+ARG ACESTREAM_MIRROR_URLS=
+ARG ACESTREAM_ANDROID_ABI=
+ARG ACESTREAM_BIONIC_URL=
+ARG ACESTREAM_BIONIC_SHA256=
+ARG ACESTREAM_BIONIC_VENDORED_FILE=
+ARG ACESTREAM_BIONIC_MIRROR_URLS=
+ARG ACESTREAM_BIONIC_LIBDIR=
+ARG ACESTREAM_BIONIC_LINKER=
 ARG ACESTREAM_PYTHON_VERSION=3.10
 
-ENV ACESTREAM_DOWNLOAD_URL=${ACESTREAM_DOWNLOAD_URL} \
+ENV TARGETPLATFORM=${TARGETPLATFORM} \
+    ACESTREAM_SOURCE=${ACESTREAM_SOURCE} \
+    ACESTREAM_DOWNLOAD_URL=${ACESTREAM_DOWNLOAD_URL} \
     ACESTREAM_DOWNLOAD_SHA256=${ACESTREAM_DOWNLOAD_SHA256} \
     ACESTREAM_ARCHIVE_TYPE=${ACESTREAM_ARCHIVE_TYPE} \
     ACESTREAM_STRIP_COMPONENTS=${ACESTREAM_STRIP_COMPONENTS} \
     ACESTREAM_INSTALL_KIND=${ACESTREAM_INSTALL_KIND} \
     ACESTREAM_BINARY_PATH=${ACESTREAM_BINARY_PATH} \
-    ACESTREAM_PYTHON_VERSION=${ACESTREAM_PYTHON_VERSION}
+    ACESTREAM_VENDORED_FILE=${ACESTREAM_VENDORED_FILE} \
+    ACESTREAM_MIRROR_URLS=${ACESTREAM_MIRROR_URLS} \
+    ACESTREAM_ANDROID_ABI=${ACESTREAM_ANDROID_ABI} \
+    ACESTREAM_BIONIC_URL=${ACESTREAM_BIONIC_URL} \
+    ACESTREAM_BIONIC_SHA256=${ACESTREAM_BIONIC_SHA256} \
+    ACESTREAM_BIONIC_VENDORED_FILE=${ACESTREAM_BIONIC_VENDORED_FILE} \
+    ACESTREAM_BIONIC_MIRROR_URLS=${ACESTREAM_BIONIC_MIRROR_URLS} \
+    ACESTREAM_BIONIC_LIBDIR=${ACESTREAM_BIONIC_LIBDIR} \
+    ACESTREAM_BIONIC_LINKER=${ACESTREAM_BIONIC_LINKER} \
+    ACESTREAM_PYTHON_VERSION=${ACESTREAM_PYTHON_VERSION} \
+    ACESTREAM_MANIFEST=/tmp/acestream-manifest.json \
+    ACESTREAM_VENDOR_ROOT=/tmp/acestream-vendor \
+    ACESTREAM_SCRIPTS_DIR=/usr/local/lib/acestream-install
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -51,12 +82,18 @@ RUN apt-get update \
         ca-certificates \
         curl \
         tar \
+        unzip \
     && rm -rf /var/lib/apt/lists/*
 
 COPY docker/testdata/acestream/ /tmp/acestream-fixture/
-COPY docker/scripts/install-acestream.sh /usr/local/bin/install-acestream.sh
-RUN chmod +x /usr/local/bin/install-acestream.sh \
-    && /usr/local/bin/install-acestream.sh
+COPY docker/manifests/acestream.json /tmp/acestream-manifest.json
+COPY docker/scripts/install-acestream.sh docker/scripts/acestream_manifest.py /usr/local/lib/acestream-install/
+COPY docker/scripts/acestream-android/ /usr/local/lib/acestream-install/acestream-android/
+# The vendored archives (~250 MB) are bind-mounted, not copied, so they never
+# land in a layer.
+RUN --mount=type=bind,source=docker/vendor,target=/tmp/acestream-vendor,readonly \
+    chmod +x /usr/local/lib/acestream-install/install-acestream.sh \
+    && /usr/local/lib/acestream-install/install-acestream.sh
 
 
 FROM golang:1.22 AS acexy-builder
@@ -164,9 +201,18 @@ COPY --from=python:3.10-slim /usr/local/lib/libpython3.10.so.1.0 /usr/local/lib/
 RUN ldconfig
 
 COPY --from=acestream-installer /opt/acestream/ /opt/acestream/
+# ARM flavors run the official Android engine payload against a minimal Android 9
+# bionic userland; its ELF interpreter path is hard-coded to /system/bin/linker*.
+# The directory is empty for the native x86_64 engine.
+COPY --from=acestream-installer /opt/acestream-system/ /system/
+RUN mkdir -p /var/lib/acestream /data
 
+# The same start command works for every platform: on x86_64 start-engine is
+# upstream's wrapper; on ARM it is docker/scripts/acestream-android/start-engine
+# (which sets its own PYTHONPATH and keeps state under ACESTREAM_HOME).
 ENV IMAGE_HAS_ACESTREAM=true \
     ACESTREAM_BINARY_PATH=/opt/acestream/bin/acestreamengine \
+    ACESTREAM_HOME=/var/lib/acestream \
     ACESTREAM_START_COMMAND="env PYTHONPATH=/opt/acestream/python-deps /opt/acestream/start-engine --client-console --http-port 6878"
 
 

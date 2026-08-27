@@ -15,6 +15,10 @@ def contains_all(text: str, *terms: str) -> bool:
     return all(term.lower() in lowered for term in terms)
 
 
+def any_line_contains_all(text: str, *terms: str) -> bool:
+    return any(contains_all(line, *terms) for line in text.splitlines())
+
+
 compose = read("docker-compose.yml")
 readme = read("README.md")
 docker_guide = read("wiki/Docker.md")
@@ -121,6 +125,14 @@ checks = [
         and "SYS_ADMIN" in readme
         and "NET_ADMIN" in docker_guide
         and "SYS_ADMIN" in docker_guide,
+    ),
+    (
+        "docs explain acestream engine state volume",
+        "/var/lib/acestream" in readme and "/var/lib/acestream" in docker_guide,
+    ),
+    (
+        "readme marks arm/v7 acestream engine as experimental",
+        any_line_contains_all(readme, "linux/arm/v7", "experimental"),
     ),
 ]
 

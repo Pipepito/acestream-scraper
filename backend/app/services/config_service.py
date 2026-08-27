@@ -119,7 +119,10 @@ class ConfigService:
             ace_url = f"{ace_url}/"
         try:
             with httpx.Client() as client:
-                response = client.get(f"{ace_url}server/ping", timeout=0.2)
+                # get_version is the lightest unauthenticated probe that both the
+                # native Linux engine (3.2.x) and the Android engine used on ARM
+                # answer; /server/ping does not exist on either (HTTP 500).
+                response = client.get(f"{ace_url}webui/api/service?method=get_version", timeout=1.0)
                 if response.status_code == 200:
                     return {
                         "status": "online",

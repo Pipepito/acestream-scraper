@@ -1,15 +1,80 @@
 {
   "version": "3.2.11",
+  "android_version": "3.1.80.0",
+  "vendor_dir": "docker/vendor/acestream",
+  "mirror_base_url": "https://github.com/Pipepito/acestream-scraper/releases/download/acestream-binaries-3.2.11-3.1.80.0",
   "platforms": {
     "linux/amd64": {
+      "engine_version": "3.2.11",
+      "support": "stable",
       "url": "https://download.acestream.media/linux/acestream_3.2.11_ubuntu_22.04_x86_64_py3.10.tar.gz",
       "sha256": "9b6bbd76a55e5a434641afae3b9cf8e6154ce1cf392152ec3aed5ac265432b2e",
       "archive_type": "tar.gz",
+      "vendored_file": "acestream_3.2.11_ubuntu_22.04_x86_64_py3.10.tar.gz",
+      "mirror_urls": [
+        "https://github.com/Pipepito/acestream-scraper/releases/download/acestream-binaries-3.2.11-3.1.80.0/acestream_3.2.11_ubuntu_22.04_x86_64_py3.10.tar.gz"
+      ],
       "install": {
         "strip_components": 0,
         "kind": "executable",
         "binary_path": "start-engine",
         "engine_http_port": 6878
+      }
+    },
+    "linux/arm64": {
+      "engine_version": "3.1.80.0",
+      "support": "stable",
+      "url": "https://download.acestream.media/android/core.web/stable/AceStreamCore-3.1.80.0-armv8_64.apk",
+      "sha256": "a8bd48347cad2a52381da5131c315a129399c1d414b169bf301dd516df775784",
+      "archive_type": "apk",
+      "vendored_file": "AceStreamCore-3.1.80.0-armv8_64.apk",
+      "mirror_urls": [
+        "https://github.com/Pipepito/acestream-scraper/releases/download/acestream-binaries-3.2.11-3.1.80.0/AceStreamCore-3.1.80.0-armv8_64.apk"
+      ],
+      "install": {
+        "kind": "android-apk",
+        "abi": "arm64-v8a",
+        "engine_http_port": 6878,
+        "bionic": {
+          "package": "aosp-libs 9.0.0-r76-4 (Termux, built from AOSP android-security-9.0.0_r76)",
+          "url": "https://packages-cf.termux.dev/apt/termux-main/pool/main/a/aosp-libs/aosp-libs_9.0.0-r76-4_aarch64.deb",
+          "sha256": "7e5b4185f121ded7310df74eafb48a0f4c751363daa385db37dc1f603fb78ef0",
+          "vendor_dir": "docker/vendor/bionic",
+          "vendored_file": "aosp-libs_9.0.0-r76-4_aarch64.deb",
+          "mirror_urls": [
+            "https://github.com/Pipepito/acestream-scraper/releases/download/acestream-binaries-3.2.11-3.1.80.0/aosp-libs_9.0.0-r76-4_aarch64.deb"
+          ],
+          "libdir": "lib64",
+          "linker": "linker64"
+        }
+      }
+    },
+    "linux/arm/v7": {
+      "engine_version": "3.1.80.0",
+      "support": "experimental",
+      "url": "https://download.acestream.media/android/core.web/stable/AceStreamCore-3.1.80.0-armv7.apk",
+      "sha256": "c2fdeaf198634e0abfed55560d06dbe969b0f88cd4c5e7efa75382ccdf7bbbd5",
+      "archive_type": "apk",
+      "vendored_file": "AceStreamCore-3.1.80.0-armv7.apk",
+      "mirror_urls": [
+        "https://github.com/Pipepito/acestream-scraper/releases/download/acestream-binaries-3.2.11-3.1.80.0/AceStreamCore-3.1.80.0-armv7.apk"
+      ],
+      "install": {
+        "kind": "android-apk",
+        "abi": "armeabi-v7a",
+        "engine_http_port": 6878,
+        "bionic": {
+          "package": "aosp-libs 9.0.0-r76-4 (Termux, built from AOSP android-security-9.0.0_r76)",
+          "url": "https://packages-cf.termux.dev/apt/termux-main/pool/main/a/aosp-libs/aosp-libs_9.0.0-r76-4_arm.deb",
+          "sha256": "f92838fc55091fa335601e2c588918562dd3a2651fcbba5cb08d97b7f0b21d62",
+          "vendor_dir": "docker/vendor/bionic",
+          "vendored_file": "aosp-libs_9.0.0-r76-4_arm.deb",
+          "mirror_urls": [
+            "https://github.com/Pipepito/acestream-scraper/releases/download/acestream-binaries-3.2.11-3.1.80.0/aosp-libs_9.0.0-r76-4_arm.deb"
+          ],
+          "libdir": "lib",
+          "linker": "linker"
+        }
       }
     }
   }

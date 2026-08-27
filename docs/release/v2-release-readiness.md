@@ -111,15 +111,15 @@ The v2 consolidation is structurally complete: all six phases shipped their plan
 **Verified:**
 - `Dockerfile` flavor targets: `scraper`, `scraper-acestream`, `scraper-acexy`, `scraper-acestream-acexy` (lines 160–183).
 - `scripts/ci/build_multiarch_images.sh`, `verify_multiarch_manifest.sh`, `flavor_platforms.py`.
-- Manifests: `docker/manifests/{platforms,acestream}.json` (AceStream is amd64-only today).
+- Manifests: `docker/manifests/{platforms,acestream}.json` (AceStream is amd64-only today). *(Superseded on 2026-08-27 by branch `arm-acestream-engine`: `acestream.json` now declares `linux/amd64` and `linux/arm64` as `stable` and `linux/arm/v7` as `experimental`, backed by the official Android engine — see "Known issues" in `docs/release/v2-release-notes.md`.)*
 - Smoke tooling: `scripts/ci/phase5_arch_smoke.sh`, `scripts/phase_gates/phase5_gate_runner.py` + config.
 - Docs: `docs/migration/phase5-architecture-smoke-checklist.md`, `docs/architecture/deployment.md` (Multi-Arch + Android TV section), `docs/release/phase5-multiarch-evidence.md`.
 
 **Outstanding (release-blocker territory):**
-- The full multi-arch profile (`phase5_gate_runner.py --profile full`) runs only on the manual `Release Pipeline` (`workflow_dispatch`) and on Jenkins `acestream-scraper-release`; it does not fire on PRs (the standalone `multiarch-validation.yml` was retired). **Trigger the manual Release Pipeline once on `ai-coding-documentation` to capture fresh `phase5-gate-report-full.json` and runtime smoke output before tagging the release.**
+- The full multi-arch profile (`phase5_gate_runner.py --profile full`) runs only on the manual `Release Pipeline` (`workflow_dispatch`) and on Jenkins `acestream-scraper-release`; it does not fire on PRs (the standalone `multiarch-validation.yml` was retired). **Trigger the manual Release Pipeline once on `ai-coding-documentation` to capture fresh `phase5-gate-report-full.json` and runtime smoke output before tagging the release.** *(Superseded on 2026-08-27: GitHub Actions is retired, so `workflow_dispatch` no longer exists; Jenkins `acestream-scraper-release` is the only release path and its preflight runs the cutover full profile plus the real AceStream engine smoke — see "How evidence is produced for a release" in `docs/release/phase5-multiarch-evidence.md`.)*
 - Committed `phase5-build-result-*.json` files at repo root are dated 2026-04-19, marked `dry_run: true, push: false, load: false` — they are config snapshots, not build evidence. They should not be relied on for signoff.
-- `docs/release/phase5-multiarch-evidence.md` lists ARMv7 and ARM64 runtime smoke as **Pending**.
-- No documented manifest-update procedure for `docker/manifests/acestream.json` when AceStream gains ARM platforms.
+- `docs/release/phase5-multiarch-evidence.md` lists ARMv7 and ARM64 runtime smoke as **Pending**. *(Updated on 2026-08-27: the evidence doc now records a local `linux/arm64` AceStream engine smoke on Apple Silicon; `linux/arm/v7` engine execution and real-hardware validation remain pending.)*
+- No documented manifest-update procedure for `docker/manifests/acestream.json` when AceStream gains ARM platforms. *(Closed on 2026-08-27 by branch `arm-acestream-engine`: ARM is enabled in the manifest via the official Android engine, and the pin/update procedure lives in `docker/vendor/acestream/README.md`; `python3 scripts/ci/validate_docker_manifest_metadata.py` checks the manifest, vendored files, `SHA256SUMS` and mirror URLs.)*
 
 ---
 

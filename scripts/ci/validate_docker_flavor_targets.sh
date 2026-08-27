@@ -16,44 +16,25 @@ targets=(
     scraper-acestream-acexy:true:true
 )
 
-ACESTREAM_MANIFEST="$ROOT_DIR/docker/manifests/acestream.json"
-DERIVE_ARGS="$ROOT_DIR/scripts/ci/derive_acestream_build_args.py"
-
-# Source defaults from the manifest using the derive helper. Parse key=value
-# pairs without associative arrays so this works with bash 3 (macOS default).
-_manifest_get() {
-    local key="$1" default="$2" derived_output="$3"
-    local value
-    value="$(printf '%s\n' "$derived_output" | grep "^${key}=" | cut -d= -f2- || true)"
-    printf '%s' "${value:-$default}"
-}
-
-_DERIVED_OUTPUT=""
-if [[ -f "$DERIVE_ARGS" ]]; then
-    _DERIVED_OUTPUT="$(python3 "$DERIVE_ARGS" "$ACESTREAM_MANIFEST" scraper-acestream || true)"
-fi
-
-ACESTREAM_DOWNLOAD_URL="${ACESTREAM_DOWNLOAD_URL:-$(_manifest_get ACESTREAM_DOWNLOAD_URL "" "$_DERIVED_OUTPUT")}"
-ACESTREAM_DOWNLOAD_SHA256="${ACESTREAM_DOWNLOAD_SHA256:-$(_manifest_get ACESTREAM_DOWNLOAD_SHA256 "" "$_DERIVED_OUTPUT")}"
-ACESTREAM_ARCHIVE_TYPE="${ACESTREAM_ARCHIVE_TYPE:-$(_manifest_get ACESTREAM_ARCHIVE_TYPE "tar.gz" "$_DERIVED_OUTPUT")}"
-ACESTREAM_STRIP_COMPONENTS="${ACESTREAM_STRIP_COMPONENTS:-$(_manifest_get ACESTREAM_STRIP_COMPONENTS "1" "$_DERIVED_OUTPUT")}"
-ACESTREAM_INSTALL_KIND="${ACESTREAM_INSTALL_KIND:-$(_manifest_get ACESTREAM_INSTALL_KIND "executable" "$_DERIVED_OUTPUT")}"
-ACESTREAM_BINARY_PATH="${ACESTREAM_BINARY_PATH:-$(_manifest_get ACESTREAM_BINARY_PATH "start-engine" "$_DERIVED_OUTPUT")}"
-ACESTREAM_PYTHON_MODULE="${ACESTREAM_PYTHON_MODULE:-$(_manifest_get ACESTREAM_PYTHON_MODULE "acestreamengine" "$_DERIVED_OUTPUT")}"
-ACESTREAM_PYTHON_VERSION="${ACESTREAM_PYTHON_VERSION:-$(_manifest_get ACESTREAM_PYTHON_VERSION "3.10" "$_DERIVED_OUTPUT")}"
+# The Dockerfile resolves docker/manifests/acestream.json for the build
+# platform on its own (vendored archive first, then upstream/mirrors), so the
+# real engine is installed by default. Set ACESTREAM_SOURCE=fixture to build
+# the fast fixture variant, or export explicit ACESTREAM_* values to override
+# the manifest for the platform under test.
+PLATFORM="${PLATFORM:-linux/amd64}"
+ACESTREAM_SOURCE="${ACESTREAM_SOURCE:-auto}"
 ACEXY_REPO=${ACEXY_REPO:-fixture}
 ACEXY_REF=${ACEXY_REF:-fixture}
 ACEXY_BINARY_NAME=${ACEXY_BINARY_NAME:-acexy}
 
-# When no real download URL is configured, fall back to the executable
-# fixture binary regardless of what the manifest says. The fixture layout
-# under docker/testdata/acestream/ is shaped for kind=executable, so we
-# must not let kind=python_module (from the manifest) reach the build when
-# running in fixture mode.
-if [[ -z "$ACESTREAM_DOWNLOAD_URL" ]]; then
-    ACESTREAM_INSTALL_KIND="executable"
-    ACESTREAM_BINARY_PATH="start-engine"
-fi
+acestream_override_args=()
+for key in ACESTREAM_DOWNLOAD_URL ACESTREAM_DOWNLOAD_SHA256 ACESTREAM_ARCHIVE_TYPE \
+           ACESTREAM_STRIP_COMPONENTS ACESTREAM_INSTALL_KIND ACESTREAM_BINARY_PATH \
+           ACESTREAM_VENDORED_FILE ACESTREAM_PYTHON_VERSION; do
+    if [[ -n "${!key:-}" ]]; then
+        acestream_override_args+=(--build-arg "$key=${!key}")
+    fi
+done
 
 for target_spec in "${targets[@]}"; do
     IFS=':' read -r target expected_acestream expected_acexy <<< "$target_spec"
@@ -62,22 +43,16 @@ for target_spec in "${targets[@]}"; do
     printf 'Validating target %s\n' "$target"
 
     docker buildx build \
-        --platform linux/amd64 \
+        --platform "$PLATFORM" \
         --load \
         --progress "$BUILD_PROGRESS" \
         --target "$target" \
         --tag "$image_tag" \
-        --build-arg "ACESTREAM_DOWNLOAD_URL=$ACESTREAM_DOWNLOAD_URL" \
-        --build-arg "ACESTREAM_DOWNLOAD_SHA256=$ACESTREAM_DOWNLOAD_SHA256" \
-        --build-arg "ACESTREAM_ARCHIVE_TYPE=$ACESTREAM_ARCHIVE_TYPE" \
-        --build-arg "ACESTREAM_STRIP_COMPONENTS=$ACESTREAM_STRIP_COMPONENTS" \
-        --build-arg "ACESTREAM_BINARY_PATH=$ACESTREAM_BINARY_PATH" \
+        --build-arg "ACESTREAM_SOURCE=$ACESTREAM_SOURCE" \
         --build-arg "ACEXY_REPO=$ACEXY_REPO" \
         --build-arg "ACEXY_REF=$ACEXY_REF" \
         --build-arg "ACEXY_BINARY_NAME=$ACEXY_BINARY_NAME" \
-        --build-arg "ACESTREAM_INSTALL_KIND=$ACESTREAM_INSTALL_KIND" \
-        --build-arg "ACESTREAM_PYTHON_MODULE=$ACESTREAM_PYTHON_MODULE" \
-        --build-arg "ACESTREAM_PYTHON_VERSION=$ACESTREAM_PYTHON_VERSION" \
+        ${acestream_override_args[@]+"${acestream_override_args[@]}"} \
         "$ROOT_DIR"
 
     python3 - "$image_tag" "$expected_acestream" "$expected_acexy" <<'PY'

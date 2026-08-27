@@ -38,7 +38,8 @@ If you are upgrading from v1, run `bash scripts/ops/preflight_v2_deploy.sh` firs
 
 - **Image flavors.** `scraper`, `scraper-acestream`, `scraper-acexy`, `scraper-acestream-acexy`. `latest` = `scraper-acestream-acexy`.
 - **Install / runtime split.** Image flavor controls which optional binaries are *installed*; env flags (`ENABLE_ACESTREAM_ENGINE`, `ENABLE_ACEXY`, `ENABLE_WARP`) control whether they actually *start*. WARP requires `NET_ADMIN` + `SYS_ADMIN` capabilities and refuses to target `localhost:6878` without an in-container engine running.
-- **Platform matrix.** Baseline flavors (`scraper`, `scraper-acexy`) build for `linux/amd64`, `linux/arm/v7`, `linux/arm64`. AceStream flavors are gated by `docker/manifests/acestream.json` (currently amd64 only — ARM availability tracks upstream AceStream releases).
+- **Platform matrix.** All four flavors build for `linux/amd64`, `linux/arm/v7`, `linux/arm64`. AceStream flavors are gated by `docker/manifests/acestream.json`, which declares every platform with a `support` level: `linux/amd64` and `linux/arm64` are **stable**, `linux/arm/v7` is **experimental**.
+- **AceStream engine on ARM.** `scraper-acestream`, `scraper-acestream-acexy` and `latest` now ship an engine on `linux/arm64` and `linux/arm/v7`. Upstream publishes native Linux engine tarballs for x86_64 only (3.2.11), so the ARM images run the official Android engine (`AceStreamCore-3.1.80.0-armv8_64.apk` / `AceStreamCore-3.1.80.0-armv7.apk` from https://docs.acestream.media/products/): the APK's engine payload is unpacked to `/opt/acestream` and runs unmodified against a minimal Android 9 bionic userland at `/system` (Termux `aosp-libs 9.0.0-r76-4`, built from AOSP; NOTICE files under `/system/etc/NOTICE-aosp-libs`). No chroot, `--privileged`, seccomp profile or extra capabilities are needed. The engine archives and bionic packages are vendored under `docker/vendor/` and mirrored on the `acestream-binaries-3.2.11-3.1.80.0` GitHub Release, so image builds no longer depend on reaching `download.acestream.media`. The engine stays opt-in (`ENABLE_ACESTREAM_ENGINE=false` by default); persist engine state, cache and logs with `-v acestream-state:/var/lib/acestream`. ARM caveats are listed under "Known issues".
 - **Real Acexy in the acexy flavors.** The `scraper-acexy` and `scraper-acestream-acexy` images now compile the upstream Acexy proxy pinned in `docker/manifests/acexy.json` (0.2.2). Previously no build path passed the manifest's `ACEXY_REPO`/`ACEXY_REF` args, so the images silently shipped the build-test stub. A runtime smoke (`backend/tests/docker/test_acexy_runtime_smoke.py`) now gates the Jenkins PR pipeline on the real proxy answering `/ace/status`.
 - **Android TV deployment notes.** New `docs/architecture/deployment.md` "Android TV Notes" section covers ARM64 preference, ARMv7 caveats, and conservative runtime tuning.
 
@@ -175,11 +176,29 @@ basket of hardening items. All are closed before tag. Headline changes:
 
 - ~~Frontend lint warning baseline~~ — resolved: the lint baseline is now
   zero warnings and CI enforces it with `--max-warnings=0`.
-- AceStream-bearing flavors (`scraper-acestream`, `scraper-acestream-acexy`,
-  `latest`) currently publish for `linux/amd64` only because upstream
-  AceStream binaries are amd64-only. ARM availability tracks upstream
-  releases; the playbook for enabling ARM lives in
-  `docs/ops/multiarch-manifest-updates.md`.
+- ~~AceStream-bearing flavors (`scraper-acestream`, `scraper-acestream-acexy`,
+  `latest`) publish for `linux/amd64` only~~ — superseded on 2026-08-27 by
+  branch `arm-acestream-engine`: these flavors now publish for `linux/arm64`
+  (stable) and `linux/arm/v7` (experimental) using the official Android
+  engine. Remaining ARM caveats:
+  - Engine version skew: ARM runs 3.1.80 (`get_version` reports
+    `"platform":"android"`) while amd64 runs 3.2.11.
+  - `linux/arm/v7` builds and installs but has not been runtime-tested: the
+    32-bit bionic engine cannot execute under qemu-user
+    (`personality(PER_LINUX32)`), so it needs real ARMv7/AArch32-capable
+    hardware.
+  - No WebRTC transport on ARM (`pywebrtc` needs Android GPU/audio libs; the
+    engine logs a non-fatal error), and a few CPython accelerator modules
+    fall back to pure Python.
+  - The Android 9 bionic linker needs a 4 KB-page kernel;
+    `/opt/acestream/start-engine` refuses to start otherwise (Raspberry Pi 5:
+    set `kernel=kernel8.img` in `config.txt`).
+  - Streaming performance and stability have not been validated on real ARM
+    hardware yet (plan in `docs/release/arm-acestream-issue-draft.md`).
+  - Repackaging the official APK is a grey area under the AceStream user
+    agreement's redistribution terms, shared by every community ARM image.
+
+  Engine pins are updated per `docker/vendor/acestream/README.md`.
 - Cloudflare WARP (`warp-cli`) is only packaged for amd64 upstream, so the
   `linux/arm/v7` and `linux/arm64` images ship without it. Setting
   `ENABLE_WARP=true` on an ARM image fails at startup with a clear error.

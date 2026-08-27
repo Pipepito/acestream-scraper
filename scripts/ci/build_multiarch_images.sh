@@ -179,45 +179,40 @@ fi
 
 PLATFORMS="$resolved_platforms"
 
-ACESTREAM_ARG_HELPER="$ROOT_DIR/scripts/ci/derive_acestream_build_args.py"
-if [[ -f "$ACESTREAM_ARG_HELPER" ]]; then
-    ACESTREAM_BEARING_FLAVORS=("scraper-acestream" "scraper-acestream-acexy")
-    flavor_needs_acestream=0
-    for f in "${ACESTREAM_BEARING_FLAVORS[@]}"; do
-        if [[ "$FLAVOR" == "$f" ]]; then
-            flavor_needs_acestream=1
-            break
-        fi
-    done
-
-    if ! derived="$(python3 "$ACESTREAM_ARG_HELPER" "$ACESTREAM_MANIFEST" "$FLAVOR" "${PLATFORMS%%,*}" 2>&1)"; then
-        helper_rc=$?
-        if [[ "$flavor_needs_acestream" -eq 1 ]]; then
-            printf 'ERROR: failed to derive acestream build args for flavor=%s platform=%s\n%s\n' \
-                "$FLAVOR" "${PLATFORMS%%,*}" "$derived" >&2
-            exit "$helper_rc"
-        else
-            # Non-acestream flavor: helper crash is unexpected but not fatal.
-            printf 'WARNING: derive helper exited %d for non-acestream flavor %s; continuing\n%s\n' \
-                "$helper_rc" "$FLAVOR" "$derived" >&2
-            derived=""
-        fi
+# AceStream-bearing flavors: the Dockerfile's acestream-installer stage resolves
+# docker/manifests/acestream.json for each $TARGETPLATFORM on its own (vendored
+# archive -> upstream URL -> mirrors), so no per-platform ACESTREAM_* build-args
+# are injected here; a global value would apply the same engine to every
+# platform of a multi-platform build. Explicit --build-arg ACESTREAM_* values
+# still pass through as overrides. We do validate up front that every resolved
+# platform has a manifest entry, and print what will be installed.
+ACESTREAM_RESOLVER="$ROOT_DIR/docker/scripts/acestream_manifest.py"
+ACESTREAM_BEARING_FLAVORS=("scraper-acestream" "scraper-acestream-acexy")
+flavor_needs_acestream=0
+for f in "${ACESTREAM_BEARING_FLAVORS[@]}"; do
+    if [[ "$FLAVOR" == "$f" ]]; then
+        flavor_needs_acestream=1
+        break
     fi
-    while IFS= read -r line; do
-        [[ -z "$line" ]] && continue
-        # Don't override args the caller already passed via --build-arg.
-        key="${line%%=*}"
-        already=0
-        for existing in "${BUILD_ARGS[@]:-}"; do
-            if [[ "$existing" == "$key="* ]]; then
-                already=1
-                break
-            fi
-        done
-        if [[ "$already" -eq 0 ]]; then
-            BUILD_ARGS+=("--build-arg" "$line")
+done
+if [[ "$flavor_needs_acestream" -eq 1 ]]; then
+    if [[ ! -f "$ACESTREAM_RESOLVER" ]]; then
+        echo "AceStream manifest resolver not found: $ACESTREAM_RESOLVER" >&2
+        exit 1
+    fi
+    IFS=',' read -r -a _ace_platforms <<< "$PLATFORMS"
+    for _plat in "${_ace_platforms[@]}"; do
+        if ! _resolved="$(python3 "$ACESTREAM_RESOLVER" "$ACESTREAM_MANIFEST" --platform "$_plat" --format json 2>&1)"; then
+            printf 'ERROR: flavor %s cannot resolve an AceStream engine for %s\n%s\n' "$FLAVOR" "$_plat" "$_resolved" >&2
+            exit 1
         fi
-    done <<< "$derived"
+        printf 'AceStream engine for %s: %s\n' "$_plat" "$(printf '%s' "$_resolved" | python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+src = ("vendored " + d["ACESTREAM_VENDORED_FILE"]) if d.get("ACESTREAM_VENDORED_FILE") else d.get("ACESTREAM_DOWNLOAD_URL", "")
+print("kind=%s version=%s support=%s source=%s" % (d["ACESTREAM_INSTALL_KIND"], d["ACESTREAM_ENGINE_VERSION"], d["ACESTREAM_PLATFORM_SUPPORT"], src))
+')"
+    done
 fi
 
 # Acexy-bearing flavors must compile the real proxy from the pinned upstream

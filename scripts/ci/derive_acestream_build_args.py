@@ -1,21 +1,30 @@
 #!/usr/bin/env python3
-"""Print ACESTREAM_* build args for the given flavor + platform.
+"""Print the ACESTREAM_* variables for one flavor + platform (``KEY=VALUE`` lines).
 
 Usage:
     derive_acestream_build_args.py <acestream.json> <flavor> [<platform>]
 
-Emits one `KEY=VALUE` per line, matching --build-arg expectations. If the
-flavor does not use acestream, prints nothing and exits 0. If multiple
-platforms exist for the flavor and no platform is specified, picks the
-first declared platform (deterministic per JSON order).
+Thin CI wrapper around docker/scripts/acestream_manifest.py (the resolver the
+Docker build itself uses). Non-acestream flavors print nothing and exit 0.
+Without a platform the first declared one is used. Note that the Docker
+build resolves the manifest per $TARGETPLATFORM on its own; this helper is
+for inspection, dry-runs and single-platform overrides.
 """
 from __future__ import annotations
 
-import json
 import sys
 from pathlib import Path
 
-ACESTREAM_FLAVORS = {"scraper-acestream", "scraper-acestream-acexy"}
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT / "docker" / "scripts"))
+
+from acestream_manifest import (  # noqa: E402  (path set above)
+    ACESTREAM_FLAVORS,
+    ManifestError,
+    build_args_for,
+    format_env,
+    load_manifest,
+)
 
 
 def main() -> int:
@@ -30,43 +39,15 @@ def main() -> int:
     if flavor not in ACESTREAM_FLAVORS:
         return 0  # nothing to emit
 
-    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
-    platforms = payload.get("platforms", {})
-    if not platforms:
-        sys.stderr.write(f"acestream.json declares no platforms\n")
+    try:
+        payload = load_manifest(manifest_path)
+        platform = requested_platform or next(iter(payload["platforms"]))
+        pairs = build_args_for(payload, platform)
+    except (ManifestError, OSError, ValueError) as exc:
+        sys.stderr.write(f"flavor {flavor}: {exc}\n")
         return 1
 
-    if requested_platform:
-        if requested_platform not in platforms:
-            sys.stderr.write(
-                f"flavor {flavor}: platform {requested_platform} not in acestream manifest\n"
-            )
-            return 1
-        chosen = requested_platform
-    else:
-        chosen = next(iter(platforms))
-
-    entry = platforms[chosen]
-    install = entry.get("install", {})
-
-    pairs = {
-        "ACESTREAM_DOWNLOAD_URL": entry.get("url", ""),
-        "ACESTREAM_DOWNLOAD_SHA256": entry.get("sha256", ""),
-        "ACESTREAM_ARCHIVE_TYPE": entry.get("archive_type", "tar.gz"),
-        "ACESTREAM_STRIP_COMPONENTS": str(install.get("strip_components", 1)),
-        "ACESTREAM_INSTALL_KIND": install.get("kind", "executable"),
-    }
-    if pairs["ACESTREAM_INSTALL_KIND"] == "executable":
-        pairs["ACESTREAM_BINARY_PATH"] = install.get("binary_path", "acestreamengine")
-    else:
-        sys.stderr.write(
-            f"unsupported install kind: {pairs['ACESTREAM_INSTALL_KIND']!r} "
-            "(only 'executable' is implemented)\n"
-        )
-        return 1
-
-    for key, value in pairs.items():
-        print(f"{key}={value}")
+    sys.stdout.write(format_env(pairs))
     return 0
 
 

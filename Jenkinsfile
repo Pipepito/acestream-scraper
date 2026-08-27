@@ -76,14 +76,22 @@ export BUILDX_BUILDER=default
 # The self-hosted runner's build cache can rot ("failed to prepare
 # extraction snapshot ... parent snapshot ... does not exist" at the image
 # export step). Prune the corrupted cache and retry once before failing.
-if ! bash scripts/ci/build_multiarch_images.sh --flavor scraper-acestream --load --network host --tag "acestream-scraper:smoke-${BUILD_NUMBER}"; then
+# scraper-acestream now resolves to amd64 + arm64 + arm/v7; --load needs a
+# single platform, so pin the runner's native one here. The engine archives
+# are vendored in docker/vendor, so this no longer depends on WARP egress.
+if ! bash scripts/ci/build_multiarch_images.sh --flavor scraper-acestream --platforms linux/amd64 --load --network host --tag "acestream-scraper:smoke-${BUILD_NUMBER}"; then
   echo "Smoke image build failed; pruning builder cache and retrying once"
   docker builder prune -af || true
-  bash scripts/ci/build_multiarch_images.sh --flavor scraper-acestream --load --network host --tag "acestream-scraper:smoke-${BUILD_NUMBER}"
+  bash scripts/ci/build_multiarch_images.sh --flavor scraper-acestream --platforms linux/amd64 --load --network host --tag "acestream-scraper:smoke-${BUILD_NUMBER}"
 fi
 PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_acestream_runtime_smoke.py -v
 # The acexy flavor must ship the real upstream proxy, not the build fixture.
 PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_acexy_runtime_smoke.py -v
+# ARM engine flavors: the Android engine payload + bionic runtime must install
+# cleanly for both ARM platforms (QEMU build, no engine execution — the
+# 32-bit bionic engine cannot run under qemu-user; arm64 runtime smoke runs on
+# arm64 hosts via the same pytest).
+PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_install_acestream.py -v -k "android_apk_install_layout"
 '''
       }
     }

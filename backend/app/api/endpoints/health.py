@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+from fastapi.concurrency import run_in_threadpool
 
 from app.api.dependencies import get_config_service, get_stats_service
 from app.services.config_service import ConfigService
@@ -10,7 +11,9 @@ router = APIRouter(tags=["health"])
 @router.get("/health", response_model=HealthResponse)
 async def check_health(config_service: ConfigService = Depends(get_config_service)):
     """Check the overall system health"""
-    health = config_service.check_system_health()
+    # The engine probe is a blocking HTTP call (up to 1 s); keep it off the
+    # event loop so a slow engine does not stall every other request.
+    health = await run_in_threadpool(config_service.check_system_health)
     return health
 
 @router.get("/stats")

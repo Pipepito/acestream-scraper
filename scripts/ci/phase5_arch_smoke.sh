@@ -14,10 +14,10 @@ Options:
   --context <path>         Build context (default: .)
   --dockerfile <path>      Dockerfile path (default: Dockerfile)
   --target <name>          Dockerfile target to build (default: scraper — the
-                           baseline flavor, which is the only one shipping the
-                           smoke platforms; without an explicit target the
-                           build would default to the last stage, the
-                           amd64-only scraper-acestream-acexy flavor)
+                           baseline app-only flavor; the engine-bearing
+                           flavors also build for ARM, but the Android engine
+                           payload cannot execute under qemu-user, so their
+                           runtime smoke runs on real ARM hosts instead)
   --timeout <sec>          Per-platform startup timeout (default: 60)
   --dry-run                Print planned actions only
   --help                   Show this help

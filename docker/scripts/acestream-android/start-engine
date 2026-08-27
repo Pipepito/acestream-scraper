@@ -1,0 +1,62 @@
+#!/bin/sh
+# Launch the official Android AceStream engine payload natively on Linux
+# (linux/arm64, linux/arm/v7). Installed as /opt/acestream/start-engine by
+# docker/scripts/install-acestream.sh for install kind android-apk; the
+# x86_64 flavor ships upstream's own start-engine instead.
+#
+# The payload is a bionic (Android libc) CPython 3.8 plus the compiled engine
+# modules. It runs unmodified against a minimal Android 9 bionic userland at
+# /system; no chroot, privileges or seccomp changes are needed.
+#
+# Environment:
+#   ACESTREAM_HOME       writable state dir (default /var/lib/acestream); holds
+#                        acestream.conf, logs and the engine cache.
+#   ACESTREAM_HTTP_PORT  default engine HTTP port (6878) when the caller passes
+#                        no --http-port; the image's ACESTREAM_START_COMMAND
+#                        passes --http-port 6878 explicitly, and later flags win.
+# Extra arguments are appended to the engine command line (later flags win).
+# --bind-all lets the engine accept non-loopback clients (allow_remote=1);
+# without it, clients arriving through a published 6878 port get "Internal
+# server error". Only publish 6878 on trusted networks: the engine API has no
+# authentication.
+set -eu
+
+ACE="${ACESTREAM_INSTALL_DIR:-/opt/acestream}"
+export ACESTREAM_HOME="${ACESTREAM_HOME:-/var/lib/acestream}"
+export ANDROID_ROOT=/system
+export ANDROID_DATA=/data
+export TEMP="${TEMP:-/tmp}"
+
+if [ -d /system/lib64 ]; then
+    syslib=/system/lib64
+else
+    syslib=/system/lib
+fi
+export PYTHONHOME="$ACE/python"
+export PYTHONPATH="$ACE/python/lib/stdlib.zip:$ACE/python/lib/modules:$ACE/lib:$ACE/modules.zip:$ACE"
+export LD_LIBRARY_PATH="$syslib:$ACE/python/lib"
+unset PYTHONDONTWRITEBYTECODE PYTHONUNBUFFERED
+
+if [ ! -x /system/bin/linker64 ] && [ ! -x /system/bin/linker ]; then
+    echo "start-engine: bionic runtime missing at /system; this image was not built with the android-apk engine" >&2
+    exit 1
+fi
+
+pagesize="$(getconf PAGESIZE 2>/dev/null || echo 4096)"
+if [ "$pagesize" != "4096" ]; then
+    echo "start-engine: kernel page size is $pagesize, but the Android 9 bionic linker requires 4096 (Raspberry Pi 5: set kernel=kernel8.img in config.txt)" >&2
+    exit 1
+fi
+
+mkdir -p "$ACESTREAM_HOME" /data "$TEMP"
+if [ ! -f "$ACESTREAM_HOME/acestream.conf" ]; then
+    cp "$ACE/acestream.conf" "$ACESTREAM_HOME/acestream.conf"
+fi
+
+cd "$ACE"
+exec "$ACE/python/bin/python" "$ACE/main_linux.py" \
+    --http-port "${ACESTREAM_HTTP_PORT:-6878}" \
+    --bind-all \
+    --disable-sentry \
+    --log-stdout \
+    "$@"

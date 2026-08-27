@@ -1,0 +1,4 @@
+# Vendored upstream binaries: never diff/merge as text, keep bytes untouched.
+docker/vendor/** binary
+docker/vendor/**/README.md text
+docker/vendor/**/SHA256SUMS text

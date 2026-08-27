@@ -23,8 +23,9 @@ the official Android APKs listed on https://docs.acestream.media/products/.
 `docker/scripts/install-acestream.sh` resolves the engine archive in this
 order and verifies the pinned sha256 whichever source wins:
 
-1. a local copy in this directory (`ACESTREAM_VENDOR_DIR`, copied into the
-   `acestream-installer` build stage);
+1. a local copy under `docker/vendor/` (bind-mounted read-only into the
+   `acestream-installer` build stage as `ACESTREAM_VENDOR_ROOT=/tmp/acestream-vendor`;
+   nothing is copied into an image layer);
 2. the upstream `url` from the manifest;
 3. each entry of the manifest's `mirror_urls`, which point at the GitHub
    Release mirror of the same files:
@@ -36,9 +37,14 @@ order and verifies the pinned sha256 whichever source wins:
    superseded ones (old versions stay reachable in git history and on the
    corresponding GitHub Release).
 2. Regenerate `SHA256SUMS` (`shasum -a 256 <files> > SHA256SUMS`).
-3. Update `docker/manifests/acestream.json` (`url`, `sha256`, `mirror_urls`,
-   `version`) and publish a new `acestream-binaries-<versions>` GitHub Release
-   with the same files: `gh release create <tag> --target main --latest=false
-   docker/vendor/acestream/*`.
+3. Update `docker/manifests/acestream.json` (`url`, `sha256`, `vendored_file`,
+   `mirror_urls`, `engine_version`, and the top-level `version` /
+   `android_version` / `mirror_base_url`; for ARM also the `install.bionic`
+   block when the `.deb` changes) and publish a new
+   `acestream-binaries-<version>-<android_version>` GitHub Release with the
+   same files, including the bionic packages the ARM `mirror_urls` point at:
+   `gh release create <tag> --target main --latest=false
+   docker/vendor/acestream/*.tar.gz docker/vendor/acestream/*.apk
+   docker/vendor/acestream/SHA256SUMS docker/vendor/bionic/*.deb`.
 4. Run `python3 scripts/ci/validate_docker_manifest_metadata.py` and
    `PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker`.

@@ -424,16 +424,27 @@ workspace including the ones of dead branch/PR jobs.
 What the pipelines do about it:
 
 - `Checkout / Bootstrap` runs `bash scripts/ci/cleanup_runner_docker.sh --transient-age-hours 0` first: removes this repo's transient CI images (`acestream-scraper:smoke-*`, `acestream-scraper-smoke:*`, `acestream-installer-test:*`, `acestream-scraper-task3:*`), prunes dangling layers and unused images older than 24 h, and prunes **every** builder listed by `docker buildx ls` down to `--builder-keep` (default **3 GB**), printing each builder's `docker buildx du` total. `--dry-run` shows the plan.
-- `scripts/ci/bootstrap_jenkins_runner.sh` creates `acestream-builder` with a `buildkitd.toml` that enables BuildKit garbage collection (`gckeepstorage`, 6 GB) and caps parallel build steps (`max-parallelism = 2`), so the cache is bounded *during* a multi-platform publish, not only between builds; when that config changes the bootstrap recreates the builder.
+- `scripts/ci/bootstrap_jenkins_runner.sh` creates `acestream-builder` with a `buildkitd.toml` that enables BuildKit garbage collection (`gckeepstorage`, 4 GB) and caps parallel build steps (`max-parallelism = 2`), so the cache is bounded *during* a multi-platform publish, not only between builds; when that config changes the bootstrap recreates the builder.
 - Multi-platform pushes build one platform at a time (next section), which also bounds the cache growth per step.
 - The PR smoke stage exports no image (cache-only warm-up); the pytest builds and removes its own run-scoped image; `post { always }` prunes dangling layers.
 - `scripts/ci/run_jenkins_release.sh` runs the same cleanup after its engine smoke, before the multi-platform publish builds.
 
 Manual reclaim (Jenkins script console, or a shell on the runner) when a build still fails with `No space left on device` or the heartbeat error: `docker buildx prune --builder acestream-builder -af`, `docker builder prune -af`, `docker buildx rm acestream-builder` (bootstrap recreates it), and delete workspaces of dead branch/PR jobs under `/home/jenkins/agent/workspace/` (Jenkins' own `WorkspaceCleanupThread` only does that after 30 days). The multibranch job's orphaned-item strategy keeps 20 dead branch projects; their workspaces linger until then. The durable fix is a bigger disk (or moving Docker's `data-root` to a larger volume).
 
-## Multi-platform Pushes Are Sequential
+## Multi-platform Publishes Are Platform-major And Push By Digest
 
-`scripts/ci/build_multiarch_images.sh --push` with more than one platform (every channel and release publish) no longer runs one three-platform BuildKit build. That ran two QEMU emulations plus the native build concurrently and starved the runner (16 GB, mostly in use by other workloads) until Jenkins' durable-task wrapper stopped heartbeating (`PR-162 #2`, "wrapper script does not seem to be touching the log file"). The script now builds one platform at a time, pushing each by digest (`--output type=image,push-by-digest=true`, no temporary tags), and assembles every requested tag with `docker buildx imagetools create` from the per-platform digests. `--dry-run` prints the per-platform commands and the final `imagetools create`; single-platform `--load`/`--push` and cache-only builds are unchanged. All `--tag` values of one invocation must share a repository.
+A publish (the `develop` channel and the release phase 1) no longer runs one three-platform BuildKit build per flavor. That ran two QEMU emulations plus the native build concurrently and starved the runner until Jenkins' durable-task wrapper stopped heartbeating (`PR-162 #2`), and even sequential per-flavor builds accumulated more cache than the 32 GB disk holds (`PR-162 #3`/`#4`). `scripts/ci/run_jenkins_release.sh` (`publish_platform_major`) now:
+
+1. iterates **platforms first, flavors second** — all four flavors are built for `linux/amd64`, then for `linux/arm/v7`, then for `linux/arm64` — so flavors reuse each other's cached base stages and the peak cache is one platform's worth of layers;
+2. builds each (flavor, platform) with `scripts/ci/build_multiarch_images.sh --push-by-digest --repo <repo> --digest-file …` (image pushed by digest, no temporary tags);
+3. prunes the builder's BuildKit cache down to `PUBLISH_CACHE_CAP` (default `2GB`) after each platform;
+4. assembles every flavor's tags with `docker buildx imagetools create` from its per-platform digests and verifies each remote manifest with `verify_multiarch_manifest.sh --image`.
+
+`--dry-run` prints the 12 per-platform builds, the prunes and the four `imagetools create` calls. The plain `build_multiarch_images.sh --push` with several platforms does the same sequencing for a single flavor (and `--prune-builder-after <cap>` prunes after each platform); single-platform `--load`/`--push` and cache-only builds are unchanged. Push-by-digest needs a docker-container (or remote) builder — Jenkins' `acestream-builder` — not the plain docker driver.
+
+The Dockerfile also cuts what a foreign platform has to build: the frontend bundle and the Acexy Go binary are built on the build host (`FROM --platform=$BUILDPLATFORM`; Go cross-compiles with `GOARCH`/`GOARM`) and copied into every target platform, so QEMU only runs the Python stages.
+
+For a local end-to-end check against a throwaway registry, the script accepts `RELEASE_IMAGE_REPO`, `RELEASE_LOGIN_SERVER` and `JENKINS_BUILDER` overrides (see `backend/tests/test_runtime_integration_guards.py` for the dry-run contract).
 
 ## AceStream Engine Smoke Coverage
 

@@ -419,3 +419,48 @@ def test_build_script_multi_platform_push_is_sequential_by_digest():
         cwd=REPO_ROOT, check=True, capture_output=True, text=True,
     )
     assert "--push" in single.stdout and "imagetools" not in single.stdout
+
+
+def test_build_script_push_by_digest_single_platform():
+    result = subprocess.run(
+        ["bash", str(REPO_ROOT / "scripts/ci/build_multiarch_images.sh"), "--dry-run",
+         "--flavor", "scraper-acexy", "--platforms", "linux/arm/v7", "--push-by-digest",
+         "--repo", "example.com/app", "--prune-builder-after", "2GB", "--builder", "acestream-builder"],
+        cwd=REPO_ROOT, check=True, capture_output=True, text=True,
+    )
+    out = result.stdout
+    assert "push-by-digest=true" in out and "name=example.com/app" in out
+    assert "Pushed linux/arm/v7 as example.com/app@" in out
+    assert "docker buildx prune --builder acestream-builder -f --max-used-space 2GB" in out
+    assert "imagetools" not in out and "--tag" not in out
+
+    bad = subprocess.run(
+        ["bash", str(REPO_ROOT / "scripts/ci/build_multiarch_images.sh"), "--dry-run",
+         "--flavor", "scraper", "--push-by-digest", "--repo", "example.com/app"],
+        cwd=REPO_ROOT, check=False, capture_output=True, text=True,
+    )
+    assert bad.returncode != 0 and "exactly one platform" in bad.stdout + bad.stderr
+
+
+def test_run_jenkins_release_channel_dry_run_is_platform_major():
+    # Every flavor is built for one platform before the next platform, each
+    # pushed by digest, the builder cache is pruned between platforms, and the
+    # tags are assembled per flavor at the end.
+    env = os.environ.copy()
+    env.pop("PUBLISH_LATEST", None)
+    # The script fails fast without its builder; every docker host has "default".
+    env["JENKINS_BUILDER"] = "default"
+    result = subprocess.run(
+        ["/bin/bash", str(REPO_ROOT / "scripts/ci/run_jenkins_release.sh"), "--dry-run", "--channel", "develop"],
+        cwd=REPO_ROOT, check=False, capture_output=True, text=True, env=env,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    out = result.stdout
+    builds = [line for line in out.splitlines() if line.startswith("Building linux/")]
+    assert len(builds) == 12, builds  # 4 flavors x 3 platforms
+    # platform-major: the first four builds are all for the first platform
+    assert {line.split()[1] for line in builds[:4]} == {"linux/amd64"}
+    assert out.count("docker buildx prune --builder default") == 3
+    assert out.count("imagetools create") == 4
+    assert "--tag pipepito/acestream-scraper:develop " in out
+    assert "pipepito/acestream-scraper:latest" not in out

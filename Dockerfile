@@ -10,7 +10,9 @@
 ARG APP_PYTHON_VERSION=3.13
 ARG ACESTREAM_ENGINE_PYTHON_VERSION=3.10
 
-FROM node:20-slim AS frontend-builder
+# Static assets are platform-independent: build them once on the build host
+# (no QEMU) and COPY the output into every target platform.
+FROM --platform=$BUILDPLATFORM node:20-slim AS frontend-builder
 
 WORKDIR /build/frontend
 
@@ -112,11 +114,16 @@ RUN --mount=type=bind,source=docker/vendor,target=/tmp/acestream-vendor,readonly
 FROM python:${ACESTREAM_ENGINE_PYTHON_VERSION}-slim AS engine-python
 
 
-FROM golang:1.22 AS acexy-builder
+# Go cross-compiles: build on the build host for the target platform instead
+# of running the toolchain under QEMU (and pulling golang for every arch).
+FROM --platform=$BUILDPLATFORM golang:1.22 AS acexy-builder
 
 ARG ACEXY_REPO
 ARG ACEXY_REF
 ARG ACEXY_BINARY_NAME=acexy
+ARG TARGETOS
+ARG TARGETARCH
+ARG TARGETVARIANT
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates git \
@@ -137,7 +144,8 @@ RUN mkdir -p /src /out \
     # Upstream acexy keeps its Go module in the acexy/ subdirectory; the
     # build fixture (and any flat fork) keeps go.mod at the root.
     && if [ ! -f go.mod ] && [ -f acexy/go.mod ]; then cd acexy; fi \
-    && CGO_ENABLED=0 GOOS=linux go build -ldflags "-s -w" -o "/out/$ACEXY_BINARY_NAME" .
+    && CGO_ENABLED=0 GOOS="${TARGETOS:-linux}" GOARCH="${TARGETARCH:-amd64}" GOARM="${TARGETVARIANT#v}" \
+       go build -ldflags "-s -w" -o "/out/$ACEXY_BINARY_NAME" .
 
 
 FROM python:${APP_PYTHON_VERSION}-slim AS runtime-base

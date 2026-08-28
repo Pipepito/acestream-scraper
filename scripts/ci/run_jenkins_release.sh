@@ -33,6 +33,15 @@ done
 
 BUILDER="${JENKINS_BUILDER:-acestream-builder}"
 VERSION=$(tr -d '\n' < version.txt)
+# Image repository and registry login target. Overridable only for local
+# end-to-end tests against a throwaway registry; production is Docker Hub.
+IMAGE_REPO="${RELEASE_IMAGE_REPO:-pipepito/acestream-scraper}"
+REGISTRY_LOGIN_SERVER="${RELEASE_LOGIN_SERVER:-}"
+# BuildKit cache cap applied between platforms of a publish (the runner has
+# a 32 GB disk shared with other jobs).
+PUBLISH_CACHE_CAP="${PUBLISH_CACHE_CAP:-2GB}"
+PLATFORM_MANIFEST="docker/manifests/platforms.json"
+ACESTREAM_MANIFEST="docker/manifests/acestream.json"
 
 if [[ -n "$CHANNEL" ]] && ! [[ "$CHANNEL" =~ ^[a-z][a-z0-9-]{0,30}$ ]]; then
   echo "Invalid channel name: $CHANNEL (lowercase letters, digits and dashes)" >&2
@@ -52,10 +61,10 @@ fi
 channel_tags_for_flavor() {
   case "$1" in
     scraper-acestream-acexy)
-      printf '%s\n' "pipepito/acestream-scraper:${CHANNEL} pipepito/acestream-scraper:${CHANNEL}-scraper-acestream-acexy"
+      printf '%s\n' "${IMAGE_REPO}:${CHANNEL} ${IMAGE_REPO}:${CHANNEL}-scraper-acestream-acexy"
       ;;
     scraper|scraper-acestream|scraper-acexy)
-      printf '%s\n' "pipepito/acestream-scraper:${CHANNEL}-$1"
+      printf '%s\n' "${IMAGE_REPO}:${CHANNEL}-$1"
       ;;
     *)
       echo "Unsupported flavor: $1"
@@ -108,7 +117,7 @@ publish_result_file_for_flavor() {
 # (PUBLISH_LATEST=0, the default) pushes versioned + flavor-channel tags only,
 # so users on :latest are untouched during the canary window. Phase 2
 # (PUBLISH_LATEST=1) RETAGS the canary-validated
-# pipepito/acestream-scraper:${VERSION} manifest to pipepito/acestream-scraper:latest
+# ${IMAGE_REPO}:${VERSION} manifest to ${IMAGE_REPO}:latest
 # via scripts/ci/promote_latest.sh — no rebuild, so :latest is byte-identical
 # to what was validated. Only the full payload flavor
 # (scraper-acestream-acexy, whose manifest the version tag points at) can
@@ -118,16 +127,16 @@ LATEST_SOURCE_FLAVOR="scraper-acestream-acexy"
 publish_tags_for_flavor() {
   case "$1" in
     scraper-acestream-acexy)
-      printf '%s\n' "pipepito/acestream-scraper:${VERSION} pipepito/acestream-scraper:scraper-acestream-acexy pipepito/acestream-scraper:${VERSION}-scraper-acestream-acexy"
+      printf '%s\n' "${IMAGE_REPO}:${VERSION} ${IMAGE_REPO}:scraper-acestream-acexy ${IMAGE_REPO}:${VERSION}-scraper-acestream-acexy"
       ;;
     scraper)
-      printf '%s\n' "pipepito/acestream-scraper:scraper pipepito/acestream-scraper:${VERSION}-scraper"
+      printf '%s\n' "${IMAGE_REPO}:scraper ${IMAGE_REPO}:${VERSION}-scraper"
       ;;
     scraper-acestream)
-      printf '%s\n' "pipepito/acestream-scraper:scraper-acestream pipepito/acestream-scraper:${VERSION}-scraper-acestream"
+      printf '%s\n' "${IMAGE_REPO}:scraper-acestream ${IMAGE_REPO}:${VERSION}-scraper-acestream"
       ;;
     scraper-acexy)
-      printf '%s\n' "pipepito/acestream-scraper:scraper-acexy pipepito/acestream-scraper:${VERSION}-scraper-acexy"
+      printf '%s\n' "${IMAGE_REPO}:scraper-acexy ${IMAGE_REPO}:${VERSION}-scraper-acexy"
       ;;
     *)
       echo "Unsupported flavor: $1"
@@ -137,6 +146,94 @@ publish_tags_for_flavor() {
 }
 
 PROMOTE_LATEST="${PUBLISH_LATEST:-0}"
+
+registry_login() {
+  : "${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}"
+  : "${DOCKERHUB_TOKEN:?DOCKERHUB_TOKEN is required}"
+  if [[ -n "$REGISTRY_LOGIN_SERVER" ]]; then
+    printf '%s' "$DOCKERHUB_TOKEN" | docker login "$REGISTRY_LOGIN_SERVER" --username "$DOCKERHUB_USERNAME" --password-stdin
+  else
+    printf '%s' "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
+  fi
+}
+
+flavor_platforms_csv() {
+  python3 scripts/ci/flavor_platforms.py "$PLATFORM_MANIFEST" "$ACESTREAM_MANIFEST" "$1"
+}
+
+# publish_platform_major <tags_fn> <result_prefix> <dry_run>
+#
+# Builds every flavor for one platform before moving to the next platform
+# (platform-major), pushing each image by digest, and prunes the builder's
+# BuildKit cache between platforms; then assembles every flavor's tags with
+# `docker buildx imagetools create` from its per-platform digests and verifies
+# the remote manifests. Platform-major order keeps the peak cache to one
+# platform's worth of layers (flavors share their base stages), which is what
+# lets a four-flavor, three-platform publish fit the runner's 32 GB disk.
+publish_platform_major() {
+  local tags_fn="$1" result_prefix="$2" dry="$3"
+  local digest_dir platform flavor key platforms_csv union flavor_csv tags tag refs
+  digest_dir="$(mktemp -d)"
+  union="$(python3 - "$PLATFORM_MANIFEST" <<'PY2'
+import json, sys
+print(",".join(json.load(open(sys.argv[1]))["baseline_platforms"]))
+PY2
+)"
+  PUBLISHED_TAGS=()
+  IFS=',' read -r -a platform_list <<< "$union"
+  for platform in "${platform_list[@]}"; do
+    for flavor in "${PUBLISH_FLAVORS[@]}"; do
+      flavor_csv="$(flavor_platforms_csv "$flavor")"
+      case ",$flavor_csv," in
+        *",$platform,"*) ;;
+        *) continue ;;
+      esac
+      key="$flavor.$(printf '%s' "$platform" | tr '/' '-')"
+      build_args=(
+        bash scripts/ci/build_multiarch_images.sh
+        --flavor "$flavor"
+        --platforms "$platform"
+        --push-by-digest
+        --repo "$IMAGE_REPO"
+        --builder "$BUILDER"
+        --digest-file "$digest_dir/$key"
+        --result-file "${result_prefix}-${flavor}-$(printf '%s' "$platform" | tr '/' '-').json"
+      )
+      if [[ "$dry" -eq 1 ]]; then
+        build_args+=(--dry-run)
+      fi
+      "${build_args[@]}"
+    done
+    if [[ "$dry" -eq 1 ]]; then
+      echo "[DRY RUN] docker buildx prune --builder $BUILDER -f --max-used-space $PUBLISH_CACHE_CAP"
+    else
+      docker buildx prune --builder "$BUILDER" -f --max-used-space "$PUBLISH_CACHE_CAP" >/dev/null 2>&1 \
+        || docker buildx prune --builder "$BUILDER" -f --keep-storage "$PUBLISH_CACHE_CAP" >/dev/null 2>&1 \
+        || true
+      echo "Builder $BUILDER cache after $platform: $(docker buildx du --builder "$BUILDER" 2>/dev/null | grep -E '^Total:' | tr -s '\t ' ' ' || echo unknown)"
+    fi
+  done
+  for flavor in "${PUBLISH_FLAVORS[@]}"; do
+    IFS=' ' read -r -a tags <<< "$("$tags_fn" "$flavor")"
+    if [[ "$dry" -eq 1 ]]; then
+      echo "[DRY RUN] docker buildx imagetools create $(printf -- '--tag %s ' "${tags[@]}")<digests of $flavor>"
+    else
+      refs="$(cat "$digest_dir/$flavor".* 2>/dev/null | tr '\n' ' ')"
+      [[ -n "$refs" ]] || { echo "No digests collected for flavor $flavor" >&2; exit 1; }
+      imagetools_cmd=(docker buildx imagetools create)
+      for tag in "${tags[@]}"; do
+        imagetools_cmd+=(--tag "$tag")
+      done
+      # shellcheck disable=SC2086
+      "${imagetools_cmd[@]}" $refs
+      for tag in "${tags[@]}"; do
+        bash scripts/ci/verify_multiarch_manifest.sh --image "$tag" --flavor "$flavor"
+      done
+    fi
+    PUBLISHED_TAGS+=("${tags[@]}")
+  done
+  rm -rf "$digest_dir"
+}
 
 if [[ "$PRINT_PLAN" -eq 1 && -n "$CHANNEL" ]]; then
   echo "Channel publish plan (channel=${CHANNEL}, VERSION=${VERSION}; no version tag, no :latest):"
@@ -149,7 +246,7 @@ fi
 if [[ "$PRINT_PLAN" -eq 1 ]]; then
   echo "Release publish plan (PUBLISH_LATEST=${PROMOTE_LATEST}, VERSION=${VERSION}):"
   if [[ "$PROMOTE_LATEST" == "1" ]]; then
-    echo "  promote: pipepito/acestream-scraper:latest <- pipepito/acestream-scraper:${VERSION} (retag of the canary-validated ${LATEST_SOURCE_FLAVOR} manifest; no flavor rebuild)"
+    echo "  promote: ${IMAGE_REPO}:latest <- ${IMAGE_REPO}:${VERSION} (retag of the canary-validated ${LATEST_SOURCE_FLAVOR} manifest; no flavor rebuild)"
   else
     for flavor in "${PUBLISH_FLAVORS[@]}"; do
       printf '  %s: %s\n' "$flavor" "$(publish_tags_for_flavor "$flavor")"
@@ -170,36 +267,13 @@ fi
 # the multi-platform flavors and pushes the floating channel tags.
 if [[ -n "$CHANNEL" ]]; then
   if [[ "$DRY_RUN" -eq 1 ]]; then
-    for flavor in "${PUBLISH_FLAVORS[@]}"; do
-      bash scripts/ci/build_multiarch_images.sh --dry-run --builder "$BUILDER" --flavor "$flavor" \
-        --result-file "phase5-build-result-channel-${CHANNEL}-${flavor}.json"
-    done
+    publish_platform_major channel_tags_for_flavor "phase5-build-result-channel-${CHANNEL}" 1
     echo "Dry-run channel publish plan completed."
     exit 0
   fi
-  : "${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}"
-  : "${DOCKERHUB_TOKEN:?DOCKERHUB_TOKEN is required}"
-  printf '%s' "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
-  channel_tags=()
-  for flavor in "${PUBLISH_FLAVORS[@]}"; do
-    IFS=' ' read -r -a tags <<< "$(channel_tags_for_flavor "$flavor")"
-    build_args=(
-      bash scripts/ci/build_multiarch_images.sh
-      --flavor "$flavor"
-      --push
-      --builder "$BUILDER"
-      --result-file "phase5-build-result-channel-${CHANNEL}-${flavor}.json"
-    )
-    for tag in "${tags[@]}"; do
-      build_args+=(--tag "$tag")
-      channel_tags+=("$tag")
-    done
-    "${build_args[@]}"
-    for tag in "${tags[@]}"; do
-      bash scripts/ci/verify_multiarch_manifest.sh --image "$tag" --flavor "$flavor"
-    done
-  done
-  CHANNEL_TAGS_JSON="$(python3 - "${channel_tags[@]}" <<'PY2'
+  registry_login
+  publish_platform_major channel_tags_for_flavor "phase5-build-result-channel-${CHANNEL}" 0
+  CHANNEL_TAGS_JSON="$(python3 - "${PUBLISHED_TAGS[@]}" <<'PY2'
 import json, sys
 print(json.dumps(sys.argv[1:]))
 PY2
@@ -227,14 +301,12 @@ fi
 # built, smoke-tested and canaried in phase 1; this only moves :latest.
 if [[ "$PROMOTE_LATEST" == "1" ]]; then
   if [[ "$DRY_RUN" -eq 1 ]]; then
-    bash scripts/ci/promote_latest.sh --version "$VERSION" --flavor "$LATEST_SOURCE_FLAVOR" --dry-run
+    bash scripts/ci/promote_latest.sh --version "$VERSION" --flavor "$LATEST_SOURCE_FLAVOR" --repo "$IMAGE_REPO" --dry-run
     echo "Dry-run promotion plan completed."
     exit 0
   fi
-  : "${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}"
-  : "${DOCKERHUB_TOKEN:?DOCKERHUB_TOKEN is required}"
-  printf '%s' "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
-  bash scripts/ci/promote_latest.sh --version "$VERSION" --flavor "$LATEST_SOURCE_FLAVOR"
+  registry_login
+  bash scripts/ci/promote_latest.sh --version "$VERSION" --flavor "$LATEST_SOURCE_FLAVOR" --repo "$IMAGE_REPO"
   RELEASE_VERSION="$VERSION" RELEASE_GIT_SHA="$GIT_SHA" RELEASE_BUILDER="$BUILDER" python3 - "phase5-build-result-release-metadata.json" <<'PY2'
 import json, os, sys
 from datetime import datetime, timezone
@@ -244,8 +316,8 @@ payload = {
     "git_sha": os.environ["RELEASE_GIT_SHA"],
     "builder": os.environ["RELEASE_BUILDER"],
     "mode": "promote-latest",
-    "tags": ["pipepito/acestream-scraper:latest"],
-    "source": "pipepito/acestream-scraper:" + os.environ["RELEASE_VERSION"],
+    "tags": ["${IMAGE_REPO}:latest"],
+    "source": "${IMAGE_REPO}:" + os.environ["RELEASE_VERSION"],
 }
 with open(sys.argv[1], "w", encoding="utf-8") as handle:
     json.dump(payload, handle, indent=2)
@@ -302,38 +374,10 @@ PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_install_
 docker image rm -f acestream-scraper:release-smoke >/dev/null 2>&1 || true
 bash scripts/ci/cleanup_runner_docker.sh || true
 
-: "${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}"
-: "${DOCKERHUB_TOKEN:?DOCKERHUB_TOKEN is required}"
+registry_login
 
-printf '%s' "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
-
-all_tags=()
-
-for flavor in "${PUBLISH_FLAVORS[@]}"; do
-  result_file="$(publish_result_file_for_flavor "$flavor")"
-  IFS=' ' read -r -a tags <<< "$(publish_tags_for_flavor "$flavor")"
-
-  build_args=(
-    bash scripts/ci/build_multiarch_images.sh
-    --flavor "$flavor"
-    --push
-    --builder "$BUILDER"
-    --result-file "$result_file"
-  )
-
-  for tag in "${tags[@]}"; do
-    build_args+=(--tag "$tag")
-    all_tags+=("$tag")
-  done
-
-  "${build_args[@]}"
-
-  for tag in "${tags[@]}"; do
-    bash scripts/ci/verify_multiarch_manifest.sh \
-      --image "$tag" \
-      --flavor "$flavor"
-  done
-done
+publish_platform_major publish_tags_for_flavor "phase5-build-result-release" 0
+all_tags=("${PUBLISHED_TAGS[@]}")
 
 ALL_TAGS_JSON="$(python3 - "${all_tags[@]}" <<'PY'
 import json

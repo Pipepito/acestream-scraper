@@ -22,7 +22,16 @@ Options:
                            builds (edit the tracked manifest, or pass
                            --build-arg ACESTREAM_* overrides).
   --acexy-manifest <p>     acexy.json path (default: docker/manifests/acexy.json)
-  --push                   Push image/manifest to registry
+  --push                   Push image/manifest to registry (several platforms are
+                           built one at a time, pushed by digest and assembled)
+  --push-by-digest         Build ONE platform and push it by digest only (no tag);
+                           needs --repo and a single --platforms value. Use with
+                           --digest-file to collect <repo>@<digest> for a later
+                           `docker buildx imagetools create` (platform-major publishes)
+  --repo <name>            Repository for --push-by-digest (e.g. pipepito/acestream-scraper)
+  --digest-file <path>     Write <repo>@<digest> here after --push-by-digest
+  --prune-builder-after <cap>  After the build, prune the builder's BuildKit cache
+                           down to <cap> (e.g. 2GB); keeps small-disk runners alive
   --load                   Load image into local docker daemon (single-platform only)
   --build-arg <k=v>        Build arg (repeatable)
   --builder <name>         Buildx builder name (default: $BUILDX_BUILDER if set,
@@ -50,6 +59,10 @@ PLATFORM_MANIFEST="$ROOT_DIR/docker/manifests/platforms.json"
 ACESTREAM_MANIFEST="$ROOT_DIR/docker/manifests/acestream.json"
 ACEXY_MANIFEST="$ROOT_DIR/docker/manifests/acexy.json"
 PUSH=0
+PUSH_BY_DIGEST=0
+REPO=""
+DIGEST_FILE=""
+PRUNE_AFTER=""
 LOAD=0
 DRY_RUN=0
 # Respect buildx's own instance-selection env var; when neither it nor
@@ -110,6 +123,22 @@ while [[ $# -gt 0 ]]; do
       PUSH=1
       shift
       ;;
+    --push-by-digest)
+      PUSH_BY_DIGEST=1
+      shift
+      ;;
+    --repo)
+      REPO="${2:-}"
+      shift 2
+      ;;
+    --digest-file)
+      DIGEST_FILE="${2:-}"
+      shift 2
+      ;;
+    --prune-builder-after)
+      PRUNE_AFTER="${2:-}"
+      shift 2
+      ;;
     --load)
       LOAD=1
       shift
@@ -149,6 +178,16 @@ done
 if [[ "$PUSH" -eq 1 && "$LOAD" -eq 1 ]]; then
   echo "Cannot use --push and --load together."
   exit 1
+fi
+if [[ "$PUSH_BY_DIGEST" -eq 1 ]]; then
+  if [[ "$PUSH" -eq 1 || "$LOAD" -eq 1 ]]; then
+    echo "--push-by-digest cannot be combined with --push or --load."
+    exit 1
+  fi
+  if [[ -z "$REPO" ]]; then
+    echo "--push-by-digest needs --repo <name>."
+    exit 1
+  fi
 fi
 
 if [[ -z "$FLAVOR" ]]; then
@@ -319,7 +358,54 @@ run_or_print() {
   fi
 }
 
-if [[ "$PUSH" -eq 1 && "$PLATFORMS" == *","* ]]; then
+# build_platform_by_digest <repo> <platform> <meta_file>: build one platform and
+# push it by digest (no tag). Needs a docker-container (or remote) builder.
+build_platform_by_digest() {
+  local repo="$1" platform="$2" meta_file="$3"
+  echo "Building $platform (push by digest to $repo)"
+  run_or_print "${BASE_CMD[@]}" --platform "$platform" \
+    --output "type=image,name=$repo,push=true,push-by-digest=true,name-canonical=true" \
+    --metadata-file "$meta_file" "$CONTEXT"
+}
+
+digest_from_meta() {
+  python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["containerimage.digest"])' "$1"
+}
+
+prune_builder_after() {
+  [[ -n "$PRUNE_AFTER" ]] || return 0
+  local builder="${BUILDER:-default}"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    echo "[DRY RUN] docker buildx prune --builder $builder -f --max-used-space $PRUNE_AFTER"
+    return 0
+  fi
+  docker buildx prune --builder "$builder" -f --max-used-space "$PRUNE_AFTER" >/dev/null 2>&1 \
+    || docker buildx prune --builder "$builder" -f --keep-storage "$PRUNE_AFTER" >/dev/null 2>&1 \
+    || true
+  echo "Builder $builder cache after prune: $(docker buildx du --builder "$builder" 2>/dev/null | grep -E '^Total:' | tr -s '\t ' ' ' || echo unknown)"
+}
+
+if [[ "$PUSH_BY_DIGEST" -eq 1 ]]; then
+  if [[ "$PLATFORMS" == *","* ]]; then
+    echo "--push-by-digest builds exactly one platform; got: $PLATFORMS"
+    exit 1
+  fi
+  META_DIR="$(mktemp -d)"
+  trap 'rm -rf "$META_DIR"' EXIT
+  [[ "$DRY_RUN" -eq 1 ]] && print_plan_header
+  meta_file="$META_DIR/meta.json"
+  build_platform_by_digest "$REPO" "$PLATFORMS" "$meta_file"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    ref="$REPO@<digest-of-$PLATFORMS>"
+  else
+    ref="$REPO@$(digest_from_meta "$meta_file")"
+  fi
+  echo "Pushed $PLATFORMS as $ref"
+  if [[ -n "$DIGEST_FILE" ]]; then
+    printf '%s\n' "$ref" > "$DIGEST_FILE"
+  fi
+  prune_builder_after
+elif [[ "$PUSH" -eq 1 && "$PLATFORMS" == *","* ]]; then
   # Multi-platform PUSH: build one platform at a time and assemble the
   # manifest list afterwards. A single three-platform build runs two QEMU
   # emulations plus the native build concurrently inside BuildKit, which
@@ -356,17 +442,15 @@ print(head + "/" + last if head else last)
   digest_refs=()
   for platform in "${platform_list[@]}"; do
     meta_file="$META_DIR/$(printf '%s' "$platform" | tr '/' '-').json"
-    echo "Building $platform (push by digest to $repo)"
-    run_or_print "${BASE_CMD[@]}" --platform "$platform" \
-      --output "type=image,name=$repo,push=true,push-by-digest=true,name-canonical=true" \
-      --metadata-file "$meta_file" "$CONTEXT"
+    build_platform_by_digest "$repo" "$platform" "$meta_file"
     if [[ "$DRY_RUN" -eq 1 ]]; then
       digest_refs+=("$repo@<digest-of-$platform>")
     else
-      digest="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["containerimage.digest"])' "$meta_file")"
+      digest="$(digest_from_meta "$meta_file")"
       [[ -n "$digest" ]] || { echo "No containerimage.digest in $meta_file" >&2; exit 1; }
       digest_refs+=("$repo@$digest")
     fi
+    prune_builder_after
   done
   imagetools_cmd=(docker buildx imagetools create)
   for tag in "${TAGS[@]}"; do
@@ -390,6 +474,7 @@ else
   BUILD_CMD+=("$CONTEXT")
   [[ "$DRY_RUN" -eq 1 ]] && print_plan_header
   run_or_print "${BUILD_CMD[@]}"
+  prune_builder_after
 fi
 
 if [[ -n "$RESULT_FILE" ]]; then

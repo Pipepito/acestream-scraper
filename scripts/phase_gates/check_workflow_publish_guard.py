@@ -11,6 +11,8 @@ live.
 
 from __future__ import annotations
 
+import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -24,10 +26,9 @@ FLAVORS = [
 ]
 FLAVOR_TOKENS = [f"--flavor {flavor}" for flavor in FLAVORS]
 
-# Tags that the publish loop in run_jenkins_release.sh must emit. Any drift
-# here means a release would either skip a flavor or stop tagging :latest.
-PUBLISH_TAGS = [
-    "pipepito/acestream-scraper:latest",
+# Tags the release publish plan must emit (checked by running the script's
+# --print-publish-plan, so a refactor of the tag functions cannot drift).
+PHASE1_TAGS = [
     "pipepito/acestream-scraper:${VERSION}",
     "pipepito/acestream-scraper:scraper-acestream-acexy",
     "pipepito/acestream-scraper:${VERSION}-scraper-acestream-acexy",
@@ -38,6 +39,29 @@ PUBLISH_TAGS = [
     "pipepito/acestream-scraper:scraper-acexy",
     "pipepito/acestream-scraper:${VERSION}-scraper-acexy",
 ]
+CHANNEL_TAGS = [
+    "pipepito/acestream-scraper:develop",
+    "pipepito/acestream-scraper:develop-scraper",
+    "pipepito/acestream-scraper:develop-scraper-acestream",
+    "pipepito/acestream-scraper:develop-scraper-acexy",
+    "pipepito/acestream-scraper:develop-scraper-acestream-acexy",
+]
+
+
+def publish_plan(*args: str, publish_latest: str | None = None) -> str:
+    env = os.environ.copy()
+    env.pop("PUBLISH_LATEST", None)
+    env.pop("RELEASE_IMAGE_REPO", None)
+    if publish_latest is not None:
+        env["PUBLISH_LATEST"] = publish_latest
+    result = subprocess.run(
+        ["bash", str(ROOT / "scripts/ci/run_jenkins_release.sh"), "--print-publish-plan", *args],
+        cwd=ROOT, capture_output=True, text=True, env=env,
+    )
+    if result.returncode != 0:
+        sys.stderr.write(f"FAIL: publish plan exited {result.returncode}: {result.stderr}\n")
+        raise SystemExit(1)
+    return result.stdout
 
 
 def read(rel: str) -> str:
@@ -52,6 +76,11 @@ def main() -> int:
     pr_jenkinsfile = read("Jenkinsfile")
     release_sh = read("scripts/ci/run_jenkins_release.sh")
     release_jenkinsfile = read("jenkins/release.Jenkinsfile")
+    version = (ROOT / "version.txt").read_text(encoding="utf-8").strip()
+    phase1_plan = publish_plan()
+    promote_plan = publish_plan(publish_latest="1")
+    channel_plan = publish_plan("--channel", "develop")
+    phase1_tags = [t.replace("${VERSION}", version) for t in PHASE1_TAGS]
 
     checks = [
         ("PR pipeline (Jenkinsfile) exercises all flavors",
@@ -72,17 +101,26 @@ def main() -> int:
          and "env.CHANGE_TARGET == 'main'" in pr_jenkinsfile
          and "env.CHANGE_BRANCH != 'develop'" in pr_jenkinsfile),
         ("release script channel mode never emits a version tag or :latest",
-         "channel_tags_for_flavor()" in release_sh
-         and 'pipepito/acestream-scraper:${CHANNEL}-scraper-acestream-acexy' in release_sh
+         all(tag in channel_plan for tag in CHANNEL_TAGS)
+         and "pipepito/acestream-scraper:latest" not in channel_plan
+         and f"pipepito/acestream-scraper:{version}" not in channel_plan
          and 'Refusing to release a development version' in release_sh),
         ("release script declares all flavors",
          all(f'"{flavor}"' in release_sh for flavor in FLAVORS)),
-        ("release script publishes all required tags",
-         all(tag in release_sh for tag in PUBLISH_TAGS)),
-        ("release script pushes (--push present)",
-         "--push" in release_sh),
-        ("release script targets pipepito Docker Hub repo",
-         "pipepito/acestream-scraper-v2" not in release_sh),
+        ("release script phase-1 plan publishes all required tags and no :latest",
+         all(tag in phase1_plan for tag in phase1_tags)
+         and "pipepito/acestream-scraper:latest" not in phase1_plan),
+        ("release script promotion plan retags the version manifest to :latest",
+         promote_plan.count("pipepito/acestream-scraper:latest") == 1
+         and f"<- pipepito/acestream-scraper:{version}" in promote_plan
+         and "no flavor rebuild" in promote_plan),
+        ("release script pushes by digest, platform-major, with cache pruning",
+         "--push-by-digest" in release_sh
+         and "publish_platform_major" in release_sh
+         and "docker buildx prune --builder" in release_sh),
+        ("release script targets pipepito Docker Hub repo by default",
+         'IMAGE_REPO="${RELEASE_IMAGE_REPO:-pipepito/acestream-scraper}"' in release_sh
+         and "pipepito/acestream-scraper-v2" not in release_sh),
         # Two-phase publish: :latest is gated behind PUBLISH_LATEST so the
         # first publish of a new version touches versioned + flavor-channel
         # tags only and a follow-up run promotes :latest after canary.
@@ -91,8 +129,7 @@ def main() -> int:
          and 'if [[ "$PROMOTE_LATEST" == "1" ]]; then' in release_sh
          # :latest is promoted by retagging the canaried version manifest,
          # never by a rebuild.
-         and "scripts/ci/promote_latest.sh" in release_sh
-         and "--tag pipepito/acestream-scraper:latest" not in release_sh),
+         and "scripts/ci/promote_latest.sh" in release_sh),
         ("release script supports --print-publish-plan preview",
          "--print-publish-plan" in release_sh),
         ("release Jenkinsfile exposes PUBLISH_LATEST parameter",

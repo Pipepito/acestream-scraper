@@ -9,7 +9,7 @@
 #       acestream-scraper-task3:*) — leaked when a test run crashes before
 #      its finalizers or when a build tag was never cleaned up;
 #   2. dangling layers and unused images older than --image-age-hours;
-#   3. BuildKit cache above --builder-keep.
+#   3. every builder's BuildKit cache above --builder-keep (default 3GB).
 # Images named in --keep are never touched (the current build's own tags).
 #
 # Usage: cleanup_runner_docker.sh [--keep <image:tag>]... [--transient-age-hours N]
@@ -18,7 +18,7 @@ set -euo pipefail
 
 TRANSIENT_AGE_HOURS=3
 IMAGE_AGE_HOURS=24
-BUILDER_KEEP="20GB"
+BUILDER_KEEP="3GB"
 DRY_RUN=0
 KEEP=()
 
@@ -89,14 +89,29 @@ fi
 run docker image prune -f
 run docker image prune -af --filter "until=${IMAGE_AGE_HOURS}h"
 
-# 3. Bound the BuildKit cache (newer buildx spells the flag --max-used-space).
-if [[ "$DRY_RUN" -eq 1 ]]; then
-  printf '[dry-run] docker builder prune -f (keep %s)\n' "$BUILDER_KEEP"
-else
-  docker buildx prune -f --max-used-space "$BUILDER_KEEP" >/dev/null 2>&1 \
-    || docker builder prune -f --keep-storage "$BUILDER_KEEP" >/dev/null 2>&1 \
+# 3. Bound the BuildKit cache of EVERY builder. The docker-container builder
+#    (acestream-builder) keeps its cache in its own volume, invisible to
+#    `docker system df`'s "Build Cache" line and untouched by a prune of the
+#    default builder — that volume grew to 6 GB on a 32 GB disk (PR-162 #2/#3).
+#    Newer buildx spells the cap --max-used-space; older --keep-storage.
+prune_builder() {
+  local builder="$1"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    printf '[dry-run] docker buildx prune --builder %s -f (keep %s)\n' "$builder" "$BUILDER_KEEP"
+    return 0
+  fi
+  docker buildx prune --builder "$builder" -f --max-used-space "$BUILDER_KEEP" >/dev/null 2>&1 \
+    || docker buildx prune --builder "$builder" -f --keep-storage "$BUILDER_KEEP" >/dev/null 2>&1 \
     || true
+  printf 'builder %s cache: %s\n' "$builder" "$(docker buildx du --builder "$builder" 2>/dev/null | grep -E '^Total:' | tr -s '\t ' ' ' || echo unknown)"
+}
+builders="$(docker buildx ls 2>/dev/null | awk 'NR>1 && $1 !~ /^\\_/ && $1 != "" {sub(/\*$/, "", $1); print $1}' | sort -u)"
+if [[ -z "$builders" ]]; then
+  builders="default"
 fi
+for builder in $builders; do
+  prune_builder "$builder"
+done
 
 echo "Docker disk usage after cleanup:"
 docker system df 2>/dev/null || true

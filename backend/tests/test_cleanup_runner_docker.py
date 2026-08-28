@@ -23,6 +23,8 @@ def _fake_docker(tmp_path: Path, images: list[tuple[str, datetime]]) -> Path:
     fake.write_text(
         "#!/usr/bin/env bash\n"
         f"if [ \"$1\" = images ]; then cat '{listing_file}'; exit 0; fi\n"
+        "if [ \"$1 $2\" = 'buildx ls' ]; then printf 'NAME/NODE DRIVER/ENDPOINT STATUS\\nacestream-builder* docker-container\\n \\\\_ acestream-builder0 unix://x running\\ndefault docker\\n \\\\_ default default running\\n'; exit 0; fi\n"
+        "if [ \"$1 $2\" = 'buildx du' ]; then echo 'Total: 1.2GB'; exit 0; fi\n"
         "echo \"docker $*\" >> \"$DOCKER_CALLS\"\n"
         "exit 0\n"
     )
@@ -63,7 +65,9 @@ def test_removes_only_old_transient_images_and_keeps_current(tmp_path: Path):
     }
     assert "docker image prune -f" in calls
     assert "docker image prune -af --filter until=24h" in calls
-    assert any(c.startswith("docker buildx prune -f --max-used-space 20GB") for c in calls)
+    prunes = [c for c in calls if c.startswith("docker buildx prune --builder")]
+    assert "docker buildx prune --builder acestream-builder -f --max-used-space 3GB" in prunes
+    assert "docker buildx prune --builder default -f --max-used-space 3GB" in prunes
 
 
 def test_dry_run_touches_nothing(tmp_path: Path):

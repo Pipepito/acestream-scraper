@@ -298,7 +298,13 @@ def test_bootstrap_jenkins_runner_bootstraps_default_builder_after_binfmt(tmp_pa
 
     assert result.returncode == 0, result.stdout + result.stderr
     docker_calls = docker_log.read_text().splitlines()
-    assert "buildx create --name acestream-builder --driver docker-container" in docker_calls
+    creates = [c for c in docker_calls if c.startswith("buildx create --name acestream-builder --driver docker-container")]
+    assert creates, docker_calls
+    # The builder is created with BuildKit GC limits (the runner's disk is small).
+    assert "--buildkitd-config" in creates[0]
+    buildkitd = Path(env["BOOTSTRAP_TEST_STATE_DIR"]) / "buildkitd.toml"
+    assert buildkitd.is_file()
+    assert "gc = true" in buildkitd.read_text() and "max-parallelism" in buildkitd.read_text()
     assert "buildx inspect --bootstrap acestream-builder" in docker_calls
     assert docker_calls.index("run --privileged --rm tonistiigi/binfmt --install all") < docker_calls.index(
         "buildx inspect --bootstrap acestream-builder"
@@ -530,7 +536,7 @@ def test_bootstrap_jenkins_runner_is_idempotent_on_second_run(tmp_path):
 
     assert second.returncode == 0, second.stdout + second.stderr
     docker_calls = docker_log.read_text().splitlines()
-    assert "buildx create --name acestream-builder --driver docker-container" not in docker_calls
+    assert not any(c.startswith("buildx create --name acestream-builder") for c in docker_calls), docker_calls
     assert "run --privileged --rm tonistiigi/binfmt --install all" not in docker_calls
 
 

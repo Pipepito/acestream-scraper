@@ -28,6 +28,8 @@ Services:
 
 The checked-in `docker-compose.yml` uses `pipepito/acestream-scraper:latest`. `latest` is the full `scraper-acestream-acexy` image, while the explicit flavor tags are `scraper`, `scraper-acestream`, `scraper-acexy`, and `scraper-acestream-acexy`.
 
+`latest` and the immutable `vX.Y.Z` tags (plus `vX.Y.Z-<flavor>`) are the releases, cut from `main`. A pre-release channel is published from the `develop` branch as well: `pipepito/acestream-scraper:develop` (the full `scraper-acestream-acexy` payload, mirroring what `latest` means for releases) plus `develop-scraper`, `develop-scraper-acestream`, `develop-scraper-acexy`, and `develop-scraper-acestream-acexy`. The channel tags are moving tags, re-pushed on every validated build of `develop` (the full CI validation runs first, on the same platforms as the release flavors), so they are meant for testing the next release and not for production. To try one, set `image: pipepito/acestream-scraper:develop` in your compose file or `docker pull pipepito/acestream-scraper:develop`.
+
 WARP is installed in every flavor's `linux/amd64` image (ARM images ship without it), but it only starts when `ENABLE_WARP=true`. WARP-enabled containers need the runtime capabilities `NET_ADMIN` and `SYS_ADMIN`.
 
 ZeroNet remains an external sidecar/service. It is not bundled into every image, and the app talks to it through `ZERONET_URL`.

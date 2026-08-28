@@ -56,7 +56,7 @@
       </userRemoteConfigs>
       <branches>
         <hudson.plugins.git.BranchSpec>
-          <name>*/ai-coding-documentation</name>
+          <name>*/main</name>
         </hudson.plugins.git.BranchSpec>
       </branches>
       <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
@@ -64,7 +64,7 @@
       <extensions/>
     </scm>
     <scriptPath>jenkins/release.Jenkinsfile</scriptPath>
-    <lightweight>false</lightweight>
+    <lightweight>true</lightweight>
   </definition>
   <triggers/>
   <disabled>false</disabled>

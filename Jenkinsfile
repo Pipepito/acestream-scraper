@@ -38,6 +38,19 @@ docker buildx use "${JENKINS_BUILDER:-acestream-builder}"
       }
     }
 
+    stage('Branch Policy') {
+      // Release PRs are the only way into main: main only accepts PRs whose
+      // head is develop. Feature work targets develop.
+      when { expression { env.CHANGE_TARGET == 'main' } }
+      steps {
+        script {
+          if (env.CHANGE_BRANCH != 'develop') {
+            error("Pull requests into main must come from develop (this one comes from '${env.CHANGE_BRANCH}'). Target develop instead; releases are cut with a develop -> main PR.")
+          }
+        }
+      }
+    }
+
     stage('Phase 1 Safety Gates') {
       steps {
         sh '''#!/usr/bin/env bash
@@ -152,6 +165,48 @@ backend/venv/bin/python scripts/phase_gates/phase5_gate_runner.py --profile quic
         always {
           archiveArtifacts artifacts: 'phase5-build-result-quick-*.json', allowEmptyArchive: true
           archiveArtifacts artifacts: 'phase5-gate-report-quick.json', allowEmptyArchive: true
+        }
+      }
+    }
+
+    stage('Publish develop channel') {
+      // Every validated build of develop's head publishes the floating
+      // pre-release channel tags (pipepito/acestream-scraper:develop and
+      // :develop-<flavor>) — never a version tag, never :latest. Runs for the
+      // develop branch job and for a PR whose head is develop (the release PR),
+      // since the branch job is suppressed while such a PR is open. PR builds
+      // from any other branch never reach the credential.
+      when {
+        anyOf {
+          branch 'develop'
+          expression { env.CHANGE_BRANCH == 'develop' }
+        }
+      }
+      steps {
+        script {
+          try {
+            withCredentials([usernamePassword(credentialsId: 'dockerhub-publish', usernameVariable: 'DOCKERHUB_USERNAME', passwordVariable: 'DOCKERHUB_TOKEN')]) {
+              sh '''#!/usr/bin/env bash
+set -euo pipefail
+bash scripts/ci/run_jenkins_release.sh --print-publish-plan --channel develop
+bash scripts/ci/run_jenkins_release.sh --channel develop
+'''
+            }
+          } catch (Exception e) {
+            // Creating the credential is an operator step; a missing one must
+            // not fail validation. Anything else (build/push failure) is real.
+            def text = e.toString()
+            if (text.contains('Could not find credentials') && text.contains('dockerhub-publish')) {
+              unstable("develop channel not published: Jenkins credential 'dockerhub-publish' is missing")
+            } else {
+              throw e
+            }
+          }
+        }
+      }
+      post {
+        always {
+          archiveArtifacts artifacts: 'phase5-build-result-channel-*.json', allowEmptyArchive: true
         }
       }
     }

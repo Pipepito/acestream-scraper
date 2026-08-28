@@ -338,3 +338,52 @@ def test_build_script_derives_real_acexy_source_from_manifest():
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert "ACEXY_REPO" not in result.stdout + result.stderr
+
+
+def test_run_jenkins_release_channel_plan_pushes_floating_channel_tags_only():
+    # The develop pre-release channel publishes floating channel tags per
+    # flavor and never a version tag or :latest.
+    result = subprocess.run(
+        ["/bin/bash", str(REPO_ROOT / "scripts/ci/run_jenkins_release.sh"),
+         "--print-publish-plan", "--channel", "develop"],
+        cwd=REPO_ROOT, check=False, capture_output=True, text=True, env=os.environ.copy(),
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    version = (REPO_ROOT / "version.txt").read_text().strip()
+    assert "pipepito/acestream-scraper:develop " in result.stdout or "pipepito/acestream-scraper:develop\n" in result.stdout
+    for flavor in ("scraper", "scraper-acestream", "scraper-acexy", "scraper-acestream-acexy"):
+        assert f"pipepito/acestream-scraper:develop-{flavor}" in result.stdout, result.stdout
+    assert "pipepito/acestream-scraper:latest" not in result.stdout
+    assert f"pipepito/acestream-scraper:{version}" not in result.stdout
+
+
+def test_run_jenkins_release_rejects_invalid_channel_names():
+    result = subprocess.run(
+        ["/bin/bash", str(REPO_ROOT / "scripts/ci/run_jenkins_release.sh"),
+         "--print-publish-plan", "--channel", "Not Valid"],
+        cwd=REPO_ROOT, check=False, capture_output=True, text=True,
+    )
+    assert result.returncode != 0
+    assert "Invalid channel name" in result.stderr
+
+
+def test_run_jenkins_release_refuses_dev_versions(tmp_path):
+    # develop carries vX.Y.Z-dev; only the release PR bumps it, so a release
+    # run on a -dev version must stop before doing anything.
+    import shutil
+    scripts_dir = tmp_path / "scripts" / "ci"
+    scripts_dir.mkdir(parents=True)
+    shutil.copy(REPO_ROOT / "scripts/ci/run_jenkins_release.sh", scripts_dir / "run_jenkins_release.sh")
+    (tmp_path / "version.txt").write_text("v2.1.0-dev\n")
+    result = subprocess.run(
+        ["/bin/bash", str(scripts_dir / "run_jenkins_release.sh"), "--print-publish-plan"],
+        cwd=tmp_path, check=False, capture_output=True, text=True,
+    )
+    assert result.returncode != 0
+    assert "Refusing to release a development version" in result.stderr
+    # ...while the channel publish of the same tree is fine.
+    result = subprocess.run(
+        ["/bin/bash", str(scripts_dir / "run_jenkins_release.sh"), "--print-publish-plan", "--channel", "develop"],
+        cwd=tmp_path, check=False, capture_output=True, text=True,
+    )
+    assert result.returncode == 0, result.stderr

@@ -86,6 +86,8 @@ docker run -d \
   pipepito/acestream-scraper:latest
 ```
 
+`latest` is the current release. To test the upcoming release instead, use the moving pre-release tag `pipepito/acestream-scraper:develop` (not for production); see the [Docker guide](Docker.md#pre-release-channel-develop) for the channel and flavor tags.
+
 ### With Acexy and Internal Acestream Engine
 
 ```bash

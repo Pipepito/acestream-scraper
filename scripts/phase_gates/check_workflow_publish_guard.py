@@ -58,6 +58,23 @@ def main() -> int:
          all(token in pr_jenkinsfile for token in FLAVOR_TOKENS)),
         ("PR pipeline does not push to Docker Hub",
          "--push" not in pr_jenkinsfile),
+        # The only publish from the PR pipeline is the develop pre-release
+        # channel: gated on develop (branch job, or the release PR whose head
+        # is develop), credential-bound, channel tags only.
+        ("PR pipeline publishes the develop channel only from develop",
+         "stage('Publish develop channel')" in pr_jenkinsfile
+         and "branch 'develop'" in pr_jenkinsfile
+         and "env.CHANGE_BRANCH == 'develop'" in pr_jenkinsfile
+         and "credentialsId: 'dockerhub-publish'" in pr_jenkinsfile
+         and "run_jenkins_release.sh --channel develop" in pr_jenkinsfile),
+        ("PR pipeline rejects PRs into main that do not come from develop",
+         "stage('Branch Policy')" in pr_jenkinsfile
+         and "env.CHANGE_TARGET == 'main'" in pr_jenkinsfile
+         and "env.CHANGE_BRANCH != 'develop'" in pr_jenkinsfile),
+        ("release script channel mode never emits a version tag or :latest",
+         "channel_tags_for_flavor()" in release_sh
+         and 'pipepito/acestream-scraper:${CHANNEL}-scraper-acestream-acexy' in release_sh
+         and 'Refusing to release a development version' in release_sh),
         ("release script declares all flavors",
          all(f'"{flavor}"' in release_sh for flavor in FLAVORS)),
         ("release script publishes all required tags",

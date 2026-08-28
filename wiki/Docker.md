@@ -67,6 +67,19 @@ AceStream platform availability is manifest-driven via `docker/manifests/acestre
 
 If you run with `ENABLE_WARP=true`, the container must be started with the runtime capabilities `NET_ADMIN` and `SYS_ADMIN`.
 
+### Pre-release channel (`develop`)
+
+The tags above are release tags: `latest` and the immutable `vX.Y.Z` / `vX.Y.Z-<flavor>` tags are cut from the `main` branch. Next to them, every validated build of the `develop` branch publishes a pre-release channel:
+
+- `develop` as the full `scraper-acestream-acexy` payload (the channel's equivalent of `latest`)
+- `develop-scraper`, `develop-scraper-acestream`, `develop-scraper-acexy`, and `develop-scraper-acestream-acexy` for the individual flavors
+
+Channel tags are moving tags: they are re-pushed for the same platforms as the release flavors each time `develop` passes CI, and there is no per-version or per-commit tag for them. Use them to test what the next release will contain, not for production. To run the pre-release, replace `latest` with `develop` (or `develop-<flavor>`) in the commands below, or set `image: pipepito/acestream-scraper:develop` in `docker-compose.yml`:
+
+```bash
+docker pull pipepito/acestream-scraper:develop
+```
+
 ## Basic Docker Commands
 
 ### Pull the Image

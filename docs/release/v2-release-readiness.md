@@ -3,7 +3,7 @@
 **Date:** 2026-05-03 (audit), 2026-05-04 (closure pass)
 **Source planning:** `.planning/PROJECT.md`, `.planning/ROADMAP.md`, `.planning/REQUIREMENTS.md`, `.planning/STATE.md` (claimed 100% complete on 2026-02-27).
 **Reality check:** Audited all six phase folders, all summaries, all open debug investigations, and verified claimed deliverables against the current branch.
-**Closure status:** All identified gaps closed on the `gap-closure-v2` branch (merged into `ai-coding-documentation` on 2026-05-04, `e009d61`) — see commit history for the per-item changes. Companion document: `docs/release/v2-release-notes.md`.
+**Closure status:** All identified gaps closed on the `gap-closure-v2` branch (merged into `develop` on 2026-05-04, `e009d61`) — see commit history for the per-item changes. Companion document: `docs/release/v2-release-notes.md`.
 **Refresh:** 2026-08-28 — reconciled against the current branch (Jenkins-only CI since `e5657b9` on 2026-08-26, AceStream engine on ARM since `2a82fc8` on 2026-08-27). The `[BLOCKER]` headings below are the 2026-05-03 audit record; each is annotated with its closure. The items that still gate the `v2.0.0` tag are listed in "Current status".
 
 ---
@@ -12,7 +12,7 @@
 
 **Closed since the audit** (in addition to the ten items in the TL;DR table):
 
-- CI consolidated on Jenkins: `acestream-scraper-pr` (`Jenkinsfile`) validates PRs, `acestream-scraper-release` (`jenkins/release.Jenkinsfile`) is the sole publisher; GitHub Actions retired (`e5657b9`). GitHub branch protection on `main` requires the single `PR Validation` status.
+- CI consolidated on Jenkins: `acestream-scraper-pr` (`Jenkinsfile`) validates PRs, `acestream-scraper-release` (`jenkins/release.Jenkinsfile`) is the sole publisher (of release tags — since 2026-08-28 the PR pipeline also publishes the floating `develop` pre-release channel, see the last section); GitHub Actions retired (`e5657b9`). GitHub branch protection on `main` requires the single `PR Validation` status (and on `develop` since 2026-08-28).
 - Two-phase `:latest` publish with `PUBLISH_LATEST` (`5ffed1d`) — see the last section.
 - Real Acexy proxy in the acexy flavors, gated by `backend/tests/docker/test_acexy_runtime_smoke.py` on the PR and release paths (`3d568cf`).
 - AceStream engine on `linux/arm64` (stable) and `linux/arm/v7` (experimental) via the official Android engine; engine archives and bionic packages vendored under `docker/vendor/` and mirrored on the GitHub release `acestream-binaries-3.2.11-3.1.80.0` (`0d645e6`, `2a82fc8`). Operator guide: `docs/ops/acestream-arm-engine.md`.
@@ -25,8 +25,8 @@
 
 | # | Item | Owner / where |
 |---|---|---|
-| O1 | Jenkins credential `dockerhub-publish` is not created yet, and the `acestream-scraper-release` job's branch specifier must be re-pointed to `*/main`. Until both are done the publish run cannot bind credentials. | Operator — `docs/ops/jenkins-ci.md`, "Manual Release Job" |
-| O2 | No `v2.0.0` git tag or GitHub release exists. After PR #113 merges: dry-run, publish phase 1 (`PUBLISH_LATEST=false`), canary the version tag, **then** tag `v2.0.0` on the published commit and create the GitHub release from `docs/release/v2-release-notes.md`, then promote `:latest` (`PUBLISH_LATEST=true`) — runbook step 8 in `docs/ops/jenkins-ci.md`. | Maintainer |
+| O1 | Jenkins credential `dockerhub-publish` is not created yet (scope it to the `Acestream-Scraper` folder so both the multibranch job — which publishes the `develop` channel — and the release job can bind it), and the `acestream-scraper-release` job's branch specifier must be re-pointed to `*/main`. Until both are done the publish run cannot bind credentials and `develop` builds finish UNSTABLE at `Publish develop channel`. | Operator — `docs/ops/jenkins-ci.md`, "Manual Release Job" |
+| O2 | No `v2.0.0` git tag or GitHub release exists. After PR #162 merges: dry-run, publish phase 1 (`PUBLISH_LATEST=false`), canary the version tag, **then** tag `v2.0.0` on the published commit and create the GitHub release from `docs/release/v2-release-notes.md`, then promote `:latest` (`PUBLISH_LATEST=true`) — runbook step 8 in `docs/ops/jenkins-ci.md`. | Maintainer |
 | O3 | Phase 5 full-profile evidence for the release SHA: `python3 scripts/phase_gates/phase5_gate_runner.py --profile full --json-output > phase5-gate-report-full.json` is manual (not wired into either Jenkins job) and has not been captured; the per-release record in `docs/release/phase5-multiarch-evidence.md` is still the template. | Maintainer — run on the release commit |
 | O4 | Real ARMv7 hardware validation: the `linux/arm/v7` engine has never executed (32-bit bionic cannot run under qemu-user); platform stays `support: experimental`. | Needs AArch32 hardware — `docs/ops/acestream-arm-engine.md`, `docs/release/arm-acestream-issue-draft.md` |
 | O5 | The arm64 Jenkins node (`malcador`) is offline, so the arm64 engine runtime smoke does not run in CI; the only arm64 evidence is the local 2026-08-27 run recorded in `docs/release/phase5-multiarch-evidence.md`. Re-run `test_acestream_runtime_smoke.py` on an arm64 host before publishing. | Operator |
@@ -146,7 +146,7 @@ The v2 consolidation is structurally complete: all six phases shipped their plan
 - Docs: `docs/migration/phase5-architecture-smoke-checklist.md`, `docs/architecture/deployment.md` (Multi-Arch + Android TV section), `docs/release/phase5-multiarch-evidence.md`.
 
 **Outstanding (release-blocker territory):**
-- The full multi-arch profile (`phase5_gate_runner.py --profile full`) runs only on the manual `Release Pipeline` (`workflow_dispatch`) and on Jenkins `acestream-scraper-release`; it does not fire on PRs (the standalone `multiarch-validation.yml` was retired). **Trigger the manual Release Pipeline once on `ai-coding-documentation` to capture fresh `phase5-gate-report-full.json` and runtime smoke output before tagging the release.** *(Superseded on 2026-08-27: GitHub Actions is retired, so `workflow_dispatch` no longer exists; Jenkins `acestream-scraper-release` is the only release path and its preflight runs the cutover full profile plus the real AceStream engine smoke — see "How evidence is produced for a release" in `docs/release/phase5-multiarch-evidence.md`.)*
+- The full multi-arch profile (`phase5_gate_runner.py --profile full`) runs only on the manual `Release Pipeline` (`workflow_dispatch`) and on Jenkins `acestream-scraper-release`; it does not fire on PRs (the standalone `multiarch-validation.yml` was retired). **Trigger the manual Release Pipeline once on `develop` to capture fresh `phase5-gate-report-full.json` and runtime smoke output before tagging the release.** *(Superseded on 2026-08-27: GitHub Actions is retired, so `workflow_dispatch` no longer exists; Jenkins `acestream-scraper-release` is the only release path and its preflight runs the cutover full profile plus the real AceStream engine smoke — see "How evidence is produced for a release" in `docs/release/phase5-multiarch-evidence.md`.)*
 - Committed `phase5-build-result-*.json` files at repo root are dated 2026-04-19, marked `dry_run: true, push: false, load: false` — they are config snapshots, not build evidence. They should not be relied on for signoff. *(Closed 2026-05-04, C1 — deleted and added to `.gitignore`; evidence now lives on the Jenkins build artifacts.)*
 - `docs/release/phase5-multiarch-evidence.md` lists ARMv7 and ARM64 runtime smoke as **Pending**. *(Updated on 2026-08-27: the evidence doc now records a local `linux/arm64` AceStream engine smoke on Apple Silicon; `linux/arm/v7` engine execution and real-hardware validation remain pending.)*
 - No documented manifest-update procedure for `docker/manifests/acestream.json` when AceStream gains ARM platforms. *(Closed on 2026-08-27 by branch `arm-acestream-engine`: ARM is enabled in the manifest via the official Android engine, and the pin/update procedure lives in `docker/vendor/acestream/README.md`; `python3 scripts/ci/validate_docker_manifest_metadata.py` checks the manifest, vendored files, `SHA256SUMS` and mirror URLs.)*
@@ -250,7 +250,7 @@ Status as of 2026-08-28 in brackets.
 - A fresh `phase5-gate-report-full.json` exists from CI for this release SHA, attached or linked from `docs/release/phase5-multiarch-evidence.md`. [Open — O3; the full profile is a manual run, not a Jenkins stage.]
 - `bash scripts/ci/assert_no_legacy_paths.sh --strict` exits 0. [Green on every PR.]
 - `bash scripts/ops/preflight_v2_deploy.sh` reports SAFE on a representative v1 production DB (or the operator has documented and accepted the UNSAFE path with rescue export in place). [Operator step at deploy time.]
-- Added 2026-08-28: Jenkins `dockerhub-publish` credential created and the release job's branch specifier pointed at `*/main` [Open — O1]; `v2.0.0` tag + GitHub release created from `docs/release/v2-release-notes.md` after PR #113 merges [Open — O2].
+- Added 2026-08-28: Jenkins `dockerhub-publish` credential created (global scope; visible to the multibranch job and the release job) and the release job's branch specifier pointed at `*/main` [Open — O1]; `v2.0.0` tag + GitHub release created from `docs/release/v2-release-notes.md` after PR #162 merges [Open — O2].
 
 ---
 
@@ -266,10 +266,21 @@ rebuilding; otherwise only the versioned and flavor-channel tags ship. This deco
 the new build" from "promote it to the floating `:latest` tag" so the
 floating tag can soak before users on `:latest` are affected.
 
+Added 2026-08-28: pre-release builds are available before the release PR
+is even opened — every validated `develop` build publishes the floating
+`pipepito/acestream-scraper:develop` tag (full payload) plus
+`:develop-<flavor>` for `linux/amd64`, `linux/arm64` and `linux/arm/v7`
+(`Publish develop channel` stage in `Jenkinsfile` →
+`bash scripts/ci/run_jenkins_release.sh --channel develop`; never a
+version tag, never `:latest`). Testers soak the candidate on `:develop`
+before the `develop` → `main` release PR is cut; preview the channel tags
+with `bash scripts/ci/run_jenkins_release.sh --print-publish-plan --channel develop`.
+
 ### Recommended flow per release
 
 Prerequisites (operator, once): the Jenkins credential `dockerhub-publish`
-exists and the `acestream-scraper-release` job's branch specifier points at
+exists (scoped to the `Acestream-Scraper` folder so the multibranch job
+can bind it for the `develop` channel too) and the `acestream-scraper-release` job's branch specifier points at
 `*/main` (`docs/ops/jenkins-ci.md`, "Manual Release Job"). The job refuses
 to run from any branch other than `main`. A `DRY_RUN=true` pass first is
 recommended — it stops after the full cutover profile and the four-flavor

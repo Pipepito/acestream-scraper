@@ -37,6 +37,13 @@ Docker:
 - Docker packaging tests (manifest schema, build-arg derivation, installer layout, engine runtime smoke; the installer/smoke tests build images with Docker buildx): `PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker`
 - Docker manifest + vendored payload validator (schema, `docker/vendor/**/SHA256SUMS`, mirror URLs): `python3 scripts/ci/validate_docker_manifest_metadata.py`
 
+Branching and release flow (adopted 2026-08-28):
+
+- `develop` is the permanent pre-release branch; feature PRs target `develop`. `main` is the release branch. Both are protected (PRs only, required status `PR Validation`, no force-push/deletion). PRs into `main` are accepted only from `develop` — the `Jenkinsfile` `Branch Policy` stage fails any other head. Releases are cut with a `develop` -> `main` PR; hotfixes go through `develop` too.
+- Every validated build of `develop` (the branch job, or the open `develop` -> `main` release PR's build) runs the `Jenkinsfile` stage `Publish develop channel`: `bash scripts/ci/run_jenkins_release.sh --channel develop` pushes only the floating channel tags `pipepito/acestream-scraper:develop` (= `scraper-acestream-acexy` payload) and `:develop-<flavor>` — never `:latest`, never a version or per-commit tag. A missing `dockerhub-publish` Jenkins credential marks the build UNSTABLE instead of failing it. Preview: `bash scripts/ci/run_jenkins_release.sh --print-publish-plan --channel develop` or `--dry-run --channel develop`; `python3 scripts/phase_gates/check_workflow_publish_guard.py` guards the gating strings.
+- `version.txt` on `develop` carries the next version with a `-dev` suffix (e.g. `v2.1.0-dev`, starting with the cycle after v2.0.0); a PR into `develop` bumps it right before the release PR to the final version. `run_jenkins_release.sh` refuses a release (non-channel) run while `version.txt` contains `-dev`; channel publishes accept it.
+- Releases stay manual: Jenkins job `acestream-scraper-release` (`jenkins/release.Jenkinsfile`, runs from `main`; params `CONFIRM_RELEASE`, `DRY_RUN`, `PUBLISH_LATEST`) pushes `:vX.Y.Z`, `:vX.Y.Z-<flavor>` and the flavor tags; `PUBLISH_LATEST=true` retags the canaried version manifest to `:latest` via `scripts/ci/promote_latest.sh`. Details: `docs/ops/jenkins-ci.md`.
+
 ## Architecture
 
 ### Top-level layout

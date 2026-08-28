@@ -35,7 +35,7 @@
 - Real Acexy proxy compiled into the acexy flavors (`3d568cf`), gated by `test_acexy_runtime_smoke.py` on both the PR and the release path.
 - Health probe: `healthcheck.sh` checks the engine through `/webui/api/service?method=get_version` (works for the native 3.2.x and the Android engine); the engine smoke now runs the image's own healthcheck per platform (`1be9fca`).
 - Dockerfile Python pins split: `ARG APP_PYTHON_VERSION=3.13` (the app) vs `ARG ACESTREAM_ENGINE_PYTHON_VERSION=3.10` (the x86_64 engine, pinned by `install.python_version` in `docker/manifests/acestream.json`; the Android engine ships its own CPython 3.8). `.dockerignore` keeps `docs/`, `wiki/`, `samples/`, logs and scratch directories out of the build context.
-- Jenkins hygiene: BUILD_TAG-scoped smoke tags, `scripts/ci/cleanup_runner_docker.sh` at bootstrap and before the publish builds, smoke-image build retry after a builder-cache prune.
+- Jenkins hygiene: the PR smoke stage only warms the build cache (cache-only output, no exported smoke image; the pytest builds and removes its own run-scoped image), `scripts/ci/cleanup_runner_docker.sh` at bootstrap and before the publish builds, smoke-image build retry after a builder-cache prune.
 - Feature batch of 2026-08-24: optional API token (#148), outbound SSRF guard (#149), bare content-ID scraping (#81), named base URLs (#62), curated playlists + legacy player routes, reverse-proxy guide (#150), warp-cli legacy fallback and configurable status-check timeouts, process supervision (#119).
 
 ## Remaining Work Before The v2.0.0 Tag

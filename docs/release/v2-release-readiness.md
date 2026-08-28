@@ -17,7 +17,7 @@
 - Real Acexy proxy in the acexy flavors, gated by `backend/tests/docker/test_acexy_runtime_smoke.py` on the PR and release paths (`3d568cf`).
 - AceStream engine on `linux/arm64` (stable) and `linux/arm/v7` (experimental) via the official Android engine; engine archives and bionic packages vendored under `docker/vendor/` and mirrored on the GitHub release `acestream-binaries-3.2.11-3.1.80.0` (`0d645e6`, `2a82fc8`). Operator guide: `docs/ops/acestream-arm-engine.md`.
 - `healthcheck.sh` probes the engine via `get_version`; the engine smoke runs the image's own healthcheck per platform (`1be9fca`).
-- Jenkins runner hygiene: BUILD_TAG-scoped smoke tags removed in `post { always }`, `scripts/ci/cleanup_runner_docker.sh` at bootstrap and before publish builds, WARP opt-in and non-fatal (`JENKINS_ENABLE_WARP=1`).
+- Jenkins runner hygiene: no exported smoke image in the PR job (cache-only warm-up; the pytest builds and removes its own run-scoped image), dangling layers pruned in `post { always }`, `scripts/ci/cleanup_runner_docker.sh` at bootstrap and before publish builds, WARP opt-in and non-fatal (`JENKINS_ENABLE_WARP=1`).
 - Frontend stack modernized (`@tanstack/react-query` v5, TypeScript 5, lint zero — `8051317`, #154); `EPG.tsx` / `TVChannels.tsx` split (`a911df5`, #153).
 - Backend suite: 478 tests collected under `backend/tests` (excluding `backend/tests/docker`, which runs only as explicit Jenkins smoke stages).
 

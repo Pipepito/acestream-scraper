@@ -52,11 +52,32 @@ backend/venv/bin/python scripts/phase_gates/phase1_gate_runner.py --profile quic
       }
     }
 
-    stage('Required Cutover Checks') {
+    stage('cutover-quick') {
+      // Phase 3 cutover gate: canonical quick backend/frontend suite
+      // (run_cutover_required_checks.sh -> run_v2_test_suite.sh), legacy-path
+      // guard and the phase-1 parity baseline, with a JSON report. This is
+      // the single place the unit/contract suite runs in the PR job, and it
+      // runs before the docker smoke so test failures surface in ~2 min.
       steps {
         sh '''#!/usr/bin/env bash
 set -euo pipefail
-bash scripts/ci/run_v2_test_suite.sh --profile quick
+backend/venv/bin/python scripts/phase_gates/phase3_gate_runner.py --profile quick --json-output > phase3-gate-report-quick.json
+'''
+      }
+      post {
+        always {
+          archiveArtifacts artifacts: 'phase3-gate-report-quick.json, phase3-phase1-quick.json', allowEmptyArchive: true
+        }
+      }
+    }
+
+    stage('Required Cutover Checks') {
+      // Four-flavor multi-arch matrix: dry-run build plan + manifest
+      // verification per flavor (seconds). The engine sources each platform
+      // resolves to are printed by build_multiarch_images.sh.
+      steps {
+        sh '''#!/usr/bin/env bash
+set -euo pipefail
 bash scripts/ci/build_multiarch_images.sh --dry-run --flavor scraper --result-file phase5-build-result-pr-scraper.json
 bash scripts/ci/verify_multiarch_manifest.sh --result-file phase5-build-result-pr-scraper.json --flavor scraper
 bash scripts/ci/build_multiarch_images.sh --dry-run --flavor scraper-acestream --result-file phase5-build-result-pr-scraper-acestream.json
@@ -65,8 +86,6 @@ bash scripts/ci/build_multiarch_images.sh --dry-run --flavor scraper-acexy --res
 bash scripts/ci/verify_multiarch_manifest.sh --result-file phase5-build-result-pr-scraper-acexy.json --flavor scraper-acexy
 bash scripts/ci/build_multiarch_images.sh --dry-run --flavor scraper-acestream-acexy --result-file phase5-build-result-pr-scraper-acestream-acexy.json
 bash scripts/ci/verify_multiarch_manifest.sh --result-file phase5-build-result-pr-scraper-acestream-acexy.json --flavor scraper-acestream-acexy
-bash scripts/ci/assert_no_legacy_paths.sh --strict
-bash scripts/ci/run_cutover_required_checks.sh --profile quick
 '''
       }
       post {
@@ -81,27 +100,23 @@ bash scripts/ci/run_cutover_required_checks.sh --profile quick
         sh '''#!/usr/bin/env bash
 set -euo pipefail
 # Pin buildx to the docker-driver builder so RUN steps inherit the host's
-# WARP-routed network. The default JENKINS_BUILDER (acestream-builder) uses
-# the docker-container driver whose isolated buildkit network does NOT
-# inherit host routes, causing curl to download.acestream.media to fail.
+# network (the docker-container driver's isolated network does not); the
+# engine archives are vendored, so this is only load-bearing for pins that
+# are not vendored yet.
 export BUILDX_BUILDER=default
-# BUILD_TAG (jenkins-<job path>-<number>) is unique across the PR job and
-# the branch job, which run the same commit concurrently and share the
-# docker daemon — BUILD_NUMBER alone collides across them. Sanitize it to
-# docker-tag characters.
-SMOKE_TAG="acestream-scraper:smoke-$(printf '%s' "${BUILD_TAG}" | tr -cs 'a-zA-Z0-9_.-' '-' | cut -c1-100)"
-echo "$SMOKE_TAG" > .smoke-tag
-# The self-hosted runner's build cache can rot ("failed to prepare
-# extraction snapshot ... parent snapshot ... does not exist" at the image
-# export step). Prune the corrupted cache and retry once before failing.
-# scraper-acestream now resolves to amd64 + arm64 + arm/v7; --load needs a
-# single platform, so pin the runner's native one here. The engine archives
-# are vendored in docker/vendor, so this no longer depends on WARP egress.
-if ! bash scripts/ci/build_multiarch_images.sh --flavor scraper-acestream --platforms linux/amd64 --load --network host --tag "$SMOKE_TAG"; then
+# Warm the build cache for the amd64 scraper-acestream image WITHOUT
+# exporting it (cache-only output): the pytest below builds the same image
+# through the same script and is the one that --load's it, so no extra
+# multi-GB image is created. The self-hosted runner's build cache can rot
+# ("failed to prepare extraction snapshot ... parent snapshot ... does not
+# exist"); prune the corrupted cache and retry once before failing.
+if ! bash scripts/ci/build_multiarch_images.sh --flavor scraper-acestream --platforms linux/amd64 --network host; then
   echo "Smoke image build failed; pruning builder cache and retrying once"
   docker builder prune -af || true
-  bash scripts/ci/build_multiarch_images.sh --flavor scraper-acestream --platforms linux/amd64 --load --network host --tag "$SMOKE_TAG"
+  bash scripts/ci/build_multiarch_images.sh --flavor scraper-acestream --platforms linux/amd64 --network host
 fi
+# The engine boots and answers on :6878, get_version matches the manifest,
+# and the image's own healthcheck passes (amd64 here; arm64 when the host is arm64).
 PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_acestream_runtime_smoke.py -v
 # The acexy flavor must ship the real upstream proxy, not the build fixture.
 PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_acexy_runtime_smoke.py -v
@@ -114,47 +129,22 @@ PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_install_
       }
       post {
         always {
+          // The pytest runs remove their own images; trim dangling layers left
+          // by the builds so the runner's small disk stays usable.
           sh '''#!/usr/bin/env bash
-# The smoke image is multi-GB (vendored engine payloads); leaking one per
-# build filled the runner's disk (build #29 ENOSPC). Always remove this
-# build's tag and trim dangling layers.
-if [ -f .smoke-tag ]; then
-  docker image rm -f "$(cat .smoke-tag)" >/dev/null 2>&1 || true
-  rm -f .smoke-tag
-fi
 docker image prune -f >/dev/null 2>&1 || true
+docker system df || true
 '''
-        }
-      }
-    }
-
-    stage('cutover-quick') {
-      steps {
-        sh '''#!/usr/bin/env bash
-set -euo pipefail
-backend/venv/bin/python scripts/phase_gates/phase3_gate_runner.py --profile quick --json-output > phase3-gate-report-quick.json
-'''
-      }
-      post {
-        always {
-          archiveArtifacts artifacts: 'phase3-gate-report-quick.json', allowEmptyArchive: true
         }
       }
     }
 
     stage('Multi-Arch Quick Profile') {
+      // Phase 5 gate (quick): publish-tag guard, the four-flavor dry-run
+      // matrix + manifest checks and the arch smoke plan, with a JSON report.
       steps {
         sh '''#!/usr/bin/env bash
 set -euo pipefail
-bash scripts/ci/build_multiarch_images.sh --dry-run --flavor scraper --result-file phase5-build-result-quick-scraper.json
-bash scripts/ci/verify_multiarch_manifest.sh --result-file phase5-build-result-quick-scraper.json --flavor scraper
-bash scripts/ci/build_multiarch_images.sh --dry-run --flavor scraper-acestream --result-file phase5-build-result-quick-scraper-acestream.json
-bash scripts/ci/verify_multiarch_manifest.sh --result-file phase5-build-result-quick-scraper-acestream.json --flavor scraper-acestream
-bash scripts/ci/build_multiarch_images.sh --dry-run --flavor scraper-acexy --result-file phase5-build-result-quick-scraper-acexy.json
-bash scripts/ci/verify_multiarch_manifest.sh --result-file phase5-build-result-quick-scraper-acexy.json --flavor scraper-acexy
-bash scripts/ci/build_multiarch_images.sh --dry-run --flavor scraper-acestream-acexy --result-file phase5-build-result-quick-scraper-acestream-acexy.json
-bash scripts/ci/verify_multiarch_manifest.sh --result-file phase5-build-result-quick-scraper-acestream-acexy.json --flavor scraper-acestream-acexy
-bash scripts/ci/phase5_arch_smoke.sh --dry-run --platforms linux/arm/v7,linux/arm64
 backend/venv/bin/python scripts/phase_gates/phase5_gate_runner.py --profile quick --json-output > phase5-gate-report-quick.json
 '''
       }

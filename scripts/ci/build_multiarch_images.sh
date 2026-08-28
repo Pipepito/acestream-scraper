@@ -288,52 +288,108 @@ if [[ "$DRY_RUN" -eq 0 ]]; then
   fi
 fi
 
-BUILD_CMD=(
-  docker buildx build
-)
-
+# Base command shared by every invocation below.
+BASE_CMD=(docker buildx build)
 if [[ -n "$BUILDER" ]]; then
-  BUILD_CMD+=(--builder "$BUILDER")
+  BASE_CMD+=(--builder "$BUILDER")
 fi
-
-BUILD_CMD+=(
-  --platform "$PLATFORMS"
-  --file "$DOCKERFILE"
-  --target "$TARGET"
-)
-
-for tag in "${TAGS[@]}"; do
-  BUILD_CMD+=(--tag "$tag")
-done
-
+BASE_CMD+=(--file "$DOCKERFILE" --target "$TARGET")
 if [[ -n "$NETWORK" ]]; then
-    BUILD_CMD+=(--network "$NETWORK")
+  BASE_CMD+=(--network "$NETWORK")
 fi
-
-if [[ "$PUSH" -eq 1 ]]; then
-  BUILD_CMD+=(--push)
-elif [[ "$LOAD" -eq 1 ]]; then
-  BUILD_CMD+=(--load)
-else
-  BUILD_CMD+=(--output type=cacheonly)
-fi
-
 if [[ "${#BUILD_ARGS[@]}" -gt 0 ]]; then
-  BUILD_CMD+=("${BUILD_ARGS[@]}")
+  BASE_CMD+=("${BUILD_ARGS[@]}")
 fi
 
-BUILD_CMD+=("$CONTEXT")
-
-build_cmd_string="$(printf '%q ' "${BUILD_CMD[@]}")"
-
-if [[ "$DRY_RUN" -eq 1 ]]; then
+print_plan_header() {
   echo "Flavor: $FLAVOR"
   echo "Target: $TARGET"
   echo "Platforms: $PLATFORMS"
   echo "Tags: ${TAGS[*]}"
-  echo "[DRY RUN] ${build_cmd_string}"
+}
+
+run_or_print() {
+  # run_or_print <argv...>: eval the command, or print it in dry-run mode.
+  local cmd_string
+  cmd_string="$(printf '%q ' "$@")"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    echo "[DRY RUN] ${cmd_string}"
+  else
+    eval "$cmd_string"
+  fi
+}
+
+if [[ "$PUSH" -eq 1 && "$PLATFORMS" == *","* ]]; then
+  # Multi-platform PUSH: build one platform at a time and assemble the
+  # manifest list afterwards. A single three-platform build runs two QEMU
+  # emulations plus the native build concurrently inside BuildKit, which
+  # starved the Jenkins runner (16 GB, mostly in use) until the agent's
+  # durable-task wrapper stopped heartbeating (PR-162 #2). Sequential
+  # per-platform builds cap the peak load; each pushes by digest (no
+  # temporary tags) and `docker buildx imagetools create` merges the digests
+  # into every requested tag — the documented distributed-build pattern.
+  # Needs a docker-container (or remote) builder: the docker driver does not
+  # implement push-by-digest (Jenkins uses acestream-builder).
+  # Repository = the reference without its tag (the colon after the last
+  # slash); registry host:port prefixes such as localhost:5055/name are kept.
+  repo=""
+  for tag in "${TAGS[@]}"; do
+    tag_repo="$(python3 -c '
+import sys
+ref = sys.argv[1]
+head, _, last = ref.rpartition("/")
+if ":" in last:
+    last = last.split(":", 1)[0]
+print(head + "/" + last if head else last)
+' "$tag")"
+    if [[ -z "$repo" ]]; then
+      repo="$tag_repo"
+    elif [[ "$repo" != "$tag_repo" ]]; then
+      echo "All --tag values must share one repository for a multi-platform push (got $repo and $tag_repo)." >&2
+      exit 1
+    fi
+  done
+  META_DIR="$(mktemp -d)"
+  trap 'rm -rf "$META_DIR"' EXIT
+  [[ "$DRY_RUN" -eq 1 ]] && print_plan_header
+  IFS=',' read -r -a platform_list <<< "$PLATFORMS"
+  digest_refs=()
+  for platform in "${platform_list[@]}"; do
+    meta_file="$META_DIR/$(printf '%s' "$platform" | tr '/' '-').json"
+    echo "Building $platform (push by digest to $repo)"
+    run_or_print "${BASE_CMD[@]}" --platform "$platform" \
+      --output "type=image,name=$repo,push=true,push-by-digest=true,name-canonical=true" \
+      --metadata-file "$meta_file" "$CONTEXT"
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      digest_refs+=("$repo@<digest-of-$platform>")
+    else
+      digest="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["containerimage.digest"])' "$meta_file")"
+      [[ -n "$digest" ]] || { echo "No containerimage.digest in $meta_file" >&2; exit 1; }
+      digest_refs+=("$repo@$digest")
+    fi
+  done
+  imagetools_cmd=(docker buildx imagetools create)
+  for tag in "${TAGS[@]}"; do
+    imagetools_cmd+=(--tag "$tag")
+  done
+  imagetools_cmd+=("${digest_refs[@]}")
+  echo "Assembling manifest list for ${TAGS[*]} from ${#digest_refs[@]} platform digests"
+  run_or_print "${imagetools_cmd[@]}"
 else
-  eval "$build_cmd_string"
+  BUILD_CMD=("${BASE_CMD[@]}" --platform "$PLATFORMS")
+  for tag in "${TAGS[@]}"; do
+    BUILD_CMD+=(--tag "$tag")
+  done
+  if [[ "$PUSH" -eq 1 ]]; then
+    BUILD_CMD+=(--push)
+  elif [[ "$LOAD" -eq 1 ]]; then
+    BUILD_CMD+=(--load)
+  else
+    BUILD_CMD+=(--output type=cacheonly)
+  fi
+  BUILD_CMD+=("$CONTEXT")
+  [[ "$DRY_RUN" -eq 1 ]] && print_plan_header
+  run_or_print "${BUILD_CMD[@]}"
 fi
 
 if [[ -n "$RESULT_FILE" ]]; then

@@ -387,3 +387,35 @@ def test_run_jenkins_release_refuses_dev_versions(tmp_path):
         cwd=tmp_path, check=False, capture_output=True, text=True,
     )
     assert result.returncode == 0, result.stderr
+
+
+def test_build_script_multi_platform_push_is_sequential_by_digest():
+    # A multi-platform --push builds one platform at a time, pushes each by
+    # digest and assembles every tag with imagetools; registry host:port
+    # prefixes must survive the repository parsing.
+    result = subprocess.run(
+        ["bash", str(REPO_ROOT / "scripts/ci/build_multiarch_images.sh"), "--dry-run",
+         "--flavor", "scraper", "--push",
+         "--tag", "localhost:5055/acestream-scraper:seq", "--tag", "localhost:5055/acestream-scraper:seq-2"],
+        cwd=REPO_ROOT, check=True, capture_output=True, text=True,
+    )
+    out = result.stdout
+    assert out.count("push-by-digest=true") == 3, out
+    assert "name=localhost:5055/acestream-scraper" in out  # (commas are %q-escaped in dry-run output)
+    assert out.count("Building linux/") == 3
+    assert "imagetools create --tag localhost:5055/acestream-scraper:seq --tag localhost:5055/acestream-scraper:seq-2" in out
+    assert "--push " not in out  # never a single multi-platform --push build
+
+    mixed = subprocess.run(
+        ["bash", str(REPO_ROOT / "scripts/ci/build_multiarch_images.sh"), "--dry-run",
+         "--flavor", "scraper", "--push", "--tag", "a/app:1", "--tag", "b/app:1"],
+        cwd=REPO_ROOT, check=False, capture_output=True, text=True,
+    )
+    assert mixed.returncode != 0 and "share one repository" in mixed.stderr
+
+    single = subprocess.run(
+        ["bash", str(REPO_ROOT / "scripts/ci/build_multiarch_images.sh"), "--dry-run",
+         "--flavor", "scraper", "--platforms", "linux/amd64", "--push", "--tag", "a/app:1"],
+        cwd=REPO_ROOT, check=True, capture_output=True, text=True,
+    )
+    assert "--push" in single.stdout and "imagetools" not in single.stdout

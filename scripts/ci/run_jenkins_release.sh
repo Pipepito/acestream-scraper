@@ -66,20 +66,21 @@ publish_result_file_for_flavor() {
   esac
 }
 
+# The floating :latest tag is never pushed by a build. Phase 1
+# (PUBLISH_LATEST=0, the default) pushes versioned + flavor-channel tags only,
+# so users on :latest are untouched during the canary window. Phase 2
+# (PUBLISH_LATEST=1) RETAGS the canary-validated
+# pipepito/acestream-scraper:${VERSION} manifest to pipepito/acestream-scraper:latest
+# via scripts/ci/promote_latest.sh — no rebuild, so :latest is byte-identical
+# to what was validated. Only the full payload flavor
+# (scraper-acestream-acexy, whose manifest the version tag points at) can
+# ever become :latest.
+LATEST_SOURCE_FLAVOR="scraper-acestream-acexy"
+
 publish_tags_for_flavor() {
-  # Only the full payload flavor (scraper-acestream-acexy) is eligible for
-  # the floating :latest tag, and only when PUBLISH_LATEST=1. Default off so
-  # the first publish of a new version touches versioned + flavor-channel
-  # tags only; a follow-up run with PUBLISH_LATEST=1 promotes :latest after
-  # the canary window.
-  local include_latest="${PUBLISH_LATEST:-0}"
   case "$1" in
     scraper-acestream-acexy)
-      local tags="pipepito/acestream-scraper:${VERSION} pipepito/acestream-scraper:scraper-acestream-acexy pipepito/acestream-scraper:${VERSION}-scraper-acestream-acexy"
-      if [[ "$include_latest" == "1" ]]; then
-        tags="pipepito/acestream-scraper:latest $tags"
-      fi
-      printf '%s\n' "$tags"
+      printf '%s\n' "pipepito/acestream-scraper:${VERSION} pipepito/acestream-scraper:scraper-acestream-acexy pipepito/acestream-scraper:${VERSION}-scraper-acestream-acexy"
       ;;
     scraper)
       printf '%s\n' "pipepito/acestream-scraper:scraper pipepito/acestream-scraper:${VERSION}-scraper"
@@ -97,11 +98,17 @@ publish_tags_for_flavor() {
   esac
 }
 
+PROMOTE_LATEST="${PUBLISH_LATEST:-0}"
+
 if [[ "$PRINT_PLAN" -eq 1 ]]; then
-  echo "Release publish plan (PUBLISH_LATEST=${PUBLISH_LATEST:-0}, VERSION=${VERSION}):"
-  for flavor in "${PUBLISH_FLAVORS[@]}"; do
-    printf '  %s: %s\n' "$flavor" "$(publish_tags_for_flavor "$flavor")"
-  done
+  echo "Release publish plan (PUBLISH_LATEST=${PROMOTE_LATEST}, VERSION=${VERSION}):"
+  if [[ "$PROMOTE_LATEST" == "1" ]]; then
+    echo "  promote: pipepito/acestream-scraper:latest <- pipepito/acestream-scraper:${VERSION} (retag of the canary-validated ${LATEST_SOURCE_FLAVOR} manifest; no flavor rebuild)"
+  else
+    for flavor in "${PUBLISH_FLAVORS[@]}"; do
+      printf '  %s: %s\n' "$flavor" "$(publish_tags_for_flavor "$flavor")"
+    done
+  fi
   exit 0
 fi
 
@@ -110,6 +117,37 @@ GIT_SHA=$(git rev-parse HEAD)
 if ! docker buildx inspect "$BUILDER" >/dev/null 2>&1; then
   echo "Required buildx builder not found: $BUILDER"
   exit 1
+fi
+
+# Phase 2: promotion run. Nothing is rebuilt or re-tested — the images were
+# built, smoke-tested and canaried in phase 1; this only moves :latest.
+if [[ "$PROMOTE_LATEST" == "1" ]]; then
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    bash scripts/ci/promote_latest.sh --version "$VERSION" --flavor "$LATEST_SOURCE_FLAVOR" --dry-run
+    echo "Dry-run promotion plan completed."
+    exit 0
+  fi
+  : "${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}"
+  : "${DOCKERHUB_TOKEN:?DOCKERHUB_TOKEN is required}"
+  printf '%s' "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
+  bash scripts/ci/promote_latest.sh --version "$VERSION" --flavor "$LATEST_SOURCE_FLAVOR"
+  RELEASE_VERSION="$VERSION" RELEASE_GIT_SHA="$GIT_SHA" RELEASE_BUILDER="$BUILDER" python3 - "phase5-build-result-release-metadata.json" <<'PY2'
+import json, os, sys
+from datetime import datetime, timezone
+payload = {
+    "generated_at": datetime.now(timezone.utc).isoformat(),
+    "version": os.environ["RELEASE_VERSION"],
+    "git_sha": os.environ["RELEASE_GIT_SHA"],
+    "builder": os.environ["RELEASE_BUILDER"],
+    "mode": "promote-latest",
+    "tags": ["pipepito/acestream-scraper:latest"],
+    "source": "pipepito/acestream-scraper:" + os.environ["RELEASE_VERSION"],
+}
+with open(sys.argv[1], "w", encoding="utf-8") as handle:
+    json.dump(payload, handle, indent=2)
+PY2
+  echo "Release promotion completed."
+  exit 0
 fi
 
 bash scripts/ci/run_cutover_required_checks.sh --profile full

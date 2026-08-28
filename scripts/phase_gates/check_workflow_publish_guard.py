@@ -70,8 +70,12 @@ def main() -> int:
         # first publish of a new version touches versioned + flavor-channel
         # tags only and a follow-up run promotes :latest after canary.
         ("release script gates :latest behind PUBLISH_LATEST",
-         'include_latest="${PUBLISH_LATEST:-0}"' in release_sh
-         and 'if [[ "$include_latest" == "1" ]]; then' in release_sh),
+         'PROMOTE_LATEST="${PUBLISH_LATEST:-0}"' in release_sh
+         and 'if [[ "$PROMOTE_LATEST" == "1" ]]; then' in release_sh
+         # :latest is promoted by retagging the canaried version manifest,
+         # never by a rebuild.
+         and "scripts/ci/promote_latest.sh" in release_sh
+         and "--tag pipepito/acestream-scraper:latest" not in release_sh),
         ("release script supports --print-publish-plan preview",
          "--print-publish-plan" in release_sh),
         ("release Jenkinsfile exposes PUBLISH_LATEST parameter",

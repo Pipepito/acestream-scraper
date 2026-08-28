@@ -258,9 +258,11 @@ Status as of 2026-08-28 in brackets.
 
 The Jenkins release pipeline (`jenkins/release.Jenkinsfile`) exposes a
 `PUBLISH_LATEST` boolean parameter (default **off**). The underlying
-publisher (`scripts/ci/run_jenkins_release.sh`) honours `PUBLISH_LATEST=1`
-to add `pipepito/acestream-scraper:latest` to the publish set; otherwise
-only the versioned and flavor-channel tags ship. This decouples "publish
+publisher (`scripts/ci/run_jenkins_release.sh`) treats `PUBLISH_LATEST=1`
+as a promotion run: it retags the already-published, canary-validated
+`pipepito/acestream-scraper:${VERSION}` manifest to `:latest`
+(`scripts/ci/promote_latest.sh`, `docker buildx imagetools create`) without
+rebuilding; otherwise only the versioned and flavor-channel tags ship. This decouples "publish
 the new build" from "promote it to the floating `:latest` tag" so the
 floating tag can soak before users on `:latest` are affected.
 
@@ -290,10 +292,12 @@ dry-run preflight without binding credentials.
    `pipepito/acestream-scraper:v2.0.0` for at least 24–48h. Watch
    `/api/v1/health`, scrape jobs, and EPG refreshes.
 3. **Promote `:latest`** — once the canary is green, re-run the same
-   pipeline with `PUBLISH_LATEST=true`. This re-runs the full preflight
-   (so Docker Hub never gets a `:latest` that didn't pass the same
-   gates) and adds the `:latest` tag to `scraper-acestream-acexy`. The
-   partial flavors never receive `:latest` regardless of this flag.
+   pipeline with `PUBLISH_LATEST=true`. Nothing is rebuilt or re-tested:
+   the run retags the canaried `:v2.0.0` manifest to `:latest` and
+   verifies the platforms, so `:latest` is byte-identical to what soaked.
+   The partial flavors never receive `:latest` regardless of this flag.
+   (`DRY_RUN=true` together with `PUBLISH_LATEST=true` only prints the
+   promotion plan.)
 
 ### Operator preview
 

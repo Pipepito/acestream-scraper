@@ -384,7 +384,7 @@ Expected parity:
   - `CONFIRM_RELEASE` (default off): must be enabled or the pipeline aborts.
   - `DRY_RUN` (default on): preflight only. Runs `bash scripts/ci/run_jenkins_release.sh --dry-run`, which exits after the full cutover suite and the four-flavor multi-arch dry-run preflight, without binding `dockerhub-publish`.
   - `PUBLISH_LATEST` (default off): exported to `scripts/ci/run_jenkins_release.sh` as `PUBLISH_LATEST=1`/`0`. Only the `scraper-acestream-acexy` payload is eligible for the floating `:latest` tag, and only when this is on.
-- [ ] Understand the two-phase publish (since 2026-08-26, 5ffed1d): run 1 with `DRY_RUN=false`, `PUBLISH_LATEST=false` pushes `:${VERSION}`, the four flavor tags and their `${VERSION}-<flavor>` variants and never moves `:latest`; after canary validation of `:${VERSION}`, run 2 with `DRY_RUN=false`, `PUBLISH_LATEST=true` rebuilds, re-pushes the same set and promotes `:latest`. `bash scripts/ci/run_jenkins_release.sh --print-publish-plan` prints the exact tag list for the current `PUBLISH_LATEST` value (the publish run prints it before pushing).
+- [ ] Understand the two-phase publish (since 2026-08-26, 5ffed1d): run 1 with `DRY_RUN=false`, `PUBLISH_LATEST=false` pushes `:${VERSION}`, the four flavor tags and their `${VERSION}-<flavor>` variants and never moves `:latest`; after canary validation of `:${VERSION}`, run 2 with `DRY_RUN=false`, `PUBLISH_LATEST=true` does not rebuild anything: `scripts/ci/promote_latest.sh` retags the canary-validated `pipepito/acestream-scraper:${VERSION}` manifest to `:latest` (`docker buildx imagetools create`) and re-verifies the platforms, so `:latest` is byte-identical to what was canaried.
 
 Expected parity:
 
@@ -420,7 +420,7 @@ Expected parity:
 - [ ] Confirm Docker Hub login succeeds.
 - [ ] Confirm tags are published as expected and that `:latest` did not move on this run.
 - [ ] Confirm remote manifest verification passes.
-- [ ] After canary validation of `:${VERSION}`, re-run with `CONFIRM_RELEASE=true`, `DRY_RUN=false` and `PUBLISH_LATEST=true`, then confirm `:latest` now resolves to the release.
+- [ ] After canary validation of `:${VERSION}`, re-run with `CONFIRM_RELEASE=true`, `DRY_RUN=false` and `PUBLISH_LATEST=true` (retag-only promotion, a few seconds), then confirm `docker buildx imagetools inspect pipepito/acestream-scraper:latest` shows the same digest as `:${VERSION}`.
 
 ### 16. Cutover To Jenkins PR Gates
 
@@ -885,10 +885,10 @@ Release behavior:
 - `CONFIRM_RELEASE=true` is required or the pipeline aborts.
 - `DRY_RUN=true` (default) performs preflight only: `bash scripts/ci/run_jenkins_release.sh --dry-run` runs the full cutover suite and the four-flavor multi-arch dry-run builds, then exits without binding `dockerhub-publish`.
 - `DRY_RUN=false` binds `dockerhub-publish`, prints the publish plan (`bash scripts/ci/run_jenkins_release.sh --print-publish-plan`), runs the smoke block below, performs Docker Hub login and publishes tags.
-- `PUBLISH_LATEST` (default `false`, since 2026-08-26, 5ffed1d) controls the floating `:latest` tag. The Jenkinsfile exports it as `PUBLISH_LATEST=1`/`0`; only the `scraper-acestream-acexy` payload is eligible and only when it is `1`. Two-phase flow: publish first with `PUBLISH_LATEST=false` (pushes `:${VERSION}`, `:<flavor>` and `:${VERSION}-<flavor>` for all four flavors; `:latest` is untouched), validate `:${VERSION}` as a canary, then re-run with `PUBLISH_LATEST=true` to rebuild, re-push the same set and promote `:latest`.
+- `PUBLISH_LATEST` (default `false`, since 2026-08-26, 5ffed1d) controls the floating `:latest` tag. The Jenkinsfile exports it as `PUBLISH_LATEST=1`/`0`. With `0` (phase 1) the build pushes `:${VERSION}`, `:<flavor>` and `:${VERSION}-<flavor>` tags and never touches `:latest`. With `1` (phase 2) the script skips every build and test and runs `scripts/ci/promote_latest.sh`, which retags the canary-validated `pipepito/acestream-scraper:${VERSION}` manifest (the `scraper-acestream-acexy` payload) to `:latest` and verifies its platforms; `DRY_RUN=true` with `PUBLISH_LATEST=true` only prints that promotion plan. Only the full payload flavor can ever become `:latest`.
 - The job archives release result JSON files and `phase5-build-result-release-metadata.json`.
 - Before publishing, the script builds `scraper-acestream` locally pinned to `--platforms linux/amd64 --load` (the flavor now resolves to `linux/amd64,linux/arm/v7,linux/arm64` and `--load` needs a single platform), runs `backend/tests/docker/test_acestream_runtime_smoke.py` (the amd64 engine boots and answers on `:6878`), `backend/tests/docker/test_acexy_runtime_smoke.py` (the acexy flavors ship the real proxy; on the release path since 2026-08-28), and then `backend/tests/docker/test_install_acestream.py -k android_apk_install_layout` (QEMU builds of the arm64 + armv7 installer stages; layout only, no engine execution). If any of them fails, no Docker Hub login or push happens. The engine archives are vendored, so this step does not depend on WARP. The same three checks run on every PR build in the `Acestream Engine Runtime Smoke` stage; on the release job they run only on the publish run, not the dry run.
-- The pushed `scraper-acestream`, `scraper-acestream-acexy`, version tags and (only when `PUBLISH_LATEST=true`) `latest` are multi-platform manifests that include `linux/arm64` and `linux/arm/v7`; `verify_multiarch_manifest.sh --image <tag> --flavor <flavor>` checks each remote manifest after the push. The arm64 engine runtime is not exercised by this job (amd64 runner); see `## AceStream Engine Smoke Coverage`.
+- The pushed `scraper-acestream`, `scraper-acestream-acexy`, version tags (and, after the phase-2 retag, `latest`) are multi-platform manifests that include `linux/arm64` and `linux/arm/v7`; `verify_multiarch_manifest.sh --image <tag> --flavor <flavor>` checks each remote manifest after the push. The arm64 engine runtime is not exercised by this job (amd64 runner); see `## AceStream Engine Smoke Coverage`.
 - Keep this path manual-only. Jenkins is the sole publisher; the GitHub Actions release workflow has been retired.
 
 ## v2.0.0 Release Runbook
@@ -913,7 +913,7 @@ One-off prerequisites (operator, outside the repo): the Jenkins credential `dock
    gh release create v2.0.0 --verify-tag --title "v2.0.0" --notes-file docs/release/v2-release-notes.md
    ```
 
-9. Publish phase 2 (promote `:latest`): re-run `acestream-scraper-release` with `CONFIRM_RELEASE=true`, `DRY_RUN=false`, `PUBLISH_LATEST=true`. It rebuilds and re-pushes the same tag set plus `pipepito/acestream-scraper:latest`. Confirm `docker buildx imagetools inspect pipepito/acestream-scraper:latest` lists all three platforms and that `docker pull pipepito/acestream-scraper:latest` on the amd64 canary host now runs the v2 app.
+9. Publish phase 2 (promote `:latest`): re-run `acestream-scraper-release` with `CONFIRM_RELEASE=true`, `DRY_RUN=false`, `PUBLISH_LATEST=true`. Nothing is rebuilt: `scripts/ci/promote_latest.sh` retags `pipepito/acestream-scraper:${VERSION}` to `:latest` (same digest as the canary) and verifies the platforms. Confirm `docker buildx imagetools inspect pipepito/acestream-scraper:latest` lists all three platforms and that `docker pull pipepito/acestream-scraper:latest` on the amd64 canary host now runs the v2 app.
 
 ## Branch Protection Cutover
 

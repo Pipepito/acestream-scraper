@@ -11,6 +11,7 @@ from __future__ import annotations
 import platform as host_platform
 import shutil
 import subprocess
+import uuid
 from pathlib import Path
 
 import pytest
@@ -82,6 +83,13 @@ def _path_test_in_image(tag: str, flag: str, path: str, platform: str = "linux/a
     ).returncode == 0
 
 
+def _unique_tag(base: str) -> str:
+    """Unique per run: the PR job and the branch job can build the same commit
+    concurrently on one runner, and the containerd image store refuses a
+    duplicate name mid-export ("already exists")."""
+    return f"{base}-{uuid.uuid4().hex[:8]}"
+
+
 def _register_image_cleanup(request: pytest.FixtureRequest, tag: str) -> None:
     """Schedule `docker image rm -f <tag>` as a pytest finalizer."""
     request.addfinalizer(
@@ -93,7 +101,7 @@ def _register_image_cleanup(request: pytest.FixtureRequest, tag: str) -> None:
 
 
 def test_fixture_mode_creates_executable_symlink(request: pytest.FixtureRequest):
-    tag = "acestream-installer-test:fixture"
+    tag = _unique_tag("acestream-installer-test:fixture")
     _register_image_cleanup(request, tag)
     _build_installer(tag, build_args={"ACESTREAM_SOURCE": "fixture"})
     metadata = _read_file_in_image(tag, "/opt/acestream/install-metadata.txt")
@@ -107,7 +115,7 @@ def test_executable_install_from_manifest_uses_vendored_tarball(request: pytest.
     """Default (auto) mode on linux/amd64 installs the pinned 3.2.x tarball from
     docker/vendor without network access; start-engine is the symlink target
     and python deps are installed."""
-    tag = "acestream-installer-test:exec-real"
+    tag = _unique_tag("acestream-installer-test:exec-real")
     _register_image_cleanup(request, tag)
     _build_installer(tag, build_args={})
 
@@ -135,7 +143,7 @@ def test_executable_install_from_manifest_uses_vendored_tarball(request: pytest.
 def test_explicit_download_url_overrides_manifest(request: pytest.FixtureRequest):
     """Explicit ACESTREAM_* build-args still win over the manifest (used by
     operators testing a new upstream build before pinning it)."""
-    tag = "acestream-installer-test:explicit-override"
+    tag = _unique_tag("acestream-installer-test:explicit-override")
     _register_image_cleanup(request, tag)
     _build_installer(
         tag,
@@ -160,7 +168,7 @@ def test_mirror_fallback_when_vendored_copy_and_upstream_are_unavailable(request
     copy and an unreachable upstream host, the first working mirror wins and
     the pinned sha256 is still enforced (a file:// mirror keeps the test
     offline)."""
-    tag = "acestream-installer-test:mirror-fallback"
+    tag = _unique_tag("acestream-installer-test:mirror-fallback")
     _register_image_cleanup(request, tag)
     _build_installer(
         tag,
@@ -213,7 +221,7 @@ def test_android_apk_install_layout(
     """ARM platforms install the official Android engine payload plus a minimal
     Android 9 bionic userland staged for /system. Runs natively on arm64
     hosts and under QEMU elsewhere (no engine execution is needed)."""
-    tag = f"acestream-installer-test:apk-{abi}"
+    tag = _unique_tag(f"acestream-installer-test:apk-{abi}")
     _register_image_cleanup(request, tag)
     _build_installer(tag, build_args={}, platform=platform)
 
@@ -249,7 +257,7 @@ def test_android_apk_install_layout(
 def test_scraper_acestream_runtime_has_python310(request: pytest.FixtureRequest):
     """The scraper-acestream image must ship a working python3.10 binary (the
     x86_64 3.2.x engine links libpython3.10) and expose the launcher."""
-    tag = "acestream-scraper-task3:scraper-acestream"
+    tag = _unique_tag("acestream-scraper-task3:scraper-acestream")
     _register_image_cleanup(request, tag)
     # Fixture mode keeps this fast and self-contained.
     _build_target(tag, "scraper-acestream", {"ACESTREAM_SOURCE": "fixture"})
@@ -273,7 +281,7 @@ def test_scraper_acestream_runtime_has_python310(request: pytest.FixtureRequest)
 def test_scraper_acestream_arm64_ships_bionic_at_system(request: pytest.FixtureRequest):
     """The ARM runtime image must expose the bionic runtime at exactly /system
     (the payload's ELF interpreter path is hard-coded)."""
-    tag = "acestream-scraper-task3:scraper-acestream-arm64"
+    tag = _unique_tag("acestream-scraper-task3:scraper-acestream-arm64")
     _register_image_cleanup(request, tag)
     _build_target(tag, "scraper-acestream", {}, platform="linux/arm64")
     assert _path_test_in_image(tag, "-x", "/system/bin/linker64", "linux/arm64")

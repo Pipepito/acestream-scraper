@@ -39,7 +39,8 @@ If you are upgrading from v1, run `bash scripts/ops/preflight_v2_deploy.sh` firs
 - **Image flavors.** `scraper`, `scraper-acestream`, `scraper-acexy`, `scraper-acestream-acexy`. `latest` = `scraper-acestream-acexy`.
 - **Install / runtime split.** Image flavor controls which optional binaries are *installed*; env flags (`ENABLE_ACESTREAM_ENGINE`, `ENABLE_ACEXY`, `ENABLE_WARP`) control whether they actually *start*. WARP requires `NET_ADMIN` + `SYS_ADMIN` capabilities and refuses to target `localhost:6878` without an in-container engine running.
 - **Platform matrix.** All four flavors build for `linux/amd64`, `linux/arm/v7`, `linux/arm64`. AceStream flavors are gated by `docker/manifests/acestream.json`, which declares every platform with a `support` level: `linux/amd64` and `linux/arm64` are **stable**, `linux/arm/v7` is **experimental**.
-- **AceStream engine on ARM.** `scraper-acestream`, `scraper-acestream-acexy` and `latest` now ship an engine on `linux/arm64` and `linux/arm/v7`. Upstream publishes native Linux engine tarballs for x86_64 only (3.2.11), so the ARM images run the official Android engine (`AceStreamCore-3.1.80.0-armv8_64.apk` / `AceStreamCore-3.1.80.0-armv7.apk` from https://docs.acestream.media/products/): the APK's engine payload is unpacked to `/opt/acestream` and runs unmodified against a minimal Android 9 bionic userland at `/system` (Termux `aosp-libs 9.0.0-r76-4`, built from AOSP; NOTICE files under `/system/etc/NOTICE-aosp-libs`). No chroot, `--privileged`, seccomp profile or extra capabilities are needed. The engine archives and bionic packages are vendored under `docker/vendor/` and mirrored on the `acestream-binaries-3.2.11-3.1.80.0` GitHub Release, so image builds no longer depend on reaching `download.acestream.media`. The engine stays opt-in (`ENABLE_ACESTREAM_ENGINE=false` by default); persist engine state, cache and logs with `-v acestream-state:/var/lib/acestream`. ARM caveats are listed under "Known issues".
+- **AceStream engine on ARM.** `scraper-acestream`, `scraper-acestream-acexy` and `latest` now ship an engine on `linux/arm64` and `linux/arm/v7`. Upstream publishes native Linux engine tarballs for x86_64 only (3.2.11), so the ARM images run the official Android engine (`AceStreamCore-3.1.80.0-armv8_64.apk` / `AceStreamCore-3.1.80.0-armv7.apk` from https://docs.acestream.media/products/): the APK's engine payload is unpacked to `/opt/acestream` and runs unmodified against a minimal Android 9 bionic userland at `/system` (Termux `aosp-libs 9.0.0-r76-4`, built from AOSP; NOTICE files under `/system/etc/NOTICE-aosp-libs`). No chroot, `--privileged`, seccomp profile or extra capabilities are needed. The engine archives and bionic packages are vendored under `docker/vendor/` and mirrored on the `acestream-binaries-3.2.11-3.1.80.0` GitHub Release, so image builds no longer depend on reaching `download.acestream.media`. The engine stays opt-in (`ENABLE_ACESTREAM_ENGINE=false` by default); persist engine state, cache and logs with `-v acestream-state:/var/lib/acestream`. ARM caveats are listed under "Known issues". Operator guide: `docs/ops/acestream-arm-engine.md`; manifest schema and pin-update procedure: `docs/ops/multiarch-manifest-updates.md`.
+- **Separate Python pins for the app and the engine.** The `Dockerfile` exposes `ARG APP_PYTHON_VERSION=3.13` (the FastAPI app's interpreter, so the `scraper` flavors can track new CPython releases) and `ARG ACESTREAM_ENGINE_PYTHON_VERSION=3.10` (the x86_64 engine's interpreter, pinned by `install.python_version` in `docker/manifests/acestream.json`; the Android engine on ARM ships its own CPython 3.8).
 - **Real Acexy in the acexy flavors.** The `scraper-acexy` and `scraper-acestream-acexy` images now compile the upstream Acexy proxy pinned in `docker/manifests/acexy.json` (0.2.2). Previously no build path passed the manifest's `ACEXY_REPO`/`ACEXY_REF` args, so the images silently shipped the build-test stub. A runtime smoke (`backend/tests/docker/test_acexy_runtime_smoke.py`) now gates the Jenkins PR pipeline on the real proxy answering `/ace/status`.
 - **Android TV deployment notes.** New `docs/architecture/deployment.md` "Android TV Notes" section covers ARM64 preference, ARMv7 caveats, and conservative runtime tuning.
 
@@ -49,6 +50,8 @@ If you are upgrading from v1, run `bash scripts/ops/preflight_v2_deploy.sh` firs
 - **DB hot-path indexes.** Migration `phase6_add_hotpath_indexes.py` adds 7 indexes on the most-queried columns; idempotent so existing user databases just get the new indexes on first start.
 - **Set-based bulk mutations.** Per-record commit/refresh loops in URL/channel updates were replaced by transaction-scoped batch updates. `phase6-db-baseline.json` documents query budgets (e.g., bulk channel activate: 2 queries; refresh-all-URLs: 1 query; idempotent EPG re-import: 4 queries).
 - **Operational runbook.** `docs/ops/reliability-runbook.md` is the new starting point for diagnosing stuck tasks, scheduler hangs, or DB lock pressure.
+- **Rotating application log.** The file log (`backend/app/utils/logging.py`) uses a `RotatingFileHandler`: `LOG_FILE_MAX_BYTES` (default 10 MiB) and `LOG_FILE_BACKUP_COUNT` (default 3) bound disk usage instead of growing a single file forever.
+- **Container healthcheck covers the engine.** `healthcheck.sh` probes `/api/v1/health`, then — when enabled — the in-container engine through `/webui/api/service?method=get_version` (the one lightweight endpoint both the native 3.2.x and the Android engine serve) and Acexy through `/ace/status`. The CI engine smoke runs the image's own healthcheck per platform so the `HEALTHCHECK` contract is tested, not just declared.
 
 ### Security and hardening
 
@@ -90,8 +93,10 @@ If you are upgrading from v1, run `bash scripts/ops/preflight_v2_deploy.sh` firs
 - **Single canonical runner.** `bash scripts/ci/run_v2_test_suite.sh --profile {quick,full}` is the one entry point.
 - **Strict legacy guard.** `bash scripts/ci/assert_no_legacy_paths.sh --strict` blocks reintroduction of retired root paths.
 - **Cutover checks.** `bash scripts/ci/run_cutover_required_checks.sh --profile quick` for fast pre-deploy validation.
-- **Phase gates.** Phase-1 parity safety gates and multi-arch quick (dry-run) profile run on every PR via the Jenkins PR pipeline (`Jenkinsfile`). The full multi-arch profile runs on Jenkins `acestream-scraper-release`.
-- **Jenkins.** All CI lives on Jenkins: the PR validation pipeline (`Jenkinsfile`) and the manual release pipeline (`jenkins/release.Jenkinsfile`, sole publisher). The GitHub Actions workflows have been retired.
+- **Phase gates.** Phase-1 parity safety gates, the Phase-3 cutover quick gate and the multi-arch quick (dry-run) profile run on every PR via the Jenkins PR pipeline (`Jenkinsfile`). The release path runs the cutover **full** profile (`bash scripts/ci/run_cutover_required_checks.sh --profile full`) plus a four-flavor dry-run build/manifest preflight; the heavier Phase-5 full profile (`python3 scripts/phase_gates/phase5_gate_runner.py --profile full --json-output`, QEMU boot of the ARM app images) is a manual run recorded in `docs/release/phase5-multiarch-evidence.md`.
+- **Jenkins.** All CI lives on Jenkins: the PR validation pipeline (`Jenkinsfile`, multibranch job `acestream-scraper-pr`, reported to GitHub as the single required `PR Validation` status) and the manual release pipeline (`jenkins/release.Jenkinsfile`, job `acestream-scraper-release`, sole publisher; runs only from `main`). The GitHub Actions workflows have been retired (2026-08-26). Operator guide: `docs/ops/jenkins-ci.md`.
+- **Runtime smoke on every PR and every publish.** The `Acestream Engine Runtime Smoke` stage builds `scraper-acestream` for the runner's platform and runs `backend/tests/docker/test_acestream_runtime_smoke.py` (engine boots, `get_version` matches the manifest, healthcheck passes), `test_acexy_runtime_smoke.py` (the real proxy answers `/ace/status`) and `test_install_acestream.py -k android_apk_install_layout` (QEMU builds of the arm64 + armv7 installer stage). `scripts/ci/run_jenkins_release.sh` repeats the same checks before any tag is pushed. These `backend/tests/docker` tests are excluded from `run_v2_test_suite.sh --profile full` and only run as those explicit stages.
+- **Self-contained builds.** The engine archives and bionic packages are vendored in `docker/vendor/` (with `SHA256SUMS`) and mirrored on the `acestream-binaries-3.2.11-3.1.80.0` GitHub Release; Cloudflare WARP on the CI runner is opt-in (`JENKINS_ENABLE_WARP=1`) and non-fatal. Smoke images are tagged per `BUILD_TAG` and removed after each build; `scripts/ci/cleanup_runner_docker.sh` sweeps transient CI images so the shared runner does not run out of disk.
 - **Two-phase publish.** The release pipeline exposes a `PUBLISH_LATEST` boolean (default off). The first publish of a new version pushes versioned + flavor-channel tags only (`:v2.0.0`, `:scraper-acestream-acexy`, `:v2.0.0-scraper-acestream-acexy`, plus the partial flavors); a follow-up run with `PUBLISH_LATEST=true` promotes the floating `:latest` tag once the new build has soaked. See `docs/release/v2-release-readiness.md` for the full canary flow. Preview locally with `bash scripts/ci/run_jenkins_release.sh --print-publish-plan`.
 
 ---
@@ -142,6 +147,12 @@ basket of hardening items. All are closed before tag. Headline changes:
   `phase5-build-result-*.json` snapshots removed; evidence now lives on
   the workflow run and `docs/release/phase5-multiarch-evidence.md`
   records it per release SHA.
+  *(Superseded on 2026-08-26: `release.yml` and the other GitHub Actions
+  workflows were retired; Jenkins is the sole CI. The equivalent gates are
+  the `Acestream Engine Runtime Smoke` stage in `Jenkinsfile` and the
+  pre-publish smoke in `scripts/ci/run_jenkins_release.sh` — see "Test
+  ownership and CI" above. The QEMU boot of the ARM app images is the
+  manual Phase-5 full profile, not a pipeline stage.)*
 - **Timezone-aware datetimes throughout.** Replaced 25 `datetime.utcnow()`
   call sites with `datetime.now(timezone.utc)`. Added a `UtcDateTime`
   SQLAlchemy `TypeDecorator` so reads always return tz-aware datetimes
@@ -198,7 +209,13 @@ basket of hardening items. All are closed before tag. Headline changes:
   - Repackaging the official APK is a grey area under the AceStream user
     agreement's redistribution terms, shared by every community ARM image.
 
-  Engine pins are updated per `docker/vendor/acestream/README.md`.
+  - CI runs the Android engine only where the host can execute it: the
+    amd64 Jenkins runner covers the arm64/armv7 installer layout through
+    QEMU builds, and the arm64 engine runtime smoke runs only on an arm64
+    host (recorded locally in `docs/release/phase5-multiarch-evidence.md`).
+
+  Engine pins are updated per `docker/vendor/acestream/README.md`; the
+  operator guide is `docs/ops/acestream-arm-engine.md`.
 - Cloudflare WARP (`warp-cli`) is only packaged for amd64 upstream, so the
   `linux/arm/v7` and `linux/arm64` images ship without it. Setting
   `ENABLE_WARP=true` on an ARM image fails at startup with a clear error.

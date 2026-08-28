@@ -39,8 +39,9 @@ If using Docker (recommended approach):
 
 If installing directly on the host:
 
-- **Python**: 3.10 or higher
+- **Python**: 3.11 or higher (the Docker image ships 3.13)
 - **pip**: Latest version
+- **Node.js**: 20 or higher with npm (only to build the web interface)
 - **Git**: For cloning the repository (optional)
 - **Virtual Environment**: Recommended for isolation
 

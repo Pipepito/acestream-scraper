@@ -5,6 +5,9 @@ config/acestream_channels.db
 # Vs code folders
 .vs/
 
+# macOS Finder metadata (never track, any directory)
+.DS_Store
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

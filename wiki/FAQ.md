@@ -25,7 +25,7 @@ Acexy handles this PID management automatically under the hood, so you don't nee
 ## Installation Questions
 
 ### Do I need Docker to use Acestream Scraper?
-No, but it's the recommended method. Docker simplifies installation by packaging all dependencies. You can also install manually if you have Python 3.10+ installed on your system, but you'll need to manage dependencies yourself.
+No, but it's the recommended method. Docker simplifies installation by packaging all dependencies. You can also install manually if you have Python 3.11+ and Node.js 20+ (to build the web interface) installed on your system, but you'll need to manage dependencies yourself — see [Manual Installation](Installation.md#manual-installation).
 
 ### How do I update to the latest version?
 If using Docker Compose:
@@ -225,13 +225,13 @@ Contributions are welcome! You can:
 - Help improve the documentation
 
 ### Can I customize the appearance of the web interface?
-The web interface uses Bootstrap and standard Flask templates. You can customize it by:
-1. Mounting your custom templates to `/app/app/templates`
-2. Adding custom CSS through static files
-3. Developing your own theme (advanced)
+The web interface is a React + Material UI single-page app (sources under `frontend/`, compiled into `backend/frontend_build/`), so the v1 approach of mounting Flask templates no longer applies (superseded 2026-08-28). You can customize it by:
+1. Editing the sources under `frontend/src/` (theme, components, pages)
+2. Rebuilding with `npm run build:backend` from `frontend/` so the backend serves your build
+3. Building your own Docker image from the repository (advanced)
 
 ### How do I monitor the application's health?
 The application includes comprehensive health checks:
-- HTTP endpoint: `/health`
+- HTTP endpoint: `/api/v1/health` (stays public even when `API_TOKEN` is set)
 - Docker health checks are configured
 - You can use monitoring tools like Prometheus with the health endpoint

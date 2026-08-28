@@ -15,11 +15,11 @@ This guide provides detailed information about configuring Acestream Scraper.
 
 ## Application Settings
 
-Acestream Scraper can be configured through the setup wizard or directly by editing configuration files.
+Acestream Scraper is configured from the web interface (**Settings** and **Scraper** pages, stored in the database) and through the environment variables listed below. The v1 setup wizard and `config.json` file are kept in the next two sections for reference only.
 
 ### Setup Wizard
 
-When first accessing the application at `http://localhost:8000`, you'll be guided through the setup process if no configuration exists:
+*Superseded (2026-08-28): the v1 first-run wizard no longer exists. In v2 these values are edited from the **Settings** page (base URL, Acestream Engine URL, rescrape interval) and the **Scraper** page (source URLs) and are stored in the database.* The original wizard steps were:
 
 1. Configure Base URL format
 2. Set Acestream Engine URL
@@ -28,7 +28,7 @@ When first accessing the application at `http://localhost:8000`, you'll be guide
 
 ### Manual Configuration
 
-Create or edit `config/config.json`:
+*Superseded (2026-08-28): v2 does not read `config/config.json`. Use the web interface or the `/api/v1/config/*` endpoints (`base_url`, `ace_engine_url`, `rescrape_interval`, ...); runtime options such as the database location are environment variables (see below).* The v1 file format, kept for reference:
 
 ```json
 {
@@ -58,8 +58,8 @@ Create or edit `config/config.json`:
 
 | Variable | Description | Default | Notes |
 |----------|-------------|---------|-------|
-| `FLASK_PORT` | Port the Flask application runs on | `8000` | Can be changed if port 8000 is in use |
-| `FLASK_ENV` | Flask environment mode | `production` | Use `development` for debugging |
+| `FLASK_PORT` | Port the web app (uvicorn) listens on | `8000` | Name kept from v1 but still the real setting: `entrypoint.sh` passes it to `uvicorn --port` and `healthcheck.sh` probes `http://localhost:${FLASK_PORT}/api/v1/health`. Change it if port 8000 is in use |
+| `FLASK_ENV` | *Superseded (2026-08-28)* — v1 Flask environment mode, not read by the v2 (FastAPI) runtime | – | For local debugging run `uvicorn main:app --reload` from `backend/` instead |
 | `API_TOKEN` | Require a token on API and playlist routes | unset (open) | Sent as `Authorization: Bearer`, `X-Api-Token`, or `?token=` (for IPTV players); `/api/v1/health` stays public |
 | `ALLOW_PRIVATE_SCRAPE_TARGETS` | Allow scrape/EPG URLs on private/LAN addresses | `true` | Set `false` to block loopback/private/link-local targets; the cloud metadata endpoint is always blocked |
 | `ACESTREAM_STATUS_TIMEOUT` | Timeout (seconds) for the engine status probe | `10` | A timed-out probe retries once with a doubled timeout |
@@ -185,7 +185,7 @@ When using Docker, mount these volumes:
 
 | Container Path | Purpose | Notes |
 |----------------|---------|-------|
-| `/app/config` | Configuration files | Contains config.json and database |
+| `/app/config` | Configuration and data | Contains the database (`scraper.db`; a v1 `acestream.db` found here is migrated on first start) |
 | `/app/ZeroNet/data` | ZeroNet data directory | Only required if using ZeroNet |
 
 Example mount:

@@ -41,7 +41,7 @@ Docker Compose provides the easiest way to get started with Acestream Scraper.
          - ACEXY_BUFFER_SIZE=5MiB
          - ACESTREAM_HTTP_HOST=localhost
        ports:
-         - "8000:8000"  # Flask application
+         - "8000:8000"  # Web app (FastAPI/uvicorn; port set by FLASK_PORT)
          - "8080:8080"  # Acexy proxy
          - "8621:8621"  # Acestream P2P Port
          - "43110:43110"  # ZeroNet UI
@@ -69,7 +69,7 @@ Docker Compose provides the easiest way to get started with Acestream Scraper.
    
    Open your browser and navigate to `http://localhost:8000`
    
-   The first-time setup wizard will guide you through configuration
+   Open **Settings** in the left navigation to set the stream base URL, Acestream Engine URL and rescrape interval, and **Scraper** to add the source URLs to scrape. (The v1 first-run wizard no longer exists — superseded 2026-08-28.)
 
 ## Docker Method
 
@@ -144,11 +144,14 @@ docker run -d \
 
 ## Manual Installation
 
-For advanced users who want to run the application directly on their system:
+For advanced users who want to run the application directly on their system.
+
+> **Superseded (2026-08-28):** the v1 steps that used to live here — a `venv` at the repository root, `pip install -r requirements.txt`, a `config/config.json` file and `python run_dev.py` / `python wsgi.py` — no longer apply. v2 is a FastAPI backend under `backend/` plus a React web interface under `frontend/`.
 
 ### Prerequisites
-- Python 3.10 or higher
-- pip package manager
+- Python 3.11 or higher
+- Node.js 20 or higher with npm (only needed to build the web interface)
+- Git
 
 ### Steps
 
@@ -159,45 +162,43 @@ For advanced users who want to run the application directly on their system:
    cd acestream-scraper
    ```
 
-2. **Set up virtual environment:**
+2. **Set up the backend virtual environment:**
 
    ```bash
-   python3 -m venv venv
-   source venv/bin/activate  # On Windows use: venv\Scripts\activate
-   pip install -r requirements.txt
+   python3 -m venv backend/venv
+   source backend/venv/bin/activate  # On Windows use: backend\venv\Scripts\activate
+   pip install -r backend/requirements.txt
    ```
 
-3. **Create configuration:**
+3. **Build the web interface** (the backend serves it from `backend/frontend_build/`):
 
    ```bash
-   mkdir -p config
-   ```
-   
-   Create a `config/config.json` file:
-
-   ```json
-   {
-       "urls": [
-           "https://example.com/url1",
-           "https://example.com/url2"
-       ],
-       "base_url": "http://127.0.0.1:8008/ace/getstream?id=",
-       "ace_engine_url": "http://127.0.0.1:6878"
-   }
+   cd frontend
+   npm ci
+   npm run build:backend
+   cd ..
    ```
 
-4. **Run the application:**
+4. **Configure (optional):**
 
-   For development:
+   Runtime options are environment variables, not a `config.json` file. The defaults work out of the box; the most common overrides are:
+
    ```bash
-   python run_dev.py
+   export DATABASE_URL="sqlite:///./config/scraper.db"   # v2 database, relative to the directory uvicorn runs from (backend/)
+   export ACE_ENGINE_URL="http://localhost:6878"          # your Acestream Engine
    ```
 
-   For production:
+   The stream base URL, rescrape interval and source URLs are edited in the web interface (**Settings** and **Scraper** pages) and stored in the database. An existing v1 database is migrated on first start when it is at `backend/config/acestream.db` (paths resolve relative to the `backend/` working directory) or when `LEGACY_DATABASE_URL` points at it, e.g. `export LEGACY_DATABASE_URL=sqlite:////absolute/path/to/config/acestream.db`.
+
+5. **Run the application:**
+
    ```bash
-   python wsgi.py
+   cd backend
+   uvicorn main:app --host 0.0.0.0 --port 8000
    ```
 
-5. **Access the application:**
-   
+   For development add `--reload`. For a hot-reloading UI run `npm start` in `frontend/` (Vite on port 3000, proxying `/api` to port 8000) instead of rebuilding after every change.
+
+6. **Access the application:**
+
    Open your browser and navigate to `http://localhost:8000`

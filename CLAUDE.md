@@ -46,13 +46,13 @@ Docker:
 ### Backend startup sequence (`backend/main.py`)
 
 1. `app.config.settings` loads `Settings` (pydantic-settings) and on import calls `apply_legacy_env_aliases()` to map one-release-window legacy env names to canonical ones (e.g., `SCRAPER_DB_URL` → `DATABASE_URL`, `ACESTREAM_ENGINE_URL` → `ACE_ENGINE_URL`); canonical wins on conflict, both-set conflicts log a warning. Disable with `ENABLE_LEGACY_ENV_ALIASES=false`.
-2. `initialize_database()` runs **before** `FastAPI(...)` is constructed:
+2. `initialize_database()` runs inside the `lifespan()` async context manager (passed as `FastAPI(..., lifespan=lifespan)`), i.e. at server startup — after the `app` object exists, before the first request is served:
    - If a v1 SQLite db exists at `LEGACY_DATABASE_URL` and is not yet marked `.migrated`, `migrate_database.DatabaseMigrator` performs the v1→v2 data migration in-process.
    - Otherwise, if the v2 db file is missing, it provisions the schema by calling Alembic `upgrade head` (same path as tests/deployments). Existing v2 dbs are left alone.
 3. `api_router` is mounted at `/api/v1`. Routers include a backward-compatible alias: `/api/v1/channels` and `/api/v1/acestream-channels` route to the same router (kept for parity tests).
 4. A non-API public M3U route is exposed at `/playlists/m3u` (no `/api` prefix) for user-friendly playlist URLs.
 5. SPA fallback: a `StarletteHTTPException` handler returns `frontend_build/index.html` for any non-`/api` 404, enabling client-side routing.
-6. APScheduler (`task_service`) starts on the FastAPI `startup` event and registers fixed-interval jobs: activity-log cleanup (24h), EPG refresh (1h), URL scraping (15m), channel cleanup (24h), channel status (10m). Edit intervals in `main.start_background_tasks()`.
+6. APScheduler (`task_service`) is started in the same `lifespan()` right after `initialize_database()` (`task_service.start()` followed by one `task_service.add_interval_task(...)` per job) and stopped with `task_service.shutdown()` when the lifespan exits. Registered fixed-interval jobs: activity-log cleanup (24h), EPG refresh (1h), URL scraping (15m), channel cleanup (24h), channel status (10m). Edit intervals in `main.lifespan()` — there is no separate `start_background_tasks()` function and no `@app.on_event` hooks.
 
 ### Backend module shape (`backend/app/`)
 
@@ -72,18 +72,20 @@ Two parallel runtimes coexist:
 - `backend_runtime` / `client` / `db_session` — fast path that creates schema with `Base.metadata.create_all` on a temp SQLite file. Use for most service/endpoint tests.
 - `alembic_backend_runtime` / `alembic_client` / `alembic_db_session` — provisions the temp DB by running Alembic `upgrade head`. Use this when behavior depends on real migration state (schema parity, contract tests, regression suites).
 
-`_load_backend_runtime()` reloads `app.config.settings`, `app.config.database`, and `main` with `DATABASE_URL` overridden, so settings-cache invalidation happens correctly between tests. Tests pulling models or config inside fixtures must `import` lazily after the fixture runs; the helper resets `_RESETTABLE_BACKEND_MODULE_PREFIXES` between runs.
+The fixtures never reload modules: `_bind_runtime_to(database_url)` re-points the lazy engine at the temp database and `_refresh_settings_cache()` invalidates the settings cache per test, while `override_get_db` / `alembic_override_get_db` inject the test session through FastAPI dependency overrides. Tests that import models or config inside fixtures should still do so lazily, after the fixture has bound the runtime.
 
 ### Frontend
 
 - Routing is declared in `src/App.tsx` and wrapped in `components/layout/AppShell`. Pages under `src/pages/` are the route-level views; reusable components live under `src/components/`.
-- API access goes through `src/services/*.ts`, all built on `apiClient.ts` (axios). React Query (v3) is the data layer.
+- API access goes through `src/services/*.ts`, all built on `apiClient.ts` (axios). `@tanstack/react-query` v5 is the data layer (see `frontend/package.json`).
 - Vite config (`frontend/vite.config.ts`) hand-tunes `manualChunks` for MUI / data-grid / data-vendor / TVChannels page splits. Preserve the chunking rules unless deliberately retuning bundle size.
 - Dev server proxies `/api` → `http://localhost:8000`. Backend `CORS_ORIGINS` defaults to `http://localhost:3000` and accepts a comma-separated string in env (normalized in `Settings.normalize_cors_origins`).
 
 ### Docker image flavors
 
 The root `Dockerfile` is multi-stage with named targets `scraper`, `scraper-acestream`, `scraper-acexy`, `scraper-acestream-acexy`. `latest` is the same payload as `scraper-acestream-acexy`. AceStream-enabled flavors (`scraper-acestream`, `scraper-acestream-acexy`, `latest`) are platform-gated by `docker/manifests/acestream.json`, which now covers `linux/amd64,linux/arm/v7,linux/arm64` (`scripts/ci/flavor_platforms.py` resolves this automatically); the baseline flavors (`scraper`, `scraper-acexy`) cover ARMv7/ARM64 as before. The manifest picks an install kind per target platform: `linux/amd64` → `executable` (native Linux engine 3.2.11 tarball, unchanged); `linux/arm64` (support `stable`) and `linux/arm/v7` (support `experimental` — builds and installs, but cannot run under qemu-user and has not been runtime-tested) → `android-apk` (the official Android engine APK 3.1.80, unzipped to `/opt/acestream` and run unmodified on a minimal Android 9 bionic userland copied to `/system` from the Termux `aosp-libs` package — no chroot, no `--privileged`, no extra capabilities). The engine is opt-in (`ENABLE_ACESTREAM_ENGINE=false` by default), so the app itself is unaffected on ARM.
+
+Two interpreters are pinned by `Dockerfile` build args: `ARG APP_PYTHON_VERSION=3.13` is the app's Python (`python-deps` and `runtime-base` stages, so every `scraper*` flavor can track new CPython releases), while `ARG ACESTREAM_ENGINE_PYTHON_VERSION=3.10` is the x86_64 engine's Python (`acestream-installer` and `engine-python` stages) and must match `install.python_version` in `docker/manifests/acestream.json`; the Android engine used on ARM ships its own bionic CPython 3.8 and ignores both.
 
 Every engine archive and the bionic `.deb`s are vendored under `docker/vendor/acestream/` and `docker/vendor/bionic/` (each with `SHA256SUMS`; identical copies are GitHub Release assets on the `acestream-binaries-<versions>` tag). `docker/scripts/install-acestream.sh` resolves vendored copy → upstream URL → `mirror_urls`, sha256-verified, so builds need no egress to download.acestream.media. The `acestream-installer` stage takes `ARG TARGETPLATFORM` and `ARG ACESTREAM_SOURCE=auto` (`auto` = resolve from the manifest via `docker/scripts/acestream_manifest.py`, the shared resolver also used by `scripts/ci/derive_acestream_build_args.py`; explicit `--build-arg ACESTREAM_*` values override; `fixture` = contract-test fixture). `docker/vendor` is bind-mounted into that stage, not copied into a layer. `scripts/ci/build_multiarch_images.sh` no longer injects global `ACESTREAM_*` build-args (they would pin one engine for every platform of a multi-platform build). Bumping the pins: `docker/vendor/acestream/README.md`.
 

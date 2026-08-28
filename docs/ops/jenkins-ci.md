@@ -7,7 +7,7 @@ This document is the primary operator guide for Jenkins CI/CD in this repository
 Current rollout state:
 
 - Jenkins is the canonical path for pull request validation and release publication in this repository.
-- GitHub Actions remain available during the current proving window as fallback/reference workflows while operators build confidence in Jenkins hardening.
+- (Superseded 2026-08-26, e5657b9) GitHub Actions remain available during the current proving window as fallback/reference workflows while operators build confidence in Jenkins hardening. Current state: the last workflows (`.github/workflows/pull_request.yml`, `.github/workflows/release.yml`) were deleted in e5657b9 and `.github/workflows/` no longer exists; Jenkins is the sole validation and release path. Older "proving window" statements below are kept as the historical record and annotated as superseded.
 - Jenkins assets in this repository are ready to be wired into your homelab controller and agent.
 
 Important constraint for this setup:
@@ -35,7 +35,7 @@ Current ownership stance:
 
 - Jenkins multibranch pipelines are the canonical path for pull request validation.
 - Jenkins manual release jobs are the canonical path for release publication.
-- GitHub Actions should be retained as fallback/reference workflows until you decide the Jenkins setup is proven.
+- (Superseded 2026-08-26, e5657b9) GitHub Actions should be retained as fallback/reference workflows until you decide the Jenkins setup is proven. Current state: the workflows are deleted; if Jenkins is unavailable the fallback is the workstation procedure in `## Rollback Guidance`, not GitHub Actions.
 
 Responsibility split:
 
@@ -69,7 +69,7 @@ The following steps require operator intervention outside the repository:
 - Create the Jenkins multibranch validation job from `Jenkinsfile`.
 - Create the Jenkins manual release job from `jenkins/release.Jenkinsfile`.
 - Observe the Jenkins check name reported back to GitHub and update branch protection to require it.
-- Keep GitHub Actions fallback/reference workflows available until Jenkins hardening is verified; do not treat `main` publication through GitHub Actions as the primary operating path.
+- (Superseded 2026-08-26, e5657b9) Keep GitHub Actions fallback/reference workflows available until Jenkins hardening is verified; do not treat `main` publication through GitHub Actions as the primary operating path. Current state: GitHub Actions are retired; `main` is validated only by the Jenkins `PR Validation` status and published only by the manual Jenkins release job.
 
 ## Complete Setup Checklist
 
@@ -126,9 +126,9 @@ If you prefer to wire Jenkins jobs first and let the repository bootstrap the ru
 - [ ] Trigger an initial multibranch scan.
 - [ ] Open or update a test PR.
 - [ ] Confirm Jenkins reports the `PR Validation` status context back to GitHub.
-- [ ] Run the manual release job with `CONFIRM_RELEASE=true` and `DRY_RUN=true`.
-- [ ] Only after Jenkins is stable, add the Jenkins check to branch protection.
-- [ ] Keep GitHub Actions available as fallback/reference workflows until you are happy with the Jenkins setup.
+- [ ] Run the manual release job with `CONFIRM_RELEASE=true` and `DRY_RUN=true` (leave `PUBLISH_LATEST` off; see `### 11.`).
+- [x] Only after Jenkins is stable, add the Jenkins check to branch protection. Done 2026-08-28: `PR Validation` is the required status check on `main`.
+- [x] (Superseded 2026-08-26, e5657b9) Keep GitHub Actions available as fallback/reference workflows until you are happy with the Jenkins setup. No action required: the workflows are retired.
 
 ### Quick Outcome Check
 
@@ -360,7 +360,7 @@ You are ready to rely on Jenkins for the next phase when all of these are true:
 - [ ] Connect it to this GitHub repository using `github-app-acestream-scraper`.
       If the live controller is already using `github-builder-app`, keep the working live credential id until you explicitly normalize it.
 - [ ] Set script path to `Jenkinsfile`.
-- [ ] Enable branch discovery.
+- [ ] Enable branch discovery with the strategy `Exclude branches that are also filed as PRs` (set on the live controller 2026-08-28). A branch with an open PR then builds once, as its PR job (for `ai-coding-documentation` that is `PR-113`), instead of once per branch and once per PR; this is also what makes the zero-age image sweep in `Checkout / Bootstrap` safe (see `## Runner Disk Hygiene`).
 - [ ] Enable pull request discovery.
 - [ ] Add the custom GitHub notification context trait with label `PR Validation`.
 - [ ] Treat fork PRs as restricted until you explicitly validate that trust model.
@@ -377,10 +377,14 @@ Expected parity:
 - [ ] Create a new `Pipeline` job.
 - [ ] Configure it as `Pipeline script from SCM`.
 - [ ] Point SCM at this repository.
-- [ ] Set branch to `main`.
+- [ ] Set branch to `main` (branch specifier `*/main`). `jenkins/release.Jenkinsfile` errors on any other branch and requires the checked-out `HEAD` to equal `origin/main`; if the job was first created against an integration branch, re-point it to `*/main` before the first real release run.
 - [ ] Set script path to `jenkins/release.Jenkinsfile`.
 - [ ] Leave the job manual-only.
-- [ ] Confirm the job exposes `CONFIRM_RELEASE` and `DRY_RUN` parameters.
+- [ ] Confirm the job exposes the three parameters declared in `jenkins/release.Jenkinsfile`:
+  - `CONFIRM_RELEASE` (default off): must be enabled or the pipeline aborts.
+  - `DRY_RUN` (default on): preflight only. Runs `bash scripts/ci/run_jenkins_release.sh --dry-run`, which exits after the full cutover suite and the four-flavor multi-arch dry-run preflight, without binding `dockerhub-publish`.
+  - `PUBLISH_LATEST` (default off): exported to `scripts/ci/run_jenkins_release.sh` as `PUBLISH_LATEST=1`/`0`. Only the `scraper-acestream-acexy` payload is eligible for the floating `:latest` tag, and only when this is on.
+- [ ] Understand the two-phase publish (since 2026-08-26, 5ffed1d): run 1 with `DRY_RUN=false`, `PUBLISH_LATEST=false` pushes `:${VERSION}`, the four flavor tags and their `${VERSION}-<flavor>` variants and never moves `:latest`; after canary validation of `:${VERSION}`, run 2 with `DRY_RUN=false`, `PUBLISH_LATEST=true` rebuilds, re-pushes the same set and promotes `:latest`. `bash scripts/ci/run_jenkins_release.sh --print-publish-plan` prints the exact tag list for the current `PUBLISH_LATEST` value (the publish run prints it before pushing).
 
 Expected parity:
 
@@ -412,27 +416,31 @@ Expected parity:
 
 ### 15. Optional Real Release Verification
 
-- [ ] Only when ready, run the release job with `CONFIRM_RELEASE=true` and `DRY_RUN=false`.
+- [ ] Only when ready, run the release job with `CONFIRM_RELEASE=true`, `DRY_RUN=false` and `PUBLISH_LATEST=false` (version + flavor tags only).
 - [ ] Confirm Docker Hub login succeeds.
-- [ ] Confirm tags are published as expected.
+- [ ] Confirm tags are published as expected and that `:latest` did not move on this run.
 - [ ] Confirm remote manifest verification passes.
+- [ ] After canary validation of `:${VERSION}`, re-run with `CONFIRM_RELEASE=true`, `DRY_RUN=false` and `PUBLISH_LATEST=true`, then confirm `:latest` now resolves to the release.
 
 ### 16. Cutover To Jenkins PR Gates
 
 - Jenkins is already the canonical PR-validation path; this checklist is about hardening branch protection around that operating model.
 
-- [ ] Open GitHub branch protection settings.
-- [ ] Add `PR Validation` as a required status check.
-- [ ] Keep GitHub Actions required checks until Jenkins has passed repeatedly.
+- [x] Open GitHub branch protection settings.
+- [x] Add `PR Validation` as a required status check. Done 2026-08-28: `PR Validation` is the required status check on `main`.
+- [x] Set the multibranch job's branch discovery to `Exclude branches that are also filed as PRs` (done 2026-08-28), so a branch with an open PR reports only through its PR build.
+- [x] (Superseded 2026-08-26, e5657b9) Keep GitHub Actions required checks until Jenkins has passed repeatedly. No action required: the workflows are retired, so there are no GitHub Actions checks to keep.
 - [ ] If older temporary Jenkins per-gate contexts are still required, leave them in place only during the proving window.
 - [ ] Once `PR Validation` is proven stable, remove the temporary Jenkins per-gate contexts from required checks.
-- [ ] Once confident, remove GitHub Actions from required checks.
+- [x] (Superseded 2026-08-26, e5657b9) Once confident, remove GitHub Actions from required checks. No action required: no GitHub Actions checks exist.
 
 ### 17. Later Hardening Of GitHub Actions
 
-- [ ] Keep GitHub Actions positioned as fallback/reference workflows during the proving window.
-- [ ] Keep the workflows in the repo for rollback.
-- [ ] Do not delete them until rollback risk is acceptably low.
+Superseded 2026-08-26 (e5657b9): the remaining workflows (`.github/workflows/pull_request.yml`, `.github/workflows/release.yml`) were deleted and `.github/workflows/` no longer exists. Jenkins is the sole CI. The items below are kept only as the historical record.
+
+- [x] (Superseded) Keep GitHub Actions positioned as fallback/reference workflows during the proving window.
+- [x] (Superseded) Keep the workflows in the repo for rollback.
+- [x] (Superseded) Do not delete them until rollback risk is acceptably low. Outcome: deleted in e5657b9. Recovering them would be a deliberate re-introduction from git history (`git show e5657b9^:.github/workflows/pull_request.yml`), not a rollback toggle.
 
 ## UI-Only Jenkins Setup
 
@@ -574,35 +582,41 @@ If you intentionally use another builder name, set `JENKINS_BUILDER` in the Jenk
 
 ## Cloudflare WARP On The Build Host
 
-Some upstream artifacts (`download.acestream.media`, etc.) are blocked at certain ISPs. The Jenkins bootstrap script (`scripts/ci/setup_jenkins_warp.sh`) installs and connects Cloudflare WARP on the build VM, idempotently, so all host (and inherited Docker daemon) egress flows through Cloudflare.
+Some upstream artifacts (`download.acestream.media`, etc.) are blocked at certain ISPs. `scripts/ci/setup_jenkins_warp.sh` installs and connects Cloudflare WARP on the build VM, idempotently, so all host (and inherited Docker daemon) egress flows through Cloudflare.
+
+Since 2026-08-28 WARP setup is opt-in and non-fatal:
+
+- `scripts/ci/bootstrap_jenkins_runner.sh` only calls `setup_jenkins_warp.sh` when `JENKINS_ENABLE_WARP` is `1`, `true`, `yes` or `on`; otherwise it logs `WARP setup skipped (set JENKINS_ENABLE_WARP=1 to enable)` and continues. Developer machines and the test harness leave it unset.
+- Both `Jenkinsfile` and `jenkins/release.Jenkinsfile` set `JENKINS_ENABLE_WARP = '1'` in their `environment` block, so the CI runner keeps WARP for any remaining geo-blocked fetch. Override it to `0` in the node or job environment to skip WARP without editing the pipelines.
+- When enabled, a WARP failure is a warning (`WARP setup failed; continuing without it`), never a build failure. Builds no longer need WARP for the engine archives (see the vendoring note below), so the only downloads that still depend on it are non-vendored ones.
 
 Operator notes:
 
 - WARP runs in `warp` (full-tunnel) mode on the build host, registered as a free WARP user. No Zero Trust subscription is required for the default routing this repository needs.
 - Installation requires the runtime user to have passwordless `sudo`. This is already a stated bootstrap prerequisite.
 - Once WARP is connected, the bootstrap on subsequent builds is a no-op verification (one HTTP fetch to `https://www.cloudflare.com/cdn-cgi/trace`).
-- If you ever need to disconnect WARP for diagnosis: `warp-cli --accept-tos disconnect`. Reconnect: `warp-cli --accept-tos connect`. The next bootstrap will reconnect automatically.
+- If you ever need to disconnect WARP for diagnosis: `warp-cli --accept-tos disconnect`. Reconnect: `warp-cli --accept-tos connect`. The next bootstrap with `JENKINS_ENABLE_WARP=1` will reconnect automatically; with it unset or `0`, nothing touches WARP.
 - WARP affects the host's network stack. The Docker daemon inherits WARP routes by default; no additional Docker config is required.
 - Since 2026-08-27 the AceStream engine archives (amd64 tarball, arm64 and armv7 Android APKs) and the bionic runtime packages for ARM are vendored under `docker/vendor/` and mirrored on the GitHub Release `acestream-binaries-3.2.11-3.1.80.0`; `docker/scripts/install-acestream.sh` resolves vendored copy -> upstream URL -> mirror, sha256-verified. Image builds therefore no longer need WARP to reach `download.acestream.media`. WARP stays installed for other geo-blocked artifacts and is harmless otherwise; the engine smoke stages still set `BUILDX_BUILDER=default --network host`, which is only load-bearing when a pin points at a file that is not vendored yet.
 
 ## Runner Disk Hygiene
 
-`dorat-nuc-ci` has a small disk and the PR job and the branch job build the same commit concurrently (build #29 died with `No space left on device`). The PR pipeline (`Jenkinsfile`) therefore:
+`dorat-nuc-ci` has a small disk and, until 2026-08-28, the PR job and the branch job built the same commit concurrently (build #29 died with `No space left on device`). The multibranch job now excludes branches that are also filed as PRs (see `### 10.`), so at most one build per commit is in flight. The PR pipeline (`Jenkinsfile`) therefore:
 
-- sweeps, in `Checkout / Bootstrap`, this repo's transient CI images older than an hour (`acestream-scraper:smoke-*`, `acestream-scraper-smoke:*`, `acestream-installer-test:*` — leaked when a test run dies before its finalizers), prunes dangling layers and caps the BuildKit cache at 30 GB;
-- tags its multi-GB smoke image from `BUILD_TAG` (unique across both jobs — `BUILD_NUMBER` alone collides) and removes it in `post { always }`.
+- sweeps, in `Checkout / Bootstrap`, every one of this repo's transient CI images regardless of age — `bash scripts/ci/cleanup_runner_docker.sh --transient-age-hours 0` (`acestream-scraper:smoke-*`, `acestream-scraper:release-smoke`, `acestream-scraper-smoke:*`, `acestream-installer-test:*`, `acestream-scraper-task3:*` — leaked when a test run dies before its finalizers). The zero-age sweep is safe precisely because no sibling build of the same commit is running. The same call prunes dangling layers, removes unused images older than 24 h and caps the BuildKit cache at the script default of 20 GB. (Superseded 2026-08-28: the earlier one-hour threshold and 30 GB cap.)
+- tags its multi-GB smoke image from `BUILD_TAG` (unique across jobs — `BUILD_NUMBER` alone collides) and removes it in the stage's `post { always }`, followed by `docker image prune -f`.
 
-`scripts/ci/run_jenkins_release.sh` does the equivalent after its engine smoke and before the multi-platform publish builds via `scripts/ci/cleanup_runner_docker.sh` (transient images older than 3 h, unused images older than 24 h, BuildKit cache capped at 20 GB; `--dry-run` prints what it would remove, `--keep <image:tag>` protects a tag). If a build still fails with `No space left on device`, check the node's disk monitor (`/computer/api/json`) and run `docker system df` on the runner.
+`scripts/ci/run_jenkins_release.sh` does the equivalent on the publish path, after its engine + Acexy smoke and before the multi-platform publish builds: it removes `acestream-scraper:release-smoke` and calls `scripts/ci/cleanup_runner_docker.sh` with its defaults (transient images older than 3 h, unused images older than 24 h, BuildKit cache capped at 20 GB). Flags: `--transient-age-hours N`, `--image-age-hours N`, `--builder-keep SIZE`, `--dry-run` prints what it would remove, `--keep <image:tag>` protects a tag. If a build still fails with `No space left on device`, check the node's disk monitor (`/computer/api/json`) and run `docker system df` on the runner.
 
 ## AceStream Engine Smoke Coverage
 
-Both pipelines run the engine checks below — the `Acestream Engine Runtime Smoke` stage in `Jenkinsfile` and the pre-publish block in `scripts/ci/run_jenkins_release.sh` (publish runs only; `DRY_RUN=true` exits after the dry-run preflight) — except the Acexy runtime smoke, which is PR-job only.
+Both pipelines run all of the checks below: the `Acestream Engine Runtime Smoke` stage in `Jenkinsfile` on every PR build, and the pre-publish block in `scripts/ci/run_jenkins_release.sh` on publish runs (`DRY_RUN=false`; `DRY_RUN=true` exits after the dry-run preflight, before the smoke). (Superseded 2026-08-28: the Acexy runtime smoke used to be PR-job only; it now also runs on the release path, so no tag reaches Docker Hub without it.)
 
 | Check | Platform | What it proves |
 |---|---|---|
 | `bash scripts/ci/build_multiarch_images.sh --flavor scraper-acestream --platforms linux/amd64 --load --network host --tag ...` | `linux/amd64` | The manifest-driven install works from the vendored tarball. The flavor now resolves to `linux/amd64,linux/arm/v7,linux/arm64`, and `--load` accepts a single platform, so the runner's native one is pinned. |
 | `PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_acestream_runtime_smoke.py -v` | `linux/amd64` on the amd64 runner; `linux/arm64` is added automatically only when the host is arm64 | The engine boots, `get_version` matches the manifest's `engine_version`, and `get_status` answers. |
-| `PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_acexy_runtime_smoke.py -v` | `linux/amd64` (PR job only) | The acexy flavors ship the real proxy, not the build fixture. |
+| `PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_acexy_runtime_smoke.py -v` | `linux/amd64` (PR job and release publish run) | The acexy flavors ship the real proxy, not the build fixture. |
 | `PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_install_acestream.py -v -k android_apk_install_layout` | `linux/arm64`, `linux/arm/v7` (QEMU builds of the installer stage) | The Android engine payload and the Android 9 bionic userland install with the expected layout. No engine execution. |
 
 Coverage gaps and how to close them:
@@ -837,7 +851,7 @@ Recommended configuration:
 1. New Item -> Multibranch Pipeline.
 2. Add the repository using the GitHub App credential `github-app-acestream-scraper`.
 3. Set the script path to `Jenkinsfile`.
-4. Discover branches and pull requests from the origin repository.
+4. Discover branches and pull requests from the origin repository, with branch discovery set to `Exclude branches that are also filed as PRs` (live setting since 2026-08-28) so a branch with an open PR builds only as its PR job.
 5. Treat fork pull requests as restricted until you explicitly verify the trust model.
 6. Enable one trigger model: webhook-based indexing, periodic scans, or manual rescans.
 
@@ -867,25 +881,39 @@ Recommended configuration:
 
 Release behavior:
 
+- The job runs only from `main`: `jenkins/release.Jenkinsfile` errors on any other `BRANCH_NAME` and requires the checked-out `HEAD` to equal `origin/main`.
 - `CONFIRM_RELEASE=true` is required or the pipeline aborts.
-- `DRY_RUN=true` performs preflight only.
-- `DRY_RUN=false` performs Docker Hub login and publishes tags.
+- `DRY_RUN=true` (default) performs preflight only: `bash scripts/ci/run_jenkins_release.sh --dry-run` runs the full cutover suite and the four-flavor multi-arch dry-run builds, then exits without binding `dockerhub-publish`.
+- `DRY_RUN=false` binds `dockerhub-publish`, prints the publish plan (`bash scripts/ci/run_jenkins_release.sh --print-publish-plan`), runs the smoke block below, performs Docker Hub login and publishes tags.
+- `PUBLISH_LATEST` (default `false`, since 2026-08-26, 5ffed1d) controls the floating `:latest` tag. The Jenkinsfile exports it as `PUBLISH_LATEST=1`/`0`; only the `scraper-acestream-acexy` payload is eligible and only when it is `1`. Two-phase flow: publish first with `PUBLISH_LATEST=false` (pushes `:${VERSION}`, `:<flavor>` and `:${VERSION}-<flavor>` for all four flavors; `:latest` is untouched), validate `:${VERSION}` as a canary, then re-run with `PUBLISH_LATEST=true` to rebuild, re-push the same set and promote `:latest`.
 - The job archives release result JSON files and `phase5-build-result-release-metadata.json`.
-- Before publishing, the script builds `scraper-acestream` locally pinned to `--platforms linux/amd64 --load` (the flavor now resolves to `linux/amd64,linux/arm/v7,linux/arm64` and `--load` needs a single platform), runs `backend/tests/docker/test_acestream_runtime_smoke.py` (the amd64 engine boots and answers on `:6878`), and then `backend/tests/docker/test_install_acestream.py -k android_apk_install_layout` (QEMU builds of the arm64 + armv7 installer stages; layout only, no engine execution). If either fails, no Docker Hub login or push happens. The engine archives are vendored, so this step does not depend on WARP.
-- The pushed `scraper-acestream`, `scraper-acestream-acexy`, `latest`, and version tags are multi-platform manifests that include `linux/arm64` and `linux/arm/v7`; `verify_multiarch_manifest.sh --image <tag> --flavor <flavor>` checks each remote manifest after the push. The arm64 engine runtime is not exercised by this job (amd64 runner); see `## AceStream Engine Smoke Coverage`.
+- Before publishing, the script builds `scraper-acestream` locally pinned to `--platforms linux/amd64 --load` (the flavor now resolves to `linux/amd64,linux/arm/v7,linux/arm64` and `--load` needs a single platform), runs `backend/tests/docker/test_acestream_runtime_smoke.py` (the amd64 engine boots and answers on `:6878`), `backend/tests/docker/test_acexy_runtime_smoke.py` (the acexy flavors ship the real proxy; on the release path since 2026-08-28), and then `backend/tests/docker/test_install_acestream.py -k android_apk_install_layout` (QEMU builds of the arm64 + armv7 installer stages; layout only, no engine execution). If any of them fails, no Docker Hub login or push happens. The engine archives are vendored, so this step does not depend on WARP. The same three checks run on every PR build in the `Acestream Engine Runtime Smoke` stage; on the release job they run only on the publish run, not the dry run.
+- The pushed `scraper-acestream`, `scraper-acestream-acexy`, version tags and (only when `PUBLISH_LATEST=true`) `latest` are multi-platform manifests that include `linux/arm64` and `linux/arm/v7`; `verify_multiarch_manifest.sh --image <tag> --flavor <flavor>` checks each remote manifest after the push. The arm64 engine runtime is not exercised by this job (amd64 runner); see `## AceStream Engine Smoke Coverage`.
 - Keep this path manual-only. Jenkins is the sole publisher; the GitHub Actions release workflow has been retired.
 
 ## v2.0.0 Release Runbook
 
-Sequence for shipping the v2 codebase from `ai-coding-documentation` (or any subsequent feature branch) to Docker Hub:
+Sequence for shipping the v2 codebase from `ai-coding-documentation` (PR #113) or any subsequent feature branch to Docker Hub. Status 2026-08-28: no `v2.0.0` git tag or GitHub release exists yet; steps 1-2 are in progress.
+
+One-off prerequisites (operator, outside the repo): the Jenkins credential `dockerhub-publish` exists (not yet created as of 2026-08-28; without it every `DRY_RUN=false` run fails at credential binding), and the `acestream-scraper-release` job's branch specifier points at `*/main` (the job refuses any other branch and requires `HEAD == origin/main`).
 
 1. Confirm `version.txt` reads the intended release tag (currently `v2.0.0`).
-2. Open a pull request from the release branch to `main`. Wait for `acestream-scraper-pr` (Jenkins multibranch) to go green.
+2. Open a pull request from the release branch to `main`. Wait for `acestream-scraper-pr` (Jenkins multibranch, GitHub status `PR Validation`) to go green. That build already runs the `Acestream Engine Runtime Smoke` stage (amd64 engine runtime, Acexy runtime, arm64 + armv7 installer layout) on the exact commit that will be merged.
 3. Merge the PR to `main`. No automatic Docker Hub publish happens — Jenkins requires a manual trigger.
-4. In Jenkins, build `acestream-scraper-release` with parameters `CONFIRM_RELEASE=true` and `DRY_RUN=true`. This runs the full cutover suite and the multi-arch dry-run preflight without binding Docker Hub credentials (the engine smoke only runs on the publish run; `scripts/ci/run_jenkins_release.sh --dry-run` exits after the preflight). Verify it goes green.
-5. Re-run `acestream-scraper-release` with `CONFIRM_RELEASE=true` and `DRY_RUN=false`. The pipeline will rerun the full cutover suite, dry-run preflight, the AceStream engine smoke (amd64 runtime + ARM installer layout, see `## AceStream Engine Smoke Coverage`), then log into Docker Hub and push the four flavors as multi-platform manifests (`linux/amd64`, `linux/arm64`, `linux/arm/v7`).
-6. Verify the published tags on Docker Hub: `pipepito/acestream-scraper:latest`, `:${VERSION}`, plus the four flavor tags (`scraper`, `scraper-acestream`, `scraper-acexy`, `scraper-acestream-acexy`) and their version-prefixed variants. Each should list all three platforms (`docker buildx imagetools inspect <tag>`).
-7. Smoke-test on a fresh amd64 host: `docker pull pipepito/acestream-scraper:latest && docker run --rm -p 8000:8000 -p 6878:6878 -e ENABLE_ACESTREAM_ENGINE=true pipepito/acestream-scraper:latest` and confirm the FastAPI app and engine respond. Repeat on an arm64 host (Raspberry Pi 4/5 64-bit, 4 KB-page kernel) to confirm the Android engine answers `curl "http://localhost:6878/webui/api/service?method=get_version"` with `"platform":"android"`; CI does not cover that path. See `docs/ops/acestream-arm-engine.md`.
+4. In Jenkins, build `acestream-scraper-release` with parameters `CONFIRM_RELEASE=true`, `DRY_RUN=true`, `PUBLISH_LATEST=false`. This runs the full cutover suite and the multi-arch dry-run preflight without binding Docker Hub credentials. The release job's engine smoke does not run on a dry run (`scripts/ci/run_jenkins_release.sh --dry-run` exits after the preflight); it runs on the publish run in step 5 and already ran in the PR job in step 2. Verify it goes green.
+5. Publish phase 1: re-run `acestream-scraper-release` with `CONFIRM_RELEASE=true`, `DRY_RUN=false`, `PUBLISH_LATEST=false`. The pipeline reruns the full cutover suite, the dry-run preflight, the AceStream engine smoke + Acexy smoke + ARM installer layout (see `## AceStream Engine Smoke Coverage`), reclaims runner disk, then logs into Docker Hub and pushes `:v2.0.0`, the four flavor tags (`scraper`, `scraper-acestream`, `scraper-acexy`, `scraper-acestream-acexy`) and their `v2.0.0-<flavor>` variants as multi-platform manifests (`linux/amd64`, `linux/arm64`, `linux/arm/v7`). `:latest` is not touched.
+6. Verify the published tags on Docker Hub: `pipepito/acestream-scraper:v2.0.0`, the four flavor tags and their version-prefixed variants. Each should list all three platforms (`docker buildx imagetools inspect <tag>`). `:latest` still points at the previous release at this point.
+7. Canary: smoke-test `:v2.0.0` on a fresh amd64 host: `docker pull pipepito/acestream-scraper:v2.0.0 && docker run --rm -p 8000:8000 -p 6878:6878 -e ENABLE_ACESTREAM_ENGINE=true pipepito/acestream-scraper:v2.0.0` and confirm the FastAPI app and engine respond. Repeat on an arm64 host (Raspberry Pi 4/5 64-bit, 4 KB-page kernel) to confirm the Android engine answers `curl "http://localhost:6878/webui/api/service?method=get_version"` with `"platform":"android"`; CI does not cover that path. See `docs/ops/acestream-arm-engine.md`. If the canary fails, fix forward on `main` and restart from step 2; `:latest` never moved.
+8. Tag the release and publish the GitHub release (maintainer, from a workstation). Tag the exact `main` commit the release job built (the job requires `HEAD == origin/main`, so it is `origin/main` at the time of step 5) and use `docs/release/v2-release-notes.md` as the release body:
+
+   ```bash
+   git fetch origin main
+   git tag -a v2.0.0 -m "v2.0.0" origin/main
+   git push origin v2.0.0
+   gh release create v2.0.0 --verify-tag --title "v2.0.0" --notes-file docs/release/v2-release-notes.md
+   ```
+
+9. Publish phase 2 (promote `:latest`): re-run `acestream-scraper-release` with `CONFIRM_RELEASE=true`, `DRY_RUN=false`, `PUBLISH_LATEST=true`. It rebuilds and re-pushes the same tag set plus `pipepito/acestream-scraper:latest`. Confirm `docker buildx imagetools inspect pipepito/acestream-scraper:latest` lists all three platforms and that `docker pull pipepito/acestream-scraper:latest` on the amd64 canary host now runs the v2 app.
 
 ## Branch Protection Cutover
 
@@ -893,13 +921,15 @@ User action required.
 
 Do not guess the required check name. Observe the exact Jenkins-reported check on a real pull request first, then update GitHub branch protection.
 
-Cutover sequence:
+Status 2026-08-28: done. The observed check name is `PR Validation` and it is the required status check on `main`. Multibranch branch discovery is set to `Exclude branches that are also filed as PRs`, so a branch with an open PR reports only through its PR build (`PR-113` for `ai-coding-documentation`).
 
-1. Run the multibranch PR validation on a test pull request.
-2. Open the PR checks tab and record the exact Jenkins check name shown by GitHub.
-3. Add that observed Jenkins check name to branch protection as a required status check.
-4. Keep the current GitHub Actions PR check requirement in place until Jenkins has passed repeatedly.
-5. Once stable, remove GitHub Actions from required checks and keep them as fallback/reference workflows.
+Cutover sequence (historical record):
+
+1. Run the multibranch PR validation on a test pull request. (Done.)
+2. Open the PR checks tab and record the exact Jenkins check name shown by GitHub. (Done: `PR Validation`.)
+3. Add that observed Jenkins check name to branch protection as a required status check. (Done 2026-08-28.)
+4. (Superseded 2026-08-26, e5657b9) Keep the current GitHub Actions PR check requirement in place until Jenkins has passed repeatedly. No GitHub Actions checks exist any more.
+5. (Superseded 2026-08-26, e5657b9) Once stable, remove GitHub Actions from required checks and keep them as fallback/reference workflows. The workflows were deleted instead; nothing remains to keep.
 
 This avoids blocking merges on a mismatched check name.
 
@@ -913,29 +943,31 @@ Treat fork PRs as restricted until verified.
 
 ## GitHub Actions During The Proving Window
 
-Jenkins is the canonical CI and release path. During the proving window, two GitHub Actions workflows remain as parity validators:
+Superseded 2026-08-26 (e5657b9). Jenkins is the canonical and only CI and release path; `.github/workflows/` no longer exists in the repository. (Historical: during the proving window, two GitHub Actions workflows remained as parity validators.)
 
 - All GitHub Actions workflows are retired; every gate (tests, four-flavor dry-run multi-arch builds, AceStream engine runtime smoke, cutover required checks, phase gates) runs on the Jenkins pipelines above.
 
-The phase-specific GA scaffolding workflows (`phase1-safety-gates.yml`, `cutover-validation.yml`, `multiarch-validation.yml`) were removed once their gate runners were absorbed into the canonical PR + release pipelines.
+The phase-specific GA scaffolding workflows (`phase1-safety-gates.yml`, `cutover-validation.yml`, `multiarch-validation.yml`) were removed once their gate runners were absorbed into the canonical PR + release pipelines. The last two workflows (`pull_request.yml`, the parity PR validator, and `release.yml`, the manual-only release validator) were deleted in e5657b9 on 2026-08-26.
 
 Expected operating model:
 
 - Jenkins is the canonical path for PR validation and release publication.
-- GitHub Actions PR workflow stays on for parity. GA release workflow is manual-only validation; it never pushes to Docker Hub.
-- Removing GA entirely is a future cleanup once Jenkins has proven stable across multiple releases.
+- (Superseded 2026-08-26, e5657b9) GitHub Actions PR workflow stays on for parity. GA release workflow is manual-only validation; it never pushes to Docker Hub. Current state: both workflows are deleted.
+- (Superseded 2026-08-26, e5657b9) Removing GA entirely is a future cleanup once Jenkins has proven stable across multiple releases. Outcome: done in e5657b9.
 
 ## Rollback Guidance
 
 If Jenkins cutover causes merge or release risk:
 
-1. Re-enable GitHub Actions checks in branch protection immediately.
+(Superseded 2026-08-26, e5657b9) Step 1 and the closing sentence below assumed the GitHub Actions workflows still existed. They do not; the workstation path in step 4 is the fallback.
+
+1. (Superseded) Re-enable GitHub Actions checks in branch protection immediately. Current state: no GitHub Actions checks exist. If Jenkins is down and a merge cannot wait, a repository admin must temporarily relax the `PR Validation` requirement on `main`, run `bash scripts/ci/run_cutover_required_checks.sh --profile full` locally as the substitute gate, and restore the requirement afterwards.
 2. Remove the Jenkins check from required branch protection if it is unstable or unreachable.
 3. Pause manual Jenkins releases.
-4. If Jenkins is unavailable, run the validation and publish steps manually from a workstation: `bash scripts/ci/run_cutover_required_checks.sh --profile full`, then `bash scripts/ci/run_jenkins_release.sh` with the Docker Hub credential exported (preview first with `--print-publish-plan`).
+4. If Jenkins is unavailable, run the validation and publish steps manually from a workstation: `bash scripts/ci/run_cutover_required_checks.sh --profile full`, then `bash scripts/ci/run_jenkins_release.sh` with `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN` exported (preview first with `--print-publish-plan`; export `PUBLISH_LATEST=1` only for the `:latest` promotion run, matching the two-phase flow in `## Manual Release Job`).
 5. Preserve Jenkins logs, webhook delivery logs, and agent diagnostics before making major controller changes.
 
-Rollback is complete only when GitHub Actions are again sufficient to validate and ship the repository without Jenkins.
+(Superseded 2026-08-26, e5657b9) Rollback is complete only when GitHub Actions are again sufficient to validate and ship the repository without Jenkins. Current state: rollback is complete when the workstation path in step 4 has validated and shipped the release, or when Jenkins is restored and `PR Validation` is required on `main` again.
 
 ## Ownership Matrix
 

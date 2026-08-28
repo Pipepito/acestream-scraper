@@ -4,9 +4,9 @@
 
 Acestream Scraper is a Python-based web application that automatically retrieves Acestream channel information from various sources and generates M3U playlists that can be used with any media player supporting the Acestream protocol.
 
-Built using Flask, BeautifulSoup, and SQLAlchemy, this application provides a comprehensive solution for managing and accessing Acestream channels through an intuitive web interface.
+Built on a FastAPI + SQLAlchemy + BeautifulSoup backend with a React + Material UI front end, this application provides a comprehensive solution for managing and accessing Acestream channels through an intuitive web interface.
 
-[![Release Pipeline](https://github.com/Pipepito/acestream-scraper/actions/workflows/release.yml/badge.svg)](https://github.com/Pipepito/acestream-scraper/actions/workflows/release.yml)
+Continuous integration (pull-request validation and Docker image releases) runs on the project's Jenkins controller; the GitHub Actions workflows and their status badge were retired on 2026-08-26.
 
 ## Key Features
 
@@ -53,7 +53,7 @@ This project is licensed under the MIT License.
 
 ## Acknowledgements
 
-Special thanks to the developers of Flask, BeautifulSoup, SQLAlchemy, and other dependencies used in this project.
+Special thanks to the developers of FastAPI, SQLAlchemy, BeautifulSoup, React, Material UI, and other dependencies used in this project.
 
 - [Acexy](https://github.com/Javinator9889/acexy) - Enhanced Acestream proxy interface
 - [Acestream-http-proxy](https://github.com/martinbjeldbak/acestream-http-proxy) - HTTP proxy for Acestream

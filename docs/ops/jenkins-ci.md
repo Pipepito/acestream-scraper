@@ -585,6 +585,15 @@ Operator notes:
 - WARP affects the host's network stack. The Docker daemon inherits WARP routes by default; no additional Docker config is required.
 - Since 2026-08-27 the AceStream engine archives (amd64 tarball, arm64 and armv7 Android APKs) and the bionic runtime packages for ARM are vendored under `docker/vendor/` and mirrored on the GitHub Release `acestream-binaries-3.2.11-3.1.80.0`; `docker/scripts/install-acestream.sh` resolves vendored copy -> upstream URL -> mirror, sha256-verified. Image builds therefore no longer need WARP to reach `download.acestream.media`. WARP stays installed for other geo-blocked artifacts and is harmless otherwise; the engine smoke stages still set `BUILDX_BUILDER=default --network host`, which is only load-bearing when a pin points at a file that is not vendored yet.
 
+## Runner Disk Hygiene
+
+`dorat-nuc-ci` has a small disk and the PR job and the branch job build the same commit concurrently (build #29 died with `No space left on device`). The PR pipeline (`Jenkinsfile`) therefore:
+
+- sweeps, in `Checkout / Bootstrap`, this repo's transient CI images older than an hour (`acestream-scraper:smoke-*`, `acestream-scraper-smoke:*`, `acestream-installer-test:*` — leaked when a test run dies before its finalizers), prunes dangling layers and caps the BuildKit cache at 30 GB;
+- tags its multi-GB smoke image from `BUILD_TAG` (unique across both jobs — `BUILD_NUMBER` alone collides) and removes it in `post { always }`.
+
+`scripts/ci/run_jenkins_release.sh` does the equivalent after its engine smoke and before the multi-platform publish builds via `scripts/ci/cleanup_runner_docker.sh` (transient images older than 3 h, unused images older than 24 h, BuildKit cache capped at 20 GB; `--dry-run` prints what it would remove, `--keep <image:tag>` protects a tag). If a build still fails with `No space left on device`, check the node's disk monitor (`/computer/api/json`) and run `docker system df` on the runner.
+
 ## AceStream Engine Smoke Coverage
 
 Both pipelines run the engine checks below — the `Acestream Engine Runtime Smoke` stage in `Jenkinsfile` and the pre-publish block in `scripts/ci/run_jenkins_release.sh` (publish runs only; `DRY_RUN=true` exits after the dry-run preflight) — except the Acexy runtime smoke, which is PR-job only.

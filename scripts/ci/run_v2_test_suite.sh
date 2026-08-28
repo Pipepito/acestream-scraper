@@ -48,7 +48,10 @@ if [[ "$PROFILE" == "quick" ]]; then
     backend/tests/test_error_contracts.py \
     backend/tests/regression/test_legacy_behavior_parity.py
 else
-  PYTHONPATH=backend "$BACKEND_PYTEST" -q backend/tests
+  # backend/tests/docker builds images with buildx (QEMU for ARM) and boots
+  # the real engines; the Jenkinsfiles run those files as explicit smoke
+  # stages, so keep them out of the unit/contract run.
+  PYTHONPATH=backend "$BACKEND_PYTEST" -q backend/tests --ignore=backend/tests/docker
 fi
 
 echo "Refreshing OpenAPI schema for codegen..."

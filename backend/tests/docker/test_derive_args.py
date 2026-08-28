@@ -41,7 +41,9 @@ def test_executable_flavor_emits_expected_keys():
     assert pairs["ACESTREAM_VENDORED_FILE"] == expected["vendored_file"]
     assert pairs["ACESTREAM_MIRROR_URLS"] == " ".join(expected["mirror_urls"])
     assert "ACESTREAM_PYTHON_MODULE" not in pairs
-    assert "ACESTREAM_PYTHON_VERSION" not in pairs
+    # The x86_64 engine links a specific libpython; the manifest pins it and
+    # the installer stage pip-installs the engine deps with that interpreter.
+    assert pairs["ACESTREAM_PYTHON_VERSION"] == expected["install"]["python_version"]
     assert "ACESTREAM_ANDROID_ABI" not in pairs
 
 

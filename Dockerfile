@@ -1,3 +1,15 @@
+# Two Python interpreters live in the engine-bearing images and they are
+# pinned independently:
+#   APP_PYTHON_VERSION             the FastAPI app's runtime (scraper flavors can
+#                                  track the latest CPython; 3.13 is the newest
+#                                  release with full wheel coverage on arm/v7).
+#   ACESTREAM_ENGINE_PYTHON_VERSION the interpreter the upstream x86_64 engine
+#                                  links against (docker/manifests/acestream.json
+#                                  install.python_version; 3.2.x -> 3.10). The
+#                                  Android engine on ARM ships its own CPython 3.8.
+ARG APP_PYTHON_VERSION=3.13
+ARG ACESTREAM_ENGINE_PYTHON_VERSION=3.10
+
 FROM node:20-slim AS frontend-builder
 
 WORKDIR /build/frontend
@@ -9,7 +21,7 @@ COPY frontend/ ./
 RUN npm run build
 
 
-FROM python:3.11-slim AS python-deps
+FROM python:${APP_PYTHON_VERSION}-slim AS python-deps
 
 WORKDIR /build/backend
 
@@ -27,7 +39,7 @@ RUN pip install --upgrade pip \
     && pip install --prefix=/install -r requirements.txt
 
 
-FROM python:3.10-slim AS acestream-installer
+FROM python:${ACESTREAM_ENGINE_PYTHON_VERSION}-slim AS acestream-installer
 
 # Engine selection is manifest-driven per target platform: install-acestream.sh
 # reads docker/manifests/acestream.json for $TARGETPLATFORM (linux/amd64 ->
@@ -52,7 +64,8 @@ ARG ACESTREAM_BIONIC_VENDORED_FILE=
 ARG ACESTREAM_BIONIC_MIRROR_URLS=
 ARG ACESTREAM_BIONIC_LIBDIR=
 ARG ACESTREAM_BIONIC_LINKER=
-ARG ACESTREAM_PYTHON_VERSION=3.10
+ARG ACESTREAM_ENGINE_PYTHON_VERSION
+ARG ACESTREAM_PYTHON_VERSION=${ACESTREAM_ENGINE_PYTHON_VERSION}
 
 ENV TARGETPLATFORM=${TARGETPLATFORM} \
     ACESTREAM_SOURCE=${ACESTREAM_SOURCE} \
@@ -96,6 +109,9 @@ RUN --mount=type=bind,source=docker/vendor,target=/tmp/acestream-vendor,readonly
     && /usr/local/lib/acestream-install/install-acestream.sh
 
 
+FROM python:${ACESTREAM_ENGINE_PYTHON_VERSION}-slim AS engine-python
+
+
 FROM golang:1.22 AS acexy-builder
 
 ARG ACEXY_REPO
@@ -124,7 +140,7 @@ RUN mkdir -p /src /out \
     && CGO_ENABLED=0 GOOS=linux go build -ldflags "-s -w" -o "/out/$ACEXY_BINARY_NAME" .
 
 
-FROM python:3.11-slim AS runtime-base
+FROM python:${APP_PYTHON_VERSION}-slim AS runtime-base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -192,12 +208,15 @@ FROM runtime-base AS scraper
 
 FROM scraper AS scraper-acestream
 
-# Pull a working python3.10 interpreter from the official slim image. Two
-# Pythons coexist: 3.11 for the FastAPI app, 3.10 for the AceStream engine
-# (its binary links libpython3.10.so.1.0 directly).
-COPY --from=python:3.10-slim /usr/local/bin/python3.10 /usr/local/bin/python3.10
-COPY --from=python:3.10-slim /usr/local/lib/python3.10 /usr/local/lib/python3.10
-COPY --from=python:3.10-slim /usr/local/lib/libpython3.10.so.1.0 /usr/local/lib/libpython3.10.so.1.0
+# Graft the engine's interpreter from the official slim image. Two Pythons
+# coexist: APP_PYTHON_VERSION for the FastAPI app and
+# ACESTREAM_ENGINE_PYTHON_VERSION for the x86_64 AceStream engine (its binary
+# links libpython<version>.so.1.0 directly). Harmless on ARM, where the
+# Android engine brings its own CPython.
+ARG ACESTREAM_ENGINE_PYTHON_VERSION
+COPY --from=engine-python /usr/local/bin/python${ACESTREAM_ENGINE_PYTHON_VERSION} /usr/local/bin/python${ACESTREAM_ENGINE_PYTHON_VERSION}
+COPY --from=engine-python /usr/local/lib/python${ACESTREAM_ENGINE_PYTHON_VERSION} /usr/local/lib/python${ACESTREAM_ENGINE_PYTHON_VERSION}
+COPY --from=engine-python /usr/local/lib/libpython${ACESTREAM_ENGINE_PYTHON_VERSION}.so.1.0 /usr/local/lib/libpython${ACESTREAM_ENGINE_PYTHON_VERSION}.so.1.0
 RUN ldconfig
 
 COPY --from=acestream-installer /opt/acestream/ /opt/acestream/

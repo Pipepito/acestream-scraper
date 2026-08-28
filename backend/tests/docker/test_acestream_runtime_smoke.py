@@ -24,7 +24,10 @@ MANIFEST = json.loads((REPO_ROOT / "docker" / "manifests" / "acestream.json").re
 
 
 def _docker_available() -> bool:
-    return shutil.which("docker") is not None
+    # A daemon must answer, not just a CLI on PATH (matches test_acexy_runtime_smoke).
+    return shutil.which("docker") is not None and subprocess.run(
+        ["docker", "info"], capture_output=True
+    ).returncode == 0
 
 
 pytestmark = pytest.mark.skipif(

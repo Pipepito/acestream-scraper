@@ -16,3 +16,15 @@ node_modules/
 dist/
 build/
 .DS_Store
+
+# Never part of an image; keeps the build context small and secrets out of it.
+backend/logs/
+**/*.log
+.tmp/
+.worktrees/
+.planning/
+infra-details.md
+frontend/dist/
+docs/
+wiki/
+samples/

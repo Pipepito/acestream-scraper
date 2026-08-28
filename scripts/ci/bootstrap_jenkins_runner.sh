@@ -411,14 +411,29 @@ warn() {
   printf '[bootstrap] WARN: %s\n' "$*" >&2
 }
 
+# Cloudflare WARP is opt-in (JENKINS_ENABLE_WARP=1, set by the Jenkinsfiles):
+# the engine archives are vendored in docker/vendor, so builds no longer
+# depend on reaching geo-blocked hosts, and the setup needs passwordless
+# sudo + network that developer machines and the test harness do not have.
+# When enabled, a failure is a warning, never a build failure.
 setup_warp_if_needed() {
-  local script_dir
+  local script_dir warp_script
+  case "${JENKINS_ENABLE_WARP:-0}" in
+    1|true|TRUE|yes|on) ;;
+    *)
+      log "WARP setup skipped (set JENKINS_ENABLE_WARP=1 to enable)"
+      return 0
+      ;;
+  esac
   script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  if [[ -x "${script_dir}/setup_jenkins_warp.sh" ]]; then
-    log "running setup_jenkins_warp.sh"
-    "${script_dir}/setup_jenkins_warp.sh"
+  warp_script="${BOOTSTRAP_WARP_SCRIPT:-${script_dir}/setup_jenkins_warp.sh}"
+  if [[ -x "$warp_script" ]]; then
+    log "running $(basename "$warp_script")"
+    if ! "$warp_script"; then
+      warn "WARP setup failed; continuing without it (only non-vendored downloads need it)"
+    fi
   else
-    warn "setup_jenkins_warp.sh missing or not executable; skipping WARP setup"
+    warn "$warp_script missing or not executable; skipping WARP setup"
   fi
 }
 

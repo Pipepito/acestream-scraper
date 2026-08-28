@@ -152,6 +152,8 @@ fi
     --tag acestream-scraper:release-smoke
 )
 PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_acestream_runtime_smoke.py -v
+# The acexy flavors must ship the real upstream proxy, not the build fixture.
+PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_acexy_runtime_smoke.py -v
 PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_install_acestream.py -v -k "android_apk_install_layout"
 # The ~2 GB smoke image is not needed for the publish step; reclaim the
 # runner's disk before the multi-platform builds (see cleanup_runner_docker.sh).

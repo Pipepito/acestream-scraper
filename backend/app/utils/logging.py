@@ -1,6 +1,7 @@
 import logging
-import sys
 import os
+import sys
+from logging.handlers import RotatingFileHandler
 from .path import log_dir
 
 def setup_logging():
@@ -15,9 +16,12 @@ def setup_logging():
     console.setLevel(logging.INFO)
     root_logger.addHandler(console)
 
-    # File handler for important logs
+    # File handler for important logs. Rotate: the unbounded FileHandler grew
+    # to >150 MB in a dev checkout (every pytest run appends on import).
     log_path = log_dir() / 'acestream.log'
-    file_handler = logging.FileHandler(log_path)
+    max_bytes = int(os.environ.get('LOG_FILE_MAX_BYTES', str(10 * 1024 * 1024)))
+    backup_count = int(os.environ.get('LOG_FILE_BACKUP_COUNT', '3'))
+    file_handler = RotatingFileHandler(log_path, maxBytes=max_bytes, backupCount=backup_count)
     file_handler.setFormatter(logging.Formatter(log_format))
     file_handler.setLevel(logging.INFO)
     root_logger.addHandler(file_handler)

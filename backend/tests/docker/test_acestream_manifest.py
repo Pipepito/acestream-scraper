@@ -170,3 +170,19 @@ def test_android_bootstrap_files_are_shipped():
     assert "main_linux.py" in launcher
     conf = (ANDROID_BOOTSTRAP_DIR / "acestream.conf").read_text(encoding="utf-8")
     assert "--log-debug" not in conf  # no Android-app debug logging in docker logs
+
+
+def test_dockerfile_engine_python_default_matches_manifest():
+    """The Dockerfile grafts python<ACESTREAM_ENGINE_PYTHON_VERSION> for the
+    x86_64 engine; its default must equal the manifest's pinned interpreter so
+    a plain `docker build` never mixes interpreter versions."""
+    import re
+
+    dockerfile = (REPO_ROOT / "Dockerfile").read_text(encoding="utf-8")
+    match = re.search(r"^ARG ACESTREAM_ENGINE_PYTHON_VERSION=(\S+)$", dockerfile, re.M)
+    assert match, "Dockerfile must declare a global ARG ACESTREAM_ENGINE_PYTHON_VERSION default"
+    pinned = load_manifest()["platforms"]["linux/amd64"]["install"]["python_version"]
+    assert match.group(1) == pinned
+    assert re.search(r"^ARG APP_PYTHON_VERSION=3\.\d+$", dockerfile, re.M), "app Python must be a global ARG"
+    assert "FROM python:${APP_PYTHON_VERSION}-slim AS runtime-base" in dockerfile
+    assert "FROM python:${ACESTREAM_ENGINE_PYTHON_VERSION}-slim AS engine-python" in dockerfile

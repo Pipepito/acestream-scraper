@@ -564,3 +564,35 @@ def test_bootstrap_jenkins_runner_fails_cleanly_when_install_requires_passwordle
     assert result.returncode != 0
     assert "passwordless sudo is unavailable" in result.stderr
     assert "user 'unknown-user'" in result.stderr
+
+
+def test_bootstrap_jenkins_runner_skips_warp_unless_enabled(tmp_path):
+    """WARP setup is opt-in: the engine archives are vendored, and the setup
+    needs passwordless sudo that developer machines and this harness lack."""
+    env, _, _ = _bootstrap_env(tmp_path)
+    env.pop("JENKINS_ENABLE_WARP", None)
+    result = subprocess.run(
+        ["/bin/bash", str(BOOTSTRAP_SCRIPT)],
+        cwd=REPO_ROOT, check=False, capture_output=True, text=True, env=env,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "WARP setup skipped" in result.stdout
+    assert "setup_jenkins_warp" not in result.stdout
+
+
+def test_bootstrap_jenkins_runner_warp_failure_is_a_warning(tmp_path):
+    """With JENKINS_ENABLE_WARP=1 the hook runs, but a failing WARP setup must
+    not fail the bootstrap (only non-vendored downloads need WARP)."""
+    env, _, _ = _bootstrap_env(tmp_path)
+    warp_stub = tmp_path / "warp-stub.sh"
+    warp_stub.write_text("#!/usr/bin/env bash\necho 'stub warp setup ran'\nexit 1\n")
+    warp_stub.chmod(0o755)
+    env["JENKINS_ENABLE_WARP"] = "1"
+    env["BOOTSTRAP_WARP_SCRIPT"] = str(warp_stub)
+    result = subprocess.run(
+        ["/bin/bash", str(BOOTSTRAP_SCRIPT)],
+        cwd=REPO_ROOT, check=False, capture_output=True, text=True, env=env,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "stub warp setup ran" in result.stdout
+    assert "WARP setup failed; continuing" in result.stderr

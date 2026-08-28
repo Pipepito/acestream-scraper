@@ -113,9 +113,11 @@ def require_platform_entry(entry: dict, platform: str, acestream: dict) -> None:
     )
 
     if kind == "executable":
-        require_keys(install, ["binary_path", "strip_components"], f"{label} install (kind=executable)")
+        require_keys(install, ["binary_path", "strip_components", "python_version"], f"{label} install (kind=executable)")
         if not isinstance(install["binary_path"], str) or not install["binary_path"]:
             raise AssertionError(f"{label} install.binary_path must be a non-empty string")
+        if not re.fullmatch(r"3\.\d+", str(install["python_version"])):
+            raise AssertionError(f"{label} install.python_version must look like 3.N, got {install['python_version']!r}")
     else:  # android-apk
         require_keys(install, ["abi", "bionic"], f"{label} install (kind=android-apk)")
         if install["abi"] not in {"arm64-v8a", "armeabi-v7a"}:

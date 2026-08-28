@@ -1,6 +1,12 @@
 pipeline {
   agent { label 'dorat-nuc-ci' }
 
+  environment {
+    // WARP is opt-in in bootstrap_jenkins_runner.sh (the engine archives are
+    // vendored); keep it on the runner for any remaining geo-blocked fetch.
+    JENKINS_ENABLE_WARP = '1'
+  }
+
   options {
     disableConcurrentBuilds()
     buildDiscarder(logRotator(numToKeepStr: '20'))
@@ -16,23 +22,12 @@ pipeline {
         }
         sh '''#!/usr/bin/env bash
 set -euo pipefail
-# Reclaim runner disk before doing anything heavy: CI smoke/test images
-# leak when a build is aborted mid-test (build #29 died with ENOSPC).
-# Only images older than an hour are swept, so a concurrently running
-# sibling job's in-flight images are never touched.
-now=$(date +%s)
-docker images --format '{{.Repository}}:{{.Tag}}' 2>/dev/null \
-  | grep -E '^(acestream-scraper:smoke-|acestream-scraper-smoke:|acestream-installer-test:)' \
-  | while read -r stale_tag; do
-      created=$(docker inspect -f '{{.Created}}' "$stale_tag" 2>/dev/null | cut -d. -f1) || continue
-      [ -n "$created" ] || continue
-      created_s=$(date -d "$created" +%s 2>/dev/null) || continue
-      if [ $((now - created_s)) -gt 3600 ]; then
-        docker image rm -f "$stale_tag" >/dev/null 2>&1 || true
-      fi
-    done
-docker image prune -f >/dev/null 2>&1 || true
-docker builder prune -f --keep-storage 30GB >/dev/null 2>&1 || true
+# Reclaim runner disk before doing anything heavy (build #29 died with
+# ENOSPC): drop every transient CI image left by earlier runs, dangling
+# layers, unused images older than a day, and cap the BuildKit cache. The
+# multibranch job no longer builds a branch that also has a PR, so no
+# sibling build is in flight and a zero-age sweep is safe.
+bash scripts/ci/cleanup_runner_docker.sh --transient-age-hours 0
 bash scripts/ci/bootstrap_jenkins_runner.sh
 python3 -m venv --clear backend/venv
 backend/venv/bin/pip install --upgrade pip

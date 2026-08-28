@@ -94,6 +94,8 @@ def build_args_for(payload: dict[str, Any], platform: str) -> dict[str, str]:
     if kind == "executable":
         pairs["ACESTREAM_STRIP_COMPONENTS"] = str(install.get("strip_components", 1))
         pairs["ACESTREAM_BINARY_PATH"] = str(install.get("binary_path", "acestreamengine"))
+        if install.get("python_version"):
+            pairs["ACESTREAM_PYTHON_VERSION"] = str(install["python_version"])
     else:  # android-apk
         bionic = install.get("bionic") or {}
         pairs["ACESTREAM_ANDROID_ABI"] = str(install.get("abi", ""))

@@ -1,6 +1,12 @@
 pipeline {
   agent { label 'dorat-nuc-ci' }
 
+  environment {
+    // WARP is opt-in in bootstrap_jenkins_runner.sh (the engine archives are
+    // vendored); keep it on the runner for any remaining geo-blocked fetch.
+    JENKINS_ENABLE_WARP = '1'
+  }
+
   options {
     disableConcurrentBuilds()
     buildDiscarder(logRotator(numToKeepStr: '20'))

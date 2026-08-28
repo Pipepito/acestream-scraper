@@ -161,5 +161,13 @@ def test_scraper_acestream_starts_real_engine(request: pytest.FixtureRequest, pl
             capture_output=True, text=True, timeout=15,
         )
         assert status.returncode == 0, status.stderr
+
+        # The image's own HEALTHCHECK script must pass with the engine enabled
+        # (it probes the app and the engine; the engine root URL is a 500).
+        health = subprocess.run(
+            ["docker", "exec", container, "/usr/local/bin/healthcheck.sh"],
+            capture_output=True, text=True, timeout=30,
+        )
+        assert health.returncode == 0, f"healthcheck.sh failed on {platform}: {health.stdout}{health.stderr}"
     finally:
         subprocess.run(["docker", "rm", "-f", container], capture_output=True)

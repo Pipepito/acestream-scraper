@@ -15,7 +15,12 @@ Options:
   --context <path>         Build context (default: .)
   --dockerfile <path>      Dockerfile path (default: Dockerfile)
   --platform-manifest <p>  platforms.json path (default: docker/manifests/platforms.json)
-  --acestream-manifest <p> acestream.json path (default: docker/manifests/acestream.json)
+  --acestream-manifest <p> acestream.json path (default: docker/manifests/acestream.json).
+                           Drives platform derivation and the dry-run report only:
+                           the image always installs from the manifest inside the
+                           build context, so a different file is rejected for real
+                           builds (edit the tracked manifest, or pass
+                           --build-arg ACESTREAM_* overrides).
   --acexy-manifest <p>     acexy.json path (default: docker/manifests/acexy.json)
   --push                   Push image/manifest to registry
   --load                   Load image into local docker daemon (single-platform only)
@@ -198,6 +203,17 @@ done
 if [[ "$flavor_needs_acestream" -eq 1 ]]; then
     if [[ ! -f "$ACESTREAM_RESOLVER" ]]; then
         echo "AceStream manifest resolver not found: $ACESTREAM_RESOLVER" >&2
+        exit 1
+    fi
+    # The Dockerfile COPYs docker/manifests/acestream.json from the build
+    # context, so a custom --acestream-manifest can only describe what a real
+    # build would install if it IS that file. Refuse the mismatch instead of
+    # printing an engine that will not be built.
+    in_context_manifest="$CONTEXT/docker/manifests/acestream.json"
+    if [[ "$DRY_RUN" -eq 0 ]] && ! cmp -s "$ACESTREAM_MANIFEST" "$in_context_manifest"; then
+        printf 'ERROR: --acestream-manifest %s differs from the manifest the build installs from (%s).\n' \
+            "$ACESTREAM_MANIFEST" "$in_context_manifest" >&2
+        printf 'Edit the tracked manifest, or pass --build-arg ACESTREAM_* overrides for a single-platform experiment.\n' >&2
         exit 1
     fi
     IFS=',' read -r -a _ace_platforms <<< "$PLATFORMS"

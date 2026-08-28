@@ -45,3 +45,42 @@ def test_health_probe_uses_get_version_on_engine_root(monkeypatch, db_session):
     assert status["status"] == "online"
     assert status["accessible"] is True
     assert status["engine_url"] == "http://localhost:6878"
+
+
+def test_health_probe_reports_engine_errors(monkeypatch, db_session):
+    from app.repositories.settings_repository import SettingsRepository
+    from app.services.config_service import ConfigService
+
+    class _ErrorClient(_FakeClient):
+        def get(self, url: str, timeout: float):
+            return _FakeResponse(500, "Internal Server Error, couldn't find resource")
+
+    monkeypatch.setattr(httpx, "Client", _ErrorClient)
+    service = ConfigService(SettingsRepository(db_session))
+    monkeypatch.setattr(service, "get_ace_engine_url", lambda: "http://engine.local:6878/")
+
+    status = service.check_acestream_status()
+
+    assert status["status"] == "error"
+    assert status["accessible"] is False
+    assert "500" in status["message"]
+    assert status["engine_url"] == "http://engine.local:6878"
+
+
+def test_health_probe_reports_connection_failures(monkeypatch, db_session):
+    from app.repositories.settings_repository import SettingsRepository
+    from app.services.config_service import ConfigService
+
+    class _DownClient(_FakeClient):
+        def get(self, url: str, timeout: float):
+            raise httpx.ConnectError("connection refused")
+
+    monkeypatch.setattr(httpx, "Client", _DownClient)
+    service = ConfigService(SettingsRepository(db_session))
+    monkeypatch.setattr(service, "get_ace_engine_url", lambda: "http://localhost:6878")
+
+    status = service.check_acestream_status()
+
+    assert status["status"] == "error"
+    assert status["accessible"] is False
+    assert "Failed to connect" in status["message"]

@@ -438,14 +438,33 @@ ensure_binfmt_support() {
 
   log "Installing binfmt handlers for multi-arch builds"
   docker run --privileged --rm tonistiigi/binfmt --install all >/dev/null
+  # binfmt_misc registrations do not survive a reboot, and a docker-container
+  # builder only detects emulated platforms when its buildkitd starts. After a
+  # reboot Docker restarts the builder container *before* this script
+  # re-registers the handlers, so the running buildkitd still reports
+  # linux/amd64 only. Stop it; `buildx inspect --bootstrap` starts it again.
+  log "Restarting buildx builder $BUILDER so BuildKit detects the new binfmt handlers"
+  docker buildx stop "$BUILDER" >/dev/null 2>&1 || true
 }
 
 bootstrap_builder() {
-  local inspect_output
+  local inspect_output attempt max_attempts delay
 
-  inspect_output="$(docker buildx inspect --bootstrap "$BUILDER")"
-  builder_supports_required_platforms "$inspect_output" || fail "Buildx builder '$BUILDER' is missing linux/arm64 or linux/arm/v7 support after bootstrap. Confirm Docker can run privileged containers and retry."
-  log "Builder ready: $BUILDER"
+  max_attempts="${BUILDER_BOOTSTRAP_ATTEMPTS:-4}"
+  delay="${BUILDER_RETRY_DELAY_SECONDS:-5}"
+  for (( attempt = 1; attempt <= max_attempts; attempt++ )); do
+    inspect_output="$(docker buildx inspect --bootstrap "$BUILDER")"
+    if builder_supports_required_platforms "$inspect_output"; then
+      log "Builder ready: $BUILDER"
+      return
+    fi
+    if (( attempt < max_attempts )); then
+      log "Builder $BUILDER does not report linux/arm64 + linux/arm/v7 yet (attempt $attempt/$max_attempts); restarting it"
+      docker buildx stop "$BUILDER" >/dev/null 2>&1 || true
+      sleep "$delay"
+    fi
+  done
+  fail "Buildx builder '$BUILDER' is missing linux/arm64 or linux/arm/v7 support after bootstrap. Confirm Docker can run privileged containers (binfmt handlers) and retry."
 }
 
 warn() {

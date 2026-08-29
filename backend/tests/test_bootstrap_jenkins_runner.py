@@ -110,7 +110,14 @@ def _write_docker_stub(fake_bin: Path, *, mode: str) -> None:
         "fi\n"
         "if [ \"${1:-}\" = \"buildx\" ] && [ \"${2:-}\" = \"create\" ]; then\n"
         "  : > \"$builder_file\"\n"
+        "  : > \"${state_dir}/builder-restarted\"\n"
         "  printf 'acestream-builder\\n'\n"
+        "  exit 0\n"
+        "fi\n"
+        "if [ \"${1:-}\" = \"buildx\" ] && [ \"${2:-}\" = \"stop\" ]; then\n"
+        "  # A restarted buildkitd re-detects binfmt handlers; record that it\n"
+        "  # restarted after the handlers were installed.\n"
+        "  if [ -f \"$binfmt_file\" ]; then : > \"${state_dir}/builder-restarted\"; fi\n"
         "  exit 0\n"
         "fi\n"
         "if [ \"${1:-}\" = \"buildx\" ] && [ \"${2:-}\" = \"inspect\" ]; then\n"
@@ -119,8 +126,13 @@ def _write_docker_stub(fake_bin: Path, *, mode: str) -> None:
         "    exit 1\n"
         "  fi\n"
         "  platforms='linux/amd64'\n"
-        "  if [ -f \"$binfmt_file\" ]; then\n"
-        "    platforms='linux/amd64, linux/arm64, linux/arm/v7'\n"
+        "  if [ -f \"$binfmt_file\" ] && [ \"${BOOTSTRAP_BINFMT_BROKEN:-0}\" != \"1\" ]; then\n"
+        "    # BOOTSTRAP_BUILDER_STALE=1 models a builder container that Docker\n"
+        "    # auto-restarted at boot before the handlers existed: it reports the\n"
+        "    # emulated platforms only once restarted after the binfmt install.\n"
+        "    if [ \"${BOOTSTRAP_BUILDER_STALE:-0}\" != \"1\" ] || [ -f \"${state_dir}/builder-restarted\" ]; then\n"
+        "      platforms='linux/amd64, linux/arm64, linux/arm/v7'\n"
+        "    fi\n"
         "  fi\n"
         "  printf 'Name: acestream-builder\\n'\n"
         "  printf 'Driver: docker-container\\n'\n"
@@ -312,6 +324,66 @@ def test_bootstrap_jenkins_runner_bootstraps_default_builder_after_binfmt(tmp_pa
     assert "Builder ready: acestream-builder" in result.stdout
     assert "git version 2.43.0" in result.stdout
     assert "Docker Compose version v2.27.0" in result.stdout
+
+
+def _simulate_reboot(env: dict[str, str]) -> None:
+    """binfmt registrations vanish and Docker restarts the builder container
+    before the bootstrap script re-registers them."""
+    state_dir = Path(env["BOOTSTRAP_TEST_STATE_DIR"])
+    (state_dir / "binfmt-installed").unlink(missing_ok=True)
+    (state_dir / "builder-restarted").unlink(missing_ok=True)
+    env["BOOTSTRAP_BUILDER_STALE"] = "1"
+    env["BUILDER_RETRY_DELAY_SECONDS"] = "0"
+
+
+def _run_bootstrap(env: dict[str, str]) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["/bin/bash", str(BOOTSTRAP_SCRIPT)],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+
+
+def test_bootstrap_jenkins_runner_restarts_builder_that_started_before_binfmt(tmp_path):
+    """Regression for the post-reboot failure 'Buildx builder ... is missing
+    linux/arm64 or linux/arm/v7 support after bootstrap' (2026-08-29)."""
+    env, docker_log, _ = _bootstrap_env(tmp_path)
+    assert _run_bootstrap(env).returncode == 0
+
+    _simulate_reboot(env)
+    docker_log.write_text("")
+    result = _run_bootstrap(env)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    docker_calls = docker_log.read_text().splitlines()
+    binfmt_index = docker_calls.index("run --privileged --rm tonistiigi/binfmt --install all")
+    stop_index = docker_calls.index("buildx stop acestream-builder")
+    bootstrap_index = docker_calls.index("buildx inspect --bootstrap acestream-builder")
+    assert binfmt_index < stop_index < bootstrap_index, docker_calls
+    # The existing builder is kept (same buildkitd config), only restarted.
+    assert not [c for c in docker_calls if c.startswith("buildx create")], docker_calls
+    assert "Restarting buildx builder acestream-builder" in result.stdout
+    assert "Builder ready: acestream-builder" in result.stdout
+
+
+def test_bootstrap_jenkins_runner_fails_after_retries_when_binfmt_never_registers(tmp_path):
+    env, docker_log, _ = _bootstrap_env(tmp_path)
+    assert _run_bootstrap(env).returncode == 0
+
+    _simulate_reboot(env)
+    env["BOOTSTRAP_BINFMT_BROKEN"] = "1"
+    env["BUILDER_BOOTSTRAP_ATTEMPTS"] = "3"
+    docker_log.write_text("")
+    result = _run_bootstrap(env)
+
+    assert result.returncode != 0
+    assert "missing linux/arm64 or linux/arm/v7 support after bootstrap" in result.stdout + result.stderr
+    docker_calls = docker_log.read_text().splitlines()
+    assert docker_calls.count("buildx inspect --bootstrap acestream-builder") == 3
+    assert "(attempt 2/3)" in result.stdout
 
 
 def test_bootstrap_jenkins_runner_rejects_unsupported_distros(tmp_path):

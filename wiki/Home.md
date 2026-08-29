@@ -40,6 +40,7 @@ The application follows a service-oriented architecture with:
 
 ## Wiki Navigation
 
+- [Docker Command Builder](https://pipepito.github.io/acestream-scraper/) - Generate the exact `docker run` command or `docker-compose.yml` for your setup
 - [Installation Guide](Installation.md) - How to install and set up the application
 - [Docker Guide](Docker.md) - Learn about Docker and how it works with this app
 - [Usage Guide](Usage.md) - How to use the application's features

@@ -226,3 +226,5 @@ phase5-gate-report-*.json
 phase1-gate-report.json
 scripts/dev/epg/generated_epg.xml
 infra-details.md
+# Local Jenkins API helper that reads infra-details.md (operator tooling, never committed)
+.claude/jenkins-api.sh

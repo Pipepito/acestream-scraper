@@ -1,0 +1,137 @@
+{
+  "_comment": "Source of truth for the command builder page (docs/index.html, served by GitHub Pages from the docs/ folder of main). Facts only — the wiring logic lives in docs/builder/app.js and references entries here by id. Keep this file in sync with entrypoint.sh, Dockerfile, docker-compose.yml and wiki/Docker.md; scripts/ci/validate_command_builder.sh cross-checks a few key values on every CI build.",
+  "image": "pipepito/acestream-scraper",
+  "repoUrl": "https://github.com/Pipepito/acestream-scraper",
+  "wikiUrl": "https://github.com/Pipepito/acestream-scraper/wiki",
+  "webContainerPort": 8000,
+  "flavors": [
+    {
+      "id": "scraper-acestream-acexy",
+      "label": "Full",
+      "summary": "Scraper + AceStream engine + Acexy proxy in one container. Pick this if you are not sure.",
+      "features": ["acestream", "acexy"],
+      "releaseTag": "latest",
+      "developTag": "develop",
+      "versionTagPattern": "vX.Y.Z",
+      "recommended": true
+    },
+    {
+      "id": "scraper-acestream",
+      "label": "Scraper + engine",
+      "summary": "Scraper with the AceStream engine, no Acexy proxy.",
+      "features": ["acestream"],
+      "releaseTag": "scraper-acestream",
+      "developTag": "develop-scraper-acestream",
+      "versionTagPattern": "vX.Y.Z-scraper-acestream"
+    },
+    {
+      "id": "scraper-acexy",
+      "label": "Scraper + Acexy",
+      "summary": "Scraper with the Acexy proxy; the AceStream engine runs somewhere else.",
+      "features": ["acexy"],
+      "releaseTag": "scraper-acexy",
+      "developTag": "develop-scraper-acexy",
+      "versionTagPattern": "vX.Y.Z-scraper-acexy"
+    },
+    {
+      "id": "scraper",
+      "label": "Scraper only",
+      "summary": "Just the scraper and web interface. Engine and proxy, if any, run somewhere else.",
+      "features": [],
+      "releaseTag": "scraper",
+      "developTag": "develop-scraper",
+      "versionTagPattern": "vX.Y.Z-scraper"
+    }
+  ],
+  "platforms": [
+    {
+      "id": "amd64",
+      "label": "x86_64 / amd64",
+      "summary": "Regular PCs, servers, NAS with Intel/AMD CPUs.",
+      "engine": "Native Linux engine 3.2.11",
+      "engineSupport": "stable",
+      "warpAvailable": true
+    },
+    {
+      "id": "arm64",
+      "label": "ARM 64-bit",
+      "summary": "Raspberry Pi 4/5 (64-bit OS), most ARM servers.",
+      "engine": "Android engine 3.1.80 on a bionic userland",
+      "engineSupport": "stable",
+      "warpAvailable": false
+    },
+    {
+      "id": "armv7",
+      "label": "ARM 32-bit",
+      "summary": "Older ARM boards running a 32-bit OS.",
+      "engine": "Android engine 3.1.80 on a bionic userland",
+      "engineSupport": "experimental",
+      "warpAvailable": false
+    }
+  ],
+  "ports": [
+    {
+      "id": "web",
+      "container": 8000,
+      "protocols": ["tcp"],
+      "defaultHost": 8000,
+      "label": "Web interface",
+      "description": "The scraper's web UI and API (uvicorn, port set by FLASK_PORT)."
+    },
+    {
+      "id": "acexy",
+      "container": 8080,
+      "protocols": ["tcp"],
+      "defaultHost": 8080,
+      "label": "Acexy proxy",
+      "description": "Stream endpoint used by your players: http://<server>:<port>/ace/getstream?id=<channel id>."
+    },
+    {
+      "id": "engineApi",
+      "container": 6878,
+      "protocols": ["tcp"],
+      "defaultHost": 6878,
+      "label": "Engine HTTP API",
+      "description": "The AceStream engine's HTTP API. Only needed if players or other machines talk to the engine directly.",
+      "securityNote": "The engine API has no authentication — only publish it on trusted networks."
+    },
+    {
+      "id": "p2p",
+      "container": 8621,
+      "protocols": ["tcp", "udp"],
+      "defaultHost": 8621,
+      "label": "P2P port",
+      "description": "The engine's peer-to-peer port (TCP and UDP). Publishing it improves peer connectivity."
+    }
+  ],
+  "volumes": [
+    {
+      "id": "config",
+      "defaultSource": "./config",
+      "target": "/app/config",
+      "label": "Configuration & database",
+      "description": "Holds the SQLite database and runtime config. Without it your channels and settings are lost when the container is replaced."
+    },
+    {
+      "id": "engineState",
+      "defaultSource": "acestream-state",
+      "target": "/var/lib/acestream",
+      "label": "Engine state & cache",
+      "description": "Engine state, disk cache and logs (ACESTREAM_HOME). Used by the Android engine on ARM; harmless on amd64."
+    }
+  ],
+  "zeronet": {
+    "defaultUrl": "http://host.docker.internal:43110",
+    "description": "Address of an external ZeroNet service used to scrape ZeroNet sources. The image does not bundle ZeroNet."
+  },
+  "notes": {
+    "developChannel": "The develop tags are moving pre-release builds meant for testing the next release — not for production.",
+    "armv7Experimental": "The 32-bit ARM engine builds and installs but has not been runtime-tested on real hardware. Prefer a 64-bit OS where the device supports it.",
+    "armPageSize": "The Android engine needs a 4 KB kernel page size. On Raspberry Pi 5 (Raspberry Pi OS 64-bit) set kernel=kernel8.img in config.txt — the default kernel uses 16 KB pages and the engine refuses to start.",
+    "warpArm": "The WARP client (cloudflare-warp) is amd64-only; ARM images ship without it.",
+    "warpCaps": "WARP needs the NET_ADMIN and SYS_ADMIN capabilities.",
+    "acexyExternalEngine": "Acexy refuses to start against localhost:6878 when the in-container engine is disabled — point it at your external engine's address.",
+    "externalEngineSettings": "The scraper's own engine connection (used for channel status checks) is configured in the web interface under Settings → Acestream Engine URL.",
+    "afterRun": "Then open http://localhost:{webPort} — set the stream base URL and engine URL under Settings, and add source URLs under Scraper."
+  }
+}

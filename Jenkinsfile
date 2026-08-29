@@ -51,6 +51,19 @@ docker buildx use "${JENKINS_BUILDER:-acestream-builder}"
       }
     }
 
+    stage('Docs checks') {
+      // The Docker command builder (docs/index.html, served by GitHub Pages
+      // from main's docs/ folder) must not drift from the runtime contract,
+      // and the wiki/ folder must render into a valid wiki page set.
+      steps {
+        sh '''#!/usr/bin/env bash
+set -euo pipefail
+bash scripts/ci/validate_command_builder.sh
+bash scripts/ci/publish_wiki.sh --dry-run
+'''
+      }
+    }
+
     stage('Phase 1 Safety Gates') {
       steps {
         sh '''#!/usr/bin/env bash
@@ -207,6 +220,41 @@ bash scripts/ci/run_jenkins_release.sh --channel develop
       post {
         always {
           archiveArtifacts artifacts: 'phase5-build-result-channel-*.json', allowEmptyArchive: true
+        }
+      }
+    }
+
+    stage('Publish wiki') {
+      // Every validated build of main mirrors wiki/ to the GitHub wiki
+      // repository (<repo>.wiki.git) with a plain git push from this runner —
+      // no GitHub Actions involved. The wiki describes released behaviour, so
+      // only main publishes. (The Docker command builder needs no publish
+      // step: GitHub Pages serves docs/ straight from main.)
+      when { branch 'main' }
+      steps {
+        script {
+          try {
+            withCredentials([usernamePassword(credentialsId: 'github-publish', usernameVariable: 'GITHUB_PUBLISH_USERNAME', passwordVariable: 'GITHUB_PUBLISH_TOKEN')]) {
+              def wikiStatus = sh(returnStatus: true, script: '''#!/usr/bin/env bash
+set -euo pipefail
+bash scripts/ci/publish_wiki.sh
+''')
+              if (wikiStatus == 3) {
+                // GitHub only creates <repo>.wiki.git once a page has been saved
+                // in the web UI; that is a one-time operator step, not a build error.
+                unstable("wiki not published: the GitHub wiki repository is not initialised yet (create any page in the Wiki tab once, then rebuild)")
+              } else if (wikiStatus != 0) {
+                error("publish_wiki.sh failed with exit status ${wikiStatus}")
+              }
+            }
+          } catch (Exception e) {
+            def text = e.toString()
+            if (text.contains('Could not find credentials') && text.contains('github-publish')) {
+              unstable("wiki not published: Jenkins credential 'github-publish' is missing")
+            } else {
+              throw e
+            }
+          }
         }
       }
     }

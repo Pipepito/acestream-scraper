@@ -29,6 +29,7 @@ Cutover / CI:
 - Same target via the cutover wrapper: `bash scripts/ci/run_cutover_required_checks.sh --profile quick`
 - Strict legacy-path guard: `bash scripts/ci/assert_no_legacy_paths.sh --strict`
 - Pre-deploy DB safety check (creates timestamped backup under `config/backups/`): `bash scripts/ops/preflight_v2_deploy.sh`
+- User docs (no GitHub Actions): the Docker command builder is `docs/index.html` + `docs/builder/`, served by GitHub Pages directly from the `docs/` folder of `main` (nothing to publish; `docs/.nojekyll` keeps Jekyll off). `bash scripts/ci/validate_command_builder.sh` cross-checks `docs/builder/runtime-options.json` against `entrypoint.sh`/`Dockerfile`/compose and runs in the Jenkins `Docs checks` stage on every build. `wiki/` is mirrored to the GitHub wiki by the Jenkins `Publish wiki` stage (`main` builds only, credential `github-publish`); `bash scripts/ci/publish_wiki.sh --dry-run` previews the flattened, link-rewritten pages. Edit `runtime-options.json` when ports/env/flavors change; `app.js` only when a rule changes.
 
 Docker:
 

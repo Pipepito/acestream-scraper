@@ -82,6 +82,8 @@ docker pull pipepito/acestream-scraper:develop
 
 ## Basic Docker Commands
 
+> **Tip:** the [Docker command builder](https://pipepito.github.io/acestream-scraper/) generates the full `docker run` command or `docker-compose.yml` for your flavor, platform and features — ports, folders and capabilities included.
+
 ### Pull the Image
 ```bash
 docker pull pipepito/acestream-scraper:latest

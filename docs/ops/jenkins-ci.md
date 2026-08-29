@@ -431,6 +431,34 @@ What the pipelines do about it:
 
 Manual reclaim (Jenkins script console, or a shell on the runner) when a build still fails with `No space left on device` or the heartbeat error: `docker buildx prune --builder acestream-builder -af`, `docker builder prune -af`, `docker buildx rm acestream-builder` (bootstrap recreates it), and delete workspaces of dead branch/PR jobs under `/home/jenkins/agent/workspace/` (Jenkins' own `WorkspaceCleanupThread` only does that after 30 days). The multibranch job's orphaned-item strategy keeps 20 dead branch projects; their workspaces linger until then. The durable fix is a bigger disk (or moving Docker's `data-root` to a larger volume).
 
+## Docs Site And Wiki Publishing
+
+Adopted 2026-08-29. The user-facing documentation is published from the repository without GitHub Actions workflows of our own.
+
+What is published, and how:
+
+- The Docker command builder is a static page (plain HTML/CSS/JS, no build step) at `docs/index.html` with its script, stylesheet and data under `docs/builder/`. It generates the `docker run` command or `docker-compose.yml` for a chosen flavor, platform and feature set. GitHub Pages serves it at `https://pipepito.github.io/acestream-scraper/` directly from the `docs/` folder of `main` ("Deploy from a branch": `main`, `/docs`), so merging to `main` *is* the deployment; `docs/.nojekyll` stops GitHub from running Jekyll over the rest of `docs/`. The facts it offers (flavors, ports, volumes, notes) live in `docs/builder/runtime-options.json`; the option wiring lives in `docs/builder/app.js`. The other files under `docs/` (this guide included) become reachable as raw files on the Pages site — they are public in the repository already.
+- `wiki/` holds the GitHub wiki pages as normal Markdown. Jenkins mirrors them to the wiki repository `https://github.com/Pipepito/acestream-scraper.wiki.git`; the folder is the source of truth, so pages that exist in the wiki but not in `wiki/` are deleted on sync. The pre-2026 wiki (numbered pages such as `2.1-Docker`) is replaced by the folder's page names on the first sync.
+
+Pipeline behaviour (`Jenkinsfile`):
+
+- `Docs checks` stage, every build: `bash scripts/ci/validate_command_builder.sh` checks that the JSON parses, the flavor ids equal the Dockerfile targets, the ports and env toggles the page emits still exist in `entrypoint.sh`/`Dockerfile`/`docker-compose.yml`, `docs/.nojekyll` exists and `node --check` passes on the script; `bash scripts/ci/publish_wiki.sh --dry-run` renders `wiki/**` into the flat page set the wiki needs (no folders), rewriting relative `.md` links to wiki page names (`[FAQ](FAQ.md)` -> `[FAQ](FAQ)`, `Docker.md#anchor` -> `Docker#anchor`) and failing on duplicate page names.
+- `Publish wiki` stage, `main` branch job only, after every validation stage has passed on that revision: `bash scripts/ci/publish_wiki.sh` clones the wiki repository, replaces its content with the rendered pages and pushes only when something changed. Docs therefore go live when a `develop` -> `main` release PR is merged, matching what `latest` users run. (To publish from `develop` instead, change the stage's `when { branch 'main' }`.)
+- Credential: `github-publish` (see `## Jenkins Credential IDs`), bound as `GITHUB_PUBLISH_USERNAME`/`GITHUB_PUBLISH_TOKEN` and passed to git through `GIT_ASKPASS`, so the token never lands in a URL, a log line or a `.git/config`.
+- Outcomes: missing credential -> `UNSTABLE` (`wiki not published: Jenkins credential 'github-publish' is missing`); wiki repository not initialised (script exit status 3) -> `UNSTABLE` with an instruction; any other push or validation failure -> `FAILED`.
+
+One-time operator setup:
+
+1. GitHub Pages: repository Settings -> Pages -> Build and deployment -> Source `Deploy from a branch`, Branch `main`, folder `/docs` (or `gh api -X POST repos/Pipepito/acestream-scraper/pages -f build_type=legacy -f 'source[branch]=main' -f 'source[path]=/docs'`). GitHub Pages is free for public repositories. Note that "deploy from a branch" is executed by GitHub's own managed `pages build and deployment` run, which shows up in the repository's Actions tab; nothing about it is authored or maintained here, but disabling Actions for the repository entirely would stop it.
+2. Wiki: repository Settings -> General -> Features -> Wikis enabled, and at least one page saved once in the Wiki tab (GitHub creates `<repo>.wiki.git` on the first save; verified present on 2026-08-29).
+3. Jenkins credential `github-publish` in the same store as `dockerhub-publish` (verified 2026-08-29: the system store, `Manage Jenkins -> Credentials -> System -> Global`), kind *Username with password*.
+4. Nothing else: the `main` branch job appears by itself. Verified 2026-08-29 that `origin/main` (still v1.3.04) has no `Jenkinsfile`, so branch indexing skips it (`'Jenkinsfile' not found — Does not meet criteria`) and the multibranch job currently holds only `develop` (disabled while PR-162 is open) and `PR-162`. The first `main` build — and therefore the first wiki publish and the first Pages deployment — happens right after the release PR merges.
+
+Local preview and checks:
+
+- `bash scripts/ci/validate_command_builder.sh` and `bash scripts/ci/publish_wiki.sh --dry-run` (lists the rendered pages and sample rewritten links). Both run without credentials.
+- Open the page locally with any static server, e.g. `python3 -m http.server 8765 --directory docs` then `http://127.0.0.1:8765/` (the page fetches `builder/runtime-options.json`, so `file://` will not work).
+
 ## Multi-platform Publishes Are Platform-major And Push By Digest
 
 A publish (the `develop` channel and the release phase 1) no longer runs one three-platform BuildKit build per flavor. That ran two QEMU emulations plus the native build concurrently and starved the runner until Jenkins' durable-task wrapper stopped heartbeating (`PR-162 #2`), and even sequential per-flavor builds accumulated more cache than the 32 GB disk holds (`PR-162 #3`/`#4`). `scripts/ci/run_jenkins_release.sh` (`publish_platform_major`) now:
@@ -673,6 +701,7 @@ Create these Jenkins credentials with these exact ids so the checked-in pipeline
 - `github-app-acestream-scraper`: GitHub App credential used for repository discovery, webhook integration, and commit/check reporting
 - `acestream-build-agent-ssh`: SSH private key credential for the dedicated build VM agent if you use the SSH-launch model
 - `dockerhub-publish`: username/password credential used by `jenkins/release.Jenkinsfile` for Docker Hub publication and, since 2026-08-28, by the `Publish develop channel` stage of `Jenkinsfile`. Scope it to the `Acestream-Scraper` folder so both jobs can bind it.
+- `github-publish`: username/password credential (GitHub login + a personal access token with `repo` scope, or any token that can push to `<repo>.wiki.git`) used since 2026-08-29 by the `Publish wiki` stage of `Jenkinsfile`. Put it in the same store as `dockerhub-publish` (the system store as of 2026-08-29). Note: GitHub's fine-grained tokens have historically not been able to push to wiki repositories; a classic token with `repo` scope is the known-working choice. See `## Docs Site And Wiki Publishing`.
 
 Changing these ids would require repository changes, so treat them as part of the CI/CD contract.
 
@@ -701,6 +730,8 @@ Expected behavior:
 - Build result JSON artifacts are archived for each flavor validation run.
 - `Branch Policy` (since 2026-08-28): a PR into `main` fails unless its head is `develop`.
 - `Publish develop channel` (since 2026-08-28, last stage): for the `develop` branch job or a PR whose head is `develop`, binds `dockerhub-publish` and runs `bash scripts/ci/run_jenkins_release.sh --channel develop`, pushing only the floating `:develop` and `:develop-<flavor>` tags and archiving `phase5-build-result-channel-*.json`. A missing credential makes the build `UNSTABLE`, not `FAILED`. See `## Branching Model And Pre-release Channel`.
+- `Docs checks` (since 2026-08-29, every build, right after `Branch Policy`): `bash scripts/ci/validate_command_builder.sh` (the GitHub Pages command builder in `docs/` matches the runtime contract) and `bash scripts/ci/publish_wiki.sh --dry-run` (wiki/ renders into a valid page set). No credentials.
+- `Publish wiki` (since 2026-08-29, last stage): for the `main` branch job only, binds `github-publish` and runs `bash scripts/ci/publish_wiki.sh` (wiki/ -> the GitHub wiki repository). A missing credential, or a wiki repository that has not been initialised yet, makes the build `UNSTABLE`, not `FAILED`. See `## Docs Site And Wiki Publishing`.
 - The `Acestream Engine Runtime Smoke` stage builds `scraper-acestream` pinned to `--platforms linux/amd64 --load`, runs the amd64 engine runtime smoke and the Acexy runtime smoke, then builds the arm64 + armv7 installer stages under QEMU (`test_install_acestream.py -k android_apk_install_layout`). See `## AceStream Engine Smoke Coverage`.
 
 ## Manual Release Job

@@ -72,7 +72,8 @@ If you are upgrading from v1, run `bash scripts/ops/preflight_v2_deploy.sh` firs
 
 ### Migration safety net
 
-- **Auto v1→v2 migration.** On startup, if the legacy `acestream.db` exists and isn't yet marked `.migrated`, the data migrator runs in-process and converts it. Subsequent starts skip the migrator. Fresh installs provision the v2 schema via Alembic.
+- **Auto v1→v2 migration.** On startup, if the legacy `acestream.db` exists and isn't yet marked `.migrated`, the data migrator runs in-process and converts it in two phases: the schema and the small tables (URLs, sources, channels, string mappings, settings) are migrated before the first request (seconds), then `acestream.db` is archived as `acestream.db.migrated` and the EPG programs that have not ended yet (see `EPG_PROGRAM_RETENTION_HOURS`) are copied by the background task `v1_epg_programs_migration` while the dashboard is already usable (progress on the dashboard's *Background Tasks* card; state in `acestream.db.migration.json`; the copy resumes after a restart). Subsequent starts skip the migrator. Fresh installs provision the v2 schema via Alembic, and v1-migrated databases are stamped with the Alembic head as well.
+- **EPG program retention.** The new hourly `epg_program_cleanup` job deletes programs that ended more than `EPG_PROGRAM_RETENTION_HOURS` ago (default 24; negative disables), so the `epg_programs` table no longer grows forever.
 - **Pre-deploy preflight.** `bash scripts/ops/preflight_v2_deploy.sh` backs up your DBs under `config/backups/` and prints SAFE/UNSAFE before v2 boots. UNSAFE runs export your scraped sources to a rescue DB.
 - **One-release env compatibility window.** Legacy env names auto-map to canonical equivalents during the `v2-cutover-r1` release window (canonical wins on conflict, with a startup warning):
 

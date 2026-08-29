@@ -515,6 +515,11 @@ docker buildx prune --builder acestream-builder -af
 - Remove abandoned workspaces if jobs are renamed or deleted.
 - If disk pressure is recurring, increase VM disk before aggressively pruning every run; warm cache improves CI stability and duration.
 
+### After A Runner Reboot Or Disk Resize
+
+- `binfmt_misc` registrations do not survive a reboot, and Docker restarts the `acestream-builder` buildkitd container (restart policy) before Jenkins runs anything. A docker-container builder only detects emulated platforms when buildkitd starts, so the first build after a reboot used to fail in Bootstrap with `Buildx builder 'acestream-builder' is missing linux/arm64 or linux/arm/v7 support after bootstrap` (seen 2026-08-29 after the VM disk resize). `bootstrap_jenkins_runner.sh` now re-registers the handlers, runs `docker buildx stop acestream-builder` and lets `buildx inspect --bootstrap` start it again, retrying up to `BUILDER_BOOTSTRAP_ATTEMPTS` (4) times `BUILDER_RETRY_DELAY_SECONDS` (5) apart. Nothing to do by hand; just re-run the build.
+- Growing the VM disk in the hypervisor does not grow the filesystem. Check with `lsblk` / `df -h /`: if `sda` is larger than `sda2`, run `sudo growpart /dev/sda 2 && sudo resize2fs /dev/sda2` (ext4; `xfs_growfs /` for XFS) — no reboot needed. Until then the runner still only has the old capacity.
+
 ## Jenkins Build Node Setup
 
 User action required.

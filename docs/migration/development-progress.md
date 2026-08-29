@@ -34,6 +34,7 @@
 
 ## Recent Deliverables (2026-08)
 
+- v1→v2 migration split into a fast foreground phase (schema via Alembic + small tables, then archive) and a resumable background task `v1_epg_programs_migration` for the EPG programs, after a real upgrade on unraid blocked startup and left the container unhealthy (2026-08-29). Includes the Alembic stamp repair for databases the old `create_all` migrator produced, a `progress` field on `/api/v1/background-tasks/status`, a 60 s healthcheck start-period, `EPG_PROGRAM_RETENTION_HOURS` (migration skips already-ended programs; new hourly `epg_program_cleanup` job purges them) and a bootstrap fix that restarts the buildx builder after re-registering binfmt handlers (post-reboot runner failure).
 - AceStream engine on `linux/arm64` (stable) and `linux/arm/v7` (experimental) via the official Android engine APK on a minimal Android 9 bionic userland (`0d645e6`, `2a82fc8`, 2026-08-27). Local arm64 engine smoke recorded in `docs/release/phase5-multiarch-evidence.md`.
 - Real Acexy proxy compiled into the acexy flavors (`3d568cf`), gated by `test_acexy_runtime_smoke.py` on both the PR and the release path.
 - Health probe: `healthcheck.sh` checks the engine through `/webui/api/service?method=get_version` (works for the native 3.2.x and the Android engine); the engine smoke now runs the image's own healthcheck per platform (`1be9fca`).

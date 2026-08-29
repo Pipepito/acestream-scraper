@@ -4,7 +4,6 @@ Main application entry point for Acestream Scraper v2 backend.
 import logging
 import os
 from contextlib import asynccontextmanager
-from pathlib import Path
 from typing import Optional
 from uuid import uuid4
 
@@ -24,7 +23,7 @@ from app.api.endpoints.playlists import (
     trigger_url_scrape_refresh,
 )
 from app.api.error_handlers import register_error_handlers
-from app.config.database import get_db
+from app.config.database import ensure_schema_stamped, get_db, provision_schema
 from app.config.settings import get_env_compat_events, settings
 from app.services.epg_service import EPGService
 from app.services.playlist_service import PlaylistService
@@ -32,7 +31,9 @@ from app.services.task_service import task_service
 from app.tasks.activity_log_cleanup import run_activity_log_cleanup
 from app.tasks.channel_cleanup_task import run_channel_cleanup_task
 from app.tasks.channel_status_task import run_channel_status_task
+from app.tasks.epg_program_cleanup_task import run_epg_program_cleanup_task
 from app.tasks.epg_refresh_task import run_epg_refresh_task
+from app.tasks.legacy_migration_task import TASK_ID as LEGACY_MIGRATION_TASK_ID, run_v1_epg_programs_migration
 from app.tasks.url_scraping_task import run_url_scraping_task
 from app.utils.logging import setup_logging
 
@@ -51,26 +52,14 @@ for event in get_env_compat_events():
     )
 
 
-def _run_alembic_upgrade() -> None:
-    from alembic import command
-    from alembic.config import Config
-
-    # When deployed in Docker, main.py lives at /app/main.py; migrations/ is
-    # a sibling directory.  During local dev/tests, main.py is at
-    # backend/main.py so migrations/ is also a sibling.  parent.parent would
-    # give the repo root only when the CWD happens to equal backend/, which is
-    # fragile — derive the path relative to __file__ instead.
-    app_dir = Path(__file__).resolve().parent
-    ini_path = app_dir / "migrations" / "alembic.ini"
-    alembic_config = Config(str(ini_path))
-    # Override script_location to an absolute path so Alembic can find the
-    # env.py and versions/ regardless of the process CWD.
-    alembic_config.set_main_option("script_location", str(app_dir / "migrations"))
-    command.upgrade(alembic_config, "head")
-
-
 def initialize_database():
-    """Initialize database with migration check."""
+    """Provision the v2 schema and run the (fast) foreground half of a v1 migration.
+
+    The expensive EPG programs copy is NOT done here — it is recorded as
+    deferred work and picked up by :func:`_schedule_deferred_migration` once
+    the scheduler is running, so uvicorn starts serving (and the container's
+    healthcheck passes) within seconds regardless of the v1 database size.
+    """
     from migrate_database import DatabaseMigrator
 
     migrator = DatabaseMigrator()
@@ -81,16 +70,35 @@ def initialize_database():
         migrated = migrator.run_migration()
         if migrated:
             print("Migration completed successfully!")
-        return
 
-    # Fresh v2 databases should be provisioned through Alembic so startup uses
-    # the same schema path as tests and deployments.
+    # Fresh v2 databases are provisioned through Alembic so startup uses the
+    # same schema path as tests and deployments. Existing databases are left
+    # alone, except for recording the Alembic head on databases an older
+    # migrator created without a stamp (otherwise later revisions would fail).
     if not os.path.exists(migrator.v2_db_path):
         print("Creating fresh v2 database via Alembic...")
-        _run_alembic_upgrade()
+        provision_schema()
         print("Fresh v2 database created!")
     else:
+        if ensure_schema_stamped():
+            print("Recorded the current Alembic head on the existing (unstamped) v2 database")
         print("V2 database ready")
+
+
+def _schedule_deferred_migration() -> bool:
+    """Queue the background EPG programs copy when a v1 migration left work behind."""
+    from migrate_database import DatabaseMigrator
+
+    migrator = DatabaseMigrator()
+    if not migrator.has_deferred_work():
+        return False
+    state = migrator.deferred_programs_state() or {}
+    logging.getLogger("main").info(
+        "Scheduling background v1 EPG programs migration task=%s total=%s migrated=%s status=%s",
+        LEGACY_MIGRATION_TASK_ID, state.get("total"), state.get("migrated"), state.get("status"),
+    )
+    task_service.add_oneoff_task(run_v1_epg_programs_migration, job_id=LEGACY_MIGRATION_TASK_ID)
+    return True
 
 
 @asynccontextmanager
@@ -103,9 +111,11 @@ async def lifespan(app: FastAPI):
     task_service.start()
     task_service.add_interval_task(run_activity_log_cleanup, seconds=86400, job_id="activity_log_cleanup")  # daily
     task_service.add_interval_task(run_epg_refresh_task, seconds=3600, job_id="epg_refresh")  # every hour
+    task_service.add_interval_task(run_epg_program_cleanup_task, seconds=3600, job_id="epg_program_cleanup")  # every hour
     task_service.add_interval_task(run_url_scraping_task, seconds=900, job_id="url_scraping")  # every 15 min
     task_service.add_interval_task(run_channel_cleanup_task, seconds=86400, job_id="channel_cleanup")  # daily
     task_service.add_interval_task(run_channel_status_task, seconds=600, job_id="channel_status")  # every 10 min
+    _schedule_deferred_migration()
     try:
         yield
     finally:

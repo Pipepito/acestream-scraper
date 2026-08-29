@@ -1,34 +1,68 @@
 """
-Database migration script for Acestream Scraper v1 to v2
+Database migration for Acestream Scraper v1 -> v2.
+
+The migration runs in two phases so startup never blocks on the largest table:
+
+* ``run_migration()`` — foreground (called from the FastAPI lifespan before the
+  first request). Provisions the v2 schema through Alembic, copies the small
+  tables (scraped URLs, EPG sources, TV/EPG/acestream channels, string mappings,
+  settings), records the EPG programs as deferred work in
+  ``<acestream.db>.migration.json`` and archives ``acestream.db`` as
+  ``acestream.db.migrated``. This takes seconds even on slow storage.
+* ``run_deferred_migration()`` — background (APScheduler one-off task
+  ``v1_epg_programs_migration``). Copies EPG programs from the archived v1 file
+  in batches with keyset pagination, deduplicating against rows the hourly EPG
+  refresh may already have inserted, and checkpoints after every commit so a
+  restart resumes where it stopped.
 """
+import json
 import os
 import shutil
 import sqlite3
-from typing import Dict, List, Any, Optional
-from datetime import datetime
-from app.config.database import engine, Base
-from app.config.settings import settings
-from app.models.models import (
-    ScrapedURL,
-    AcestreamChannel,
-    EPGSource,
-    TVChannel,
-    EPGChannel,
-    EPGProgram,
-    EPGStringMapping,
-    Setting,
-    ActivityLog,  # Ensure new models are imported
-    DashboardConfig  # Import new model for dashboard config
-)
+from datetime import datetime, timedelta, timezone
+from threading import Event
+from typing import Any, Callable, Dict, List, Optional
+
+from app.config.database import provision_schema
+from app.config.settings import get_settings
+
+
+ProgressCallback = Callable[[Dict[str, Any]], None]
+
+
+def _utcnow() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
 
 class DatabaseMigrator:
-    def __init__(self):
+    #: Job id of the background task that copies EPG programs.
+    DEFERRED_TASK_ID = "v1_epg_programs_migration"
+    STATE_FORMAT = 1
+
+    def __init__(
+        self,
+        batch_size: int = 2000,
+        epg_retention_hours: Optional[float] = None,
+        now: Optional[datetime] = None,
+    ):
+        settings = get_settings()
         self.v1_db_path = settings.LEGACY_DATABASE_URL.replace("sqlite:///", "")
         self.v2_db_path = settings.DATABASE_URL.replace("sqlite:///", "")
         self.v1_migrated_path = self.v1_db_path + ".migrated"
+        self.state_path = self.v1_db_path + ".migration.json"
+        self.batch_size = max(1, int(batch_size))
+        # Programs that ended more than this many hours before the deferred run
+        # are skipped (negative keeps everything). Shared with the periodic
+        # `epg_program_cleanup` job via EPG_PROGRAM_RETENTION_HOURS.
+        self.epg_retention_hours = (
+            float(settings.EPG_PROGRAM_RETENTION_HOURS)
+            if epg_retention_hours is None
+            else float(epg_retention_hours)
+        )
+        self._now = now  # test hook; None -> datetime.now(timezone.utc)
 
         # Ensure config directory exists
-        os.makedirs(os.path.dirname(self.v2_db_path), exist_ok=True)
+        os.makedirs(os.path.dirname(self.v2_db_path) or ".", exist_ok=True)
 
         # Track ID mappings for foreign keys
         self.id_mappings = {
@@ -39,7 +73,7 @@ class DatabaseMigrator:
         }
 
     def should_migrate(self) -> bool:
-        """Check if migration should run"""
+        """Check if the foreground migration should run"""
         return os.path.exists(self.v1_db_path) and not os.path.exists(self.v1_migrated_path)
 
     def inspect_v1_database(self) -> Dict[str, List[Dict[str, Any]]]:
@@ -97,10 +131,17 @@ class DatabaseMigrator:
         return schemas
 
     def create_v2_database(self):
-        """Create v2 database tables (including new tables like activity_log and dashboard_config)"""
-        print("Creating v2 database tables...")
-        Base.metadata.create_all(bind=engine)
-        print("V2 database tables created successfully!")
+        """Provision the v2 schema through Alembic (same path as fresh installs).
+
+        ``Base.metadata.create_all`` used to be called here, which left migrated
+        databases without an ``alembic_version`` stamp and broke every later
+        schema revision. ``provision_schema`` stamps such databases first.
+        """
+        print("Provisioning v2 database schema via Alembic...")
+        state = provision_schema()
+        if state == "unstamped":
+            print("Existing v2 database was not stamped; recorded the current Alembic head")
+        print("V2 database schema ready!")
 
     def update_v2_schema(self):
         """Update v2 database schema to add missing columns"""
@@ -502,100 +543,6 @@ class DatabaseMigrator:
             if v2_conn:
                 v2_conn.close()
 
-    def migrate_epg_programs(self):
-        """Migrate EPG programs with EPG channel foreign keys"""
-        if not os.path.exists(self.v1_db_path):
-            return
-
-        print("Migrating EPG programs...")
-
-        v1_conn = None
-        v2_conn = None
-        try:
-            v1_conn = sqlite3.connect(self.v1_db_path)
-            v1_conn.row_factory = sqlite3.Row
-            v2_conn = sqlite3.connect(self.v2_db_path)
-
-            v1_cursor = v1_conn.cursor()
-            v2_cursor = v2_conn.cursor()
-
-            # Check if table exists
-            v1_cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='epg_programs';")
-            if not v1_cursor.fetchone():
-                print("epg_programs table not found in v1 database")
-                return
-
-            # Get total count for progress tracking
-            v1_cursor.execute("SELECT COUNT(*) FROM epg_programs;")
-            total_count = v1_cursor.fetchone()[0]
-
-            print(f"Found {total_count} EPG programs in v1 database")
-
-            # Process in batches to avoid memory issues
-            batch_size = 1000
-            offset = 0
-            migrated_count = 0
-
-            while offset < total_count:
-                v1_cursor.execute(f"""
-                    SELECT * FROM epg_programs
-                    ORDER BY id
-                    LIMIT {batch_size} OFFSET {offset}
-                """)
-                v1_programs = v1_cursor.fetchall()
-
-                if not v1_programs:
-                    break
-
-                for row in v1_programs:
-                    try:
-                        # Map foreign key
-                        epg_channel_id = None
-                        if row['epg_channel_id']:
-                            epg_channel_id = self.id_mappings['epg_channels'].get(row['epg_channel_id'])
-                            if not epg_channel_id:
-                                # Skip program if channel not found
-                                continue
-
-                        # Insert into v2 database
-                        v2_cursor.execute("""
-                            INSERT INTO epg_programs
-                            (epg_channel_id, program_xml_id, start_time, end_time, title,
-                             subtitle, description, category, image_url)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """, (
-                            epg_channel_id,
-                            row['program_xml_id'],
-                            row['start_time'],
-                            row['end_time'],
-                            row['title'],
-                            row['subtitle'],
-                            row['description'],
-                            row['category'],
-                            row['icon_url']  # v1 uses icon_url, v2 uses image_url
-                        ))
-
-                        migrated_count += 1
-
-                    except Exception as e:
-                        print(f"Error migrating EPG program {row['id']}: {e}")
-                        continue
-
-                # Commit batch and show progress
-                v2_conn.commit()
-                offset += batch_size
-                print(f"Migrated {min(offset, total_count)}/{total_count} EPG programs...")
-
-            print(f"Successfully migrated {migrated_count} EPG programs")
-
-        except Exception as e:
-            print(f"Error during EPG programs migration: {e}")
-        finally:
-            if v1_conn:
-                v1_conn.close()
-            if v2_conn:
-                v2_conn.close()
-
     def migrate_epg_string_mappings(self):
         """Migrate EPG string mappings with EPG channel foreign keys"""
         if not os.path.exists(self.v1_db_path):
@@ -737,16 +684,265 @@ class DatabaseMigrator:
             except Exception as e:
                 print(f"Error renaming database: {e}")
 
-    def run_migration(self):
-        """Run complete migration process"""
-        # Always create v2 database tables (including new tables) before any migration
-        self.create_v2_database()
+    # ------------------------------------------------------------------
+    # Deferred EPG programs migration
+    # ------------------------------------------------------------------
 
-        if not os.path.exists(self.v2_db_path):
-            print("No v2 database found, creating a fresh v2 database with all tables...")
-            print("Fresh v2 database created!")
+    def _count_v1_epg_programs(self) -> int:
+        conn = sqlite3.connect(self.v1_db_path)
+        try:
+            exists = conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='epg_programs'"
+            ).fetchone()
+            if not exists:
+                return 0
+            return int(conn.execute("SELECT COUNT(*) FROM epg_programs").fetchone()[0])
+        finally:
+            conn.close()
+
+    def load_state(self) -> Optional[Dict[str, Any]]:
+        if not os.path.exists(self.state_path):
+            return None
+        try:
+            with open(self.state_path, "r", encoding="utf-8") as handle:
+                return json.load(handle)
+        except (OSError, ValueError) as exc:
+            print(f"Ignoring unreadable migration state {self.state_path}: {exc}")
+            return None
+
+    def _save_state(self, state: Dict[str, Any]) -> None:
+        tmp_path = self.state_path + ".tmp"
+        with open(tmp_path, "w", encoding="utf-8") as handle:
+            json.dump(state, handle, indent=2, sort_keys=True)
+        os.replace(tmp_path, self.state_path)
+
+    def _record_deferred_programs(self, total: int) -> None:
+        state = {
+            "format": self.STATE_FORMAT,
+            "source": self.v1_migrated_path,
+            "created_at": _utcnow(),
+            "epg_programs": {
+                "status": "pending",
+                "total": total,
+                "migrated": 0,
+                "skipped": 0,
+                "stale": 0,
+                "stale_cutoff": None,
+                "last_v1_id": 0,
+                "epg_channel_ids": {
+                    str(old_id): new_id for old_id, new_id in self.id_mappings['epg_channels'].items()
+                },
+                "started_at": None,
+                "finished_at": None,
+                "error": None,
+                "retryable": True,
+            },
+        }
+        self._save_state(state)
+
+    def deferred_programs_state(self) -> Optional[Dict[str, Any]]:
+        state = self.load_state()
+        if not state:
+            return None
+        programs = state.get("epg_programs")
+        return programs if isinstance(programs, dict) else None
+
+    def has_deferred_work(self) -> bool:
+        """True when EPG programs still need copying (pending, checkpointed, or a retryable error)."""
+        programs = self.deferred_programs_state()
+        if not programs:
+            return False
+        status = programs.get("status")
+        if status in ("pending", "running"):
             return True
+        return status == "error" and bool(programs.get("retryable"))
 
+    def _stale_cutoff_text(self) -> Optional[str]:
+        """SQL-comparable ``YYYY-MM-DD HH:MM:SS`` cutoff, or None when retention is disabled.
+
+        v1 stored SQLAlchemy ``DateTime`` values as ``YYYY-MM-DD HH:MM:SS[.ffffff]``
+        text (UTC), so a lexicographic comparison against this prefix is exact.
+        Any row in an unexpected format compares *greater* and is therefore kept.
+        """
+        if self.epg_retention_hours < 0:
+            return None
+        now = self._now or datetime.now(timezone.utc)
+        cutoff = now - timedelta(hours=self.epg_retention_hours)
+        return cutoff.strftime("%Y-%m-%d %H:%M:%S")
+
+    @staticmethod
+    def _progress_snapshot(programs: Dict[str, Any]) -> Dict[str, Any]:
+        total = int(programs.get("total") or 0)
+        migrated = int(programs.get("migrated") or 0)
+        skipped = int(programs.get("skipped") or 0)
+        stale = int(programs.get("stale") or 0)
+        processed = min(migrated + skipped + stale, total) if total else migrated + skipped + stale
+        percent = 100.0 if total == 0 else round(processed * 100.0 / total, 1)
+        return {
+            "status": programs.get("status"),
+            "total": total,
+            "migrated": migrated,
+            "skipped": skipped,
+            "stale": stale,
+            "processed": processed,
+            "percent": percent,
+            "last_v1_id": int(programs.get("last_v1_id") or 0),
+        }
+
+    def _summary(self, status: str, programs: Dict[str, Any]) -> Dict[str, Any]:
+        snapshot = self._progress_snapshot(programs)
+        snapshot["status"] = status
+        return snapshot
+
+    def run_deferred_migration(
+        self,
+        progress: Optional[ProgressCallback] = None,
+        stop_event: Optional[Event] = None,
+    ) -> Dict[str, Any]:
+        """Copy the EPG programs recorded by :meth:`run_migration` into v2.
+
+        Safe to call repeatedly: resumes from the checkpoint in the state file
+        and never inserts a program that already exists for the same channel,
+        start/end time and title. Returns a summary with ``status`` ``done``,
+        ``interrupted`` (``stop_event`` was set; call again to resume) or
+        ``error`` (permanent failure recorded in the state file).
+        """
+        state = self.load_state() or {}
+        programs = state.get("epg_programs")
+        if not isinstance(programs, dict) or programs.get("status") == "done":
+            return self._summary("done", programs or {})
+        if programs.get("status") == "error" and not programs.get("retryable"):
+            return self._summary("error", programs)
+
+        source = state.get("source") or self.v1_migrated_path
+        if not os.path.exists(source):
+            message = f"Archived v1 database not found at {source}; EPG programs cannot be migrated"
+            programs.update(status="error", retryable=False, error=message, finished_at=_utcnow())
+            self._save_state(state)
+            raise FileNotFoundError(message)
+
+        mapping = {
+            int(old_id): int(new_id)
+            for old_id, new_id in (programs.get("epg_channel_ids") or {}).items()
+        }
+        programs["status"] = "running"
+        programs["error"] = None
+        programs.setdefault("started_at", None)
+        if not programs["started_at"]:
+            programs["started_at"] = _utcnow()
+        self._save_state(state)
+
+        last_id = int(programs.get("last_v1_id") or 0)
+        migrated = int(programs.get("migrated") or 0)
+        skipped = int(programs.get("skipped") or 0)
+
+        v1_conn = sqlite3.connect(f"file:{source}?mode=ro", uri=True)
+        v1_conn.row_factory = sqlite3.Row
+        v2_conn = sqlite3.connect(self.v2_db_path, timeout=30)
+        try:
+            # Programs that already ended are not worth copying (the hourly EPG
+            # refresh re-downloads current data anyway). Count them once so the
+            # progress figures still add up to ``total``.
+            cutoff = self._stale_cutoff_text()
+            stale = 0
+            if cutoff is not None:
+                stale = int(v1_conn.execute(
+                    "SELECT COUNT(*) FROM epg_programs WHERE end_time < ?", (cutoff,)
+                ).fetchone()[0])
+            programs.update(stale=stale, stale_cutoff=cutoff)
+            self._save_state(state)
+
+            while True:
+                if stop_event is not None and stop_event.is_set():
+                    programs.update(status="running", last_v1_id=last_id, migrated=migrated, skipped=skipped)
+                    self._save_state(state)
+                    return self._summary("interrupted", programs)
+
+                rows = v1_conn.execute(
+                    """
+                    SELECT id, epg_channel_id, program_xml_id, start_time, end_time, title,
+                           subtitle, description, category, icon_url
+                    FROM epg_programs
+                    WHERE id > ?
+                      AND (? IS NULL OR end_time IS NULL OR end_time >= ?)
+                    ORDER BY id
+                    LIMIT ?
+                    """,
+                    (last_id, cutoff, cutoff, self.batch_size),
+                ).fetchall()
+                if not rows:
+                    break
+
+                params = []
+                for row in rows:
+                    channel_id = mapping.get(row["epg_channel_id"]) if row["epg_channel_id"] is not None else None
+                    if channel_id is None or not row["start_time"] or not row["end_time"]:
+                        # v2 requires a channel and a time range; v1 rows without
+                        # them were rejected per-row by the old migrator too.
+                        skipped += 1
+                        continue
+                    title = row["title"] or "Unknown Program"
+                    params.append((
+                        channel_id,
+                        row["program_xml_id"],
+                        row["start_time"],
+                        row["end_time"],
+                        title,
+                        row["subtitle"],
+                        row["description"],
+                        row["category"],
+                        row["icon_url"],  # v1 icon_url -> v2 image_url
+                        channel_id,
+                        row["start_time"],
+                        row["end_time"],
+                        title,
+                    ))
+
+                changes_before = v2_conn.total_changes
+                if params:
+                    v2_conn.executemany(
+                        """
+                        INSERT INTO epg_programs
+                            (epg_channel_id, program_xml_id, start_time, end_time, title,
+                             subtitle, description, category, image_url)
+                        SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?
+                        WHERE NOT EXISTS (
+                            SELECT 1 FROM epg_programs
+                            WHERE epg_channel_id = ? AND start_time = ? AND end_time = ? AND title = ?
+                        )
+                        """,
+                        params,
+                    )
+                inserted = v2_conn.total_changes - changes_before
+                v2_conn.commit()
+
+                migrated += inserted
+                skipped += len(params) - inserted  # already present in v2
+                last_id = int(rows[-1]["id"])
+                programs.update(last_v1_id=last_id, migrated=migrated, skipped=skipped)
+                self._save_state(state)
+                if progress is not None:
+                    progress(self._progress_snapshot(programs))
+
+            programs.update(status="done", finished_at=_utcnow(), error=None,
+                            last_v1_id=last_id, migrated=migrated, skipped=skipped)
+            self._save_state(state)
+            return self._summary("done", programs)
+        except Exception as exc:
+            programs.update(status="error", retryable=True, error=str(exc),
+                            last_v1_id=last_id, migrated=migrated, skipped=skipped)
+            self._save_state(state)
+            raise
+        finally:
+            v1_conn.close()
+            v2_conn.close()
+
+    # ------------------------------------------------------------------
+    # Foreground migration
+    # ------------------------------------------------------------------
+
+    def run_migration(self) -> bool:
+        """Run the foreground migration; EPG programs are deferred to the background task."""
         if not self.should_migrate():
             print("No migration needed - either v1 database doesn't exist or already migrated")
             return False
@@ -754,6 +950,10 @@ class DatabaseMigrator:
         print("Starting database migration...")
         print(f"V1 database: {self.v1_db_path}")
         print(f"V2 database: {self.v2_db_path}")
+
+        # Provision the v2 schema first so the tables exist even if the v1 file
+        # turns out to be unreadable.
+        self.create_v2_database()
 
         # Inspect v1 database
         schemas = self.inspect_v1_database()
@@ -765,15 +965,26 @@ class DatabaseMigrator:
         # Update v2 schema with any missing columns
         self.update_v2_schema()
 
-        # Migrate data in order (respecting foreign keys)
+        # Migrate the small tables in order (respecting foreign keys)
         self.migrate_scraped_urls()
         self.migrate_epg_sources()
         self.migrate_tv_channels()
         self.migrate_epg_channels()
         self.migrate_acestream_channels()
-        self.migrate_epg_programs()
         self.migrate_epg_string_mappings()
         self.migrate_settings()
+
+        deferred_total = self._count_v1_epg_programs()
+        if deferred_total:
+            # Record the deferred work BEFORE archiving so a crash in between
+            # cannot lose the programs silently.
+            self._record_deferred_programs(deferred_total)
+            print(
+                f"Deferred {deferred_total} EPG programs to background task "
+                f"'{self.DEFERRED_TASK_ID}' (state: {self.state_path})"
+            )
+        elif os.path.exists(self.state_path):
+            os.remove(self.state_path)
 
         # Finalize migration
         self.finalize_migration()
@@ -781,10 +992,17 @@ class DatabaseMigrator:
         print("Migration completed successfully!")
         return True
 
+
 def main():
-    """Main migration function"""
+    """Run both phases synchronously (CLI use)."""
     migrator = DatabaseMigrator()
     migrator.run_migration()
+    if migrator.has_deferred_work():
+        summary = migrator.run_deferred_migration(progress=lambda p: print(
+            f"Migrated {p['processed']}/{p['total']} EPG programs ({p['percent']}%, {p['stale']} already ended)..."
+        ))
+        print(f"EPG programs migration finished: {summary}")
+
 
 if __name__ == "__main__":
     main()

@@ -56,6 +56,14 @@ interface ActivityApiResponse {
   page_size?: number;
 }
 
+interface BackgroundTaskProgress {
+  processed?: number;
+  total?: number;
+  percent?: number;
+  migrated?: number;
+  skipped?: number;
+}
+
 interface BackgroundTask {
   id?: string;
   task_name?: string;
@@ -63,7 +71,19 @@ interface BackgroundTask {
   next_run?: string;
   status?: string;
   last_error?: string | null;
+  progress?: BackgroundTaskProgress | null;
 }
+
+const formatTaskProgress = (progress: BackgroundTaskProgress): string => {
+  const parts: string[] = [];
+  if (typeof progress.processed === 'number' && typeof progress.total === 'number') {
+    parts.push(`${progress.processed.toLocaleString()} / ${progress.total.toLocaleString()}`);
+  }
+  if (typeof progress.percent === 'number') {
+    parts.push(`${progress.percent}%`);
+  }
+  return parts.join(' · ');
+};
 
 interface DashboardConfig {
   retention_days: number;
@@ -414,6 +434,11 @@ const Dashboard: React.FC = () => {
                         <Typography component="span" variant="body2" color="text.secondary">
                           Last run {task.last_run || 'N/A'} - Next run {task.next_run || 'N/A'} - Status {task.status || 'N/A'}
                         </Typography>
+                        {task.progress && formatTaskProgress(task.progress) ? (
+                          <Box component="span" sx={{ display: 'block', mt: 0.5, fontSize: '0.82rem' }}>
+                            Progress: {formatTaskProgress(task.progress)}
+                          </Box>
+                        ) : null}
                         {task.last_error ? (
                           <Box component="span" sx={{ display: 'block', mt: 0.5, fontSize: '0.82rem', color: 'error.main' }}>
                             Error: {task.last_error}

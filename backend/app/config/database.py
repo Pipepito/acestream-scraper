@@ -100,3 +100,97 @@ def __getattr__(name):
     if name == "engine":
         return get_engine()
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+# ---------------------------------------------------------------------------
+# Schema provisioning (Alembic)
+# ---------------------------------------------------------------------------
+
+_APP_TABLE_MARKERS = ("settings", "acestream_channels", "scraped_urls")
+
+
+def _alembic_config():
+    from alembic.config import Config
+    from pathlib import Path
+
+    # backend/app/config/database.py -> backend/
+    backend_dir = Path(__file__).resolve().parents[2]
+    migrations_dir = backend_dir / "migrations"
+    config = Config(str(migrations_dir / "alembic.ini"))
+    # Absolute script_location so Alembic finds env.py regardless of the CWD
+    # (uvicorn runs from /app in Docker, tests from the repo root).
+    config.set_main_option("script_location", str(migrations_dir))
+    return config
+
+
+def _sqlite_path_from_url(database_url: str) -> Optional[str]:
+    if not database_url.startswith("sqlite:///"):
+        return None
+    path = database_url[len("sqlite:///"):]
+    return path or None
+
+
+def schema_stamp_state(database_url: Optional[str] = None) -> str:
+    """Classify the database at ``database_url`` (default: current settings).
+
+    Returns ``"missing"`` (file absent or no tables at all), ``"stamped"``
+    (has a populated ``alembic_version``), or ``"unstamped"`` (application
+    tables exist but Alembic has no record of them — the state a pre-fix
+    v1->v2 migration left behind via ``Base.metadata.create_all``).
+    """
+    import os
+    import sqlite3
+
+    url = database_url or get_settings().DATABASE_URL
+    path = _sqlite_path_from_url(url)
+    if path is None or not os.path.exists(path):
+        return "missing"
+    conn = sqlite3.connect(path)
+    try:
+        names = {
+            row[0]
+            for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        }
+        if "alembic_version" in names:
+            if conn.execute("SELECT COUNT(*) FROM alembic_version").fetchone()[0] > 0:
+                return "stamped"
+        if any(marker in names for marker in _APP_TABLE_MARKERS):
+            return "unstamped"
+        return "missing"
+    finally:
+        conn.close()
+
+
+def upgrade_schema_to_head() -> None:
+    """Run ``alembic upgrade head`` in-process against the current settings."""
+    from alembic import command
+
+    command.upgrade(_alembic_config(), "head")
+
+
+def ensure_schema_stamped(database_url: Optional[str] = None) -> bool:
+    """Stamp an ``unstamped`` database with the Alembic head; return True if stamped.
+
+    The schema created by ``Base.metadata.create_all`` matches the Alembic
+    head (``tests/test_schema_parity.py`` guards this), so recording the head
+    revision is the correct repair — it lets future revisions apply instead of
+    failing on ``CREATE TABLE`` for tables that already exist.
+    """
+    if schema_stamp_state(database_url) != "unstamped":
+        return False
+    from alembic import command
+
+    command.stamp(_alembic_config(), "head")
+    return True
+
+
+def provision_schema(database_url: Optional[str] = None) -> str:
+    """Bring the database to the Alembic head, stamping first when needed.
+
+    Returns the pre-provisioning state (``missing``/``unstamped``/``stamped``).
+    """
+    state = schema_stamp_state(database_url)
+    if state == "unstamped":
+        ensure_schema_stamped(database_url)
+    upgrade_schema_to_head()
+    return state

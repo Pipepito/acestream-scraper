@@ -62,3 +62,43 @@ def test_interval_task_failure_surfaces_error_state():
     finally:
         service.remove_task("test_failing_job")
         service.shutdown()
+
+
+def test_oneoff_task_runs_once_and_keeps_its_state():
+    service = TaskService()
+    executed = {"runs": 0}
+
+    def once():
+        executed["runs"] += 1
+        return {"done": True}
+
+    try:
+        service.start()
+        service.add_oneoff_task(once, job_id="test_oneoff")
+        deadline = time.time() + 5
+        while time.time() < deadline and executed["runs"] == 0:
+            time.sleep(0.05)
+        time.sleep(0.3)  # give the instrumented wrapper time to record the result
+        state = service.get_task_state("test_oneoff")
+
+        assert executed["runs"] == 1
+        assert state is not None
+        assert state["status"] == "idle"
+        assert state["last_result"] == {"done": True}
+        # One-off jobs disappear from the scheduler once fired but stay visible
+        # through the runtime state so the dashboard can show the outcome.
+        assert service.scheduler.get_job("test_oneoff") is None
+        assert state["next_run"] is None
+    finally:
+        service.shutdown()
+
+
+def test_task_progress_is_reported_while_running():
+    service = TaskService()
+    service._ensure_task_state("progress_job")
+
+    service.update_task_progress("progress_job", {"percent": 42.0, "processed": 42, "total": 100})
+    state = service.get_task_state("progress_job")
+
+    assert state["progress"] == {"percent": 42.0, "processed": 42, "total": 100}
+    assert service.get_task_states()["progress_job"]["progress"]["percent"] == 42.0

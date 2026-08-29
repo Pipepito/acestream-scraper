@@ -85,6 +85,7 @@ npm start
 
 - `DATABASE_URL` (default: `sqlite:///./config/scraper.db`)
 - `LEGACY_DATABASE_URL` (default: `sqlite:///./config/acestream.db`)
+- `EPG_PROGRAM_RETENTION_HOURS` (default: `24`) — EPG programs that ended more than this many hours ago are deleted by the hourly `epg_program_cleanup` job and skipped by the v1→v2 migration; negative keeps everything
 - `ZERONET_URL` (default: `http://host.docker.internal:43110` in the checked-in compose example)
 - `CORS_ORIGINS` (default: `http://localhost:3000`)
 - `FRONTEND_BUILD_PATH` (default: `frontend_build`)

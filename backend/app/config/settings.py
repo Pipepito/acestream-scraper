@@ -83,6 +83,10 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     DATABASE_URL: str = "sqlite:///./config/scraper.db"
     LEGACY_DATABASE_URL: str = "sqlite:///./config/acestream.db"
+    # EPG programs that ended more than this many hours ago are dead weight:
+    # the hourly `epg_program_cleanup` job deletes them and the v1 -> v2
+    # migration skips them. Negative disables both (keep everything).
+    EPG_PROGRAM_RETENTION_HOURS: float = 24.0
     ZERONET_URL: str = "http://127.0.0.1:43110"
     SCRAPER_TIMEOUT: int = 10
     SCRAPER_RETRIES: int = 3

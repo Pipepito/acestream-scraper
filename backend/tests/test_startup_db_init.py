@@ -1,9 +1,12 @@
+import json
 import os
 import subprocess
 import sys
 from pathlib import Path
 
 from sqlalchemy import create_engine, inspect
+
+from tests.legacy_v1_fixture import count_rows, create_v1_database
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -19,6 +22,8 @@ def _run_main_import(
     frontend_build_path: Path,
     legacy_database_url: str,
     extra_pythonpath: list[Path] | None = None,
+    boot_script: str | None = None,
+    timeout: int = 30,
 ) -> subprocess.CompletedProcess[str]:
     """Boot ``main.app`` through its lifespan so DB init actually runs.
 
@@ -45,7 +50,7 @@ def _run_main_import(
         }
     )
 
-    boot_script = (
+    boot_script = boot_script or (
         "import main\n"
         "from fastapi.testclient import TestClient\n"
         "with TestClient(main.app):\n"
@@ -58,7 +63,7 @@ def _run_main_import(
         env=env,
         capture_output=True,
         text=True,
-        timeout=30,
+        timeout=timeout,
     )
 
 
@@ -132,3 +137,89 @@ def test_startup_surfaces_migration_failure_without_create_all_fallback(tmp_path
         "Expected failed startup not to leave behind an application schema from emergency "
         f"`create_all(...)`, but found tables: {sorted(tables)}"
     )
+
+
+V1_BOOT_SCRIPT = """
+import json, time
+import main
+from fastapi.testclient import TestClient
+
+with TestClient(main.app) as client:
+    health = client.get("/api/v1/health")
+    print("HEALTH", health.status_code, health.json().get("status"))
+    final = None
+    deadline = time.time() + 20
+    while time.time() < deadline:
+        tasks = client.get("/api/v1/background-tasks/status").json()
+        task = next((t for t in tasks if t["task_name"] == "v1_epg_programs_migration"), None)
+        if task is not None and task["status"] in ("idle", "error"):
+            final = task
+            break
+        time.sleep(0.1)
+    print("TASK", json.dumps(final))
+"""
+
+
+def test_v1_startup_serves_requests_while_epg_programs_migrate_in_background(tmp_path):
+    """Regression for the unraid report: startup blocked on copying every EPG
+    program, so the dashboard was unreachable and the container unhealthy."""
+    db_path = tmp_path / "config" / "scraper.db"
+    legacy_db_path = tmp_path / "config" / "acestream.db"
+    total = create_v1_database(legacy_db_path, channels=4, programs_per_channel=25, orphan_programs=3)
+
+    result = _run_main_import(
+        database_url=_database_url_for(db_path),
+        legacy_database_url=_database_url_for(legacy_db_path),
+        frontend_build_path=tmp_path / "frontend-build",
+        boot_script=V1_BOOT_SCRIPT,
+        timeout=60,
+    )
+
+    assert result.returncode == 0, f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+    lines = dict(line.split(" ", 1) for line in result.stdout.splitlines() if line.startswith(("HEALTH ", "TASK ")))
+    assert lines["HEALTH"].startswith("200 healthy"), result.stdout
+
+    task = json.loads(lines["TASK"])
+    assert task is not None, f"background migration task never finished\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+    assert task["status"] == "idle", task
+    assert task["last_error"] is None
+    assert task["last_result"]["status"] == "done"
+    assert task["last_result"]["migrated"] == total - 3
+    assert task["last_result"]["skipped"] == 3
+    assert task["progress"]["percent"] == 100.0
+
+    assert count_rows(db_path, "epg_programs") == total - 3
+    assert count_rows(db_path, "epg_channels") == 4
+    assert not legacy_db_path.exists()
+    assert (tmp_path / "config" / "acestream.db.migrated").exists()
+    state = json.loads((tmp_path / "config" / "acestream.db.migration.json").read_text(encoding="utf-8"))
+    assert state["epg_programs"]["status"] == "done"
+    assert "alembic_version" in _inspect_tables(db_path)
+
+
+def test_startup_stamps_existing_unstamped_v2_database(tmp_path):
+    """Databases created by the pre-fix migrator (``create_all``) carry no
+    ``alembic_version``; startup must record the head so later revisions apply."""
+    db_path = tmp_path / "config" / "scraper.db"
+    db_path.parent.mkdir(parents=True)
+    legacy_db_path = tmp_path / "config" / "acestream.db"
+
+    from app.config.database import Base
+    import app.models.models  # noqa: F401  (register every table on Base)
+
+    engine = create_engine(_database_url_for(db_path))
+    try:
+        Base.metadata.create_all(bind=engine)
+    finally:
+        engine.dispose()
+    assert "alembic_version" not in _inspect_tables(db_path)
+
+    result = _run_main_import(
+        database_url=_database_url_for(db_path),
+        legacy_database_url=_database_url_for(legacy_db_path),
+        frontend_build_path=tmp_path / "frontend-build",
+    )
+
+    assert result.returncode == 0, f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+    assert "alembic_version" in _inspect_tables(db_path)
+    assert "unstamped" in result.stdout

@@ -119,6 +119,28 @@ describe('Dashboard UI', () => {
     expect(screen.getByText(/status success/i)).toBeInTheDocument();
   });
 
+  it('shows batch progress for long-running background tasks', () => {
+    (dashboardHooks.useBackgroundTaskStatus as jest.Mock).mockReturnValue({
+      data: [
+        {
+          task_name: 'v1_epg_programs_migration',
+          last_run: null,
+          next_run: null,
+          status: 'running',
+          last_error: null,
+          last_result: null,
+          progress: { processed: 12000, total: 300000, percent: 4, migrated: 11950, skipped: 50 },
+        },
+      ],
+      isLoading: false,
+    });
+
+    renderDashboard();
+
+    expect(screen.getByText('v1_epg_programs_migration')).toBeInTheDocument();
+    expect(screen.getByText(/progress: 12,000 \/ 300,000 · 4%/i)).toBeInTheDocument();
+  });
+
   it('renders dashboard primary actions inside the shared header action area', () => {
     renderDashboard();
 

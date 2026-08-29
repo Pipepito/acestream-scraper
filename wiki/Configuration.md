@@ -185,7 +185,7 @@ When using Docker, mount these volumes:
 
 | Container Path | Purpose | Notes |
 |----------------|---------|-------|
-| `/app/config` | Configuration and data | Contains the database (`scraper.db`; a v1 `acestream.db` found here is migrated on first start) |
+| `/app/config` | Configuration and data | Contains the database (`scraper.db`; a v1 `acestream.db` found here is migrated on first start — channels and settings before the dashboard comes up, EPG programs in the background afterwards; see [Installation](Installation#migrating-from-v1)) |
 | `/app/ZeroNet/data` | ZeroNet data directory | Only required if using ZeroNet |
 
 Example mount:

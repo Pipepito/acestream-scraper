@@ -7,6 +7,7 @@ from typing import Any, Callable, Dict, Optional
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.base import SchedulerAlreadyRunningError, SchedulerNotRunningError
+from apscheduler.triggers.date import DateTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.jobstores.base import JobLookupError
 from threading import Event, Lock
@@ -35,6 +36,7 @@ class TaskService:
                     "status": "idle",
                     "last_error": None,
                     "last_result": None,
+                    "progress": None,
                 },
             )
             if interval_seconds:
@@ -85,6 +87,7 @@ class TaskService:
                 state["status"] = "running"
                 state["last_error"] = None
                 state["last_result"] = None
+                state["progress"] = None
             try:
                 result = func(*args, **kwargs)
                 if asyncio.iscoroutine(result):
@@ -131,6 +134,31 @@ class TaskService:
             misfire_grace_time=None
         )
         self.logger.info(f"Scheduled task '{job_id}' every {seconds} seconds.")
+
+    def add_oneoff_task(self, func, job_id, args=None, kwargs=None):
+        """Run ``func`` once, as soon as the scheduler can, under ``job_id``.
+
+        The job is removed from the scheduler after it fires, but its runtime
+        state (status, result, progress) stays visible via
+        :meth:`get_task_state` for the lifetime of the process.
+        """
+        self._ensure_task_state(job_id)
+        self.scheduler.add_job(
+            self._instrument_task(job_id, func),
+            trigger=DateTrigger(run_date=datetime.now(timezone.utc)),
+            id=job_id,
+            args=args or [],
+            kwargs=kwargs or {},
+            replace_existing=True,
+            misfire_grace_time=None,
+        )
+        self.logger.info(f"Scheduled one-off task '{job_id}'.")
+
+    def update_task_progress(self, job_id: str, progress: Optional[Dict[str, Any]]) -> None:
+        """Record a progress snapshot for a running task (shown on the dashboard)."""
+        state = self._ensure_task_state(job_id)
+        with self._state_lock:
+            state["progress"] = dict(progress) if progress is not None else None
 
     def run_task_now(self, job_id: str) -> str:
         """Trigger a scheduled job to run immediately, outside its interval.

@@ -15,6 +15,7 @@ class BackgroundTaskStatusService:
             "status": state.get("status", "idle"),
             "last_error": state.get("last_error"),
             "last_result": state.get("last_result"),
+            "progress": state.get("progress"),
         }
 
     def get_all_statuses(self) -> List[BackgroundTaskStatus]:

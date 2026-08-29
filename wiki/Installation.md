@@ -190,7 +190,7 @@ For advanced users who want to run the application directly on their system.
    export ACE_ENGINE_URL="http://localhost:6878"          # your Acestream Engine
    ```
 
-   The stream base URL, rescrape interval and source URLs are edited in the web interface (**Settings** and **Scraper** pages) and stored in the database. An existing v1 database is migrated on first start when it is at `backend/config/acestream.db` (paths resolve relative to the `backend/` working directory) or when `LEGACY_DATABASE_URL` points at it, e.g. `export LEGACY_DATABASE_URL=sqlite:////absolute/path/to/config/acestream.db`.
+   The stream base URL, rescrape interval and source URLs are edited in the web interface (**Settings** and **Scraper** pages) and stored in the database. An existing v1 database is migrated on first start when it is at `backend/config/acestream.db` (paths resolve relative to the `backend/` working directory) or when `LEGACY_DATABASE_URL` points at it, e.g. `export LEGACY_DATABASE_URL=sqlite:////absolute/path/to/config/acestream.db`. See [Migrating from v1](#migrating-from-v1) for what happens during that first start.
 
 5. **Run the application:**
 
@@ -204,3 +204,13 @@ For advanced users who want to run the application directly on their system.
 6. **Access the application:**
 
    Open your browser and navigate to `http://localhost:8000`
+
+## Migrating from v1
+
+When the container (or `uvicorn`) starts and finds a v1 `acestream.db` in the config directory that is not yet archived, it migrates it automatically — no manual step is needed:
+
+1. **Before the first request (seconds):** the v2 schema is created, and your scraped URLs, EPG sources, TV/EPG/AceStream channels, EPG string mappings and settings are copied. `acestream.db` is then renamed to `acestream.db.migrated` and a small `acestream.db.migration.json` file records what is still pending.
+2. **In the background:** the EPG programs — usually by far the largest table — are copied by the `v1_epg_programs_migration` task while the dashboard is already reachable and the container reports healthy. Watch its progress on the dashboard's **Background Tasks** card (`Progress: 12,000 / 300,000 · 4%`) or in the container log (`v1 EPG programs migration progress …`). The regular hourly EPG refresh keeps running; already-present programs are never duplicated.
+3. **Restarts are safe:** the copy checkpoints after every batch and resumes where it stopped. Once it reports `done`, `acestream.db.migrated` is only kept as a backup and can be deleted together with `acestream.db.migration.json`.
+
+If the archived `acestream.db.migrated` is removed before the copy finishes, the task logs an error and stops; the EPG refresh will re-download current programs from your EPG sources on its next run.

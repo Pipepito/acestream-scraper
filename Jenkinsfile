@@ -52,14 +52,16 @@ docker buildx use "${JENKINS_BUILDER:-acestream-builder}"
     }
 
     stage('Docs checks') {
-      // The Docker command builder (docs/index.html, served by GitHub Pages
-      // from main's docs/ folder) must not drift from the runtime contract,
-      // and the wiki/ folder must render into a valid wiki page set.
+      // The Docker command builder (docs/index.html, published to the
+      // gh-pages branch for GitHub Pages) must not drift from the runtime
+      // contract, the wiki/ folder must render into a valid wiki page set,
+      // and the Pages payload must assemble.
       steps {
         sh '''#!/usr/bin/env bash
 set -euo pipefail
 bash scripts/ci/validate_command_builder.sh
 bash scripts/ci/publish_wiki.sh --dry-run
+bash scripts/ci/publish_pages.sh --dry-run
 '''
       }
     }
@@ -225,12 +227,17 @@ bash scripts/ci/run_jenkins_release.sh --channel develop
     }
 
     stage('Publish wiki') {
-      // Every validated build of main mirrors wiki/ to the GitHub wiki
+      // Every validated build of develop mirrors wiki/ to the GitHub wiki
       // repository (<repo>.wiki.git) with a plain git push from this runner —
-      // no GitHub Actions involved. The wiki describes released behaviour, so
-      // only main publishes. (The Docker command builder needs no publish
-      // step: GitHub Pages serves docs/ straight from main.)
-      when { branch 'main' }
+      // no GitHub Actions involved. Gated like 'Publish develop channel':
+      // the develop branch job, or a PR whose head is develop (the release
+      // PR), since the branch job is suppressed while such a PR is open.
+      when {
+        anyOf {
+          branch 'develop'
+          expression { env.CHANGE_BRANCH == 'develop' }
+        }
+      }
       steps {
         script {
           try {
@@ -251,6 +258,38 @@ bash scripts/ci/publish_wiki.sh
             def text = e.toString()
             if (text.contains('Could not find credentials') && text.contains('github-publish')) {
               unstable("wiki not published: Jenkins credential 'github-publish' is missing")
+            } else {
+              throw e
+            }
+          }
+        }
+      }
+    }
+
+    stage('Publish docs site') {
+      // Push the Docker command builder (docs/index.html + docs/builder/) to
+      // the gh-pages branch; GitHub Pages serves that branch ("Deploy from a
+      // branch": gh-pages, / root), so a validated develop build is the
+      // deployment. Same gating and credential handling as 'Publish wiki'.
+      when {
+        anyOf {
+          branch 'develop'
+          expression { env.CHANGE_BRANCH == 'develop' }
+        }
+      }
+      steps {
+        script {
+          try {
+            withCredentials([usernamePassword(credentialsId: 'github-publish', usernameVariable: 'GITHUB_PUBLISH_USERNAME', passwordVariable: 'GITHUB_PUBLISH_TOKEN')]) {
+              sh '''#!/usr/bin/env bash
+set -euo pipefail
+bash scripts/ci/publish_pages.sh
+'''
+            }
+          } catch (Exception e) {
+            def text = e.toString()
+            if (text.contains('Could not find credentials') && text.contains('github-publish')) {
+              unstable("docs site not published: Jenkins credential 'github-publish' is missing")
             } else {
               throw e
             }

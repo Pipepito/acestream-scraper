@@ -31,6 +31,7 @@ from app.services.task_service import task_service
 from app.tasks.activity_log_cleanup import run_activity_log_cleanup
 from app.tasks.channel_cleanup_task import run_channel_cleanup_task
 from app.tasks.channel_status_task import run_channel_status_task
+from app.tasks.epg_program_cleanup_task import run_epg_program_cleanup_task
 from app.tasks.epg_refresh_task import run_epg_refresh_task
 from app.tasks.legacy_migration_task import TASK_ID as LEGACY_MIGRATION_TASK_ID, run_v1_epg_programs_migration
 from app.tasks.url_scraping_task import run_url_scraping_task
@@ -110,6 +111,7 @@ async def lifespan(app: FastAPI):
     task_service.start()
     task_service.add_interval_task(run_activity_log_cleanup, seconds=86400, job_id="activity_log_cleanup")  # daily
     task_service.add_interval_task(run_epg_refresh_task, seconds=3600, job_id="epg_refresh")  # every hour
+    task_service.add_interval_task(run_epg_program_cleanup_task, seconds=3600, job_id="epg_program_cleanup")  # every hour
     task_service.add_interval_task(run_url_scraping_task, seconds=900, job_id="url_scraping")  # every 15 min
     task_service.add_interval_task(run_channel_cleanup_task, seconds=86400, job_id="channel_cleanup")  # daily
     task_service.add_interval_task(run_channel_status_task, seconds=600, job_id="channel_status")  # every 10 min

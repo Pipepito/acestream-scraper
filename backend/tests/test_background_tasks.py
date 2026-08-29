@@ -23,6 +23,7 @@ def test_startup_scheduler_includes_activity_log_cleanup(alembic_started_client)
 
     task_names = {task["task_name"] for task in response.json()}
     assert "activity_log_cleanup" in task_names
+    assert "epg_program_cleanup" in task_names
 
 
 def test_background_task_status_uses_scheduler_runtime_state(alembic_started_client):

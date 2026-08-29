@@ -63,6 +63,7 @@ Acestream Scraper is configured from the web interface (**Settings** and **Scrap
 | `API_TOKEN` | Require a token on API and playlist routes | unset (open) | Sent as `Authorization: Bearer`, `X-Api-Token`, or `?token=` (for IPTV players); `/api/v1/health` stays public |
 | `ALLOW_PRIVATE_SCRAPE_TARGETS` | Allow scrape/EPG URLs on private/LAN addresses | `true` | Set `false` to block loopback/private/link-local targets; the cloud metadata endpoint is always blocked |
 | `ACESTREAM_STATUS_TIMEOUT` | Timeout (seconds) for the engine status probe | `10` | A timed-out probe retries once with a doubled timeout |
+| `EPG_PROGRAM_RETENTION_HOURS` | How long finished EPG programs are kept | `24` | The hourly `epg_program_cleanup` job deletes programs that ended earlier than this, and a v1→v2 migration skips them (they are useless once aired — the EPG refresh keeps adding upcoming ones). `2` keeps only the last couple of hours; a negative value disables the purge. The XMLTV export's default `days_back=1` needs at least `24` |
 | `SUPERVISED_RESTART_DELAY_SECONDS` | Delay before restarting a crashed engine/Acexy process | `5` | Supervision applies to in-container AceStream and Acexy |
 | `SUPERVISED_FAST_EXIT_LIMIT` | Consecutive fast exits before giving up | `3` | With `SUPERVISED_FAST_EXIT_WINDOW` (default `10`s); a crash loop fails the container |
 

@@ -650,6 +650,30 @@ class EPGService:
                 "programs_found": 0
             }
 
+    def purge_expired_programs(self, now: Optional[datetime] = None) -> Dict[str, Any]:
+        """Delete programs that ended more than ``EPG_PROGRAM_RETENTION_HOURS`` ago.
+
+        TV programming is only useful while it is current: the hourly refresh
+        keeps adding upcoming programs, so without this the table grows
+        forever. A negative retention disables the purge.
+        """
+        from app.config.settings import get_settings
+
+        retention_hours = float(get_settings().EPG_PROGRAM_RETENTION_HOURS)
+        if retention_hours < 0:
+            return {"deleted": 0, "retention_hours": retention_hours, "cutoff": None, "disabled": True}
+
+        now = now or datetime.now(timezone.utc)
+        cutoff = now - timedelta(hours=retention_hours)
+        deleted = (
+            self.db.query(EPGProgram)
+            .filter(EPGProgram.end_time < cutoff)
+            .delete(synchronize_session=False)
+        )
+        self.db.commit()
+        logger.info("Purged %s EPG programs that ended before %s", deleted, cutoff.isoformat())
+        return {"deleted": int(deleted), "retention_hours": retention_hours, "cutoff": cutoff.isoformat(), "disabled": False}
+
     def _parse_xmltv_time(self, time_str: str) -> datetime:
         """
         Parse XMLTV time format: YYYYMMDDHHMMSS +ZZZZ

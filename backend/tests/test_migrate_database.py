@@ -10,12 +10,13 @@ from __future__ import annotations
 import json
 import sqlite3
 import threading
+from datetime import timedelta, timezone
 from pathlib import Path
 
 import pytest
 from sqlalchemy import create_engine, inspect
 
-from tests.legacy_v1_fixture import count_rows, create_v1_database
+from tests.legacy_v1_fixture import BASE_TIME, count_rows, create_v1_database
 
 
 @pytest.fixture
@@ -212,3 +213,50 @@ def test_background_task_id_matches_migrator_constant():
     from migrate_database import DatabaseMigrator
 
     assert TASK_ID == DatabaseMigrator.DEFERRED_TASK_ID == "v1_epg_programs_migration"
+
+
+def test_deferred_migration_skips_programs_that_already_ended(legacy_runtime):
+    # Fixture programs per channel: 12:00-12:30, 12:30-13:00, 13:00-13:30, 13:30-14:00, 14:00-14:30.
+    total = create_v1_database(legacy_runtime["v1"], channels=2, programs_per_channel=5)
+    from migrate_database import DatabaseMigrator
+
+    now = BASE_TIME.replace(tzinfo=timezone.utc) + timedelta(hours=4)  # 16:00 -> cutoff 14:00
+    migrator = DatabaseMigrator(batch_size=3, epg_retention_hours=2, now=now)
+    migrator.run_migration()
+
+    summary = migrator.run_deferred_migration()
+
+    assert summary["status"] == "done"
+    assert summary["migrated"] == 4, "only programs ending at/after the cutoff (14:00, 14:30) per channel"
+    assert summary["stale"] == 6
+    assert summary["skipped"] == 0
+    assert summary["processed"] == summary["total"] == total
+    assert summary["percent"] == 100.0
+    assert count_rows(legacy_runtime["v2"], "epg_programs") == 4
+    assert _state(migrator)["epg_programs"]["stale_cutoff"] == "2026-08-29 14:00:00"
+
+
+def test_deferred_migration_keeps_everything_when_retention_is_disabled(legacy_runtime):
+    total = create_v1_database(legacy_runtime["v1"], channels=2, programs_per_channel=5)
+    from migrate_database import DatabaseMigrator
+
+    now = BASE_TIME.replace(tzinfo=timezone.utc) + timedelta(days=30)
+    migrator = DatabaseMigrator(epg_retention_hours=-1, now=now)
+    migrator.run_migration()
+
+    summary = migrator.run_deferred_migration()
+
+    assert summary["migrated"] == total
+    assert summary["stale"] == 0
+    assert _state(migrator)["epg_programs"]["stale_cutoff"] is None
+
+
+def test_retention_defaults_to_settings(legacy_runtime, monkeypatch):
+    from app.config import settings as settings_module
+
+    monkeypatch.setenv("EPG_PROGRAM_RETENTION_HOURS", "2.5")
+    settings_module.get_settings.cache_clear()
+    try:
+        assert _migrator().epg_retention_hours == 2.5
+    finally:
+        settings_module.get_settings.cache_clear()

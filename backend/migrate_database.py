@@ -19,7 +19,7 @@ import json
 import os
 import shutil
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from threading import Event
 from typing import Any, Callable, Dict, List, Optional
 
@@ -39,13 +39,27 @@ class DatabaseMigrator:
     DEFERRED_TASK_ID = "v1_epg_programs_migration"
     STATE_FORMAT = 1
 
-    def __init__(self, batch_size: int = 2000):
+    def __init__(
+        self,
+        batch_size: int = 2000,
+        epg_retention_hours: Optional[float] = None,
+        now: Optional[datetime] = None,
+    ):
         settings = get_settings()
         self.v1_db_path = settings.LEGACY_DATABASE_URL.replace("sqlite:///", "")
         self.v2_db_path = settings.DATABASE_URL.replace("sqlite:///", "")
         self.v1_migrated_path = self.v1_db_path + ".migrated"
         self.state_path = self.v1_db_path + ".migration.json"
         self.batch_size = max(1, int(batch_size))
+        # Programs that ended more than this many hours before the deferred run
+        # are skipped (negative keeps everything). Shared with the periodic
+        # `epg_program_cleanup` job via EPG_PROGRAM_RETENTION_HOURS.
+        self.epg_retention_hours = (
+            float(settings.EPG_PROGRAM_RETENTION_HOURS)
+            if epg_retention_hours is None
+            else float(epg_retention_hours)
+        )
+        self._now = now  # test hook; None -> datetime.now(timezone.utc)
 
         # Ensure config directory exists
         os.makedirs(os.path.dirname(self.v2_db_path) or ".", exist_ok=True)
@@ -712,6 +726,8 @@ class DatabaseMigrator:
                 "total": total,
                 "migrated": 0,
                 "skipped": 0,
+                "stale": 0,
+                "stale_cutoff": None,
                 "last_v1_id": 0,
                 "epg_channel_ids": {
                     str(old_id): new_id for old_id, new_id in self.id_mappings['epg_channels'].items()
@@ -741,18 +757,33 @@ class DatabaseMigrator:
             return True
         return status == "error" and bool(programs.get("retryable"))
 
+    def _stale_cutoff_text(self) -> Optional[str]:
+        """SQL-comparable ``YYYY-MM-DD HH:MM:SS`` cutoff, or None when retention is disabled.
+
+        v1 stored SQLAlchemy ``DateTime`` values as ``YYYY-MM-DD HH:MM:SS[.ffffff]``
+        text (UTC), so a lexicographic comparison against this prefix is exact.
+        Any row in an unexpected format compares *greater* and is therefore kept.
+        """
+        if self.epg_retention_hours < 0:
+            return None
+        now = self._now or datetime.now(timezone.utc)
+        cutoff = now - timedelta(hours=self.epg_retention_hours)
+        return cutoff.strftime("%Y-%m-%d %H:%M:%S")
+
     @staticmethod
     def _progress_snapshot(programs: Dict[str, Any]) -> Dict[str, Any]:
         total = int(programs.get("total") or 0)
         migrated = int(programs.get("migrated") or 0)
         skipped = int(programs.get("skipped") or 0)
-        processed = migrated + skipped
-        percent = 100.0 if total == 0 else round(min(processed, total) * 100.0 / total, 1)
+        stale = int(programs.get("stale") or 0)
+        processed = min(migrated + skipped + stale, total) if total else migrated + skipped + stale
+        percent = 100.0 if total == 0 else round(processed * 100.0 / total, 1)
         return {
             "status": programs.get("status"),
             "total": total,
             "migrated": migrated,
             "skipped": skipped,
+            "stale": stale,
             "processed": processed,
             "percent": percent,
             "last_v1_id": int(programs.get("last_v1_id") or 0),
@@ -809,6 +840,18 @@ class DatabaseMigrator:
         v1_conn.row_factory = sqlite3.Row
         v2_conn = sqlite3.connect(self.v2_db_path, timeout=30)
         try:
+            # Programs that already ended are not worth copying (the hourly EPG
+            # refresh re-downloads current data anyway). Count them once so the
+            # progress figures still add up to ``total``.
+            cutoff = self._stale_cutoff_text()
+            stale = 0
+            if cutoff is not None:
+                stale = int(v1_conn.execute(
+                    "SELECT COUNT(*) FROM epg_programs WHERE end_time < ?", (cutoff,)
+                ).fetchone()[0])
+            programs.update(stale=stale, stale_cutoff=cutoff)
+            self._save_state(state)
+
             while True:
                 if stop_event is not None and stop_event.is_set():
                     programs.update(status="running", last_v1_id=last_id, migrated=migrated, skipped=skipped)
@@ -821,10 +864,11 @@ class DatabaseMigrator:
                            subtitle, description, category, icon_url
                     FROM epg_programs
                     WHERE id > ?
+                      AND (? IS NULL OR end_time IS NULL OR end_time >= ?)
                     ORDER BY id
                     LIMIT ?
                     """,
-                    (last_id, self.batch_size),
+                    (last_id, cutoff, cutoff, self.batch_size),
                 ).fetchall()
                 if not rows:
                     break
@@ -955,7 +999,7 @@ def main():
     migrator.run_migration()
     if migrator.has_deferred_work():
         summary = migrator.run_deferred_migration(progress=lambda p: print(
-            f"Migrated {p['processed']}/{p['total']} EPG programs ({p['percent']}%)..."
+            f"Migrated {p['processed']}/{p['total']} EPG programs ({p['percent']}%, {p['stale']} already ended)..."
         ))
         print(f"EPG programs migration finished: {summary}")
 

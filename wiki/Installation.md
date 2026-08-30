@@ -45,7 +45,7 @@ Docker Compose provides the easiest way to get started with Acestream Scraper.
        restart: unless-stopped
    ```
 
-   Since v2, ZeroNet is no longer bundled in the app image (the v1 `ENABLE_TOR` toggle, the ZeroNet port mappings and the `/app/ZeroNet/data` volume are gone). Use the optional `zeronet` sidecar profile from the repository's `docker-compose.yml` — or any external ZeroNet service — and point `ZERONET_URL` at it. IPFS scraping is built in instead: flip `ENABLE_IPFS=true` to run the embedded Kubo daemon (see [With the Embedded IPFS Daemon](#with-the-embedded-ipfs-daemon)).
+   ZeroNet moved to opt-in in v2: the amd64 images bundle a node you enable with `ENABLE_ZERONET=true` (state under `/data/zeronet` — the v1 `/app/ZeroNet/data` volume is gone), or you point `ZERONET_URL` at an external service such as the optional `zeronet` sidecar profile in the repository's `docker-compose.yml` (the only mode available on ARM). IPFS scraping is built in as well: flip `ENABLE_IPFS=true` to run the embedded Kubo daemon (see [With the Embedded IPFS Daemon](#with-the-embedded-ipfs-daemon)).
 
 2. **Start the service:**
 
@@ -120,9 +120,27 @@ docker run -d \
   pipepito/acestream-scraper:latest
 ```
 
+### With the Bundled ZeroNet Node (amd64)
+
+The amd64 images ship a ZeroNet node that only starts when `ENABLE_ZERONET=true`; add `ENABLE_TOR=true` to run TOR alongside it (like v1):
+
+```bash
+docker run -d \
+  -p 8000:8000 \
+  -p 43110:43110 \
+  -p 26552:26552 \
+  -e ENABLE_ZERONET=true \
+  -v "${PWD}/config:/app/config" \
+  -v "${PWD}/zeronet_app_data:/data/zeronet" \
+  --name acestream-scraper \
+  pipepito/acestream-scraper:latest
+```
+
+The scraper finds the embedded node automatically when `ZERONET_URL` is not set. Publishing `43110` is only needed to browse the ZeroNet UI yourself (set `ZERONET_UI_HOST` for access from other machines — the UI is unauthenticated, keep it on trusted networks).
+
 ### With an External ZeroNet Service
 
-Since v2 the app image does not bundle ZeroNet (the v1 `ENABLE_TOR` variant is deprecated). Run ZeroNet as its own service — for example the optional `zeronet` profile in the repository's `docker-compose.yml` — and point the scraper at it:
+On ARM images (which ship without the bundled node), or whenever you prefer it, run ZeroNet as its own service — for example the optional `zeronet` profile in the repository's `docker-compose.yml` — and point the scraper at it:
 
 ```bash
 docker run -d \

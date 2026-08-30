@@ -59,9 +59,9 @@ Upstream only publishes native Linux engine builds for x86_64, so the ARM images
 
 WARP is installed in every flavor's `linux/amd64` image, but it only starts when `ENABLE_WARP=true`. The ARM images ship without the WARP client (`cloudflare-warp` is amd64-only), so `ENABLE_WARP` is unsupported there.
 
-ZeroNet remains an external sidecar/service. The Docker image keeps the `ZERONET_URL` client contract, but it does not bundle a ZeroNet node into every flavor.
+ZeroNet works in two modes. The `linux/amd64` images bundle a [zeronet-conservancy](https://github.com/zeronet-conservancy/zeronet-conservancy) v0.7.10 node — opt-in, nothing runs until `ENABLE_ZERONET=true` (add `ENABLE_TOR=true` for TOR, like the v1 image). The node runs on its own Python 3.11 under `/opt/zeronet` because its dependency set (gevent 23.9.x) predates the app's Python; that dependency set is also why ARM images ship without it — there, and whenever you prefer it, ZeroNet runs as an external sidecar/service and the app reaches it through `ZERONET_URL`.
 
-The checked-in compose stack keeps the `zeronet` service behind an optional `zeronet` profile and points the default app config at `http://host.docker.internal:43110`. It uses an amd64-focused sidecar image. On ARM hosts, point `ZERONET_URL` at an external ZeroNet service or swap in a compatible sidecar.
+The checked-in compose stack keeps the `zeronet` service behind an optional `zeronet` profile and points the default app config at `http://host.docker.internal:43110`. It uses an amd64-focused sidecar image. On ARM hosts, point `ZERONET_URL` at an external ZeroNet service or swap in a compatible sidecar. With the embedded node enabled, leave `ZERONET_URL` unset — the entrypoint targets the embedded UI port automatically.
 
 IPFS is bundled, unlike ZeroNet: every flavor ships the [Kubo](https://github.com/ipfs/kubo) IPFS daemon on `linux/amd64` and `linux/arm64`. Kubo publishes no 32-bit ARM build, so `linux/arm/v7` images ship without it (the container exits with a clear error if `ENABLE_IPFS=true` is requested there — same situation as WARP). The daemon is opt-in: nothing IPFS-related runs until `ENABLE_IPFS=true`. `ipfs://` and `ipns://` sources are fetched through `IPFS_GATEWAY_URL`, which defaults to the embedded gateway at `http://127.0.0.1:8081` — the gateway uses `8081` in-container because Acexy already listens on `8080`. You can also scrape IPFS without the embedded daemon: keep `ENABLE_IPFS=false` and point `IPFS_GATEWAY_URL` at an external node, e.g. `http://host.docker.internal:8080` for a Kubo/IPFS Desktop install on the Docker host (this works on every platform, `linux/arm/v7` included).
 
@@ -105,7 +105,8 @@ Important runtime env expectations:
 - `ENABLE_ACEXY` starts the installed Acexy binary only when set to `true`
 - `ACESTREAM_HTTP_HOST` and `ACESTREAM_HTTP_PORT` define the in-container AceStream endpoint
 - `ACEXY_HOST` and `ACEXY_PORT` define the engine endpoint Acexy connects to
-- `ZERONET_URL` points the scraper to an external ZeroNet sidecar/service
+- `ZERONET_URL` points the scraper at a ZeroNet node — the embedded one or an external sidecar/service
+- `ENABLE_ZERONET` starts the bundled ZeroNet node only when set to `true` (amd64 images); `ENABLE_TOR` adds TOR for it
 - `ENABLE_IPFS` starts the embedded Kubo IPFS daemon only when set to `true` (amd64/arm64 images)
 - `IPFS_GATEWAY_URL` points the scraper to the IPFS HTTP gateway used for `ipfs://`/`ipns://` sources (defaults to the embedded gateway `http://127.0.0.1:8081`)
 
@@ -155,6 +156,28 @@ ARM caveats:
 - **No WARP on ARM images:** `cloudflare-warp` is amd64-only.
 - **Performance and streaming stability** on real ARM hardware are not yet validated; report results if you try it.
 - Repackaging the official APK payload is a grey area under the AceStream user agreement, as with every community ARM image. Enable the engine at your own discretion.
+
+### Run the Bundled ZeroNet Node (amd64)
+
+ZeroNet is installed in every amd64 flavor but only starts when `ENABLE_ZERONET=true`:
+
+```bash
+docker run -d \
+  -e ENABLE_ZERONET=true \
+  -p 8000:8000 \
+  -p 43110:43110 \
+  -p 26552:26552 \
+  -v "${PWD}/config:/app/config" \
+  -v "${PWD}/zeronet_app_data:/data/zeronet" \
+  --name acestream-scraper \
+  pipepito/acestream-scraper:latest
+```
+
+- `/data/zeronet` (`ZERONET_DATA_DIR`) holds the node's sites, keys and content; mount it so they survive container replacement.
+- The scraper reaches the node automatically (`ZERONET_URL` falls back to the embedded UI port when you don't set it), so `zero://` sources work with no further setup.
+- Ports: `43110` is the ZeroNet web UI, `26552` the fileserver/peer port (`ZERONET_UI_PORT` / `ZERONET_FILESERVER_PORT` to change them). Publishing `43110` is only needed to browse the ZeroNet UI yourself — and ZeroNet only answers Host headers it knows, so add `-e ZERONET_UI_HOST="myserver.lan 192.168.1.10"` to reach it from another machine. The UI has no authentication: publish it on trusted networks only.
+- Add `-e ENABLE_TOR=true` to run TOR alongside; the node auto-detects it over the control port (same contract as v1). `ZERONET_EXTRA_ARGS` passes any extra zeronet-conservancy flags through.
+- ARM images ship without the bundled node (its gevent-era dependency set is amd64-focused); use the external `ZERONET_URL` mode there.
 
 ### Run the Embedded IPFS Daemon (amd64 and arm64)
 
@@ -241,6 +264,7 @@ Acestream Scraper uses Docker volumes to persist data:
 - `/app/config`: Configuration files including database
 - `/var/lib/acestream`: AceStream engine state, disk cache, and logs of the ARM Android engine (only used when `ENABLE_ACESTREAM_ENGINE=true` in an AceStream-enabled flavor)
 - `/data/ipfs`: The embedded IPFS daemon's repository — node identity, config, and blockstore (only used when `ENABLE_IPFS=true`)
+- `/data/zeronet`: The bundled ZeroNet node's state — sites, keys, and content (only used when `ENABLE_ZERONET=true`)
 
 These volumes should be mounted to local directories (or named volumes) to ensure your data persists when containers are updated or replaced.
 

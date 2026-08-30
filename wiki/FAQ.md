@@ -43,7 +43,7 @@ docker rm acestream-scraper
 ```
 
 ### Will my data be lost when I update?
-No, as long as you've properly mounted the volumes for `/app/config` (database and settings) and, when the matching feature is enabled, `/var/lib/acestream` (engine state on ARM) and `/data/ipfs` (embedded IPFS repository). These volumes store your configuration and data persistently outside the container.
+No, as long as you've properly mounted the volumes for `/app/config` (database and settings) and, when the matching feature is enabled, `/var/lib/acestream` (engine state on ARM), `/data/ipfs` (embedded IPFS repository) and `/data/zeronet` (bundled ZeroNet node state). These volumes store your configuration and data persistently outside the container.
 
 ## Configuration Questions
 
@@ -121,12 +121,13 @@ No, you can use ZeroNet URLs with an external ZeroNet service by:
 1. Explicitly selecting "ZeroNet" as the URL type when adding the URL
 2. Providing the full URL to your external ZeroNet service
 
-Since v2 the app image no longer bundles ZeroNet, so an external service is the only mode:
+You have both options:
+- **Bundled node (amd64 images):** set `ENABLE_ZERONET=true` (optionally `ENABLE_TOR=true`) and mount `/data/zeronet` — the scraper finds it automatically
 - Start the optional `zeronet` sidecar from the repository's `docker-compose.yml` (`docker compose --profile zeronet up -d`)
 - Connect to a ZeroNet service running elsewhere on your network
 - Use publicly accessible ZeroNet gateways
 
-Point `ZERONET_URL` at whichever one you use (the compose default is `http://host.docker.internal:43110`).
+For the external options, point `ZERONET_URL` at whichever one you use (the compose default is `http://host.docker.internal:43110`). ARM images ship without the bundled node, so use an external service there.
 
 ### Do I need to enable the embedded IPFS daemon to use IPFS URLs?
 
@@ -181,9 +182,10 @@ Common issues include:
 - Insufficient permissions on mounted volumes
 
 ### ZeroNet is not working
-1. Verify the external ZeroNet service is running and reachable from the container (`ZERONET_URL`, default `http://host.docker.internal:43110` in the compose example)
-2. If you use the compose sidecar, make sure it was started with `docker compose --profile zeronet up -d`
-3. Some ZeroNet sites may be unavailable or require specific permissions
+1. With the bundled node, confirm it is enabled (`ENABLE_ZERONET=true`), the image is amd64 (the container exits with a clear error elsewhere), and `ZERONET_URL` is unset or points at `http://127.0.0.1:43110`
+2. With an external service, verify it is running and reachable from the container (`ZERONET_URL`, default `http://host.docker.internal:43110` in the compose example); the compose sidecar needs `docker compose --profile zeronet up -d`
+3. Check the container logs — the entrypoint prints the ZeroNet endpoint it uses and supervises the bundled node
+4. Some ZeroNet sites may be unavailable or require specific permissions
 
 ### IPFS sources are not working
 1. If you rely on the embedded daemon, confirm it is enabled (`ENABLE_IPFS=true`) and that the image is amd64/arm64 (Kubo has no 32-bit ARM build — the container logs an explicit error on 32-bit ARM)

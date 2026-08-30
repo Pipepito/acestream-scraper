@@ -107,6 +107,26 @@ def test_docker_compose_wires_embedded_ipfs_defaults():
     assert "- ./ipfs_data:/data/ipfs" in compose_file
 
 
+def test_docker_compose_wires_embedded_zeronet_defaults():
+    compose_file = (REPO_ROOT / "docker-compose.yml").read_text()
+
+    assert "- ENABLE_ZERONET=false" in compose_file
+    # External mode stays the compose default; the sidecar profile remains.
+    assert "ZERONET_URL=http://host.docker.internal:43110" in compose_file
+
+
+def test_entrypoint_gates_embedded_zeronet_on_installed_launcher():
+    entrypoint = (REPO_ROOT / "entrypoint.sh").read_text()
+
+    assert "ENABLE_ZERONET" in entrypoint
+    assert "IMAGE_HAS_ZERONET" in entrypoint
+    assert 'ZERONET_UI_PORT="${ZERONET_UI_PORT:-43110}"' in entrypoint
+    assert 'ZERONET_FILESERVER_PORT="${ZERONET_FILESERVER_PORT:-26552}"' in entrypoint
+    # ENABLE_ZERONET=true must repoint the baked ZERONET_URL default at the
+    # embedded node's UI port.
+    assert 'ZERONET_URL="http://127.0.0.1:$ZERONET_UI_PORT"' in entrypoint
+
+
 def test_entrypoint_gates_ipfs_on_installed_binary_and_reserves_gateway_port():
     entrypoint = (REPO_ROOT / "entrypoint.sh").read_text()
 

@@ -13,15 +13,29 @@ services:
       # - "4001:4001/udp"        # IPFS swarm (QUIC)
       # - "8081:8081"            # IPFS HTTP gateway
       # - "127.0.0.1:5001:5001"  # IPFS RPC API / WebUI
+      # Publish these when running the embedded ZeroNet node
+      # (ENABLE_ZERONET=true, amd64 images only). The UI only answers Host
+      # headers it knows — set ZERONET_UI_HOST to reach it from another
+      # machine.
+      # - "43110:43110"          # ZeroNet UI
+      # - "26552:26552"          # ZeroNet fileserver (peer connectivity)
     volumes:
       - ./config:/app/config
       - ./ipfs_data:/data/ipfs
+      # Embedded ZeroNet node state (ENABLE_ZERONET=true):
+      # - ./zeronet_app_data:/data/zeronet
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
       - DATABASE_URL=sqlite:///./config/scraper.db
       - LEGACY_DATABASE_URL=sqlite:///./config/acestream.db
+      # zero:// sources are fetched through ZERONET_URL. This default targets
+      # an external node on the Docker host (e.g. the optional `zeronet`
+      # sidecar profile below). To use the embedded node instead (amd64
+      # images), set ENABLE_ZERONET=true and change this to
+      # ZERONET_URL=http://127.0.0.1:43110.
       - ZERONET_URL=http://host.docker.internal:43110
+      - ENABLE_ZERONET=false
       - FRONTEND_BUILD_PATH=frontend_build
       - ENABLE_WARP=false
       - ENABLE_ACESTREAM_ENGINE=false

@@ -100,11 +100,18 @@ Without Acexy, you'd need to manually append `&pid={unique_id}` to each stream U
 
 ### ZeroNet and Other Settings
 
-Since v2 the app image no longer bundles ZeroNet (or TOR): ZeroNet is an external sidecar/service the scraper reaches over HTTP. The v1 variables `ENABLE_TOR` and the in-container ZeroNet setup are deprecated and ignored.
+The amd64 images bundle a ZeroNet node (zeronet-conservancy v0.7.10) that is off by default; ARM images ship without it and use an external service instead. In both cases the scraper reaches the node over HTTP via `ZERONET_URL`. The v1 in-container `zeronet.conf` mechanism is gone — the node is configured through these variables:
 
 | Variable | Description | Default | Notes |
 |----------|-------------|---------|-------|
-| `ZERONET_URL` | Address of the external ZeroNet service | `http://host.docker.internal:43110` in the checked-in compose example | The optional `zeronet` compose profile starts a sidecar on the Docker host |
+| `ENABLE_ZERONET` | Start the bundled ZeroNet node | `false` | amd64 images only; fails with a clear error elsewhere |
+| `ENABLE_TOR` | Run TOR for the bundled node | `false` | Only takes effect with `ENABLE_ZERONET=true`; the node auto-detects TOR over the control port |
+| `ZERONET_URL` | Address the scraper fetches `zero://` sources through | `http://host.docker.internal:43110` in the checked-in compose example | With `ENABLE_ZERONET=true` and no explicit value it targets the embedded UI port automatically |
+| `ZERONET_DATA_DIR` | Bundled node's state directory | `/data/zeronet` | Mount a volume there |
+| `ZERONET_UI_PORT` | Bundled node's web UI port | `43110` | |
+| `ZERONET_FILESERVER_PORT` | Bundled node's fileserver/peer port | `26552` | |
+| `ZERONET_UI_HOST` | Extra Host headers the UI accepts | *(none)* | Space-separated hostnames; needed to browse the UI from another machine |
+| `ZERONET_EXTRA_ARGS` | Extra zeronet-conservancy CLI flags | *(none)* | Passed through to the node verbatim |
 | `TZ` | Timezone for the container | `Europe/Madrid` | Use any valid TZ identifier |
 
 ### IPFS Configuration
@@ -191,7 +198,8 @@ When using Docker, map these ports as needed:
 | 8080 | Acexy web interface | Only if Acexy is enabled |
 | 6878 | Acestream HTTP API | Configurable via `ACESTREAM_HTTP_PORT` |
 | 8621 | Acestream P2P port | For Acestream peer connections |
-| 43110 | ZeroNet web interface | Published by the optional `zeronet` sidecar, not the app container |
+| 43110 | ZeroNet web interface | Only if `ENABLE_ZERONET=true` (or published by the optional `zeronet` sidecar) |
+| 26552 | ZeroNet fileserver/peer port | Only if `ENABLE_ZERONET=true`; publishing it improves peer connectivity |
 | 4001 | IPFS swarm port (TCP and UDP) | Only if `ENABLE_IPFS=true`; improves peer connectivity |
 | 8081 | IPFS HTTP gateway | Only if `ENABLE_IPFS=true` and you want to browse IPFS through the node |
 | 5001 | IPFS RPC API / WebUI | Unauthenticated — publish only as `127.0.0.1:5001:5001` if needed |
@@ -205,23 +213,31 @@ When using Docker, mount these volumes:
 | `/app/config` | Configuration and data | Contains the database (`scraper.db`; a v1 `acestream.db` found here is migrated on first start — channels and settings before the dashboard comes up, EPG programs in the background afterwards; see [Installation](Installation#migrating-from-v1)) |
 | `/var/lib/acestream` | AceStream engine state and cache | Only used when `ENABLE_ACESTREAM_ENGINE=true` (ARM Android engine) |
 | `/data/ipfs` | IPFS repository (identity, config, blockstore) | Only required if `ENABLE_IPFS=true` |
+| `/data/zeronet` | Bundled ZeroNet node's state (sites, keys, content) | Only required if `ENABLE_ZERONET=true` |
 
-The v1 `/app/ZeroNet/data` volume no longer exists — ZeroNet runs outside the app container since v2 (the compose sidecar example keeps its data in `./zeronet_data`).
+The v1 `/app/ZeroNet/data` path is gone — the bundled node keeps its state under `/data/zeronet` now (and the compose sidecar example keeps its own data in `./zeronet_data`).
 
 Example mount:
 ```bash
-docker run -v "${PWD}/config:/app/config" -v "${PWD}/ipfs_data:/data/ipfs" ...
+docker run -v "${PWD}/config:/app/config" -v "${PWD}/ipfs_data:/data/ipfs" -v "${PWD}/zeronet_app_data:/data/zeronet" ...
 ```
 
 ## ZeroNet Configuration
 
-Since v2, ZeroNet is not part of the app image, so there is no in-container `zeronet.conf` anymore (that was a v1 mechanism). Instead:
+The v1 `zeronet.conf` file is gone; in v2 you either enable the bundled node or point at an external one:
+
+**Bundled node (amd64 images):**
+
+1. Set `ENABLE_ZERONET=true` (and optionally `ENABLE_TOR=true`), mount `/data/zeronet`, and publish `43110`/`26552` if you want the UI or better peer connectivity.
+2. Leave `ZERONET_URL` unset — the scraper targets the embedded node automatically.
+3. Tune the node with the `ZERONET_*` variables above (`ZERONET_UI_PORT`, `ZERONET_UI_HOST`, `ZERONET_EXTRA_ARGS`, ...).
+
+**External service (any platform):**
 
 1. Run a ZeroNet service somewhere the container can reach — the checked-in `docker-compose.yml` ships an optional amd64 sidecar (`docker compose --profile zeronet up -d`), or use any existing ZeroNet install.
-2. Point `ZERONET_URL` at it (the compose default is `http://host.docker.internal:43110`).
-3. Add your ZeroNet sources in the Scraper page with the **ZeroNet** URL type (`zero://...` URLs are also auto-detected).
+2. Point `ZERONET_URL` at it (the compose default is `http://host.docker.internal:43110`). TOR and the node's own settings are configured on that external service.
 
-Configure the ZeroNet node itself (TOR, ui_host, ports) in that external service's own configuration.
+Either way, add your ZeroNet sources in the Scraper page with the **ZeroNet** URL type (`zero://...` URLs are also auto-detected).
 
 ## Running Behind a Reverse Proxy
 

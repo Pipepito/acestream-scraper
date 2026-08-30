@@ -41,6 +41,7 @@
     acexy: true,
     warp: false,
     zeronet: false,
+    zeronetEmbedded: true,
     zeronetUrl: '',
     ipfs: false,
     ipfsEmbedded: true,
@@ -68,22 +69,26 @@
     const needsExternalEngine = acexyOn && !engineOn;
     const ipfsEmbeddedOn = state.ipfs && state.ipfsEmbedded && platform.ipfsAvailable;
     const ipfsExternalOn = state.ipfs && !ipfsEmbeddedOn;
+    const zeronetEmbeddedOn = state.zeronet && state.zeronetEmbedded && platform.zeronetAvailable;
+    const zeronetExternalOn = state.zeronet && !zeronetEmbeddedOn;
 
     const activePorts = data.ports.filter((p) => {
       if (p.id === 'web') return true;
       if (p.id === 'acexy') return acexyOn;
       if (p.id === 'engineApi' || p.id === 'p2p') return engineOn;
       if (p.id === 'ipfsSwarm' || p.id === 'ipfsGateway') return ipfsEmbeddedOn;
+      if (p.id === 'zeronetUi' || p.id === 'zeronetFileserver') return zeronetEmbeddedOn;
       return false;
     });
     const activeVolumes = data.volumes.filter((v) => {
       if (v.id === 'config') return true;
       if (v.id === 'engineState') return engineOn;
       if (v.id === 'ipfsRepo') return ipfsEmbeddedOn;
+      if (v.id === 'zeronetData') return zeronetEmbeddedOn;
       return false;
     });
 
-    return { flavor, platform, imageHasEngine, imageHasAcexy, engineOn, acexyOn, warpOn, needsExternalEngine, ipfsEmbeddedOn, ipfsExternalOn, activePorts, activeVolumes };
+    return { flavor, platform, imageHasEngine, imageHasAcexy, engineOn, acexyOn, warpOn, needsExternalEngine, ipfsEmbeddedOn, ipfsExternalOn, zeronetEmbeddedOn, zeronetExternalOn, activePorts, activeVolumes };
   }
 
   function imageTag(flavor) {
@@ -118,7 +123,8 @@
       env.push(['ACEXY_PORT', String(validPort(state.extEnginePort) || 6878)]);
     }
     if (d.warpOn) env.push(['ENABLE_WARP', 'true']);
-    if (state.zeronet) env.push(['ZERONET_URL', state.zeronetUrl.trim() || data.zeronet.defaultUrl]);
+    if (d.zeronetEmbeddedOn) env.push(['ENABLE_ZERONET', 'true']);
+    if (d.zeronetExternalOn) env.push(['ZERONET_URL', state.zeronetUrl.trim() || data.zeronet.defaultUrl]);
     if (d.ipfsEmbeddedOn) env.push(['ENABLE_IPFS', 'true']);
     if (d.ipfsExternalOn) env.push(['IPFS_GATEWAY_URL', state.ipfsGatewayUrl.trim() || data.ipfs.defaultGatewayUrl]);
     if (state.tz.trim()) env.push(['TZ', state.tz.trim()]);
@@ -150,7 +156,7 @@
   }
 
   function usesHostGateway(d) {
-    if (state.zeronet && (state.zeronetUrl.trim() || data.zeronet.defaultUrl).includes('host.docker.internal')) return true;
+    if (d.zeronetExternalOn && (state.zeronetUrl.trim() || data.zeronet.defaultUrl).includes('host.docker.internal')) return true;
     return d.ipfsExternalOn && (state.ipfsGatewayUrl.trim() || data.ipfs.defaultGatewayUrl).includes('host.docker.internal');
   }
 
@@ -205,6 +211,7 @@
     if (d.imageHasEngine) env.push(['ENABLE_ACESTREAM_ENGINE', d.engineOn ? 'true' : 'false']);
     if (d.imageHasAcexy) env.push(['ENABLE_ACEXY', d.acexyOn ? 'true' : 'false']);
     if (d.platform.warpAvailable) env.push(['ENABLE_WARP', d.warpOn ? 'true' : 'false']);
+    if (d.platform.zeronetAvailable) env.push(['ENABLE_ZERONET', d.zeronetEmbeddedOn ? 'true' : 'false']);
     if (d.platform.ipfsAvailable) env.push(['ENABLE_IPFS', d.ipfsEmbeddedOn ? 'true' : 'false']);
     for (const [k, v] of envEntries(d)) {
       if (!env.some((e) => e[0] === k)) env.push([k, v]);
@@ -268,6 +275,16 @@
     }
     if (d.engineOn && d.platform.id !== 'amd64' && state.volumes.engineState && !state.volumes.engineState.enabled) {
       out.push(['info', 'Without the engine state folder the ARM engine rebuilds its cache and device id on every container replacement.']);
+    }
+    if (state.zeronet && state.zeronetEmbedded && !d.platform.zeronetAvailable) {
+      out.push(['warn', 'The bundled ZeroNet node is switched off for this platform. ' + data.notes.zeronetArm]);
+    }
+    if (d.zeronetEmbeddedOn && state.volumes.zeronetData && !state.volumes.zeronetData.enabled) {
+      out.push(['info', 'Without the ZeroNet state folder the node re-downloads its sites on every container replacement.']);
+    }
+    const zeronetUi = data.ports.find((p) => p.id === 'zeronetUi');
+    if (d.zeronetEmbeddedOn && zeronetUi && state.ports.zeronetUi && state.ports.zeronetUi.enabled) {
+      out.push(['warn', zeronetUi.securityNote + ' Set ZERONET_UI_HOST for access from other machines.']);
     }
     if (state.ipfs && state.ipfsEmbedded && !d.platform.ipfsAvailable) {
       out.push(['warn', 'The embedded IPFS node is switched off for this platform. ' + data.notes.ipfsArmv7]);
@@ -380,6 +397,11 @@
     list.append(toggleRow('zeronet', 'Scrape ZeroNet sources',
       data.zeronet.description,
       state.zeronet, (v) => { state.zeronet = v; }));
+    if (state.zeronet) {
+      list.append(toggleRow('zeronet-embedded', 'Run the bundled ZeroNet node in this container',
+        d.platform.zeronetAvailable ? data.zeronet.embeddedDescription : data.notes.zeronetArm,
+        d.platform.zeronetAvailable && state.zeronetEmbedded, (v) => { state.zeronetEmbedded = v; }, !d.platform.zeronetAvailable));
+    }
     list.append(toggleRow('ipfs', 'Scrape IPFS sources',
       data.ipfs.description,
       state.ipfs, (v) => { state.ipfs = v; }));
@@ -395,8 +417,8 @@
     $('#external-engine-hint').textContent = data.notes.acexyExternalEngine;
 
     const zn = $('#zeronet-fields');
-    zn.hidden = !state.zeronet;
-    $('#zeronet-hint').textContent = 'Use host.docker.internal to reach a service on the Docker host.';
+    zn.hidden = !d.zeronetExternalOn;
+    $('#zeronet-hint').textContent = 'Address of the external ZeroNet service. Use host.docker.internal to reach a service on the Docker host.';
     if (!$('#zeronet-url').value) $('#zeronet-url').value = state.zeronetUrl || data.zeronet.defaultUrl;
 
     const ipfs = $('#ipfs-fields');
@@ -570,9 +592,9 @@
     state.flavor = (data.flavors.find((f) => f.recommended) || data.flavors[0]).id;
     state.zeronetUrl = data.zeronet.defaultUrl;
     state.ipfsGatewayUrl = data.ipfs.defaultGatewayUrl;
-    // The engine API and the IPFS gateway work in-container without being
-    // published; keep them opt-in.
-    for (const p of data.ports) state.ports[p.id] = { enabled: p.id !== 'engineApi' && p.id !== 'ipfsGateway', host: p.defaultHost };
+    // The engine API, the IPFS gateway and the (unauthenticated) ZeroNet UI
+    // work in-container without being published; keep them opt-in.
+    for (const p of data.ports) state.ports[p.id] = { enabled: !['engineApi', 'ipfsGateway', 'zeronetUi'].includes(p.id), host: p.defaultHost };
     for (const v of data.volumes) state.volumes[v.id] = { enabled: true, source: v.defaultSource };
     renderFlavors();
     renderPlatforms();

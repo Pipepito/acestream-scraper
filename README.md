@@ -34,9 +34,9 @@ Not sure which tag, ports, folders or options you need? The [Docker command buil
 
 WARP is installed in every flavor's `linux/amd64` image (ARM images ship without it), but it only starts when `ENABLE_WARP=true`. WARP-enabled containers need the runtime capabilities `NET_ADMIN` and `SYS_ADMIN`.
 
-ZeroNet remains an external sidecar/service. It is not bundled into every image, and the app talks to it through `ZERONET_URL`.
+ZeroNet works in two modes. The `linux/amd64` images bundle a ZeroNet node ([zeronet-conservancy](https://github.com/zeronet-conservancy/zeronet-conservancy) v0.7.10 on its own Python 3.11, like the v1 image) that is opt-in via `ENABLE_ZERONET=true` (plus optional `ENABLE_TOR=true`); its state lives in `/data/zeronet` and its UI/fileserver ports are `43110`/`26552`. Alternatively — and on ARM images, which ship without the bundled node — ZeroNet runs as an external sidecar/service and the app talks to it through `ZERONET_URL`.
 
-The default compose file points `ZERONET_URL` at `http://host.docker.internal:43110`, so the app can start cleanly even when the optional `zeronet` profile is disabled. The checked-in `zeronet` compose service is an amd64-focused sidecar example. On ARM hosts, prefer an external ZeroNet endpoint or a compatible replacement sidecar and keep `ZERONET_URL` pointed at it.
+The default compose file points `ZERONET_URL` at `http://host.docker.internal:43110`, so the app can start cleanly even when the optional `zeronet` profile is disabled. The checked-in `zeronet` compose service is an amd64-focused sidecar example. On ARM hosts, prefer an external ZeroNet endpoint or a compatible replacement sidecar and keep `ZERONET_URL` pointed at it. When you enable the embedded node instead, leave `ZERONET_URL` unset (it then targets the embedded UI port automatically) or set it to `http://127.0.0.1:43110`.
 
 IPFS is bundled: every flavor ships the [Kubo](https://github.com/ipfs/kubo) daemon on `linux/amd64` and `linux/arm64` (Kubo publishes no 32-bit ARM build, so `linux/arm/v7` images ship without it and refuse `ENABLE_IPFS=true`). The daemon is opt-in — `ENABLE_IPFS=false` by default — and `ipfs://` / `ipns://` sources are fetched through `IPFS_GATEWAY_URL`, which defaults to the embedded gateway at `http://127.0.0.1:8081`. The gateway sits on `8081` in-container because Acexy already owns `8080`. To scrape IPFS without the embedded daemon, keep `ENABLE_IPFS=false` and point `IPFS_GATEWAY_URL` at an external node instead (for example `http://host.docker.internal:8080` for a Kubo or IPFS Desktop install on the Docker host).
 
@@ -109,6 +109,10 @@ npm start
 - `ENABLE_IPFS` (default: `false`; starts the embedded Kubo daemon — amd64/arm64 images only)
 - `IPFS_PATH` (default: `/data/ipfs`; the embedded daemon's repository — mount a volume there)
 - `IPFS_SWARM_PORT` (default: `4001`), `IPFS_API_PORT` (default: `5001`, loopback-bound), `IPFS_GATEWAY_PORT` (default: `8081` — `8080` belongs to Acexy)
+- `ENABLE_ZERONET` (default: `false`; starts the bundled ZeroNet node — amd64 images only)
+- `ENABLE_TOR` (default: `false`; runs TOR for the bundled ZeroNet node — only with `ENABLE_ZERONET=true`)
+- `ZERONET_DATA_DIR` (default: `/data/zeronet`; the bundled node's state — mount a volume there)
+- `ZERONET_UI_PORT` (default: `43110`), `ZERONET_FILESERVER_PORT` (default: `26552`), `ZERONET_UI_HOST` (extra Host headers the UI should accept)
 
 Docker flavor choice controls which optional binaries are installed. Runtime env vars control whether those installed services actually start.
 

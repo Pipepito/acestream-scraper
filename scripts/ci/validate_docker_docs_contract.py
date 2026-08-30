@@ -135,6 +135,22 @@ checks = [
         "- ENABLE_IPFS=false" in compose and "./ipfs_data:/data/ipfs" in compose,
     ),
     (
+        "docker-compose embedded zeronet toggle",
+        "- ENABLE_ZERONET=false" in compose,
+    ),
+    (
+        "docs explain bundled zeronet contract",
+        contains_all(readme, "zeronet", "enable_zeronet", "/data/zeronet")
+        and contains_all(docker_guide, "zeronet", "enable_zeronet", "/data/zeronet")
+        and contains_all(deployment, "zeronet", "enable_zeronet", "/data/zeronet"),
+    ),
+    (
+        "docs explain bundled zeronet amd64-only availability",
+        contains_all(readme, "enable_zeronet", "amd64")
+        and contains_all(docker_guide, "enable_zeronet", "amd64")
+        and contains_all(deployment, "enable_zeronet", "amd64"),
+    ),
+    (
         "docs explain embedded ipfs contract",
         contains_all(readme, "ipfs", "enable_ipfs", "/data/ipfs")
         and contains_all(docker_guide, "ipfs", "enable_ipfs", "/data/ipfs")

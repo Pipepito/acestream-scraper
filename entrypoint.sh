@@ -176,14 +176,27 @@ prune_finished_children() {
 ENABLE_WARP=$(normalize_bool "${ENABLE_WARP:-false}")
 ENABLE_ACESTREAM_ENGINE=$(normalize_bool "${ENABLE_ACESTREAM_ENGINE:-false}")
 ENABLE_ACEXY=$(normalize_bool "${ENABLE_ACEXY:-false}")
+ENABLE_IPFS=$(normalize_bool "${ENABLE_IPFS:-false}")
 IMAGE_HAS_ACESTREAM=$(normalize_bool "${IMAGE_HAS_ACESTREAM:-false}")
 IMAGE_HAS_ACEXY=$(normalize_bool "${IMAGE_HAS_ACEXY:-false}")
+# Kubo ships no 32-bit ARM build, so IPFS availability is per-platform: detect
+# the installed binary instead of hard-coding an ENV per flavor.
+IPFS_BINARY_PATH="${IPFS_BINARY_PATH:-/opt/ipfs/bin/ipfs}"
+if [ -z "${IMAGE_HAS_IPFS:-}" ]; then
+    if [ -x "$IPFS_BINARY_PATH" ]; then IMAGE_HAS_IPFS=true; else IMAGE_HAS_IPFS=false; fi
+fi
+IMAGE_HAS_IPFS=$(normalize_bool "$IMAGE_HAS_IPFS")
 
-export ENABLE_WARP ENABLE_ACESTREAM_ENGINE ENABLE_ACEXY IMAGE_HAS_ACESTREAM IMAGE_HAS_ACEXY
+export ENABLE_WARP ENABLE_ACESTREAM_ENGINE ENABLE_ACEXY ENABLE_IPFS IMAGE_HAS_ACESTREAM IMAGE_HAS_ACEXY IMAGE_HAS_IPFS IPFS_BINARY_PATH
 export FLASK_PORT="${FLASK_PORT:-8000}"
 export ACESTREAM_HTTP_HOST="${ACESTREAM_HTTP_HOST:-localhost}"
 export ACESTREAM_HTTP_PORT="${ACESTREAM_HTTP_PORT:-6878}"
 export ZERONET_URL="${ZERONET_URL:-http://127.0.0.1:43110}"
+export IPFS_SWARM_PORT="${IPFS_SWARM_PORT:-4001}"
+export IPFS_API_PORT="${IPFS_API_PORT:-5001}"
+# 8080 belongs to Acexy in-container, so the embedded gateway defaults to 8081.
+export IPFS_GATEWAY_PORT="${IPFS_GATEWAY_PORT:-8081}"
+export IPFS_GATEWAY_URL="${IPFS_GATEWAY_URL:-http://127.0.0.1:$IPFS_GATEWAY_PORT}"
 
 if feature_enabled "$ENABLE_WARP"; then
     if ! bash "$(dirname "$0")/warp-setup.sh"; then
@@ -199,6 +212,10 @@ fi
 
 if feature_enabled "$ENABLE_ACEXY" && ! image_has_feature "$IMAGE_HAS_ACEXY"; then
     fail "Acexy is enabled but not installed in this image flavor"
+fi
+
+if feature_enabled "$ENABLE_IPFS" && ! image_has_feature "$IMAGE_HAS_IPFS"; then
+    fail "IPFS is enabled but Kubo is not installed in this image (upstream ships no 32-bit ARM build)"
 fi
 
 if feature_enabled "$ENABLE_ACESTREAM_ENGINE"; then
@@ -220,9 +237,36 @@ fi
 export ACE_ENGINE_URL="${ACE_ENGINE_URL:-http://$ACESTREAM_HTTP_HOST:$ACESTREAM_HTTP_PORT}"
 
 log "ZeroNet compatibility mode enabled via ZERONET_URL=$ZERONET_URL"
+log "IPFS gateway for ipfs:// sources: $IPFS_GATEWAY_URL (embedded daemon: $ENABLE_IPFS)"
+
+configure_ipfs_repo() {
+    export IPFS_PATH="${IPFS_PATH:-/data/ipfs}"
+    mkdir -p "$IPFS_PATH"
+    if [ ! -f "$IPFS_PATH/config" ]; then
+        log "Initializing IPFS repository at $IPFS_PATH"
+        # shellcheck disable=SC2086 — IPFS_PROFILE is intentionally optional
+        "$IPFS_BINARY_PATH" init ${IPFS_PROFILE:+--profile "$IPFS_PROFILE"}
+    fi
+    # Re-applied every boot so IPFS_*_PORT env changes take effect. The RPC
+    # API binds to loopback by default: it has no authentication and full
+    # control of the node (set IPFS_API_HOST=0.0.0.0 only on trusted networks,
+    # e.g. to reach the WebUI).
+    "$IPFS_BINARY_PATH" config Addresses.API "/ip4/${IPFS_API_HOST:-127.0.0.1}/tcp/$IPFS_API_PORT"
+    "$IPFS_BINARY_PATH" config Addresses.Gateway "/ip4/0.0.0.0/tcp/$IPFS_GATEWAY_PORT"
+    "$IPFS_BINARY_PATH" config --json Addresses.Swarm "[\"/ip4/0.0.0.0/tcp/$IPFS_SWARM_PORT\", \"/ip6/::/tcp/$IPFS_SWARM_PORT\", \"/ip4/0.0.0.0/udp/$IPFS_SWARM_PORT/quic-v1\", \"/ip6/::/udp/$IPFS_SWARM_PORT/quic-v1\"]"
+}
 
 child_pids=()
 child_names=()
+
+if feature_enabled "$ENABLE_IPFS" && [ -n "${IPFS_START_COMMAND:-}" ]; then
+    if ! configure_ipfs_repo; then
+        fail "IPFS repository initialization failed"
+    fi
+    supervise_service "IPFS" "$IPFS_START_COMMAND" &
+    child_pids+=("$!")
+    child_names+=("IPFS")
+fi
 
 if feature_enabled "$ENABLE_ACESTREAM_ENGINE" && [ -n "${ACESTREAM_START_COMMAND:-}" ]; then
     supervise_service "AceStream" "$ACESTREAM_START_COMMAND" &

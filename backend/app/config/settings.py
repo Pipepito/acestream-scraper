@@ -88,10 +88,18 @@ class Settings(BaseSettings):
     # migration skips them. Negative disables both (keep everything).
     EPG_PROGRAM_RETENTION_HOURS: float = 24.0
     ZERONET_URL: str = "http://127.0.0.1:43110"
+    # HTTP gateway used to fetch ipfs:// and ipns:// sources. Defaults to the
+    # embedded Kubo daemon's gateway (entrypoint.sh binds it on 8081 because
+    # Acexy owns 8080 in-container); point it at any external gateway instead.
+    IPFS_GATEWAY_URL: str = "http://127.0.0.1:8081"
     SCRAPER_TIMEOUT: int = 10
     SCRAPER_RETRIES: int = 3
     ZERONET_TIMEOUT: int = 20
     ZERONET_RETRIES: int = 5
+    # Cold gateway fetches wait on DHT provider lookups; give them more room
+    # than plain HTTP sources.
+    IPFS_TIMEOUT: int = 30
+    IPFS_RETRIES: int = 3
     CORS_ORIGINS: List[str] = ["http://localhost:3000"]
     FRONTEND_BUILD_PATH: str = "frontend_build"
     ACE_ENGINE_URL: str = "http://localhost:6878"

@@ -101,6 +101,76 @@ class ZeronetURL(BaseURL):
         )
 
 
+class IpfsURL(BaseURL):
+    """URL type for IPFS/IPNS URLs, fetched through an IPFS HTTP gateway"""
+
+    GATEWAY_PATH_PREFIXES = ('/ipfs/', '/ipns/')
+
+    def _validate(self) -> None:
+        """Validate IPFS URL format"""
+        if self.skip_validation:
+            # Skip validation if explicitly requested (user selected ipfs type)
+            return
+
+        if not self.is_valid_url(self.original_url):
+            raise ValueError(f"Invalid IPFS URL: {self.original_url}")
+
+    def get_normalized_url(self) -> str:
+        """Return a normalized IPFS URL (ipfs://<cid>/... or ipns://<name>/...)"""
+        # If validation was skipped, return original URL as is
+        if self.skip_validation:
+            return self.original_url
+
+        # Native ipfs:// / ipns:// URLs are already canonical
+        if self.original_url.startswith(('ipfs://', 'ipns://')):
+            return self.original_url
+
+        # Gateway-style HTTP URLs (http://host[:port]/ipfs/<cid>/...) are
+        # normalized to the native scheme so the same content pinned through
+        # different gateways maps to one source URL.
+        parsed = urlparse(self.original_url)
+        path = parsed.path or ''
+        for prefix in self.GATEWAY_PATH_PREFIXES:
+            if path.startswith(prefix):
+                scheme = prefix.strip('/')
+                rest = path[len(prefix):]
+                if parsed.query:
+                    rest = f"{rest}?{parsed.query}"
+                return f"{scheme}://{rest}"
+
+        return self.original_url
+
+    @staticmethod
+    def to_gateway_url(url: str, gateway_base: str) -> str:
+        """Map a native ipfs://ipns:// URL onto an HTTP gateway; other URLs
+        (already-HTTP gateway links, plain http) are returned untouched."""
+        base = gateway_base.rstrip('/')
+        if url.startswith('ipfs://'):
+            return f"{base}/ipfs/{url[len('ipfs://'):]}"
+        if url.startswith('ipns://'):
+            return f"{base}/ipns/{url[len('ipns://'):]}"
+        return url
+
+    def get_internal_url(self, gateway_base: str) -> str:
+        """Get the HTTP URL used to fetch this source through the configured
+        IPFS gateway"""
+        # If validation was skipped, we don't attempt to transform the URL
+        if self.skip_validation:
+            return self.to_gateway_url(self.original_url, gateway_base)
+
+        return self.to_gateway_url(self.get_normalized_url(), gateway_base)
+
+    @staticmethod
+    def is_valid_url(url: str) -> bool:
+        """Check if a URL is a valid IPFS URL"""
+        if url.startswith('ipfs://') or url.startswith('ipns://'):
+            return len(url.split('://', 1)[1]) > 0
+        parsed = urlparse(url)
+        if parsed.scheme in ('http', 'https') and parsed.netloc:
+            return (parsed.path or '').startswith(IpfsURL.GATEWAY_PATH_PREFIXES)
+        return False
+
+
 class RegularURL(BaseURL):
     """URL type for regular HTTP/HTTPS URLs"""
     
@@ -131,7 +201,7 @@ def create_url_object(url: str, url_type: str = 'auto') -> BaseURL:
     
     Args:
         url (str): The URL string
-        url_type (str): Optional explicit URL type ('regular', 'zeronet', 'auto')
+        url_type (str): Optional explicit URL type ('regular', 'zeronet', 'ipfs', 'auto')
         
     Returns:
         BaseURL: A subclass of BaseURL appropriate for the URL type
@@ -152,10 +222,18 @@ def create_url_object(url: str, url_type: str = 'auto') -> BaseURL:
     elif url_type == 'zeronet':
         # For explicit ZeroNet URLs, skip validation as user has specified the type
         return ZeronetURL(url, skip_validation=True)
+    elif url_type == 'ipfs':
+        # For explicit IPFS URLs, skip validation as user has specified the type
+        return IpfsURL(url, skip_validation=True)
     elif url_type != 'auto':
         raise ValueError(f"Unsupported URL type: {url_type}")
     
     # For auto detection, try to determine the type
+    if url.startswith('ipfs://') or url.startswith('ipns://'):
+        # Native IPFS scheme detected; gateway-style http(s) URLs stay
+        # regular unless the user explicitly picks the ipfs type.
+        return IpfsURL(url)
+
     if url.startswith('zero://') or (
             '43110' in url and (':43110/' in url or '.43110/' in url)):
         # ZeroNet URL pattern detected

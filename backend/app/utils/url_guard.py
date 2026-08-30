@@ -8,7 +8,7 @@ Behavior:
 - In strict mode (ALLOW_PRIVATE_SCRAPE_TARGETS=false), destinations that
   resolve to loopback, private, link-local, reserved, multicast or
   unspecified addresses are blocked — except the configured ZERONET_URL
-  host, which is a legitimate local dependency.
+  and IPFS_GATEWAY_URL hosts, which are legitimate local dependencies.
 - The default is permissive (ALLOW_PRIVATE_SCRAPE_TARGETS=true): scraping
   LAN/localhost sources is a first-class use case for self-hosters. Flip it
   to false when exposing the app beyond a trusted network.
@@ -52,11 +52,12 @@ def _allow_private_targets() -> bool:
 
 def _exempt_hosts() -> set:
     hosts = set()
-    zeronet = os.environ.get("ZERONET_URL", "")
-    if zeronet:
-        parsed = urlparse(zeronet if "://" in zeronet else f"http://{zeronet}")
-        if parsed.hostname:
-            hosts.add(parsed.hostname.lower())
+    for env_name in ("ZERONET_URL", "IPFS_GATEWAY_URL"):
+        value = os.environ.get(env_name, "")
+        if value:
+            parsed = urlparse(value if "://" in value else f"http://{value}")
+            if parsed.hostname:
+                hosts.add(parsed.hostname.lower())
     return hosts
 
 

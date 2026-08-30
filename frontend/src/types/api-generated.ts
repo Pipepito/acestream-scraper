@@ -576,7 +576,7 @@ export interface paths {
      *
      * Request body:
      * - url: The URL to scrape
-     * - url_type: (Optional) URL type ('auto', 'regular', 'zeronet')
+     * - url_type: (Optional) URL type ('auto', 'regular', 'zeronet', 'ipfs')
      * - run_async: (Optional) Run scraping in background
      */
     post: operations["scrape_url_api_v1_scrapers_scrape_post"];
@@ -4226,7 +4226,7 @@ export interface operations {
    *
    * Request body:
    * - url: The URL to scrape
-   * - url_type: (Optional) URL type ('auto', 'regular', 'zeronet')
+   * - url_type: (Optional) URL type ('auto', 'regular', 'zeronet', 'ipfs')
    * - run_async: (Optional) Run scraping in background
    */
   scrape_url_api_v1_scrapers_scrape_post: {

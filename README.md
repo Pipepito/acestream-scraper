@@ -38,6 +38,10 @@ ZeroNet remains an external sidecar/service. It is not bundled into every image,
 
 The default compose file points `ZERONET_URL` at `http://host.docker.internal:43110`, so the app can start cleanly even when the optional `zeronet` profile is disabled. The checked-in `zeronet` compose service is an amd64-focused sidecar example. On ARM hosts, prefer an external ZeroNet endpoint or a compatible replacement sidecar and keep `ZERONET_URL` pointed at it.
 
+IPFS is bundled: every flavor ships the [Kubo](https://github.com/ipfs/kubo) daemon on `linux/amd64` and `linux/arm64` (Kubo publishes no 32-bit ARM build, so `linux/arm/v7` images ship without it and refuse `ENABLE_IPFS=true`). The daemon is opt-in — `ENABLE_IPFS=false` by default — and `ipfs://` / `ipns://` sources are fetched through `IPFS_GATEWAY_URL`, which defaults to the embedded gateway at `http://127.0.0.1:8081`. The gateway sits on `8081` in-container because Acexy already owns `8080`. To scrape IPFS without the embedded daemon, keep `ENABLE_IPFS=false` and point `IPFS_GATEWAY_URL` at an external node instead (for example `http://host.docker.internal:8080` for a Kubo or IPFS Desktop install on the Docker host).
+
+When the embedded daemon is enabled, persist its repository by mounting a volume at `/data/ipfs` (`-v ./ipfs_data:/data/ipfs`), and publish `4001` tcp/udp (swarm — improves peer connectivity), `8081` (HTTP gateway) as needed. The RPC API on `5001` is unauthenticated and binds to the container loopback by default; only expose it as `127.0.0.1:5001:5001` (set `IPFS_API_HOST=0.0.0.0` in-container first) if you need the WebUI.
+
 Runtime behavior is env-driven even when binaries are installed in the selected image. `ENABLE_ACESTREAM_ENGINE` controls the in-container AceStream engine, `ENABLE_ACEXY` controls Acexy, `ACESTREAM_HTTP_HOST` and `ACESTREAM_HTTP_PORT` define the engine endpoint, and `ACEXY_HOST` and `ACEXY_PORT` define where Acexy connects.
 
 AceStream platform availability is manifest-driven via `docker/manifests/acestream.json`. `latest` and `scraper-acestream-acexy` are only published for platforms listed there.
@@ -87,6 +91,7 @@ npm start
 - `LEGACY_DATABASE_URL` (default: `sqlite:///./config/acestream.db`)
 - `EPG_PROGRAM_RETENTION_HOURS` (default: `24`) — EPG programs that ended more than this many hours ago are deleted by the hourly `epg_program_cleanup` job and skipped by the v1→v2 migration; negative keeps everything
 - `ZERONET_URL` (default: `http://host.docker.internal:43110` in the checked-in compose example)
+- `IPFS_GATEWAY_URL` (default: the embedded gateway `http://127.0.0.1:8081`; point it at an external IPFS gateway when `ENABLE_IPFS=false`)
 - `CORS_ORIGINS` (default: `http://localhost:3000`)
 - `FRONTEND_BUILD_PATH` (default: `frontend_build`)
 - `ACE_ENGINE_URL` (default: `http://localhost:6878`)
@@ -101,6 +106,9 @@ npm start
 - `ACEXY_HOST` (default: `localhost`)
 - `ACEXY_PORT` (default: `6878`)
 - `ACESTREAM_HOME` (default: `/var/lib/acestream`; state, cache, and logs of the ARM Android engine — mount a volume there)
+- `ENABLE_IPFS` (default: `false`; starts the embedded Kubo daemon — amd64/arm64 images only)
+- `IPFS_PATH` (default: `/data/ipfs`; the embedded daemon's repository — mount a volume there)
+- `IPFS_SWARM_PORT` (default: `4001`), `IPFS_API_PORT` (default: `5001`, loopback-bound), `IPFS_GATEWAY_PORT` (default: `8081` — `8080` belongs to Acexy)
 
 Docker flavor choice controls which optional binaries are installed. Runtime env vars control whether those installed services actually start.
 

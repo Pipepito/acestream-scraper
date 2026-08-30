@@ -68,7 +68,7 @@ class ScrapedURL(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     url = Column(String(2048), unique=True, index=True, nullable=False)
-    url_type = Column(String(255), default="regular")  # 'regular', 'zeronet', etc.
+    url_type = Column(String(255), default="regular")  # 'regular', 'zeronet', 'ipfs', etc.
     status = Column(String(255), default="pending")
     last_processed = Column(UtcDateTime(), nullable=True)
     last_scraped = Column(UtcDateTime(), default=_utcnow)  # Keep for backward compatibility

@@ -114,6 +114,25 @@ RUN --mount=type=bind,source=docker/vendor,target=/tmp/acestream-vendor,readonly
 FROM python:${ACESTREAM_ENGINE_PYTHON_VERSION}-slim AS engine-python
 
 
+# Kubo (go-ipfs) is a static Go binary: download it once on the build host for
+# the target platform instead of running under QEMU. Upstream ships
+# linux-amd64 and linux-arm64 only — on linux/arm/v7 the stage produces an
+# empty /opt/ipfs/bin and the image ships without IPFS.
+FROM --platform=$BUILDPLATFORM debian:bookworm-slim AS ipfs-installer
+
+ARG TARGETPLATFORM
+ARG KUBO_VERSION=v0.43.0
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl tar \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY docker/scripts/install-ipfs.sh /usr/local/lib/ipfs-install/install-ipfs.sh
+RUN chmod +x /usr/local/lib/ipfs-install/install-ipfs.sh \
+    && TARGETPLATFORM=${TARGETPLATFORM} KUBO_VERSION=${KUBO_VERSION} \
+       /usr/local/lib/ipfs-install/install-ipfs.sh
+
+
 # Go cross-compiles: build on the build host for the target platform instead
 # of running the toolchain under QEMU (and pulling golang for every arch).
 FROM --platform=$BUILDPLATFORM golang:1.22 AS acexy-builder
@@ -167,7 +186,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     ACEXY_HOST=localhost \
     ACEXY_PORT=6878 \
     ACEXY_STATUS_PORT=8080 \
-    ZERONET_URL=http://127.0.0.1:43110
+    ZERONET_URL=http://127.0.0.1:43110 \
+    ENABLE_IPFS=false \
+    IPFS_PATH=/data/ipfs \
+    IPFS_BINARY_PATH=/opt/ipfs/bin/ipfs \
+    IPFS_START_COMMAND="/opt/ipfs/bin/ipfs daemon --migrate=true" \
+    IPFS_SWARM_PORT=4001 \
+    IPFS_API_PORT=5001 \
+    IPFS_GATEWAY_PORT=8081
 
 WORKDIR /app
 
@@ -199,6 +225,15 @@ COPY --from=python-deps /install /usr/local
 COPY backend/ /app/
 RUN mkdir -p /app/frontend_build /app/logs /opt/acestream/bin /opt/acexy/bin
 COPY --from=frontend-builder /build/frontend/dist/ /app/frontend_build/
+
+# Kubo IPFS daemon (all flavors; /opt/ipfs/bin is empty on linux/arm/v7 where
+# upstream ships no 32-bit ARM build — the entrypoint detects the missing
+# binary and refuses ENABLE_IPFS=true there). The daemon is opt-in at runtime:
+# ENABLE_IPFS=false by default. Its gateway defaults to 8081 in-container
+# because Acexy already owns 8080.
+COPY --from=ipfs-installer /opt/ipfs/ /opt/ipfs/
+RUN mkdir -p /data/ipfs \
+    && if [ -x /opt/ipfs/bin/ipfs ]; then ln -sf /opt/ipfs/bin/ipfs /usr/local/bin/ipfs; fi
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY warp-setup.sh /usr/local/bin/warp-setup.sh
 COPY healthcheck.sh /usr/local/bin/healthcheck.sh

@@ -52,7 +52,7 @@ if f"image: {data['image']}:latest" not in compose:
     errors.append(f"docker-compose.yml no longer uses {data['image']}:latest")
 
 # The runtime toggles the page emits must still exist in the entrypoint.
-for var in ("ENABLE_ACESTREAM_ENGINE", "ENABLE_ACEXY", "ENABLE_WARP", "ACEXY_HOST", "ACEXY_PORT", "ZERONET_URL", "FLASK_PORT"):
+for var in ("ENABLE_ACESTREAM_ENGINE", "ENABLE_ACEXY", "ENABLE_WARP", "ACEXY_HOST", "ACEXY_PORT", "ZERONET_URL", "ENABLE_IPFS", "IPFS_GATEWAY_URL", "FLASK_PORT"):
     if var not in entrypoint:
         errors.append(f"entrypoint.sh no longer references {var}")
 
@@ -65,6 +65,10 @@ if ports["engineApi"]["container"] != int(re.search(r'ACESTREAM_HTTP_PORT:-(\d+)
 m = re.search(r'ACEXY_STATUS_PORT=(\d+)', dockerfile)
 if m and ports["acexy"]["container"] != int(m.group(1)):
     errors.append("acexy port differs from ACEXY_STATUS_PORT in Dockerfile")
+if ports["ipfsGateway"]["container"] != int(re.search(r'IPFS_GATEWAY_PORT:-(\d+)', entrypoint).group(1)):
+    errors.append("IPFS gateway port differs from IPFS_GATEWAY_PORT default in entrypoint.sh")
+if ports["ipfsSwarm"]["container"] != int(re.search(r'IPFS_SWARM_PORT:-(\d+)', entrypoint).group(1)):
+    errors.append("IPFS swarm port differs from IPFS_SWARM_PORT default in entrypoint.sh")
 
 for f in data["flavors"]:
     for key in ("releaseTag", "developTag", "versionTagPattern"):

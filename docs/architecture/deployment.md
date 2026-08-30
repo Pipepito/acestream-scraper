@@ -61,6 +61,8 @@ ZeroNet remains an external sidecar/service. The container image keeps the `ZERO
 
 The checked-in compose file points `ZERONET_URL` at `http://host.docker.internal:43110` by default so the app can run without the optional `zeronet` profile. The example `zeronet` service is pinned for amd64. ARM deployments should use an external ZeroNet endpoint or replace that sidecar while keeping `ZERONET_URL` unchanged.
 
+IPFS is bundled instead of running as a sidecar: every flavor installs the Kubo daemon on `linux/amd64` and `linux/arm64` (upstream publishes no 32-bit ARM build, so `linux/arm/v7` images ship without it and the entrypoint refuses `ENABLE_IPFS=true` there). The daemon is opt-in (`ENABLE_IPFS=false` by default); `ipfs://`/`ipns://` sources are fetched through `IPFS_GATEWAY_URL`, defaulting to the embedded gateway `http://127.0.0.1:8081` (in-container port `8080` belongs to Acexy). With the daemon disabled, `IPFS_GATEWAY_URL` can point at any external gateway (e.g. `http://host.docker.internal:8080`), which keeps IPFS scraping available on `linux/arm/v7` too. Persistent state lives in `/data/ipfs` (`IPFS_PATH`).
+
 ## Environment Configuration
 
 Primary backend settings:
@@ -68,6 +70,7 @@ Primary backend settings:
 - `DATABASE_URL`
 - `LEGACY_DATABASE_URL`
 - `ZERONET_URL`
+- `IPFS_GATEWAY_URL`
 - `CORS_ORIGINS`
 - `FRONTEND_BUILD_PATH`
 - `ACE_ENGINE_URL`

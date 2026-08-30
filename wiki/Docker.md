@@ -63,6 +63,8 @@ ZeroNet remains an external sidecar/service. The Docker image keeps the `ZERONET
 
 The checked-in compose stack keeps the `zeronet` service behind an optional `zeronet` profile and points the default app config at `http://host.docker.internal:43110`. It uses an amd64-focused sidecar image. On ARM hosts, point `ZERONET_URL` at an external ZeroNet service or swap in a compatible sidecar.
 
+IPFS is bundled, unlike ZeroNet: every flavor ships the [Kubo](https://github.com/ipfs/kubo) IPFS daemon on `linux/amd64` and `linux/arm64`. Kubo publishes no 32-bit ARM build, so `linux/arm/v7` images ship without it (the container exits with a clear error if `ENABLE_IPFS=true` is requested there — same situation as WARP). The daemon is opt-in: nothing IPFS-related runs until `ENABLE_IPFS=true`. `ipfs://` and `ipns://` sources are fetched through `IPFS_GATEWAY_URL`, which defaults to the embedded gateway at `http://127.0.0.1:8081` — the gateway uses `8081` in-container because Acexy already listens on `8080`. You can also scrape IPFS without the embedded daemon: keep `ENABLE_IPFS=false` and point `IPFS_GATEWAY_URL` at an external node, e.g. `http://host.docker.internal:8080` for a Kubo/IPFS Desktop install on the Docker host (this works on every platform, `linux/arm/v7` included).
+
 AceStream platform availability is manifest-driven via `docker/manifests/acestream.json`. Adding a new supported AceStream architecture means updating that manifest. The manifest pins the engine archive, checksum, and support level (`stable` or `experimental`) per platform; every pinned archive is also vendored under `docker/vendor/` and mirrored as GitHub Release assets, so image builds do not depend on reaching `download.acestream.media`.
 
 If you run with `ENABLE_WARP=true`, the container must be started with the runtime capabilities `NET_ADMIN` and `SYS_ADMIN`.
@@ -104,6 +106,8 @@ Important runtime env expectations:
 - `ACESTREAM_HTTP_HOST` and `ACESTREAM_HTTP_PORT` define the in-container AceStream endpoint
 - `ACEXY_HOST` and `ACEXY_PORT` define the engine endpoint Acexy connects to
 - `ZERONET_URL` points the scraper to an external ZeroNet sidecar/service
+- `ENABLE_IPFS` starts the embedded Kubo IPFS daemon only when set to `true` (amd64/arm64 images)
+- `IPFS_GATEWAY_URL` points the scraper to the IPFS HTTP gateway used for `ipfs://`/`ipns://` sources (defaults to the embedded gateway `http://127.0.0.1:8081`)
 
 The default compose example uses `http://host.docker.internal:43110` so the app can still boot when the optional `zeronet` profile is not enabled.
 
@@ -151,6 +155,28 @@ ARM caveats:
 - **No WARP on ARM images:** `cloudflare-warp` is amd64-only.
 - **Performance and streaming stability** on real ARM hardware are not yet validated; report results if you try it.
 - Repackaging the official APK payload is a grey area under the AceStream user agreement, as with every community ARM image. Enable the engine at your own discretion.
+
+### Run the Embedded IPFS Daemon (amd64 and arm64)
+
+Kubo is installed in every flavor but only starts when `ENABLE_IPFS=true`:
+
+```bash
+docker run -d \
+  -e ENABLE_IPFS=true \
+  -p 8000:8000 \
+  -p 4001:4001 \
+  -p 4001:4001/udp \
+  -p 8081:8081 \
+  -v "${PWD}/config:/app/config" \
+  -v "${PWD}/ipfs_data:/data/ipfs" \
+  --name acestream-scraper \
+  pipepito/acestream-scraper:latest
+```
+
+- `/data/ipfs` (`IPFS_PATH`) holds the IPFS repository (keys, blockstore, config); mount it so the node identity and cache survive container replacement.
+- Ports: `4001` tcp/udp is the swarm port (publishing it improves peer connectivity), `8081` is the HTTP gateway (only needed outside the container if you want to browse IPFS content through the node). The RPC API on `5001` has **no authentication** and full control of the node; it binds to the container loopback by default. If you need the WebUI, set `-e IPFS_API_HOST=0.0.0.0` and publish it only on the host loopback: `-p 127.0.0.1:5001:5001`.
+- Port overrides: `IPFS_SWARM_PORT` (default `4001`), `IPFS_API_PORT` (default `5001`), `IPFS_GATEWAY_PORT` (default `8081`; `8080` is taken by Acexy in-container). The entrypoint re-applies these to the IPFS config on every boot.
+- Once running, add sources as `ipfs://<cid>/path/list.m3u` (or `ipns://<name>/...`) in the Scraper page — they are fetched through the embedded gateway. A bare `ipfs://<cid>` whose content is an M3U playlist also works; the scraper detects the playlist by content.
 
 ### View Running Containers
 ```bash
@@ -214,6 +240,7 @@ Acestream Scraper uses Docker volumes to persist data:
 
 - `/app/config`: Configuration files including database
 - `/var/lib/acestream`: AceStream engine state, disk cache, and logs of the ARM Android engine (only used when `ENABLE_ACESTREAM_ENGINE=true` in an AceStream-enabled flavor)
+- `/data/ipfs`: The embedded IPFS daemon's repository — node identity, config, and blockstore (only used when `ENABLE_IPFS=true`)
 
 These volumes should be mounted to local directories (or named volumes) to ensure your data persists when containers are updated or replaced.
 

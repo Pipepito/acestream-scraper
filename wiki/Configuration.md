@@ -74,7 +74,6 @@ Acestream Scraper is configured from the web interface (**Settings** and **Scrap
 | `ENABLE_ACESTREAM_ENGINE` | Enable built-in Acestream Engine | Matches `ENABLE_ACEXY` | Set to `true` to run Acestream in the container |
 | `ACESTREAM_HTTP_PORT` | Port for Acestream engine | `6878` | Internal Acestream Engine HTTP port |
 | `ACESTREAM_HTTP_HOST` | Host for Acestream engine | Uses `ACEXY_HOST` | Address to access Acestream Engine |
-| `ALLOW_REMOTE_ACCESS` | Allow remote connections to Acestream | `no` | Set to `yes` to allow external connections |
 
 ### Acexy Configuration
 
@@ -101,11 +100,27 @@ Without Acexy, you'd need to manually append `&pid={unique_id}` to each stream U
 
 ### ZeroNet and Other Settings
 
+Since v2 the app image no longer bundles ZeroNet (or TOR): ZeroNet is an external sidecar/service the scraper reaches over HTTP. The v1 variables `ENABLE_TOR` and the in-container ZeroNet setup are deprecated and ignored.
+
 | Variable | Description | Default | Notes |
 |----------|-------------|---------|-------|
-| `ENABLE_TOR` | Enable TOR for ZeroNet connections | `false` | Set to `true` to use TOR with ZeroNet |
+| `ZERONET_URL` | Address of the external ZeroNet service | `http://host.docker.internal:43110` in the checked-in compose example | The optional `zeronet` compose profile starts a sidecar on the Docker host |
 | `TZ` | Timezone for the container | `Europe/Madrid` | Use any valid TZ identifier |
-| `DOCKER_ENVIRONMENT` | Mark as running in Docker | `true` | Used for internal path configuration |
+
+### IPFS Configuration
+
+The image bundles the [Kubo](https://github.com/ipfs/kubo) IPFS daemon (amd64/arm64 — Kubo has no 32-bit ARM build) so `ipfs://` and `ipns://` sources can be scraped through its HTTP gateway:
+
+| Variable | Description | Default | Notes |
+|----------|-------------|---------|-------|
+| `ENABLE_IPFS` | Start the embedded Kubo daemon | `false` | Opt-in; fails with a clear error on `linux/arm/v7` images |
+| `IPFS_GATEWAY_URL` | Gateway used to fetch `ipfs://`/`ipns://` sources | `http://127.0.0.1:8081` | Point at an external gateway to scrape IPFS without the embedded daemon |
+| `IPFS_PATH` | IPFS repository location | `/data/ipfs` | Mount a volume there when the daemon is enabled |
+| `IPFS_SWARM_PORT` | Swarm (P2P) port | `4001` | TCP and UDP (QUIC) |
+| `IPFS_API_PORT` | RPC API / WebUI port | `5001` | Unauthenticated; binds to the container loopback by default |
+| `IPFS_API_HOST` | RPC API bind address | `127.0.0.1` | Set `0.0.0.0` only if you need the WebUI, and publish it as `127.0.0.1:5001:5001` |
+| `IPFS_GATEWAY_PORT` | HTTP gateway port | `8081` | `8080` is taken by Acexy in-container |
+| `IPFS_PROFILE` | Kubo config profile applied at first init | *(none)* | e.g. `lowpower` for small devices, `server` for datacenter hosts |
 
 ### WARP Configuration
 
@@ -175,10 +190,11 @@ When using Docker, map these ports as needed:
 | 8000 | Main web interface | Configurable via `FLASK_PORT` |
 | 8080 | Acexy web interface | Only if Acexy is enabled |
 | 6878 | Acestream HTTP API | Configurable via `ACESTREAM_HTTP_PORT` |
-| 43110 | ZeroNet web interface | Only if ZeroNet is enabled |
-| 43111 | ZeroNet transport port | Only if ZeroNet is enabled |
-| 26552 | Additional ZeroNet peer port | Only if ZeroNet is enabled |
 | 8621 | Acestream P2P port | For Acestream peer connections |
+| 43110 | ZeroNet web interface | Published by the optional `zeronet` sidecar, not the app container |
+| 4001 | IPFS swarm port (TCP and UDP) | Only if `ENABLE_IPFS=true`; improves peer connectivity |
+| 8081 | IPFS HTTP gateway | Only if `ENABLE_IPFS=true` and you want to browse IPFS through the node |
+| 5001 | IPFS RPC API / WebUI | Unauthenticated — publish only as `127.0.0.1:5001:5001` if needed |
 
 ## Volumes
 
@@ -187,41 +203,25 @@ When using Docker, mount these volumes:
 | Container Path | Purpose | Notes |
 |----------------|---------|-------|
 | `/app/config` | Configuration and data | Contains the database (`scraper.db`; a v1 `acestream.db` found here is migrated on first start — channels and settings before the dashboard comes up, EPG programs in the background afterwards; see [Installation](Installation#migrating-from-v1)) |
-| `/app/ZeroNet/data` | ZeroNet data directory | Only required if using ZeroNet |
+| `/var/lib/acestream` | AceStream engine state and cache | Only used when `ENABLE_ACESTREAM_ENGINE=true` (ARM Android engine) |
+| `/data/ipfs` | IPFS repository (identity, config, blockstore) | Only required if `ENABLE_IPFS=true` |
+
+The v1 `/app/ZeroNet/data` volume no longer exists — ZeroNet runs outside the app container since v2 (the compose sidecar example keeps its data in `./zeronet_data`).
 
 Example mount:
 ```bash
-docker run -v "${PWD}/config:/app/config" -v "${PWD}/zeronet_data:/app/ZeroNet/data" ...
+docker run -v "${PWD}/config:/app/config" -v "${PWD}/ipfs_data:/data/ipfs" ...
 ```
 
 ## ZeroNet Configuration
 
-The application looks for a `zeronet.conf` file in the `/app/config` directory.
+Since v2, ZeroNet is not part of the app image, so there is no in-container `zeronet.conf` anymore (that was a v1 mechanism). Instead:
 
-### Default Configuration
+1. Run a ZeroNet service somewhere the container can reach — the checked-in `docker-compose.yml` ships an optional amd64 sidecar (`docker compose --profile zeronet up -d`), or use any existing ZeroNet install.
+2. Point `ZERONET_URL` at it (the compose default is `http://host.docker.internal:43110`).
+3. Add your ZeroNet sources in the Scraper page with the **ZeroNet** URL type (`zero://...` URLs are also auto-detected).
 
-If no configuration file exists, this default is created:
-```ini
-[global]
-ui_ip = *
-ui_host =
- 0.0.0.0
- localhost
-ui_port = 43110
-```
-
-### Custom Configuration
-
-Create your own `config/zeronet.conf`:
-```ini
-[global]
-ui_ip = *
-ui_host =
- 127.0.0.1
- your.domain.com
- localhost
-ui_port = 43110
-```
+Configure the ZeroNet node itself (TOR, ui_host, ports) in that external service's own configuration.
 
 ## Running Behind a Reverse Proxy
 
@@ -250,9 +250,8 @@ server {
 
 ## Security Considerations
 
-- Add your domain(s) to `ui_host` in ZeroNet config for public access
-- Always include `localhost` in `ui_host` for local access
-- Set `ALLOW_REMOTE_ACCESS=no` to restrict Acestream access to localhost only
+- Don't publish the AceStream engine API (`6878`), the Acexy proxy (`8080`) or the IPFS RPC API (`5001`) beyond trusted networks — none of them authenticate callers
+- If you expose the web interface beyond your LAN, do it through a reverse proxy with TLS and authentication (see [Reverse Proxy / HTTPS](https://github.com/Pipepito/acestream-scraper/blob/main/docs/ops/reverse-proxy.md))
 - Consider using a reverse proxy with SSL/TLS for secure access
 - Be aware of copyright and legal considerations when sharing playlists
 

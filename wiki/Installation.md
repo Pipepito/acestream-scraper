@@ -20,44 +20,32 @@ Docker Compose provides the easiest way to get started with Acestream Scraper.
 1. **Create a docker-compose.yml file:**
 
    ```yaml
-   version: '3.8'
-
    services:
      acestream-scraper:
        image: pipepito/acestream-scraper:latest
        container_name: acestream-scraper
        environment:
          - TZ=Europe/Madrid
-         - ENABLE_TOR=false
          - ENABLE_ACEXY=true
          - ENABLE_ACESTREAM_ENGINE=true
+         - ENABLE_IPFS=false
+         - ACESTREAM_HTTP_HOST=localhost
          - ACESTREAM_HTTP_PORT=6878
          - FLASK_PORT=8000
-         - ACEXY_LISTEN_ADDR=:8080
-         - ACEXY_HOST=localhost
-         - ACEXY_PORT=6878
-         - ALLOW_REMOTE_ACCESS=no
-         - ACEXY_NO_RESPONSE_TIMEOUT=15s
-         - ACEXY_BUFFER_SIZE=5MiB
-         - ACESTREAM_HTTP_HOST=localhost
+         - ZERONET_URL=http://host.docker.internal:43110
        ports:
-         - "8000:8000"  # Web app (FastAPI/uvicorn; port set by FLASK_PORT)
-         - "8080:8080"  # Acexy proxy
-         - "8621:8621"  # Acestream P2P Port
-         - "43110:43110"  # ZeroNet UI
-         - "43111:43111"  # ZeroNet peer
-         - "26552:26552"  # ZeroNet peer
+         - "8000:8000"      # Web app (FastAPI/uvicorn; port set by FLASK_PORT)
+         - "8080:8080"      # Acexy proxy
+         - "8621:8621"      # Acestream P2P port
+         - "8621:8621/udp"  # Acestream P2P port (UDP)
        volumes:
-         - ./data/zeronet:/app/ZeroNet/data
-         - ./data/config:/app/config
+         - ./config:/app/config
+       extra_hosts:
+         - "host.docker.internal:host-gateway"
        restart: unless-stopped
-       healthcheck:
-         test: ["CMD", "/app/healthcheck.sh"]
-         interval: 30s
-         timeout: 10s
-         retries: 3
-         start_period: 60s
    ```
+
+   Since v2, ZeroNet is no longer bundled in the app image (the v1 `ENABLE_TOR` toggle, the ZeroNet port mappings and the `/app/ZeroNet/data` volume are gone). Use the optional `zeronet` sidecar profile from the repository's `docker-compose.yml` — or any external ZeroNet service — and point `ZERONET_URL` at it. IPFS scraping is built in instead: flip `ENABLE_IPFS=true` to run the embedded Kubo daemon (see [With the Embedded IPFS Daemon](#with-the-embedded-ipfs-daemon)).
 
 2. **Start the service:**
 
@@ -96,7 +84,6 @@ docker run -d \
   -p 8080:8080 \
   -e ENABLE_ACEXY=true \
   -e ENABLE_ACESTREAM_ENGINE=true \
-  -e ALLOW_REMOTE_ACCESS=yes \
   -v "${PWD}/config:/app/config" \
   --name acestream-scraper \
   pipepito/acestream-scraper:latest
@@ -117,32 +104,37 @@ docker run -d \
   pipepito/acestream-scraper:latest
 ```
 
-### With ZeroNet (TOR disabled)
+### With the Embedded IPFS Daemon
+
+Enables scraping of `ipfs://` / `ipns://` sources through the bundled Kubo node (amd64/arm64 images; on 32-bit ARM point `IPFS_GATEWAY_URL` at an external gateway instead):
 
 ```bash
 docker run -d \
   -p 8000:8000 \
-  -p 43110:43110 \
-  -p 43111:43111 \
+  -p 4001:4001 \
+  -p 4001:4001/udp \
+  -e ENABLE_IPFS=true \
   -v "${PWD}/config:/app/config" \
-  -v "${PWD}/zeronet_data:/app/ZeroNet/data" \
+  -v "${PWD}/ipfs_data:/data/ipfs" \
   --name acestream-scraper \
   pipepito/acestream-scraper:latest
 ```
 
-### With ZeroNet (TOR enabled)
+### With an External ZeroNet Service
+
+Since v2 the app image does not bundle ZeroNet (the v1 `ENABLE_TOR` variant is deprecated). Run ZeroNet as its own service — for example the optional `zeronet` profile in the repository's `docker-compose.yml` — and point the scraper at it:
 
 ```bash
 docker run -d \
   -p 8000:8000 \
-  -p 43110:43110 \
-  -p 43111:43111 \
-  -e ENABLE_TOR=true \
+  -e ZERONET_URL=http://host.docker.internal:43110 \
+  --add-host host.docker.internal:host-gateway \
   -v "${PWD}/config:/app/config" \
-  -v "${PWD}/zeronet_data:/app/ZeroNet/data" \
   --name acestream-scraper \
   pipepito/acestream-scraper:latest
 ```
+
+TOR and the rest of the ZeroNet node's settings are configured on that external service, not on the scraper container.
 
 ## Manual Installation
 

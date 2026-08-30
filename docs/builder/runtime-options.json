@@ -50,7 +50,8 @@
       "summary": "Regular PCs, servers, NAS with Intel/AMD CPUs.",
       "engine": "Native Linux engine 3.2.11",
       "engineSupport": "stable",
-      "warpAvailable": true
+      "warpAvailable": true,
+      "ipfsAvailable": true
     },
     {
       "id": "arm64",
@@ -58,7 +59,8 @@
       "summary": "Raspberry Pi 4/5 (64-bit OS), most ARM servers.",
       "engine": "Android engine 3.1.80 on a bionic userland",
       "engineSupport": "stable",
-      "warpAvailable": false
+      "warpAvailable": false,
+      "ipfsAvailable": true
     },
     {
       "id": "armv7",
@@ -66,7 +68,8 @@
       "summary": "Older ARM boards running a 32-bit OS.",
       "engine": "Android engine 3.1.80 on a bionic userland",
       "engineSupport": "experimental",
-      "warpAvailable": false
+      "warpAvailable": false,
+      "ipfsAvailable": false
     }
   ],
   "ports": [
@@ -102,6 +105,23 @@
       "defaultHost": 8621,
       "label": "P2P port",
       "description": "The engine's peer-to-peer port (TCP and UDP). Publishing it improves peer connectivity."
+    },
+    {
+      "id": "ipfsSwarm",
+      "container": 4001,
+      "protocols": ["tcp", "udp"],
+      "defaultHost": 4001,
+      "label": "IPFS swarm",
+      "description": "The embedded IPFS node's peer-to-peer port (TCP and UDP/QUIC, IPFS_SWARM_PORT). Publishing it improves peer connectivity."
+    },
+    {
+      "id": "ipfsGateway",
+      "container": 8081,
+      "protocols": ["tcp"],
+      "defaultHost": 8081,
+      "label": "IPFS gateway",
+      "description": "The embedded node's HTTP gateway (IPFS_GATEWAY_PORT; 8081 in-container because Acexy owns 8080). The scraper reaches it internally — publish it only if you want to browse IPFS content through this node.",
+      "securityNote": "The IPFS RPC API on port 5001 is not offered here on purpose: it is unauthenticated and controls the whole node. If you need the WebUI, bind it to the host's loopback only (see the Docker guide)."
     }
   ],
   "volumes": [
@@ -118,17 +138,30 @@
       "target": "/var/lib/acestream",
       "label": "Engine state & cache",
       "description": "Engine state, disk cache and logs (ACESTREAM_HOME). Used by the Android engine on ARM; harmless on amd64."
+    },
+    {
+      "id": "ipfsRepo",
+      "defaultSource": "./ipfs_data",
+      "target": "/data/ipfs",
+      "label": "IPFS repository",
+      "description": "Node identity, config and blockstore of the embedded IPFS daemon (IPFS_PATH). Without it the node re-initializes with a new identity on every container replacement."
     }
   ],
   "zeronet": {
     "defaultUrl": "http://host.docker.internal:43110",
     "description": "Address of an external ZeroNet service used to scrape ZeroNet sources. The image does not bundle ZeroNet."
   },
+  "ipfs": {
+    "defaultGatewayUrl": "http://host.docker.internal:8080",
+    "description": "Scrape ipfs:// and ipns:// sources. Every image bundles the Kubo daemon on amd64/arm64 (opt-in via ENABLE_IPFS), or point IPFS_GATEWAY_URL at an external IPFS gateway.",
+    "embeddedDescription": "Starts the bundled Kubo daemon; ipfs:// sources are fetched through its gateway on 8081 (8080 belongs to Acexy). Turn off to use an external gateway instead."
+  },
   "notes": {
     "developChannel": "The develop tags are moving pre-release builds meant for testing the next release — not for production.",
     "armv7Experimental": "The 32-bit ARM engine builds and installs but has not been runtime-tested on real hardware. Prefer a 64-bit OS where the device supports it.",
     "armPageSize": "The Android engine needs a 4 KB kernel page size. On Raspberry Pi 5 (Raspberry Pi OS 64-bit) set kernel=kernel8.img in config.txt — the default kernel uses 16 KB pages and the engine refuses to start.",
     "warpArm": "The WARP client (cloudflare-warp) is amd64-only; ARM images ship without it.",
+    "ipfsArmv7": "Kubo publishes no 32-bit ARM build, so 32-bit ARM images ship without the embedded IPFS daemon. IPFS sources still work through an external gateway (IPFS_GATEWAY_URL).",
     "warpCaps": "WARP needs the NET_ADMIN and SYS_ADMIN capabilities.",
     "acexyExternalEngine": "Acexy refuses to start against localhost:6878 when the in-container engine is disabled — point it at your external engine's address.",
     "externalEngineSettings": "The scraper's own engine connection (used for channel status checks) is configured in the web interface under Settings → Acestream Engine URL.",

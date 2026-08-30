@@ -100,6 +100,23 @@ def test_docker_compose_pins_zeronet_platform_for_arm_hosts():
     assert "platform: linux/amd64" in compose_file
 
 
+def test_docker_compose_wires_embedded_ipfs_defaults():
+    compose_file = (REPO_ROOT / "docker-compose.yml").read_text()
+
+    assert "- ENABLE_IPFS=false" in compose_file
+    assert "- ./ipfs_data:/data/ipfs" in compose_file
+
+
+def test_entrypoint_gates_ipfs_on_installed_binary_and_reserves_gateway_port():
+    entrypoint = (REPO_ROOT / "entrypoint.sh").read_text()
+
+    assert "ENABLE_IPFS" in entrypoint
+    assert "IMAGE_HAS_IPFS" in entrypoint
+    # Acexy owns 8080 in-container, so the embedded gateway must default to 8081.
+    assert 'IPFS_GATEWAY_PORT="${IPFS_GATEWAY_PORT:-8081}"' in entrypoint
+    assert 'IPFS_GATEWAY_URL="${IPFS_GATEWAY_URL:-http://127.0.0.1:$IPFS_GATEWAY_PORT}"' in entrypoint
+
+
 def test_legacy_path_guard_accepts_current_runtime_contract():
     result = subprocess.run(
         ["bash", "scripts/ci/assert_no_legacy_paths.sh", "--strict"],

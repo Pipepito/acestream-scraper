@@ -43,7 +43,7 @@ docker rm acestream-scraper
 ```
 
 ### Will my data be lost when I update?
-No, as long as you've properly mounted the volumes for `/app/config` and (if using ZeroNet) `/app/ZeroNet/data`. These volumes store your configuration and data persistently outside the container.
+No, as long as you've properly mounted the volumes for `/app/config` (database and settings) and, when the matching feature is enabled, `/var/lib/acestream` (engine state on ARM), `/data/ipfs` (embedded IPFS repository) and `/data/zeronet` (bundled ZeroNet node state). These volumes store your configuration and data persistently outside the container.
 
 ## Configuration Questions
 
@@ -104,11 +104,13 @@ When adding URLs to scrape, you can explicitly select the URL type:
 
 1. **Regular HTTP**: For standard websites using HTTP or HTTPS protocols
 2. **ZeroNet**: For ZeroNet-specific URLs
+3. **IPFS**: For content on the IPFS network (`ipfs://` / `ipns://` URLs)
 
 The application provides a dropdown menu next to the URL input field to select the type. This is important because:
 
 - **Regular HTTP URLs**: Will be accessed directly via HTTP/HTTPS protocols
 - **ZeroNet URLs**: Will be accessed via the ZeroNet network (either internal or external)
+- **IPFS URLs**: Will be fetched through an IPFS HTTP gateway (`IPFS_GATEWAY_URL`, defaulting to the embedded Kubo daemon's gateway)
 
 It's important to correctly specify the URL type when adding sources to ensure the application can access the content properly.
 
@@ -119,10 +121,22 @@ No, you can use ZeroNet URLs with an external ZeroNet service by:
 1. Explicitly selecting "ZeroNet" as the URL type when adding the URL
 2. Providing the full URL to your external ZeroNet service
 
-This flexibility allows you to:
-- Use ZeroNet running inside the container (simplest approach)
+You have both options:
+- **Bundled node (amd64 images):** set `ENABLE_ZERONET=true` (optionally `ENABLE_TOR=true`) and mount `/data/zeronet` — the scraper finds it automatically
+- Start the optional `zeronet` sidecar from the repository's `docker-compose.yml` (`docker compose --profile zeronet up -d`)
 - Connect to a ZeroNet service running elsewhere on your network
 - Use publicly accessible ZeroNet gateways
+
+For the external options, point `ZERONET_URL` at whichever one you use (the compose default is `http://host.docker.internal:43110`). ARM images ship without the bundled node, so use an external service there.
+
+### Do I need to enable the embedded IPFS daemon to use IPFS URLs?
+
+No. `ipfs://` and `ipns://` sources are fetched through the gateway configured in `IPFS_GATEWAY_URL`:
+
+- Set `ENABLE_IPFS=true` to run the bundled Kubo daemon in the container (amd64/arm64 images; the gateway then answers on `http://127.0.0.1:8081` in-container)
+- Or keep it disabled and point `IPFS_GATEWAY_URL` at an external node — for example a Kubo or IPFS Desktop install on the Docker host (`http://host.docker.internal:8080`); this also works on `linux/arm/v7`, where Kubo ships no 32-bit build
+
+When the embedded daemon is enabled, mount `/data/ipfs` so the node identity and blockstore persist, and publish `4001` (tcp+udp) for better peer connectivity.
 
 ## Usage Questions
 
@@ -168,9 +182,16 @@ Common issues include:
 - Insufficient permissions on mounted volumes
 
 ### ZeroNet is not working
-1. If using TOR, ensure TOR is properly configured (`ENABLE_TOR=true`)
-2. Check if ports 43110 and 43111 are mapped correctly
-3. Some ZeroNet sites may be unavailable or require specific permissions
+1. With the bundled node, confirm it is enabled (`ENABLE_ZERONET=true`), the image is amd64 (the container exits with a clear error elsewhere), and `ZERONET_URL` is unset or points at `http://127.0.0.1:43110`
+2. With an external service, verify it is running and reachable from the container (`ZERONET_URL`, default `http://host.docker.internal:43110` in the compose example); the compose sidecar needs `docker compose --profile zeronet up -d`
+3. Check the container logs — the entrypoint prints the ZeroNet endpoint it uses and supervises the bundled node
+4. Some ZeroNet sites may be unavailable or require specific permissions
+
+### IPFS sources are not working
+1. If you rely on the embedded daemon, confirm it is enabled (`ENABLE_IPFS=true`) and that the image is amd64/arm64 (Kubo has no 32-bit ARM build — the container logs an explicit error on 32-bit ARM)
+2. With an external node, verify `IPFS_GATEWAY_URL` is reachable from the container (e.g. `http://host.docker.internal:8080`)
+3. Cold content can take a while on first fetch — the gateway has to find providers on the network; retry after a minute
+4. Check the container logs: the entrypoint prints the gateway URL and supervises the daemon
 
 ### Media player can't access the streams
 1. Ensure your media player has access to the Acestream Engine

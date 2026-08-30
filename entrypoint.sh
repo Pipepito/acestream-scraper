@@ -176,14 +176,49 @@ prune_finished_children() {
 ENABLE_WARP=$(normalize_bool "${ENABLE_WARP:-false}")
 ENABLE_ACESTREAM_ENGINE=$(normalize_bool "${ENABLE_ACESTREAM_ENGINE:-false}")
 ENABLE_ACEXY=$(normalize_bool "${ENABLE_ACEXY:-false}")
+ENABLE_IPFS=$(normalize_bool "${ENABLE_IPFS:-false}")
+ENABLE_ZERONET=$(normalize_bool "${ENABLE_ZERONET:-false}")
+ENABLE_TOR=$(normalize_bool "${ENABLE_TOR:-false}")
 IMAGE_HAS_ACESTREAM=$(normalize_bool "${IMAGE_HAS_ACESTREAM:-false}")
 IMAGE_HAS_ACEXY=$(normalize_bool "${IMAGE_HAS_ACEXY:-false}")
+# The bundled ZeroNet node ships on amd64 images only: detect the installed
+# launcher instead of hard-coding an ENV per platform.
+ZERONET_BINARY_PATH="${ZERONET_BINARY_PATH:-/opt/zeronet/bin/zeronet}"
+if [ -z "${IMAGE_HAS_ZERONET:-}" ]; then
+    if [ -x "$ZERONET_BINARY_PATH" ]; then IMAGE_HAS_ZERONET=true; else IMAGE_HAS_ZERONET=false; fi
+fi
+IMAGE_HAS_ZERONET=$(normalize_bool "$IMAGE_HAS_ZERONET")
+# Kubo ships no 32-bit ARM build, so IPFS availability is per-platform: detect
+# the installed binary instead of hard-coding an ENV per flavor.
+IPFS_BINARY_PATH="${IPFS_BINARY_PATH:-/opt/ipfs/bin/ipfs}"
+if [ -z "${IMAGE_HAS_IPFS:-}" ]; then
+    if [ -x "$IPFS_BINARY_PATH" ]; then IMAGE_HAS_IPFS=true; else IMAGE_HAS_IPFS=false; fi
+fi
+IMAGE_HAS_IPFS=$(normalize_bool "$IMAGE_HAS_IPFS")
 
-export ENABLE_WARP ENABLE_ACESTREAM_ENGINE ENABLE_ACEXY IMAGE_HAS_ACESTREAM IMAGE_HAS_ACEXY
+export ENABLE_WARP ENABLE_ACESTREAM_ENGINE ENABLE_ACEXY ENABLE_IPFS ENABLE_ZERONET ENABLE_TOR IMAGE_HAS_ACESTREAM IMAGE_HAS_ACEXY IMAGE_HAS_IPFS IMAGE_HAS_ZERONET IPFS_BINARY_PATH ZERONET_BINARY_PATH
 export FLASK_PORT="${FLASK_PORT:-8000}"
 export ACESTREAM_HTTP_HOST="${ACESTREAM_HTTP_HOST:-localhost}"
 export ACESTREAM_HTTP_PORT="${ACESTREAM_HTTP_PORT:-6878}"
+export ZERONET_DATA_DIR="${ZERONET_DATA_DIR:-/data/zeronet}"
+export ZERONET_UI_PORT="${ZERONET_UI_PORT:-43110}"
+export ZERONET_FILESERVER_PORT="${ZERONET_FILESERVER_PORT:-26552}"
+if feature_enabled "$ENABLE_ZERONET"; then
+    # Keep the scraper pointed at the embedded node when the operator hasn't
+    # chosen an explicit external endpoint (the image bakes the 43110
+    # default, so also rewrite that when the UI port moved).
+    case "${ZERONET_URL:-}" in
+        ""|http://127.0.0.1:43110)
+            ZERONET_URL="http://127.0.0.1:$ZERONET_UI_PORT"
+            ;;
+    esac
+fi
 export ZERONET_URL="${ZERONET_URL:-http://127.0.0.1:43110}"
+export IPFS_SWARM_PORT="${IPFS_SWARM_PORT:-4001}"
+export IPFS_API_PORT="${IPFS_API_PORT:-5001}"
+# 8080 belongs to Acexy in-container, so the embedded gateway defaults to 8081.
+export IPFS_GATEWAY_PORT="${IPFS_GATEWAY_PORT:-8081}"
+export IPFS_GATEWAY_URL="${IPFS_GATEWAY_URL:-http://127.0.0.1:$IPFS_GATEWAY_PORT}"
 
 if feature_enabled "$ENABLE_WARP"; then
     if ! bash "$(dirname "$0")/warp-setup.sh"; then
@@ -199,6 +234,18 @@ fi
 
 if feature_enabled "$ENABLE_ACEXY" && ! image_has_feature "$IMAGE_HAS_ACEXY"; then
     fail "Acexy is enabled but not installed in this image flavor"
+fi
+
+if feature_enabled "$ENABLE_IPFS" && ! image_has_feature "$IMAGE_HAS_IPFS"; then
+    fail "IPFS is enabled but Kubo is not installed in this image (upstream ships no 32-bit ARM build)"
+fi
+
+if feature_enabled "$ENABLE_ZERONET" && ! image_has_feature "$IMAGE_HAS_ZERONET"; then
+    fail "ZeroNet is enabled but not installed in this image (bundled on linux/amd64 only; point ZERONET_URL at an external node instead)"
+fi
+
+if feature_enabled "$ENABLE_TOR" && ! feature_enabled "$ENABLE_ZERONET"; then
+    log "ENABLE_TOR=true has no effect without ENABLE_ZERONET=true; skipping TOR"
 fi
 
 if feature_enabled "$ENABLE_ACESTREAM_ENGINE"; then
@@ -219,10 +266,83 @@ fi
 
 export ACE_ENGINE_URL="${ACE_ENGINE_URL:-http://$ACESTREAM_HTTP_HOST:$ACESTREAM_HTTP_PORT}"
 
-log "ZeroNet compatibility mode enabled via ZERONET_URL=$ZERONET_URL"
+log "ZeroNet endpoint for zero:// sources: $ZERONET_URL (embedded node: $ENABLE_ZERONET)"
+log "IPFS gateway for ipfs:// sources: $IPFS_GATEWAY_URL (embedded daemon: $ENABLE_IPFS)"
+if feature_enabled "$ENABLE_ZERONET"; then
+    case "$ZERONET_URL" in
+        http://127.0.0.1:*|http://localhost:*) ;;
+        *) log "WARNING: ENABLE_ZERONET=true but ZERONET_URL points at $ZERONET_URL — the scraper will not use the embedded node" ;;
+    esac
+fi
+
+start_tor() {
+    if ! command -v tor >/dev/null 2>&1; then
+        fail "ENABLE_TOR=true but the tor binary is not installed in this image (amd64 images only)"
+    fi
+    local torrc="${TORRC_PATH:-/tmp/acestream-scraper-torrc}"
+    local tor_data="${TOR_DATA_DIR:-/var/lib/tor-zeronet}"
+    mkdir -p "$tor_data"
+    # ControlPort + cookie auth is what ZeroNet's tor auto-detection expects
+    # (same contract as the v1 image).
+    cat > "$torrc" <<EOF
+SocksPort 9050
+ControlPort 9051
+CookieAuthentication 1
+DataDirectory $tor_data
+EOF
+    supervise_service "Tor" "tor -f $torrc" &
+    child_pids+=("$!")
+    child_names+=("Tor")
+}
+
+configure_ipfs_repo() {
+    export IPFS_PATH="${IPFS_PATH:-/data/ipfs}"
+    mkdir -p "$IPFS_PATH"
+    if [ ! -f "$IPFS_PATH/config" ]; then
+        log "Initializing IPFS repository at $IPFS_PATH"
+        # shellcheck disable=SC2086 — IPFS_PROFILE is intentionally optional
+        "$IPFS_BINARY_PATH" init ${IPFS_PROFILE:+--profile "$IPFS_PROFILE"}
+    fi
+    # Re-applied every boot so IPFS_*_PORT env changes take effect. The RPC
+    # API binds to loopback by default: it has no authentication and full
+    # control of the node (set IPFS_API_HOST=0.0.0.0 only on trusted networks,
+    # e.g. to reach the WebUI).
+    "$IPFS_BINARY_PATH" config Addresses.API "/ip4/${IPFS_API_HOST:-127.0.0.1}/tcp/$IPFS_API_PORT"
+    "$IPFS_BINARY_PATH" config Addresses.Gateway "/ip4/0.0.0.0/tcp/$IPFS_GATEWAY_PORT"
+    "$IPFS_BINARY_PATH" config --json Addresses.Swarm "[\"/ip4/0.0.0.0/tcp/$IPFS_SWARM_PORT\", \"/ip6/::/tcp/$IPFS_SWARM_PORT\", \"/ip4/0.0.0.0/udp/$IPFS_SWARM_PORT/quic-v1\", \"/ip6/::/udp/$IPFS_SWARM_PORT/quic-v1\"]"
+}
 
 child_pids=()
 child_names=()
+
+if feature_enabled "$ENABLE_ZERONET"; then
+    mkdir -p "$ZERONET_DATA_DIR"
+    if feature_enabled "$ENABLE_TOR"; then
+        start_tor
+        zeronet_tor_mode="enable"
+    else
+        zeronet_tor_mode="disable"
+    fi
+    if [ -z "${ZERONET_START_COMMAND:-}" ]; then
+        # --ui_ip 0.0.0.0 so publishing 43110 works; ZeroNet still only
+        # accepts requests whose Host header it knows, so set
+        # ZERONET_UI_HOST (space-separated hostnames) to reach the UI from
+        # another machine. ZERONET_EXTRA_ARGS passes anything else through.
+        ZERONET_START_COMMAND="$ZERONET_BINARY_PATH --ui_ip 0.0.0.0 --ui_port $ZERONET_UI_PORT --fileserver_port $ZERONET_FILESERVER_PORT --data_dir $ZERONET_DATA_DIR --log_dir $LOG_DIR --tor $zeronet_tor_mode${ZERONET_UI_HOST:+ --ui_host $ZERONET_UI_HOST}${ZERONET_EXTRA_ARGS:+ $ZERONET_EXTRA_ARGS} main"
+    fi
+    supervise_service "ZeroNet" "$ZERONET_START_COMMAND" &
+    child_pids+=("$!")
+    child_names+=("ZeroNet")
+fi
+
+if feature_enabled "$ENABLE_IPFS" && [ -n "${IPFS_START_COMMAND:-}" ]; then
+    if ! configure_ipfs_repo; then
+        fail "IPFS repository initialization failed"
+    fi
+    supervise_service "IPFS" "$IPFS_START_COMMAND" &
+    child_pids+=("$!")
+    child_names+=("IPFS")
+fi
 
 if feature_enabled "$ENABLE_ACESTREAM_ENGINE" && [ -n "${ACESTREAM_START_COMMAND:-}" ]; then
     supervise_service "AceStream" "$ACESTREAM_START_COMMAND" &

@@ -520,6 +520,7 @@ const Scraper: React.FC = () => {
               <MenuItem value="auto">Auto-detect</MenuItem>
               <MenuItem value="regular">Regular HTTP</MenuItem>
               <MenuItem value="zeronet">ZeroNet</MenuItem>
+              <MenuItem value="ipfs">IPFS</MenuItem>
             </Select>
           </FormControl>
           <FormControl fullWidth>

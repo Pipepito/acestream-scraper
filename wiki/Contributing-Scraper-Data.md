@@ -119,7 +119,7 @@ The scraper currently handles these common patterns:
 When reporting, please use this format:
 
 ```
-URL TYPE: [Regular HTTP or ZeroNet]
+URL TYPE: [Regular HTTP, ZeroNet or IPFS]
 SITE PATTERN: [Brief description without naming the site]
 HTML STRUCTURE:
 [HTML snippet with sensitive info removed]

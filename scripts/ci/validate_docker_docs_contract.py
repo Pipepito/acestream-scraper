@@ -131,6 +131,38 @@ checks = [
         "/var/lib/acestream" in readme and "/var/lib/acestream" in docker_guide,
     ),
     (
+        "docker-compose ipfs toggle and repo volume",
+        "- ENABLE_IPFS=false" in compose and "./ipfs_data:/data/ipfs" in compose,
+    ),
+    (
+        "docker-compose embedded zeronet toggle",
+        "- ENABLE_ZERONET=false" in compose,
+    ),
+    (
+        "docs explain bundled zeronet contract",
+        contains_all(readme, "zeronet", "enable_zeronet", "/data/zeronet")
+        and contains_all(docker_guide, "zeronet", "enable_zeronet", "/data/zeronet")
+        and contains_all(deployment, "zeronet", "enable_zeronet", "/data/zeronet"),
+    ),
+    (
+        "docs explain bundled zeronet amd64-only availability",
+        contains_all(readme, "enable_zeronet", "amd64")
+        and contains_all(docker_guide, "enable_zeronet", "amd64")
+        and contains_all(deployment, "enable_zeronet", "amd64"),
+    ),
+    (
+        "docs explain embedded ipfs contract",
+        contains_all(readme, "ipfs", "enable_ipfs", "/data/ipfs")
+        and contains_all(docker_guide, "ipfs", "enable_ipfs", "/data/ipfs")
+        and contains_all(deployment, "ipfs", "enable_ipfs", "/data/ipfs"),
+    ),
+    (
+        "docs explain ipfs 32-bit arm limitation and gateway port",
+        contains_all(readme, "kubo", "32-bit", "8081")
+        and contains_all(docker_guide, "kubo", "32-bit", "8081")
+        and contains_all(deployment, "32-bit", "8081"),
+    ),
+    (
         "readme marks arm/v7 acestream engine as experimental",
         any_line_contains_all(readme, "linux/arm/v7", "experimental"),
     ),

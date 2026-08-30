@@ -50,8 +50,9 @@ If installing directly on the host:
 These may be needed depending on your configuration:
 
 - **Acestream Engine**: If not using the built-in engine
-- **ZeroNet**: Built-in, but requires connection to ZeroNet network
-- **Tor**: Optional, for anonymous ZeroNet connections
+- **ZeroNet**: Built-in on amd64 (opt-in via `ENABLE_ZERONET=true`), or an external sidecar/service via `ZERONET_URL`
+- **IPFS (Kubo)**: Built-in on amd64/arm64 (opt-in via `ENABLE_IPFS=true`), or an external gateway via `IPFS_GATEWAY_URL`
+- **Tor**: Optional for ZeroNet — `ENABLE_TOR=true` with the bundled node, or configured on the external service
 - **Cloudflare WARP**: Optional, for enhanced privacy and geo-unblocking
 
 ## Network Requirements
@@ -65,10 +66,12 @@ The following ports need to be available on your system:
 | 8000 | Web interface | Yes |
 | 8080 | Acexy proxy | Only if enabled |
 | 6878 | Acestream Engine | Only if built-in engine is enabled |
-| 43110 | ZeroNet Web UI | Only if using ZeroNet |
-| 43111 | ZeroNet transport | Only if using ZeroNet |
-| 26552 | ZeroNet peer | Only if using ZeroNet |
+| 43110 | ZeroNet Web UI | Only if the bundled node is enabled (or on the external sidecar/service) |
+| 26552 | ZeroNet fileserver/peer | Only if the bundled node is enabled |
 | 8621 | Acestream P2P | Only if built-in engine is enabled |
+| 4001 | IPFS swarm (TCP and UDP) | Only if embedded IPFS daemon is enabled |
+| 8081 | IPFS HTTP gateway | Only if embedded IPFS daemon is enabled |
+| 5001 | IPFS RPC API / WebUI | Unauthenticated — bind to localhost only |
 
 ### Connectivity
 

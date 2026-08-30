@@ -9,6 +9,11 @@
 #                                  Android engine on ARM ships its own CPython 3.8.
 ARG APP_PYTHON_VERSION=3.13
 ARG ACESTREAM_ENGINE_PYTHON_VERSION=3.10
+# The bundled ZeroNet node (zeronet-conservancy v0.7.10) needs gevent 23.9.x
+# (newer gevent deadlocks its import-time ThreadPool), which tops out at
+# CPython 3.12 — so ZeroNet, like the AceStream engine, runs on its own
+# interpreter, carried inside /opt/zeronet.
+ARG ZERONET_PYTHON_VERSION=3.11
 
 # Static assets are platform-independent: build them once on the build host
 # (no QEMU) and COPY the output into every target platform.
@@ -114,6 +119,48 @@ RUN --mount=type=bind,source=docker/vendor,target=/tmp/acestream-vendor,readonly
 FROM python:${ACESTREAM_ENGINE_PYTHON_VERSION}-slim AS engine-python
 
 
+# Kubo (go-ipfs) is a static Go binary: download it once on the build host for
+# the target platform instead of running under QEMU. Upstream ships
+# linux-amd64 and linux-arm64 only — on linux/arm/v7 the stage produces an
+# empty /opt/ipfs/bin and the image ships without IPFS.
+FROM --platform=$BUILDPLATFORM debian:bookworm-slim AS ipfs-installer
+
+ARG TARGETPLATFORM
+ARG KUBO_VERSION=v0.43.0
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl tar \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY docker/scripts/install-ipfs.sh /usr/local/lib/ipfs-install/install-ipfs.sh
+RUN chmod +x /usr/local/lib/ipfs-install/install-ipfs.sh \
+    && TARGETPLATFORM=${TARGETPLATFORM} KUBO_VERSION=${KUBO_VERSION} \
+       /usr/local/lib/ipfs-install/install-ipfs.sh
+
+
+# Self-contained ZeroNet node (zeronet-conservancy), bundled for linux/amd64
+# only like the v1 image. The stage runs on $BUILDPLATFORM so ARM image
+# builds skip it natively (empty /opt/zeronet + metadata); install-zeronet.sh
+# refuses cross-builds of the amd64 payload. The whole CPython prefix is
+# staged into /opt/zeronet/python because the runtime image runs the app on a
+# different interpreter version.
+FROM --platform=$BUILDPLATFORM python:${ZERONET_PYTHON_VERSION}-slim AS zeronet-installer
+
+ARG TARGETPLATFORM
+ARG ZERONET_REF=v0.7.10
+ARG ZERONET_COMMIT=18d35d3bed4f0683e99f8af5a86a8d76ed866e1e
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates git \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY docker/zeronet/requirements.txt /tmp/zeronet-requirements.txt
+COPY docker/scripts/install-zeronet.sh /usr/local/lib/zeronet-install/install-zeronet.sh
+RUN chmod +x /usr/local/lib/zeronet-install/install-zeronet.sh \
+    && TARGETPLATFORM=${TARGETPLATFORM} ZERONET_REF=${ZERONET_REF} ZERONET_COMMIT=${ZERONET_COMMIT} \
+       /usr/local/lib/zeronet-install/install-zeronet.sh
+
+
 # Go cross-compiles: build on the build host for the target platform instead
 # of running the toolchain under QEMU (and pulling golang for every arch).
 FROM --platform=$BUILDPLATFORM golang:1.22 AS acexy-builder
@@ -167,7 +214,20 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     ACEXY_HOST=localhost \
     ACEXY_PORT=6878 \
     ACEXY_STATUS_PORT=8080 \
-    ZERONET_URL=http://127.0.0.1:43110
+    ZERONET_URL=http://127.0.0.1:43110 \
+    ENABLE_ZERONET=false \
+    ENABLE_TOR=false \
+    ZERONET_BINARY_PATH=/opt/zeronet/bin/zeronet \
+    ZERONET_DATA_DIR=/data/zeronet \
+    ZERONET_UI_PORT=43110 \
+    ZERONET_FILESERVER_PORT=26552 \
+    ENABLE_IPFS=false \
+    IPFS_PATH=/data/ipfs \
+    IPFS_BINARY_PATH=/opt/ipfs/bin/ipfs \
+    IPFS_START_COMMAND="/opt/ipfs/bin/ipfs daemon --migrate=true" \
+    IPFS_SWARM_PORT=4001 \
+    IPFS_API_PORT=5001 \
+    IPFS_GATEWAY_PORT=8081
 
 WORKDIR /app
 
@@ -199,6 +259,29 @@ COPY --from=python-deps /install /usr/local
 COPY backend/ /app/
 RUN mkdir -p /app/frontend_build /app/logs /opt/acestream/bin /opt/acexy/bin
 COPY --from=frontend-builder /build/frontend/dist/ /app/frontend_build/
+
+# Kubo IPFS daemon (all flavors; /opt/ipfs/bin is empty on linux/arm/v7 where
+# upstream ships no 32-bit ARM build — the entrypoint detects the missing
+# binary and refuses ENABLE_IPFS=true there). The daemon is opt-in at runtime:
+# ENABLE_IPFS=false by default. Its gateway defaults to 8081 in-container
+# because Acexy already owns 8080.
+COPY --from=ipfs-installer /opt/ipfs/ /opt/ipfs/
+RUN mkdir -p /data/ipfs \
+    && if [ -x /opt/ipfs/bin/ipfs ]; then ln -sf /opt/ipfs/bin/ipfs /usr/local/bin/ipfs; fi
+
+# Bundled ZeroNet node (linux/amd64 only; /opt/zeronet holds just metadata on
+# ARM — the entrypoint detects the missing launcher and refuses
+# ENABLE_ZERONET=true there). Opt-in at runtime: ENABLE_ZERONET=false by
+# default; the scraper reaches whichever node ZERONET_URL points at either
+# way. tor rides along for the v1 ENABLE_TOR toggle (amd64 only, matching
+# where the bundled node exists).
+COPY --from=zeronet-installer /opt/zeronet/ /opt/zeronet/
+RUN mkdir -p /data/zeronet \
+    && if [ "$TARGETARCH" = "amd64" ]; then \
+        apt-get update \
+        && apt-get install -y --no-install-recommends tor \
+        && rm -rf /var/lib/apt/lists/*; \
+    fi
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY warp-setup.sh /usr/local/bin/warp-setup.sh
 COPY healthcheck.sh /usr/local/bin/healthcheck.sh

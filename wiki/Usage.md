@@ -79,6 +79,7 @@ URLs are sources that contain Acestream channel information. The system will scr
 3. Select the appropriate URL type:
    - **Regular HTTP**: For standard websites
    - **ZeroNet**: For ZeroNet sites (either internal or external)
+   - **IPFS**: For content on the IPFS network
 4. Click "Add URL"
 5. The system will begin scraping the URL for channels
 
@@ -87,6 +88,10 @@ When selecting the URL type:
 - Choose "ZeroNet" for any ZeroNet URLs, including:
   - Internal ZeroNet sites (zero://, http://127.0.0.1:43110/)
   - External ZeroNet services or gateways
+- Choose "IPFS" for IPFS content, including:
+  - Native IPFS URLs (ipfs://&lt;cid&gt;/path, ipns://&lt;name&gt;/path) — `ipfs://` and `ipns://` URLs are also auto-detected
+  - Gateway URLs (https://gateway.example/ipfs/&lt;cid&gt;/...) when you want them fetched as IPFS sources
+  - A bare `ipfs://<cid>` whose content is an M3U playlist works too — the playlist is detected by content, not by file extension
 
 #### Refreshing URLs
 

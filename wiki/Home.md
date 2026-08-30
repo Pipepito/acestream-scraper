@@ -16,6 +16,7 @@ Continuous integration (pull-request validation and Docker image releases) runs 
 - **On-Demand Updates**: Refreshes channel data when needed
 - **Web Interface**: User-friendly dashboard for managing channels and configuration
 - **ZeroNet Support**: Can scrape content from ZeroNet sites
+- **IPFS Support**: Can scrape `ipfs://` / `ipns://` content through a bundled Kubo daemon or any IPFS gateway
 - **Database Management**: Complete with migration support
 - **Built-in Acestream Integration**: Optional integrated Acestream engine with Acexy proxy
 - **External Acestream Support**: Connect to existing Acestream Engine instances
@@ -36,7 +37,7 @@ The application follows a service-oriented architecture with:
 - Migrations support for database changes
 - Async task management
 - Clear separation of concerns
-- Integration with external services (Acestream, Acexy, ZeroNet)
+- Integration with external services (Acestream, Acexy, ZeroNet, IPFS)
 
 ## Wiki Navigation
 

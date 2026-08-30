@@ -7867,7 +7867,7 @@
     },
     "/api/v1/scrapers/scrape": {
       "post": {
-        "description": "Scrape a URL for Acestream channels.\n\nRequest body:\n- url: The URL to scrape\n- url_type: (Optional) URL type ('auto', 'regular', 'zeronet')\n- run_async: (Optional) Run scraping in background",
+        "description": "Scrape a URL for Acestream channels.\n\nRequest body:\n- url: The URL to scrape\n- url_type: (Optional) URL type ('auto', 'regular', 'zeronet', 'ipfs')\n- run_async: (Optional) Run scraping in background",
         "operationId": "scrape_url_api_v1_scrapers_scrape_post",
         "requestBody": {
           "content": {

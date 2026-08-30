@@ -103,6 +103,17 @@ class TestStrictMode:
         with pytest.raises(BlockedURLError):
             validate_outbound_url("http://other.internal/")
 
+    def test_ipfs_gateway_host_is_exempt(self, resolver, monkeypatch):
+        monkeypatch.setenv("IPFS_GATEWAY_URL", "http://host.docker.internal:8081")
+        resolver({"host.docker.internal": "172.17.0.1"})
+        assert validate_outbound_url("http://host.docker.internal:8081/ipfs/bafyexample") is None
+
+    def test_non_ipfs_private_host_still_blocked(self, resolver, monkeypatch):
+        monkeypatch.setenv("IPFS_GATEWAY_URL", "http://host.docker.internal:8081")
+        resolver({"other.internal": "172.17.0.2"})
+        with pytest.raises(BlockedURLError):
+            validate_outbound_url("http://other.internal/ipfs/bafyexample")
+
 
 class TestRedirectGuarding:
     def test_epg_fetch_blocks_redirect_to_metadata(self, resolver, monkeypatch):

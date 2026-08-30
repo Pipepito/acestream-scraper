@@ -32,7 +32,7 @@ class ScraperService:
 
         Args:
             url: The URL to scrape
-            url_type: The URL type ('auto', 'regular', 'zeronet')
+            url_type: The URL type ('auto', 'regular', 'zeronet', 'ipfs')
 
         Returns:
             Tuple[List[ChannelResult], str]: Tuple of (channels, status)

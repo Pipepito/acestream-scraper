@@ -31,11 +31,11 @@ async def scrape_url(
 
     Request body:
     - url: The URL to scrape
-    - url_type: (Optional) URL type ('auto', 'regular', 'zeronet')
+    - url_type: (Optional) URL type ('auto', 'regular', 'zeronet', 'ipfs')
     - run_async: (Optional) Run scraping in background
     """
     # Basic validation for invalid URLs
-    if not request.url or not request.url.startswith("http"):
+    if not request.url or not request.url.startswith(("http", "zero://", "ipfs://", "ipns://")):
         raise HTTPException(status_code=400, detail="Scraping failed: invalid URL")
     try:
         if request.run_async:

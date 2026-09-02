@@ -14,7 +14,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  IconButton,
   Chip,
   FormControl,
   InputLabel,
@@ -28,21 +27,19 @@ import {
   Switch,
   FormControlLabel,
   FormHelperText,
+  Tooltip,
   Typography,
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Refresh as RefreshIcon,
-  PlayArrow as PlayArrowIcon,
-} from '@mui/icons-material';
+import { Add as AddIcon, Refresh as RefreshIcon, PlayArrow as PlayArrowIcon } from '@mui/icons-material';
 import { useURLs, useCreateURL, useUpdateURL, usePatchURL, useDeleteURL, useScrapeAllURLs } from '../hooks/useScrapers';
 import { CreateURLDTO, UpdateURLDTO, ScrapedURL, scraperService } from '../services/scraperService';
-import { formatDistanceToNow } from 'date-fns';
-import { alpha, useTheme } from '@mui/material/styles';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
+import StatusLine from '../components/StatusLine';
+import RowActionsMenu from '../components/RowActionsMenu';
+import { useConfirm } from '../components/ConfirmDialog';
+import { formatRelativeTime } from '../utils/format';
+import { formatDateTime } from '../utils/formatters';
 
 interface URLFormData {
   url: string;
@@ -50,6 +47,13 @@ interface URLFormData {
   enabled: boolean;
   scrape_bare_ids: boolean;
 }
+
+export const URL_TYPE_LABELS: Record<string, string> = {
+  auto: 'Auto-detect',
+  regular: 'Regular HTTP',
+  zeronet: 'ZeroNet',
+  ipfs: 'IPFS',
+};
 
 /**
  * The backend stores the outcome of the last scrape as a free-form status string
@@ -84,8 +88,8 @@ const initialFormData: URLFormData = {
 };
 
 const Scraper: React.FC = () => {
-  const theme = useTheme();
   const queryClient = useQueryClient();
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const [openDialog, setOpenDialog] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
   const [currentId, setCurrentId] = useState<number | null>(null);
@@ -103,6 +107,7 @@ const Scraper: React.FC = () => {
 
   const totalSourceCount = urls?.length ?? 0;
   const enabledSourceCount = urls?.filter((url) => url.enabled).length ?? 0;
+  const failingSourceCount = urls?.filter((url) => /^error/i.test(url.status ?? '')).length ?? 0;
   const totalExtractedChannels = urls?.reduce((sum, url) => sum + (url.channels_found || 0), 0) ?? 0;
   const latestProcessedAt = useMemo(() => {
     if (!urls?.length) {
@@ -121,19 +126,6 @@ const Scraper: React.FC = () => {
       return latest;
     }, null);
   }, [urls]);
-  const latestProcessedLabel = latestProcessedAt
-    ? `Latest scrape finished ${formatDistanceToNow(new Date(latestProcessedAt), { addSuffix: true })}`
-    : 'No completed scrape yet';
-  const sourceReadinessLabel = totalSourceCount === 0
-    ? 'No source URLs configured yet.'
-    : enabledSourceCount === 0
-      ? 'Sources are listed, but none are enabled for intake.'
-      : `${enabledSourceCount} of ${totalSourceCount} source${totalSourceCount === 1 ? '' : 's'} enabled for intake.`;
-  const nextStepLabel = totalSourceCount === 0
-    ? 'Add your first source URL to start the pipeline.'
-    : enabledSourceCount === 0
-      ? 'Enable at least one source, then run a scrape.'
-      : 'Run a scrape, then review extracted channels after the scrape completes.';
 
   const handleOpenDialog = (edit = false, url?: ScrapedURL) => {
     setIsEdit(edit);
@@ -215,7 +207,7 @@ const Scraper: React.FC = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this URL?')) {
+    if (await confirm({ title: 'Delete this source?', body: 'Channels already found from it stay in the inventory.', confirmLabel: 'Delete', danger: true })) {
       try {
         await deleteURL.mutateAsync(id);
         setSnackbar({
@@ -257,6 +249,19 @@ const Scraper: React.FC = () => {
     }
   };
 
+  const [enabledUpdatingId, setEnabledUpdatingId] = useState<number | null>(null);
+  const handleToggleEnabled = async (url: ScrapedURL, checked: boolean) => {
+    setEnabledUpdatingId(url.id);
+    try {
+      await patchURL.mutateAsync({ id: url.id, data: { enabled: checked } });
+      setSnackbar({ open: true, message: checked ? 'Source enabled' : 'Source disabled; it is skipped by scheduled scrapes', severity: 'success' });
+    } catch (error) {
+      setSnackbar({ open: true, message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`, severity: 'error' });
+    } finally {
+      setEnabledUpdatingId(null);
+    }
+  };
+
   const [scrapingId, setScrapingId] = useState<number | null>(null);
   const handleScrape = async (id: number) => {
     setScrapingId(id);
@@ -286,7 +291,7 @@ const Scraper: React.FC = () => {
   };
 
   const handleScrapeAll = async () => {
-    if (window.confirm('Start scraping all enabled URLs?')) {
+    if (await confirm({ title: 'Scrape all enabled sources?', body: `${enabledSourceCount} source${enabledSourceCount === 1 ? '' : 's'} will be fetched now; results appear in the table as each finishes.`, confirmLabel: 'Scrape all' })) {
       try {
         await scrapeAllURLs.mutateAsync();
         setSnackbar({
@@ -311,8 +316,8 @@ const Scraper: React.FC = () => {
   return (
     <Box>
       <PageHeader
-        title="URL Scraper"
-        subtitle="Manage source URLs and trigger scrape jobs."
+        title="Scraper"
+        subtitle="Source URLs and the channels each one yields."
         actions={
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
             <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => handleOpenDialog(false)}>
@@ -325,7 +330,7 @@ const Scraper: React.FC = () => {
               onClick={handleScrapeAll}
               disabled={scrapeAllURLs.isPending || enabledSourceCount === 0}
             >
-              Scrape All Enabled
+              Scrape all
             </Button>
             <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => refetch()} disabled={isLoading}>
               Refresh
@@ -334,184 +339,85 @@ const Scraper: React.FC = () => {
         }
       />
 
-      <Box
-        sx={{
-          mb: 3,
-          p: { xs: 2, md: 2.5 },
-          borderRadius: 2.5,
-          bgcolor: theme.appTokens.hero.bg,
-          border: `1px solid ${theme.appTokens.hero.border}`,
-          backgroundImage: theme.appTokens.hero.spotlight,
-        }}
-      >
-        <Stack spacing={2}>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, justifyContent: 'space-between' }}>
-            <Box sx={{ minWidth: 0, maxWidth: 760 }}>
-              <Typography variant="statusMeta" sx={{ color: theme.appTokens.hero.accent, mb: 1 }}>
-                Source intake stage
-              </Typography>
-              <Typography variant="h4" sx={{ letterSpacing: '-0.03em', mb: 1 }}>
-                Sources feed the pipeline before extracted-channel review and TV organization.
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Use this intake summary to confirm source coverage, trigger scraping, and hand off to extracted-channel review without guessing what comes next.
-              </Typography>
-            </Box>
-            <Stack spacing={1} sx={{ minWidth: { xs: '100%', sm: 300 } }}>
-              <Box
-                sx={{
-                  p: 1.5,
-                  borderRadius: 2,
-                  bgcolor: alpha(theme.appTokens.shell.accent, 0.08),
-                  border: `1px solid ${alpha(theme.appTokens.shell.accent, 0.18)}`,
-                }}
-              >
-                <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>
-                  Source readiness
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                  {sourceReadinessLabel}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {latestProcessedLabel}
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  p: 1.5,
-                  borderRadius: 2,
-                  bgcolor: theme.appTokens.surface.panel,
-                  border: `1px solid ${theme.appTokens.surface.border}`,
-                }}
-              >
-                <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>
-                  Next step
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                  {nextStepLabel}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {totalExtractedChannels > 0
-                    ? `${totalExtractedChannels} extracted channel${totalExtractedChannels === 1 ? '' : 's'} found in current source results.`
-                    : 'Extracted channel totals appear here after successful scrapes.'}
-                </Typography>
-              </Box>
-            </Stack>
-          </Box>
+      <StatusLine
+        aria-label="Source status"
+        items={[
+          { label: 'Sources', value: `${enabledSourceCount} of ${totalSourceCount} enabled` },
+          { label: 'Last scrape', value: formatRelativeTime(latestProcessedAt), tone: latestProcessedAt ? 'default' : 'warning' },
+          { label: 'Channels found', value: String(totalExtractedChannels) },
+          ...(failingSourceCount > 0 ? [{ label: 'Failing', value: String(failingSourceCount), tone: 'error' as const }] : []),
+        ]}
+      />
 
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25 }}>
-            {[
-              {
-                title: 'Sources',
-                label: 'Current intake stage',
-                body: `${enabledSourceCount}/${totalSourceCount} enabled`,
-                active: true,
-              },
-              {
-                title: 'Extracted channels',
-                label: 'Next review stage',
-                body: 'Check scraped channel results and routing.',
-                active: false,
-              },
-              {
-                title: 'TV organization',
-                label: 'Downstream output stage',
-                body: 'Organize the final catalog for downstream workflows.',
-                active: false,
-              },
-            ].map((stage) => (
-              <Box
-                key={stage.title}
-                sx={{
-                  flex: '1 1 180px',
-                  minWidth: { xs: '100%', sm: 180 },
-                  p: 1.5,
-                  borderRadius: 2,
-                  bgcolor: stage.active ? alpha(theme.appTokens.hero.accent, 0.10) : theme.appTokens.surface.panel,
-                  border: `1px solid ${stage.active ? alpha(theme.appTokens.hero.accent, 0.24) : theme.appTokens.surface.border}`,
-                }}
-              >
-                <Typography variant="statusMeta" sx={{ color: stage.active ? theme.appTokens.hero.accent : 'text.secondary', mb: 0.75 }}>
-                  {stage.label}
-                </Typography>
-                <Typography variant="sectionTitle" sx={{ mb: 0.5 }}>
-                  {stage.title}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {stage.body}
-                </Typography>
-              </Box>
-            ))}
-          </Box>
-        </Stack>
-      </Box>
-
-      <ContentSection title="Configured URLs" description="Run single URL checks or scrape all enabled sources.">
-        {isLoading && <LinearProgress />}
-
+      <ContentSection title="Sources">
+        {isLoading && <LinearProgress sx={{ mb: 2 }} />}
         <TableContainer sx={{ maxHeight: 640 }}>
           <Table stickyHeader>
             <TableHead>
               <TableRow>
                 <TableCell>URL</TableCell>
                 <TableCell>Type</TableCell>
-                <TableCell>Status</TableCell>
+                <TableCell>Enabled</TableCell>
                 <TableCell>Last result</TableCell>
-                <TableCell>Last Scraped</TableCell>
-                <TableCell>Channels Found</TableCell>
-                <TableCell>Bare IDs</TableCell>
-                <TableCell>Actions</TableCell>
+                <TableCell>Last scraped</TableCell>
+                <TableCell align="right">Channels</TableCell>
+                <TableCell sx={{ whiteSpace: 'nowrap' }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {urls && urls.length > 0 ? (
                 urls.map((url) => (
                   <TableRow key={url.id} hover>
-                    <TableCell>{url.url}</TableCell>
-                    <TableCell>{url.url_type}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={url.enabled ? "Enabled" : "Disabled"}
-                        color={url.enabled ? "success" : "default"}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>{renderScrapeResult(url)}</TableCell>
-                    <TableCell>
-                      {url.last_processed ? formatDistanceToNow(new Date(url.last_processed), { addSuffix: true }) : 'Never'}
-                    </TableCell>
-                    <TableCell>{url.channels_found || 0}</TableCell>
+                    <TableCell sx={{ wordBreak: 'break-all' }}>{url.url}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{URL_TYPE_LABELS[url.url_type] ?? url.url_type}</TableCell>
                     <TableCell>
                       <Switch
                         size="small"
-                        checked={url.scrape_bare_ids ?? false}
-                        onChange={(e) => handleToggleBareIds(url, e.target.checked)}
-                        disabled={bareIdsUpdatingId === url.id}
-                        inputProps={{ 'aria-label': `Harvest bare content IDs for ${url.url}` }}
+                        checked={url.enabled}
+                        onChange={(e) => handleToggleEnabled(url, e.target.checked)}
+                        disabled={enabledUpdatingId === url.id}
+                        inputProps={{ 'aria-label': `Enable ${url.url}` }}
                       />
                     </TableCell>
-                    <TableCell>
-                        <IconButton
-                          color="primary"
+                    <TableCell>{renderScrapeResult(url)}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                      <Tooltip title={url.last_processed ? formatDateTime(url.last_processed) : ''}>
+                        <span>{formatRelativeTime(url.last_processed)}</span>
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell align="right">{url.channels_found || 0}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                      <Stack direction="row" spacing={0.5} alignItems="center">
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<PlayArrowIcon />}
                           onClick={() => handleScrape(url.id)}
-                         disabled={scrapingId === url.id}
+                          disabled={scrapingId === url.id || !url.enabled}
                           aria-label={`Scrape URL ${url.url}`}
                         >
-                        <PlayArrowIcon />
-                      </IconButton>
-                      <IconButton color="primary" onClick={() => handleOpenDialog(true, url)} aria-label={`Edit URL ${url.url}`}>
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton color="error" onClick={() => handleDelete(url.id)} aria-label={`Delete URL ${url.url}`}>
-                        <DeleteIcon />
-                      </IconButton>
+                          Scrape
+                        </Button>
+                        <RowActionsMenu
+                          label={`More actions for ${url.url}`}
+                          actions={[
+                            { label: 'Edit', onClick: () => handleOpenDialog(true, url) },
+                            { label: 'Harvest bare IDs', checked: Boolean(url.scrape_bare_ids), onClick: () => handleToggleBareIds(url, !url.scrape_bare_ids), disabled: bareIdsUpdatingId === url.id },
+                            { label: 'Delete', danger: true, onClick: () => handleDelete(url.id) },
+                          ]}
+                        />
+                      </Stack>
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
                   <TableCell colSpan={7} align="center">
-                    {isLoading ? 'Loading...' : 'No URLs found'}
+                    {isLoading ? (
+                      'Loading…'
+                    ) : (
+                      <Typography variant="body2">No source URLs yet. Add one to start scraping.</Typography>
+                    )}
                   </TableCell>
                 </TableRow>
               )}
@@ -602,6 +508,7 @@ const Scraper: React.FC = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+      {confirmDialog}
     </Box>
   );
 };

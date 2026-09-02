@@ -17,13 +17,29 @@
         "urlType": "auto",
         "expectMinChannels": 1,
         "scrapeTimeoutMs": 240000
+      },
+      {
+        "id": "elcano-ipns-native",
+        "label": "Elcano AceStream IDs (native ipns:// through the configured gateway)",
+        "url": "ipns://k51qzi5uqu5di462t7j4vu4akwfhvtjhy88qbupktvoacqfqe9uforjvhyi4wr/",
+        "urlType": "ipfs",
+        "expectMinChannels": 1,
+        "scrapeTimeoutMs": 240000
       }
     ]
   },
   "search": {
     "queries": [
-      { "query": "dazn", "expectMinResults": 1, "addFirst": 2 },
-      { "query": "movistar", "expectMinResults": 1, "addFirst": 1 }
+      {
+        "query": "dazn",
+        "expectMinResults": 1,
+        "addFirst": 2
+      },
+      {
+        "query": "movistar",
+        "expectMinResults": 1,
+        "addFirst": 1
+      }
     ]
   },
   "epg": {

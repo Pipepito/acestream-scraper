@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const UrlType = z.enum(['auto', 'regular', 'zeronet']);
+const UrlType = z.enum(['auto', 'regular', 'zeronet', 'ipfs']);
 
 export const ScrapeSourceSchema = z.object({
   id: z.string().min(1),

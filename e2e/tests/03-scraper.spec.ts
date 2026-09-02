@@ -40,8 +40,10 @@ test.describe('URL scraper', () => {
       await expect(finalRow).not.toContainText('Never');
       await expect(finalRow).toContainText(String(result.channels_found));
 
+      // source_url is stored normalised (ipfs sources become ipns://<key>/...), so match on the key/host.
+      const key = result.url.match(/\/ip[fn]s\/([^/]+)/)?.[1] ?? new URL(result.url.replace(/^ip[fn]s:\/\//, 'http://')).host;
       const channels = await api.listChannels({ page_size: 500 });
-      const fromSource = channels.items.filter((c) => c.source_url === result.url);
+      const fromSource = channels.items.filter((c) => c.source_url === result.url || (c.source_url ?? '').includes(key));
       expect(fromSource.length).toBeGreaterThanOrEqual(source.expectMinChannels);
     }
   });

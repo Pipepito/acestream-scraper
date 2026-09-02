@@ -3,12 +3,12 @@ import { AppShell } from './app-shell';
 
 export interface AddUrlOptions {
   url: string;
-  urlType?: 'auto' | 'regular' | 'zeronet';
+  urlType?: 'auto' | 'regular' | 'zeronet' | 'ipfs';
   enabled?: boolean;
   bareIds?: boolean;
 }
 
-const URL_TYPE_LABEL = { auto: 'Auto-detect', regular: 'Regular HTTP', zeronet: 'ZeroNet' } as const;
+const URL_TYPE_LABEL = { auto: 'Auto-detect', regular: 'Regular HTTP', zeronet: 'ZeroNet', ipfs: 'IPFS' } as const;
 
 export class ScraperPage extends AppShell {
   async open(): Promise<void> {

@@ -23,6 +23,8 @@ export DATABASE_URL="sqlite:///$STACK_DIR/config/scraper.db"
 export LEGACY_DATABASE_URL="sqlite:///$STACK_DIR/config/acestream.db"
 export ACE_ENGINE_URL="$E2E_ENGINE_URL"
 export ALLOW_PRIVATE_SCRAPE_TARGETS="true"
+# Native ipfs:// and ipns:// sources are fetched through this gateway (the kubo sidecar).
+export IPFS_GATEWAY_URL="$E2E_IPFS_GATEWAY"
 export EPG_PROGRAM_RETENTION_HOURS="${EPG_PROGRAM_RETENTION_HOURS:-24}"
 
 cd "$REPO_ROOT/backend"

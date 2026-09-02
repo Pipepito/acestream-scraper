@@ -138,6 +138,30 @@ class TestIpfsScraper:
         assert status == "OK"
         assert channels == [("cccccccccccccccccccccccccccccccccccccccc", "HTML Channel", {})]
 
+    def test_relative_m3u_links_resolve_through_the_gateway(self, db_session, monkeypatch):
+        """A page under ipns://<name>/ linking href="list.m3u" must fetch
+        http://<gateway>/ipns/<name>/list.m3u, not a scheme-less "list.m3u"."""
+        scraper = self._scraper("ipns://k51example/")
+        scraper.db = db_session
+        scraper.gateway_url = "http://gateway.test:8080"
+        fetched = []
+
+        async def fake_fetch(url):
+            fetched.append(url)
+            if url.endswith("/list.m3u"):
+                return M3U_CONTENT
+            return '<html><body><a href="list.m3u">playlist</a></body></html>'
+
+        monkeypatch.setattr(scraper, "fetch_content", fake_fetch)
+        channels, status = asyncio.run(scraper.scrape())
+
+        assert status == "OK"
+        assert "http://gateway.test:8080/ipns/k51example/list.m3u" in fetched
+        assert {channel_id for channel_id, _name, _meta in channels} == {
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        }
+
     def test_scrape_records_error_status_when_gateway_fetch_fails(self, db_session, monkeypatch):
         scraper = self._scraper(f"ipfs://{CID}")
         scraper.db = db_session

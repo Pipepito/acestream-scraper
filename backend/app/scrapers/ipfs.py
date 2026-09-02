@@ -72,7 +72,10 @@ class IpfsScraper(BaseScraper):
         """Fetch once, then branch: a bare CID carries no filename hint, so
         M3U playlists are detected by content, not only by extension."""
         url_to_scrape = url if url else self.url_obj.get_normalized_url()
-        self.current_url = url_to_scrape
+        # Relative links found in the page (e.g. href="list.m3u") must resolve
+        # against the HTTP gateway URL actually fetched; urljoin cannot extend
+        # a native ipfs:// or ipns:// base and would drop the scheme entirely.
+        self.current_url = self.resolve_fetch_url(url_to_scrape)
         channels = []
         status = "OK"
 

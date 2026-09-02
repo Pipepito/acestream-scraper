@@ -585,3 +585,23 @@ def test_process_epg_xml_is_idempotent_for_existing_records(db_session):
     assert second_channels == 0
     assert second_programs == 0
     assert db_session.query(EPGProgram).count() == 1
+
+
+class TestEPGSourceTimestamps:
+    """last_updated is served as UTC (the column is UtcDateTime), so it must be written as UTC too."""
+
+    def test_refresh_stores_last_updated_in_utc(self, db_session, seed_epg_sources, monkeypatch):
+        from datetime import datetime, timezone
+        from app.services.epg_service import EPGService
+
+        service = EPGService(db_session)
+        monkeypatch.setattr(service, "_fetch_epg_from_source", lambda source: {"success": True, "channels_found": 0, "programs_found": 0})
+
+        result = service.refresh_source(seed_epg_sources[0].id)
+        assert result["success"] is True
+
+        db_session.refresh(seed_epg_sources[0])
+        stored = seed_epg_sources[0].last_updated
+        assert stored is not None
+        aware = stored if stored.tzinfo else stored.replace(tzinfo=timezone.utc)
+        assert abs((datetime.now(timezone.utc) - aware).total_seconds()) < 300

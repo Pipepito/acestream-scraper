@@ -7,6 +7,7 @@ test.describe('engine search', () => {
   test('search results come from the live engine and can be added one by one', async ({ page, api, scenario }, testInfo) => {
     const search = new SearchPage(page);
     await search.open();
+    let addedThisSession = 0;
     for (const q of scenario.search.queries) {
       const apiResults = await api.search(q.query);
       expect(apiResults.results.length, `engine results for "${q.query}"`).toBeGreaterThanOrEqual(q.expectMinResults);
@@ -29,7 +30,8 @@ test.describe('engine search', () => {
           .poll(async () => (await api.getChannel(r.id))?.name, { timeout: 15_000, message: `channel ${r.id} added from search` })
           .toBe(r.name);
       }
-      await expect(search.summary()).toContainText(new RegExp(`Added this session\\s*${toAdd.length}`));
+      addedThisSession += toAdd.length;
+      await expect(search.summary()).toContainText(new RegExp(`Added this session\\s*${addedThisSession}`));
     }
   });
 

@@ -110,8 +110,10 @@ test.describe('TV channels', () => {
     await detail.startEdit();
     const form = detail.editForm();
     await expect(form.getByRole('textbox', { name: 'Name' })).toHaveValue(spec.name);
-    await expect(form.getByRole('textbox', { name: 'Website' })).toHaveCount(0);
-    await form.getByRole('button', { name: 'More fields' }).click();
+    // Extra fields stay folded unless the channel already uses one (this one has a description).
+    const toggle = form.getByRole('button', { name: /More fields|Fewer fields/ });
+    await expect(toggle).toBeVisible();
+    if ((await toggle.textContent())?.includes('More')) await toggle.click();
     await form.getByRole('textbox', { name: 'Website' }).fill('https://e2e.example');
     await form.getByRole('button', { name: 'Save' }).click();
     await detail.expectAlert('TV channel updated successfully.');

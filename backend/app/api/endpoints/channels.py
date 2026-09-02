@@ -233,8 +233,8 @@ def export_acestream_channels_csv(db: Session = Depends(get_db)):
     """
     Export all Acestream channels as a CSV file.
     """
-    service = AcestreamChannelService(db)
-    channels = service.get_all_channels(active_only=False)
+    # Every channel, not the list endpoint's first page: the export is the backup users rely on.
+    channels = db.query(AcestreamChannel).order_by(AcestreamChannel.name, AcestreamChannel.id).all()
     output = StringIO()
     writer = csv.writer(output)
     # Write header

@@ -235,6 +235,19 @@ class TestChannelStatusEndpoints:
         assert lines[0].startswith("id,name,source_url")
         assert len(lines) == 1 + 3
 
+    def test_export_csv_includes_every_channel(self, client, db_session):
+        """The export is a backup: it must not stop at the list endpoint's default page size."""
+        from app.models.models import AcestreamChannel
+
+        for index in range(150):
+            db_session.add(AcestreamChannel(id=f"{index:040x}", name=f"Bulk channel {index:03d}", is_active=True))
+        db_session.commit()
+
+        response = client.get("/api/v1/acestream-channels/export_csv")
+        assert response.status_code == status.HTTP_200_OK
+        lines = [line for line in response.text.splitlines() if line.strip()]
+        assert len(lines) == 1 + 150
+
     def test_unknown_filters_are_ignored_not_500(self, client, seed_channels):
         """Acestream channels have no country/language columns; stray params must not crash the list."""
         response = client.get("/api/v1/acestream-channels/?country=ES&language=es")

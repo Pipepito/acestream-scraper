@@ -62,9 +62,11 @@ test.describe('scraper', () => {
     await expect(scraper.enabledSwitch(url)).not.toBeChecked();
     expect((await api.findUrl(url))?.enabled).toBe(false);
 
+    // The UI does not offer a scrape for a disabled source; the API refuses it too.
+    await expect(scraper.row(url).getByRole('button', { name: `Scrape URL ${url}` })).toBeDisabled();
     errors.allowApi(/\/scrape 400 .*URL is disabled/);
-    await scraper.scrape(url);
-    await scraper.expectAlert(/URL is disabled/);
+    const refused = await api.raw('post', `/api/v1/urls/${(await api.findUrl(url))!.id}/scrape`);
+    expect(refused.status()).toBe(400);
 
     await scraper.enabledSwitch(url).click();
     await scraper.expectAlert('Source enabled');

@@ -93,7 +93,7 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
   // Resolve a pending restart once the service is back with a new pid, or give up after a while.
   useEffect(() => {
     if (!watch || !data) return;
-    const current = data.services.find((s) => s.name === watch.name);
+    const current = data.services?.find((s) => s.name === watch.name);
     if (!current) return;
     const relaunched = current.pid !== null && current.pid !== watch.previousPid;
     if (relaunched && current.state === 'running') {

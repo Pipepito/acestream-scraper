@@ -27,8 +27,8 @@ const Overview: React.FC = () => {
   const tasks = useBackgroundTaskStatus(REFRESH_MS);
   const health = useHealth({ refetchInterval: REFRESH_MS });
 
-  const engine = services.data?.services.find((s) => s.name === 'acestream');
-  const attention = services.data?.services.filter((s) => s.enabled && (s.state === 'stopped' || s.state === 'unhealthy')) ?? [];
+  const engine = services.data?.services?.find((s) => s.name === 'acestream');
+  const attention = services.data?.services?.filter((s) => s.enabled && (s.state === 'stopped' || s.state === 'unhealthy')) ?? [];
   // The engine the app talks to may live outside this container: trust the backend's probe, not the service list.
   const engineProbe = health.data?.acestream;
   const engineOnline = engineProbe ? engineProbe.status === 'online' : Boolean(engine?.running);

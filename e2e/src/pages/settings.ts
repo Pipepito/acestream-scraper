@@ -19,9 +19,13 @@ export class SettingsPage extends AppShell {
     await this.engine().getByRole('button', { name: 'Refresh status' }).click();
   }
 
-  async saveEngineUrl(url: string): Promise<void> {
+  /** Fills the engine URL and saves it; returns false when the value was already saved (Save stays disabled). */
+  async saveEngineUrl(url: string): Promise<boolean> {
     await this.engine().getByRole('textbox', { name: 'Acestream Engine URL' }).fill(url);
-    await this.engine().getByRole('button', { name: 'Save engine URL' }).click();
+    const save = this.engine().getByRole('button', { name: 'Save engine URL' });
+    if (!(await save.isEnabled())) return false;
+    await save.click();
+    return true;
   }
 
   linkFormats(): Locator {

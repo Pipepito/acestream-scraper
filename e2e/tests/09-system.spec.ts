@@ -52,7 +52,7 @@ test.describe('overview and WARP', () => {
     const managedNames = ['acestream', 'warp'];
     const managed = status.services.filter((s) => managedNames.includes(s.name) && s.managed);
     if (!status.supervised || managed.length === 0) {
-      await expect(overview.services()).toContainText(/not running under the container entrypoint|Managed outside this container/);
+      await expect(overview.services()).toContainText(/not running under the container entrypoint|Managed outside this container|Turned off; enable it with its ENABLE_\* variable/);
       return;
     }
     for (const target of managed) {

@@ -425,8 +425,8 @@ describe('Supporting page normalization', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'WARP' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Connect' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Disconnect' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: 'Connection status' })).toBeInTheDocument();
-    expect(screen.getByRole('alert')).toHaveTextContent(/connected/i);
+    expect(screen.getByRole('heading', { level: 2, name: 'Connection details' })).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'WARP status' })).toHaveTextContent(/connected/i);
   });
 
   it('syncs the WARP mode selector with backend status before allowing mode changes', () => {
@@ -447,7 +447,7 @@ describe('Supporting page normalization', () => {
 
     expect(screen.getByRole('combobox', { name: 'Mode' })).toHaveTextContent(/dot/i);
     expect(screen.getByRole('button', { name: 'Set Mode' })).toBeDisabled();
-    expect(screen.getByRole('alert')).toHaveTextContent(/mode: dot/i);
+    expect(screen.getByRole('status', { name: 'WARP status' })).toHaveTextContent(/mode dot/i);
   });
 
   it('renders NotFound as an unsupported-route recovery surface with stronger navigation paths', () => {

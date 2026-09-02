@@ -25,6 +25,16 @@
         "urlType": "ipfs",
         "expectMinChannels": 1,
         "scrapeTimeoutMs": 240000
+      },
+      {
+        "id": "k2k4-ipns",
+        "label": "ACEStream NEW ERA + Agenda Deportiva (IPNS via local kubo, ~290 IDs)",
+        "url": "http://127.0.0.1:8080/ipns/k2k4r8lm8tkmuxbc8lkmq1in3v0oya1p6pe9o5bu0hu30br5ko08k2gb/",
+        "dockerUrl": "http://ipfs:8080/ipns/k2k4r8lm8tkmuxbc8lkmq1in3v0oya1p6pe9o5bu0hu30br5ko08k2gb/",
+        "fallbackUrl": "https://ipfs.io/ipns/k2k4r8lm8tkmuxbc8lkmq1in3v0oya1p6pe9o5bu0hu30br5ko08k2gb/",
+        "urlType": "auto",
+        "expectMinChannels": 50,
+        "scrapeTimeoutMs": 240000
       }
     ]
   },

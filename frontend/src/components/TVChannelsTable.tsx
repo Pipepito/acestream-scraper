@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  DataGrid,
-  GridColDef,
-  GridToolbar,
-  GridRenderCellParams,
-  GridSortModel,
-} from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridRenderCellParams, GridSortModel } from '@mui/x-data-grid';
 import {
   Box,
   IconButton,
@@ -25,9 +19,10 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import { Edit, Delete, PlayArrow, Star, StarBorder } from '@mui/icons-material';
+import { Edit, Delete, OpenInNew, Star, StarBorder } from '@mui/icons-material';
 import { TVChannel } from '../types/tvChannelTypes';
 import EmptyState from './state/EmptyState';
+import { shouldDisableGridVirtualization } from '../config/runtime';
 
 interface TVChannelsTableProps {
   channels: TVChannel[];
@@ -40,7 +35,7 @@ interface TVChannelsTableProps {
   onSortChange: (model: GridSortModel) => void;
   onEdit: (channel: TVChannel) => void;
   onDelete: (id: number) => void;
-  onPlay: (id: number) => void;
+  onOpen: (id: number) => void;
   onToggleFavorite: (channel: TVChannel) => void;
 }
 
@@ -55,7 +50,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
   onSortChange,
   onEdit,
   onDelete,
-  onPlay,
+  onOpen,
   onToggleFavorite,
 }) => {
   const theme = useTheme();
@@ -72,8 +67,11 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
     onPageChange(0);
   };
 
+  const hasNumbers = channels.some((channel) => Boolean(channel.channel_number));
+  const hasLanguage = channels.some((channel) => Boolean(channel.language));
+  const hasCountry = channels.some((channel) => Boolean(channel.country));
+
   const renderActions = (channel: TVChannel, isMobile = false) => {
-    const hasStreams = Boolean(channel.acestream_channels?.length);
     const favoriteButton = (
       <Tooltip title={channel.is_favorite ? 'Remove from favorites' : 'Add to favorites'}>
         <IconButton
@@ -111,12 +109,11 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
           </Button>
           <Button
             variant="contained"
-            startIcon={<PlayArrow fontSize="small" />}
-            aria-label={`play tv channel ${channel.name}`}
-            disabled={!hasStreams}
-            onClick={() => onPlay(channel.id)}
+            startIcon={<OpenInNew fontSize="small" />}
+            aria-label={`open tv channel ${channel.name}`}
+            onClick={() => onOpen(channel.id)}
           >
-            Play
+            Open
           </Button>
         </Stack>
       );
@@ -135,18 +132,10 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
             <Delete fontSize="small" />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Play">
-          <span>
-            <IconButton
-              size="small"
-              color="primary"
-              aria-label={`play tv channel ${channel.name}`}
-              disabled={!hasStreams}
-              onClick={() => onPlay(channel.id)}
-            >
-              <PlayArrow fontSize="small" />
-            </IconButton>
-          </span>
+        <Tooltip title="Open channel page">
+          <IconButton size="small" color="primary" aria-label={`open tv channel ${channel.name}`} onClick={() => onOpen(channel.id)}>
+            <OpenInNew fontSize="small" />
+          </IconButton>
         </Tooltip>
       </Box>
     );
@@ -330,12 +319,9 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
       flex: 1,
       minWidth: 140,
       renderCell: (params: GridRenderCellParams<TVChannel>) => (
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
-          <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {params.row.name}
-          </Box>
-          {params.row.is_favorite ? <Chip label="Favorite" size="small" color="warning" variant="outlined" /> : null}
-        </Stack>
+        <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>
+          {params.row.name}
+        </Box>
       ),
     },
     {
@@ -418,7 +404,6 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
 
                   <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                     {channel.category ? <Chip label={channel.category} size="small" variant="outlined" /> : null}
-                    {channel.is_favorite ? <Chip label="Favorite" size="small" color="warning" variant="outlined" /> : null}
                     <Chip label={`${streamCount} ${streamCount === 1 ? 'stream' : 'streams'}`} size="small" variant="outlined" />
                   </Stack>
 
@@ -478,6 +463,8 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
         getRowId={(row) => row.id}
         loading={false}
         density={isCompact ? 'compact' : 'standard'}
+        columnBuffer={12}
+        disableVirtualization={shouldDisableGridVirtualization({ mode: process.env.NODE_ENV })}
         autoHeight
         pagination
         paginationMode="server"
@@ -489,13 +476,14 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
           onPageSizeChange(model.pageSize);
         }}
         columnVisibilityModel={{
-          country: !isCompact,
-          language: !isCompact,
+          channel_number: hasNumbers,
+          country: !isCompact && hasCountry,
+          language: !isCompact && hasLanguage,
         }}
         sortingMode="server"
         onSortModelChange={onSortChange}
-        slots={{ toolbar: GridToolbar, noRowsOverlay: DesktopEmptyState }}
-        slotProps={{ toolbar: { 'data-testid': 'tv-channels-toolbar' } as any }}
+        disableColumnMenu
+        slots={{ noRowsOverlay: DesktopEmptyState }}
         sx={{
           border: 0,
           backgroundColor: 'transparent',

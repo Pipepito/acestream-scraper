@@ -17,13 +17,13 @@ import { useTVChannelCatalog, useDeleteTVChannel, useCreateTVChannel, useUpdateT
 import { useTVChannelForm } from '../hooks/useTVChannelForm';
 import { AdvancedSearchFilters } from '../components/AdvancedSearch';
 import TVChannelsTable from '../components/TVChannelsTable';
-import TVChannelsPageHero from '../components/TVChannelsPageHero';
 import TVChannelFormDialog from '../components/TVChannelFormDialog';
 import TVChannelDeleteDialog from '../components/TVChannelDeleteDialog';
 import { TVChannel, TVChannelCreate, TVChannelUpdate } from '../types/tvChannelTypes';
 import AdvancedSearch from '../components/AdvancedSearch';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
+import StatusLine from '../components/StatusLine';
 import { getShellLayout } from '../styles/layout';
 import { normalizeApiError } from '../services/apiErrors';
 
@@ -117,6 +117,9 @@ const TVChannels: React.FC = () => {
     [channels]
   );
   const totalChannels = filteredChannels.length;
+  const hasFilters = favoritesOnly || Object.values(filters).some(Boolean);
+  const favoriteCount = channels.filter((channel) => channel.is_favorite).length;
+  const withStreamsCount = channels.filter((channel) => (channel.acestream_channels?.length ?? 0) > 0).length;
   const visibleFilterFields = {
     search: true,
     category: true,
@@ -250,7 +253,7 @@ const TVChannels: React.FC = () => {
     <Box sx={{ width: '100%' }}>
       <PageHeader
         title="TV Channels"
-        subtitle="Review channels and take the next action fast."
+        subtitle="The channels you publish. Each one groups its streams and carries the EPG for the playlist."
         primaryActions={
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
             <Button variant="outlined" onClick={() => refetchCatalog()}>
@@ -263,7 +266,15 @@ const TVChannels: React.FC = () => {
         }
       />
 
-      <TVChannelsPageHero channelCount={channels.length} filteredChannels={filteredChannels} />
+      <StatusLine
+        aria-label="TV channel summary"
+        items={[
+          { label: favoritesOnly ? 'Favorites' : 'Channels', value: String(channels.length) },
+          ...(favoritesOnly ? [] : [{ label: 'Favorites', value: String(favoriteCount) }]),
+          { label: 'With streams', value: String(withStreamsCount), tone: withStreamsCount === 0 && channels.length > 0 ? 'warning' as const : 'default' as const },
+          { label: 'Matching filters', value: hasFilters ? String(totalChannels) : 'all' },
+        ]}
+      />
 
       {notice ? (
         <Alert severity={notice.startsWith('Failed') ? 'error' : 'success'} sx={{ mb: 2 }} onClose={() => setNotice(null)}>
@@ -273,8 +284,7 @@ const TVChannels: React.FC = () => {
 
       <Box data-testid="tv-channels-page-layout">
         <ContentSection
-          title="TV Channel Inventory"
-          description="Keep the organized catalog primary, then use filters only when the list needs cleanup."
+          title="Channels"
           actions={
             isPhone ? (
               <Button
@@ -283,11 +293,26 @@ const TVChannels: React.FC = () => {
                 aria-expanded={filtersOpen}
                 aria-controls="tv-channels-filters-panel"
               >
-                {filtersOpen ? 'Hide Filters' : 'Show Filters'}
+                {filtersOpen ? 'Hide filters' : 'Show filters'}
               </Button>
             ) : null
           }
         >
+          <Box sx={{ mb: 2 }}>
+            <FormControlLabel
+              control={<Switch checked={favoritesOnly} onChange={handleFavoritesOnlyChange} name="favorites_only" color="primary" />}
+              label="Favorites only"
+            />
+            {isPhone ? (
+              <Collapse in={showFilters} id="tv-channels-filters-panel" unmountOnExit>
+                <AdvancedSearch filters={filters} onChange={handleFiltersChange} categories={categories} visibleFields={visibleFilterFields} />
+              </Collapse>
+            ) : (
+              <Box id="tv-channels-filters-panel">
+                <AdvancedSearch filters={filters} onChange={handleFiltersChange} categories={categories} visibleFields={visibleFilterFields} />
+              </Box>
+            )}
+          </Box>
           <TVChannelsTable
             channels={paginatedChannels}
             loading={isCatalogLoading}
@@ -299,49 +324,19 @@ const TVChannels: React.FC = () => {
             onSortChange={() => undefined}
             onEdit={handleOpenEditDialog}
             onDelete={handleRequestDelete}
-            onPlay={(id) => navigate(`/tv-channels/${id}`)}
+            onOpen={(id) => navigate(`/tv-channels/${id}`)}
             onToggleFavorite={handleToggleFavorite}
           />
-          {totalChannels === 0 && (favoritesOnly || Object.values(filters).some(Boolean)) ? (
+          {totalChannels === 0 && hasFilters ? (
             <Alert severity="info" sx={{ mt: 2 }}>
               <Typography component="span" sx={{ display: 'block', fontWeight: 600 }}>
                 No TV channels match the current filters
               </Typography>
               <Typography component="span" variant="body2">
-                Reset the filters or broaden your search to recover the TV channel inventory.
+                Reset the filters or broaden your search to see the full list.
               </Typography>
             </Alert>
           ) : null}
-        </ContentSection>
-
-        <ContentSection
-          title="Filters"
-          description="Focus the list before you act."
-        >
-          <FormControlLabel
-            control={<Switch checked={favoritesOnly} onChange={handleFavoritesOnlyChange} name="favorites_only" color="primary" />}
-            label="Favorites only"
-            sx={{ mb: 1 }}
-          />
-          {isPhone ? (
-            <Collapse in={showFilters} id="tv-channels-filters-panel" unmountOnExit>
-              <AdvancedSearch
-                filters={filters}
-                onChange={handleFiltersChange}
-                categories={categories}
-                visibleFields={visibleFilterFields}
-              />
-            </Collapse>
-          ) : (
-            <Box id="tv-channels-filters-panel">
-              <AdvancedSearch
-                filters={filters}
-                onChange={handleFiltersChange}
-                categories={categories}
-                visibleFields={visibleFilterFields}
-              />
-            </Box>
-          )}
         </ContentSection>
       </Box>
 

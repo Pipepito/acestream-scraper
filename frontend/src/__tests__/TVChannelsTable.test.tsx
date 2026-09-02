@@ -60,7 +60,7 @@ describe('TVChannelsTable', () => {
     onSortChange: jest.fn(),
     onEdit: jest.fn(),
     onDelete: jest.fn(),
-    onPlay: jest.fn(),
+    onOpen: jest.fn(),
     onToggleFavorite: jest.fn(),
   };
 
@@ -94,33 +94,7 @@ describe('TVChannelsTable', () => {
     expect(within(inventoryRegion).getByRole('group', { name: 'TV channel actions for Arena TV' })).toBeInTheDocument();
     expect(within(inventoryRegion).getByRole('button', { name: 'edit tv channel Arena TV' })).toBeInTheDocument();
     expect(within(inventoryRegion).getByRole('button', { name: 'delete tv channel Arena TV' })).toBeInTheDocument();
-    expect(within(inventoryRegion).getByRole('button', { name: 'play tv channel Arena TV' })).toBeInTheDocument();
-  });
-
-  it('keeps the desktop table toolbar in normal flow instead of sticky positioning', () => {
-    renderTable(
-      <TVChannelsTable
-        channels={[
-          {
-            id: 42,
-            name: 'Arena TV',
-            logo_url: '',
-            category: 'Sports',
-            language: 'en',
-            country: 'RS',
-            channel_number: 7,
-            is_active: true,
-            acestream_channels: [{ channel_id: 'ace-1' }],
-          } as any,
-        ]}
-        {...baseProps}
-      />
-    );
-
-    const toolbar = screen.getByTestId('tv-channels-toolbar');
-
-    expect(toolbar).toHaveClass('MuiDataGrid-toolbarContainer');
-    expect(toolbar).toHaveStyle({ position: 'static' });
+    expect(within(inventoryRegion).getByRole('button', { name: 'open tv channel Arena TV' })).toBeInTheDocument();
   });
 
   it('keeps the first desktop row action keyboard focusable with its accessible label intact', async () => {
@@ -189,11 +163,11 @@ describe('TVChannelsTable', () => {
     expect(within(row).getByText('2 streams')).toBeInTheDocument();
     expect(within(row).getByRole('button', { name: 'edit tv channel Arena TV' })).toHaveTextContent('Edit');
     expect(within(row).getByRole('button', { name: 'delete tv channel Arena TV' })).toHaveTextContent('Delete');
-    expect(within(row).getByRole('button', { name: 'play tv channel Arena TV' })).toHaveTextContent('Play');
+    expect(within(row).getByRole('button', { name: 'open tv channel Arena TV' })).toHaveTextContent('Open');
     expect(screen.queryByRole('grid')).not.toBeInTheDocument();
   });
 
-  it('surfaces favorite state prominently in both desktop and compact views', () => {
+  it('shows favorite state through the star toggle instead of a chip', () => {
     const favoriteChannel = {
       id: 42,
       name: 'Arena TV',
@@ -211,13 +185,16 @@ describe('TVChannelsTable', () => {
 
     const { unmount } = renderTable(<TVChannelsTable channels={[favoriteChannel]} {...baseProps} />);
 
-    expect(screen.getByRole('grid')).toHaveTextContent('Favorite');
+    expect(screen.getByRole('grid')).not.toHaveTextContent('Favorite');
+    expect(screen.getByRole('button', { name: 'toggle favorite for tv channel Arena TV' })).toHaveAttribute('aria-pressed', 'true');
 
     unmount();
 
     renderTable(<TVChannelsTable channels={[favoriteChannel]} {...baseProps} />, true);
 
-    expect(within(screen.getByRole('article', { name: 'Arena TV' })).getByText('Favorite')).toBeInTheDocument();
+    const card = screen.getByRole('article', { name: 'Arena TV' });
+    expect(within(card).queryByText('Favorite')).not.toBeInTheDocument();
+    expect(within(card).getByRole('button', { name: 'toggle favorite for tv channel Arena TV' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('exposes a favorite star toggle that reports the channel in desktop and compact modes', () => {
@@ -388,7 +365,7 @@ describe('TVChannelsTable', () => {
 
     expect(screen.getByRole('button', { name: 'edit tv channel Arena TV' })).not.toHaveClass('MuiButton-sizeSmall');
     expect(screen.getByRole('button', { name: 'delete tv channel Arena TV' })).not.toHaveClass('MuiButton-sizeSmall');
-    expect(screen.getByRole('button', { name: 'play tv channel Arena TV' })).not.toHaveClass('MuiButton-sizeSmall');
+    expect(screen.getByRole('button', { name: 'open tv channel Arena TV' })).not.toHaveClass('MuiButton-sizeSmall');
     expect(screen.getByRole('button', { name: 'Go to previous page' })).not.toHaveClass('MuiButton-sizeSmall');
     expect(screen.getByRole('button', { name: 'Go to next page' })).not.toHaveClass('MuiButton-sizeSmall');
     expect(screen.getByRole('combobox', { name: 'Rows per page' })).not.toHaveClass('MuiInputBase-inputSizeSmall');
@@ -430,7 +407,23 @@ describe('TVChannelsTable', () => {
     expect(within(row).getByText('Language: Deutsch / العربية / 日本語')).toBeInTheDocument();
     expect(within(row).getByRole('button', { name: /edit tv channel/i })).toBeInTheDocument();
     expect(within(row).getByRole('button', { name: /delete tv channel/i })).toBeInTheDocument();
-    expect(within(row).getByRole('button', { name: /play tv channel/i })).toBeInTheDocument();
+    expect(within(row).getByRole('button', { name: /open tv channel/i })).toBeInTheDocument();
+  });
+
+  it('hides the Number, Language and Country columns when no row fills them', () => {
+    renderTable(
+      <TVChannelsTable
+        channels={[
+          { id: 1, name: 'Plain', logo_url: '', category: 'News', is_active: true, acestream_channels: [] } as any,
+        ]}
+        {...baseProps}
+      />
+    );
+    const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
+    expect(headers).toEqual(expect.arrayContaining(['Name', 'Category', 'Streams', 'Status']));
+    expect(headers).not.toEqual(expect.arrayContaining(['Number']));
+    expect(headers).not.toEqual(expect.arrayContaining(['Language']));
+    expect(headers).not.toEqual(expect.arrayContaining(['Country']));
   });
 
   it('keeps compact pagination available when the current server page has no visible rows', () => {

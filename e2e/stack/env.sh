@@ -9,6 +9,7 @@ export E2E_ENGINE_URL="${E2E_ENGINE_URL:-http://127.0.0.1:6878}"
 export E2E_ACEXY_URL="${E2E_ACEXY_URL:-http://127.0.0.1:8081}"
 export E2E_IPFS_GATEWAY="${E2E_IPFS_GATEWAY:-http://127.0.0.1:8080}"
 export E2E_DOCKER_APP_URL="${E2E_DOCKER_APP_URL:-http://127.0.0.1:8001}"
+export E2E_DOCKER_APP_OFF_URL="${E2E_DOCKER_APP_OFF_URL:-http://127.0.0.1:8002}"
 # Opt-in WARP inside the engine container (needs the caps/device declared in the compose file).
 export E2E_ENABLE_WARP="${E2E_ENABLE_WARP:-false}"
 

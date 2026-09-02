@@ -44,6 +44,8 @@ Useful variants:
 - `E2E_RESET_DB=1 npm run backend:start` — start from an empty database.
 - `E2E_SKIP_FRONTEND_BUILD=1 npm run backend:start` — reuse `backend/frontend_build`.
 - `npm run test:docker` — run the same suite against the containerised app on :8001 (uses `dockerUrl` from the scenario for in-network hosts).
+- `npm run test:docker-off` — the same image with every optional service switched off (app on :8002, engine reached over the compose network); the services panel must report the engine as external and nothing restartable.
+- `E2E_ENABLE_WARP=true npm run stack:up` — start the engine container with Cloudflare WARP too (arm64 build included); the Overview services panel and the WARP page journeys then exercise the tunnel and its restart.
 - `E2E_STRICT=1 npm test` — fail a test on any unexpected console error, failed API call or backend error line (patterns in `scenario.errors` are ignored).
 - `npm run test:headed` / `npm run test:ui` — watch it in Firefox.
 

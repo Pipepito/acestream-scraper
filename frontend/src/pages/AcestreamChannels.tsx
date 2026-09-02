@@ -329,21 +329,15 @@ const AcestreamChannels: React.FC = () => {
         title="Acestream Channels"
         subtitle="Streams found by the scraper. Hide the ones you don't want in the playlist and link the rest to TV channels."
         actions={
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-            <Button variant="outlined" startIcon={<Refresh />} onClick={() => refetch()}>
-              Refresh
-            </Button>
-            <Button variant="outlined" onClick={handleCheckAllStatuses} disabled={checkingAll}>
-              {checkingAll ? 'Checking…' : 'Check all statuses'}
-            </Button>
-            <Button variant="outlined" startIcon={<FileDownload />} onClick={handleExportCSV}>
-              Export CSV
-            </Button>
-            <Button variant="contained" startIcon={<Add />} onClick={handleAdd}>
-              Add channel
-            </Button>
-          </Stack>
+          <Button variant="contained" startIcon={<Add />} onClick={handleAdd}>
+            Add channel
+          </Button>
         }
+        overflowActions={[
+          { label: 'Refresh', icon: <Refresh fontSize="small" />, onClick: () => void refetch() },
+          { label: checkingAll ? 'Checking…' : 'Check all statuses', onClick: () => void handleCheckAllStatuses(), disabled: checkingAll },
+          { label: 'Export CSV', icon: <FileDownload fontSize="small" />, onClick: () => void handleExportCSV() },
+        ]}
       />
 
       <StatusLine

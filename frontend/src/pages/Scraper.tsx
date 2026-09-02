@@ -332,11 +332,9 @@ const Scraper: React.FC = () => {
             >
               Scrape all
             </Button>
-            <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => refetch()} disabled={isLoading}>
-              Refresh
-            </Button>
           </Stack>
         }
+        overflowActions={[{ label: 'Refresh', icon: <RefreshIcon fontSize="small" />, onClick: () => void refetch(), disabled: isLoading }]}
       />
 
       <StatusLine

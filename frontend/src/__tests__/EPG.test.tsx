@@ -121,6 +121,16 @@ describe('EPG page', () => {
     expect(screen.queryByText('Alpha 1')).not.toBeInTheDocument();
   });
 
+  it('shows source refresh failures as plain text under the status', () => {
+    mockUseEPGSources.mockReturnValue({
+      data: [{ id: 1, name: 'Broken', url: 'https://one.test', enabled: true, error_count: 2, last_error: 'HTTP 503 from upstream', last_updated: null }],
+      isLoading: false,
+    });
+    renderPage();
+    expect(screen.getByText('2 failed refreshes · HTTP 503 from upstream')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'EPG summary' })).toHaveTextContent('Failing1');
+  });
+
   it('binds the active tab to ?tab= and the Export XML header action', () => {
     renderPage('/epg?tab=channels');
     expect(screen.getByRole('tab', { name: 'Channels', selected: true })).toBeInTheDocument();

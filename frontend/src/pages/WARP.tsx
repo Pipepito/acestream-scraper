@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Alert,
   Box,
@@ -37,6 +37,7 @@ export const describeWarpStatus = (status: WarpStatus | undefined): string => {
 };
 
 const WarpPage: React.FC = () => {
+  const navigate = useNavigate();
   const { data: status, isLoading, error } = useWarpStatus();
   const connectMutation = useWarpConnect();
   const disconnectMutation = useWarpDisconnect();
@@ -102,9 +103,6 @@ const WarpPage: React.FC = () => {
         subtitle={SUBTITLE}
         actions={
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ width: { xs: '100%', sm: 'auto' } }}>
-            <Button component={RouterLink} to="/" variant="text">
-              Back to Overview
-            </Button>
             <Button variant="contained" color="primary" onClick={() => connectMutation.mutate()} disabled={!running || connected || connectMutation.isPending}>
               {connectMutation.isPending ? <CircularProgress size={24} color="inherit" /> : 'Connect'}
             </Button>
@@ -113,6 +111,7 @@ const WarpPage: React.FC = () => {
             </Button>
           </Stack>
         }
+        overflowActions={[{ label: 'Back to Overview', onClick: () => navigate('/') }]}
       />
 
       <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap role="status" aria-label="WARP status" sx={{ mb: 2 }}>

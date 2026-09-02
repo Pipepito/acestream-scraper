@@ -2,13 +2,18 @@ import React from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import { useTheme } from '@mui/material/styles';
-import { useMediaQuery } from '@mui/material';
+import { Button, useMediaQuery } from '@mui/material';
+import RowActionsMenu, { type RowAction } from '../RowActionsMenu';
+
+export type PageHeaderOverflowAction = RowAction;
 
 interface PageHeaderProps {
   title: string;
   subtitle?: string;
   primaryActions?: React.ReactNode;
   actions?: React.ReactNode;
+  /** Secondary actions: buttons on tablet/desktop, a "More actions" menu on phones so the header stays short. */
+  overflowActions?: PageHeaderOverflowAction[];
   wideActionsAlignment?: 'start' | 'end';
 }
 
@@ -17,6 +22,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
   subtitle,
   primaryActions,
   actions,
+  overflowActions,
   wideActionsAlignment = 'end',
 }) => {
   const theme = useTheme();
@@ -25,7 +31,24 @@ const PageHeader: React.FC<PageHeaderProps> = ({
   const isDesktop = useMediaQuery(`(min-width:${layout.desktopMinWidth}px)`);
   const isWideDesktop = useMediaQuery(`(min-width:${layout.wideMinWidth}px)`);
   const groupedPrimaryActions = primaryActions ?? actions;
-  const groupedSecondaryActions = primaryActions ? actions : null;
+  const overflow = overflowActions && overflowActions.length > 0 ? overflowActions : null;
+  const overflowNode = overflow
+    ? isPhone
+      ? <RowActionsMenu label="More actions" actions={overflow} />
+      : overflow.map((action) => (
+          <Button key={action.label} variant="outlined" onClick={action.onClick} disabled={action.disabled} startIcon={action.icon} color={action.danger ? 'error' : undefined}>
+            {action.label}
+          </Button>
+        ))
+    : null;
+  const groupedSecondaryActions = primaryActions ? (
+    actions || overflowNode ? (
+      <>
+        {actions}
+        {overflowNode}
+      </>
+    ) : null
+  ) : overflowNode;
   const desktopActionAlignment = isWideDesktop ? wideActionsAlignment : 'end';
   const desktopJustifyContent = desktopActionAlignment === 'start' ? 'flex-start' : 'flex-end';
   const desktopJustifySelf = desktopActionAlignment === 'start' ? 'start' : 'end';
@@ -63,7 +86,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
           sx={{
             display: 'flex',
             flexWrap: isPhone ? 'nowrap' : 'wrap',
-            flexDirection: isPhone ? 'column' : 'row',
+            flexDirection: isPhone && !overflow ? 'column' : 'row',
             justifyContent: isDesktop ? desktopJustifyContent : 'flex-start',
             alignItems: isPhone ? 'stretch' : 'center',
             gap: 1,

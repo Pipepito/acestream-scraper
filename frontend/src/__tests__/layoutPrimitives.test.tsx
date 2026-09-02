@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { ThemeProvider } from '@mui/material/styles';
 import Button from '@mui/material/Button';
 import { useMediaQuery } from '@mui/material';
@@ -90,6 +90,42 @@ describe('layout primitives', () => {
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Run health check' })).toBeInTheDocument();
     expect(buttons).toHaveLength(2);
+  });
+
+  it('collapses overflow actions into a More actions menu on phones and shows them as buttons elsewhere', () => {
+    const onExport = jest.fn();
+    const { unmount } = renderWithTheme(
+      <PageHeader
+        title="Acestream Channels"
+        actions={<Button variant="contained">Add channel</Button>}
+        overflowActions={[
+          { label: 'Refresh', onClick: jest.fn() },
+          { label: 'Export CSV', onClick: onExport },
+        ]}
+      />,
+      'light',
+      { isPhone: true, isDesktop: false, isWideDesktop: false }
+    );
+
+    expect(screen.getByRole('button', { name: 'Add channel' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Export CSV' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    const menu = screen.getByRole('menu');
+    fireEvent.click(within(menu).getByRole('menuitem', { name: 'Export CSV' }));
+    expect(onExport).toHaveBeenCalledTimes(1);
+    unmount();
+
+    renderWithTheme(
+      <PageHeader
+        title="Acestream Channels"
+        actions={<Button variant="contained">Add channel</Button>}
+        overflowActions={[{ label: 'Refresh', onClick: jest.fn() }, { label: 'Export CSV', onClick: onExport }]}
+      />,
+      'light',
+      { isPhone: false, isDesktop: true, isWideDesktop: false }
+    );
+    expect(screen.getByRole('button', { name: 'Export CSV' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'More actions' })).not.toBeInTheDocument();
   });
 
   it.each<ThemeMode>(['light', 'dark'])('stacks PageHeader actions on phones and realigns them at desktop widths in %s mode', (mode) => {

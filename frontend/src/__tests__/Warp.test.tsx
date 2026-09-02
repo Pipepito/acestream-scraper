@@ -56,7 +56,7 @@ describe('WARP page', () => {
     expect(status).toHaveTextContent('Connected');
     expect(status).toHaveTextContent('Connected · mode warp · free account · exit GB via LHR');
     expect(screen.queryByText('Tunnel pulse')).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Back to Overview' })).toHaveAttribute('href', '/');
+    expect(screen.getByRole('button', { name: 'Back to Overview' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Connect' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Disconnect' })).toBeEnabled();
 

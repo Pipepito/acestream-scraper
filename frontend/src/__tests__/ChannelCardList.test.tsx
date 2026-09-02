@@ -20,7 +20,7 @@ const channel: AcestreamChannel = {
   tv_channel_is_favorite: false,
 };
 
-const renderList = (overrides: Partial<React.ComponentProps<typeof ChannelCardList>> = {}) => {
+const mountList = (overrides: Partial<React.ComponentProps<typeof ChannelCardList>> = {}) => {
   const props = {
     channels: [channel],
     loading: false,
@@ -51,7 +51,7 @@ const renderList = (overrides: Partial<React.ComponentProps<typeof ChannelCardLi
 
 describe('ChannelCardList', () => {
   it('renders one card per channel with state, id, actions and selection', () => {
-    const props = renderList();
+    const props = mountList();
     const card = screen.getByRole('article', { name: 'Alpha Sports' });
 
     expect(within(card).getByText('Sports · TV: Arena TV')).toBeInTheDocument();
@@ -70,7 +70,7 @@ describe('ChannelCardList', () => {
   });
 
   it('paginates with previous/next and a range label', () => {
-    const props = renderList();
+    const props = mountList();
     expect(screen.getByText('26–50 of 60')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Go to next page' }));
     expect(props.onPageChange).toHaveBeenCalledWith(2);
@@ -79,7 +79,7 @@ describe('ChannelCardList', () => {
   });
 
   it('shows an empty state when nothing matches', () => {
-    renderList({ channels: [], totalCount: 0 });
+    mountList({ channels: [], totalCount: 0 });
     expect(screen.getByText('No channels to show')).toBeInTheDocument();
   });
 });

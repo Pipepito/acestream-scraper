@@ -15,12 +15,35 @@ export enum WarpMode {
 /**
  * Interface for WARP status response
  */
+export interface WarpTunnelDetails {
+  protocol?: string | null;
+  endpoints?: string | null;
+  last_handshake?: string | null;
+  sent?: string | null;
+  received?: string | null;
+  latency?: string | null;
+  loss?: string | null;
+  colo?: string | null;
+  tls_version?: string | null;
+}
+
+export interface WarpRegistrationDetails {
+  account_id?: string | null;
+  device_id?: string | null;
+  /** Masked by the backend (first and last characters only). */
+  license?: string | null;
+}
+
 export interface WarpStatus {
   running: boolean;
   connected: boolean;
   mode: WarpMode | null;
   account_type: string;
   ip: string | null;
+  location?: string | null;
+  colo?: string | null;
+  tunnel?: WarpTunnelDetails;
+  registration?: WarpRegistrationDetails;
   cf_trace: Record<string, string>;
 }
 

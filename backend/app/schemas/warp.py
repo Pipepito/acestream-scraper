@@ -49,6 +49,10 @@ class WarpStatusResponse(BaseModel):
         default=None,
         description="The current IP address when connected to WARP"
     )
+    location: Optional[str] = Field(default=None, description="Country code reported by Cloudflare's trace")
+    colo: Optional[str] = Field(default=None, description="Cloudflare data centre serving the tunnel")
+    tunnel: Dict[str, Optional[str]] = Field(default_factory=dict, description="Details from `warp-cli tunnel stats`")
+    registration: Dict[str, Optional[str]] = Field(default_factory=dict, description="Account/device ids and masked license")
     cf_trace: Dict[str, str] = Field(
         default_factory=dict,
         description="Cloudflare trace information"

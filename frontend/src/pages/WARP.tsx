@@ -183,14 +183,45 @@ const WarpPage: React.FC = () => {
           </Alert>
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
-              <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
+              <Paper variant="outlined" sx={{ p: 2, height: '100%' }} component="section" aria-label="Current path">
                 <Typography variant="sectionTitle" sx={{ mb: 1 }}>Current path</Typography>
                 <Typography variant="body2" color="text.secondary">Connected: {status?.connected ? 'Yes' : 'No'}</Typography>
                 <Typography variant="body2" color="text.secondary">Mode: {status?.mode || 'Unknown'}</Typography>
                 <Typography variant="body2" color="text.secondary">Account Type: {status?.account_type}</Typography>
                 {status?.ip ? <Typography variant="body2" color="text.secondary">IP: {status.ip}</Typography> : null}
+                {status?.location || status?.colo ? (
+                  <Typography variant="body2" color="text.secondary">
+                    Exit location: {[status?.location, status?.colo ? `via ${status.colo}` : null].filter(Boolean).join(' ')}
+                  </Typography>
+                ) : null}
               </Paper>
             </Grid>
+            {status?.connected && status.tunnel && Object.values(status.tunnel).some(Boolean) ? (
+              <Grid item xs={12} md={6}>
+                <Paper variant="outlined" sx={{ p: 2, height: '100%' }} component="section" aria-label="Tunnel details">
+                  <Typography variant="sectionTitle" sx={{ mb: 1 }}>Tunnel details</Typography>
+                  {status.tunnel.protocol ? <Typography variant="body2" color="text.secondary">Protocol: {status.tunnel.protocol}</Typography> : null}
+                  {status.tunnel.latency ? <Typography variant="body2" color="text.secondary">Latency: {status.tunnel.latency}</Typography> : null}
+                  {status.tunnel.loss ? <Typography variant="body2" color="text.secondary">Packet loss: {status.tunnel.loss}</Typography> : null}
+                  {status.tunnel.last_handshake ? <Typography variant="body2" color="text.secondary">Last handshake: {status.tunnel.last_handshake} ago</Typography> : null}
+                  {status.tunnel.sent || status.tunnel.received ? (
+                    <Typography variant="body2" color="text.secondary">Traffic: {status.tunnel.sent ?? '?'} sent, {status.tunnel.received ?? '?'} received</Typography>
+                  ) : null}
+                  {status.tunnel.endpoints ? <Typography variant="body2" color="text.secondary">Endpoints: {status.tunnel.endpoints}</Typography> : null}
+                  {status.tunnel.tls_version ? <Typography variant="body2" color="text.secondary">TLS: {status.tunnel.tls_version}</Typography> : null}
+                </Paper>
+              </Grid>
+            ) : null}
+            {status?.registration && (status.registration.device_id || status.registration.account_id || status.registration.license) ? (
+              <Grid item xs={12} md={6}>
+                <Paper variant="outlined" sx={{ p: 2, height: '100%' }} component="section" aria-label="Registration">
+                  <Typography variant="sectionTitle" sx={{ mb: 1 }}>Registration</Typography>
+                  {status.registration.device_id ? <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-all' }}>Device ID: {status.registration.device_id}</Typography> : null}
+                  {status.registration.account_id ? <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-all' }}>Account ID: {status.registration.account_id}</Typography> : null}
+                  {status.registration.license ? <Typography variant="body2" color="text.secondary">License: {status.registration.license}</Typography> : null}
+                </Paper>
+              </Grid>
+            ) : null}
           </Grid>
         </Stack>
       </ContentSection>

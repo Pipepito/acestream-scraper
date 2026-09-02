@@ -14,6 +14,10 @@ class WarpMode(Enum):
     PROXY = "proxy"  # Proxy mode
     OFF = "off"    # WARP disabled
 
+# No trailing slash: Cloudflare answers /cdn-cgi/trace/ with 404.
+CLOUDFLARE_TRACE_URL = "https://www.cloudflare.com/cdn-cgi/trace"
+
+
 class WarpService:
     # Process-wide flag so a missing binary is reported once, not on every status poll.
     _missing_binary_logged = False
@@ -204,6 +208,59 @@ class WarpService:
                         return mode
         return None
 
+    @staticmethod
+    def parse_key_values(text: str) -> Dict[str, str]:
+        """Turn warp-cli's `Key: value` output into a lower-cased dict.
+
+        `tunnel stats` packs two values on one line ("Sent: 2.8MB; Received: 14.2MB"),
+        so `;`-separated pairs are split as well."""
+        data: Dict[str, str] = {}
+        for raw_line in text.splitlines():
+            for part in raw_line.split(";"):
+                if ":" not in part:
+                    continue
+                key, value = part.split(":", 1)
+                key = key.strip().lower()
+                if key:
+                    data[key] = value.strip()
+        return data
+
+    @staticmethod
+    def parse_tunnel_stats(text: str) -> Dict[str, Optional[str]]:
+        """Details from `warp-cli tunnel stats` worth showing to an operator."""
+        kv = WarpService.parse_key_values(text)
+        colo = kv.get("colo")
+        return {
+            "protocol": kv.get("tunnel protocol"),
+            "endpoints": kv.get("endpoints"),
+            "last_handshake": kv.get("time since last handshake"),
+            "sent": kv.get("sent"),
+            "received": kv.get("received"),
+            "latency": kv.get("estimated latency"),
+            "loss": kv.get("estimated loss"),
+            "colo": colo.split(" ")[0] if colo else None,
+            "tls_version": kv.get("version"),
+        }
+
+    @staticmethod
+    def mask_secret(value: Optional[str]) -> Optional[str]:
+        if not value:
+            return None
+        return value if len(value) <= 8 else f"{value[:4]}…{value[-4:]}"
+
+    @staticmethod
+    def parse_registration(text: str) -> Dict[str, Optional[str]]:
+        """Details from `warp-cli registration show` (license is masked)."""
+        kv = WarpService.parse_key_values(text)
+        raw_type = (kv.get("account type") or kv.get("type") or "").lower()
+        account_type = "team" if "team" in raw_type else "premium" if "premium" in raw_type else "free"
+        return {
+            "account_type": account_type,
+            "account_id": kv.get("account id"),
+            "device_id": kv.get("device id") or kv.get("id"),
+            "license": WarpService.mask_secret(kv.get("license")),
+        }
+
     async def get_cf_trace(self) -> Dict[str, str]:
         """
         Get trace information from Cloudflare to verify WARP connection
@@ -213,9 +270,9 @@ class WarpService:
         """
         try:
             async with httpx.AsyncClient() as client:
-                response = await client.get("https://www.cloudflare.com/cdn-cgi/trace/", timeout=5)
+                response = await client.get(CLOUDFLARE_TRACE_URL, timeout=5)
                 if response.status_code != 200:
-                    self.logger.error(f"Failed to get Cloudflare trace: {response.status_code}")
+                    self.logger.warning(f"Failed to get Cloudflare trace: {response.status_code}")
                     return {}
 
                 # Parse the response text into a dictionary
@@ -227,18 +284,22 @@ class WarpService:
 
                 return trace_data
         except Exception as e:
-            self.logger.error(f"Error getting Cloudflare trace: {str(e)}")
+            self.logger.warning(f"Error getting Cloudflare trace: {str(e)}")
             return {}
 
     async def get_status(self) -> Dict[str, Any]:
         """Get the current status of WARP"""
-        status = {
+        status: Dict[str, Any] = {
             "status": "disconnected",  # Add top-level status
             "running": False,
             "connected": False,
             "mode": None,
             "account_type": "free",
             "ip": None,
+            "location": None,
+            "colo": None,
+            "tunnel": {},
+            "registration": {},
             "cf_trace": {}
         }
 
@@ -269,25 +330,28 @@ class WarpService:
             ["registration", "show"], ["account"]
         )
         if code == 0:
-            for line in stdout.splitlines():
-                if "type:" in line.lower():
-                    if "team" in line.lower():
-                        status["account_type"] = "team"
-                    elif "premium" in line.lower():
-                        status["account_type"] = "premium"
+            registration = self.parse_registration(stdout)
+            status["account_type"] = registration.pop("account_type")
+            status["registration"] = registration
 
-        # Get current IP. Modern warp-cli replaced 'warp-stats' with
-        # 'tunnel stats'.
+        # Tunnel details and the public IP. Modern warp-cli replaced
+        # 'warp-stats' with 'tunnel stats' and no longer prints a WAN IP line,
+        # so the IP comes from Cloudflare's trace when the CLI omits it.
         if status["connected"]:
             code, stdout, _ = await self._run_with_fallback(
                 ["tunnel", "stats"], ["warp-stats"]
             )
-            for line in stdout.splitlines():
-                if "WAN IP:" in line:
-                    status["ip"] = line.split("WAN IP:")[1].strip()
+            if code == 0:
+                status["tunnel"] = self.parse_tunnel_stats(stdout)
+                for line in stdout.splitlines():
+                    if "WAN IP:" in line:
+                        status["ip"] = line.split("WAN IP:")[1].strip()
 
-            # Get Cloudflare trace information if connected
-            status["cf_trace"] = await self.get_cf_trace()
+            trace = await self.get_cf_trace()
+            status["cf_trace"] = trace
+            status["ip"] = status["ip"] or trace.get("ip")
+            status["location"] = trace.get("loc")
+            status["colo"] = trace.get("colo") or status["tunnel"].get("colo")
 
         return status
 

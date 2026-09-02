@@ -18,8 +18,14 @@ import {
   SelectChangeEvent,
   Stack,
   Collapse,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Typography,
 } from '@mui/material';
 import { Download, QrCode } from '@mui/icons-material';
+import { QRCodeSVG } from 'qrcode.react';
 import { useChannelGroups } from '../hooks/usePlaylists';
 import { useBaseUrls } from '../hooks/useBaseUrls';
 import { PlaylistFilters, playlistService } from '../services/playlistService';
@@ -41,6 +47,7 @@ const Playlist: React.FC = () => {
   const [showFilters, setShowFilters] = useState<boolean>(false);
   const [search, setSearch] = useState<string>('');
   const [selectedBaseUrlId, setSelectedBaseUrlId] = useState<number | ''>('');
+  const [qrOpen, setQrOpen] = useState(false);
 
   // Get available channel groups
   const {
@@ -60,6 +67,8 @@ const Playlist: React.FC = () => {
     search: search || filters.search,
     base_url_id: selectedBaseUrlId === '' ? undefined : selectedBaseUrlId
   });
+  // Players scan this from another device, so the QR must carry an absolute URL.
+  const absolutePlaylistUrl = typeof window === 'undefined' ? playlistUrl : new URL(playlistUrl, window.location.origin).toString();
 
   const handleIncludeGroupsChange = (event: SelectChangeEvent<string[]>) => {
     setFilters({
@@ -104,7 +113,7 @@ const Playlist: React.FC = () => {
             <Button variant="contained" color="primary" startIcon={<Download />} href={playlistUrl} download="acestream_playlist.m3u">
               Download M3U
             </Button>
-            <Button variant="outlined" startIcon={<QrCode />}>
+            <Button variant="outlined" startIcon={<QrCode />} onClick={() => setQrOpen(true)}>
               Show QR Code
             </Button>
           </Stack>
@@ -301,6 +310,24 @@ const Playlist: React.FC = () => {
           Make sure you have the Acestream engine installed and running on your device before playing the channels.
         </Alert>
       </ContentSection>
+
+      <Dialog open={qrOpen} onClose={() => setQrOpen(false)} aria-labelledby="playlist-qr-title">
+        <DialogTitle id="playlist-qr-title">Playlist QR code</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} alignItems="center" sx={{ pt: 1 }}>
+            <QRCodeSVG value={absolutePlaylistUrl} size={224} marginSize={2} role="img" aria-label="QR code for the playlist URL" />
+            <Typography variant="body2" sx={{ wordBreak: 'break-all', textAlign: 'center' }}>
+              {absolutePlaylistUrl}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
+              Scan it from your player or IPTV app to import this playlist with the current options.
+            </Typography>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setQrOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

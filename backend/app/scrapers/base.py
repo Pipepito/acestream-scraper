@@ -300,11 +300,13 @@ class BaseScraper(ABC):
                 status = f"Error: {str(e)}"
                 break
             except Exception as e:
-                logger.error(f"Error scraping {url_to_scrape}: {str(e)}")
                 retries_left -= 1
                 if retries_left < 0:
+                    # Only the final outcome is an error; the retries above are expected noise.
+                    logger.error(f"Error scraping {url_to_scrape} after {self.retries + 1} attempts: {str(e)}")
                     status = f"Error: {str(e)}"
                     break
+                logger.warning(f"Attempt failed for {url_to_scrape} ({retries_left + 1} retries left): {str(e)}")
                 self.timeout += 5
         if channels:
             logger.info(f"Successfully extracted {len(channels)} channels from {url_to_scrape}")

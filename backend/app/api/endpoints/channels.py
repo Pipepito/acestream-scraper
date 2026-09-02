@@ -38,8 +38,6 @@ async def get_acestream_channels(
     active_only: Optional[bool] = None,  # Changed default to None
     search: Optional[str] = None,
     group: Optional[str] = None,
-    country: Optional[str] = None,
-    language: Optional[str] = None,
     is_active: Optional[bool] = None,
     is_online: Optional[bool] = None,
     assigned: Optional[bool] = None,
@@ -68,8 +66,6 @@ async def get_acestream_channels(
         active_only=active_only,
         search=search,
         group=group,
-        country=country,
-        language=language,
         is_active=is_active,
         is_online=is_online,
         assigned=assigned
@@ -141,7 +137,7 @@ async def check_all_channels_status(
         )
         # Return all required fields for BulkStatusCheckResponse (with defaults)
         return {
-            "message": f"Status check started in background for {len(channels)} channels. This will finish when it finishes.",
+            "message": f"Status check started in the background for {len(channels)} channels. Refresh the list in a few minutes to see the results.",
             "background": True,
             "total_channels": len(channels),
             "total_checked": 0,
@@ -169,7 +165,7 @@ async def check_all_channels_status(
         offline_count = sum(1 for r in results if not r["is_online"])
 
         return {
-            "message": f"Status check completed for {len(channels)} channels.",
+            "message": f"Checked {len(results)} channels: {online_count} online, {offline_count} offline.",
             "background": False,
             "total_channels": len(channels),
             "total_checked": len(results),
@@ -178,19 +174,6 @@ async def check_all_channels_status(
             "results": results,
             "summary": summary
         }
-
-
-@router.get("/tv/", response_model=List[TVChannelResponse])
-async def get_tv_channels(
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(get_db)
-):
-    """
-    Get all TV channels.
-    """
-    service = AcestreamChannelService(db)
-    return service.get_all_tv_channels(skip=skip, limit=limit)
 
 
 @router.post("/bulk_delete", status_code=status.HTTP_204_NO_CONTENT)
@@ -242,6 +225,28 @@ async def bulk_activate_acestream_channels(
         raise HTTPException(status_code=400, detail="acestreamchannel_ids required")
     updated = service.bulk_activate_channels(acestreamchannel_ids, active)
     return updated
+
+
+# Static paths must be registered before the /{acestreamchannel_id} matcher below.
+@router.get("/export_csv")
+def export_acestream_channels_csv(db: Session = Depends(get_db)):
+    """
+    Export all Acestream channels as a CSV file.
+    """
+    service = AcestreamChannelService(db)
+    channels = service.get_all_channels(active_only=False)
+    output = StringIO()
+    writer = csv.writer(output)
+    # Write header
+    writer.writerow([
+        "id", "name", "source_url", "group", "logo", "tvg_id", "tvg_name", "is_online", "is_active", "last_seen"
+    ])
+    for ch in channels:
+        writer.writerow([
+            ch.id, ch.name, ch.source_url, ch.group, ch.logo, ch.tvg_id, ch.tvg_name, ch.is_online, getattr(ch, 'is_active', ''), getattr(ch, 'last_seen', '')
+        ])
+    output.seek(0)
+    return StreamingResponse(output, media_type="text/csv", headers={"Content-Disposition": "attachment; filename=acestream_channels.csv"})
 
 
 @router.get("/{acestreamchannel_id}", response_model=AcestreamChannelResponse)
@@ -334,27 +339,6 @@ async def delete_acestream_channel(acestreamchannel_id: str, db: Session = Depen
 
     service.delete_channel(acestreamchannel_id)
     return None
-
-
-@router.get("/export_csv")
-def export_acestream_channels_csv(db: Session = Depends(get_db)):
-    """
-    Export all Acestream channels as a CSV file.
-    """
-    service = AcestreamChannelService(db)
-    channels = service.get_all_channels(active_only=False)
-    output = StringIO()
-    writer = csv.writer(output)
-    # Write header
-    writer.writerow([
-        "id", "name", "source_url", "group", "logo", "tvg_id", "tvg_name", "is_online", "is_active", "last_seen"
-    ])
-    for ch in channels:
-        writer.writerow([
-            ch.id, ch.name, ch.source_url, ch.group, ch.logo, ch.tvg_id, ch.tvg_name, ch.is_online, getattr(ch, 'is_active', ''), getattr(ch, 'last_seen', '')
-        ])
-    output.seek(0)
-    return StreamingResponse(output, media_type="text/csv", headers={"Content-Disposition": "attachment; filename=acestream_channels.csv"})
 
 
 async def _background_status_check(

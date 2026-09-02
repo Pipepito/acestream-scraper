@@ -61,7 +61,7 @@ const EPGSourcesTable: React.FC<EPGSourcesTableProps> = ({
                   color="error"
                   size="small"
                   sx={{ ml: 1 }}
-                  title={source.last_error}
+                  title={source.last_error ?? undefined}
                 />
               )}
             </TableCell>

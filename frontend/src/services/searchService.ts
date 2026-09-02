@@ -58,7 +58,8 @@ export const searchService = {
     const params: Record<string, any> = {
       query,
       page,
-      page_size: pageSize
+      // The backend declares this query parameter as `per_page`.
+      per_page: pageSize
     };
 
     if (category) {

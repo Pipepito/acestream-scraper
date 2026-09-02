@@ -169,7 +169,7 @@ const TVChannelDetail: React.FC = () => {
         tvChannelId: channelId,
         aceStreamId,
       });
-      const removedAcestream = channel?.acestream_channels.find((item) => item.channel_id === aceStreamId);
+      const removedAcestream = channel?.acestream_channels.find((item) => item.id === aceStreamId);
       setNotice({
         message: `Removed acestream ${removedAcestream?.name || aceStreamId} successfully.`,
         severity: 'success',
@@ -421,7 +421,7 @@ const TVChannelDetail: React.FC = () => {
           <List sx={{ p: 0 }}>
             {channel.acestream_channels.map((acestream) => (
               <ListItem
-                key={acestream.channel_id}
+                key={acestream.id}
                 divider
                 secondaryAction={
                   <Box role="group" aria-label={`Acestream actions for ${acestream.name}`} sx={{ display: 'flex', gap: 1 }}>
@@ -429,7 +429,7 @@ const TVChannelDetail: React.FC = () => {
                       edge="end"
                       color="error"
                       aria-label={`Remove acestream ${acestream.name}`}
-                      onClick={() => handleRemoveAcestream(acestream.channel_id)}
+                      onClick={() => handleRemoveAcestream(acestream.id)}
                     >
                       <DeleteIcon />
                     </IconButton>
@@ -438,7 +438,7 @@ const TVChannelDetail: React.FC = () => {
               >
                 <ListItemText primary={acestream.name} />
                 <Box sx={{ display: 'inline-flex', gap: 1, flexWrap: 'wrap', mt: 0.75 }}>
-                  <Chip size="small" label={`ID: ${acestream.channel_id}`} />
+                  <Chip size="small" label={`ID: ${acestream.id}`} />
                   <Chip size="small" label={`Group: ${acestream.group || 'None'}`} />
                   {acestream.is_online !== undefined ? (
                     <Chip size="small" label={acestream.is_online ? 'Online' : 'Offline'} color={acestream.is_online ? 'success' : 'default'} />

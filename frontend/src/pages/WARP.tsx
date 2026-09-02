@@ -103,6 +103,10 @@ const WarpPage: React.FC = () => {
   if (error) {
     return (
       <Box>
+        <PageHeader
+          title="WARP"
+          subtitle="Check tunnel status, switch modes, and manage your license from one operational flow."
+        />
         <Alert severity="error">
           Error loading WARP status: {(error as Error).message}
         </Alert>

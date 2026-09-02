@@ -11,9 +11,9 @@ export interface EPGSource {
   url: string;
   name: string;
   enabled: boolean;
-  last_updated?: string;
+  last_updated?: string | null;
   error_count: number;
-  last_error?: string;
+  last_error?: string | null;
 }
 
 /**
@@ -102,11 +102,13 @@ export interface EPGXMLGenerationParams {
  */
 export interface EPGRefreshResult {
   source_id: number;
-  channels_found: number;
-  programs_found: number;
-  duration_seconds: number;
+  /** The refresh runs in the background: counts are null until it finishes. */
+  channels_found: number | null;
+  programs_found: number | null;
+  duration_seconds: number | null;
   success: boolean;
-  error?: string;
+  message?: string;
+  error?: string | null;
 }
 
 /**

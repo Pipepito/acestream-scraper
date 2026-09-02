@@ -2,7 +2,15 @@ from sqlalchemy.orm import Session
 
 from app.config.settings import settings
 from app.repositories.stats_repository import StatsRepository
-from app.schemas.stats_schemas import StatsResponse, TVChannelStatsResponse, URLStats
+from app.schemas.stats_schemas import (
+    HealthChannelTotals,
+    HealthEPGTotals,
+    HealthStatsResponse,
+    HealthURLTotals,
+    StatsResponse,
+    TVChannelStatsResponse,
+    URLStats,
+)
 from app.services.task_service import task_service
 
 
@@ -67,26 +75,24 @@ class StatsService:
             acestreams=acestreams
         )
 
-    def get_health_stats(self):
-        """Compact stats payload for /health/stats endpoint."""
+    def get_health_stats(self) -> HealthStatsResponse:
+        """Inventory totals for /api/v1/stats (Health and Stats pages)."""
         rollup = self.repository.get_health_rollup()
-        channels = rollup["channels"]
-        return {
-            "channels": channels,
-            "channels_detail": {
-                "total": channels,
-                "online": 0,
-                "offline": 0,
-                "unknown": 0,
-            },
-            "urls": {
-                "total": rollup["scraped_urls"],
-                "active": 0,
-                "error": 0,
-            },
-            "epg": {
-                "sources": rollup["epg_sources"],
-                "channels": rollup["epg_channels"],
-                "programs": rollup["epg_programs"],
-            },
-        }
+        return HealthStatsResponse(
+            channels=HealthChannelTotals(
+                total=rollup["channels"],
+                online=rollup["channels_online"],
+                offline=rollup["channels_offline"],
+                unknown=rollup["channels_unknown"],
+            ),
+            urls=HealthURLTotals(
+                total=rollup["scraped_urls"],
+                active=rollup["scraped_urls_active"],
+                error=rollup["scraped_urls_error"],
+            ),
+            epg=HealthEPGTotals(
+                sources=rollup["epg_sources"],
+                channels=rollup["epg_channels"],
+                programs=rollup["epg_programs"],
+            ),
+        )

@@ -38,23 +38,41 @@ function mapFiltersToAdvanced(filters: AcestreamChannelFilters): AdvancedSearchF
   return {
     search: filters.search,
     group: filters.group,
-    country: filters.country,
-    language: filters.language,
     is_active: typeof filters.is_active === 'boolean' ? String(filters.is_active) : '',
     is_online: typeof filters.is_online === 'boolean' ? String(filters.is_online) : '',
   };
 }
 
+/** Acestream channels carry no country/language/category metadata; only show filters the API honours. */
+const ACESTREAM_FILTER_FIELDS = { country: false, language: false, category: false } as const;
+
 function mapAdvancedToFilters(filters: AdvancedSearchFilters): AcestreamChannelFilters {
   return {
     search: filters.search || undefined,
     group: filters.group || undefined,
-    country: filters.country || undefined,
-    language: filters.language || undefined,
     is_active: filters.is_active === '' || filters.is_active === undefined ? undefined : filters.is_active === 'true',
     is_online: filters.is_online === '' || filters.is_online === undefined ? undefined : filters.is_online === 'true',
   };
 }
+
+interface BulkStatusCheckSummary {
+  message?: string | null;
+  background?: boolean;
+  total_channels?: number;
+  total_checked?: number;
+  online_count?: number;
+  offline_count?: number;
+}
+
+/** Turn the bulk status-check payload into one sentence a user can act on. */
+export const describeBulkStatusCheck = (data: BulkStatusCheckSummary): string => {
+  if (data.message) return data.message;
+  if (data.background) {
+    return `Status check started in the background for ${data.total_channels ?? 0} channels. Refresh the list in a few minutes to see the results.`;
+  }
+  const checked = data.total_checked ?? 0;
+  return `Checked ${checked} channels: ${data.online_count ?? 0} online, ${data.offline_count ?? 0} offline.`;
+};
 
 const AcestreamChannels: React.FC = () => {
   const navigate = useNavigate();
@@ -320,7 +338,7 @@ const AcestreamChannels: React.FC = () => {
     setCheckAllResult(null);
     try {
       const data = await acestreamChannelService.checkAllStatuses();
-      setCheckAllResult({ message: data.message || 'Acestream status check task triggered successfully.' });
+      setCheckAllResult({ message: describeBulkStatusCheck(data) });
     } catch (err) {
       setCheckAllResult({ message: getErrorMessage(err), error: err });
     } finally {
@@ -593,6 +611,7 @@ const AcestreamChannels: React.FC = () => {
           filters={mapFiltersToAdvanced(filters)}
           groups={groups}
           onChange={handleAdvancedFilterChange}
+          visibleFields={ACESTREAM_FILTER_FIELDS}
         />
       </ContentSection>
 

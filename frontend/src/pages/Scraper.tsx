@@ -51,6 +51,31 @@ interface URLFormData {
   scrape_bare_ids: boolean;
 }
 
+/**
+ * The backend stores the outcome of the last scrape as a free-form status string
+ * ("OK", "Error: ...", "pending"). Surface it so a failing source is visible.
+ */
+export const describeScrapeResult = (status: string | null | undefined): { label: string; color: 'success' | 'error' | 'default'; detail?: string } => {
+  if (!status || status === 'pending' || status === 'active') return { label: 'Not scraped yet', color: 'default' };
+  if (status === 'OK') return { label: 'OK', color: 'success' };
+  if (/^error/i.test(status)) return { label: 'Error', color: 'error', detail: status };
+  return { label: status, color: 'default' };
+};
+
+const renderScrapeResult = (url: { status?: string | null }) => {
+  const result = describeScrapeResult(url.status);
+  return (
+    <Chip
+      label={result.label}
+      color={result.color}
+      size="small"
+      variant={result.color === 'default' ? 'outlined' : 'filled'}
+      title={result.detail}
+      aria-label={result.detail ? `Last scrape failed: ${result.detail}` : undefined}
+    />
+  );
+};
+
 const initialFormData: URLFormData = {
   url: '',
   url_type: 'auto',
@@ -431,6 +456,7 @@ const Scraper: React.FC = () => {
                 <TableCell>URL</TableCell>
                 <TableCell>Type</TableCell>
                 <TableCell>Status</TableCell>
+                <TableCell>Last result</TableCell>
                 <TableCell>Last Scraped</TableCell>
                 <TableCell>Channels Found</TableCell>
                 <TableCell>Bare IDs</TableCell>
@@ -450,6 +476,7 @@ const Scraper: React.FC = () => {
                         size="small"
                       />
                     </TableCell>
+                    <TableCell>{renderScrapeResult(url)}</TableCell>
                     <TableCell>
                       {url.last_processed ? formatDistanceToNow(new Date(url.last_processed), { addSuffix: true }) : 'Never'}
                     </TableCell>

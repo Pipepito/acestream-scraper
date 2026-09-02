@@ -3,6 +3,7 @@ from fastapi.concurrency import run_in_threadpool
 
 from app.api.dependencies import get_config_service, get_stats_service
 from app.services.config_service import ConfigService
+from app.schemas.stats_schemas import HealthStatsResponse
 from app.services.stats_service import StatsService
 from app.schemas.config import HealthResponse
 
@@ -16,7 +17,7 @@ async def check_health(config_service: ConfigService = Depends(get_config_servic
     health = await run_in_threadpool(config_service.check_system_health)
     return health
 
-@router.get("/stats")
+@router.get("/stats", response_model=HealthStatsResponse)
 async def get_stats(stats_service: StatsService = Depends(get_stats_service)):
     """Get system statistics"""
     return stats_service.get_health_stats()

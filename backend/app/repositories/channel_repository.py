@@ -440,8 +440,6 @@ class ChannelRepository:
                                       active_only: bool = True,
                                       search: Optional[str] = None,
                                       group: Optional[str] = None,
-                                      country: Optional[str] = None,
-                                      language: Optional[str] = None,
                                       is_active: Optional[bool] = None,
                                       is_online: Optional[bool] = None,
                                       assigned: Optional[bool] = None) -> List[AcestreamChannel]:
@@ -455,10 +453,6 @@ class ChannelRepository:
             query = query.filter(AcestreamChannel.name.ilike(f"%{search}%"))
         if group:
             query = query.filter(AcestreamChannel.group == group)
-        if country:
-            query = query.filter(AcestreamChannel.country == country)
-        if language:
-            query = query.filter(AcestreamChannel.language == language)
         if is_active is not None:
             query = query.filter(AcestreamChannel.is_active == is_active)
         if is_online is not None:
@@ -476,8 +470,6 @@ class ChannelRepository:
                                       active_only: bool = True,
                                       search: Optional[str] = None,
                                       group: Optional[str] = None,
-                                      country: Optional[str] = None,
-                                      language: Optional[str] = None,
                                       is_active: Optional[bool] = None,
                                       is_online: Optional[bool] = None,
                                       assigned: Optional[bool] = None):
@@ -491,10 +483,6 @@ class ChannelRepository:
             query = query.filter(AcestreamChannel.name.ilike(f"%{search}%"))
         if group:
             query = query.filter(AcestreamChannel.group == group)
-        if country:
-            query = query.filter(AcestreamChannel.country == country)
-        if language:
-            query = query.filter(AcestreamChannel.language == language)
         if is_active is not None:
             query = query.filter(AcestreamChannel.is_active == is_active)
         if is_online is not None:

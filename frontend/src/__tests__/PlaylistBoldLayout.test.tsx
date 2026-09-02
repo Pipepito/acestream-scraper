@@ -32,6 +32,23 @@ describe('Playlist bold layout', () => {
     });
   });
 
+  it('shows the playlist URL as a scannable QR code', () => {
+    render(
+      <ThemeProvider theme={createAppTheme('light')}>
+        <TestMemoryRouter>
+          <Playlist />
+        </TestMemoryRouter>
+      </ThemeProvider>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show QR Code' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Playlist QR code' });
+    expect(dialog).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'QR code for the playlist URL' })).toBeInTheDocument();
+    expect(dialog).toHaveTextContent(/\/api\/v1\/playlists\/m3u\?/);
+  });
+
   it('keeps the playlist primary path ahead of optional advanced controls', () => {
     render(
       <ThemeProvider theme={createAppTheme('light')}>

@@ -1,11 +1,12 @@
 """Application settings and cutover env compatibility helpers."""
 
+import json
 import os
 from functools import lru_cache
-from typing import Dict, List, MutableMapping
+from typing import Dict, List, MutableMapping, Annotated
 
 from pydantic import field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 LEGACY_ENV_ALIAS_WINDOW = "v2-cutover-r1"
 LEGACY_ENV_ALIAS_MAP: Dict[str, str] = {
@@ -100,7 +101,9 @@ class Settings(BaseSettings):
     # than plain HTTP sources.
     IPFS_TIMEOUT: int = 30
     IPFS_RETRIES: int = 3
-    CORS_ORIGINS: List[str] = ["http://localhost:3000"]
+    # NoDecode: pydantic-settings would otherwise json-decode the env value before
+    # the validator runs, rejecting the documented comma-separated form.
+    CORS_ORIGINS: Annotated[List[str], NoDecode] = ["http://localhost:3000"]
     FRONTEND_BUILD_PATH: str = "frontend_build"
     ACE_ENGINE_URL: str = "http://localhost:6878"
 
@@ -110,7 +113,7 @@ class Settings(BaseSettings):
         if isinstance(value, str):
             stripped = value.strip()
             if stripped.startswith("["):
-                return value
+                return json.loads(stripped)
             if stripped == "":
                 return []
             return [item.strip() for item in stripped.split(",") if item.strip()]

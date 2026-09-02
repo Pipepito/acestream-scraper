@@ -214,6 +214,9 @@ class TestChannelStatusEndpoints:
         assert "offline_count" in data
         assert data["total_checked"] == 3
         assert len(data["results"]) == 3
+        # The SPA shows this line verbatim; it must describe what happened.
+        assert data["background"] is False
+        assert data["message"] == f"Checked 3 channels: {data['online_count']} online, {data['offline_count']} offline."
 
     def test_check_all_channels_status_with_limit(self, client, seed_channels):
         """Test checking status of channels with limit."""
@@ -222,6 +225,26 @@ class TestChannelStatusEndpoints:
         data = response.json()
         assert data["total_checked"] == 2
         assert len(data["results"]) == 2
+
+    def test_export_csv_is_reachable(self, client, seed_channels):
+        """The CSV export must not be shadowed by the /{acestreamchannel_id} route."""
+        response = client.get("/api/v1/acestream-channels/export_csv")
+        assert response.status_code == status.HTTP_200_OK
+        assert response.headers["content-type"].startswith("text/csv")
+        lines = [line for line in response.text.splitlines() if line.strip()]
+        assert lines[0].startswith("id,name,source_url")
+        assert len(lines) == 1 + 3
+
+    def test_unknown_filters_are_ignored_not_500(self, client, seed_channels):
+        """Acestream channels have no country/language columns; stray params must not crash the list."""
+        response = client.get("/api/v1/acestream-channels/?country=ES&language=es")
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["total"] == 3
+
+    def test_legacy_tv_alias_is_gone(self, client):
+        """/acestream-channels/tv/ pointed at a method that never existed (always 500)."""
+        response = client.get("/api/v1/acestream-channels/tv/")
+        assert response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_get_status_summary(self, client, seed_channels):
         """Test getting channel status summary."""

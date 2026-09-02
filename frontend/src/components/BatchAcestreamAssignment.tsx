@@ -52,7 +52,7 @@ const BatchAcestreamAssignment: React.FC<BatchAcestreamAssignmentProps> = ({
     try {
       setError(null);
       const result = await batchAssignMutation.mutateAsync({
-        [tvChannelId]: ids
+        assignments: ids.map((id) => ({ tv_channel_id: tvChannelId, acestream_channel_id: id })),
       });
       
       setSuccess(`Successfully associated ${result.success_count} acestreams. Failed to associate ${result.failure_count} acestreams.`);

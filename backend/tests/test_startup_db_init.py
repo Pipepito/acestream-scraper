@@ -45,6 +45,9 @@ def _run_main_import(
         {
             "DATABASE_URL": database_url,
             "LEGACY_DATABASE_URL": legacy_database_url,
+            # The v1 fixture carries fixed 2026-08-29 timestamps; disable retention so the
+            # deferred copy is not skipped as "stale" once real time moves past the window.
+            "EPG_PROGRAM_RETENTION_HOURS": "-1",
             "FRONTEND_BUILD_PATH": str(frontend_build_path),
             "PYTHONPATH": os.pathsep.join(pythonpath_entries),
         }

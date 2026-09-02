@@ -67,6 +67,26 @@ describe('Scraper', () => {
     mockUseScrapeAllURLs.mockReturnValue({ mutateAsync: jest.fn(), isPending: false });
   });
 
+  it('shows the outcome of the last scrape so failing sources are visible', () => {
+    mockUseURLs.mockReturnValue({
+      data: [
+        { id: 11, url: 'https://source-one.test/feed', url_type: 'auto', enabled: true, status: 'OK', last_processed: '2026-03-30T10:00:00Z', channels_found: 32 },
+        { id: 12, url: 'https://broken.test/feed', url_type: 'regular', enabled: true, status: "Error: 404, message='Not Found'", last_processed: '2026-03-30T10:05:00Z', channels_found: 0 },
+        { id: 13, url: 'https://new.test/feed', url_type: 'regular', enabled: true, status: 'active', last_processed: null, channels_found: 0 },
+      ],
+      isLoading: false,
+      refetch: jest.fn(),
+    });
+
+    renderPage();
+
+    expect(screen.getByRole('columnheader', { name: 'Last result' })).toBeInTheDocument();
+    expect(screen.getByText('OK')).toBeInTheDocument();
+    const failed = screen.getByLabelText("Last scrape failed: Error: 404, message='Not Found'");
+    expect(failed).toHaveTextContent('Error');
+    expect(screen.getByText('Not scraped yet')).toBeInTheDocument();
+  });
+
   it('adds explicit accessible labels to row action buttons', () => {
     renderPage();
 

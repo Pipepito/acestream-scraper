@@ -37,6 +37,10 @@ class ChannelStatusSummary(BaseModel):
 
 class BulkStatusCheckResponse(BaseModel):
     """Response for bulk status check operations"""
+    # Human-readable outcome shown by the SPA; `background` tells the client the
+    # counts are not final yet (large inventories are checked after the response).
+    message: Optional[str] = None
+    background: bool = False
     total_channels: int
     total_checked: int  # Changed from checked_channels to match test expectations
     online_count: int  # Added to match test expectations

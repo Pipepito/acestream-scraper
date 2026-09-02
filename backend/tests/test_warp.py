@@ -271,6 +271,16 @@ class TestWARPLicenseEndpoint:
     """Test WARP license registration endpoint."""
 
     @patch(WARP_REGISTER_LICENSE_PATH, new_callable=AsyncMock)
+    def test_register_warp_license_accepts_schema_key(self, mock_register_license, client):
+        """The SPA posts `license_key` (the WarpLicenseRequest field); it must register too."""
+        mock_register_license.return_value = {"success": True, "message": "ok", "license": "schema-key-license"}
+
+        response = client.post("/api/v1/warp/license", json={"license_key": "schema-key-license"})
+
+        assert response.status_code == 200
+        mock_register_license.assert_awaited_once_with("schema-key-license")
+
+    @patch(WARP_REGISTER_LICENSE_PATH, new_callable=AsyncMock)
     def test_register_warp_license_success(self, mock_register_license, client):
         """Test successful WARP license registration."""
         mock_register_license.return_value = {

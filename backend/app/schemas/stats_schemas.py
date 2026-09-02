@@ -30,3 +30,30 @@ class TVChannelStatsResponse(BaseModel):
     active: int
     with_epg: int
     acestreams: int
+
+
+class HealthChannelTotals(BaseModel):
+    total: int
+    online: int
+    offline: int
+    unknown: int
+
+
+class HealthURLTotals(BaseModel):
+    total: int
+    active: int
+    error: int
+
+
+class HealthEPGTotals(BaseModel):
+    sources: int
+    channels: int
+    programs: int
+
+
+class HealthStatsResponse(BaseModel):
+    """Compact inventory totals rendered by the Health and Stats pages."""
+
+    channels: HealthChannelTotals
+    urls: HealthURLTotals
+    epg: HealthEPGTotals

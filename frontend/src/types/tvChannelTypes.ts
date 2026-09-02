@@ -44,8 +44,14 @@ export interface TVChannel extends TVChannelBase {
 }
 
 // For batch operations
+export interface BatchAssignmentItem {
+  tv_channel_id: number;
+  acestream_channel_id: string;
+}
+
+/** Body of POST /tv-channels/batch-assign (mirrors TVChannelBatchAssignRequest). */
 export interface BatchAssignmentRequest {
-  [tv_channel_id: string]: string[]; // Map of TV channel IDs to acestream IDs
+  assignments: BatchAssignmentItem[];
 }
 
 export interface BatchAssignmentResult {

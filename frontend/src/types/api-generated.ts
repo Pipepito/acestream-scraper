@@ -109,13 +109,6 @@ export interface paths {
      */
     get: operations["get_channel_status_summary_api_v1_acestream_channels_status_summary_get"];
   };
-  "/api/v1/acestream-channels/tv/": {
-    /**
-     * Get Tv Channels
-     * @description Get all TV channels.
-     */
-    get: operations["get_tv_channels_api_v1_acestream_channels_tv__get"];
-  };
   "/api/v1/acestream-channels/{acestreamchannel_id}": {
     /**
      * Get Acestream Channel
@@ -233,13 +226,6 @@ export interface paths {
      * @description Get summary of channel statuses.
      */
     get: operations["get_channel_status_summary_api_v1_channels_status_summary_get"];
-  };
-  "/api/v1/channels/tv/": {
-    /**
-     * Get Tv Channels
-     * @description Get all TV channels.
-     */
-    get: operations["get_tv_channels_api_v1_channels_tv__get"];
   };
   "/api/v1/channels/{acestreamchannel_id}": {
     /**
@@ -1117,6 +1103,13 @@ export interface components {
      * @description Response for bulk status check operations
      */
     BulkStatusCheckResponse: {
+      /**
+       * Background
+       * @default false
+       */
+      background?: boolean;
+      /** Message */
+      message?: string | null;
       /** Offline Count */
       offline_count: number;
       /** Online Count */
@@ -1529,6 +1522,26 @@ export interface components {
       /** Detail */
       detail?: components["schemas"]["ValidationError"][];
     };
+    /** HealthChannelTotals */
+    HealthChannelTotals: {
+      /** Offline */
+      offline: number;
+      /** Online */
+      online: number;
+      /** Total */
+      total: number;
+      /** Unknown */
+      unknown: number;
+    };
+    /** HealthEPGTotals */
+    HealthEPGTotals: {
+      /** Channels */
+      channels: number;
+      /** Programs */
+      programs: number;
+      /** Sources */
+      sources: number;
+    };
     /**
      * HealthResponse
      * @description Schema for the health check response
@@ -1560,6 +1573,24 @@ export interface components {
        * @description Application version
        */
       version: string;
+    };
+    /**
+     * HealthStatsResponse
+     * @description Compact inventory totals rendered by the Health and Stats pages.
+     */
+    HealthStatsResponse: {
+      channels: components["schemas"]["HealthChannelTotals"];
+      epg: components["schemas"]["HealthEPGTotals"];
+      urls: components["schemas"]["HealthURLTotals"];
+    };
+    /** HealthURLTotals */
+    HealthURLTotals: {
+      /** Active */
+      active: number;
+      /** Error */
+      error: number;
+      /** Total */
+      total: number;
     };
     /**
      * MessageResponse
@@ -2380,8 +2411,6 @@ export interface operations {
         active_only?: boolean | null;
         search?: string | null;
         group?: string | null;
-        country?: string | null;
-        language?: string | null;
         is_active?: boolean | null;
         is_online?: boolean | null;
         assigned?: boolean | null;
@@ -2570,32 +2599,6 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["ChannelStatusSummary"];
-        };
-      };
-    };
-  };
-  /**
-   * Get Tv Channels
-   * @description Get all TV channels.
-   */
-  get_tv_channels_api_v1_acestream_channels_tv__get: {
-    parameters: {
-      query?: {
-        skip?: number;
-        limit?: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["TVChannelResponse"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };
@@ -2883,8 +2886,6 @@ export interface operations {
         active_only?: boolean | null;
         search?: string | null;
         group?: string | null;
-        country?: string | null;
-        language?: string | null;
         is_active?: boolean | null;
         is_online?: boolean | null;
         assigned?: boolean | null;
@@ -3073,32 +3074,6 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["ChannelStatusSummary"];
-        };
-      };
-    };
-  };
-  /**
-   * Get Tv Channels
-   * @description Get all TV channels.
-   */
-  get_tv_channels_api_v1_channels_tv__get: {
-    parameters: {
-      query?: {
-        skip?: number;
-        limit?: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["TVChannelResponse"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };
@@ -4520,7 +4495,7 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": unknown;
+          "application/json": components["schemas"]["HealthStatsResponse"];
         };
       };
     };

@@ -71,5 +71,6 @@ class HTTPScraper(BaseScraper):
                         return content
                 raise BlockedURLError(f"Too many redirects fetching '{url}'")
         except Exception as e:
-            logger.error(f"Error fetching content from {url}: {str(e)}")
+            # The caller decides whether this is fatal (it retries); keep it at warning here.
+            logger.warning(f"Error fetching content from {url}: {str(e)}")
             raise

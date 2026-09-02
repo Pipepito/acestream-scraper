@@ -54,7 +54,6 @@ describe('TVChannelDetail', () => {
     is_favorite: true,
     acestream_channels: [
       {
-        channel_id: 'ace-1',
         id: 'ace-1',
         name: 'Arena Feed 1',
         group: 'Sports',

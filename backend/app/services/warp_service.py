@@ -15,6 +15,9 @@ class WarpMode(Enum):
     OFF = "off"    # WARP disabled
 
 class WarpService:
+    # Process-wide flag so a missing binary is reported once, not on every status poll.
+    _missing_binary_logged = False
+
     """Service for interacting with Cloudflare WARP client"""
 
     def __init__(self, accept_tos: bool = True):
@@ -59,6 +62,16 @@ class WarpService:
                 self.logger.debug(f"Command output: {stdout.strip()}")
 
             return process.returncode, stdout.strip(), stderr.strip()
+        except FileNotFoundError:
+            # warp-cli is only present in the amd64 image with ENABLE_WARP=true; on any
+            # other host this is the normal state, so say it once and stay quiet.
+            message = "warp-cli is not installed; WARP features are unavailable on this host"
+            if not WarpService._missing_binary_logged:
+                WarpService._missing_binary_logged = True
+                self.logger.warning(message)
+            else:
+                self.logger.debug(message)
+            return 127, "", message
         except Exception as e:
             self.logger.error(f"Error executing warp-cli: {str(e)}")
             return 1, "", str(e)

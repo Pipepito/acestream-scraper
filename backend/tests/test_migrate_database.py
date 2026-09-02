@@ -44,7 +44,9 @@ def legacy_runtime(tmp_path, monkeypatch):
 def _migrator(batch_size: int = 4):
     from migrate_database import DatabaseMigrator
 
-    return DatabaseMigrator(batch_size=batch_size)
+    # The v1 fixture is dated BASE_TIME; pin the migrator clock next to it so the
+    # default 24 h retention window never turns the fixture stale as real time passes.
+    return DatabaseMigrator(batch_size=batch_size, now=BASE_TIME.replace(tzinfo=timezone.utc) + timedelta(hours=1))
 
 
 def _state(migrator) -> dict:

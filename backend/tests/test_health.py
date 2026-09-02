@@ -193,7 +193,7 @@ class TestHealthIntegration:
         response = alembic_client.get("/api/v1/stats")
         assert response.status_code == status.HTTP_200_OK
         initial_data = response.json()
-        initial_channels = initial_data.get("channels", 0)
+        initial_channels = initial_data["channels"]["total"]
 
         # Add a channel
         from app.models.models import AcestreamChannel
@@ -214,10 +214,29 @@ class TestHealthIntegration:
         response = alembic_client.get("/api/v1/stats")
         assert response.status_code == status.HTTP_200_OK
         updated_data = response.json()
-        updated_channels = updated_data.get("channels", 0)
+        updated_channels = updated_data["channels"]["total"]
 
         # Channel count should have increased
         assert updated_channels == initial_channels + 1
+
+    def test_stats_payload_matches_spa_contract(self, alembic_client, alembic_db_session):
+        """The Health/Stats pages read nested totals; counters must be real, not placeholders."""
+        from app.models.models import AcestreamChannel, ScrapedURL
+
+        alembic_db_session.add_all([
+            AcestreamChannel(id="a" * 40, name="Online", is_active=True, is_online=True),
+            AcestreamChannel(id="b" * 40, name="Offline", is_active=True, is_online=False),
+            AcestreamChannel(id="c" * 40, name="Unknown", is_active=True, is_online=None),
+            ScrapedURL(url="http://stats.test/ok", url_type="regular", status="OK", enabled=True),
+            ScrapedURL(url="http://stats.test/broken", url_type="regular", status="Error: 404", enabled=False),
+        ])
+        alembic_db_session.commit()
+
+        data = alembic_client.get("/api/v1/stats").json()
+
+        assert data["channels"] == {"total": 3, "online": 1, "offline": 1, "unknown": 1}
+        assert data["urls"] == {"total": 2, "active": 1, "error": 1}
+        assert set(data["epg"]) == {"sources", "channels", "programs"}
 
     def test_health_endpoint_error_handling(self, alembic_client):
         """Test health endpoint handles errors gracefully."""

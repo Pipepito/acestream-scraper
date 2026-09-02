@@ -752,6 +752,22 @@
       "BulkStatusCheckResponse": {
         "description": "Response for bulk status check operations",
         "properties": {
+          "background": {
+            "default": false,
+            "title": "Background",
+            "type": "boolean"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
           "offline_count": {
             "title": "Offline Count",
             "type": "integer"
@@ -1747,6 +1763,57 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "HealthChannelTotals": {
+        "properties": {
+          "offline": {
+            "title": "Offline",
+            "type": "integer"
+          },
+          "online": {
+            "title": "Online",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "unknown": {
+            "title": "Unknown",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "online",
+          "offline",
+          "unknown"
+        ],
+        "title": "HealthChannelTotals",
+        "type": "object"
+      },
+      "HealthEPGTotals": {
+        "properties": {
+          "channels": {
+            "title": "Channels",
+            "type": "integer"
+          },
+          "programs": {
+            "title": "Programs",
+            "type": "integer"
+          },
+          "sources": {
+            "title": "Sources",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sources",
+          "channels",
+          "programs"
+        ],
+        "title": "HealthEPGTotals",
+        "type": "object"
+      },
       "HealthResponse": {
         "description": "Schema for the health check response",
         "properties": {
@@ -1785,6 +1852,50 @@
           "version"
         ],
         "title": "HealthResponse",
+        "type": "object"
+      },
+      "HealthStatsResponse": {
+        "description": "Compact inventory totals rendered by the Health and Stats pages.",
+        "properties": {
+          "channels": {
+            "$ref": "#/components/schemas/HealthChannelTotals"
+          },
+          "epg": {
+            "$ref": "#/components/schemas/HealthEPGTotals"
+          },
+          "urls": {
+            "$ref": "#/components/schemas/HealthURLTotals"
+          }
+        },
+        "required": [
+          "channels",
+          "urls",
+          "epg"
+        ],
+        "title": "HealthStatsResponse",
+        "type": "object"
+      },
+      "HealthURLTotals": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "integer"
+          },
+          "error": {
+            "title": "Error",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "active",
+          "error"
+        ],
+        "title": "HealthURLTotals",
         "type": "object"
       },
       "MessageResponse": {
@@ -3993,38 +4104,6 @@
           },
           {
             "in": "query",
-            "name": "country",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Country"
-            }
-          },
-          {
-            "in": "query",
-            "name": "language",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Language"
-            }
-          },
-          {
-            "in": "query",
             "name": "is_active",
             "required": false,
             "schema": {
@@ -4391,64 +4470,6 @@
           }
         },
         "summary": "Get Channel Status Summary",
-        "tags": [
-          "channels"
-        ]
-      }
-    },
-    "/api/v1/acestream-channels/tv/": {
-      "get": {
-        "description": "Get all TV channels.",
-        "operationId": "get_tv_channels_api_v1_acestream_channels_tv__get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "skip",
-            "required": false,
-            "schema": {
-              "default": 0,
-              "title": "Skip",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 100,
-              "title": "Limit",
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/TVChannelResponse"
-                  },
-                  "title": "Response Get Tv Channels Api V1 Acestream Channels Tv  Get",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Get Tv Channels",
         "tags": [
           "channels"
         ]
@@ -5098,38 +5119,6 @@
           },
           {
             "in": "query",
-            "name": "country",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Country"
-            }
-          },
-          {
-            "in": "query",
-            "name": "language",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Language"
-            }
-          },
-          {
-            "in": "query",
             "name": "is_active",
             "required": false,
             "schema": {
@@ -5496,64 +5485,6 @@
           }
         },
         "summary": "Get Channel Status Summary",
-        "tags": [
-          "channels"
-        ]
-      }
-    },
-    "/api/v1/channels/tv/": {
-      "get": {
-        "description": "Get all TV channels.",
-        "operationId": "get_tv_channels_api_v1_channels_tv__get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "skip",
-            "required": false,
-            "schema": {
-              "default": 0,
-              "title": "Skip",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 100,
-              "title": "Limit",
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/TVChannelResponse"
-                  },
-                  "title": "Response Get Tv Channels Api V1 Channels Tv  Get",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Get Tv Channels",
         "tags": [
           "channels"
         ]
@@ -8411,7 +8342,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/HealthStatsResponse"
+                }
               }
             },
             "description": "Successful Response"

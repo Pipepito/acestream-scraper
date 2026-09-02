@@ -11,9 +11,11 @@ export interface ScrapedURL {
   url: string;
   url_type: string;
   enabled: boolean;
-  last_processed?: string;
+  /** Outcome of the last scrape: "OK", "Error: ..." or a pending marker. */
+  status?: string | null;
+  last_processed?: string | null;
   error_count: number;
-  last_error?: string;
+  last_error?: string | null;
   added_at: string;
   channels_found?: number;
   scrape_bare_ids?: boolean;

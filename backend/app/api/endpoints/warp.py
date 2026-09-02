@@ -108,7 +108,9 @@ async def set_warp_mode(request: WarpModeRequest):
 
 @router.post("/license", summary="Register WARP license")
 async def register_warp_license(request: dict):
-    license_key = request.get("license") if isinstance(request, dict) else None
+    # The schema (WarpLicenseRequest) and the SPA send `license_key`; `license` is the
+    # historical key kept for existing callers.
+    license_key = (request.get("license_key") or request.get("license")) if isinstance(request, dict) else None
     if not license_key:
         raise APIError(
             code="WARP_LICENSE_REQUIRED",

@@ -10,7 +10,8 @@ import {
   WarpMode
 } from '../types/warpTypes';
 
-const API_PATH = '/api/v1/warp';
+// apiClient already carries the '/api' base; only the versioned path belongs here.
+const API_PATH = '/v1/warp';
 
 /**
  * Get current WARP status

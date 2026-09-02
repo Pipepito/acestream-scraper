@@ -469,6 +469,9 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
     >
       {loading ? <DesktopLoadingState /> : null}
       {!loading && channels.length === 0 ? (totalCount === 0 ? <DesktopEmptyState /> : <DesktopPageEmptyState />) : null}
+      {/* Mount the grid only when there is something to lay out: a grid hidden with display:none has no
+          width, and MUI X logs a useResizeContainer error for it on every render. */}
+      {!loading && channels.length > 0 ? (
       <DataGrid
         rows={channels}
         columns={columns}
@@ -496,7 +499,6 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
         sx={{
           border: 0,
           backgroundColor: 'transparent',
-          display: loading || channels.length === 0 ? 'none' : 'grid',
           '& .MuiDataGrid-main': {
             overflow: 'hidden',
           },
@@ -516,6 +518,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
           },
         }}
       />
+      ) : null}
     </Paper>
   );
 };

@@ -1,6 +1,6 @@
 
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
-import { TVChannel, TVChannelCreate, TVChannelUpdate } from '../types/tvChannelTypes';
+import { TVChannel, TVChannelCreate, TVChannelUpdate, BatchAssignmentRequest } from '../types/tvChannelTypes';
 import { tvChannelService, TVChannelListFilters } from '../services/tvChannelService';
 
 export interface PaginatedTVChannels {
@@ -158,7 +158,7 @@ export const useBatchAssignAcestreams = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (assignments: Record<string, string[]>) => tvChannelService.batchAssignAcestreams(assignments),
+    mutationFn: (request: BatchAssignmentRequest) => tvChannelService.batchAssignAcestreams(request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.ALL_TV_CHANNELS] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TV_CHANNEL_DETAIL] });

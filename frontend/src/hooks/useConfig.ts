@@ -67,6 +67,27 @@ export const useUpdateRescrapeInterval = () => {
 };
 
 /**
+ * Hook for getting the EPG refresh interval setting
+ */
+export const useEpgRefreshInterval = () => {
+  return useQuery({ queryKey: ['epgRefreshInterval'], queryFn: configService.getEpgRefreshInterval });
+};
+
+/**
+ * Hook for updating the EPG refresh interval setting
+ */
+export const useUpdateEpgRefreshInterval = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (hours: number) => configService.updateEpgRefreshInterval(hours),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['epgRefreshInterval'] });
+      queryClient.invalidateQueries({ queryKey: ['allSettings'] });
+    },
+  });
+};
+
+/**
  * Hook for getting the addpid setting
  */
 export const useAddPid = () => {

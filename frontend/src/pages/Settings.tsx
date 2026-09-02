@@ -1,33 +1,27 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+  Alert,
   Box,
-  Grid,
-  TextField,
   Button,
   Checkbox,
   Chip,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControl,
   FormControlLabel,
-  Switch,
-  Radio,
-  RadioGroup,
-  Alert,
-  CircularProgress,
+  FormHelperText,
   IconButton,
   InputAdornment,
   Snackbar,
   Stack,
+  Switch,
+  TextField,
+  Tooltip,
+  Typography,
 } from '@mui/material';
-import {
-  Delete as DeleteIcon,
-  Edit as EditIcon,
-  Visibility as VisibilityIcon,
-  VisibilityOff as VisibilityOffIcon,
-} from '@mui/icons-material';
+import { Delete as DeleteIcon, Edit as EditIcon, Visibility as VisibilityIcon, VisibilityOff as VisibilityOffIcon } from '@mui/icons-material';
 import {
   useBaseUrl,
   useUpdateBaseUrl,
@@ -35,85 +29,71 @@ import {
   useUpdateAceEngineUrl,
   useRescrapeInterval,
   useUpdateRescrapeInterval,
+  useEpgRefreshInterval,
+  useUpdateEpgRefreshInterval,
   useAddPid,
   useUpdateAddPid,
-  useAllSettings,
-  useAcestreamStatus
+  useAcestreamStatus,
 } from '../hooks/useConfig';
-import {
-  useBaseUrls,
-  useCreateBaseUrl,
-  usePatchBaseUrl,
-  useDeleteBaseUrl,
-} from '../hooks/useBaseUrls';
+import { useBaseUrls, useCreateBaseUrl, usePatchBaseUrl, useDeleteBaseUrl } from '../hooks/useBaseUrls';
 import { StreamBaseUrl } from '../services/baseUrlService';
 import { ApiError } from '../services/apiErrors';
 import { configService } from '../services/configService';
-import {
-  getApiToken,
-  setApiToken as storeApiToken,
-  clearApiToken as removeStoredApiToken,
-  isApiTokenRequired,
-  resetApiTokenRequired,
-} from '../services/apiToken';
+import { getApiToken, setApiToken as storeApiToken, clearApiToken as removeStoredApiToken, isApiTokenRequired, resetApiTokenRequired } from '../services/apiToken';
+import { getErrorMessage } from '../utils/errorUtils';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
-import { useAppThemeMode } from '../bootstrap/AppBootstrap';
-import { alpha, useTheme } from '@mui/material/styles';
-
-const COMMON_CONNECTION_KEYS = ['base_url', 'ace_engine_url'] as const;
-const AUTOMATION_KEYS = ['rescrape_interval', 'addpid', 'appid'] as const;
-
-const INVENTORY_GROUPS = [
-  { title: 'Common connection settings', keys: COMMON_CONNECTION_KEYS },
-  { title: 'Automation settings', keys: AUTOMATION_KEYS },
-  { title: 'Advanced/internal settings', keys: [] as const },
-] as const;
+import { useConfirm } from '../components/ConfirmDialog';
 
 type FeedbackSeverity = 'success' | 'error';
+type Notify = (message: string, severity: FeedbackSeverity) => void;
 
-interface StreamBaseUrlsSectionProps {
-  notify: (message: string, severity: FeedbackSeverity) => void;
+const describeSaveError = (error: unknown, attemptedName: string, fallback: string): string => {
+  if (error instanceof ApiError && error.status === 409) {
+    return `A link format named "${attemptedName}" already exists. Choose a different name.`;
+  }
+  if (error instanceof ApiError && error.message) {
+    return error.message;
+  }
+  return fallback;
+};
+
+interface StreamLinkFormatsSectionProps {
+  notify: Notify;
 }
 
 /**
- * "Stream base URLs" settings section: named base URL entries used when
- * generating playlist links (GitHub issue #62).
+ * "Stream link formats": the named base URL entries used when generating playlist links.
+ * The legacy `base_url` setting shows as a built-in "Default" row (editable in place) until a
+ * named entry is marked default.
  */
-const StreamBaseUrlsSection: React.FC<StreamBaseUrlsSectionProps> = ({ notify }) => {
+const StreamLinkFormatsSection: React.FC<StreamLinkFormatsSectionProps> = ({ notify }) => {
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const baseUrlsQuery = useBaseUrls();
   const createBaseUrlMutation = useCreateBaseUrl();
   const patchBaseUrlMutation = usePatchBaseUrl();
   const deleteBaseUrlMutation = useDeleteBaseUrl();
+  const legacyBaseUrlQuery = useBaseUrl();
+  const updateLegacyBaseUrlMutation = useUpdateBaseUrl();
 
-  const [newName, setNewName] = useState<string>('');
-  const [newPattern, setNewPattern] = useState<string>('');
-  const [newIsDefault, setNewIsDefault] = useState<boolean>(false);
-  const [editingEntry, setEditingEntry] = useState<StreamBaseUrl | null>(null);
-  const [editName, setEditName] = useState<string>('');
-  const [editPattern, setEditPattern] = useState<string>('');
+  const [addOpen, setAddOpen] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newPattern, setNewPattern] = useState('');
+  const [newIsDefault, setNewIsDefault] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<StreamBaseUrl | 'builtin' | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editPattern, setEditPattern] = useState('');
 
   const entries = baseUrlsQuery.data ?? [];
+  const hasNamedDefault = entries.some((entry) => entry.is_default);
   const isMutating =
-    createBaseUrlMutation.isPending || patchBaseUrlMutation.isPending || deleteBaseUrlMutation.isPending;
-
-  const describeSaveError = (error: unknown, attemptedName: string, fallback: string): string => {
-    if (error instanceof ApiError && error.status === 409) {
-      return `A base URL named "${attemptedName}" already exists. Choose a different name.`;
-    }
-    if (error instanceof ApiError && error.message) {
-      return error.message;
-    }
-    return fallback;
-  };
+    createBaseUrlMutation.isPending || patchBaseUrlMutation.isPending || deleteBaseUrlMutation.isPending || updateLegacyBaseUrlMutation.isPending;
 
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const name = newName.trim();
     const pattern = newPattern.trim();
-    if (!name || !pattern) {
-      return;
-    }
+    if (!name || !pattern) return;
     createBaseUrlMutation.mutate(
       { name, pattern, is_default: newIsDefault },
       {
@@ -121,11 +101,10 @@ const StreamBaseUrlsSection: React.FC<StreamBaseUrlsSectionProps> = ({ notify })
           setNewName('');
           setNewPattern('');
           setNewIsDefault(false);
-          notify(`Base URL "${name}" added`, 'success');
+          setAddOpen(false);
+          notify(`Link format "${name}" added`, 'success');
         },
-        onError: (error) => {
-          notify(describeSaveError(error, name, 'Failed to add the base URL'), 'error');
-        },
+        onError: (error) => notify(describeSaveError(error, name, 'Failed to add the link format'), 'error'),
       }
     );
   };
@@ -134,45 +113,48 @@ const StreamBaseUrlsSection: React.FC<StreamBaseUrlsSectionProps> = ({ notify })
     patchBaseUrlMutation.mutate(
       { id: entry.id, data: { is_default: true } },
       {
-        onSuccess: () => {
-          notify(`"${entry.name}" is now the default base URL`, 'success');
-        },
-        onError: (error) => {
-          notify(describeSaveError(error, entry.name, 'Failed to update the default base URL'), 'error');
-        },
+        onSuccess: () => notify(`"${entry.name}" is now the default link format`, 'success'),
+        onError: (error) => notify(describeSaveError(error, entry.name, 'Failed to change the default link format'), 'error'),
       }
     );
   };
 
-  const handleDelete = (entry: StreamBaseUrl) => {
+  const handleDelete = async (entry: StreamBaseUrl) => {
+    const ok = await confirm({
+      title: `Delete the link format “${entry.name}”?`,
+      body: 'Playlists that were built with this format fall back to the default one.',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
     deleteBaseUrlMutation.mutate(entry.id, {
-      onSuccess: () => {
-        notify(`Base URL "${entry.name}" deleted`, 'success');
-      },
-      onError: (error) => {
-        notify(describeSaveError(error, entry.name, 'Failed to delete the base URL'), 'error');
-      },
+      onSuccess: () => notify(`Link format "${entry.name}" deleted`, 'success'),
+      onError: (error) => notify(describeSaveError(error, entry.name, 'Failed to delete the link format'), 'error'),
     });
   };
 
-  const openEditDialog = (entry: StreamBaseUrl) => {
+  const openEditDialog = (entry: StreamBaseUrl | 'builtin') => {
     setEditingEntry(entry);
-    setEditName(entry.name);
-    setEditPattern(entry.pattern);
+    setEditName(entry === 'builtin' ? 'Default' : entry.name);
+    setEditPattern(entry === 'builtin' ? legacyBaseUrlQuery.data ?? '' : entry.pattern);
   };
 
-  const closeEditDialog = () => {
-    setEditingEntry(null);
-  };
+  const closeEditDialog = () => setEditingEntry(null);
 
   const handleEditSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingEntry) {
-      return;
-    }
+    if (!editingEntry) return;
     const name = editName.trim();
     const pattern = editPattern.trim();
-    if (!name || !pattern) {
+    if (!pattern || (editingEntry !== 'builtin' && !name)) return;
+    if (editingEntry === 'builtin') {
+      updateLegacyBaseUrlMutation.mutate(pattern, {
+        onSuccess: () => {
+          closeEditDialog();
+          notify('Default link format updated', 'success');
+        },
+        onError: (error) => notify(getErrorMessage(error), 'error'),
+      });
       return;
     }
     patchBaseUrlMutation.mutate(
@@ -180,148 +162,133 @@ const StreamBaseUrlsSection: React.FC<StreamBaseUrlsSectionProps> = ({ notify })
       {
         onSuccess: () => {
           closeEditDialog();
-          notify(`Base URL "${name}" updated`, 'success');
+          notify(`Link format "${name}" updated`, 'success');
         },
-        onError: (error) => {
-          notify(describeSaveError(error, name, 'Failed to update the base URL'), 'error');
-        },
+        onError: (error) => notify(describeSaveError(error, name, 'Failed to update the link format'), 'error'),
       }
     );
   };
 
+  const renderRow = (key: string | number, name: string, pattern: string, isDefault: boolean, actions: React.ReactNode) => (
+    <Box
+      key={key}
+      sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 1, justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, py: 0.75 }}
+    >
+      <Box sx={{ minWidth: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+          <Box sx={{ typography: 'body2', fontWeight: 600, wordBreak: 'break-word' }}>{name}</Box>
+          {isDefault ? <Chip label="Default" color="primary" size="small" /> : null}
+        </Box>
+        <Box sx={{ typography: 'body2', color: 'text.secondary', fontFamily: 'monospace', wordBreak: 'break-all' }}>{pattern}</Box>
+      </Box>
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
+        {actions}
+      </Stack>
+    </Box>
+  );
+
   return (
     <ContentSection
-      title="Stream base URLs"
-      description="Save named link formats so playlists can switch between players without retyping URLs."
+      title="Stream link formats"
+      description="How each channel link is written in the playlist. Pick the one your player understands; the Default is used unless the playlist asks for another."
+      actions={
+        <Button variant="outlined" size="small" onClick={() => setAddOpen(true)}>
+          Add format
+        </Button>
+      }
     >
-      <Stack spacing={2.5}>
-        <Box sx={{ typography: 'body2', color: 'text.secondary' }}>
-          A pattern without placeholders is used as a prefix in front of each channel ID (like the classic{' '}
-          <Box component="code">acestream://</Box>). A pattern containing{' '}
-          <Box component="code">{'{channel_id}'}</Box> is a mask and may also use{' '}
-          <Box component="code">{'{pid}'}</Box> — for example{' '}
-          <Box component="code">{'http://127.0.0.1:6878/ace/getstream?id={channel_id}&pid={pid}'}</Box>.
-          The default entry is applied to playlists when no other base URL is requested.
-        </Box>
-
+      <Stack spacing={1.5}>
         {baseUrlsQuery.isLoading ? (
           <Box display="flex" alignItems="center">
             <CircularProgress size={20} sx={{ mr: 2 }} />
-            <Box component="span">Loading stream base URLs...</Box>
+            <Box component="span">Loading link formats...</Box>
           </Box>
         ) : baseUrlsQuery.error ? (
-          <Alert severity="warning">Could not load the saved stream base URLs. Try reloading the page.</Alert>
-        ) : entries.length === 0 ? (
-          <Alert severity="info">No named base URLs yet. Add one below to reuse it from the playlist page.</Alert>
+          <Alert severity="warning">Could not load the saved link formats. Try reloading the page.</Alert>
         ) : (
-          <Stack spacing={1} divider={<Box sx={{ borderBottom: 1, borderColor: 'divider' }} />}>
-            {entries.map((entry) => (
-              <Box
-                key={entry.id}
-                sx={{
-                  display: 'flex',
-                  flexDirection: { xs: 'column', sm: 'row' },
-                  gap: 1,
-                  justifyContent: 'space-between',
-                  alignItems: { xs: 'flex-start', sm: 'center' },
-                  py: 0.5,
-                }}
-              >
-                <Box sx={{ minWidth: 0 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                    <Box sx={{ typography: 'body2', fontWeight: 600, wordBreak: 'break-word' }}>{entry.name}</Box>
-                    {entry.is_default ? <Chip label="Default" color="primary" size="small" /> : null}
-                  </Box>
-                  <Box
-                    sx={{
-                      typography: 'body2',
-                      color: 'text.secondary',
-                      fontFamily: 'monospace',
-                      wordBreak: 'break-all',
-                    }}
-                  >
-                    {entry.pattern}
-                  </Box>
-                </Box>
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
+          <Stack spacing={0.5} divider={<Box sx={{ borderBottom: 1, borderColor: 'divider' }} />}>
+            {!hasNamedDefault
+              ? renderRow(
+                  'builtin',
+                  'Default',
+                  legacyBaseUrlQuery.data ?? 'acestream://',
+                  true,
+                  <Tooltip title="Edit the default format">
+                    <IconButton size="small" aria-label="Edit default link format" onClick={() => openEditDialog('builtin')} disabled={isMutating}>
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )
+              : null}
+            {entries.map((entry) =>
+              renderRow(
+                entry.id,
+                entry.name,
+                entry.pattern,
+                Boolean(entry.is_default),
+                <>
                   {!entry.is_default ? (
                     <Button size="small" variant="outlined" onClick={() => handleMakeDefault(entry)} disabled={isMutating}>
                       Make default
                     </Button>
                   ) : null}
-                  <IconButton
-                    size="small"
-                    aria-label={`Edit base URL ${entry.name}`}
-                    onClick={() => openEditDialog(entry)}
-                    disabled={isMutating}
-                  >
+                  <IconButton size="small" aria-label={`Edit base URL ${entry.name}`} onClick={() => openEditDialog(entry)} disabled={isMutating}>
                     <EditIcon fontSize="small" />
                   </IconButton>
-                  <IconButton
-                    size="small"
-                    aria-label={`Delete base URL ${entry.name}`}
-                    onClick={() => handleDelete(entry)}
-                    disabled={isMutating}
-                  >
+                  <IconButton size="small" aria-label={`Delete base URL ${entry.name}`} onClick={() => handleDelete(entry)} disabled={isMutating}>
                     <DeleteIcon fontSize="small" />
                   </IconButton>
-                </Stack>
-              </Box>
-            ))}
+                </>
+              )
+            )}
           </Stack>
         )}
-
-        <form onSubmit={handleAddSubmit}>
-          <Stack spacing={2} sx={{ maxWidth: 640 }}>
-            <TextField
-              label="Name"
-              fullWidth
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              helperText="A short label, e.g. VLC or Ace player"
-            />
-            <TextField
-              label="Pattern"
-              fullWidth
-              value={newPattern}
-              onChange={(e) => setNewPattern(e.target.value)}
-              helperText={'A prefix like acestream://, or a mask using {channel_id} and optionally {pid}'}
-            />
-            <FormControlLabel
-              control={<Checkbox checked={newIsDefault} onChange={(e) => setNewIsDefault(e.target.checked)} />}
-              label="Set as default"
-            />
-            <Box>
-              <Button
-                type="submit"
-                variant="contained"
-                color="primary"
-                disabled={!newName.trim() || !newPattern.trim() || createBaseUrlMutation.isPending}
-              >
-                {createBaseUrlMutation.isPending ? <CircularProgress size={24} color="inherit" /> : 'Add base URL'}
-              </Button>
-            </Box>
-          </Stack>
-        </form>
+        <Typography variant="body2" color="text.secondary">
+          A format without placeholders is a prefix put before the channel id (like <code>acestream://</code>). A format with{' '}
+          <code>{'{channel_id}'}</code> is a template and may also use <code>{'{pid}'}</code>, for example{' '}
+          <code>{'http://127.0.0.1:6878/ace/getstream?id={channel_id}&pid={pid}'}</code>.
+        </Typography>
       </Stack>
+
+      <Dialog open={addOpen} onClose={() => setAddOpen(false)} fullWidth maxWidth="sm">
+        <form onSubmit={handleAddSubmit}>
+          <DialogTitle>Add link format</DialogTitle>
+          <DialogContent>
+            <Stack spacing={2} sx={{ mt: 1 }}>
+              <TextField label="Name" fullWidth value={newName} onChange={(e) => setNewName(e.target.value)} helperText="A short label, e.g. VLC or Ace player" />
+              <TextField
+                label="Pattern"
+                fullWidth
+                value={newPattern}
+                onChange={(e) => setNewPattern(e.target.value)}
+                helperText={'A prefix like acestream://, or a template using {channel_id} and optionally {pid}'}
+              />
+              <FormControlLabel control={<Checkbox checked={newIsDefault} onChange={(e) => setNewIsDefault(e.target.checked)} />} label="Set as default" />
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setAddOpen(false)} color="inherit">
+              Cancel
+            </Button>
+            <Button type="submit" variant="contained" color="primary" disabled={!newName.trim() || !newPattern.trim() || createBaseUrlMutation.isPending}>
+              {createBaseUrlMutation.isPending ? <CircularProgress size={24} color="inherit" /> : 'Add base URL'}
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
 
       <Dialog open={Boolean(editingEntry)} onClose={closeEditDialog} fullWidth maxWidth="sm">
         <form onSubmit={handleEditSave}>
-          <DialogTitle>Edit base URL</DialogTitle>
+          <DialogTitle>{editingEntry === 'builtin' ? 'Edit default link format' : 'Edit link format'}</DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ mt: 1 }}>
-              <TextField
-                label="Name"
-                fullWidth
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-              />
+              {editingEntry !== 'builtin' ? <TextField label="Name" fullWidth value={editName} onChange={(e) => setEditName(e.target.value)} /> : null}
               <TextField
                 label="Pattern"
                 fullWidth
                 value={editPattern}
                 onChange={(e) => setEditPattern(e.target.value)}
-                helperText={'A prefix like acestream://, or a mask using {channel_id} and optionally {pid}'}
+                helperText={'A prefix like acestream://, or a template using {channel_id} and optionally {pid}'}
               />
             </Stack>
           </DialogContent>
@@ -329,116 +296,131 @@ const StreamBaseUrlsSection: React.FC<StreamBaseUrlsSectionProps> = ({ notify })
             <Button onClick={closeEditDialog} color="inherit">
               Cancel
             </Button>
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              disabled={!editName.trim() || !editPattern.trim() || patchBaseUrlMutation.isPending}
-            >
+            <Button type="submit" variant="contained" color="primary" disabled={!editPattern.trim() || (editingEntry !== 'builtin' && !editName.trim()) || isMutating}>
               Save changes
             </Button>
           </DialogActions>
         </form>
       </Dialog>
+      {confirmDialog}
     </ContentSection>
   );
 };
 
+interface IntervalFieldProps {
+  id: string;
+  label: string;
+  helper: string;
+  value: number | '';
+  saved: number | undefined;
+  pending: boolean;
+  onChange: (value: number | '') => void;
+  onSave: () => void;
+}
+
+const IntervalField: React.FC<IntervalFieldProps> = ({ id, label, helper, value, saved, pending, onChange, onSave }) => (
+  <Stack
+    component="form"
+    aria-label={`${label} form`}
+    direction="row"
+    spacing={1}
+    alignItems="flex-start"
+    onSubmit={(event: React.FormEvent) => {
+      event.preventDefault();
+      onSave();
+    }}
+  >
+    <TextField
+      id={id}
+      label={label}
+      type="number"
+      size="small"
+      value={value}
+      onChange={(e) => onChange(e.target.value === '' ? '' : Number(e.target.value))}
+      InputProps={{ inputProps: { min: 1, max: 168 } }}
+      helperText={helper}
+      sx={{ width: 220 }}
+    />
+    <Button type="submit" variant="outlined" size="small" disabled={pending || value === '' || value === saved} sx={{ mt: 0.5 }}>
+      {pending ? <CircularProgress size={18} color="inherit" /> : 'Save'}
+    </Button>
+  </Stack>
+);
+
 const Settings: React.FC = () => {
-  const theme = useTheme();
-  const { mode, setMode } = useAppThemeMode();
-  // Form state
-  const [baseUrl, setBaseUrl] = useState<string>('');
-  const [aceEngineUrl, setAceEngineUrl] = useState<string>('');
-  const [rescrapeInterval, setRescrapeInterval] = useState<number>(24);
-  const [addPid, setAddPid] = useState<boolean>(false);
-  const [appid, setAppid] = useState<boolean>(false);
-  const [feedback, setFeedback] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
-    open: false,
-    message: '',
-    severity: 'success',
-  });
-  const [appIdError, setAppIdError] = useState<string>('');
+  const [aceEngineUrl, setAceEngineUrl] = useState('');
+  const [rescrapeInterval, setRescrapeInterval] = useState<number | ''>(24);
+  const [epgRefreshInterval, setEpgRefreshInterval] = useState<number | ''>(1);
+  const [addPid, setAddPid] = useState(false);
+  const [appid, setAppid] = useState(false);
+  const [appIdError, setAppIdError] = useState('');
+  const [appidLoading, setAppidLoading] = useState(true);
+  const [appidSubmitting, setAppidSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState<{ open: boolean; message: string; severity: FeedbackSeverity }>({ open: false, message: '', severity: 'success' });
   const [apiTokenInput, setApiTokenInput] = useState<string>(() => getApiToken() ?? '');
-  const [showApiToken, setShowApiToken] = useState<boolean>(false);
+  const [showApiToken, setShowApiToken] = useState(false);
   const [apiTokenRequired, setApiTokenRequired] = useState<boolean>(() => isApiTokenRequired());
 
-  // Queries
-  const baseUrlQuery = useBaseUrl();
   const aceEngineUrlQuery = useAceEngineUrl();
   const rescrapeIntervalQuery = useRescrapeInterval();
+  const epgRefreshIntervalQuery = useEpgRefreshInterval();
   const addPidQuery = useAddPid();
-  const allSettingsQuery = useAllSettings();
-  const acestreamStatusQuery = useAcestreamStatus({ refetchInterval: 30000 }); // Refetch every 30 seconds
+  const acestreamStatusQuery = useAcestreamStatus({ refetchInterval: 30000 });
 
-  // AppID config (manual, since not in hooks yet)
-  const [appidLoading, setAppidLoading] = useState<boolean>(true);
-  const [appidSubmitting, setAppidSubmitting] = useState<boolean>(false);
-  React.useEffect(() => {
-    setAppidLoading(true);
-    setAppIdError('');
-
-    configService
-      .getAppId()
-      .then((val) => {
-        setAppid(val);
-      })
-      .catch(() => {
-        setAppIdError('Could not load AppID setting. You can still retry the toggle manually.');
-      })
-      .finally(() => {
-        setAppidLoading(false);
-      });
-  }, []);
-
-  // Mutations
-  const updateBaseUrlMutation = useUpdateBaseUrl();
   const updateAceEngineUrlMutation = useUpdateAceEngineUrl();
   const updateRescrapeIntervalMutation = useUpdateRescrapeInterval();
+  const updateEpgRefreshIntervalMutation = useUpdateEpgRefreshInterval();
   const updateAddPidMutation = useUpdateAddPid();
 
-  // Update local state when queries complete
-  React.useEffect(() => {
-    if (baseUrlQuery.data) setBaseUrl(baseUrlQuery.data);
-  }, [baseUrlQuery.data]);
+  const notify: Notify = (message, severity) => setFeedback({ open: true, message, severity });
 
-  React.useEffect(() => {
+  useEffect(() => {
+    setAppidLoading(true);
+    setAppIdError('');
+    configService
+      .getAppId()
+      .then((val) => setAppid(val))
+      .catch(() => setAppIdError('Could not load the AppID setting. You can still try the switch.'))
+      .finally(() => setAppidLoading(false));
+  }, []);
+
+  useEffect(() => {
     if (aceEngineUrlQuery.data) setAceEngineUrl(aceEngineUrlQuery.data);
   }, [aceEngineUrlQuery.data]);
-
-  React.useEffect(() => {
+  useEffect(() => {
     if (rescrapeIntervalQuery.data !== undefined) setRescrapeInterval(rescrapeIntervalQuery.data);
   }, [rescrapeIntervalQuery.data]);
-
-  React.useEffect(() => {
+  useEffect(() => {
+    if (epgRefreshIntervalQuery.data !== undefined) setEpgRefreshInterval(epgRefreshIntervalQuery.data);
+  }, [epgRefreshIntervalQuery.data]);
+  useEffect(() => {
     if (addPidQuery.data !== undefined) setAddPid(addPidQuery.data);
   }, [addPidQuery.data]);
-
-  // Handle form submissions
-  const handleBaseUrlSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateBaseUrlMutation.mutate(baseUrl, {
-      onSuccess: () => {
-        setFeedback({ open: true, message: 'Base URL updated successfully', severity: 'success' });
-      }
-    });
-  };
 
   const handleAceEngineUrlSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     updateAceEngineUrlMutation.mutate(aceEngineUrl, {
       onSuccess: () => {
-        setFeedback({ open: true, message: 'Acestream Engine URL updated successfully', severity: 'success' });
-      }
+        notify('Engine URL saved', 'success');
+        acestreamStatusQuery.refetch();
+      },
+      onError: (error) => notify(`Failed to save the engine URL: ${getErrorMessage(error)}`, 'error'),
     });
   };
 
-  const handleRescrapeIntervalSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleRescrapeSave = () => {
+    if (rescrapeInterval === '') return;
     updateRescrapeIntervalMutation.mutate(rescrapeInterval, {
-      onSuccess: () => {
-        setFeedback({ open: true, message: 'Rescrape interval updated successfully', severity: 'success' });
-      }
+      onSuccess: () => notify(`Sources will be scraped every ${rescrapeInterval} h`, 'success'),
+      onError: (error) => notify(`Failed to save the scrape interval: ${getErrorMessage(error)}`, 'error'),
+    });
+  };
+
+  const handleEpgRefreshSave = () => {
+    if (epgRefreshInterval === '') return;
+    updateEpgRefreshIntervalMutation.mutate(epgRefreshInterval, {
+      onSuccess: () => notify(`EPG will refresh every ${epgRefreshInterval} h`, 'success'),
+      onError: (error) => notify(`Failed to save the EPG refresh interval: ${getErrorMessage(error)}`, 'error'),
     });
   };
 
@@ -446,45 +428,40 @@ const Settings: React.FC = () => {
     const checked = e.target.checked;
     setAddPid(checked);
     updateAddPidMutation.mutate(checked, {
-      onSuccess: () => {
-        setFeedback({ open: true, message: 'Add PID setting updated successfully', severity: 'success' });
-      }
+      onSuccess: () => notify(checked ? 'PID will be appended to stream links' : 'PID will no longer be appended', 'success'),
+      onError: (error) => {
+        setAddPid(!checked);
+        notify(`Failed to save the PID setting: ${getErrorMessage(error)}`, 'error');
+      },
     });
   };
-
 
   const handleAppidChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const checked = e.target.checked;
     setAppid(checked);
     setAppidSubmitting(true);
-
     configService
       .updateAppId(checked)
       .then(() => {
-        allSettingsQuery.refetch?.();
         setAppIdError('');
-        setFeedback({ open: true, message: 'AppID setting updated successfully', severity: 'success' });
+        notify(checked ? 'AppID will be added to stream links' : 'AppID will no longer be added', 'success');
       })
       .catch(() => {
         setAppid(!checked);
-        setFeedback({ open: true, message: 'Failed to update AppID setting', severity: 'error' });
+        notify('Failed to update AppID setting', 'error');
       })
-      .finally(() => {
-        setAppidSubmitting(false);
-      });
+      .finally(() => setAppidSubmitting(false));
   };
 
   const handleApiTokenSave = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = apiTokenInput.trim();
-    if (!trimmed) {
-      return;
-    }
+    if (!trimmed) return;
     storeApiToken(trimmed);
     setApiTokenInput(trimmed);
     resetApiTokenRequired();
     setApiTokenRequired(false);
-    setFeedback({ open: true, message: 'API token saved. It will be sent with future API requests.', severity: 'success' });
+    notify('API token saved. It will be sent with future API requests.', 'success');
   };
 
   const handleApiTokenClear = () => {
@@ -492,32 +469,10 @@ const Settings: React.FC = () => {
     setApiTokenInput('');
     resetApiTokenRequired();
     setApiTokenRequired(false);
-    setFeedback({ open: true, message: 'API token cleared', severity: 'success' });
+    notify('API token cleared', 'success');
   };
 
-  const handleCloseSnackbar = () => {
-    setFeedback((current) => ({ ...current, open: false }));
-  };
-
-  const notify = (message: string, severity: FeedbackSeverity) => {
-    setFeedback({ open: true, message, severity });
-  };
-
-
-  const isLoading =
-    baseUrlQuery.isLoading ||
-    aceEngineUrlQuery.isLoading ||
-    rescrapeIntervalQuery.isLoading ||
-    addPidQuery.isLoading ||
-    appidLoading;
-
-
-  const isSubmitting =
-    updateBaseUrlMutation.isPending ||
-    updateAceEngineUrlMutation.isPending ||
-    updateRescrapeIntervalMutation.isPending ||
-    updateAddPidMutation.isPending ||
-    appidSubmitting;
+  const isLoading = aceEngineUrlQuery.isLoading || rescrapeIntervalQuery.isLoading || addPidQuery.isLoading || appidLoading;
 
   if (isLoading) {
     return (
@@ -526,180 +481,115 @@ const Settings: React.FC = () => {
         <Box component="p" sx={{ typography: 'sectionTitle', m: 0 }}>
           Loading settings
         </Box>
-        <Box component="p" sx={{ typography: 'body2', color: 'text.secondary', m: 0, textAlign: 'center' }}>
-          Preparing connection defaults, automation preferences, and appearance controls.
-        </Box>
       </Box>
     );
   }
 
-  const allSettings = allSettingsQuery.data ?? {};
-  const mappedKeys = new Set<string>([...COMMON_CONNECTION_KEYS, ...AUTOMATION_KEYS]);
-  const advancedKeys = Object.keys(allSettings)
-    .filter((key) => !mappedKeys.has(key))
-    .sort((left, right) => left.localeCompare(right));
-  const inventoryGroups: Array<{ title: string; keys: string[] }> = INVENTORY_GROUPS.map((group) => ({
-    title: group.title,
-    keys:
-      group.title === 'Advanced/internal settings'
-        ? advancedKeys
-        : (group.keys as readonly string[]).filter((key) =>
-            Object.prototype.hasOwnProperty.call(allSettings, key),
-          ),
-  })).filter((group) => group.keys.length > 0);
+  const engineOnline = acestreamStatusQuery.data?.status === 'online';
 
   return (
     <Box>
-      <PageHeader
-        title="Settings"
-        subtitle="Keep connection details and automation defaults in one predictable place."
-      />
-
-      <Box
-        sx={{
-          mb: 3,
-          p: { xs: 2, md: 2.5 },
-          borderRadius: 2.5,
-          bgcolor: theme.appTokens.hero.bg,
-          border: `1px solid ${theme.appTokens.hero.border}`,
-          backgroundImage: theme.appTokens.hero.spotlight,
-        }}
-      >
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, justifyContent: 'space-between' }}>
-          <Box sx={{ minWidth: 0, maxWidth: 760 }}>
-            <Box sx={{ typography: 'statusMeta', color: theme.appTokens.hero.accent, mb: 1 }}>Control center</Box>
-            <Box sx={{ typography: 'h4', letterSpacing: '-0.03em', mb: 1 }}>Settings are ready for connection checks and automation tuning.</Box>
-            <Box sx={{ typography: 'body2', color: 'text.secondary' }}>
-              Start here when your engine path, playlist behavior, or theme preference needs review. The safest flow is to confirm engine status first and only then change persistent settings.
-            </Box>
-          </Box>
-          <Stack spacing={1} sx={{ minWidth: { xs: '100%', sm: 280 } }}>
-            <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: alpha(theme.appTokens.shell.accent, 0.08), border: `1px solid ${alpha(theme.appTokens.shell.accent, 0.18)}` }}>
-              <Box sx={{ typography: 'statusMeta', color: 'text.secondary', mb: 0.5 }}>Priority check</Box>
-              <Box sx={{ typography: 'body2', fontWeight: 600 }}>
-                {acestreamStatusQuery.data?.status === 'online' ? 'Engine connection looks healthy.' : 'Engine connection needs attention.'}
-              </Box>
-            </Box>
-            <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: theme.appTokens.surface.panel, border: `1px solid ${theme.appTokens.surface.border}` }}>
-              <Box sx={{ typography: 'statusMeta', color: 'text.secondary', mb: 0.5 }}>Next step</Box>
-              <Box sx={{ typography: 'body2', fontWeight: 600 }}>
-                Confirm the engine is reachable, then update URLs or automation only if your environment changed.
-              </Box>
-            </Box>
-          </Stack>
-        </Box>
-      </Box>
+      <PageHeader title="Settings" subtitle="Engine, stream links, automation and API access." />
 
       <ContentSection
-        title="Engine connection"
-        description="Confirm the backend can reach your Acestream engine before changing connection settings."
+        title="Engine"
         actions={
-          <Button variant="outlined" onClick={() => acestreamStatusQuery.refetch()} disabled={acestreamStatusQuery.isLoading}>
+          <Button variant="outlined" size="small" onClick={() => acestreamStatusQuery.refetch()} disabled={acestreamStatusQuery.isFetching}>
             Refresh status
           </Button>
         }
       >
-        {acestreamStatusQuery.isLoading ? (
-          <Box display="flex" alignItems="center">
-            <CircularProgress size={20} sx={{ mr: 2 }} />
-            <Box component="span">Checking Acestream Engine status...</Box>
+        <Stack spacing={2}>
+          <Stack direction="row" spacing={1.5} alignItems="center" role="status" aria-label="Engine status">
+            {acestreamStatusQuery.isLoading ? (
+              <CircularProgress size={18} />
+            ) : (
+              <Chip label={acestreamStatusQuery.error ? 'Unknown' : engineOnline ? 'Online' : 'Offline'} color={acestreamStatusQuery.error ? 'default' : engineOnline ? 'success' : 'error'} variant="outlined" sx={{ fontWeight: 600, minWidth: 90 }} />
+            )}
+            <Typography variant="body2" color="text.secondary">
+              {acestreamStatusQuery.error
+                ? `Could not check the engine: ${getErrorMessage(acestreamStatusQuery.error)}`
+                : acestreamStatusQuery.data?.message || 'Checking the engine…'}
+            </Typography>
+          </Stack>
+          <form onSubmit={handleAceEngineUrlSubmit}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'flex-start' }}>
+              <TextField
+                label="Acestream Engine URL"
+                size="small"
+                value={aceEngineUrl}
+                onChange={(e) => setAceEngineUrl(e.target.value)}
+                helperText="Where the backend reaches the engine, e.g. http://localhost:6878"
+                sx={{ flex: 1, maxWidth: 480 }}
+              />
+              <Button type="submit" variant="contained" size="small" disabled={updateAceEngineUrlMutation.isPending || aceEngineUrl === aceEngineUrlQuery.data} sx={{ mt: 0.5 }}>
+                {updateAceEngineUrlMutation.isPending ? <CircularProgress size={18} color="inherit" /> : 'Save engine URL'}
+              </Button>
+            </Stack>
+          </form>
+        </Stack>
+      </ContentSection>
+
+      <StreamLinkFormatsSection notify={notify} />
+
+      <ContentSection title="Automation" description="Background jobs run on these schedules. Changes apply right away.">
+        <Stack spacing={2.5}>
+          <IntervalField
+            id="rescrape-interval"
+            label="Scrape sources every (hours)"
+            helper="1 to 168 hours"
+            value={rescrapeInterval}
+            saved={rescrapeIntervalQuery.data}
+            pending={updateRescrapeIntervalMutation.isPending}
+            onChange={setRescrapeInterval}
+            onSave={handleRescrapeSave}
+          />
+          <IntervalField
+            id="epg-refresh-interval"
+            label="Refresh EPG every (hours)"
+            helper="1 to 168 hours"
+            value={epgRefreshInterval}
+            saved={epgRefreshIntervalQuery.data}
+            pending={updateEpgRefreshIntervalMutation.isPending}
+            onChange={setEpgRefreshInterval}
+            onSave={handleEpgRefreshSave}
+          />
+          <Box>
+            <FormControlLabel control={<Switch checked={addPid} onChange={handleAddPidChange} disabled={updateAddPidMutation.isPending} />} label="Append PID to stream links" />
+            <FormHelperText sx={{ ml: 0 }}>Some players need a PID on each acestream:// link to keep streams apart.</FormHelperText>
           </Box>
-        ) : acestreamStatusQuery.error ? (
-          <Alert severity="error">
-            Error checking Acestream Engine status: {acestreamStatusQuery.error.toString()}
-          </Alert>
-        ) : (
-          <Alert severity={acestreamStatusQuery.data?.status === 'online' ? 'success' : 'warning'}>
-            {acestreamStatusQuery.data?.status === 'online' ? 'Online' : 'Needs attention'} · {acestreamStatusQuery.data?.message || 'Status unknown'}
-          </Alert>
-        )}
+          <Box>
+            {appIdError ? (
+              <Alert severity="warning" sx={{ mb: 1 }}>
+                {appIdError}
+              </Alert>
+            ) : null}
+            <FormControlLabel control={<Switch checked={appid} onChange={handleAppidChange} disabled={appidSubmitting} />} label="Use AppID in stream links" />
+            <FormHelperText sx={{ ml: 0 }}>Adds the app id to acestream:// links for players that require it (rare).</FormHelperText>
+          </Box>
+        </Stack>
       </ContentSection>
 
-      <ContentSection
-        title="Appearance"
-        description="Choose the theme mode that keeps the dashboard easiest to read in your environment."
-      >
-        <FormControl component="fieldset">
-          <RadioGroup aria-label="Theme mode" name="theme-mode" value={mode} onChange={(event) => setMode(event.target.value as 'light' | 'dark')}>
-            <FormControlLabel value="light" control={<Radio />} label="Light theme" />
-            <FormControlLabel value="dark" control={<Radio />} label="Dark theme" />
-          </RadioGroup>
-        </FormControl>
-        <Box sx={{ typography: 'body2', color: 'text.secondary', mt: 1.5 }}>
-          The shell toggle changes the theme quickly. This setting is the canonical place to confirm your preference.
-        </Box>
-      </ContentSection>
-
-      <ContentSection title="Connection settings" description="Update the base URLs only when your environment changes.">
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <form onSubmit={handleBaseUrlSubmit}>
-              <Stack spacing={2}>
-                <TextField
-                  label="Base URL"
-                  fullWidth
-                  value={baseUrl}
-                  onChange={(e) => setBaseUrl(e.target.value)}
-                  margin="normal"
-                  helperText="The base URL for Acestream links (e.g., acestream://)"
-                />
-                <Button type="submit" variant="contained" color="primary" disabled={isSubmitting || baseUrl === baseUrlQuery.data}>
-                  {updateBaseUrlMutation.isPending ? <CircularProgress size={24} color="inherit" /> : 'Save base URL'}
-                </Button>
-              </Stack>
-            </form>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <form onSubmit={handleAceEngineUrlSubmit}>
-              <Stack spacing={2}>
-                <TextField
-                  label="Acestream Engine URL"
-                  fullWidth
-                  value={aceEngineUrl}
-                  onChange={(e) => setAceEngineUrl(e.target.value)}
-                  margin="normal"
-                  helperText="The URL of your Acestream Engine (e.g., http://localhost:6878)"
-                />
-                <Button type="submit" variant="contained" color="primary" disabled={isSubmitting || aceEngineUrl === aceEngineUrlQuery.data}>
-                  {updateAceEngineUrlMutation.isPending ? <CircularProgress size={24} color="inherit" /> : 'Save engine URL'}
-                </Button>
-              </Stack>
-            </form>
-          </Grid>
-        </Grid>
-      </ContentSection>
-
-      <StreamBaseUrlsSection notify={notify} />
-
-      <ContentSection
-        title="API access"
-        description="Store the API token this browser sends with every request to the backend."
-      >
+      <ContentSection title="API access" description="Only needed when the server sets API_TOKEN. The token is stored in this browser and sent with every request.">
         <Stack spacing={2} sx={{ maxWidth: 520 }}>
           {apiTokenRequired ? (
-            <Alert severity="warning">
-              The server rejected an API request because a valid token is missing. Enter the token below to restore access.
-            </Alert>
+            <Alert severity="warning">The server rejected a request because a valid token is missing. Enter the token below to restore access.</Alert>
           ) : null}
           <form onSubmit={handleApiTokenSave}>
             <Stack spacing={2}>
               <TextField
                 id="api-token"
                 label="API token"
+                size="small"
                 type={showApiToken ? 'text' : 'password'}
                 fullWidth
                 value={apiTokenInput}
                 onChange={(e) => setApiTokenInput(e.target.value)}
                 autoComplete="off"
-                helperText="Only needed when the server sets the API_TOKEN environment variable. Stored in this browser and sent as an X-Api-Token header with every API request."
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
-                      <IconButton
-                        aria-label={showApiToken ? 'Hide API token' : 'Show API token'}
-                        onClick={() => setShowApiToken((current) => !current)}
-                        edge="end"
-                      >
+                      <IconButton aria-label={showApiToken ? 'Hide API token' : 'Show API token'} onClick={() => setShowApiToken((current) => !current)} edge="end" size="small">
                         {showApiToken ? <VisibilityOffIcon /> : <VisibilityIcon />}
                       </IconButton>
                     </InputAdornment>
@@ -707,10 +597,10 @@ const Settings: React.FC = () => {
                 }}
               />
               <Stack direction="row" spacing={1}>
-                <Button type="submit" variant="contained" color="primary" disabled={!apiTokenInput.trim()}>
+                <Button type="submit" variant="contained" size="small" disabled={!apiTokenInput.trim()}>
                   Save token
                 </Button>
-                <Button variant="outlined" color="inherit" onClick={handleApiTokenClear}>
+                <Button variant="outlined" color="inherit" size="small" onClick={handleApiTokenClear}>
                   Clear token
                 </Button>
               </Stack>
@@ -719,122 +609,8 @@ const Settings: React.FC = () => {
         </Stack>
       </ContentSection>
 
-      <ContentSection title="Automation settings" description="Adjust scraper timing and playlist link options without mixing them into connection details.">
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <form onSubmit={handleRescrapeIntervalSubmit}>
-              <Stack spacing={2}>
-                <TextField
-                  label="Rescrape Interval (hours)"
-                  type="number"
-                  fullWidth
-                  value={rescrapeInterval}
-                  onChange={(e) => setRescrapeInterval(parseInt(e.target.value))}
-                  margin="normal"
-                  InputProps={{ inputProps: { min: 1, max: 168 } }}
-                  helperText="Hours between automatic rescrapes (1-168)"
-                />
-                <Button type="submit" variant="contained" color="primary" disabled={isSubmitting || rescrapeInterval === rescrapeIntervalQuery.data}>
-                  {updateRescrapeIntervalMutation.isPending ? <CircularProgress size={24} color="inherit" /> : 'Save rescrape interval'}
-                </Button>
-              </Stack>
-            </form>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Stack spacing={2} sx={{ pt: 1 }}>
-              {appIdError ? <Alert severity="warning">{appIdError}</Alert> : null}
-              <Box>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={appid}
-                      onChange={handleAppidChange}
-                      disabled={appidSubmitting}
-                    />
-                  }
-                  label="Use AppID in Acestream links"
-                />
-                <Box sx={{ typography: 'body2', color: 'text.secondary', mt: 1 }}>
-                  When enabled, the AppID will be used in Acestream links in playlists.
-                </Box>
-              </Box>
-              <Box>
-                <FormControlLabel
-                  control={<Switch checked={addPid} onChange={handleAddPidChange} disabled={isSubmitting} />}
-                  label="Append PID to generated Acestream links"
-                />
-                <Box sx={{ typography: 'body2', color: 'text.secondary', mt: 1 }}>
-                  Keep this enabled when your player expects PID values in playlist links.
-                </Box>
-              </Box>
-            </Stack>
-          </Grid>
-        </Grid>
-      </ContentSection>
-
-      <ContentSection
-        title="Settings inventory"
-        description="Review the saved backend values grouped for quick troubleshooting, including settings that are editable elsewhere on this page."
-      >
-        <Stack spacing={2}>
-          <Box sx={{ typography: 'body2', color: 'text.secondary' }}>
-            Saved backend values appear here. Unsaved edits above do not appear here until save succeeds.
-          </Box>
-
-          {allSettingsQuery.isLoading ? (
-            <Alert severity="info">Loading saved settings inventory.</Alert>
-          ) : allSettingsQuery.error ? (
-            <Alert severity="warning">Could not load the saved settings inventory. You can still review and update the editable controls above.</Alert>
-          ) : Object.keys(allSettings).length === 0 ? (
-            <Alert severity="info">No stored settings are available to review right now.</Alert>
-          ) : (
-            <Stack spacing={2.5}>
-              {inventoryGroups.map((group) => (
-                <Box key={group.title} component="section" aria-label={group.title}>
-                  <Box component="h3" sx={{ typography: 'sectionTitle', fontSize: '1rem', mb: 1.25 }}>
-                    {group.title}
-                  </Box>
-                  <Stack
-                    spacing={1}
-                    sx={{
-                      p: 1.5,
-                      borderRadius: 2,
-                      bgcolor: alpha(theme.palette.text.primary, theme.palette.mode === 'dark' ? 0.06 : 0.025),
-                      border: `1px solid ${alpha(theme.palette.text.primary, theme.palette.mode === 'dark' ? 0.12 : 0.08)}`,
-                    }}
-                  >
-                    {group.keys.map((key) => (
-                      <Box
-                        key={key}
-                        data-testid={`settings-inventory-row-${key}`}
-                        sx={{
-                          display: 'flex',
-                          flexDirection: { xs: 'column', sm: 'row' },
-                          gap: 0.5,
-                          justifyContent: 'space-between',
-                          alignItems: { xs: 'flex-start', sm: 'center' },
-                        }}
-                      >
-                        <Box sx={{ typography: 'body2', fontWeight: 600, wordBreak: 'break-word' }}>{key}</Box>
-                        <Box sx={{ typography: 'body2', color: allSettings[key] === '' ? 'text.secondary' : 'text.primary', wordBreak: 'break-word' }}>
-                          {allSettings[key] === '' ? 'Not set' : allSettings[key]}
-                        </Box>
-                      </Box>
-                    ))}
-                  </Stack>
-                </Box>
-              ))}
-            </Stack>
-          )}
-        </Stack>
-      </ContentSection>
-
-      <Snackbar
-        open={feedback.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-      >
-        <Alert onClose={handleCloseSnackbar} severity={feedback.severity} variant="filled" sx={{ width: '100%' }}>
+      <Snackbar open={feedback.open} autoHideDuration={6000} onClose={() => setFeedback((current) => ({ ...current, open: false }))}>
+        <Alert onClose={() => setFeedback((current) => ({ ...current, open: false }))} severity={feedback.severity} variant="filled" sx={{ width: '100%' }}>
           {feedback.message}
         </Alert>
       </Snackbar>

@@ -8,7 +8,6 @@ import TVChannels from './pages/TVChannels';
 import TVChannelDetail from './pages/TVChannelDetail';
 import Scraper from './pages/Scraper';
 import EPG from './pages/EPG';
-import EPGMappings from './pages/EPGMappings';
 import EPGChannelDetail from './pages/EPGChannelDetail';
 import Playlist from './pages/Playlist';
 import WARP from './pages/WARP';
@@ -24,6 +23,7 @@ export const LEGACY_REDIRECTS: Array<{ from: string; to: string }> = [
   { from: '/channels', to: '/tv-channels' },
   { from: '/channels/:id', to: '/tv-channels' },
   { from: '/search-new', to: '/search' },
+  { from: '/epg/mappings', to: '/epg?tab=rules' },
 ];
 
 const RedirectTo: React.FC<{ to: string }> = ({ to }) => {
@@ -43,7 +43,6 @@ const App: React.FC = () => {
         <Route path="/tv-channels/:id" element={<TVChannelDetail />} />
         <Route path="/scraper" element={<Scraper />} />
         <Route path="/epg" element={<EPG />} />
-        <Route path="/epg/mappings" element={<EPGMappings />} />
         <Route path="/epg/channels/:id" element={<EPGChannelDetail />} />
         <Route path="/playlist" element={<Playlist />} />
         <Route path="/warp" element={<WARP />} />

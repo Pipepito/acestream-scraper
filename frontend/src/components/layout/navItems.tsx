@@ -22,7 +22,7 @@ export const navItems: NavItem[] = [
   { text: 'Search', path: '/search', icon: <SearchRoundedIcon />, section: 'Operations' },
   { text: 'Acestream Channels', path: '/acestream-channels', icon: <LiveTvRoundedIcon />, section: 'Operations' },
   { text: 'TV Channels', path: '/tv-channels', icon: <LiveTvRoundedIcon />, section: 'Operations', matchPrefixes: ['/tv-channels'] },
-  { text: 'EPG', path: '/epg', icon: <EventNoteRoundedIcon />, section: 'Operations', matchPrefixes: ['/epg/channels', '/epg/mappings'] },
+  { text: 'EPG', path: '/epg', icon: <EventNoteRoundedIcon />, section: 'Operations', matchPrefixes: ['/epg/channels'] },
   { text: 'Playlist', path: '/playlist', icon: <PlaylistPlayRoundedIcon />, section: 'Operations' },
   { text: 'Settings', path: '/settings', icon: <SettingsRoundedIcon />, section: 'System' },
 ];

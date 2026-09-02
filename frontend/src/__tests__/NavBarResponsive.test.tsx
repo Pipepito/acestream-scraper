@@ -180,9 +180,9 @@ describe('NavBar responsive shell behavior', () => {
     expect(screen.getByRole('link', { name: 'Settings' })).toHaveFocus();
   });
 
-  it('keeps EPG selected for the mapping rules route', () => {
+  it('keeps EPG selected for guide channel detail routes', () => {
     renderWithResponsiveMode({
-      pathname: '/epg/mappings',
+      pathname: '/epg/channels/42',
       isPhone: false,
       isDesktop: true,
       ui: <NavBar />,

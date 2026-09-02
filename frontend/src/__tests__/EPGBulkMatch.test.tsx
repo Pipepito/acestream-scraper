@@ -212,7 +212,7 @@ const renderPage = () => {
   return render(
     <ThemeProvider theme={createAppTheme('light')}>
       <QueryClientProvider client={queryClient}>
-        <TestMemoryRouter>
+        <TestMemoryRouter initialEntries={['/epg?tab=matching']}>
           <EPG />
         </TestMemoryRouter>
       </QueryClientProvider>

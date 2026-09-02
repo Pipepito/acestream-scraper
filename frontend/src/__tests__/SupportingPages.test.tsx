@@ -7,8 +7,6 @@ import Playlist from '../pages/Playlist';
 import Settings from '../pages/Settings';
 import WarpPage from '../pages/WARP';
 import NotFound from '../pages/NotFound';
-import App from '../App';
-import EPGMappings from '../pages/EPGMappings';
 import { createAppTheme } from '../theme';
 import { TestMemoryRouter } from '../testUtils/router';
 import { mockResponsiveShellQueries } from '../testUtils/mockResponsiveShell';
@@ -85,15 +83,6 @@ const renderPage = (ui: React.ReactElement) =>
   render(
     <ThemeProvider theme={createAppTheme('light')}>
       <TestMemoryRouter>{ui}</TestMemoryRouter>
-    </ThemeProvider>
-  );
-
-const renderAppAtRoute = (initialEntries: string[]) =>
-  render(
-    <ThemeProvider theme={createAppTheme('light')}>
-      <TestMemoryRouter initialEntries={initialEntries}>
-        <App />
-      </TestMemoryRouter>
     </ThemeProvider>
   );
 
@@ -516,30 +505,6 @@ describe('Supporting page normalization', () => {
     expect(navigate).toHaveBeenNthCalledWith(2, '/tv-channels', { replace: true });
     expect(navigate).toHaveBeenNthCalledWith(3, '/search', { replace: true });
   });
-
-
-
-  it('renders the EPG Mappings page through the real app route table', () => {
-    renderAppAtRoute(['/epg/mappings']);
-
-    expect(screen.getByRole('heading', { level: 1, name: 'EPG Mappings' })).toBeInTheDocument();
-  });
-
-  it('renders EPG Mappings with the global rules table and rule chips', () => {
-    renderPage(<EPGMappings />);
-
-    expect(screen.getByRole('heading', { level: 1, name: 'EPG Mappings' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: 'Global mapping rules' })).toBeInTheDocument();
-    expect(screen.getByText('Sport TV')).toBeInTheDocument();
-    expect(screen.getByText('Include')).toBeInTheDocument();
-    expect(screen.getByText('Exclude')).toBeInTheDocument();
-  });
-
-
-
-
-
-
 
 
 

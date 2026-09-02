@@ -81,3 +81,17 @@ def test_legacy_env_aliases_must_be_removed_after_cutover_window():
             "LEGACY_ENV_ALIAS_MAP, apply_legacy_env_aliases, and the "
             "compat-event log call from app/config/settings.py and main.py."
         )
+
+
+def test_engine_url_default_follows_env(monkeypatch):
+    """A services-off container must reach the engine named by ACE_ENGINE_URL before anyone opens Settings."""
+    import importlib
+    from app.repositories import settings_repository
+
+    monkeypatch.setenv("ACE_ENGINE_URL", "http://engine:6878")
+    reloaded = importlib.reload(settings_repository)
+    try:
+        assert reloaded.SettingsRepository.DEFAULT_ACE_ENGINE_URL == "http://engine:6878"
+    finally:
+        monkeypatch.delenv("ACE_ENGINE_URL", raising=False)
+        importlib.reload(settings_repository)

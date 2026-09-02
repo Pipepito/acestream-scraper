@@ -22,9 +22,11 @@ test.describe('settings', () => {
   test('engine URL can be pointed at the stack engine', async ({ page, api, scenario }) => {
     const settings = new SettingsPage(page);
     await settings.open();
-    await settings.saveEngineUrl(scenario.stack.engineUrl);
+    // From inside a container the engine is reached by service name, not the host's 127.0.0.1.
+    const engineUrl = process.env.E2E_APP_ENGINE_URL ?? scenario.stack.engineUrl;
+    await settings.saveEngineUrl(engineUrl);
     await settings.expectAlert('Engine URL saved');
-    expect(await api.getSetting('ace_engine_url')).toBe(scenario.stack.engineUrl);
+    expect(await api.getSetting('ace_engine_url')).toBe(engineUrl);
     await settings.refreshEngineStatus();
     await expect(settings.engineStatus()).toContainText(/Online/, { timeout: 20_000 });
   });

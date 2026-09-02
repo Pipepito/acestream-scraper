@@ -9,7 +9,7 @@ import StatusLine from '../components/StatusLine';
 import InventoryTotals from '../components/overview/InventoryTotals';
 import ScheduledJobs from '../components/overview/ScheduledJobs';
 import { useSystemServices } from '../hooks/useSystemServices';
-import { useStats, useTvChannelStats } from '../hooks/useConfig';
+import { useHealth, useStats, useTvChannelStats } from '../hooks/useConfig';
 import { useBackgroundTaskStatus } from '../hooks/useDashboard';
 import { formatRelativeTime } from '../utils/format';
 import { normalizeApiError } from '../services/apiErrors';
@@ -25,16 +25,21 @@ const Overview: React.FC = () => {
   const stats = useStats({ refetchInterval: REFRESH_MS });
   const tvStats = useTvChannelStats({ refetchInterval: REFRESH_MS });
   const tasks = useBackgroundTaskStatus(REFRESH_MS);
+  const health = useHealth({ refetchInterval: REFRESH_MS });
 
   const engine = services.data?.services.find((s) => s.name === 'acestream');
   const attention = services.data?.services.filter((s) => s.enabled && (s.state === 'stopped' || s.state === 'unhealthy')) ?? [];
-  const engineDown = engine ? !engine.running : false;
-  const needsAttention = attention.length > 0 || engineDown;
+  // The engine the app talks to may live outside this container: trust the backend's probe, not the service list.
+  const engineProbe = health.data?.acestream;
+  const engineOnline = engineProbe ? engineProbe.status === 'online' : Boolean(engine?.running);
+  const engineExternal = engineOnline && Boolean(engine) && !engine?.running;
+  const needsAttention = attention.length > 0 || !engineOnline;
 
   const lastScrape = tasks.data?.find((t) => t.task_name === 'url_scraping')?.last_run ?? null;
   const lastEpg = tasks.data?.find((t) => t.task_name === 'epg_refresh')?.last_run ?? null;
 
   const refetchAll = () => {
+    void health.refetch();
     void services.refetch();
     void stats.refetch();
     void tvStats.refetch();
@@ -82,8 +87,8 @@ const Overview: React.FC = () => {
         items={[
           {
             label: 'Engine',
-            value: engine?.running ? (engine.version ?? 'online') : engine?.state === 'not-installed' ? 'not installed' : 'not reachable',
-            tone: engine?.running ? 'success' : engine?.state === 'not-installed' ? 'default' : 'error',
+            value: engineOnline ? (engineExternal ? 'online (external)' : engine?.version ?? 'online') : 'not reachable',
+            tone: engineOnline ? 'success' : 'error',
           },
           ...(stats.data
             ? [{ label: 'Streams', value: `${stats.data.channels.total}, ${stats.data.channels.online} online` }]

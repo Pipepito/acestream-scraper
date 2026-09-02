@@ -43,9 +43,11 @@ test.describe('overview and WARP', () => {
       if (service.managed) await expect(overview.restartButton(service.label)).toBeEnabled();
       else await expect(overview.restartButton(service.label)).toBeDisabled();
     }
+    // The in-container engine may be switched off (services-off flavour) while the app uses an external one.
     const engine = status.services.find((s) => s.name === 'acestream')!;
-    expect(['running', 'external']).toContain(engine.state);
-    await expect(overview.serviceCard(engine.label)).toContainText(/Running|External/);
+    expect(['running', 'external', 'disabled']).toContain(engine.state);
+    await expect(overview.serviceCard(engine.label)).toContainText(/Running|External|turned off/);
+    expect((await api.health()).acestream.status, 'the engine the app talks to answers').toBe('online');
 
     const managedNames = ['acestream', 'warp'];
     const managed = status.services.filter((s) => managedNames.includes(s.name) && s.managed);

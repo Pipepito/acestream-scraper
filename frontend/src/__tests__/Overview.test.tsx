@@ -7,11 +7,13 @@ import { TestMemoryRouter } from '../testUtils/router';
 
 const mockUseSystemServices = jest.fn();
 const mockUseStats = jest.fn();
+const mockUseHealth = jest.fn();
 const mockUseTvChannelStats = jest.fn();
 const mockUseBackgroundTaskStatus = jest.fn();
 
 jest.mock('../hooks/useSystemServices', () => ({ useSystemServices: (...args: unknown[]) => mockUseSystemServices(...args) }));
 jest.mock('../hooks/useConfig', () => ({
+  useHealth: (...args: unknown[]) => mockUseHealth(...args),
   useStats: (...args: unknown[]) => mockUseStats(...args),
   useTvChannelStats: (...args: unknown[]) => mockUseTvChannelStats(...args),
 }));
@@ -50,6 +52,7 @@ describe('Overview', () => {
   beforeEach(() => {
     jest.useFakeTimers().setSystemTime(new Date('2026-09-02T10:12:00Z'));
     mockUseSystemServices.mockReturnValue(query({ supervised: true, checked_at: '', services: [service('acestream', 'running', { label: 'AceStream engine', version: '3.1.80 (android)' }), service('acexy', 'running')] }));
+    mockUseHealth.mockReturnValue(query({ status: 'healthy', acestream: { status: 'online', message: 'Acestream Engine is running' }, settings: {}, version: '2.1.0' }));
     mockUseStats.mockReturnValue(query({ channels: { total: 6, online: 1, offline: 5, unknown: 0 }, urls: { total: 2, active: 2, error: 0 }, epg: { sources: 1, channels: 638, programs: 81799 } }));
     mockUseTvChannelStats.mockReturnValue(query({ total: 1, active: 1, with_epg: 1, acestreams: 2 }));
     mockUseBackgroundTaskStatus.mockReturnValue(
@@ -92,7 +95,22 @@ describe('Overview', () => {
     expect(screen.queryByText(/Recent Activity/)).not.toBeInTheDocument();
   });
 
+  it('reports an external engine as online when the in-container one is switched off', () => {
+    mockUseSystemServices.mockReturnValue(query({ supervised: true, checked_at: '', services: [service('acestream', 'disabled', { label: 'AceStream engine', enabled: false, running: false, message: 'Installed but turned off (ENABLE_ACESTREAM_ENGINE=false).' })] }));
+    renderPage();
+    expect(screen.getByText('HEALTHY')).toBeInTheDocument();
+    expect(within(screen.getByRole('status', { name: 'Overview summary' })).getByText('online (external)')).toBeInTheDocument();
+  });
+
+  it('flags attention when the engine probe fails even if no service is marked stopped', () => {
+    mockUseHealth.mockReturnValue(query({ status: 'healthy', acestream: { status: 'error', message: 'Connection refused' }, settings: {}, version: '2.1.0' }));
+    renderPage();
+    expect(screen.getByText('ATTENTION')).toBeInTheDocument();
+    expect(within(screen.getByRole('status', { name: 'Overview summary' })).getByText('not reachable')).toBeInTheDocument();
+  });
+
   it('flags attention when an enabled service is down and says which', () => {
+    mockUseHealth.mockReturnValue(query({ status: 'degraded', acestream: { status: 'error', message: 'Connection refused' }, settings: {}, version: '2.1.0' }));
     mockUseSystemServices.mockReturnValue(query({ supervised: true, checked_at: '', services: [service('acestream', 'stopped', { label: 'AceStream engine', message: 'Enabled but not running.' })] }));
     renderPage();
     expect(screen.getByText('ATTENTION')).toBeInTheDocument();

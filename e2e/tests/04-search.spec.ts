@@ -13,7 +13,7 @@ test.describe('engine search', () => {
 
       await search.search(q.query, q.category);
       await expect(search.results()).toBeVisible();
-      await expect(search.results()).toContainText(/\d+ results found/);
+      await expect(search.summary()).toContainText(new RegExp(`Results\\s*\\d+ for ‘${q.query}’`));
       await expect(search.resultRows().first()).toBeVisible();
       const uiCount = await search.resultRows().count();
       expect(uiCount).toBeGreaterThanOrEqual(Math.min(q.expectMinResults, 10));
@@ -23,10 +23,13 @@ test.describe('engine search', () => {
       for (const r of toAdd) {
         await api.deleteChannel(r.id);
         await search.addRow(r.name);
+        await search.expectAlert(`Added ${r.name} to your channels.`);
+        await expect(search.addedChip(r.name)).toBeVisible();
         await expect
           .poll(async () => (await api.getChannel(r.id))?.name, { timeout: 15_000, message: `channel ${r.id} added from search` })
           .toBe(r.name);
       }
+      await expect(search.summary()).toContainText(new RegExp(`Added this session\\s*${toAdd.length}`));
     }
   });
 
@@ -42,8 +45,9 @@ test.describe('engine search', () => {
       await api.deleteChannel(r.id);
       await search.selectRow(r.name);
     }
-    await expect(search.results()).toContainText(`${batch.length} selected channel`);
+    await expect(search.summary()).toContainText(new RegExp(`Selected\\s*${batch.length}`));
     await search.addSelected();
+    await search.expectAlert(`Added ${batch.length} channels.`);
     for (const r of batch) {
       await expect.poll(async () => (await api.getChannel(r.id))?.id, { timeout: 15_000 }).toBe(r.id);
     }

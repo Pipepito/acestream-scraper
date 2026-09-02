@@ -16,137 +16,66 @@ This guide explains how to use Acestream Scraper once it's installed.
 
 ## Web Interface
 
-Access the web interface by navigating to `http://localhost:8000` in your browser.
+Open `http://localhost:8000` in your browser. The left navigation has eight pages; the label in the menu is always the page title.
 
-![Dashboard Screenshot](https://github.com/user-attachments/assets/17e000b7-20de-4a80-a990-9d0d5b225754)
+### Overview
 
-### Dashboard
+The landing page answers three questions: is it running, what is loaded, what runs next.
 
-The dashboard provides an overview of your Acestream channels and system status. From here you can:
+- A HEALTHY / ATTENTION chip in the header and a one-line summary (engine version, streams online, TV channels, guide channels, last scrape, last EPG refresh).
+- **Services**: everything the image ships (AceStream engine, Acexy, IPFS, ZeroNet, WARP), whether each is switched on and answering, and a Restart button for services supervised by the container entrypoint. WARP has its own page reachable from here.
+- **Inventory**: stream, TV channel and guide totals.
+- **Scheduled jobs**: every background job with what it did last ("2 sources, 0 errors") and when it runs next.
 
-- View channel statistics (total, online, offline)
-- Search for specific channels
-- Download the M3U playlist
-- Access configuration settings
-- View Acexy proxy status (if enabled)
+### Scraper
 
-#### Dashboard Controls
+Source URLs and the channels each one yields. Add a URL, pick its type (Auto-detect, Regular HTTP, ZeroNet, IPFS), then scrape it with the play button in its row. The Enabled switch controls whether scheduled scrapes visit the source; the row menu (⋯) offers Edit, Harvest bare IDs and Delete. The summary line shows how many sources are enabled, when the last scrape ran, how many channels were found and how many sources are failing.
 
-- **Search Box**: Filter channels by name
-- **Check All Status**: Verify which channels are currently online
-- **Refresh**: Update the dashboard data
-- **Download Playlist**: Generate and download the M3U playlist
-- **Configuration**: Access the settings page
+When choosing the URL type:
+- **Regular HTTP** for standard websites.
+- **ZeroNet** for any ZeroNet URL, internal (`zero://`, `http://127.0.0.1:43110/`) or through a gateway.
+- **IPFS** for IPFS content: native `ipfs://<cid>/path` and `ipns://<name>/path` (also auto-detected), gateway URLs (`https://gateway.example/ipfs/<cid>/...`) when you want them fetched as IPFS sources, and a bare `ipfs://<cid>` whose content is an M3U playlist (detected by content, not extension).
 
-### Channel Management
+### Search
 
-![Channels Screenshot](https://github.com/user-attachments/assets/17006755-43ff-4817-be2c-36397cf9631b)
+Searches the AceStream engine's catalogue. Results show the name, categories, bitrate and availability; Add puts one result into your channels, or tick several and add them in one go. The summary line counts results, selected rows and what you added this session.
 
-Acestream Scraper allows you to manage channels in several ways:
+### Acestream Channels
 
-#### Adding Channels Manually
+Every stream the scraper or search found. Filter by name, group, online state or playlist visibility above the grid. Each row has Check status and a TV-channel link (assign, or open the linked TV channel); the row menu offers Edit, Hide from playlist / Show in playlist, TV favourite and Delete. Header actions: Add channel, Refresh, Check all statuses, Export CSV. Hidden channels stay in the inventory but leave the playlist.
 
-1. Enter a channel ID (the Acestream hash) and name in the form
-2. Click "Add Channel"
-3. The channel will appear in your channel list
+### TV Channels
 
-#### Searching Channels
+The channels you publish. Each TV channel groups its streams and carries the EPG id used in the playlist. The list shows favourites (star), stream count and status; Open goes to the channel page, where you can:
 
-1. Use the search box to filter channels by name
-2. The list will update in real-time as you type
-3. Channel count will reflect your search results
+- edit the main fields (name, category, number, EPG id) with the rest behind "More fields";
+- add streams one by one or paste many IDs at once, and remove them;
+- see the guide schedule for the linked EPG channel: what is on now and next, then day tabs for the week.
 
-#### Checking Channel Status
+### EPG
 
-1. Click the "Check Status" button next to a channel or "Check All Status" at the top
-2. The system will verify if the channel is available
-3. Status will be displayed with color coding (green for online, red for offline)
+Programme guides, in five tabs:
 
-#### Deleting Channels
+- **Sources**: XMLTV feeds. Add one, refresh it by hand; refreshes also run on the interval set in Settings. Failures show as plain text under the source status.
+- **Channels**: guide channels found in the sources, with a link to each channel's page and whether it is linked to a TV channel. Select unlinked ones to create TV channels from them.
+- **Matching**: finds scraped streams that belong to unlinked guide channels and creates the TV channels in one go.
+- **Rules**: include/exclude patterns that decide which scraped names match a guide channel (rules are added from a guide channel's page).
+- **Export**: download an XMLTV file with only your TV channels.
 
-1. Find the channel you want to delete
-2. Click the "Delete" button next to it
-3. Confirm deletion when prompted
+### Playlist
 
-### URL Management
+One M3U link with your channels. Options: name search, only online channels (with the live online/total count), favourite TV channels only, the stream link format, and group filters. The absolute link can be copied, downloaded or shown as a QR code for a player on another device.
 
-URLs are sources that contain Acestream channel information. The system will scrape these URLs to discover channels.
+### Settings
 
-#### Adding URLs
+- **Engine**: the AceStream engine URL and whether the backend can reach it.
+- **Stream link formats**: named formats for the playlist links (a prefix such as `acestream://`, or a template using `{channel_id}` and `{pid}`). The Default is used unless a playlist asks for another; until you add a named default, the built-in Default is editable in place.
+- **Automation**: how often sources are scraped and the EPG is refreshed (changes apply right away), plus the PID and AppID switches for players that need them.
+- **API access**: the token this browser sends when the server sets `API_TOKEN`.
 
-1. Go to the Configuration page
-2. Enter a URL in the "Add New URL" form
-3. Select the appropriate URL type:
-   - **Regular HTTP**: For standard websites
-   - **ZeroNet**: For ZeroNet sites (either internal or external)
-   - **IPFS**: For content on the IPFS network
-4. Click "Add URL"
-5. The system will begin scraping the URL for channels
+### WARP
 
-When selecting the URL type:
-- Choose "Regular HTTP" for standard websites
-- Choose "ZeroNet" for any ZeroNet URLs, including:
-  - Internal ZeroNet sites (zero://, http://127.0.0.1:43110/)
-  - External ZeroNet services or gateways
-- Choose "IPFS" for IPFS content, including:
-  - Native IPFS URLs (ipfs://&lt;cid&gt;/path, ipns://&lt;name&gt;/path) — `ipfs://` and `ipns://` URLs are also auto-detected
-  - Gateway URLs (https://gateway.example/ipfs/&lt;cid&gt;/...) when you want them fetched as IPFS sources
-  - A bare `ipfs://<cid>` whose content is an M3U playlist works too — the playlist is detected by content, not by file extension
-
-#### Refreshing URLs
-
-1. Find the URL in the list
-2. Click the "Refresh" button
-3. The system will scrape the URL again for updated channel information
-
-#### Enabling/Disabling URLs
-
-1. Find the URL in the list
-2. Click the "Enable/Disable" button
-3. Disabled URLs won't be included in automatic rescans
-
-#### Deleting URLs
-
-1. Find the URL in the list
-2. Click the "Delete" button
-3. Confirm deletion when prompted
-
-### Configuration Page
-
-The configuration page allows you to modify system settings:
-
-- **Base URL**: How to format channel URLs in the playlist
-- **Ace Engine URL**: Connection to your Acestream Engine
-- **Rescrape Interval**: How often to automatically check for new channels
-- **Acexy Status**: View the status of the Acexy proxy (if enabled)
-- **Acestream Engine Status**: View the status of the Acestream Engine
-- **WARP Status**: View and manage Cloudflare WARP connection (if enabled)
-
-### WARP Management
-
-If Cloudflare WARP is enabled in your container, you can manage it through the Configuration page:
-
-#### WARP Status
-
-- View connection status (Connected, Running but Not Connected, Not Running)
-- See your current connection mode (WARP, DoT, Proxy, Off)
-- Check your account type (Free, Premium, Team)
-- View your public IP address through WARP
-
-#### WARP Controls
-
-- Connect/Disconnect from WARP
-- Change WARP mode (WARP, DoT, Proxy, Off)
-- Register a license key for WARP+ or Team accounts
-
-#### WARP Connection Details
-
-When connected to WARP, detailed Cloudflare trace information is available showing:
-- WARP connection status
-- Current IP address and location
-- Cloudflare datacenter handling your connection
-- Connection protocol details
-- Server information
+Reachable from the Overview services panel. One status row (Connected / Disconnected / Not running, mode, account, exit location) with Connect and Disconnect; connection details (public IP, exit location, tunnel and registration) and the mode/licence form appear while the service runs. When WARP is not running, the page says how to enable it (`ENABLE_WARP=true` plus the `NET_ADMIN` and `SYS_ADMIN` capabilities).
 
 ## M3U Playlist
 

@@ -39,3 +39,12 @@ Preferred patterns to use unless the workflow has a strong reason not to:
 - [ ] Verify one mobile width and one desktop width.
 - [ ] Verify one keyboard path for the primary action flow.
 - [ ] Verify loading, empty, error, and success-feedback states where present.
+
+## Page Skeleton (since 2026-09-02)
+
+- `PageHeader` (title = nav label, at most one subtitle sentence, primary `actions`, secondary `overflowActions`) → `StatusLine` of measured facts → `ContentSection`s. No hero blocks, no "next step" prose, no repeated summaries.
+- Row actions: at most two visible icon buttons, the rest in `RowActionsMenu` ("More actions for X"). Destructive actions confirm through `useConfirm()`; never `window.confirm`.
+- Copy: plain words a non-technical user recognises (no "stage", "pipeline", "downstream", "momentum"); relative times via `formatRelativeTime`; units via `formatBitrate`; status chips with fixed widths so rows line up.
+- Phones: tables become card lists under 900 px (`ChannelCardList`), header actions collapse, filters sit above the list they filter.
+- Every page has a Playwright journey under `e2e/tests/`; update the page object in `e2e/src/pages/` when you change an accessible name.
+

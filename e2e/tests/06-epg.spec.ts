@@ -12,6 +12,7 @@ test.describe('EPG', () => {
 
     const epg = new EPGPage(page);
     await epg.open();
+    await expect(epg.page.getByRole('tab', { name: 'Sources', selected: true })).toBeVisible();
     await epg.addSource(src.name, src.url);
     await epg.expectAlert('EPG source added successfully');
     await expect(epg.sourceRow(src.name)).toContainText('Never');
@@ -20,7 +21,6 @@ test.describe('EPG', () => {
 
     const started = Date.now();
     await epg.refreshSource(src.name);
-    // The UI must not claim a result it does not have (the refresh runs in the background).
     const toast = epg.page.getByRole('alert').filter({ hasText: /refresh/i }).first();
     const toastText = await toast.textContent({ timeout: 5_000 }).catch(() => null);
     testInfo.annotations.push({ type: 'epg-refresh-toast', description: toastText ?? '(no toast)' });
@@ -29,7 +29,6 @@ test.describe('EPG', () => {
       expect(toastText, 'refresh feedback must not claim completion before the job ran').not.toMatch(/refreshed successfully/);
     }
 
-    // Watch the API stay responsive while the (large) feed is being imported.
     let slowestHealthMs = 0;
     let healthFailures = 0;
     const done = api.waitForEpgRefresh(created!.id, null, src.refreshTimeoutMs);
@@ -60,24 +59,28 @@ test.describe('EPG', () => {
 
     await page.reload();
     await expect(epg.sourceRow(src.name)).not.toContainText('Never');
-    await expect(epg.sourceRow(src.name)).not.toContainText(/Errors:/);
+    await expect(epg.sourceRow(src.name)).not.toContainText(/failed refresh/);
+    await expect(epg.summary()).toContainText(/Guide channels\s*[1-9]\d*/);
+    await expect(epg.summary()).toContainText(/Last refresh\s*(just now|\d+ min ago)/);
   });
 
-  test('the channel inventory is filterable by source and lists the loaded channels', async ({ page, api, scenario }) => {
+  test('the Channels tab is filterable by source, links each channel and shows link state', async ({ page, api, scenario }) => {
     const src = scenario.epg.sources[0];
     const source = await api.findEpgSource(src.url);
     expect(source).toBeTruthy();
     const epg = new EPGPage(page);
-    await epg.open();
+    await epg.open('Channels');
+    await expect(page).toHaveURL(/tab=channels$/);
     await epg.selectSourceFilter(src.name);
-    await expect(epg.inventory()).toContainText(/Showing 1-\d+ of \d+ channels/);
+    await expect(epg.channels()).toContainText(/Showing 1-\d+ of \d+ channels/);
     const total = (await api.listEpgChannels(source!.id, 1)).total;
-    await expect(epg.inventory()).toContainText(`of ${total} channels`);
+    await expect(epg.channels()).toContainText(`of ${total} channels`);
     const first = (await api.listEpgChannels(source!.id, 1)).items[0];
-    await expect(epg.inventoryRow(first.name).first()).toBeVisible();
+    await expect(epg.channelLink(first.name).first()).toHaveAttribute('href', `/epg/channels/${first.id}`);
+    await expect(epg.channelRow(first.name).first()).toContainText(/Linked|Not linked/);
   });
 
-  test('the EPG channel detail shows programs for the target channel', async ({ page, api, scenario }) => {
+  test('the EPG channel detail shows the schedule for the target channel', async ({ page, api, scenario }) => {
     const src = scenario.epg.sources[0];
     const source = await api.findEpgSource(src.url);
     const target = await api.resolveEpgChannel(source!.id, scenario.epg.targetChannel.xmlId);
@@ -87,15 +90,52 @@ test.describe('EPG', () => {
 
     const detail = new EPGChannelDetailPage(page);
     await detail.open(target!.id, new RegExp(scenario.epg.targetChannel.displayNameContains));
-    await expect(detail.schedule()).toContainText(/Total Programs: [1-9]\d*/);
-    await expect(detail.programsTable().getByRole('row').nth(1)).toBeVisible();
-    await expect(detail.programsTable()).toContainText(programs[0].title);
+    await expect(detail.summary()).toContainText(`XML ID: ${scenario.epg.targetChannel.xmlId}`);
+    await expect(detail.schedule().getByRole('tab', { name: 'Today', selected: true })).toBeVisible();
+    await expect(detail.nowNext()).toBeVisible();
+    await expect(detail.schedule()).toContainText(/\d+ programmes? today|No programmes today/);
+
+    // Pick the first day that has programmes and check its first title is listed.
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const byDay = new Map<number, string>();
+    for (const p of programs) {
+      const offset = Math.floor((new Date(p.start_time).getTime() - startOfDay.getTime()) / 86_400_000);
+      if (offset >= 0 && offset < 7 && !byDay.has(offset)) byDay.set(offset, p.title);
+    }
+    const [offset, title] = [...byDay.entries()].sort((a, b) => a[0] - b[0])[0] ?? [];
+    test.skip(offset === undefined, 'guide has no programmes in the next 7 days');
+    if (offset! > 0) await detail.selectDay(offset === 1 ? 'Tomorrow' : new RegExp('^\\w{3} \\d+$'));
+    await expect(detail.schedule()).toContainText(title!, { timeout: 30_000 });
+    await expect(detail.schedule().getByRole('listitem', { name: title! }).first()).toBeVisible();
+  });
+
+  test('string mapping rules can be added on a channel and appear on the Rules tab', async ({ page, api, scenario }) => {
+    const src = scenario.epg.sources[0];
+    const source = await api.findEpgSource(src.url);
+    const target = (await api.resolveEpgChannel(source!.id, scenario.epg.targetChannel.xmlId))!;
+    const detail = new EPGChannelDetailPage(page);
+    await detail.open(target.id, new RegExp(scenario.epg.targetChannel.displayNameContains));
+    await detail.addStringMapping('E2E RULE PATTERN');
+    await detail.expectAlert('String mapping added successfully');
+    await detail.closeSnackbar();
+    await expect(detail.mappings()).toContainText('E2E RULE PATTERN');
+
+    const epg = new EPGPage(page);
+    await epg.open('Rules');
+    await expect(epg.rules()).toContainText('E2E RULE PATTERN');
+    await expect(epg.rules().getByRole('link', { name: `Channel #${target.id}` })).toBeVisible();
+
+    await detail.open(target.id, new RegExp(scenario.epg.targetChannel.displayNameContains));
+    await detail.deleteStringMapping('E2E RULE PATTERN');
+    await detail.expectAlert('String mapping deleted successfully');
+    await expect(detail.mappings()).not.toContainText('E2E RULE PATTERN');
   });
 
   test('match analysis runs against the loaded guide', async ({ page, scenario }, testInfo) => {
     test.setTimeout(300_000);
     const epg = new EPGPage(page);
-    await epg.open();
+    await epg.open('Matching');
     await epg.selectSourceFilter(scenario.epg.sources[0].name);
     await epg.analyze('Balanced');
     await expect(epg.matching()).toContainText(/\d+ analyzed/, { timeout: 240_000 });
@@ -103,10 +143,12 @@ test.describe('EPG', () => {
     testInfo.annotations.push({ type: 'epg-analysis', description: text.match(/\d+ analyzed[\s\S]*?\d+ creatable/)?.[0]?.replace(/\s+/g, ' ') ?? text.slice(0, 200) });
   });
 
-  test('EPG XML output is generated for mapped channels', async ({ page, api }) => {
+  test('EPG XML output is generated from the Export tab', async ({ page, api }) => {
     const epg = new EPGPage(page);
     await epg.open();
-    await epg.xmlOutput().getByRole('button', { name: 'Generate and Download EPG XML' }).click();
+    await epg.headerButton('Export XML').click();
+    await expect(page).toHaveURL(/tab=export$/);
+    await epg.exportPanel().getByRole('button', { name: 'Generate and Download EPG XML' }).click();
     await epg.expectAlert('EPG XML generation started');
     const xml = await api.epgXml({ days_back: '1', days_forward: '7' });
     expect(xml).toContain('<tv');

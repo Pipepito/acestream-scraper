@@ -12,30 +12,34 @@ export class PlaylistPage extends AppShell {
   }
 
   playlistUrlField(): Locator {
-    return this.page.locator('input[value*="/playlists/m3u"]');
+    return this.page.getByRole('textbox', { name: 'Playlist URL' });
+  }
+
+  copyButton(): Locator {
+    return this.page.getByRole('button', { name: 'Copy playlist URL' });
   }
 
   onlyOnline(): Locator {
-    return this.page.getByRole('checkbox', { name: 'Only include online channels' });
+    return this.page.getByRole('checkbox', { name: 'Only online channels' });
   }
 
   favoritesOnly(): Locator {
-    return this.page.getByRole('checkbox', { name: 'Only include favorite TV channels' });
+    return this.page.getByRole('checkbox', { name: 'Favorite TV channels only' });
   }
 
   searchField(): Locator {
-    return this.page.getByRole('textbox', { name: 'Search Channels' });
+    return this.page.getByRole('textbox', { name: 'Search channels' });
   }
 
   async selectBaseUrl(option: string | RegExp): Promise<void> {
-    await this.selectOption(this.page.getByRole('combobox', { name: /^Stream base URL/ }), option);
+    await this.selectOption(this.page.getByRole('combobox', { name: /^Stream link format/ }), option);
   }
 
-  async showAdvanced(): Promise<void> {
-    await this.page.getByRole('button', { name: 'Show advanced options' }).click();
+  async showGroupFilters(): Promise<void> {
+    await this.page.getByRole('button', { name: 'Group filters' }).click();
   }
 
   qrButton(): Locator {
-    return this.page.getByRole('button', { name: 'Show QR Code' });
+    return this.page.getByRole('button', { name: 'Show QR code' });
   }
 }

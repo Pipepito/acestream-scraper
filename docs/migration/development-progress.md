@@ -67,6 +67,13 @@
 - Remove the legacy env alias shim in v2.1.0.
 - Real-hardware ARM validation (Raspberry Pi 4/5, ARMv7): plan in `docs/release/arm-acestream-issue-draft.md`, procedure in `docs/ops/acestream-arm-engine.md`.
 
+## UI Overhaul (2026-09-02)
+
+- Branch `ui-overhaul` merged into `develop`: eight navigation destinations (Overview replaces Dashboard, Health and Stats; Search and EPG consolidated), legacy routes redirect. Every page follows PageHeader → StatusLine → sections; hero blocks and explanatory copy removed.
+- Backend: `rescrape_interval` and the new `epg_refresh_interval` settings reschedule the APScheduler jobs at runtime (`TaskService.reschedule_task`); channel cleanup only removes inactive, unlinked, stale channels; scrapes no longer re-activate hidden channels.
+- Frontend primitives: `StatusLine`, `ConfirmDialog`/`useConfirm`, `RowActionsMenu`, `ScheduleView` (Now/Next + day tabs), `ChannelFilterBar`, `ChannelCardList`, `PageHeader.overflowActions`.
+- Verification: frontend Jest (45 suites), backend pytest, and the Playwright suite in `e2e/` run against the local backend and the arm64 Docker flavour with services on (engine, Acexy, IPFS, WARP) and off.
+
 ## Superseded Snapshot (2026-04-24)
 
 > Superseded on 2026-08-28 by the sections above; kept as the historical record.

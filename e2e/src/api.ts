@@ -49,6 +49,7 @@ export interface TvChannel {
   is_active: boolean;
   is_favorite: boolean;
   channel_number: number | null;
+  website?: string | null;
   acestream_channels: AcestreamChannel[];
 }
 export interface EpgSource {

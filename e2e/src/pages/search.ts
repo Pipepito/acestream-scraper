@@ -4,7 +4,7 @@ import { AppShell } from './app-shell';
 export class SearchPage extends AppShell {
   async open(): Promise<void> {
     await this.goto('/search');
-    await this.expectHeading('Search Channels');
+    await this.expectHeading('Search');
   }
 
   async search(query: string, category?: string): Promise<void> {
@@ -16,7 +16,11 @@ export class SearchPage extends AppShell {
   }
 
   results(): Locator {
-    return this.region('Search Results');
+    return this.region('Results');
+  }
+
+  summary(): Locator {
+    return this.statusLine('Search summary');
   }
 
   resultRows(): Locator {
@@ -31,15 +35,15 @@ export class SearchPage extends AppShell {
     await this.resultRow(name).getByRole('button', { name: `Add ${name}`, exact: true }).click();
   }
 
+  addedChip(name: string): Locator {
+    return this.resultRow(name).getByLabel(`Added ${name}`);
+  }
+
   async selectRow(name: string): Promise<void> {
     await this.resultRow(name).getByRole('checkbox', { name: `select search result ${name}` }).check();
   }
 
   async addSelected(): Promise<void> {
     await this.page.getByRole('button', { name: /^Add \d+ selected channels?$/ }).click();
-  }
-
-  errorAlert(): Locator {
-    return this.page.getByRole('alert').filter({ hasText: /failed/ });
   }
 }

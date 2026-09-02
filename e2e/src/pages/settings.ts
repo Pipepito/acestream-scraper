@@ -1,4 +1,4 @@
-import type { Locator } from '@playwright/test';
+import { expect, type Locator } from '@playwright/test';
 import { AppShell } from './app-shell';
 
 export class SettingsPage extends AppShell {
@@ -7,57 +7,58 @@ export class SettingsPage extends AppShell {
     await this.expectHeading('Settings');
   }
 
-  engineRegion(): Locator {
-    return this.region('Engine connection');
+  engine(): Locator {
+    return this.region('Engine');
+  }
+
+  engineStatus(): Locator {
+    return this.statusLine('Engine status');
   }
 
   async refreshEngineStatus(): Promise<void> {
-    await this.engineRegion().getByRole('button', { name: 'Refresh status' }).click();
+    await this.engine().getByRole('button', { name: 'Refresh status' }).click();
   }
 
   async saveEngineUrl(url: string): Promise<void> {
-    const region = this.region('Connection settings');
-    await region.getByRole('textbox', { name: 'Acestream Engine URL' }).fill(url);
-    await region.getByRole('button', { name: 'Save engine URL' }).click();
+    await this.engine().getByRole('textbox', { name: 'Acestream Engine URL' }).fill(url);
+    await this.engine().getByRole('button', { name: 'Save engine URL' }).click();
   }
 
-  async saveBaseUrl(url: string): Promise<void> {
-    const region = this.region('Connection settings');
-    await region.getByRole('textbox', { name: 'Base URL' }).fill(url);
-    await region.getByRole('button', { name: 'Save base URL' }).click();
+  linkFormats(): Locator {
+    return this.region('Stream link formats');
   }
 
-  themeRadio(mode: 'Light theme' | 'Dark theme'): Locator {
-    return this.page.getByRole('radio', { name: mode });
+  async addLinkFormat(name: string, pattern: string, isDefault = false): Promise<void> {
+    await this.linkFormats().getByRole('button', { name: 'Add format' }).click();
+    const dialog = this.dialog('Add link format');
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole('textbox', { name: 'Name' }).fill(name);
+    await dialog.getByRole('textbox', { name: 'Pattern' }).fill(pattern);
+    if (isDefault) await dialog.getByRole('checkbox', { name: 'Set as default' }).check();
+    await dialog.getByRole('button', { name: 'Add base URL' }).click();
+    await expect(dialog).toBeHidden();
   }
 
-  baseUrlsRegion(): Locator {
-    return this.region('Stream base URLs');
+  async deleteLinkFormat(name: string): Promise<void> {
+    await this.linkFormats().getByRole('button', { name: `Delete base URL ${name}` }).click();
+    await this.confirmDialog(new RegExp(`^Delete the link format “${name}”\\?$`), 'Delete');
   }
 
-  async addBaseUrl(name: string, pattern: string, isDefault = false): Promise<void> {
-    const region = this.baseUrlsRegion();
-    await region.getByRole('textbox', { name: 'Name' }).fill(name);
-    await region.getByRole('textbox', { name: 'Pattern' }).fill(pattern);
-    if (isDefault) await region.getByRole('checkbox', { name: 'Set as default' }).check();
-    await region.getByRole('button', { name: 'Add base URL' }).click();
+  automation(): Locator {
+    return this.region('Automation');
   }
 
-  async deleteBaseUrl(name: string): Promise<void> {
-    await this.baseUrlsRegion().getByRole('button', { name: `Delete base URL ${name}` }).click();
-  }
-
-  inventoryRow(key: string): Locator {
-    return this.page.getByTestId(`settings-inventory-row-${key}`);
-  }
-
-  async saveRescrapeInterval(hours: string): Promise<void> {
-    const region = this.region('Automation settings');
-    await region.getByRole('spinbutton', { name: 'Rescrape Interval (hours)' }).fill(hours);
-    await region.getByRole('button', { name: 'Save rescrape interval' }).click();
+  async saveInterval(label: 'Scrape sources every (hours)' | 'Refresh EPG every (hours)', hours: string): Promise<void> {
+    const form = this.automation().getByRole('form', { name: `${label} form` });
+    await form.getByRole('spinbutton', { name: label }).fill(hours);
+    await form.getByRole('button', { name: 'Save' }).click();
   }
 
   addPidSwitch(): Locator {
-    return this.page.getByRole('checkbox', { name: 'Append PID to generated Acestream links' });
+    return this.page.getByRole('checkbox', { name: 'Append PID to stream links' });
+  }
+
+  appIdSwitch(): Locator {
+    return this.page.getByRole('checkbox', { name: 'Use AppID in stream links' });
   }
 }

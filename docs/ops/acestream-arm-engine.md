@@ -124,7 +124,7 @@ Expected on arm64: `platform=linux/arm64`, `kind=android-apk`,
 - `docker/scripts/acestream-android/app_bridge.py` is derived from the SL4A RPC
   client (Copyright 2009 Google Inc., Apache License 2.0), as noted in its
   header.
-- WARP is not present in ARM images (`cloudflare-warp` is amd64-only).
+- WARP is installed on linux/arm64 images (Cloudflare ships an arm64 `cloudflare-warp`); linux/arm/v7 has no build, so `ENABLE_WARP` is unsupported there.
 
 ## Running The Engine On ARM
 
@@ -252,7 +252,7 @@ docker exec acestream-scraper curl -fsS "http://localhost:6878/webui/api/service
   working over the classic transports.
 - A few CPython accelerator modules fall back to pure Python (slower,
   functionally equivalent).
-- No WARP on ARM images (`cloudflare-warp` is amd64-only; pre-existing).
+- No WARP on linux/arm/v7 images (`cloudflare-warp` ships amd64 and arm64 only).
 - `linux/arm/v7` is experimental: it builds and installs, but the 32-bit bionic
   engine calls `personality(PER_LINUX32)`, which qemu-user cannot honour, so it
   has never been executed in CI. It needs real ARMv7 (or AArch32-capable)

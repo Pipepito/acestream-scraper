@@ -8,10 +8,16 @@ services:
     image: ${E2E_IMAGE:-acestream-scraper:e2e-arm64}
     platform: ${E2E_PLATFORM:-linux/arm64}
     container_name: acestream-e2e-engine
+    # WARP needs a TUN device and NET_ADMIN/SYS_ADMIN; opt in with E2E_ENABLE_WARP=true.
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
     environment:
       ENABLE_ACESTREAM_ENGINE: "true"
       ENABLE_ACEXY: "true"
-      ENABLE_WARP: "false"
+      ENABLE_WARP: "${E2E_ENABLE_WARP:-false}"
       DATABASE_URL: sqlite:///./config/scraper.db
       LEGACY_DATABASE_URL: sqlite:///./config/acestream.db
       ALLOW_PRIVATE_SCRAPE_TARGETS: "true"

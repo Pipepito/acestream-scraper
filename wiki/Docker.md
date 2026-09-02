@@ -57,7 +57,7 @@ Every flavor is published for `linux/amd64`, `linux/arm64`, and `linux/arm/v7`. 
 
 Upstream only publishes native Linux engine builds for x86_64, so the ARM images unpack the engine payload from the official AceStream Android APK (the ones listed on https://docs.acestream.media/products/) and run it unmodified against a minimal Android 9 bionic userland shipped under `/system`. No chroot, `--privileged`, seccomp changes, or extra capabilities are needed. `linux/arm/v7` builds and installs but has not been runtime-tested on real ARMv7 hardware yet, so treat it as experimental.
 
-WARP is installed in every flavor's `linux/amd64` image, but it only starts when `ENABLE_WARP=true`. The ARM images ship without the WARP client (`cloudflare-warp` is amd64-only), so `ENABLE_WARP` is unsupported there.
+WARP is installed in every flavor's `linux/amd64` and `linux/arm64` images, but it only starts when `ENABLE_WARP=true` (it needs `--cap-add NET_ADMIN --cap-add SYS_ADMIN` and `--device /dev/net/tun`). The `linux/arm/v7` images ship without the WARP client (Cloudflare publishes no 32-bit ARM build), so `ENABLE_WARP` is unsupported there.
 
 ZeroNet works in two modes. The `linux/amd64` images bundle a [zeronet-conservancy](https://github.com/zeronet-conservancy/zeronet-conservancy) v0.7.10 node — opt-in, nothing runs until `ENABLE_ZERONET=true` (add `ENABLE_TOR=true` for TOR, like the v1 image). The node runs on its own Python 3.11 under `/opt/zeronet` because its dependency set (gevent 23.9.x) predates the app's Python; that dependency set is also why ARM images ship without it — there, and whenever you prefer it, ZeroNet runs as an external sidecar/service and the app reaches it through `ZERONET_URL`.
 
@@ -153,7 +153,7 @@ ARM caveats:
 - **`linux/arm/v7` is experimental:** the image builds and installs, but the 32-bit engine cannot be executed under QEMU user emulation, so it has not been runtime-tested on real ARMv7 hardware. Prefer `linux/arm64` wherever the device supports 64-bit containers.
 - **Engine version skew:** ARM runs the Android engine 3.1.80.0 (reports `"platform":"android"`) while amd64 runs the native Linux engine 3.2.11.
 - **No WebRTC transport on ARM:** the Android WebRTC module needs GPU/audio libraries that are not shipped; the engine logs a non-fatal error and keeps going. A few CPython accelerator modules also fall back to pure Python.
-- **No WARP on ARM images:** `cloudflare-warp` is amd64-only.
+- **No WARP on linux/arm/v7 images:** `cloudflare-warp` ships for amd64 and arm64 only.
 - **Performance and streaming stability** on real ARM hardware are not yet validated; report results if you try it.
 - Repackaging the official APK payload is a grey area under the AceStream user agreement, as with every community ARM image. Enable the engine at your own discretion.
 

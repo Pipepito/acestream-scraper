@@ -85,12 +85,23 @@ test.describe('dashboard, health, stats, WARP', () => {
     await expect(stats.breakdown()).toContainText('EPG programs');
   });
 
-  test('WARP page loads its status instead of erroring', async ({ page }) => {
+  test('WARP page loads its status instead of erroring', async ({ page, api }, testInfo) => {
     const warp = new WarpPage(page);
     await warp.open();
     await expect(page.getByRole('alert').filter({ hasText: /Error loading WARP status/ })).toHaveCount(0);
     await expect(warp.connectionStatus()).toBeVisible();
     await expect(warp.connectionStatus()).toContainText(/Not Running|Disconnected|Connected/);
     await expect(warp.modeAndLicense()).toBeVisible();
+
+    // When the container runs WARP, the page must agree with the services panel.
+    const services = await api.raw('get', '/api/v1/system/services').then((r) => r.json() as Promise<{ services: { name: string; state: string; message: string }[] }>);
+    const warpService = services.services.find((s) => s.name === 'warp')!;
+    testInfo.annotations.push({ type: 'warp', description: `${warpService.state}: ${warpService.message}` });
+    if (warpService.state === 'running') {
+      await expect(warp.connectionStatus()).toContainText('Service running');
+      if (/^WARP connected/.test(warpService.message)) {
+        await expect(warp.connectionStatus().getByText('Connected', { exact: true })).toBeVisible();
+      }
+    }
   });
 });

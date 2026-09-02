@@ -231,9 +231,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# cloudflare-warp is only published for amd64 in Cloudflare's apt repo;
-# installing it unconditionally breaks the arm/v7 and arm64 baseline images.
-# ARM images ship without warp-cli (ENABLE_WARP is unsupported there).
+# Cloudflare publishes cloudflare-warp for amd64 and arm64 (no 32-bit ARM), so
+# those images ship warp-cli; linux/arm/v7 stays without it (ENABLE_WARP is
+# unsupported there). The apt suite follows the base image's Debian codename.
 ARG TARGETARCH
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -247,12 +247,13 @@ RUN apt-get update \
         procps \
         tini \
         wget \
-    && if [ "$TARGETARCH" = "amd64" ]; then \
-        wget -q https://pkg.cloudflareclient.com/pubkey.gpg -O /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg \
-        && printf 'deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ bookworm main\n' > /etc/apt/sources.list.d/cloudflare-client.list \
+    && case "$TARGETARCH" in amd64|arm64) \
+        . /etc/os-release \
+        && wget -q https://pkg.cloudflareclient.com/pubkey.gpg -O /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg \
+        && printf 'deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ %s main\n' "${VERSION_CODENAME:-bookworm}" > /etc/apt/sources.list.d/cloudflare-client.list \
         && apt-get update \
-        && apt-get install -y --no-install-recommends cloudflare-warp; \
-    fi \
+        && apt-get install -y --no-install-recommends cloudflare-warp ;; \
+    esac \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=python-deps /install /usr/local

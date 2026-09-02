@@ -180,6 +180,7 @@ beforeEach(() => {
     data: ['News', 'Sports'],
     isLoading: false,
   });
+    (playlistHooks.usePlaylistChannelSummary as jest.Mock).mockReturnValue({ data: undefined });
 
   (warpHooks.useWarpStatus as jest.Mock).mockReturnValue({
     data: {
@@ -223,12 +224,12 @@ describe('Supporting page normalization', () => {
 
 
 
-  it('renders Playlist with the shared header and a clearer primary action path', () => {
+  it('renders Playlist with the shared header and its options', () => {
     renderPage(<Playlist />);
 
     expect(screen.getByRole('heading', { level: 1, name: 'Playlist' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: 'Generate playlist' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Show advanced options' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Your playlist' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Group filters' })).toBeInTheDocument();
   });
 
   it('renders Settings with shared sections and explicit engine status text', async () => {

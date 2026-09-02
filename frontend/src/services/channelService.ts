@@ -79,6 +79,15 @@ export interface AcestreamChannelFilters {
   active_only?: boolean; // Added to support backend override
 }
 
+export interface ChannelStatusSummary {
+  total_channels: number;
+  active_channels: number;
+  online: number;
+  offline: number;
+  unknown: number;
+  recent_checks: number;
+}
+
 export interface PaginatedAcestreamChannels {
   items: AcestreamChannel[];
   total: number;
@@ -121,6 +130,12 @@ function parseBooleanFilter(value: unknown): boolean | undefined {
  * Channel API service
  */
 const acestreamChannelService = {
+  /** Online/offline/unknown counts across all channels. */
+  getStatusSummary: async (): Promise<ChannelStatusSummary> => {
+    const { data } = await apiClient.get<ChannelStatusSummary>('/v1/channels/status_summary');
+    return data;
+  },
+
   /**
    * Get all channels with optional filtering
    */

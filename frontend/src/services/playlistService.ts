@@ -66,4 +66,11 @@ export const playlistService = {
   }
 };
 
+/** Absolute playlist URL for players on other devices (QR codes, copy button). */
+export const getAbsolutePlaylistUrl = (filters?: PlaylistFilters): string => {
+  const relative = playlistService.getPlaylistDownloadUrl(filters);
+  if (typeof window === 'undefined') return relative;
+  return new URL(relative, window.location.origin).toString();
+};
+
 export default playlistService;

@@ -1,0 +1,40 @@
+# Live services for the e2e suite. The scraper app itself normally runs from
+# source on the host (stack/backend-start.sh) so it can be debugged; the
+# containerised copy is published on :8001 for `npm run test:docker`.
+name: acestream-e2e
+
+services:
+  engine:
+    image: ${E2E_IMAGE:-acestream-scraper:e2e-arm64}
+    platform: ${E2E_PLATFORM:-linux/arm64}
+    container_name: acestream-e2e-engine
+    environment:
+      ENABLE_ACESTREAM_ENGINE: "true"
+      ENABLE_ACEXY: "true"
+      ENABLE_WARP: "false"
+      DATABASE_URL: sqlite:///./config/scraper.db
+      LEGACY_DATABASE_URL: sqlite:///./config/acestream.db
+      ALLOW_PRIVATE_SCRAPE_TARGETS: "true"
+    ports:
+      - "127.0.0.1:6878:6878"   # AceStream engine HTTP API
+      - "127.0.0.1:8081:8080"   # Acexy proxy (/ace/getstream, /ace/status)
+      - "127.0.0.1:8001:8000"   # containerised scraper app (docker target)
+      - "8621:8621"             # engine P2P
+      - "8621:8621/udp"
+    volumes:
+      - ../.stack/container-config:/app/config
+      - acestream-state:/var/lib/acestream
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  ipfs:
+    image: ipfs/kubo:latest
+    container_name: acestream-e2e-ipfs
+    ports:
+      - "127.0.0.1:8080:8080"   # gateway: http://127.0.0.1:8080/ipns/<key>/
+    volumes:
+      - ipfs-data:/data/ipfs
+
+volumes:
+  acestream-state: {}
+  ipfs-data: {}

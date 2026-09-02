@@ -1,0 +1,25 @@
+{
+  "name": "acestream-scraper-e2e",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Playwright end-to-end suite that drives the real app in Firefox against a live AceStream engine, Acexy and IPFS stack",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:docker": "E2E_TARGET=docker E2E_BASE_URL=http://127.0.0.1:8001 playwright test",
+    "report": "playwright show-report",
+    "typecheck": "tsc --noEmit",
+    "browsers": "playwright install firefox",
+    "stack:up": "bash stack/stack-up.sh",
+    "stack:down": "bash stack/stack-down.sh",
+    "backend:start": "bash stack/backend-start.sh",
+    "backend:stop": "bash stack/backend-stop.sh"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@types/node": "^22.20.1",
+    "typescript": "^5.9.3",
+    "zod": "^4.5.4"
+  }
+}

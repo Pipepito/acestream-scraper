@@ -1,0 +1,64 @@
+{
+  "name": "default",
+  "description": "Real-user journey against a live engine: scrape an IPNS site through a local kubo gateway, import channels from engine search, load the EPG dobleM guide, organise TV channels and build a playlist through Acexy.",
+  "stack": {
+    "engineUrl": "http://127.0.0.1:6878",
+    "acexyUrl": "http://127.0.0.1:8081",
+    "ipfsGateway": "http://127.0.0.1:8080"
+  },
+  "scrape": {
+    "sources": [
+      {
+        "id": "elcano-ipns",
+        "label": "Elcano AceStream IDs (IPNS via local kubo)",
+        "url": "http://127.0.0.1:8080/ipns/k51qzi5uqu5di462t7j4vu4akwfhvtjhy88qbupktvoacqfqe9uforjvhyi4wr/",
+        "dockerUrl": "http://ipfs:8080/ipns/k51qzi5uqu5di462t7j4vu4akwfhvtjhy88qbupktvoacqfqe9uforjvhyi4wr/",
+        "fallbackUrl": "https://ipfs.io/ipns/k51qzi5uqu5di462t7j4vu4akwfhvtjhy88qbupktvoacqfqe9uforjvhyi4wr/",
+        "urlType": "auto",
+        "expectMinChannels": 1,
+        "scrapeTimeoutMs": 240000
+      }
+    ]
+  },
+  "search": {
+    "queries": [
+      { "query": "dazn", "expectMinResults": 1, "addFirst": 2 },
+      { "query": "movistar", "expectMinResults": 1, "addFirst": 1 }
+    ]
+  },
+  "epg": {
+    "sources": [
+      {
+        "name": "EPG dobleM (guiaiptv)",
+        "url": "https://raw.githubusercontent.com/davidmuma/EPG_dobleM/master/guiaiptv.xml",
+        "expectMinChannels": 100,
+        "refreshTimeoutMs": 1200000
+      }
+    ],
+    "targetChannel": {
+      "xmlId": "DAZN LaLiga HD",
+      "displayNameContains": "DAZN LaLiga"
+    }
+  },
+  "tv": {
+    "channels": [
+      {
+        "name": "E2E DAZN LaLiga",
+        "category": "Sports",
+        "streamSearchQuery": "dazn",
+        "epgXmlId": "DAZN LaLiga HD"
+      }
+    ]
+  },
+  "playlist": {
+    "baseUrlName": "E2E Acexy",
+    "baseUrlPattern": "http://127.0.0.1:8081/ace/getstream?id={channel_id}"
+  },
+  "errors": {
+    "allowedApiErrorPatterns": [],
+    "allowedConsolePatterns": [
+      "React Router Future Flag Warning",
+      "Download the React DevTools"
+    ]
+  }
+}

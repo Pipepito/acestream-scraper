@@ -23,6 +23,14 @@ Frontend (`cd frontend`):
 - Build for backend serving: `npm run build:backend` (runs `vite build` then copies `dist/` → `backend/frontend_build/` via `scripts/copy-build.js`; set `COPY_BUILD_SOURCE`/`COPY_BUILD_DESTINATION` to override)
 - Tests: `npm test` (Jest + RTL); single file: `npm test -- Dashboard.test.tsx`
 
+End-to-end (Playwright, Firefox; root `e2e/`, own npm package — see `e2e/README.md`):
+
+- Once: `cd e2e && npm install && npm run browsers`
+- Stack (engine + Acexy container on arm64, kubo IPFS gateway on :8080): `npm run stack:up` / `npm run stack:down [-- --volumes]`
+- Backend from source with an isolated DB under `e2e/.stack/` and a fresh SPA build: `npm run backend:start` (`E2E_RESET_DB=1`, `E2E_SKIP_FRONTEND_BUILD=1`); stop with `npm run backend:stop`
+- Whole journey: `npm test` (serial, one worker); one journey: `npx playwright test tests/03-scraper.spec.ts`; against the containerised app on :8001: `npm run test:docker`; fail on any observed error: `E2E_STRICT=1 npm test`
+- Scenario data lives in `e2e/scenarios/*.json` (`E2E_SCENARIO=<name>`), validated by `e2e/src/scenario/schema.ts`. Not part of the required `PR Validation` checks.
+
 Cutover / CI:
 
 - Quick canonical suite (backend contracts + key frontend tests + frontend build): `bash scripts/ci/run_v2_test_suite.sh --profile quick` (or `--profile full`)

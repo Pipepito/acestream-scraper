@@ -292,6 +292,12 @@ print(f"ACEXY_REPO={m['repo']}")
 print(f"ACEXY_REF={m['ref']}")
 if m.get("expected_binary_name"):
     print(f"ACEXY_BINARY_NAME={m['expected_binary_name']}")
+# Vendored archive (docker/vendor/acexy): the Dockerfile prefers it over the clone.
+if m.get("vendored_file"):
+    if not m.get("sha256"):
+        raise SystemExit("acexy manifest names a vendored_file but no sha256")
+    print(f"ACEXY_VENDORED_FILE={m['vendored_file']}")
+    print(f"ACEXY_SHA256={m['sha256']}")
 PY
 )"; then
             printf 'ERROR: failed to derive acexy build args for flavor=%s\n%s\n' "$FLAVOR" "$acexy_derived" >&2

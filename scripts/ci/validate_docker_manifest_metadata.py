@@ -189,6 +189,22 @@ def main() -> int:
             "acexy.json expected_binary_name must be a non-empty string when present"
         )
 
+    if "vendored_file" in acexy:
+        require_keys(acexy, ["vendor_dir", "vendored_file", "sha256"], "acexy.json (vendored)")
+        if not isinstance(acexy["sha256"], str) or not SHA256_RE.match(acexy["sha256"]):
+            raise AssertionError("acexy.json sha256 must be a 64-hex string")
+        vendor_dir = REPO_ROOT / acexy["vendor_dir"]
+        vendored_file = acexy["vendored_file"]
+        if not isinstance(vendored_file, str) or not vendored_file or "/" in vendored_file:
+            raise AssertionError("acexy.json vendored_file must be a bare file name")
+        if not (vendor_dir / vendored_file).is_file():
+            raise AssertionError(f"acexy.json vendored file missing: {acexy['vendor_dir']}/{vendored_file}")
+        sums = load_sha256sums(vendor_dir, "acexy.json")
+        if sums.get(vendored_file) != acexy["sha256"]:
+            raise AssertionError(f"{acexy['vendor_dir']}/SHA256SUMS entry for {vendored_file} does not match acexy.json sha256")
+        if acexy["vendor_dir"] != "docker/vendor/acexy":
+            raise AssertionError("acexy.json vendor_dir must be docker/vendor/acexy (the Dockerfile mounts docker/vendor)")
+
     ace_stream_platforms = set(acestream["platforms"].keys())
     for flavor in ("scraper-acestream", "scraper-acestream-acexy"):
         flavor_entry = platforms["flavors"][flavor]

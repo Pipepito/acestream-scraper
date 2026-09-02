@@ -2,8 +2,10 @@ pipeline {
   agent { label 'dorat-nuc-ci' }
 
   environment {
-    // WARP is opt-in in bootstrap_jenkins_runner.sh (the engine archives are
-    // vendored); keep it on the runner for any remaining geo-blocked fetch.
+    // WARP is opt-in in bootstrap_jenkins_runner.sh (the engine archives and
+    // the Acexy source are vendored); keep it on the runner for any remaining
+    // geo-blocked fetch. Anonymous GitHub clones through its exit get refused,
+    // which is why nothing in the Dockerfile may depend on one.
     JENKINS_ENABLE_WARP = '1'
   }
 

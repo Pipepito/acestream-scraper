@@ -167,6 +167,10 @@ FROM --platform=$BUILDPLATFORM golang:1.22 AS acexy-builder
 
 ARG ACEXY_REPO
 ARG ACEXY_REF
+# Vendored source archive under docker/vendor/acexy (see its README): used when
+# present so builds need no GitHub egress; ACEXY_SHA256 must match it.
+ARG ACEXY_VENDORED_FILE
+ARG ACEXY_SHA256
 ARG ACEXY_BINARY_NAME=acexy
 ARG TARGETOS
 ARG TARGETARCH
@@ -178,8 +182,17 @@ RUN apt-get update \
 
 COPY docker/testdata/acexy/ /tmp/acexy-fixture/
 
-RUN mkdir -p /src /out \
-    && if [ -n "${ACEXY_REPO:-}" ] && [ "$ACEXY_REPO" != "fixture" ]; then \
+# Source precedence: explicit fixture -> vendored archive -> git clone -> fixture.
+RUN --mount=type=bind,source=docker/vendor,target=/tmp/acexy-vendor,readonly \
+    mkdir -p /src /out \
+    && if [ "${ACEXY_REPO:-}" = "fixture" ]; then \
+        cp -R /tmp/acexy-fixture/. /src/; \
+      elif [ -n "${ACEXY_VENDORED_FILE:-}" ] && [ -f "/tmp/acexy-vendor/acexy/${ACEXY_VENDORED_FILE}" ]; then \
+        echo "acexy: using vendored ${ACEXY_VENDORED_FILE}"; \
+        echo "${ACEXY_SHA256}  /tmp/acexy-vendor/acexy/${ACEXY_VENDORED_FILE}" | sha256sum -c -; \
+        tar -xzf "/tmp/acexy-vendor/acexy/${ACEXY_VENDORED_FILE}" -C /src --strip-components=1; \
+      elif [ -n "${ACEXY_REPO:-}" ]; then \
+        echo "acexy: cloning ${ACEXY_REPO} at ${ACEXY_REF}"; \
         git clone --depth 1 "$ACEXY_REPO" /src; \
         cd /src; \
         git fetch --depth 1 origin "$ACEXY_REF"; \

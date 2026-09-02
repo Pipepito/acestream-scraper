@@ -1,8 +1,7 @@
-import React, { act } from 'react';
+import React from 'react';
 import { ThemeProvider } from '@mui/material/styles';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-
 import AcestreamChannels from '../pages/AcestreamChannels';
 import { createAppTheme } from '../theme';
 import { ApiError } from '../services/apiErrors';
@@ -13,99 +12,84 @@ const mockUseDeleteAcestreamChannel = jest.fn();
 const mockUseAllTVChannels = jest.fn();
 const mockGetGroups = jest.fn();
 const mockCheckAllStatuses = jest.fn();
+const mockUpdateAcestreamChannel = jest.fn();
 const mockUpdateTVChannel = jest.fn();
 const mockDeleteMutate = jest.fn();
-let latestOnDelete: ((id: string) => Promise<boolean>) | undefined;
-let latestExtraActions: ((row: { id: string; name: string; tv_channel_id?: number; tv_channel_name?: string; tv_channel_is_favorite?: boolean }) => React.ReactNode) | undefined;
+
+type Row = { id: string; name: string; is_active?: boolean; tv_channel_id?: number; tv_channel_name?: string; tv_channel_is_favorite?: boolean };
+type Handlers = {
+  channels: Row[];
+  loading: boolean;
+  hasActiveFilters?: boolean;
+  onDelete: (row: Row) => void;
+  onToggleHidden: (row: Row) => void;
+  onToggleTVFavorite: (row: Row) => void;
+};
 
 jest.mock('../components/ChannelTable', () => ({
   __esModule: true,
-  default: ({
-    channels,
-    loading,
-    onDelete,
-    extraActions,
-  }: {
-    channels: Array<{ id: string; name: string; tv_channel_id?: number; tv_channel_name?: string; tv_channel_is_favorite?: boolean }>;
-    loading: boolean;
-    onDelete: (id: string) => Promise<boolean>;
-    extraActions?: (row: { id: string; name: string; tv_channel_id?: number; tv_channel_name?: string; tv_channel_is_favorite?: boolean }) => React.ReactNode;
-  }) => {
-    latestOnDelete = onDelete;
-    latestExtraActions = extraActions;
-    return (
-      <div data-testid="channel-table">
-        channels:{channels.length};loading:{String(loading)}
-        {channels.map((channel) => (
-          <div key={channel.id}>
-            <span>{channel.name}</span>
-            <span>{channel.tv_channel_is_favorite ? 'favorite-tv-linked' : 'not-favorite-tv-linked'}</span>
-            {extraActions ? <div>{extraActions(channel)}</div> : null}
-          </div>
-        ))}
-      </div>
-    );
-  },
+  default: ({ channels, loading, hasActiveFilters, onDelete, onToggleHidden, onToggleTVFavorite }: Handlers) => (
+    <div data-testid="channel-table">
+      channels:{channels.length};loading:{String(loading)};filtered:{String(Boolean(hasActiveFilters))}
+      {channels.map((channel) => (
+        <div key={channel.id}>
+          <span>{channel.name}</span>
+          <button type="button" onClick={() => onDelete(channel)}>{`delete ${channel.name}`}</button>
+          <button type="button" onClick={() => onToggleHidden(channel)}>{`hide ${channel.name}`}</button>
+          <button type="button" onClick={() => onToggleTVFavorite(channel)}>{`favorite ${channel.name}`}</button>
+        </div>
+      ))}
+    </div>
+  ),
 }));
-
-jest.mock('../components/AdvancedSearch', () => ({
+jest.mock('../components/channels/ChannelFilterBar', () => ({
   __esModule: true,
-  default: ({ groups }: { groups: string[] }) => <div data-testid="advanced-search">groups:{groups.join(',') || 'none'}</div>,
+  default: ({ groups, onChange }: { groups: string[]; onChange: (filters: { search?: string }) => void }) => (
+    <div data-testid="filter-bar">
+      groups:{groups.join(',') || 'none'}
+      <button type="button" onClick={() => onChange({ search: 'alpha' })}>apply search</button>
+    </div>
+  ),
 }));
-
-jest.mock('../components/BulkOperations', () => ({
-  __esModule: true,
-  default: () => null,
-}));
-
-jest.mock('../components/BatchAssignDialog', () => ({
-  __esModule: true,
-  default: () => null,
-}));
-
-jest.mock('../components/QuickEditDialog', () => ({
-  __esModule: true,
-  default: () => null,
-}));
-
-jest.mock('../components/AssignTVChannelDialog', () => ({
-  __esModule: true,
-  default: () => null,
-}));
-
+jest.mock('../components/BulkOperations', () => ({ __esModule: true, default: () => null }));
+jest.mock('../components/BatchAssignDialog', () => ({ __esModule: true, default: () => null }));
+jest.mock('../components/QuickEditDialog', () => ({ __esModule: true, default: () => null }));
+jest.mock('../components/AssignTVChannelDialog', () => ({ __esModule: true, default: () => null }));
 jest.mock('../hooks/useChannels', () => ({
   useAcestreamChannels: (...args: unknown[]) => mockUseAcestreamChannels(...args),
-  useDeleteAcestreamChannel: (...args: unknown[]) => mockUseDeleteAcestreamChannel(...args),
+  useDeleteAcestreamChannel: () => mockUseDeleteAcestreamChannel(),
 }));
-
 jest.mock('../hooks/useTVChannels', () => ({
-  useAllTVChannels: (...args: unknown[]) => mockUseAllTVChannels(...args),
+  useAllTVChannels: () => mockUseAllTVChannels(),
 }));
-
 jest.mock('../services/channelService', () => ({
-  __esModule: true,
   acestreamChannelService: {
     getGroups: (...args: unknown[]) => mockGetGroups(...args),
-    updateAcestreamChannel: jest.fn(),
-    createAcestreamChannel: jest.fn(),
-    checkAcestreamChannelStatus: jest.fn(),
     checkAllStatuses: (...args: unknown[]) => mockCheckAllStatuses(...args),
+    updateAcestreamChannel: (...args: unknown[]) => mockUpdateAcestreamChannel(...args),
+    checkAcestreamChannelStatus: jest.fn(),
     assignToTVChannel: jest.fn(),
+    createAcestreamChannel: jest.fn(),
     bulkEditAcestreamChannels: jest.fn(),
     bulkDeleteAcestreamChannels: jest.fn(),
     bulkActivateAcestreamChannels: jest.fn(),
     exportAcestreamChannelsCSV: jest.fn(),
   },
 }));
-
 jest.mock('../services/tvChannelService', () => ({
-  __esModule: true,
-  tvChannelService: {
-    update: (...args: unknown[]) => mockUpdateTVChannel(...args),
-  },
+  tvChannelService: { update: (...args: unknown[]) => mockUpdateTVChannel(...args) },
 }));
 
-describe('AcestreamChannels page hardening', () => {
+const alpha: Row = {
+  id: 'ace-100',
+  name: 'Alpha Sports',
+  is_active: true,
+  tv_channel_id: 7,
+  tv_channel_name: 'Arena TV',
+  tv_channel_is_favorite: true,
+};
+
+describe('AcestreamChannels page', () => {
   const renderPage = () =>
     render(
       <ThemeProvider theme={createAppTheme('light')}>
@@ -115,248 +99,116 @@ describe('AcestreamChannels page hardening', () => {
       </ThemeProvider>
     );
 
-  const renderPageAndWaitForGroups = async (options?: { expectedGroupsText?: string }) => {
-    renderPage();
-    await waitFor(() => expect(mockGetGroups).toHaveBeenCalled());
-    const expectedGroupsText = options?.expectedGroupsText;
-    if (expectedGroupsText) {
-      await waitFor(() => expect(screen.getByTestId('advanced-search')).toHaveTextContent(expectedGroupsText));
-    }
-  };
-
   const user = () => userEvent.setup();
+  let refetch: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    latestOnDelete = undefined;
-
-    mockUseAcestreamChannels.mockReturnValue({
-      data: {
-        items: [
-          {
-            id: 'ace-100',
-            name: 'Alpha Sports',
-            group: 'Sports',
-            is_active: true,
-            is_online: true,
-            tv_channel_id: 7,
-            tv_channel_name: 'Arena TV',
-            tv_channel_is_favorite: true,
-          },
-        ],
-        total: 1,
-      },
-      isLoading: false,
-      refetch: jest.fn(),
-      error: null,
+    refetch = jest.fn();
+    mockUseAcestreamChannels.mockImplementation((params: { is_online?: boolean; page_size?: number }) => {
+      if (params.page_size === 1) {
+        return { data: { items: [], total: params.is_online ? 3 : 12 }, isLoading: false, refetch: jest.fn(), error: null };
+      }
+      return { data: { items: [alpha], total: 1 }, isLoading: false, refetch, error: null };
     });
     mockUseDeleteAcestreamChannel.mockReturnValue({ mutate: mockDeleteMutate });
     mockUseAllTVChannels.mockReturnValue({ data: { items: [] } });
     mockGetGroups.mockResolvedValue(['Sports', 'News']);
     mockCheckAllStatuses.mockResolvedValue({ message: 'Acestream status check task triggered successfully.' });
     mockUpdateTVChannel.mockResolvedValue(undefined);
+    mockUpdateAcestreamChannel.mockResolvedValue(undefined);
   });
 
-  it('surfaces linked TV favorite state inside the AceStream inventory', async () => {
-    await renderPageAndWaitForGroups({ expectedGroupsText: 'groups:Sports,News' });
+  it('shows the summary line, filter bar and table without a hero or separate filters section', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByTestId('filter-bar')).toHaveTextContent('groups:Sports,News'));
 
-    expect(screen.getByText('favorite-tv-linked')).toBeInTheDocument();
+    const summary = screen.getByRole('status', { name: 'Channel summary' });
+    expect(summary).toHaveTextContent('Channels12');
+    expect(summary).toHaveTextContent('Online3');
+    expect(summary).toHaveTextContent('Matching filtersall');
+    expect(summary).toHaveTextContent('Selected0');
+    expect(screen.getByRole('heading', { level: 1, name: 'Acestream Channels' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Channels' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 2, name: 'Filters' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/routing stage/i)).not.toBeInTheDocument();
+    expect(screen.getByTestId('channel-table')).toHaveTextContent('channels:1;loading:false;filtered:false');
+
+    await user().click(screen.getByRole('button', { name: 'apply search' }));
+    expect(screen.getByTestId('channel-table')).toHaveTextContent('filtered:true');
+    expect(screen.getByRole('status', { name: 'Channel summary' })).toHaveTextContent('Matching filters1');
   });
 
-  it('toggles the linked TV favorite state from the AceStream inventory shortcut', async () => {
-    const refetch = jest.fn();
-    mockUseAcestreamChannels.mockReturnValue({
-      data: {
-        items: [
-          {
-            id: 'ace-100',
-            name: 'Alpha Sports',
-            group: 'Sports',
-            is_active: true,
-            is_online: true,
-            tv_channel_id: 7,
-            tv_channel_name: 'Arena TV',
-            tv_channel_is_favorite: true,
-          },
-        ],
-        total: 1,
-      },
-      isLoading: false,
-      refetch,
-      error: null,
-    });
-
-    await renderPageAndWaitForGroups({ expectedGroupsText: 'groups:Sports,News' });
-
-    expect(latestExtraActions).toBeDefined();
-    expect(screen.getByRole('button', { name: 'Remove Arena TV from favorites' })).toBeInTheDocument();
-
-    await user().click(screen.getByRole('button', { name: 'Remove Arena TV from favorites' }));
-
-    await waitFor(() => expect(mockUpdateTVChannel).toHaveBeenCalledWith(7, { is_favorite: false }));
-    expect(refetch).toHaveBeenCalled();
-  });
-
-  it('opens with an extracted-channel routing summary and keeps inventory primary', async () => {
-    await renderPageAndWaitForGroups({ expectedGroupsText: 'groups:Sports,News' });
-
-    const channelsHeading = screen.getByRole('heading', { level: 2, name: 'Channels' });
-    const filtersHeading = screen.getByRole('heading', { level: 2, name: 'Filters' });
-
-    expect(screen.getByText('Sources')).toBeInTheDocument();
-    expect(screen.getByText('Extracted channels')).toBeInTheDocument();
-    expect(screen.getByText('TV organization')).toBeInTheDocument();
-    expect(screen.getByText(/extracted-channel routing stage/i)).toBeInTheDocument();
-    expect(screen.getByText(/inventory status/i)).toBeInTheDocument();
-    expect(screen.getByText(/assign channels to tv entries/i)).toBeInTheDocument();
-    expect(channelsHeading.compareDocumentPosition(filtersHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-
-  it('keeps the inventory usable while group suggestions are still loading', () => {
-    mockGetGroups.mockReturnValue(new Promise(() => undefined));
-
+  it('keeps the table usable when group loading fails', async () => {
+    mockGetGroups.mockRejectedValueOnce(new ApiError({ message: 'Network Error', status: 0, kind: 'offline', canRetry: true }));
     renderPage();
 
-    expect(screen.getByTestId('channel-table')).toHaveTextContent('channels:1;loading:false');
-  });
-
-  it('keeps filters and channels visible when group loading fails', async () => {
-    mockGetGroups.mockRejectedValueOnce(
-      new ApiError({
-        message: 'Network Error',
-        status: 0,
-        kind: 'offline',
-        canRetry: true,
-      })
-    );
-
-    await renderPageAndWaitForGroups({ expectedGroupsText: 'groups:none' });
-
     expect(await screen.findByText('Unable to load groups')).toBeInTheDocument();
-    expect(screen.getByText('Unable to reach the server. Check your connection and try again.')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: 'Filters' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: 'Channels' })).toBeInTheDocument();
-    expect(screen.getByTestId('advanced-search')).toHaveTextContent('groups:none');
+    expect(screen.getByTestId('filter-bar')).toHaveTextContent('groups:none');
     expect(screen.getByTestId('channel-table')).toHaveTextContent('channels:1;loading:false');
   });
 
   it('renders a retryable channels notice while keeping the page usable', async () => {
-    const refetch = jest.fn();
-
-    mockUseAcestreamChannels.mockReturnValue({
-      data: { items: [], total: 0 },
-      isLoading: false,
-      refetch,
-      error: new ApiError({
-        message: 'Network Error',
-        status: 0,
-        kind: 'offline',
-        canRetry: true,
-      }),
-    });
-
-    await renderPageAndWaitForGroups({ expectedGroupsText: 'groups:Sports,News' });
+    mockUseAcestreamChannels.mockImplementation((params: { page_size?: number }) =>
+      params.page_size === 1
+        ? { data: undefined, isLoading: false, refetch: jest.fn(), error: null }
+        : { data: { items: [], total: 0 }, isLoading: false, refetch, error: new ApiError({ message: 'Network Error', status: 0, kind: 'offline', canRetry: true }) }
+    );
+    renderPage();
 
     expect(await screen.findByText('Unable to load channels')).toBeInTheDocument();
     expect(screen.getByText('Unable to reach the server. Check your connection and try again.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 1, name: 'Acestream Channels' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: 'Filters' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: 'Channels' })).toBeInTheDocument();
-
     await user().click(screen.getByRole('button', { name: 'Try again' }));
-
     expect(refetch).toHaveBeenCalledTimes(1);
   });
 
-  it('returns a delete promise that waits for mutation completion', async () => {
-    const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true);
-    let capturedCallbacks: { onSuccess?: () => void; onError?: (error: unknown) => void } | undefined;
-
-    mockDeleteMutate.mockImplementation((_id: string, callbacks?: { onSuccess?: () => void; onError?: (error: unknown) => void }) => {
-      capturedCallbacks = callbacks;
-    });
-
-    await renderPageAndWaitForGroups({ expectedGroupsText: 'groups:Sports,News' });
-
-    const deletePromise = latestOnDelete?.('ace-100');
-    let resolved = false;
-    deletePromise?.then(() => {
-      resolved = true;
-    });
-
-    expect(confirmSpy).toHaveBeenCalledWith('Are you sure you want to delete this channel?');
-    expect(mockDeleteMutate).toHaveBeenCalledWith('ace-100', expect.any(Object));
-    expect(deletePromise).toBeInstanceOf(Promise);
-
-    await Promise.resolve();
-    expect(resolved).toBe(false);
-
-    capturedCallbacks?.onSuccess?.();
-    await deletePromise;
-
-    expect(resolved).toBe(true);
-    confirmSpy.mockRestore();
+  it('toggles the linked TV favorite from the row and refreshes', async () => {
+    renderPage();
+    await user().click(screen.getByRole('button', { name: 'favorite Alpha Sports' }));
+    await waitFor(() => expect(mockUpdateTVChannel).toHaveBeenCalledWith(7, { is_favorite: false }));
+    expect(refetch).toHaveBeenCalled();
   });
 
-  it('surfaces a single clear page-level message when channel deletion fails', async () => {
-    const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true);
-    let capturedCallbacks: { onSuccess?: () => void; onError?: (error: unknown) => void } | undefined;
+  it('hides a channel from the playlist and confirms with a snackbar', async () => {
+    renderPage();
+    await user().click(screen.getByRole('button', { name: 'hide Alpha Sports' }));
+    await waitFor(() => expect(mockUpdateAcestreamChannel).toHaveBeenCalledWith('ace-100', { is_active: false }));
+    expect(await screen.findByText('Alpha Sports is now hidden from the playlist.')).toBeInTheDocument();
+  });
 
-    mockDeleteMutate.mockImplementation((_id: string, callbacks?: { onSuccess?: () => void; onError?: (error: unknown) => void }) => {
-      capturedCallbacks = callbacks;
+  it('asks for confirmation before deleting and reports failures once', async () => {
+    let callbacks: { onSuccess?: () => void; onError?: (error: unknown) => void } | undefined;
+    mockDeleteMutate.mockImplementation((_id: string, cb?: typeof callbacks) => {
+      callbacks = cb;
     });
+    renderPage();
 
-    await renderPageAndWaitForGroups({ expectedGroupsText: 'groups:Sports,News' });
+    await user().click(screen.getByRole('button', { name: 'delete Alpha Sports' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Delete Alpha Sports?' });
+    await user().click(within(dialog).getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(mockDeleteMutate).toHaveBeenCalledWith('ace-100', expect.any(Object)));
 
-    const deletePromise = latestOnDelete?.('ace-100');
-    const deleteError = new ApiError({
-      message: 'Channel is still in use.',
-      status: 400,
-      kind: 'validation',
-      canRetry: false,
-    });
-
-    await act(async () => {
-      capturedCallbacks?.onError?.(deleteError);
-      await expect(deletePromise).rejects.toBe(deleteError);
-    });
-
+    callbacks?.onError?.(new ApiError({ message: 'Channel is still in use.', status: 400, kind: 'validation', canRetry: false }));
     expect(await screen.findByText('Failed to delete channel: Channel is still in use.')).toBeInTheDocument();
     expect(screen.getAllByText('Failed to delete channel: Channel is still in use.')).toHaveLength(1);
-    confirmSpy.mockRestore();
   });
 
-  it('resolves false when deletion is canceled before mutation starts', async () => {
-    const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(false);
-
-    await renderPageAndWaitForGroups({ expectedGroupsText: 'groups:Sports,News' });
-
-    await expect(latestOnDelete?.('ace-100')).resolves.toBe(false);
-
-    expect(confirmSpy).toHaveBeenCalledWith('Are you sure you want to delete this channel?');
+  it('does not delete when the confirmation is cancelled', async () => {
+    renderPage();
+    await user().click(screen.getByRole('button', { name: 'delete Alpha Sports' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Delete Alpha Sports?' });
+    await user().click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Delete Alpha Sports?' })).not.toBeInTheDocument());
     expect(mockDeleteMutate).not.toHaveBeenCalled();
-    confirmSpy.mockRestore();
   });
 
-  it('routes check-all status requests through the channel service and preserves validation snackbar handling', async () => {
-    mockCheckAllStatuses.mockRejectedValueOnce(
-      new ApiError({
-        message: 'Status check already running.',
-        status: 422,
-        kind: 'validation',
-        canRetry: false,
-      })
-    );
+  it('routes check-all through the channel service and shows validation errors in the snackbar', async () => {
+    mockCheckAllStatuses.mockRejectedValueOnce(new ApiError({ message: 'Status check already running.', status: 422, kind: 'validation', canRetry: false }));
+    renderPage();
 
-    await renderPageAndWaitForGroups({ expectedGroupsText: 'groups:Sports,News' });
-
-    await user().click(screen.getByRole('button', { name: 'Check All Statuses' }));
-
+    await user().click(screen.getByRole('button', { name: 'Check all statuses' }));
     await waitFor(() => expect(mockCheckAllStatuses).toHaveBeenCalledTimes(1));
     expect(await screen.findByText('Status check already running.')).toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent('Status check already running.');
-    expect(screen.queryByText(/Failed to check all statuses:/i)).not.toBeInTheDocument();
-    expect(screen.queryByText('Acestream status check task triggered successfully.')).not.toBeInTheDocument();
   });
 });

@@ -40,6 +40,42 @@ test.describe('dashboard, health, stats, WARP', () => {
     await expect(health.totals().getByText('Offline Channels').locator('..')).toContainText(String(summary.offline));
   });
 
+  test('the services panel reports every sidecar and lets the operator restart supervised ones', async ({ page, api, scenario }, testInfo) => {
+    test.setTimeout(240_000);
+    const health = new HealthPage(page);
+    await health.open();
+    const status = await api.raw('get', '/api/v1/system/services').then((r) => r.json() as Promise<{ supervised: boolean; services: { name: string; label: string; state: string; managed: boolean; pid: number | null }[] }>);
+    testInfo.annotations.push({ type: 'services', description: status.services.map((s) => `${s.name}=${s.state}${s.managed ? '(managed)' : ''}`).join(' ') });
+
+    for (const service of status.services) {
+      const card = health.serviceCard(service.label);
+      await expect(card).toBeVisible();
+      await expect(card.locator('[data-state]')).toHaveAttribute('data-state', service.state);
+      if (service.managed) await expect(health.restartButton(service.label)).toBeEnabled();
+      else await expect(health.restartButton(service.label)).toBeDisabled();
+    }
+    // The engine the app uses must be reported as reachable either way.
+    const engine = status.services.find((s) => s.name === 'acestream')!;
+    expect(['running', 'external']).toContain(engine.state);
+    await expect(health.serviceCard(engine.label)).toContainText(/Running|External/);
+
+    const managed = status.services.find((s) => s.name === 'acestream' && s.managed);
+    if (!status.supervised || !managed) {
+      await expect(health.services()).toContainText(/not running under the container entrypoint|Managed outside this container/);
+      return;
+    }
+    await health.restart(managed.label);
+    await health.expectAlert(/Restart requested/);
+    await expect(health.serviceCard(managed.label)).toContainText('Restarting');
+    await expect(health.serviceCard(managed.label)).toContainText('Running', { timeout: 120_000 });
+    const after = await api.raw('get', '/api/v1/system/services').then((r) => r.json() as Promise<{ services: { name: string; pid: number | null; state: string }[] }>);
+    const engineAfter = after.services.find((s) => s.name === 'acestream')!;
+    expect(engineAfter.state).toBe('running');
+    expect(engineAfter.pid).not.toBe(managed.pid);
+    const version = await fetch(`${scenario.stack.engineUrl}/webui/api/service?method=get_version`).then((r) => r.json() as Promise<{ result?: { version?: string } }>);
+    expect(version.result?.version).toBeTruthy();
+  });
+
   test('stats page shows inventory totals', async ({ page, api }) => {
     const stats = new StatsPage(page);
     await stats.open();

@@ -10,6 +10,10 @@ import { TestMemoryRouter } from '../testUtils/router';
 import * as configHooks from '../hooks/useConfig';
 
 jest.mock('../hooks/useConfig');
+jest.mock('../components/ServicesPanel', () => ({
+  __esModule: true,
+  default: () => <div data-testid="services-panel" />,
+}));
 
 jest.mock('@mui/material', () => {
   const actual = jest.requireActual('@mui/material');

@@ -3,6 +3,13 @@ set -euo pipefail
 
 LOG_DIR=${LOG_DIR:-/app/logs}
 mkdir -p "$LOG_DIR"
+# Supervisor state the app reads to report/restart sidecar services:
+#   <run dir>/<service>.pid      pid of the current launch (session leader)
+#   <run dir>/<service>.started  epoch of the current launch
+#   <run dir>/<service>.restart  marker: the next exit is an operator restart
+SUPERVISOR_RUN_DIR=${SUPERVISOR_RUN_DIR:-/run/acestream-scraper}
+mkdir -p "$SUPERVISOR_RUN_DIR"
+export SUPERVISOR_RUN_DIR
 LOGROTATE_DIR=${LOGROTATE_DIR:-/tmp/acestream-scraper-logrotate}
 mkdir -p "$LOGROTATE_DIR"
 LOGROTATE_CONF="$LOGROTATE_DIR/acestream-services"
@@ -70,6 +77,8 @@ supervise_service() {
     local launches=0
     local inner_pid=""
     local sleeper_pid=""
+    local slug
+    slug=$(printf '%s' "$label" | tr '[:upper:]' '[:lower:]')
 
     trap '
         for p in ${inner_pid:-$(jobs -p)}; do
@@ -98,6 +107,8 @@ supervise_service() {
         fi
         inner_pid=$!
         launches=$((launches + 1))
+        printf '%s\n' "$inner_pid" > "$SUPERVISOR_RUN_DIR/$slug.pid"
+        printf '%s\n' "$started_at" > "$SUPERVISOR_RUN_DIR/$slug.started"
         if wait "$inner_pid"; then
             status=0
         else
@@ -105,6 +116,15 @@ supervise_service() {
         fi
         inner_pid=""
         ended_at=$(date +%s)
+        rm -f "$SUPERVISOR_RUN_DIR/$slug.pid"
+        if [ -f "$SUPERVISOR_RUN_DIR/$slug.restart" ]; then
+            # An operator asked for this restart (via the app): relaunch right
+            # away and do not count it against the fast-exit budget.
+            rm -f "$SUPERVISOR_RUN_DIR/$slug.restart"
+            fast_exits=0
+            log "$label restart requested; relaunching"
+            continue
+        fi
 
         if [ "$status" -eq 0 ]; then
             # Clean exit: the launcher daemonized (its children keep running

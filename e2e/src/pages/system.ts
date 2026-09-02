@@ -40,6 +40,20 @@ export class HealthPage extends AppShell {
   async refresh(): Promise<void> {
     await this.overview().getByRole('button', { name: 'Refresh status' }).click();
   }
+  services(): Locator {
+    return this.region('Services');
+  }
+  serviceCard(label: string): Locator {
+    return this.services().getByRole('group', { name: `Service ${label}` });
+  }
+  restartButton(label: string): Locator {
+    return this.serviceCard(label).getByRole('button', { name: `Restart ${label}` });
+  }
+  async restart(label: string): Promise<void> {
+    await this.restartButton(label).click();
+    const dialog = this.dialog(`Restart ${label}?`);
+    await dialog.getByRole('button', { name: 'Restart service' }).click();
+  }
 }
 
 export class StatsPage extends AppShell {

@@ -650,6 +650,21 @@ export interface paths {
     /** Get Active Streams */
     get: operations["get_active_streams_api_v1_streams_active_get"];
   };
+  "/api/v1/system/services": {
+    /**
+     * Status of the sidecar services
+     * @description Sync endpoint on purpose: the probes block for up to a couple of seconds each.
+     */
+    get: operations["list_services_api_v1_system_services_get"];
+  };
+  "/api/v1/system/services/{name}": {
+    /** Status of one sidecar service */
+    get: operations["get_service_api_v1_system_services__name__get"];
+  };
+  "/api/v1/system/services/{name}/restart": {
+    /** Restart a service supervised by this container */
+    post: operations["restart_service_api_v1_system_services__name__restart_post"];
+  };
   "/api/v1/tv-channels/": {
     /**
      * Get Tv Channels
@@ -1712,6 +1727,77 @@ export interface components {
        * @description Channel name
        */
       name: string;
+    };
+    /** ServiceRestartResponse */
+    ServiceRestartResponse: {
+      /** Message */
+      message: string;
+      /** Name */
+      name: string;
+      /** Success */
+      success: boolean;
+    };
+    /** ServiceStatus */
+    ServiceStatus: {
+      /** Description */
+      description: string;
+      /**
+       * Enabled
+       * @description Turned on through its ENABLE_* variable
+       */
+      enabled: boolean;
+      /**
+       * Endpoint
+       * @description Where the app reaches the service
+       */
+      endpoint?: string | null;
+      /**
+       * Installed
+       * @description Shipped in this image flavor
+       */
+      installed: boolean;
+      /** Label */
+      label: string;
+      /**
+       * Managed
+       * @description Supervised by this container's entrypoint (restart available)
+       */
+      managed: boolean;
+      /** Message */
+      message: string;
+      /**
+       * Name
+       * @description Stable identifier: acestream, acexy, ipfs, zeronet, warp
+       */
+      name: string;
+      /** Pid */
+      pid?: number | null;
+      /**
+       * Running
+       * @description The service answered its health probe
+       */
+      running: boolean;
+      /**
+       * State
+       * @enum {string}
+       */
+      state: "running" | "unhealthy" | "stopped" | "disabled" | "external" | "not-installed";
+      /** Uptime Seconds */
+      uptime_seconds?: number | null;
+      /** Version */
+      version?: string | null;
+    };
+    /** ServicesStatusResponse */
+    ServicesStatusResponse: {
+      /** Checked At */
+      checked_at: string;
+      /** Services */
+      services: components["schemas"]["ServiceStatus"][];
+      /**
+       * Supervised
+       * @description True when the app runs under the container entrypoint
+       */
+      supervised: boolean;
     };
     /**
      * SettingResponse
@@ -4529,6 +4615,64 @@ export interface operations {
       200: {
         content: {
           "application/json": unknown;
+        };
+      };
+    };
+  };
+  /**
+   * Status of the sidecar services
+   * @description Sync endpoint on purpose: the probes block for up to a couple of seconds each.
+   */
+  list_services_api_v1_system_services_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ServicesStatusResponse"];
+        };
+      };
+    };
+  };
+  /** Status of one sidecar service */
+  get_service_api_v1_system_services__name__get: {
+    parameters: {
+      path: {
+        name: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ServiceStatus"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Restart a service supervised by this container */
+  restart_service_api_v1_system_services__name__restart_post: {
+    parameters: {
+      path: {
+        name: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      202: {
+        content: {
+          "application/json": components["schemas"]["ServiceRestartResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };

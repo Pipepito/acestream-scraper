@@ -20,6 +20,7 @@ import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
+import ServicesPanel from '../components/ServicesPanel';
 import { alpha, useTheme } from '@mui/material/styles';
 
 const Health: React.FC = () => {
@@ -180,6 +181,13 @@ const Health: React.FC = () => {
             </Stack>
           </Paper>
         </Stack>
+      </ContentSection>
+
+      <ContentSection
+        title="Services"
+        description="What this image ships, what is switched on, and whether each sidecar answers. Restart a supervised service without recreating the container."
+      >
+        <ServicesPanel />
       </ContentSection>
 
       <ContentSection title="Operational details" description="Review the current engine/runtime response and the saved configuration snapshot.">

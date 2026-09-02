@@ -2108,6 +2108,167 @@
         "title": "SearchResultItem",
         "type": "object"
       },
+      "ServiceRestartResponse": {
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "success": {
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "success",
+          "message"
+        ],
+        "title": "ServiceRestartResponse",
+        "type": "object"
+      },
+      "ServiceStatus": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Turned on through its ENABLE_* variable",
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "endpoint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Where the app reaches the service",
+            "title": "Endpoint"
+          },
+          "installed": {
+            "description": "Shipped in this image flavor",
+            "title": "Installed",
+            "type": "boolean"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "managed": {
+            "description": "Supervised by this container's entrypoint (restart available)",
+            "title": "Managed",
+            "type": "boolean"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "name": {
+            "description": "Stable identifier: acestream, acexy, ipfs, zeronet, warp",
+            "title": "Name",
+            "type": "string"
+          },
+          "pid": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pid"
+          },
+          "running": {
+            "description": "The service answered its health probe",
+            "title": "Running",
+            "type": "boolean"
+          },
+          "state": {
+            "enum": [
+              "running",
+              "unhealthy",
+              "stopped",
+              "disabled",
+              "external",
+              "not-installed"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "uptime_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uptime Seconds"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "required": [
+          "name",
+          "label",
+          "description",
+          "state",
+          "installed",
+          "enabled",
+          "managed",
+          "running",
+          "message"
+        ],
+        "title": "ServiceStatus",
+        "type": "object"
+      },
+      "ServicesStatusResponse": {
+        "properties": {
+          "checked_at": {
+            "title": "Checked At",
+            "type": "string"
+          },
+          "services": {
+            "items": {
+              "$ref": "#/components/schemas/ServiceStatus"
+            },
+            "title": "Services",
+            "type": "array"
+          },
+          "supervised": {
+            "description": "True when the app runs under the container entrypoint",
+            "title": "Supervised",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "services",
+          "supervised",
+          "checked_at"
+        ],
+        "title": "ServicesStatusResponse",
+        "type": "object"
+      },
       "SettingResponse": {
         "description": "Schema for a setting response",
         "properties": {
@@ -8418,6 +8579,115 @@
         "tags": [
           "streams",
           "streams"
+        ]
+      }
+    },
+    "/api/v1/system/services": {
+      "get": {
+        "description": "Sync endpoint on purpose: the probes block for up to a couple of seconds each.",
+        "operationId": "list_services_api_v1_system_services_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServicesStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Status of the sidecar services",
+        "tags": [
+          "system",
+          "system"
+        ]
+      }
+    },
+    "/api/v1/system/services/{name}": {
+      "get": {
+        "operationId": "get_service_api_v1_system_services__name__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Status of one sidecar service",
+        "tags": [
+          "system",
+          "system"
+        ]
+      }
+    },
+    "/api/v1/system/services/{name}/restart": {
+      "post": {
+        "operationId": "restart_service_api_v1_system_services__name__restart_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRestartResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Restart a service supervised by this container",
+        "tags": [
+          "system",
+          "system"
         ]
       }
     },

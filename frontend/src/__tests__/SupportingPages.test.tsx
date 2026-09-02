@@ -70,6 +70,10 @@ jest.mock('../services/apiClient', () => ({
 }));
 
 jest.mock('../hooks/useConfig');
+jest.mock('../components/ServicesPanel', () => ({
+  __esModule: true,
+  default: () => <div data-testid="services-panel" />,
+}));
 jest.mock('../hooks/useEPG');
 jest.mock('../hooks/usePlaylists');
 jest.mock('../hooks/useWarp');

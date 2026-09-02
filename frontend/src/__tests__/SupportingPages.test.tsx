@@ -3,16 +3,11 @@ import { render, screen, within, waitFor, fireEvent } from '@testing-library/rea
 import { ThemeProvider } from '@mui/material/styles';
 import * as routerDom from 'react-router-dom';
 import { Route, Routes } from 'react-router-dom';
-import Health from '../pages/Health';
 import Playlist from '../pages/Playlist';
 import Settings from '../pages/Settings';
 import WarpPage from '../pages/WARP';
 import NotFound from '../pages/NotFound';
 import App from '../App';
-import Channels from '../pages/Channels';
-import ChannelDetail from '../pages/ChannelDetail';
-import SearchNew from '../pages/SearchNew';
-import Stats from '../pages/Stats';
 import EPGMappings from '../pages/EPGMappings';
 import { createAppTheme } from '../theme';
 import { TestMemoryRouter } from '../testUtils/router';
@@ -70,10 +65,6 @@ jest.mock('../services/apiClient', () => ({
 }));
 
 jest.mock('../hooks/useConfig');
-jest.mock('../components/ServicesPanel', () => ({
-  __esModule: true,
-  default: () => <div data-testid="services-panel" />,
-}));
 jest.mock('../hooks/useEPG');
 jest.mock('../hooks/usePlaylists');
 jest.mock('../hooks/useWarp');
@@ -102,21 +93,6 @@ const renderAppAtRoute = (initialEntries: string[]) =>
     <ThemeProvider theme={createAppTheme('light')}>
       <TestMemoryRouter initialEntries={initialEntries}>
         <App />
-      </TestMemoryRouter>
-    </ThemeProvider>
-  );
-
-const renderLegacyPageWithRoutes = (routePath: string, page: React.ReactElement) =>
-  render(
-    <ThemeProvider theme={createAppTheme('light')}>
-      <TestMemoryRouter initialEntries={[routePath]}>
-        <Routes>
-          <Route path={routePath} element={page} />
-          <Route path="/tv-channels" element={<div>TV Channels destination</div>} />
-          <Route path="/acestream-channels" element={<div>Acestream Channels destination</div>} />
-          <Route path="/epg" element={<div>EPG destination</div>} />
-          <Route path="/search" element={<div>Search destination</div>} />
-        </Routes>
       </TestMemoryRouter>
     </ThemeProvider>
   );
@@ -246,208 +222,17 @@ describe('Supporting page normalization', () => {
     });
   });
 
-  const renderHealthPage = () => renderPage(<Health />);
 
-  it('renders Health with a shared page title and operational sections', () => {
-    renderHealthPage();
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Health' })).toBeInTheDocument();
-    expect(
-      screen.getByText('Check system readiness, confirm engine connectivity, and review core service totals.')
-    ).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: 'Status overview' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: 'Operational details' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: 'Supporting totals' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 3, name: 'Runtime details' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 3, name: 'Configuration snapshot' })).toBeInTheDocument();
-  });
 
-  it('renders the healthy readiness summary and next step only when the system is healthy and the engine is online', () => {
-    renderHealthPage();
 
-    expect(screen.getByText('Healthy and ready for scraper, playlist, channel, and EPG work.')).toBeInTheDocument();
-    expect(screen.getByText('Next step')).toBeInTheDocument();
-    expect(screen.getByText('Continue with scraper, playlist, channel, or EPG work.')).toBeInTheDocument();
-  });
 
-  it('uses the review guidance when the overall status is healthy but the engine is not online', () => {
-    (configHooks.useHealth as jest.Mock).mockReturnValue({
-      data: {
-        status: 'healthy',
-        version: '1.0.0',
-        acestream: { status: 'offline', message: 'Engine unavailable' },
-        settings: { region: 'EU', profile: 'Default' },
-      },
-      isLoading: false,
-      error: undefined,
-      refetch: jest.fn(),
-    });
 
-    renderHealthPage();
 
-    expect(screen.getByText('The system needs review before you continue.')).toBeInTheDocument();
-    expect(screen.getByText('Stop and review engine connection and saved settings before proceeding.')).toBeInTheDocument();
-    expect(screen.queryByText('Healthy and ready for scraper, playlist, channel, and EPG work.')).not.toBeInTheDocument();
-  });
 
-  it('aligns the page-header status chip with the not-ready branch when the engine is offline', () => {
-    (configHooks.useHealth as jest.Mock).mockReturnValue({
-      data: {
-        status: 'healthy',
-        version: '1.0.0',
-        acestream: { status: 'offline', message: 'Engine unavailable' },
-        settings: { region: 'EU', profile: 'Default' },
-      },
-      isLoading: false,
-      error: undefined,
-      refetch: jest.fn(),
-    });
 
-    renderHealthPage();
 
-    const headerActions = screen.getByTestId('page-header-actions');
 
-    expect(screen.getByText('The system needs review before you continue.')).toBeInTheDocument();
-    expect(within(headerActions).getByText('ERROR')).toBeInTheDocument();
-    expect(within(headerActions).queryByText('HEALTHY')).not.toBeInTheDocument();
-  });
-
-  it('uses degraded readiness guidance when the overall status is degraded', () => {
-    (configHooks.useHealth as jest.Mock).mockReturnValue({
-      data: {
-        status: 'degraded',
-        version: '1.0.0',
-        acestream: { status: 'online', message: 'Engine reachable with warnings' },
-        settings: { region: 'EU', profile: 'Default' },
-      },
-      isLoading: false,
-      error: undefined,
-      refetch: jest.fn(),
-    });
-
-    renderHealthPage();
-
-    expect(screen.getByText('Healthy enough to continue, but one or more systems need attention.')).toBeInTheDocument();
-    expect(screen.getByText('Review engine reachability and configuration before continuing.')).toBeInTheDocument();
-  });
-
-  it('uses the fallback review guidance when the overall status is in an error branch', () => {
-    (configHooks.useHealth as jest.Mock).mockReturnValue({
-      data: {
-        status: 'error',
-        version: '1.0.0',
-        acestream: { status: 'offline', message: 'Engine unavailable' },
-        settings: { region: 'EU', profile: 'Default' },
-      },
-      isLoading: false,
-      error: undefined,
-      refetch: jest.fn(),
-    });
-
-    renderHealthPage();
-
-    expect(screen.getByText('The system needs review before you continue.')).toBeInTheDocument();
-    expect(screen.getByText('Stop and review engine connection and saved settings before proceeding.')).toBeInTheDocument();
-  });
-
-  it('keeps overall system status and Acestream engine status explicit in text', () => {
-    renderHealthPage();
-
-    expect(screen.getByText('Overall system status')).toBeInTheDocument();
-    expect(screen.getByText('healthy')).toBeInTheDocument();
-    expect(screen.getAllByText('Acestream engine status').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('online').length).toBeGreaterThan(0);
-  });
-
-  it('refetches both health and stats when Refresh status is clicked', () => {
-    const refetchHealth = jest.fn();
-    const refetchStats = jest.fn();
-
-    (configHooks.useHealth as jest.Mock).mockReturnValue({
-      data: {
-        status: 'healthy',
-        version: '1.0.0',
-        acestream: { status: 'online', message: 'Engine reachable' },
-        settings: { region: 'EU', profile: 'Default' },
-      },
-      isLoading: false,
-      error: undefined,
-      refetch: refetchHealth,
-    });
-    (configHooks.useStats as jest.Mock).mockReturnValue({
-      data: {
-        channels: { total: 120, online: 112, offline: 4, unknown: 4 },
-        urls: { total: 210, active: 202, error: 8 },
-        epg: { sources: 7, channels: 95, programs: 5000 },
-      },
-      isLoading: false,
-      error: undefined,
-      refetch: refetchStats,
-    });
-
-    renderHealthPage();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Refresh status' }));
-
-    expect(refetchHealth).toHaveBeenCalledTimes(1);
-    expect(refetchStats).toHaveBeenCalledTimes(1);
-  });
-
-  it('keeps the shared Retry error action refetching both health and stats', () => {
-    const refetchHealth = jest.fn();
-    const refetchStats = jest.fn();
-
-    (configHooks.useHealth as jest.Mock).mockReturnValue({
-      data: undefined,
-      isLoading: false,
-      error: new Error('health failed'),
-      refetch: refetchHealth,
-    });
-    (configHooks.useStats as jest.Mock).mockReturnValue({
-      data: undefined,
-      isLoading: false,
-      error: undefined,
-      refetch: refetchStats,
-    });
-
-    renderHealthPage();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
-
-    expect(refetchHealth).toHaveBeenCalledTimes(1);
-    expect(refetchStats).toHaveBeenCalledTimes(1);
-  });
-
-  it('shows explicit fallback totals when stats are unavailable without a stats query error', () => {
-    (configHooks.useStats as jest.Mock).mockReturnValue({
-      data: undefined,
-      isLoading: false,
-      error: undefined,
-      refetch: jest.fn(),
-    });
-
-    renderHealthPage();
-
-    expect(screen.getByRole('heading', { level: 2, name: 'Supporting totals' })).toBeInTheDocument();
-    expect(screen.getByText('No channel totals available')).toBeInTheDocument();
-    expect(screen.getByText('No URL totals available')).toBeInTheDocument();
-    expect(screen.getByText('No EPG totals available')).toBeInTheDocument();
-  });
-
-  it('shows Acestream engine status, Acestream engine message, software version, and current settings in the supporting detail groups', () => {
-    renderHealthPage();
-
-    const runtimeDetails = screen.getByRole('region', { name: 'Runtime details' });
-    const configurationSnapshot = screen.getByRole('region', { name: 'Configuration snapshot' });
-
-    expect(within(runtimeDetails).getByRole('heading', { level: 3, name: 'Runtime details' })).toBeInTheDocument();
-    expect(within(configurationSnapshot).getByRole('heading', { level: 3, name: 'Configuration snapshot' })).toBeInTheDocument();
-    expect(within(runtimeDetails).getByText('Acestream engine status')).toBeInTheDocument();
-    expect(within(runtimeDetails).getByText('Acestream engine message')).toBeInTheDocument();
-    expect(within(runtimeDetails).getByText('Software version')).toBeInTheDocument();
-    expect(within(configurationSnapshot).getByText('region')).toBeInTheDocument();
-    expect(within(configurationSnapshot).getByText('profile')).toBeInTheDocument();
-  });
 
   it('renders Playlist with the shared header and a clearer primary action path', () => {
     renderPage(<Playlist />);
@@ -732,28 +517,7 @@ describe('Supporting page normalization', () => {
     expect(navigate).toHaveBeenNthCalledWith(3, '/search', { replace: true });
   });
 
-  it('wires legacy routes in App to explicit recovery pages', () => {
-    const { unmount: unmountChannelsRoute } = renderAppAtRoute(['/channels']);
-    expect(screen.getByRole('heading', { level: 1, name: 'Channels' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Open TV Channels' })).toBeInTheDocument();
-    unmountChannelsRoute();
 
-    const { unmount: unmountChannelDetailRoute } = renderAppAtRoute(['/channels/legacy-id']);
-    expect(screen.getByRole('heading', { level: 1, name: 'Channel detail' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Open TV Channels' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Open EPG' })).toBeInTheDocument();
-    unmountChannelDetailRoute();
-
-    renderAppAtRoute(['/search-new']);
-    expect(screen.getByRole('heading', { level: 1, name: 'Search' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Open Search' })).toBeInTheDocument();
-  });
-
-  it('renders the Stats page through the real app route table', () => {
-    renderAppAtRoute(['/stats']);
-
-    expect(screen.getByRole('heading', { level: 1, name: 'Stats' })).toBeInTheDocument();
-  });
 
   it('renders the EPG Mappings page through the real app route table', () => {
     renderAppAtRoute(['/epg/mappings']);
@@ -771,140 +535,12 @@ describe('Supporting page normalization', () => {
     expect(screen.getByText('Exclude')).toBeInTheDocument();
   });
 
-  it('renders Stats with the required summary and grouped total sections', () => {
-    renderPage(<Stats />);
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Stats' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: 'Inventory snapshot' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: 'Totals by source' })).toBeInTheDocument();
-    expect(screen.getByText('Channel totals')).toBeInTheDocument();
-    expect(screen.getByText('URL totals')).toBeInTheDocument();
-    expect(screen.getByText('EPG totals')).toBeInTheDocument();
-  });
 
-  it('keeps Stats fallback copy explicit when data is unavailable', () => {
-    (configHooks.useStats as jest.Mock).mockReturnValue({
-      data: undefined,
-      isLoading: false,
-      error: undefined,
-      refetch: jest.fn(),
-    });
 
-    renderPage(<Stats />);
 
-    expect(screen.getByText(/stats are not available yet/i)).toBeInTheDocument();
-  });
 
-  it('stacks Stats summary and breakdown groups vertically on phone widths', () => {
-    const theme = createAppTheme('light');
 
-    mockResponsiveShellQueries(mockUseMediaQuery, theme, {
-      isPhone: true,
-      isDesktop: false,
-      isWideDesktop: false,
-    });
 
-    render(
-      <ThemeProvider theme={theme}>
-        <TestMemoryRouter>
-          <Stats />
-        </TestMemoryRouter>
-      </ThemeProvider>
-    );
 
-    expect(screen.getByTestId('stats-summary-metrics')).toHaveStyle({ flexDirection: 'column' });
-    expect(screen.getByTestId('stats-breakdown-groups')).toHaveStyle({ flexDirection: 'column' });
-  });
-
-  it('renders Channels as a legacy recovery surface instead of a blank page', () => {
-    renderPage(<Channels />);
-
-    const headerCopy = screen.getByTestId('page-header-copy');
-    const sectionCopy = screen.getByTestId('content-section-copy');
-    const recoveryStatus = screen.getByText(/legacy route: recover channel work from tv channels/i);
-    const supportCopy = screen.getByText(/use the supported inventory routes instead of this older entry point/i);
-    const primaryAction = screen.getByRole('button', { name: 'Open TV Channels' });
-
-    expect(screen.getByRole('heading', { level: 1, name: 'Channels' })).toBeInTheDocument();
-    expect(within(headerCopy).getByText(/route is now a recovery point for the supported channel inventory/i)).toBeInTheDocument();
-    expect(within(sectionCopy).getByText(/open tv channels for the primary inventory path/i)).toBeInTheDocument();
-    expect(within(sectionCopy).getByText(/acestream channels remains separate when you need source-level context/i)).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: 'Go to the current channel views' })).toBeInTheDocument();
-    expect(primaryAction).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Open Acestream Channels' })).not.toBeInTheDocument();
-    expect(headerCopy.compareDocumentPosition(sectionCopy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(sectionCopy.compareDocumentPosition(recoveryStatus) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(recoveryStatus.compareDocumentPosition(primaryAction) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(primaryAction.compareDocumentPosition(supportCopy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-
-  it('navigates from Channels to TV Channels with the recovery action', () => {
-    renderLegacyPageWithRoutes('/channels', <Channels />);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Open TV Channels' }));
-
-    expect(screen.getByText('TV Channels destination')).toBeInTheDocument();
-  });
-
-  it('renders ChannelDetail as a legacy recovery surface with TV Channels and EPG actions', () => {
-    renderPage(<ChannelDetail />);
-
-    const headerCopy = screen.getByTestId('page-header-copy');
-    const sectionCopy = screen.getByTestId('content-section-copy');
-    const recoveryStatus = screen.getByText(/legacy detail route: reopen the item from tv channels or epg/i);
-    const supportCopy = screen.getByText(/use a current list first, then return to the detail screen from there/i);
-    const primaryAction = screen.getByRole('button', { name: 'Open TV Channels' });
-
-    expect(screen.getByRole('heading', { level: 1, name: 'Channel detail' })).toBeInTheDocument();
-    expect(within(headerCopy).getByText(/detail route is no longer active/i)).toBeInTheDocument();
-    expect(within(headerCopy).getByText(/reopen the item from a supported list/i)).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: 'Choose a supported channel workflow' })).toBeInTheDocument();
-    expect(primaryAction).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Open EPG' })).toBeInTheDocument();
-    expect(headerCopy.compareDocumentPosition(sectionCopy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(sectionCopy.compareDocumentPosition(recoveryStatus) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(recoveryStatus.compareDocumentPosition(primaryAction) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(primaryAction.compareDocumentPosition(supportCopy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-
-  it('navigates from ChannelDetail to supported TV Channels and EPG flows', () => {
-    const view = renderLegacyPageWithRoutes('/channels/legacy-id', <ChannelDetail />);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Open TV Channels' }));
-    expect(screen.getByText('TV Channels destination')).toBeInTheDocument();
-
-    view.unmount();
-
-    renderLegacyPageWithRoutes('/channels/legacy-id', <ChannelDetail />);
-    fireEvent.click(screen.getByRole('button', { name: 'Open EPG' }));
-    expect(screen.getByText('EPG destination')).toBeInTheDocument();
-  });
-
-  it('renders SearchNew as a legacy recovery surface for the current search workflow', () => {
-    renderPage(<SearchNew />);
-
-    const headerCopy = screen.getByTestId('page-header-copy');
-    const sectionCopy = screen.getByTestId('content-section-copy');
-    const recoveryStatus = screen.getByText(/legacy route: continue from the main search workflow/i);
-    const supportCopy = screen.getByText(/use the current search page instead of this older entry point/i);
-    const primaryAction = screen.getByRole('button', { name: 'Open Search' });
-
-    expect(screen.getByRole('heading', { level: 1, name: 'Search' })).toBeInTheDocument();
-    expect(within(headerCopy).getByText(/route moved/i)).toBeInTheDocument();
-    expect(within(headerCopy).getByText(/continue in search from the supported path/i)).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: 'Continue in the supported search flow' })).toBeInTheDocument();
-    expect(primaryAction).toBeInTheDocument();
-    expect(headerCopy.compareDocumentPosition(sectionCopy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(sectionCopy.compareDocumentPosition(recoveryStatus) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(recoveryStatus.compareDocumentPosition(primaryAction) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(primaryAction.compareDocumentPosition(supportCopy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-
-  it('navigates from SearchNew to the supported search flow', () => {
-    renderLegacyPageWithRoutes('/search-new', <SearchNew />);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Open Search' }));
-
-    expect(screen.getByText('Search destination')).toBeInTheDocument();
-  });
 });

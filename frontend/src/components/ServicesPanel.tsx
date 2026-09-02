@@ -29,6 +29,7 @@ import { useRestartService, useSystemServices } from '../hooks/useSystemServices
 import type { ServiceState, ServiceStatus } from '../services/systemService';
 import { useSnackbar } from '../hooks/useSnackbar';
 import { normalizeApiError } from '../services/apiErrors';
+import { Link as RouterLink } from 'react-router-dom';
 
 interface StateMeta {
   label: string;
@@ -200,7 +201,12 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
                   {service.version ? <span>Version: {service.version}</span> : null}
                   {uptime ? <span>Up for {uptime}</span> : null}
                 </Stack>
-                <Box sx={{ mt: 'auto', pt: 1 }}>
+                <Box sx={{ mt: 'auto', pt: 1, display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                  {service.name === 'warp' && service.installed ? (
+                    <Button size="small" variant="text" component={RouterLink} to="/warp">
+                      Manage WARP
+                    </Button>
+                  ) : null}
                   <Tooltip title={disabledReason ?? ''} disableHoverListener={!disabledReason}>
                     <span>
                       <Button

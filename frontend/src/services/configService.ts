@@ -17,6 +17,13 @@ export interface HealthResponse {
   version: string;
 }
 
+export interface TvChannelStats {
+  total: number;
+  active: number;
+  with_epg: number;
+  acestreams: number;
+}
+
 export interface Stats {
   channels: {
     total: number;
@@ -144,6 +151,14 @@ export const configService = {
    */
   getStats: async (): Promise<Stats> => {
     const response = await apiClient.get<Stats>('/v1/stats');
+    return response.data;
+  },
+
+  /**
+   * TV channel totals (organised catalog).
+   */
+  getTvChannelStats: async (): Promise<TvChannelStats> => {
+    const response = await apiClient.get<TvChannelStats>('/v1/stats/tv-channels/');
     return response.data;
   }
 };

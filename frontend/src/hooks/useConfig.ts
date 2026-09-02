@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
-import { configService, HealthResponse, Stats, StatusResponse } from '../services/configService';
+import { configService, HealthResponse, Stats, StatusResponse, TvChannelStats } from '../services/configService';
 
 type QueryOpts<T> = Omit<UseQueryOptions<T>, 'queryKey' | 'queryFn'>;
 
@@ -113,4 +113,11 @@ export const useHealth = (options: QueryOpts<HealthResponse> = {}) => {
  */
 export const useStats = (options: QueryOpts<Stats> = {}) => {
   return useQuery<Stats>({ queryKey: ['stats'], queryFn: configService.getStats, ...options });
+};
+
+/**
+ * Hook for TV channel totals
+ */
+export const useTvChannelStats = (options: QueryOpts<TvChannelStats> = {}) => {
+  return useQuery<TvChannelStats>({ queryKey: ['stats', 'tv-channels'], queryFn: configService.getTvChannelStats, ...options });
 };

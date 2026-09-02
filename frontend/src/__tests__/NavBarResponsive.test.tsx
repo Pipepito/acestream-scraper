@@ -156,43 +156,31 @@ describe('NavBar responsive shell behavior', () => {
     expect(screen.getByRole('button', { name: /switch to dark theme/i })).toHaveFocus();
 
     await tab();
-    expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveFocus();
+    expect(screen.getByRole('link', { name: 'Overview' })).toHaveFocus();
 
     await tab();
     expect(screen.getByRole('link', { name: 'Scraper' })).toHaveFocus();
 
     await tab();
-    expect(screen.getByRole('link', { name: 'Acestream Search' })).toHaveFocus();
+    expect(screen.getByRole('link', { name: 'Search' })).toHaveFocus();
 
     await tab();
     expect(screen.getByRole('link', { name: 'Acestream Channels' })).toHaveFocus();
 
     await tab();
-    expect(screen.getByRole('link', { name: 'EPG Sources' })).toHaveFocus();
-
-    await tab();
-    expect(screen.getByRole('link', { name: 'EPG Mappings' })).toHaveFocus();
-
-    await tab();
     expect(screen.getByRole('link', { name: 'TV Channels' })).toHaveFocus();
+
+    await tab();
+    expect(screen.getByRole('link', { name: 'EPG' })).toHaveFocus();
 
     await tab();
     expect(screen.getByRole('link', { name: 'Playlist' })).toHaveFocus();
 
     await tab();
-    expect(screen.getByRole('link', { name: 'WARP Status' })).toHaveFocus();
-
-    await tab();
     expect(screen.getByRole('link', { name: 'Settings' })).toHaveFocus();
-
-    await tab();
-    expect(screen.getByRole('link', { name: 'Health' })).toHaveFocus();
-
-    await tab();
-    expect(screen.getByRole('link', { name: 'Stats' })).toHaveFocus();
   });
 
-  it('selects EPG Mappings instead of EPG Sources for the mappings route', () => {
+  it('keeps EPG selected for the mapping rules route', () => {
     renderWithResponsiveMode({
       pathname: '/epg/mappings',
       isPhone: false,
@@ -200,7 +188,7 @@ describe('NavBar responsive shell behavior', () => {
       ui: <NavBar />,
     });
 
-    expect(screen.getByRole('link', { name: 'EPG Mappings' })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByRole('link', { name: 'EPG Sources' })).not.toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'EPG' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.queryByRole('link', { name: 'EPG Mappings' })).not.toBeInTheDocument();
   });
 });

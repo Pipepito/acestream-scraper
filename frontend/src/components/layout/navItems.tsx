@@ -6,11 +6,7 @@ import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import LiveTvRoundedIcon from '@mui/icons-material/LiveTvRounded';
 import EventNoteRoundedIcon from '@mui/icons-material/EventNoteRounded';
 import PlaylistPlayRoundedIcon from '@mui/icons-material/PlaylistPlayRounded';
-import CloudRoundedIcon from '@mui/icons-material/CloudRounded';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
-import HealthAndSafetyRoundedIcon from '@mui/icons-material/HealthAndSafetyRounded';
-import AnalyticsRoundedIcon from '@mui/icons-material/AnalyticsRounded';
-import RuleFolderRoundedIcon from '@mui/icons-material/RuleFolderRounded';
 
 export interface NavItem {
   text: string;
@@ -21,80 +17,19 @@ export interface NavItem {
 }
 
 export const navItems: NavItem[] = [
-  {
-    text: 'Dashboard',
-    path: '/',
-    icon: <DashboardRoundedIcon />,
-    section: 'Operations',
-  },
-  {
-    text: 'Scraper',
-    path: '/scraper',
-    icon: <TravelExploreRoundedIcon />,
-    section: 'Operations',
-  },
-  {
-    text: 'Acestream Search',
-    path: '/search',
-    icon: <SearchRoundedIcon />,
-    section: 'Operations',
-  },
-  {
-    text: 'Acestream Channels',
-    path: '/acestream-channels',
-    icon: <LiveTvRoundedIcon />,
-    section: 'Operations',
-  },
-  {
-    text: 'EPG Sources',
-    path: '/epg',
-    icon: <EventNoteRoundedIcon />,
-    section: 'Operations',
-    matchPrefixes: ['/epg/channels'],
-  },
-  {
-    text: 'EPG Mappings',
-    path: '/epg/mappings',
-    icon: <RuleFolderRoundedIcon />,
-    section: 'Operations',
-  },
-  {
-    text: 'TV Channels',
-    path: '/tv-channels',
-    icon: <LiveTvRoundedIcon />,
-    section: 'Operations',
-    matchPrefixes: ['/tv-channels'],
-  },
-  {
-    text: 'Playlist',
-    path: '/playlist',
-    icon: <PlaylistPlayRoundedIcon />,
-    section: 'Operations',
-  },
-  {
-    text: 'WARP Status',
-    path: '/warp',
-    icon: <CloudRoundedIcon />,
-    section: 'System',
-  },
-  {
-    text: 'Settings',
-    path: '/settings',
-    icon: <SettingsRoundedIcon />,
-    section: 'System',
-  },
-  {
-    text: 'Health',
-    path: '/health',
-    icon: <HealthAndSafetyRoundedIcon />,
-    section: 'System',
-  },
-  {
-    text: 'Stats',
-    path: '/stats',
-    icon: <AnalyticsRoundedIcon />,
-    section: 'System',
-  },
+  { text: 'Overview', path: '/', icon: <DashboardRoundedIcon />, section: 'Operations' },
+  { text: 'Scraper', path: '/scraper', icon: <TravelExploreRoundedIcon />, section: 'Operations' },
+  { text: 'Search', path: '/search', icon: <SearchRoundedIcon />, section: 'Operations' },
+  { text: 'Acestream Channels', path: '/acestream-channels', icon: <LiveTvRoundedIcon />, section: 'Operations' },
+  { text: 'TV Channels', path: '/tv-channels', icon: <LiveTvRoundedIcon />, section: 'Operations', matchPrefixes: ['/tv-channels'] },
+  { text: 'EPG', path: '/epg', icon: <EventNoteRoundedIcon />, section: 'Operations', matchPrefixes: ['/epg/channels', '/epg/mappings'] },
+  { text: 'Playlist', path: '/playlist', icon: <PlaylistPlayRoundedIcon />, section: 'Operations' },
+  { text: 'Settings', path: '/settings', icon: <SettingsRoundedIcon />, section: 'System' },
+];
+
+/** Routable pages that are reached from within another page rather than the nav. */
+export const hiddenRouteTitles: Array<{ path: string; title: string }> = [
+  { path: '/warp', title: 'WARP' },
 ];
 
 const matchesSegmentPath = (pathname: string, candidatePath: string, allowDescendants = false) => {
@@ -125,6 +60,7 @@ export function isNavItemSelected(item: NavItem, pathname: string): boolean {
 
 export function getNavTitle(pathname: string): string {
   const matched = navItems.find((item) => isNavItemSelected(item, pathname));
-
-  return matched?.text ?? 'Not Found';
+  if (matched) return matched.text;
+  const hidden = hiddenRouteTitles.find((item) => matchesSegmentPath(pathname, item.path, true));
+  return hidden?.title ?? 'Not Found';
 }

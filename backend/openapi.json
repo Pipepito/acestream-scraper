@@ -6184,6 +6184,70 @@
         ]
       }
     },
+    "/api/v1/config/epg_refresh_interval": {
+      "get": {
+        "description": "Get the interval between automatic EPG refreshes in hours.",
+        "operationId": "get_epg_refresh_interval_api_v1_config_epg_refresh_interval_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Epg Refresh Interval",
+        "tags": [
+          "config",
+          "config"
+        ]
+      },
+      "put": {
+        "description": "Update the interval between automatic EPG refreshes in hours (reschedules the job).",
+        "operationId": "update_epg_refresh_interval_api_v1_config_epg_refresh_interval_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RescrapeIntervalUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigUpdateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Epg Refresh Interval",
+        "tags": [
+          "config",
+          "config"
+        ]
+      }
+    },
     "/api/v1/config/rescrape_interval": {
       "get": {
         "description": "Get the interval between automatic rescrapes in hours.",

@@ -58,6 +58,23 @@ class ConfigService:
         except (ValueError, TypeError):
             return int(self.settings_repo.DEFAULT_RESCRAPE_INTERVAL)
 
+    def get_epg_refresh_interval(self) -> int:
+        """Hours between automatic EPG refreshes."""
+        interval_str = self.settings_repo.get_setting(SettingsRepository.EPG_REFRESH_INTERVAL)
+        try:
+            return int(interval_str)
+        except (ValueError, TypeError):
+            return int(self.settings_repo.DEFAULT_EPG_REFRESH_INTERVAL)
+
+    def set_epg_refresh_interval(self, hours: int) -> bool:
+        if not isinstance(hours, int) or hours < 1:
+            raise HTTPException(status_code=422, detail="EPG refresh interval must be positive")
+        return self.settings_repo.set_setting(
+            SettingsRepository.EPG_REFRESH_INTERVAL,
+            str(hours),
+            "Hours between EPG refreshes"
+        )
+
     def set_rescrape_interval(self, hours: int) -> bool:
         logger.info(f"ConfigService.set_rescrape_interval called with {hours}")
         if not isinstance(hours, int) or hours < 1:

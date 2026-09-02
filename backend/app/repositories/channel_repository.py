@@ -215,7 +215,7 @@ class ChannelRepository:
             # Update existing channel
             channel.name = name
             channel.last_seen = datetime.now(timezone.utc)
-            channel.is_active = True
+            # is_active is the user's "show in playlist" choice; a scrape never overrides it.
             if source_url is not None:
                 channel.source_url = source_url
             if group is not None:

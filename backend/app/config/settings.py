@@ -88,6 +88,9 @@ class Settings(BaseSettings):
     # the hourly `epg_program_cleanup` job deletes them and the v1 -> v2
     # migration skips them. Negative disables both (keep everything).
     EPG_PROGRAM_RETENTION_HOURS: float = 24.0
+    # Channels hidden from the playlist (is_active=false) are only deleted once no
+    # scrape has seen them for this many days and no TV channel links them.
+    CHANNEL_CLEANUP_DAYS: int = 30
     ZERONET_URL: str = "http://127.0.0.1:43110"
     # HTTP gateway used to fetch ipfs:// and ipns:// sources. Defaults to the
     # embedded Kubo daemon's gateway (entrypoint.sh binds it on 8081 because

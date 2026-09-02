@@ -135,6 +135,18 @@ class TaskService:
         )
         self.logger.info(f"Scheduled task '{job_id}' every {seconds} seconds.")
 
+    def reschedule_task(self, job_id: str, seconds: int) -> bool:
+        """Change a running interval job's period (settings changed at runtime)."""
+        job = self.scheduler.get_job(job_id)
+        if job is None:
+            return False
+        self.scheduler.reschedule_job(job_id, trigger=IntervalTrigger(seconds=seconds))
+        state = self._ensure_task_state(job_id, interval_seconds=seconds)
+        with self._state_lock:
+            state["interval_seconds"] = seconds
+        self.logger.info(f"Rescheduled task '{job_id}' every {seconds} seconds.")
+        return True
+
     def add_oneoff_task(self, func, job_id, args=None, kwargs=None):
         """Run ``func`` once, as soon as the scheduler can, under ``job_id``.
 

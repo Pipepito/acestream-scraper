@@ -13,6 +13,7 @@ import {
   Pagination,
   Select,
   SelectChangeEvent,
+  Snackbar,
   Table,
   TableBody,
   TableCell,
@@ -22,23 +23,28 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import CheckIcon from '@mui/icons-material/Check';
 import { useQueryClient } from '@tanstack/react-query';
-import { alpha, useTheme } from '@mui/material/styles';
 
 import ContentSection from '../components/layout/ContentSection';
 import PageHeader from '../components/layout/PageHeader';
+import StatusLine from '../components/StatusLine';
 import { useAddAcestreamChannel, useSearch } from '../hooks/useSearch';
+import { useSnackbar } from '../hooks/useSnackbar';
+import { normalizeApiError } from '../services/apiErrors';
 import { CreateAcestreamChannelDTO } from '../services/channelService';
 import { SearchResultItem } from '../services/searchService';
+import { formatBitrate } from '../utils/format';
 
 const Search: React.FC = () => {
-  const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [category, setCategory] = useState<string>('');
   const [page, setPage] = useState<number>(1);
   const [pageSize] = useState<number>(10);
   const [selectedChannels, setSelectedChannels] = useState<SearchResultItem[]>([]);
+  const [addedIds, setAddedIds] = useState<Set<string>>(() => new Set());
   const [activeSearch, setActiveSearch] = useState<{ query: string; page: number; category: string } | null>(null);
+  const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
 
   const queryClient = useQueryClient();
 
@@ -51,7 +57,6 @@ const Search: React.FC = () => {
   );
 
   const addChannelMutation = useAddAcestreamChannel();
-  const activeCategoryLabel = activeSearch?.category ? activeSearch.category : 'All categories';
   const searchErrorMessage = searchError instanceof Error ? searchError.message : String(searchError);
 
   const handleSearch = useCallback(() => {
@@ -95,13 +100,23 @@ const Search: React.FC = () => {
     group: item.categories && item.categories.length > 0 ? item.categories[0] : undefined,
   });
 
+  const markAdded = (ids: string[]) => {
+    setAddedIds((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => next.add(id));
+      return next;
+    });
+  };
+
   const handleAddChannel = async (channel: SearchResultItem) => {
     try {
       await addChannelMutation.mutateAsync(mapToCreateAcestreamChannelDTO(channel));
       queryClient.invalidateQueries({ queryKey: ['acestream-channels'] });
       setSelectedChannels((prev) => prev.filter((item) => item.id !== channel.id));
+      markAdded([channel.id]);
+      showSnackbar(`Added ${channel.name} to your channels.`, 'success');
     } catch (error) {
-      console.error('Failed to add channel:', error);
+      showSnackbar(`Could not add ${channel.name}: ${normalizeApiError(error).message}`, 'error');
     }
   };
 
@@ -109,82 +124,53 @@ const Search: React.FC = () => {
     if (selectedChannels.length === 0) return;
 
     const successfulChannelIds: string[] = [];
-    let addedChannelCount = 0;
+    let failure: unknown = null;
 
     try {
       for (const channel of selectedChannels) {
         await addChannelMutation.mutateAsync(mapToCreateAcestreamChannelDTO(channel));
-        addedChannelCount += 1;
         successfulChannelIds.push(channel.id);
       }
     } catch (error) {
-      console.error('Failed to add channels:', error);
+      failure = error;
     } finally {
-      if (addedChannelCount > 0) {
+      if (successfulChannelIds.length > 0) {
         queryClient.invalidateQueries({ queryKey: ['acestream-channels'] });
         setSelectedChannels((prev) => prev.filter((channel) => !successfulChannelIds.includes(channel.id)));
+        markAdded(successfulChannelIds);
+      }
+      if (failure) {
+        showSnackbar(`Added ${successfulChannelIds.length}; the next one failed: ${normalizeApiError(failure).message}`, 'error');
+      } else {
+        showSnackbar(`Added ${successfulChannelIds.length} channel${successfulChannelIds.length === 1 ? '' : 's'}.`, 'success');
       }
     }
   };
 
+  const results = searchResults?.results ?? [];
+  const selectableResults = results.filter((channel) => !addedIds.has(channel.id));
+
   const handleSelectAll = (checked: boolean) => {
-    if (checked && searchResults?.results) {
-      setSelectedChannels(searchResults.results);
-    } else {
-      setSelectedChannels([]);
-    }
+    setSelectedChannels(checked ? selectableResults : []);
   };
 
   const isChannelSelected = (channel: SearchResultItem) => selectedChannels.some((item) => item.id === channel.id);
-
-  const allChannelsSelected = Boolean(
-    searchResults?.results &&
-      searchResults.results.length > 0 &&
-      searchResults.results.every((channel: SearchResultItem) => isChannelSelected(channel))
-  );
-
   const hasSelection = selectedChannels.length > 0;
+  const totalResults = searchResults?.pagination?.total_results ?? 0;
 
   return (
-    <Box sx={{ width: '100%', typography: 'body1' }}>
-      <PageHeader
-        title="Search Channels"
-        subtitle="Search the upstream catalog, compare channel quality, and add the right Acestream entries with explicit selection controls."
-      />
+    <Box>
+      <PageHeader title="Search" subtitle="Find streams in the AceStream catalogue and add them to your channels." />
 
-      <ContentSection
-        title="Search Filters"
-        description="Use the supported search inputs only: one query plus an optional category before you run the search."
-      >
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <Box
-              sx={{
-                p: { xs: 2, md: 2.5 },
-                borderRadius: 2.5,
-                bgcolor: theme.appTokens.hero.bg,
-                border: `1px solid ${theme.appTokens.hero.border}`,
-                backgroundImage: theme.appTokens.hero.spotlight,
-              }}
-            >
-              <Typography variant="statusMeta" sx={{ color: theme.appTokens.hero.accent, mb: 1 }}>
-                Search pulse
-              </Typography>
-              <Typography variant="h4" sx={{ letterSpacing: '-0.03em', mb: 1 }}>
-                Search the upstream catalog, compare likely matches, and add channels with confidence.
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Start with one clear query, then refine only if needed. Selected channels stay ready for batch add so you do not lose momentum while reviewing results.
-              </Typography>
-            </Box>
-          </Grid>
-          <Grid item xs={12} md={6}>
+      <ContentSection title="Search">
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} md={7}>
             <TextField
               fullWidth
               label="Search Query"
+              placeholder="Enter search terms..."
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Enter search terms..."
               onKeyDown={(event) => {
                 if (event.key === 'Enter') {
                   handleSearch();
@@ -204,95 +190,41 @@ const Search: React.FC = () => {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} md={3}>
-            <Button
-              fullWidth
-              variant="contained"
-              color="primary"
-              onClick={handleSearch}
-              disabled={!searchQuery.trim() || searchLoading}
-              sx={{ height: '56px' }}
-            >
-              {searchLoading ? <CircularProgress size={24} /> : 'Search'}
+          <Grid item xs={12} md={2}>
+            <Button fullWidth variant="contained" size="large" onClick={handleSearch} disabled={!searchQuery.trim() || searchLoading}>
+              {searchLoading ? <CircularProgress size={24} color="inherit" /> : 'Search'}
             </Button>
           </Grid>
         </Grid>
       </ContentSection>
 
-      {searchError ? (
+      {searchError && activeSearch ? (
         <Alert severity="error" sx={{ mb: 3 }}>
-          {activeSearch ? `Search for "${activeSearch.query}" failed. ${searchErrorMessage}` : `Search failed. ${searchErrorMessage}`}
+          Search for &quot;{activeSearch.query}&quot; failed. {searchErrorMessage}
         </Alert>
       ) : null}
 
-      {searchResults ? (
+      {searchResults && activeSearch ? (
         <ContentSection
-          title="Search Results"
-          description="Review the returned channels, compare categories and bitrate, then add a single result or a selected batch."
+          title="Results"
           actions={
             hasSelection ? (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleAddSelectedChannels}
-                disabled={addChannelMutation.isPending}
-                aria-label={`Add ${selectedChannels.length} selected channels`}
-              >
+              <Button variant="contained" onClick={handleAddSelectedChannels} disabled={addChannelMutation.isPending} aria-label={`Add ${selectedChannels.length} selected channels`}>
                 {addChannelMutation.isPending ? <CircularProgress size={24} /> : `Add ${selectedChannels.length} selected channels`}
               </Button>
             ) : null
           }
         >
-          {activeSearch ? (
-            <Box
-              sx={{
-                mb: 2,
-                p: 1.5,
-                borderRadius: 2,
-                bgcolor: alpha(theme.appTokens.shell.accent, 0.06),
-                border: `1px solid ${theme.appTokens.surface.border}`,
-              }}
-            >
-              <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>
-                Active search
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                Current query: {activeSearch.query}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Current category: {activeCategoryLabel}
-              </Typography>
-            </Box>
-          ) : null}
-          <Box
-            sx={{
-              mb: 2,
-              p: 1.5,
-              borderRadius: 2,
-              bgcolor: hasSelection ? alpha(theme.appTokens.hero.accent, 0.12) : alpha(theme.appTokens.shell.accent, 0.06),
-              border: `1px solid ${hasSelection ? alpha(theme.appTokens.hero.accent, 0.28) : theme.appTokens.surface.border}`,
-            }}
-          >
-            <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>
-              Selection momentum
-            </Typography>
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {hasSelection
-                ? `${selectedChannels.length} selected channel${selectedChannels.length === 1 ? '' : 's'} ready to add.`
-                : 'No channels selected yet. Pick one or more results to prepare a batch add.'}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              Use each row Add action for one channel, or select results to prepare a batch add.
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'wrap', mb: 2 }}>
-            <Typography variant="body2" color="text.secondary">
-              {searchResults.pagination?.total_results || 0} results found
-            </Typography>
-          </Box>
-
-          {!searchResults.results || searchResults.results.length === 0 ? (
-            <Box sx={{ textAlign: 'center', py: 4 }}>
+          <StatusLine
+            aria-label="Search summary"
+            items={[
+              { label: 'Results', value: `${totalResults} for ‘${activeSearch.query}’${activeSearch.category ? ` in ${activeSearch.category}` : ''}` },
+              { label: 'Selected', value: String(selectedChannels.length) },
+              ...(addedIds.size > 0 ? [{ label: 'Added this session', value: String(addedIds.size), tone: 'success' as const }] : []),
+            ]}
+          />
+          {results.length === 0 ? (
+            <Box sx={{ py: 3, textAlign: 'center' }}>
               <Typography variant="body1" color="text.secondary">
                 No channels found matching your search criteria.
               </Typography>
@@ -302,15 +234,17 @@ const Search: React.FC = () => {
             </Box>
           ) : (
             <>
-              <TableContainer component={Box} sx={{ overflowX: 'auto' }}>
-                <Table>
+              <TableContainer>
+                <Table size="small">
                   <TableHead>
                     <TableRow>
                       <TableCell padding="checkbox">
                         <Checkbox
-                          checked={allChannelsSelected}
+                          checked={selectableResults.length > 0 && selectedChannels.length === selectableResults.length}
+                          indeterminate={hasSelection && selectedChannels.length < selectableResults.length}
                           onChange={(event) => handleSelectAll(event.target.checked)}
                           inputProps={{ 'aria-label': 'select all search results' }}
+                          disabled={selectableResults.length === 0}
                         />
                       </TableCell>
                       <TableCell>Name</TableCell>
@@ -320,58 +254,63 @@ const Search: React.FC = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {searchResults.results.map((channel: SearchResultItem) => (
-                      <TableRow key={channel.id} selected={isChannelSelected(channel)}>
-                        <TableCell padding="checkbox">
-                          <Checkbox
-                            checked={isChannelSelected(channel)}
-                            onChange={(event) => handleChannelSelection(channel, event.target.checked)}
-                            inputProps={{ 'aria-label': `select search result ${channel.name}` }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" fontWeight="bold">
-                            {channel.name}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                            {channel.categories?.map((item, index) => (
-                              <Chip key={index} label={item} size="small" />
+                    {results.map((channel) => {
+                      const added = addedIds.has(channel.id);
+                      return (
+                        <TableRow key={channel.id} selected={isChannelSelected(channel)}>
+                          <TableCell padding="checkbox">
+                            <Checkbox
+                              checked={isChannelSelected(channel)}
+                              disabled={added}
+                              onChange={(event) => handleChannelSelection(channel, event.target.checked)}
+                              inputProps={{ 'aria-label': `select search result ${channel.name}` }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" fontWeight="bold">
+                              {channel.name}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            {(channel.categories ?? []).map((item) => (
+                              <Chip key={item} label={item} size="small" sx={{ mr: 0.5 }} />
                             ))}
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="caption" color="text.secondary">
-                            {channel.bitrate ? `${channel.bitrate} kbps` : 'Unknown'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            onClick={() => handleAddChannel(channel)}
-                            disabled={addChannelMutation.isPending}
-                            aria-label={`Add ${channel.name}`}
-                          >
-                            {addChannelMutation.isPending ? <CircularProgress size={16} /> : 'Add'}
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                              {formatBitrate(channel.bitrate)}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            {added ? (
+                              <Chip size="small" color="success" icon={<CheckIcon />} label="Added" aria-label={`Added ${channel.name}`} />
+                            ) : (
+                              <Button size="small" variant="outlined" onClick={() => handleAddChannel(channel)} disabled={addChannelMutation.isPending} aria-label={`Add ${channel.name}`}>
+                                Add
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </TableContainer>
-
-              {searchResults.pagination && searchResults.pagination.total_pages > 1 ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-                  <Pagination count={searchResults.pagination.total_pages} page={page} onChange={handlePageChange} color="primary" />
+              {(searchResults.pagination?.total_pages ?? 0) > 1 ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                  <Pagination count={searchResults.pagination?.total_pages ?? 1} page={page} onChange={handlePageChange} color="primary" />
                 </Box>
               ) : null}
             </>
           )}
         </ContentSection>
       ) : null}
+
+      <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={closeSnackbar} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert onClose={closeSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

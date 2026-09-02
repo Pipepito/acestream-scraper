@@ -13,19 +13,23 @@ const URL_TYPE_LABEL = { auto: 'Auto-detect', regular: 'Regular HTTP', zeronet: 
 export class ScraperPage extends AppShell {
   async open(): Promise<void> {
     await this.goto('/scraper');
-    await this.expectHeading('URL Scraper');
+    await this.expectHeading('Scraper');
   }
 
-  urlsRegion(): Locator {
-    return this.region('Configured URLs');
+  sources(): Locator {
+    return this.region('Sources');
+  }
+
+  status(): Locator {
+    return this.statusLine('Source status');
   }
 
   row(url: string): Locator {
-    return this.urlsRegion().getByRole('row').filter({ hasText: url });
+    return this.sources().getByRole('row').filter({ hasText: url });
   }
 
   async addUrl(opts: AddUrlOptions): Promise<void> {
-    await this.page.getByRole('button', { name: 'Add URL' }).click();
+    await this.headerButton('Add URL').click();
     const dialog = this.dialog('Add URL');
     await expect(dialog).toBeVisible();
     await dialog.getByRole('textbox', { name: 'URL' }).fill(opts.url);
@@ -47,27 +51,31 @@ export class ScraperPage extends AppShell {
   }
 
   async edit(url: string): Promise<Locator> {
-    await this.row(url).getByRole('button', { name: `Edit URL ${url}` }).click();
+    await this.rowMenuAction(this.row(url), url, 'Edit');
     const dialog = this.dialog('Edit URL');
     await expect(dialog).toBeVisible();
     return dialog;
   }
 
   async delete(url: string): Promise<void> {
-    this.acceptNextDialog();
-    await this.row(url).getByRole('button', { name: `Delete URL ${url}` }).click();
+    await this.rowMenuAction(this.row(url), url, 'Delete');
+    await this.confirmDialog('Delete this source?', 'Delete');
   }
 
   async refresh(): Promise<void> {
-    await this.page.getByRole('button', { name: 'Refresh', exact: true }).click();
+    await this.headerButton('Refresh').click();
   }
 
   async scrapeAllEnabled(): Promise<void> {
-    this.acceptNextDialog();
-    await this.page.getByRole('button', { name: 'Scrape All Enabled' }).click();
+    await this.headerButton('Scrape all').click();
+    await this.confirmDialog('Scrape all enabled sources?', 'Scrape all');
   }
 
-  bareIdsSwitch(url: string): Locator {
-    return this.row(url).getByRole('checkbox', { name: `Harvest bare content IDs for ${url}` });
+  enabledSwitch(url: string): Locator {
+    return this.row(url).getByRole('checkbox', { name: `Enable ${url}` });
+  }
+
+  async toggleBareIds(url: string): Promise<void> {
+    await this.rowMenuAction(this.row(url), url, 'Harvest bare IDs');
   }
 }

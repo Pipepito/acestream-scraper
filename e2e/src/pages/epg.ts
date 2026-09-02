@@ -1,14 +1,26 @@
 import { expect, type Locator } from '@playwright/test';
 import { AppShell } from './app-shell';
 
+export type EPGTab = 'Sources' | 'Channels' | 'Matching' | 'Rules' | 'Export';
+
 export class EPGPage extends AppShell {
-  async open(): Promise<void> {
+  async open(tab: EPGTab = 'Sources'): Promise<void> {
     await this.goto('/epg');
-    await this.expectHeading('EPG Management');
+    await this.expectHeading('EPG');
+    if (tab !== 'Sources') await this.selectTab(tab);
+  }
+
+  async selectTab(tab: EPGTab): Promise<void> {
+    await this.page.getByRole('tab', { name: tab }).click();
+    await expect(this.page.getByRole('tab', { name: tab })).toHaveAttribute('aria-selected', 'true');
+  }
+
+  summary(): Locator {
+    return this.statusLine('EPG summary');
   }
 
   sources(): Locator {
-    return this.region('Source Operations');
+    return this.region('Sources');
   }
 
   sourceRow(name: string): Locator {
@@ -47,11 +59,11 @@ export class EPGPage extends AppShell {
   }
 
   matching(): Locator {
-    return this.region('Channel Matching');
+    return this.region('Matching');
   }
 
-  inventory(): Locator {
-    return this.region('Channel Inventory');
+  channels(): Locator {
+    return this.region('Guide channels');
   }
 
   async selectSourceFilter(name: string | RegExp): Promise<void> {
@@ -63,16 +75,20 @@ export class EPGPage extends AppShell {
     await this.matching().getByRole('button', { name: 'Analyze Matches' }).click();
   }
 
-  inventoryRow(name: string): Locator {
-    return this.inventory().getByRole('row').filter({ hasText: name });
+  channelRow(name: string): Locator {
+    return this.channels().getByRole('row').filter({ hasText: name });
   }
 
-  async viewPrograms(name: string): Promise<void> {
-    await this.inventoryRow(name).getByRole('button', { name: `View programs for ${name}` }).click();
+  channelLink(name: string): Locator {
+    return this.channelRow(name).getByRole('link', { name });
   }
 
-  xmlOutput(): Locator {
-    return this.region('XML Output');
+  exportPanel(): Locator {
+    return this.region('Export XML');
+  }
+
+  rules(): Locator {
+    return this.region('Matching rules');
   }
 }
 
@@ -82,16 +98,24 @@ export class EPGChannelDetailPage extends AppShell {
     await this.expectHeading(name);
   }
 
-  schedule(): Locator {
-    return this.region('Program Schedule');
+  summary(): Locator {
+    return this.page.getByRole('group', { name: 'Guide channel summary' });
   }
 
-  programsTable(): Locator {
-    return this.page.getByRole('table', { name: 'Program schedule table' });
+  schedule(): Locator {
+    return this.region('Schedule');
+  }
+
+  nowNext(): Locator {
+    return this.schedule().getByRole('region', { name: 'Now and next' });
+  }
+
+  async selectDay(label: string | RegExp): Promise<void> {
+    await this.schedule().getByRole('tab', { name: label }).click();
   }
 
   mappings(): Locator {
-    return this.region('String Mapping Rules');
+    return this.region('String mapping rules');
   }
 
   async mapToTvChannel(tvName: string): Promise<void> {
@@ -114,8 +138,8 @@ export class EPGChannelDetailPage extends AppShell {
   }
 
   async deleteStringMapping(pattern: string): Promise<void> {
-    this.acceptNextDialog();
     await this.mappings().getByRole('button', { name: `Delete string mapping ${pattern}` }).click();
+    await this.confirmDialog(new RegExp(`^Delete the rule “${pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}”\\?$`), 'Delete');
   }
 
   async createTvChannel(overrides: { name?: string; category?: string } = {}): Promise<void> {

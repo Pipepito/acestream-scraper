@@ -546,7 +546,7 @@ class EPGService:
             result = self._fetch_epg_from_source(source)
 
             # Update source status
-            source.last_updated = datetime.now()
+            source.last_updated = datetime.now(timezone.utc)
             if result["success"]:
                 source.error_count = 0
                 source.last_error = None

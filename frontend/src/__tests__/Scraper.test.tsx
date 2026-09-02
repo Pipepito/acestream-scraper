@@ -1,6 +1,6 @@
 import React from 'react';
 import { ThemeProvider } from '@mui/material/styles';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import Scraper from '../pages/Scraper';
@@ -87,76 +87,80 @@ describe('Scraper', () => {
     expect(screen.getByText('Not scraped yet')).toBeInTheDocument();
   });
 
-  it('adds explicit accessible labels to row action buttons', () => {
+
+
+
+
+
+  it('summarises sources in one status line and labels the row actions', () => {
     renderPage();
 
-    expect(screen.getByRole('button', { name: 'Scrape URL https://source-one.test/feed' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Edit URL https://source-one.test/feed' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Delete URL https://source-one.test/feed' })).toBeInTheDocument();
+    const status = screen.getByRole('status', { name: 'Source status' });
+    expect(status).toHaveTextContent('1 of 1 enabled');
+    expect(status).toHaveTextContent('32');
+    expect(status).toHaveTextContent(/ago/);
+    expect(screen.queryByText(/source intake stage/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Scrape URL https://source-one.test/feed' })).toHaveTextContent('Scrape');
+    expect(screen.getByText('Auto-detect')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'More actions for https://source-one.test/feed' }));
+    expect(screen.getByRole('menuitem', { name: 'Edit' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitemcheckbox', { name: 'Harvest bare IDs' })).toHaveAttribute('aria-checked', 'false');
+    expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
   });
 
-  it('toggles bare content ID harvesting on a row via the patch mutation', async () => {
+  it('toggles bare content ID harvesting from the row menu', async () => {
     const mutateAsync = jest.fn().mockResolvedValue({});
     mockUsePatchURL.mockReturnValue({ mutateAsync, isPending: false });
 
     renderPage();
 
-    const bareIdsSwitch = screen.getByRole('checkbox', {
-      name: 'Harvest bare content IDs for https://source-one.test/feed',
-    });
-    expect(bareIdsSwitch).not.toBeChecked();
-
-    fireEvent.click(bareIdsSwitch);
+    fireEvent.click(screen.getByRole('button', { name: 'More actions for https://source-one.test/feed' }));
+    fireEvent.click(screen.getByRole('menuitemcheckbox', { name: 'Harvest bare IDs' }));
 
     await waitFor(() => {
       expect(mutateAsync).toHaveBeenCalledWith({ id: 11, data: { scrape_bare_ids: true } });
     });
   });
 
-  it('opens with a source-intake summary that shows the pipeline and next step', () => {
+  it('enables and disables a source from the table switch', async () => {
+    const mutateAsync = jest.fn().mockResolvedValue({});
+    mockUsePatchURL.mockReturnValue({ mutateAsync, isPending: false });
+
     renderPage();
 
-    expect(screen.getByText(/^sources$/i)).toBeInTheDocument();
-    expect(screen.getByText(/^extracted channels$/i)).toBeInTheDocument();
-    expect(screen.getByText(/^tv organization$/i)).toBeInTheDocument();
-    expect(screen.getByText(/source intake stage/i)).toBeInTheDocument();
-    expect(screen.getByText(/^source readiness$/i)).toBeInTheDocument();
-    expect(screen.getByText(/^next step$/i)).toBeInTheDocument();
-    expect(screen.getByText(/review extracted channels/i)).toBeInTheDocument();
+    const toggle = screen.getByRole('checkbox', { name: 'Enable https://source-one.test/feed' });
+    expect(toggle).toBeChecked();
+    fireEvent.click(toggle);
+
+    await waitFor(() => {
+      expect(mutateAsync).toHaveBeenCalledWith({ id: 11, data: { enabled: false } });
+    });
+    expect(await screen.findByText(/Source disabled/)).toBeInTheDocument();
   });
 
-  it('shows a safe no-enabled-sources branch in the intake summary', () => {
-    mockUseURLs.mockReturnValue({
-      data: [
-        {
-          id: 21,
-          url: 'https://source-disabled.test/feed',
-          url_type: 'auto',
-          enabled: false,
-          last_processed: null,
-          channels_found: 0,
-        },
-      ],
-      isLoading: false,
-      refetch: jest.fn(),
-    });
+  it('asks for confirmation in the app dialog before deleting', async () => {
+    const mutateAsync = jest.fn().mockResolvedValue(undefined);
+    mockUseDeleteURL.mockReturnValue({ mutateAsync });
+    const confirmSpy = jest.spyOn(window, 'confirm');
 
     renderPage();
 
-    expect(screen.getByText(/none are enabled for intake/i)).toBeInTheDocument();
-    expect(screen.getByText(/enable at least one source, then run a scrape/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'More actions for https://source-one.test/feed' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Delete this source?' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledWith(11));
+    expect(confirmSpy).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
   });
 
-  it('shows a safe no-sources-configured branch in the intake summary', () => {
-    mockUseURLs.mockReturnValue({
-      data: [],
-      isLoading: false,
-      refetch: jest.fn(),
-    });
-
+  it('shows an empty state instead of an empty table', () => {
+    mockUseURLs.mockReturnValue({ data: [], isLoading: false, refetch: jest.fn() });
     renderPage();
-
-    expect(screen.getByText(/no source urls configured yet/i)).toBeInTheDocument();
-    expect(screen.getByText(/add your first source url to start the pipeline/i)).toBeInTheDocument();
+    expect(screen.getByText('No source URLs yet. Add one to start scraping.')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Source status' })).toHaveTextContent('0 of 0 enabled');
   });
 });
+

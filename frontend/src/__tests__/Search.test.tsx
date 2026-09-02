@@ -108,9 +108,9 @@ describe('Search page', () => {
   it('renders shared header and section-first search hierarchy', () => {
     renderPage();
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Search Channels' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: 'Search Filters' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { level: 2, name: 'Search Results' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Search' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Search' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 2, name: 'Results' })).not.toBeInTheDocument();
   });
 
   it('surfaces only the supported search inputs', () => {
@@ -130,16 +130,15 @@ describe('Search page', () => {
   it('shows the active query and category only after a search runs', () => {
     renderPage();
 
-    expect(screen.queryByText(/current query:/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/current category:/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('status', { name: 'Search summary' })).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByRole('textbox', { name: 'Search Query' }), { target: { value: 'arena' } });
     fireEvent.mouseDown(screen.getByRole('combobox'));
     fireEvent.click(screen.getByRole('option', { name: 'Sports' }));
     fireEvent.click(screen.getByRole('button', { name: 'Search' }));
 
-    expect(screen.getByText(/current query:\s*arena/i)).toBeInTheDocument();
-    expect(screen.getByText(/current category:\s*sports/i)).toBeInTheDocument();
+    const summary = screen.getByRole('status', { name: 'Search summary' });
+    expect(summary).toHaveTextContent(/for ‘arena’ in sports/);
   });
 
   it('keeps single-add and batch-add actions distinct with an explicit selection summary', () => {
@@ -152,12 +151,12 @@ describe('Search page', () => {
     expect(screen.getByRole('checkbox', { name: 'select search result Arena Premium' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add Arena Premium' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Add 1 selected channels' })).not.toBeInTheDocument();
-    expect(screen.getByText(/no channels selected yet/i)).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Search summary' })).toHaveTextContent('Selected0');
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'select search result Arena Premium' }));
 
     expect(screen.getByRole('button', { name: 'Add 1 selected channels' })).toBeInTheDocument();
-    expect(screen.getByText(/1 selected channel ready to add/i)).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Search summary' })).toHaveTextContent('Selected1');
   });
 
   it('adds a single result and invalidates the acestream inventory query', async () => {
@@ -193,7 +192,7 @@ describe('Search page', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: 'select search result Arena Premium' }));
     fireEvent.click(screen.getByRole('checkbox', { name: 'select search result News Global' }));
 
-    expect(screen.getByText(/2 selected channels ready to add/i)).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Search summary' })).toHaveTextContent('Selected2');
 
     fireEvent.click(screen.getByRole('button', { name: 'Add Arena Premium' }));
 
@@ -205,7 +204,7 @@ describe('Search page', () => {
       });
     });
 
-    expect(screen.getByText(/1 selected channel ready to add/i)).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Search summary' })).toHaveTextContent('Selected1');
     expect(screen.getByRole('button', { name: 'Add 1 selected channels' })).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: 'select search result Arena Premium' })).not.toBeChecked();
     expect(screen.getByRole('checkbox', { name: 'select search result News Global' })).toBeChecked();
@@ -291,7 +290,7 @@ describe('Search page', () => {
       fireEvent.click(screen.getByRole('checkbox', { name: 'select search result Arena Premium' }));
       fireEvent.click(screen.getByRole('checkbox', { name: 'select search result News Global' }));
 
-      expect(screen.getByText(/2 selected channels ready to add/i)).toBeInTheDocument();
+      expect(screen.getByRole('status', { name: 'Search summary' })).toHaveTextContent('Selected2');
 
       fireEvent.click(screen.getByRole('button', { name: 'Add 2 selected channels' }));
 
@@ -307,7 +306,7 @@ describe('Search page', () => {
         group: 'news',
       });
 
-      expect(screen.getByText(/1 selected channel ready to add/i)).toBeInTheDocument();
+      expect(screen.getByRole('status', { name: 'Search summary' })).toHaveTextContent('Selected1');
       expect(screen.getByRole('button', { name: 'Add 1 selected channels' })).toBeInTheDocument();
       expect(screen.getByRole('checkbox', { name: 'select search result Arena Premium' })).not.toBeChecked();
       expect(screen.getByRole('checkbox', { name: 'select search result News Global' })).toBeChecked();
@@ -367,9 +366,8 @@ describe('Search page', () => {
     expect(screen.getByRole('textbox', { name: 'Search Query' })).toBeInTheDocument();
     expect(screen.getAllByText('Category').length).toBeGreaterThan(0);
     expect(screen.getByRole('combobox')).toBeInTheDocument();
-    expect(screen.getByText(/current query:\s*arena/i)).toBeInTheDocument();
-    expect(screen.getByText(/current category:\s*all categories/i)).toBeInTheDocument();
-    expect(screen.getByText(/1 selected channel ready to add/i)).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Search summary' })).toHaveTextContent(/for ‘arena’/);
+    expect(screen.getByRole('status', { name: 'Search summary' })).toHaveTextContent('Selected1');
     expect(screen.getByRole('button', { name: 'Add Arena Premium' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add 1 selected channels' })).toBeInTheDocument();
   });

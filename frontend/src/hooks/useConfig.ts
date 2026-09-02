@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
-import { configService, HealthResponse, Stats, StatusResponse } from '../services/configService';
+import { configService, HealthResponse, Stats, StatusResponse, TvChannelStats } from '../services/configService';
 
 type QueryOpts<T> = Omit<UseQueryOptions<T>, 'queryKey' | 'queryFn'>;
 
@@ -67,6 +67,27 @@ export const useUpdateRescrapeInterval = () => {
 };
 
 /**
+ * Hook for getting the EPG refresh interval setting
+ */
+export const useEpgRefreshInterval = () => {
+  return useQuery({ queryKey: ['epgRefreshInterval'], queryFn: configService.getEpgRefreshInterval });
+};
+
+/**
+ * Hook for updating the EPG refresh interval setting
+ */
+export const useUpdateEpgRefreshInterval = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (hours: number) => configService.updateEpgRefreshInterval(hours),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['epgRefreshInterval'] });
+      queryClient.invalidateQueries({ queryKey: ['allSettings'] });
+    },
+  });
+};
+
+/**
  * Hook for getting the addpid setting
  */
 export const useAddPid = () => {
@@ -113,4 +134,11 @@ export const useHealth = (options: QueryOpts<HealthResponse> = {}) => {
  */
 export const useStats = (options: QueryOpts<Stats> = {}) => {
   return useQuery<Stats>({ queryKey: ['stats'], queryFn: configService.getStats, ...options });
+};
+
+/**
+ * Hook for TV channel totals
+ */
+export const useTvChannelStats = (options: QueryOpts<TvChannelStats> = {}) => {
+  return useQuery<TvChannelStats>({ queryKey: ['stats', 'tv-channels'], queryFn: configService.getTvChannelStats, ...options });
 };

@@ -1,44 +1,19 @@
 import type { Locator } from '@playwright/test';
 import { AppShell } from './app-shell';
 
-export class DashboardPage extends AppShell {
+export class OverviewPage extends AppShell {
   async open(): Promise<void> {
     await this.goto('/');
-    await this.expectHeading('Dashboard');
-  }
-  readiness(): Locator {
-    return this.region('System readiness');
-  }
-  backgroundTasks(): Locator {
-    return this.region('Background Tasks');
-  }
-  recentActivity(): Locator {
-    return this.region('Recent Activity');
-  }
-  autoRefreshSwitch(): Locator {
-    return this.page.getByRole('checkbox', { name: 'Auto-Refresh' });
-  }
-  retentionSelect(): Locator {
-    return this.comboboxByFormLabel('Retention');
-  }
-}
-
-export class HealthPage extends AppShell {
-  async open(): Promise<void> {
-    await this.goto('/health');
-    await this.expectHeading('Health');
+    await this.expectHeading('Overview');
   }
   statusChip(): Locator {
-    return this.page.getByTestId('page-header-actions').getByText(/^(HEALTHY|DEGRADED|ERROR)$/);
+    return this.page.getByTestId('page-header-actions').getByText(/^(HEALTHY|ATTENTION)$/);
   }
-  overview(): Locator {
-    return this.region('Status overview');
-  }
-  totals(): Locator {
-    return this.region('Supporting totals');
+  summary(): Locator {
+    return this.statusLine('Overview summary');
   }
   async refresh(): Promise<void> {
-    await this.overview().getByRole('button', { name: 'Refresh status' }).click();
+    await this.page.getByRole('button', { name: 'Refresh', exact: true }).first().click();
   }
   services(): Locator {
     return this.region('Services');
@@ -51,21 +26,16 @@ export class HealthPage extends AppShell {
   }
   async restart(label: string): Promise<void> {
     await this.restartButton(label).click();
-    const dialog = this.dialog(`Restart ${label}?`);
-    await dialog.getByRole('button', { name: 'Restart service' }).click();
+    await this.confirmDialog(`Restart ${label}?`, 'Restart service');
   }
-}
-
-export class StatsPage extends AppShell {
-  async open(): Promise<void> {
-    await this.goto('/stats');
-    await this.expectHeading('Stats');
+  inventory(): Locator {
+    return this.region('Inventory');
   }
-  summary(): Locator {
-    return this.page.getByTestId('stats-summary-metrics');
+  inventoryGroup(title: 'Streams' | 'TV channels' | 'Sources and guide'): Locator {
+    return this.inventory().getByRole('region', { name: title });
   }
-  breakdown(): Locator {
-    return this.page.getByTestId('stats-breakdown-groups');
+  scheduledJobs(): Locator {
+    return this.region('Scheduled jobs').getByRole('table', { name: 'Scheduled jobs' });
   }
 }
 
@@ -74,8 +44,11 @@ export class WarpPage extends AppShell {
     await this.goto('/warp');
     await this.expectHeading('WARP');
   }
-  connectionStatus(): Locator {
-    return this.region('Connection status');
+  status(): Locator {
+    return this.statusLine('WARP status');
+  }
+  connectionDetails(): Locator {
+    return this.region('Connection details');
   }
   modeAndLicense(): Locator {
     return this.region('Mode and license');

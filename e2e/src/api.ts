@@ -49,6 +49,7 @@ export interface TvChannel {
   is_active: boolean;
   is_favorite: boolean;
   channel_number: number | null;
+  website?: string | null;
   acestream_channels: AcestreamChannel[];
 }
 export interface EpgSource {
@@ -275,7 +276,7 @@ export class Api {
     const res = await this.request.get(this.url(`${path}${qs.size ? `?${qs}` : ''}`));
     return { status: res.status(), body: await res.text(), contentType: res.headers()['content-type'] ?? '' };
   }
-  async raw(method: 'get' | 'post' | 'put' | 'delete', path: string, data?: unknown): Promise<APIResponse> {
+  async raw(method: 'get' | 'post' | 'put' | 'patch' | 'delete', path: string, data?: unknown): Promise<APIResponse> {
     return this.request[method](this.url(path), data === undefined ? undefined : { data });
   }
 }

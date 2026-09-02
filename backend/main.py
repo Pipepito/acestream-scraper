@@ -101,6 +101,22 @@ def _schedule_deferred_migration() -> bool:
     return True
 
 
+def _configured_intervals() -> tuple[int, int]:
+    """(rescrape hours, EPG refresh hours) from the settings table; defaults on any failure."""
+    from app.config.database import SessionLocal
+    from app.services.config_service import ConfigService
+
+    db = SessionLocal()
+    try:
+        config = ConfigService(db)
+        return max(1, int(config.get_rescrape_interval())), max(1, int(config.get_epg_refresh_interval()))
+    except Exception as exc:  # noqa: BLE001 - never block startup on a settings read
+        logging.getLogger("main").warning("Could not read scheduler intervals from settings (%s); using defaults", exc)
+        return 24, 6
+    finally:
+        db.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan: provision the database, start the scheduler, and
@@ -110,9 +126,10 @@ async def lifespan(app: FastAPI):
     initialize_database()
     task_service.start()
     task_service.add_interval_task(run_activity_log_cleanup, seconds=86400, job_id="activity_log_cleanup")  # daily
-    task_service.add_interval_task(run_epg_refresh_task, seconds=3600, job_id="epg_refresh")  # every hour
+    scrape_hours, epg_hours = _configured_intervals()
+    task_service.add_interval_task(run_epg_refresh_task, seconds=epg_hours * 3600, job_id="epg_refresh")  # settings: epg_refresh_interval
     task_service.add_interval_task(run_epg_program_cleanup_task, seconds=3600, job_id="epg_program_cleanup")  # every hour
-    task_service.add_interval_task(run_url_scraping_task, seconds=900, job_id="url_scraping")  # every 15 min
+    task_service.add_interval_task(run_url_scraping_task, seconds=scrape_hours * 3600, job_id="url_scraping")  # settings: rescrape_interval
     task_service.add_interval_task(run_channel_cleanup_task, seconds=86400, job_id="channel_cleanup")  # daily
     task_service.add_interval_task(run_channel_status_task, seconds=600, job_id="channel_status")  # every 10 min
     _schedule_deferred_migration()

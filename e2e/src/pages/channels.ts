@@ -11,68 +11,81 @@ export class ChannelsPage extends AppShell {
     return this.page.getByRole('grid');
   }
 
+  dataRows(): Locator {
+    return this.grid().locator('[role="row"][data-id]');
+  }
+
   row(name: string): Locator {
     return this.grid().getByRole('row').filter({ hasText: name });
   }
 
-  filtersForm(): Locator {
-    return this.page.getByRole('form', { name: 'Channel filters' });
+  summary(): Locator {
+    return this.statusLine('Channel summary');
   }
 
+  filterBar(): Locator {
+    return this.page.getByRole('search', { name: 'Channel filters' });
+  }
+
+  /** The search box is debounced; wait until the summary reports the filtered count. */
   async filterByName(text: string): Promise<void> {
-    const form = this.filtersForm();
-    await form.getByRole('textbox', { name: 'Search' }).fill(text);
-    await form.getByRole('button', { name: 'Apply Filters' }).click();
+    await this.filterBar().getByRole('textbox', { name: 'Search' }).fill(text);
+    await expect(this.summary()).toContainText(/Matching filters\s*\d+/);
   }
 
   async resetFilters(): Promise<void> {
-    await this.filtersForm().getByRole('button', { name: 'Reset Filters' }).click();
+    await this.filterBar().getByRole('button', { name: 'Reset filters' }).click();
+    await expect(this.summary()).toContainText(/Matching filters\s*all/);
   }
 
   async openEdit(name: string): Promise<Locator> {
-    await this.row(name).getByRole('button', { name: `edit channel ${name}` }).click();
-    const dialog = this.dialog('Quick Edit Channel');
+    await this.rowMenuAction(this.row(name).first(), name, 'Edit');
+    const dialog = this.dialog('Edit channel');
     await expect(dialog).toBeVisible();
     return dialog;
   }
 
   async openAdd(): Promise<Locator> {
-    await this.page.getByRole('button', { name: 'Add', exact: true }).click();
-    const dialog = this.dialog('Quick Edit Channel');
+    await this.headerButton('Add channel').click();
+    const dialog = this.dialog('Add channel');
     await expect(dialog).toBeVisible();
     return dialog;
   }
 
   async checkStatus(name: string): Promise<void> {
-    await this.row(name).getByRole('button', { name: `check channel status ${name}` }).click();
+    await this.row(name).first().getByRole('button', { name: `check channel status ${name}` }).click();
   }
 
   async checkAllStatuses(): Promise<void> {
-    await this.page.getByRole('button', { name: /Check All Statuses|Checking\.\.\./ }).click();
+    await this.headerButton(/Check all statuses|Checking/).click();
   }
 
   async deleteChannel(name: string): Promise<void> {
-    this.acceptNextDialog();
-    await this.row(name).getByRole('button', { name: `delete channel ${name}` }).click();
+    await this.rowMenuAction(this.row(name).first(), name, 'Delete');
+    await this.confirmDialog(`Delete ${name}?`, 'Delete');
   }
 
-  async toggleActive(name: string): Promise<void> {
-    await this.row(name).getByRole('button', { name: new RegExp(`^(de)?activate channel ${escapeRegExp(name)}$`) }).click();
+  async hideFromPlaylist(name: string): Promise<void> {
+    await this.rowMenuAction(this.row(name).first(), name, 'Hide from playlist');
+  }
+
+  async showInPlaylist(name: string): Promise<void> {
+    await this.rowMenuAction(this.row(name).first(), name, 'Show in playlist');
   }
 
   async openAssignTv(name: string): Promise<Locator> {
-    await this.row(name).getByRole('button', { name: `assign tv channel to ${name}` }).click();
+    await this.row(name).first().getByRole('button', { name: `assign tv channel to ${name}` }).click();
     const dialog = this.dialog('Assign to TV Channel');
     await expect(dialog).toBeVisible();
     return dialog;
   }
 
   csvButton(): Locator {
-    return this.page.getByRole('button', { name: 'CSV', exact: true });
+    return this.headerButton('Export CSV');
   }
 
   async refresh(): Promise<void> {
-    await this.page.getByTestId('page-header-actions').getByRole('button', { name: 'Refresh', exact: true }).click();
+    await this.headerButton('Refresh').click();
   }
 
   onlineChip(name: string): Locator {

@@ -35,6 +35,28 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  # The same image with every optional service switched off: the app must still work
+  # against an engine that lives elsewhere (here: the `engine` container over the compose network).
+  app-off:
+    image: ${E2E_IMAGE:-acestream-scraper:e2e-arm64}
+    platform: ${E2E_PLATFORM:-linux/arm64}
+    container_name: acestream-e2e-app-off
+    environment:
+      ENABLE_ACESTREAM_ENGINE: "false"
+      ENABLE_ACEXY: "false"
+      ENABLE_WARP: "false"
+      ACE_ENGINE_URL: "http://engine:6878"
+      DATABASE_URL: sqlite:///./config/scraper.db
+      LEGACY_DATABASE_URL: sqlite:///./config/acestream.db
+      ALLOW_PRIVATE_SCRAPE_TARGETS: "true"
+      IPFS_GATEWAY_URL: "http://ipfs:8080"
+    ports:
+      - "127.0.0.1:8002:8000"   # services-off flavour (npm run test:docker-off)
+    volumes:
+      - ../.stack/container-off-config:/app/config
+    depends_on:
+      - engine
+
   ipfs:
     image: ipfs/kubo:latest
     container_name: acestream-e2e-ipfs

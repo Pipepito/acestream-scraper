@@ -1,32 +1,16 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
-export type NavLabel =
-  | 'Dashboard'
-  | 'Scraper'
-  | 'Acestream Search'
-  | 'Acestream Channels'
-  | 'EPG Sources'
-  | 'EPG Mappings'
-  | 'TV Channels'
-  | 'Playlist'
-  | 'WARP Status'
-  | 'Settings'
-  | 'Health'
-  | 'Stats';
+export type NavLabel = 'Overview' | 'Scraper' | 'Search' | 'Acestream Channels' | 'TV Channels' | 'EPG' | 'Playlist' | 'Settings';
 
 export const NAV_ROUTES: Record<NavLabel, string> = {
-  Dashboard: '/',
+  Overview: '/',
   Scraper: '/scraper',
-  'Acestream Search': '/search',
+  Search: '/search',
   'Acestream Channels': '/acestream-channels',
-  'EPG Sources': '/epg',
-  'EPG Mappings': '/epg/mappings',
   'TV Channels': '/tv-channels',
+  EPG: '/epg',
   Playlist: '/playlist',
-  'WARP Status': '/warp',
   Settings: '/settings',
-  Health: '/health',
-  Stats: '/stats',
 };
 
 /** Shell-level interactions shared by every page: navigation, regions, dialogs, MUI widgets. */
@@ -62,6 +46,16 @@ export class AppShell {
     return this.page.getByRole('dialog', { name });
   }
 
+  /** A StatusLine (`role=status`) by its accessible name. */
+  statusLine(name: string): Locator {
+    return this.page.getByRole('status', { name });
+  }
+
+  /** Header action buttons (the PageHeader renders overflow actions as buttons at desktop widths). */
+  headerButton(name: string | RegExp): Locator {
+    return this.page.getByTestId('page-header-actions').getByRole('button', { name });
+  }
+
   /** MUI Snackbar/Alert containing `text`. */
   alert(text: string | RegExp): Locator {
     return this.page.getByRole('alert').filter({ hasText: text });
@@ -82,6 +76,23 @@ export class AppShell {
 
   dismissNextDialog(): void {
     this.page.once('dialog', (d) => void d.dismiss());
+  }
+
+  /** Confirm the app's ConfirmDialog (title + confirm button label). */
+  async confirmDialog(title: string | RegExp, confirmLabel: string): Promise<void> {
+    const dialog = this.dialog(title);
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole('button', { name: confirmLabel, exact: true }).click();
+    await expect(dialog).toBeHidden();
+  }
+
+  /** Open a row's "More actions" menu and pick an item. */
+  async rowMenuAction(row: Locator, subject: string, item: string | RegExp): Promise<void> {
+    await row.getByRole('button', { name: `More actions for ${subject}` }).click();
+    const menu = this.page.getByRole('menu');
+    await expect(menu).toBeVisible();
+    await menu.getByRole('menuitem', { name: item }).or(menu.getByRole('menuitemcheckbox', { name: item })).first().click();
+    await expect(menu).toBeHidden();
   }
 
   /** Open a MUI (non-native) Select and pick an option by its visible text. */

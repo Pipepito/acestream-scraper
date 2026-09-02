@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from typing import Dict, Any, Optional
 import logging
+import os
 
 from app.models.models import Setting
 
@@ -19,7 +20,9 @@ class SettingsRepository:
 
     # Constants for default values
     DEFAULT_BASE_URL = 'acestream://'
-    DEFAULT_ACE_ENGINE_URL = 'http://localhost:6878'
+    # A container that runs no engine of its own points at an external one through ACE_ENGINE_URL
+    # (legacy alias ACESTREAM_ENGINE_URL); the Settings page can still override it per database.
+    DEFAULT_ACE_ENGINE_URL = os.environ.get('ACE_ENGINE_URL') or os.environ.get('ACESTREAM_ENGINE_URL') or 'http://localhost:6878'
     DEFAULT_RESCRAPE_INTERVAL = '24'
     DEFAULT_ADDPID = 'false'
     DEFAULT_EPG_REFRESH_INTERVAL = '6'

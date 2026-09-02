@@ -1,101 +1,83 @@
-/**
- * WARP Management Page
- */
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
+  Alert,
   Box,
   Button,
+  Chip,
   CircularProgress,
-  Divider,
   FormControl,
   Grid,
   InputLabel,
   MenuItem,
   Paper,
   Select,
-  SelectChangeEvent,
+  Stack,
   TextField,
   Typography,
-  Alert,
-  Chip,
-  Stack,
 } from '@mui/material';
+import type { SelectChangeEvent } from '@mui/material';
 import { useWarpStatus, useWarpConnect, useWarpDisconnect, useWarpSetMode, useWarpRegisterLicense } from '../hooks/useWarp';
-import { WarpMode } from '../types/warpTypes';
+import { WarpMode, WarpStatus } from '../types/warpTypes';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
-import { alpha, useTheme } from '@mui/material/styles';
+
+const SUBTITLE = 'Cloudflare WARP tunnel for the scraper’s outbound traffic.';
+
+/** One sentence that says everything a user needs about the tunnel state. */
+export const describeWarpStatus = (status: WarpStatus | undefined): string => {
+  if (!status?.running) return 'Not running';
+  const parts = [status.connected ? 'Connected' : 'Disconnected'];
+  if (status.mode) parts.push(`mode ${status.mode}`);
+  if (status.account_type) parts.push(`${status.account_type} account`);
+  if (status.connected && (status.location || status.colo)) {
+    parts.push(`exit ${[status.location, status.colo ? `via ${status.colo}` : null].filter(Boolean).join(' ')}`);
+  }
+  return parts.join(' · ');
+};
 
 const WarpPage: React.FC = () => {
-  const theme = useTheme();
+  const navigate = useNavigate();
   const { data: status, isLoading, error } = useWarpStatus();
   const connectMutation = useWarpConnect();
   const disconnectMutation = useWarpDisconnect();
   const setModeMutation = useWarpSetMode();
   const registerLicenseMutation = useWarpRegisterLicense();
-  
+
   const [selectedMode, setSelectedMode] = useState<WarpMode>(WarpMode.WARP);
   const [licenseKey, setLicenseKey] = useState('');
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (status?.mode) {
-      setSelectedMode(status.mode);
-    }
+    if (status?.mode) setSelectedMode(status.mode);
   }, [status?.mode]);
-  
-  const handleModeChange = (event: SelectChangeEvent) => {
-    setSelectedMode(event.target.value as WarpMode);
-  };
-  
+
+  const handleModeChange = (event: SelectChangeEvent) => setSelectedMode(event.target.value as WarpMode);
+
   const handleSetMode = async () => {
+    setActionError(null);
     try {
       await setModeMutation.mutateAsync(selectedMode);
-    } catch (error) {
-      console.error('Failed to set WARP mode:', error);
+    } catch (err) {
+      setActionError(`Failed to set the WARP mode: ${err instanceof Error ? err.message : 'unknown error'}`);
     }
   };
-  
+
   const handleRegisterLicense = async () => {
     if (!licenseKey.trim()) return;
-    
+    setActionError(null);
     try {
       await registerLicenseMutation.mutateAsync(licenseKey);
       setLicenseKey('');
-    } catch (error) {
-      console.error('Failed to register license:', error);
+    } catch (err) {
+      setActionError(`Failed to register the license: ${err instanceof Error ? err.message : 'unknown error'}`);
     }
-  };
-  
-  const getConnectionStatusColor = () => {
-    if (!status?.running) return 'default';
-    return status?.connected ? 'success' : 'warning';
-  };
-  
-  const getConnectionStatusLabel = () => {
-    if (!status?.running) return 'Not Running';
-    return status?.connected ? 'Connected' : 'Disconnected';
-  };
-  
-  const formatJSONDisplay = (json: Record<string, any>) => {
-    return (
-      <Box component="pre" sx={{ 
-        backgroundColor: 'background.paper', 
-        p: 2, 
-        borderRadius: 1,
-        overflowX: 'auto',
-        fontSize: '0.875rem'
-      }}>
-        {JSON.stringify(json, null, 2)}
-      </Box>
-    );
   };
 
   if (isLoading) {
     return (
-      <Box>
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
-          <CircularProgress />
-        </Box>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }} role="status" aria-label="Loading WARP status">
+        <CircularProgress />
       </Box>
     );
   }
@@ -103,92 +85,72 @@ const WarpPage: React.FC = () => {
   if (error) {
     return (
       <Box>
-        <PageHeader
-          title="WARP"
-          subtitle="Check tunnel status, switch modes, and manage your license from one operational flow."
-        />
-        <Alert severity="error">
-          Error loading WARP status: {(error as Error).message}
-        </Alert>
+        <PageHeader title="WARP" subtitle={SUBTITLE} />
+        <Alert severity="error">Error loading WARP status: {(error as Error).message}</Alert>
       </Box>
     );
   }
+
+  const running = Boolean(status?.running);
+  const connected = Boolean(status?.connected);
+  const chipColor = !running ? 'default' : connected ? 'success' : 'warning';
+  const chipLabel = !running ? 'Not running' : connected ? 'Connected' : 'Disconnected';
 
   return (
     <Box>
       <PageHeader
         title="WARP"
-        subtitle="Check tunnel status, switch modes, and manage your license from one operational flow."
+        subtitle={SUBTITLE}
         actions={
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ width: { xs: '100%', sm: 'auto' } }}>
-            <Button variant="contained" color="primary" onClick={() => connectMutation.mutate()} disabled={!status?.running || status?.connected || connectMutation.isPending}>
+            <Button variant="contained" color="primary" onClick={() => connectMutation.mutate()} disabled={!running || connected || connectMutation.isPending}>
               {connectMutation.isPending ? <CircularProgress size={24} color="inherit" /> : 'Connect'}
             </Button>
-            <Button variant="outlined" onClick={() => disconnectMutation.mutate()} disabled={!status?.running || !status?.connected || disconnectMutation.isPending}>
+            <Button variant="outlined" onClick={() => disconnectMutation.mutate()} disabled={!running || !connected || disconnectMutation.isPending}>
               {disconnectMutation.isPending ? <CircularProgress size={24} color="inherit" /> : 'Disconnect'}
             </Button>
           </Stack>
         }
+        overflowActions={[{ label: 'Back to Overview', onClick: () => navigate('/') }]}
       />
 
-      <Box
-        sx={{
-          mb: 3,
-          p: { xs: 2, md: 2.5 },
-          borderRadius: 2.5,
-          bgcolor: theme.appTokens.hero.bg,
-          border: `1px solid ${theme.appTokens.hero.border}`,
-          backgroundImage: theme.appTokens.hero.spotlight,
-        }}
-      >
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, justifyContent: 'space-between' }}>
-          <Box sx={{ minWidth: 0, maxWidth: 760 }}>
-            <Typography variant="statusMeta" sx={{ color: theme.appTokens.hero.accent, mb: 1 }}>
-              Tunnel pulse
-            </Typography>
-            <Typography variant="h4" sx={{ letterSpacing: '-0.03em', mb: 1 }}>
-              {status?.connected
-                ? 'WARP is connected and ready to protect scraper traffic.'
-                : status?.running
-                  ? 'WARP is available, but traffic is not currently protected.'
-                  : 'WARP is not running yet.'}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Use this summary to confirm your protection state before changing modes, refreshing network-sensitive work, or registering a license.
-            </Typography>
-          </Box>
-          <Stack spacing={1} sx={{ minWidth: { xs: '100%', sm: 280 } }}>
-            <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: alpha(theme.appTokens.shell.accent, 0.08), border: `1px solid ${alpha(theme.appTokens.shell.accent, 0.18)}` }}>
-              <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>Protection state</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>{status?.connected ? 'Protected and connected' : status?.running ? 'Available but unprotected' : 'Service offline'}</Typography>
-            </Box>
-            <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: theme.appTokens.surface.panel, border: `1px solid ${theme.appTokens.surface.border}` }}>
-              <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>Next step</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                Keep the current tunnel active or change mode before you run more network-sensitive tasks.
-              </Typography>
-            </Box>
-          </Stack>
-        </Box>
-      </Box>
-      
-      <ContentSection title="Connection status" description="Use the status summary to confirm whether traffic is protected before changing mode or license settings.">
-        <Stack spacing={2}>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'flex-start', sm: 'center' }}>
-            <Chip label={getConnectionStatusLabel()} color={getConnectionStatusColor()} variant="outlined" />
-            <Chip label={status?.running ? 'Service running' : 'Service stopped'} variant="outlined" />
-          </Stack>
-          <Alert severity={status?.connected ? 'success' : status?.running ? 'warning' : 'error'}>
-            {status?.connected ? 'Connected' : status?.running ? 'Disconnected' : 'Not running'} · Mode: {status?.mode || 'Unknown'} · Account: {status?.account_type || 'Unknown'}
-          </Alert>
+      <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap role="status" aria-label="WARP status" sx={{ mb: 2 }}>
+        <Chip label={chipLabel} color={chipColor} variant="outlined" sx={{ fontWeight: 600, minWidth: 110 }} />
+        <Typography variant="body2" color="text.secondary">
+          {describeWarpStatus(status)}
+        </Typography>
+      </Stack>
+
+      {actionError ? (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setActionError(null)}>
+          {actionError}
+        </Alert>
+      ) : null}
+
+      {!running ? (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          WARP is not running in this container. Start it with <code>ENABLE_WARP=true</code> and give the container the <code>NET_ADMIN</code> and{' '}
+          <code>SYS_ADMIN</code> capabilities (see the README). Restart it from the Services panel on the Overview once enabled.
+        </Alert>
+      ) : null}
+
+      {running ? (
+        <ContentSection title="Connection details">
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
               <Paper variant="outlined" sx={{ p: 2, height: '100%' }} component="section" aria-label="Current path">
-                <Typography variant="sectionTitle" sx={{ mb: 1 }}>Current path</Typography>
-                <Typography variant="body2" color="text.secondary">Connected: {status?.connected ? 'Yes' : 'No'}</Typography>
-                <Typography variant="body2" color="text.secondary">Mode: {status?.mode || 'Unknown'}</Typography>
-                <Typography variant="body2" color="text.secondary">Account Type: {status?.account_type}</Typography>
-                {status?.ip ? <Typography variant="body2" color="text.secondary">IP: {status.ip}</Typography> : null}
+                <Typography variant="sectionTitle" sx={{ mb: 1 }}>
+                  Current path
+                </Typography>
+                {status?.ip ? (
+                  <Typography variant="body2" color="text.secondary">
+                    IP: {status.ip}
+                  </Typography>
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    {connected ? 'Public IP not reported yet.' : 'Connect to see the public IP and exit location.'}
+                  </Typography>
+                )}
                 {status?.location || status?.colo ? (
                   <Typography variant="body2" color="text.secondary">
                     Exit location: {[status?.location, status?.colo ? `via ${status.colo}` : null].filter(Boolean).join(' ')}
@@ -196,16 +158,20 @@ const WarpPage: React.FC = () => {
                 ) : null}
               </Paper>
             </Grid>
-            {status?.connected && status.tunnel && Object.values(status.tunnel).some(Boolean) ? (
+            {connected && status?.tunnel && Object.values(status.tunnel).some(Boolean) ? (
               <Grid item xs={12} md={6}>
                 <Paper variant="outlined" sx={{ p: 2, height: '100%' }} component="section" aria-label="Tunnel details">
-                  <Typography variant="sectionTitle" sx={{ mb: 1 }}>Tunnel details</Typography>
+                  <Typography variant="sectionTitle" sx={{ mb: 1 }}>
+                    Tunnel details
+                  </Typography>
                   {status.tunnel.protocol ? <Typography variant="body2" color="text.secondary">Protocol: {status.tunnel.protocol}</Typography> : null}
                   {status.tunnel.latency ? <Typography variant="body2" color="text.secondary">Latency: {status.tunnel.latency}</Typography> : null}
                   {status.tunnel.loss ? <Typography variant="body2" color="text.secondary">Packet loss: {status.tunnel.loss}</Typography> : null}
                   {status.tunnel.last_handshake ? <Typography variant="body2" color="text.secondary">Last handshake: {status.tunnel.last_handshake} ago</Typography> : null}
                   {status.tunnel.sent || status.tunnel.received ? (
-                    <Typography variant="body2" color="text.secondary">Traffic: {status.tunnel.sent ?? '?'} sent, {status.tunnel.received ?? '?'} received</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Traffic: {status.tunnel.sent ?? '?'} sent, {status.tunnel.received ?? '?'} received
+                    </Typography>
                   ) : null}
                   {status.tunnel.endpoints ? <Typography variant="body2" color="text.secondary">Endpoints: {status.tunnel.endpoints}</Typography> : null}
                   {status.tunnel.tls_version ? <Typography variant="body2" color="text.secondary">TLS: {status.tunnel.tls_version}</Typography> : null}
@@ -215,7 +181,9 @@ const WarpPage: React.FC = () => {
             {status?.registration && (status.registration.device_id || status.registration.account_id || status.registration.license) ? (
               <Grid item xs={12} md={6}>
                 <Paper variant="outlined" sx={{ p: 2, height: '100%' }} component="section" aria-label="Registration">
-                  <Typography variant="sectionTitle" sx={{ mb: 1 }}>Registration</Typography>
+                  <Typography variant="sectionTitle" sx={{ mb: 1 }}>
+                    Registration
+                  </Typography>
                   {status.registration.device_id ? <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-all' }}>Device ID: {status.registration.device_id}</Typography> : null}
                   {status.registration.account_id ? <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-all' }}>Account ID: {status.registration.account_id}</Typography> : null}
                   {status.registration.license ? <Typography variant="body2" color="text.secondary">License: {status.registration.license}</Typography> : null}
@@ -223,54 +191,37 @@ const WarpPage: React.FC = () => {
               </Grid>
             ) : null}
           </Grid>
-        </Stack>
-      </ContentSection>
+        </ContentSection>
+      ) : null}
 
-      <ContentSection title="Mode and license" description="Change how WARP routes traffic, then register a license key if your account needs it.">
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth sx={{ mb: 3 }}>
+      {running ? (
+        <ContentSection title="Mode and license" description="Change how WARP routes traffic, then register a license key if your account needs it.">
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth sx={{ mb: 3 }}>
                 <InputLabel id="warp-mode-label">Mode</InputLabel>
-                <Select
-                  labelId="warp-mode-label"
-                  value={selectedMode}
-                  onChange={handleModeChange}
-                  label="Mode"
-                  disabled={!status?.running}
-                >
+                <Select labelId="warp-mode-label" value={selectedMode} onChange={handleModeChange} label="Mode">
                   <MenuItem value={WarpMode.WARP}>WARP (Full Tunnel)</MenuItem>
                   <MenuItem value={WarpMode.DOT}>DOT (DNS over TLS)</MenuItem>
                   <MenuItem value={WarpMode.PROXY}>PROXY</MenuItem>
                   <MenuItem value={WarpMode.OFF}>OFF</MenuItem>
                 </Select>
-                <Button variant="contained" color="primary" onClick={handleSetMode} disabled={!status?.running || (status?.mode === selectedMode) || setModeMutation.isPending} sx={{ mt: 2 }}>
+                <Button variant="contained" color="primary" onClick={handleSetMode} disabled={status?.mode === selectedMode || setModeMutation.isPending} sx={{ mt: 2 }}>
                   {setModeMutation.isPending ? <CircularProgress size={24} /> : 'Set Mode'}
                 </Button>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth>
-                <TextField
-                  label="License Key"
-                  value={licenseKey}
-                  onChange={(e) => setLicenseKey(e.target.value)}
-                  disabled={!status?.running}
-                  placeholder="Enter your WARP+ or WARP Teams license key"
-                />
-                <Button variant="contained" color="primary" onClick={handleRegisterLicense} disabled={!status?.running || !licenseKey.trim() || registerLicenseMutation.isPending} sx={{ mt: 2 }}>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <TextField label="License Key" value={licenseKey} onChange={(e) => setLicenseKey(e.target.value)} placeholder="Enter your WARP+ or WARP Teams license key" />
+                <Button variant="contained" color="primary" onClick={handleRegisterLicense} disabled={!licenseKey.trim() || registerLicenseMutation.isPending} sx={{ mt: 2 }}>
                   {registerLicenseMutation.isPending ? <CircularProgress size={24} /> : 'Register License'}
                 </Button>
-            </FormControl>
+              </FormControl>
+            </Grid>
           </Grid>
-        </Grid>
-        <Divider sx={{ my: 3 }} />
-        {status?.cf_trace && Object.keys(status.cf_trace).length > 0 ? (
-          <Box>
-            <Typography variant="sectionTitle" sx={{ mb: 1.5 }}>Cloudflare Trace Information</Typography>
-            {formatJSONDisplay(status.cf_trace)}
-          </Box>
-        ) : null}
-      </ContentSection>
+        </ContentSection>
+      ) : null}
     </Box>
   );
 };

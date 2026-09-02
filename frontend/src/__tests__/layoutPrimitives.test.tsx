@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { ThemeProvider } from '@mui/material/styles';
 import Button from '@mui/material/Button';
 import { useMediaQuery } from '@mui/material';
@@ -63,7 +63,7 @@ describe('layout primitives', () => {
   it.each<ThemeMode>(['light', 'dark'])('renders PageHeader copy and actions with stable hardening hooks in %s mode', (mode) => {
     renderWithTheme(
       <PageHeader
-        title="Dashboard"
+        title="Overview"
         subtitle="Track operational status."
         actions={
           <>
@@ -75,7 +75,7 @@ describe('layout primitives', () => {
       mode
     );
 
-    const title = screen.getByRole('heading', { level: 1, name: 'Dashboard' });
+    const title = screen.getByRole('heading', { level: 1, name: 'Overview' });
     const header = screen.getByRole('banner');
     const copy = screen.getByTestId('page-header-copy');
     const actions = screen.getByTestId('page-header-actions');
@@ -92,10 +92,46 @@ describe('layout primitives', () => {
     expect(buttons).toHaveLength(2);
   });
 
+  it('collapses overflow actions into a More actions menu on phones and shows them as buttons elsewhere', () => {
+    const onExport = jest.fn();
+    const { unmount } = renderWithTheme(
+      <PageHeader
+        title="Acestream Channels"
+        actions={<Button variant="contained">Add channel</Button>}
+        overflowActions={[
+          { label: 'Refresh', onClick: jest.fn() },
+          { label: 'Export CSV', onClick: onExport },
+        ]}
+      />,
+      'light',
+      { isPhone: true, isDesktop: false, isWideDesktop: false }
+    );
+
+    expect(screen.getByRole('button', { name: 'Add channel' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Export CSV' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    const menu = screen.getByRole('menu');
+    fireEvent.click(within(menu).getByRole('menuitem', { name: 'Export CSV' }));
+    expect(onExport).toHaveBeenCalledTimes(1);
+    unmount();
+
+    renderWithTheme(
+      <PageHeader
+        title="Acestream Channels"
+        actions={<Button variant="contained">Add channel</Button>}
+        overflowActions={[{ label: 'Refresh', onClick: jest.fn() }, { label: 'Export CSV', onClick: onExport }]}
+      />,
+      'light',
+      { isPhone: false, isDesktop: true, isWideDesktop: false }
+    );
+    expect(screen.getByRole('button', { name: 'Export CSV' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'More actions' })).not.toBeInTheDocument();
+  });
+
   it.each<ThemeMode>(['light', 'dark'])('stacks PageHeader actions on phones and realigns them at desktop widths in %s mode', (mode) => {
     const { rerender, theme } = renderWithTheme(
       <PageHeader
-        title="Dashboard"
+        title="Overview"
         subtitle="Track operational status."
         actions={
           <>
@@ -124,7 +160,7 @@ describe('layout primitives', () => {
     rerender(
       <ThemeProvider theme={theme}>
         <PageHeader
-          title="Dashboard"
+          title="Overview"
           subtitle="Track operational status."
           actions={
             <>
@@ -151,7 +187,7 @@ describe('layout primitives', () => {
   it.each<ThemeMode>(['light', 'dark'])('supports wide-desktop PageHeader action alignment overrides in %s mode', (mode) => {
     const { rerender, theme } = renderWithTheme(
       <PageHeader
-        title="Dashboard"
+        title="Overview"
         actions={<Button>Refresh</Button>}
         wideActionsAlignment="start"
       />,
@@ -169,7 +205,7 @@ describe('layout primitives', () => {
     rerender(
       <ThemeProvider theme={theme}>
         <PageHeader
-          title="Dashboard"
+          title="Overview"
           actions={<Button>Refresh</Button>}
           wideActionsAlignment="start"
         />
@@ -185,7 +221,7 @@ describe('layout primitives', () => {
   it.each<ThemeMode>(['light', 'dark'])('supports grouped PageHeader actions so phone layouts keep the primary path first in %s mode', (mode) => {
     renderWithTheme(
       <PageHeader
-        title="Dashboard"
+        title="Overview"
         actions={<Button variant="outlined">Open details</Button>}
         primaryActions={<Button variant="contained">Run now</Button>}
       />,
@@ -338,13 +374,13 @@ describe('layout primitives', () => {
       mode
     );
 
-    const selectedItem = screen.getByRole('link', { name: 'Dashboard' });
-    const selectedLabel = within(selectedItem).getByText('Dashboard');
+    const selectedItem = screen.getByRole('link', { name: 'Overview' });
+    const selectedLabel = within(selectedItem).getByText('Overview');
     const appBar = screen.getByRole('banner');
 
-    expect(screen.getByRole('link', { name: 'Dashboard' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Dashboard' })).not.toBeInTheDocument();
-    expect(appBar).not.toHaveTextContent('Dashboard');
+    expect(screen.getByRole('link', { name: 'Overview' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Overview' })).not.toBeInTheDocument();
+    expect(appBar).not.toHaveTextContent('Overview');
     expect(selectedItem).toHaveAttribute('aria-current', 'page');
     expect(selectedItem).toHaveStyle({ backgroundColor: theme.appTokens.shell.activeNavBg });
     expect(selectedLabel).toHaveStyle({ color: theme.appTokens.shell.activeNavText });
@@ -367,7 +403,7 @@ describe('layout primitives', () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByRole('link', { name: 'Acestream Search' })).not.toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Search' })).not.toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('banner')).not.toHaveTextContent('Not Found');
 
     unmount();
@@ -380,7 +416,7 @@ describe('layout primitives', () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByRole('link', { name: 'EPG Sources' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'EPG' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('banner')).not.toHaveTextContent('EPG Sources');
   });
 

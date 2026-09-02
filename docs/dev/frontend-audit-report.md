@@ -4,6 +4,8 @@ Date: 2026-03-26
 Scope: `frontend/src`
 Method: code audit only; no fixes applied
 
+> **2026-09-02 follow-up.** A second, behaviour-level audit (walked in Firefox against the live stack) is published at https://claude.ai/code/artifact/bc6805a3-ebfc-427e-9e18-39c941142de7. Its findings were addressed in full by the UI overhaul merged into `develop` on 2026-09-02: eight navigation destinations (Overview replaces Dashboard/Health/Stats), no hero blocks or explanatory prose, a `StatusLine` of measured facts on every page, row "More actions" menus with confirm dialogs, EPG as tabs, Now/Next schedules on the detail pages, working automation intervals, absolute playlist URLs and phone layouts (card list, collapsing header actions). The Playwright suite under `e2e/` covers the result. The 2026-03-26 findings below are kept as history.
+
 ## Anti-Patterns Verdict
 
 Fail. The frontend does not read as pure AI slop, but several legacy surfaces still look like a generic admin template rather than a deliberate operational product.

@@ -9,6 +9,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Typography,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -55,15 +56,12 @@ const EPGSourcesTable: React.FC<EPGSourcesTableProps> = ({
               ) : (
                 <Chip label="Disabled" color="default" size="small" />
               )}
-              {source.error_count > 0 && (
-                <Chip
-                  label={`Errors: ${source.error_count}`}
-                  color="error"
-                  size="small"
-                  sx={{ ml: 1 }}
-                  title={source.last_error ?? undefined}
-                />
-              )}
+              {source.error_count > 0 ? (
+                <Typography variant="caption" color="error.main" component="p" sx={{ mt: 0.5, maxWidth: 360, overflowWrap: 'anywhere' }}>
+                  {source.error_count} failed refresh{source.error_count === 1 ? '' : 'es'}
+                  {source.last_error ? ` · ${source.last_error}` : ''}
+                </Typography>
+              ) : null}
             </TableCell>
             <TableCell>
               {source.last_updated ? (

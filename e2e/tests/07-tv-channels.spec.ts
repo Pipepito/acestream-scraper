@@ -22,13 +22,15 @@ test.describe('TV channels', () => {
     if (existing) await api.deleteTvChannel(existing.id);
   });
 
-  test('a TV channel is created from the form', async ({ page, api, scenario }) => {
+  test('a TV channel is created from the form and counted in the summary', async ({ page, api, scenario }) => {
     const spec = scenario.tv.channels[0];
     const tv = new TVChannelsPage(page);
     await tv.open();
+    const before = (await api.raw('get', '/api/v1/tv-channels/?limit=1').then((r) => r.json() as Promise<{ total: number }>)).total;
     await tv.add({ name: spec.name, category: spec.category, description: 'Created by the e2e journey' });
     await tv.expectAlert('TV channel created.');
     await expect(tv.row(spec.name)).toBeVisible();
+    await expect(tv.summary()).toContainText(new RegExp(`Channels\\s*${before + 1}`));
     const created = await api.findTvChannel(spec.name);
     expect(created?.category).toBe(spec.category);
   });
@@ -38,10 +40,12 @@ test.describe('TV channels', () => {
     const tvChannel = (await api.findTvChannel(spec.name))!;
     const detail = new TVChannelDetailPage(page);
     await detail.open(tvChannel.id, spec.name);
-    await detail.addSingle(stream.name, [stream.name]);
+    await expect(detail.summary()).toContainText('0 streams');
+    await expect(detail.summary()).toContainText('EPG: not mapped');
+    await detail.addStream(stream.name, [stream.name]);
     await detail.expectAlert(/Assigned 1 acestream source/);
-    await expect(detail.coverage()).toContainText('1 linked acestream');
-    await expect(detail.coverage()).toContainText(stream.name);
+    await expect(detail.summary()).toContainText('1 stream');
+    await expect(detail.streams()).toContainText(stream.name);
     const after = await api.getTvChannel(tvChannel.id);
     expect(after.acestream_channels.map((c) => c.id)).toContain(stream.id);
   });
@@ -62,8 +66,11 @@ test.describe('TV channels', () => {
 
     const detail = new TVChannelDetailPage(page);
     await detail.open(tvChannel.id, spec.name);
-    await expect(detail.epgSchedule()).toContainText(/\d+ programs? loaded/, { timeout: 30_000 });
-    await expect(detail.epgSchedule().getByRole('table')).toBeVisible();
+    await expect(detail.summary()).toContainText(`EPG: ${spec.epgXmlId}`);
+    await expect(detail.summary().getByRole('link', { name: /^Guide channel:/ })).toHaveAttribute('href', `/epg/channels/${epgChannel.id}`);
+    await expect(detail.schedule().getByRole('tab', { name: 'Today', selected: true })).toBeVisible({ timeout: 30_000 });
+    await expect(detail.schedule()).toContainText(/\d+ programmes? today|No programmes today/, { timeout: 30_000 });
+    await expect(detail.schedule().getByRole('region', { name: 'Now and next' })).toBeVisible();
   });
 
   test('the curated playlist and XMLTV carry the mapping', async ({ api, scenario }) => {
@@ -78,21 +85,39 @@ test.describe('TV channels', () => {
     expect(xml).toContain('<programme ');
   });
 
-  test('a stream can be removed and re-attached in batch', async ({ page, api, scenario }) => {
+  test('a stream can be removed (after confirming) and re-attached in batch', async ({ page, api, scenario }) => {
     const spec = scenario.tv.channels[0];
     const tvChannel = (await api.findTvChannel(spec.name))!;
     const detail = new TVChannelDetailPage(page);
     await detail.open(tvChannel.id, spec.name);
     await detail.removeStream(stream.name);
     await detail.expectAlert(/Removed acestream .* successfully/);
-    await expect(detail.coverage()).toContainText('0 linked acestream');
+    await expect(detail.summary()).toContainText('0 streams');
     expect((await api.getTvChannel(tvChannel.id)).acestream_channels).toHaveLength(0);
 
-    const dialog = await detail.batchAdd([stream.id]);
+    const dialog = await detail.addMany([stream.id]);
     await expect(dialog).toContainText(/Successfully associated 1 acestream/);
     await expect(dialog).toBeHidden({ timeout: 10_000 });
-    await expect(detail.coverage()).toContainText('1 linked acestream');
+    await expect(detail.summary()).toContainText('1 stream');
     expect((await api.getTvChannel(tvChannel.id)).acestream_channels.map((c) => c.id)).toContain(stream.id);
+  });
+
+  test('the detail edit form saves the main fields and keeps the rest behind More fields', async ({ page, api, scenario }) => {
+    const spec = scenario.tv.channels[0];
+    const tvChannel = (await api.findTvChannel(spec.name))!;
+    const detail = new TVChannelDetailPage(page);
+    await detail.open(tvChannel.id, spec.name);
+    await detail.startEdit();
+    const form = detail.editForm();
+    await expect(form.getByRole('textbox', { name: 'Name' })).toHaveValue(spec.name);
+    // Extra fields stay folded unless the channel already uses one (this one has a description).
+    const toggle = form.getByRole('button', { name: /More fields|Fewer fields/ });
+    await expect(toggle).toBeVisible();
+    if ((await toggle.textContent())?.includes('More')) await toggle.click();
+    await form.getByRole('textbox', { name: 'Website' }).fill('https://e2e.example');
+    await form.getByRole('button', { name: 'Save' }).click();
+    await detail.expectAlert('TV channel updated successfully.');
+    await expect.poll(async () => (await api.getTvChannel(tvChannel.id)).website).toBe('https://e2e.example');
   });
 
   test('favorite, edit and assignment from the channels grid work', async ({ page, api, scenario }) => {
@@ -103,6 +128,7 @@ test.describe('TV channels', () => {
     await tv.favoriteToggle(spec.name).click();
     await tv.expectAlert(wasFavorite ? `Removed ${spec.name} from favorites.` : `Added ${spec.name} to favorites.`);
     await expect.poll(async () => (await api.findTvChannel(spec.name))?.is_favorite).toBe(!wasFavorite);
+    await expect(tv.openButton(spec.name)).toBeEnabled();
 
     const dialog = await tv.openEdit(spec.name);
     await tv.fillForm(dialog, { category: 'Sports E2E' });
@@ -124,8 +150,9 @@ test.describe('TV channels', () => {
     await channels.selectOption(assign.getByRole('combobox', { name: /^TV Channel/ }), spec.name);
     await assign.getByRole('button', { name: 'Assign' }).click();
     await expect(assign).toBeHidden();
+    await channels.expectAlert(/Linked 1 channel to/);
     await expect.poll(async () => (await api.getChannel(created.id))?.tv_channel_id, { timeout: 15_000 }).toBe(tvId);
-    // The grid marks linked streams with the TV shortcut/favorite actions rather than a name column.
     await expect(channels.row(created.name).first().getByRole('button', { name: `go to tv channel ${spec.name}` })).toBeVisible();
+    await expect(channels.row(created.name).first()).toContainText(`TV: ${spec.name}`);
   });
 });

@@ -227,7 +227,7 @@ describe('TVChannels responsive page behavior', () => {
   it('keeps primary actions visible while collapsing filters on phone', async () => {
     renderPage({ isPhone: true, isDesktop: false, isWideDesktop: false });
 
-    expect(screen.getByText('Review channels and take the next action fast.')).toBeInTheDocument();
+    expect(screen.getByText('The channels you publish. Each one groups its streams and carries the EPG for the playlist.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add TV Channel' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /show filters/i })).toBeInTheDocument();
@@ -236,10 +236,9 @@ describe('TVChannels responsive page behavior', () => {
 
     await click(screen.getByRole('button', { name: /show filters/i }));
 
-    const filtersRegion = screen.getByRole('region', { name: 'Filters' });
+    const filtersRegion = screen.getByRole('region', { name: 'Channels' });
 
     expect(within(filtersRegion).getByRole('form', { name: /channel filters/i })).toBeInTheDocument();
-    expect(within(filtersRegion).getByText('Narrow the inventory before acting.')).toBeInTheDocument();
     expect(within(filtersRegion).getByRole('button', { name: 'Apply Filters' })).toBeInTheDocument();
     expect(within(filtersRegion).getByRole('button', { name: 'Reset Filters' })).toBeInTheDocument();
     expect(within(filtersRegion).getByRole('button', { name: 'Apply Filters' })).toHaveAttribute('data-action-priority', 'primary');
@@ -255,7 +254,7 @@ describe('TVChannels responsive page behavior', () => {
     expect(screen.getByRole('button', { name: /hide filters/i })).toBeInTheDocument();
   });
 
-  it('opens with an output-organization summary and keeps inventory ahead of filters', () => {
+  it('opens with a summary line and the filters inside the channel list', () => {
     const theme = createAppTheme('light');
 
     mockResponsiveShellQueries(mockUseMediaQuery, theme, {
@@ -268,41 +267,18 @@ describe('TVChannels responsive page behavior', () => {
       </ThemeProvider>
     );
 
-    const filtersSection = screen.getByRole('region', { name: 'Filters' });
-    const inventorySection = screen.getByRole('region', { name: 'TV Channel Inventory' });
+    const summary = screen.getByRole('status', { name: 'TV channel summary' });
+    expect(summary).toHaveTextContent('Channels2');
+    expect(summary).toHaveTextContent('Favorites0');
+    expect(summary).toHaveTextContent('With streams1');
+    expect(summary).toHaveTextContent('Matching filtersall');
 
-    expect(screen.getByText('Sources')).toBeInTheDocument();
-    expect(screen.getByText('Extracted channels')).toBeInTheDocument();
-    expect(screen.getByText('TV organization')).toBeInTheDocument();
-    expect(screen.getByText('Current downstream stage')).toBeInTheDocument();
-    expect(screen.getByText(/output readiness/i)).toBeInTheDocument();
-    expect(screen.getByText(/organize the final catalog before moving into epg and output workflows/i)).toBeInTheDocument();
-    expect(within(filtersSection).getByText('Focus the list before you act.')).toBeInTheDocument();
-    expect(within(inventorySection).queryByText('Edit metadata, remove stale entries, or open the channel detail page.')).not.toBeInTheDocument();
-
-    expect(inventorySection.compareDocumentPosition(filtersSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-
-  it('keeps filters stacked below inventory until the viewport can safely fit the two-column layout', () => {
-    const theme = createAppTheme('light');
-
-    mockResponsiveShellQueries(mockUseMediaQuery, theme, {
-      viewportWidth: 1280,
-    });
-
-    render(
-      <ThemeProvider theme={theme}>
-        <TVChannels />
-      </ThemeProvider>
-    );
-
-    const layout = screen.getByTestId('tv-channels-page-layout');
-    const filtersSection = screen.getByRole('region', { name: 'Filters' });
-    const inventorySection = screen.getByRole('region', { name: 'TV Channel Inventory' });
-
-    expect(layout).toContainElement(inventorySection);
-    expect(layout).toContainElement(filtersSection);
-    expect(inventorySection.compareDocumentPosition(filtersSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.queryByText('Sources')).not.toBeInTheDocument();
+    expect(screen.queryByText(/downstream stage/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Filters' })).not.toBeInTheDocument();
+    const channelsSection = screen.getByRole('region', { name: 'Channels' });
+    expect(within(channelsSection).getByRole('form', { name: /channel filters/i })).toBeInTheDocument();
+    expect(within(channelsSection).getByTestId('tv-channels-table')).toBeInTheDocument();
   });
 
   it('opens create and edit dialogs with mobile-safe full-screen sizing on phone', async () => {
@@ -397,7 +373,7 @@ describe('TVChannels responsive page behavior', () => {
 
     expect(mockUseTVChannelCatalog).toHaveBeenLastCalledWith(undefined);
 
-    const filtersRegion = screen.getByRole('region', { name: 'Filters' });
+    const filtersRegion = screen.getByRole('region', { name: 'Channels' });
     const favoritesSwitch = within(filtersRegion).getByRole('checkbox', { name: 'Favorites only' });
 
     await click(favoritesSwitch);
@@ -428,7 +404,7 @@ describe('TVChannels responsive page behavior', () => {
     await click(screen.getByRole('button', { name: 'Next page' }));
     expect(screen.getByTestId('tv-channels-table')).toHaveTextContent('page:1');
 
-    const filtersRegion = screen.getByRole('region', { name: 'Filters' });
+    const filtersRegion = screen.getByRole('region', { name: 'Channels' });
     const searchInput = within(filtersRegion).getByRole('textbox', { name: 'Search' });
 
     fireEvent.change(searchInput, { target: { value: 'Arena' } });
@@ -449,7 +425,7 @@ describe('TVChannels responsive page behavior', () => {
     expect(screen.getByTestId('tv-channels-table')).toHaveTextContent('page:1');
     expect(screen.getByTestId('tv-channels-table')).toHaveTextContent('rows:1');
 
-    const filtersRegion = screen.getByRole('region', { name: 'Filters' });
+    const filtersRegion = screen.getByRole('region', { name: 'Channels' });
     const searchInput = within(filtersRegion).getByRole('textbox', { name: 'Search' });
 
     fireEvent.change(searchInput, { target: { value: 'Arena' } });
@@ -467,7 +443,7 @@ describe('TVChannels responsive page behavior', () => {
   it('trims search input before applying filters', async () => {
     renderPage({ isPhone: false, isDesktop: true, isWideDesktop: false });
 
-    const filtersRegion = screen.getByRole('region', { name: 'Filters' });
+    const filtersRegion = screen.getByRole('region', { name: 'Channels' });
     const searchInput = within(filtersRegion).getByRole('textbox', { name: 'Search' });
 
     fireEvent.change(searchInput, { target: { value: '   Arena   ' } });
@@ -480,14 +456,14 @@ describe('TVChannels responsive page behavior', () => {
   it('shows recovery guidance when filters produce no matches and reset clears them', async () => {
     renderPage({ isPhone: false, isDesktop: true, isWideDesktop: false });
 
-    const filtersRegion = screen.getByRole('region', { name: 'Filters' });
+    const filtersRegion = screen.getByRole('region', { name: 'Channels' });
     const searchInput = within(filtersRegion).getByRole('textbox', { name: 'Search' });
 
     fireEvent.change(searchInput, { target: { value: 'Missing channel' } });
     await click(within(filtersRegion).getByRole('button', { name: 'Apply Filters' }));
 
     expect(screen.getByText('No TV channels match the current filters')).toBeInTheDocument();
-    expect(screen.getByText('Reset the filters or broaden your search to recover the TV channel inventory.')).toBeInTheDocument();
+    expect(screen.getByText('Reset the filters or broaden your search to see the full list.')).toBeInTheDocument();
 
     await click(within(filtersRegion).getByRole('button', { name: 'Reset Filters' }));
 

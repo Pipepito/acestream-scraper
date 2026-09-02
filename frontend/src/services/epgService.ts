@@ -216,8 +216,8 @@ export const epgService = {
   /**
    * Get EPG programs for a channel
    */
-  getPrograms: async (channelId: number, startDate?: string, endDate?: string): Promise<EPGProgram[]> => {
-    const params = { start_date: startDate, end_date: endDate };
+  getPrograms: async (channelId: number, startDate?: string, endDate?: string, limit = 500): Promise<EPGProgram[]> => {
+    const params = { start_date: startDate, end_date: endDate, limit };
     const { data } = await apiClient.get(`/v1/epg/channels/${channelId}/programs`, { params });
     return data;
   },

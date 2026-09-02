@@ -5,6 +5,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.config.database import get_db
+from app.services.task_service import task_service
 from app.repositories.settings_repository import SettingsRepository
 from app.schemas.config import (
     AceEngineUrlUpdate,
@@ -125,6 +126,35 @@ def update_rescrape_interval(
     success = config_service.set_rescrape_interval(hours)
     if not success:
         raise HTTPException(status_code=500, detail="Failed to update rescrape interval")
+    task_service.reschedule_task("url_scraping", hours * 3600)
+    return {"message": "Setting updated successfully", "value": str(hours)}
+
+
+@router.get("/epg_refresh_interval", response_model=SettingResponse)
+def get_epg_refresh_interval(config_service: ConfigService = Depends(get_config_service)):
+    """Get the interval between automatic EPG refreshes in hours."""
+    return {"key": "epg_refresh_interval", "value": str(config_service.get_epg_refresh_interval())}
+
+
+@router.put("/epg_refresh_interval", response_model=ConfigUpdateResponse)
+def update_epg_refresh_interval(
+    update: RescrapeIntervalUpdate,
+    config_service: ConfigService = Depends(get_config_service),
+):
+    """Update the interval between automatic EPG refreshes in hours (reschedules the job)."""
+    value = update.resolved_value()
+    if not value:
+        raise HTTPException(status_code=422, detail="Missing epg_refresh_interval value")
+    try:
+        hours = int(value)
+        if hours < 1:
+            raise HTTPException(status_code=422, detail="EPG refresh interval must be positive")
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail="EPG refresh interval must be a valid number") from exc
+    success = config_service.set_epg_refresh_interval(hours)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to update epg_refresh_interval")
+    task_service.reschedule_task("epg_refresh", hours * 3600)
     return {"message": "Setting updated successfully", "value": str(hours)}
 
 
@@ -199,6 +229,8 @@ def get_config_key(key: str, config_service: ConfigService = Depends(get_config_
         value = config_service.get_ace_engine_url()
     elif key == "rescrape_interval":
         value = str(config_service.get_rescrape_interval())
+    elif key == "epg_refresh_interval":
+        value = str(config_service.get_epg_refresh_interval())
     elif key == "addpid":
         value = config_service.get_addpid()
     else:
@@ -244,6 +276,22 @@ def update_config_key(
         success = config_service.set_rescrape_interval(hours)
         if not success:
             raise HTTPException(status_code=500, detail="Failed to update rescrape_interval")
+        task_service.reschedule_task("url_scraping", hours * 3600)
+        return {"message": "Setting updated successfully", "value": str(hours)}
+
+    if key == "epg_refresh_interval":
+        if not value:
+            raise HTTPException(status_code=422, detail="Missing epg_refresh_interval value")
+        try:
+            hours = int(value)
+            if hours < 1:
+                raise HTTPException(status_code=422, detail="EPG refresh interval must be positive")
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail="EPG refresh interval must be a valid number") from exc
+        success = config_service.set_epg_refresh_interval(hours)
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to update epg_refresh_interval")
+        task_service.reschedule_task("epg_refresh", hours * 3600)
         return {"message": "Setting updated successfully", "value": str(hours)}
 
     if key == "addpid":

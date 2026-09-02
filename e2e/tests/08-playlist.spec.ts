@@ -4,17 +4,24 @@ import { PlaylistPage } from '../src/pages/playlist';
 test.describe.configure({ mode: 'serial' });
 
 test.describe('playlist', () => {
-  test('the builder reflects options in the URL and the M3U downloads', async ({ page, api, scenario }) => {
+  test('the builder reflects options in an absolute URL and the M3U downloads', async ({ page, api, scenario, baseURL }) => {
     const playlist = new PlaylistPage(page);
     await playlist.open();
-    await expect(playlist.downloadLink()).toHaveAttribute('href', /only_online=true/);
-    await expect(playlist.playlistUrlField()).toHaveValue(/only_online=true/);
-
-    await playlist.onlyOnline().uncheck();
+    await expect(playlist.onlyOnline()).not.toBeChecked();
     await expect(playlist.downloadLink()).toHaveAttribute('href', /only_online=false/);
+    await expect(playlist.playlistUrlField()).toHaveValue(new RegExp(`^${baseURL!.replace(/\/$/, '')}/api/v1/playlists/m3u\\?`));
+    const summary = await api.raw('get', '/api/v1/acestream-channels/status_summary').then((r) => r.json() as Promise<{ online: number; total_channels: number }>);
+    await expect(page.getByText(`${summary.online} of ${summary.total_channels} channels are online right now`)).toBeVisible();
+
+    await playlist.onlyOnline().check();
+    await expect(playlist.downloadLink()).toHaveAttribute('href', /only_online=true/);
+    await playlist.onlyOnline().uncheck();
     await playlist.searchField().fill('dazn');
     await expect(playlist.downloadLink()).toHaveAttribute('href', /search=dazn/);
     await playlist.searchField().fill('');
+
+    await playlist.showGroupFilters();
+    await expect(page.getByRole('combobox', { name: 'Include groups' })).toBeVisible();
 
     await playlist.selectBaseUrl(new RegExp(scenario.playlist.baseUrlName));
     const base = (await api.listBaseUrls()).find((b) => b.name === scenario.playlist.baseUrlName)!;
@@ -34,7 +41,6 @@ test.describe('playlist', () => {
     const downloadPromise = page.waitForEvent('download', { timeout: 30_000 });
     await playlist.downloadLink().click();
     const download = await downloadPromise;
-    // Firefox honours the server's Content-Disposition name; Chromium the anchor's download attribute.
     expect(download.suggestedFilename()).toMatch(/playlist\.m3u$/);
   });
 
@@ -53,7 +59,6 @@ test.describe('playlist', () => {
     expect(link, 'a stream link through Acexy').toBeTruthy();
     const status = await fetch(`${scenario.stack.acexyUrl}/ace/status`).then((r) => r.json() as Promise<{ streams: number }>);
     testInfo.annotations.push({ type: 'acexy', description: `link=${link} streams-before=${status.streams}` });
-    // Opening the stream is best-effort (needs peers); only require that Acexy accepts the request shape.
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 20_000);
     try {
@@ -67,12 +72,16 @@ test.describe('playlist', () => {
     }
   });
 
-  test('the QR code button shows the playlist URL as a QR code', async ({ page }) => {
+  test('the QR code and copy button carry the absolute playlist URL', async ({ page, context, baseURL }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']).catch(() => undefined);
     const playlist = new PlaylistPage(page);
     await playlist.open();
+    await playlist.copyButton().click();
+    await playlist.expectAlert(/Playlist link copied|Unable to copy/);
     await playlist.qrButton().click();
-    const dialog = page.getByRole('dialog');
+    const dialog = page.getByRole('dialog', { name: 'Playlist QR code' });
     await expect(dialog).toBeVisible();
-    await expect(dialog.locator('img, svg, canvas').first()).toBeVisible();
+    await expect(dialog.getByRole('img', { name: 'QR code for the playlist URL' })).toBeVisible();
+    await expect(dialog).toContainText(`${baseURL!.replace(/\/$/, '')}/api/v1/playlists/m3u?`);
   });
 });

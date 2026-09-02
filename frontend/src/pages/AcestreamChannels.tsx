@@ -1,59 +1,32 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Box, Button, Alert, IconButton, Snackbar, Stack, Tooltip, Typography, useMediaQuery, useTheme } from '@mui/material';
+import { Alert, Box, Button, Snackbar, Stack, useMediaQuery, useTheme } from '@mui/material';
 import { Add, FileDownload, Refresh } from '@mui/icons-material';
-import TvIcon from '@mui/icons-material/Tv';
 import type { GridSortModel } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
 import { keepPreviousData } from '@tanstack/react-query';
-import { alpha } from '@mui/material/styles';
 
 import ChannelTable from '../components/ChannelTable';
+import ChannelCardList from '../components/channels/ChannelCardList';
+import ChannelFilterBar from '../components/channels/ChannelFilterBar';
 import { useAcestreamChannels, useDeleteAcestreamChannel } from '../hooks/useChannels';
-import {
-  AcestreamChannel,
-  AcestreamChannelFilters,
-  CreateAcestreamChannelDTO,
-  UpdateAcestreamChannelDTO,
-  acestreamChannelService,
-} from '../services/channelService';
+import { AcestreamChannel, AcestreamChannelFilters, UpdateAcestreamChannelDTO, acestreamChannelService } from '../services/channelService';
 import { getErrorMessage } from '../utils/errorUtils';
 import BulkOperations from '../components/BulkOperations';
-import AdvancedSearch, { AdvancedSearchFilters } from '../components/AdvancedSearch';
 import BatchAssignDialog from '../components/BatchAssignDialog';
-import QuickEditDialog from '../components/QuickEditDialog';
+import QuickEditDialog, { type QuickEditChannel, type QuickEditValues } from '../components/QuickEditDialog';
 import AssignTVChannelDialog from '../components/AssignTVChannelDialog';
 import { useAllTVChannels } from '../hooks/useTVChannels';
 import { tvChannelService } from '../services/tvChannelService';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
 import InlineStatusNotice from '../components/state/InlineStatusNotice';
+import StatusLine from '../components/StatusLine';
+import { useConfirm } from '../components/ConfirmDialog';
 
-type EditableChannel = Partial<AcestreamChannel> & { id?: string };
 type SnackbarNotice = {
   message: string;
   error?: unknown;
 };
-
-function mapFiltersToAdvanced(filters: AcestreamChannelFilters): AdvancedSearchFilters {
-  return {
-    search: filters.search,
-    group: filters.group,
-    is_active: typeof filters.is_active === 'boolean' ? String(filters.is_active) : '',
-    is_online: typeof filters.is_online === 'boolean' ? String(filters.is_online) : '',
-  };
-}
-
-/** Acestream channels carry no country/language/category metadata; only show filters the API honours. */
-const ACESTREAM_FILTER_FIELDS = { country: false, language: false, category: false } as const;
-
-function mapAdvancedToFilters(filters: AdvancedSearchFilters): AcestreamChannelFilters {
-  return {
-    search: filters.search || undefined,
-    group: filters.group || undefined,
-    is_active: filters.is_active === '' || filters.is_active === undefined ? undefined : filters.is_active === 'true',
-    is_online: filters.is_online === '' || filters.is_online === undefined ? undefined : filters.is_online === 'true',
-  };
-}
 
 interface BulkStatusCheckSummary {
   message?: string | null;
@@ -74,79 +47,50 @@ export const describeBulkStatusCheck = (data: BulkStatusCheckSummary): string =>
   return `Checked ${checked} channels: ${data.online_count ?? 0} online, ${data.offline_count ?? 0} offline.`;
 };
 
+const hasAnyFilter = (filters: AcestreamChannelFilters): boolean =>
+  Boolean(filters.search || filters.group || filters.is_online !== undefined || filters.is_active !== undefined);
+
 const AcestreamChannels: React.FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isCompact = useMediaQuery(theme.breakpoints.down('md'));
+  const { confirm, dialog: confirmDialog } = useConfirm();
 
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(25);
   const [filters, setFilters] = useState<AcestreamChannelFilters>({});
   const [checkingStatus, setCheckingStatus] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<SnackbarNotice | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [checkingAll, setCheckingAll] = useState(false);
-  const [checkAllResult, setCheckAllResult] = useState<SnackbarNotice | null>(null);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [batchAssignOpen, setBatchAssignOpen] = useState(false);
-  const [quickEditOpen, setQuickEditOpen] = useState(false);
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editorMode, setEditorMode] = useState<'edit' | 'create' | null>(null);
+  const [editorChannel, setEditorChannel] = useState<QuickEditChannel | null>(null);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [assignTargetIds, setAssignTargetIds] = useState<string[]>([]);
   const [assigning, setAssigning] = useState(false);
   const [assignError, setAssignError] = useState<string | null>(null);
-  const [quickEditChannel, setQuickEditChannel] = useState<EditableChannel | null>(null);
   const [groups, setGroups] = useState<string[]>([]);
   const [groupError, setGroupError] = useState<string | null>(null);
-  const [groupLoading, setGroupLoading] = useState(true);
 
   const {
     data: channelsData = { items: [], total: 0 },
     isLoading,
     refetch,
     error: fetchError,
-  } = useAcestreamChannels(
-    {
-      ...filters,
-      page: page + 1,
-      page_size: pageSize,
-    },
-    { placeholderData: keepPreviousData }
-  );
+  } = useAcestreamChannels({ ...filters, page: page + 1, page_size: pageSize }, { placeholderData: keepPreviousData });
+  const { data: onlineData } = useAcestreamChannels({ is_online: true, page: 1, page_size: 1 });
+  const { data: allData } = useAcestreamChannels({ page: 1, page_size: 1 });
 
   const channels = channelsData.items;
   const totalCount = channelsData.total;
   const deleteChannel = useDeleteAcestreamChannel();
   const { data: tvChannels } = useAllTVChannels(0, 100);
-  const visibleChannelCount = channels.length;
-  const tvChannelOptionsCount = tvChannels?.items.length ?? 0;
-  const groupsLoaded = !groupLoading && !groupError;
-  const selectedChannels = useMemo(
-    () => channels.filter((channel) => selectedIds.includes(channel.id)),
-    [channels, selectedIds]
-  );
-  const inventoryStatusLabel = useMemo(() => {
-    if (isLoading) {
-      return 'Loading the latest extracted-channel inventory.';
-    }
-
-    if (totalCount === 0) {
-      return 'No extracted channels match the current view yet.';
-    }
-
-    return `${visibleChannelCount} visible now with ${totalCount} matching the current routing view.`;
-  }, [isLoading, totalCount, visibleChannelCount]);
-  const routingActionLabel = selectedIds.length > 0 ? `${selectedIds.length} selected for bulk routing actions.` : 'Select channels to unlock bulk actions and TV assignment.';
-  const routingSupportLabel = groupsLoaded
-    ? groups.length > 0
-      ? `${groups.length} group options loaded for sorting and cleanup.`
-      : 'No saved group options are loaded yet.'
-    : groupError
-      ? 'Group suggestions are unavailable right now, but the inventory still works.'
-      : 'Loading group suggestions for routing.';
-  const tvAssignmentLabel = tvChannelOptionsCount > 0
-    ? `${tvChannelOptionsCount} TV entr${tvChannelOptionsCount === 1 ? 'y is' : 'ies are'} ready for assignment.`
-    : 'TV entries are not available yet, so finish inventory review first.';
+  const selectedChannels = useMemo(() => channels.filter((channel) => selectedIds.includes(channel.id)), [channels, selectedIds]);
+  const filtered = hasAnyFilter(filters);
 
   useEffect(() => {
     if (!isLoading && page > 0 && page * pageSize >= totalCount) {
@@ -155,91 +99,113 @@ const AcestreamChannels: React.FC = () => {
   }, [isLoading, page, pageSize, totalCount]);
 
   useEffect(() => {
-    setGroupLoading(true);
     setGroupError(null);
     acestreamChannelService
       .getGroups()
       .then((loadedGroups) => setGroups(loadedGroups ?? []))
-      .catch((err) => setGroupError(getErrorMessage(err)))
-      .finally(() => setGroupLoading(false));
+      .catch((err) => setGroupError(getErrorMessage(err)));
+  }, []);
+
+  const handleFilterChange = useCallback((newFilters: AcestreamChannelFilters) => {
+    setFilters((prevFilters) => {
+      if (JSON.stringify(prevFilters) !== JSON.stringify(newFilters)) {
+        setPage(0);
+        return newFilters;
+      }
+      return prevFilters;
+    });
+  }, []);
+
+  const handleSortChange = useCallback((model: GridSortModel) => {
+    void model;
+    setPage(0);
+  }, []);
+
+  const handleCopyId = useCallback(async (id: string) => {
+    try {
+      await navigator.clipboard.writeText(id);
+      setNotice({ message: 'Acestream ID copied.' });
+    } catch {
+      setError('Unable to copy the Acestream ID right now.');
+    }
   }, []);
 
   const handleCheckStatus = useCallback(
-    (id: string) => {
-      setCheckingStatus((prev) => ({ ...prev, [id]: true }));
+    (channel: AcestreamChannel) => {
+      setCheckingStatus((prev) => ({ ...prev, [channel.id]: true }));
       acestreamChannelService
-        .checkAcestreamChannelStatus(id)
+        .checkAcestreamChannelStatus(channel.id)
         .then(() => refetch())
         .catch((err) => setError(`Failed to check status: ${getErrorMessage(err)}`))
-        .finally(() => setCheckingStatus((prev) => ({ ...prev, [id]: false })));
+        .finally(() => setCheckingStatus((prev) => ({ ...prev, [channel.id]: false })));
     },
     [refetch]
   );
 
-  const handleQuickEdit = (channel: AcestreamChannel) => {
-    setQuickEditChannel(channel);
-    setQuickEditOpen(true);
+  const handleEdit = useCallback((channel: AcestreamChannel) => {
+    setEditorChannel(channel);
+    setEditorMode('edit');
+  }, []);
+
+  const handleAdd = () => {
+    setEditorChannel({ id: '', name: '', group: '', logo: '', is_active: true });
+    setEditorMode('create');
   };
 
-  const handleQuickEditSave = async (updates: UpdateAcestreamChannelDTO) => {
-    if (!quickEditChannel?.id) {
-      return;
-    }
+  const closeEditor = () => {
+    setEditorMode(null);
+    setEditorChannel(null);
+  };
 
-    await acestreamChannelService.updateAcestreamChannel(quickEditChannel.id, updates);
-    setQuickEditOpen(false);
-    setQuickEditChannel(null);
+  const handleEditorSave = async (values: QuickEditValues) => {
+    if (editorMode === 'create') {
+      await acestreamChannelService.createAcestreamChannel(values);
+      setNotice({ message: `Added ${values.name}.` });
+    } else if (editorChannel?.id) {
+      const { id, ...updates } = values;
+      void id;
+      await acestreamChannelService.updateAcestreamChannel(editorChannel.id, updates);
+      setNotice({ message: `Saved ${values.name}.` });
+    }
+    closeEditor();
     refetch();
   };
 
-  const handleAddChannel = () => {
-    setQuickEditChannel({
-      id: '',
-      name: '',
-      group: '',
-      logo: '',
-      is_active: true,
-    });
-    setAddDialogOpen(true);
-  };
-
-  const handleAddChannelSave = async (values: CreateAcestreamChannelDTO) => {
-    if (!values.id || !values.name) {
-      setError('Acestream ID and name are required.');
-      return;
-    }
-
-    await acestreamChannelService.createAcestreamChannel(values);
-    setAddDialogOpen(false);
-    setQuickEditChannel(null);
-    refetch();
-  };
-
-  const handleDelete = useCallback(
-    (id: string) =>
-      new Promise<boolean>((resolve, reject) => {
-        if (window.confirm('Are you sure you want to delete this channel?')) {
-          deleteChannel.mutate(id, {
-            onSuccess: () => {
-              resolve(true);
-            },
-            onError: (err) => {
-              setError(`Failed to delete channel: ${getErrorMessage(err)}`);
-              reject(err);
-            },
-          });
-          return;
-        }
-
-        resolve(false);
-      }),
-    [deleteChannel]
+  const handleToggleHidden = useCallback(
+    async (channel: AcestreamChannel) => {
+      const hide = channel.is_active !== false;
+      try {
+        await acestreamChannelService.updateAcestreamChannel(channel.id, { is_active: !hide });
+        setNotice({ message: hide ? `${channel.name} is now hidden from the playlist.` : `${channel.name} is back in the playlist.` });
+        refetch();
+      } catch (err) {
+        setError(`Failed to update ${channel.name}: ${getErrorMessage(err)}`);
+      }
+    },
+    [refetch]
   );
 
-  const handleOpenAssignDialog = (ids: string[]) => {
+  const handleDelete = useCallback(
+    async (channel: AcestreamChannel) => {
+      const ok = await confirm({
+        title: `Delete ${channel.name}?`,
+        body: 'The channel is removed from the inventory and the playlist. It comes back if a source still lists it.',
+        confirmLabel: 'Delete',
+        danger: true,
+      });
+      if (!ok) return;
+      deleteChannel.mutate(channel.id, {
+        onSuccess: () => setNotice({ message: `Deleted ${channel.name}.` }),
+        onError: (err) => setError(`Failed to delete channel: ${getErrorMessage(err)}`),
+      });
+    },
+    [confirm, deleteChannel]
+  );
+
+  const handleOpenAssignDialog = useCallback((ids: string[]) => {
     setAssignTargetIds(ids);
     setAssignDialogOpen(true);
-  };
+  }, []);
 
   const handleCloseAssignDialog = () => {
     setAssignDialogOpen(false);
@@ -252,7 +218,6 @@ const AcestreamChannels: React.FC = () => {
     setAssignError(null);
     try {
       await Promise.all(assignTargetIds.map((id) => acestreamChannelService.assignToTVChannel(id, tvChannelId)));
-
       const assigned = tvChannels?.items.find((tvChannel) => tvChannel.id === tvChannelId);
       if (assigned) {
         await Promise.all(
@@ -266,8 +231,8 @@ const AcestreamChannels: React.FC = () => {
           )
         );
       }
-
       handleCloseAssignDialog();
+      setNotice({ message: `Linked ${assignTargetIds.length} channel${assignTargetIds.length === 1 ? '' : 's'} to ${assigned?.name ?? 'the TV channel'}.` });
       refetch();
     } catch (err) {
       setAssignError(getErrorMessage(err));
@@ -276,25 +241,25 @@ const AcestreamChannels: React.FC = () => {
     }
   };
 
-  const handleFilterChange = useCallback((newFilters: AcestreamChannelFilters) => {
-    setFilters((prevFilters) => {
-      if (JSON.stringify(prevFilters) !== JSON.stringify(newFilters)) {
-        setPage(0);
-        return newFilters;
+  const handleOpenTV = useCallback(
+    (channel: AcestreamChannel) => {
+      if (channel.tv_channel_id) navigate(`/tv-channels/${channel.tv_channel_id}`);
+    },
+    [navigate]
+  );
+
+  const handleToggleTVFavorite = useCallback(
+    async (channel: AcestreamChannel) => {
+      if (!channel.tv_channel_id) return;
+      try {
+        await tvChannelService.update(channel.tv_channel_id, { is_favorite: !channel.tv_channel_is_favorite });
+        refetch();
+      } catch (err) {
+        setError(`Failed to update linked TV favorite: ${getErrorMessage(err)}`);
       }
-
-      return prevFilters;
-    });
-  }, []);
-
-  const handleAdvancedFilterChange = (newFilters: AdvancedSearchFilters) => {
-    handleFilterChange(mapAdvancedToFilters(newFilters));
-  };
-
-  const handleSortChange = useCallback((model: GridSortModel) => {
-    void model;
-    setPage(0);
-  }, []);
+    },
+    [refetch]
+  );
 
   const handleBulkEdit = async (updates: Partial<UpdateAcestreamChannelDTO>) => {
     await acestreamChannelService.bulkEditAcestreamChannels(selectedIds, updates);
@@ -335,166 +300,59 @@ const AcestreamChannels: React.FC = () => {
 
   const handleCheckAllStatuses = async () => {
     setCheckingAll(true);
-    setCheckAllResult(null);
     try {
       const data = await acestreamChannelService.checkAllStatuses();
-      setCheckAllResult({ message: describeBulkStatusCheck(data) });
+      setNotice({ message: describeBulkStatusCheck(data) });
     } catch (err) {
-      setCheckAllResult({ message: getErrorMessage(err), error: err });
+      setNotice({ message: getErrorMessage(err), error: err });
     } finally {
       setCheckingAll(false);
     }
   };
 
-  const handleToggleLinkedFavorite = async (channel: AcestreamChannel) => {
-    if (!channel.tv_channel_id) {
-      return;
-    }
-
-    try {
-      await tvChannelService.update(channel.tv_channel_id, {
-        is_favorite: !channel.tv_channel_is_favorite,
-      });
-      refetch();
-    } catch (err) {
-      setError(`Failed to update linked TV favorite: ${getErrorMessage(err)}`);
-    }
+  const rowHandlers = {
+    onCheckStatus: handleCheckStatus,
+    onEdit: handleEdit,
+    onToggleHidden: handleToggleHidden,
+    onAssignTV: (channel: AcestreamChannel) => handleOpenAssignDialog([channel.id]),
+    onOpenTV: handleOpenTV,
+    onToggleTVFavorite: handleToggleTVFavorite,
+    onDelete: handleDelete,
   };
 
-  const checkAllSeverity = checkAllResult?.error ? 'error' : 'success';
+  const allTotal = allData?.total;
+  const onlineTotal = onlineData?.total;
 
   return (
     <Box sx={{ width: '100%' }}>
       <PageHeader
         title="Acestream Channels"
-        subtitle="Manage source channels, status checks, grouping, and TV-channel assignments."
+        subtitle="Streams found by the scraper. Hide the ones you don't want in the playlist and link the rest to TV channels."
         actions={
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-            <Button variant="outlined" startIcon={<Refresh />} onClick={() => refetch()}>
-              Refresh
-            </Button>
-            <Button variant="outlined" onClick={handleCheckAllStatuses} disabled={checkingAll}>
-              {checkingAll ? 'Checking...' : 'Check All Statuses'}
-            </Button>
-            <Button variant="outlined" startIcon={<FileDownload />} onClick={handleExportCSV}>
-              CSV
-            </Button>
-            <Button variant="contained" startIcon={<Add />} onClick={handleAddChannel}>
-              Add
-            </Button>
-          </Stack>
+          <Button variant="contained" startIcon={<Add />} onClick={handleAdd}>
+            Add channel
+          </Button>
         }
+        overflowActions={[
+          { label: 'Refresh', icon: <Refresh fontSize="small" />, onClick: () => void refetch() },
+          { label: checkingAll ? 'Checking…' : 'Check all statuses', onClick: () => void handleCheckAllStatuses(), disabled: checkingAll },
+          { label: 'Export CSV', icon: <FileDownload fontSize="small" />, onClick: () => void handleExportCSV() },
+        ]}
       />
 
-      <Box
-        sx={{
-          mb: 3,
-          p: { xs: 2, md: 2.5 },
-          borderRadius: 2.5,
-          bgcolor: theme.appTokens.hero.bg,
-          border: `1px solid ${theme.appTokens.hero.border}`,
-          backgroundImage: theme.appTokens.hero.spotlight,
-        }}
-      >
-        <Stack spacing={2}>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, justifyContent: 'space-between' }}>
-            <Box sx={{ minWidth: 0, maxWidth: 760 }}>
-              <Typography variant="statusMeta" sx={{ color: theme.appTokens.hero.accent, mb: 1 }}>
-                Extracted-channel routing stage
-              </Typography>
-              <Typography variant="h4" sx={{ letterSpacing: '-0.03em', mb: 1 }}>
-                Review extracted inventory first, then route the right channels into TV organization.
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Confirm the channel list, clean up metadata, and route the right channels before you move downstream.
-              </Typography>
-            </Box>
-            <Stack spacing={1} sx={{ minWidth: { xs: '100%', sm: 320 } }}>
-              <Box
-                sx={{
-                  p: 1.5,
-                  borderRadius: 2,
-                  bgcolor: alpha(theme.appTokens.shell.accent, 0.08),
-                  border: `1px solid ${alpha(theme.appTokens.shell.accent, 0.18)}`,
-                }}
-              >
-                <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>
-                  Inventory status
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                  {inventoryStatusLabel}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {routingActionLabel}
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  p: 1.5,
-                  borderRadius: 2,
-                  bgcolor: theme.appTokens.surface.panel,
-                  border: `1px solid ${theme.appTokens.surface.border}`,
-                }}
-              >
-                <Typography variant="statusMeta" sx={{ color: 'text.secondary', mb: 0.5 }}>
-                  Routing guidance
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                  Assign channels to TV entries after you confirm names, groups, and stream health.
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {routingSupportLabel} {tvAssignmentLabel}
-                </Typography>
-              </Box>
-            </Stack>
-          </Box>
-
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25 }}>
-            {[
-              {
-                title: 'Sources',
-                label: 'Completed intake stage',
-                body: 'Scrape sources first so this inventory has current channel results.',
-                active: false,
-              },
-              {
-                title: 'Extracted channels',
-                label: 'Current routing stage',
-                body: 'Review inventory, fix metadata, and route channels into TV entries.',
-                active: true,
-              },
-              {
-                title: 'TV organization',
-                label: 'Next downstream stage',
-                body: 'Finalize the organized TV catalog for EPG and output workflows.',
-                active: false,
-              },
-            ].map((stage) => (
-              <Box
-                key={stage.title}
-                sx={{
-                  flex: '1 1 180px',
-                  minWidth: { xs: '100%', sm: 180 },
-                  p: 1.5,
-                  borderRadius: 2,
-                  bgcolor: stage.active ? alpha(theme.appTokens.hero.accent, 0.10) : theme.appTokens.surface.panel,
-                  border: `1px solid ${stage.active ? alpha(theme.appTokens.hero.accent, 0.24) : theme.appTokens.surface.border}`,
-                }}
-              >
-                <Typography variant="statusMeta" sx={{ color: stage.active ? theme.appTokens.hero.accent : 'text.secondary', mb: 0.75 }}>
-                  {stage.label}
-                </Typography>
-                <Typography variant="sectionTitle" sx={{ mb: 0.5 }}>
-                  {stage.title}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {stage.body}
-                </Typography>
-              </Box>
-            ))}
-          </Box>
-        </Stack>
-      </Box>
+      <StatusLine
+        aria-label="Channel summary"
+        items={[
+          { label: 'Channels', value: allTotal === undefined ? '…' : String(allTotal) },
+          {
+            label: 'Online',
+            value: onlineTotal === undefined ? '…' : String(onlineTotal),
+            tone: onlineTotal === 0 && (allTotal ?? 0) > 0 ? 'warning' : 'default',
+          },
+          { label: 'Matching filters', value: filtered ? String(totalCount) : 'all' },
+          { label: 'Selected', value: String(selectedIds.length) },
+        ]}
+      />
 
       {error ? (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
@@ -525,94 +383,56 @@ const AcestreamChannels: React.FC = () => {
 
       <ContentSection
         title="Channels"
-        description="Review stream health, edit metadata, and prepare channels for TV assignment."
         actions={
           selectedIds.length > 0 ? (
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
               <Button variant="contained" color="secondary" onClick={() => setBulkOpen(true)}>
-                Bulk Actions ({selectedIds.length})
+                Bulk actions ({selectedIds.length})
               </Button>
               <Button variant="outlined" onClick={() => setBatchAssignOpen(true)}>
-                Batch Group
+                Set group
               </Button>
               <Button variant="outlined" onClick={() => handleOpenAssignDialog(selectedIds)}>
-                Assign TV Channel
+                Link to TV channel
               </Button>
             </Stack>
           ) : undefined
         }
       >
-        <ChannelTable
-          channels={channels}
-          loading={isLoading}
-          onCheckStatus={handleCheckStatus}
-          onEdit={handleQuickEdit}
-          onDelete={handleDelete}
-          checkingStatus={checkingStatus}
-          filters={filters}
-          onFilterChange={handleFilterChange}
-          totalCount={totalCount}
-          page={page}
-          pageSize={pageSize}
-          onPaginationModelChange={({ page: newPage, pageSize: newPageSize }) => {
-            if (page !== newPage) {
-              setPage(newPage);
-            }
-            if (pageSize !== newPageSize) {
-              setPageSize(newPageSize);
-            }
-          }}
-          onSortChange={handleSortChange}
-          onSelectionChange={setSelectedIds}
-          onActionComplete={refetch}
-          extraActions={(row) => {
-            const assignedTvChannel = tvChannels?.items.find((tvChannel) => tvChannel.id === row.tv_channel_id);
-            const linkedTvName = assignedTvChannel?.name || row.tv_channel_name || 'linked TV channel';
-            if (row.tv_channel_id) {
-              return (
-                <>
-                  <Tooltip title={row.tv_channel_is_favorite ? `Remove ${linkedTvName} from favorites` : `Add ${linkedTvName} to favorites`} arrow>
-                    <Button
-                      size="small"
-                      variant="text"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        void handleToggleLinkedFavorite(row);
-                      }}
-                      aria-label={row.tv_channel_is_favorite ? `Remove ${linkedTvName} from favorites` : `Add ${linkedTvName} to favorites`}
-                    >
-                      {row.tv_channel_is_favorite ? 'Unfavorite TV' : 'Favorite TV'}
-                    </Button>
-                  </Tooltip>
-                  {assignedTvChannel ? (
-                    <Tooltip title={`Open TV channel: ${linkedTvName}`} arrow>
-                      <IconButton color="primary" aria-label={`go to tv channel ${linkedTvName}`} onClick={() => navigate(`/tv-channels/${assignedTvChannel.id}`)}>
-                        <TvIcon />
-                      </IconButton>
-                    </Tooltip>
-                  ) : null}
-                </>
-              );
-            }
-
-            return (
-              <Tooltip title="Assign to TV Channel" arrow>
-                <IconButton aria-label={`assign tv channel to ${row.name}`} onClick={() => handleOpenAssignDialog([row.id])}>
-                  <TvIcon />
-                </IconButton>
-              </Tooltip>
-            );
-          }}
-        />
-      </ContentSection>
-
-      <ContentSection title="Filters" description="Use table and field filters to narrow channels quickly after reviewing inventory.">
-        <AdvancedSearch
-          filters={mapFiltersToAdvanced(filters)}
-          groups={groups}
-          onChange={handleAdvancedFilterChange}
-          visibleFields={ACESTREAM_FILTER_FIELDS}
-        />
+        <ChannelFilterBar filters={filters} groups={groups} onChange={handleFilterChange} />
+        {isCompact ? (
+          <ChannelCardList
+            channels={channels}
+            loading={isLoading}
+            checkingStatus={checkingStatus}
+            selectedIds={selectedIds}
+            onSelectionChange={setSelectedIds}
+            totalCount={totalCount}
+            page={page}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onCopyId={handleCopyId}
+            {...rowHandlers}
+          />
+        ) : (
+          <ChannelTable
+            channels={channels}
+            loading={isLoading}
+            checkingStatus={checkingStatus}
+            hasActiveFilters={filtered}
+            totalCount={totalCount}
+            page={page}
+            pageSize={pageSize}
+            onPaginationModelChange={({ page: newPage, pageSize: newPageSize }) => {
+              if (page !== newPage) setPage(newPage);
+              if (pageSize !== newPageSize) setPageSize(newPageSize);
+            }}
+            onSortChange={handleSortChange}
+            onSelectionChange={setSelectedIds}
+            onCopyId={handleCopyId}
+            {...rowHandlers}
+          />
+        )}
       </ContentSection>
 
       <BulkOperations
@@ -633,18 +453,11 @@ const AcestreamChannels: React.FC = () => {
       />
 
       <QuickEditDialog
-        open={quickEditOpen}
-        onClose={() => setQuickEditOpen(false)}
-        channel={quickEditChannel}
-        onSave={handleQuickEditSave}
-        fullScreen={isMobile}
-      />
-
-      <QuickEditDialog
-        open={addDialogOpen}
-        onClose={() => setAddDialogOpen(false)}
-        channel={quickEditChannel}
-        onSave={handleAddChannelSave}
+        open={editorMode !== null}
+        mode={editorMode ?? 'edit'}
+        onClose={closeEditor}
+        channel={editorChannel}
+        onSave={handleEditorSave}
         fullScreen={isMobile}
       />
 
@@ -657,14 +470,16 @@ const AcestreamChannels: React.FC = () => {
         error={assignError}
       />
 
+      {confirmDialog}
+
       <Snackbar
-        open={Boolean(checkAllResult)}
+        open={Boolean(notice)}
         autoHideDuration={5000}
-        onClose={() => setCheckAllResult(null)}
+        onClose={() => setNotice(null)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert onClose={() => setCheckAllResult(null)} severity={checkAllSeverity} sx={{ width: '100%' }}>
-          {checkAllResult?.message}
+        <Alert onClose={() => setNotice(null)} severity={notice?.error ? 'error' : 'success'} sx={{ width: '100%' }}>
+          {notice?.message}
         </Alert>
       </Snackbar>
     </Box>

@@ -319,6 +319,18 @@ export interface paths {
     /** Update Dashboard Config */
     put: operations["update_dashboard_config_api_v1_config_dashboard_put"];
   };
+  "/api/v1/config/epg_refresh_interval": {
+    /**
+     * Get Epg Refresh Interval
+     * @description Get the interval between automatic EPG refreshes in hours.
+     */
+    get: operations["get_epg_refresh_interval_api_v1_config_epg_refresh_interval_get"];
+    /**
+     * Update Epg Refresh Interval
+     * @description Update the interval between automatic EPG refreshes in hours (reschedules the job).
+     */
+    put: operations["update_epg_refresh_interval_api_v1_config_epg_refresh_interval_put"];
+  };
   "/api/v1/config/rescrape_interval": {
     /**
      * Get Rescrape Interval
@@ -3474,6 +3486,45 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["DashboardConfigResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Get Epg Refresh Interval
+   * @description Get the interval between automatic EPG refreshes in hours.
+   */
+  get_epg_refresh_interval_api_v1_config_epg_refresh_interval_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["SettingResponse"];
+        };
+      };
+    };
+  };
+  /**
+   * Update Epg Refresh Interval
+   * @description Update the interval between automatic EPG refreshes in hours (reschedules the job).
+   */
+  update_epg_refresh_interval_api_v1_config_epg_refresh_interval_put: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RescrapeIntervalUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ConfigUpdateResponse"];
         };
       };
       /** @description Validation Error */

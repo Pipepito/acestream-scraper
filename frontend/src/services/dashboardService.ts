@@ -1,20 +1,15 @@
-// Dashboard API service for activity, background tasks, streams, warp, and dashboard config
+// Scheduler status used by the Overview page
 import apiClient from './apiClient';
 
-export const getRecentActivity = (params: { days?: number; type?: string; page?: number; page_size?: number }) =>
-  apiClient.get('/v1/activity/recent', { params });
+export interface BackgroundTaskStatus {
+  task_name: string;
+  last_run: string | null;
+  next_run: string | null;
+  status: string;
+  last_error: string | null;
+  last_result: unknown;
+  progress: { processed?: number; total?: number; percent?: number } | null;
+}
 
 export const getBackgroundTaskStatus = () =>
-  apiClient.get('/v1/background-tasks/status');
-
-export const getActiveStreams = () =>
-  apiClient.get('/v1/streams/active');
-
-export const getWarpStatus = () =>
-  apiClient.get('/v1/warp/status');
-
-export const getDashboardConfig = () =>
-  apiClient.get('/v1/config/dashboard');
-
-export const updateDashboardConfig = (data: { retention_days?: number; auto_refresh_interval?: number }) =>
-  apiClient.put('/v1/config/dashboard', data);
+  apiClient.get<BackgroundTaskStatus[]>('/v1/background-tasks/status');

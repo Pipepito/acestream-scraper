@@ -54,6 +54,9 @@ test.describe('scraper', () => {
   test('a disabled URL cannot be scraped and the row toggles round-trip', async ({ page, api, scenario, errors }) => {
     const source = scenario.scrape.sources[0];
     const url = scrapeUrlFor(source);
+    // Re-runnable: a previous failure may have left the source disabled or harvesting bare IDs.
+    const seeded = (await api.findUrl(url))!;
+    await api.raw('patch', `/api/v1/scrapers/urls/${seeded.id}`, { enabled: true, scrape_bare_ids: false });
     const scraper = new ScraperPage(page);
     await scraper.open();
 

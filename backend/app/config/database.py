@@ -184,6 +184,41 @@ def ensure_schema_stamped(database_url: Optional[str] = None) -> bool:
     return True
 
 
+def backfill_scraped_url_flags(database_url: Optional[str] = None) -> int:
+    """Set ``scraped_urls.scrape_bare_ids`` to false where it is NULL; return rows changed.
+
+    The pre-2026-08-29 v1 migrator provisioned v2 with ``create_all`` (no server
+    default) and copied URLs with raw SQL, so every migrated row carries NULL —
+    which ``URLResponse`` rejects, turning the URL list into a 500. Those
+    databases are already stamped at the Alembic head, so no revision would
+    reach them; startup repairs the rows directly.
+    """
+    import os
+    import sqlite3
+
+    url = database_url or get_settings().DATABASE_URL
+    path = _sqlite_path_from_url(url)
+    if path is None or not os.path.exists(path):
+        return 0
+    conn = sqlite3.connect(path)
+    try:
+        has_table = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='scraped_urls'"
+        ).fetchone()
+        if not has_table:
+            return 0
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(scraped_urls)")}
+        if "scrape_bare_ids" not in columns:
+            return 0
+        cursor = conn.execute(
+            "UPDATE scraped_urls SET scrape_bare_ids = 0 WHERE scrape_bare_ids IS NULL"
+        )
+        conn.commit()
+        return cursor.rowcount
+    finally:
+        conn.close()
+
+
 def provision_schema(database_url: Optional[str] = None) -> str:
     """Bring the database to the Alembic head, stamping first when needed.
 

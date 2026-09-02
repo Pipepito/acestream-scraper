@@ -1,7 +1,7 @@
 """
 Pydantic schemas for scraper data
 """
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
@@ -46,6 +46,14 @@ class URLResponse(BaseModel):
     channels_found: int = 0  # Number of acestream channels found for this URL
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("scrape_bare_ids", mode="before")
+    @classmethod
+    def _null_flag_means_off(cls, value: Optional[bool]) -> bool:
+        # Rows the pre-2026-08-29 v1 migrator copied into a create_all schema
+        # carry NULL here; treat that as the opt-in being off rather than
+        # failing the whole listing.
+        return False if value is None else value
 
 
 class URLCreate(BaseModel):

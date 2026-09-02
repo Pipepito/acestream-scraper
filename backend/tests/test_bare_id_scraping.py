@@ -6,6 +6,7 @@ hashes without the acestream:// scheme.
 import asyncio
 
 from fastapi import status
+from sqlalchemy import text
 
 from app.models.url_types import RegularURL
 from app.scrapers.http import HTTPScraper
@@ -141,3 +142,33 @@ class TestBareIdUrlApi:
         )
         assert response.status_code == status.HTTP_200_OK
         assert response.json()["scrape_bare_ids"] is True
+
+    def test_list_tolerates_null_flag_left_by_the_v1_migrator(self, client, db_session):
+        # The pre-2026-08-29 migrator provisioned v2 with create_all (no server
+        # default) and inserted URLs with raw SQL, so every migrated row carries
+        # scrape_bare_ids = NULL. Listing must not 500 on those rows.
+        db_session.execute(text(
+            "INSERT INTO scraped_urls "
+            "(url, url_type, status, error_count, enabled, added_at, scrape_bare_ids) "
+            "VALUES ('http://example.com/migrated', 'regular', 'ok', 0, 1, "
+            "'2026-01-01 00:00:00', NULL)"
+        ))
+        db_session.commit()
+
+        response = client.get("/api/v1/scrapers/urls")
+        assert response.status_code == status.HTTP_200_OK
+        rows = {row["url"]: row for row in response.json()}
+        assert rows["http://example.com/migrated"]["scrape_bare_ids"] is False
+
+
+def test_model_column_defaults_to_false_for_raw_inserts(test_db):
+    # Raw SQL that omits the column (the v1 migrator, ad-hoc repairs) must get
+    # false, not NULL, even on a schema created by Base.metadata.create_all.
+    engine, _ = test_db
+    with engine.begin() as conn:
+        conn.execute(text(
+            "INSERT INTO scraped_urls (url, url_type, status, error_count, enabled, added_at) "
+            "VALUES ('http://example.com/raw', 'regular', 'ok', 0, 1, '2026-01-01 00:00:00')"
+        ))
+        flag = conn.execute(text("SELECT scrape_bare_ids FROM scraped_urls")).scalar()
+    assert flag == 0

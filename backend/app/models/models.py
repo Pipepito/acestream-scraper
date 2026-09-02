@@ -3,7 +3,7 @@ SQLAlchemy models for the application
 """
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, Integer, String, Text, false
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from sqlalchemy.types import TypeDecorator
@@ -79,7 +79,7 @@ class ScrapedURL(Base):
     # Opt-in: also harvest bare 40-hex content IDs (sites that list hashes
     # without the acestream:// scheme, #81). Off by default to avoid false
     # positives on ordinary pages.
-    scrape_bare_ids = Column(Boolean, default=False)
+    scrape_bare_ids = Column(Boolean, default=False, server_default=false())
     added_at = Column(UtcDateTime(), default=_utcnow)
 
     def update_status(self, status: str, error: str = None) -> None:

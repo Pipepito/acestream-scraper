@@ -23,7 +23,7 @@ from app.api.endpoints.playlists import (
     trigger_url_scrape_refresh,
 )
 from app.api.error_handlers import register_error_handlers
-from app.config.database import ensure_schema_stamped, get_db, provision_schema
+from app.config.database import backfill_scraped_url_flags, ensure_schema_stamped, get_db, provision_schema
 from app.config.settings import get_env_compat_events, settings
 from app.services.epg_service import EPGService
 from app.services.playlist_service import PlaylistService
@@ -82,6 +82,9 @@ def initialize_database():
     else:
         if ensure_schema_stamped():
             print("Recorded the current Alembic head on the existing (unstamped) v2 database")
+        repaired = backfill_scraped_url_flags()
+        if repaired:
+            print(f"Backfilled scrape_bare_ids on {repaired} scraped URL row(s) left NULL by an older migrator")
         print("V2 database ready")
 
 

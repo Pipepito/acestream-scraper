@@ -262,3 +262,59 @@ def test_retention_defaults_to_settings(legacy_runtime, monkeypatch):
         assert _migrator().epg_retention_hours == 2.5
     finally:
         settings_module.get_settings.cache_clear()
+
+
+def _strip_scrape_bare_ids_default(v2_path: Path) -> None:
+    """Recreate the column the way the pre-2026-08-29 image's create_all left it: nullable, no default."""
+    if sqlite3.sqlite_version_info < (3, 35):
+        pytest.skip("ALTER TABLE ... DROP COLUMN needs SQLite 3.35+")
+    with sqlite3.connect(v2_path) as conn:
+        conn.execute("ALTER TABLE scraped_urls DROP COLUMN scrape_bare_ids")
+        conn.execute("ALTER TABLE scraped_urls ADD COLUMN scrape_bare_ids BOOLEAN")
+
+
+def _create_all_v2(v2_path: Path) -> None:
+    from app.config.database import Base
+    from app.models import models  # noqa: F401 - registers the tables on Base
+
+    engine = create_engine(f"sqlite:///{v2_path.as_posix()}")
+    try:
+        Base.metadata.create_all(bind=engine)
+    finally:
+        engine.dispose()
+
+
+def test_foreground_migration_writes_scrape_bare_ids_without_a_server_default(legacy_runtime):
+    """The migrator's raw INSERT left scrape_bare_ids NULL whenever the column had
+    no server default (create_all schemas); the list endpoint then 500s. The
+    INSERT must set the flag explicitly instead of relying on the schema."""
+    create_v1_database(legacy_runtime["v1"], channels=1, programs_per_channel=0)
+    _create_all_v2(legacy_runtime["v2"])
+    _strip_scrape_bare_ids_default(legacy_runtime["v2"])
+
+    assert _migrator().run_migration() is True
+
+    with sqlite3.connect(legacy_runtime["v2"]) as conn:
+        flags = [row[0] for row in conn.execute("SELECT scrape_bare_ids FROM scraped_urls")]
+    assert flags == [0]
+
+
+def test_startup_backfills_null_scrape_bare_ids_on_an_existing_database(legacy_runtime):
+    """Databases migrated by the pre-2026-08-29 image carry NULL flags and are
+    already stamped at head, so no Alembic revision reaches them; startup has to
+    repair the rows itself."""
+    v2 = legacy_runtime["v2"]
+    _create_all_v2(v2)
+    with sqlite3.connect(v2) as conn:
+        conn.execute(
+            "INSERT INTO scraped_urls "
+            "(url, url_type, status, error_count, enabled, added_at, scrape_bare_ids) "
+            "VALUES ('http://example.com/list', 'regular', 'ok', 0, 1, '2026-01-01 00:00:00', NULL)"
+        )
+
+    from main import initialize_database
+
+    initialize_database()
+
+    with sqlite3.connect(v2) as conn:
+        assert conn.execute("SELECT scrape_bare_ids FROM scraped_urls").fetchall() == [(0,)]

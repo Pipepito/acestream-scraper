@@ -210,13 +210,21 @@ class DatabaseMigrator:
                     last_error = row['last_error'] if 'last_error' in row.keys() else None
                     enabled = row['enabled'] if 'enabled' in row.keys() else True
                     added_at = row['added_at'] if 'added_at' in row.keys() else row['last_processed']
+                    # v1 never had the bare-ID opt-in; write it explicitly so the
+                    # row never depends on the column carrying a server default
+                    # (create_all schemas have none and URLResponse rejects NULL).
+                    scrape_bare_ids = (
+                        int(bool(row['scrape_bare_ids']))
+                        if 'scrape_bare_ids' in row.keys() and row['scrape_bare_ids'] is not None
+                        else 0
+                    )
 
                     v2_cursor.execute("""
                         INSERT INTO scraped_urls (
                             url, url_type, status, last_processed, last_scraped,
-                            error_count, last_error, error, enabled, added_at
+                            error_count, last_error, error, enabled, scrape_bare_ids, added_at
                         )
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (
                         row['url'],
                         url_type,
@@ -227,6 +235,7 @@ class DatabaseMigrator:
                         last_error,
                         last_error,  # Use last_error as error for backward compatibility
                         enabled,
+                        scrape_bare_ids,
                         added_at
                     ))
 

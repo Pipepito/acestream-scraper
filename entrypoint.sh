@@ -8,7 +8,12 @@ mkdir -p "$LOG_DIR"
 #   <run dir>/<service>.started  epoch of the current launch
 #   <run dir>/<service>.restart  marker: the next exit is an operator restart
 SUPERVISOR_RUN_DIR=${SUPERVISOR_RUN_DIR:-/run/acestream-scraper}
-mkdir -p "$SUPERVISOR_RUN_DIR"
+if ! mkdir -p "$SUPERVISOR_RUN_DIR" 2>/dev/null; then
+    # Not root (e.g. the runtime-contract validator on a dev host): keep the
+    # bookkeeping in a temp dir instead of aborting startup.
+    SUPERVISOR_RUN_DIR="${TMPDIR:-/tmp}/acestream-scraper-run"
+    mkdir -p "$SUPERVISOR_RUN_DIR"
+fi
 export SUPERVISOR_RUN_DIR
 LOGROTATE_DIR=${LOGROTATE_DIR:-/tmp/acestream-scraper-logrotate}
 mkdir -p "$LOGROTATE_DIR"
@@ -240,11 +245,7 @@ export IPFS_API_PORT="${IPFS_API_PORT:-5001}"
 export IPFS_GATEWAY_PORT="${IPFS_GATEWAY_PORT:-8081}"
 export IPFS_GATEWAY_URL="${IPFS_GATEWAY_URL:-http://127.0.0.1:$IPFS_GATEWAY_PORT}"
 
-if feature_enabled "$ENABLE_WARP"; then
-    if ! bash "$(dirname "$0")/warp-setup.sh"; then
-        fail "WARP setup failed"
-    fi
-else
+if ! feature_enabled "$ENABLE_WARP"; then
     log "WARP disabled; skipping setup"
 fi
 
@@ -334,6 +335,23 @@ configure_ipfs_repo() {
 
 child_pids=()
 child_names=()
+
+if feature_enabled "$ENABLE_WARP"; then
+    # warp-svc runs under the supervisor (restartable from the app, relaunched
+    # on crash); warp-setup.sh prepares the host (TUN, DBus) before it starts
+    # and registers/connects once it answers.
+    if ! bash "$(dirname "$0")/warp-setup.sh" prepare; then
+        fail "WARP setup failed"
+    fi
+    # warp-svc inherits this from its supervisor (warp-setup.sh only exports it for its own run).
+    export WARP_FORCE_IPV4="${WARP_FORCE_IPV4:-true}"
+    supervise_service "WARP" "${WARP_START_COMMAND:-warp-svc --accept-tos >> \"$LOG_DIR/warp-svc.log\" 2>&1}" &
+    child_pids+=("$!")
+    child_names+=("WARP")
+    if ! bash "$(dirname "$0")/warp-setup.sh" configure; then
+        fail "WARP setup failed"
+    fi
+fi
 
 if feature_enabled "$ENABLE_ZERONET"; then
     mkdir -p "$ZERONET_DATA_DIR"

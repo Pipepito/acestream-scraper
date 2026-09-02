@@ -50,7 +50,9 @@ WARP_ENABLE_NAT=$(normalize_bool "${WARP_ENABLE_NAT:-false}")
 LOG_DIR=${LOG_DIR:-/app/logs}
 mkdir -p "$LOG_DIR"
 WARP_LOG="$LOG_DIR/warp.log"
-: > "$WARP_LOG"
+if [ "${1:-all}" != "configure" ]; then
+    : > "$WARP_LOG"
+fi
 
 if [ "$ENABLE_WARP" != "true" ]; then
     log "WARP disabled; skipping setup"
@@ -66,26 +68,44 @@ for cmd in "${required_commands[@]}"; do
     fi
 done
 
-log "Starting WARP setup"
+# Phases: `prepare` (TUN + DBus), `configure` (wait for warp-svc, register,
+# connect). The entrypoint runs warp-svc between them under its supervisor;
+# with no argument this script does everything itself, starting warp-svc too.
+PHASE=${1:-all}
+case "$PHASE" in
+    all|prepare|configure) ;;
+    *) fail "unknown phase: $PHASE (expected prepare, configure or none)" ;;
+esac
 
-if [ ! -e /dev/net/tun ]; then
-    log "Creating TUN device"
-    run_privileged mkdir -p /dev/net
-    run_privileged mknod /dev/net/tun c 10 200
-    run_privileged chmod 600 /dev/net/tun
+if [ "$PHASE" != "configure" ]; then
+    log "Starting WARP setup"
+
+    if [ ! -e /dev/net/tun ]; then
+        log "Creating TUN device"
+        run_privileged mkdir -p /dev/net
+        run_privileged mknod /dev/net/tun c 10 200
+        run_privileged chmod 600 /dev/net/tun
+    fi
+
+    log "Starting DBus"
+    run_privileged mkdir -p /run/dbus
+    if [ -f /run/dbus/pid ]; then
+        run_privileged rm -f /run/dbus/pid
+    fi
+    run_privileged dbus-daemon --config-file=/usr/share/dbus-1/system.conf --fork >> "$WARP_LOG" 2>&1
 fi
 
-log "Starting DBus"
-run_privileged mkdir -p /run/dbus
-if [ -f /run/dbus/pid ]; then
-    run_privileged rm -f /run/dbus/pid
+if [ "$PHASE" = "prepare" ]; then
+    log "WARP host preparation completed"
+    exit 0
 fi
-run_privileged dbus-daemon --config-file=/usr/share/dbus-1/system.conf --fork >> "$WARP_LOG" 2>&1
 
 export WARP_FORCE_IPV4=true
 
-log "Starting WARP service"
-run_privileged warp-svc --accept-tos >> "$WARP_LOG" 2>&1 &
+if [ "$PHASE" = "all" ]; then
+    log "Starting WARP service"
+    run_privileged warp-svc --accept-tos >> "$WARP_LOG" 2>&1 &
+fi
 wait_for_warp_ready "WARP service" "${WARP_READY_ATTEMPTS:-30}" "${WARP_READY_INTERVAL:-1}"
 
 if [ ! -f /var/lib/cloudflare-warp/reg.json ] && [ ! -f /var/lib/cloudflare-warp/mdm.xml ]; then

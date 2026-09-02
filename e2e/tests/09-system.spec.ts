@@ -59,19 +59,23 @@ test.describe('dashboard, health, stats, WARP', () => {
     expect(['running', 'external']).toContain(engine.state);
     await expect(health.serviceCard(engine.label)).toContainText(/Running|External/);
 
-    const managed = status.services.find((s) => s.name === 'acestream' && s.managed);
-    if (!status.supervised || !managed) {
+    const managedNames = ['acestream', 'warp'];
+    const managed = status.services.filter((s) => managedNames.includes(s.name) && s.managed);
+    if (!status.supervised || managed.length === 0) {
       await expect(health.services()).toContainText(/not running under the container entrypoint|Managed outside this container/);
       return;
     }
-    await health.restart(managed.label);
-    await health.expectAlert(/Restart requested/);
-    await expect(health.serviceCard(managed.label)).toContainText('Restarting');
-    await expect(health.serviceCard(managed.label)).toContainText('Running', { timeout: 120_000 });
-    const after = await api.raw('get', '/api/v1/system/services').then((r) => r.json() as Promise<{ services: { name: string; pid: number | null; state: string }[] }>);
-    const engineAfter = after.services.find((s) => s.name === 'acestream')!;
-    expect(engineAfter.state).toBe('running');
-    expect(engineAfter.pid).not.toBe(managed.pid);
+    for (const target of managed) {
+      await health.restart(target.label);
+      await health.expectAlert(/Restart requested/);
+      await expect(health.serviceCard(target.label)).toContainText('Restarting');
+      await expect(health.serviceCard(target.label)).toContainText('Running', { timeout: 120_000 });
+      const after = await api.raw('get', '/api/v1/system/services').then((r) => r.json() as Promise<{ services: { name: string; pid: number | null; state: string; message: string }[] }>);
+      const restarted = after.services.find((s) => s.name === target.name)!;
+      expect(restarted.state, `${target.name} after restart`).toBe('running');
+      expect(restarted.pid, `${target.name} relaunched with a new pid`).not.toBe(target.pid);
+      testInfo.annotations.push({ type: 'restart', description: `${target.name}: pid ${target.pid} -> ${restarted.pid}; ${restarted.message}` });
+    }
     const version = await fetch(`${scenario.stack.engineUrl}/webui/api/service?method=get_version`).then((r) => r.json() as Promise<{ result?: { version?: string } }>);
     expect(version.result?.version).toBeTruthy();
   });

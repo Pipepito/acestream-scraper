@@ -58,3 +58,34 @@ async def test_relay_reaper_keeps_sweeping_after_a_failing_sweep(monkeypatch):
 
     assert len(sweeps) >= 3, f"the reaper stopped after {len(sweeps)} sweep(s)"
     assert sweeps[0] == {"older_than_seconds": main.RELAY_REAP_AGE_SECONDS}
+
+
+@pytest.mark.asyncio
+async def test_a_failing_player_start_still_stops_the_scheduler(monkeypatch):
+    """The player is optional; starting it belongs inside the lifespan's
+    ``try``/``finally`` so an unreadable ``PLAYER_HLS_DIR`` cannot leave
+    APScheduler (started just before it) running for the life of the process.
+    """
+    shutdowns = []
+
+    async def _noop_async():
+        return None
+
+    async def refuse_to_start():
+        raise PermissionError(13, "Permission denied: /tmp/acestream-player")
+
+    monkeypatch.setattr(main, "initialize_database", lambda: None)
+    monkeypatch.setattr(main, "_configured_intervals", lambda: (24, 6))
+    monkeypatch.setattr(main, "_schedule_deferred_migration", lambda: False)
+    monkeypatch.setattr(main.task_service, "start", lambda: None)
+    monkeypatch.setattr(main.task_service, "add_interval_task", lambda *a, **k: None)
+    monkeypatch.setattr(main.task_service, "shutdown", lambda: shutdowns.append(True))
+    monkeypatch.setattr(main.player_service, "start", refuse_to_start)
+    monkeypatch.setattr(main.player_service, "stop", _noop_async)
+
+    with pytest.raises(PermissionError):
+        async with asyncio.timeout(10):
+            async with main.lifespan(main.app):
+                pass
+
+    assert shutdowns == [True], "the scheduler kept running after the player failed to start"

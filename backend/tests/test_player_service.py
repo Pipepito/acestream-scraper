@@ -416,3 +416,64 @@ def test_reopening_after_an_error_retries_instead_of_replaying_the_failure(make_
             await svc.stop()
 
     asyncio.run(run())
+
+
+def test_stalled_session_releases_its_ffmpeg_and_engine_stream(make_service):
+    """A session that flips to ``error`` stops counting toward
+    ``PLAYER_MAX_SESSIONS``, so it must not keep an ffmpeg process or an engine
+    stream alive behind the freed slot."""
+    stops: list[str] = []
+
+    def handler(request):
+        path = request.url.path
+        if path == "/ace/getstream":
+            return httpx.Response(200, json={"response": {"playback_url": "http://engine:6878/content/x/1", "stat_url": "http://engine:6878/ace/stat/x/s", "command_url": "http://engine:6878/ace/cmd/x/s", "is_live": 1}, "error": None})
+        if "/ace/cmd/" in path:
+            stops.append(str(request.url))
+            return httpx.Response(200, json={"response": "ok", "error": None})
+        if "/ace/stat/" in path:
+            return httpx.Response(200, json={"response": {"status": "prebuf", "peers": 0, "speed_down": 0, "speed_up": 0}, "error": None})
+        return httpx.Response(200, text="ok")
+
+    svc = make_service(mode="never_ready", start_timeout=1, max_sessions=1, handler=handler)
+
+    async def run():
+        await svc.start()
+        try:
+            stalled = await svc.open_session(IH)
+            proc = stalled.process
+            assert proc is not None
+            svc._clock["now"] += 2
+            await svc.tick()
+            assert stalled.state == "error" and stalled.error == "engine_stalled"
+            assert await _wait(lambda: proc.returncode is not None), "the stalled session kept its ffmpeg running"
+            assert any("method=stop" in url for url in stops), "the stalled session kept its engine stream"
+            # The slot it freed is real: the next channel runs alone, not alongside it.
+            second = await svc.open_session(IH2)
+            assert second.state == "starting" and second.process is not None
+            alive = [s for s in svc.list_sessions() if s.process is not None and s.process.returncode is None]
+            assert alive == [second]
+        finally:
+            await svc.stop()
+    asyncio.run(run())
+
+
+def test_startup_sweep_survives_an_unreadable_hls_dir(make_service, monkeypatch):
+    """An unreadable PLAYER_HLS_DIR is a local misconfiguration, not a reason to
+    abort startup: the optional player must never take the app down with it."""
+    svc = make_service()
+    root = svc.hls_dir()
+    root.mkdir(parents=True)
+    real_iterdir = Path.iterdir
+
+    def refuse(self):
+        if self == root:
+            raise PermissionError(13, "Permission denied")
+        return real_iterdir(self)
+
+    monkeypatch.setattr(Path, "iterdir", refuse)
+
+    async def run():
+        await svc.start()
+        await svc.stop()
+    asyncio.run(run())

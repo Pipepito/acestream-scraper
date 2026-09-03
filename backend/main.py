@@ -171,10 +171,12 @@ async def lifespan(app: FastAPI):
     task_service.add_interval_task(run_channel_cleanup_task, seconds=86400, job_id="channel_cleanup")  # daily
     task_service.add_interval_task(run_channel_status_task, seconds=600, job_id="channel_status")  # every 10 min
     _schedule_deferred_migration()
-    await player_service.start()
 
     reaper = asyncio.create_task(reap_relays_forever())
     try:
+        # Inside the try: the web player is optional, and a broken
+        # PLAYER_HLS_DIR must not leave the scheduler and the reaper running.
+        await player_service.start()
         yield
     finally:
         reaper.cancel()

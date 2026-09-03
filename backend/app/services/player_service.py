@@ -187,23 +187,28 @@ class PlayerService:
         directories. Only 32-hex directories carrying a pid whose command line
         mentions that directory are ours; anything else is left untouched."""
         root = self.hls_dir()
-        if not root.is_dir():
-            return
-        for entry in root.iterdir():
-            if not entry.is_dir() or not _SESSION_DIR.match(entry.name):
-                continue
-            pid_file = entry / "ffmpeg.pid"
-            try:
-                pid = int(pid_file.read_text().strip()) if pid_file.exists() else None
-            except (OSError, ValueError):
-                pid = None
-            if pid and _cmdline_mentions(pid, str(entry)):
-                with contextlib.suppress(ProcessLookupError, PermissionError):
-                    os.kill(pid, signal.SIGKILL)
-                deadline = time.monotonic() + 1.0
-                while time.monotonic() < deadline and _pid_alive(pid):
-                    time.sleep(0.05)
-            shutil.rmtree(entry, ignore_errors=True)
+        try:
+            if not root.is_dir():
+                return
+            for entry in root.iterdir():
+                if not entry.is_dir() or not _SESSION_DIR.match(entry.name):
+                    continue
+                pid_file = entry / "ffmpeg.pid"
+                try:
+                    pid = int(pid_file.read_text().strip()) if pid_file.exists() else None
+                except (OSError, ValueError):
+                    pid = None
+                if pid and _cmdline_mentions(pid, str(entry)):
+                    with contextlib.suppress(ProcessLookupError, PermissionError):
+                        os.kill(pid, signal.SIGKILL)
+                    deadline = time.monotonic() + 1.0
+                    while time.monotonic() < deadline and _pid_alive(pid):
+                        time.sleep(0.05)
+                shutil.rmtree(entry, ignore_errors=True)
+        except OSError as exc:
+            # An unreadable or read-only PLAYER_HLS_DIR is a local
+            # misconfiguration; the player degrades, the app still starts.
+            logger.warning("Could not sweep stale player directories in %s: %s", root, exc)
 
     # --- sessions ------------------------------------------------------------
     def list_sessions(self) -> List[PlayerSession]:
@@ -276,17 +281,17 @@ class PlayerService:
     async def _launch(self, session: PlayerSession) -> None:
         ffmpeg = self.ffmpeg_path()
         if ffmpeg is None:
-            self._fail(session, "ffmpeg_missing", "ffmpeg is not installed on this server")
+            await self._fail(session, "ffmpeg_missing", "ffmpeg is not installed on this server")
             return
         try:
             engine_session = await run_in_threadpool(
                 self._engine_call, lambda engine: engine.start(session.content_id)
             )
         except EngineRefusedError as exc:
-            self._fail(session, "engine_refused", str(exc))
+            await self._fail(session, "engine_refused", str(exc))
             return
         except EngineUnavailableError as exc:
-            self._fail(session, "engine_unavailable", str(exc))
+            await self._fail(session, "engine_unavailable", str(exc))
             return
         if session.state == "stopped":
             # The reaper (or shutdown) tore the session down while the engine was
@@ -304,7 +309,7 @@ class PlayerService:
                 stderr=asyncio.subprocess.PIPE, start_new_session=True, preexec_fn=_set_pdeathsig,
             )
         except OSError as exc:
-            self._fail(session, "ffmpeg_failed", f"could not start ffmpeg: {exc}")
+            await self._fail(session, "ffmpeg_failed", f"could not start ffmpeg: {exc}")
         if session.state == "stopped":  # torn down during the spawn itself
             if process is not None:
                 await self._terminate(process, immediate=True)
@@ -329,13 +334,27 @@ class PlayerService:
         finally:
             engine.close()
 
-    def _fail(self, session: PlayerSession, error: PlayerError, message: str) -> None:
-        if session.state == "stopped":
+    async def _fail(self, session: PlayerSession, error: PlayerError, message: str) -> None:
+        """Move a session to ``error`` and release everything it still owns.
+
+        An error session no longer counts toward ``PLAYER_MAX_SESSIONS``, so a
+        live ffmpeg (or engine stream) left behind here would run outside the
+        limit until the reaper clears the session a minute later. The first
+        error wins: killing the process makes the stderr reader report an exit
+        it did not cause, which must not overwrite the real cause.
+        """
+        if session.state in ("stopped", "error"):
             return
         session.state = "error"
         session.error = error
         session.error_message = message
         session.error_since = self._now()
+        process, session.process = session.process, None
+        engine_session, session.engine_session = session.engine_session, None
+        if process is not None:
+            await self._terminate(process, immediate=True)
+        if engine_session is not None:
+            await self._stop_engine_session(session.content_id, engine_session)
 
     async def _read_stderr(self, session: PlayerSession) -> None:
         """Drain ffmpeg's stderr forever so the pipe cannot fill, keeping the
@@ -366,7 +385,7 @@ class PlayerService:
             with contextlib.suppress(Exception):
                 await proc.wait()
             if session.state != "stopped":
-                self._fail(
+                await self._fail(
                     session,
                     "ffmpeg_failed",
                     " | ".join(list(session.stderr_tail)[-5:]) or f"ffmpeg exited with {proc.returncode}",
@@ -394,7 +413,7 @@ class PlayerService:
             elif now - session.created_at > float(self._settings().PLAYER_START_TIMEOUT_SECONDS):
                 stats = session.stats
                 detail = f"{stats.peers} peers (status={stats.status})" if stats else "no engine statistics"
-                self._fail(session, "engine_stalled", f"the stream did not start: {detail}")
+                await self._fail(session, "engine_stalled", f"the stream did not start: {detail}")
         idle = now - session.last_access > IDLE_SECONDS
         no_viewers = (
             session.viewers == 0

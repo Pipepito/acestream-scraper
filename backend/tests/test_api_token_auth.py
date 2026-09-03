@@ -78,6 +78,10 @@ class TestTokenEnforced:
         assert response.status_code == 200
         assert response.text.startswith("#EXTM3U")
 
+    def test_web_player_routes_require_token(self, client, token_enabled):
+        assert client.get("/api/v1/player/capabilities").status_code == 401
+        assert client.get(f"/api/v1/player/capabilities?token={TOKEN}").status_code == 200
+
     def test_tuner_routes_stay_public(self, client, token_enabled, monkeypatch):
         from app.config.settings import get_settings
         from app.services.tuner_network import get_tuner_gate

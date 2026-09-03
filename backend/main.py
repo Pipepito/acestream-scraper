@@ -36,6 +36,7 @@ from app.config.database import (
 from app.config.settings import get_env_compat_events, get_settings, settings
 from app.middleware.forwarded import ForwardedHeadersMiddleware, parse_trusted
 from app.services.epg_service import EPGService
+from app.services.player_service import player_service
 from app.services.playlist_service import PlaylistService
 from app.services.stream_relay import relay_registry
 from app.services.task_service import task_service
@@ -151,6 +152,7 @@ async def lifespan(app: FastAPI):
     task_service.add_interval_task(run_channel_cleanup_task, seconds=86400, job_id="channel_cleanup")  # daily
     task_service.add_interval_task(run_channel_status_task, seconds=600, job_id="channel_status")  # every 10 min
     _schedule_deferred_migration()
+    await player_service.start()
 
     async def _reap_relays():
         """Forget relays that finished long enough ago that no status view needs them."""
@@ -165,6 +167,7 @@ async def lifespan(app: FastAPI):
         reaper.cancel()
         with suppress(asyncio.CancelledError):
             await reaper
+        await player_service.stop()
         task_service.shutdown()
 
 

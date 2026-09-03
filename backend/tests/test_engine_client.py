@@ -1,4 +1,5 @@
 import json
+import re
 
 import httpx
 import pytest
@@ -40,10 +41,15 @@ def test_start_generates_a_pid_when_absent():
     assert EngineClient("http://engine:6878", client=_client(handler)).start(CID).is_live is False
 
 
-def test_engine_error_is_refused():
+# Every engine refusal arrives the same way: HTTP 200 with a non-empty "error".
+# The Android (ARM) engine adds "mod_detected" to the premium wording the amd64
+# engine uses, so both have to surface as EngineRefusedError rather than as an
+# "engine down" transport failure.
+@pytest.mark.parametrize("message", ["To continue, you need to activate premium", "mod_detected"])
+def test_engine_error_is_refused(message):
     def handler(request):
-        return httpx.Response(200, json={"response": None, "error": "To continue, you need to activate premium"})
-    with pytest.raises(EngineRefusedError, match="activate premium"):
+        return httpx.Response(200, json={"response": None, "error": message})
+    with pytest.raises(EngineRefusedError, match=re.escape(message)):
         EngineClient("http://engine:6878", client=_client(handler)).start(CID)
 
 

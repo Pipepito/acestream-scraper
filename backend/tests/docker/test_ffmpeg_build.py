@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 import uuid
@@ -66,9 +67,21 @@ def test_ffmpeg_builder_produces_a_working_static_binary(tmp_path, platform):
     assert ffmpeg.is_file() and (tmp_path / "ffprobe").is_file()
     assert ffmpeg.stat().st_size < 16 * 1024 * 1024, "minimal build grew past 16 MB"
 
+    # busybox carries no dynamic loader and no libc: only a fully static binary
+    # can exec there, which is what the runtime image relies on.
+    static = subprocess.run(
+        ["docker", "run", "--rm", "--platform", platform, "--user", f"{os.getuid()}:{os.getgid()}",
+         "-v", f"{tmp_path}:/ff:ro", "busybox:1.37", "/ff/ffmpeg", "-version"],
+        capture_output=True, text=True, timeout=300,
+    )
+    assert static.returncode == 0, f"ffmpeg is not static: {static.stderr}"
+    assert "ffmpeg version" in static.stdout, static.stdout
+
     out = tmp_path / "hls"
     (out / "player").mkdir(parents=True)
-    base = ["docker", "run", "--rm", "--platform", platform,
+    # --user keeps everything written into the bind-mounted tmp_path owned by
+    # the test runner instead of root, so pytest can clean the directory up.
+    base = ["docker", "run", "--rm", "--platform", platform, "--user", f"{os.getuid()}:{os.getgid()}",
             "-v", f"{tmp_path}:/ff:ro", "-v", f"{FIXTURE}:/f/sample.m2ts:ro", "-v", f"{out}:/out",
             "python:3.13-slim"]
     # csv/flat writers repeat every stream once per program, so read the

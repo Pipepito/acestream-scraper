@@ -55,4 +55,4 @@ The [Docker command builder](https://pipepito.github.io/acestream-scraper/) can 
 
 ## API token
 
-If you have set an `API_TOKEN`, links elsewhere in the app that need it (the M3U playlist link, in particular) carry it automatically as `?token=` when you copy them. The web player's own stream link does not carry a token — it does not need one, because the tuner route it uses is gated by network address instead (see above). The HLS video stream itself, played inside the browser, sends the token as a request header, not in the URL.
+If you have set an `API_TOKEN`, links elsewhere in the app that need it (the M3U playlist link, in particular) carry it automatically as `?token=` when you copy them. The web player's own stream link does not carry a token — it does not need one, because the tuner route it uses is gated by network address instead (see above). The HLS video stream itself carries the token too, with nothing for you to do: browsers that play it through `hls.js` (Chrome, Firefox, Edge) send it as a request header, while Safari and iOS — which play HLS themselves and cannot add headers — get it as `?token=` on the stream address instead.

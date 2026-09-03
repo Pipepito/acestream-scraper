@@ -78,7 +78,9 @@ You need to add specific Docker capabilities and environment variables:
 docker run -d \
   --cap-add NET_ADMIN \
   --cap-add SYS_ADMIN \
+  --device /dev/net/tun:/dev/net/tun \
   -e ENABLE_WARP=true \
+  -e WARP_ENABLE_NAT=true \
   -p 8000:8000 \
   -v "${PWD}/config:/app/config" \
   --name acestream-scraper \

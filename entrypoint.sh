@@ -75,6 +75,7 @@ shutdown_children() {
 supervise_service() {
     local label="$1"
     local command="$2"
+    local relaunch_command="${3:-}"
     local restart_delay="${SUPERVISED_RESTART_DELAY_SECONDS:-5}"
     local fast_exit_limit="${SUPERVISED_FAST_EXIT_LIMIT:-3}"
     local fast_exit_window="${SUPERVISED_FAST_EXIT_WINDOW:-10}"
@@ -114,6 +115,19 @@ supervise_service() {
         launches=$((launches + 1))
         printf '%s\n' "$inner_pid" > "$SUPERVISOR_RUN_DIR/$slug.pid"
         printf '%s\n' "$started_at" > "$SUPERVISOR_RUN_DIR/$slug.started"
+        # Some daemons need their runtime state restored after the process is
+        # relaunched. WARP, for example, starts disconnected even when the
+        # container was configured to auto-connect. The initial launch is
+        # configured synchronously by the entrypoint; this hook handles every
+        # later operator/crash relaunch.
+        if [ "$launches" -gt 1 ] && [ -n "$relaunch_command" ]; then
+            if ! bash -lc "$relaunch_command"; then
+                log "$label relaunch configuration failed"
+                kill -TERM -- "-$inner_pid" 2>/dev/null || kill -TERM "$inner_pid" 2>/dev/null || true
+                wait "$inner_pid" 2>/dev/null || true
+                return 1
+            fi
+        fi
         if wait "$inner_pid"; then
             status=0
         else
@@ -345,10 +359,11 @@ if feature_enabled "$ENABLE_WARP"; then
     fi
     # warp-svc inherits this from its supervisor (warp-setup.sh only exports it for its own run).
     export WARP_FORCE_IPV4="${WARP_FORCE_IPV4:-true}"
-    supervise_service "WARP" "${WARP_START_COMMAND:-warp-svc --accept-tos >> \"$LOG_DIR/warp-svc.log\" 2>&1}" &
+    WARP_SETUP_SCRIPT="$(dirname "$0")/warp-setup.sh"
+    supervise_service "WARP" "${WARP_START_COMMAND:-warp-svc --accept-tos >> \"$LOG_DIR/warp-svc.log\" 2>&1}" "bash \"$WARP_SETUP_SCRIPT\" configure" &
     child_pids+=("$!")
     child_names+=("WARP")
-    if ! bash "$(dirname "$0")/warp-setup.sh" configure; then
+    if ! bash "$WARP_SETUP_SCRIPT" configure; then
         fail "WARP setup failed"
     fi
 fi

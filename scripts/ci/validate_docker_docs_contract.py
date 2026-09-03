@@ -123,8 +123,10 @@ checks = [
         "docs explain warp capabilities",
         "NET_ADMIN" in readme
         and "SYS_ADMIN" in readme
+        and "/dev/net/tun" in readme
         and "NET_ADMIN" in docker_guide
-        and "SYS_ADMIN" in docker_guide,
+        and "SYS_ADMIN" in docker_guide
+        and "/dev/net/tun" in docker_guide,
     ),
     (
         "docs explain acestream engine state volume",

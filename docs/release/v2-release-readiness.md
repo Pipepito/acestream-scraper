@@ -141,7 +141,7 @@ The v2 consolidation is structurally complete: all six phases shipped their plan
 **Verified:**
 - `Dockerfile` flavor targets: `scraper`, `scraper-acestream`, `scraper-acexy`, `scraper-acestream-acexy` (lines 160–183).
 - `scripts/ci/build_multiarch_images.sh`, `verify_multiarch_manifest.sh`, `flavor_platforms.py`.
-- Manifests: `docker/manifests/{platforms,acestream}.json` (AceStream is amd64-only today). *(Superseded on 2026-08-27 by branch `arm-acestream-engine`: `acestream.json` now declares `linux/amd64` and `linux/arm64` as `stable` and `linux/arm/v7` as `experimental`, backed by the official Android engine — see "Known issues" in `docs/release/v2-release-notes.md`.)*
+- Manifests: `docker/manifests/{platforms,acestream}.json`; `acestream.json` declares `linux/amd64` and `linux/arm64` as `stable` and `linux/arm/v7` as `experimental`. See the platform matrix and known issues in `docs/release/v2-release-notes.md`.
 - Smoke tooling: `scripts/ci/phase5_arch_smoke.sh`, `scripts/phase_gates/phase5_gate_runner.py` + config.
 - Docs: `docs/migration/phase5-architecture-smoke-checklist.md`, `docs/architecture/deployment.md` (Multi-Arch + Android TV section), `docs/release/phase5-multiarch-evidence.md`.
 

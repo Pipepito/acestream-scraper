@@ -217,7 +217,8 @@ pin the bind to a LAN interface.
 ## WARP and remote access
 
 - `ENABLE_WARP=true` requires the `NET_ADMIN` and `SYS_ADMIN` container
-  capabilities (`cap_add` in compose). It is amd64-only.
+  capabilities (`cap_add` in compose) and `/dev/net/tun`. It is available on
+  amd64 and arm64, but not arm/v7. Set `WARP_ENABLE_NAT=true` to connect at startup.
 - WARP's full-tunnel mode routes the container's traffic through
   Cloudflare and **can interfere with remote access** to the container —
   streams and proxied requests may stall or become unreachable while the

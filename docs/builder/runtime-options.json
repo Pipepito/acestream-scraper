@@ -60,7 +60,7 @@
       "summary": "Raspberry Pi 4/5 (64-bit OS), most ARM servers.",
       "engine": "Android engine 3.2.17 on a bionic userland",
       "engineSupport": "stable",
-      "warpAvailable": false,
+      "warpAvailable": true,
       "ipfsAvailable": true,
       "zeronetAvailable": false
     },
@@ -188,10 +188,10 @@
     "developChannel": "The develop tags are moving pre-release builds meant for testing the next release — not for production.",
     "armv7Experimental": "The 32-bit ARM engine builds and installs but has not been runtime-tested on real hardware. Prefer a 64-bit OS where the device supports it.",
     "armPageSize": "The Android engine needs a 4 KB kernel page size. On Raspberry Pi 5 (Raspberry Pi OS 64-bit) set kernel=kernel8.img in config.txt — the default kernel uses 16 KB pages and the engine refuses to start.",
-    "warpArm": "The WARP client (cloudflare-warp) is amd64-only; ARM images ship without it.",
+    "warpArm": "Cloudflare publishes WARP for amd64 and arm64, but not 32-bit ARM; linux/arm/v7 images ship without it.",
     "ipfsArmv7": "Kubo publishes no 32-bit ARM build, so 32-bit ARM images ship without the embedded IPFS daemon. IPFS sources still work through an external gateway (IPFS_GATEWAY_URL).",
     "zeronetArm": "The bundled ZeroNet node ships in the amd64 images only. ZeroNet sources still work through an external service (ZERONET_URL).",
-    "warpCaps": "WARP needs the NET_ADMIN and SYS_ADMIN capabilities.",
+    "warpCaps": "WARP needs the NET_ADMIN and SYS_ADMIN capabilities plus the /dev/net/tun device.",
     "acexyExternalEngine": "Acexy refuses to start against localhost:6878 when the in-container engine is disabled — point it at your external engine's address.",
     "externalEngineSettings": "The scraper's own engine connection (used for channel status checks) is configured in the web interface under Settings → Acestream Engine URL.",
     "afterRun": "Then open http://localhost:{webPort} — set the stream base URL and engine URL under Settings, and add source URLs under Scraper."

@@ -122,7 +122,10 @@
       env.push(['ACEXY_HOST', state.extEngineHost.trim() || '<engine-host>']);
       env.push(['ACEXY_PORT', String(validPort(state.extEnginePort) || 6878)]);
     }
-    if (d.warpOn) env.push(['ENABLE_WARP', 'true']);
+    if (d.warpOn) {
+      env.push(['ENABLE_WARP', 'true']);
+      env.push(['WARP_ENABLE_NAT', 'true']);
+    }
     if (d.zeronetEmbeddedOn) env.push(['ENABLE_ZERONET', 'true']);
     if (d.zeronetExternalOn) env.push(['ZERONET_URL', state.zeronetUrl.trim() || data.zeronet.defaultUrl]);
     if (d.ipfsEmbeddedOn) env.push(['ENABLE_IPFS', 'true']);
@@ -178,6 +181,7 @@
     if (d.warpOn) {
       lines.push('  --cap-add NET_ADMIN \\');
       lines.push('  --cap-add SYS_ADMIN \\');
+      lines.push('  --device /dev/net/tun:/dev/net/tun \\');
     }
     if (usesHostGateway(d)) lines.push('  --add-host host.docker.internal:host-gateway \\');
     for (const [k, v] of envEntries(d)) lines.push(`  -e ${k}=${v} \\`);
@@ -230,6 +234,8 @@
       lines.push('    cap_add:');
       lines.push('      - NET_ADMIN');
       lines.push('      - SYS_ADMIN');
+      lines.push('    devices:');
+      lines.push('      - /dev/net/tun:/dev/net/tun');
     }
     if (usesHostGateway(d)) {
       lines.push('    extra_hosts:');
@@ -391,7 +397,7 @@
     }
     list.append(toggleRow('warp', 'Route through Cloudflare WARP',
       d.platform.warpAvailable
-        ? 'Tunnels the container\'s traffic through WARP. Adds the NET_ADMIN and SYS_ADMIN capabilities.'
+        ? 'Connects the container through WARP. Adds the required capabilities and TUN device.'
         : data.notes.warpArm,
       d.platform.warpAvailable && state.warp, (v) => { state.warp = v; }, !d.platform.warpAvailable));
     list.append(toggleRow('zeronet', 'Scrape ZeroNet sources',

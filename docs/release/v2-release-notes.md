@@ -34,7 +34,7 @@ Platform support:
 | Platform | AceStream engine | IPFS | ZeroNet | WARP |
 |---|---|---|---|---|
 | `linux/amd64` | Native 3.2.11, stable | Bundled, opt-in | Bundled, opt-in | Bundled, opt-in |
-| `linux/arm64` | Android 3.2.17, stable | Bundled, opt-in | External | Not available |
+| `linux/arm64` | Android 3.2.17, stable | Bundled, opt-in | External | Bundled, opt-in |
 | `linux/arm/v7` | Android 3.1.80, experimental | External | External | Not available |
 
 Acexy-bearing flavors now build and run the real upstream Acexy 0.2.2 proxy. The full and engine flavors persist ARM engine state under `/var/lib/acestream`; mount a volume there when enabling the engine.
@@ -96,7 +96,7 @@ Legacy environment aliases available during the v2.0.0 transition:
 - `linux/arm/v7` AceStream support is experimental and still requires validation on real ARMv7/AArch32 hardware.
 - ARM AceStream has no WebRTC transport and may use pure-Python fallbacks for some accelerators.
 - The Android engine requires a 4 KB kernel page size. On Raspberry Pi 5, use the 4 KB-page `kernel8.img`; the default 16 KB-page kernel cannot start it.
-- WARP is unavailable on ARM because upstream packages only support amd64.
+- WARP is unavailable on `linux/arm/v7` because Cloudflare does not publish a 32-bit ARM package; amd64 and arm64 are supported.
 - The app remains open on trusted networks unless `API_TOKEN` or reverse-proxy authentication is configured.
 
 ## Documentation

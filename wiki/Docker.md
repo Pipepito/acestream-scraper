@@ -101,6 +101,7 @@ docker run -d -p 8000:8000 --name acestream-scraper pipepito/acestream-scraper:l
 Important runtime env expectations:
 
 - `ENABLE_WARP` enables WARP only when set to `true`
+- `WARP_ENABLE_NAT` connects WARP and enables NAT at startup when set to `true` (default `false`; otherwise connect from the WARP page)
 - `ENABLE_ACESTREAM_ENGINE` starts the installed AceStream engine only when set to `true`
 - `ENABLE_ACEXY` starts the installed Acexy binary only when set to `true`
 - `ACESTREAM_HTTP_HOST` and `ACESTREAM_HTTP_PORT` define the in-container AceStream endpoint
@@ -118,7 +119,9 @@ Example with WARP enabled:
 docker run -d \
   --cap-add NET_ADMIN \
   --cap-add SYS_ADMIN \
+  --device /dev/net/tun:/dev/net/tun \
   -e ENABLE_WARP=true \
+  -e WARP_ENABLE_NAT=true \
   -p 8000:8000 \
   --name acestream-scraper \
   pipepito/acestream-scraper:latest

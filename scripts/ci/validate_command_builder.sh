@@ -39,6 +39,7 @@ data = json.loads((root / "docs/builder/runtime-options.json").read_text(encodin
 dockerfile = (root / "Dockerfile").read_text(encoding="utf-8")
 compose = (root / "docker-compose.yml").read_text(encoding="utf-8")
 entrypoint = (root / "entrypoint.sh").read_text(encoding="utf-8")
+builder = (root / "docs/builder/app.js").read_text(encoding="utf-8")
 errors = []
 
 # Every flavor on the page must be a real Dockerfile target, and vice versa.
@@ -46,6 +47,21 @@ targets = set(re.findall(r"^FROM .+ AS (scraper[\w-]*)$", dockerfile, flags=re.M
 flavors = {f["id"] for f in data["flavors"]}
 if flavors != targets:
     errors.append(f"flavors differ from Dockerfile targets: page={sorted(flavors)} Dockerfile={sorted(targets)}")
+
+# Platform feature switches must match what the image actually installs. This
+# catches silent UI drift such as hiding WARP on arm64 after the Dockerfile grew
+# arm64 package support.
+warp_platforms = {p["id"] for p in data["platforms"] if p.get("warpAvailable")}
+warp_install = re.search(r'case "\$TARGETARCH" in ([^)]+)\).*?cloudflare-warp', dockerfile, flags=re.S)
+if not warp_install:
+    errors.append("could not determine WARP platforms from Dockerfile")
+else:
+    docker_warp_platforms = set(warp_install.group(1).split("|"))
+    if warp_platforms != docker_warp_platforms:
+        errors.append(
+            "WARP platforms differ from Dockerfile: "
+            f"page={sorted(warp_platforms)} Dockerfile={sorted(docker_warp_platforms)}"
+        )
 
 # The compose file must still name the image the page generates commands for.
 if f"image: {data['image']}:latest" not in compose:
@@ -55,6 +71,10 @@ if f"image: {data['image']}:latest" not in compose:
 for var in ("ENABLE_ACESTREAM_ENGINE", "ENABLE_ACEXY", "ENABLE_WARP", "ACEXY_HOST", "ACEXY_PORT", "ZERONET_URL", "ENABLE_ZERONET", "ENABLE_IPFS", "IPFS_GATEWAY_URL", "FLASK_PORT"):
     if var not in entrypoint:
         errors.append(f"entrypoint.sh no longer references {var}")
+
+for required in ("WARP_ENABLE_NAT", "/dev/net/tun:/dev/net/tun", "--cap-add NET_ADMIN", "--cap-add SYS_ADMIN"):
+    if required not in builder:
+        errors.append(f"command builder no longer emits required WARP setting: {required}")
 
 # Ports the page publishes must match the container-side defaults.
 ports = {p["id"]: p for p in data["ports"]}

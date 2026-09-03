@@ -87,7 +87,7 @@ Docker runtime toggles:
 
 The selected image flavor controls which optional binaries are installed. Runtime env flags control whether those installed services start.
 
-WARP is installed in every flavor, but it only starts when `ENABLE_WARP=true`. For the documented containerized runtime path in this repository, WARP-enabled containers require the runtime capabilities `NET_ADMIN` and `SYS_ADMIN`.
+WARP is installed in every flavor on `linux/amd64` and `linux/arm64`, but it only starts when `ENABLE_WARP=true`. `linux/arm/v7` has no upstream WARP package. WARP-enabled containers require the runtime capabilities `NET_ADMIN` and `SYS_ADMIN` plus `/dev/net/tun`; `WARP_ENABLE_NAT=true` connects and enables NAT at startup.
 
 Legacy env aliases remain supported for one release window (`v2-cutover-r1`) with canonical-variable precedence and conflict warnings.
 
@@ -195,6 +195,6 @@ Operator caveats specific to the ARM engine:
 - `linux/arm/v7` is experimental: build-tested only, never executed on real ARMv7/AArch32 hardware.
 - Engine version skew: 3.2.17 on ARM64, 3.1.80 on ARMv7, and 3.2.11 on amd64; ARM reports platform `android`.
 - No WebRTC transport on ARM (pywebrtc needs Android GPU/audio libraries; the engine logs a non-fatal error). A few CPython accelerator modules fall back to pure Python.
-- No WARP on ARM images (`cloudflare-warp` is amd64-only; pre-existing limitation).
+- No WARP on `linux/arm/v7` images (`cloudflare-warp` is published for amd64 and arm64 only).
 - Performance and streaming stability are not yet validated on real ARM hardware.
 - Repackaging the official APK payload sits in a grey area under the AceStream user agreement's redistribution terms, shared by every community ARM image.

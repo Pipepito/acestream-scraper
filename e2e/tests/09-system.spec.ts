@@ -58,10 +58,14 @@ test.describe('overview and WARP', () => {
     for (const target of managed) {
       await overview.restart(target.label);
       await overview.expectAlert(/Restart requested/);
-      await expect(overview.serviceCard(target.label)).toContainText('Restarting');
+      let restarted: { name: string; pid: number | null; state: string; message: string } | undefined;
+      await expect.poll(async () => {
+        const after = await api.raw('get', '/api/v1/system/services').then((r) => r.json() as Promise<{ services: { name: string; pid: number | null; state: string; message: string }[] }>);
+        restarted = after.services.find((s) => s.name === target.name);
+        return restarted?.state === 'running' && restarted.pid !== null && restarted.pid !== target.pid;
+      }, { timeout: 120_000 }).toBe(true);
       await expect(overview.serviceCard(target.label)).toContainText('Running', { timeout: 120_000 });
-      const after = await api.raw('get', '/api/v1/system/services').then((r) => r.json() as Promise<{ services: { name: string; pid: number | null; state: string; message: string }[] }>);
-      const restarted = after.services.find((s) => s.name === target.name)!;
+      if (!restarted) throw new Error(`${target.name} disappeared after restart`);
       expect(restarted.state, `${target.name} after restart`).toBe('running');
       expect(restarted.pid, `${target.name} relaunched with a new pid`).not.toBe(target.pid);
       testInfo.annotations.push({ type: 'restart', description: `${target.name}: pid ${target.pid} -> ${restarted.pid}; ${restarted.message}` });
@@ -77,16 +81,17 @@ test.describe('overview and WARP', () => {
     await expect(warp.status()).toContainText(/Not running|Disconnected|Connected/);
 
     const services = await api.raw('get', '/api/v1/system/services').then((r) => r.json() as Promise<{ services: { name: string; state: string; message: string }[] }>);
+    const warpStatus = await api.raw('get', '/api/v1/warp/status').then((r) => r.json() as Promise<{ mode: string | null }>);
     const warpService = services.services.find((s) => s.name === 'warp')!;
     testInfo.annotations.push({ type: 'warp', description: `${warpService.state}: ${warpService.message}` });
     if (warpService.state === 'running') {
       await expect(warp.status()).toContainText(/Connected|Disconnected/);
-      await expect(warp.status()).toContainText(/mode \w+/);
+      if (warpStatus.mode) await expect(warp.status()).toContainText(`mode ${warpStatus.mode}`);
       await expect(warp.modeAndLicense()).toBeVisible();
       await expect(warp.connectionDetails()).toBeVisible();
       if (/^WARP connected/.test(warpService.message)) {
         await expect(warp.status()).toContainText(/^Connected/);
-        await expect(warp.connectionDetails()).toContainText(/IP: \d+\.\d+\.\d+\.\d+/);
+        await expect(warp.connectionDetails()).toContainText(/IP: (?:\d{1,3}(?:\.\d{1,3}){3}|[0-9a-f:]+)/i);
       }
     } else {
       await expect(warp.status()).toContainText('Not running');

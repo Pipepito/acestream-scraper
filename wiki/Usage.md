@@ -129,7 +129,7 @@ All current application APIs are under `/api/v1`. A small set of v1 playlist ali
 
 ## WARP
 
-When WARP is installed and enabled, open it from the **Overview** services panel. The page shows connection state, mode, account, and exit location, and provides connect/disconnect controls. Enabling WARP in Docker requires `ENABLE_WARP=true` plus the `NET_ADMIN` and `SYS_ADMIN` capabilities. WARP is available on `linux/amd64` images only.
+When WARP is installed and enabled, open it from the **Overview** services panel. The page shows connection state, mode, account, and exit location, and provides connect/disconnect controls. Enabling WARP in Docker requires `ENABLE_WARP=true`, the `NET_ADMIN` and `SYS_ADMIN` capabilities, and the `/dev/net/tun` device. Set `WARP_ENABLE_NAT=true` to connect automatically, or use the page's connect control. WARP is available on `linux/amd64` and `linux/arm64`; it is unavailable on `linux/arm/v7` because Cloudflare does not publish a 32-bit ARM package.
 
 ## Next steps
 

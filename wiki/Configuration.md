@@ -135,8 +135,8 @@ Cloudflare WARP provides enhanced privacy and secure connection options:
 
 | Variable | Description | Default | Notes |
 |----------|-------------|---------|-------|
-| `ENABLE_WARP` | Enable Cloudflare WARP | `false` | Requires `NET_ADMIN` and `SYS_ADMIN` capabilities |
-| `WARP_ENABLE_NAT` | Enable NAT for WARP traffic | `true` | Allows routing traffic through WARP tunnel |
+| `ENABLE_WARP` | Start Cloudflare WARP | `false` | Available on amd64/arm64; requires `NET_ADMIN`, `SYS_ADMIN`, and `/dev/net/tun` |
+| `WARP_ENABLE_NAT` | Connect WARP and enable NAT at startup | `false` | Leave false to connect/disconnect from the WARP page instead |
 | `WARP_LICENSE_KEY` | WARP license key | - | Optional: For WARP+ or Team accounts |
 
 ### Docker Example with WARP Enabled
@@ -146,7 +146,9 @@ docker run -d \
   -p 8000:8000 \
   --cap-add NET_ADMIN \
   --cap-add SYS_ADMIN \
+  --device /dev/net/tun:/dev/net/tun \
   -e ENABLE_WARP=true \
+  -e WARP_ENABLE_NAT=true \
   -v "${PWD}/config:/app/config" \
   --name acestream-scraper \
   pipepito/acestream-scraper:latest
@@ -164,9 +166,12 @@ services:
     cap_add:
       - NET_ADMIN
       - SYS_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
     environment:
       - TZ=Europe/Madrid
       - ENABLE_WARP=true
+      - WARP_ENABLE_NAT=true
     ports:
       - "8000:8000"
     volumes:

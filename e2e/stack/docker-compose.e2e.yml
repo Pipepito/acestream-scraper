@@ -18,11 +18,12 @@ services:
       ENABLE_ACESTREAM_ENGINE: "true"
       ENABLE_ACEXY: "true"
       ENABLE_WARP: "${E2E_ENABLE_WARP:-false}"
+      WARP_ENABLE_NAT: "${E2E_ENABLE_WARP:-false}"
+      ENABLE_IPFS: "true"
       DATABASE_URL: sqlite:///./config/scraper.db
       LEGACY_DATABASE_URL: sqlite:///./config/acestream.db
       ALLOW_PRIVATE_SCRAPE_TARGETS: "true"
-      # ipfs:// / ipns:// sources resolve through the kubo sidecar on the compose network.
-      IPFS_GATEWAY_URL: "http://ipfs:8080"
+      # This container exercises embedded Kubo; app-off below exercises the external sidecar.
     ports:
       - "127.0.0.1:6878:6878"   # AceStream engine HTTP API
       - "127.0.0.1:8081:8080"   # Acexy proxy (/ace/getstream, /ace/status)
@@ -32,6 +33,7 @@ services:
     volumes:
       - ../.stack/container-config:/app/config
       - acestream-state:/var/lib/acestream
+      - ipfs-data-embedded:/data/ipfs
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
@@ -68,3 +70,4 @@ services:
 volumes:
   acestream-state: {}
   ipfs-data: {}
+  ipfs-data-embedded: {}

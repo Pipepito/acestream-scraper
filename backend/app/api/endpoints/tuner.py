@@ -8,10 +8,9 @@ import re
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.concurrency import run_in_threadpool
-from sqlalchemy.orm import Session
 
 from app.api.error_handlers import APIError
-from app.config.database import get_db
+from app.config.database import SessionLocal
 from app.repositories.settings_repository import SettingsRepository
 from app.services.engine_client import EngineClient, EngineRefusedError, EngineUnavailableError, engine_url_from_settings
 from app.services.stream_relay import RELAY_HEADERS, ClosingStreamingResponse, EngineStreamError, relay_engine_stream
@@ -23,8 +22,19 @@ router = APIRouter()  # /api/v1/tuner settings + status (plan 4)
 _CONTENT_ID = re.compile(r"^[0-9a-fA-F]{40}$")
 
 
-def _engine(db: Session) -> EngineClient:
-    return EngineClient(engine_url_from_settings(SettingsRepository(db)))
+def _engine() -> EngineClient:
+    """Read the configured engine URL through a session of its own.
+
+    Deliberately not a ``Depends(get_db)`` parameter on the route: FastAPI
+    releases a request-scoped session only after the response has been fully
+    sent, so an hours-long relay would pin one pooled connection for the whole
+    stream (5 + 10 overflow for the process) to serve a single settings read.
+    """
+    db = SessionLocal()
+    try:
+        return EngineClient(engine_url_from_settings(SettingsRepository(db)))
+    finally:
+        db.close()
 
 
 def _relay_client_factory(**kwargs) -> httpx.AsyncClient:
@@ -48,7 +58,7 @@ def _validate_content_id(content_id: str) -> str:
     response_class=Response,
     responses={200: {"content": {"video/mp2t": {"schema": {"type": "string", "format": "binary"}}}}},
 )
-async def tuner_stream(content_id: str, request: Request, db: Session = Depends(get_db)):
+async def tuner_stream(content_id: str, request: Request):
     """Relays the engine's MPEG-TS bytes. Unknown query params (transcode,
     duration) are ignored. HEAD answers headers only and never starts a
     session."""
@@ -57,7 +67,7 @@ async def tuner_stream(content_id: str, request: Request, db: Session = Depends(
         return Response(status_code=200, headers=RELAY_HEADERS)
     # The settings read is a blocking DB call: keep it off the event loop.
     try:
-        engine = await run_in_threadpool(_engine, db)
+        engine = await run_in_threadpool(_engine)
     except EngineUnavailableError as exc:
         raise APIError(code="ENGINE_UNAVAILABLE", message=str(exc), status_code=502, context={"content_id": content_id}) from exc
     peer = request.client.host if request.client else "?"

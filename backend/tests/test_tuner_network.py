@@ -98,7 +98,7 @@ def test_unknown_tuner_path_is_json_404_not_spa(client, gate_env):
 def test_head_stream_answers_headers_without_engine(client, gate_env, monkeypatch):
     gate_env("*")
     import app.api.endpoints.tuner as tuner_module
-    monkeypatch.setattr(tuner_module, "_engine", lambda db: (_ for _ in ()).throw(AssertionError("engine must not be called on HEAD")))
+    monkeypatch.setattr(tuner_module, "_engine", lambda: (_ for _ in ()).throw(AssertionError("engine must not be called on HEAD")))
     response = client.head(f"/tuner/stream/{IH}.ts")
     assert response.status_code == 200
     assert response.headers["content-type"] == "video/mp2t"
@@ -119,7 +119,7 @@ def test_stream_route_relays_bytes_and_ignores_transcode_param(client, gate_env,
             return httpx.Response(200, content=body, headers={"Content-Type": "video/mp2t"})
         return httpx.Response(200, text="ok")
 
-    monkeypatch.setattr(tuner_module, "_engine", lambda db: EngineClient("http://engine:6878", client=httpx.Client(transport=httpx.MockTransport(handler))))
+    monkeypatch.setattr(tuner_module, "_engine", lambda: EngineClient("http://engine:6878", client=httpx.Client(transport=httpx.MockTransport(handler))))
     monkeypatch.setattr(tuner_module, "_relay_client_factory", lambda **kw: httpx.AsyncClient(transport=httpx.MockTransport(handler), **kw))
     response = client.get(f"/tuner/stream/{IH}.ts?transcode=heavy")
     assert response.status_code == 200
@@ -134,7 +134,7 @@ def test_stream_route_maps_engine_refusal_to_502(client, gate_env, monkeypatch):
     def handler(request):
         return httpx.Response(200, json={"response": None, "error": "activate premium"})
 
-    monkeypatch.setattr(tuner_module, "_engine", lambda db: EngineClient("http://engine:6878", client=httpx.Client(transport=httpx.MockTransport(handler))))
+    monkeypatch.setattr(tuner_module, "_engine", lambda: EngineClient("http://engine:6878", client=httpx.Client(transport=httpx.MockTransport(handler))))
     response = client.get(f"/tuner/stream/{IH}.ts")
     assert response.status_code == 502
     assert response.json()["error"]["code"] == "ENGINE_REFUSED"
@@ -147,7 +147,7 @@ def test_unconfigured_engine_url_is_502_not_500(client, gate_env, monkeypatch):
     import app.api.endpoints.tuner as tuner_module
     from app.services.engine_client import EngineUnavailableError
 
-    def unconfigured(db):
+    def unconfigured():
         raise EngineUnavailableError("Acestream Engine URL is not configured")
 
     monkeypatch.setattr(tuner_module, "_engine", unconfigured)
@@ -187,7 +187,7 @@ def test_stream_route_releases_the_engine_client(client, gate_env, monkeypatch):
 
     for reply, expected_status in ((started, 200), (refused, 502)):
         engine, handler = build(reply)
-        monkeypatch.setattr(tuner_module, "_engine", lambda db, engine=engine: engine)
+        monkeypatch.setattr(tuner_module, "_engine", lambda engine=engine: engine)
         monkeypatch.setattr(tuner_module, "_relay_client_factory", lambda handler=handler, **kw: httpx.AsyncClient(transport=httpx.MockTransport(handler), **kw))
         assert client.get(f"/tuner/stream/{IH}.ts").status_code == expected_status
 
@@ -197,3 +197,70 @@ def test_stream_route_releases_the_engine_client(client, gate_env, monkeypatch):
 def test_invalid_content_id_is_422(client, gate_env):
     gate_env("*")
     assert client.get("/tuner/stream/not-hex.ts").status_code == 422
+
+
+def test_stream_does_not_hold_a_request_scoped_db_session(client, gate_env, monkeypatch, backend_runtime, db_session):
+    """A relay runs for as long as the client watches and FastAPI releases a
+    ``Depends(get_db)`` session only after the response has been sent, so the
+    route must never take one — otherwise every concurrent stream pins a pooled
+    connection (5 + 10 overflow) for its whole life."""
+    gate_env("*")
+    import app.api.endpoints.tuner as tuner_module
+    from app.services.engine_client import EngineClient
+    resolved = []
+
+    def counting_get_db():
+        resolved.append(1)
+        yield db_session
+
+    backend_runtime.app.dependency_overrides[backend_runtime.get_db] = counting_get_db
+
+    def handler(request):
+        if request.url.path == "/ace/getstream":
+            return httpx.Response(200, json={"response": {"playback_url": "http://engine:6878/content/x/1", "stat_url": "http://engine:6878/ace/stat/x/s", "command_url": "http://engine:6878/ace/cmd/x/s", "is_live": 1}, "error": None})
+        if request.url.path.startswith("/content/"):
+            return httpx.Response(200, content=b"\x47" * 188, headers={"Content-Type": "video/mp2t"})
+        return httpx.Response(200, text="ok")
+
+    monkeypatch.setattr(tuner_module, "_engine", lambda: EngineClient("http://engine:6878", client=httpx.Client(transport=httpx.MockTransport(handler))))
+    monkeypatch.setattr(tuner_module, "_relay_client_factory", lambda **kw: httpx.AsyncClient(transport=httpx.MockTransport(handler), **kw))
+
+    assert client.get(f"/tuner/stream/{IH}.ts").status_code == 200
+    assert resolved == []
+
+
+def test_engine_lookup_uses_a_short_lived_session(client, gate_env, monkeypatch, db_session):
+    """``_engine()`` reads ``ace_engine_url`` through a session it opens and
+    closes itself, before the streaming response is handed to Starlette."""
+    gate_env("*")
+    import app.api.endpoints.tuner as tuner_module
+    from app.models.models import Setting
+
+    db_session.add(Setting(key="ace_engine_url", value="http://engine.test:6878"))
+    db_session.commit()
+
+    class RecordingSession:
+        def __init__(self, inner):
+            self._inner = inner
+            self.closed = False
+
+        def __getattr__(self, name):
+            return getattr(self._inner, name)
+
+        def close(self):
+            self.closed = True
+
+    sessions = []
+
+    def factory():
+        session = RecordingSession(db_session)
+        sessions.append(session)
+        return session
+
+    monkeypatch.setattr(tuner_module, "SessionLocal", factory)
+    engine = tuner_module._engine()
+    try:
+        assert engine.engine_url == "http://engine.test:6878"
+    finally:
+        engine.close()
+    assert [session.closed for session in sessions] == [True]

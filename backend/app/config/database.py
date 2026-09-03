@@ -261,7 +261,16 @@ def head_revision() -> str:
 def backup_sqlite(database_url: Optional[str] = None, label: str = "pre-upgrade") -> Optional[str]:
     """Copy the SQLite file to ``<db dir>/backups/<stamp>-<label>/<name>`` via the
     online backup API (safe while the file is open). Returns the copy's path, or
-    None for non-SQLite URLs."""
+    None for non-SQLite URLs.
+
+    A copy already taken under the same ``label`` is reused instead of written
+    again. The label encodes the from->to revision pair, so a container whose
+    upgrade fails and that Docker keeps relaunching writes one backup rather
+    than a full copy of the database on every boot (which fills the volume).
+    Nothing is ever deleted here: successive upgrades keep one copy each.
+    """
+    import glob
+    import logging
     import os
     import sqlite3
     from datetime import datetime, timezone
@@ -270,10 +279,26 @@ def backup_sqlite(database_url: Optional[str] = None, label: str = "pre-upgrade"
     path = _sqlite_path_from_url(url)
     if path is None or not os.path.exists(path):
         return None
+    name = os.path.basename(path)
+    backups_root = os.path.join(os.path.dirname(os.path.abspath(path)), "backups")
+    existing = sorted(
+        candidate
+        for candidate in glob.glob(
+            os.path.join(glob.escape(backups_root), f"*-{glob.escape(label)}", glob.escape(name))
+        )
+        if os.path.isfile(candidate)
+    )
+    if existing:
+        logging.getLogger(__name__).warning(
+            "Reusing existing pre-upgrade backup %s (label %s); not writing another copy",
+            existing[-1],
+            label,
+        )
+        return existing[-1]
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
-    target_dir = os.path.join(os.path.dirname(os.path.abspath(path)), "backups", f"{stamp}-{label}")
+    target_dir = os.path.join(backups_root, f"{stamp}-{label}")
     os.makedirs(target_dir, exist_ok=True)
-    target = os.path.join(target_dir, os.path.basename(path))
+    target = os.path.join(target_dir, name)
     source = sqlite3.connect(path)
     try:
         destination = sqlite3.connect(target)

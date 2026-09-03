@@ -2,6 +2,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 from sqlalchemy import create_engine, inspect
@@ -287,3 +288,59 @@ def test_startup_at_head_writes_no_backup(tmp_path):
     assert result.returncode == 0, f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
     assert not (tmp_path / "config" / "backups").exists()
     assert "V2 database ready" in result.stdout
+
+
+def _force_stamp(db_path: Path, revision: str) -> None:
+    """Rewrite ``alembic_version`` to a revision the bundled migrations do not ship."""
+    import sqlite3
+
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.execute("UPDATE alembic_version SET version_num = ?", (revision,))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def test_repeated_failed_upgrade_boots_keep_one_pre_upgrade_backup(tmp_path):
+    """A database stamped with a revision this image does not ship (an older
+    image after a rollback) aborts startup. Docker's restart policy relaunches
+    the container, so the pre-upgrade copy must be taken once and reused —
+    otherwise every relaunch writes another full copy of scraper.db and fills
+    the config volume."""
+    from tests.migration_test_utils import upgrade_to_head
+
+    db_path = tmp_path / "config" / "scraper.db"
+    db_path.parent.mkdir(parents=True)
+    legacy_db_path = tmp_path / "config" / "acestream.db"
+    upgrade_to_head(db_path)
+    _force_stamp(db_path, "ffffffffffff")
+
+    def boot():
+        return _run_main_import(
+            database_url=_database_url_for(db_path),
+            legacy_database_url=_database_url_for(legacy_db_path),
+            frontend_build_path=tmp_path / "frontend-build",
+        )
+
+    def backup_dirs():
+        return sorted(p.name for p in (tmp_path / "config" / "backups").glob("*-pre-upgrade-ffffffffffff-*"))
+
+    first = boot()
+    assert first.returncode != 0, f"stdout:\n{first.stdout}\nstderr:\n{first.stderr}"
+    assert "Can't locate revision" in first.stdout + first.stderr, (
+        f"stdout:\n{first.stdout}\nstderr:\n{first.stderr}"
+    )
+    assert len(backup_dirs()) == 1, backup_dirs()
+
+    # The backup directory carries a per-second UTC stamp; wait past it so an
+    # un-deduped second copy would land in its own directory.
+    time.sleep(1.1)
+
+    second = boot()
+    assert second.returncode != 0, f"stdout:\n{second.stdout}\nstderr:\n{second.stderr}"
+    assert len(backup_dirs()) == 1, (
+        "A restart loop against a failing upgrade must not write a new backup per boot.\n"
+        f"backups: {backup_dirs()}\nstdout:\n{second.stdout}\nstderr:\n{second.stderr}"
+    )
+    assert "Reusing existing pre-upgrade backup" in second.stdout, second.stdout

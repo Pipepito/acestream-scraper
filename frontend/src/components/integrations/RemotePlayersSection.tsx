@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, Button, Chip, Grid, IconButton, Paper, Slider, Stack, Tooltip, Typography, useTheme } from '@mui/material';
 import PauseRoundedIcon from '@mui/icons-material/PauseRounded';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
@@ -45,8 +45,20 @@ interface PlayerCardProps {
 
 const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete, onSend, onTest, notify }) => {
   const theme = useTheme();
-  const { data: status, error } = useRemotePlayerStatus(player.id);
+  const { data: status, error, dataUpdatedAt } = useRemotePlayerStatus(player.id);
   const command = useRemotePlayerCommand();
+  // While the user drags (and until a status read taken after the command lands),
+  // the slider follows the finger instead of the 5 s poll.
+  const [volumeDraft, setVolumeDraft] = useState<number | null>(null);
+  const [volumeSentAt, setVolumeSentAt] = useState<number | null>(null);
+  const volumePct = volumeDraft ?? status?.volume_pct ?? 0;
+
+  useEffect(() => {
+    if (volumeSentAt !== null && dataUpdatedAt > volumeSentAt) {
+      setVolumeDraft(null);
+      setVolumeSentAt(null);
+    }
+  }, [dataUpdatedAt, volumeSentAt]);
 
   const run = async (cmd: 'pause' | 'resume' | 'stop' | 'volume', value?: number) => {
     try {
@@ -54,6 +66,13 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete, onSen
     } catch (err) {
       notify(err instanceof ApiError ? describeRemotePlayerError(err) : getErrorMessage(err), 'error');
     }
+  };
+
+  const sendVolume = async (value: number) => {
+    setVolumeDraft(value);
+    setVolumeSentAt(null);
+    await run('volume', value);
+    setVolumeSentAt(Date.now());
   };
 
   const statusText = error
@@ -138,12 +157,13 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete, onSen
         <Slider
           size="small"
           aria-label={`Volume ${player.name}`}
-          value={status?.volume_pct ?? 0}
+          value={volumePct}
           min={0}
           max={200}
           sx={{ mx: 1, flex: 1 }}
           disabled={!status}
-          onChangeCommitted={(_event, value) => void run('volume', Array.isArray(value) ? value[0] : value)}
+          onChange={(_event, value) => setVolumeDraft(Array.isArray(value) ? value[0] : value)}
+          onChangeCommitted={(_event, value) => void sendVolume(Array.isArray(value) ? value[0] : value)}
         />
         <RowActionsMenu
           label={`More actions for ${player.name}`}

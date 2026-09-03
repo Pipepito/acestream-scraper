@@ -12,28 +12,35 @@ export interface PlayOnMenuProps {
   /** Rendered as a button that opens the menu (default). */
   variant?: 'button';
   onDone?: () => void;
+  /**
+   * Where feedback goes. Callers that close their dialog in `onDone` must pass this:
+   * closing unmounts the menu's own snackbar before the confirmation can be read.
+   */
+  notify?: (message: string, severity: 'success' | 'error') => void;
 }
 
 const KIND_LABEL: Record<string, string> = { vlc: 'VLC', kodi: 'Kodi' };
 
 /** "Play on…": send a channel to a saved VLC/Kodi player. */
-const PlayOnMenu: React.FC<PlayOnMenuProps> = ({ contentId, title, onDone }) => {
+const PlayOnMenu: React.FC<PlayOnMenuProps> = ({ contentId, title, onDone, notify }) => {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const [notice, setNotice] = useState<{ message: string; severity: 'success' | 'error' } | null>(null);
   const { data: players = [], isLoading } = useRemotePlayers();
   const play = usePlayOnRemotePlayer();
 
+  const report = (message: string, severity: 'success' | 'error') => {
+    if (notify) notify(message, severity);
+    else setNotice({ message, severity });
+  };
+
   const send = async (id: number, name: string) => {
     setAnchor(null);
     try {
       await play.mutateAsync({ id, contentId, title });
-      setNotice({ message: `Sent ${title} to ${name}.`, severity: 'success' });
+      report(`Sent ${title} to ${name}.`, 'success');
       onDone?.();
     } catch (err) {
-      setNotice({
-        message: err instanceof ApiError ? describeRemotePlayerError(err) : 'Could not reach the player.',
-        severity: 'error',
-      });
+      report(err instanceof ApiError ? describeRemotePlayerError(err) : 'Could not reach the player.', 'error');
     }
   };
 
@@ -64,11 +71,13 @@ const PlayOnMenu: React.FC<PlayOnMenuProps> = ({ contentId, title, onDone }) => 
               </MenuItem>
             ))}
       </Menu>
-      <Snackbar open={notice !== null} autoHideDuration={5000} onClose={() => setNotice(null)}>
-        <Alert severity={notice?.severity ?? 'success'} onClose={() => setNotice(null)}>
-          {notice?.message}
-        </Alert>
-      </Snackbar>
+      {notify ? null : (
+        <Snackbar open={notice !== null} autoHideDuration={5000} onClose={() => setNotice(null)}>
+          <Alert severity={notice?.severity ?? 'success'} onClose={() => setNotice(null)}>
+            {notice?.message}
+          </Alert>
+        </Snackbar>
+      )}
     </>
   );
 };

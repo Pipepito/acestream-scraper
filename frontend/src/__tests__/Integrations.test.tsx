@@ -91,6 +91,19 @@ describe('Integrations page', () => {
     await waitFor(() => expect(mockDelete).toHaveBeenCalledWith(1));
   });
 
+  it('keeps the volume where the user left it instead of snapping back to the last poll', async () => {
+    mockCommand.mockResolvedValue(undefined);
+    renderPage();
+    const card = screen.getByRole('group', { name: 'Player Living room' });
+    const slider = within(card).getByRole('slider', { name: 'Volume Living room' }) as HTMLInputElement;
+    expect(slider.value).toBe('50');
+
+    fireEvent.change(slider, { target: { value: '75' } });
+    await waitFor(() => expect(mockCommand).toHaveBeenCalledWith({ id: 1, command: 'volume', value: 75 }));
+    // The 5 s poll still reports 50; the slider must not jump back under the user.
+    expect(slider.value).toBe('75');
+  });
+
   it('opens the add dialog and runs Test connection with the guided VLC message', async () => {
     mockTest.mockResolvedValue({
       reachable: true,

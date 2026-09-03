@@ -494,7 +494,12 @@ const AcestreamChannels: React.FC = () => {
         <DialogTitle id="acestream-play-on-title">Play on…</DialogTitle>
         <DialogContent>
           {playOnTarget ? (
-            <PlayOnMenu contentId={playOnTarget.contentId} title={playOnTarget.title} onDone={() => setPlayOnTarget(null)} />
+            <PlayOnMenu
+              contentId={playOnTarget.contentId}
+              title={playOnTarget.title}
+              onDone={() => setPlayOnTarget(null)}
+              notify={(message, severity) => setNotice({ message, error: severity === 'error' })}
+            />
           ) : null}
         </DialogContent>
         <DialogActions>

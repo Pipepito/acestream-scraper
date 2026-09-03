@@ -40,6 +40,7 @@ def _clear_env(monkeypatch: pytest.MonkeyPatch) -> None:
         "IMAGE_HAS_ACESTREAM", "IMAGE_HAS_ACEXY", "IMAGE_HAS_IPFS", "IMAGE_HAS_ZERONET",
         "ENABLE_ACESTREAM_ENGINE", "ENABLE_ACEXY", "ENABLE_IPFS", "ENABLE_ZERONET", "ENABLE_WARP",
         "SUPERVISOR_RUN_DIR", "IPFS_GATEWAY_URL", "ZERONET_URL",
+        "ACEXY_LISTEN_ADDR", "ACEXY_STATUS_PORT",
     ):
         monkeypatch.delenv(var, raising=False)
 
@@ -165,3 +166,30 @@ def test_endpoints(client, tmp_path, monkeypatch):
     assert accepted.status_code == 202
     assert accepted.json()["success"] is True
     assert (tmp_path / "acexy.restart").exists()
+
+
+@pytest.mark.parametrize(
+    ("listen_addr", "endpoint"),
+    [
+        (":8084", "http://127.0.0.1:8084"),
+        ("0.0.0.0:8084", "http://127.0.0.1:8084"),
+        ("[::]:8084", "http://127.0.0.1:8084"),
+        ("192.168.1.5:8084", "http://192.168.1.5:8084"),
+    ],
+)
+def test_acexy_probe_follows_listen_addr(tmp_path, monkeypatch, listen_addr, endpoint):
+    # ACEXY_LISTEN_ADDR is where Acexy really binds. The image pins
+    # ACEXY_STATUS_PORT=8080, which must not win over an explicit listen
+    # address, or a relocated Acexy shows as "up but not answering".
+    _clear_env(monkeypatch)
+    monkeypatch.setenv("IMAGE_HAS_ACEXY", "true")
+    monkeypatch.setenv("ENABLE_ACEXY", "true")
+    monkeypatch.setenv("ACEXY_STATUS_PORT", "8080")
+    monkeypatch.setenv("ACEXY_LISTEN_ADDR", listen_addr)
+    http = FakeHttp({f"{endpoint}/ace/status": {}})
+
+    acexy = _by_name(_service(tmp_path, http).list_services())["acexy"]
+
+    assert acexy["state"] == "running"
+    assert acexy["endpoint"] == endpoint
+    assert f"{endpoint}/ace/status" in http.calls

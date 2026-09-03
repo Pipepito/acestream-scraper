@@ -21,6 +21,24 @@ ACESTREAM_HTTP_PORT=${ACESTREAM_HTTP_PORT:-6878}
 ACEXY_HOST=${ACEXY_HOST:-localhost}
 ACEXY_PORT=${ACEXY_PORT:-6878}
 ACEXY_STATUS_PORT=${ACEXY_STATUS_PORT:-8080}
+ACEXY_STATUS_HOST=localhost
+# ACEXY_LISTEN_ADDR ([host]:port) is where Acexy really binds; an operator
+# who moves it to another port changes only that, so it wins over the
+# image-pinned ACEXY_STATUS_PORT. Wildcard hosts are probed on loopback.
+if [ -n "${ACEXY_LISTEN_ADDR:-}" ]; then
+    listen_port=${ACEXY_LISTEN_ADDR##*:}
+    listen_host=${ACEXY_LISTEN_ADDR%:*}
+    listen_host=${listen_host#[}
+    listen_host=${listen_host%]}
+    case "$listen_port" in
+        ''|*[!0-9]*) ;;
+        *) ACEXY_STATUS_PORT=$listen_port ;;
+    esac
+    case "$listen_host" in
+        ''|0.0.0.0|::) ;;
+        *) ACEXY_STATUS_HOST=$listen_host ;;
+    esac
+fi
 
 response=$(curl -fsS "http://localhost:${FLASK_PORT}/api/v1/health") || fail "App healthcheck failed"
 case "$response" in
@@ -38,7 +56,7 @@ if [ "$ENABLE_ACEXY" = "true" ]; then
         curl -fsS "http://${ACEXY_HOST}:${ACEXY_PORT}/webui/api/service?method=get_version" > /dev/null || fail "External AceStream engine not accessible"
     fi
 
-    curl -fsS "http://localhost:${ACEXY_STATUS_PORT}/ace/status" > /dev/null || fail "Acexy healthcheck failed"
+    curl -fsS "http://${ACEXY_STATUS_HOST}:${ACEXY_STATUS_PORT}/ace/status" > /dev/null || fail "Acexy healthcheck failed"
 elif [ "$ENABLE_ACESTREAM_ENGINE" = "true" ]; then
     # The engine root URL answers HTTP 500 ("couldn't find resource") on both
     # the native 3.2.x and the Android engine; get_version is the lightest

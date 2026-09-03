@@ -338,6 +338,13 @@ expect_success \
 assert_log_contains "$TMP_DIR/health-external.log" "http://engine.example:9999/webui/api/service?method=get_version"
 assert_log_contains "$TMP_DIR/health-external.log" "http://localhost:8080/ace/status"
 
+: > "$TMP_DIR/health-listen-addr.log"
+expect_success \
+    "Healthcheck follows ACEXY_LISTEN_ADDR instead of the pinned status port" \
+    env PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR" CURL_LOG_FILE="$TMP_DIR/health-listen-addr.log" FLASK_PORT=8000 ENABLE_ACEXY=true ENABLE_ACESTREAM_ENGINE=true ACEXY_LISTEN_ADDR=:8084 ACEXY_STATUS_PORT=8080 bash "$HEALTHCHECK_SCRIPT"
+assert_log_contains "$TMP_DIR/health-listen-addr.log" "http://localhost:8084/ace/status"
+assert_log_not_contains "$TMP_DIR/health-listen-addr.log" "localhost:8080/ace/status"
+
 : > "$TMP_DIR/health-engine-only.log"
 expect_success \
     "Healthcheck probes in-container AceStream engine when enabled without Acexy" \

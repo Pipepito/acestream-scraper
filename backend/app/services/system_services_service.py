@@ -56,6 +56,27 @@ class ProcessInfo:
     uptime_seconds: Optional[int] = None
 
 
+def _acexy_endpoint(env: "os._Environ[str] | dict[str, str]") -> str:
+    """Where Acexy answers, derived from the address it actually binds.
+
+    ``ACEXY_LISTEN_ADDR`` (Go ``[host]:port`` form, default ``:8080``) is
+    Acexy's own setting; the image also pins ``ACEXY_STATUS_PORT=8080`` for
+    the healthcheck, and an operator who moves Acexy to another port only
+    changes the former. Wildcard hosts probe loopback; a specific bind
+    address is probed as given.
+    """
+    listen = (env.get("ACEXY_LISTEN_ADDR") or "").strip()
+    host, port = "127.0.0.1", env.get("ACEXY_STATUS_PORT") or "8080"
+    if listen:
+        raw_host, sep, raw_port = listen.rpartition(":")
+        if sep and raw_port.isdigit():
+            port = raw_port
+            raw_host = raw_host.strip("[]")
+            if raw_host and raw_host not in ("0.0.0.0", "::"):
+                host = raw_host
+    return f"http://{host}:{port}"
+
+
 class SystemServicesService:
     def __init__(
         self,
@@ -183,7 +204,7 @@ class SystemServicesService:
         elif name == "acexy":
             installed = _flag("IMAGE_HAS_ACEXY")
             enabled = _flag("ENABLE_ACEXY")
-            endpoint = f"http://127.0.0.1:{env.get('ACEXY_STATUS_PORT', '8080')}" if (installed or enabled) else None
+            endpoint = _acexy_endpoint(env) if (installed or enabled) else None
             probe = self._probe_http(f"{endpoint}/ace/status") if endpoint else ProbeResult(False, "Not part of this image")
             if probe.ok:
                 probe.message = f"Proxying to {env.get('ACEXY_HOST', 'localhost')}:{env.get('ACEXY_PORT', '6878')}"

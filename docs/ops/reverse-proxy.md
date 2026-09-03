@@ -200,7 +200,7 @@ from the same server.
 |---|---|---|---|
 | `8000` | App: SPA + API + playlists/EPG (`FLASK_PORT`) | all flavors | Via reverse proxy with TLS + auth only. Don't publish the raw port on an untrusted network. |
 | `6878` | AceStream engine HTTP API (`ACESTREAM_HTTP_PORT`) | `scraper-acestream*` flavors with `ENABLE_ACESTREAM_ENGINE=true` | **Never publicly.** Unauthenticated: anyone can start streams and burn your bandwidth. LAN/VPN only. |
-| `8080` | Acexy: `/ace/getstream` + `/ace/status` (`ACEXY_LISTEN_ADDR`, healthchecked via `ACEXY_STATUS_PORT`) | `*-acexy` flavors with `ENABLE_ACEXY=true` | **Never publicly.** Same unauthenticated stream/status surface. LAN/VPN only. |
+| `8080` | Acexy: `/ace/getstream` + `/ace/status` (`ACEXY_LISTEN_ADDR`; the healthcheck and the Overview probe follow it, falling back to `ACEXY_STATUS_PORT`) | `*-acexy` flavors with `ENABLE_ACEXY=true` | **Never publicly.** Same unauthenticated stream/status surface. LAN/VPN only. |
 | `43110` | ZeroNet UI: bundled node (`ZERONET_UI_PORT`) or optional sidecar | `ENABLE_ZERONET=true` / `--profile zeronet` | **Never publicly.** The ZeroNet UI has no authentication and full node control; the app reaches it internally via `ZERONET_URL`. LAN/VPN only, and only with `ZERONET_UI_HOST` set. |
 | `26552` | Bundled ZeroNet node: fileserver/peer port (`ZERONET_FILESERVER_PORT`) | `ENABLE_ZERONET=true` | Safe to publish; improves peer connectivity. Not needed for scraping to work. |
 | `4001` | Embedded IPFS daemon: swarm/P2P (tcp+udp, `IPFS_SWARM_PORT`) | `ENABLE_IPFS=true` | Safe to publish; improves peer connectivity. Not needed for scraping to work. |

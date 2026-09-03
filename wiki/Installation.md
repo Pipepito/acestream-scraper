@@ -226,3 +226,25 @@ When the container (or `uvicorn`) starts and finds a v1 `acestream.db` in the co
 3. **Restarts are safe:** the copy checkpoints after every batch and resumes where it stopped. Once it reports `done`, `acestream.db.migrated` is only kept as a backup and can be deleted together with `acestream.db.migration.json`.
 
 If the archived `acestream.db.migrated` is removed before the copy finishes, the task logs an error and stops; the EPG refresh will re-download current programs from your EPG sources on its next run.
+
+## Updating to a newer image
+
+Pull the new image and recreate the container (`docker compose pull && docker compose up -d`). The app brings its own database up to date on the first start:
+
+1. **The schema is upgraded in place.** If `config/scraper.db` was written by an older version, the new one applies the missing migrations while starting. Nothing to run by hand.
+2. **A copy is taken first.** Before applying anything, the app copies the database to `config/backups/<date>-<time>-pre-upgrade-<from>-<to>/scraper.db` and logs `Upgrading v2 database schema … (backup: …)`. One copy is kept per upgrade step; if the container fails and restarts, the existing copy is reused instead of writing another one. **Nothing here is ever deleted automatically** — remove old folders yourself when the disk gets tight.
+3. **A failed upgrade stops the container** rather than starting with a half-migrated database. The log line naming the failing migration is what to include in a bug report.
+
+### Going back to an older image
+
+An older image refuses a database that a newer one has already upgraded (`Can't locate revision identified by …` in the log). Restore the copy taken before the upgrade:
+
+```bash
+docker compose down
+mv config/scraper.db config/scraper.db.new
+cp config/backups/<stamp>-pre-upgrade-<from>-<to>/scraper.db config/scraper.db
+# pin the older tag in docker-compose.yml, then:
+docker compose up -d
+```
+
+Anything added after the upgrade lives in `scraper.db.new`, not in the restored copy, so only do this when you actually mean to go back.

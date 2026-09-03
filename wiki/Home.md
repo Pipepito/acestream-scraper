@@ -6,6 +6,15 @@ Acestream Scraper is a Python-based web application that automatically retrieves
 
 Built on a FastAPI + SQLAlchemy + BeautifulSoup backend with a React + Material UI front end, this application provides a comprehensive solution for managing and accessing Acestream channels through an intuitive web interface.
 
+## Start Here
+
+1. Open the [Docker command builder](https://pipepito.github.io/acestream-scraper/) to generate the right command or Compose file for your CPU, image flavor, ports, and optional services.
+2. Read the [Installation Guide](Installation.md) and start the container.
+3. Follow the illustrated [v2 Usage Guide](Usage.md) from first launch through playlist import.
+4. Use the [project README](https://github.com/Pipepito/acestream-scraper#readme) for the release overview, supported platforms, development setup, and links to operator documentation.
+
+![Acestream Scraper v2 Overview](usage-01-overview.png)
+
 Continuous integration (pull-request validation and Docker image releases) runs on the project's Jenkins controller; the GitHub Actions workflows and their status badge were retired on 2026-08-26.
 
 ## Key Features
@@ -22,7 +31,7 @@ Continuous integration (pull-request validation and Docker image releases) runs 
 - **External Acestream Support**: Connect to existing Acestream Engine instances
 - **Cloudflare WARP Integration**: Enhanced privacy and geo-unblocking capabilities
 - **Channel Status Monitoring**: Check which channels are online or offline
-- **Interactive Setup**: Easy configuration through a setup wizard
+- **In-App Configuration**: Manage engine, link formats, automation, API access, and sources from the web interface
 - **Search Functionality**: Find specific channels quickly
 - **Automatic Rescanning**: Configure intervals for automatic updates
 - **API Documentation**: OpenAPI/Swagger UI for developers
@@ -42,6 +51,7 @@ The application follows a service-oriented architecture with:
 ## Wiki Navigation
 
 - [Docker Command Builder](https://pipepito.github.io/acestream-scraper/) - Generate the exact `docker run` command or `docker-compose.yml` for your setup
+- [Project README](https://github.com/Pipepito/acestream-scraper#readme) - v2 overview, quick start, platform support and contributor entry points
 - [Installation Guide](Installation.md) - How to install and set up the application
 - [Docker Guide](Docker.md) - Learn about Docker and how it works with this app
 - [Usage Guide](Usage.md) - How to use the application's features

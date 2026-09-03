@@ -2,6 +2,8 @@
 
 This guide covers different methods for installing and setting up Acestream Scraper.
 
+For the quickest v2 setup, open the [Docker command builder](https://pipepito.github.io/acestream-scraper/). It generates the correct `docker run` command or `docker-compose.yml` for your CPU, image flavor, optional services, ports, and volumes. The [project README](https://github.com/Pipepito/acestream-scraper#readme) provides the short release overview; this page explains each installation path in detail.
+
 ## Contents
 - [Docker Compose Method (Recommended)](#docker-compose-method-recommended)
 - [Docker Method](#docker-method)
@@ -50,7 +52,7 @@ Docker Compose provides the easiest way to get started with Acestream Scraper.
 2. **Start the service:**
 
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 
 3. **Access the application:**

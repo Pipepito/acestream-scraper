@@ -1,11 +1,20 @@
-# Acestream Scraper
+# Acestream Scraper v2
+
+> Current release line: **v2.0.0** — FastAPI backend, React web interface, multi-flavor Docker images, and amd64/ARM deployment.
 
 Acestream Scraper now runs on a single canonical root stack:
 
 - `backend/` (FastAPI + SQLAlchemy + scraper logic)
 - `frontend/` (React + TypeScript)
 
-Legacy root runtime entrypoints were retired during cutover. All deployment and development instructions below use only the root `backend/` and `frontend/` paths.
+Legacy Flask runtime entrypoints were retired during the v2 cutover. All deployment and development instructions below use only `backend/` and `frontend/`.
+
+## Choose Your Starting Point
+
+- **Installing with Docker:** use the [interactive Docker command builder](https://pipepito.github.io/acestream-scraper/) to generate the correct image tag, ports, volumes, and environment options for your machine.
+- **Using the application:** follow the [illustrated v2 walkthrough](https://github.com/Pipepito/acestream-scraper/wiki/Usage), from checking services through importing the generated playlist.
+- **Upgrading from v1:** read the [migration guide](wiki/Installation.md#migrating-from-v1) and run the preflight backup before starting v2.
+- **Developing or operating the service:** use the local-development section below and the [documentation index](#documentation-index).
 
 ## Quick Start
 

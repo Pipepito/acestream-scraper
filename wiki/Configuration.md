@@ -210,7 +210,7 @@ When using Docker, mount these volumes:
 
 | Container Path | Purpose | Notes |
 |----------------|---------|-------|
-| `/app/config` | Configuration and data | Contains the database (`scraper.db`; a v1 `acestream.db` found here is migrated on first start — channels and settings before the dashboard comes up, EPG programs in the background afterwards; see [Installation](Installation#migrating-from-v1)) |
+| `/app/config` | Configuration and data | Contains the database (`scraper.db`; a v1 `acestream.db` found here is migrated on first start — channels and settings before the dashboard comes up, EPG programs in the background afterwards; see [Installation](Installation.md#migrating-from-v1)) |
 | `/var/lib/acestream` | AceStream engine state and cache | Only used when `ENABLE_ACESTREAM_ENGINE=true` (ARM Android engine) |
 | `/data/ipfs` | IPFS repository (identity, config, blockstore) | Only required if `ENABLE_IPFS=true` |
 | `/data/zeronet` | Bundled ZeroNet node's state (sites, keys, content) | Only required if `ENABLE_ZERONET=true` |

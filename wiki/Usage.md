@@ -1,145 +1,139 @@
-# Usage Guide
+# Using Acestream Scraper v2
 
-This guide explains how to use Acestream Scraper once it's installed.
+This walkthrough starts with a running container and ends with a playlist you can open in VLC, Kodi, or an IPTV app. The screenshots use example data; your sources and channels will be different.
 
-## Contents
-- [Web Interface](#web-interface)
-  - [Dashboard](#dashboard)
-  - [Channel Management](#channel-management)
-  - [URL Management](#url-management)
-  - [Configuration Page](#configuration-page)
-  - [WARP Management](#warp-management)
-- [M3U Playlist](#m3u-playlist)
-- [API Documentation](#api-documentation)
-- [Acexy Interface](#acexy-interface)
-- [Cloudflare WARP](#cloudflare-warp)
+## Before you begin
 
-## Web Interface
+Open `http://localhost:8000` (replace `localhost` with the Docker host's address when using another device).
 
-Open `http://localhost:8000` in your browser. The left navigation has eight pages; the label in the menu is always the page title.
+If you have not created the container yet, use the [Docker command builder](https://pipepito.github.io/acestream-scraper/). It asks about your CPU, engine, proxy, and optional services, then produces a ready-to-copy `docker run` command or `docker-compose.yml`. The [project README](https://github.com/Pipepito/acestream-scraper#readme) gives the short v2 overview; the [Installation Guide](Installation.md) and [Docker Guide](Docker.md) contain the full details.
 
-### Overview
+## Step 1: Check the Overview
 
-The landing page answers three questions: is it running, what is loaded, what runs next.
+The **Overview** page is the first place to check after startup. Its status line shows whether the AceStream engine is reachable, how many streams and TV channels are loaded, and when scraping and EPG refresh last ran.
 
-- A HEALTHY / ATTENTION chip in the header and a one-line summary (engine version, streams online, TV channels, guide channels, last scrape, last EPG refresh).
-- **Services**: everything the image ships (AceStream engine, Acexy, IPFS, ZeroNet, WARP), whether each is switched on and answering, and a Restart button for services supervised by the container entrypoint. WARP has its own page reachable from here.
-- **Inventory**: stream, TV channel and guide totals.
-- **Scheduled jobs**: every background job with what it did last ("2 sources, 0 errors") and when it runs next.
+The **Services** section distinguishes three states:
 
-### Scraper
+- **Running**: enabled and answering.
+- **Not running**: installed in the selected image but disabled or unhealthy.
+- **Not installed**: unavailable in the selected image flavor or platform.
 
-Source URLs and the channels each one yields. Add a URL, pick its type (Auto-detect, Regular HTTP, ZeroNet, IPFS), then scrape it with the play button in its row. The Enabled switch controls whether scheduled scrapes visit the source; the row menu (⋯) offers Edit, Harvest bare IDs and Delete. The summary line shows how many sources are enabled, when the last scrape ran, how many channels were found and how many sources are failing.
+The inventory and scheduled-jobs sections show what is loaded and when automation runs next. A new installation can show **Attention** until its engine and sources are configured.
 
-When choosing the URL type:
-- **Regular HTTP** for standard websites.
-- **ZeroNet** for any ZeroNet URL, internal (`zero://`, `http://127.0.0.1:43110/`) or through a gateway.
-- **IPFS** for IPFS content: native `ipfs://<cid>/path` and `ipns://<name>/path` (also auto-detected), gateway URLs (`https://gateway.example/ipfs/<cid>/...`) when you want them fetched as IPFS sources, and a bare `ipfs://<cid>` whose content is an M3U playlist (detected by content, not extension).
+![Overview page with service, inventory, and scheduled-job status](usage-01-overview.png)
 
-### Search
+## Step 2: Configure the engine and stream links
 
-Searches the AceStream engine's catalogue. Results show the name, categories, bitrate and availability; Add puts one result into your channels, or tick several and add them in one go. The summary line counts results, selected rows and what you added this session.
+Open **Settings**.
 
-### Acestream Channels
+1. In **Engine**, enter the URL the backend uses to reach the AceStream engine. For the engine bundled in the same container, the default is normally `http://localhost:6878`.
+2. In **Stream link formats**, choose how a player reaches a stream. `acestream://` works for players with native protocol support. With Acexy, use a pattern such as `http://SERVER:8080/ace/getstream?id={channel_id}`, replacing `SERVER` with an address the player can reach.
+3. Mark the format you want as **Default**.
+4. In **Automation**, choose the source-scrape and EPG-refresh intervals.
+5. If the container sets `API_TOKEN`, save the same token under **API access** in this browser. Playlist-only clients can use `?token=...` when they cannot send headers.
 
-Every stream the scraper or search found. Filter by name, group, online state or playlist visibility above the grid. Each row has Check status and a TV-channel link (assign, or open the linked TV channel); the row menu offers Edit, Hide from playlist / Show in playlist, TV favourite and Delete. Header actions: Add channel, Refresh, Check all statuses, Export CSV. Hidden channels stay in the inventory but leave the playlist.
+Do not put `localhost` in a playlist format consumed on another device: there it means the player itself, not your server.
 
-### TV Channels
+![Settings page showing engine, stream-link, automation, and API-token sections](usage-08-settings.png)
 
-The channels you publish. Each TV channel groups its streams and carries the EPG id used in the playlist. The list shows favourites (star), stream count and status; Open goes to the channel page, where you can:
+## Step 3: Add and scrape a source
 
-- edit the main fields (name, category, number, EPG id) with the rest behind "More fields";
-- add streams one by one or paste many IDs at once, and remove them;
-- see the guide schedule for the linked EPG channel: what is on now and next, then day tabs for the week.
+Open **Scraper**, select **Add URL**, and enter a page or feed that contains AceStream links.
 
-### EPG
+1. Choose **Auto-detect** unless you know the source type.
+2. Use **Regular HTTP** for normal web pages, **ZeroNet** for ZeroNet content, or **IPFS** for `ipfs://`, `ipns://`, and gateway content that should be fetched through the configured IPFS gateway.
+3. Keep the source **Enabled** so scheduled scrapes include it.
+4. Turn on **Harvest bare content IDs** only when the source lists raw 40-character hashes without `acestream://` links.
+5. Select **Add**, then use the row's **Scrape** action. **Scrape all** processes every enabled source.
 
-Programme guides, in five tabs:
+The table records the last result, last run, and number of channels found. If a source fails, its error remains visible there.
 
-- **Sources**: XMLTV feeds. Add one, refresh it by hand; refreshes also run on the interval set in Settings. Failures show as plain text under the source status.
-- **Channels**: guide channels found in the sources, with a link to each channel's page and whether it is linked to a TV channel. Select unlinked ones to create TV channels from them.
-- **Matching**: finds scraped streams that belong to unlinked guide channels and creates the TV channels in one go.
-- **Rules**: include/exclude patterns that decide which scraped names match a guide channel (rules are added from a guide channel's page).
-- **Export**: download an XMLTV file with only your TV channels.
+![Add URL dialog on the Scraper page](usage-02-add-source.png)
 
-### Playlist
+## Step 4: Review discovered streams
 
-One M3U link with your channels. Options: name search, only online channels (with the live online/total count), favourite TV channels only, the stream link format, and group filters. The absolute link can be copied, downloaded or shown as a QR code for a player on another device.
+Open **Acestream Channels**. This is the stream inventory populated by scraping or engine search.
 
-### Settings
+1. Filter by name, group, online state, or playlist visibility.
+2. Use the circular-arrow action to check one stream, or **Check all statuses** for the current inventory.
+3. Use the TV action to assign a stream to a TV channel.
+4. Open the row menu to edit, hide/show in playlists, mark its TV channel as a favorite, or delete it.
+5. Use **Export CSV** when you need an inventory snapshot.
 
-- **Engine**: the AceStream engine URL and whether the backend can reach it.
-- **Stream link formats**: named formats for the playlist links (a prefix such as `acestream://`, or a template using `{channel_id}` and `{pid}`). The Default is used unless a playlist asks for another; until you add a named default, the built-in Default is editable in place.
-- **Automation**: how often sources are scraped and the EPG is refreshed (changes apply right away), plus the PID and AppID switches for players that need them.
-- **API access**: the token this browser sends when the server sets `API_TOKEN`.
+Hiding a stream keeps it in the database but excludes it from generated playlists.
 
-### WARP
+![Acestream Channels inventory with filters and linked TV channels](usage-03-acestream-channels.png)
 
-Reachable from the Overview services panel. One status row (Connected / Disconnected / Not running, mode, account, exit location) with Connect and Disconnect; connection details (public IP, exit location, tunnel and registration) and the mode/licence form appear while the service runs. When WARP is not running, the page says how to enable it (`ENABLE_WARP=true` plus the `NET_ADMIN` and `SYS_ADMIN` capabilities).
+## Step 5: Organize streams into TV channels
 
-## M3U Playlist
+Open **TV Channels**. A TV channel is the user-facing station in your playlist; it can group primary and backup AceStream IDs and carry one EPG identity.
 
-The M3U playlist can be used with media players like VLC, Kodi, or any other player that supports M3U playlists.
+1. Select **Add TV Channel** and enter its name and optional metadata.
+2. Open the channel after creation.
+3. Add one or more streams, or paste multiple IDs in bulk.
+4. Set its EPG ID or link it from the EPG workflow.
+5. Mark frequently used channels as favorites if you plan to create a favorites-only playlist.
 
-### Accessing the Playlist
+The channel detail page also shows the linked guide's current and upcoming programmes.
 
-Base URL: `http://localhost:8000/playlist.m3u`
+![TV Channels inventory with filters, favorites, and stream counts](usage-04-tv-channels.png)
 
-#### Playlist Options
+## Step 6: Add programme-guide data
 
-- **Force refresh**: `http://localhost:8000/playlist.m3u?refresh=true`
-- **Search channels**: `http://localhost:8000/playlist.m3u?search=sports`
-- **Combined options**: `http://localhost:8000/playlist.m3u?refresh=true&search=sports`
+Open **EPG**. The five tabs form one workflow:
 
-### Using in Media Players
+1. **Sources**: add an XMLTV URL and refresh it.
+2. **Channels**: review guide channels and create TV channels from selected unlinked entries.
+3. **Matching**: analyze scraped stream names and create matched TV channels in bulk.
+4. **Rules**: manage include/exclude patterns used by matching.
+5. **Export**: download XMLTV containing only your configured TV channels.
 
-1. Copy the playlist URL (http://localhost:8000/playlist.m3u)
-2. In your media player, select "Open Network Stream" or similar option
-3. Paste the URL and play
+Large imports can continue in the background. Progress and future runs appear on **Overview**.
 
-### URL Formatting Note
+![EPG page showing the Sources, Channels, Matching, Rules, and Export tabs](usage-05-epg.png)
 
-- When using Acexy proxy (port 8080), stream URLs are formatted as `{base_url}{channel_id}`
-- For all other configurations, `&pid={local_id}` is automatically appended to each stream URL: `{base_url}{channel_id}&pid={local_id}`
-- This ensures proper channel identification in various player environments
+## Step 7: Build the playlist URL
 
-## API Documentation
+Open **Playlist**.
 
-Acestream Scraper provides an OpenAPI/Swagger interface for developers:
+1. Optionally filter by channel name.
+2. Choose whether to include only online channels or only favorite TV channels.
+3. Select the stream link format configured in **Settings**.
+4. Expand **Group filters** to include or exclude categories.
+5. Copy the generated URL or select **Download M3U**.
 
-1. Access the API docs at: `http://localhost:8000/api/docs`
-2. Browse available endpoints and their parameters
-3. Test API calls directly from the browser interface
+The canonical player-facing endpoint is `/playlists/m3u`. The web page may generate the equivalent versioned API URL so it can include every selected option.
 
-### Key API Endpoints
+![Playlist page with filters and the generated M3U URL](usage-06-playlist.png)
 
-- `/api/channels` - Manage channels
-- `/api/urls` - Manage URLs to scrape
-- `/api/stats` - Get system statistics
-- `/api/config` - View and update configuration
-- `/api/playlists` - Generate playlists
-- `/api/health` - Check system health
-- `/api/warp` - Manage Cloudflare WARP connection
+## Step 8: Import it on another device
 
-## Acexy Interface
+Select **Show QR code** to move the generated URL to a phone, TV, or IPTV app without typing it. The player must be able to reach both the web endpoint and the host used in the stream-link format.
 
-If you enabled Acexy (recommended):
+![Playlist QR code ready to scan from another device](usage-07-playlist-qr.png)
 
-1. Access the Acexy status endpoint at: `http://localhost:8080/ace/status`
-2. Check Acexy status directly in the main dashboard
-3. Manage your Acestream connections through this web interface
+In VLC, choose **Media → Open Network Stream**, paste the playlist URL, and play. Other clients usually call the same action **Add playlist by URL**, **M3U URL**, or **Open network stream**.
 
-## Cloudflare WARP
+## Search and manual additions
 
-When enabled, Cloudflare WARP provides these benefits:
+Use **Search** to query the connected AceStream engine catalogue. Add one result or select several and add them together. Use **Add channel** on **Acestream Channels** when you already know a content ID.
 
-1. **Enhanced Privacy**: Your traffic is encrypted and routed through Cloudflare's network
-2. **Geo-Blocking Bypass**: Access content that might be regionally restricted
-3. **Improved Security**: Protection from various network-based attacks
-4. **Better Performance**: Optimized routing through Cloudflare's global network
+## API and health endpoints
 
-To use WARP features:
-1. Make sure the container is running with `-e ENABLE_WARP=true` and required capabilities (`--cap-add NET_ADMIN --cap-add SYS_ADMIN`)
-2. Navigate to the Configuration page
-3. Use the WARP controls to connect, disconnect, or change modes
-4. Optionally register a WARP+ or Team license for premium features
+- Interactive OpenAPI documentation: `http://localhost:8000/docs`
+- Public health check: `http://localhost:8000/api/v1/health`
+- Player-friendly M3U: `http://localhost:8000/playlists/m3u`
+- Versioned playlist API: `http://localhost:8000/api/v1/playlists/m3u`
+
+All current application APIs are under `/api/v1`. A small set of v1 playlist aliases remains so existing players continue to work.
+
+## WARP
+
+When WARP is installed and enabled, open it from the **Overview** services panel. The page shows connection state, mode, account, and exit location, and provides connect/disconnect controls. Enabling WARP in Docker requires `ENABLE_WARP=true` plus the `NET_ADMIN` and `SYS_ADMIN` capabilities. WARP is available on `linux/amd64` images only.
+
+## Next steps
+
+- [Configuration Reference](Configuration.md)
+- [Docker and platform guide](Docker.md)
+- [Frequently asked questions](FAQ.md)
+- [Bug reporting](Bug-Reporting.md)

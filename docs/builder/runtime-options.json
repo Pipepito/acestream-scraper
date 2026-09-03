@@ -185,6 +185,13 @@
     "description": "Scrape ipfs:// and ipns:// sources. Every image bundles the Kubo daemon on amd64/arm64 (opt-in via ENABLE_IPFS), or point IPFS_GATEWAY_URL at an external IPFS gateway.",
     "embeddedDescription": "Starts the bundled Kubo daemon; ipfs:// sources are fetched through its gateway on 8081 (8080 belongs to Acexy). Turn off to use an external gateway instead."
   },
+  "player": {
+    "hlsDirDefault": "/tmp/acestream-player",
+    "hlsDirShmHint": "Set PLAYER_HLS_DIR=/dev/shm/acestream-player with a larger --shm-size to keep player segments in RAM.",
+    "maxSessionsDefault": 3,
+    "tunerNetworksDefault": "127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10",
+    "description": "The web player and the Jellyfin/Plex tuner routes ship in every flavor; ffmpeg is bundled."
+  },
   "notes": {
     "developChannel": "The develop tags are moving pre-release builds meant for testing the next release — not for production.",
     "armv7Experimental": "The 32-bit ARM engine builds and installs but has not been runtime-tested on real hardware. Prefer a 64-bit OS where the device supports it.",
@@ -194,6 +201,7 @@
     "zeronetArm": "The bundled ZeroNet node ships in the amd64 images only. ZeroNet sources still work through an external service (ZERONET_URL).",
     "warpCaps": "WARP needs the NET_ADMIN and SYS_ADMIN capabilities plus the /dev/net/tun device.",
     "acexyExternalEngine": "Acexy refuses to start against localhost:6878 when the in-container engine is disabled — point it at your external engine's address.",
+    "publicBaseUrl": "Jellyfin, Plex and VLC need an address they can reach: set it under Integrations → Public address, or pass PUBLIC_BASE_URL.",
     "externalEngineSettings": "The scraper's own engine connection (used for channel status checks) is configured in the web interface under Settings → Acestream Engine URL.",
     "afterRun": "Then open http://localhost:{webPort} — set the stream base URL and engine URL under Settings, and add source URLs under Scraper."
   }

@@ -68,7 +68,7 @@ if f"image: {data['image']}:latest" not in compose:
     errors.append(f"docker-compose.yml no longer uses {data['image']}:latest")
 
 # The runtime toggles the page emits must still exist in the entrypoint.
-for var in ("ENABLE_ACESTREAM_ENGINE", "ENABLE_ACEXY", "ENABLE_WARP", "ACEXY_HOST", "ACEXY_PORT", "ZERONET_URL", "ENABLE_ZERONET", "ENABLE_IPFS", "IPFS_GATEWAY_URL", "FLASK_PORT"):
+for var in ("ENABLE_ACESTREAM_ENGINE", "ENABLE_ACEXY", "ENABLE_WARP", "ACEXY_HOST", "ACEXY_PORT", "ZERONET_URL", "ENABLE_ZERONET", "ENABLE_IPFS", "IPFS_GATEWAY_URL", "FLASK_PORT", "PUBLIC_BASE_URL", "TUNER_ALLOWED_NETWORKS", "PLAYER_MAX_SESSIONS"):
     if var not in entrypoint:
         errors.append(f"entrypoint.sh no longer references {var}")
 
@@ -93,6 +93,11 @@ if ports["zeronetUi"]["container"] != int(re.search(r'ZERONET_UI_PORT:-(\d+)', e
     errors.append("ZeroNet UI port differs from ZERONET_UI_PORT default in entrypoint.sh")
 if ports["zeronetFileserver"]["container"] != int(re.search(r'ZERONET_FILESERVER_PORT:-(\d+)', entrypoint).group(1)):
     errors.append("ZeroNet fileserver port differs from ZERONET_FILESERVER_PORT default in entrypoint.sh")
+
+if data["player"]["maxSessionsDefault"] != int(re.search(r'PLAYER_MAX_SESSIONS:-(\d+)', entrypoint).group(1)):
+    errors.append("player.maxSessionsDefault differs from PLAYER_MAX_SESSIONS default in entrypoint.sh")
+if data["player"]["tunerNetworksDefault"] != re.search(r'TUNER_ALLOWED_NETWORKS:-([^}]+)\}', entrypoint).group(1):
+    errors.append("player.tunerNetworksDefault differs from TUNER_ALLOWED_NETWORKS default in entrypoint.sh")
 
 for f in data["flavors"]:
     for key in ("releaseTag", "developTag", "versionTagPattern"):

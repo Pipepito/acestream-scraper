@@ -52,7 +52,10 @@
     volumes: {},  // id -> { enabled, source }
     containerName: 'acestream-scraper',
     restart: 'unless-stopped',
-    tz: ''
+    tz: '',
+    publicBaseUrl: '',
+    tunerNetworks: '',
+    playerMaxSessions: ''
   };
 
   // ---------------------------------------------------------------------------
@@ -131,6 +134,9 @@
     if (d.ipfsEmbeddedOn) env.push(['ENABLE_IPFS', 'true']);
     if (d.ipfsExternalOn) env.push(['IPFS_GATEWAY_URL', state.ipfsGatewayUrl.trim() || data.ipfs.defaultGatewayUrl]);
     if (state.tz.trim()) env.push(['TZ', state.tz.trim()]);
+    if (state.publicBaseUrl.trim()) env.push(['PUBLIC_BASE_URL', state.publicBaseUrl.trim()]);
+    if (state.tunerNetworks.trim()) env.push(['TUNER_ALLOWED_NETWORKS', state.tunerNetworks.trim()]);
+    if (/^\d+$/.test(state.playerMaxSessions.trim())) env.push(['PLAYER_MAX_SESSIONS', state.playerMaxSessions.trim()]);
     return env;
   }
 
@@ -508,6 +514,7 @@
     box.replaceChildren();
     const web = state.ports.web ? (validPort(state.ports.web.host) || 8000) : 8000;
     box.append(el('p', { html: data.notes.afterRun.replace('{webPort}', String(web)).replace(/^Then /, '<strong>Then</strong> ') }));
+    box.append(el('p', { text: data.notes.publicBaseUrl }));
     if (d.acexyOn && state.ports.acexy && state.ports.acexy.enabled) {
       const acexyPort = validPort(state.ports.acexy.host) || 8080;
       box.append(el('p', { html: `<strong>Players:</strong> point them at <code>http://&lt;server-ip&gt;:${acexyPort}/ace/getstream?id=&lt;channel id&gt;</code> — the playlist in the web interface uses this base URL once you set it under Settings.` }));
@@ -554,6 +561,9 @@
     bind('#ipfs-gateway-url', 'ipfsGatewayUrl');
     bind('#container-name', 'containerName');
     bind('#tz-input', 'tz');
+    bind('#public-base-url-input', 'publicBaseUrl');
+    bind('#tuner-networks-input', 'tunerNetworks');
+    bind('#player-max-sessions-input', 'playerMaxSessions');
     $('#restart-policy').addEventListener('change', (e) => { state.restart = e.target.value; updateOutput(); });
 
     const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
@@ -602,6 +612,8 @@
     state.flavor = (data.flavors.find((f) => f.recommended) || data.flavors[0]).id;
     state.zeronetUrl = data.zeronet.defaultUrl;
     state.ipfsGatewayUrl = data.ipfs.defaultGatewayUrl;
+    $('#tuner-networks-input').placeholder = data.player.tunerNetworksDefault;
+    $('#player-max-sessions-input').placeholder = String(data.player.maxSessionsDefault);
     // The engine API, the IPFS gateway and the (unauthenticated) ZeroNet UI
     // work in-container without being published; keep them opt-in.
     for (const p of data.ports) state.ports[p.id] = { enabled: !['engineApi', 'ipfsGateway', 'zeronetUi'].includes(p.id), host: p.defaultHost };

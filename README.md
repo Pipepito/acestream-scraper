@@ -59,6 +59,8 @@ The manifest currently covers `linux/amd64` (native Linux engine 3.2.11), `linux
 
 When you enable the engine on ARM, it keeps its config, cache, and logs under `/var/lib/acestream` (`ACESTREAM_HOME`); mount a volume there (for example `-v acestream-state:/var/lib/acestream`) so they survive container replacement, and publish `6878` (engine HTTP API — unauthenticated, so only on trusted networks) plus `8621` tcp/udp (P2P) if they must be reachable from outside the container. Raspberry Pi 5: the Android engine needs a 4 KB kernel page size, so set `kernel=kernel8.img` in `config.txt` (the default `kernel_2712` kernel uses 16 KB pages and the engine refuses to start). WARP is available on ARM64 but not ARMv7. See [wiki/Docker.md](wiki/Docker.md) for the full ARM engine notes and caveats.
 
+**Web player**: every image bundles a static ffmpeg (`ffmpeg-builder` stage, one binary per platform/flavor), so channels play straight in the browser with no plugin and no separate install — press Play, and the backend transcodes the channel's audio to AAC (video is passed through) and serves it as HLS. Jellyfin, Plex, VLC and Kodi instead pull an HDHomeRun-style tuner stream from `/tuner/*`, gated by network address (`TUNER_ALLOWED_NETWORKS`) rather than the API token, since those clients cannot send one; `PUBLIC_BASE_URL` tells the app which address to advertise to them. See [wiki/Web-Player.md](wiki/Web-Player.md).
+
 ### Local Development
 
 Backend:
@@ -124,6 +126,9 @@ npm start
 - `ZERONET_DATA_DIR` (default: `/data/zeronet`; the bundled node's state — mount a volume there)
 - `ZERONET_UI_PORT` (default: `43110`), `ZERONET_FILESERVER_PORT` (default: `26552`), `ZERONET_UI_HOST` (extra Host headers the UI should accept)
 - `ZERONET_TRACKERS` (default: three public UDP bootstrap trackers; space-separated tracker URLs used to bootstrap access to ZeroNet's dynamic tracker list)
+- `PUBLIC_BASE_URL` (default: empty; origin Jellyfin/Plex/VLC use to reach this server — empty derives it from each request)
+- `TUNER_ALLOWED_NETWORKS` (default: `127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10`; networks allowed to use the token-free `/tuner/*` routes)
+- `PLAYER_MAX_SESSIONS` (default: `3`; channels the web player transcodes at once)
 
 Docker flavor choice controls which optional binaries are installed. Runtime env vars control whether those installed services actually start.
 

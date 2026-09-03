@@ -137,6 +137,23 @@
                 <input type="text" id="tz-input" placeholder="Europe/Madrid" spellcheck="false" autocomplete="off" />
               </div>
             </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="public-base-url-input">Public address <span class="optional">(optional)</span></label>
+                <input type="text" id="public-base-url-input" placeholder="http://192.168.1.10:8000" spellcheck="false" autocomplete="off" />
+                <p class="hint">Address Jellyfin, Plex, VLC and Kodi use to reach this server. Leave empty to derive it from each request.</p>
+              </div>
+              <div class="field">
+                <label for="tuner-networks-input">Tuner-allowed networks <span class="optional">(optional)</span></label>
+                <input type="text" id="tuner-networks-input" spellcheck="false" autocomplete="off" />
+                <p class="hint">Networks allowed to use the token-free tuner routes. Leave empty for the built-in private-network list.</p>
+              </div>
+              <div class="field">
+                <label for="player-max-sessions-input">Web player max sessions <span class="optional">(optional)</span></label>
+                <input type="number" id="player-max-sessions-input" min="1" />
+                <p class="hint">Channels the browser player prepares at once. Each one costs an engine stream and an ffmpeg process.</p>
+              </div>
+            </div>
           </details>
         </section>
       </div>

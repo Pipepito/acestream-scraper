@@ -689,3 +689,18 @@ def test_jenkins_smoke_stage_runs_the_ffmpeg_build_test():
     pipeline = (REPO_ROOT / "Jenkinsfile").read_text()
     assert "backend/tests/docker/test_ffmpeg_build.py" in pipeline
     assert "backend/tests/docker/test_ffmpeg_vendor.py" in pipeline
+
+
+def test_command_builder_declares_player_facts_and_emits_the_new_env():
+    import json
+    data = json.loads((REPO_ROOT / "docs" / "builder" / "runtime-options.json").read_text())
+    app_js = (REPO_ROOT / "docs" / "builder" / "app.js").read_text()
+    validator = (REPO_ROOT / "scripts" / "ci" / "validate_command_builder.sh").read_text()
+
+    assert data["player"]["maxSessionsDefault"] == 3
+    assert data["player"]["hlsDirDefault"] == "/tmp/acestream-player"
+    assert data["player"]["tunerNetworksDefault"].startswith("127.0.0.0/8,10.0.0.0/8,100.64.0.0/10")
+    assert "publicBaseUrl" in data["notes"]
+    for name in ("PUBLIC_BASE_URL", "TUNER_ALLOWED_NETWORKS", "PLAYER_MAX_SESSIONS"):
+        assert f"'{name}'" in app_js, name
+        assert f'"{name}"' in validator, name

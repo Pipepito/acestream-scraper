@@ -292,3 +292,31 @@ def test_spawn_argv_contains_required_flags(make_service):
     assert argv[:9] == [str(FAKE_FFMPEG), "-nostdin", "-hide_banner", "-loglevel", "info", "-nostats", "-rw_timeout", "20000000", "-fflags"]
     assert "-c:a" in argv and argv[argv.index("-c:a") + 1] == "aac"
     assert argv[-1] == "/tmp/x/index.m3u8"
+
+
+def test_teardown_does_not_swallow_its_own_cancellation(make_service):
+    """stop() cancels the service loop mid-tick; a teardown parked on its stderr
+    reader must let that cancellation through, or stop() waits for a task that
+    never ends."""
+    svc = make_service()
+
+    async def run():
+        s = await svc.open_session(IH)
+        parked = asyncio.Event()
+
+        async def stubborn():
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                parked.set()  # ignore the first cancellation and stay pending
+                await asyncio.Event().wait()
+
+        s.reader.cancel()
+        s.reader = asyncio.create_task(stubborn())
+        teardown = asyncio.create_task(svc._teardown(s))
+        await parked.wait()  # the teardown is now waiting on the reader
+        teardown.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await teardown
+
+    asyncio.run(run())

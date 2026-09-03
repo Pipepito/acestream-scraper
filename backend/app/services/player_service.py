@@ -401,8 +401,10 @@ class PlayerService:
                 await asyncio.wait_for(proc.wait(), timeout=2.0)
         if session.reader is not None:
             session.reader.cancel()
-            with contextlib.suppress(asyncio.CancelledError, Exception):
-                await session.reader
+            # gather() absorbs the reader's own CancelledError but still lets a
+            # cancellation aimed at *this* teardown through, so stop() cannot
+            # end up awaiting a loop task that quietly kept running.
+            await asyncio.gather(session.reader, return_exceptions=True)
         if session.engine_session is not None:
             engine_session = session.engine_session
             try:

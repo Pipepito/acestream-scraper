@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate docker/manifests/{platforms,acestream,acexy}.json and the vendored payloads.
+"""Validate docker/manifests/{platforms,acestream,acexy,ffmpeg}.json and the vendored payloads.
 
 Run from anywhere: ``python3 scripts/ci/validate_docker_manifest_metadata.py``.
 Exit 1 with ``VALIDATION FAILED: ...`` on the first problem.
@@ -218,6 +218,23 @@ def main() -> int:
             raise AssertionError(f"{acexy['vendor_dir']}/SHA256SUMS entry for {vendored_file} does not match acexy.json sha256")
         if acexy["vendor_dir"] != "docker/vendor/acexy":
             raise AssertionError("acexy.json vendor_dir must be docker/vendor/acexy (the Dockerfile mounts docker/vendor)")
+
+    ffmpeg = load_json("docker/manifests/ffmpeg.json")
+    require_keys(ffmpeg, ["version", "vendor_dir", "vendored_file", "sha256", "source_url", "mirror_base_url", "mirror_urls"], "ffmpeg.json")
+    if not isinstance(ffmpeg["sha256"], str) or not SHA256_RE.match(ffmpeg["sha256"]):
+        raise AssertionError("ffmpeg.json sha256 must be a 64-hex string")
+    if ffmpeg["vendor_dir"] != "docker/vendor/ffmpeg":
+        raise AssertionError("ffmpeg.json vendor_dir must be docker/vendor/ffmpeg (the Dockerfile mounts docker/vendor)")
+    if not str(ffmpeg["source_url"]).startswith("https://"):
+        raise AssertionError("ffmpeg.json source_url must be https")
+    require_vendored(
+        "ffmpeg.json",
+        ffmpeg["vendor_dir"],
+        ffmpeg["vendored_file"],
+        ffmpeg["sha256"],
+        ffmpeg["mirror_urls"],
+        ffmpeg["mirror_base_url"],
+    )
 
     ace_stream_platforms = set(acestream["platforms"].keys())
     for flavor in ("scraper-acestream", "scraper-acestream-acexy"):

@@ -71,6 +71,9 @@ jest.mock('../hooks/useBaseUrls', () => ({
   usePatchBaseUrl: () => ({ mutate: jest.fn(), isPending: false }),
   useDeleteBaseUrl: () => ({ mutate: jest.fn(), isPending: false }),
 }));
+jest.mock('../hooks/useSystemServices', () => ({
+  usePublicUrl: () => ({ data: undefined, isLoading: false }),
+}));
 jest.mock('../services/configService', () => ({
   configService: {
     getAppId: jest.fn(),

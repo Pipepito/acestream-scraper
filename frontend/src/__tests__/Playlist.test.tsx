@@ -6,9 +6,11 @@ import { createAppTheme } from '../theme';
 import { TestMemoryRouter } from '../testUtils/router';
 import * as playlistHooks from '../hooks/usePlaylists';
 import * as baseUrlHooks from '../hooks/useBaseUrls';
+import * as systemHooks from '../hooks/useSystemServices';
 
 jest.mock('../hooks/usePlaylists');
 jest.mock('../hooks/useBaseUrls');
+jest.mock('../hooks/useSystemServices');
 
 const urlField = () => screen.getByRole('textbox', { name: 'Playlist URL' }) as HTMLInputElement;
 
@@ -33,13 +35,18 @@ describe('Playlist page', () => {
       ],
       isLoading: false,
     });
+    window.localStorage.removeItem('apiToken');
+    (systemHooks.usePublicUrl as jest.Mock).mockReturnValue({
+      data: { url: 'http://scraper.lan:8000', source: 'setting', warnings: [] },
+      isLoading: false,
+    });
   });
 
   it('shows an absolute link, options with real counts, and no hero or how-to', () => {
     renderPage();
 
     expect(screen.getByRole('heading', { level: 1, name: 'Playlist' })).toBeInTheDocument();
-    expect(urlField().value).toMatch(/^http:\/\/localhost\/api\/v1\/playlists\/m3u\?/);
+    expect(urlField().value).toMatch(/^http:\/\/scraper\.lan:8000\/api\/v1\/playlists\/m3u\?/);
     expect(urlField().value).not.toContain('only_online=true');
     expect(screen.getByRole('checkbox', { name: 'Only online channels' })).not.toBeChecked();
     expect(screen.getByText('12 of 48 channels are online right now')).toBeInTheDocument();
@@ -85,12 +92,25 @@ describe('Playlist page', () => {
     renderPage();
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy playlist URL' }));
-    await waitFor(() => expect(writeText).toHaveBeenCalledWith(expect.stringMatching(/^http:\/\/localhost\/api\/v1\/playlists\/m3u\?/)));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(expect.stringMatching(/^http:\/\/scraper\.lan:8000\/api\/v1\/playlists\/m3u\?/)));
     expect(await screen.findByText('Playlist link copied.')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Show QR code' }));
     const dialog = screen.getByRole('dialog', { name: 'Playlist QR code' });
     expect(screen.getByRole('img', { name: 'QR code for the playlist URL' })).toBeInTheDocument();
-    expect(dialog).toHaveTextContent(/http:\/\/localhost\/api\/v1\/playlists\/m3u\?/);
+    expect(dialog).toHaveTextContent(/http:\/\/scraper\.lan:8000\/api\/v1\/playlists\/m3u\?/);
+  });
+
+  it('falls back to the page origin while the public URL is loading', () => {
+    (systemHooks.usePublicUrl as jest.Mock).mockReturnValue({ data: undefined, isLoading: true });
+    renderPage();
+    expect(urlField().value).toMatch(/^http:\/\/localhost\/api\/v1\/playlists\/m3u\?/);
+  });
+
+  it('appends the stored API token so players can authenticate', () => {
+    window.localStorage.setItem('apiToken', 's3cret');
+    renderPage();
+    expect(urlField().value).toContain('token=s3cret');
+    window.localStorage.removeItem('apiToken');
   });
 });

@@ -266,15 +266,21 @@ export IPFS_API_PORT="${IPFS_API_PORT:-5001}"
 export IPFS_GATEWAY_PORT="${IPFS_GATEWAY_PORT:-8081}"
 export IPFS_GATEWAY_URL="${IPFS_GATEWAY_URL:-http://127.0.0.1:$IPFS_GATEWAY_PORT}"
 # Media integrations (spec 4.5): one declared default per knob, mirrored by
-# app/config/settings.py. PUBLIC_BASE_URL is the origin tuners/players use to
-# reach this container; TUNER_ALLOWED_NETWORKS gates the token-free /tuner/*
-# routes; FORWARDED_ALLOW_IPS is consumed by the app's own forwarded-headers
-# middleware (uvicorn's is disabled below).
+# app/config/settings.py (backend/tests/test_settings_env.py fails if the two
+# drift). PUBLIC_BASE_URL is the origin tuners/players use to reach this
+# container; TUNER_ALLOWED_NETWORKS gates the token-free /tuner/* routes;
+# PLAYER_* size the web player's transcode sessions; FORWARDED_ALLOW_IPS is
+# consumed by the app's own forwarded-headers middleware (uvicorn's is disabled
+# below); FFMPEG_BINARY_PATH empty means "resolve ffmpeg from PATH";
+# MEDIA_SERVER_MIN_REFRESH_MINUTES debounces Jellyfin/Plex guide refreshes.
 export PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-}"
 export TUNER_ALLOWED_NETWORKS="${TUNER_ALLOWED_NETWORKS:-127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10}"
 export PLAYER_HLS_DIR="${PLAYER_HLS_DIR:-/tmp/acestream-player}"
 export PLAYER_MAX_SESSIONS="${PLAYER_MAX_SESSIONS:-3}"
+export PLAYER_START_TIMEOUT_SECONDS="${PLAYER_START_TIMEOUT_SECONDS:-45}"
 export FORWARDED_ALLOW_IPS="${FORWARDED_ALLOW_IPS:-127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}"
+export FFMPEG_BINARY_PATH="${FFMPEG_BINARY_PATH:-}"
+export MEDIA_SERVER_MIN_REFRESH_MINUTES="${MEDIA_SERVER_MIN_REFRESH_MINUTES:-30}"
 
 if ! feature_enabled "$ENABLE_WARP"; then
     log "WARP disabled; skipping setup"

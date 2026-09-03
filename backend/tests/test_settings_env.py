@@ -1,6 +1,10 @@
 """Environment parsing contract for Settings (things the docs promise)."""
 from __future__ import annotations
 
+import inspect
+import re
+from pathlib import Path
+
 import pytest
 
 from app.config.settings import Settings
@@ -58,12 +62,61 @@ def test_media_integration_env_overrides(monkeypatch: pytest.MonkeyPatch) -> Non
     assert settings.TUNER_ALLOWED_NETWORKS == "*"
 
 
+MEDIA_SECTION_MARKER = "# --- Media integrations"
+
+# Only a floor for the set derived from Settings below: if the block parser ever
+# matched nothing, the per-knob loop would pass vacuously. The knobs actually
+# checked are whatever Settings declares, not this list.
+SPEC_MANDATED_MEDIA_ENV = {
+    "PUBLIC_BASE_URL",
+    "TUNER_ALLOWED_NETWORKS",
+    "PLAYER_HLS_DIR",
+    "PLAYER_MAX_SESSIONS",
+    "PLAYER_START_TIMEOUT_SECONDS",
+    "FORWARDED_ALLOW_IPS",
+    "FFMPEG_BINARY_PATH",
+    "MEDIA_SERVER_MIN_REFRESH_MINUTES",
+}
+
+
+def _media_env_defaults() -> dict[str, str]:
+    """Media-integration knobs declared by Settings, as name -> shell-rendered default.
+
+    The names come from the class body's media block and the values from
+    ``Settings.model_fields``, so a knob added to Settings is covered by the
+    entrypoint guard below without editing this test.
+    """
+    _, marker, media_block = inspect.getsource(Settings).partition(MEDIA_SECTION_MARKER)
+    assert marker, f"{MEDIA_SECTION_MARKER!r} not found in the Settings source"
+
+    names: list[str] = []
+    for line in media_block.splitlines()[1:]:
+        if line.strip().startswith(("@", "def ")):  # end of the field block
+            break
+        match = re.match(r"\s+([A-Z][A-Z0-9_]*)\s*:", line)
+        if match:
+            names.append(match.group(1))
+
+    defaults: dict[str, str] = {}
+    for name in names:
+        field = Settings.model_fields.get(name)
+        assert field is not None, f"{name} was parsed from the media block but is not a Settings field"
+        assert not field.is_required(), f"{name} has no default for entrypoint.sh to mirror"
+        defaults[name] = "" if field.default is None else str(field.default)
+    return defaults
+
+
 def test_entrypoint_defaults_match_settings_defaults() -> None:
-    """entrypoint.sh must export the same defaults Settings carries (spec 4.5)."""
-    from pathlib import Path
+    """entrypoint.sh must export every media knob with Settings' own default (spec 4.5)."""
     entrypoint = (Path(__file__).resolve().parents[2] / "entrypoint.sh").read_text(encoding="utf-8")
-    assert 'export PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-}"' in entrypoint
-    assert f'export TUNER_ALLOWED_NETWORKS="${{TUNER_ALLOWED_NETWORKS:-{DEFAULT_TUNER_NETWORKS}}}"' in entrypoint
-    assert 'export PLAYER_HLS_DIR="${PLAYER_HLS_DIR:-/tmp/acestream-player}"' in entrypoint
-    assert 'export PLAYER_MAX_SESSIONS="${PLAYER_MAX_SESSIONS:-3}"' in entrypoint
-    assert f'export FORWARDED_ALLOW_IPS="${{FORWARDED_ALLOW_IPS:-{DEFAULT_FORWARDED_ALLOW_IPS}}}"' in entrypoint
+    knobs = _media_env_defaults()
+
+    assert SPEC_MANDATED_MEDIA_ENV <= set(knobs), (
+        f"media block parser found {sorted(knobs)}, expected at least {sorted(SPEC_MANDATED_MEDIA_ENV)}"
+    )
+    missing = [
+        expected
+        for name, default in knobs.items()
+        if (expected := f'export {name}="${{{name}:-{default}}}"') not in entrypoint
+    ]
+    assert not missing, "entrypoint.sh does not mirror Settings defaults:\n" + "\n".join(missing)

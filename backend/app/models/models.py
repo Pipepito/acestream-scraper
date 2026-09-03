@@ -280,6 +280,50 @@ class BaseUrl(Base):
     is_default = Column(Boolean, default=False, nullable=False)
 
 
+class RemotePlayer(Base):
+    """A VLC or Kodi player on the LAN the app can send channels to (spec 6.1)."""
+    __tablename__ = "remote_players"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(255), unique=True, nullable=False)
+    kind = Column(String(16), nullable=False)  # vlc | kodi
+    host = Column(String(255), nullable=False)
+    port = Column(Integer, nullable=False, default=8080)
+    username = Column(String(255), nullable=True)
+    password = Column(String(1024), nullable=True)  # never returned by the API
+    # null = hand the player the backend relay URL (/tuner/stream/<id>.ts)
+    base_url_id = Column(Integer, ForeignKey("base_urls.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(UtcDateTime(), default=_utcnow, nullable=False)
+    updated_at = Column(UtcDateTime(), default=_utcnow, onupdate=_utcnow, nullable=False)
+
+    base_url = relationship("BaseUrl")
+
+
+class MediaServer(Base):
+    """A Jellyfin or Plex server kept in sync with the TV channels (spec 7.3)."""
+    __tablename__ = "media_servers"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    kind = Column(String(16), nullable=False)  # jellyfin | plex
+    name = Column(String(255), unique=True, nullable=False)
+    base_url = Column(String(1024), nullable=False)
+    api_key = Column(Text, nullable=True)  # Jellyfin API key or Plex owner token; never returned
+    tuner_mode = Column(String(16), nullable=False, default="hdhomerun")  # hdhomerun | m3u (Jellyfin only)
+    enabled = Column(Boolean, nullable=False, default=True)
+    auto_refresh = Column(Boolean, nullable=False, default=True)
+    tuner_host_id = Column(String(64), nullable=True)
+    listing_provider_id = Column(String(64), nullable=True)
+    dvr_key = Column(String(64), nullable=True)
+    last_lineup_fingerprint = Column(String(64), nullable=True)
+    last_guide_fingerprint = Column(String(64), nullable=True)
+    last_sync_at = Column(UtcDateTime(), nullable=True)
+    last_sync_status = Column(String(16), nullable=False, default="never")  # ok | error | never | manual
+    last_error = Column(Text, nullable=True)
+    server_version = Column(String(64), nullable=True)
+    created_at = Column(UtcDateTime(), default=_utcnow, nullable=False)
+    updated_at = Column(UtcDateTime(), default=_utcnow, onupdate=_utcnow, nullable=False)
+
+
 class ActivityLog(Base):
     """Model for tracking user activity and system events"""
     __tablename__ = "activity_log"

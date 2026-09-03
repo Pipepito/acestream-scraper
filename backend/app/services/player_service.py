@@ -239,7 +239,7 @@ class PlayerService:
     async def open_session(self, content_id: str) -> PlayerSession:
         async with self._lock:
             for existing in self.sessions.values():
-                if existing.content_id == content_id and existing.state != "stopped":
+                if existing.content_id == content_id and existing.state in ("starting", "ready"):
                     existing.viewers += 1
                     existing.viewers_zero_since = None
                     existing.last_access = self._now()
@@ -248,6 +248,12 @@ class PlayerService:
             active = sum(1 for s in self.sessions.values() if s.state in ("starting", "ready"))
             if active >= limit:
                 raise PlayerLimitReached(limit, active)
+            # Reopening a channel that failed is the player's Retry button. Drop the
+            # failed attempt and start a new one instead of replaying its cached
+            # error for the minute the reaper takes to clear it.
+            retired = [s for s in self.sessions.values() if s.content_id == content_id and s.state == "error"]
+            for old in retired:
+                self.sessions.pop(old.id, None)
             now = self._now()
             session_id = uuid.uuid4().hex
             session = PlayerSession(
@@ -259,6 +265,11 @@ class PlayerService:
                 viewers=1,
             )
             self.sessions[session.id] = session
+        for old in retired:
+            try:
+                await self._teardown(old)
+            except Exception:  # noqa: BLE001 - a failed cleanup must not block the retry
+                logger.exception("Could not retire failed player session %s", old.id)
         await self._launch(session)
         return session
 
@@ -268,7 +279,7 @@ class PlayerService:
             self._fail(session, "ffmpeg_missing", "ffmpeg is not installed on this server")
             return
         try:
-            session.engine_session = await run_in_threadpool(
+            engine_session = await run_in_threadpool(
                 self._engine_call, lambda engine: engine.start(session.content_id)
             )
         except EngineRefusedError as exc:
@@ -277,17 +288,32 @@ class PlayerService:
         except EngineUnavailableError as exc:
             self._fail(session, "engine_unavailable", str(exc))
             return
+        if session.state == "stopped":
+            # The reaper (or shutdown) tore the session down while the engine was
+            # answering — a teardown that already ran would never reap what we are
+            # about to create, so hand the engine handle back and spawn nothing.
+            await self._stop_engine_session(session.content_id, engine_session)
+            return
+        session.engine_session = engine_session
         session.dir.mkdir(parents=True, exist_ok=True)
-        argv = self.ffmpeg_argv(session.engine_session.playback_url, session.dir)
+        argv = self.ffmpeg_argv(engine_session.playback_url, session.dir)
+        process: Optional[asyncio.subprocess.Process] = None
         try:
-            session.process = await asyncio.create_subprocess_exec(
+            process = await asyncio.create_subprocess_exec(
                 *argv, stdin=asyncio.subprocess.DEVNULL, stdout=asyncio.subprocess.DEVNULL,
                 stderr=asyncio.subprocess.PIPE, start_new_session=True, preexec_fn=_set_pdeathsig,
             )
         except OSError as exc:
             self._fail(session, "ffmpeg_failed", f"could not start ffmpeg: {exc}")
+        if session.state == "stopped":  # torn down during the spawn itself
+            if process is not None:
+                await self._terminate(process, immediate=True)
+            shutil.rmtree(session.dir, ignore_errors=True)
             return
-        (session.dir / "ffmpeg.pid").write_text(str(session.process.pid))
+        if process is None:
+            return
+        session.process = process
+        (session.dir / "ffmpeg.pid").write_text(str(process.pid))
         session.reader = asyncio.create_task(self._read_stderr(session), name=f"ffmpeg-stderr-{session.id[:8]}")
 
     def _engine_call(self, call: Callable[[EngineClient], T]) -> T:
@@ -379,26 +405,38 @@ class PlayerService:
         if idle or no_viewers or errored:
             await self._teardown(session)
 
+    async def _terminate(self, proc: asyncio.subprocess.Process, *, immediate: bool) -> None:
+        """Kill one ffmpeg process group and reap it: SIGTERM then SIGKILL after
+        5 s, or SIGKILL straight away on shutdown."""
+        if proc.returncode is not None:
+            return
+        try:
+            pgid = os.getpgid(proc.pid)
+        except ProcessLookupError:
+            pgid = None
+        with contextlib.suppress(ProcessLookupError):
+            if pgid is not None:
+                os.killpg(pgid, signal.SIGKILL if immediate else signal.SIGTERM)
+        if not immediate:
+            try:
+                await asyncio.wait_for(proc.wait(), timeout=5.0)
+            except asyncio.TimeoutError:
+                with contextlib.suppress(ProcessLookupError):
+                    if pgid is not None:
+                        os.killpg(pgid, signal.SIGKILL)
+        with contextlib.suppress(Exception):
+            await asyncio.wait_for(proc.wait(), timeout=2.0)
+
+    async def _stop_engine_session(self, content_id: str, engine_session: EngineSession) -> None:
+        try:
+            await run_in_threadpool(self._engine_call, lambda engine: engine.stop(engine_session))
+        except Exception as exc:  # noqa: BLE001 - a dead engine must not block cleanup
+            logger.warning("Engine stop for %s failed: %s", content_id, exc)
+
     async def _teardown(self, session: PlayerSession, immediate: bool = False) -> None:
         session.state = "stopped"
-        proc = session.process
-        if proc is not None and proc.returncode is None:
-            try:
-                pgid = os.getpgid(proc.pid)
-            except ProcessLookupError:
-                pgid = None
-            with contextlib.suppress(ProcessLookupError):
-                if pgid is not None:
-                    os.killpg(pgid, signal.SIGKILL if immediate else signal.SIGTERM)
-            if not immediate:
-                try:
-                    await asyncio.wait_for(proc.wait(), timeout=5.0)
-                except asyncio.TimeoutError:
-                    with contextlib.suppress(ProcessLookupError):
-                        if pgid is not None:
-                            os.killpg(pgid, signal.SIGKILL)
-            with contextlib.suppress(Exception):
-                await asyncio.wait_for(proc.wait(), timeout=2.0)
+        if session.process is not None:
+            await self._terminate(session.process, immediate=immediate)
         if session.reader is not None:
             session.reader.cancel()
             # gather() absorbs the reader's own CancelledError but still lets a
@@ -406,11 +444,7 @@ class PlayerService:
             # end up awaiting a loop task that quietly kept running.
             await asyncio.gather(session.reader, return_exceptions=True)
         if session.engine_session is not None:
-            engine_session = session.engine_session
-            try:
-                await run_in_threadpool(self._engine_call, lambda engine: engine.stop(engine_session))
-            except Exception as exc:  # noqa: BLE001 - a dead engine must not block cleanup
-                logger.warning("Engine stop for %s failed: %s", session.content_id, exc)
+            await self._stop_engine_session(session.content_id, session.engine_session)
         try:
             shutil.rmtree(session.dir, ignore_errors=True)
         except Exception:  # noqa: BLE001 - never let cleanup stop the loop

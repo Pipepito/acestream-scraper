@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import os
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -318,5 +319,100 @@ def test_teardown_does_not_swallow_its_own_cancellation(make_service):
         teardown.cancel()
         with pytest.raises(asyncio.CancelledError):
             await teardown
+
+    asyncio.run(run())
+
+
+_STREAM_OK = {
+    "response": {
+        "playback_url": "http://engine:6878/content/x/1",
+        "stat_url": "http://engine:6878/ace/stat/x/s",
+        "command_url": "http://engine:6878/ace/cmd/x/s",
+        "is_live": 1,
+    },
+    "error": None,
+}
+_STAT_OK = {"response": {"status": "dl", "peers": 3, "speed_down": 500, "speed_up": 10}, "error": None}
+
+
+def test_launch_abandons_a_session_reaped_while_the_engine_answers(make_service):
+    """The reaper can stop a session while _launch is still waiting on the
+    engine (up to ~20 s). Resuming must not spawn an ffmpeg and a directory
+    that nothing tracks, and must hand the engine handle back."""
+    gate = threading.Event()
+    stops: list[str] = []
+
+    def handler(request):
+        path = request.url.path
+        if path == "/ace/getstream":
+            gate.wait(10)
+            return httpx.Response(200, json=_STREAM_OK)
+        if "/ace/cmd/" in path:
+            stops.append(str(request.url))
+            return httpx.Response(200, text="ok")
+        return httpx.Response(200, json=_STAT_OK)
+
+    svc = make_service(handler=handler)
+
+    async def run():
+        session = None
+        try:
+            opening = asyncio.create_task(svc.open_session(IH))
+            assert await _wait(lambda: bool(svc.sessions))
+            session = next(iter(svc.sessions.values()))
+            svc._clock["now"] += 21  # idle rule: the reaper takes it away mid-launch
+            await svc.tick()
+            assert session.state == "stopped" and svc.get(session.id) is None
+            gate.set()
+            assert await opening is session
+            assert session.process is None, "no ffmpeg may be spawned for a stopped session"
+            assert not session.dir.exists(), "no directory may be left behind"
+            assert stops, "the engine handle the abandoned launch opened must be released"
+            assert svc.sessions == {}
+        finally:
+            gate.set()
+            # Only reached when the abort is missing: reap the leak by hand so the
+            # assertion is what fails, instead of the loop hanging on its reader.
+            if session is not None and session.process is not None:
+                session.process.kill()
+                await session.process.wait()
+            await svc.stop()
+
+    asyncio.run(run())
+
+
+def test_reopening_after_an_error_retries_instead_of_replaying_the_failure(make_service):
+    """The UI's Retry button re-posts the same content_id. Within the 60 s
+    error window that must start a new attempt, not hand back the cached
+    failure with no engine call at all."""
+    attempts = {"n": 0}
+
+    def handler(request):
+        path = request.url.path
+        if path == "/ace/getstream":
+            attempts["n"] += 1
+            if attempts["n"] == 1:
+                return httpx.Response(200, json={"response": None, "error": "activate premium"})
+            return httpx.Response(200, json=_STREAM_OK)
+        if "/ace/stat/" in path:
+            return httpx.Response(200, json=_STAT_OK)
+        return httpx.Response(200, text="ok")
+
+    svc = make_service(handler=handler)
+
+    async def run():
+        await svc.start()
+        try:
+            failed = await svc.open_session(IH)
+            assert failed.state == "error" and failed.error == "engine_refused"
+
+            retried = await svc.open_session(IH)
+            assert retried is not failed
+            assert attempts["n"] == 2, "the retry must reach the engine again"
+            assert retried.state == "starting" and retried.viewers == 1
+            assert svc.get(failed.id) is None and failed.state == "stopped"
+            assert await _wait(lambda: svc.hls_ready(retried))
+        finally:
+            await svc.stop()
 
     asyncio.run(run())

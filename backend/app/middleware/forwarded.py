@@ -68,10 +68,21 @@ def parse_trusted(spec: str) -> TrustedPeers:
 
 
 def _header(scope, name: bytes) -> Optional[str]:
-    for key, value in scope.get("headers", ()):
-        if key.lower() == name:
-            return value.decode("latin-1")
-    return None
+    """Return every occurrence of ``name`` joined with ", " (RFC 9110 5.3).
+
+    Reading only the first occurrence would be exploitable: a proxy that
+    appends its own ``X-Forwarded-For`` line instead of extending the
+    client's leaves the client's forged line first, and the right-most
+    untrusted hop would then be picked from the forged value alone.
+    """
+    values = [
+        value.decode("latin-1")
+        for key, value in scope.get("headers", ())
+        if key.lower() == name
+    ]
+    if not values:
+        return None
+    return ", ".join(values)
 
 
 def _set_header(scope, name: bytes, value: str) -> None:

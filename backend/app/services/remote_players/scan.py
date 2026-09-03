@@ -85,8 +85,31 @@ def default_scan_cidr(client_ip: Optional[str]) -> Optional[str]:
     return str(ipaddress.ip_network(f"{address}/24", strict=False))
 
 
+def _time_left(deadline: Optional[float]) -> Optional[float]:
+    """Seconds of budget left, or None when the call has no budget."""
+    return None if deadline is None else deadline - time.monotonic()
+
+
 def _out_of_time(deadline: Optional[float]) -> bool:
-    return deadline is not None and time.monotonic() >= deadline
+    left = _time_left(deadline)
+    return left is not None and left <= 0
+
+
+def _capped_timeout(deadline: Optional[float]) -> dict:
+    """httpx kwargs that stop one request from outliving the budget: a probe
+    started just under the deadline must not keep running for another 2 s."""
+    left = _time_left(deadline)
+    if left is None:
+        return {}
+    # Floored at zero: the budget can lapse between the caller's check and this
+    # line, and httpx rejects a negative timeout with a ValueError that would
+    # escape the httpx.HTTPError handlers below.
+    left = max(0.0, left)
+    return {
+        "timeout": httpx.Timeout(
+            min(_PROBE_TIMEOUT.read, left), connect=min(_PROBE_TIMEOUT.connect, left)
+        )
+    }
 
 
 async def _tcp_open(host: str, port: int, timeout: float) -> bool:
@@ -108,7 +131,7 @@ def classify(host: str, port: int, client: httpx.Client, deadline: Optional[floa
         return ScanHit(host=host, port=port, kind="unknown", hint=OUT_OF_TIME_HINT)
     base = f"http://{host}:{port}"
     try:
-        response = client.get(f"{base}/requests/status.json")
+        response = client.get(f"{base}/requests/status.json", **_capped_timeout(deadline))
         looks_like_vlc_auth = (
             response.status_code in (401, 403)
             and "kodi" not in response.headers.get("WWW-Authenticate", "").lower()
@@ -127,7 +150,9 @@ def classify(host: str, port: int, client: httpx.Client, deadline: Optional[floa
         return ScanHit(host=host, port=port, kind="unknown", hint=OUT_OF_TIME_HINT)
     try:
         response = client.post(
-            f"{base}/jsonrpc", json={"jsonrpc": "2.0", "id": 1, "method": "JSONRPC.Ping"}
+            f"{base}/jsonrpc",
+            json={"jsonrpc": "2.0", "id": 1, "method": "JSONRPC.Ping"},
+            **_capped_timeout(deadline),
         )
         if response.status_code == 401 or (response.status_code == 200 and '"pong"' in response.text):
             return ScanHit(
@@ -163,10 +188,15 @@ async def scan_network(
         # coroutine runs its first step in the same loop iteration, so a check
         # ahead of the semaphore is always made while the budget is still whole.
         async with semaphore:
-            if _out_of_time(deadline):
+            left = deadline - time.monotonic()
+            if left <= 0:
                 return None
             outcome.scanned += 1
-            return (host, port) if await _tcp_open(host, port, timeout) else None
+            # The connect waits no longer than the budget either. A batch that
+            # fits under `concurrency` clears the check above together, so
+            # without this cap every one of those connects could still run the
+            # full `timeout` past the deadline.
+            return (host, port) if await _tcp_open(host, port, min(timeout, left)) else None
 
     results = await asyncio.gather(*(check(h, p) for h in hosts for p in ports))
     open_ports = [r for r in results if r]

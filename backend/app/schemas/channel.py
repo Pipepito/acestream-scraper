@@ -2,7 +2,9 @@
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.services.stream_ranking import sort_streams_curated
 
 
 
@@ -107,6 +109,11 @@ class TVChannelResponse(TVChannelBase):
     acestream_channels: List[AcestreamChannelResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("acestream_channels", mode="after")
+    @classmethod
+    def _curated_order(cls, value: List[AcestreamChannelResponse]) -> List[AcestreamChannelResponse]:
+        return sort_streams_curated(value)
 
 
 class ChannelStatusCheck(BaseModel):

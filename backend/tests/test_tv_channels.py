@@ -894,3 +894,25 @@ class TestAssignAcestreamsToTVChannel:
             repo.assign_acestreams_to_tv_channel([taken.id], other.id)
 
         assert taken.id in str(excinfo.value)
+
+
+def test_acestream_channels_returned_in_curated_order(client, db_session):
+    """Best stream first (online, then logo/tvg metadata), regardless of insertion order."""
+    from app.models.models import AcestreamChannel, TVChannel
+
+    tv = TVChannel(name="Order Test")
+    db_session.add(tv)
+    db_session.flush()
+    offline_with_logo = AcestreamChannel(id="f" * 40, name="offline", logo="l", is_online=False, tv_channel_id=tv.id)
+    online_plain = AcestreamChannel(id="e" * 40, name="online", is_online=True, tv_channel_id=tv.id)
+    online_rich = AcestreamChannel(id="d" * 40, name="rich", is_online=True, logo="l", tvg_id="x", tv_channel_id=tv.id)
+    db_session.add_all([offline_with_logo, online_plain, online_rich])
+    db_session.commit()
+
+    expected = ["d" * 40, "e" * 40, "f" * 40]
+    detail = client.get(f"/api/v1/tv-channels/{tv.id}").json()
+    assert [s["id"] for s in detail["acestream_channels"]] == expected
+    listing = client.get("/api/v1/tv-channels/?search=Order").json()["items"][0]
+    assert [s["id"] for s in listing["acestream_channels"]] == expected
+    acestreams = client.get(f"/api/v1/tv-channels/{tv.id}/acestreams").json()
+    assert [s["id"] for s in acestreams] == expected

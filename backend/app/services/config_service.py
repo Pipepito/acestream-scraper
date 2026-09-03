@@ -50,6 +50,34 @@ class ConfigService:
             "Acestream Engine URL"
         )
 
+    @staticmethod
+    def normalize_public_base_url(value: str) -> str:
+        """Accept http(s)://host[:port] only; strip a trailing slash; '' clears."""
+        from urllib.parse import urlsplit
+
+        candidate = (value or "").strip()
+        if not candidate:
+            return ""
+        parts = urlsplit(candidate)
+        if parts.scheme not in ("http", "https") or not parts.hostname:
+            raise HTTPException(status_code=422, detail="public_base_url must be http(s)://host[:port]")
+        if parts.path not in ("", "/") or parts.query or parts.fragment or parts.username or parts.password:
+            raise HTTPException(status_code=422, detail="public_base_url must not contain a path, query, fragment or credentials")
+        return f"{parts.scheme}://{parts.netloc}"
+
+    def get_public_base_url(self) -> str:
+        """Get the externally reachable origin advertised to tuners and players"""
+        return self.settings_repo.get_setting(SettingsRepository.PUBLIC_BASE_URL) or ""
+
+    def set_public_base_url(self, value: str) -> bool:
+        """Set (or, with an empty value, clear) the externally reachable origin"""
+        normalized = self.normalize_public_base_url(value)
+        return self.settings_repo.set_setting(
+            SettingsRepository.PUBLIC_BASE_URL,
+            normalized,
+            "Externally reachable origin for tuners and players",
+        )
+
     def get_rescrape_interval(self) -> int:
         """Get the interval between automatic rescrapes in hours"""
         interval_str = self.settings_repo.get_setting(SettingsRepository.RESCRAPE_INTERVAL)

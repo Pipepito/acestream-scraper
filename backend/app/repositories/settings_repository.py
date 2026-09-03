@@ -17,6 +17,7 @@ class SettingsRepository:
     ADDPID = 'addpid'
     EPG_REFRESH_INTERVAL = 'epg_refresh_interval'
     ACESTREAM_CHECK_TIMEOUT = 'acestream_check_timeout'
+    PUBLIC_BASE_URL = 'public_base_url'
 
     # Constants for default values
     DEFAULT_BASE_URL = 'acestream://'
@@ -27,6 +28,12 @@ class SettingsRepository:
     DEFAULT_ADDPID = 'false'
     DEFAULT_EPG_REFRESH_INTERVAL = '6'
     DEFAULT_ACESTREAM_CHECK_TIMEOUT = '10'
+
+    @property
+    def DEFAULT_PUBLIC_BASE_URL(self) -> str:  # noqa: N802 - matches the DEFAULT_<KEY> lookup convention
+        # Read at call time (not import time) so tests and runtime env changes apply.
+        from app.config.settings import get_settings
+        return get_settings().PUBLIC_BASE_URL or ''
 
     def __init__(self, db: Session):
         self.db = db
@@ -95,7 +102,8 @@ class SettingsRepository:
             self.RESCRAPE_INTERVAL: (self.DEFAULT_RESCRAPE_INTERVAL, "Hours between automatic rescrapes"),
             self.ADDPID: (self.DEFAULT_ADDPID, "Add PID to Acestream links"),
             self.EPG_REFRESH_INTERVAL: (self.DEFAULT_EPG_REFRESH_INTERVAL, "Hours between EPG refreshes"),
-            self.ACESTREAM_CHECK_TIMEOUT: (self.DEFAULT_ACESTREAM_CHECK_TIMEOUT, "Seconds before an engine status check times out")
+            self.ACESTREAM_CHECK_TIMEOUT: (self.DEFAULT_ACESTREAM_CHECK_TIMEOUT, "Seconds before an engine status check times out"),
+            self.PUBLIC_BASE_URL: (self.DEFAULT_PUBLIC_BASE_URL, "Externally reachable origin for tuners and players"),
         }
 
         success = True

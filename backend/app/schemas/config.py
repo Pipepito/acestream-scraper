@@ -36,6 +36,11 @@ class AppIdUpdate(BaseModel):
     value: str = Field(..., description="Whether to add appid to Acestream links")
 
 
+class PublicBaseUrlUpdate(BaseModel):
+    """Schema for updating the externally reachable origin (spec 4.3)."""
+    value: str = Field("", description="http(s)://host[:port]; empty clears the override")
+
+
 class DashboardConfigUpdate(BaseModel):
     """Schema for dashboard config updates"""
     retention_days: Optional[int] = None

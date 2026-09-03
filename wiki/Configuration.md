@@ -67,6 +67,21 @@ Acestream Scraper is configured from the web interface (**Settings** and **Scrap
 | `SUPERVISED_RESTART_DELAY_SECONDS` | Delay before restarting a crashed engine/Acexy process | `5` | Supervision applies to in-container AceStream and Acexy |
 | `SUPERVISED_FAST_EXIT_LIMIT` | Consecutive fast exits before giving up | `3` | With `SUPERVISED_FAST_EXIT_WINDOW` (default `10`s); a crash loop fails the container |
 
+### Media Integrations
+
+External players and media servers (VLC, Kodi, Jellyfin, Plex) fetch streams over the network, so the app has to know which origin to advertise and which peers to trust:
+
+| Variable | Description | Default | Notes |
+|----------|-------------|---------|-------|
+| `PUBLIC_BASE_URL` | Origin (`http://host:port`) that Jellyfin/Plex/VLC use to reach this server | *(empty)* | Empty derives it from each request. The same value is editable at runtime as the `public_base_url` setting, which wins over the variable |
+| `FORWARDED_ALLOW_IPS` | Peers whose `X-Forwarded-*` headers the app trusts | `127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16` | Comma-separated addresses/CIDRs, or `*` to trust every peer. uvicorn's own handling is disabled (`--no-proxy-headers`) — the app does it |
+| `TUNER_ALLOWED_NETWORKS` | Networks allowed to use the token-free `/tuner/*` routes | `127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10` | `*` disables the check. Media servers cannot send an `API_TOKEN`, so these routes are gated by address instead |
+| `PLAYER_HLS_DIR` | Where the web player writes HLS segments | `/tmp/acestream-player` | `/dev/shm/acestream-player` with a larger `shm_size` keeps them in RAM |
+| `PLAYER_MAX_SESSIONS` | Maximum channels the web player prepares at once | `3` | Each session costs one engine stream and one ffmpeg process |
+| `PLAYER_START_TIMEOUT_SECONDS` | Seconds a web-player session may stay in "starting" before it is reported as stalled | `45` | Raise it on slow links where streams take longer to buffer |
+| `FFMPEG_BINARY_PATH` | ffmpeg used by the web player | *(empty)* | Empty falls back to `ffmpeg` on `PATH`; images that bundle ffmpeg set it to `/opt/ffmpeg/bin/ffmpeg` |
+| `MEDIA_SERVER_MIN_REFRESH_MINUTES` | Minimum minutes between automatic Jellyfin/Plex guide refreshes | `30` | `0` disables the debounce |
+
 ### Acestream Configuration
 
 | Variable | Description | Default | Notes |
@@ -251,8 +266,9 @@ Either way, add your ZeroNet sources in the Scraper page with the **ZeroNet** UR
 The application includes proper headers handling for running behind a reverse proxy:
 
 - Automatic handling of SSL/TLS termination
-- Correct handling of X-Forwarded-Proto and X-Forwarded-Host headers
+- Correct handling of X-Forwarded-Proto, X-Forwarded-Host and X-Forwarded-For headers, honoured only when the proxy's own address is listed in `FORWARDED_ALLOW_IPS` (default: loopback and private ranges)
 - Works with nginx, Apache, Traefik or other reverse proxies
+- Set `PUBLIC_BASE_URL` when the proxy rewrites `Host` or serves the app under a sub-path, so playlist and tuner links stay reachable
 
 ### Nginx Example
 

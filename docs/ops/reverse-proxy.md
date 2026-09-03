@@ -45,8 +45,22 @@ Proxying notes that apply to all three configs:
 
 - **No websockets.** The app is plain request/response HTTP; no `Upgrade`
   header handling is needed.
-- **Standard forwarded headers** (`Host`, `X-Forwarded-For`,
-  `X-Forwarded-Proto`) are enough.
+- **Forwarded headers are trusted by address.** The app reads
+  `X-Forwarded-Proto`, `X-Forwarded-Host` and `X-Forwarded-For` itself, but
+  only when the connecting peer (the proxy) is inside `FORWARDED_ALLOW_IPS`
+  — by default loopback and the private ranges
+  (`127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16`). Because the app owns
+  that trust, uvicorn's own handling stays off: keep `--no-proxy-headers` and
+  `--timeout-graceful-shutdown 3` in any compose `command:` override, which is
+  what `entrypoint.sh` passes by default.
+- **Set `PUBLIC_BASE_URL`** when the proxy rewrites `Host` or mounts the app
+  under a sub-path. Without it the app derives its public origin per request,
+  and links handed to players and media servers point at the wrong name.
+- **Keep `/tuner/*` out of proxy basic auth.** Media servers cannot send
+  credentials or an `API_TOKEN` on those routes; they are gated by
+  `TUNER_ALLOWED_NETWORKS` instead, so an auth challenge in front of them
+  breaks discovery and playback. The examples below authenticate everything,
+  so carve `/tuner/` out of them once a media server needs it.
 - **Enable gzip at the proxy.** The app does not compress responses, and
   M3U (`text/plain`) and XMLTV EPG (`application/xml`) payloads compress
   very well.
@@ -176,6 +190,11 @@ different addresses are in play:
    `https://scraper.example.com/playlist.m3u`.
 2. **Stream URLs inside the playlist** — these point wherever `base_url`
    says, and the player connects to them directly.
+
+`base_url` is not `PUBLIC_BASE_URL`: `base_url` is the stream address
+embedded in every playlist entry, while `PUBLIC_BASE_URL` is this app's own
+origin — the one used for the playlist and tuner links handed to players and
+media servers.
 
 Set `base_url` to an engine/Acexy address that is reachable *from the
 player's network position*:

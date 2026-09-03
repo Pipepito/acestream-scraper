@@ -1912,6 +1912,52 @@
         "title": "MessageResponse",
         "type": "object"
       },
+      "PublicBaseUrlUpdate": {
+        "description": "Schema for updating the externally reachable origin (spec 4.3).",
+        "properties": {
+          "value": {
+            "default": "",
+            "description": "http(s)://host[:port]; empty clears the override",
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "title": "PublicBaseUrlUpdate",
+        "type": "object"
+      },
+      "PublicUrlResponse": {
+        "description": "The origin external clients must use to reach this server (spec 4.3).",
+        "properties": {
+          "source": {
+            "enum": [
+              "setting",
+              "forwarded",
+              "request"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "url": {
+            "description": "scheme://host[:port], no trailing slash",
+            "title": "Url",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "localhost | docker-internal | unset | proxied",
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "url",
+          "source"
+        ],
+        "title": "PublicUrlResponse",
+        "type": "object"
+      },
       "RescrapeIntervalUpdate": {
         "description": "Schema for updating the rescrape interval",
         "properties": {
@@ -6272,6 +6318,70 @@
         ]
       }
     },
+    "/api/v1/config/public_base_url": {
+      "get": {
+        "description": "Externally reachable origin used for tuner, player and copy links.",
+        "operationId": "get_public_base_url_api_v1_config_public_base_url_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Public Base Url",
+        "tags": [
+          "config",
+          "config"
+        ]
+      },
+      "put": {
+        "description": "Update the externally reachable origin (empty value clears the override).",
+        "operationId": "update_public_base_url_api_v1_config_public_base_url_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicBaseUrlUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigUpdateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Public Base Url",
+        "tags": [
+          "config",
+          "config"
+        ]
+      }
+    },
     "/api/v1/config/rescrape_interval": {
       "get": {
         "description": "Get the interval between automatic rescrapes in hours.",
@@ -8670,6 +8780,29 @@
         ]
       }
     },
+    "/api/v1/system/public-url": {
+      "get": {
+        "description": "Sync on purpose: it reads the settings table.",
+        "operationId": "get_public_url_api_v1_system_public_url_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicUrlResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Origin external clients must use",
+        "tags": [
+          "system",
+          "system"
+        ]
+      }
+    },
     "/api/v1/system/services": {
       "get": {
         "description": "Sync endpoint on purpose: the probes block for up to a couple of seconds each.",
@@ -10030,6 +10163,50 @@
           }
         },
         "summary": "Public M3U Playlist"
+      }
+    },
+    "/tuner/stream/{content_id}.ts": {
+      "get": {
+        "description": "Relays the engine's MPEG-TS bytes. Unknown query params (transcode,\nduration) are ignored. HEAD answers headers only and never starts a\nsession.",
+        "operationId": "tuner_stream_tuner_stream__content_id__ts_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "content_id",
+            "required": true,
+            "schema": {
+              "title": "Content Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "video/mp2t": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "MPEG-TS relay of one channel",
+        "tags": [
+          "hdhomerun"
+        ]
       }
     }
   }

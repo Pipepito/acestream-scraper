@@ -331,6 +331,18 @@ export interface paths {
      */
     put: operations["update_epg_refresh_interval_api_v1_config_epg_refresh_interval_put"];
   };
+  "/api/v1/config/public_base_url": {
+    /**
+     * Get Public Base Url
+     * @description Externally reachable origin used for tuner, player and copy links.
+     */
+    get: operations["get_public_base_url_api_v1_config_public_base_url_get"];
+    /**
+     * Update Public Base Url
+     * @description Update the externally reachable origin (empty value clears the override).
+     */
+    put: operations["update_public_base_url_api_v1_config_public_base_url_put"];
+  };
   "/api/v1/config/rescrape_interval": {
     /**
      * Get Rescrape Interval
@@ -662,6 +674,13 @@ export interface paths {
     /** Get Active Streams */
     get: operations["get_active_streams_api_v1_streams_active_get"];
   };
+  "/api/v1/system/public-url": {
+    /**
+     * Origin external clients must use
+     * @description Sync on purpose: it reads the settings table.
+     */
+    get: operations["get_public_url_api_v1_system_public_url_get"];
+  };
   "/api/v1/system/services": {
     /**
      * Status of the sidecar services
@@ -843,6 +862,15 @@ export interface paths {
      * @description Public route for M3U playlist (no /api prefix)
      */
     get: operations["public_m3u_playlist_playlists_m3u_get"];
+  };
+  "/tuner/stream/{content_id}.ts": {
+    /**
+     * MPEG-TS relay of one channel
+     * @description Relays the engine's MPEG-TS bytes. Unknown query params (transcode,
+     * duration) are ignored. HEAD answers headers only and never starts a
+     * session.
+     */
+    get: operations["tuner_stream_tuner_stream__content_id__ts_get"];
   };
 }
 
@@ -1626,6 +1654,39 @@ export interface components {
     MessageResponse: {
       /** Message */
       message: string;
+    };
+    /**
+     * PublicBaseUrlUpdate
+     * @description Schema for updating the externally reachable origin (spec 4.3).
+     */
+    PublicBaseUrlUpdate: {
+      /**
+       * Value
+       * @description http(s)://host[:port]; empty clears the override
+       * @default
+       */
+      value?: string;
+    };
+    /**
+     * PublicUrlResponse
+     * @description The origin external clients must use to reach this server (spec 4.3).
+     */
+    PublicUrlResponse: {
+      /**
+       * Source
+       * @enum {string}
+       */
+      source: "setting" | "forwarded" | "request";
+      /**
+       * Url
+       * @description scheme://host[:port], no trailing slash
+       */
+      url: string;
+      /**
+       * Warnings
+       * @description localhost | docker-internal | unset | proxied
+       */
+      warnings?: string[];
     };
     /**
      * RescrapeIntervalUpdate
@@ -3546,6 +3607,45 @@ export interface operations {
     };
   };
   /**
+   * Get Public Base Url
+   * @description Externally reachable origin used for tuner, player and copy links.
+   */
+  get_public_base_url_api_v1_config_public_base_url_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["SettingResponse"];
+        };
+      };
+    };
+  };
+  /**
+   * Update Public Base Url
+   * @description Update the externally reachable origin (empty value clears the override).
+   */
+  update_public_base_url_api_v1_config_public_base_url_put: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PublicBaseUrlUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ConfigUpdateResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
    * Get Rescrape Interval
    * @description Get the interval between automatic rescrapes in hours.
    */
@@ -4681,6 +4781,20 @@ export interface operations {
     };
   };
   /**
+   * Origin external clients must use
+   * @description Sync on purpose: it reads the settings table.
+   */
+  get_public_url_api_v1_system_public_url_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PublicUrlResponse"];
+        };
+      };
+    };
+  };
+  /**
    * Status of the sidecar services
    * @description Sync endpoint on purpose: the probes block for up to a couple of seconds each.
    */
@@ -5332,6 +5446,33 @@ export interface operations {
       200: {
         content: {
           "text/plain": string;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * MPEG-TS relay of one channel
+   * @description Relays the engine's MPEG-TS bytes. Unknown query params (transcode,
+   * duration) are ignored. HEAD answers headers only and never starts a
+   * session.
+   */
+  tuner_stream_tuner_stream__content_id__ts_get: {
+    parameters: {
+      path: {
+        content_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "video/mp2t": string;
         };
       };
       /** @description Validation Error */

@@ -36,10 +36,10 @@ Docker Compose provides the easiest way to get started with Acestream Scraper.
          - FLASK_PORT=8000
          - ZERONET_URL=http://host.docker.internal:43110
        ports:
-         - "8000:8000"      # Web app (FastAPI/uvicorn; port set by FLASK_PORT)
-         - "8080:8080"      # Acexy proxy
-         - "8621:8621"      # Acestream P2P port
-         - "8621:8621/udp"  # Acestream P2P port (UDP)
+         - "0.0.0.0:8000:8000"  # Web app (FastAPI/uvicorn; port set by FLASK_PORT)
+         - "8080:8080"          # Acexy proxy
+         - "8621:8621"          # Acestream P2P port
+         - "8621:8621/udp"      # Acestream P2P port (UDP)
        volumes:
          - ./config:/app/config
        extra_hosts:
@@ -70,7 +70,7 @@ If you prefer using Docker without Docker Compose, follow these steps:
 ```bash
 docker pull pipepito/acestream-scraper:latest
 docker run -d \
-  -p 8000:8000 \
+  -p 0.0.0.0:8000:8000 \
   -v "${PWD}/config:/app/config" \
   --name acestream-scraper \
   pipepito/acestream-scraper:latest
@@ -82,7 +82,7 @@ docker run -d \
 
 ```bash
 docker run -d \
-  -p 8000:8000 \
+  -p 0.0.0.0:8000:8000 \
   -p 8080:8080 \
   -e ENABLE_ACEXY=true \
   -e ENABLE_ACESTREAM_ENGINE=true \
@@ -95,7 +95,7 @@ docker run -d \
 
 ```bash
 docker run -d \
-  -p 8000:8000 \
+  -p 0.0.0.0:8000:8000 \
   -p 8080:8080 \
   -e ENABLE_ACEXY=true \
   -e ENABLE_ACESTREAM_ENGINE=false \
@@ -112,7 +112,7 @@ Enables scraping of `ipfs://` / `ipns://` sources through the bundled Kubo node 
 
 ```bash
 docker run -d \
-  -p 8000:8000 \
+  -p 0.0.0.0:8000:8000 \
   -p 4001:4001 \
   -p 4001:4001/udp \
   -e ENABLE_IPFS=true \
@@ -128,7 +128,7 @@ The amd64 images ship a ZeroNet node that only starts when `ENABLE_ZERONET=true`
 
 ```bash
 docker run -d \
-  -p 8000:8000 \
+  -p 0.0.0.0:8000:8000 \
   -p 43110:43110 \
   -p 26552:26552 \
   -e ENABLE_ZERONET=true \
@@ -146,7 +146,7 @@ On ARM images (which ship without the bundled node), or whenever you prefer it, 
 
 ```bash
 docker run -d \
-  -p 8000:8000 \
+  -p 0.0.0.0:8000:8000 \
   -e ZERONET_URL=http://host.docker.internal:43110 \
   --add-host host.docker.internal:host-gateway \
   -v "${PWD}/config:/app/config" \

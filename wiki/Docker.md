@@ -27,7 +27,7 @@ Docker is a platform that uses containerization technology to package applicatio
 - Manages individual containers
 - Best for simple deployments
 - Uses CLI commands to configure containers
-- Example: `docker run -p 8000:8000 pipepito/acestream-scraper:latest`
+- Example: `docker run -p 0.0.0.0:8000:8000 pipepito/acestream-scraper:latest`
 
 ### Docker Compose
 - Manages multi-container applications
@@ -93,7 +93,7 @@ docker pull pipepito/acestream-scraper:latest
 
 ### Run the Container
 ```bash
-docker run -d -p 8000:8000 --name acestream-scraper pipepito/acestream-scraper:latest
+docker run -d -p 0.0.0.0:8000:8000 --name acestream-scraper pipepito/acestream-scraper:latest
 ```
 
 `latest` is the full `scraper-acestream-acexy` image. If you want to pin behavior explicitly, pull one of the flavor tags instead.
@@ -122,7 +122,7 @@ docker run -d \
   --device /dev/net/tun:/dev/net/tun \
   -e ENABLE_WARP=true \
   -e WARP_ENABLE_NAT=true \
-  -p 8000:8000 \
+  -p 0.0.0.0:8000:8000 \
   --name acestream-scraper \
   pipepito/acestream-scraper:latest
 ```
@@ -134,7 +134,7 @@ The engine is installed in `latest`, `scraper-acestream`, and `scraper-acestream
 ```bash
 docker run -d \
   -e ENABLE_ACESTREAM_ENGINE=true \
-  -p 8000:8000 \
+  -p 0.0.0.0:8000:8000 \
   -p 6878:6878 \
   -p 8621:8621 \
   -p 8621:8621/udp \
@@ -167,7 +167,7 @@ ZeroNet is installed in every amd64 flavor but only starts when `ENABLE_ZERONET=
 ```bash
 docker run -d \
   -e ENABLE_ZERONET=true \
-  -p 8000:8000 \
+  -p 0.0.0.0:8000:8000 \
   -p 43110:43110 \
   -p 26552:26552 \
   -v "${PWD}/config:/app/config" \
@@ -189,7 +189,7 @@ Kubo is installed in every flavor but only starts when `ENABLE_IPFS=true`:
 ```bash
 docker run -d \
   -e ENABLE_IPFS=true \
-  -p 8000:8000 \
+  -p 0.0.0.0:8000:8000 \
   -p 4001:4001 \
   -p 4001:4001/udp \
   -p 8081:8081 \
@@ -273,7 +273,7 @@ These volumes should be mounted to local directories (or named volumes) to ensur
 
 Example:
 ```bash
-docker run -d -p 8000:8000 -v "${PWD}/config:/app/config" pipepito/acestream-scraper:latest
+docker run -d -p 0.0.0.0:8000:8000 -v "${PWD}/config:/app/config" pipepito/acestream-scraper:latest
 ```
 
 This mounts your local `./config` directory to the container's `/app/config` directory.

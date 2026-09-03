@@ -175,7 +175,7 @@ cache and the engine identity survive container replacement:
 
 ```bash
 docker run -d --name acestream-scraper \
-  -p 8000:8000 -p 6878:6878 -p 8621:8621 -p 8621:8621/udp \
+  -p 0.0.0.0:8000:8000 -p 6878:6878 -p 8621:8621 -p 8621:8621/udp \
   -e ENABLE_ACESTREAM_ENGINE=true \
   -v "$PWD/config:/app/config" \
   -v acestream-state:/var/lib/acestream \
@@ -190,7 +190,7 @@ services:
   app:
     image: pipepito/acestream-scraper:latest
     ports:
-      - "8000:8000"
+      - "0.0.0.0:8000:8000"
       - "6878:6878"
       - "8621:8621"
       - "8621:8621/udp"
@@ -291,7 +291,7 @@ archives are in git) plus the backend virtualenv.
 2. Manual probe with a published image:
 
    ```bash
-   docker run -d --name ace-test -p 8000:8000 -e ENABLE_ACESTREAM_ENGINE=true \
+   docker run -d --name ace-test -p 0.0.0.0:8000:8000 -e ENABLE_ACESTREAM_ENGINE=true \
      -v acestream-state:/var/lib/acestream pipepito/acestream-scraper:scraper-acestream
    docker logs -f ace-test            # Ctrl-C once the engine has bound :6878 (a few seconds)
    docker exec ace-test uname -m      # aarch64
@@ -311,7 +311,7 @@ archives are in git) plus the backend virtualenv.
 Experimental. Same steps, but pull or build for `linux/arm/v7` explicitly:
 
 ```bash
-docker run -d --name ace-test --platform linux/arm/v7 -p 8000:8000 \
+docker run -d --name ace-test --platform linux/arm/v7 -p 0.0.0.0:8000:8000 \
   -e ENABLE_ACESTREAM_ENGINE=true -v acestream-state:/var/lib/acestream \
   pipepito/acestream-scraper:scraper-acestream
 docker exec ace-test uname -m      # armv7l (or armv8l on an AArch32-capable 64-bit CPU)

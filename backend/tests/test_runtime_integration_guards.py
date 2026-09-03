@@ -557,3 +557,48 @@ def test_docker_compose_publishes_ipv4_only_and_sets_stop_grace_period():
 
     assert '- "0.0.0.0:8000:8000"' in compose_file
     assert "stop_grace_period: 20s" in compose_file
+
+
+def _docs_pages_with_examples() -> list[Path]:
+    """Every user-facing markdown page that shows a docker run/compose example."""
+    pages = [REPO_ROOT / "README.md"]
+    pages += sorted((REPO_ROOT / "wiki").rglob("*.md"))
+    pages += sorted(
+        path
+        for path in (REPO_ROOT / "docs").rglob("*.md")
+        if "superpowers" not in path.relative_to(REPO_ROOT).parts
+    )
+    return pages
+
+
+def test_command_builder_and_docs_publish_the_web_port_on_ipv4_only():
+    """spec 4.4: an unaddressed ``8000:8000`` also listens on ``[::]`` and
+    docker-proxy rewrites every IPv6 client to the bridge gateway (172.17.0.1),
+    which sits inside the default ``TUNER_ALLOWED_NETWORKS`` — the token-free
+    ``/tuner/*`` routes would then accept any IPv6 client on the LAN.
+    docker-compose.yml already publishes ``0.0.0.0:8000:8000``; the command
+    builder (the path a non-technical user actually follows) and the docs
+    examples must not hand out the bypassable form either."""
+    options = json.loads((REPO_ROOT / "docs" / "builder" / "runtime-options.json").read_text())
+    app_js = (REPO_ROOT / "docs" / "builder" / "app.js").read_text()
+
+    web = next(port for port in options["ports"] if port["id"] == "web")
+    assert web.get("hostAddress") == "0.0.0.0", (
+        "The web port in runtime-options.json must pin an explicit host address; "
+        f"got {web.get('hostAddress')!r}"
+    )
+    assert "address: p.hostAddress" in app_js, "app.js must carry hostAddress into the emitted mapping"
+    assert "-p ${p.address}${p.host}:${p.container}${suffix}" in app_js, "docker run emission ignores the address"
+    assert '"${p.address}${p.host}:${p.container}${suffix}"' in app_js, "compose emission ignores the address"
+
+    offenders = [
+        f"{path.relative_to(REPO_ROOT)}:{number}: {line.strip()}"
+        for path in _docs_pages_with_examples()
+        for number, line in enumerate(path.read_text().splitlines(), 1)
+        if "8000:8000" in line and "0.0.0.0:8000:8000" not in line and "[::]:8000:8000" not in line
+    ]
+    assert not offenders, (
+        "Docs examples must publish the web port on an explicit address "
+        "(0.0.0.0:8000:8000), otherwise docker-proxy defeats TUNER_ALLOWED_NETWORKS:\n"
+        + "\n".join(offenders)
+    )

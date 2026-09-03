@@ -121,7 +121,7 @@ spell it `basicauth`.)
 ## Traefik (compose labels)
 
 Add labels to the `app` service in `docker-compose.yml`. With Traefik on
-the same Docker network, drop the `ports: "8000:8000"` mapping entirely —
+the same Docker network, drop the `ports: "0.0.0.0:8000:8000"` mapping entirely —
 Traefik reaches the container directly and nothing listens on the host:
 
 ```yaml

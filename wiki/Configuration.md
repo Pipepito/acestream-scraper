@@ -75,7 +75,7 @@ External players and media servers (VLC, Kodi, Jellyfin, Plex) fetch streams ove
 |----------|-------------|---------|-------|
 | `PUBLIC_BASE_URL` | Origin (`http://host:port`) that Jellyfin/Plex/VLC use to reach this server | *(empty)* | Empty derives it from each request. The same value is editable at runtime as the `public_base_url` setting, which wins over the variable |
 | `FORWARDED_ALLOW_IPS` | Peers whose `X-Forwarded-*` headers the app trusts | `127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16` | Comma-separated addresses/CIDRs, or `*` to trust every peer. uvicorn's own handling is disabled (`--no-proxy-headers`) — the app does it |
-| `TUNER_ALLOWED_NETWORKS` | Networks allowed to use the token-free `/tuner/*` routes | `127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10` | `*` disables the check. Media servers cannot send an `API_TOKEN`, so these routes are gated by address instead |
+| `TUNER_ALLOWED_NETWORKS` | Networks allowed to use the token-free `/tuner/*` routes | `127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10` | `*` disables the check. Media servers cannot send an `API_TOKEN`, so these routes are gated by address instead. Publish the web port as `-p 0.0.0.0:8000:8000` (never the bare `8000:8000`): an unaddressed mapping also listens on `[::]`, and Docker then presents every IPv6 client to the app as the bridge gateway (`172.17.0.1`), which is inside this default list |
 | `PLAYER_HLS_DIR` | Where the web player writes HLS segments | `/tmp/acestream-player` | `/dev/shm/acestream-player` with a larger `shm_size` keeps them in RAM |
 | `PLAYER_MAX_SESSIONS` | Maximum channels the web player prepares at once | `3` | Each session costs one engine stream and one ffmpeg process |
 | `PLAYER_START_TIMEOUT_SECONDS` | Seconds a web-player session may stay in "starting" before it is reported as stalled | `45` | Raise it on slow links where streams take longer to buffer |
@@ -160,7 +160,7 @@ Cloudflare WARP provides enhanced privacy and secure connection options:
 
 ```bash
 docker run -d \
-  -p 8000:8000 \
+  -p 0.0.0.0:8000:8000 \
   --cap-add NET_ADMIN \
   --cap-add SYS_ADMIN \
   --device /dev/net/tun:/dev/net/tun \
@@ -190,7 +190,7 @@ services:
       - ENABLE_WARP=true
       - WARP_ENABLE_NAT=true
     ports:
-      - "8000:8000"
+      - "0.0.0.0:8000:8000"
     volumes:
       - ./data/config:/app/config
     restart: unless-stopped
@@ -216,7 +216,7 @@ When using Docker, map these ports as needed:
 
 | Port | Service | Notes |
 |------|---------|-------|
-| 8000 | Main web interface | Configurable via `FLASK_PORT` |
+| 8000 | Main web interface | Configurable via `FLASK_PORT`. Publish it as `0.0.0.0:8000:8000`; a bare `8000:8000` also binds `[::]` and makes every IPv6 client look like the Docker bridge gateway, which defeats `TUNER_ALLOWED_NETWORKS` |
 | 8080 | Acexy web interface | Only if Acexy is enabled |
 | 6878 | Acestream HTTP API | Configurable via `ACESTREAM_HTTP_PORT` |
 | 8621 | Acestream P2P port | For Acestream peer connections |

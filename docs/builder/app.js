@@ -141,7 +141,11 @@
       if (!s || !s.enabled) continue;
       const host = validPort(s.host) || p.defaultHost;
       for (const proto of p.protocols) {
-        out.push({ host, container: p.container, proto, label: p.label });
+        // hostAddress pins a mapping to one host address. The web port uses it
+        // (see runtime-options.json): an unaddressed publish also listens on
+        // [::], and docker-proxy then rewrites every IPv6 client to the bridge
+        // gateway, which defeats the tuner routes' network check.
+        out.push({ address: p.hostAddress ? p.hostAddress + ':' : '', host, container: p.container, proto, label: p.label });
       }
     }
     return out;
@@ -187,7 +191,7 @@
     for (const [k, v] of envEntries(d)) lines.push(`  -e ${k}=${v} \\`);
     for (const p of portEntries(d)) {
       const suffix = p.proto === 'udp' ? '/udp' : '';
-      lines.push(`  -p ${p.host}:${p.container}${suffix} \\`);
+      lines.push(`  -p ${p.address}${p.host}:${p.container}${suffix} \\`);
     }
     for (const v of volumeEntries(d)) lines.push(`  -v ${runVolumeFlag(v.source, v.target)} \\`);
     lines.push(`  ${image}`);
@@ -205,8 +209,8 @@
       lines.push('    ports:');
       for (const p of ports) {
         const suffix = p.proto === 'udp' ? '/udp' : '';
-        const mapping = `"${p.host}:${p.container}${suffix}"`;
-        lines.push(`      - ${mapping.padEnd(18)} # ${p.label}${p.proto === 'udp' ? ' (UDP)' : ''}`);
+        const mapping = `"${p.address}${p.host}:${p.container}${suffix}"`;
+        lines.push(`      - ${mapping.padEnd(20)} # ${p.label}${p.proto === 'udp' ? ' (UDP)' : ''}`);
       }
     }
 

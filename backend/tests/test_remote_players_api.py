@@ -1,3 +1,5 @@
+import base64
+
 import httpx
 import pytest
 
@@ -95,3 +97,42 @@ def test_volume_without_a_value_is_rejected(alembic_client, vlc):
     player = _create(alembic_client).json()
     response = alembic_client.post(f"/api/v1/remote-players/{player['id']}/command", json={"command": "volume"})
     assert response.status_code == 422
+
+
+def _basic_secret(header):
+    """The password half of a Basic auth header."""
+    return base64.b64decode(header.split(" ", 1)[1]).decode().split(":", 1)[1]
+
+
+def test_probe_answers_when_the_port_is_not_a_player(alembic_client, vlc):
+    """A router page or a printer on the probed port is an answer, not a 500."""
+    vlc["handler"] = lambda r: httpx.Response(200, text="<html><body>Router login</body></html>", headers={"Content-Type": "text/html"})
+    response = alembic_client.post("/api/v1/remote-players/test", json={"kind": "vlc", "host": "192.168.1.20", "port": 80})
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["reachable"] is False and body["authenticated"] is False and body["hint"]
+
+    player = _create(alembic_client).json()
+    vlc["handler"] = lambda r: httpx.Response(500, text="server error")
+    saved = alembic_client.post(f"/api/v1/remote-players/{player['id']}/test")
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["reachable"] is False
+
+
+def test_probe_with_an_id_reuses_the_password_only_for_that_target(alembic_client, vlc):
+    """The stored secret must not travel to any address the body names."""
+    player = _create(alembic_client).json()  # 192.168.1.20:8080, password "pw"
+    seen = []
+
+    def handler(request):
+        seen.append(request.headers.get("Authorization"))
+        return httpx.Response(200, json=VLC_OK)
+    vlc["handler"] = handler
+
+    same = alembic_client.post("/api/v1/remote-players/test", json={"kind": "vlc", "host": "192.168.1.20", "port": 8080, "id": player["id"]})
+    assert same.status_code == 200 and same.json()["authenticated"] is True
+    for elsewhere in ({"host": "192.168.1.99", "port": 8080}, {"host": "192.168.1.20", "port": 9090}):
+        body = {"kind": "vlc", "id": player["id"], **elsewhere}
+        assert alembic_client.post("/api/v1/remote-players/test", json=body).status_code == 200
+    assert _basic_secret(seen[0]) == "pw"
+    assert [_basic_secret(header) for header in seen[1:]] == ["", ""]

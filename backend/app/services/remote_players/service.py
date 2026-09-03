@@ -40,6 +40,13 @@ def _bare_host(host: str) -> str:
     return host[1:-1] if host.startswith("[") and host.endswith("]") else host
 
 
+def _same_target(player: RemotePlayer, host: str, port: int) -> bool:
+    """True when the saved row already sends its password to this host and port."""
+    return int(player.port) == int(port) and (
+        _bare_host(player.host).lower() == _bare_host(host).lower()
+    )
+
+
 @dataclass
 class TunerAccess:
     """Whether the tuner allowlist lets this player reach the relay URL."""
@@ -117,11 +124,17 @@ class RemotePlayerService:
         stored_id: Optional[int] = None,
     ) -> Tuple[PlayerProbe, TunerAccess]:
         """Secret rule: the typed password when non-empty; else the stored one
-        when stored_id is given; else probe without credentials."""
+        when stored_id names a row that already points at this same host and
+        port; else probe without credentials.
+
+        A stored password never travels to a target the saved row does not
+        already talk to: the API only ever reports has_password, so a caller
+        who cannot read the secret back could otherwise post any address and
+        have us hand it to a listener of their choosing."""
         secret = password if password else None
         if secret is None and stored_id is not None:
             stored = self.repo.get(stored_id)
-            if stored is not None:
+            if stored is not None and _same_target(stored, host, port):
                 secret = stored.password
         driver = self._driver(kind, host, port, username, secret or "")
         return driver.probe(), self.tuner_access(host)

@@ -49,10 +49,14 @@ def test_probe_secret_rule(alembic_db_session):
     svc.probe("vlc", "192.168.1.20", 8080, None, "typed", stored_id=stored.id)
     svc.probe("vlc", "192.168.1.20", 8080, None, "", stored_id=stored.id)
     svc.probe("vlc", "192.168.1.20", 8080, None, None, stored_id=None)
+    svc.probe("vlc", "192.168.1.99", 8080, None, None, stored_id=stored.id)  # another host
+    svc.probe("vlc", "192.168.1.20", 9090, None, None, stored_id=stored.id)  # another port
     import base64
     assert seen[0] == "Basic " + base64.b64encode(b":typed").decode()
     assert seen[1] == "Basic " + base64.b64encode(b":stored").decode()
     assert seen[2] == "Basic " + base64.b64encode(b":").decode()
+    # A stored secret never travels to a target the saved row does not name.
+    assert seen[3] == seen[4] == "Basic " + base64.b64encode(b":").decode()
 
 
 def test_probe_reports_tuner_access(alembic_db_session, monkeypatch):

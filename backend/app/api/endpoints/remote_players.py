@@ -48,6 +48,11 @@ _client_factory = new_client  # tests swap in a MockTransport factory
 UNREACHABLE_HINT = (
     "Check the address and port, and that the player is running with its web interface enabled."
 )
+NOT_A_PLAYER_HINT = (
+    "Something is answering on this port, but it does not talk like a player. "
+    "Check the port number and that you picked the right kind of player."
+)
+KIND_LABELS = {"vlc": "VLC", "kodi": "Kodi"}
 
 
 def _service(db: Session = Depends(get_db)) -> RemotePlayerService:
@@ -170,6 +175,17 @@ def delete_player(player_id: int, service: RemotePlayerService = Depends(_servic
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
+def _no_player(message: str, hint: str) -> RemotePlayerProbeResponse:
+    return RemotePlayerProbeResponse(
+        reachable=False,
+        authenticated=False,
+        version=None,
+        message=message,
+        hint=hint,
+        tuner_access=TunerAccessResponse(addresses=[], allowed=True),
+    )
+
+
 def _probe(
     service: RemotePlayerService,
     kind: str,
@@ -184,14 +200,13 @@ def _probe(
     try:
         probe, access = service.probe(kind, host, port, username, password, stored_id=stored_id)
     except PlayerUnreachable as exc:
-        return RemotePlayerProbeResponse(
-            reachable=False,
-            authenticated=False,
-            version=None,
-            message=str(exc),
-            hint=UNREACHABLE_HINT,
-            tuner_access=TunerAccessResponse(addresses=[], allowed=True),
-        )
+        return _no_player(str(exc), UNREACHABLE_HINT)
+    except PlayerCommandError:
+        # An HTTP answer that is not a player's: a router admin page, a printer,
+        # the wrong port. Telling the user that is exactly why a probe exists —
+        # the driver's own wording ("VLC reported an error") would mislead here.
+        label = KIND_LABELS.get(kind, kind)
+        return _no_player(f"{host}:{port} answered, but not like {label}.", NOT_A_PLAYER_HINT)
     return RemotePlayerProbeResponse(
         reachable=probe.reachable,
         authenticated=probe.authenticated,

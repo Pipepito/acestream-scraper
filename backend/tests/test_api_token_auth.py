@@ -77,3 +77,15 @@ class TestTokenEnforced:
         response = client.get(f"/playlist.m3u?token={TOKEN}")
         assert response.status_code == 200
         assert response.text.startswith("#EXTM3U")
+
+    def test_tuner_routes_stay_public(self, client, token_enabled, monkeypatch):
+        from app.config.settings import get_settings
+        from app.services.tuner_network import get_tuner_gate
+        monkeypatch.setenv("TUNER_ALLOWED_NETWORKS", "*")
+        get_settings.cache_clear(); get_tuner_gate.cache_clear()
+        try:
+            response = client.head("/tuner/stream/" + "0" * 40 + ".ts")
+            assert response.status_code == 200
+            assert client.get("/tuner/nope").status_code == 404
+        finally:
+            get_settings.cache_clear(); get_tuner_gate.cache_clear()

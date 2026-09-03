@@ -1,9 +1,10 @@
 """
 Main application entry point for Acestream Scraper v2 backend.
 """
+import asyncio
 import logging
 import os
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from typing import Optional
 from uuid import uuid4
 
@@ -16,6 +17,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.api import api_router
 from app.api.auth import require_api_token
+from app.api.endpoints import tuner as tuner_endpoints
 from app.api.endpoints.playlists import (
     get_all_streams_playlist,
     get_m3u_playlist,
@@ -35,6 +37,7 @@ from app.config.settings import get_env_compat_events, get_settings, settings
 from app.middleware.forwarded import ForwardedHeadersMiddleware, parse_trusted
 from app.services.epg_service import EPGService
 from app.services.playlist_service import PlaylistService
+from app.services.stream_relay import relay_registry
 from app.services.task_service import task_service
 from app.tasks.activity_log_cleanup import run_activity_log_cleanup
 from app.tasks.channel_cleanup_task import run_channel_cleanup_task
@@ -148,9 +151,20 @@ async def lifespan(app: FastAPI):
     task_service.add_interval_task(run_channel_cleanup_task, seconds=86400, job_id="channel_cleanup")  # daily
     task_service.add_interval_task(run_channel_status_task, seconds=600, job_id="channel_status")  # every 10 min
     _schedule_deferred_migration()
+
+    async def _reap_relays():
+        """Forget relays that finished long enough ago that no status view needs them."""
+        while True:
+            await asyncio.sleep(30)
+            relay_registry.reap_finished(older_than_seconds=30)
+
+    reaper = asyncio.create_task(_reap_relays())
     try:
         yield
     finally:
+        reaper.cancel()
+        with suppress(asyncio.CancelledError):
+            await reaper
         task_service.shutdown()
 
 
@@ -189,6 +203,10 @@ app.add_middleware(ForwardedHeadersMiddleware, trusted=parse_trusted(get_setting
 # API_TOKEN environment variable is set (see app/api/auth.py); /api/v1/health
 # stays public for container health probes.
 app.include_router(api_router, prefix="/api/v1", dependencies=[Depends(require_api_token)])
+
+# HDHomeRun-style tuner routes: token-free by design (tuner clients cannot send
+# credentials), gated by TUNER_ALLOWED_NETWORKS inside the router (spec 4.4).
+app.include_router(tuner_endpoints.hdhr_router)
 register_error_handlers(app)
 
 # Static files serving
@@ -394,7 +412,7 @@ async def legacy_epg_xml(
 async def spa_server(request: Request, exc: StarletteHTTPException):
     """Serve SPA for all non-API routes."""
     # Only handle 404s for non-API routes (client-side routing)
-    if exc.status_code == 404 and not request.url.path.startswith("/api"):
+    if exc.status_code == 404 and not request.url.path.startswith(("/api", "/tuner")):
         return FileResponse(os.path.join(frontend_dir, "index.html"))
     # For API routes or other status codes, return the exception as an HTTP
     # response, preserving headers such as WWW-Authenticate on 401s.

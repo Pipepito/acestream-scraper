@@ -1,138 +1,164 @@
 # Architecture
 
-**Analysis Date:** 2026-02-27
+**Analysis date:** 2026-09-03
+**Branch snapshot:** `develop` (compared locally with `main`)
 
-## Pattern Overview
+## System Shape
 
-**Overall:** Monolithic API + SPA with layered backend architecture, plus some legacy root artifacts still present.
+Acestream Scraper is a single deployable web application assembled from two source trees:
 
-**Key Characteristics:**
-- Active stack lives under canonical root `backend/` and `frontend/`.
-- Some legacy root-era files still exist (`wsgi.py`, `manage.py`), while the root `Dockerfile` remains an active canonical build entrypoint.
-- Service/repository pattern in backend (`backend/app/services/`, `backend/app/repositories/`).
-- Background scheduling done in-process via APScheduler (`backend/app/services/task_service.py`).
+- `backend/`: a FastAPI application, SQLAlchemy/SQLite persistence, scraper integrations, and in-process scheduled jobs.
+- `frontend/`: a React 18 + TypeScript SPA built by Vite.
 
-## Layers
+The root multi-stage `Dockerfile` builds the SPA, copies it into the backend image as `/app/frontend_build`, and starts Uvicorn. FastAPI serves both `/api/v1/*` and the compiled SPA from the same origin. Optional AceStream, Acexy, IPFS, ZeroNet, Tor, and WARP processes may run in the same container under the root `entrypoint.sh` supervisor; ZeroNet can alternatively run as the optional Compose sidecar.
 
-**API Layer:**
-- Purpose: Expose versioned HTTP endpoints and request contracts.
-- Contains: FastAPI routers and endpoint handlers.
-- Depends on: service and schema layers.
-- Used by: frontend app and external API consumers.
-- Key paths: `backend/app/api/api.py`, `backend/app/api/endpoints/*.py`
+This is a modular monolith, not a distributed backend. SQLite is the durable system of record and APScheduler state is process-local.
 
-**Service Layer:**
-- Purpose: Business logic orchestration (channels, scraping, EPG, config, WARP).
-- Contains: domain services and task executors.
-- Depends on: repositories, models, scrapers, external clients.
-- Used by: API layer and background tasks.
-- Key paths: `backend/app/services/*.py`, `backend/app/tasks/*.py`
+## Runtime Boundaries
 
-**Repository/Data Access Layer:**
-- Purpose: DB query/write operations.
-- Contains: repository classes over SQLAlchemy session.
-- Depends on: model layer and SQLAlchemy session.
-- Used by: service layer.
-- Key paths: `backend/app/repositories/*.py`
+```text
+Browser / IPTV client / XMLTV client
+          |
+          | HTTP
+          v
+backend/main.py (FastAPI + SPA/static serving)
+          |
+          +--> API endpoints --> services --> repositories/SQLAlchemy --> SQLite
+          |                       |
+          |                       +--> HTTP / ZeroNet / IPFS scrapers
+          |                       +--> AceStream / Acexy status and search APIs
+          |                       +--> WARP and supervised-service controls
+          |
+          +--> APScheduler --> task functions --> services --> SQLite/external services
 
-**Model/Schema Layer:**
-- Purpose: Persistence models and API serialization/validation contracts.
-- Contains: SQLAlchemy models + Pydantic schemas.
-- Depends on: SQLAlchemy/Pydantic config.
-- Used by: repositories and API endpoints.
-- Key paths: `backend/app/models/*.py`, `backend/app/schemas/*.py`
+frontend/src/index.tsx
+  --> AppBootstrap (router, query cache, MUI theme)
+  --> App/AppShell/routes
+  --> pages/components
+  --> hooks/services/apiClient
+  --> /api (development: proxied to localhost:8000)
+```
 
-**Frontend Layer:**
-- Purpose: SPA views, route composition, and API consumption.
-- Contains: pages, components, hooks, service clients.
-- Depends on: React, MUI, react-query, axios.
-- Used by: browser clients.
-- Key paths: `frontend/src/pages/*.tsx`, `frontend/src/components/*.tsx`, `frontend/src/services/*.ts`
+## Backend Layers
 
-## Data Flow
+### Application composition and delivery
 
-**HTTP API Request Flow:**
-1. Request enters FastAPI app in `backend/main.py`.
-2. Route matching occurs through `api_router` in `backend/app/api/api.py`.
-3. Endpoint handler validates query/body using Pydantic schemas in `backend/app/schemas/`.
-4. Endpoint calls a domain service in `backend/app/services/`.
-5. Service reads/writes via repository or direct SQLAlchemy session.
-6. Response model is serialized back to JSON.
+- `backend/main.py` creates the FastAPI app, configures lifespan, CORS, correlation IDs, optional API-token enforcement, error handlers, compatibility routes, static mounts, and SPA fallback.
+- `backend/app/api/api.py` composes the canonical routers below `/api/v1`.
+- The same process exposes player-facing routes such as `/playlists/m3u`, retained v1 playlist/XMLTV URLs, `/docs`, and `/openapi.json`.
+- `backend/openapi.json` is the checked-in API snapshot used to generate `frontend/src/types/api-generated.ts`.
 
-**Scraping Flow:**
-1. URL scraping is triggered via `/api/v1/scrapers/*` endpoints.
-2. `ScraperService` selects scraper strategy using URL type in `backend/app/services/scraper_service.py`.
-3. Scrapers fetch/parse remote content (`backend/app/scrapers/http.py`, `backend/app/scrapers/zeronet.py`).
-4. Parsed channels are persisted to `acestream_channels` and related tables.
+### Transport layer
 
-**Scheduled Task Flow:**
-1. Scheduler starts at app startup (`backend/main.py` startup event).
-2. Interval jobs are registered using `TaskService.add_interval_task`.
-3. Tasks execute service logic (`backend/app/tasks/url_scraping_task.py`, `epg_refresh_task.py`, etc.).
+- `backend/app/api/endpoints/` contains FastAPI routers grouped by domain: channels, TV channels, URLs, scrapers, EPG, playlists, search, configuration, health/stats, activity, background tasks, streams, base URLs, WARP, AceStream, and system services.
+- `backend/app/schemas/` contains Pydantic request/response contracts.
+- `backend/app/api/dependencies.py` wires shared service providers. Wiring is incremental: some endpoint modules still construct domain services directly.
+- `backend/app/api/auth.py` implements opt-in token authentication. When `API_TOKEN` is unset the historical trusted-network behavior remains open; `/api/v1/health` is always public.
+- `backend/app/api/error_handlers.py` normalizes application errors. `main.py` adds `X-Correlation-ID` propagation/generation.
 
-**State Management:**
-- Persistent state: SQLite database tables in `backend/app/models/models.py`.
-- Process state: APScheduler in-memory job scheduler.
-- Frontend state: react-query cache and component local state.
+### Domain/service layer
 
-## Key Abstractions
+- `backend/app/services/` owns orchestration for channels, URLs, scraping, EPG, playlists, search, configuration, statistics, dashboards/activity, optional runtimes, and scheduled-task state.
+- Services are mostly synchronous around SQLAlchemy, with async methods where network or subprocess work requires it.
+- The repository boundary is established but not universal. Architecture tests explicitly guard selected endpoints and URL/statistics services; several larger services still issue direct ORM queries. Agents should preserve the direction `endpoint -> service -> repository/model` and avoid adding new endpoint-level ORM access.
+- Compatibility-named pairs exist (`channel_service.py`/`acestreamchannel_service.py`, `stream_service.py`/`streams_service.py`, `tvchannel_service.py`). Check callers before consolidating them.
 
-**Service objects:**
-- Purpose: Domain orchestration and business operations.
-- Examples: `AcestreamChannelService`, `EPGService`, `ConfigService`, `WarpService`.
-- Pattern: Class-per-domain with injected DB session where relevant.
+### Persistence layer
 
-**Repository objects:**
-- Purpose: Encapsulate DB query patterns.
-- Examples: `ChannelRepository`, `SettingsRepository`, `URLRepository`.
-- Pattern: SQLAlchemy session wrapper methods.
+- `backend/app/config/database.py` lazily creates the SQLAlchemy engine and session factory, exposes the FastAPI `get_db` dependency, and owns Alembic provisioning/stamping repair.
+- `backend/app/models/models.py` is the canonical declarative model registry. It includes scraped URLs, AceStream channels, TV channels, EPG sources/channels/programs/mappings, settings, base URLs, activity logs, and dashboard configuration.
+- `backend/app/repositories/` encapsulates common channel, URL, settings, activity, base-URL, and statistics queries.
+- `backend/migrations/` is the only active Alembic tree. New schema changes belong here; do not restore root `migrations/`.
+- The default deployment uses `sqlite:///./config/scraper.db`. The engine currently passes SQLite's `check_same_thread=False`, so another database URL is not a proven drop-in runtime path.
 
-**Scraper strategy:**
-- Purpose: Different handling for regular HTTP and ZeroNet URL types.
-- Examples: `HTTPScraper`, `ZeronetScraper`.
-- Pattern: Base scraper + concrete implementations.
+### Scraper/integration layer
 
-## Entry Points
+- `backend/app/models/url_types.py` parses and normalizes regular, `zero://`, `ipfs://`, and `ipns://` source forms.
+- `backend/app/scrapers/__init__.py` selects `HTTPScraper`, `ZeronetScraper`, or `IpfsScraper` via a factory.
+- `backend/app/services/scraper_service.py` coordinates fetching, M3U parsing, EPG-assisted TV-channel association, stale-source removal, and channel upserts.
+- Outbound URLs must continue through the protections in `backend/app/utils/url_guard.py`; do not bypass them in new fetch paths.
 
-**Backend API entry:**
-- Location: `backend/main.py`
-- Triggers: Uvicorn server start (`uvicorn main:app`)
-- Responsibilities: initialize DB, register middleware/routes, mount static assets, schedule background tasks
+### Background execution
 
-**Legacy backend entry:**
-- Location: `wsgi.py` and `run_dev.py`
-- Triggers: legacy Docker/prod/dev commands
-- Responsibilities: run root migrations and start Flask/ASGI app
+- `backend/app/services/task_service.py` wraps a process-local APScheduler `BackgroundScheduler`, instrumentation, runtime status/progress, immediate triggers, and interval rescheduling.
+- `backend/app/tasks/` contains thin job entry points that open/close their own database sessions and invoke services.
+- FastAPI lifespan registers URL scraping, EPG refresh/cleanup, channel status/cleanup, activity cleanup, and deferred v1 migration jobs. Jobs are not durable across process restarts and multiple app replicas would each schedule the same work.
 
-**Frontend entry:**
-- Location: `frontend/src/index.tsx`
-- Triggers: browser load of SPA build
-- Responsibilities: mount React app, router, theme provider, react-query client
+## Frontend Layers
 
-## Error Handling
+### Bootstrap and routing
 
-**Strategy:** Mixed approach; API handlers often raise `HTTPException`, while many services return status dicts/messages and catch broad exceptions.
+- `frontend/src/index.tsx` mounts `AppBootstrap`.
+- `frontend/src/bootstrap/AppBootstrap.tsx` owns the React Query client, MUI theme mode, CSS reset, and `BrowserRouter`.
+- `frontend/src/App.tsx` declares routes inside `components/layout/AppShell.tsx`, including redirects from historical browser URLs.
 
-**Patterns:**
-- Endpoint-level validation and HTTP status responses in `backend/app/api/endpoints/*.py`
-- Broad `try/except` blocks in scraping/task services to prevent scheduler crashes
-- Fallback responses for unavailable integrations (Acestream/WARP) instead of hard failures
+### UI and data access
 
-## Cross-Cutting Concerns
+- `frontend/src/pages/` contains route-level screens.
+- `frontend/src/components/` contains reusable domain UI; `components/layout/`, `components/state/`, `components/channels/`, `components/epg/`, and `components/overview/` hold focused primitives.
+- `frontend/src/hooks/` composes page state and React Query operations.
+- `frontend/src/services/` is the HTTP boundary. `apiClient.ts` uses Axios, reads `/api` at runtime, attaches an optional stored `X-Api-Token`, and normalizes errors.
+- `frontend/src/types/` holds API-derived and UI-specific types. Regenerate the OpenAPI-derived file with the package script when contracts change.
+- Server state belongs in React Query; theme preference and API token are browser-local; transient form/dialog state remains component-local.
 
-**Logging:**
-- Central logging setup in `backend/app/utils/logging.py`
-- Additional `print` and ad-hoc debug logging still present in several modules/pages
+## Principal Data Flows
 
-**Validation:**
-- Pydantic schemas at API boundaries (`backend/app/schemas/*.py`)
-- Query parameter validation in FastAPI function signatures
+### Interactive API request
 
-**Configuration:**
-- Environment-driven settings in `backend/app/config/settings.py`
-- Runtime toggles also duplicated in shell scripts and Docker definitions
+1. The browser service calls `/api/...`; Vite proxies this to port 8000 in development, while production uses the same FastAPI origin.
+2. `main.py` attaches a correlation ID and applies the router-level token dependency.
+3. FastAPI validates parameters and Pydantic bodies in an endpoint module.
+4. The endpoint calls a domain service, usually with a request-scoped `Session` from `get_db`.
+5. The service uses a repository or SQLAlchemy models and commits the unit of work.
+6. Pydantic serializes the response; Axios/React Query normalize and cache it for the page.
+
+### URL scrape and channel ingestion
+
+1. A user/API action or `url_scraping` scheduled job selects a configured source.
+2. `ScraperService` normalizes the URL and selects the scraper strategy.
+3. The scraper fetches through HTTP, a ZeroNet node, or an IPFS gateway and returns parsed channel tuples.
+4. `M3UService` enriches results and may create/associate TV channels from EPG metadata.
+5. Channels no longer present for that source are removed; current channels are transactionally upserted.
+6. API-triggered results return to the client; scheduled results are retained only in in-memory task status while domain changes persist in SQLite.
+
+### Startup and legacy migration
+
+1. Container `entrypoint.sh` validates enabled image features and starts/supervises opted-in auxiliary processes.
+2. Uvicorn loads `backend/main.py`; lifespan checks for a v1 database, performs the foreground migration portion, and provisions/repairs the v2 Alembic schema.
+3. APScheduler starts and periodic jobs are registered using intervals read from settings.
+4. A large legacy EPG-program copy, when required, is queued as a one-off background job so health checks can pass promptly.
+5. Shutdown stops APScheduler; the shell supervisor terminates child processes.
+
+## Deployment and CI Architecture
+
+- The root `Dockerfile` is canonical. Its final flavor targets are `scraper`, `scraper-acestream`, `scraper-acexy`, and `scraper-acestream-acexy`; `latest` represents the combined flavor in release tooling.
+- `entrypoint.sh` supervises optional bundled services and launches the command passed by the image (`uvicorn main:app ...` by default).
+- `docker/manifests/` and `docker/scripts/` define platform-aware optional binary installation. `docker/vendor/` contains pinned build inputs and checksums.
+- `docker-compose.yml` runs the unified app and offers a profile-gated external ZeroNet sidecar.
+- Root `Jenkinsfile` is the PR/develop validation pipeline; `jenkins/release.Jenkinsfile` is the manual release entry. Supporting implementation lives under `scripts/ci/` and `scripts/phase_gates/`.
+- GitHub Actions workflows present on `main` are removed on this branch. Do not add a competing publication path without an explicit CI architecture decision.
+
+## Branch-Specific Delta from `main`
+
+The local `main...develop` comparison shows an architectural replacement:
+
+- The root Flask/Jinja application (`app/`), root entry points (`wsgi.py`, `manage.py`, `run_dev.py`), root Alembic tree, and root test suite are deleted from tracked source.
+- The active implementation moves to `backend/` and changes application delivery to FastAPI plus a separately built React/Vite SPA.
+- Canonical `/api/v1` contracts, checked-in OpenAPI, compatibility endpoints, optional API-token auth, correlation IDs, Alembic startup repair, deferred migration, activity/background-task status, and base-URL/system-service domains are introduced.
+- Docker becomes multi-stage, multi-flavor, and multi-architecture, with optional embedded AceStream/Acexy/IPFS/ZeroNet/WARP/Tor runtime handling.
+- Jenkins replaces GitHub Actions as the checked-in validation and publication orchestrator.
+- `e2e/` adds a scenario-driven Playwright journey suite against a real app/engine/Acexy/IPFS stack.
+
+Compatibility routes and migration code are deliberate bridges for v1 users; they do not make the removed root Flask tree an active development target.
+
+## Agent Guardrails
+
+- Run backend modules with `PYTHONPATH=backend` (or from `backend/`) because imports use the top-level `app` package name.
+- Add backend tests under `backend/tests/`, frontend tests under `frontend/src/__tests__/`, and cross-stack journeys under `e2e/tests/`.
+- Keep API, service, repository/model, and frontend-service boundaries directional; extend existing providers rather than importing UI or endpoint code into domain modules.
+- Treat `backend/frontend_build/`, `frontend/dist/`, `frontend/build/`, databases, logs, E2E reports, and `.planning/debug/` as generated/local artifacts even if they exist in a working tree.
+- Never copy values from the ignored `infra-details.md` into tracked documentation or code. Operational instructions may name Jenkins conceptually; credentials and private endpoints stay local.
 
 ---
 
-*Architecture analysis: 2026-02-27*
-*Update when major patterns change*
+*Update this map when runtime entry points, layer boundaries, or the main/develop cutover state changes.*

@@ -7,8 +7,12 @@ This repository now uses a single root deployment model:
 
 ## Key Docs
 
+- `AGENTS.md`: repository-wide Codex instructions, with layered backend, frontend,
+  and E2E guidance.
 - `docs/architecture/deployment.md`: production and local deployment model for `backend/` + `frontend/`.
 - `docs/ops/jenkins-ci.md`: primary Jenkins CI/CD operator guide, cutover steps, and rollback guidance.
+- `docs/ops/codex-infrastructure-access.md`: safe Codex access to the local,
+  git-ignored Jenkins connection details.
 - `docs/ops/reverse-proxy.md`: reverse-proxy/HTTPS deployment — TLS, proxy-level auth, `base_url`, and port-exposure guidance.
 - `docs/ops/acestream-arm-engine.md`: operator guide for the in-container AceStream engine on `linux/arm64` / `linux/arm/v7` (what is shipped, runtime settings, known gaps, testing on a Raspberry Pi, pin updates).
 - `docs/ops/multiarch-manifest-updates.md`: schema of `docker/manifests/acestream.json` and the procedure for updating engine/platform pins.

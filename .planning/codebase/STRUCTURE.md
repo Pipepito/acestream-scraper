@@ -1,135 +1,222 @@
 # Codebase Structure
 
-**Analysis Date:** 2026-02-27
+**Analysis date:** 2026-09-03
+**Branch snapshot:** `develop` (compared locally with `main`)
 
-## Directory Layout
+## Canonical Tracked Layout
 
-```
+```text
 acestream-scraper/
-|-- .github/                 # CI workflows and local AI instructions
-|-- app/                     # Legacy root app path (currently empty)
-|-- docs/                    # Architecture/migration/development docs
-|-- migrations/              # Legacy root DB migrations
-|-- tests/                   # Legacy/root pytest suite
-|-- backend/                 # FastAPI backend, models/services/tests
-|-- frontend/                # React + TypeScript frontend
-|-- Dockerfile               # Canonical multi-stage container build
-|-- docker-compose.yml       # Canonical compose entrypoint
-|-- run_dev.py               # Legacy local dev entry
-|-- wsgi.py                  # Legacy production entry
-`-- pyproject.toml           # Root package metadata and tooling config
+|-- .github/                 # PR template, Copilot instructions/chat modes; no active workflows
+|-- .planning/               # Project state, roadmap, research, phase records, codebase maps
+|-- .tmp/jenkins/            # Sanitized/reference Jenkins job configuration artifacts
+|-- .vscode/                 # Recommended editor configuration
+|-- backend/                 # Canonical FastAPI application, migrations, scripts, and tests
+|   |-- app/
+|   |   |-- api/             # Router composition, auth, dependencies, errors, endpoints
+|   |   |-- config/          # Settings, DB/session/schema bootstrap, version helpers
+|   |   |-- models/          # SQLAlchemy models and URL-value abstractions
+|   |   |-- repositories/    # Reusable persistence/query boundaries
+|   |   |-- schemas/         # Pydantic API contracts
+|   |   |-- scrapers/        # HTTP, ZeroNet, and IPFS scraper strategies
+|   |   |-- services/        # Domain/application orchestration
+|   |   |-- tasks/           # APScheduler job entry functions
+|   |   `-- utils/           # Logging, activity, path, DB, outbound-URL helpers
+|   |-- migrations/          # Canonical Alembic configuration and revisions
+|   |-- scripts/             # Backend-local maintenance/codegen helpers
+|   |-- tests/               # Backend feature, contract, parity, perf, Docker tests
+|   |-- main.py              # FastAPI/Uvicorn entry point and SPA delivery
+|   |-- migrate_database.py  # v1-to-v2 migration implementation
+|   |-- openapi.json         # Checked-in API schema snapshot
+|   `-- requirements.txt     # Dependency set used by the image
+|-- docker/                  # Image manifests, installers, fixtures, vendored inputs
+|-- docs/                    # Developer, architecture, migration, ops, release docs/site
+|-- e2e/                     # Playwright live-stack journey suite and orchestration
+|-- frontend/                # React/TypeScript/Vite SPA
+|   |-- public/              # Static public assets
+|   |-- scripts/             # Build-copy helper
+|   `-- src/
+|       |-- __tests__/       # Jest/Testing Library tests
+|       |-- bootstrap/       # Root providers
+|       |-- components/      # Reusable and domain UI
+|       |-- config/          # Browser runtime configuration
+|       |-- hooks/           # React Query/domain hooks
+|       |-- pages/           # Route-level screens
+|       |-- services/        # Axios API boundary and domain clients
+|       |-- styles/          # Shared/screen styles
+|       |-- testUtils/       # Frontend test helpers
+|       |-- types/           # Generated API and handwritten UI types
+|       `-- utils/           # Formatting, date, and error utilities
+|-- jenkins/                 # Manual release pipeline
+|-- samples/                 # Checked-in sample input data
+|-- scripts/
+|   |-- ci/                  # Jenkins/build/publish/runtime validation implementation
+|   |-- dev/                 # Developer diagnostics and EPG scripts
+|   |-- ops/                 # Deployment preflight
+|   |-- perf/                # Performance profiling
+|   `-- phase_gates/         # Repeatable milestone/gate runners and config
+|-- wiki/                    # End-user/contributor wiki source
+|-- CLAUDE.md                # Existing Claude-oriented repository guidance
+|-- Dockerfile               # Canonical multi-stage, multi-flavor image build
+|-- Jenkinsfile              # Canonical PR/develop validation pipeline
+|-- README.md                # Primary project setup and verification index
+|-- docker-compose.yml       # Local/unified runtime definition
+|-- entrypoint.sh            # Container feature validation and process supervision
+|-- healthcheck.sh           # Container health probe
+|-- pyproject.toml           # Historical packaging metadata; not backend runtime authority
+|-- requirements*.txt        # Root compatibility/development dependency lists
+|-- version.txt              # Release version source
+`-- warp-setup.sh            # WARP runtime preparation/control helper
 ```
 
-## Directory Purposes
+The old tracked root `app/`, `tests/`, and `migrations/` directories shown by `main` do not exist in `develop`. Same-named directories seen locally are generated caches or untracked leftovers and are not canonical source.
 
-**`backend/`:**
-- Purpose: Primary backend implementation.
-- Contains: API routes, services, repositories, models, schemas, tasks, migrations, tests.
-- Key files: `backend/main.py`, `backend/app/api/api.py`, `backend/app/models/models.py`.
-- Subdirectories: `app/`, `migrations/`, `tests/`, `frontend_build/`.
+## Source Areas
 
-**`frontend/`:**
-- Purpose: SPA frontend for channel and system management.
-- Contains: React pages/components/hooks/services and build artifacts.
-- Key files: `frontend/src/App.tsx`, `frontend/src/index.tsx`, `frontend/package.json`.
-- Subdirectories: `src/`, `public/`, `scripts/`, `build/`.
+### `backend/`
 
-**`tests/`:**
-- Purpose: Root/legacy test suite.
-- Contains: unit and integration tests that import `app.*` modules.
-- Key files: `tests/conftest.py`, `tests/integration/test_api.py`.
-- Subdirectories: `tests/unit/`, `tests/integration/`.
+Primary Python application. Work from this directory or set `PYTHONPATH=backend` because imports are written as `from app...`.
 
-**`migrations/`:**
-- Purpose: Legacy migration history for root stack.
-- Contains: Alembic environment and historical revision files.
-- Key files: `migrations/env.py`, `migrations/versions/*.py`.
+Important files:
 
-**`docs/` and `wiki/`:**
-- Purpose: Project docs, migration plans, architecture notes, usage docs.
-- Contains: markdown references and feature planning docs.
+- `backend/main.py`: app construction, lifespan/startup, canonical and compatibility routes, compiled-frontend serving.
+- `backend/app/api/api.py`: complete `/api/v1` router registry.
+- `backend/app/config/settings.py`: canonical environment settings and one-release legacy aliases.
+- `backend/app/config/database.py`: lazy engine/session lifecycle and Alembic provisioning.
+- `backend/app/models/models.py`: canonical ORM registry.
+- `backend/app/services/task_service.py`: scheduler and task status.
+- `backend/migrate_database.py`: foreground/deferred v1 data migration.
+- `backend/openapi.json`: contract snapshot; update deliberately when API shapes change.
 
-## Key File Locations
+Backend test organization:
 
-**Entry Points:**
-- `backend/main.py` - FastAPI app startup and scheduler initialization.
-- `frontend/src/index.tsx` - React app bootstrap.
-- `wsgi.py` - Legacy ASGI/WSGI entrypoint.
-- `run_dev.py` - Legacy development launch path.
+- `backend/tests/test_*.py`: feature and integration-style tests.
+- `backend/tests/contracts/`: API contract assertions.
+- `backend/tests/architecture/`: layer-boundary guards.
+- `backend/tests/parity/` and `regression/`: v1 behavior baselines and compatibility checks.
+- `backend/tests/docker/`: installer/image/runtime contracts.
+- `backend/tests/perf/`: query-count and high-churn performance checks.
 
-**Configuration:**
-- `backend/app/config/settings.py` - backend settings model.
-- `backend/app/config/database.py` - SQLAlchemy engine/session.
-- `frontend/tsconfig.json` - frontend TS compiler options.
-- `docker-compose.yml` - runtime environment wiring.
+### `frontend/`
 
-**Core Logic:**
-- `backend/app/services/` - domain services.
-- `backend/app/repositories/` - data access.
-- `backend/app/api/endpoints/` - HTTP endpoints.
-- `backend/app/scrapers/` - scraping strategy implementations.
+Production SPA source. Vite emits `frontend/dist/`; `npm run build:backend` then replaces the ignored `backend/frontend_build/` directory with that output. The root Docker build performs the equivalent copy between stages.
 
-**Testing:**
-- `tests/` - root test suite (legacy-oriented).
-- `backend/tests/` - canonical backend API/integration tests.
-- `frontend/src/__tests__/` - frontend component tests.
+Important files:
 
-**Documentation:**
-- `README.md` - project overview and legacy run/deploy docs.
-- `docs/` - migration/dev/architecture docs.
-- `wiki/` - user and contributor docs.
+- `frontend/src/index.tsx`: DOM mount.
+- `frontend/src/bootstrap/AppBootstrap.tsx`: application providers and theme-mode state.
+- `frontend/src/App.tsx`: route table and legacy browser redirects.
+- `frontend/src/components/layout/AppShell.tsx`: persistent navigation/layout shell.
+- `frontend/src/services/apiClient.ts`: shared API base URL, authentication header, and error normalization.
+- `frontend/src/config/runtime.ts`: development/production API origin selection.
+- `frontend/src/types/api-generated.ts`: generated OpenAPI types.
+- `frontend/vite.config.ts`: dev proxy, output path, and chunking.
+- `frontend/package.json`: canonical frontend scripts.
 
-## Naming Conventions
+### `e2e/`
 
-**Files:**
-- Python modules use `snake_case.py` (example: `channel_service.py`).
-- React components/pages use `PascalCase.tsx` (example: `TVChannelDetail.tsx`).
-- TS services/hooks use `camelCase` prefixes (example: `channelService.ts`, `useChannels.ts`).
-- Test files use `test_*.py` (Python) and `*.test.tsx` (frontend).
+Stateful, ordered browser journeys. This suite intentionally uses one worker because tests share one SQLite-backed scenario and build on earlier operations.
 
-**Directories:**
-- Backend uses domain-oriented directories (`api`, `services`, `repositories`, `models`).
-- Frontend uses layer grouping (`components`, `pages`, `hooks`, `services`, `types`).
+- `e2e/tests/00-stack.spec.ts` through `09-system.spec.ts`: ordered cross-feature journeys.
+- `e2e/src/pages/`: page objects.
+- `e2e/src/scenario/` and `e2e/scenarios/default.json`: typed scenario data.
+- `e2e/src/global-setup.ts`: app/AceStream/Acexy readiness gate.
+- `e2e/stack/`: local backend and Docker stack lifecycle scripts.
+- `e2e/stack/docker-compose.e2e.yml`: real service stack used by container-targeted runs.
 
-**Special Patterns:**
-- API versioning under `/api/v1` in router registration.
-- Legacy-root remnants and the canonical stack coexist, so path choice is still important for changes.
+Generated `node_modules/`, `.stack/`, `test-results/`, `playwright-report/`, and `results/` are ignored.
 
-## Where to Add New Code
+### `docker/`, `scripts/`, and Jenkins
 
-**New backend API feature:**
-- Primary code: `backend/app/api/endpoints/` and `backend/app/services/`
-- Data/model updates: `backend/app/models/` + `backend/migrations/`
-- Tests: `backend/tests/`
+- `docker/manifests/`: declarative supported-platform and optional-runtime metadata.
+- `docker/scripts/`: installers and ARM AceStream launcher bridge.
+- `docker/vendor/`: pinned archives/packages and checksum manifests used for reproducible/offline-tolerant builds.
+- `docker/testdata/`: harmless installer/runtime fixtures.
+- `scripts/ci/`: commands invoked by Jenkins for tests, builds, runtime checks, publication, and cleanup.
+- `scripts/phase_gates/`: Python/shell validation gates retained as direct local and CI entry points.
+- `Jenkinsfile`: validation plus guarded `develop` channel/docs/wiki publication.
+- `jenkins/release.Jenkinsfile`: manual release wrapper.
 
-**New frontend feature:**
-- Page-level UI: `frontend/src/pages/`
-- Reusable UI: `frontend/src/components/`
-- API client updates: `frontend/src/services/` and hooks in `frontend/src/hooks/`
-- Tests: `frontend/src/__tests__/`
+Do not store private Jenkins URLs, credentials, tokens, or values from `infra-details.md` in any of these paths.
 
-**Legacy/root changes (only when required):**
-- Runtime/migration scripts: root `wsgi.py`, `manage.py`, `migrations/`
-- Legacy tests: `tests/`
+### Documentation and project memory
 
-## Special Directories
+- `README.md`: supported quick start, environment, verification, and document index.
+- `docs/dev/`: implementation standards and frontend/backend guidance.
+- `docs/architecture/`: API and deployment architecture.
+- `docs/ops/`: operational procedures, including Jenkins concepts without local secrets.
+- `docs/migration/`: v2 cutover history and architecture smoke checklists.
+- `docs/release/`: readiness/evidence/release notes.
+- `docs/testing/test-ownership-matrix.md`: suite ownership and intent.
+- `wiki/`: publishable operator/user documentation.
+- `.planning/`: roadmap and execution history; `.planning/codebase/` is the concise agent map.
 
-**`backend/frontend_build/`:**
-- Purpose: Built frontend assets served by FastAPI.
-- Source: produced from `frontend` build.
-- Committed: yes (currently present in repository).
+## Entry Points by Workflow
 
-**`frontend/build/`:**
-- Purpose: local frontend build artifact.
-- Source: `react-scripts build`.
-- Committed: yes (currently present; verify policy before continuing this pattern).
+| Workflow | Entry point | Notes |
+|---|---|---|
+| Backend development | `backend/main.py` | Run Uvicorn with backend on import path; listens on 8000 by convention. |
+| Frontend development | `frontend/package.json` `start` | Vite on 3000; proxies `/api` to 8000. |
+| Production image | root `Dockerfile` | Builds SPA + backend; select a named flavor target. |
+| Container startup | `entrypoint.sh` | Validates toggles, starts optional services, then Uvicorn. |
+| Local Compose | `docker-compose.yml` | Unified `app`; optional `zeronet` profile. |
+| Backend schema | `backend/migrations/alembic.ini` | Active revisions are under `backend/migrations/versions/`. |
+| PR/develop CI | `Jenkinsfile` | Canonical checked-in validation pipeline. |
+| Manual release | `jenkins/release.Jenkinsfile` | Delegates to `scripts/ci/run_jenkins_release.sh`. |
+| Browser journeys | `e2e/playwright.config.ts` | Defaults to Firefox, one worker, app at `127.0.0.1:8000`. |
+| API type generation | `frontend/package.json` `codegen` | Reads `backend/openapi.json`. |
 
-**`app/`:**
-- Purpose: historical root app package path.
-- Source: legacy architecture; currently empty.
-- Committed: yes, but empty state is a migration risk because tests/workflows still reference it.
+## Where New Code Belongs
+
+### Backend feature
+
+1. Add/extend Pydantic contracts in `backend/app/schemas/`.
+2. Put orchestration in `backend/app/services/`; put reusable persistence in `backend/app/repositories/`.
+3. Add the endpoint in `backend/app/api/endpoints/` and register a new router in `backend/app/api/api.py`.
+4. Add ORM entities to the canonical model registry and create an Alembic revision under `backend/migrations/versions/` when persistence changes.
+5. Add focused tests to the matching `backend/tests/` category and refresh OpenAPI/types for contract changes.
+
+### Frontend feature
+
+1. Put route screens in `frontend/src/pages/` and register them in `App.tsx`.
+2. Put reusable UI in the closest `components/` subdomain.
+3. Keep HTTP calls in `services/`, server-state composition in `hooks/`, and types in `types/`.
+4. Add Jest/Testing Library coverage in `frontend/src/__tests__/`; add an E2E journey only for cross-stack behavior.
+
+### Build or infrastructure feature
+
+- Image contents/flavors: root `Dockerfile`, then manifest/install/runtime tests in `backend/tests/docker/`.
+- Container behavior: `entrypoint.sh`, `healthcheck.sh`, `warp-setup.sh`, and runtime-contract tests.
+- CI behavior: thin stage in `Jenkinsfile` or release wrapper, with reusable implementation in `scripts/ci/`.
+- Platform policy/data: `docker/manifests/`; avoid duplicating platform lists in pipelines.
+
+## Generated, Local, and Sensitive Paths
+
+These can exist in a checkout but are not tracked source:
+
+- `backend/frontend_build/`, `frontend/dist/`, `frontend/build/`
+- `backend/venv/`, root `venv/`, frontend/E2E `node_modules/`
+- `backend/config/*.db`, root `config/`, `backend/logs/`, `*.log`
+- `e2e/.stack/`, `e2e/test-results/`, `e2e/playwright-report/`, `e2e/results/`
+- `.worktrees/`, `.planning/debug/`, caches, coverage, and phase-gate result JSON
+- `infra-details.md` and `.claude/jenkins-api.sh` (local operations only; never quote or commit their contents)
+
+When inspecting the repository, use `git ls-files` or `git status` to distinguish canonical files from these local artifacts.
+
+## Branch Delta from `main`
+
+| `main` path/role | `develop` replacement |
+|---|---|
+| `app/` Flask/Jinja backend and static UI | `backend/app/` FastAPI layers + `frontend/src/` React SPA |
+| `wsgi.py`, `manage.py`, `run_dev.py` | `backend/main.py` and package/Docker scripts |
+| root `migrations/` | `backend/migrations/` |
+| root `tests/` | `backend/tests/`, `frontend/src/__tests__/`, `e2e/tests/` |
+| root EPG diagnostic scripts | `scripts/dev/epg/` |
+| GitHub Actions PR/release workflows | root `Jenkinsfile` + `jenkins/release.Jenkinsfile` + `scripts/ci/` |
+| single legacy image shape | multi-stage root Dockerfile with named runtime flavors and manifests |
+
+Do not create new work in removed root-era locations. Compatibility behavior belongs in the v2 backend and is verified by parity/regression tests.
 
 ---
 
-*Structure analysis: 2026-02-27*
-*Update when directory structure changes*
+*Update this map when canonical directories, generated-output policy, or workflow entry points change.*

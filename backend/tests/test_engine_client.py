@@ -81,3 +81,28 @@ def test_engine_url_from_settings_normalizes(db_session):
     repo = SettingsRepository(db_session)
     repo.set_setting("ace_engine_url", "engine.lan:6878/")
     assert engine_url_from_settings(repo) == "http://engine.lan:6878"
+
+
+def test_close_releases_a_client_it_created():
+    client = EngineClient("http://engine:6878")
+    pool = client._client
+    client.close()
+    assert pool.is_closed is True
+
+
+def test_context_manager_closes_a_client_it_created():
+    with EngineClient("http://engine:6878") as client:
+        pool = client._client
+        assert pool.is_closed is False
+    assert pool.is_closed is True
+
+
+def test_an_injected_client_outlives_the_engine_client():
+    injected = _client(lambda request: httpx.Response(200, json={"response": {"status": "dl", "peers": 0, "speed_down": 0, "speed_up": 0}, "error": None}))
+    session = EngineSession(CID, "p", "u", "http://engine:6878/ace/stat/x/s", "http://engine:6878/ace/cmd/x/s", True)
+    with EngineClient("http://engine:6878", client=injected) as client:
+        assert client.stat(session).status == "dl"
+    assert injected.is_closed is False
+    # Still usable by its owner after the EngineClient is done with it.
+    assert EngineClient("http://engine:6878", client=injected).stat(session).status == "dl"
+    injected.close()

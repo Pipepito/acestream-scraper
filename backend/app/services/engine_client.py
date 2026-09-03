@@ -8,6 +8,7 @@ from __future__ import annotations
 import logging
 import uuid
 from dataclasses import dataclass
+from types import TracebackType
 from typing import Optional
 
 import httpx
@@ -60,9 +61,34 @@ def engine_url_from_settings(settings_repo: SettingsRepository) -> str:
 
 
 class EngineClient:
+    """Talks to one engine over HTTP.
+
+    When no ``client`` is injected the instance creates — and therefore owns —
+    an :class:`httpx.Client`; use it as a context manager (or call
+    :meth:`close`) so its connection pool is released. An injected client is
+    never closed here: whoever opened it closes it.
+    """
+
     def __init__(self, engine_url: str, client: Optional[httpx.Client] = None):
         self.engine_url = engine_url.rstrip("/")
+        self._owns_client = client is None
         self._client = client or httpx.Client(timeout=START_TIMEOUT)
+
+    def close(self) -> None:
+        """Release the connection pool, but only if this instance created it."""
+        if self._owns_client:
+            self._client.close()
+
+    def __enter__(self) -> "EngineClient":
+        return self
+
+    def __exit__(
+        self,
+        exc_type: Optional[type[BaseException]],
+        exc: Optional[BaseException],
+        tb: Optional[TracebackType],
+    ) -> None:
+        self.close()
 
     def _get_json(self, url: str, params: Optional[dict] = None, timeout: httpx.Timeout = START_TIMEOUT) -> dict:
         try:

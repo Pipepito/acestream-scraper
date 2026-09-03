@@ -2,7 +2,7 @@
 API router configuration
 """
 from fastapi import APIRouter
-from app.api.endpoints import channels, scrapers, epg, playlists, tv_channels, search, config, health, warp, urls, acestream, stats, activity, background_tasks, streams, base_urls, system, player
+from app.api.endpoints import channels, scrapers, epg, playlists, tv_channels, search, config, health, warp, urls, acestream, stats, activity, background_tasks, streams, base_urls, system, player, remote_players
 
 api_router = APIRouter()
 api_router.include_router(channels.router, prefix="/acestream-channels", tags=["channels"])
@@ -25,3 +25,4 @@ api_router.include_router(streams.router, tags=["streams"])
 api_router.include_router(base_urls.router, prefix="/base-urls", tags=["base-urls"])
 api_router.include_router(system.router, prefix="/system", tags=["system"])
 api_router.include_router(player.router, prefix="/player", tags=["player"])
+api_router.include_router(remote_players.router, prefix="/remote-players", tags=["remote-players"])

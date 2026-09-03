@@ -23,7 +23,14 @@ from app.api.endpoints.playlists import (
     trigger_url_scrape_refresh,
 )
 from app.api.error_handlers import register_error_handlers
-from app.config.database import backfill_scraped_url_flags, ensure_schema_stamped, get_db, provision_schema
+from app.config.database import (
+    backfill_scraped_url_flags,
+    backup_sqlite,
+    current_revision,
+    get_db,
+    head_revision,
+    provision_schema,
+)
 from app.config.settings import get_env_compat_events, settings
 from app.services.epg_service import EPGService
 from app.services.playlist_service import PlaylistService
@@ -71,21 +78,24 @@ def initialize_database():
         if migrated:
             print("Migration completed successfully!")
 
-    # Fresh v2 databases are provisioned through Alembic so startup uses the
-    # same schema path as tests and deployments. Existing databases are left
-    # alone, except for recording the Alembic head on databases an older
-    # migrator created without a stamp (otherwise later revisions would fail).
-    if not os.path.exists(migrator.v2_db_path):
-        print("Creating fresh v2 database via Alembic...")
-        provision_schema()
-        print("Fresh v2 database created!")
-    else:
-        if ensure_schema_stamped():
-            print("Recorded the current Alembic head on the existing (unstamped) v2 database")
-        repaired = backfill_scraped_url_flags()
-        if repaired:
-            print(f"Backfilled scrape_bare_ids on {repaired} scraped URL row(s) left NULL by an older migrator")
-        print("V2 database ready")
+    # Every database converges to the Alembic head on startup (spec 4.6):
+    # fresh files are provisioned, unstamped ones (pre-2026-08-29 migrator)
+    # are stamped first, and existing databases receive new revisions. A
+    # pending upgrade is preceded by an on-disk copy under <db dir>/backups/.
+    current = current_revision()
+    target = head_revision()
+    if os.path.exists(migrator.v2_db_path) and current != target:
+        backup_path = backup_sqlite(label=f"pre-upgrade-{current or 'unstamped'}-{target}")
+        print(f"Upgrading v2 database schema {current or 'unstamped'} -> {target} (backup: {backup_path})")
+    state = provision_schema()
+    if state == "missing":
+        print("Fresh v2 database created via Alembic!")
+    elif state == "unstamped":
+        print("Recorded the current Alembic head on the existing (unstamped) v2 database")
+    repaired = backfill_scraped_url_flags()
+    if repaired:
+        print(f"Backfilled scrape_bare_ids on {repaired} scraped URL row(s) left NULL by an older migrator")
+    print("V2 database ready")
 
 
 def _schedule_deferred_migration() -> bool:

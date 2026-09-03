@@ -242,3 +242,48 @@ def test_configured_intervals_come_from_the_settings_table(db_session, monkeypat
     monkeypatch.setattr(database_module, "SessionLocal", lambda: db_session)
 
     assert _configured_intervals() == (3, 2)
+
+
+def test_startup_upgrades_existing_stamped_database_with_backup(tmp_path):
+    """Existing installs must receive new revisions: startup upgrades a
+    database stamped behind head and keeps a pre-upgrade copy."""
+    from tests.migration_test_utils import upgrade_to_revision
+
+    db_path = tmp_path / "config" / "scraper.db"
+    db_path.parent.mkdir(parents=True)
+    legacy_db_path = tmp_path / "config" / "acestream.db"
+    upgrade_to_revision(db_path, "20260824_1000")
+    assert "base_urls" not in _inspect_tables(db_path)
+
+    result = _run_main_import(
+        database_url=_database_url_for(db_path),
+        legacy_database_url=_database_url_for(legacy_db_path),
+        frontend_build_path=tmp_path / "frontend-build",
+    )
+
+    assert result.returncode == 0, f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+    assert "base_urls" in _inspect_tables(db_path)
+    assert "Upgrading v2 database schema 20260824_1000 ->" in result.stdout
+    backups = list((tmp_path / "config" / "backups").glob("*-pre-upgrade-20260824_1000-*/scraper.db"))
+    assert len(backups) == 1, result.stdout
+    # The copy is the pre-upgrade schema.
+    assert "base_urls" not in _inspect_tables(backups[0])
+
+
+def test_startup_at_head_writes_no_backup(tmp_path):
+    from tests.migration_test_utils import upgrade_to_head
+
+    db_path = tmp_path / "config" / "scraper.db"
+    db_path.parent.mkdir(parents=True)
+    legacy_db_path = tmp_path / "config" / "acestream.db"
+    upgrade_to_head(db_path)
+
+    result = _run_main_import(
+        database_url=_database_url_for(db_path),
+        legacy_database_url=_database_url_for(legacy_db_path),
+        frontend_build_path=tmp_path / "frontend-build",
+    )
+
+    assert result.returncode == 0, f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+    assert not (tmp_path / "config" / "backups").exists()
+    assert "V2 database ready" in result.stdout

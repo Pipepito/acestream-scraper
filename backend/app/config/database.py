@@ -229,3 +229,58 @@ def provision_schema(database_url: Optional[str] = None) -> str:
         ensure_schema_stamped(database_url)
     upgrade_schema_to_head()
     return state
+
+
+def current_revision(database_url: Optional[str] = None) -> Optional[str]:
+    """The revision recorded in ``alembic_version`` (None when unstamped/missing)."""
+    import os
+    import sqlite3
+
+    url = database_url or get_settings().DATABASE_URL
+    path = _sqlite_path_from_url(url)
+    if path is None or not os.path.exists(path):
+        return None
+    conn = sqlite3.connect(path)
+    try:
+        names = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if "alembic_version" not in names:
+            return None
+        row = conn.execute("SELECT version_num FROM alembic_version").fetchone()
+        return row[0] if row else None
+    finally:
+        conn.close()
+
+
+def head_revision() -> str:
+    """The Alembic head of the bundled migrations."""
+    from alembic.script import ScriptDirectory
+
+    return ScriptDirectory.from_config(_alembic_config()).get_current_head()
+
+
+def backup_sqlite(database_url: Optional[str] = None, label: str = "pre-upgrade") -> Optional[str]:
+    """Copy the SQLite file to ``<db dir>/backups/<stamp>-<label>/<name>`` via the
+    online backup API (safe while the file is open). Returns the copy's path, or
+    None for non-SQLite URLs."""
+    import os
+    import sqlite3
+    from datetime import datetime, timezone
+
+    url = database_url or get_settings().DATABASE_URL
+    path = _sqlite_path_from_url(url)
+    if path is None or not os.path.exists(path):
+        return None
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    target_dir = os.path.join(os.path.dirname(os.path.abspath(path)), "backups", f"{stamp}-{label}")
+    os.makedirs(target_dir, exist_ok=True)
+    target = os.path.join(target_dir, os.path.basename(path))
+    source = sqlite3.connect(path)
+    try:
+        destination = sqlite3.connect(target)
+        try:
+            source.backup(destination)
+        finally:
+            destination.close()
+    finally:
+        source.close()
+    return target

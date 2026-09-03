@@ -23,9 +23,9 @@ def _engine_version():
     try:
         with open(os.path.join(os.path.dirname(__file__), "engine_version.json")) as handle:
             payload = json.load(handle)
-        return str(payload.get("version_name") or "3.1.80"), str(payload.get("version_code") or "3018000")
+        return str(payload.get("version_name") or "3.2.17"), str(payload.get("version_code") or "3021700")
     except Exception:
-        return "3.1.80", "3018000"
+        return "3.2.17", "3021700"
 
 
 _ENGINE_VERSION, _ENGINE_VERSION_CODE = _engine_version()

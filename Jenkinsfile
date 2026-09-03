@@ -154,7 +154,7 @@ PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_acexy_ru
 # cleanly for both ARM platforms (QEMU build, no engine execution — the
 # 32-bit bionic engine cannot run under qemu-user; arm64 runtime smoke runs on
 # arm64 hosts via the same pytest).
-PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_install_acestream.py -v -k "android_apk_install_layout or arm64_oci_image_install_layout"
+PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_install_acestream.py -v -k "arm_oci_image_install_layout"
 '''
       }
       post {

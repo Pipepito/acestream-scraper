@@ -1,7 +1,7 @@
 #!/bin/sh
-# Launch the official Android AceStream engine payload natively on Linux
+# Launch the Android AceStream engine payload natively on Linux
 # (linux/arm64, linux/arm/v7). Installed as /opt/acestream/start-engine by
-# docker/scripts/install-acestream.sh for install kind android-apk; the
+# docker/scripts/install-acestream.sh for install kind android-apk or oci-image; the
 # x86_64 flavor ships upstream's own start-engine instead.
 #
 # The payload is a bionic (Android libc) CPython 3.8 plus the compiled engine
@@ -43,7 +43,7 @@ export LD_LIBRARY_PATH="$syslib:$ACE/python/lib"
 unset PYTHONDONTWRITEBYTECODE PYTHONUNBUFFERED
 
 if [ ! -x /system/bin/linker64 ] && [ ! -x /system/bin/linker ]; then
-    echo "start-engine: bionic runtime missing at /system; this image was not built with the android-apk engine" >&2
+    echo "start-engine: bionic runtime missing at /system; this image was not built with an ARM engine payload" >&2
     exit 1
 fi
 

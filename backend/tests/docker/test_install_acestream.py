@@ -212,71 +212,33 @@ def test_checksum_mismatch_fails_the_build():
 
 
 @pytest.mark.parametrize(
-    ("platform", "abi", "libdir", "linker"),
-    [
-        ("linux/arm/v7", "armeabi-v7a", "lib", "linker"),
-    ],
+    ("platform", "linker"),
+    [("linux/arm64", "linker64"), ("linux/arm/v7", "linker")],
 )
-def test_android_apk_install_layout(
-    request: pytest.FixtureRequest, platform: str, abi: str, libdir: str, linker: str
+def test_arm_oci_image_install_layout(
+    request: pytest.FixtureRequest, platform: str, linker: str
 ):
-    """ARM platforms install the official Android engine payload plus a minimal
-    Android 9 bionic userland staged for /system. Runs natively on arm64
-    hosts and under QEMU elsewhere (no engine execution is needed)."""
-    tag = _unique_tag(f"acestream-installer-test:apk-{abi}")
+    """Each ARM target copies its matching digest-pinned jopsis distribution,
+    replacing only the bootstrap with the project's persistent Linux launcher."""
+    tag = _unique_tag(f"acestream-installer-test:oci-{platform.rsplit('/', 1)[-1]}")
     _register_image_cleanup(request, tag)
     _build_installer(tag, build_args={}, platform=platform)
 
     metadata = _read_file_in_image(tag, "/opt/acestream/install-metadata.txt", platform)
     assert f"platform={platform}" in metadata
-    assert "kind=android-apk" in metadata
-    assert f"abi={abi}" in metadata
-    assert "engine_source=vendored:acestream/AceStreamCore-" in metadata
-    assert "bionic_source=vendored:bionic/aosp-libs_" in metadata
-    assert "resolved_binary=/opt/acestream/start-engine" in metadata
-
-    ace = _list_dir_in_image(tag, "/opt/acestream", platform)
-    for name in ("main.py", "main_linux.py", "app_bridge.py", "app_bridge.py.android-orig",
-                 "acestream.conf", "modules.zip", "acestreamengine", "python", "lib", "eggs",
-                 "start-engine", "pycountry-19.8.18-py3.8.egg-tmp"):
-        assert name in ace, f"{name} missing from /opt/acestream ({platform})"
-    assert _path_test_in_image(tag, "-x", "/opt/acestream/python/bin/python", platform)
-    assert _path_test_in_image(tag, "-x", "/opt/acestream/start-engine", platform)
-    assert "acestreamengine" in _list_dir_in_image(tag, "/opt/acestream/bin", platform)
-
-    system_bin = _list_dir_in_image(tag, "/opt/acestream-system/bin", platform)
-    assert system_bin == [linker]
-    system_lib = set(_list_dir_in_image(tag, f"/opt/acestream-system/{libdir}", platform))
-    assert {"libc.so", "libdl.so", "libm.so", "libz.so", "liblog.so", "libc++.so",
-            "ld-android.so", "libstdc++.so"} <= system_lib
-    assert _path_test_in_image(tag, "-L", f"/opt/acestream-system/{libdir}/libstdc++.so", platform)
-    assert _path_test_in_image(tag, "-L", "/opt/acestream-system/etc/hosts", platform)
-    assert _path_test_in_image(tag, "-f", "/opt/acestream-system/usr/share/zoneinfo/tzdata", platform)
-    notices = _list_dir_in_image(tag, "/opt/acestream-system/etc/NOTICE-aosp-libs", platform)
-    assert any(name.startswith("NOTICE") for name in notices)
-
-
-def test_arm64_oci_image_install_layout(request: pytest.FixtureRequest):
-    """ARM64 copies the digest-pinned jopsis distribution, replacing only its
-    bootstrap with the project's persistent Linux launcher."""
-    tag = _unique_tag("acestream-installer-test:oci-arm64")
-    _register_image_cleanup(request, tag)
-    _build_installer(tag, build_args={}, platform="linux/arm64")
-
-    metadata = _read_file_in_image(tag, "/opt/acestream/install-metadata.txt", "linux/arm64")
-    assert "platform=linux/arm64" in metadata
     assert "kind=oci-image" in metadata
     assert "engine_version=3.2.17" in metadata
     assert "distribution=jopsis/acestream v3.2.17-fix" in metadata
     assert "engine_source=oci:jopsis/acestream:v3.2.17-fix@sha256:" in metadata
 
-    ace = set(_list_dir_in_image(tag, "/opt/acestream", "linux/arm64"))
+    ace = set(_list_dir_in_image(tag, "/opt/acestream", platform))
     assert {"main.py.oci-orig", "main_linux.py", "app_bridge.py", "app_bridge.py.oci-orig",
             "engine_version.json", "modules.zip", "python", "lib", "start-engine"} <= ace
     assert "install_id" not in ace
     assert "engine_runtime.json" not in ace
-    assert _path_test_in_image(tag, "-x", "/opt/acestream/start-engine", "linux/arm64")
-    assert _path_test_in_image(tag, "-x", "/opt/acestream-system/bin/linker64", "linux/arm64")
+    assert _path_test_in_image(tag, "-x", "/opt/acestream/start-engine", platform)
+    assert _path_test_in_image(tag, "-x", "/opt/acestream/python/bin/python", platform)
+    assert _path_test_in_image(tag, "-x", f"/opt/acestream-system/bin/{linker}", platform)
 
 
 def test_scraper_acestream_runtime_has_python310(request: pytest.FixtureRequest):

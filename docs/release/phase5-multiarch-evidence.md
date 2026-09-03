@@ -19,7 +19,7 @@ document referenced — were retired on 2026-08-26.
   `backend/tests/docker/test_acestream_runtime_smoke.py` (parametrized over
   the manifest platforms the host can execute: `linux/amd64` always,
   `linux/arm64` only on an arm64 host), `test_acexy_runtime_smoke.py`, and
-  `test_install_acestream.py -k android_apk_install_layout` (QEMU builds of
+  `test_install_acestream.py -k arm_oci_image_install_layout` (QEMU builds of
   the `linux/arm64` + `linux/arm/v7` installer stage — no engine execution,
   the Android engine payload cannot run under qemu-user).
 
@@ -30,7 +30,7 @@ document referenced — were retired on 2026-08-26.
 2. dry-run build + `verify_multiarch_manifest.sh` per flavor
    (`phase5-build-result-release-<flavor>.json`);
 3. the same real engine smoke as the PR job
-   (`test_acestream_runtime_smoke.py` + `android_apk_install_layout`);
+   (`test_acestream_runtime_smoke.py` + `arm_oci_image_install_layout`);
 4. multi-platform `--push` per flavor, then `verify_multiarch_manifest.sh
    --image <tag>` against every published tag;
 5. `phase5-build-result-release-*.json` and
@@ -94,9 +94,10 @@ Source of truth: `docker/manifests/platforms.json` and
 Until 2026-08-27 the AceStream-bearing flavors resolved to `linux/amd64`
 only. Branch `arm-acestream-engine` added `linux/arm64` (`support: stable`)
 and `linux/arm/v7` (`support: experimental`) to `docker/manifests/acestream.json`
-using the official Android engine; the engine archives are vendored under
-`docker/vendor/` (update procedure: `docker/vendor/acestream/README.md`,
-manifest schema notes: `docs/ops/multiarch-manifest-updates.md`). Check the
+using the official Android engine. On 2026-09-03 both ARM entries moved to the
+matching variants from digest-pinned `jopsis/acestream:v3.2.17-fix`; the old
+APKs remain vendored only for reproducibility (update procedure:
+`docs/ops/multiarch-manifest-updates.md`). Check the
 resolved matrix and the manifest locally with:
 
 ```
@@ -106,8 +107,8 @@ python3 scripts/ci/validate_docker_manifest_metadata.py
 
 ## AceStream engine on ARM — local smoke evidence
 
-The ARM engine flavors run the official Android engine payload
-(`AceStreamCore-3.1.80.0-armv8_64.apk` / `AceStreamCore-3.1.80.0-armv7.apk`)
+The ARM engine flavors run Android engine 3.2.17 from the matching ARM64 or ARMv7
+variant of digest-pinned `jopsis/acestream:v3.2.17-fix`
 directly against a minimal Android 9 bionic userland at `/system` — no
 chroot, `--privileged`, seccomp profile or extra capabilities. Background:
 the status block in `docs/release/arm-acestream-issue-draft.md`; user-facing
@@ -120,7 +121,7 @@ caveats: "Known issues" in `docs/release/v2-release-notes.md`.
 | Host | Apple Silicon (arm64), Docker Desktop 28.3 (`docker version` → `28.3.0 linux/arm64`) |
 | Command | `PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_acestream_runtime_smoke.py -v` (on an arm64 host this parametrizes `linux/amd64` and `linux/arm64`) |
 | `linux/arm64` engine smoke | **Pass (2026-09-03)** — `scraper-acestream` built natively with digest-pinned `jopsis/acestream:v3.2.17-fix`; `/webui/api/service?method=get_version` reported `{"platform":"android","version":"3.2.17"}`; the app and image healthcheck passed, search returned the engine catalogue, and `/api/v1/system/services` reported the linked package attribution. [Dashboard evidence](arm64-engine-dashboard.png). A byte-limited request for one current catalogue item returned `failed to load content` identically in the unmodified source container and integrated image, so no successful media-transfer claim is made. |
-| `linux/arm/v7` engine smoke | **Pending** — installer stage verified by `test_install_acestream.py -k android_apk_install_layout` (QEMU build); the 32-bit bionic engine cannot execute under qemu-user (`personality(PER_LINUX32)`), so execution needs real ARMv7/AArch32-capable hardware |
+| `linux/arm/v7` engine smoke | **Build pass / runtime pending (2026-09-03)** — the full `scraper-acestream-acexy` image built and loaded for `linux/arm/v7` using the matching digest-pinned jopsis 3.2.17 OCI variant; metadata and `/system/bin/linker` were verified. An emulated start reached Acexy but the bionic engine exited at `personality(PER_LINUX32)` with `Operation not permitted`, so runtime execution still needs real ARMv7/AArch32-capable hardware. |
 | Real-hardware validation | **Pending** — Raspberry Pi 4 / ARMv7 plan in `docs/release/arm-acestream-issue-draft.md` (≥30 min playback, CPU/RAM vs amd64) |
 
 ## Android TV caveats

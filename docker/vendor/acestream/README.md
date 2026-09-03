@@ -1,9 +1,9 @@
 # Vendored AceStream engine payloads
 
-Upstream mirror of the exact engine archives pinned in
-`docker/manifests/acestream.json`, kept in-repo so image builds do not depend
-on reaching `download.acestream.media` (geo-blocked from many networks; the
-Jenkins runner normally needs WARP to fetch them).
+Upstream mirror of conventional engine archives retained by the project. The
+amd64 tarball is selected by `docker/manifests/acestream.json`; the legacy ARM
+APKs remain for reproducibility, but current ARM64 and ARMv7 builds use their
+matching variants from the digest-pinned jopsis OCI image.
 
 | File | Platform | Upstream source |
 | --- | --- | --- |
@@ -15,8 +15,8 @@ Jenkins runner normally needs WARP to fetch them).
 manifest. Verify with `shasum -a 256 -c SHA256SUMS` (macOS) or
 `sha256sum -c SHA256SUMS` (Linux).
 
-Upstream publishes native Linux tarballs for x86_64 only; the ARM engines are
-the official Android APKs listed on https://docs.acestream.media/products/.
+Upstream publishes native Linux tarballs for x86_64 only. The retained ARM APKs
+came from https://docs.acestream.media/products/ but are not the active ARM source.
 
 ## How the build uses them
 

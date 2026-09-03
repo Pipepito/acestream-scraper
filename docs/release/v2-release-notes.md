@@ -35,7 +35,12 @@ Platform support:
 |---|---|---|---|---|
 | `linux/amd64` | Native 3.2.11, stable | Bundled, opt-in | Bundled, opt-in | Bundled, opt-in |
 | `linux/arm64` | Android 3.2.17, stable | Bundled, opt-in | External | Bundled, opt-in |
-| `linux/arm/v7` | Android 3.1.80, experimental | External | External | Not available |
+| `linux/arm/v7` | Android 3.2.17, experimental | External | External | Not available |
+
+Both ARM engine entries use their matching platform variant from the same
+digest-pinned [`jopsis/acestream:v3.2.17-fix`](https://hub.docker.com/r/jopsis/acestream)
+multi-platform image. ARMv7 is build/layout-verified but remains experimental
+until the engine is exercised on real 32-bit ARM hardware.
 
 Acexy-bearing flavors now build and run the real upstream Acexy 0.2.2 proxy. The full and engine flavors persist ARM engine state under `/var/lib/acestream`; mount a volume there when enabling the engine.
 

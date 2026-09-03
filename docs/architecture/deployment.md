@@ -112,7 +112,7 @@ The manifest currently pins, per platform (`platforms.<platform>` entries with `
 
 - `linux/amd64` — `support: stable`; install kind `executable`; upstream native Linux engine 3.2.11 tarball (unchanged).
 - `linux/arm64` — `support: stable`; install kind `oci-image`; Android engine 3.2.17 and its bionic runtime are copied from digest-pinned [`jopsis/acestream:v3.2.17-fix`](https://hub.docker.com/r/jopsis/acestream) ([build source](https://github.com/jopsis/docker-acestream-aceserve)). This avoids the premium-gated official 3.1.80 ARM64 build. The project replaces the source image bootstrap with its persistent Linux bridge and records attribution in `/opt/acestream/install-metadata.txt`.
-- `linux/arm/v7` — `support: experimental`; install kind `android-apk` (`abi: armeabi-v7a`); same layout with the `armv7` APK and 32-bit bionic (`linker`, `lib`). Builds and installs, but the 32-bit bionic engine cannot run under qemu-user (it calls `personality(PER_LINUX32)`), so it has not been runtime-tested on real ARMv7 hardware.
+- `linux/arm/v7` — `support: experimental`; install kind `oci-image`; Android engine 3.2.17 and its 32-bit bionic runtime come from the ARMv7 variant of the same digest-pinned jopsis image. It builds and installs, but the 32-bit bionic engine cannot run under qemu-user (it calls `personality(PER_LINUX32)`), so it still needs validation on real ARMv7 hardware.
 
 The amd64/ARMv7 engine archives and bionic `.deb` files are vendored in-repo and mirrored as GitHub Release assets. ARM64 is a cold-build dependency on Docker Hub, but both its tag and multi-arch OCI digest are pinned. `docker/scripts/acestream_manifest.py` is the shared resolver (also used by `scripts/ci/derive_acestream_build_args.py`); `scripts/ci/build_multiarch_images.sh` validates each resolved platform. `ACESTREAM_SOURCE=fixture` builds the contract-test fixture. Pin updates follow `docs/ops/multiarch-manifest-updates.md`.
 
@@ -121,7 +121,7 @@ Required minimum compatibility claims for release signoff:
 - Baseline flavors (`scraper`, `scraper-acexy`) succeed for ARM v7 and ARM64 and are included in architecture validation outputs.
 - AceStream-enabled flavors (`scraper-acestream`, `scraper-acestream-acexy`, `latest`) only need to succeed for the platforms allowed by `docker/manifests/acestream.json`.
 - Runtime smoke checks pass for the ARM targets required by the flavor being signed off (`/api/v1/health`, frontend root path).
-- AceStream engine flavors: both ARM installer layouts must build cleanly (`test_install_acestream.py -k "android_apk_install_layout or arm64_oci_image_install_layout"`), and the real engine must answer its HTTP API on amd64 and on ARM64 hosts. ARMv7 is signed off as build-only while experimental. Manifest validation covers both vendored archives and the pinned OCI digest.
+- AceStream engine flavors: both ARM installer layouts must build cleanly (`test_install_acestream.py -k "arm_oci_image_install_layout"`), and the real engine must answer its HTTP API on amd64 and on ARM64 hosts. ARMv7 is signed off as build-only while experimental. Manifest validation covers the vendored amd64 archive and the pinned ARM OCI digest.
 
 ### Build and Validation Path
 
@@ -145,7 +145,7 @@ python3 scripts/ci/validate_docker_manifest_metadata.py
 
 # AceStream engine: ARM installer layout (QEMU build, no engine execution) and
 # real-engine runtime smoke (amd64 always; arm64 when run on an arm64 host)
-PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_install_acestream.py -k "android_apk_install_layout or arm64_oci_image_install_layout"
+PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_install_acestream.py -k "arm_oci_image_install_layout"
 PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_acestream_runtime_smoke.py
 ```
 
@@ -157,7 +157,7 @@ CI orchestration:
 - Jenkins pipelines target the `dorat-nuc-ci` label and call `scripts/ci/bootstrap_jenkins_runner.sh` after `checkout scm`.
 - `git` remains the practical prerequisite on the Jenkins node because checkout happens before repository bootstrap.
 - Jenkins uses the named buildx builder `acestream-builder` unless `JENKINS_BUILDER` is explicitly overridden; the builder can be precreated by the operator or prepared during bootstrap.
-- The PR job's `Acestream Engine Runtime Smoke` stage builds `scraper-acestream` pinned to `--platforms linux/amd64 --load` (the runner `dorat-nuc-ci` is amd64; `--load` needs a single platform) with `BUILDX_BUILDER=default --network host`, then runs `test_acestream_runtime_smoke.py` plus `test_install_acestream.py -k android_apk_install_layout`. `scripts/ci/run_jenkins_release.sh` repeats the same checks before pushing the multi-platform manifests, so the published `scraper-acestream`, `scraper-acestream-acexy`, `latest`, and version tags include `linux/arm64` and `linux/arm/v7`.
+- The PR job's `Acestream Engine Runtime Smoke` stage builds `scraper-acestream` pinned to `--platforms linux/amd64 --load` (the runner `dorat-nuc-ci` is amd64; `--load` needs a single platform) with `BUILDX_BUILDER=default --network host`, then runs `test_acestream_runtime_smoke.py` plus `test_install_acestream.py -k arm_oci_image_install_layout`. `scripts/ci/run_jenkins_release.sh` repeats the same checks before pushing the multi-platform manifests, so the published `scraper-acestream`, `scraper-acestream-acexy`, `latest`, and version tags include `linux/arm64` and `linux/arm/v7`.
 - Docker access must already work for the current Jenkins runtime user on that node.
 - During the current transition and hardening period, the existing GitHub Actions workflows remain available as fallback/reference workflows. (Superseded 2026-08-26, commit e5657b9: all GitHub Actions workflows are retired.)
 - GitHub Actions workflows serve these secondary parity roles: (superseded 2026-08-26, commit e5657b9 — none remain)
@@ -193,7 +193,7 @@ Operator caveats specific to the ARM engine:
 
 - Kernel page size must be 4096. `start-engine` checks `getconf PAGESIZE` and exits with an explicit error otherwise, because the Android 9 bionic linker segfaults on 16 KB-page kernels. Raspberry Pi 5 defaults to the 64-bit `kernel_2712` (16 KB pages): set `kernel=kernel8.img` in `config.txt`.
 - `linux/arm/v7` is experimental: build-tested only, never executed on real ARMv7/AArch32 hardware.
-- Engine version skew: 3.2.17 on ARM64, 3.1.80 on ARMv7, and 3.2.11 on amd64; ARM reports platform `android`.
+- Engine version skew: 3.2.17 on ARM64/ARMv7 and 3.2.11 on amd64; ARM reports platform `android`.
 - No WebRTC transport on ARM (pywebrtc needs Android GPU/audio libraries; the engine logs a non-fatal error). A few CPython accelerator modules fall back to pure Python.
 - No WARP on `linux/arm/v7` images (`cloudflare-warp` is published for amd64 and arm64 only).
 - Performance and streaming stability are not yet validated on real ARM hardware.

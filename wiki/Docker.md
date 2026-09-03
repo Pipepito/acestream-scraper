@@ -53,7 +53,7 @@ Every flavor is published for `linux/amd64`, `linux/arm64`, and `linux/arm/v7`. 
 | --- | --- | --- |
 | `linux/amd64` | Native Linux engine 3.2.11 (upstream tarball) | stable |
 | `linux/arm64` | Android engine 3.2.17 from [`jopsis/acestream:v3.2.17-fix`](https://hub.docker.com/r/jopsis/acestream), digest-pinned and run natively | stable |
-| `linux/arm/v7` | Official Android engine 3.1.80.0 (`AceStreamCore-3.1.80.0-armv7.apk`), run natively | experimental |
+| `linux/arm/v7` | Android engine 3.2.17 from [`jopsis/acestream:v3.2.17-fix`](https://hub.docker.com/r/jopsis/acestream), digest-pinned and run natively | experimental |
 
 Upstream only publishes native Linux engine builds for x86_64, so the ARM images unpack the engine payload from the official AceStream Android APK (the ones listed on https://docs.acestream.media/products/) and run it unmodified against a minimal Android 9 bionic userland shipped under `/system`. No chroot, `--privileged`, seccomp changes, or extra capabilities are needed. `linux/arm/v7` builds and installs but has not been runtime-tested on real ARMv7 hardware yet, so treat it as experimental.
 
@@ -65,7 +65,7 @@ The checked-in compose stack keeps the `zeronet` service behind an optional `zer
 
 IPFS is bundled, unlike ZeroNet: every flavor ships the [Kubo](https://github.com/ipfs/kubo) IPFS daemon on `linux/amd64` and `linux/arm64`. Kubo publishes no 32-bit ARM build, so `linux/arm/v7` images ship without it (the container exits with a clear error if `ENABLE_IPFS=true` is requested there — same situation as WARP). The daemon is opt-in: nothing IPFS-related runs until `ENABLE_IPFS=true`. `ipfs://` and `ipns://` sources are fetched through `IPFS_GATEWAY_URL`, which defaults to the embedded gateway at `http://127.0.0.1:8081` — the gateway uses `8081` in-container because Acexy already listens on `8080`. You can also scrape IPFS without the embedded daemon: keep `ENABLE_IPFS=false` and point `IPFS_GATEWAY_URL` at an external node, e.g. `http://host.docker.internal:8080` for a Kubo/IPFS Desktop install on the Docker host (this works on every platform, `linux/arm/v7` included).
 
-AceStream platform availability is manifest-driven via `docker/manifests/acestream.json`. Adding a new supported AceStream architecture means updating that manifest. The manifest pins the engine archive, checksum, and support level (`stable` or `experimental`) per platform; every pinned archive is also vendored under `docker/vendor/` and mirrored as GitHub Release assets, so image builds do not depend on reaching `download.acestream.media`.
+AceStream platform availability is manifest-driven via `docker/manifests/acestream.json`. Adding a new supported AceStream architecture means updating that manifest. The manifest pins the engine source and support level (`stable` or `experimental`) per platform: conventional archives are checksum-pinned and vendored, while both ARM entries pin the jopsis multi-platform OCI digest.
 
 If you run with `ENABLE_WARP=true`, the container must be started with the runtime capabilities `NET_ADMIN` and `SYS_ADMIN`.
 
@@ -148,13 +148,13 @@ docker run -d \
 - On ARM, `/var/lib/acestream` (`ACESTREAM_HOME`) holds the Android engine's state: `acestream.conf`, `acestream.log`, `acestream_error.log`, and the `.ACEStream/` directory with the disk cache. Mount a named volume there so the cache and the per-install device id (`.device_id`) survive container replacement; the mount is harmless on amd64.
 - Ports: `6878` is the engine HTTP API (the backend talks to it through `ACE_ENGINE_URL`, default `http://localhost:6878`); `8621` tcp/udp is the P2P port. Only publish `6878` if you want to reach the engine from outside the container, and only on trusted networks: the ARM engine is started with `--bind-all` so published-port clients are accepted, and the engine HTTP API has no authentication.
 - Logs: the entrypoint supervises the engine, so its output shows up in `docker logs acestream-scraper` (on ARM the launcher passes `--log-stdout` for this). On ARM the engine also writes `acestream.log` / `acestream_error.log` under `/var/lib/acestream`.
-- Health: the backend polls `/server/api?api_version=3&method=get_status` and `method=get_network_connection_status` on the engine. To confirm which engine is running: `curl "http://localhost:6878/webui/api/service?method=get_version"` returns `{"platform":"android","version":"3.2.17"}` on ARM64. The dashboard also shows `Engine package: jopsis/acestream v3.2.17-fix` with a link to the source image.
+- Health: the backend polls `/server/api?api_version=3&method=get_status` and `method=get_network_connection_status` on the engine. To confirm which engine is running: `curl "http://localhost:6878/webui/api/service?method=get_version"` returns `{"platform":"android","version":"3.2.17"}` on ARM64 and ARMv7. The dashboard also shows `Engine package: jopsis/acestream v3.2.17-fix` with a link to the source image.
 
 ARM caveats:
 
 - **Raspberry Pi 5 (and any 16 KB-page kernel):** the Android 9 bionic linker requires a 4 KB kernel page size. On Raspberry Pi OS 64-bit set `kernel=kernel8.img` in `config.txt` (the default `kernel_2712` kernel uses 16 KB pages). The engine checks `getconf PAGESIZE` at startup and exits with an explicit error instead of segfaulting.
 - **`linux/arm/v7` is experimental:** the image builds and installs, but the 32-bit engine cannot be executed under QEMU user emulation, so it has not been runtime-tested on real ARMv7 hardware. Prefer `linux/arm64` wherever the device supports 64-bit containers.
-- **Engine version skew:** ARM64 runs Android engine 3.2.17, ARMv7 runs Android engine 3.1.80.0 (both report `"platform":"android"`), and amd64 runs native Linux engine 3.2.11.
+- **Engine version skew:** ARM64 and ARMv7 run Android engine 3.2.17 (both report `"platform":"android"`), while amd64 runs native Linux engine 3.2.11.
 - **No WebRTC transport on ARM:** the Android WebRTC module needs GPU/audio libraries that are not shipped; the engine logs a non-fatal error and keeps going. A few CPython accelerator modules also fall back to pure Python.
 - **No WARP on linux/arm/v7 images:** `cloudflare-warp` ships for amd64 and arm64 only.
 - **Performance and streaming stability** on real ARM hardware are not yet validated; report results if you try it.

@@ -51,6 +51,9 @@ loads the applicable file when working below those directories.
   `docs/builder/runtime-options.json` and run the command-builder contract check.
 - Changes to sidecar installation/runtime behavior must consider image flavor,
   CPU architecture, supervisor behavior, health probes, and Docker documentation.
+- ARM64 and ARMv7 AceStream builds use the matching platform variants from the
+  digest-pinned `jopsis/acestream:v3.2.17-fix` OCI image. ARMv7 remains
+  experimental until its engine is runtime-tested on real ARMv7 hardware.
 - User-facing UI copy is plain, concise, and operational. Preserve both themes,
   responsive behavior, keyboard access, reduced motion, and non-color status cues.
 - Do not commit generated/runtime data such as local SQLite databases, E2E stack

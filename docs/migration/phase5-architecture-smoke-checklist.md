@@ -69,18 +69,18 @@ Repeat for `linux/arm/v7`.
 
 ## AceStream Engine Smoke (ARM)
 
-The engine flavors (`scraper-acestream`, `scraper-acestream-acexy`, `latest`) build for `linux/arm64` and `linux/arm/v7` since 2026-08-27, but the official Android engine payload they ship cannot be executed under qemu-user, so engine runtime checks need real ARM hosts. Operator guide: `docs/ops/acestream-arm-engine.md`. Record results in `docs/release/phase5-multiarch-evidence.md`.
+The engine flavors (`scraper-acestream`, `scraper-acestream-acexy`, `latest`) build for `linux/arm64` and `linux/arm/v7`. Both use the matching 3.2.17 platform variant from digest-pinned `jopsis/acestream:v3.2.17-fix`; the ARMv7 bionic payload still cannot execute under qemu-user, so its engine runtime check needs real ARMv7 hardware. Operator guide: `docs/ops/acestream-arm-engine.md`. Record results in `docs/release/phase5-multiarch-evidence.md`.
 
 ### On any host (build-level, QEMU)
 
 ```bash
-PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_install_acestream.py -v -k android_apk_install_layout
+PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_install_acestream.py -v -k arm_oci_image_install_layout
 ```
 
 Expected:
 
 - The arm64 and armv7 `acestream-installer` stages build from the vendored APKs and bionic `.deb`s under `docker/vendor/` (no network).
-- `/opt/acestream/install-metadata.txt` reports `kind=android-apk`, the right `abi`, and `vendored:` sources.
+- `/opt/acestream/install-metadata.txt` reports `kind=oci-image`, engine 3.2.17, and the pinned jopsis image reference and digest.
 - The staged `/system` tree contains the bionic linker and libraries.
 
 This is what the Jenkins PR and release jobs run for ARM; it proves the install, not the engine.
@@ -96,7 +96,7 @@ PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_acestrea
 The test parametrizes `linux/arm64` automatically on arm64 hosts. Expected:
 
 - `scraper-acestream` builds for `linux/arm64` through `scripts/ci/build_multiarch_images.sh`.
-- With `ENABLE_ACESTREAM_ENGINE=true` the app opens `:8000` and the engine answers `http://localhost:6878/webui/api/service?method=get_version` with `{"platform":"android","version":"3.1.80"}` (a prefix of the manifest's `engine_version`).
+- With `ENABLE_ACESTREAM_ENGINE=true` the app opens `:8000` and the engine answers `http://localhost:6878/webui/api/service?method=get_version` with `{"platform":"android","version":"3.2.17"}` (matching the manifest's `engine_version`).
 - `/server/api?api_version=3&method=get_status` returns 200 (the backend's health probe).
 
 Manual equivalent with a published image:
@@ -121,4 +121,3 @@ Then play a known-working channel for 30 minutes and watch `docker stats` / `doc
 - For ARMv7 devices, monitor memory pressure and startup time.
 - Run this checklist before first rollout to each Android TV hardware class.
 - If the in-container engine is enabled on the device, it needs a 4 KB kernel page size and a volume at `/var/lib/acestream`; `linux/arm/v7` engine support is experimental (see above).
-

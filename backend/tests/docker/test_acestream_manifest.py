@@ -57,7 +57,7 @@ def test_acestream_platforms_cover_every_baseline_platform():
     assert set(baseline) == set(load_manifest()["platforms"])
 
 
-def test_arm_entries_use_expected_android_distributions():
+def test_arm_entries_use_expected_jopsis_distribution():
     payload = load_manifest()
     arm64 = payload["platforms"]["linux/arm64"]
     assert arm64["install"]["kind"] == "oci-image"
@@ -66,10 +66,11 @@ def test_arm_entries_use_expected_android_distributions():
     assert arm64["distribution_url"] == "https://hub.docker.com/r/jopsis/acestream"
 
     armv7 = payload["platforms"]["linux/arm/v7"]
-    assert armv7["url"].endswith("-armv7.apk")
-    assert armv7["engine_version"] == payload["android_version"]
-    assert armv7["install"]["kind"] == "android-apk"
-    assert armv7["install"]["abi"] == "armeabi-v7a"
+    assert armv7["install"]["kind"] == "oci-image"
+    assert armv7["engine_version"] == "3.2.17"
+    assert armv7["image_ref"] == arm64["image_ref"]
+    assert armv7["image_digest"] == arm64["image_digest"]
+    assert armv7["distribution_url"] == "https://hub.docker.com/r/jopsis/acestream"
     assert payload["platforms"]["linux/arm/v7"]["support"] == "experimental"
     assert payload["platforms"]["linux/arm64"]["support"] == "stable"
 
@@ -144,6 +145,12 @@ def test_resolver_emits_platform_specific_variables():
     assert arm64["ACESTREAM_OCI_IMAGE_DIGEST"].startswith("sha256:")
     assert arm64["ACESTREAM_DISTRIBUTION"] == "jopsis/acestream v3.2.17-fix"
     assert "ACESTREAM_BINARY_PATH" not in arm64
+
+    armv7 = resolve("linux/arm/v7")
+    assert armv7["ACESTREAM_INSTALL_KIND"] == "oci-image"
+    assert armv7["ACESTREAM_OCI_IMAGE_REF"] == "jopsis/acestream:v3.2.17-fix"
+    assert armv7["ACESTREAM_OCI_IMAGE_DIGEST"] == arm64["ACESTREAM_OCI_IMAGE_DIGEST"]
+    assert armv7["ACESTREAM_DISTRIBUTION"] == "jopsis/acestream v3.2.17-fix"
 
     unknown = subprocess.run(
         ["python3", str(RESOLVER), str(MANIFEST_PATH), "--platform", "linux/ppc64le"],

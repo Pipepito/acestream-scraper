@@ -15,8 +15,8 @@ ARG ACESTREAM_ENGINE_PYTHON_VERSION=3.10
 # interpreter, carried inside /opt/zeronet.
 ARG ZERONET_PYTHON_VERSION=3.11
 
-# ARM64 uses the maintained, non-premium-gated Android payload packaged by
-# jopsis. Pin the multi-arch manifest digest as well as the human-readable tag:
+# ARM64 and ARMv7 use the maintained, non-premium-gated Android payloads packaged
+# by jopsis. Pin the multi-arch manifest digest as well as the human-readable tag:
 # upstream tag changes can never silently alter a release build.
 ARG ACESTREAM_COMMUNITY_IMAGE=jopsis/acestream:v3.2.17-fix@sha256:506c4215115d8b0ac1e24f4c67c954f0dbf86e4b4ea508582e497d8c920e9933
 
@@ -57,8 +57,8 @@ FROM python:${ACESTREAM_ENGINE_PYTHON_VERSION}-slim AS acestream-installer
 
 # Engine selection is manifest-driven per target platform: install-acestream.sh
 # reads docker/manifests/acestream.json for $TARGETPLATFORM (linux/amd64 ->
-# upstream x86_64 tarball, linux/arm64 -> pinned jopsis OCI image, and
-# linux/arm/v7 -> official Android engine APK on a bionic runtime) and prefers the vendored archives under
+# upstream x86_64 tarball and both ARM platforms -> their matching variant from
+# the pinned jopsis OCI image) and prefers the vendored archives under
 # docker/vendor/ over network downloads. Explicit build-args override the
 # manifest; ACESTREAM_SOURCE=fixture installs the contract-test fixture.
 ARG TARGETPLATFORM

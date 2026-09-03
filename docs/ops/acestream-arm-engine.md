@@ -21,16 +21,16 @@ Related documents:
 |---|---|---|---|---|
 | `linux/amd64` | Native Linux engine 3.2.11 (`acestream_3.2.11_ubuntu_22.04_x86_64_py3.10.tar.gz`) | `executable` | `stable` | Unchanged: upstream tarball on a grafted `python3.10`. |
 | `linux/arm64` | Android engine 3.2.17 from [`jopsis/acestream:v3.2.17-fix`](https://hub.docker.com/r/jopsis/acestream) | `oci-image` | `stable` | Non-premium-gated distribution; immutable OCI digest; API/startup verified on ARM64. |
-| `linux/arm/v7` | Official Android engine 3.1.80.0 (`AceStreamCore-3.1.80.0-armv7.apk`, ABI `armeabi-v7a`) | `android-apk` | `experimental` | Builds and installs; cannot execute under qemu-user; not runtime-tested on hardware yet. |
+| `linux/arm/v7` | Android engine 3.2.17 from [`jopsis/acestream:v3.2.17-fix`](https://hub.docker.com/r/jopsis/acestream) | `oci-image` | `experimental` | Matching ARMv7 OCI variant; builds and installs; cannot execute under qemu-user; not runtime-tested on hardware yet. |
 
 `support` is the value from `docker/manifests/acestream.json`; the resolved
 kind, version, support level and source for every platform are printed by
 `bash scripts/ci/build_multiarch_images.sh --dry-run --flavor scraper-acestream`.
 
-Upstream publishes native Linux engine tarballs only for x86_64. The official
-3.1.80 ARM64 Android build is premium-gated, so ARM64 uses the maintained
+Upstream publishes native Linux engine tarballs only for x86_64. Both ARM
+platforms use their matching variant of the maintained
 [`jopsis/acestream`](https://github.com/jopsis/docker-acestream-aceserve) 3.2.17
-distribution; ARMv7 keeps the official APK. The engine is opt-in on every platform
+multi-platform distribution. The engine is opt-in on every platform
 (`ENABLE_ACESTREAM_ENGINE=false` by default), so the app itself is unaffected
 on hosts where the engine cannot start.
 
@@ -40,9 +40,8 @@ Both ARM distributions carry a python-for-Android engine: a bionic-linked
 CPython 3.8 plus compiled engine modules. Rather than chroot-ing into Android,
 the image runs the payload against the accompanying bionic userland:
 
-1. At build time, ARM64's `oci-image` path copies `/acestream` and `/system`
-   from the digest-pinned jopsis stage. ARMv7's `android-apk` path extracts the
-   three engine zips from the official APK and stages Termux `aosp-libs`.
+1. At build time, each ARM target's `oci-image` path copies `/acestream` and
+   `/system` from the matching platform variant of the digest-pinned jopsis stage.
 2. The Linux bootstrap files from `docker/scripts/acestream-android/` replace
    the source bootstrap while the originals remain as `*.oci-orig` or
    `*.android-orig`. This avoids inheriting a fixed device identity and keeps
@@ -82,8 +81,9 @@ Inside the ARM `scraper-acestream*` images:
 | `/system/etc/NOTICE-aosp-libs/` | License notices for the bionic libraries. |
 | `/var/lib/acestream/` | `ACESTREAM_HOME`: engine config, state, cache, and logs. Created empty; mount a volume here. |
 
-The amd64 and ARMv7 archives are vendored in the repository and mirrored on a
-GitHub Release:
+The amd64 archive and legacy ARM APKs are vendored in the repository and mirrored
+on a GitHub Release. The legacy APKs are retained for reproducibility but are no
+longer selected by the current ARM manifest entries:
 
 - `docker/vendor/acestream/`: `acestream_3.2.11_ubuntu_22.04_x86_64_py3.10.tar.gz`,
   `AceStreamCore-3.1.80.0-armv7.apk`,
@@ -92,7 +92,8 @@ GitHub Release:
   `aosp-libs_9.0.0-r76-4_arm.deb`, `SHA256SUMS`.
 - Mirror: https://github.com/Pipepito/acestream-scraper/releases/tag/acestream-binaries-3.2.11-3.1.80.0
 
-ARM64 instead copies `/acestream` and `/system` from
+ARM64 and ARMv7 instead copy `/acestream` and `/system` from their matching
+platform variants of
 `jopsis/acestream:v3.2.17-fix@sha256:506c4215115d8b0ac1e24f4c67c954f0dbf86e4b4ea508582e497d8c920e9933`
 as a Docker build stage. The tag documents the selected release and the digest
 prevents drift. The installer resolves each conventional archive as vendored copy -> upstream `url` ->
@@ -106,17 +107,17 @@ To see what a given image installed:
 docker run --rm --entrypoint cat pipepito/acestream-scraper:scraper-acestream /opt/acestream/install-metadata.txt
 ```
 
-Expected on arm64: `platform=linux/arm64`, `kind=oci-image`,
-`engine_version=3.2.17`, `support=stable`,
+Expected on ARM: the matching `platform`, `kind=oci-image`,
+`engine_version=3.2.17`, the platform's support level,
 `distribution=jopsis/acestream v3.2.17-fix`, and an `engine_source=oci:...`
 value containing the pinned digest.
 
 ## Licensing And Notices
 
-- AceStream engine: proprietary, distributed under AceStream's terms. ARM64's
-  payload and bionic runtime come from `jopsis/acestream`; its Docker Hub page
+- AceStream engine: proprietary, distributed under AceStream's terms. Both ARM
+  payloads and bionic runtimes come from `jopsis/acestream`; its Docker Hub page
   and public GitHub build source are linked above, but the repository has no
-  explicit packaging-code license. ARMv7 repackages the official APK. Release
+  explicit packaging-code license. Release
   owners must review redistribution terms; operators enable the engine at their
   own discretion.
 - Bionic userland: `aosp-libs 9.0.0-r76-4` from Termux, built from AOSP source.
@@ -228,7 +229,7 @@ and earlier already use 4 KB pages.
 
 ```bash
 docker exec acestream-scraper curl -fsS "http://localhost:6878/webui/api/service?method=get_version"
-# ARM:   {"result":{"platform":"android","version":"3.1.80"},"error":null}
+# ARM:   {"result":{"platform":"android","version":"3.2.17"},"error":null}
 # amd64: version 3.2.11 (Linux engine)
 ```
 
@@ -246,8 +247,8 @@ docker exec acestream-scraper curl -fsS "http://localhost:6878/webui/api/service
 
 ## Known Gaps And Limitations
 
-- Engine version skew: ARM64 runs 3.2.17, ARMv7 runs 3.1.80, and amd64 runs
-  3.2.11; `get_version` reports `"platform":"android"` on ARM.
+- Engine version skew: ARM64 and ARMv7 run 3.2.17, while amd64 runs 3.2.11;
+  `get_version` reports `"platform":"android"` on ARM.
 - No WebRTC transport on ARM: `pywebrtc` needs Android GPU/audio libraries that
   are not shipped. The engine logs a non-fatal error at startup and keeps
   working over the classic transports.
@@ -325,27 +326,26 @@ playback stability) in an issue so the support level can be promoted from
 ### Building locally on the Pi
 
 ```bash
-bash scripts/ci/build_multiarch_images.sh --flavor scraper-acestream --platforms linux/arm64 --load --tag acestream-scraper:arm64-local
+PLATFORM=linux/arm/v7
+TAG=armv7-local
+bash scripts/ci/build_multiarch_images.sh --flavor scraper-acestream --platforms "$PLATFORM" --load --tag "acestream-scraper:$TAG"
 ```
 
-`--load` requires a single platform. The build reads the vendored archives, so
-no network access to `download.acestream.media` is needed.
+Set `PLATFORM=linux/arm64` and `TAG=arm64-local` for a 64-bit build. `--load`
+requires a single platform. ARM builds pull the pinned jopsis source image, so
+a cold builder needs Docker Hub access.
 
 ## Updating The Pins
 
 The full procedure lives in `docs/ops/multiarch-manifest-updates.md` and
 `docker/vendor/acestream/README.md`. In short:
 
-1. Download the new upstream archive(s): the Linux tarball for amd64,
-   `AceStreamCore-<version>-armv8_64.apk` and `AceStreamCore-<version>-armv7.apk`
-   for ARM, and a new `aosp-libs` `.deb` only if the bionic runtime has to
-   change. Add them to `docker/vendor/acestream/` or `docker/vendor/bionic/`
-   and regenerate that directory's `SHA256SUMS`.
-2. Update `docker/manifests/acestream.json`: per platform `url`, `sha256`,
-   `vendored_file`, `mirror_urls`, `engine_version`; top level `version`,
-   `android_version`, `mirror_base_url`.
-3. Publish the same files as a GitHub Release so the mirrors resolve:
-   `gh release create acestream-binaries-<versions> --target main --latest=false <files>`.
+1. For amd64 archives, download and vendor the new tarball and regenerate
+   `SHA256SUMS`. For ARM, verify that the selected jopsis tag publishes both
+   `linux/arm64` and `linux/arm/v7`, then record its multi-platform digest.
+2. Update `docker/manifests/acestream.json`: archive fields for amd64, or
+   `image_ref`, `image_digest`, attribution, and `engine_version` for each ARM entry.
+3. Publish conventional archive files as a GitHub Release when their mirrors change.
 4. Validate: `python3 scripts/ci/validate_docker_manifest_metadata.py` and
    `PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker`.
 5. Runtime-test on arm64 hardware (section above) before promoting a new ARM
@@ -357,7 +357,7 @@ The full procedure lives in `docs/ops/multiarch-manifest-updates.md` and
 | Symptom | Cause / fix |
 |---|---|
 | `AceStream is enabled but not installed in this image flavor` | The container runs `scraper` or `scraper-acexy`; switch to an engine flavor. |
-| `start-engine: bionic runtime missing at /system` | The image was built without the android-apk engine (for example with `ACESTREAM_SOURCE=fixture`); rebuild in the default auto mode. |
+| `start-engine: bionic runtime missing at /system` | The image was built without an ARM engine payload (for example with `ACESTREAM_SOURCE=fixture`); rebuild in the default auto mode. |
 | `start-engine: kernel page size is 16384 ...` | 16 KB-page kernel; set `kernel=kernel8.img` in `config.txt` (Pi 5) and reboot. |
 | Engine never answers on `:6878` | Check `docker logs` and `${ACESTREAM_HOME}/acestream_error.log`; confirm the container architecture with `docker exec <name> uname -m`; on armv7 hardware expect experimental results. |
 | WebRTC error in the engine log | Expected on ARM; non-fatal. |

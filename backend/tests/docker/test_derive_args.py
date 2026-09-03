@@ -60,10 +60,9 @@ def test_android_platforms_emit_source_specific_keys():
     assert rc == 0, err
     armv7 = _pairs(out)
     entry = expected["linux/arm/v7"]
-    assert armv7["ACESTREAM_INSTALL_KIND"] == "android-apk"
-    assert armv7["ACESTREAM_ARCHIVE_TYPE"] == "apk"
-    assert armv7["ACESTREAM_ANDROID_ABI"] == entry["install"]["abi"]
-    assert armv7["ACESTREAM_BIONIC_URL"] == entry["install"]["bionic"]["url"]
+    assert armv7["ACESTREAM_INSTALL_KIND"] == "oci-image"
+    assert armv7["ACESTREAM_OCI_IMAGE_REF"] == entry["image_ref"]
+    assert armv7["ACESTREAM_OCI_IMAGE_DIGEST"] == entry["image_digest"]
 
 
 def test_default_platform_is_first_declared():

@@ -52,6 +52,7 @@ if [[ "$PROFILE" == "quick" ]]; then
   PYTHONPATH=backend "$BACKEND_PYTEST" -q \
     backend/tests/contracts/test_channel_contracts.py \
     backend/tests/contracts/test_config_contracts.py \
+    backend/tests/contracts/test_integrations_contracts.py \
     backend/tests/contracts/test_urls_contracts.py \
     backend/tests/test_error_contracts.py \
     backend/tests/regression/test_legacy_behavior_parity.py

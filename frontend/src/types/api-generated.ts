@@ -524,6 +524,30 @@ export interface paths {
      */
     get: operations["check_health_api_v1_health_get"];
   };
+  "/api/v1/player/capabilities": {
+    /** Whether the server can prepare streams for browsers */
+    get: operations["capabilities_api_v1_player_capabilities_get"];
+  };
+  "/api/v1/player/sessions": {
+    /** Active player sessions */
+    get: operations["list_sessions_api_v1_player_sessions_get"];
+    /** Start (or join) playback of a channel */
+    post: operations["create_session_api_v1_player_sessions_post"];
+  };
+  "/api/v1/player/sessions/{session_id}": {
+    /** Session status (heartbeat) */
+    get: operations["get_session_api_v1_player_sessions__session_id__get"];
+    /** Leave a session */
+    delete: operations["leave_session_api_v1_player_sessions__session_id__delete"];
+  };
+  "/api/v1/player/sessions/{session_id}/index.m3u8": {
+    /** HLS playlist */
+    get: operations["playlist_api_v1_player_sessions__session_id__index_m3u8_get"];
+  };
+  "/api/v1/player/sessions/{session_id}/{segment}": {
+    /** HLS segment */
+    get: operations["segment_api_v1_player_sessions__session_id___segment__get"];
+  };
   "/api/v1/playlists/all-streams/m3u": {
     /**
      * Get All Streams Playlist
@@ -1654,6 +1678,75 @@ export interface components {
     MessageResponse: {
       /** Message */
       message: string;
+    };
+    /** PlayerCapabilities */
+    PlayerCapabilities: {
+      /** Ffmpeg Available */
+      ffmpeg_available: boolean;
+      /** Ffmpeg Path */
+      ffmpeg_path?: string | null;
+      /** Hls Dir */
+      hls_dir: string;
+      /** Max Sessions */
+      max_sessions: number;
+    };
+    /** PlayerCodecs */
+    PlayerCodecs: {
+      /** Audio */
+      audio?: string | null;
+      /** Video */
+      video?: string | null;
+    };
+    /** PlayerSessionCreate */
+    PlayerSessionCreate: {
+      /**
+       * Content Id
+       * @description AceStream content id (40 hex)
+       */
+      content_id: string;
+    };
+    /** PlayerSessionListResponse */
+    PlayerSessionListResponse: {
+      /** Sessions */
+      sessions: components["schemas"]["PlayerSessionStatus"][];
+    };
+    /** PlayerSessionStatus */
+    PlayerSessionStatus: {
+      codecs: components["schemas"]["PlayerCodecs"];
+      /** Content Id */
+      content_id: string;
+      /** Error */
+      error?: ("engine_unavailable" | "engine_refused" | "engine_stalled" | "ffmpeg_missing" | "ffmpeg_failed") | null;
+      /**
+       * Error Message
+       * @default
+       */
+      error_message?: string;
+      /** Hls Ready */
+      hls_ready: boolean;
+      /** Id */
+      id: string;
+      /** Playlist Url */
+      playlist_url: string;
+      /**
+       * State
+       * @enum {string}
+       */
+      state: "starting" | "ready" | "error" | "stopped";
+      stats?: components["schemas"]["PlayerStats"] | null;
+      /** Viewers */
+      viewers: number;
+    };
+    /** PlayerStats */
+    PlayerStats: {
+      /** Peers */
+      peers: number;
+      /** Speed Down */
+      speed_down: number;
+      /** Speed Up */
+      speed_up: number;
+      /** Status */
+      status: string;
     };
     /**
      * PublicBaseUrlUpdate
@@ -4276,6 +4369,133 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["HealthResponse"];
+        };
+      };
+    };
+  };
+  /** Whether the server can prepare streams for browsers */
+  capabilities_api_v1_player_capabilities_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlayerCapabilities"];
+        };
+      };
+    };
+  };
+  /** Active player sessions */
+  list_sessions_api_v1_player_sessions_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlayerSessionListResponse"];
+        };
+      };
+    };
+  };
+  /** Start (or join) playback of a channel */
+  create_session_api_v1_player_sessions_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PlayerSessionCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlayerSessionStatus"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Session status (heartbeat) */
+  get_session_api_v1_player_sessions__session_id__get: {
+    parameters: {
+      path: {
+        session_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlayerSessionStatus"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Leave a session */
+  leave_session_api_v1_player_sessions__session_id__delete: {
+    parameters: {
+      path: {
+        session_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** HLS playlist */
+  playlist_api_v1_player_sessions__session_id__index_m3u8_get: {
+    parameters: {
+      path: {
+        session_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** HLS segment */
+  segment_api_v1_player_sessions__session_id___segment__get: {
+    parameters: {
+      path: {
+        session_id: string;
+        segment: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };

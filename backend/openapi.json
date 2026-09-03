@@ -1912,6 +1912,208 @@
         "title": "MessageResponse",
         "type": "object"
       },
+      "PlayerCapabilities": {
+        "properties": {
+          "ffmpeg_available": {
+            "title": "Ffmpeg Available",
+            "type": "boolean"
+          },
+          "ffmpeg_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ffmpeg Path"
+          },
+          "hls_dir": {
+            "title": "Hls Dir",
+            "type": "string"
+          },
+          "max_sessions": {
+            "title": "Max Sessions",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ffmpeg_available",
+          "max_sessions",
+          "hls_dir"
+        ],
+        "title": "PlayerCapabilities",
+        "type": "object"
+      },
+      "PlayerCodecs": {
+        "properties": {
+          "audio": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio"
+          },
+          "video": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video"
+          }
+        },
+        "title": "PlayerCodecs",
+        "type": "object"
+      },
+      "PlayerSessionCreate": {
+        "properties": {
+          "content_id": {
+            "description": "AceStream content id (40 hex)",
+            "pattern": "^[0-9a-fA-F]{40}$",
+            "title": "Content Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "content_id"
+        ],
+        "title": "PlayerSessionCreate",
+        "type": "object"
+      },
+      "PlayerSessionListResponse": {
+        "properties": {
+          "sessions": {
+            "items": {
+              "$ref": "#/components/schemas/PlayerSessionStatus"
+            },
+            "title": "Sessions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "sessions"
+        ],
+        "title": "PlayerSessionListResponse",
+        "type": "object"
+      },
+      "PlayerSessionStatus": {
+        "properties": {
+          "codecs": {
+            "$ref": "#/components/schemas/PlayerCodecs"
+          },
+          "content_id": {
+            "title": "Content Id",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "enum": [
+                  "engine_unavailable",
+                  "engine_refused",
+                  "engine_stalled",
+                  "ffmpeg_missing",
+                  "ffmpeg_failed"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "error_message": {
+            "default": "",
+            "title": "Error Message",
+            "type": "string"
+          },
+          "hls_ready": {
+            "title": "Hls Ready",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "playlist_url": {
+            "title": "Playlist Url",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "starting",
+              "ready",
+              "error",
+              "stopped"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "stats": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlayerStats"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "viewers": {
+            "title": "Viewers",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "content_id",
+          "state",
+          "codecs",
+          "viewers",
+          "playlist_url",
+          "hls_ready"
+        ],
+        "title": "PlayerSessionStatus",
+        "type": "object"
+      },
+      "PlayerStats": {
+        "properties": {
+          "peers": {
+            "title": "Peers",
+            "type": "integer"
+          },
+          "speed_down": {
+            "title": "Speed Down",
+            "type": "integer"
+          },
+          "speed_up": {
+            "title": "Speed Up",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "peers",
+          "speed_down",
+          "speed_up"
+        ],
+        "title": "PlayerStats",
+        "type": "object"
+      },
       "PublicBaseUrlUpdate": {
         "description": "Schema for updating the externally reachable origin (spec 4.3).",
         "properties": {
@@ -7538,6 +7740,248 @@
         "tags": [
           "health",
           "health"
+        ]
+      }
+    },
+    "/api/v1/player/capabilities": {
+      "get": {
+        "operationId": "capabilities_api_v1_player_capabilities_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerCapabilities"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Whether the server can prepare streams for browsers",
+        "tags": [
+          "player",
+          "player"
+        ]
+      }
+    },
+    "/api/v1/player/sessions": {
+      "get": {
+        "operationId": "list_sessions_api_v1_player_sessions_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerSessionListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Active player sessions",
+        "tags": [
+          "player",
+          "player"
+        ]
+      },
+      "post": {
+        "operationId": "create_session_api_v1_player_sessions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlayerSessionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerSessionStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start (or join) playback of a channel",
+        "tags": [
+          "player",
+          "player"
+        ]
+      }
+    },
+    "/api/v1/player/sessions/{session_id}": {
+      "delete": {
+        "operationId": "leave_session_api_v1_player_sessions__session_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Leave a session",
+        "tags": [
+          "player",
+          "player"
+        ]
+      },
+      "get": {
+        "operationId": "get_session_api_v1_player_sessions__session_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerSessionStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Session status (heartbeat)",
+        "tags": [
+          "player",
+          "player"
+        ]
+      }
+    },
+    "/api/v1/player/sessions/{session_id}/index.m3u8": {
+      "get": {
+        "operationId": "playlist_api_v1_player_sessions__session_id__index_m3u8_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "HLS playlist",
+        "tags": [
+          "player",
+          "player"
+        ]
+      }
+    },
+    "/api/v1/player/sessions/{session_id}/{segment}": {
+      "get": {
+        "operationId": "segment_api_v1_player_sessions__session_id___segment__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "segment",
+            "required": true,
+            "schema": {
+              "title": "Segment",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "HLS segment",
+        "tags": [
+          "player",
+          "player"
         ]
       }
     },

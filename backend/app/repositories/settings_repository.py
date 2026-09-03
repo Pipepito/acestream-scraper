@@ -33,7 +33,16 @@ class SettingsRepository:
     def DEFAULT_PUBLIC_BASE_URL(self) -> str:  # noqa: N802 - matches the DEFAULT_<KEY> lookup convention
         # Read at call time (not import time) so tests and runtime env changes apply.
         from app.config.settings import get_settings
-        return get_settings().PUBLIC_BASE_URL or ''
+        from app.services.public_url_service import InvalidPublicBaseUrl, normalize_public_base_url
+
+        raw = get_settings().PUBLIC_BASE_URL or ''
+        try:
+            # Seed the same canonical origin the API stores; a typo'd env value is
+            # dropped (and logged) instead of being persisted unvalidated.
+            return normalize_public_base_url(raw)
+        except InvalidPublicBaseUrl as exc:
+            logger.warning("Ignoring invalid PUBLIC_BASE_URL=%r: %s", raw, exc)
+            return ''
 
     def __init__(self, db: Session):
         self.db = db

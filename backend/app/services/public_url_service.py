@@ -16,6 +16,34 @@ _DOCKER_DESKTOP_GATEWAY = ipaddress.ip_network("192.168.65.0/24")
 _DOCKER_BRIDGE = ipaddress.ip_network("172.16.0.0/12")
 
 
+class InvalidPublicBaseUrl(ValueError):
+    """A candidate public base URL is not a bare http(s)://host[:port] origin."""
+
+
+def normalize_public_base_url(value: str) -> str:
+    """Accept http(s)://host[:port] only; strip a trailing slash; '' clears.
+
+    Raises InvalidPublicBaseUrl for anything else. Request-facing callers map that
+    onto HTTP 422 (ConfigService.normalize_public_base_url); the env seed in
+    SettingsRepository logs it and falls back to '' so a typo cannot be stored.
+    """
+    candidate = (value or "").strip()
+    if not candidate:
+        return ""
+    try:
+        parts = urlsplit(candidate)
+        _ = parts.port  # property access validates the port, raising ValueError
+    except ValueError as exc:  # e.g. "http://[::1" -> Invalid IPv6 URL
+        raise InvalidPublicBaseUrl("public_base_url must be http(s)://host[:port]") from exc
+    if parts.scheme not in ("http", "https") or not parts.hostname:
+        raise InvalidPublicBaseUrl("public_base_url must be http(s)://host[:port]")
+    if parts.path not in ("", "/") or parts.query or parts.fragment or parts.username or parts.password:
+        raise InvalidPublicBaseUrl(
+            "public_base_url must not contain a path, query, fragment or credentials"
+        )
+    return f"{parts.scheme}://{parts.netloc}"
+
+
 @dataclass
 class ResolvedPublicUrl:
     url: str

@@ -5,6 +5,7 @@ from fastapi import HTTPException
 import re
 
 from app.repositories.settings_repository import SettingsRepository
+from app.services.public_url_service import InvalidPublicBaseUrl, normalize_public_base_url
 
 logger = logging.getLogger(__name__)
 
@@ -52,18 +53,16 @@ class ConfigService:
 
     @staticmethod
     def normalize_public_base_url(value: str) -> str:
-        """Accept http(s)://host[:port] only; strip a trailing slash; '' clears."""
-        from urllib.parse import urlsplit
+        """Accept http(s)://host[:port] only; strip a trailing slash; '' clears.
 
-        candidate = (value or "").strip()
-        if not candidate:
-            return ""
-        parts = urlsplit(candidate)
-        if parts.scheme not in ("http", "https") or not parts.hostname:
-            raise HTTPException(status_code=422, detail="public_base_url must be http(s)://host[:port]")
-        if parts.path not in ("", "/") or parts.query or parts.fragment or parts.username or parts.password:
-            raise HTTPException(status_code=422, detail="public_base_url must not contain a path, query, fragment or credentials")
-        return f"{parts.scheme}://{parts.netloc}"
+        Every rejection (a bad scheme, a missing host, a path/query/fragment/
+        credentials, or a string urlsplit itself refuses such as "http://[::1")
+        becomes a 422 rather than an uncaught ValueError.
+        """
+        try:
+            return normalize_public_base_url(value)
+        except InvalidPublicBaseUrl as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     def get_public_base_url(self) -> str:
         """Get the externally reachable origin advertised to tuners and players"""

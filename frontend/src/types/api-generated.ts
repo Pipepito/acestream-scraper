@@ -603,6 +603,46 @@ export interface paths {
      */
     get: operations["get_tv_channels_playlist_api_v1_playlists_tv_channels_m3u_get"];
   };
+  "/api/v1/remote-players": {
+    /** Saved remote players */
+    get: operations["list_players_api_v1_remote_players_get"];
+    /** Create Player */
+    post: operations["create_player_api_v1_remote_players_post"];
+  };
+  "/api/v1/remote-players/scan": {
+    /** Find VLC/Kodi web interfaces on a private network */
+    post: operations["scan_api_v1_remote_players_scan_post"];
+  };
+  "/api/v1/remote-players/scan/default": {
+    /** Suggested network to scan */
+    get: operations["scan_default_api_v1_remote_players_scan_default_get"];
+  };
+  "/api/v1/remote-players/test": {
+    /** Probe a player before saving it */
+    post: operations["test_player_api_v1_remote_players_test_post"];
+  };
+  "/api/v1/remote-players/{player_id}": {
+    /** Delete Player */
+    delete: operations["delete_player_api_v1_remote_players__player_id__delete"];
+    /** Update Player */
+    patch: operations["update_player_api_v1_remote_players__player_id__patch"];
+  };
+  "/api/v1/remote-players/{player_id}/command": {
+    /** Player Command */
+    post: operations["player_command_api_v1_remote_players__player_id__command_post"];
+  };
+  "/api/v1/remote-players/{player_id}/play": {
+    /** Send a channel to the player */
+    post: operations["play_on_player_api_v1_remote_players__player_id__play_post"];
+  };
+  "/api/v1/remote-players/{player_id}/status": {
+    /** Player Status */
+    get: operations["player_status_api_v1_remote_players__player_id__status_get"];
+  };
+  "/api/v1/remote-players/{player_id}/test": {
+    /** Probe a saved player */
+    post: operations["test_saved_player_api_v1_remote_players__player_id__test_post"];
+  };
   "/api/v1/scrapers/scrape": {
     /**
      * Scrape Url
@@ -1781,6 +1821,188 @@ export interface components {
        */
       warnings?: string[];
     };
+    /** RemotePlayerCommandRequest */
+    RemotePlayerCommandRequest: {
+      /**
+       * Command
+       * @enum {string}
+       */
+      command: "pause" | "resume" | "stop" | "volume";
+      /**
+       * Value
+       * @description Percent, volume only
+       */
+      value?: number | null;
+    };
+    /** RemotePlayerCreate */
+    RemotePlayerCreate: {
+      /**
+       * Base Url Id
+       * @description Stream link format; null = server relay URL
+       */
+      base_url_id?: number | null;
+      /**
+       * Host
+       * @description Hostname or IP, no scheme
+       */
+      host: string;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "vlc" | "kodi";
+      /** Name */
+      name: string;
+      /** Password */
+      password?: string | null;
+      /**
+       * Port
+       * @default 8080
+       */
+      port?: number;
+      /**
+       * Username
+       * @description Kodi only; default kodi
+       */
+      username?: string | null;
+    };
+    /** RemotePlayerPlayRequest */
+    RemotePlayerPlayRequest: {
+      /** Content Id */
+      content_id: string;
+      /** Title */
+      title?: string | null;
+    };
+    /** RemotePlayerPlayResponse */
+    RemotePlayerPlayResponse: {
+      /** Url */
+      url: string;
+    };
+    /** RemotePlayerProbeResponse */
+    RemotePlayerProbeResponse: {
+      /** Authenticated */
+      authenticated: boolean;
+      /** Hint */
+      hint?: string | null;
+      /** Message */
+      message: string;
+      /** Reachable */
+      reachable: boolean;
+      tuner_access: components["schemas"]["TunerAccessResponse"];
+      /** Version */
+      version?: string | null;
+    };
+    /** RemotePlayerResponse */
+    RemotePlayerResponse: {
+      /**
+       * Base Url Id
+       * @description Stream link format; null = server relay URL
+       */
+      base_url_id?: number | null;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Has Password */
+      has_password: boolean;
+      /**
+       * Host
+       * @description Hostname or IP, no scheme
+       */
+      host: string;
+      /** Id */
+      id: number;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "vlc" | "kodi";
+      /** Name */
+      name: string;
+      /**
+       * Port
+       * @default 8080
+       */
+      port?: number;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      /**
+       * Username
+       * @description Kodi only; default kodi
+       */
+      username?: string | null;
+    };
+    /** RemotePlayerStatusResponse */
+    RemotePlayerStatusResponse: {
+      /** Length S */
+      length_s?: number | null;
+      /** Message */
+      message?: string | null;
+      /** Position S */
+      position_s?: number | null;
+      /**
+       * State
+       * @enum {string}
+       */
+      state: "playing" | "paused" | "stopped";
+      /** Title */
+      title?: string | null;
+      /** Volume Pct */
+      volume_pct?: number | null;
+    };
+    /** RemotePlayerTestRequest */
+    RemotePlayerTestRequest: {
+      /** Host */
+      host: string;
+      /**
+       * Id
+       * @description Use this saved player's password when none is given
+       */
+      id?: number | null;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "vlc" | "kodi";
+      /** Password */
+      password?: string | null;
+      /**
+       * Port
+       * @default 8080
+       */
+      port?: number;
+      /** Username */
+      username?: string | null;
+    };
+    /** RemotePlayerUpdate */
+    RemotePlayerUpdate: {
+      /** Base Url Id */
+      base_url_id?: number | null;
+      /**
+       * Clear Base Url
+       * @default false
+       */
+      clear_base_url?: boolean;
+      /** Host */
+      host?: string | null;
+      /** Kind */
+      kind?: ("vlc" | "kodi") | null;
+      /** Name */
+      name?: string | null;
+      /**
+       * Password
+       * @description omit = keep, empty string = clear
+       */
+      password?: string | null;
+      /** Port */
+      port?: number | null;
+      /** Username */
+      username?: string | null;
+    };
     /**
      * RescrapeIntervalUpdate
      * @description Schema for updating the rescrape interval
@@ -1796,6 +2018,48 @@ export interface components {
        * @description Hours between automatic rescrapes
        */
       value?: string | null;
+    };
+    /** ScanDefaultResponse */
+    ScanDefaultResponse: {
+      /** Cidr */
+      cidr?: string | null;
+      /** Hint */
+      hint: string;
+    };
+    /** ScanHitResponse */
+    ScanHitResponse: {
+      /** Hint */
+      hint: string;
+      /** Host */
+      host: string;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "vlc" | "kodi" | "unknown";
+      /** Port */
+      port: number;
+    };
+    /** ScanRequest */
+    ScanRequest: {
+      /** Cidr */
+      cidr: string;
+      /** Ports */
+      ports?: number[];
+      /**
+       * Timeout Ms
+       * @default 400
+       */
+      timeout_ms?: number;
+    };
+    /** ScanResultResponse */
+    ScanResultResponse: {
+      /** Duration Ms */
+      duration_ms: number;
+      /** Hosts */
+      hosts: components["schemas"]["ScanHitResponse"][];
+      /** Scanned */
+      scanned: number;
     };
     /**
      * ScraperRequest
@@ -2339,6 +2603,13 @@ export interface components {
       name?: string | null;
       /** Website */
       website?: string | null;
+    };
+    /** TunerAccessResponse */
+    TunerAccessResponse: {
+      /** Addresses */
+      addresses: string[];
+      /** Allowed */
+      allowed: boolean;
     };
     /**
      * URLCreate
@@ -4652,6 +4923,237 @@ export interface operations {
       200: {
         content: {
           "text/plain": string;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Saved remote players */
+  list_players_api_v1_remote_players_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["RemotePlayerResponse"][];
+        };
+      };
+    };
+  };
+  /** Create Player */
+  create_player_api_v1_remote_players_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RemotePlayerCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        content: {
+          "application/json": components["schemas"]["RemotePlayerResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Find VLC/Kodi web interfaces on a private network */
+  scan_api_v1_remote_players_scan_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ScanRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ScanResultResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Suggested network to scan */
+  scan_default_api_v1_remote_players_scan_default_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ScanDefaultResponse"];
+        };
+      };
+    };
+  };
+  /** Probe a player before saving it */
+  test_player_api_v1_remote_players_test_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RemotePlayerTestRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["RemotePlayerProbeResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Delete Player */
+  delete_player_api_v1_remote_players__player_id__delete: {
+    parameters: {
+      path: {
+        player_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Update Player */
+  update_player_api_v1_remote_players__player_id__patch: {
+    parameters: {
+      path: {
+        player_id: number;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RemotePlayerUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["RemotePlayerResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Player Command */
+  player_command_api_v1_remote_players__player_id__command_post: {
+    parameters: {
+      path: {
+        player_id: number;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RemotePlayerCommandRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Send a channel to the player */
+  play_on_player_api_v1_remote_players__player_id__play_post: {
+    parameters: {
+      path: {
+        player_id: number;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RemotePlayerPlayRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      202: {
+        content: {
+          "application/json": components["schemas"]["RemotePlayerPlayResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Player Status */
+  player_status_api_v1_remote_players__player_id__status_get: {
+    parameters: {
+      path: {
+        player_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["RemotePlayerStatusResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Probe a saved player */
+  test_saved_player_api_v1_remote_players__player_id__test_post: {
+    parameters: {
+      path: {
+        player_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["RemotePlayerProbeResponse"];
         };
       };
       /** @description Validation Error */

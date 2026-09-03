@@ -29,6 +29,8 @@ Continuous integration (pull-request validation and Docker image releases) runs 
 - **Database Management**: Complete with migration support
 - **Built-in Acestream Integration**: Optional integrated Acestream engine with Acexy proxy
 - **External Acestream Support**: Connect to existing Acestream Engine instances
+- **Web Player**: Play any channel in the browser, no plugin and nothing to install
+- **Remote Players**: Send channels to VLC or Kodi elsewhere on your network and control playback from the app
 - **Cloudflare WARP Integration**: Enhanced privacy and geo-unblocking capabilities
 - **Channel Status Monitoring**: Check which channels are online or offline
 - **In-App Configuration**: Manage engine, link formats, automation, API access, and sources from the web interface
@@ -55,6 +57,8 @@ The application follows a service-oriented architecture with:
 - [Installation Guide](Installation.md) - How to install and set up the application
 - [Docker Guide](Docker.md) - Learn about Docker and how it works with this app
 - [Usage Guide](Usage.md) - How to use the application's features
+- [Web Player](Web-Player.md) - Play a channel straight in the browser
+- [Remote Players](Remote-Players.md) - Send channels to VLC or Kodi on your network and control them from the app
 - [Configuration Reference](Configuration.md) - Detailed configuration information
 - [Requirements](Requirements.md) - System and software requirements
 - [FAQ](FAQ.md) - Frequently asked questions

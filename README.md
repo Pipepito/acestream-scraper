@@ -61,6 +61,8 @@ When you enable the engine on ARM, it keeps its config, cache, and logs under `/
 
 **Web player**: every image bundles a static ffmpeg (`ffmpeg-builder` stage, one binary per platform/flavor), so channels play straight in the browser with no plugin and no separate install — press Play, and the backend transcodes the channel's audio to AAC (video is passed through) and serves it as HLS. Jellyfin, Plex, VLC and Kodi instead pull an HDHomeRun-style tuner stream from `/tuner/*`, gated by network address (`TUNER_ALLOWED_NETWORKS`) rather than the API token, since those clients cannot send one; `PUBLIC_BASE_URL` tells the app which address to advertise to them. See [wiki/Web-Player.md](wiki/Web-Player.md).
 
+**Remote players**: save the VLC or Kodi boxes on your network under **Integrations**, then send any channel to one and drive it from the app (play/pause, stop, volume, live status). Both are reached through the web interface they already ship — VLC's Lua HTTP interface, Kodi's `Settings > Services > Control` — so nothing is installed on the player; **Find players** scans a private network for them, and each player picks the stream link it is handed (the server relay at `/tuner/*` by default, which needs only port 8000 published, or a named Acexy/engine base URL, which needs that port reachable from the player instead). Player passwords are stored unencrypted in the app database and never returned by the API. See [wiki/Remote-Players.md](wiki/Remote-Players.md).
+
 ### Local Development
 
 Backend:

@@ -38,6 +38,10 @@ const renderDialog = (props: Partial<React.ComponentProps<typeof StreamPlayerDia
     </ThemeProvider>
   );
 
+const readySession = {
+  data: { id: 's1', state: 'ready', hls_ready: true, stats: null, codecs: {}, playlist_url: '/p', viewers: 1, error: null, error_message: '' },
+};
+
 describe('StreamPlayerDialog', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -68,15 +72,24 @@ describe('StreamPlayerDialog', () => {
     expect(screen.getByRole('button', { name: 'Copy stream link' })).toBeInTheDocument();
   });
 
-  it('leaves the session with a keepalive DELETE on close and on pagehide', () => {
-    mockStatus.mockReturnValue({ data: { id: 's1', state: 'ready', hls_ready: true, stats: null, codecs: {}, playlist_url: '/p', viewers: 1, error: null, error_message: '' } });
+  it('leaves the session with a keepalive DELETE on pagehide', () => {
+    mockStatus.mockReturnValue(readySession);
+    renderDialog();
+    act(() => { window.dispatchEvent(new Event('pagehide')); });
+    expect(mockLeave).toHaveBeenCalledTimes(1);
+    expect(mockLeave).toHaveBeenCalledWith('s1');
+  });
+
+  it('leaves the session with a keepalive DELETE on close, and only once', () => {
+    mockStatus.mockReturnValue(readySession);
     const onClose = jest.fn();
     renderDialog({ onClose });
-    act(() => { window.dispatchEvent(new Event('pagehide')); });
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(mockLeave).toHaveBeenCalledTimes(1);
     expect(mockLeave).toHaveBeenCalledWith('s1');
     expect(onClose).toHaveBeenCalled();
+    act(() => { window.dispatchEvent(new Event('pagehide')); });
+    expect(mockLeave).toHaveBeenCalledTimes(1);
   });
 });
 

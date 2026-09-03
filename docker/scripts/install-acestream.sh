@@ -23,6 +23,8 @@
 #                the engine payload, add the Linux bootstrap + launcher, and
 #                stage a minimal Android 9 bionic userland under
 #                /opt/acestream-system (copied to /system by the runtime stage).
+#   oci-image    copy a digest-pinned community image payload staged by the
+#                Dockerfile, then install this project's persistent launcher.
 #
 # Output: /opt/acestream populated, /opt/acestream/bin/acestreamengine ->
 # launcher, /opt/acestream-system (empty unless android-apk),
@@ -159,7 +161,7 @@ fetch_verified() {
 # Obtain the engine payload
 # ---------------------------------------------------------------------------
 ARCHIVE="$SRC_DIR/engine-archive"
-if [ "$SOURCE" != "fixture" ]; then
+if [ "$SOURCE" != "fixture" ] && [ "$INSTALL_KIND" != "oci-image" ]; then
     # shellcheck disable=SC2086  # mirror list is intentionally word-split
     if ! fetch_verified "$ARCHIVE" "${ACESTREAM_VENDOR_SUBDIR:-acestream}" \
             "${ACESTREAM_VENDORED_FILE:-}" "${ACESTREAM_DOWNLOAD_SHA256:-}" \
@@ -305,20 +307,58 @@ PY
     resolved_binary="$ACE_DIR/start-engine"
 }
 
+install_oci_image() {
+    local community_root="${ACESTREAM_COMMUNITY_ROOT:-/tmp/acestream-community}"
+    local android_dir="$SCRIPTS_DIR/acestream-android"
+    [ -d "$community_root/acestream" ] || fail "kind=oci-image payload missing at $community_root/acestream"
+    [ -d "$community_root/system" ] || fail "kind=oci-image bionic runtime missing at $community_root/system"
+    [ -d "$android_dir" ] || fail "Linux bootstrap files missing: $android_dir"
+    [ -n "${ACESTREAM_OCI_IMAGE_REF:-}" ] || fail "kind=oci-image needs ACESTREAM_OCI_IMAGE_REF"
+    [ -n "${ACESTREAM_OCI_IMAGE_DIGEST:-}" ] || fail "kind=oci-image needs ACESTREAM_OCI_IMAGE_DIGEST"
+
+    cp -a "$community_root/acestream/." "$ACE_DIR/"
+    cp -a "$community_root/system/." "$SYS_DIR/"
+    [ -x "$ACE_DIR/python/bin/python" ] || fail "OCI engine payload has no python/bin/python launcher"
+    [ -f "$ACE_DIR/main.py" ] || fail "OCI engine payload has no main.py"
+
+    # Keep the packaged bootstrap for provenance, but run through this
+    # project's Linux host bridge: it uses a writable, persistent home and a
+    # unique per-install device id rather than the image's fixed identity.
+    mv "$ACE_DIR/main.py" "$ACE_DIR/main.py.oci-orig"
+    [ ! -f "$ACE_DIR/app_bridge.py" ] || mv "$ACE_DIR/app_bridge.py" "$ACE_DIR/app_bridge.py.oci-orig"
+    cp "$android_dir/app_bridge.py" "$ACE_DIR/app_bridge.py"
+    cp "$android_dir/main_linux.py" "$ACE_DIR/main_linux.py"
+    cp "$android_dir/acestream.conf" "$ACE_DIR/acestream.conf"
+    cp "$android_dir/start-engine" "$ACE_DIR/start-engine"
+    chmod +x "$ACE_DIR/python/bin/python" "$ACE_DIR/start-engine"
+    ln -sf "$ACE_DIR/start-engine" "$ACE_BIN_DIR/acestreamengine"
+
+    # Runtime-generated identity/port metadata must not be inherited from the
+    # source image layer.
+    rm -f "$ACE_DIR/install_id" "$ACE_DIR/engine_runtime.json"
+    find "$ACE_DIR" -type d -name __pycache__ -prune -exec rm -rf {} +
+    chmod -R a+rX "$ACE_DIR" "$SYS_DIR"
+    engine_source="oci:${ACESTREAM_OCI_IMAGE_REF}@${ACESTREAM_OCI_IMAGE_DIGEST}"
+    resolved_binary="$ACE_DIR/start-engine"
+}
+
 case "$INSTALL_KIND" in
     executable)  install_executable ;;
     android-apk) install_android_apk ;;
-    *) fail "unknown ACESTREAM_INSTALL_KIND=$INSTALL_KIND (expected executable or android-apk)" ;;
+    oci-image)   install_oci_image ;;
+    *) fail "unknown ACESTREAM_INSTALL_KIND=$INSTALL_KIND (expected executable, android-apk or oci-image)" ;;
 esac
 
 rm -rf "$SRC_DIR"
 
-printf 'platform=%s\nkind=%s\nengine_version=%s\nsupport=%s\nsource_url=%s\narchive_type=%s\nstrip_components=%s\nsha256=%s\nengine_source=%s\nabi=%s\nbionic_source=%s\nresolved_binary=%s\n' \
+printf 'platform=%s\nkind=%s\nengine_version=%s\nsupport=%s\ndistribution=%s\ndistribution_url=%s\nsource_url=%s\narchive_type=%s\nstrip_components=%s\nsha256=%s\nengine_source=%s\nabi=%s\nbionic_source=%s\nresolved_binary=%s\n' \
     "$TARGET_PLATFORM" \
     "$INSTALL_KIND" \
     "$ENGINE_VERSION" \
     "$PLATFORM_SUPPORT" \
-    "${ACESTREAM_DOWNLOAD_URL:-}" \
+    "${ACESTREAM_DISTRIBUTION:-AceStream official}" \
+    "${ACESTREAM_DISTRIBUTION_URL:-${ACESTREAM_DOWNLOAD_URL:-}}" \
+    "${ACESTREAM_SOURCE_URL:-${ACESTREAM_DOWNLOAD_URL:-}}" \
     "$ARCHIVE_TYPE" \
     "$STRIP_COMPONENTS" \
     "${ACESTREAM_DOWNLOAD_SHA256:-}" \

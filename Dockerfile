@@ -15,6 +15,13 @@ ARG ACESTREAM_ENGINE_PYTHON_VERSION=3.10
 # interpreter, carried inside /opt/zeronet.
 ARG ZERONET_PYTHON_VERSION=3.11
 
+# ARM64 uses the maintained, non-premium-gated Android payload packaged by
+# jopsis. Pin the multi-arch manifest digest as well as the human-readable tag:
+# upstream tag changes can never silently alter a release build.
+ARG ACESTREAM_COMMUNITY_IMAGE=jopsis/acestream:v3.2.17-fix@sha256:506c4215115d8b0ac1e24f4c67c954f0dbf86e4b4ea508582e497d8c920e9933
+
+FROM ${ACESTREAM_COMMUNITY_IMAGE} AS acestream-community-source
+
 # Static assets are platform-independent: build them once on the build host
 # (no QEMU) and COPY the output into every target platform.
 FROM --platform=$BUILDPLATFORM node:20-slim AS frontend-builder
@@ -50,8 +57,8 @@ FROM python:${ACESTREAM_ENGINE_PYTHON_VERSION}-slim AS acestream-installer
 
 # Engine selection is manifest-driven per target platform: install-acestream.sh
 # reads docker/manifests/acestream.json for $TARGETPLATFORM (linux/amd64 ->
-# upstream x86_64 tarball, linux/arm64 + linux/arm/v7 -> official Android
-# engine APK on a bionic runtime) and prefers the vendored archives under
+# upstream x86_64 tarball, linux/arm64 -> pinned jopsis OCI image, and
+# linux/arm/v7 -> official Android engine APK on a bionic runtime) and prefers the vendored archives under
 # docker/vendor/ over network downloads. Explicit build-args override the
 # manifest; ACESTREAM_SOURCE=fixture installs the contract-test fixture.
 ARG TARGETPLATFORM
@@ -109,6 +116,10 @@ COPY docker/testdata/acestream/ /tmp/acestream-fixture/
 COPY docker/manifests/acestream.json /tmp/acestream-manifest.json
 COPY docker/scripts/install-acestream.sh docker/scripts/acestream_manifest.py /usr/local/lib/acestream-install/
 COPY docker/scripts/acestream-android/ /usr/local/lib/acestream-install/acestream-android/
+# The source is copied into this throwaway installer stage for every platform;
+# install-acestream.sh selects it only for manifest entries with kind=oci-image.
+COPY --from=acestream-community-source /acestream/ /tmp/acestream-community/acestream/
+COPY --from=acestream-community-source /system/ /tmp/acestream-community/system/
 # The vendored archives (~250 MB) are bind-mounted, not copied, so they never
 # land in a layer.
 RUN --mount=type=bind,source=docker/vendor,target=/tmp/acestream-vendor,readonly \

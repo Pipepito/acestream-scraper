@@ -19,7 +19,7 @@ EXPECTED_FLAVORS = {
     "scraper-acexy",
     "scraper-acestream-acexy",
 }
-INSTALL_KINDS = {"executable", "android-apk"}
+INSTALL_KINDS = {"executable", "android-apk", "oci-image"}
 SUPPORT_LEVELS = {"stable", "experimental"}
 ARCHIVE_TYPES_BY_KIND = {"executable": {"tar.gz"}, "android-apk": {"apk"}}
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -80,11 +80,7 @@ def require_vendored(label: str, vendor_dir_rel: str, vendored_file: str, sha256
 
 def require_platform_entry(entry: dict, platform: str, acestream: dict) -> None:
     label = f"acestream.json platform {platform}"
-    require_keys(entry, ["url", "sha256", "archive_type", "install", "vendored_file", "mirror_urls", "support", "engine_version"], label)
-    if not isinstance(entry["sha256"], str) or not SHA256_RE.match(entry["sha256"]):
-        raise AssertionError(f"{label} sha256 must be a 64-hex string")
-    if not isinstance(entry["url"], str) or not entry["url"].startswith("https://"):
-        raise AssertionError(f"{label} url must be https")
+    require_keys(entry, ["install", "support", "engine_version"], label)
     if entry["support"] not in SUPPORT_LEVELS:
         raise AssertionError(f"{label} support must be one of {sorted(SUPPORT_LEVELS)}, got {entry['support']!r}")
     if not isinstance(entry["engine_version"], str) or not entry["engine_version"]:
@@ -97,20 +93,25 @@ def require_platform_entry(entry: dict, platform: str, acestream: dict) -> None:
     kind = install["kind"]
     if kind not in INSTALL_KINDS:
         raise AssertionError(f"{label} install.kind must be one of {sorted(INSTALL_KINDS)}, got {kind!r}")
-    if entry["archive_type"] not in ARCHIVE_TYPES_BY_KIND[kind]:
-        raise AssertionError(
-            f"{label} archive_type {entry['archive_type']!r} is not valid for kind {kind} "
-            f"(expected {sorted(ARCHIVE_TYPES_BY_KIND[kind])})"
+    if kind != "oci-image":
+        require_keys(entry, ["url", "sha256", "archive_type", "vendored_file", "mirror_urls"], label)
+        if not isinstance(entry["sha256"], str) or not SHA256_RE.match(entry["sha256"]):
+            raise AssertionError(f"{label} sha256 must be a 64-hex string")
+        if not isinstance(entry["url"], str) or not entry["url"].startswith("https://"):
+            raise AssertionError(f"{label} url must be https")
+        if entry["archive_type"] not in ARCHIVE_TYPES_BY_KIND[kind]:
+            raise AssertionError(
+                f"{label} archive_type {entry['archive_type']!r} is not valid for kind {kind} "
+                f"(expected {sorted(ARCHIVE_TYPES_BY_KIND[kind])})"
+            )
+        require_vendored(
+            label,
+            acestream.get("vendor_dir", "docker/vendor/acestream"),
+            entry["vendored_file"],
+            entry["sha256"],
+            entry["mirror_urls"],
+            acestream.get("mirror_base_url", ""),
         )
-
-    require_vendored(
-        label,
-        acestream.get("vendor_dir", "docker/vendor/acestream"),
-        entry["vendored_file"],
-        entry["sha256"],
-        entry["mirror_urls"],
-        acestream.get("mirror_base_url", ""),
-    )
 
     if kind == "executable":
         require_keys(install, ["binary_path", "strip_components", "python_version"], f"{label} install (kind=executable)")
@@ -118,7 +119,7 @@ def require_platform_entry(entry: dict, platform: str, acestream: dict) -> None:
             raise AssertionError(f"{label} install.binary_path must be a non-empty string")
         if not re.fullmatch(r"3\.\d+", str(install["python_version"])):
             raise AssertionError(f"{label} install.python_version must look like 3.N, got {install['python_version']!r}")
-    else:  # android-apk
+    elif kind == "android-apk":
         require_keys(install, ["abi", "bionic"], f"{label} install (kind=android-apk)")
         if install["abi"] not in {"arm64-v8a", "armeabi-v7a"}:
             raise AssertionError(f"{label} install.abi must be arm64-v8a or armeabi-v7a, got {install['abi']!r}")
@@ -138,6 +139,19 @@ def require_platform_entry(entry: dict, platform: str, acestream: dict) -> None:
             bionic["mirror_urls"],
             acestream.get("mirror_base_url", ""),
         )
+    else:  # oci-image
+        require_keys(
+            entry,
+            ["distribution", "distribution_url", "source_url", "image_ref", "image_digest"],
+            f"{label} (kind=oci-image)",
+        )
+        if not re.fullmatch(r"sha256:[0-9a-f]{64}", str(entry["image_digest"])):
+            raise AssertionError(f"{label} image_digest must be a sha256 OCI digest")
+        if not entry["image_ref"].startswith("jopsis/acestream:"):
+            raise AssertionError(f"{label} image_ref must pin a tagged jopsis/acestream image")
+        for key in ("distribution_url", "source_url"):
+            if not str(entry[key]).startswith("https://"):
+                raise AssertionError(f"{label} {key} must be https")
 
 
 def main() -> int:

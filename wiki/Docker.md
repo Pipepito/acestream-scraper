@@ -52,7 +52,7 @@ Every flavor is published for `linux/amd64`, `linux/arm64`, and `linux/arm/v7`. 
 | Platform | Engine | Support |
 | --- | --- | --- |
 | `linux/amd64` | Native Linux engine 3.2.11 (upstream tarball) | stable |
-| `linux/arm64` | Official Android engine 3.1.80.0 (`AceStreamCore-3.1.80.0-armv8_64.apk`), run natively | stable |
+| `linux/arm64` | Android engine 3.2.17 from [`jopsis/acestream:v3.2.17-fix`](https://hub.docker.com/r/jopsis/acestream), digest-pinned and run natively | stable |
 | `linux/arm/v7` | Official Android engine 3.1.80.0 (`AceStreamCore-3.1.80.0-armv7.apk`), run natively | experimental |
 
 Upstream only publishes native Linux engine builds for x86_64, so the ARM images unpack the engine payload from the official AceStream Android APK (the ones listed on https://docs.acestream.media/products/) and run it unmodified against a minimal Android 9 bionic userland shipped under `/system`. No chroot, `--privileged`, seccomp changes, or extra capabilities are needed. `linux/arm/v7` builds and installs but has not been runtime-tested on real ARMv7 hardware yet, so treat it as experimental.
@@ -145,13 +145,13 @@ docker run -d \
 - On ARM, `/var/lib/acestream` (`ACESTREAM_HOME`) holds the Android engine's state: `acestream.conf`, `acestream.log`, `acestream_error.log`, and the `.ACEStream/` directory with the disk cache. Mount a named volume there so the cache and the per-install device id (`.device_id`) survive container replacement; the mount is harmless on amd64.
 - Ports: `6878` is the engine HTTP API (the backend talks to it through `ACE_ENGINE_URL`, default `http://localhost:6878`); `8621` tcp/udp is the P2P port. Only publish `6878` if you want to reach the engine from outside the container, and only on trusted networks: the ARM engine is started with `--bind-all` so published-port clients are accepted, and the engine HTTP API has no authentication.
 - Logs: the entrypoint supervises the engine, so its output shows up in `docker logs acestream-scraper` (on ARM the launcher passes `--log-stdout` for this). On ARM the engine also writes `acestream.log` / `acestream_error.log` under `/var/lib/acestream`.
-- Health: the backend polls `/server/api?api_version=3&method=get_status` and `method=get_network_connection_status` on the engine. To confirm which engine is running: `curl "http://localhost:6878/webui/api/service?method=get_version"` returns `{"platform":"android","version":"3.1.80"}` on ARM.
+- Health: the backend polls `/server/api?api_version=3&method=get_status` and `method=get_network_connection_status` on the engine. To confirm which engine is running: `curl "http://localhost:6878/webui/api/service?method=get_version"` returns `{"platform":"android","version":"3.2.17"}` on ARM64. The dashboard also shows `Engine package: jopsis/acestream v3.2.17-fix` with a link to the source image.
 
 ARM caveats:
 
 - **Raspberry Pi 5 (and any 16 KB-page kernel):** the Android 9 bionic linker requires a 4 KB kernel page size. On Raspberry Pi OS 64-bit set `kernel=kernel8.img` in `config.txt` (the default `kernel_2712` kernel uses 16 KB pages). The engine checks `getconf PAGESIZE` at startup and exits with an explicit error instead of segfaulting.
 - **`linux/arm/v7` is experimental:** the image builds and installs, but the 32-bit engine cannot be executed under QEMU user emulation, so it has not been runtime-tested on real ARMv7 hardware. Prefer `linux/arm64` wherever the device supports 64-bit containers.
-- **Engine version skew:** ARM runs the Android engine 3.1.80.0 (reports `"platform":"android"`) while amd64 runs the native Linux engine 3.2.11.
+- **Engine version skew:** ARM64 runs Android engine 3.2.17, ARMv7 runs Android engine 3.1.80.0 (both report `"platform":"android"`), and amd64 runs native Linux engine 3.2.11.
 - **No WebRTC transport on ARM:** the Android WebRTC module needs GPU/audio libraries that are not shipped; the engine logs a non-fatal error and keeps going. A few CPython accelerator modules also fall back to pure Python.
 - **No WARP on linux/arm/v7 images:** `cloudflare-warp` ships for amd64 and arm64 only.
 - **Performance and streaming stability** on real ARM hardware are not yet validated; report results if you try it.

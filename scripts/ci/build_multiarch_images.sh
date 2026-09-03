@@ -264,7 +264,10 @@ if [[ "$flavor_needs_acestream" -eq 1 ]]; then
         printf 'AceStream engine for %s: %s\n' "$_plat" "$(printf '%s' "$_resolved" | python3 -c '
 import json, sys
 d = json.load(sys.stdin)
-src = ("vendored " + d["ACESTREAM_VENDORED_FILE"]) if d.get("ACESTREAM_VENDORED_FILE") else d.get("ACESTREAM_DOWNLOAD_URL", "")
+src = (("oci " + d["ACESTREAM_OCI_IMAGE_REF"] + "@" + d["ACESTREAM_OCI_IMAGE_DIGEST"])
+       if d.get("ACESTREAM_OCI_IMAGE_REF")
+       else (("vendored " + d["ACESTREAM_VENDORED_FILE"])
+             if d.get("ACESTREAM_VENDORED_FILE") else d.get("ACESTREAM_DOWNLOAD_URL", "")))
 print("kind=%s version=%s support=%s source=%s" % (d["ACESTREAM_INSTALL_KIND"], d["ACESTREAM_ENGINE_VERSION"], d["ACESTREAM_PLATFORM_SUPPORT"], src))
 ')"
     done

@@ -33,7 +33,12 @@ else
     syslib=/system/lib
 fi
 export PYTHONHOME="$ACE/python"
-export PYTHONPATH="$ACE/python/lib/stdlib.zip:$ACE/python/lib/modules:$ACE/lib:$ACE/modules.zip:$ACE"
+if [ -d "$ACE/python/lib/stdlib" ]; then
+    stdlib="$ACE/python/lib/stdlib"
+else
+    stdlib="$ACE/python/lib/stdlib.zip"
+fi
+export PYTHONPATH="$stdlib:$ACE/python/lib/modules:$ACE/data:$ACE/lib:$ACE/modules.zip:$ACE/eggs-unpacked:$ACE/eggs:$ACE"
 export LD_LIBRARY_PATH="$syslib:$ACE/python/lib"
 unset PYTHONDONTWRITEBYTECODE PYTHONUNBUFFERED
 

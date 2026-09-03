@@ -111,17 +111,17 @@ That means `latest` is not a universal multi-arch alias. Its availability follow
 The manifest currently pins, per platform (`platforms.<platform>` entries with `engine_version`, `support`, `url`, `sha256`, `archive_type`, `vendored_file`, `mirror_urls[]`, and `install{kind, ...}`):
 
 - `linux/amd64` — `support: stable`; install kind `executable`; upstream native Linux engine 3.2.11 tarball (unchanged).
-- `linux/arm64` — `support: stable`; install kind `android-apk` (`abi: arm64-v8a`); the official Android engine `AceStreamCore-3.1.80.0-armv8_64.apk` unpacked to `/opt/acestream` and run unmodified against a minimal Android 9 bionic userland copied to `/system` (`linker64` + `libc/libdl/libm/libz/liblog/libc++`, from the Termux `aosp-libs 9.0.0-r76-4` package; NOTICE files under `/system/etc/NOTICE-aosp-libs`). Verified: the HTTP API answers within ~5 s, RSS ~95 MB idle.
+- `linux/arm64` — `support: stable`; install kind `oci-image`; Android engine 3.2.17 and its bionic runtime are copied from digest-pinned [`jopsis/acestream:v3.2.17-fix`](https://hub.docker.com/r/jopsis/acestream) ([build source](https://github.com/jopsis/docker-acestream-aceserve)). This avoids the premium-gated official 3.1.80 ARM64 build. The project replaces the source image bootstrap with its persistent Linux bridge and records attribution in `/opt/acestream/install-metadata.txt`.
 - `linux/arm/v7` — `support: experimental`; install kind `android-apk` (`abi: armeabi-v7a`); same layout with the `armv7` APK and 32-bit bionic (`linker`, `lib`). Builds and installs, but the 32-bit bionic engine cannot run under qemu-user (it calls `personality(PER_LINUX32)`), so it has not been runtime-tested on real ARMv7 hardware.
 
-Every pinned engine archive and bionic `.deb` is vendored in-repo (`docker/vendor/acestream/`, `docker/vendor/bionic/`, each with a `SHA256SUMS`) and mirrored as GitHub Release assets (`mirror_urls`, currently the `acestream-binaries-3.2.11-3.1.80.0` release). `docker/scripts/install-acestream.sh` resolves vendored copy -> upstream `url` -> `mirror_urls`, sha256-verified, so builds no longer need WARP/egress to `download.acestream.media`. `docker/scripts/acestream_manifest.py` is the shared resolver (also used by `scripts/ci/derive_acestream_build_args.py`); `scripts/ci/build_multiarch_images.sh` validates each resolved platform and prints an `AceStream engine for <platform>: kind=... version=... support=... source=vendored ...` line instead of injecting global `ACESTREAM_*` build-args (which would apply one engine to every platform of a multi-platform build). `ACESTREAM_SOURCE=fixture` builds the contract-test fixture. Pin updates follow `docker/vendor/acestream/README.md`.
+The amd64/ARMv7 engine archives and bionic `.deb` files are vendored in-repo and mirrored as GitHub Release assets. ARM64 is a cold-build dependency on Docker Hub, but both its tag and multi-arch OCI digest are pinned. `docker/scripts/acestream_manifest.py` is the shared resolver (also used by `scripts/ci/derive_acestream_build_args.py`); `scripts/ci/build_multiarch_images.sh` validates each resolved platform. `ACESTREAM_SOURCE=fixture` builds the contract-test fixture. Pin updates follow `docs/ops/multiarch-manifest-updates.md`.
 
 Required minimum compatibility claims for release signoff:
 
 - Baseline flavors (`scraper`, `scraper-acexy`) succeed for ARM v7 and ARM64 and are included in architecture validation outputs.
 - AceStream-enabled flavors (`scraper-acestream`, `scraper-acestream-acexy`, `latest`) only need to succeed for the platforms allowed by `docker/manifests/acestream.json`.
 - Runtime smoke checks pass for the ARM targets required by the flavor being signed off (`/api/v1/health`, frontend root path).
-- AceStream engine flavors (since 2026-08-27): the installer stage must build cleanly for `linux/arm64` and `linux/arm/v7` under QEMU (`backend/tests/docker/test_install_acestream.py -k android_apk_install_layout`, no engine execution), and the real engine must start and answer its HTTP API on `linux/amd64` (`backend/tests/docker/test_acestream_runtime_smoke.py`, always) and on `linux/arm64` (same test, parametrized; only runs when the host is arm64). `linux/arm/v7` is signed off as build-only while its manifest `support` is `experimental`. `scripts/ci/validate_docker_manifest_metadata.py` must pass (manifest schema, vendored files, `SHA256SUMS`, mirror URLs).
+- AceStream engine flavors: both ARM installer layouts must build cleanly (`test_install_acestream.py -k "android_apk_install_layout or arm64_oci_image_install_layout"`), and the real engine must answer its HTTP API on amd64 and on ARM64 hosts. ARMv7 is signed off as build-only while experimental. Manifest validation covers both vendored archives and the pinned OCI digest.
 
 ### Build and Validation Path
 
@@ -145,7 +145,7 @@ python3 scripts/ci/validate_docker_manifest_metadata.py
 
 # AceStream engine: ARM installer layout (QEMU build, no engine execution) and
 # real-engine runtime smoke (amd64 always; arm64 when run on an arm64 host)
-PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_install_acestream.py -k android_apk_install_layout
+PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_install_acestream.py -k "android_apk_install_layout or arm64_oci_image_install_layout"
 PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_acestream_runtime_smoke.py
 ```
 
@@ -187,13 +187,13 @@ Runtime layout on ARM:
 - `/opt/acestream`: the APK's engine payload (python-for-android CPython 3.8 + compiled engine modules) plus `main_linux.py` (a Linux copy of the APK bootstrap that keeps `--log-stdout` output in `docker logs`) and `app_bridge.py` (a fake Android RPC host answering device-id, `statvfs`, and meminfo queries).
 - `/system`: the minimal Android 9 bionic userland (`bin/linker64` or `bin/linker`, `lib64/` or `lib/`, `etc/NOTICE-aosp-libs`). `start-engine` sets `ANDROID_ROOT=/system`, `PYTHONHOME`, `PYTHONPATH`, and `LD_LIBRARY_PATH`, then execs the bionic python with `main_linux.py`.
 - `/var/lib/acestream` (`ACESTREAM_HOME`): `acestream.conf` (seeded on first start), `acestream.log`, `acestream_error.log`, `.device_id` (persistent per-install device id), and `.ACEStream/` state including the disk cache. Recommend a volume: `-v acestream-state:/var/lib/acestream`.
-- Ports: `6878` HTTP API, `8621` tcp/udp P2P. Health: the backend calls `/server/api?api_version=3&method=get_status` and `get_network_connection_status` (both return 200 on the Android engine); `/webui/api/service?method=get_version` returns `{"platform":"android","version":"3.1.80"}`.
+- Ports: `6878` HTTP API, `8621` tcp/udp P2P. Health: the backend calls `/server/api?api_version=3&method=get_status` and `get_network_connection_status`; `/webui/api/service?method=get_version` returns `{"platform":"android","version":"3.2.17"}` on ARM64. The system dashboard reads build provenance and links the supplying package.
 
 Operator caveats specific to the ARM engine:
 
 - Kernel page size must be 4096. `start-engine` checks `getconf PAGESIZE` and exits with an explicit error otherwise, because the Android 9 bionic linker segfaults on 16 KB-page kernels. Raspberry Pi 5 defaults to the 64-bit `kernel_2712` (16 KB pages): set `kernel=kernel8.img` in `config.txt`.
 - `linux/arm/v7` is experimental: build-tested only, never executed on real ARMv7/AArch32 hardware.
-- Engine version skew: 3.1.80 on ARM vs 3.2.11 on amd64, and the platform reports `android`.
+- Engine version skew: 3.2.17 on ARM64, 3.1.80 on ARMv7, and 3.2.11 on amd64; ARM reports platform `android`.
 - No WebRTC transport on ARM (pywebrtc needs Android GPU/audio libraries; the engine logs a non-fatal error). A few CPython accelerator modules fall back to pure Python.
 - No WARP on ARM images (`cloudflare-warp` is amd64-only; pre-existing limitation).
 - Performance and streaming stability are not yet validated on real ARM hardware.

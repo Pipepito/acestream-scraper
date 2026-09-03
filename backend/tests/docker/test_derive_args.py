@@ -47,23 +47,23 @@ def test_executable_flavor_emits_expected_keys():
     assert "ACESTREAM_ANDROID_ABI" not in pairs
 
 
-def test_android_apk_platforms_emit_bionic_keys():
+def test_android_platforms_emit_source_specific_keys():
     expected = json.loads(MANIFEST.read_text())["platforms"]
-    for platform in ("linux/arm64", "linux/arm/v7"):
-        rc, out, err = _run(MANIFEST, "scraper-acestream", platform)
-        assert rc == 0, err
-        pairs = _pairs(out)
-        entry = expected[platform]
-        assert pairs["ACESTREAM_INSTALL_KIND"] == "android-apk"
-        assert pairs["ACESTREAM_ARCHIVE_TYPE"] == "apk"
-        assert pairs["ACESTREAM_ANDROID_ABI"] == entry["install"]["abi"]
-        assert pairs["ACESTREAM_DOWNLOAD_URL"] == entry["url"]
-        assert pairs["ACESTREAM_BIONIC_URL"] == entry["install"]["bionic"]["url"]
-        assert pairs["ACESTREAM_BIONIC_SHA256"] == entry["install"]["bionic"]["sha256"]
-        assert pairs["ACESTREAM_BIONIC_LIBDIR"] == entry["install"]["bionic"]["libdir"]
-        assert pairs["ACESTREAM_BIONIC_LINKER"] == entry["install"]["bionic"]["linker"]
-        assert pairs["ACESTREAM_PLATFORM_SUPPORT"] == entry["support"]
-        assert "ACESTREAM_BINARY_PATH" not in pairs
+    rc, out, err = _run(MANIFEST, "scraper-acestream", "linux/arm64")
+    assert rc == 0, err
+    arm64 = _pairs(out)
+    assert arm64["ACESTREAM_INSTALL_KIND"] == "oci-image"
+    assert arm64["ACESTREAM_OCI_IMAGE_REF"] == expected["linux/arm64"]["image_ref"]
+    assert arm64["ACESTREAM_OCI_IMAGE_DIGEST"] == expected["linux/arm64"]["image_digest"]
+
+    rc, out, err = _run(MANIFEST, "scraper-acestream", "linux/arm/v7")
+    assert rc == 0, err
+    armv7 = _pairs(out)
+    entry = expected["linux/arm/v7"]
+    assert armv7["ACESTREAM_INSTALL_KIND"] == "android-apk"
+    assert armv7["ACESTREAM_ARCHIVE_TYPE"] == "apk"
+    assert armv7["ACESTREAM_ANDROID_ABI"] == entry["install"]["abi"]
+    assert armv7["ACESTREAM_BIONIC_URL"] == entry["install"]["bionic"]["url"]
 
 
 def test_default_platform_is_first_declared():

@@ -23,31 +23,16 @@
       }
     },
     "linux/arm64": {
-      "engine_version": "3.1.80.0",
+      "engine_version": "3.2.17",
       "support": "stable",
-      "url": "https://download.acestream.media/android/core.web/stable/AceStreamCore-3.1.80.0-armv8_64.apk",
-      "sha256": "a8bd48347cad2a52381da5131c315a129399c1d414b169bf301dd516df775784",
-      "archive_type": "apk",
-      "vendored_file": "AceStreamCore-3.1.80.0-armv8_64.apk",
-      "mirror_urls": [
-        "https://github.com/Pipepito/acestream-scraper/releases/download/acestream-binaries-3.2.11-3.1.80.0/AceStreamCore-3.1.80.0-armv8_64.apk"
-      ],
+      "distribution": "jopsis/acestream v3.2.17-fix",
+      "distribution_url": "https://hub.docker.com/r/jopsis/acestream",
+      "source_url": "https://github.com/jopsis/docker-acestream-aceserve",
+      "image_ref": "jopsis/acestream:v3.2.17-fix",
+      "image_digest": "sha256:506c4215115d8b0ac1e24f4c67c954f0dbf86e4b4ea508582e497d8c920e9933",
       "install": {
-        "kind": "android-apk",
-        "abi": "arm64-v8a",
-        "engine_http_port": 6878,
-        "bionic": {
-          "package": "aosp-libs 9.0.0-r76-4 (Termux, built from AOSP android-security-9.0.0_r76)",
-          "url": "https://packages-cf.termux.dev/apt/termux-main/pool/main/a/aosp-libs/aosp-libs_9.0.0-r76-4_aarch64.deb",
-          "sha256": "7e5b4185f121ded7310df74eafb48a0f4c751363daa385db37dc1f603fb78ef0",
-          "vendor_dir": "docker/vendor/bionic",
-          "vendored_file": "aosp-libs_9.0.0-r76-4_aarch64.deb",
-          "mirror_urls": [
-            "https://github.com/Pipepito/acestream-scraper/releases/download/acestream-binaries-3.2.11-3.1.80.0/aosp-libs_9.0.0-r76-4_aarch64.deb"
-          ],
-          "libdir": "lib64",
-          "linker": "linker64"
-        }
+        "kind": "oci-image",
+        "engine_http_port": 6878
       }
     },
     "linux/arm/v7": {

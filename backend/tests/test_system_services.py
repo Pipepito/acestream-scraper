@@ -41,6 +41,7 @@ def _clear_env(monkeypatch: pytest.MonkeyPatch) -> None:
         "ENABLE_ACESTREAM_ENGINE", "ENABLE_ACEXY", "ENABLE_IPFS", "ENABLE_ZERONET", "ENABLE_WARP",
         "SUPERVISOR_RUN_DIR", "IPFS_GATEWAY_URL", "ZERONET_URL",
         "ACEXY_LISTEN_ADDR", "ACEXY_STATUS_PORT",
+        "ACESTREAM_INSTALL_METADATA",
     ):
         monkeypatch.delenv(var, raising=False)
 
@@ -89,6 +90,12 @@ def test_supervised_engine_states(tmp_path, monkeypatch):
     monkeypatch.setenv("ENABLE_ACESTREAM_ENGINE", "true")
     monkeypatch.setenv("ACESTREAM_HTTP_HOST", "localhost")
     monkeypatch.setenv("ACESTREAM_HTTP_PORT", "6878")
+    metadata = tmp_path / "install-metadata.txt"
+    metadata.write_text(
+        "distribution=jopsis/acestream v3.2.17-fix\n"
+        "distribution_url=https://hub.docker.com/r/jopsis/acestream\n"
+    )
+    monkeypatch.setenv("ACESTREAM_INSTALL_METADATA", str(metadata))
     monkeypatch.setattr("app.services.system_services_service.shutil.which", lambda _n: None)
     (tmp_path / "acestream.pid").write_text(str(os.getpid()))
     (tmp_path / "acestream.started").write_text("1")
@@ -98,6 +105,8 @@ def test_supervised_engine_states(tmp_path, monkeypatch):
     assert running["managed"] is True
     assert running["pid"] == os.getpid()
     assert running["uptime_seconds"] is not None and running["uptime_seconds"] > 0
+    assert running["distribution"] == "jopsis/acestream v3.2.17-fix"
+    assert running["distribution_url"] == "https://hub.docker.com/r/jopsis/acestream"
 
     unhealthy = _by_name(_service(tmp_path, FakeHttp({})).list_services())["acestream"]
     assert unhealthy["state"] == "unhealthy"

@@ -2137,6 +2137,30 @@
             "title": "Description",
             "type": "string"
           },
+          "distribution": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Package or image that supplied the service",
+            "title": "Distribution"
+          },
+          "distribution_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Public attribution page for the distribution",
+            "title": "Distribution Url"
+          },
           "enabled": {
             "description": "Turned on through its ENABLE_* variable",
             "title": "Enabled",

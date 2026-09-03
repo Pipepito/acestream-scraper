@@ -35,17 +35,20 @@ def test_each_platform_install_declares_a_known_kind():
         install = entry.get("install")
         assert isinstance(install, dict), f"{platform}: install must be an object"
         kind = install.get("kind")
-        assert kind in {"executable", "android-apk"}, (
-            f"{platform}: install.kind must be 'executable' or 'android-apk', got {kind!r}"
+        assert kind in {"executable", "android-apk", "oci-image"}, (
+            f"{platform}: unknown install.kind {kind!r}"
         )
         assert entry["support"] in {"stable", "experimental"}
         if kind == "executable":
             assert isinstance(install.get("binary_path"), str) and install["binary_path"]
             assert entry["archive_type"] == "tar.gz"
-        else:
+        elif kind == "android-apk":
             assert install["abi"] in {"arm64-v8a", "armeabi-v7a"}
             assert entry["archive_type"] == "apk"
             assert isinstance(install["bionic"], dict)
+        else:
+            assert entry["image_ref"].startswith("jopsis/acestream:")
+            assert entry["image_digest"].startswith("sha256:")
 
 
 def test_acestream_platforms_cover_every_baseline_platform():
@@ -54,23 +57,19 @@ def test_acestream_platforms_cover_every_baseline_platform():
     assert set(baseline) == set(load_manifest()["platforms"])
 
 
-def test_arm_entries_use_the_official_android_engine_on_bionic():
+def test_arm_entries_use_expected_android_distributions():
     payload = load_manifest()
-    expected = {
-        "linux/arm64": ("arm64-v8a", "armv8_64", "lib64", "linker64", "aarch64"),
-        "linux/arm/v7": ("armeabi-v7a", "armv7", "lib", "linker", "arm"),
-    }
-    for platform, (abi, apk_arch, libdir, linker, deb_arch) in expected.items():
-        entry = payload["platforms"][platform]
-        assert entry["url"].startswith("https://download.acestream.media/android/")
-        assert entry["url"].endswith(f"-{apk_arch}.apk")
-        assert entry["engine_version"] == payload["android_version"]
-        install = entry["install"]
-        assert install["kind"] == "android-apk"
-        assert install["abi"] == abi
-        bionic = install["bionic"]
-        assert bionic["libdir"] == libdir and bionic["linker"] == linker
-        assert bionic["vendored_file"].endswith(f"_{deb_arch}.deb")
+    arm64 = payload["platforms"]["linux/arm64"]
+    assert arm64["install"]["kind"] == "oci-image"
+    assert arm64["engine_version"] == "3.2.17"
+    assert arm64["image_ref"] == "jopsis/acestream:v3.2.17-fix"
+    assert arm64["distribution_url"] == "https://hub.docker.com/r/jopsis/acestream"
+
+    armv7 = payload["platforms"]["linux/arm/v7"]
+    assert armv7["url"].endswith("-armv7.apk")
+    assert armv7["engine_version"] == payload["android_version"]
+    assert armv7["install"]["kind"] == "android-apk"
+    assert armv7["install"]["abi"] == "armeabi-v7a"
     assert payload["platforms"]["linux/arm/v7"]["support"] == "experimental"
     assert payload["platforms"]["linux/arm64"]["support"] == "stable"
 
@@ -80,6 +79,9 @@ def test_vendored_payloads_match_pinned_sha256(platform: str):
     """The in-repo copies used by the build must be byte-identical to the pins."""
     payload = load_manifest()
     entry = payload["platforms"][platform]
+    if entry["install"]["kind"] == "oci-image":
+        assert entry["image_digest"].startswith("sha256:")
+        return
     vendored = REPO_ROOT / payload["vendor_dir"] / entry["vendored_file"]
     assert vendored.is_file(), f"missing vendored engine archive {vendored}"
     assert hashlib.sha256(vendored.read_bytes()).hexdigest() == entry["sha256"]
@@ -137,11 +139,10 @@ def test_resolver_emits_platform_specific_variables():
     assert "ACESTREAM_ANDROID_ABI" not in amd64
 
     arm64 = resolve("linux/arm64")
-    assert arm64["ACESTREAM_INSTALL_KIND"] == "android-apk"
-    assert arm64["ACESTREAM_ANDROID_ABI"] == "arm64-v8a"
-    assert arm64["ACESTREAM_BIONIC_LIBDIR"] == "lib64"
-    assert arm64["ACESTREAM_VENDOR_SUBDIR"] == "acestream"
-    assert arm64["ACESTREAM_BIONIC_VENDOR_SUBDIR"] == "bionic"
+    assert arm64["ACESTREAM_INSTALL_KIND"] == "oci-image"
+    assert arm64["ACESTREAM_OCI_IMAGE_REF"] == "jopsis/acestream:v3.2.17-fix"
+    assert arm64["ACESTREAM_OCI_IMAGE_DIGEST"].startswith("sha256:")
+    assert arm64["ACESTREAM_DISTRIBUTION"] == "jopsis/acestream v3.2.17-fix"
     assert "ACESTREAM_BINARY_PATH" not in arm64
 
     unknown = subprocess.run(

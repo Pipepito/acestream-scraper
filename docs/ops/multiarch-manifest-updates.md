@@ -12,14 +12,14 @@ The manifest covers all three baseline platforms:
 | Platform | Engine | `install.kind` | `support` |
 |---|---|---|---|
 | `linux/amd64` | native Linux engine 3.2.11 (upstream tarball) | `executable` | `stable` |
-| `linux/arm64` | official Android engine 3.1.80.0 (`arm64-v8a` APK) on a bionic userland | `android-apk` | `stable` |
+| `linux/arm64` | Android engine 3.2.17 from digest-pinned `jopsis/acestream:v3.2.17-fix` | `oci-image` | `stable` |
 | `linux/arm/v7` | official Android engine 3.1.80.0 (`armeabi-v7a` APK) on a bionic userland | `android-apk` | `experimental` |
 
-Upstream publishes native Linux engine tarballs only for x86_64; the ARM
-engines are the official Android APKs from
-https://docs.acestream.media/products/. Every engine archive and the bionic
-runtime packages are vendored under `docker/vendor/` and mirrored on a GitHub
-Release, so builds do not depend on reaching `download.acestream.media`. How
+Upstream publishes native Linux engine tarballs only for x86_64. ARM64 uses
+[`jopsis/acestream`](https://hub.docker.com/r/jopsis/acestream) because the
+official 3.1.80 ARM64 app is premium-gated; ARMv7 uses the official Android
+APK. Conventional archives and bionic packages are vendored under
+`docker/vendor/`; the ARM64 OCI source is pinned by digest. How
 the ARM engine works at runtime is documented in
 `docs/ops/acestream-arm-engine.md`.
 
@@ -48,23 +48,22 @@ container surface need explicit human approval before they ship.
 
 ## How to update
 
-1. Locate the upstream release you want to pin (download URL, SHA256,
+1. Locate the upstream release you want to pin (download URL and SHA256 for
+   archives, or a tagged multi-arch image plus index digest for `oci-image`,
    archive type; for `executable` the binary path inside the archive, for
    `android-apk` the ABI plus the matching `aosp-libs` package).
-2. Add the archive(s) to `docker/vendor/acestream/` (engine) and, only if it
+2. For archive installs, add the archive(s) to `docker/vendor/acestream/` (engine) and, only if it
    changed, `docker/vendor/bionic/` (bionic runtime); regenerate that
    directory's `SHA256SUMS` (`shasum -a 256 <files> > SHA256SUMS`, or
    `sha256sum` on Linux). The installer prefers these copies over any
    download, and `scripts/ci/validate_docker_manifest_metadata.py` fails
    when a manifest entry has no matching vendored file or checksum.
-3. Publish the same files as a GitHub Release so the `mirror_urls` resolve
+3. For archive installs, publish the same files as a GitHub Release so the `mirror_urls` resolve
    (exact command under **Bumping the AceStream version** below).
 4. Add or update the platform entry in `docker/manifests/acestream.json`.
    The schema is what `docker/scripts/acestream_manifest.py` resolves for
    `$TARGETPLATFORM` inside the `Dockerfile`'s `acestream-installer` stage
-   (one entry of each kind shown; `linux/arm/v7` has the same shape as
-   `linux/arm64` with the `armv7` APK, the `_arm.deb` package,
-   `"libdir": "lib"` and `"linker": "linker"`):
+   (`linux/arm/v7` uses the documented `android-apk` archive shape):
    ```json
    {
      "version": "3.2.11",
@@ -88,27 +87,16 @@ container surface need explicit human approval before they ship.
          }
        },
        "linux/arm64": {
-         "engine_version": "3.1.80.0",
+         "engine_version": "3.2.17",
          "support": "stable",
-         "url": "https://download.acestream.media/android/core.web/stable/AceStreamCore-3.1.80.0-armv8_64.apk",
-         "sha256": "...",
-         "archive_type": "apk",
-         "vendored_file": "AceStreamCore-3.1.80.0-armv8_64.apk",
-         "mirror_urls": ["<mirror_base_url>/AceStreamCore-3.1.80.0-armv8_64.apk"],
+         "distribution": "jopsis/acestream v3.2.17-fix",
+         "distribution_url": "https://hub.docker.com/r/jopsis/acestream",
+         "source_url": "https://github.com/jopsis/docker-acestream-aceserve",
+         "image_ref": "jopsis/acestream:v3.2.17-fix",
+         "image_digest": "sha256:<64 hex characters>",
          "install": {
-           "kind": "android-apk",
-           "abi": "arm64-v8a",
-           "engine_http_port": 6878,
-           "bionic": {
-             "package": "aosp-libs 9.0.0-r76-4 (Termux, built from AOSP android-security-9.0.0_r76)",
-             "url": "https://packages-cf.termux.dev/apt/termux-main/pool/main/a/aosp-libs/aosp-libs_9.0.0-r76-4_aarch64.deb",
-             "sha256": "...",
-             "vendor_dir": "docker/vendor/bionic",
-             "vendored_file": "aosp-libs_9.0.0-r76-4_aarch64.deb",
-             "mirror_urls": ["<mirror_base_url>/aosp-libs_9.0.0-r76-4_aarch64.deb"],
-             "libdir": "lib64",
-             "linker": "linker64"
-           }
+           "kind": "oci-image",
+           "engine_http_port": 6878
          }
        }
      }
@@ -120,17 +108,22 @@ container surface need explicit human approval before they ship.
    - Top level: `version` (amd64 engine), `vendor_dir`, `mirror_base_url`
      are required; `android_version` is informational and must equal the
      ARM entries' `engine_version` (checked by the docker tests).
-   - Per platform: `engine_version`, `support` (`stable` | `experimental`),
+   - Every platform: `engine_version`, `support` (`stable` | `experimental`),
+     and `install` with `kind` + `engine_http_port`.
+   - Archive installs additionally require
      `url` (https), `sha256`, `archive_type` (`tar.gz` for `executable`,
      `apk` for `android-apk`), `vendored_file` (bare file name that must
      exist in `vendor_dir` with a matching `SHA256SUMS` line), `mirror_urls`
      (non-empty, https, each ending in `/<vendored_file>`, at least one
-     under `mirror_base_url`), and `install` with `kind` + `engine_http_port`.
+     under `mirror_base_url`).
    - `install.kind = executable`: `strip_components`, `binary_path`.
    - `install.kind = android-apk`: `abi` (`arm64-v8a` | `armeabi-v7a`) and a
      `bionic` object with `url`, `sha256`, `vendor_dir`, `vendored_file`,
      `mirror_urls` (same rules as above), `libdir`/`linker` (`lib64`/`linker64`
      or `lib`/`linker`), plus a free-form `package` description.
+   - `install.kind = oci-image`: `distribution`, `distribution_url`,
+     `source_url`, a tagged `image_ref`, and a `sha256:` `image_digest`. Keep
+     the Dockerfile's `ACESTREAM_COMMUNITY_IMAGE` pin identical.
 
    See **Bumping the AceStream version** below for the canonical step-by-step
    when only updating the version pin.
@@ -215,8 +208,8 @@ job `acestream-scraper-pr` (`Jenkinsfile`), which:
   three platforms and `--load` needs exactly one), runs
   `backend/tests/docker/test_acestream_runtime_smoke.py` (the amd64 engine
   boots and answers on `:6878`), `test_acexy_runtime_smoke.py`, and
-  `test_install_acestream.py -k android_apk_install_layout` (QEMU builds of
-  the arm64 and armv7 installer stages, asserting the engine payload and
+  `test_install_acestream.py -k "android_apk_install_layout or arm64_oci_image_install_layout"` (builds of
+  the ARM installer stages, asserting the engine payload and
   bionic layout — no engine execution).
 
 The runner `dorat-nuc-ci` is amd64, so the arm64 runtime smoke never runs in
@@ -372,7 +365,7 @@ ways that break the install, the failure surfaces during
 `bash scripts/ci/build_multiarch_images.sh --flavor scraper-acestream` —
 no manifest schema change is needed for typical dep bumps.
 
-`android-apk` (arm64, armv7): the APK payload brings its own bionic CPython
+`android-apk` (armv7) and `oci-image` (arm64): the payload brings its own bionic CPython
 3.8, so no interpreter is grafted; instead the runtime stage copies the
 staged bionic userland to `/system` (the payload's ELF interpreter path is
 hard-coded to `/system/bin/linker*`). The Linux-side glue lives in
@@ -386,9 +379,8 @@ from Android 9's libc/libc++; any bionic change must be re-verified on
 hardware (the page-size guard in `start-engine` reflects the Android 9
 linker's 4 KB requirement).
 
-If a future release ships an archive that fits neither kind (for example a
-tarball without `start-engine` at the root), add a new kind rather than
-overloading these two. The `kind` discriminator is in place; the branches to
+If a future release fits none of these kinds, add a new kind rather than
+overloading an existing one. The `kind` discriminator is in place; the branches to
 extend are `INSTALL_KINDS` / `build_args_for()` in
 `docker/scripts/acestream_manifest.py`, the `case "$INSTALL_KIND"` dispatch
 in `docker/scripts/install-acestream.sh`,

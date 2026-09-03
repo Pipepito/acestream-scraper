@@ -19,8 +19,16 @@ HOST = os.environ.get("AP_HOST")
 HANDSHAKE = os.environ.get("AP_HANDSHAKE")
 Result = collections.namedtuple("Result", "id,result,error")
 _HOME = os.environ.get("ACESTREAM_HOME", "/var/lib/acestream")
-_ENGINE_VERSION = "3.1.80"
-_ENGINE_VERSION_CODE = "3018000"
+def _engine_version():
+    try:
+        with open(os.path.join(os.path.dirname(__file__), "engine_version.json")) as handle:
+            payload = json.load(handle)
+        return str(payload.get("version_name") or "3.1.80"), str(payload.get("version_code") or "3018000")
+    except Exception:
+        return "3.1.80", "3018000"
+
+
+_ENGINE_VERSION, _ENGINE_VERSION_CODE = _engine_version()
 _ABI_BY_MACHINE = {"aarch64": "arm64-v8a", "armv7l": "armeabi-v7a", "armv8l": "armeabi-v7a"}
 
 
@@ -140,7 +148,7 @@ class Android(object):
                     "appId": _device_id(),
                     "appVersionCode": _ENGINE_VERSION_CODE,
                     "deviceId": _device_id(),
-                    "arch": machine,
+                    "arch": _ABI_BY_MACHINE.get(machine, machine),
                     "locale": "en-US",
                     "isAndroidTv": False,
                     "hasBrowser": False,

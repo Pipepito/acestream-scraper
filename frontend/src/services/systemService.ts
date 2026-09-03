@@ -13,6 +13,8 @@ export interface ServiceStatus {
   running: boolean;
   endpoint: string | null;
   version: string | null;
+  distribution: string | null;
+  distribution_url: string | null;
   message: string;
   pid: number | null;
   uptime_seconds: number | null;

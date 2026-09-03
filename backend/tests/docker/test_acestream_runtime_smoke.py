@@ -127,6 +127,20 @@ def test_scraper_acestream_starts_real_engine(request: pytest.FixtureRequest, pl
     )
     try:
         assert _wait_for_port(host_port, timeout=120), "app port did not open"
+        # A published Docker port can accept a TCP connection before uvicorn
+        # is ready (notably while the first-run Alembic migration is active).
+        # Wait for the actual app endpoint before asserting final health.
+        app_check = None
+        app_deadline = time.time() + 120
+        while time.time() < app_deadline:
+            app_check = subprocess.run(
+                ["docker", "exec", container, "curl", "-fsS", "http://localhost:8000/api/v1/health"],
+                capture_output=True, text=True, timeout=15,
+            )
+            if app_check.returncode == 0:
+                break
+            time.sleep(2)
+        assert app_check is not None and app_check.returncode == 0, "app health endpoint did not become ready"
         # The engine and the app are independent processes spawned by
         # entrypoint.sh; engine startup is heavier than uvicorn (much heavier
         # under QEMU), so retry the webui probe until it answers.

@@ -26,7 +26,7 @@ from pathlib import Path
 from typing import Any
 
 ACESTREAM_FLAVORS = {"scraper-acestream", "scraper-acestream-acexy"}
-INSTALL_KINDS = {"executable", "android-apk"}
+INSTALL_KINDS = {"executable", "android-apk", "oci-image"}
 SUPPORT_LEVELS = {"stable", "experimental"}
 
 # Keys emitted for every install kind.
@@ -41,6 +41,9 @@ _COMMON_KEYS = (
     "ACESTREAM_VENDOR_SUBDIR",
     "ACESTREAM_MIRROR_URLS",
     "ACESTREAM_INSTALL_KIND",
+    "ACESTREAM_DISTRIBUTION",
+    "ACESTREAM_DISTRIBUTION_URL",
+    "ACESTREAM_SOURCE_URL",
 )
 
 
@@ -89,6 +92,9 @@ def build_args_for(payload: dict[str, Any], platform: str) -> dict[str, str]:
         "ACESTREAM_VENDOR_SUBDIR": Path(str(payload.get("vendor_dir", "docker/vendor/acestream"))).name,
         "ACESTREAM_MIRROR_URLS": " ".join(str(u) for u in entry.get("mirror_urls", []) or []),
         "ACESTREAM_INSTALL_KIND": kind,
+        "ACESTREAM_DISTRIBUTION": str(entry.get("distribution", "AceStream official")),
+        "ACESTREAM_DISTRIBUTION_URL": str(entry.get("distribution_url", entry.get("url", ""))),
+        "ACESTREAM_SOURCE_URL": str(entry.get("source_url", "")),
     }
 
     if kind == "executable":
@@ -96,7 +102,7 @@ def build_args_for(payload: dict[str, Any], platform: str) -> dict[str, str]:
         pairs["ACESTREAM_BINARY_PATH"] = str(install.get("binary_path", "acestreamengine"))
         if install.get("python_version"):
             pairs["ACESTREAM_PYTHON_VERSION"] = str(install["python_version"])
-    else:  # android-apk
+    elif kind == "android-apk":
         bionic = install.get("bionic") or {}
         pairs["ACESTREAM_ANDROID_ABI"] = str(install.get("abi", ""))
         pairs["ACESTREAM_BIONIC_URL"] = str(bionic.get("url", ""))
@@ -108,6 +114,9 @@ def build_args_for(payload: dict[str, Any], platform: str) -> dict[str, str]:
         )
         pairs["ACESTREAM_BIONIC_LIBDIR"] = str(bionic.get("libdir", "lib64"))
         pairs["ACESTREAM_BIONIC_LINKER"] = str(bionic.get("linker", "linker64"))
+    else:  # oci-image
+        pairs["ACESTREAM_OCI_IMAGE_REF"] = str(entry.get("image_ref", ""))
+        pairs["ACESTREAM_OCI_IMAGE_DIGEST"] = str(entry.get("image_digest", ""))
     return pairs
 
 

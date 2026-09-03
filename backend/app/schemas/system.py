@@ -19,6 +19,8 @@ class ServiceStatus(BaseModel):
     running: bool = Field(description="The service answered its health probe")
     endpoint: Optional[str] = Field(default=None, description="Where the app reaches the service")
     version: Optional[str] = None
+    distribution: Optional[str] = Field(default=None, description="Package or image that supplied the service")
+    distribution_url: Optional[str] = Field(default=None, description="Public attribution page for the distribution")
     message: str
     pid: Optional[int] = None
     uptime_seconds: Optional[int] = None

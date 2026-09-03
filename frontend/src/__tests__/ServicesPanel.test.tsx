@@ -24,6 +24,8 @@ const service = (overrides: Partial<ServiceStatus>): ServiceStatus => ({
   running: true,
   endpoint: 'http://localhost:6878',
   version: '3.1.80 (android)',
+  distribution: 'jopsis/acestream v3.2.17-fix',
+  distribution_url: 'https://hub.docker.com/r/jopsis/acestream',
   message: 'Engine answering at http://localhost:6878',
   pid: 42,
   uptime_seconds: 3700,
@@ -65,6 +67,10 @@ describe('ServicesPanel', () => {
     const engine = screen.getByRole('group', { name: 'Service AceStream engine' });
     expect(within(engine).getByText('Running')).toBeInTheDocument();
     expect(within(engine).getByText('Version: 3.1.80 (android)')).toBeInTheDocument();
+    expect(within(engine).getByRole('link', { name: 'jopsis/acestream v3.2.17-fix' })).toHaveAttribute(
+      'href',
+      'https://hub.docker.com/r/jopsis/acestream'
+    );
     expect(within(engine).getByText('Up for 1h 1m')).toBeInTheDocument();
     expect(within(engine).getByRole('button', { name: 'Restart AceStream engine' })).toBeEnabled();
 

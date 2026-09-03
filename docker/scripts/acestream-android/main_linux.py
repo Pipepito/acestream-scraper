@@ -32,8 +32,38 @@ def log(msg):
         pass
 
 
+def configure_bionic_dns():
+    """Route Python/socket lookups through Docker's resolv.conf.
+
+    The jopsis 3.2.17 distribution includes dnsproxyd for this purpose because
+    Android bionic does not use glibc's resolver configuration directly.
+    Older official APK payloads do not include the helper and simply retain
+    their existing behavior.
+    """
+    try:
+        import dns.resolver
+        from dnsproxyd import dns_daemon
+
+        nameservers = []
+        with open("/etc/resolv.conf") as handle:
+            for line in handle:
+                fields = line.split()
+                if len(fields) == 2 and fields[0] == "nameserver":
+                    nameservers.append(fields[1])
+        if not nameservers:
+            return
+        resolver = dns.resolver.Resolver(configure=False)
+        resolver.nameservers = nameservers
+        dns.resolver.override_system_resolver(resolver)
+        dns_daemon(resolver)
+        log("bionic DNS resolver configured: {}".format(", ".join(nameservers)))
+    except Exception as exc:
+        log("bionic DNS resolver unavailable: {}".format(exc))
+
+
 try:
     log("linux bootstrap; home {}".format(home_dir))
+    configure_bionic_dns()
     from acestreamengine import Core
 
     conf_file = os.path.join(home_dir, "acestream.conf")

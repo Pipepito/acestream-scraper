@@ -214,7 +214,6 @@ def test_checksum_mismatch_fails_the_build():
 @pytest.mark.parametrize(
     ("platform", "abi", "libdir", "linker"),
     [
-        ("linux/arm64", "arm64-v8a", "lib64", "linker64"),
         ("linux/arm/v7", "armeabi-v7a", "lib", "linker"),
     ],
 )
@@ -255,6 +254,29 @@ def test_android_apk_install_layout(
     assert _path_test_in_image(tag, "-f", "/opt/acestream-system/usr/share/zoneinfo/tzdata", platform)
     notices = _list_dir_in_image(tag, "/opt/acestream-system/etc/NOTICE-aosp-libs", platform)
     assert any(name.startswith("NOTICE") for name in notices)
+
+
+def test_arm64_oci_image_install_layout(request: pytest.FixtureRequest):
+    """ARM64 copies the digest-pinned jopsis distribution, replacing only its
+    bootstrap with the project's persistent Linux launcher."""
+    tag = _unique_tag("acestream-installer-test:oci-arm64")
+    _register_image_cleanup(request, tag)
+    _build_installer(tag, build_args={}, platform="linux/arm64")
+
+    metadata = _read_file_in_image(tag, "/opt/acestream/install-metadata.txt", "linux/arm64")
+    assert "platform=linux/arm64" in metadata
+    assert "kind=oci-image" in metadata
+    assert "engine_version=3.2.17" in metadata
+    assert "distribution=jopsis/acestream v3.2.17-fix" in metadata
+    assert "engine_source=oci:jopsis/acestream:v3.2.17-fix@sha256:" in metadata
+
+    ace = set(_list_dir_in_image(tag, "/opt/acestream", "linux/arm64"))
+    assert {"main.py.oci-orig", "main_linux.py", "app_bridge.py", "app_bridge.py.oci-orig",
+            "engine_version.json", "modules.zip", "python", "lib", "start-engine"} <= ace
+    assert "install_id" not in ace
+    assert "engine_runtime.json" not in ace
+    assert _path_test_in_image(tag, "-x", "/opt/acestream/start-engine", "linux/arm64")
+    assert _path_test_in_image(tag, "-x", "/opt/acestream-system/bin/linker64", "linux/arm64")
 
 
 def test_scraper_acestream_runtime_has_python310(request: pytest.FixtureRequest):

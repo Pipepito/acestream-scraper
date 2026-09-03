@@ -1754,6 +1754,16 @@ export interface components {
       /** Description */
       description: string;
       /**
+       * Distribution
+       * @description Package or image that supplied the service
+       */
+      distribution?: string | null;
+      /**
+       * Distribution Url
+       * @description Public attribution page for the distribution
+       */
+      distribution_url?: string | null;
+      /**
        * Enabled
        * @description Turned on through its ENABLE_* variable
        */

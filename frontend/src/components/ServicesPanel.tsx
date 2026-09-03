@@ -11,6 +11,7 @@ import {
   DialogContentText,
   DialogTitle,
   Grid,
+  Link,
   Paper,
   Snackbar,
   Stack,
@@ -199,6 +200,18 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
                 <Stack spacing={0.25} sx={{ color: 'text.secondary', fontSize: theme.typography.caption.fontSize }}>
                   {service.endpoint ? <span>Endpoint: {service.endpoint}</span> : null}
                   {service.version ? <span>Version: {service.version}</span> : null}
+                  {service.distribution ? (
+                    <span>
+                      Engine package:{' '}
+                      {service.distribution_url ? (
+                        <Link href={service.distribution_url} target="_blank" rel="noreferrer">
+                          {service.distribution}
+                        </Link>
+                      ) : (
+                        service.distribution
+                      )}
+                    </span>
+                  ) : null}
                   {uptime ? <span>Up for {uptime}</span> : null}
                 </Stack>
                 <Box sx={{ mt: 'auto', pt: 1, display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>

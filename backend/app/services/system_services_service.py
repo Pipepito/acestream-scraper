@@ -42,6 +42,20 @@ def _flag(name: str, default: str = "false") -> bool:
     return os.environ.get(name, default).strip().lower() in ("1", "true", "yes", "on")
 
 
+def _engine_distribution() -> tuple[Optional[str], Optional[str]]:
+    """Read immutable build provenance written by install-acestream.sh."""
+    path = Path(os.environ.get("ACESTREAM_INSTALL_METADATA", "/opt/acestream/install-metadata.txt"))
+    try:
+        metadata = dict(
+            line.split("=", 1)
+            for line in path.read_text(encoding="utf-8").splitlines()
+            if "=" in line
+        )
+    except (OSError, ValueError):
+        return None, None
+    return metadata.get("distribution") or None, metadata.get("distribution_url") or None
+
+
 @dataclass
 class ProbeResult:
     ok: bool
@@ -193,12 +207,16 @@ class SystemServicesService:
     # ---------- per-service evaluation ----------
     def _evaluate(self, name: str) -> Dict[str, object]:
         env = os.environ
+        distribution: Optional[str] = None
+        distribution_url: Optional[str] = None
         if name == "acestream":
             installed = _flag("IMAGE_HAS_ACESTREAM")
             enabled = _flag("ENABLE_ACESTREAM_ENGINE")
             internal = f"http://{env.get('ACESTREAM_HTTP_HOST', 'localhost')}:{env.get('ACESTREAM_HTTP_PORT', '6878')}"
             endpoint = internal if enabled else self.external_engine_url
             probe = self._probe_engine(endpoint)
+            if installed:
+                distribution, distribution_url = _engine_distribution()
             label, description = "AceStream engine", "Resolves and plays acestream:// content; used by search and status checks."
             external_possible = True
         elif name == "acexy":
@@ -269,6 +287,8 @@ class SystemServicesService:
             "running": probe.ok,
             "endpoint": endpoint,
             "version": probe.version,
+            "distribution": distribution,
+            "distribution_url": distribution_url,
             "message": message,
             "pid": proc.pid if managed else None,
             "uptime_seconds": proc.uptime_seconds if managed else None,

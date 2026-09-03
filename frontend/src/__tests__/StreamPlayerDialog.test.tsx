@@ -9,16 +9,32 @@ const mockStart = jest.fn();
 const mockStatus = jest.fn();
 const mockPublicUrl = jest.fn();
 const mockLeave = jest.fn();
-const hlsInstances: Array<{ loadSource: jest.Mock; attachMedia: jest.Mock; destroy: jest.Mock; on: jest.Mock }> = [];
+interface MockHlsInstance {
+  loadSource: jest.Mock;
+  attachMedia: jest.Mock;
+  destroy: jest.Mock;
+  startLoad: jest.Mock;
+  recoverMediaError: jest.Mock;
+  on: jest.Mock;
+}
+const hlsInstances: MockHlsInstance[] = [];
 
+// The real hls.js constant values, so the component's comparisons are exercised
+// rather than matching `undefined === undefined`.
 jest.mock('hls.js', () => {
   class MockHls {
     static isSupported = () => true;
     static Events = { ERROR: 'hlsError' };
-    static ErrorDetails = { BUFFER_INCOMPATIBLE_CODECS_ERROR: 'bufferIncompatibleCodecsError' };
+    static ErrorTypes = { NETWORK_ERROR: 'networkError', MEDIA_ERROR: 'mediaError', OTHER_ERROR: 'otherError' };
+    static ErrorDetails = {
+      BUFFER_INCOMPATIBLE_CODECS_ERROR: 'bufferIncompatibleCodecsError',
+      BUFFER_ADD_CODEC_ERROR: 'bufferAddCodecError',
+    };
     loadSource = jest.fn();
     attachMedia = jest.fn();
     destroy = jest.fn();
+    startLoad = jest.fn();
+    recoverMediaError = jest.fn();
     on = jest.fn();
     constructor() { hlsInstances.push(this); }
   }
@@ -90,6 +106,76 @@ describe('StreamPlayerDialog', () => {
     expect(onClose).toHaveBeenCalled();
     act(() => { window.dispatchEvent(new Event('pagehide')); });
     expect(mockLeave).toHaveBeenCalledTimes(1);
+  });
+
+  /** Drives the real starting -> ready transition, which is what attaches hls.js. */
+  const renderPlaying = () => {
+    mockStatus.mockReturnValue({ data: { ...readySession.data, state: 'starting', hls_ready: false } });
+    const view = renderDialog();
+    mockStatus.mockReturnValue(readySession);
+    view.rerender(
+      <ThemeProvider theme={createAppTheme('light')}>
+        <StreamPlayerDialog open contentId={'a'.repeat(40)} title="Arena TV" onClose={jest.fn()} />
+      </ThemeProvider>
+    );
+    expect(hlsInstances).toHaveLength(1);
+    return view;
+  };
+
+  const emitHlsError = (data: Record<string, unknown>) => {
+    const call = hlsInstances[0].on.mock.calls.find(([event]) => event === 'hlsError');
+    const handler = call?.[1] as (event: string, payload: Record<string, unknown>) => void;
+    act(() => { handler('hlsError', data); });
+  };
+
+  it('recovers from fatal hls.js network and media errors instead of freezing', () => {
+    renderPlaying();
+    emitHlsError({ fatal: false, type: 'networkError', details: 'fragLoadError' });
+    expect(hlsInstances[0].startLoad).not.toHaveBeenCalled();
+    emitHlsError({ fatal: true, type: 'networkError', details: 'fragLoadError' });
+    expect(hlsInstances[0].startLoad).toHaveBeenCalledTimes(1);
+    emitHlsError({ fatal: true, type: 'mediaError', details: 'bufferStalledError' });
+    expect(hlsInstances[0].recoverMediaError).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('gives up on an unrecoverable hls.js error and says so, with a Retry', () => {
+    renderPlaying();
+    emitHlsError({ fatal: true, type: 'otherError', details: 'internalException' });
+    expect(hlsInstances[0].destroy).toHaveBeenCalled();
+    expect(screen.getByRole('alert')).toHaveTextContent(/Playback stopped/);
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(mockStart).toHaveBeenCalledTimes(2);
+  });
+
+  it('explains a codec hls.js cannot buffer instead of retrying it', () => {
+    renderPlaying();
+    emitHlsError({ fatal: true, type: 'mediaError', details: 'bufferAddCodecError' });
+    expect(hlsInstances[0].recoverMediaError).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert')).toHaveTextContent(/can't play this channel's video format/);
+  });
+
+  it('offers Retry when the session could never be created', () => {
+    mockStart.mockImplementation((_id: string, opts: { onError: (err: { code: string; context: { limit: number } }) => void }) =>
+      opts.onError({ code: 'PLAYER_LIMIT_REACHED', context: { limit: 3 } })
+    );
+    mockStatus.mockReturnValue({});
+    renderDialog();
+    expect(screen.getByRole('alert')).toHaveTextContent('Too many channels are playing at once (limit 3)');
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+  });
+
+  it('offers Retry when the session was reaped, but never when ffmpeg is missing', () => {
+    mockStatus.mockReturnValue({ data: readySession.data, error: { status: 404 } });
+    const { unmount } = renderDialog();
+    expect(screen.getByRole('alert')).toHaveTextContent('The stream ended.');
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+    unmount();
+
+    mockStatus.mockReturnValue({ data: { ...readySession.data, state: 'error', hls_ready: false, error: 'ffmpeg_missing' } });
+    renderDialog();
+    expect(screen.getByRole('alert')).toHaveTextContent("can't prepare streams");
+    expect(screen.queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument();
   });
 });
 

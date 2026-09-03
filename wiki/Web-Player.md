@@ -36,6 +36,8 @@ The player explains problems in plain language instead of raw codes:
 | "The AceStream engine could not start this channel: …" | The engine refused or was unreachable | Check the engine URL under Settings, or that the engine is running |
 | "Your browser can't play this channel's video format (…). Send it to VLC or Kodi instead." | The source video codec (MPEG-2, MPEG-1, VC-1, MPEG-4 v3) is not one browsers decode | Open the stream link in VLC or Kodi |
 | "Too many channels are playing at once…" | `PLAYER_MAX_SESSIONS` distinct channels are already active | Close another player tab, or raise the limit |
+| "Playback stopped in your browser. Try again." | The browser's player hit an error it could not recover from (it retries network and buffer errors a few times first) | Press **Retry** |
+| "The stream ended." | The session was released after nobody watched it for a while | Press **Retry** |
 
 Errors that are not a dead end (everything except "ffmpeg is missing") offer a **Retry** button in the dialog.
 

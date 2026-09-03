@@ -32,6 +32,9 @@ export interface StreamPlayerDialogProps {
   extraActions?: React.ReactNode;
 }
 
+/** Fatal hls.js errors we try to ride out before telling the user. */
+const MAX_RECOVERIES = 3;
+
 const withToken = (url: string): string => {
   const token = getApiToken();
   if (!token) return url;
@@ -60,6 +63,9 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
   const sessionIdRef = useRef<string | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
   const [hlsCodecError, setHlsCodecError] = useState(false);
+  const [playbackError, setPlaybackError] = useState<string | null>(null);
+  // Bounded so a permanently broken stream surfaces instead of retrying forever.
+  const recoveries = useRef(0);
   const [copied, setCopied] = useState<'ok' | 'failed' | null>(null);
   const leftRef = useRef(false);
 
@@ -80,6 +86,13 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
     leave();
     setStartError(null);
     setHlsCodecError(false);
+    setPlaybackError(null);
+    recoveries.current = 0;
+    // Retry is a full restart: drop the old player so the next ready status
+    // re-attaches even when the backend hands back the same session.
+    hlsRef.current?.destroy();
+    hlsRef.current = null;
+    attachedUrl.current = null;
     leftRef.current = false;
     sessionIdRef.current = null;
     setSessionId(null);
@@ -142,7 +155,23 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
           data.details === Hls.ErrorDetails.BUFFER_ADD_CODEC_ERROR
         ) {
           setHlsCodecError(true);
+          return;
         }
+        if (!data.fatal) return;
+        // hls.js recovers nothing fatal on its own: unhandled, the video
+        // freezes for good while the strip still reads "Playing".
+        recoveries.current += 1;
+        if (recoveries.current <= MAX_RECOVERIES && data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          hls.startLoad();
+          return;
+        }
+        if (recoveries.current <= MAX_RECOVERIES && data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          hls.recoverMediaError();
+          return;
+        }
+        hls.destroy();
+        if (hlsRef.current === hls) hlsRef.current = null;
+        setPlaybackError('Playback stopped in your browser. Try again.');
       });
       hls.loadSource(status.playlist_url);
       hls.attachMedia(video);
@@ -170,7 +199,8 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
   };
 
   const gone = Boolean(statusError && statusError.status === 404);
-  const problem = startError ?? (gone ? 'The stream ended.' : status ? describePlayerError(status, hlsCodecError) : null);
+  const backendProblem = gone ? 'The stream ended.' : status ? describePlayerError(status, hlsCodecError) : null;
+  const problem = startError ?? backendProblem ?? playbackError;
   const stats = status?.stats;
   const statusText =
     status?.state === 'ready'
@@ -194,7 +224,7 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
             <Alert
               severity={status?.error === 'ffmpeg_missing' ? 'warning' : 'error'}
               action={
-                status?.error && status.error !== 'ffmpeg_missing' ? (
+                status?.error !== 'ffmpeg_missing' ? (
                   <Button color="inherit" size="small" onClick={startSession}>
                     Retry
                   </Button>

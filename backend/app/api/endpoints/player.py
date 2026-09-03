@@ -3,6 +3,7 @@ the threadpool; HLS file handlers are async and touch no DB."""
 from __future__ import annotations
 
 import re
+import stat as stat_module
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, HTTPException, Request, Response, status
@@ -116,6 +117,16 @@ async def segment(session_id: str, segment: str) -> FileResponse:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown segment")
     player_service.touch(session_id)
     path = session.dir / segment
-    if not path.exists():
+    try:
+        # Stat once and hand the result to FileResponse. Segment deletion is
+        # routine here (ffmpeg's delete_segments, teardown's rmtree); without
+        # stat_result Starlette re-stats at send time and raises RuntimeError,
+        # which would surface as a 500 instead of this 404.
+        file_stat = path.stat()
+    except OSError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Segment not ready") from None
+    if not stat_module.S_ISREG(file_stat.st_mode):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Segment not ready")
-    return FileResponse(path, media_type="video/mp2t", headers={"Cache-Control": "no-store"})
+    return FileResponse(
+        path, media_type="video/mp2t", headers={"Cache-Control": "no-store"}, stat_result=file_stat
+    )

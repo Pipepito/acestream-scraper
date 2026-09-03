@@ -152,3 +152,34 @@ def _wait_ready_with_token(client, session_id, token=TOKEN, tries=60):
             return body
         import time; time.sleep(0.05)
     raise AssertionError("session never became ready")
+
+
+def test_segment_missing_is_404_and_served_response_carries_its_own_stat(client, player):
+    """A vanished segment is a 404, and a served one is not re-stat'ed at send time.
+
+    ffmpeg deletes old segments while it runs (``-hls_flags delete_segments``) and
+    teardown removes the whole directory, so a segment can disappear between the
+    handler and the response body being written. ``FileResponse`` without
+    ``stat_result`` stats again inside ``__call__`` and raises ``RuntimeError`` when
+    the file has gone — a 500 where the contract says 404.
+    """
+    import app.api.endpoints.player as endpoint
+
+    created = client.post("/api/v1/player/sessions", json={"content_id": IH}).json()
+    ready = _wait_ready(client, created["id"])
+    uris = [l for l in client.get(ready["playlist_url"]).text.splitlines() if l and not l.startswith("#")]
+    newest = uris[-1]
+
+    # Well-formed name, no such file: 404, never a 500.
+    missing = client.get(f"/api/v1/player/sessions/{created['id']}/seg99999.ts")
+    assert missing.status_code == 404, missing.text
+
+    # A directory sitting where a segment should be is a 404 too, not a mid-send crash.
+    (player.get(created["id"]).dir / "seg99998.ts").mkdir()
+    assert client.get(f"/api/v1/player/sessions/{created['id']}/seg99998.ts").status_code == 404
+
+    # The served response carries the stat the handler took, so Starlette skips its
+    # own send-time stat and cannot raise RuntimeError if the file is deleted next.
+    response = client.portal.call(endpoint.segment, created["id"], newest)
+    assert response.stat_result is not None
+    assert response.headers["content-length"] == str(response.stat_result.st_size)

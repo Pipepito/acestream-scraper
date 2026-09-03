@@ -31,7 +31,8 @@ from app.config.database import (
     head_revision,
     provision_schema,
 )
-from app.config.settings import get_env_compat_events, settings
+from app.config.settings import get_env_compat_events, get_settings, settings
+from app.middleware.forwarded import ForwardedHeadersMiddleware, parse_trusted
 from app.services.epg_service import EPGService
 from app.services.playlist_service import PlaylistService
 from app.services.task_service import task_service
@@ -178,6 +179,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Outermost user middleware: rewrites scheme/host/client from X-Forwarded-*
+# only for peers in FORWARDED_ALLOW_IPS and records the raw peer as
+# request.state.peer (spec 4.3). uvicorn runs with --no-proxy-headers.
+app.add_middleware(ForwardedHeadersMiddleware, trusted=parse_trusted(get_settings().FORWARDED_ALLOW_IPS))
 
 # Add API routes with versioning. The token dependency is a no-op unless the
 # API_TOKEN environment variable is set (see app/api/auth.py); /api/v1/health

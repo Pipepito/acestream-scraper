@@ -611,8 +611,78 @@ def test_entrypoint_detects_bundled_ffmpeg():
     assert 'FFMPEG_BINARY_PATH="${FFMPEG_BINARY_PATH:-/opt/ffmpeg/bin/ffmpeg}"' in entrypoint
     assert 'if [ -x "$FFMPEG_BINARY_PATH" ]; then IMAGE_HAS_FFMPEG=true; else IMAGE_HAS_FFMPEG=false; fi' in entrypoint
     assert "IMAGE_HAS_FFMPEG" in entrypoint.split("export ENABLE_WARP", 1)[1].split("\n", 1)[0]
+    # With nothing executable there the app must get Settings' empty default
+    # ("resolve ffmpeg from PATH"), not a path that is guaranteed to ENOENT.
+    assert 'if [ ! -x "$FFMPEG_BINARY_PATH" ]; then' in entrypoint
+    assert 'FFMPEG_BINARY_PATH=""' in entrypoint
     assert "FFMPEG_BINARY_PATH=/opt/ffmpeg/bin/ffmpeg" in dockerfile
     assert "FROM --platform=$BUILDPLATFORM debian:trixie-slim AS ffmpeg-builder" in dockerfile
+
+
+def _entrypoint_env(tmp_path: Path, **overrides: str) -> dict[str, str]:
+    """Run entrypoint.sh with every sidecar off and report the env the app is handed."""
+    env = os.environ.copy()
+    env.update(
+        {
+            "LOG_DIR": str(tmp_path / "logs"),
+            "LOGROTATE_DIR": str(tmp_path / "logrotate"),
+            "SUPERVISOR_RUN_DIR": str(tmp_path / "run"),
+            "ENABLE_WARP": "false",
+            "ENABLE_ACESTREAM_ENGINE": "false",
+            "ENABLE_ACEXY": "false",
+            "ENABLE_IPFS": "false",
+            "ENABLE_ZERONET": "false",
+            "ENABLE_TOR": "false",
+            "IMAGE_HAS_ACESTREAM": "false",
+            "IMAGE_HAS_ACEXY": "false",
+        }
+    )
+    env.pop("IMAGE_HAS_FFMPEG", None)
+    env.update(overrides)
+
+    result = subprocess.run(
+        [
+            "/bin/bash",
+            str(REPO_ROOT / "entrypoint.sh"),
+            "sh",
+            "-c",
+            'printf "REPORT FFMPEG_BINARY_PATH=[%s]\nREPORT IMAGE_HAS_FFMPEG=[%s]\n"'
+            ' "${FFMPEG_BINARY_PATH-<unset>}" "${IMAGE_HAS_FFMPEG-<unset>}"',
+        ],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=120,
+        env=env,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    reported: dict[str, str] = {}
+    for line in result.stdout.splitlines():
+        if line.startswith("REPORT "):
+            name, _, value = line[len("REPORT ") :].partition("=")
+            reported[name] = value[1:-1]
+    return reported
+
+
+def test_entrypoint_hands_the_app_the_bundled_ffmpeg_when_it_is_installed(tmp_path):
+    ffmpeg = tmp_path / "ffmpeg"
+    _write_executable(ffmpeg, "#!/bin/sh\nexit 0\n")
+
+    reported = _entrypoint_env(tmp_path, FFMPEG_BINARY_PATH=str(ffmpeg))
+
+    assert reported["FFMPEG_BINARY_PATH"] == str(ffmpeg)
+    assert reported["IMAGE_HAS_FFMPEG"] == "true"
+
+
+def test_entrypoint_clears_the_ffmpeg_path_when_nothing_is_installed_there(tmp_path):
+    reported = _entrypoint_env(tmp_path, FFMPEG_BINARY_PATH=str(tmp_path / "no-such-ffmpeg"))
+
+    # Settings' own default, so the backend falls back to shutil.which("ffmpeg")
+    # (spec 4.5) instead of spawning a path with nothing behind it.
+    assert reported["FFMPEG_BINARY_PATH"] == ""
+    assert reported["IMAGE_HAS_FFMPEG"] == "false"
 
 
 def test_jenkins_smoke_stage_runs_the_ffmpeg_build_test():

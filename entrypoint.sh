@@ -241,6 +241,15 @@ if [ -z "${IMAGE_HAS_FFMPEG:-}" ]; then
     if [ -x "$FFMPEG_BINARY_PATH" ]; then IMAGE_HAS_FFMPEG=true; else IMAGE_HAS_FFMPEG=false; fi
 fi
 IMAGE_HAS_FFMPEG=$(normalize_bool "$IMAGE_HAS_FFMPEG")
+if [ ! -x "$FFMPEG_BINARY_PATH" ]; then
+    # Unlike the sidecar paths above (which only entrypoint.sh launches), this
+    # one is a Settings knob the app reads, and its declared default is empty:
+    # "resolve ffmpeg from PATH" (spec 4.5). Hand the app that default rather
+    # than a path with nothing behind it — an operator's own ffmpeg on PATH is
+    # a better answer than a guaranteed ENOENT.
+    log "no executable ffmpeg at $FFMPEG_BINARY_PATH; the web player will look for one on PATH"
+    FFMPEG_BINARY_PATH=""
+fi
 
 export ENABLE_WARP ENABLE_ACESTREAM_ENGINE ENABLE_ACEXY ENABLE_IPFS ENABLE_ZERONET ENABLE_TOR IMAGE_HAS_ACESTREAM IMAGE_HAS_ACEXY IMAGE_HAS_IPFS IMAGE_HAS_ZERONET IMAGE_HAS_FFMPEG IPFS_BINARY_PATH ZERONET_BINARY_PATH FFMPEG_BINARY_PATH
 export FLASK_PORT="${FLASK_PORT:-8000}"
@@ -278,8 +287,9 @@ export IPFS_GATEWAY_URL="${IPFS_GATEWAY_URL:-http://127.0.0.1:$IPFS_GATEWAY_PORT
 # container; TUNER_ALLOWED_NETWORKS gates the token-free /tuner/* routes;
 # PLAYER_* size the web player's transcode sessions; FORWARDED_ALLOW_IPS is
 # consumed by the app's own forwarded-headers middleware (uvicorn's is disabled
-# below); FFMPEG_BINARY_PATH was already resolved with the image flags above
-# (empty only where no bundled binary exists, meaning "resolve from PATH");
+# below); FFMPEG_BINARY_PATH was already resolved with the image flags above,
+# and is empty here exactly when nothing executable sits at that path, which is
+# Settings' own default and means "resolve ffmpeg from PATH";
 # MEDIA_SERVER_MIN_REFRESH_MINUTES debounces Jellyfin/Plex guide refreshes.
 export PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-}"
 export TUNER_ALLOWED_NETWORKS="${TUNER_ALLOWED_NETWORKS:-127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10}"

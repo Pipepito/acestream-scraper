@@ -423,7 +423,10 @@ It rides in `runtime-base`, so **every flavor and every platform** ships
 `/opt/ffmpeg/bin/ffmpeg` and `ffprobe`; `runtime-base` also bakes
 `FFMPEG_BINARY_PATH=/opt/ffmpeg/bin/ffmpeg`, and `entrypoint.sh` exports
 `IMAGE_HAS_FFMPEG` from `-x "$FFMPEG_BINARY_PATH"` (so a stripped-down mount
-or a bare-metal run is detected rather than assumed).
+or a bare-metal run is detected rather than assumed). When nothing executable
+sits at that path the entrypoint clears `FFMPEG_BINARY_PATH` before handing it
+to the app, which is `Settings.FFMPEG_BINARY_PATH`'s declared default and means
+"resolve `ffmpeg` from `PATH`" — the app is never given a path it cannot spawn.
 
 Keys: `version`, `vendor_dir` (must be `docker/vendor/ffmpeg` — the Dockerfile
 bind-mounts `docker/vendor`), `vendored_file`, `sha256`, `source_url`,

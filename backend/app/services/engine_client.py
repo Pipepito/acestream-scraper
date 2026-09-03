@@ -55,7 +55,7 @@ def engine_url_from_settings(settings_repo: SettingsRepository) -> str:
     url = (settings_repo.get_setting(SettingsRepository.ACE_ENGINE_URL) or "").strip()
     if not url:
         raise EngineUnavailableError("Acestream Engine URL is not configured")
-    if not url.startswith("http"):
+    if not url.startswith(("http://", "https://")):
         url = f"http://{url}"
     return url.rstrip("/")
 
@@ -128,8 +128,11 @@ class EngineClient:
             raise EngineUnavailableError(f"Engine start response is incomplete: {body}") from exc
 
     def stop(self, session: EngineSession) -> None:
+        # Merge rather than replace: the engine may hand back a command_url
+        # that already carries a token or session id in its query.
+        url = httpx.URL(session.command_url).copy_merge_params({"method": "stop"})
         try:
-            self._client.get(session.command_url, params={"method": "stop"}, timeout=STAT_TIMEOUT)
+            self._client.get(url, timeout=STAT_TIMEOUT)
         except httpx.HTTPError as exc:
             logger.warning("Engine stop for %s failed: %s", session.content_id, exc)
 

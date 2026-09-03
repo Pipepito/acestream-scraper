@@ -524,11 +524,16 @@ def test_entrypoint_exports_media_integration_defaults():
 def test_uvicorn_is_launched_with_app_owned_proxy_trust_and_graceful_timeout():
     entrypoint = (REPO_ROOT / "entrypoint.sh").read_text()
     dockerfile = (REPO_ROOT / "Dockerfile").read_text()
+    backend_dockerfile = (REPO_ROOT / "backend" / "Dockerfile").read_text()
     e2e_start = (REPO_ROOT / "e2e" / "stack" / "backend-start.sh").read_text()
 
     flags = '--no-proxy-headers --timeout-graceful-shutdown 3'
+    cmd = 'CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--no-proxy-headers", "--timeout-graceful-shutdown", "3"]'
     assert f'APP_COMMAND=(uvicorn main:app --host 0.0.0.0 --port "$FLASK_PORT" {flags})' in entrypoint
-    assert 'CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--no-proxy-headers", "--timeout-graceful-shutdown", "3"]' in dockerfile
+    assert cmd in dockerfile
+    # The backend-only image is the fourth launch path; it must not hand
+    # uvicorn X-Forwarded-* trust that ForwardedHeadersMiddleware owns.
+    assert cmd in backend_dockerfile
     assert "--no-proxy-headers" in e2e_start and "--timeout-graceful-shutdown 3" in e2e_start
 
 

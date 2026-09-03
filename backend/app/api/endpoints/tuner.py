@@ -43,7 +43,14 @@ def _relay_client_factory(**kwargs) -> httpx.AsyncClient:
 
 def _validate_content_id(content_id: str) -> str:
     if not _CONTENT_ID.match(content_id):
-        raise HTTPException(status_code=422, detail="content_id must be a 40-character hex string")
+        # APIError, not HTTPException: the 403 and the 502s on this router all
+        # answer with the {"error": {...}} envelope and this must match.
+        raise APIError(
+            code="INVALID_CONTENT_ID",
+            message="content_id must be a 40-character hex string",
+            status_code=422,
+            context={"content_id": content_id},
+        )
     return content_id.lower()
 
 

@@ -136,6 +136,25 @@ def _configured_intervals() -> tuple[int, int]:
         db.close()
 
 
+RELAY_REAP_INTERVAL_SECONDS = 30
+RELAY_REAP_AGE_SECONDS = 30
+
+
+async def reap_relays_forever() -> None:
+    """Forget relays that finished long enough ago that no status view needs them.
+
+    The task lives for the whole process, so one failing sweep must not end it:
+    a dead reaper would keep every finished relay in the registry forever (and
+    re-raise its exception at shutdown).
+    """
+    while True:
+        await asyncio.sleep(RELAY_REAP_INTERVAL_SECONDS)
+        try:
+            relay_registry.reap_finished(older_than_seconds=RELAY_REAP_AGE_SECONDS)
+        except Exception:  # noqa: BLE001 - keep sweeping whatever one sweep hit
+            logging.getLogger("main").exception("Relay reaper sweep failed")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan: provision the database, start the scheduler, and
@@ -154,13 +173,7 @@ async def lifespan(app: FastAPI):
     _schedule_deferred_migration()
     await player_service.start()
 
-    async def _reap_relays():
-        """Forget relays that finished long enough ago that no status view needs them."""
-        while True:
-            await asyncio.sleep(30)
-            relay_registry.reap_finished(older_than_seconds=30)
-
-    reaper = asyncio.create_task(_reap_relays())
+    reaper = asyncio.create_task(reap_relays_forever())
     try:
         yield
     finally:

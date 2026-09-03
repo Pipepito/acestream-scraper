@@ -53,4 +53,7 @@ RUN mkdir -p frontend_build
 COPY --from=frontend-builder /app/frontend/build/ /app/frontend_build/
 
 # Set up entrypoint
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# --no-proxy-headers: ForwardedHeadersMiddleware owns X-Forwarded-* trust
+# (FORWARDED_ALLOW_IPS). --timeout-graceful-shutdown: live streams must not
+# hold the shutdown open.
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--no-proxy-headers", "--timeout-graceful-shutdown", "3"]

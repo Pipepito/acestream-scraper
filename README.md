@@ -70,7 +70,7 @@ python3 -m venv backend/venv
 source backend/venv/bin/activate
 pip install -r backend/requirements.txt
 cd backend
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+uvicorn main:app --reload --host 0.0.0.0 --port 8000 --no-proxy-headers
 ```
 
 Frontend (optional dev server):

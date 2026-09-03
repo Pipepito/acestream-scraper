@@ -76,6 +76,22 @@ def test_stop_and_stat():
     assert calls[-1] == "http://engine:6878/ace/cmd/x/s?method=stop"
 
 
+def test_stop_keeps_an_existing_query_on_the_command_url():
+    """Some engine builds hand back a command_url that already carries state
+    (a token, a session id). Replacing its query with ?method=stop would ask
+    the engine to stop nothing at all."""
+    calls = []
+
+    def handler(request):
+        calls.append(request.url)
+        return httpx.Response(200, text="ok")
+
+    session = EngineSession(CID, "p", "u", "s", "http://engine:6878/ace/cmd/x/s?token=abc", True)
+    EngineClient("http://engine:6878", client=_client(handler)).stop(session)
+    assert calls[-1].params["token"] == "abc"
+    assert calls[-1].params["method"] == "stop"
+
+
 def test_stop_swallows_errors():
     def handler(request):
         raise httpx.ConnectError("gone")
@@ -87,6 +103,21 @@ def test_engine_url_from_settings_normalizes(db_session):
     repo = SettingsRepository(db_session)
     repo.set_setting("ace_engine_url", "engine.lan:6878/")
     assert engine_url_from_settings(repo) == "http://engine.lan:6878"
+
+
+# A bare host may legitimately start with the letters "http" ("httpengine",
+# "http-proxy.lan"): only a real scheme means "already absolute".
+@pytest.mark.parametrize(("stored", "expected"), [
+    ("httpengine.lan:6878", "http://httpengine.lan:6878"),
+    ("https-gateway.lan", "http://https-gateway.lan"),
+    ("http://engine.lan:6878", "http://engine.lan:6878"),
+    ("https://engine.lan", "https://engine.lan"),
+])
+def test_engine_url_from_settings_only_treats_a_real_scheme_as_absolute(db_session, stored, expected):
+    from app.repositories.settings_repository import SettingsRepository
+    repo = SettingsRepository(db_session)
+    repo.set_setting("ace_engine_url", stored)
+    assert engine_url_from_settings(repo) == expected
 
 
 def test_close_releases_a_client_it_created():

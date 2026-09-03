@@ -1,0 +1,60 @@
+"""Background tasks the FastAPI lifespan owns (see ``main.lifespan``).
+
+The relay reaper runs for the whole process lifetime, so its failure mode
+matters more than its happy path: if one sweep raises, the task must keep
+sweeping instead of dying silently and leaking finished relay records.
+"""
+import asyncio
+from contextlib import asynccontextmanager
+
+import pytest
+
+import main
+
+
+@asynccontextmanager
+async def _lifespan_without_io(monkeypatch):
+    """Run the real ``main.lifespan`` with its heavy startup work stubbed out.
+
+    Only the database provisioning, the APScheduler wiring and the player
+    service are replaced; the relay reaper is left exactly as production
+    creates it.
+    """
+    async def _noop_async():
+        return None
+
+    monkeypatch.setattr(main, "initialize_database", lambda: None)
+    monkeypatch.setattr(main, "_configured_intervals", lambda: (24, 6))
+    monkeypatch.setattr(main, "_schedule_deferred_migration", lambda: False)
+    monkeypatch.setattr(main.task_service, "start", lambda: None)
+    monkeypatch.setattr(main.task_service, "add_interval_task", lambda *a, **k: None)
+    monkeypatch.setattr(main.task_service, "shutdown", lambda: None)
+    monkeypatch.setattr(main.player_service, "start", _noop_async)
+    monkeypatch.setattr(main.player_service, "stop", _noop_async)
+
+    # A regression that leaves the reaper running (or awaits a dead one) would
+    # hang the suite rather than fail it, so bound the whole lifespan.
+    async with asyncio.timeout(10):
+        async with main.lifespan(main.app):
+            yield
+
+
+@pytest.mark.asyncio
+async def test_relay_reaper_keeps_sweeping_after_a_failing_sweep(monkeypatch):
+    sweeps = []
+
+    def exploding_sweep(**kwargs):
+        sweeps.append(kwargs)
+        raise RuntimeError("registry sweep failed")
+
+    monkeypatch.setattr(main, "RELAY_REAP_INTERVAL_SECONDS", 0)
+    monkeypatch.setattr(main.relay_registry, "reap_finished", exploding_sweep)
+
+    async with _lifespan_without_io(monkeypatch):
+        for _ in range(500):
+            if len(sweeps) >= 3:
+                break
+            await asyncio.sleep(0)
+
+    assert len(sweeps) >= 3, f"the reaper stopped after {len(sweeps)} sweep(s)"
+    assert sweeps[0] == {"older_than_seconds": main.RELAY_REAP_AGE_SECONDS}

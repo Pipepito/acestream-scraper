@@ -194,9 +194,14 @@ def test_stream_route_releases_the_engine_client(client, gate_env, monkeypatch):
     assert len(closed) == 2
 
 
-def test_invalid_content_id_is_422(client, gate_env):
+def test_invalid_content_id_is_422_in_the_error_envelope(client, gate_env):
+    """Every other failure on this router answers with the {"error": {...}}
+    envelope; a bad content id must not be the one shape clients special-case."""
     gate_env("*")
-    assert client.get("/tuner/stream/not-hex.ts").status_code == 422
+    response = client.get("/tuner/stream/not-hex.ts")
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "INVALID_CONTENT_ID"
+    assert response.json()["error"]["context"] == {"content_id": "not-hex"}
 
 
 def test_stream_does_not_hold_a_request_scoped_db_session(client, gate_env, monkeypatch, backend_runtime, db_session):

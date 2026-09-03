@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Backend (run from repo root unless noted):
 
 - Install: `python3 -m venv backend/venv && source backend/venv/bin/activate && pip install -r backend/requirements.txt`
-- Dev server: `cd backend && uvicorn main:app --reload --host 0.0.0.0 --port 8000`
+- Dev server: `cd backend && uvicorn main:app --reload --host 0.0.0.0 --port 8000 --no-proxy-headers` (the app's `ForwardedHeadersMiddleware` owns `X-Forwarded-*` trust)
 - Full pytest suite: `PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests`
 - Single file: `PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/test_channels.py`
 - Single test: `PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/test_channels.py::test_name`

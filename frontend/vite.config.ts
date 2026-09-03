@@ -25,6 +25,10 @@ export default defineConfig(({ mode }) => ({
             return 'react-vendor';
           }
 
+          if (id.includes('node_modules/hls.js')) {
+            return 'player-vendor';
+          }
+
           if (id.includes('node_modules/@mui/x-data-grid')) {
             return 'mui-data-grid';
           }

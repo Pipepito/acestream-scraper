@@ -24,6 +24,7 @@ import ipaddress
 import logging
 import os
 import socket
+from typing import Optional
 from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
@@ -119,3 +120,45 @@ def validate_outbound_url(url: str) -> None:
                 f"Refusing to fetch '{url}': resolves to non-public address {address} "
                 "(set ALLOW_PRIVATE_SCRAPE_TARGETS=true to permit private targets)"
             )
+
+
+def _lan_target_reason(address) -> Optional[str]:
+    address = _canonical_address(address)
+    if address in METADATA_ADDRESSES:
+        return "the cloud metadata endpoint"
+    if address.is_link_local:
+        return "a link-local address"
+    if address.is_multicast:
+        return "a multicast address"
+    if address.is_unspecified:
+        return "an unspecified address"
+    if address.is_reserved and not address.is_loopback:
+        # IPv6 loopback (::1) falls inside the ::/8 IETF-reserved block, but
+        # spec 4.4 allows loopback regardless of ALLOW_PRIVATE_SCRAPE_TARGETS.
+        return "a reserved address"
+    return None
+
+
+def validate_lan_target(host: str, *, resolve: bool) -> None:
+    """Validate a user-supplied LAN target (remote player host, media server).
+
+    Private, loopback and global addresses are allowed regardless of
+    ALLOW_PRIVATE_SCRAPE_TARGETS — talking to LAN devices is the feature.
+    Metadata, link-local, multicast, unspecified and reserved addresses are
+    always refused. With resolve=False only IP literals are checked; with
+    resolve=True the host is resolved and every address is checked (call it
+    immediately before each outbound request).
+    """
+    host = (host or "").strip().strip("[]")
+    if not host:
+        raise BlockedURLError("Target host is empty")
+    try:
+        candidates = [ipaddress.ip_address(host)]
+    except ValueError:
+        if not resolve:
+            return
+        candidates = _resolve_addresses(host)
+    for address in candidates:
+        reason = _lan_target_reason(address)
+        if reason:
+            raise BlockedURLError(f"Refusing to contact '{host}': resolves to {reason} ({_canonical_address(address)})")

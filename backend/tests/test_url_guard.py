@@ -156,3 +156,38 @@ class TestRedirectGuarding:
         assert "metadata" in result["error"]
         # The metadata URL itself was never fetched
         assert calls == ["http://public.example.com/epg.xml"]
+
+
+from app.utils.url_guard import validate_lan_target
+
+
+class TestLanTargetGuard:
+    """validate_lan_target: LAN hosts are the point; metadata/link-local never (spec 4.4)."""
+
+    @pytest.mark.parametrize("host", ["192.168.1.10", "10.0.0.5", "127.0.0.1", "8.8.8.8", "::1", "fd00::5"])
+    def test_private_loopback_and_global_allowed_even_in_strict_mode(self, monkeypatch, host):
+        monkeypatch.setenv("ALLOW_PRIVATE_SCRAPE_TARGETS", "false")
+        validate_lan_target(host, resolve=False)
+
+    @pytest.mark.parametrize("host", ["169.254.169.254", "::ffff:169.254.169.254", "169.254.10.1", "224.0.0.1", "0.0.0.0", "240.0.0.1", "fe80::1"])
+    def test_metadata_link_local_multicast_unspecified_reserved_rejected(self, host):
+        with pytest.raises(BlockedURLError):
+            validate_lan_target(host, resolve=False)
+
+    def test_hostname_passes_without_resolution(self, resolver):
+        resolver({})
+        validate_lan_target("jellyfin.lan", resolve=False)
+
+    def test_hostname_resolving_to_metadata_is_rejected_when_resolving(self, resolver):
+        resolver({"evil.lan": "169.254.169.254"})
+        with pytest.raises(BlockedURLError, match="metadata|link-local"):
+            validate_lan_target("evil.lan", resolve=True)
+
+    def test_hostname_resolving_to_lan_passes_when_resolving(self, resolver, monkeypatch):
+        monkeypatch.setenv("ALLOW_PRIVATE_SCRAPE_TARGETS", "false")
+        resolver({"vlc.lan": "192.168.1.20"})
+        validate_lan_target("vlc.lan", resolve=True)
+
+    def test_empty_host_rejected(self):
+        with pytest.raises(BlockedURLError):
+            validate_lan_target("", resolve=False)

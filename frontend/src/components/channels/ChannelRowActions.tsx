@@ -4,11 +4,13 @@ import { Delete, Edit, Refresh, Star, StarBorder, VisibilityOff, Visibility } fr
 import TvIcon from '@mui/icons-material/Tv';
 import LinkIcon from '@mui/icons-material/Link';
 import PlayArrowRounded from '@mui/icons-material/PlayArrowRounded';
+import CastRoundedIcon from '@mui/icons-material/CastRounded';
 import RowActionsMenu from '../RowActionsMenu';
 import type { AcestreamChannel } from '../../services/channelService';
 
 export interface ChannelActionHandlers {
   onPlay: (channel: AcestreamChannel) => void;
+  onPlayOn: (channel: AcestreamChannel) => void;
   onCheckStatus: (channel: AcestreamChannel) => void;
   onEdit: (channel: AcestreamChannel) => void;
   onToggleHidden: (channel: AcestreamChannel) => void;
@@ -28,6 +30,7 @@ const ChannelRowActions: React.FC<ChannelRowActionsProps> = ({
   channel,
   checking = false,
   onPlay,
+  onPlayOn,
   onCheckStatus,
   onEdit,
   onToggleHidden,
@@ -43,6 +46,7 @@ const ChannelRowActions: React.FC<ChannelRowActionsProps> = ({
     channel.tv_channel_id
       ? { label: `Open TV channel: ${linkedName}`, icon: <TvIcon fontSize="small" />, onClick: () => onOpenTV(channel) }
       : { label: 'Link to a TV channel', icon: <LinkIcon fontSize="small" />, onClick: () => onAssignTV(channel) },
+    { label: 'Play on…', icon: <CastRoundedIcon fontSize="small" />, onClick: () => onPlayOn(channel) },
     { label: 'Edit', icon: <Edit fontSize="small" />, onClick: () => onEdit(channel) },
     {
       label: hidden ? 'Show in playlist' : 'Hide from playlist',

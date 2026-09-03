@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Box, Button, Snackbar, Stack, useMediaQuery, useTheme } from '@mui/material';
+import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar, Stack, useMediaQuery, useTheme } from '@mui/material';
 import { Add, FileDownload, Refresh } from '@mui/icons-material';
 import type { GridSortModel } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
@@ -23,6 +23,7 @@ import InlineStatusNotice from '../components/state/InlineStatusNotice';
 import StatusLine from '../components/StatusLine';
 import { useConfirm } from '../components/ConfirmDialog';
 import StreamPlayerDialog from '../components/player/StreamPlayerDialog';
+import PlayOnMenu from '../components/player/PlayOnMenu';
 
 type SnackbarNotice = {
   message: string;
@@ -77,6 +78,7 @@ const AcestreamChannels: React.FC = () => {
   const [groups, setGroups] = useState<string[]>([]);
   const [groupError, setGroupError] = useState<string | null>(null);
   const [playerTarget, setPlayerTarget] = useState<{ contentId: string; title: string } | null>(null);
+  const [playOnTarget, setPlayOnTarget] = useState<{ contentId: string; title: string } | null>(null);
 
   const {
     data: channelsData = { items: [], total: 0 },
@@ -314,6 +316,7 @@ const AcestreamChannels: React.FC = () => {
 
   const rowHandlers = {
     onPlay: (channel: AcestreamChannel) => setPlayerTarget({ contentId: channel.id, title: channel.name }),
+    onPlayOn: (channel: AcestreamChannel) => setPlayOnTarget({ contentId: channel.id, title: channel.name }),
     onCheckStatus: handleCheckStatus,
     onEdit: handleEdit,
     onToggleHidden: handleToggleHidden,
@@ -478,7 +481,26 @@ const AcestreamChannels: React.FC = () => {
         contentId={playerTarget?.contentId ?? null}
         title={playerTarget?.title ?? ''}
         onClose={() => setPlayerTarget(null)}
+        extraActions={playerTarget ? <PlayOnMenu contentId={playerTarget.contentId} title={playerTarget.title} /> : undefined}
       />
+
+      <Dialog
+        open={Boolean(playOnTarget)}
+        onClose={() => setPlayOnTarget(null)}
+        aria-labelledby="acestream-play-on-title"
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle id="acestream-play-on-title">Play on…</DialogTitle>
+        <DialogContent>
+          {playOnTarget ? (
+            <PlayOnMenu contentId={playOnTarget.contentId} title={playOnTarget.title} onDone={() => setPlayOnTarget(null)} />
+          ) : null}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPlayOnTarget(null)}>Close</Button>
+        </DialogActions>
+      </Dialog>
 
       {confirmDialog}
 

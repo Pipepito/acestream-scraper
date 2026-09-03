@@ -71,6 +71,7 @@ const baseChannel = {
 
 const handlers = () => ({
   onPlay: jest.fn(),
+  onPlayOn: jest.fn(),
   onCheckStatus: jest.fn(),
   onEdit: jest.fn(),
   onToggleHidden: jest.fn(),

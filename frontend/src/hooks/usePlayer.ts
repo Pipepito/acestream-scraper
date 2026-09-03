@@ -3,6 +3,7 @@ import { playerService, type PlayerCapabilities, type PlayerSessionStatus } from
 import { ApiError } from '../services/apiErrors';
 
 export const PLAYER_CAPABILITIES_QUERY_KEY = ['player', 'capabilities'] as const;
+export const PLAYER_SESSIONS_QUERY_KEY = ['player', 'sessions'] as const;
 export const playerSessionKey = (id: string) => ['player', 'session', id] as const;
 
 /** Whether this server can prepare browser-playable streams (ffmpeg present). */
@@ -11,6 +12,14 @@ export const usePlayerCapabilities = () =>
     queryKey: PLAYER_CAPABILITIES_QUERY_KEY,
     queryFn: playerService.getCapabilities,
     staleTime: 60_000,
+  });
+
+/** Every browser session running right now; polled while the Integrations page is open. */
+export const usePlayerSessions = () =>
+  useQuery<{ sessions: PlayerSessionStatus[] }>({
+    queryKey: PLAYER_SESSIONS_QUERY_KEY,
+    queryFn: playerService.listSessions,
+    refetchInterval: 10_000,
   });
 
 export const useStartPlayerSession = () =>

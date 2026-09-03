@@ -20,6 +20,7 @@ import TVChannelsTable from '../components/TVChannelsTable';
 import TVChannelFormDialog from '../components/TVChannelFormDialog';
 import TVChannelDeleteDialog from '../components/TVChannelDeleteDialog';
 import StreamPlayerDialog from '../components/player/StreamPlayerDialog';
+import PlayOnMenu from '../components/player/PlayOnMenu';
 import { TVChannel, TVChannelCreate, TVChannelUpdate } from '../types/tvChannelTypes';
 import AdvancedSearch from '../components/AdvancedSearch';
 import PageHeader from '../components/layout/PageHeader';
@@ -378,6 +379,7 @@ const TVChannels: React.FC = () => {
         contentId={playerTarget?.contentId ?? null}
         title={playerTarget?.title ?? ''}
         onClose={() => setPlayerTarget(null)}
+        extraActions={playerTarget ? <PlayOnMenu contentId={playerTarget.contentId} title={playerTarget.title} /> : undefined}
       />
     </Box>
   );

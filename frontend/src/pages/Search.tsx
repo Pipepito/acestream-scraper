@@ -31,6 +31,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import ContentSection from '../components/layout/ContentSection';
 import PageHeader from '../components/layout/PageHeader';
 import StreamPlayerDialog from '../components/player/StreamPlayerDialog';
+import PlayOnMenu from '../components/player/PlayOnMenu';
 import StatusLine from '../components/StatusLine';
 import { useAddAcestreamChannel, useSearch } from '../hooks/useSearch';
 import { useSnackbar } from '../hooks/useSnackbar';
@@ -325,6 +326,7 @@ const Search: React.FC = () => {
         contentId={playerTarget?.contentId ?? null}
         title={playerTarget?.title ?? ''}
         onClose={() => setPlayerTarget(null)}
+        extraActions={playerTarget ? <PlayOnMenu contentId={playerTarget.contentId} title={playerTarget.title} /> : undefined}
       />
 
       <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={closeSnackbar} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>

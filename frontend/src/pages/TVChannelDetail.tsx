@@ -30,6 +30,7 @@ import ScheduleView from '../components/epg/ScheduleView';
 import ContentSection from '../components/layout/ContentSection';
 import PageHeader from '../components/layout/PageHeader';
 import StreamPlayerDialog from '../components/player/StreamPlayerDialog';
+import PlayOnMenu from '../components/player/PlayOnMenu';
 import { useConfirm } from '../components/ConfirmDialog';
 import { useAcestreamChannels } from '../hooks/useChannels';
 import { useResolveEPGChannel } from '../hooks/useEPG';
@@ -472,6 +473,7 @@ const TVChannelDetail: React.FC = () => {
         contentId={playerTarget?.contentId ?? null}
         title={playerTarget?.title ?? ''}
         onClose={() => setPlayerTarget(null)}
+        extraActions={playerTarget ? <PlayOnMenu contentId={playerTarget.contentId} title={playerTarget.title} /> : undefined}
       />
 
       {confirmDialog}

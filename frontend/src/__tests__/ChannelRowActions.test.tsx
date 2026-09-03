@@ -19,6 +19,7 @@ const channel: AcestreamChannel = {
 const mount = (overrides: Partial<AcestreamChannel> = {}) => {
   const handlers = {
     onPlay: jest.fn(),
+    onPlayOn: jest.fn(),
     onCheckStatus: jest.fn(),
     onEdit: jest.fn(),
     onToggleHidden: jest.fn(),
@@ -54,6 +55,13 @@ describe('ChannelRowActions', () => {
     fireEvent.click(screen.getByRole('button', { name: 'More actions for Alpha' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Open TV channel: Arena TV' }));
     expect(handlers.onOpenTV).toHaveBeenCalledWith(expect.objectContaining({ id: 'abc' }));
+  });
+
+  it('offers "Play on…" in the menu', () => {
+    const handlers = mount();
+    fireEvent.click(screen.getByRole('button', { name: 'More actions for Alpha' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Play on…' }));
+    expect(handlers.onPlayOn).toHaveBeenCalledWith(expect.objectContaining({ id: 'abc' }));
   });
 
   it('offers linking when the channel has no TV channel', () => {

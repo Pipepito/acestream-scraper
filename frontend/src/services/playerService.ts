@@ -60,6 +60,11 @@ export const playerService = {
     const { data } = await apiClient.post<PlayerSessionStatus>(`${BASE_URL}/sessions`, { content_id: contentId });
     return data;
   },
+  /** Every session the server is currently preparing or serving (Integrations page). */
+  listSessions: async (): Promise<{ sessions: PlayerSessionStatus[] }> => {
+    const { data } = await apiClient.get<{ sessions: PlayerSessionStatus[] }>(`${BASE_URL}/sessions`);
+    return data;
+  },
   getSession: async (id: string): Promise<PlayerSessionStatus> => {
     const { data } = await apiClient.get<PlayerSessionStatus>(`${BASE_URL}/sessions/${id}`);
     return data;

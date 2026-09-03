@@ -1,3 +1,4 @@
+import type { ApiError } from '../../services/apiErrors';
 import type { PlayerCodecs, PlayerError } from '../../services/playerService';
 
 export interface PlayerErrorInput {
@@ -40,4 +41,17 @@ export const describePlayerError = (status: PlayerErrorInput, hlsCodecError: boo
     return "Your browser can't play this channel's video format. Send it to VLC or Kodi instead.";
   }
   return null;
+};
+
+/** Guided copy for remote-player failures; never the API-token notice (that is a 401, these are 502/400). */
+export const describeRemotePlayerError = (error: ApiError): string => {
+  if (error.code === 'REMOTE_PLAYER_AUTH') {
+    const kind = (error.context as { kind?: string } | undefined)?.kind;
+    return kind === 'no_password'
+      ? "VLC's web interface has no password. In VLC: Tools > Preferences > All > Interface > Main interfaces > Web, then Lua > Lua HTTP > Password."
+      : 'Check the password (VLC: Lua HTTP password; Kodi: Settings > Services > Control).';
+  }
+  if (error.code === 'REMOTE_PLAYER_UNREACHABLE') return 'The player did not answer. Is it running with its web interface on?';
+  if (error.code === 'REMOTE_PLAYER_COMMAND_FAILED') return `The player refused the command: ${error.message}`;
+  return error.message || 'Something went wrong talking to the player.';
 };

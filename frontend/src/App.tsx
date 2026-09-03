@@ -12,6 +12,7 @@ import EPGChannelDetail from './pages/EPGChannelDetail';
 import Playlist from './pages/Playlist';
 import WARP from './pages/WARP';
 import Search from './pages/Search';
+import Integrations from './pages/Integrations';
 import Settings from './pages/Settings';
 import NotFound from './pages/NotFound';
 
@@ -47,6 +48,7 @@ const App: React.FC = () => {
         <Route path="/playlist" element={<Playlist />} />
         <Route path="/warp" element={<WARP />} />
         <Route path="/search" element={<Search />} />
+        <Route path="/integrations" element={<Integrations />} />
         <Route path="/settings" element={<Settings />} />
         {LEGACY_REDIRECTS.map((redirect) => (
           <Route key={redirect.from} path={redirect.from} element={<RedirectTo to={redirect.to} />} />

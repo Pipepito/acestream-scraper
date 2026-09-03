@@ -33,6 +33,7 @@ const mountList = (overrides: Partial<React.ComponentProps<typeof ChannelCardLis
     onPageChange: jest.fn(),
     onCopyId: jest.fn(),
     onPlay: jest.fn(),
+    onPlayOn: jest.fn(),
     onCheckStatus: jest.fn(),
     onEdit: jest.fn(),
     onToggleHidden: jest.fn(),

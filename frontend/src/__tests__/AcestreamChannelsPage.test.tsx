@@ -25,11 +25,12 @@ type Handlers = {
   onToggleHidden: (row: Row) => void;
   onToggleTVFavorite: (row: Row) => void;
   onPlay: (row: Row) => void;
+  onPlayOn: (row: Row) => void;
 };
 
 jest.mock('../components/ChannelTable', () => ({
   __esModule: true,
-  default: ({ channels, loading, hasActiveFilters, onDelete, onToggleHidden, onToggleTVFavorite, onPlay }: Handlers) => (
+  default: ({ channels, loading, hasActiveFilters, onDelete, onToggleHidden, onToggleTVFavorite, onPlay, onPlayOn }: Handlers) => (
     <div data-testid="channel-table">
       channels:{channels.length};loading:{String(loading)};filtered:{String(Boolean(hasActiveFilters))}
       {channels.map((channel) => (
@@ -39,6 +40,7 @@ jest.mock('../components/ChannelTable', () => ({
           <button type="button" onClick={() => onToggleHidden(channel)}>{`hide ${channel.name}`}</button>
           <button type="button" onClick={() => onToggleTVFavorite(channel)}>{`favorite ${channel.name}`}</button>
           <button type="button" onClick={() => onPlay(channel)}>{`play ${channel.name}`}</button>
+          <button type="button" onClick={() => onPlayOn(channel)}>{`play on ${channel.name}`}</button>
         </div>
       ))}
     </div>
@@ -81,6 +83,10 @@ jest.mock('../services/channelService', () => ({
     bulkActivateAcestreamChannels: jest.fn(),
     exportAcestreamChannelsCSV: jest.fn(),
   },
+}));
+jest.mock('../hooks/useRemotePlayers', () => ({
+  useRemotePlayers: () => ({ data: [], isLoading: false }),
+  usePlayOnRemotePlayer: () => ({ mutateAsync: jest.fn(), isPending: false }),
 }));
 jest.mock('../services/tvChannelService', () => ({
   tvChannelService: { update: (...args: unknown[]) => mockUpdateTVChannel(...args) },
@@ -214,6 +220,13 @@ describe('AcestreamChannels page', () => {
 
     await user().click(screen.getByRole('button', { name: 'play Alpha Sports' }));
     expect(await screen.findByRole('dialog')).toHaveTextContent('Alpha Sports');
+  });
+
+  it('offers the saved remote players for the channel picked from the row', async () => {
+    renderPage();
+    await user().click(screen.getByRole('button', { name: 'play on Alpha Sports' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Play on…' });
+    expect(within(dialog).getByRole('button', { name: 'Play on…' })).toBeInTheDocument();
   });
 
   it('routes check-all through the channel service and shows validation errors in the snackbar', async () => {

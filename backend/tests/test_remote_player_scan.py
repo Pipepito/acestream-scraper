@@ -1,9 +1,12 @@
 """Network scan for VLC/Kodi web interfaces: validation, defaults, classification (spec 6.1)."""
 import asyncio
 import ipaddress
+import time
 
+import httpx
 import pytest
 
+from app.services.remote_players import scan
 from app.services.remote_players.scan import ScanValidationError, default_scan_cidr, scan_network, validate_scan_request
 
 
@@ -60,3 +63,34 @@ def test_scan_classifies_vlc_and_kodi_on_a_local_server():
         assert ("127.0.0.1", 1) not in kinds
         assert outcome.scanned == 3
     asyncio.run(run())
+
+
+def test_scan_stops_connecting_once_the_budget_is_spent(monkeypatch):
+    """The deadline has to be checked after the semaphore: asyncio.gather runs
+    every queued coroutine's first step in one loop iteration, so a check before
+    the semaphore is always made while the whole budget is still unspent."""
+    async def slow_open(host, port, timeout):
+        await asyncio.sleep(0.05)
+        return False
+
+    monkeypatch.setattr(scan, "_tcp_open", slow_open)
+    network = ipaddress.ip_network("192.168.1.0/28")  # 14 hosts
+    outcome = asyncio.run(scan_network(network, [8080], concurrency=2, budget_s=0.15))
+    assert 2 <= outcome.scanned < 14
+    assert outcome.hits == []
+
+
+def test_classify_gives_up_on_open_ports_once_the_budget_is_spent():
+    """Classification is two HTTP requests per open port; on a dense network it
+    is the phase most likely to run past the budget, so it honours it too."""
+    seen = []
+
+    def handler(request):
+        seen.append(str(request.url))
+        return httpx.Response(200, json={"apiversion": 3})
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        spent = scan.classify("192.168.1.9", 8080, client, deadline=time.monotonic() - 1)
+        assert spent.kind == "unknown" and seen == []
+        fresh = scan.classify("192.168.1.9", 8080, client, deadline=time.monotonic() + 30)
+        assert fresh.kind == "vlc" and len(seen) == 1

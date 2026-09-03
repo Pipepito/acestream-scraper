@@ -18,6 +18,7 @@ MAX_PORTS = 8
 _DOCKER_DESKTOP = ipaddress.ip_network("192.168.65.0/24")
 _DOCKER_BRIDGE = ipaddress.ip_network("172.16.0.0/12")
 _PROBE_TIMEOUT = httpx.Timeout(2.0, connect=1.0)
+OUT_OF_TIME_HINT = "port is open, but the scan ran out of time before identifying it"
 
 
 class ScanValidationError(ValueError):
@@ -84,6 +85,10 @@ def default_scan_cidr(client_ip: Optional[str]) -> Optional[str]:
     return str(ipaddress.ip_network(f"{address}/24", strict=False))
 
 
+def _out_of_time(deadline: Optional[float]) -> bool:
+    return deadline is not None and time.monotonic() >= deadline
+
+
 async def _tcp_open(host: str, port: int, timeout: float) -> bool:
     try:
         _, writer = await asyncio.wait_for(asyncio.open_connection(host, port), timeout=timeout)
@@ -93,9 +98,14 @@ async def _tcp_open(host: str, port: int, timeout: float) -> bool:
     return True
 
 
-def classify(host: str, port: int, client: httpx.Client) -> ScanHit:
+def classify(host: str, port: int, client: httpx.Client, deadline: Optional[float] = None) -> ScanHit:
     """VLC answers 401/403/JSON on /requests/status.json; Kodi answers 401 or a
-    JSON-RPC body on /jsonrpc. Kodi's Basic realm keeps it out of the VLC branch."""
+    JSON-RPC body on /jsonrpc. Kodi's Basic realm keeps it out of the VLC branch.
+
+    ``deadline`` is a ``time.monotonic()`` stamp: once it has passed, the port is
+    reported as unidentified instead of spending more HTTP requests on it."""
+    if _out_of_time(deadline):
+        return ScanHit(host=host, port=port, kind="unknown", hint=OUT_OF_TIME_HINT)
     base = f"http://{host}:{port}"
     try:
         response = client.get(f"{base}/requests/status.json")
@@ -113,6 +123,8 @@ def classify(host: str, port: int, client: httpx.Client) -> ScanHit:
             return ScanHit(host=host, port=port, kind="vlc", hint=hint)
     except httpx.HTTPError:
         pass
+    if _out_of_time(deadline):
+        return ScanHit(host=host, port=port, kind="unknown", hint=OUT_OF_TIME_HINT)
     try:
         response = client.post(
             f"{base}/jsonrpc", json={"jsonrpc": "2.0", "id": 1, "method": "JSONRPC.Ping"}
@@ -138,6 +150,7 @@ async def scan_network(
     client_factory: Optional[Callable[[], httpx.Client]] = None,
 ) -> ScanOutcome:
     started = time.monotonic()
+    deadline = started + budget_s
     semaphore = asyncio.Semaphore(concurrency)
     timeout = max(0.05, timeout_ms / 1000)
     hosts = [
@@ -146,9 +159,12 @@ async def scan_network(
     outcome = ScanOutcome()
 
     async def check(host: str, port: int):
-        if time.monotonic() - started > budget_s:
-            return None
+        # The deadline is checked after the semaphore, not before: every queued
+        # coroutine runs its first step in the same loop iteration, so a check
+        # ahead of the semaphore is always made while the budget is still whole.
         async with semaphore:
+            if _out_of_time(deadline):
+                return None
             outcome.scanned += 1
             return (host, port) if await _tcp_open(host, port, timeout) else None
 
@@ -161,7 +177,7 @@ async def scan_network(
         with factory() as client:
             outcome.hits = list(
                 await asyncio.gather(
-                    *(asyncio.to_thread(classify, h, p, client) for h, p in open_ports)
+                    *(asyncio.to_thread(classify, h, p, client, deadline) for h, p in open_ports)
                 )
             )
     outcome.duration_ms = int((time.monotonic() - started) * 1000)

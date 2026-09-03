@@ -98,3 +98,30 @@ def test_status_propagates_auth_error(alembic_db_session):
     player = svc.repo.create(name="p", kind="vlc", host="192.168.1.20", port=8080, username=None, password="bad", base_url_id=None)
     with pytest.raises(PlayerAuthError):
         svc.status(player)
+
+
+def test_validate_host_brackets_ipv6_literals(alembic_db_session):
+    """Unbracketed IPv6 makes `http://{host}:{port}` unparseable: httpx raises
+    InvalidURL, which is not an httpx.HTTPError, so the drivers cannot map it to
+    a contract error code and it escapes as an unhandled 500."""
+    svc = _service(alembic_db_session)
+    assert svc.validate_host("fd00::1") == "[fd00::1]"
+    assert svc.validate_host(" [fd00::1] ") == "[fd00::1]"
+    assert svc.validate_host("2001:0DB8:0000::1") == "[2001:db8::1]"
+    for bad in ("192.168.1.5:9090", "vlc.lan:8080", "[fd00::1", "fe80::1", "::", "ff02::1"):
+        with pytest.raises((BlockedURLError, ValueError)):
+            svc.validate_host(bad)
+
+
+def test_ipv6_host_reaches_the_driver_as_a_valid_url(alembic_db_session):
+    seen = []
+
+    def handler(request):
+        seen.append(str(request.url))
+        return httpx.Response(200, json=VLC_OK)
+
+    svc = _service(alembic_db_session, handler)
+    host = svc.validate_host("fd00::1")
+    probe, _access = svc.probe("vlc", host, 8080, None, "pw")
+    assert probe.reachable
+    assert seen == ["http://[fd00::1]:8080/requests/status.json"]

@@ -1,9 +1,10 @@
 """Remote player use cases (spec 6.1, 6.3)."""
 from __future__ import annotations
 
+import ipaddress
 import socket
 from dataclasses import dataclass, field
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple, Union
 
 import httpx
 from sqlalchemy.orm import Session
@@ -20,9 +21,23 @@ from .base import PlayerDriver, PlayerProbe, PlayerStatus, make_driver, new_clie
 
 COMMANDS = ("pause", "resume", "stop", "volume")
 # Characters that would turn a bare host into a URL with a scheme, userinfo,
-# path, query or fragment.
-_HOST_DELIMITERS = "/@?#\\"
+# path, query, fragment or an already-bracketed authority.
+_HOST_DELIMITERS = "/@?#\\[]"
 MAX_VOLUME_PCT = 200
+IPAddress = Union[ipaddress.IPv4Address, ipaddress.IPv6Address]
+
+
+def _ip_literal(host: str) -> Optional[IPAddress]:
+    try:
+        return ipaddress.ip_address(host)
+    except ValueError:
+        return None
+
+
+def _bare_host(host: str) -> str:
+    """Undo the brackets validate_host puts around an IPv6 literal."""
+    host = (host or "").strip()
+    return host[1:-1] if host.startswith("[") and host.endswith("]") else host
 
 
 @dataclass
@@ -48,14 +63,26 @@ class RemotePlayerService:
 
     # --- validation ------------------------------------------------------------
     def validate_host(self, host: str) -> str:
-        """A bare hostname or IP — no scheme, credentials or path — that is not
-        a metadata/link-local/multicast/reserved address. Raises BlockedURLError."""
-        candidate = (host or "").strip()
+        """A bare hostname or IP — no scheme, credentials, port or path — that is
+        not a metadata/link-local/multicast/reserved address. Raises
+        BlockedURLError.
+
+        An IPv6 literal comes back bracketed (``fd00::1`` -> ``[fd00::1]``): the
+        drivers build ``http://{host}:{port}``, and without the brackets that is
+        not a URL httpx can parse."""
+        candidate = _bare_host(host)
         if not candidate or any(ch.isspace() or ch in _HOST_DELIMITERS for ch in candidate):
             raise BlockedURLError(
                 "Host must be a hostname or IP address without scheme, credentials or path"
             )
+        literal = _ip_literal(candidate)
+        if literal is None and ":" in candidate:
+            raise BlockedURLError(
+                "Host must not carry a port or be a partial IPv6 address — use the port field"
+            )
         validate_lan_target(candidate, resolve=False)
+        if literal is not None and literal.version == 6:
+            return f"[{literal.compressed}]"
         return candidate
 
     def tuner_access(self, host: str) -> TunerAccess:
@@ -65,7 +92,7 @@ class RemotePlayerService:
         reported as allowed — we have nothing to complain about."""
         gate = TunerNetworkGate(self._settings().TUNER_ALLOWED_NETWORKS)
         try:
-            infos = socket.getaddrinfo(host, None, proto=socket.IPPROTO_TCP)
+            infos = socket.getaddrinfo(_bare_host(host), None, proto=socket.IPPROTO_TCP)
         except socket.gaierror:
             return TunerAccess(addresses=[], allowed=True)
         addresses = sorted({info[4][0] for info in infos})

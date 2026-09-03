@@ -109,6 +109,7 @@ npm start
 
 - `ENABLE_WARP` (default: `false`)
 - `ENABLE_ACESTREAM_ENGINE` (default: `false`)
+- `ACESTREAM_BIND_ALL` (default: `true`; appends `--bind-all` to the engine start command so any client address is accepted on a published `6878` — the engine otherwise admits only loopback/RFC1918 sources. `false` restores the engine's own filter)
 - `ENABLE_ACEXY` (default: `false`)
 - `ACESTREAM_HTTP_HOST` (default: `localhost`)
 - `ACESTREAM_HTTP_PORT` (default: `6878`)

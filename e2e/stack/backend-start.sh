@@ -29,7 +29,7 @@ export EPG_PROGRAM_RETENTION_HOURS="${EPG_PROGRAM_RETENTION_HOURS:-24}"
 
 cd "$REPO_ROOT/backend"
 : >"$BACKEND_LOG"
-nohup "$REPO_ROOT/backend/venv/bin/uvicorn" main:app --host 127.0.0.1 --port "$E2E_APP_PORT" \
+nohup "$REPO_ROOT/backend/venv/bin/uvicorn" main:app --host 127.0.0.1 --port "$E2E_APP_PORT" --no-proxy-headers --timeout-graceful-shutdown 3 \
   >>"$BACKEND_LOG" 2>&1 &
 echo $! >"$BACKEND_PID_FILE"
 log "backend pid $(cat "$BACKEND_PID_FILE"), log $BACKEND_LOG"

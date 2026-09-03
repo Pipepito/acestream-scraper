@@ -168,7 +168,7 @@ cache and the engine identity survive container replacement:
 
 - `6878/tcp`: engine HTTP API. The app reaches it in-container; publish it only if something outside the container needs it.
 - `8621/tcp` and `8621/udp`: P2P port. Publish it for better peer connectivity.
-- The launcher passes `--bind-all` so clients arriving through a published `6878` port are accepted (without it the engine answers `Internal server error` to non-loopback clients). The engine API is unauthenticated: publish `6878` only on trusted networks.
+- The engine is started with `--bind-all` (env `ACESTREAM_BIND_ALL`, default `true`, on every platform) so clients arriving through a published `6878` port are accepted whatever their address; without it the engine only admits loopback and RFC1918 sources and answers `Internal server error` to VPN/CGNAT (Tailscale) or Docker Desktop host clients. The engine API is unauthenticated: publish `6878` only on trusted networks, or set `ACESTREAM_BIND_ALL=false` to keep the engine's own address filter.
 - `8000/tcp`: the app.
 
 ### Examples

@@ -506,3 +506,54 @@ def test_run_jenkins_release_channel_dry_run_is_platform_major(tmp_path):
     assert out.count("imagetools create") == 4
     assert "--tag pipepito/acestream-scraper:develop " in out
     assert "pipepito/acestream-scraper:latest" not in out
+
+
+def test_entrypoint_exports_media_integration_defaults():
+    entrypoint = (REPO_ROOT / "entrypoint.sh").read_text()
+
+    assert 'export PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-}"' in entrypoint
+    assert (
+        'export TUNER_ALLOWED_NETWORKS="${TUNER_ALLOWED_NETWORKS:-'
+        '127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10}"'
+    ) in entrypoint
+    assert 'export PLAYER_HLS_DIR="${PLAYER_HLS_DIR:-/tmp/acestream-player}"' in entrypoint
+    assert 'export PLAYER_MAX_SESSIONS="${PLAYER_MAX_SESSIONS:-3}"' in entrypoint
+    assert 'export FORWARDED_ALLOW_IPS="${FORWARDED_ALLOW_IPS:-127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}"' in entrypoint
+
+
+def test_uvicorn_is_launched_with_app_owned_proxy_trust_and_graceful_timeout():
+    entrypoint = (REPO_ROOT / "entrypoint.sh").read_text()
+    dockerfile = (REPO_ROOT / "Dockerfile").read_text()
+    e2e_start = (REPO_ROOT / "e2e" / "stack" / "backend-start.sh").read_text()
+
+    flags = '--no-proxy-headers --timeout-graceful-shutdown 3'
+    assert f'APP_COMMAND=(uvicorn main:app --host 0.0.0.0 --port "$FLASK_PORT" {flags})' in entrypoint
+    assert 'CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--no-proxy-headers", "--timeout-graceful-shutdown", "3"]' in dockerfile
+    assert "--no-proxy-headers" in e2e_start and "--timeout-graceful-shutdown 3" in e2e_start
+
+
+def test_entrypoint_stops_the_app_before_sidecars_on_signals():
+    entrypoint = (REPO_ROOT / "entrypoint.sh").read_text()
+    # The lifespan's engine `stop` calls must reach a live engine, so the app
+    # goes down first on INT/TERM (it already does on the normal exit path).
+    assert """trap 'shutdown_children "$app_pid" "${child_pids[@]:-}"' INT TERM EXIT""" in entrypoint
+
+
+def test_entrypoint_appends_bind_all_to_engine_command_by_default():
+    entrypoint = (REPO_ROOT / "entrypoint.sh").read_text()
+    dockerfile = (REPO_ROOT / "Dockerfile").read_text()
+    start_engine = (REPO_ROOT / "docker" / "scripts" / "acestream-android" / "start-engine").read_text()
+
+    assert 'ACESTREAM_BIND_ALL=$(normalize_bool "${ACESTREAM_BIND_ALL:-true}")' in entrypoint
+    assert 'case " $ACESTREAM_START_COMMAND " in *" --bind-all "*) ;; *) ACESTREAM_START_COMMAND="$ACESTREAM_START_COMMAND --bind-all" ;; esac' in entrypoint
+    assert "ACESTREAM_BIND_ALL=true" in dockerfile
+    # The ARM launcher must not pass --bind-all twice or ignore the knob.
+    assert 'if [ "$(printf \'%s\' "${ACESTREAM_BIND_ALL:-true}" | tr \'[:upper:]\' \'[:lower:]\')" != "false" ]; then' in start_engine
+    assert '--bind-all' in start_engine
+
+
+def test_docker_compose_publishes_ipv4_only_and_sets_stop_grace_period():
+    compose_file = (REPO_ROOT / "docker-compose.yml").read_text()
+
+    assert '- "0.0.0.0:8000:8000"' in compose_file
+    assert "stop_grace_period: 20s" in compose_file

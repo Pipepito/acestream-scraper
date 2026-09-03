@@ -314,7 +314,7 @@ COPY healthcheck.sh /usr/local/bin/healthcheck.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/warp-setup.sh /usr/local/bin/healthcheck.sh
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/entrypoint.sh"]
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--no-proxy-headers", "--timeout-graceful-shutdown", "3"]
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 CMD ["/usr/local/bin/healthcheck.sh"]
 
@@ -348,6 +348,7 @@ RUN mkdir -p /var/lib/acestream /data
 ENV IMAGE_HAS_ACESTREAM=true \
     ACESTREAM_BINARY_PATH=/opt/acestream/bin/acestreamengine \
     ACESTREAM_HOME=/var/lib/acestream \
+    ACESTREAM_BIND_ALL=true \
     ACESTREAM_START_COMMAND="env PYTHONPATH=/opt/acestream/python-deps /opt/acestream/start-engine --client-console --http-port 6878"
 
 

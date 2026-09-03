@@ -56,3 +56,14 @@ def test_media_integration_env_overrides(monkeypatch: pytest.MonkeyPatch) -> Non
     assert settings.PUBLIC_BASE_URL == "https://scraper.example.com"
     assert settings.PLAYER_MAX_SESSIONS == 5
     assert settings.TUNER_ALLOWED_NETWORKS == "*"
+
+
+def test_entrypoint_defaults_match_settings_defaults() -> None:
+    """entrypoint.sh must export the same defaults Settings carries (spec 4.5)."""
+    from pathlib import Path
+    entrypoint = (Path(__file__).resolve().parents[2] / "entrypoint.sh").read_text(encoding="utf-8")
+    assert 'export PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-}"' in entrypoint
+    assert f'export TUNER_ALLOWED_NETWORKS="${{TUNER_ALLOWED_NETWORKS:-{DEFAULT_TUNER_NETWORKS}}}"' in entrypoint
+    assert 'export PLAYER_HLS_DIR="${PLAYER_HLS_DIR:-/tmp/acestream-player}"' in entrypoint
+    assert 'export PLAYER_MAX_SESSIONS="${PLAYER_MAX_SESSIONS:-3}"' in entrypoint
+    assert f'export FORWARDED_ALLOW_IPS="${{FORWARDED_ALLOW_IPS:-{DEFAULT_FORWARDED_ALLOW_IPS}}}"' in entrypoint

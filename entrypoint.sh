@@ -265,6 +265,16 @@ export IPFS_API_PORT="${IPFS_API_PORT:-5001}"
 # 8080 belongs to Acexy in-container, so the embedded gateway defaults to 8081.
 export IPFS_GATEWAY_PORT="${IPFS_GATEWAY_PORT:-8081}"
 export IPFS_GATEWAY_URL="${IPFS_GATEWAY_URL:-http://127.0.0.1:$IPFS_GATEWAY_PORT}"
+# Media integrations (spec 4.5): one declared default per knob, mirrored by
+# app/config/settings.py. PUBLIC_BASE_URL is the origin tuners/players use to
+# reach this container; TUNER_ALLOWED_NETWORKS gates the token-free /tuner/*
+# routes; FORWARDED_ALLOW_IPS is consumed by the app's own forwarded-headers
+# middleware (uvicorn's is disabled below).
+export PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-}"
+export TUNER_ALLOWED_NETWORKS="${TUNER_ALLOWED_NETWORKS:-127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10}"
+export PLAYER_HLS_DIR="${PLAYER_HLS_DIR:-/tmp/acestream-player}"
+export PLAYER_MAX_SESSIONS="${PLAYER_MAX_SESSIONS:-3}"
+export FORWARDED_ALLOW_IPS="${FORWARDED_ALLOW_IPS:-127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}"
 
 if ! feature_enabled "$ENABLE_WARP"; then
     log "WARP disabled; skipping setup"
@@ -407,7 +417,17 @@ if feature_enabled "$ENABLE_IPFS" && [ -n "${IPFS_START_COMMAND:-}" ]; then
     child_names+=("IPFS")
 fi
 
+# The engine's HTTP API only admits loopback and RFC1918 clients by default;
+# --bind-all lifts that so players on VPN/CGNAT ranges (Tailscale) or the
+# Docker Desktop host path are accepted through a published 6878. The API is
+# unauthenticated either way: publish 6878 only on trusted networks.
+# ACESTREAM_BIND_ALL=false restores the engine's own address filter.
+ACESTREAM_BIND_ALL=$(normalize_bool "${ACESTREAM_BIND_ALL:-true}")
+export ACESTREAM_BIND_ALL
 if feature_enabled "$ENABLE_ACESTREAM_ENGINE" && [ -n "${ACESTREAM_START_COMMAND:-}" ]; then
+    if feature_enabled "$ACESTREAM_BIND_ALL"; then
+        case " $ACESTREAM_START_COMMAND " in *" --bind-all "*) ;; *) ACESTREAM_START_COMMAND="$ACESTREAM_START_COMMAND --bind-all" ;; esac
+    fi
     supervise_service "AceStream" "$ACESTREAM_START_COMMAND" &
     child_pids+=("$!")
     child_names+=("AceStream")
@@ -421,7 +441,10 @@ fi
 
 APP_COMMAND=("$@")
 if [ "${#APP_COMMAND[@]}" -eq 0 ]; then
-    APP_COMMAND=(uvicorn main:app --host 0.0.0.0 --port "$FLASK_PORT")
+    # --no-proxy-headers: the app's ForwardedHeadersMiddleware owns X-Forwarded-*
+    # trust (FORWARDED_ALLOW_IPS). --timeout-graceful-shutdown: live stream
+    # relays would otherwise hold the shutdown open until Docker's SIGKILL.
+    APP_COMMAND=(uvicorn main:app --host 0.0.0.0 --port "$FLASK_PORT" --no-proxy-headers --timeout-graceful-shutdown 3)
 fi
 
 wait_for_supervised_exit() {
@@ -438,7 +461,7 @@ wait_for_supervised_exit() {
     done
 }
 
-trap 'shutdown_children "${child_pids[@]:-}" "$app_pid"' INT TERM EXIT
+trap 'shutdown_children "$app_pid" "${child_pids[@]:-}"' INT TERM EXIT
 
 "${APP_COMMAND[@]}" &
 app_pid=$!

@@ -74,6 +74,7 @@ Acestream Scraper is configured from the web interface (**Settings** and **Scrap
 | `ENABLE_ACESTREAM_ENGINE` | Enable built-in Acestream Engine | Matches `ENABLE_ACEXY` | Set to `true` to run Acestream in the container |
 | `ACESTREAM_HTTP_PORT` | Port for Acestream engine | `6878` | Internal Acestream Engine HTTP port |
 | `ACESTREAM_HTTP_HOST` | Host for Acestream engine | Uses `ACEXY_HOST` | Address to access Acestream Engine |
+| `ACESTREAM_BIND_ALL` | Append `--bind-all` to the engine start command so any client address is accepted on a published `6878` | `true` | The engine otherwise admits only loopback/RFC1918 sources; `false` restores the engine's own filter |
 
 ### Acexy Configuration
 

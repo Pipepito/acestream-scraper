@@ -3,11 +3,13 @@
 - ClosingStreamingResponse guarantees the body generator's ``finally`` runs
   as soon as the client goes away (Starlette itself never calls aclose()).
 - relay_engine_stream starts an engine session, follows the engine's own
-  302 (only to the engine host), streams 64 KiB chunks and stops the session
-  on every exit path.
+  302 (only while the stream stays on the engine host -- every loopback
+  spelling and port being one host), streams 64 KiB chunks and stops the
+  session on every exit path.
 """
 from __future__ import annotations
 
+import ipaddress
 import logging
 import time
 import uuid
@@ -31,7 +33,12 @@ RELAY_TIMEOUT = httpx.Timeout(connect=5.0, read=30.0, write=30.0, pool=5.0)
 
 
 class EngineStreamError(RuntimeError):
-    """The engine session started but the byte stream could not be opened."""
+    """The engine session started but its byte stream failed.
+
+    Covers a refused stream (wrong host, non-200) and any transport failure
+    while opening or reading it, so the route has one engine-stream error to
+    map onto 502 instead of a bare ``httpx`` exception.
+    """
 
 
 class ClosingStreamingResponse(StreamingResponse):
@@ -101,6 +108,33 @@ class RelayRegistry:
 relay_registry = RelayRegistry()
 
 
+_LOOPBACK = "<loopback>"
+
+
+def _host_identity(host: Optional[str]) -> str:
+    """Normalise a host for the engine-host guard.
+
+    Every loopback spelling is one identity: the engine reports its playback
+    URL on its own loopback address and, on the ARM (Android) build, on its
+    own port -- ``http://127.0.0.1:36879/ace/r/...`` while ``ACE_ENGINE_URL``
+    is ``http://localhost:6878``. Comparing the literal host strings would
+    refuse every relay of the default deployment. Any other host is compared
+    by name (case- and trailing-dot-insensitive), IP literals by value, so a
+    redirect that leaves the engine is still refused -- including one that
+    points at *our own* loopback when the engine is a remote host.
+    """
+    if not host:
+        return ""
+    name = host.strip().strip("[]").rstrip(".").lower()
+    if name == "localhost":
+        return _LOOPBACK
+    try:
+        address = ipaddress.ip_address(name)
+    except ValueError:
+        return name
+    return _LOOPBACK if address.is_loopback else address.compressed
+
+
 def _default_client_factory(**kwargs: Any) -> httpx.AsyncClient:
     return httpx.AsyncClient(**kwargs)
 
@@ -113,25 +147,35 @@ async def relay_engine_stream(
     client_factory: Optional[Callable[..., httpx.AsyncClient]] = None,
     registry: Optional[RelayRegistry] = None,
 ) -> AsyncIterator[bytes]:
-    """Yield MPEG-TS bytes for ``content_id``. Raises EngineUnavailableError /
-    EngineRefusedError (session start) or EngineStreamError (stream open)
-    before the first byte; stops the engine session on every exit."""
+    """Yield MPEG-TS bytes for ``content_id``.
+
+    The first iteration raises before a byte is written: EngineUnavailableError
+    / EngineRefusedError from the session start, EngineStreamError when the
+    stream is refused (off-host, non-200) or fails at the transport level
+    (connect refused, read timeout, redirect loop). A transport failure later
+    in the stream raises EngineStreamError as well. The engine session is
+    stopped on every exit path.
+    """
     registry = registry or relay_registry
     factory = client_factory or _default_client_factory
     session: EngineSession = await run_in_threadpool(engine.start, content_id)
     info = registry.open(content_id, client_label)
-    engine_host = urlsplit(engine.engine_url).hostname
+    engine_host = _host_identity(urlsplit(engine.engine_url).hostname)
     try:
-        async with factory(follow_redirects=True, max_redirects=3, timeout=RELAY_TIMEOUT) as client:
-            async with client.stream("GET", session.playback_url) as response:
-                final_host = response.url.host
-                if final_host != engine_host:
-                    raise EngineStreamError(f"Engine redirected to an unexpected host: {final_host}")
-                if response.status_code != 200:
-                    raise EngineStreamError(f"Engine stream returned HTTP {response.status_code}")
-                async for chunk in response.aiter_bytes(CHUNK_SIZE):
-                    info.bytes_sent += len(chunk)
-                    yield chunk
+        try:
+            async with factory(follow_redirects=True, max_redirects=3, timeout=RELAY_TIMEOUT) as client:
+                async with client.stream("GET", session.playback_url) as response:
+                    if _host_identity(response.url.host) != engine_host:
+                        raise EngineStreamError(f"Engine stream left the engine host: {response.url.host}")
+                    if response.status_code != 200:
+                        raise EngineStreamError(f"Engine stream returned HTTP {response.status_code}")
+                    async for chunk in response.aiter_bytes(CHUNK_SIZE):
+                        info.bytes_sent += len(chunk)
+                        yield chunk
+        except (httpx.HTTPError, httpx.InvalidURL) as exc:
+            # Connect refused, read timeout, too many redirects, an unusable
+            # playback_url: the route needs EngineStreamError to answer 502.
+            raise EngineStreamError(f"Engine stream failed: {exc}") from exc
     finally:
         registry.close(info.id)
         with anyio.CancelScope(shield=True):

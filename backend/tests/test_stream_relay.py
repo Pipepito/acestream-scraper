@@ -13,20 +13,38 @@ from app.services.stream_relay import (
 
 IH = "0" * 40
 BODY = b"\x47" * 188 * 50
+ENGINE_ORIGIN = "http://engine:6878"
+# What the real engine answers with: its own loopback address, and on the ARM
+# (Android) build its own port -- while ACE_ENGINE_URL is http://localhost:6878
+# (entrypoint.sh). See docs/superpowers/specs/engine-spike-results.md.
+LOOPBACK_ENGINE_URL = "http://localhost:6878"
+LOOPBACK_STREAM_ORIGIN = "http://127.0.0.1:36879"
 
 
-def _fake_engine(calls, *, redirect_host="engine", content_status=200):
-    """MockTransport handler: JSON start -> 302 -> bytes; records stop calls."""
+def _start_response(*, stream_origin, engine_origin):
+    return httpx.Response(200, json={"response": {
+        "playback_url": f"{stream_origin}/ace/r/{IH}/tok",
+        "stat_url": f"{engine_origin}/ace/stat/{IH}/s",
+        "command_url": f"{engine_origin}/ace/cmd/{IH}/s", "is_live": 1}, "error": None})
+
+
+def _fake_engine(calls, *, engine_origin=ENGINE_ORIGIN, stream_origin=None, redirect_origin=None, content_status=200):
+    """MockTransport handler: JSON start -> 302 -> bytes; records stop calls.
+
+    ``stream_origin`` is the origin the engine puts in ``playback_url`` (its
+    own, which need not be the one we configured); ``redirect_origin`` is where
+    its 302 points (defaults to ``stream_origin``).
+    """
+    stream_origin = stream_origin or engine_origin
+    redirect_origin = redirect_origin or stream_origin
+
     def handler(request):
         calls.append((request.method, str(request.url)))
         path = request.url.path
         if path == "/ace/getstream":
-            return httpx.Response(200, json={"response": {
-                "playback_url": f"http://engine:6878/ace/r/{IH}/tok",
-                "stat_url": f"http://engine:6878/ace/stat/{IH}/s",
-                "command_url": f"http://engine:6878/ace/cmd/{IH}/s", "is_live": 1}, "error": None})
+            return _start_response(stream_origin=stream_origin, engine_origin=engine_origin)
         if path.startswith("/ace/r/"):
-            return httpx.Response(302, headers={"Location": f"http://{redirect_host}:6878/content/{IH}/1"})
+            return httpx.Response(302, headers={"Location": f"{redirect_origin}/content/{IH}/1"})
         if path.startswith("/content/"):
             return httpx.Response(content_status, content=BODY if content_status == 200 else b"", headers={"Content-Type": "video/mp2t"})
         if path.startswith("/ace/cmd/"):
@@ -35,9 +53,9 @@ def _fake_engine(calls, *, redirect_host="engine", content_status=200):
     return handler
 
 
-def _engine_and_factory(handler):
+def _engine_and_factory(handler, *, engine_url=ENGINE_ORIGIN):
     sync_client = httpx.Client(transport=httpx.MockTransport(handler))
-    engine = EngineClient("http://engine:6878", client=sync_client)
+    engine = EngineClient(engine_url, client=sync_client)
 
     def factory(**kwargs):
         return httpx.AsyncClient(transport=httpx.MockTransport(handler), **kwargs)
@@ -64,7 +82,38 @@ def test_relay_follows_engine_redirect_and_stops_once():
 
 def test_redirect_to_another_host_is_refused():
     calls = []
-    engine, factory = _engine_and_factory(_fake_engine(calls, redirect_host="evil"))
+    engine, factory = _engine_and_factory(_fake_engine(calls, redirect_origin="http://evil:6878"))
+    with pytest.raises(EngineStreamError):
+        _collect(relay_engine_stream(engine, IH, "test", client_factory=factory))
+    assert sum("/ace/cmd/" in u for _, u in calls) == 1
+
+
+def test_loopback_engine_streams_from_its_own_address_and_port():
+    """The production shape: ACE_ENGINE_URL is http://localhost:6878 and the
+    engine answers with http://127.0.0.1:36879/ace/r/... (ARM build). Comparing
+    the literal hosts would refuse every relay of the default deployment."""
+    calls = []
+    engine, factory = _engine_and_factory(
+        _fake_engine(calls, engine_origin=LOOPBACK_ENGINE_URL, stream_origin=LOOPBACK_STREAM_ORIGIN),
+        engine_url=LOOPBACK_ENGINE_URL,
+    )
+    body = _collect(relay_engine_stream(engine, IH, "test", client_factory=factory))
+    assert body == BODY
+    assert [u for _, u in calls if "/ace/cmd/" in u] == [f"{LOOPBACK_ENGINE_URL}/ace/cmd/{IH}/s?method=stop"]
+
+
+def test_redirect_off_a_loopback_engine_is_still_refused():
+    """Loopback spellings collapse into one host -- everything else does not."""
+    calls = []
+    engine, factory = _engine_and_factory(
+        _fake_engine(
+            calls,
+            engine_origin=LOOPBACK_ENGINE_URL,
+            stream_origin=LOOPBACK_STREAM_ORIGIN,
+            redirect_origin="http://203.0.113.7:6878",
+        ),
+        engine_url=LOOPBACK_ENGINE_URL,
+    )
     with pytest.raises(EngineStreamError):
         _collect(relay_engine_stream(engine, IH, "test", client_factory=factory))
     assert sum("/ace/cmd/" in u for _, u in calls) == 1
@@ -73,6 +122,48 @@ def test_redirect_to_another_host_is_refused():
 def test_non_200_upstream_is_refused_with_one_stop():
     calls = []
     engine, factory = _engine_and_factory(_fake_engine(calls, content_status=500))
+    with pytest.raises(EngineStreamError):
+        _collect(relay_engine_stream(engine, IH, "test", client_factory=factory))
+    assert sum("/ace/cmd/" in u for _, u in calls) == 1
+
+
+@pytest.mark.parametrize("failure", [
+    lambda request: httpx.ConnectError("connection refused", request=request),
+    lambda request: httpx.ReadTimeout("read timed out", request=request),
+], ids=["connect_error", "read_timeout"])
+def test_transport_failure_opening_the_stream_becomes_engine_stream_error(failure):
+    """The session started, so the engine has to be stopped -- and the route
+    needs EngineStreamError (502), not a bare httpx exception (500)."""
+    calls = []
+    engine_handler = _fake_engine(calls)
+
+    def handler(request):
+        if request.url.path.startswith("/ace/r/"):
+            calls.append((request.method, str(request.url)))
+            raise failure(request)
+        return engine_handler(request)
+
+    engine, factory = _engine_and_factory(handler)
+    with pytest.raises(EngineStreamError):
+        _collect(relay_engine_stream(engine, IH, "test", client_factory=factory))
+    assert sum("/ace/cmd/" in u for _, u in calls) == 1
+
+
+def test_endless_engine_redirects_become_engine_stream_error():
+    """max_redirects=3 makes httpx raise TooManyRedirects; that is an engine
+    stream failure too."""
+    calls = []
+
+    def handler(request):
+        calls.append((request.method, str(request.url)))
+        path = request.url.path
+        if path == "/ace/getstream":
+            return _start_response(stream_origin=ENGINE_ORIGIN, engine_origin=ENGINE_ORIGIN)
+        if path.startswith("/ace/cmd/"):
+            return httpx.Response(200, text="ok")
+        return httpx.Response(302, headers={"Location": f"{ENGINE_ORIGIN}/ace/r/{IH}/{len(calls)}"})
+
+    engine, factory = _engine_and_factory(handler)
     with pytest.raises(EngineStreamError):
         _collect(relay_engine_stream(engine, IH, "test", client_factory=factory))
     assert sum("/ace/cmd/" in u for _, u in calls) == 1

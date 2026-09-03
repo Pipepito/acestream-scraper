@@ -107,11 +107,12 @@ def _schedule_deferred_migration() -> bool:
 def _configured_intervals() -> tuple[int, int]:
     """(rescrape hours, EPG refresh hours) from the settings table; defaults on any failure."""
     from app.config.database import SessionLocal
+    from app.repositories.settings_repository import SettingsRepository
     from app.services.config_service import ConfigService
 
     db = SessionLocal()
     try:
-        config = ConfigService(db)
+        config = ConfigService(SettingsRepository(db))
         return max(1, int(config.get_rescrape_interval())), max(1, int(config.get_epg_refresh_interval()))
     except Exception as exc:  # noqa: BLE001 - never block startup on a settings read
         logging.getLogger("main").warning("Could not read scheduler intervals from settings (%s); using defaults", exc)

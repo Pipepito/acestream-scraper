@@ -226,3 +226,19 @@ def test_startup_stamps_existing_unstamped_v2_database(tmp_path):
     assert result.returncode == 0, f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
     assert "alembic_version" in _inspect_tables(db_path)
     assert "unstamped" in result.stdout
+
+
+def test_configured_intervals_come_from_the_settings_table(db_session, monkeypatch):
+    """Startup handed a Session to ConfigService (which expects a
+    SettingsRepository), so the read always failed and the scheduler silently
+    ran on the 24 h / 6 h defaults whatever the user had configured."""
+    from app.config import database as database_module
+    from app.repositories.settings_repository import SettingsRepository
+    from main import _configured_intervals
+
+    repo = SettingsRepository(db_session)
+    repo.set_setting(SettingsRepository.RESCRAPE_INTERVAL, "3")
+    repo.set_setting(SettingsRepository.EPG_REFRESH_INTERVAL, "2")
+    monkeypatch.setattr(database_module, "SessionLocal", lambda: db_session)
+
+    assert _configured_intervals() == (3, 2)

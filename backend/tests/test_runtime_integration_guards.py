@@ -602,3 +602,20 @@ def test_command_builder_and_docs_publish_the_web_port_on_ipv4_only():
         "(0.0.0.0:8000:8000), otherwise docker-proxy defeats TUNER_ALLOWED_NETWORKS:\n"
         + "\n".join(offenders)
     )
+
+
+def test_entrypoint_detects_bundled_ffmpeg():
+    entrypoint = (REPO_ROOT / "entrypoint.sh").read_text()
+    dockerfile = (REPO_ROOT / "Dockerfile").read_text()
+
+    assert 'FFMPEG_BINARY_PATH="${FFMPEG_BINARY_PATH:-/opt/ffmpeg/bin/ffmpeg}"' in entrypoint
+    assert 'if [ -x "$FFMPEG_BINARY_PATH" ]; then IMAGE_HAS_FFMPEG=true; else IMAGE_HAS_FFMPEG=false; fi' in entrypoint
+    assert "IMAGE_HAS_FFMPEG" in entrypoint.split("export ENABLE_WARP", 1)[1].split("\n", 1)[0]
+    assert "FFMPEG_BINARY_PATH=/opt/ffmpeg/bin/ffmpeg" in dockerfile
+    assert "FROM --platform=$BUILDPLATFORM debian:trixie-slim AS ffmpeg-builder" in dockerfile
+
+
+def test_jenkins_smoke_stage_runs_the_ffmpeg_build_test():
+    pipeline = (REPO_ROOT / "Jenkinsfile").read_text()
+    assert "backend/tests/docker/test_ffmpeg_build.py" in pipeline
+    assert "backend/tests/docker/test_ffmpeg_vendor.py" in pipeline

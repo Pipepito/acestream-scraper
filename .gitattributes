@@ -2,3 +2,8 @@
 docker/vendor/** binary
 docker/vendor/**/README.md text
 docker/vendor/**/SHA256SUMS text
+
+# Committed media test fixtures: binary bytes, never text-normalized.
+backend/tests/docker/fixtures/** binary
+backend/tests/docker/fixtures/**/README.md text
+backend/tests/docker/fixtures/**/SHA256SUMS text

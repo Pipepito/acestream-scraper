@@ -234,8 +234,15 @@ if [ -z "${IMAGE_HAS_IPFS:-}" ]; then
     if [ -x "$IPFS_BINARY_PATH" ]; then IMAGE_HAS_IPFS=true; else IMAGE_HAS_IPFS=false; fi
 fi
 IMAGE_HAS_IPFS=$(normalize_bool "$IMAGE_HAS_IPFS")
+# The web player needs ffmpeg; every image ships a static build, but a
+# custom mount (or bare-metal run) may not — detect it like IPFS/ZeroNet.
+FFMPEG_BINARY_PATH="${FFMPEG_BINARY_PATH:-/opt/ffmpeg/bin/ffmpeg}"
+if [ -z "${IMAGE_HAS_FFMPEG:-}" ]; then
+    if [ -x "$FFMPEG_BINARY_PATH" ]; then IMAGE_HAS_FFMPEG=true; else IMAGE_HAS_FFMPEG=false; fi
+fi
+IMAGE_HAS_FFMPEG=$(normalize_bool "$IMAGE_HAS_FFMPEG")
 
-export ENABLE_WARP ENABLE_ACESTREAM_ENGINE ENABLE_ACEXY ENABLE_IPFS ENABLE_ZERONET ENABLE_TOR IMAGE_HAS_ACESTREAM IMAGE_HAS_ACEXY IMAGE_HAS_IPFS IMAGE_HAS_ZERONET IPFS_BINARY_PATH ZERONET_BINARY_PATH
+export ENABLE_WARP ENABLE_ACESTREAM_ENGINE ENABLE_ACEXY ENABLE_IPFS ENABLE_ZERONET ENABLE_TOR IMAGE_HAS_ACESTREAM IMAGE_HAS_ACEXY IMAGE_HAS_IPFS IMAGE_HAS_ZERONET IMAGE_HAS_FFMPEG IPFS_BINARY_PATH ZERONET_BINARY_PATH FFMPEG_BINARY_PATH
 export FLASK_PORT="${FLASK_PORT:-8000}"
 export ACESTREAM_HTTP_HOST="${ACESTREAM_HTTP_HOST:-localhost}"
 export ACESTREAM_HTTP_PORT="${ACESTREAM_HTTP_PORT:-6878}"
@@ -271,7 +278,8 @@ export IPFS_GATEWAY_URL="${IPFS_GATEWAY_URL:-http://127.0.0.1:$IPFS_GATEWAY_PORT
 # container; TUNER_ALLOWED_NETWORKS gates the token-free /tuner/* routes;
 # PLAYER_* size the web player's transcode sessions; FORWARDED_ALLOW_IPS is
 # consumed by the app's own forwarded-headers middleware (uvicorn's is disabled
-# below); FFMPEG_BINARY_PATH empty means "resolve ffmpeg from PATH";
+# below); FFMPEG_BINARY_PATH was already resolved with the image flags above
+# (empty only where no bundled binary exists, meaning "resolve from PATH");
 # MEDIA_SERVER_MIN_REFRESH_MINUTES debounces Jellyfin/Plex guide refreshes.
 export PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-}"
 export TUNER_ALLOWED_NETWORKS="${TUNER_ALLOWED_NETWORKS:-127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10}"

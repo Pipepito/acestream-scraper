@@ -20,6 +20,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { Edit, Delete, OpenInNew, Star, StarBorder } from '@mui/icons-material';
+import PlayArrowRounded from '@mui/icons-material/PlayArrowRounded';
 import { TVChannel } from '../types/tvChannelTypes';
 import EmptyState from './state/EmptyState';
 import { shouldDisableGridVirtualization } from '../config/runtime';
@@ -37,6 +38,8 @@ interface TVChannelsTableProps {
   onDelete: (id: number) => void;
   onOpen: (id: number) => void;
   onToggleFavorite: (channel: TVChannel) => void;
+  /** Plays the channel's best stream. Omit it and the Play control stays disabled. */
+  onPlay?: (channel: TVChannel) => void;
 }
 
 const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
@@ -52,6 +55,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
   onDelete,
   onOpen,
   onToggleFavorite,
+  onPlay,
 }) => {
   const theme = useTheme();
   const isCompact = useMediaQuery(theme.breakpoints.down('md'));
@@ -72,6 +76,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
   const hasCountry = channels.some((channel) => Boolean(channel.country));
 
   const renderActions = (channel: TVChannel, isMobile = false) => {
+    const canPlay = Boolean(onPlay) && Boolean(channel.acestream_channels?.length);
     const favoriteButton = (
       <Tooltip title={channel.is_favorite ? 'Remove from favorites' : 'Add to favorites'}>
         <IconButton
@@ -108,6 +113,15 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
             Delete
           </Button>
           <Button
+            variant="outlined"
+            startIcon={<PlayArrowRounded fontSize="small" />}
+            aria-label={`play tv channel ${channel.name}`}
+            disabled={!canPlay}
+            onClick={() => onPlay?.(channel)}
+          >
+            Play
+          </Button>
+          <Button
             variant="contained"
             startIcon={<OpenInNew fontSize="small" />}
             aria-label={`open tv channel ${channel.name}`}
@@ -131,6 +145,19 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
           <IconButton size="small" aria-label={`delete tv channel ${channel.name}`} onClick={() => onDelete(channel.id)}>
             <Delete fontSize="small" />
           </IconButton>
+        </Tooltip>
+        <Tooltip title={canPlay ? 'Play the best stream' : 'No stream to play yet'}>
+          <span>
+            <IconButton
+              size="small"
+              color="primary"
+              aria-label={`play tv channel ${channel.name}`}
+              disabled={!canPlay}
+              onClick={() => onPlay?.(channel)}
+            >
+              <PlayArrowRounded fontSize="small" />
+            </IconButton>
+          </span>
         </Tooltip>
         <Tooltip title="Open channel page">
           <IconButton size="small" color="primary" aria-label={`open tv channel ${channel.name}`} onClick={() => onOpen(channel.id)}>
@@ -327,7 +354,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 200,
+      width: 240,
       sortable: false,
       renderCell: (params: GridRenderCellParams<TVChannel>) => renderActions(params.row),
     },

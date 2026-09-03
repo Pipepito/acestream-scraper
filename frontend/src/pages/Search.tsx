@@ -14,6 +14,7 @@ import {
   Select,
   SelectChangeEvent,
   Snackbar,
+  Stack,
   Table,
   TableBody,
   TableCell,
@@ -24,10 +25,12 @@ import {
   Typography,
 } from '@mui/material';
 import CheckIcon from '@mui/icons-material/Check';
+import PlayArrowRounded from '@mui/icons-material/PlayArrowRounded';
 import { useQueryClient } from '@tanstack/react-query';
 
 import ContentSection from '../components/layout/ContentSection';
 import PageHeader from '../components/layout/PageHeader';
+import StreamPlayerDialog from '../components/player/StreamPlayerDialog';
 import StatusLine from '../components/StatusLine';
 import { useAddAcestreamChannel, useSearch } from '../hooks/useSearch';
 import { useSnackbar } from '../hooks/useSnackbar';
@@ -44,6 +47,7 @@ const Search: React.FC = () => {
   const [selectedChannels, setSelectedChannels] = useState<SearchResultItem[]>([]);
   const [addedIds, setAddedIds] = useState<Set<string>>(() => new Set());
   const [activeSearch, setActiveSearch] = useState<{ query: string; page: number; category: string } | null>(null);
+  const [playerTarget, setPlayerTarget] = useState<{ contentId: string; title: string } | null>(null);
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
 
   const queryClient = useQueryClient();
@@ -282,13 +286,23 @@ const Search: React.FC = () => {
                             </Typography>
                           </TableCell>
                           <TableCell>
-                            {added ? (
-                              <Chip size="small" color="success" icon={<CheckIcon />} label="Added" aria-label={`Added ${channel.name}`} />
-                            ) : (
-                              <Button size="small" variant="outlined" onClick={() => handleAddChannel(channel)} disabled={addChannelMutation.isPending} aria-label={`Add ${channel.name}`}>
-                                Add
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <Button
+                                size="small"
+                                startIcon={<PlayArrowRounded />}
+                                onClick={() => setPlayerTarget({ contentId: channel.id, title: channel.name })}
+                                aria-label={`play ${channel.name}`}
+                              >
+                                Play
                               </Button>
-                            )}
+                              {added ? (
+                                <Chip size="small" color="success" icon={<CheckIcon />} label="Added" aria-label={`Added ${channel.name}`} />
+                              ) : (
+                                <Button size="small" variant="outlined" onClick={() => handleAddChannel(channel)} disabled={addChannelMutation.isPending} aria-label={`Add ${channel.name}`}>
+                                  Add
+                                </Button>
+                              )}
+                            </Stack>
                           </TableCell>
                         </TableRow>
                       );
@@ -305,6 +319,13 @@ const Search: React.FC = () => {
           )}
         </ContentSection>
       ) : null}
+
+      <StreamPlayerDialog
+        open={Boolean(playerTarget)}
+        contentId={playerTarget?.contentId ?? null}
+        title={playerTarget?.title ?? ''}
+        onClose={() => setPlayerTarget(null)}
+      />
 
       <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={closeSnackbar} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
         <Alert onClose={closeSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>

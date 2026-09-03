@@ -50,6 +50,21 @@ describe('TVChannelsTable', () => {
     }
   };
 
+  const channelWithStreams = {
+    id: 42,
+    name: 'Arena TV',
+    logo_url: '',
+    category: 'Sports',
+    language: 'en',
+    country: 'RS',
+    channel_number: 7,
+    is_active: true,
+    created_at: '2024-01-01T00:00:00.000Z',
+    updated_at: '2024-01-01T00:00:00.000Z',
+    is_favorite: false,
+    acestream_channels: [{ id: 'ace-1', name: 'Feed', channel_id: 'ace-1', is_active: true, is_online: true, epg_update_protected: false }],
+  } as any;
+
   const baseProps = {
     loading: false,
     totalCount: 1,
@@ -243,6 +258,40 @@ describe('TVChannelsTable', () => {
     fireEvent.click(compactStar);
 
     expect(onToggleFavorite).toHaveBeenCalledWith(expect.objectContaining({ id: 42, is_favorite: true }));
+  });
+
+  it('offers Play next to Open and disables it without streams', () => {
+    const onPlay = jest.fn();
+    const channels = [
+      { ...channelWithStreams, name: 'With streams' },
+      { ...channelWithStreams, id: 2, name: 'Empty', acestream_channels: [] },
+    ];
+
+    const { unmount } = renderTable(
+      <TVChannelsTable {...baseProps} totalCount={2} channels={channels} onPlay={onPlay} />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'play tv channel With streams' }));
+    expect(onPlay).toHaveBeenCalledWith(expect.objectContaining({ name: 'With streams' }));
+    expect(screen.getByRole('button', { name: 'play tv channel Empty' })).toBeDisabled();
+
+    unmount();
+    onPlay.mockClear();
+
+    renderTable(<TVChannelsTable {...baseProps} totalCount={2} channels={channels} onPlay={onPlay} />, true);
+
+    const card = screen.getByRole('article', { name: 'With streams' });
+    fireEvent.click(within(card).getByRole('button', { name: 'play tv channel With streams' }));
+    expect(onPlay).toHaveBeenCalledWith(expect.objectContaining({ name: 'With streams' }));
+    expect(
+      within(screen.getByRole('article', { name: 'Empty' })).getByRole('button', { name: 'play tv channel Empty' })
+    ).toBeDisabled();
+  });
+
+  it('disables Play when the page does not handle playback', () => {
+    renderTable(<TVChannelsTable {...baseProps} channels={[channelWithStreams]} />);
+
+    expect(screen.getByRole('button', { name: 'play tv channel Arena TV' })).toBeDisabled();
   });
 
   it('renders a clear mobile empty state in compact mode', () => {

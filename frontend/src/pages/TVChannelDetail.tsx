@@ -23,11 +23,13 @@ import {
   Typography,
 } from '@mui/material';
 import { Add as AddIcon, ArrowBack as BackIcon, Delete as DeleteIcon, Edit as EditIcon, ExpandLess, ExpandMore } from '@mui/icons-material';
+import PlayArrowRounded from '@mui/icons-material/PlayArrowRounded';
 import { Link as RouterLink } from 'react-router-dom';
 import BatchAcestreamAssignment from '../components/BatchAcestreamAssignment';
 import ScheduleView from '../components/epg/ScheduleView';
 import ContentSection from '../components/layout/ContentSection';
 import PageHeader from '../components/layout/PageHeader';
+import StreamPlayerDialog from '../components/player/StreamPlayerDialog';
 import { useConfirm } from '../components/ConfirmDialog';
 import { useAcestreamChannels } from '../hooks/useChannels';
 import { useResolveEPGChannel } from '../hooks/useEPG';
@@ -73,6 +75,7 @@ const TVChannelDetail: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [moreFieldsOpen, setMoreFieldsOpen] = useState(false);
   const [notice, setNotice] = useState<{ message: string; severity: 'success' | 'error' } | null>(null);
+  const [playerTarget, setPlayerTarget] = useState<{ contentId: string; title: string } | null>(null);
   const [editFormData, setEditFormData] = useState<EditFormData>({
     name: '',
     logo_url: '',
@@ -216,6 +219,14 @@ const TVChannelDetail: React.FC = () => {
             <Button variant="outlined" startIcon={<BackIcon />} onClick={() => navigate('/tv-channels')}>
               Back
             </Button>
+            <Button
+              variant="contained"
+              startIcon={<PlayArrowRounded />}
+              disabled={streamCount === 0}
+              onClick={() => setPlayerTarget({ contentId: channel.acestream_channels[0].id, title: channel.name })}
+            >
+              Play best stream
+            </Button>
             {!isEditing ? (
               <Button variant="contained" startIcon={<EditIcon />} onClick={handleEdit}>
                 Edit
@@ -320,9 +331,19 @@ const TVChannelDetail: React.FC = () => {
               <ListItem
                 key={acestream.id}
                 divider
-                sx={{ alignItems: 'flex-start', pr: 7 }}
+                sx={{ alignItems: 'flex-start', pr: 12 }}
                 secondaryAction={
                   <Box role="group" aria-label={`Acestream actions for ${acestream.name}`}>
+                    <Tooltip title="Play in the browser">
+                      <IconButton
+                        edge="end"
+                        color="primary"
+                        aria-label={`play stream ${acestream.name}`}
+                        onClick={() => setPlayerTarget({ contentId: acestream.id, title: acestream.name })}
+                      >
+                        <PlayArrowRounded />
+                      </IconButton>
+                    </Tooltip>
                     <Tooltip title="Remove from this channel">
                       <IconButton edge="end" color="error" aria-label={`Remove acestream ${acestream.name}`} onClick={() => handleRemoveAcestream(acestream.id)}>
                         <DeleteIcon />
@@ -444,6 +465,13 @@ const TVChannelDetail: React.FC = () => {
         onClose={() => setOpenBatchAssignDialog(false)}
         tvChannelId={channelId}
         tvChannelName={channel.name}
+      />
+
+      <StreamPlayerDialog
+        open={Boolean(playerTarget)}
+        contentId={playerTarget?.contentId ?? null}
+        title={playerTarget?.title ?? ''}
+        onClose={() => setPlayerTarget(null)}
       />
 
       {confirmDialog}

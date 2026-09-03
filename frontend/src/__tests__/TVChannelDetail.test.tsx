@@ -23,6 +23,15 @@ jest.mock('../components/epg/ScheduleView', () => ({
   __esModule: true,
   default: ({ epgChannelId }: { epgChannelId: number }) => <div data-testid="schedule-view">schedule for {epgChannelId}</div>,
 }));
+jest.mock('../components/player/StreamPlayerDialog', () => ({
+  __esModule: true,
+  default: ({ open, title, contentId }: { open: boolean; title: string; contentId: string | null }) =>
+    open ? (
+      <div role="dialog" aria-label={title}>
+        {contentId}
+      </div>
+    ) : null,
+}));
 jest.mock('../hooks/useEPG', () => ({
   useResolveEPGChannel: (...args: unknown[]) => mockUseResolveEPGChannel(...args),
 }));
@@ -122,12 +131,40 @@ describe('TVChannelDetail', () => {
     expect(mockUseAcestreamChannels).toHaveBeenLastCalledWith({}, expect.objectContaining({ staleTime: 1000 * 60, enabled: true }));
   });
 
-  it('lists each stream with its state, group and id plus a remove action', () => {
+  it('lists each stream with its state, group and id plus play and remove actions', () => {
     renderPage();
+    expect(screen.getByRole('button', { name: 'play stream Arena Feed 1' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Remove acestream Arena Feed 1' })).toBeInTheDocument();
     expect(screen.getByText('Online')).toBeInTheDocument();
     expect(screen.getByText('ace-1')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Play acestream Arena Feed 1' })).not.toBeInTheDocument();
+  });
+
+  it('plays a single stream and the best stream from the header', () => {
+    mockUseTVChannel.mockReturnValue({
+      data: {
+        ...baseChannel,
+        acestream_channels: [
+          { id: 'ace-best', name: 'Arena Feed 1', group: 'Sports', is_online: true },
+          { id: 'ace-2', name: 'Arena Feed 2', group: 'Sports', is_online: false },
+        ],
+      },
+      isLoading: false,
+      isError: false,
+    });
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'play stream Arena Feed 2' }));
+    expect(screen.getByRole('dialog', { name: 'Arena Feed 2' })).toHaveTextContent('ace-2');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Play best stream' }));
+    expect(screen.getByRole('dialog', { name: 'Arena TV' })).toHaveTextContent('ace-best');
+  });
+
+  it('disables Play best stream when the channel has no streams', () => {
+    mockUseTVChannel.mockReturnValue({ data: { ...baseChannel, acestream_channels: [] }, isLoading: false, isError: false });
+    renderPage();
+
+    expect(screen.getByRole('button', { name: 'Play best stream' })).toBeDisabled();
   });
 
   it('announces TV channel detail loading through a contextual status region', () => {

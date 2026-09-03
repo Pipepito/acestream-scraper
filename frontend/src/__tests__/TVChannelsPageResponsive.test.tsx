@@ -44,6 +44,18 @@ jest.mock('../hooks/useTVChannels', () => ({
   useToggleTVChannelFavorite: (...args: unknown[]) => mockUseToggleTVChannelFavorite(...args),
 }));
 
+type MockTableChannel = { id: number; name: string; acestream_channels: Array<{ id?: string; channel_id: string }> };
+
+jest.mock('../components/player/StreamPlayerDialog', () => ({
+  __esModule: true,
+  default: ({ open, title, contentId }: { open: boolean; title: string; contentId: string | null }) =>
+    open ? (
+      <div role="dialog" aria-label={title}>
+        {contentId}
+      </div>
+    ) : null,
+}));
+
 jest.mock('../components/TVChannelsTable', () => ({
   __esModule: true,
   default: ({
@@ -56,16 +68,18 @@ jest.mock('../components/TVChannelsTable', () => ({
     onEdit,
     onDelete,
     onToggleFavorite,
+    onPlay,
   }: {
-    channels: Array<{ id: number; name: string }>;
+    channels: MockTableChannel[];
     totalCount: number;
     page: number;
     pageSize: number;
     onPageChange: (page: number) => void;
     onPageSizeChange: (pageSize: number) => void;
-    onEdit: (channel: { id: number; name: string }) => void;
+    onEdit: (channel: MockTableChannel) => void;
     onDelete: (id: number) => void;
-    onToggleFavorite: (channel: { id: number; name: string }) => void;
+    onToggleFavorite: (channel: MockTableChannel) => void;
+    onPlay?: (channel: MockTableChannel) => void;
   }) => (
     <div data-testid="tv-channels-table">
       rows:{channels.length}
@@ -88,6 +102,9 @@ jest.mock('../components/TVChannelsTable', () => ({
           </button>
           <button type="button" onClick={() => onToggleFavorite(channels[0])}>
             Toggle first favorite
+          </button>
+          <button type="button" disabled={!onPlay} onClick={() => onPlay?.(channels[0])}>
+            Play first channel
           </button>
         </>
       ) : null}
@@ -169,7 +186,7 @@ describe('TVChannels responsive page behavior', () => {
             channel_number: 7,
             is_active: true,
             is_favorite: false,
-            acestream_channels: [{ channel_id: 'ace-1' }],
+            acestream_channels: [{ id: 'ace-1', channel_id: 'ace-1' }],
           },
         ],
         total: 1,
@@ -192,7 +209,7 @@ describe('TVChannels responsive page behavior', () => {
           channel_number: 7,
           is_active: true,
           is_favorite: false,
-          acestream_channels: [{ channel_id: 'ace-1' }],
+          acestream_channels: [{ id: 'ace-1', channel_id: 'ace-1' }],
         },
         {
           id: 8,
@@ -394,6 +411,14 @@ describe('TVChannels responsive page behavior', () => {
       expect(toggleFavoriteMutateAsync).toHaveBeenCalledWith({ id: 7, value: true });
     });
     expect(await screen.findByText('Added Arena TV to favorites.')).toBeInTheDocument();
+  });
+
+  it('plays the best stream of a channel from the inventory', async () => {
+    renderPage({ isPhone: false, isDesktop: true, isWideDesktop: false });
+
+    await click(screen.getByRole('button', { name: 'Play first channel' }));
+
+    expect(screen.getByRole('dialog', { name: 'Arena TV' })).toHaveTextContent('ace-1');
   });
 
   it('resets to the first page immediately when applying filters', async () => {

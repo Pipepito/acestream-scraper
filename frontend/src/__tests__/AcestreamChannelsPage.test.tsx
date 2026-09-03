@@ -24,11 +24,12 @@ type Handlers = {
   onDelete: (row: Row) => void;
   onToggleHidden: (row: Row) => void;
   onToggleTVFavorite: (row: Row) => void;
+  onPlay: (row: Row) => void;
 };
 
 jest.mock('../components/ChannelTable', () => ({
   __esModule: true,
-  default: ({ channels, loading, hasActiveFilters, onDelete, onToggleHidden, onToggleTVFavorite }: Handlers) => (
+  default: ({ channels, loading, hasActiveFilters, onDelete, onToggleHidden, onToggleTVFavorite, onPlay }: Handlers) => (
     <div data-testid="channel-table">
       channels:{channels.length};loading:{String(loading)};filtered:{String(Boolean(hasActiveFilters))}
       {channels.map((channel) => (
@@ -37,10 +38,15 @@ jest.mock('../components/ChannelTable', () => ({
           <button type="button" onClick={() => onDelete(channel)}>{`delete ${channel.name}`}</button>
           <button type="button" onClick={() => onToggleHidden(channel)}>{`hide ${channel.name}`}</button>
           <button type="button" onClick={() => onToggleTVFavorite(channel)}>{`favorite ${channel.name}`}</button>
+          <button type="button" onClick={() => onPlay(channel)}>{`play ${channel.name}`}</button>
         </div>
       ))}
     </div>
   ),
+}));
+jest.mock('../components/player/StreamPlayerDialog', () => ({
+  __esModule: true,
+  default: ({ open, title }: { open: boolean; title: string }) => (open ? <div role="dialog">{title}</div> : null),
 }));
 jest.mock('../components/channels/ChannelFilterBar', () => ({
   __esModule: true,
@@ -200,6 +206,14 @@ describe('AcestreamChannels page', () => {
     await user().click(within(dialog).getByRole('button', { name: 'Cancel' }));
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Delete Alpha Sports?' })).not.toBeInTheDocument());
     expect(mockDeleteMutate).not.toHaveBeenCalled();
+  });
+
+  it('opens the player dialog for the channel picked from the row', async () => {
+    renderPage();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    await user().click(screen.getByRole('button', { name: 'play Alpha Sports' }));
+    expect(await screen.findByRole('dialog')).toHaveTextContent('Alpha Sports');
   });
 
   it('routes check-all through the channel service and shows validation errors in the snackbar', async () => {

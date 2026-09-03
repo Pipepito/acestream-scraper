@@ -22,6 +22,7 @@ import ContentSection from '../components/layout/ContentSection';
 import InlineStatusNotice from '../components/state/InlineStatusNotice';
 import StatusLine from '../components/StatusLine';
 import { useConfirm } from '../components/ConfirmDialog';
+import StreamPlayerDialog from '../components/player/StreamPlayerDialog';
 
 type SnackbarNotice = {
   message: string;
@@ -75,6 +76,7 @@ const AcestreamChannels: React.FC = () => {
   const [assignError, setAssignError] = useState<string | null>(null);
   const [groups, setGroups] = useState<string[]>([]);
   const [groupError, setGroupError] = useState<string | null>(null);
+  const [playerTarget, setPlayerTarget] = useState<{ contentId: string; title: string } | null>(null);
 
   const {
     data: channelsData = { items: [], total: 0 },
@@ -311,6 +313,7 @@ const AcestreamChannels: React.FC = () => {
   };
 
   const rowHandlers = {
+    onPlay: (channel: AcestreamChannel) => setPlayerTarget({ contentId: channel.id, title: channel.name }),
     onCheckStatus: handleCheckStatus,
     onEdit: handleEdit,
     onToggleHidden: handleToggleHidden,
@@ -468,6 +471,13 @@ const AcestreamChannels: React.FC = () => {
         onAssign={handleAssignTVChannel}
         loading={assigning}
         error={assignError}
+      />
+
+      <StreamPlayerDialog
+        open={Boolean(playerTarget)}
+        contentId={playerTarget?.contentId ?? null}
+        title={playerTarget?.title ?? ''}
+        onClose={() => setPlayerTarget(null)}
       />
 
       {confirmDialog}

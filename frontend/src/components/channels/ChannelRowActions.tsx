@@ -3,10 +3,12 @@ import { Box, CircularProgress, IconButton, Tooltip } from '@mui/material';
 import { Delete, Edit, Refresh, Star, StarBorder, VisibilityOff, Visibility } from '@mui/icons-material';
 import TvIcon from '@mui/icons-material/Tv';
 import LinkIcon from '@mui/icons-material/Link';
+import PlayArrowRounded from '@mui/icons-material/PlayArrowRounded';
 import RowActionsMenu from '../RowActionsMenu';
 import type { AcestreamChannel } from '../../services/channelService';
 
 export interface ChannelActionHandlers {
+  onPlay: (channel: AcestreamChannel) => void;
   onCheckStatus: (channel: AcestreamChannel) => void;
   onEdit: (channel: AcestreamChannel) => void;
   onToggleHidden: (channel: AcestreamChannel) => void;
@@ -21,10 +23,11 @@ export interface ChannelRowActionsProps extends ChannelActionHandlers {
   checking?: boolean;
 }
 
-/** Two visible actions (check status, TV link) plus a "More actions" menu; shared by the table and the phone cards. */
+/** Two visible actions (play, check status) plus a "More actions" menu; shared by the table and the phone cards. */
 const ChannelRowActions: React.FC<ChannelRowActionsProps> = ({
   channel,
   checking = false,
+  onPlay,
   onCheckStatus,
   onEdit,
   onToggleHidden,
@@ -37,6 +40,9 @@ const ChannelRowActions: React.FC<ChannelRowActionsProps> = ({
   const hidden = channel.is_active === false;
 
   const menuActions = [
+    channel.tv_channel_id
+      ? { label: `Open TV channel: ${linkedName}`, icon: <TvIcon fontSize="small" />, onClick: () => onOpenTV(channel) }
+      : { label: 'Link to a TV channel', icon: <LinkIcon fontSize="small" />, onClick: () => onAssignTV(channel) },
     { label: 'Edit', icon: <Edit fontSize="small" />, onClick: () => onEdit(channel) },
     {
       label: hidden ? 'Show in playlist' : 'Hide from playlist',
@@ -57,6 +63,19 @@ const ChannelRowActions: React.FC<ChannelRowActionsProps> = ({
 
   return (
     <Box role="group" aria-label={`Acestream channel actions for ${channel.name}`} sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+      <Tooltip title="Play in the browser">
+        <IconButton
+          size="small"
+          color="primary"
+          aria-label={`play channel ${channel.name}`}
+          onClick={(event) => {
+            event.stopPropagation();
+            onPlay(channel);
+          }}
+        >
+          <PlayArrowRounded fontSize="small" />
+        </IconButton>
+      </Tooltip>
       <Tooltip title="Check status">
         <span>
           <IconButton
@@ -72,34 +91,6 @@ const ChannelRowActions: React.FC<ChannelRowActionsProps> = ({
           </IconButton>
         </span>
       </Tooltip>
-      {channel.tv_channel_id ? (
-        <Tooltip title={`Open TV channel: ${linkedName}`}>
-          <IconButton
-            size="small"
-            color="primary"
-            aria-label={`go to tv channel ${linkedName}`}
-            onClick={(event) => {
-              event.stopPropagation();
-              onOpenTV(channel);
-            }}
-          >
-            <TvIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      ) : (
-        <Tooltip title="Link to a TV channel">
-          <IconButton
-            size="small"
-            aria-label={`assign tv channel to ${channel.name}`}
-            onClick={(event) => {
-              event.stopPropagation();
-              onAssignTV(channel);
-            }}
-          >
-            <LinkIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      )}
       <RowActionsMenu label={`More actions for ${channel.name}`} actions={menuActions} />
     </Box>
   );

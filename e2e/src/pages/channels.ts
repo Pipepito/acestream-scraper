@@ -74,10 +74,21 @@ export class ChannelsPage extends AppShell {
   }
 
   async openAssignTv(name: string): Promise<Locator> {
-    await this.row(name).first().getByRole('button', { name: `assign tv channel to ${name}` }).click();
+    await this.rowMenuAction(this.row(name).first(), name, 'Link to a TV channel');
     const dialog = this.dialog('Assign to TV Channel');
     await expect(dialog).toBeVisible();
     return dialog;
+  }
+
+  async playChannel(name: string): Promise<void> {
+    await this.row(name).first().getByRole('button', { name: `play channel ${name}` }).click();
+  }
+
+  /** The TV link lives in the row menu; assert it and close the menu again. */
+  async expectLinkedTv(name: string, tvName: string): Promise<void> {
+    await this.row(name).first().getByRole('button', { name: `More actions for ${name}` }).click();
+    await expect(this.page.getByRole('menuitem', { name: `Open TV channel: ${tvName}` })).toBeVisible();
+    await this.page.keyboard.press('Escape');
   }
 
   csvButton(): Locator {

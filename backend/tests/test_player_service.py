@@ -554,3 +554,25 @@ def test_tick_reads_session_stats_concurrently(make_service):
         finally:
             await svc.stop()
     asyncio.run(run())
+
+
+def test_docker_build_test_runs_the_real_player_command():
+    """backend/tests/docker/test_ffmpeg_build.py carries PLAYER_COMMAND, a literal
+    copy of what PlayerService runs (it executes inside a container against fixed
+    paths, so it cannot call the service). That copy is the only thing proving the
+    per-platform ffmpeg build can run the app's actual command, and nothing kept
+    the two in step. This guard lives here, outside the Docker-gated module, so it
+    runs in the normal suite."""
+    import importlib.util
+    from pathlib import Path as _Path
+
+    module_path = _Path(__file__).parent / "docker" / "test_ffmpeg_build.py"
+    spec = importlib.util.spec_from_file_location("_ffmpeg_build_for_argv_guard", module_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    argv = PlayerService().ffmpeg_argv("/f/sample.m2ts", _Path("/out/player"))
+    assert argv[1:] == module.PLAYER_COMMAND, (
+        "player_service.ffmpeg_argv and the Docker build test's PLAYER_COMMAND have drifted; "
+        "update PLAYER_COMMAND so that test still exercises the command the app runs"
+    )

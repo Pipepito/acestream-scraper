@@ -21,7 +21,10 @@ PLATFORMS = ["linux/amd64", "linux/arm64", "linux/arm/v7"]
 
 # The web player's command (spec 4.5), verbatim apart from the paths the
 # service fills in. Building a binary that cannot run it is the failure this
-# test exists to catch.
+# test exists to catch. It is a literal because this test runs inside a
+# container against fixed paths; backend/tests/test_player_service.py's
+# test_docker_build_test_runs_the_real_player_command fails if it drifts from
+# PlayerService.ffmpeg_argv.
 PLAYER_COMMAND = [
     "-nostdin", "-hide_banner", "-loglevel", "info", "-nostats",
     "-rw_timeout", "20000000", "-fflags", "+genpts+discardcorrupt",

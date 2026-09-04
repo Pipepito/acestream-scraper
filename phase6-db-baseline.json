@@ -1,0 +1,21 @@
+{
+  "scenario": "baseline",
+  "generated_at": 1772226513,
+  "metrics": {
+    "bulk_activate_channels": {
+      "duration_ms": 4.09,
+      "query_count": 2
+    },
+    "refresh_all_urls": {
+      "duration_ms": 1.17,
+      "query_count": 1,
+      "rows": 300
+    },
+    "process_epg_xml_repeat": {
+      "duration_ms": 13.64,
+      "query_count": 4,
+      "channels_found": 0,
+      "programs_found": 0
+    }
+  }
+}

@@ -1,0 +1,230 @@
+from migration_test_utils import upgraded_inspector
+
+
+def _migrated_inspector(tmp_path, name: str):
+    db_path = tmp_path / name
+    return upgraded_inspector(db_path)
+
+
+def _column_map(inspector, table_name: str) -> dict[str, dict]:
+    return {column['name']: column for column in inspector.get_columns(table_name)}
+
+
+def _sqlite_type_name(column: dict) -> str:
+    return str(column['type']).upper()
+
+
+def _has_single_column_index(indexes: list[dict], column_name: str, *, unique: bool | None = None) -> bool:
+    for index in indexes:
+        if index.get('column_names') != [column_name]:
+            continue
+        if unique is None or bool(index.get('unique')) is unique:
+            return True
+    return False
+
+
+def test_settings_schema_matches_canonical_contract(tmp_path):
+    engine, inspector = _migrated_inspector(tmp_path, 'settings-parity.db')
+    try:
+        columns = _column_map(inspector, 'settings')
+
+        assert set(columns) == {'id', 'key', 'value', 'description'}
+
+        primary_key = inspector.get_pk_constraint('settings')
+        assert primary_key['constrained_columns'] == ['id']
+
+        assert columns['key']['nullable'] is False
+
+        unique_constraints = inspector.get_unique_constraints('settings')
+        assert any(
+            constraint.get('column_names') == ['key'] for constraint in unique_constraints
+        )
+
+        indexes = inspector.get_indexes('settings')
+        assert any(
+            index.get('column_names') == ['key'] for index in indexes
+        )
+
+        assert 'last_updated' not in columns
+    finally:
+        engine.dispose()
+
+
+def test_activity_log_schema_matches_canonical_contract(tmp_path):
+    engine, inspector = _migrated_inspector(tmp_path, 'activity-log-parity.db')
+    try:
+        columns = _column_map(inspector, 'activity_log')
+        details_type = _sqlite_type_name(columns['details'])
+        channel_id = columns['channel_id']
+        channel_id_type = _sqlite_type_name(channel_id)
+
+        assert 'TEXT' in details_type
+        assert 'channel_id' in columns
+        assert channel_id['nullable'] is True
+        assert 'CHAR' in channel_id_type or 'TEXT' in channel_id_type or 'VARCHAR' in channel_id_type
+        assert getattr(channel_id['type'], 'length', None) == 255 or channel_id_type == 'VARCHAR(255)'
+
+        foreign_keys = inspector.get_foreign_keys('activity_log')
+        assert any(
+            fk.get('constrained_columns') == ['channel_id']
+            and fk.get('referred_table') == 'acestream_channels'
+            and fk.get('referred_columns') == ['id']
+            for fk in foreign_keys
+        )
+    finally:
+        engine.dispose()
+
+
+def test_dashboard_config_exists_with_canonical_columns(tmp_path):
+    engine, inspector = _migrated_inspector(tmp_path, 'dashboard-config-parity.db')
+    try:
+        tables = set(inspector.get_table_names())
+        assert 'dashboard_config' in tables
+
+        columns = _column_map(inspector, 'dashboard_config')
+        assert set(columns) == {'id', 'retention_days', 'auto_refresh_interval'}
+    finally:
+        engine.dispose()
+
+
+def test_acestream_channels_schema_includes_runtime_last_seen(tmp_path):
+    engine, inspector = _migrated_inspector(tmp_path, 'acestream-channels-parity.db')
+    try:
+        columns = _column_map(inspector, 'acestream_channels')
+        assert set(columns) == {
+            'id',
+            'name',
+            'group',
+            'logo',
+            'tvg_id',
+            'tvg_name',
+            'source_url',
+            'last_seen',
+            'is_active',
+            'is_online',
+            'last_checked',
+            'check_error',
+            'original_url',
+            'epg_update_protected',
+            'tv_channel_id',
+        }
+
+        channel_id = columns['id']
+        channel_id_type = _sqlite_type_name(channel_id)
+        last_seen_type = _sqlite_type_name(columns['last_seen'])
+
+        primary_key = inspector.get_pk_constraint('acestream_channels')
+        assert primary_key['constrained_columns'] == ['id']
+        assert 'CHAR' in channel_id_type or 'TEXT' in channel_id_type or 'VARCHAR' in channel_id_type
+        assert getattr(channel_id['type'], 'length', None) == 255 or channel_id_type == 'VARCHAR(255)'
+        assert 'DATE' in last_seen_type or 'TIME' in last_seen_type
+
+        indexes = inspector.get_indexes('acestream_channels')
+        assert any(index.get('name') == 'ix_acestream_channels_source_active' for index in indexes)
+        assert any(index.get('name') == 'ix_acestream_channels_tv_channel_id' for index in indexes)
+    finally:
+        engine.dispose()
+
+
+def test_scraped_urls_schema_matches_runtime_contract(tmp_path):
+    engine, inspector = _migrated_inspector(tmp_path, 'scraped-urls-parity.db')
+    try:
+        columns = _column_map(inspector, 'scraped_urls')
+        assert set(columns) == {
+            'id',
+            'url',
+            'url_type',
+            'status',
+            'last_processed',
+            'last_scraped',
+            'error_count',
+            'last_error',
+            'error',
+            'enabled',
+            'scrape_bare_ids',
+            'added_at',
+        }
+
+        primary_key = inspector.get_pk_constraint('scraped_urls')
+        assert primary_key['constrained_columns'] == ['id']
+        assert 'INT' in _sqlite_type_name(columns['id'])
+
+        assert columns['url']['nullable'] is False
+        assert 'DATE' in _sqlite_type_name(columns['last_scraped']) or 'TIME' in _sqlite_type_name(columns['last_scraped'])
+        assert 'TEXT' in _sqlite_type_name(columns['error'])
+
+        unique_constraints = inspector.get_unique_constraints('scraped_urls')
+        indexes = inspector.get_indexes('scraped_urls')
+        assert any(
+            constraint.get('column_names') == ['url'] for constraint in unique_constraints
+        ) or _has_single_column_index(indexes, 'url', unique=True)
+        assert _has_single_column_index(indexes, 'url') or any(
+            constraint.get('column_names') == ['url'] for constraint in unique_constraints
+        )
+    finally:
+        engine.dispose()
+
+
+def test_media_integration_tables_match_models(tmp_path):
+    engine, inspector = _migrated_inspector(tmp_path, 'media-integrations-parity.db')
+    try:
+        players = _column_map(inspector, 'remote_players')
+        assert set(players) == {'id', 'name', 'kind', 'host', 'port', 'username', 'password', 'base_url_id', 'created_at', 'updated_at'}
+        assert players['name']['nullable'] is False and players['port']['nullable'] is False
+        assert any(c.get('column_names') == ['name'] for c in inspector.get_unique_constraints('remote_players')) or \
+            _has_single_column_index(inspector.get_indexes('remote_players'), 'name', unique=True)
+        assert any(fk.get('constrained_columns') == ['base_url_id'] and fk.get('referred_table') == 'base_urls'
+                   for fk in inspector.get_foreign_keys('remote_players'))
+
+        servers = _column_map(inspector, 'media_servers')
+        assert set(servers) == {
+            'id', 'kind', 'name', 'base_url', 'api_key', 'tuner_mode', 'enabled', 'auto_refresh', 'tuner_host_id',
+            'listing_provider_id', 'dvr_key', 'last_lineup_fingerprint', 'last_guide_fingerprint', 'last_sync_at',
+            'last_sync_status', 'last_error', 'server_version', 'created_at', 'updated_at',
+        }
+        assert servers['tuner_mode']['nullable'] is False and servers['last_sync_status']['nullable'] is False
+    finally:
+        engine.dispose()
+
+
+# Columns the migrated schema carries that the ORM never mapped. They predate
+# the model hub and are harmless (nothing reads them), but they are listed
+# explicitly so this drift stays visible instead of growing quietly.
+UNMAPPED_MIGRATED_COLUMNS = {
+    'epg_sources': {'created_at', 'updated_at'},
+    'epg_string_mappings': {'created_at', 'updated_at'},
+}
+
+
+def test_models_describe_no_table_or_column_the_alembic_head_lacks(tmp_path):
+    """``ensure_schema_stamped`` repairs a database an older image's
+    ``create_all`` left behind by creating the missing tables from the models
+    and then recording the head, so a model must never describe a table or a
+    column the head does not have — the repaired database would be wrong in a
+    way no later revision fixes.
+    """
+    from sqlalchemy import create_engine, inspect
+
+    import app.models.models  # noqa: F401  (registers every table on Base)
+    from app.config.database import Base
+
+    engine, inspector = _migrated_inspector(tmp_path, 'model-head-parity.db')
+    created = create_engine(f"sqlite:///{(tmp_path / 'create-all-parity.db').as_posix()}")
+    try:
+        Base.metadata.create_all(bind=created)
+        create_all_inspector = inspect(created)
+
+        migrated_tables = set(inspector.get_table_names()) - {'alembic_version'}
+        create_all_tables = set(create_all_inspector.get_table_names())
+        assert create_all_tables == migrated_tables
+
+        for table in sorted(create_all_tables):
+            migrated_columns = set(_column_map(inspector, table))
+            model_columns = {column['name'] for column in create_all_inspector.get_columns(table)}
+            assert model_columns <= migrated_columns, f"{table}: model columns the head lacks: {sorted(model_columns - migrated_columns)}"
+            assert migrated_columns - model_columns == UNMAPPED_MIGRATED_COLUMNS.get(table, set()), (
+                f"{table}: columns only the migrated schema has: {sorted(migrated_columns - model_columns)}"
+            )
+    finally:
+        created.dispose()
+        engine.dispose()

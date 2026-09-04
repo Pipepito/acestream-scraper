@@ -1,44 +1,74 @@
-version: '3.8'
-
 services:
-  acestream-scraper:
+  app:
     build:
       context: .
       dockerfile: Dockerfile
     image: pipepito/acestream-scraper:latest
-    container_name: acestream-scraper
+    # Live stream relays get 3 s to close, then the app tears down ffmpeg and
+    # engine sessions; give Docker enough room before its SIGKILL.
+    stop_grace_period: 20s
+    ports:
+      # IPv4-only on purpose: an unaddressed "8000:8000" also listens on [::]
+      # and docker-proxy rewrites every IPv6 client to the bridge gateway,
+      # which defeats TUNER_ALLOWED_NETWORKS. For IPv6, enable it on the network
+      # and add "[::]:8000:8000".
+      - "0.0.0.0:8000:8000"
+      # Publish these when running the embedded IPFS daemon (ENABLE_IPFS=true).
+      # The gateway sits on 8081 in-container because Acexy owns 8080; the RPC
+      # API (5001) is unauthenticated — keep it bound to the host's loopback.
+      # - "4001:4001"            # IPFS swarm (TCP)
+      # - "4001:4001/udp"        # IPFS swarm (QUIC)
+      # - "8081:8081"            # IPFS HTTP gateway
+      # - "127.0.0.1:5001:5001"  # IPFS RPC API / WebUI
+      # Publish these when running the embedded ZeroNet node
+      # (ENABLE_ZERONET=true, amd64 images only). The UI only answers Host
+      # headers it knows — set ZERONET_UI_HOST to reach it from another
+      # machine.
+      # - "43110:43110"          # ZeroNet UI
+      # - "26552:26552"          # ZeroNet fileserver (peer connectivity)
+    volumes:
+      - ./config:/app/config
+      - ./ipfs_data:/data/ipfs
+      # Embedded ZeroNet node state (ENABLE_ZERONET=true):
+      # - ./zeronet_app_data:/data/zeronet
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
-      - TZ=Europe/Madrid
-      - ENABLE_TOR=true
-      - ENABLE_ACEXY=true
-      - ENABLE_ACESTREAM_ENGINE=true
+      - DATABASE_URL=sqlite:///./config/scraper.db
+      - LEGACY_DATABASE_URL=sqlite:///./config/acestream.db
+      # zero:// sources are fetched through ZERONET_URL. This default targets
+      # an external node on the Docker host (e.g. the optional `zeronet`
+      # sidecar profile below). To use the embedded node instead (amd64
+      # images), set ENABLE_ZERONET=true and change this to
+      # ZERONET_URL=http://127.0.0.1:43110.
+      - ZERONET_URL=http://host.docker.internal:43110
+      - ENABLE_ZERONET=false
+      - FRONTEND_BUILD_PATH=frontend_build
+      - ENABLE_WARP=false
+      - ENABLE_ACESTREAM_ENGINE=false
+      - ENABLE_ACEXY=false
+      # Set ENABLE_IPFS=true to run the embedded Kubo daemon (amd64/arm64
+      # images only). ipfs:// sources are fetched through IPFS_GATEWAY_URL,
+      # which defaults to the embedded gateway (http://127.0.0.1:8081); point
+      # it at an external node instead, e.g.
+      # IPFS_GATEWAY_URL=http://host.docker.internal:8080, to scrape IPFS
+      # without the embedded daemon.
+      - ENABLE_IPFS=false
+      - ACESTREAM_HTTP_HOST=localhost
       - ACESTREAM_HTTP_PORT=6878
-      - FLASK_PORT=8000
-      - ACEXY_LISTEN_ADDR=:8080
       - ACEXY_HOST=localhost
       - ACEXY_PORT=6878
-      - ALLOW_REMOTE_ACCESS=no
-      - ACEXY_NO_RESPONSE_TIMEOUT=15s
-      - ACEXY_BUFFER_SIZE=5MiB
-      - ACESTREAM_HTTP_HOST=ACEXY_HOST
-      - ENABLE_WARP=true
+  zeronet:
+    profiles:
+      - zeronet
+    image: nofish/zeronet:latest
+    platform: linux/amd64
     ports:
-      - "6878:6878"  # AceStream Engine Port 
-      - "8000:8000"  # Flask application
-      - "8080:8080"  # Acexy proxy
-      - "8621:8621"  # Acestream P2P Port
-      - "43110:43110"  # ZeroNet UI
-      - "43111:43111"  # ZeroNet peer
-      - "26552:26552"  # ZeroNet peer
+      - "43110:43110"
     volumes:
-      - ./data/zeronet:/app/ZeroNet/data
-      - ./data/config:/app/config
-    restart: unless-stopped
-    cap_add:
-      - NET_ADMIN
-      - SYS_ADMIN
-    healthcheck:
-      test: ["CMD", "/app/healthcheck.sh"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - ./zeronet_data:/root/data
+    environment:
+      - HOME=/root
+      - USER_UID=1000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

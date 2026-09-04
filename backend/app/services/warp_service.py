@@ -1,0 +1,383 @@
+"""
+WARP service for interacting with Cloudflare WARP client
+"""
+import subprocess
+import logging
+from enum import Enum
+from typing import Dict, Optional, Tuple, List, Any
+import httpx
+
+class WarpMode(Enum):
+    """Available WARP modes"""
+    WARP = "warp"  # Full tunnel mode
+    DOT = "dot"    # DNS-over-TLS mode
+    PROXY = "proxy"  # Proxy mode
+    OFF = "off"    # WARP disabled
+
+# No trailing slash: Cloudflare answers /cdn-cgi/trace/ with 404.
+CLOUDFLARE_TRACE_URL = "https://www.cloudflare.com/cdn-cgi/trace"
+
+
+class WarpService:
+    # Process-wide flag so a missing binary is reported once, not on every status poll.
+    _missing_binary_logged = False
+
+    """Service for interacting with Cloudflare WARP client"""
+
+    def __init__(self, accept_tos: bool = True):
+        """
+        Initialize the WARP service
+
+        Args:
+            accept_tos: Whether to automatically accept the Terms of Service
+        """
+        self.logger = logging.getLogger(__name__)
+        self.accept_tos = accept_tos
+
+    async def _run_command(self, args: List[str]) -> Tuple[int, str, str]:
+        """
+        Run a warp-cli command and return the result
+
+        Args:
+            args: List of arguments to pass to warp-cli
+
+        Returns:
+            Tuple of (return_code, stdout, stderr)
+        """
+        cmd = ["warp-cli"]
+        if self.accept_tos:
+            cmd.append("--accept-tos")
+        cmd.extend(args)
+
+        self.logger.debug(f"Running command: {' '.join(cmd)}")
+
+        try:
+            process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            stdout, stderr = process.communicate()
+
+            if process.returncode != 0:
+                self.logger.error(f"Command failed: {stderr.strip()}")
+            else:
+                self.logger.debug(f"Command output: {stdout.strip()}")
+
+            return process.returncode, stdout.strip(), stderr.strip()
+        except FileNotFoundError:
+            # warp-cli is only present in the amd64 image with ENABLE_WARP=true; on any
+            # other host this is the normal state, so say it once and stay quiet.
+            message = "warp-cli is not installed; WARP features are unavailable on this host"
+            if not WarpService._missing_binary_logged:
+                WarpService._missing_binary_logged = True
+                self.logger.warning(message)
+            else:
+                self.logger.debug(message)
+            return 127, "", message
+        except Exception as e:
+            self.logger.error(f"Error executing warp-cli: {str(e)}")
+            return 1, "", str(e)
+
+    async def _run_with_fallback(
+        self, primary: List[str], legacy: List[str]
+    ) -> Tuple[int, str, str]:
+        """Run a modern warp-cli subcommand, falling back to its pre-2024
+        spelling when the installed client doesn't know the new one (and
+        vice versa for modern clients that removed the legacy spelling)."""
+        code, stdout, stderr = await self._run_command(primary)
+        # clap 4 says "unrecognized subcommand"; the clap 2/3 builds the
+        # legacy spellings exist for say "The subcommand '...' wasn't
+        # recognized" or "Found argument '...' which wasn't expected, or
+        # isn't valid in this context".
+        lowered = (stderr or "").lower()
+        unknown_subcommand = any(
+            marker in lowered
+            for marker in (
+                "unrecognized subcommand",
+                "wasn't recognized",
+                "found argument",
+                "isn't valid in this context",
+            )
+        )
+        if code != 0 and unknown_subcommand:
+            return await self._run_command(legacy)
+        return code, stdout, stderr
+
+    async def is_running(self) -> bool:
+        """Check if the WARP daemon is running"""
+        try:
+            code, _, _ = await self._run_command(["status"])
+            return code == 0
+        except Exception:
+            return False
+
+    async def connect(self, mode: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Connect to WARP (optionally with a specific mode)
+        """
+        try:
+            args = ["connect"]
+            if mode:
+                args = ["mode", mode]
+            code, stdout, stderr = await self._run_command(args)
+            if code == 0:
+                status = await self.get_status()
+                return {
+                    "success": True,
+                    "message": f"Connected to WARP{' in ' + mode if mode else ''} successfully",
+                    "status": status
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": stderr or "Failed to connect to WARP",
+                    "error": stderr or "Failed to connect to WARP"
+                }
+        except Exception as e:
+            return {
+                "success": False,
+                "message": str(e),
+                "error": str(e)
+            }
+
+    async def disconnect(self) -> Dict[str, Any]:
+        """
+        Disconnect from WARP
+        """
+        try:
+            code, stdout, stderr = await self._run_command(["disconnect"])
+            if code == 0:
+                return {
+                    "success": True,
+                    "message": "Disconnected from WARP successfully"
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": stderr or "Failed to disconnect from WARP",
+                    "error": stderr or "Failed to disconnect from WARP"
+                }
+        except Exception as e:
+            return {
+                "success": False,
+                "message": str(e),
+                "error": str(e)
+            }
+
+    async def set_mode(self, mode: str) -> Dict[str, Any]:
+        """
+        Set the WARP mode
+        """
+        try:
+            code, stdout, stderr = await self._run_command(["mode", mode])
+            if code == 0:
+                status = await self.get_status()
+                return {
+                    "success": True,
+                    "message": f"WARP mode set to {mode}",
+                    "status": status
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": stderr or f"Failed to change WARP mode",
+                    "error": stderr or f"Failed to change WARP mode"
+                }
+        except Exception as e:
+            return {
+                "success": False,
+                "message": str(e),
+                "error": str(e)
+            }
+
+    async def get_mode(self) -> Optional[WarpMode]:
+        """Get the current WARP mode"""
+        code, stdout, _ = await self._run_command(["settings"])
+
+        if code != 0:
+            return None
+
+        # Parse the mode from settings output
+        for line in stdout.splitlines():
+            if "Mode:" in line:
+                mode_str = line.split("Mode:")[1].strip().lower()
+                for mode in WarpMode:
+                    if mode.value == mode_str:
+                        return mode
+        return None
+
+    @staticmethod
+    def parse_key_values(text: str) -> Dict[str, str]:
+        """Turn warp-cli's `Key: value` output into a lower-cased dict.
+
+        `tunnel stats` packs two values on one line ("Sent: 2.8MB; Received: 14.2MB"),
+        so `;`-separated pairs are split as well."""
+        data: Dict[str, str] = {}
+        for raw_line in text.splitlines():
+            for part in raw_line.split(";"):
+                if ":" not in part:
+                    continue
+                key, value = part.split(":", 1)
+                key = key.strip().lower()
+                if key:
+                    data[key] = value.strip()
+        return data
+
+    @staticmethod
+    def parse_tunnel_stats(text: str) -> Dict[str, Optional[str]]:
+        """Details from `warp-cli tunnel stats` worth showing to an operator."""
+        kv = WarpService.parse_key_values(text)
+        colo = kv.get("colo")
+        return {
+            "protocol": kv.get("tunnel protocol"),
+            "endpoints": kv.get("endpoints"),
+            "last_handshake": kv.get("time since last handshake"),
+            "sent": kv.get("sent"),
+            "received": kv.get("received"),
+            "latency": kv.get("estimated latency"),
+            "loss": kv.get("estimated loss"),
+            "colo": colo.split(" ")[0] if colo else None,
+            "tls_version": kv.get("version"),
+        }
+
+    @staticmethod
+    def mask_secret(value: Optional[str]) -> Optional[str]:
+        if not value:
+            return None
+        return value if len(value) <= 8 else f"{value[:4]}…{value[-4:]}"
+
+    @staticmethod
+    def parse_registration(text: str) -> Dict[str, Optional[str]]:
+        """Details from `warp-cli registration show` (license is masked)."""
+        kv = WarpService.parse_key_values(text)
+        raw_type = (kv.get("account type") or kv.get("type") or "").lower()
+        account_type = "team" if "team" in raw_type else "premium" if "premium" in raw_type else "free"
+        return {
+            "account_type": account_type,
+            "account_id": kv.get("account id"),
+            "device_id": kv.get("device id") or kv.get("id"),
+            "license": WarpService.mask_secret(kv.get("license")),
+        }
+
+    async def get_cf_trace(self) -> Dict[str, str]:
+        """
+        Get trace information from Cloudflare to verify WARP connection
+
+        Returns:
+            Dictionary containing trace information
+        """
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(CLOUDFLARE_TRACE_URL, timeout=5)
+                if response.status_code != 200:
+                    self.logger.warning(f"Failed to get Cloudflare trace: {response.status_code}")
+                    return {}
+
+                # Parse the response text into a dictionary
+                trace_data = {}
+                for line in response.text.splitlines():
+                    if "=" in line:
+                        key, value = line.split("=", 1)
+                        trace_data[key] = value
+
+                return trace_data
+        except Exception as e:
+            self.logger.warning(f"Error getting Cloudflare trace: {str(e)}")
+            return {}
+
+    async def get_status(self) -> Dict[str, Any]:
+        """Get the current status of WARP"""
+        status: Dict[str, Any] = {
+            "status": "disconnected",  # Add top-level status
+            "running": False,
+            "connected": False,
+            "mode": None,
+            "account_type": "free",
+            "ip": None,
+            "location": None,
+            "colo": None,
+            "tunnel": {},
+            "registration": {},
+            "cf_trace": {}
+        }
+
+        # Check if running
+        if not await self.is_running():
+            return status
+
+        status["running"] = True
+
+        # Get connection status
+        code, stdout, _ = await self._run_command(["status"])
+        if code == 0:
+            for line in stdout.splitlines():
+                if "Status update:" in line and "Connected" in line:
+                    status["connected"] = True
+                    status["status"] = "connected"
+                elif "Status update:" in line and "Disconnected" in line:
+                    status["connected"] = False
+                    status["status"] = "disconnected"
+
+        # Get current mode
+        mode = await self.get_mode()
+        status["mode"] = mode.value if mode else None
+
+        # Get account type. Modern warp-cli replaced 'account' with
+        # 'registration show' (both print an 'Account type:'/'Type:' line).
+        code, stdout, _ = await self._run_with_fallback(
+            ["registration", "show"], ["account"]
+        )
+        if code == 0:
+            registration = self.parse_registration(stdout)
+            status["account_type"] = registration.pop("account_type")
+            status["registration"] = registration
+
+        # Tunnel details and the public IP. Modern warp-cli replaced
+        # 'warp-stats' with 'tunnel stats' and no longer prints a WAN IP line,
+        # so the IP comes from Cloudflare's trace when the CLI omits it.
+        if status["connected"]:
+            code, stdout, _ = await self._run_with_fallback(
+                ["tunnel", "stats"], ["warp-stats"]
+            )
+            if code == 0:
+                status["tunnel"] = self.parse_tunnel_stats(stdout)
+                for line in stdout.splitlines():
+                    if "WAN IP:" in line:
+                        status["ip"] = line.split("WAN IP:")[1].strip()
+
+            trace = await self.get_cf_trace()
+            status["cf_trace"] = trace
+            status["ip"] = status["ip"] or trace.get("ip")
+            status["location"] = trace.get("loc")
+            status["colo"] = trace.get("colo") or status["tunnel"].get("colo")
+
+        return status
+
+    async def register_license(self, license_key: str) -> Dict[str, Any]:
+        """
+        Register a license key with WARP
+        """
+        try:
+            code, stdout, stderr = await self._run_command(["registration", "license", license_key])
+            if code == 0:
+                return {
+                    "success": True,
+                    "message": "WARP license registered successfully"
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": stderr or "Failed to register WARP license",
+                    "error": stderr or "Failed to register WARP license"
+                }
+        except Exception as e:
+            return {
+                "success": False,
+                "message": str(e),
+                "error": str(e)
+            }
+
+# Create a singleton instance
+warp_service = WarpService()

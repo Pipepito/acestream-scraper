@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE tv SYSTEM "xmltv.dtd">
+<tv generator-info-name="Acestream Scraper EPG Generator" generator-info-url="https://github.com/pipepito/acestream-scraper">
+  <channel id="cine.uno">
+    <display-name>Cine Uno</display-name>
+  </channel>
+  <channel id="news.hd">
+    <display-name>News &amp; Sport HD</display-name>
+    <icon src="https://example.com/logo-news.png?w=64&amp;h=64" />
+  </channel>
+  <channel id="zeta.tv">
+    <display-name>Zeta Documentales</display-name>
+    <icon src="https://example.com/logo-zeta.png" />
+  </channel>
+
+  <programme start="20260301130000 +0000" stop="20260301150000 +0000" channel="cine.uno">
+    <title>La Pelicula</title>
+  </programme>
+  <programme start="20260301100000 +0000" stop="20260301110000 +0000" channel="news.hd">
+    <title>Noticias 1 &amp; 2</title>
+    <sub-title>Edicion matinal</sub-title>
+    <desc>Titulares &lt;en directo&gt;</desc>
+    <category>News</category>
+    <icon src="https://example.com/news.png" />
+  </programme>
+  <programme start="20260301120000 +0000" stop="20260301130000 +0000" channel="news.hd">
+    <title>Deportes</title>
+    <desc>Resumen de la jornada</desc>
+    <category>Sports</category>
+  </programme>
+  <programme start="20260301150000 +0000" stop="20260301160000 +0000" channel="zeta.tv">
+    <title>Naturaleza</title>
+    <category>Documentary</category>
+  </programme>
+</tv>

@@ -1,503 +1,187 @@
-# Acestream Scraper
+# Acestream Scraper v2
 
-A Python-based web scraping application that retrieves Acestream channel information and generates M3U playlists. Built using Flask, BeautifulSoup, and SQLAlchemy.
+> Current release line: **v2.0.0** — FastAPI backend, React web interface, multi-flavor Docker images, and amd64/ARM deployment.
 
-[![Release Pipeline](https://github.com/Pipepito/acestream-scraper/actions/workflows/release.yml/badge.svg)](https://github.com/Pipepito/acestream-scraper/actions/workflows/release.yml)
+Acestream Scraper now runs on a single canonical root stack:
 
-# I do not answer questions outside the discussions section or issues, if you reach me out directly with config issues I will block you.
+- `backend/` (FastAPI + SQLAlchemy + scraper logic)
+- `frontend/` (React + TypeScript)
 
-## Features
+Legacy Flask runtime entrypoints were retired during the v2 cutover. All deployment and development instructions below use only `backend/` and `frontend/`.
 
-- Scrapes Acestream channel information from multiple URLs
-- Extracts channel names and URLs from both JSON data and HTML content
-- Generates M3U playlists with optional refresh
-- Refreshes channel data on demand
-- Displays channel metadata via web interface
-- Supports ZeroNet URLs
-- Database migrations support
-- Service-oriented architecture
-- Repository pattern for data access
-- **Built-in Acestream engine with Acexy proxy (optional)**
-- **Support for external Acestream Engine instances**
-- **Cloudflare WARP integration for enhanced privacy and geo-unblocking**
-- Channel status checking
-- Acexy status display in the dashboard
-- **Interactive setup wizard for easy configuration**
-- **Channel search functionality**
-- **Automatic rescraping at configurable intervals**
-- **API documentation via OpenAPI/Swagger UI**
-- **Enhanced health checking for all components**
+## Choose Your Starting Point
 
-# [Detailed Wiki](https://github.com/Pipepito/acestream-scraper/wiki)
+- **Installing with Docker:** use the [interactive Docker command builder](https://pipepito.github.io/acestream-scraper/) to generate the correct image tag, ports, volumes, and environment options for your machine.
+- **Using the application:** follow the [illustrated v2 walkthrough](https://github.com/Pipepito/acestream-scraper/wiki/Usage), from checking services through importing the generated playlist.
+- **Upgrading from v1:** read the [migration guide](wiki/Installation.md#migrating-from-v1) and run the preflight backup before starting v2.
+- **Developing or operating the service:** use the local-development section below and the [documentation index](#documentation-index).
 
 ## Quick Start
 
-### Using Docker Compose (Easiest Method)
-
-1. **Create a docker-compose.yml file:**
-
-   ```yaml
-   version: '3.8'
-
-   services:
-     acestream-scraper:
-       image: pipepito/acestream-scraper:latest
-       container_name: acestream-scraper
-       environment:
-         - TZ=Europe/Madrid
-         - ENABLE_TOR=false
-         - ENABLE_ACEXY=true
-         - ENABLE_ACESTREAM_ENGINE=true
-         - ACESTREAM_HTTP_PORT=6878
-         - FLASK_PORT=8000
-         - ACEXY_LISTEN_ADDR=:8080
-         - ACEXY_HOST=localhost
-         - ACEXY_PORT=6878
-         - ALLOW_REMOTE_ACCESS=no
-         - ACEXY_NO_RESPONSE_TIMEOUT=15s
-         - ACEXY_BUFFER_SIZE=5MiB
-         - ACESTREAM_HTTP_HOST=localhost
-       ports:
-         - "8000:8000"  # Flask application
-         - "8080:8080"  # Acexy proxy
-         - "8621:8621"  # Acestream P2P Port
-         - "43110:43110"  # ZeroNet UI
-         - "43111:43111"  # ZeroNet peer
-         - "26552:26552"  # ZeroNet peer
-       volumes:
-         - ./data/zeronet:/app/ZeroNet/data
-         - ./data/config:/app/config
-       restart: unless-stopped
-       healthcheck:
-         test: ["CMD", "/app/healthcheck.sh"]
-         interval: 30s
-         timeout: 10s
-         retries: 3
-         start_period: 60s
-   ```
-
-2. **Start the service:**
-
-   ```bash
-   docker-compose up -d
-   ```
-
-3. **Access the application at `http://localhost:8000`**
-
-### Using Docker (Alternative)
-
-[Image in Docker Hub](https://hub.docker.com/r/pipepito/acestream-scraper)
-
-1. **Pull and run the container:**
-
-   ```bash
-   docker pull pipepito/acestream-scraper:latest
-   docker run -d \
-     -p 8000:8000 \
-     -v "${PWD}/config:/app/config" \
-     --name acestream-scraper \
-     pipepito/acestream-scraper:latest
-   ```
-
-2. **Access the setup wizard:**
-   
-   Open your browser and navigate to `http://localhost:8000`
-   
-   The first-time setup wizard will guide you through configuration:
-   - Base URL format (acestream:// or http://)
-   - Acestream Engine settings
-   - Source URLs to scrape
-   - Rescrape interval
-
-3. **Alternative: Manual configuration**
-
-   Create a `config/config.json` file:
-
-   ```json
-   {
-       "urls": [
-           "https://example.com/url1",
-           "https://example.com/url2"
-       ],
-       "base_url": "http://127.0.0.1:8008/ace/getstream?id=",
-       "ace_engine_url": "http://127.0.0.1:6878"
-   }
-   ```
-
-### Running with Acexy and Internal Acestream Engine
-
-The image includes an embedded Acestream engine with the Acexy proxy interface, which provides a user-friendly web UI:
+### Docker Compose
 
 ```bash
-docker run -d \
-  -p 8000:8000 \
-  -p 8080:8080 \
-  -e ENABLE_ACEXY=true \
-  -e ENABLE_ACESTREAM_ENGINE=true \
-  -e ALLOW_REMOTE_ACCESS=yes \
-  -v "${PWD}/config:/app/config" \
-  --name acestream-scraper \
-  pipepito/acestream-scraper:latest
+docker compose up -d
 ```
 
-Acexy only exposes an status endpoint available at `http://localhost:8080/ace/status`.
-
-### Using with External Acestream Engine
-
-You can connect the Acexy proxy to an external Acestream Engine instance:
+To start the example ZeroNet sidecar from `docker-compose.yml`, enable its optional profile:
 
 ```bash
-docker run -d \
-  -p 8000:8000 \
-  -p 8080:8080 \
-  -e ENABLE_ACEXY=true \
-  -e ENABLE_ACESTREAM_ENGINE=false \
-  -e ACEXY_HOST=192.168.1.100 \
-  -e ACEXY_PORT=6878 \
-  -v "${PWD}/config:/app/config" \
-  --name acestream-scraper \
-  pipepito/acestream-scraper:latest
+docker compose --profile zeronet up -d
 ```
 
-### Using with ZeroNet
+Services:
 
-The application can scrape ZeroNet sites for channel information:
+- API + SPA: `http://localhost:8000`
+- ZeroNet example sidecar (optional profile, reachable from the host): `http://localhost:43110`
 
-#### Running with TOR disabled
+The checked-in `docker-compose.yml` uses `pipepito/acestream-scraper:latest`. `latest` is the full `scraper-acestream-acexy` image, while the explicit flavor tags are `scraper`, `scraper-acestream`, `scraper-acexy`, and `scraper-acestream-acexy`.
+
+Not sure which tag, ports, folders or options you need? The [Docker command builder](https://pipepito.github.io/acestream-scraper/) asks three questions and produces a ready-to-copy `docker run` command or `docker-compose.yml` for your flavor, platform and features. It lives in this repository as `docs/index.html` + `docs/builder/`; Jenkins publishes it to the `gh-pages` branch (served by GitHub Pages) and mirrors the wiki pages under `wiki/` to the [GitHub wiki](https://github.com/Pipepito/acestream-scraper/wiki) on every validated `develop` build.
+
+`latest` and the immutable `vX.Y.Z` tags (plus `vX.Y.Z-<flavor>`) are the releases, cut from `main`. A pre-release channel is published from the `develop` branch as well: `pipepito/acestream-scraper:develop` (the full `scraper-acestream-acexy` payload, mirroring what `latest` means for releases) plus `develop-scraper`, `develop-scraper-acestream`, `develop-scraper-acexy`, and `develop-scraper-acestream-acexy`. The channel tags are moving tags, re-pushed on every validated build of `develop` (the full CI validation runs first, on the same platforms as the release flavors), so they are meant for testing the next release and not for production. To try one, set `image: pipepito/acestream-scraper:develop` in your compose file or `docker pull pipepito/acestream-scraper:develop`.
+
+WARP is installed in every flavor's `linux/amd64` and `linux/arm64` images (`linux/arm/v7` has no upstream package), but it only starts when `ENABLE_WARP=true`. WARP-enabled containers need the runtime capabilities `NET_ADMIN` and `SYS_ADMIN` plus the `/dev/net/tun` device. Set `WARP_ENABLE_NAT=true` to connect automatically at startup, or connect from the WARP page after the service starts.
+
+ZeroNet works in two modes. The `linux/amd64` images bundle a ZeroNet node ([zeronet-conservancy](https://github.com/zeronet-conservancy/zeronet-conservancy) v0.7.10 on its own Python 3.11, like the v1 image) that is opt-in via `ENABLE_ZERONET=true` (plus optional `ENABLE_TOR=true`); its state lives in `/data/zeronet` and its UI/fileserver ports are `43110`/`26552`. Alternatively — and on ARM images, which ship without the bundled node — ZeroNet runs as an external sidecar/service and the app talks to it through `ZERONET_URL`.
+
+The default compose file points `ZERONET_URL` at `http://host.docker.internal:43110`, so the app can start cleanly even when the optional `zeronet` profile is disabled. The checked-in `zeronet` compose service is an amd64-focused sidecar example. On ARM hosts, prefer an external ZeroNet endpoint or a compatible replacement sidecar and keep `ZERONET_URL` pointed at it. When you enable the embedded node instead, leave `ZERONET_URL` unset (it then targets the embedded UI port automatically) or set it to `http://127.0.0.1:43110`.
+
+IPFS is bundled: every flavor ships the [Kubo](https://github.com/ipfs/kubo) daemon on `linux/amd64` and `linux/arm64` (Kubo publishes no 32-bit ARM build, so `linux/arm/v7` images ship without it and refuse `ENABLE_IPFS=true`). The daemon is opt-in — `ENABLE_IPFS=false` by default — and `ipfs://` / `ipns://` sources are fetched through `IPFS_GATEWAY_URL`, which defaults to the embedded gateway at `http://127.0.0.1:8081`. The gateway sits on `8081` in-container because Acexy already owns `8080`. To scrape IPFS without the embedded daemon, keep `ENABLE_IPFS=false` and point `IPFS_GATEWAY_URL` at an external node instead (for example `http://host.docker.internal:8080` for a Kubo or IPFS Desktop install on the Docker host).
+
+When the embedded daemon is enabled, persist its repository by mounting a volume at `/data/ipfs` (`-v ./ipfs_data:/data/ipfs`), and publish `4001` tcp/udp (swarm — improves peer connectivity), `8081` (HTTP gateway) as needed. The RPC API on `5001` is unauthenticated and binds to the container loopback by default; only expose it as `127.0.0.1:5001:5001` (set `IPFS_API_HOST=0.0.0.0` in-container first) if you need the WebUI.
+
+Runtime behavior is env-driven even when binaries are installed in the selected image. `ENABLE_ACESTREAM_ENGINE` controls the in-container AceStream engine, `ENABLE_ACEXY` controls Acexy, `ACESTREAM_HTTP_HOST` and `ACESTREAM_HTTP_PORT` define the engine endpoint, and `ACEXY_HOST` and `ACEXY_PORT` define where Acexy connects.
+
+AceStream platform availability is manifest-driven via `docker/manifests/acestream.json`. `latest` and `scraper-acestream-acexy` are only published for platforms listed there.
+
+The manifest currently covers `linux/amd64` (native Linux engine 3.2.11), `linux/arm64` (stable), and `linux/arm/v7` (experimental). Both ARM platforms use their matching non-premium-gated Android engine 3.2.17 variant from [`jopsis/acestream:v3.2.17-fix`](https://hub.docker.com/r/jopsis/acestream), with the multi-platform OCI digest pinned and grafted into this image. The jopsis build sources are [public on GitHub](https://github.com/jopsis/docker-acestream-aceserve); the dashboard reports and links the exact engine package at runtime. `latest`, `scraper-acestream`, and `scraper-acestream-acexy` are published for all three platforms. The engine stays opt-in (`ENABLE_ACESTREAM_ENGINE=false` by default), and no extra privileges, capabilities, or seccomp changes are needed to run it on ARM. ARMv7 still needs validation on real 32-bit hardware because its bionic engine cannot execute under QEMU user emulation.
+
+When you enable the engine on ARM, it keeps its config, cache, and logs under `/var/lib/acestream` (`ACESTREAM_HOME`); mount a volume there (for example `-v acestream-state:/var/lib/acestream`) so they survive container replacement, and publish `6878` (engine HTTP API — unauthenticated, so only on trusted networks) plus `8621` tcp/udp (P2P) if they must be reachable from outside the container. Raspberry Pi 5: the Android engine needs a 4 KB kernel page size, so set `kernel=kernel8.img` in `config.txt` (the default `kernel_2712` kernel uses 16 KB pages and the engine refuses to start). WARP is available on ARM64 but not ARMv7. See [wiki/Docker.md](wiki/Docker.md) for the full ARM engine notes and caveats.
+
+**Web player**: every image bundles a static ffmpeg (`ffmpeg-builder` stage, one binary per platform/flavor), so channels play straight in the browser with no plugin and no separate install — press Play, and the backend transcodes the channel's audio to AAC (video is passed through) and serves it as HLS. Jellyfin, Plex, VLC and Kodi instead pull an HDHomeRun-style tuner stream from `/tuner/*`, gated by network address (`TUNER_ALLOWED_NETWORKS`) rather than the API token, since those clients cannot send one; `PUBLIC_BASE_URL` tells the app which address to advertise to them. See [wiki/Web-Player.md](wiki/Web-Player.md).
+
+**Remote players**: save the VLC or Kodi boxes on your network under **Integrations**, then send any channel to one and drive it from the app (play/pause, stop, volume, live status). Both are reached through the web interface they already ship — VLC's Lua HTTP interface, Kodi's `Settings > Services > Control` — so nothing is installed on the player; **Find players** scans a private network for them, and each player picks the stream link it is handed (the server relay at `/tuner/*` by default, which needs only port 8000 published, or a named Acexy/engine base URL, which needs that port reachable from the player instead). Player passwords are stored unencrypted in the app database and never returned by the API. See [wiki/Remote-Players.md](wiki/Remote-Players.md).
+
+**Jellyfin and Plex**: the app publishes your TV channels as an HDHomeRun tuner with an XMLTV guide, so they show up under Live TV in the media server you already use — no plugin, nothing installed there. Add the server under **Integrations** with a Jellyfin API key and press **Connect**, and the app registers the tuner and the guide provider for you; Plex (Plex Pass required) has no API for that, so the card hands you the exact tuner address and guide URL to paste into **Set Up Plex Tuner**. A background job notices when your channels or guide change and asks the server to refresh, at most every `MEDIA_SERVER_MIN_REFRESH_MINUTES`. The tuner routes carry no API token — media servers cannot send one — so they are gated by client address (`TUNER_ALLOWED_NETWORKS`), which means publishing the web port as `-p 0.0.0.0:8000:8000` and, behind a reverse proxy, keeping `/tuner/` out of proxy auth. Plex stops saving channel maps at roughly 450-480 channels, so the tuner publishes at most 450 by default. API keys and Plex tokens are stored unencrypted in the app database and never returned by the API. See [wiki/Media-Servers.md](wiki/Media-Servers.md).
+
+### Local Development
+
+Backend:
 
 ```bash
-docker run -d \
-  -p 8000:8000 \
-  -p 43110:43110 \
-  -p 43111:43111 \
-  -v "${PWD}/config:/app/config" \
-  -v "${PWD}/zeronet_data:/app/ZeroNet/data" \
-  --name acestream-scraper \
-  pipepito/acestream-scraper:latest
+python3 -m venv backend/venv
+source backend/venv/bin/activate
+pip install -r backend/requirements.txt
+cd backend
+uvicorn main:app --reload --host 0.0.0.0 --port 8000 --no-proxy-headers
 ```
 
-#### Running with TOR enabled
+Frontend (optional dev server):
 
 ```bash
-docker run -d \
-  -p 8000:8000 \
-  -p 43110:43110 \
-  -p 43111:43111 \
-  -e ENABLE_TOR=true \
-  -v "${PWD}/config:/app/config" \
-  -v "${PWD}/zeronet_data:/app/ZeroNet/data" \
-  --name acestream-scraper \
-  pipepito/acestream-scraper:latest
+cd frontend
+npm ci
+npm start
 ```
 
-### Using with Cloudflare WARP
+## Project Structure
 
-The application can use Cloudflare WARP to provide enhanced privacy and access to geo-restricted content:
+```text
+.
+├── backend/                  # FastAPI app, API, services, scrapers, tests
+├── frontend/                 # React app
+├── config/                   # SQLite DB + runtime config volume
+├── scripts/                  # CI/release/ops scripts
+├── docs/                     # Architecture, migration, development docs
+├── docker-compose.yml
+└── Dockerfile
+```
+
+## Environment Variables
+
+### Canonical Backend Settings
+
+- `DATABASE_URL` (default: `sqlite:///./config/scraper.db`)
+- `LEGACY_DATABASE_URL` (default: `sqlite:///./config/acestream.db`)
+- `EPG_PROGRAM_RETENTION_HOURS` (default: `24`) — EPG programs that ended more than this many hours ago are deleted by the hourly `epg_program_cleanup` job and skipped by the v1→v2 migration; negative keeps everything
+- `ZERONET_URL` (default: `http://host.docker.internal:43110` in the checked-in compose example)
+- `IPFS_GATEWAY_URL` (default: the embedded gateway `http://127.0.0.1:8081`; point it at an external IPFS gateway when `ENABLE_IPFS=false`)
+- `CORS_ORIGINS` (default: `http://localhost:3000`)
+- `FRONTEND_BUILD_PATH` (default: `frontend_build`)
+- `ACE_ENGINE_URL` (default: `http://localhost:6878`)
+
+### Docker Runtime Toggles
+
+- `ENABLE_WARP` (default: `false`)
+- `ENABLE_ACESTREAM_ENGINE` (default: `false`)
+- `ACESTREAM_BIND_ALL` (default: `true`; appends `--bind-all` to the engine start command so any client address is accepted on a published `6878` — the engine otherwise admits only loopback/RFC1918 sources. `false` restores the engine's own filter)
+- `ENABLE_ACEXY` (default: `false`)
+- `ACESTREAM_HTTP_HOST` (default: `localhost`)
+- `ACESTREAM_HTTP_PORT` (default: `6878`)
+- `ACEXY_HOST` (default: `localhost`)
+- `ACEXY_PORT` (default: `6878`)
+- `ACESTREAM_HOME` (default: `/var/lib/acestream`; state, cache, and logs of the ARM Android engine — mount a volume there)
+- `ENABLE_IPFS` (default: `false`; starts the embedded Kubo daemon — amd64/arm64 images only)
+- `IPFS_PATH` (default: `/data/ipfs`; the embedded daemon's repository — mount a volume there)
+- `IPFS_SWARM_PORT` (default: `4001`), `IPFS_API_PORT` (default: `5001`, loopback-bound), `IPFS_GATEWAY_PORT` (default: `8081` — `8080` belongs to Acexy)
+- `ENABLE_ZERONET` (default: `false`; starts the bundled ZeroNet node — amd64 images only)
+- `ENABLE_TOR` (default: `false`; runs TOR for the bundled ZeroNet node — only with `ENABLE_ZERONET=true`)
+- `ZERONET_DATA_DIR` (default: `/data/zeronet`; the bundled node's state — mount a volume there)
+- `ZERONET_UI_PORT` (default: `43110`), `ZERONET_FILESERVER_PORT` (default: `26552`), `ZERONET_UI_HOST` (extra Host headers the UI should accept)
+- `ZERONET_TRACKERS` (default: three public UDP bootstrap trackers; space-separated tracker URLs used to bootstrap access to ZeroNet's dynamic tracker list)
+- `PUBLIC_BASE_URL` (default: empty; origin Jellyfin/Plex/VLC use to reach this server — empty derives it from each request)
+- `TUNER_ALLOWED_NETWORKS` (default: `127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10`; networks allowed to use the token-free `/tuner/*` routes)
+- `PLAYER_MAX_SESSIONS` (default: `3`; channels the web player transcodes at once)
+- `MEDIA_SERVER_MIN_REFRESH_MINUTES` (default: `30`; minimum gap between automatic Jellyfin/Plex guide refreshes — `0` disables the debounce)
+
+Docker flavor choice controls which optional binaries are installed. Runtime env vars control whether those installed services actually start.
+
+### One-Release Env Compatibility Window
+
+For the cutover release window (`v2-cutover-r1`), legacy env aliases are auto-mapped to canonical names. If both legacy and canonical vars are set with different values, canonical vars win and a warning is emitted at startup.
+
+Legacy aliases currently mapped:
+
+- `SCRAPER_DB_URL` -> `DATABASE_URL`
+- `LEGACY_DB_URL` -> `LEGACY_DATABASE_URL`
+- `ZERONET_BASE_URL` -> `ZERONET_URL`
+- `CORS_ALLOW_ORIGINS` -> `CORS_ORIGINS`
+- `FRONTEND_STATIC_DIR` -> `FRONTEND_BUILD_PATH`
+- `ACESTREAM_ENGINE_URL` -> `ACE_ENGINE_URL`
+
+Disable alias compatibility explicitly with:
+
+- `ENABLE_LEGACY_ENV_ALIASES=false`
+
+## Verification Commands
+
+Safe pre-deploy check for existing user databases:
 
 ```bash
-docker run -d \
-  -p 8000:8000 \
-  --cap-add NET_ADMIN \
-  --cap-add SYS_ADMIN \
-  -e ENABLE_WARP=true \
-  -v "${PWD}/config:/app/config" \
-  --name acestream-scraper \
-  pipepito/acestream-scraper:latest
+bash scripts/ops/preflight_v2_deploy.sh
 ```
 
-> **Note:** WARP integration requires additional capabilities (`NET_ADMIN` and `SYS_ADMIN`) to create and manage network tunnels.
+This script creates timestamped DB backups under `config/backups/` and prints a clear SAFE/UNSAFE result before v2 rollout.
+If result is UNSAFE, it also exports detected scraper sources into a rescue DB file (`scraper_sources_rescue.db`) inside the same backup run folder.
 
-### Manual Installation
-
-1. **Prerequisites:**
-   - Python 3.10 or higher
-   - pip
-
-2. **Setup:**
-
-   ```bash
-   git clone https://github.com/Pipepito/acestream-scraper.git
-   cd acestream-scraper
-   python3 -m venv venv
-   source venv/bin/activate  # On Windows use: venv\Scripts\activate
-   pip install -r requirements.txt
-   ```
-
-3. **Create config and run:**
-
-   ```bash
-   mkdir -p config
-   # Create config/config.json as shown above
-   python run_dev.py  # For development
-   # or
-   python wsgi.py     # For production
-   ```
-
-## Usage Guide
-
-### Web Interface
-
-Access the web interface at `http://localhost:8000`
-
-![image](https://github.com/user-attachments/assets/17e000b7-20de-4a80-a990-9d0d5b225754)
-![image](https://github.com/user-attachments/assets/17006755-43ff-4817-be2c-36397cf9631b)
-
-#### Dashboard
-
-The main dashboard provides:
-- Channel statistics (total, online, offline)
-- Search functionality for channels
-- Download playlist button
-- Add/delete channels
-- URL management
-- Configuration options
-
-#### Channel Management
-
-- **Adding channels**: Enter a channel ID and name in the form
-- **Searching**: Use the search box to filter channels by name
-- **Status checking**: Click the "Check Status" button to verify if a channel is online
-- **Delete channels**: Remove unwanted channels with the delete button
-
-#### URL Management
-
-- **Add new URLs**: Enter URLs to scrape in the "Add New URL" form
-- **Refresh URLs**: Update channel data by clicking "Refresh" on a URL
-- **Enable/Disable URLs**: Toggle URLs on/off without deleting them
-- **Delete URLs**: Remove URLs you no longer want to scrape
-
-### M3U Playlist
-
-Get the M3U playlist for your media player:
-
-- Current playlist: `http://localhost:8000/playlist.m3u`
-- Force refresh: `http://localhost:8000/playlist.m3u?refresh=true`
-- Search channels: `http://localhost:8000/playlist.m3u?search=sports`
-
-To use in your media player (like VLC):
-1. Copy the playlist URL (http://localhost:8000/playlist.m3u)
-2. In your media player, select "Open Network Stream" or similar option
-3. Paste the URL and play
-
-**URL Formatting Note:**
-- When using Acexy proxy (port 8080), stream URLs are formatted as `{base_url}{channel_id}`
-- For all other configurations, `&pid={local_id}` is automatically appended to each stream URL: `{base_url}{channel_id}&pid={local_id}`
-- This ensures proper channel identification in various player environments
-
-### API Documentation
-
-The application provides OpenAPI/Swagger documentation:
-
-- Access at: `http://localhost:8000/api/docs`
-- Interactive API documentation for developers
-- Test endpoints directly from the browser
-
-### Acexy Interface
-
-If you enabled Acexy (recommended):
-
-- Access the Acexy interface at: `http://localhost:8080`
-- Check Acexy status directly in the main dashboard
-- Manage your Acestream connections through a user-friendly web interface
-
-## Configuration
-
-### Application Settings
-
-Configure through the setup wizard or directly in `config.json`:
-
-- `urls`: Array of URLs to scrape for Acestream channels
-- `base_url`: Base URL format for playlist generation (e.g., `acestream://` or `http://localhost:6878/ace/getstream?id=`)
-- `ace_engine_url`: URL of your Acestream Engine instance (default: `http://127.0.0.1:6878`)
-- `rescrape_interval`: How often to refresh URLs (in hours, default: 24)
-
-### Environment Variables
-
-#### Core Application
-
-- `FLASK_PORT`: Port the Flask application runs on (default: `8000`)
-
-#### Acestream Configuration
-
-- `ENABLE_ACESTREAM_ENGINE`: Enable built-in Acestream Engine (default: matches `ENABLE_ACEXY`)
-- `ACESTREAM_HTTP_PORT`: Port for Acestream engine (default: `6878`)
-- `ACESTREAM_HTTP_HOST`: Host for Acestream engine (default: uses value of `ACEXY_HOST`)
-
-#### Acexy Configuration
-
-Acexy provides an enhanced proxy interface for Acestream, with a web UI for better management:
-
-- `ENABLE_ACEXY`: Set to `true` to enable Acexy proxy (default: `false`)
-- `ACEXY_LISTEN_ADDR`: Address for Acexy to listen on (default: `:8080`)
-- `ACEXY_HOST`: Hostname of the Acestream Engine to connect to (default: `localhost`)
-- `ACEXY_PORT`: Port of the Acestream Engine to connect to (default: `6878`)
-- `ALLOW_REMOTE_ACCESS`: Set to `yes` to allow external connections (default: `no`)
-- `ACEXY_NO_RESPONSE_TIMEOUT`: Timeout for Acestream responses (default: `15s`)
-- `ACEXY_BUFFER_SIZE`: Buffer size for data transfers (default: `5MiB`)
-
-#### WARP Configuration
-
-Cloudflare WARP provides enhanced privacy and secure tunneling:
-
-- `ENABLE_WARP`: Set to `true` to enable Cloudflare WARP (default: `false`)
-- `WARP_ENABLE_NAT`: Enable NAT for WARP traffic (default: `true`)
-- `WARP_LICENSE_KEY`: Optional license key for WARP+ or WARP Team
-
-#### Other Settings
-
-- `ENABLE_TOR`: Enable TOR for ZeroNet connections (default: `false`)
-- `TZ`: Timezone for the container (default: `Europe/Madrid`)
-
-### Channel Status Checking
-
-The application verifies if channels are available:
-
-- Shows which channels are online/offline in the dashboard
-- Click "Check Status" button to verify individual channels
-- Status history and error messages displayed in the UI
-
-To use this feature:
-
-1. Ensure you have Acestream Engine running (built-in if ENABLE_ACESTREAM_ENGINE=true)
-2. Configure `ace_engine_url` to point to your Acestream Engine instance
-3. Use the "Check Status" buttons in the UI to verify channel availability
-
-### Port Mapping
-
-- `8000`: Main web interface (configurable via `FLASK_PORT`)
-- `43110`: ZeroNet web interface (if ZeroNet enabled)
-- `43111`: ZeroNet transport port (if ZeroNet enabled)
-- `8080`: Acexy web interface (if enabled)
-- `6878`: Acestream HTTP API port (configurable via `ACESTREAM_HTTP_PORT`)
-- `26552`: Additional ZeroNet peer port
-
-### Volumes
-
-When using Docker, mount these volumes:
-
-- `/app/config`: Configuration files
-- `/app/ZeroNet/data`: ZeroNet data directory (if using ZeroNet)
-
-### ZeroNet Configuration
-
-The application looks for a `zeronet.conf` file in the `/app/config` directory. If none exists, it creates one with default values:
+Quick cutover checks:
 
 ```bash
-[global]
-ui_ip = *
-ui_host =
- 0.0.0.0
- localhost
-ui_port = 43110
+bash scripts/ci/run_cutover_required_checks.sh --profile quick
 ```
 
-To customize ZeroNet access:
-
-1. Create your own `config/zeronet.conf`:
+Strict legacy reference guard:
 
 ```bash
-[global]
-ui_ip = *
-ui_host =
- 127.0.0.1
- your.domain.com
- localhost:43110
-ui_port = 43110
+bash scripts/ci/assert_no_legacy_paths.sh --strict
 ```
 
-2. Mount it when running the container:
+## Documentation Index
 
-```bash
-docker run -d \
-  -p 8000:8000 \
-  -p 43110:43110 \
-  -v "${PWD}/config:/app/config" \
-  --name acestream-scraper \
-  pipepito/acestream-scraper:latest
-```
-
-### Running Behind a Reverse Proxy
-
-The application includes proper headers handling for running behind a reverse proxy:
-
-- Automatic handling of SSL/TLS termination
-- Correct handling of X-Forwarded-Proto and X-Forwarded-Host headers
-- Works with nginx, Apache, Traefik or other reverse proxies
-
-### Security Note
-
-- Add your domain(s) to `ui_host` for public access
-- Always include `localhost` for local access
-- Set `ALLOW_REMOTE_ACCESS=no` to restrict Acestream access to localhost only
-
-### Healthchecks
-
-The container includes comprehensive health checking:
-
-- Main application health check at `/health` endpoint providing detailed status
-- Acexy health check (if enabled)
-- Acestream Engine health check (if enabled)
-- Automatic monitoring of internal services
-- Graceful handling of service dependencies
-
-### Development
-
-For development, use `run_dev.py` which provides:
-
-- Debug mode
-- Auto-reloading
-- Windows compatibility
-
-## Architecture
-
-The application follows a service-oriented architecture with:
-
-- Repository pattern for data access
-- Service layer for business logic
-- Migrations support for database changes
-- Async task management
-- Clear separation of concerns
-- Integration with external services (Acestream, Acexy, ZeroNet)
-
-## Testing
-
-### Setup
-
-```bash
-# Install development dependencies
-pip install -r requirements-dev.txt
-```
-
-### Running Tests
-
-```bash
-# Run all tests
-pytest
-
-# Run specific test file
-pytest tests/unit/test_repositories.py
-
-# Run with coverage report
-pytest --cov=app tests/
-```
-
-### Test Structure
-
-- `tests/unit`: Unit tests for individual components
-- `tests/integration`: Integration tests for API endpoints
-- `tests/conftest.py`: Test fixtures and configuration
-
-## Contributing
-
-Contributions are welcome! Please fork the repository and create a pull request with your changes.
-
-## License
-
-This project is licensed under the MIT License. See the LICENSE file for details.
-
-## Acknowledgements
-
-Special thanks to the developers of Flask, BeautifulSoup, SQLAlchemy, and other dependencies used in this project.
-
-- [Acexy](https://github.com/Javinator9889/acexy) - Enhanced Acestream proxy interface
-- [Acestream-http-proxy](https://github.com/martinbjeldbak/acestream-http-proxy) - HTTP proxy for Acestream
+- [Docs Home](docs/README.md)
+- [Deployment](docs/architecture/deployment.md)
+- [Reverse Proxy / HTTPS](docs/ops/reverse-proxy.md) — TLS, proxy-level auth, and safe port exposure for access beyond a trusted network
+- [Migration Strategy](docs/migration/migration-strategy.md)
+- [Development Phases](docs/migration/development-phases.md)
+- [Development Progress](docs/migration/development-progress.md)

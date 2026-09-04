@@ -1,0 +1,30 @@
+# Python dependencies for the bundled ZeroNet node (zeronet-conservancy
+# v0.7.10). This is upstream's requirements.txt for that tag with one
+# deliberate change:
+#
+#   gevent is pinned to 23.9.1. zeronet-conservancy v0.7.10 predates the
+#   gevent >= 24.10 threadpool rework: with modern gevent (verified with
+#   26.8.0) src/Crypt/Crypt.py's import-time ThreadPool deadlocks with
+#   gevent.exceptions.LoopExit before the UI server ever starts. 23.9.1 is
+#   the release contemporary with the tag and boots cleanly.
+#
+# gevent 23.9.x has no Python 3.13 support, which is why the Dockerfile
+# runs ZeroNet on its own interpreter (ZERONET_PYTHON_VERSION).
+setuptools>=65.5.1
+gevent==23.9.1
+msgpack>=0.6.0
+base58
+# nobody released a fresh merkletools that doesn't require the dead pysha3;
+# upstream pins this fork commit
+git+https://github.com/Tierion/pymerkletools.git@f10d71e2cd529a833728e836dc301f9af502d0b0
+rsa
+PySocks>=1.6.8
+pyasn1
+websocket_client
+gevent-ws
+coincurve
+maxminddb
+rich
+defusedxml>=0.7
+pyaes
+requests

@@ -1,0 +1,7 @@
+.tv-channel-logo {
+  max-height: 80px;
+  max-width: 100%;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}

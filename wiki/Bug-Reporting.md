@@ -124,7 +124,7 @@ Try these steps to gather more information about your issue:
 
 3. **Check database integrity**:
    ```bash
-   docker exec acestream-scraper python -c "from app.extensions import db; print('Database connection:', db.engine.connect())"
+   docker exec acestream-scraper python -c "from app.config.database import get_engine; print('Database connection:', get_engine().connect())"
    ```
 
 4. **Verify network connectivity** (if channels are offline):

@@ -1,0 +1,10 @@
+{
+  "repo": "https://github.com/Javinator9889/acexy.git",
+  "ref": "refs/tags/0.2.2",
+  "version": "0.2.2",
+  "expected_binary_name": "acexy",
+  "vendor_dir": "docker/vendor/acexy",
+  "vendored_file": "acexy-0.2.2.tar.gz",
+  "sha256": "602f1c59d36e517a84180c2915f4eaa899c54369d5274b4bea3e2bc6edb48b66",
+  "source_url": "https://github.com/Javinator9889/acexy/archive/refs/tags/0.2.2.tar.gz"
+}

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Build the exact docker run command or docker-compose.yml for AceStream Scraper: pick an image flavor, your platform and features, and copy the result." />
+  <title>AceStream Scraper — Docker Command Builder</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐳</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="builder/style.css" />
+</head>
+<body>
+  <a class="skip-link" href="#builder">Skip to the builder</a>
+
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <div>
+          <h1>AceStream Scraper</h1>
+          <p class="tagline">Docker command builder</p>
+        </div>
+      </div>
+      <nav class="header-links" aria-label="Project links">
+        <a href="https://github.com/Pipepito/acestream-scraper">GitHub</a>
+        <a href="https://github.com/Pipepito/acestream-scraper/wiki">Wiki</a>
+        <a href="https://hub.docker.com/r/pipepito/acestream-scraper">Docker Hub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap" id="builder">
+    <p class="intro">
+      Answer three questions and copy a ready-to-run <code>docker run</code> command or
+      <code>docker-compose.yml</code>. Each choice narrows the next one, so the page only
+      offers settings that can affect your selected image and machine.
+    </p>
+
+    <noscript>
+      <p class="warning-card warn-error">This page needs JavaScript to build your command.
+      The equivalent manual instructions live in the
+      <a href="https://github.com/Pipepito/acestream-scraper/wiki/Installation">Installation guide</a>.</p>
+    </noscript>
+
+    <div class="layout" hidden id="app">
+      <div class="form-col">
+        <section class="step" aria-labelledby="step1-h">
+          <h2 id="step1-h"><span class="step-num" aria-hidden="true">1</span>Pick your image</h2>
+
+          <fieldset>
+            <legend>What should run inside the container?</legend>
+            <div class="card-grid" id="flavor-options" role="radiogroup" aria-label="Image flavor"></div>
+          </fieldset>
+
+          <fieldset>
+            <legend>What machine will run it?</legend>
+            <div class="card-grid" id="platform-options" role="radiogroup" aria-label="Host platform"></div>
+            <p class="hint">Every flavor is published for all three platforms under the same tag — Docker picks the right image. This choice filters embedded services and their settings.</p>
+          </fieldset>
+
+          <fieldset>
+            <legend>Which version?</legend>
+            <div class="inline-options" id="channel-options" role="radiogroup" aria-label="Release channel"></div>
+            <div class="field" id="version-field" hidden>
+              <label for="version-input">Version tag</label>
+              <input type="text" id="version-input" placeholder="v2.0.0" spellcheck="false" autocomplete="off" />
+            </div>
+          </fieldset>
+        </section>
+
+        <section class="step" aria-labelledby="step2-h">
+          <h2 id="step2-h"><span class="step-num" aria-hidden="true">2</span>Choose features</h2>
+          <div class="selection-summary" id="selection-summary" role="status" aria-live="polite"></div>
+          <div id="feature-toggles"></div>
+
+          <div class="subfields" id="external-engine-fields" hidden>
+            <p class="hint" id="external-engine-hint"></p>
+            <div class="field-row">
+              <div class="field">
+                <label for="ext-engine-host">External engine host</label>
+                <input type="text" id="ext-engine-host" placeholder="192.168.1.100" spellcheck="false" autocomplete="off" />
+              </div>
+              <div class="field">
+                <label for="ext-engine-port">Port</label>
+                <input type="number" id="ext-engine-port" value="6878" min="1" max="65535" />
+              </div>
+            </div>
+          </div>
+
+          <div class="subfields" id="zeronet-fields" hidden>
+            <div class="field">
+              <label for="zeronet-url">ZeroNet URL</label>
+              <input type="text" id="zeronet-url" spellcheck="false" autocomplete="off" />
+              <p class="hint" id="zeronet-hint"></p>
+            </div>
+          </div>
+
+          <div class="subfields" id="ipfs-fields" hidden>
+            <div class="field">
+              <label for="ipfs-gateway-url">IPFS gateway URL</label>
+              <input type="text" id="ipfs-gateway-url" spellcheck="false" autocomplete="off" />
+              <p class="hint" id="ipfs-hint"></p>
+            </div>
+          </div>
+        </section>
+
+        <section class="step" aria-labelledby="step3-h">
+          <h2 id="step3-h"><span class="step-num" aria-hidden="true">3</span>Network &amp; storage</h2>
+
+          <fieldset>
+            <legend>Published ports</legend>
+            <div id="port-rows"></div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Persistent folders</legend>
+            <div id="volume-rows"></div>
+          </fieldset>
+
+          <details class="advanced">
+            <summary>Advanced settings</summary>
+            <p class="advanced-lead">Defaults are already built into the image. Add an override only when your setup needs it; settings that cannot affect the current selection are left out.</p>
+            <section class="container-setting-group" aria-labelledby="container-settings-h">
+              <div class="setting-group-head">
+                <h3 id="container-settings-h">Container behavior</h3>
+                <p>Name the container and choose how Docker restarts it.</p>
+              </div>
+              <div class="field-row">
+                <div class="field">
+                  <label for="container-name">Container name</label>
+                  <input type="text" id="container-name" value="acestream-scraper" spellcheck="false" autocomplete="off" />
+                </div>
+                <div class="field">
+                  <label for="restart-policy">Restart policy</label>
+                  <select id="restart-policy">
+                    <option value="unless-stopped" selected>unless-stopped (recommended)</option>
+                    <option value="always">always</option>
+                    <option value="no">no</option>
+                  </select>
+                </div>
+              </div>
+            </section>
+            <div id="runtime-setting-groups"></div>
+          </details>
+        </section>
+      </div>
+
+      <div class="output-col">
+        <section class="output-panel" aria-labelledby="output-h">
+          <h2 id="output-h" class="visually-hidden">Your command</h2>
+          <div id="warnings" aria-live="polite"></div>
+
+          <div class="tabs" role="tablist" aria-label="Output format">
+            <button role="tab" id="tab-run" aria-controls="panel-run" aria-selected="true">docker run</button>
+            <button role="tab" id="tab-compose" aria-controls="panel-compose" aria-selected="false">docker compose</button>
+          </div>
+
+          <div role="tabpanel" id="panel-run" aria-labelledby="tab-run">
+            <div class="code-block">
+              <div class="code-head">
+                <span>Pull the image, then run it</span>
+                <button type="button" class="copy-btn" data-copy="run-output">Copy</button>
+              </div>
+              <pre><code id="run-output"></code></pre>
+            </div>
+          </div>
+
+          <div role="tabpanel" id="panel-compose" aria-labelledby="tab-compose" hidden>
+            <div class="code-block">
+              <div class="code-head">
+                <span>Save as <code>docker-compose.yml</code></span>
+                <button type="button" class="copy-btn" data-copy="compose-output">Copy</button>
+              </div>
+              <pre><code id="compose-output"></code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-head">
+                <span>Then start it</span>
+                <button type="button" class="copy-btn" data-copy="compose-up-output">Copy</button>
+              </div>
+              <pre><code id="compose-up-output">docker compose up -d</code></pre>
+            </div>
+          </div>
+
+          <div class="next-steps" id="next-steps"></div>
+        </section>
+      </div>
+    </div>
+
+    <p class="warning-card warn-error" id="load-error" hidden>
+      Could not load the runtime data (<code>builder/runtime-options.json</code>).
+      If this keeps happening, please
+      <a href="https://github.com/Pipepito/acestream-scraper/issues">open an issue</a>.
+    </p>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>
+        Maintained with the
+        <a href="https://github.com/Pipepito/acestream-scraper">AceStream Scraper</a> repository —
+        the options on this page come from
+        <a href="https://github.com/Pipepito/acestream-scraper/blob/develop/docs/builder/runtime-options.json"><code>docs/builder/runtime-options.json</code></a>.
+        Full documentation in the <a href="https://github.com/Pipepito/acestream-scraper/wiki">wiki</a>.
+      </p>
+    </div>
+  </footer>
+
+  <script src="builder/app.js"></script>
+</body>
+</html>

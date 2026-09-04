@@ -242,6 +242,13 @@ export ACESTREAM_HTTP_PORT="${ACESTREAM_HTTP_PORT:-6878}"
 export ZERONET_DATA_DIR="${ZERONET_DATA_DIR:-/data/zeronet}"
 export ZERONET_UI_PORT="${ZERONET_UI_PORT:-43110}"
 export ZERONET_FILESERVER_PORT="${ZERONET_FILESERVER_PORT:-26552}"
+# ZeroNet ships --trackers empty and pulls its tracker list from
+# --trackers_file, which defaults to a path INSIDE the Syncronite zite.
+# Downloading that zite needs trackers, so a fresh data dir can never
+# bootstrap: it announces to 0 trackers, finds 0 peers and downloads
+# nothing, not even ZeroHello. Seed a few public BitTorrent trackers so
+# the node can reach Syncronite and take over the list from there.
+export ZERONET_TRACKERS="${ZERONET_TRACKERS:-udp://tracker.opentrackr.org:1337/announce udp://open.stealth.si:80/announce udp://tracker.torrent.eu.org:451/announce}"
 if feature_enabled "$ENABLE_ZERONET"; then
     # Keep the scraper pointed at the embedded node when the operator hasn't
     # chosen an explicit external endpoint (the image bakes the 43110
@@ -382,11 +389,9 @@ if feature_enabled "$ENABLE_ZERONET"; then
         # ZERONET_UI_HOST (space-separated hostnames) to reach the UI from
         # another machine. ZERONET_EXTRA_ARGS passes anything else through.
         #
-        # --ui_host goes FIRST: it is declared nargs='*', so immediately
-        # before the trailing `main` it consumes the action name too and
-        # ZeroNet dies with KeyError: None in Config.getActionArguments().
-        # Any following flag ends the greedy match.
-        ZERONET_START_COMMAND="$ZERONET_BINARY_PATH${ZERONET_UI_HOST:+ --ui_host $ZERONET_UI_HOST} --ui_ip 0.0.0.0 --ui_port $ZERONET_UI_PORT --fileserver_port $ZERONET_FILESERVER_PORT --data_dir $ZERONET_DATA_DIR --log_dir $LOG_DIR --tor $zeronet_tor_mode${ZERONET_EXTRA_ARGS:+ $ZERONET_EXTRA_ARGS} main"
+        # --ui_host and --trackers are greedy nargs options. Put both before
+        # ordinary flags so neither can consume the trailing `main` action.
+        ZERONET_START_COMMAND="$ZERONET_BINARY_PATH${ZERONET_UI_HOST:+ --ui_host $ZERONET_UI_HOST}${ZERONET_TRACKERS:+ --trackers $ZERONET_TRACKERS} --ui_ip 0.0.0.0 --ui_port $ZERONET_UI_PORT --fileserver_port $ZERONET_FILESERVER_PORT --data_dir $ZERONET_DATA_DIR --log_dir $LOG_DIR --tor $zeronet_tor_mode${ZERONET_EXTRA_ARGS:+ $ZERONET_EXTRA_ARGS} main"
     fi
     supervise_service "ZeroNet" "$ZERONET_START_COMMAND" &
     child_pids+=("$!")

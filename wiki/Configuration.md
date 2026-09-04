@@ -111,6 +111,7 @@ The amd64 images bundle a ZeroNet node (zeronet-conservancy v0.7.10) that is off
 | `ZERONET_UI_PORT` | Bundled node's web UI port | `43110` | |
 | `ZERONET_FILESERVER_PORT` | Bundled node's fileserver/peer port | `26552` | |
 | `ZERONET_UI_HOST` | Extra Host headers the UI accepts | *(none)* | Space-separated hostnames; needed to browse the UI from another machine |
+| `ZERONET_TRACKERS` | Bootstrap trackers for a fresh bundled node | Three public UDP trackers | Space-separated tracker URLs; override when the defaults are unavailable or unsuitable |
 | `ZERONET_EXTRA_ARGS` | Extra zeronet-conservancy CLI flags | *(none)* | Passed through to the node verbatim |
 | `TZ` | Timezone for the container | `Europe/Madrid` | Use any valid TZ identifier |
 

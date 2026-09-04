@@ -177,7 +177,7 @@
   "zeronet": {
     "defaultUrl": "http://host.docker.internal:43110",
     "description": "Scrape zero:// sources. The amd64 images bundle a ZeroNet node (opt-in via ENABLE_ZERONET), or point ZERONET_URL at an external ZeroNet service.",
-    "embeddedDescription": "Starts the bundled zeronet-conservancy node; zero:// sources are fetched through its UI port (43110). Turn off to use an external ZeroNet service instead."
+    "embeddedDescription": "Starts the bundled zeronet-conservancy node; zero:// sources are fetched through its UI port (43110). Fresh nodes use public UDP bootstrap trackers, overridable with ZERONET_TRACKERS. Turn off to use an external ZeroNet service instead."
   },
   "ipfs": {
     "defaultGatewayUrl": "http://host.docker.internal:8080",

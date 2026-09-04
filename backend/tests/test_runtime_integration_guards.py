@@ -696,7 +696,7 @@ def test_jenkins_smoke_stage_runs_the_ffmpeg_build_test():
     assert "backend/tests/docker/test_ffmpeg_vendor.py" in pipeline
 
 
-def test_command_builder_declares_player_facts_and_emits_the_new_env():
+def test_command_builder_declares_current_runtime_settings_and_filters_them():
     import json
     data = json.loads((REPO_ROOT / "docs" / "builder" / "runtime-options.json").read_text())
     app_js = (REPO_ROOT / "docs" / "builder" / "app.js").read_text()
@@ -704,8 +704,34 @@ def test_command_builder_declares_player_facts_and_emits_the_new_env():
 
     assert data["player"]["maxSessionsDefault"] == 3
     assert data["player"]["hlsDirDefault"] == "/tmp/acestream-player"
+    assert data["player"]["startTimeoutSecondsDefault"] == 45
+    assert data["player"]["mediaServerMinRefreshMinutesDefault"] == 30
     assert data["player"]["tunerNetworksDefault"].startswith("127.0.0.0/8,10.0.0.0/8,100.64.0.0/10")
     assert "publicBaseUrl" in data["notes"]
-    for name in ("PUBLIC_BASE_URL", "TUNER_ALLOWED_NETWORKS", "PLAYER_MAX_SESSIONS"):
-        assert f"'{name}'" in app_js, name
-        assert f'"{name}"' in validator, name
+    settings = {setting["env"]: setting for setting in data["runtimeSettings"]}
+    for name in (
+        "PUBLIC_BASE_URL",
+        "FORWARDED_ALLOW_IPS",
+        "TUNER_ALLOWED_NETWORKS",
+        "PLAYER_HLS_DIR",
+        "PLAYER_MAX_SESSIONS",
+        "PLAYER_START_TIMEOUT_SECONDS",
+        "MEDIA_SERVER_MIN_REFRESH_MINUTES",
+    ):
+        assert settings[name]["appliesWhen"] == "always", name
+        assert name in validator, name
+
+    assert settings["ACESTREAM_BIND_ALL"]["appliesWhen"] == "engineOn"
+    assert settings["ENABLE_TOR"]["appliesWhen"] == "zeronetEmbeddedOn"
+    assert settings["ZERONET_UI_HOST"]["appliesWhen"] == "zeronetUiPublished"
+    assert settings["IPFS_PROFILE"]["appliesWhen"] == "ipfsEmbeddedOn"
+    assert settings["WARP_LICENSE_KEY"]["appliesWhen"] == "warpOn"
+    for name in (
+        "CHANNEL_CLEANUP_DAYS",
+        "PLAYER_MAX_SESSIONS",
+        "PLAYER_START_TIMEOUT_SECONDS",
+        "MEDIA_SERVER_MIN_REFRESH_MINUTES",
+    ):
+        assert settings[name]["integer"] is True, name
+    assert "activeRuntimeSettings(d)" in app_js
+    assert "engineOn && platform.id !== 'amd64'" in app_js

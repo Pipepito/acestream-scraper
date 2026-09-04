@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 # Validate the Docker command builder page (docs/index.html + docs/builder/).
 #
-# The page is served by GitHub Pages straight from the docs/ folder of main
-# ("Deploy from a branch": main, /docs), so there is nothing to publish — this
-# script only makes sure the page cannot drift from the runtime contract:
-# flavors match the Dockerfile targets, the ports and env toggles it emits
-# still exist in entrypoint.sh / Dockerfile / docker-compose.yml, and the
+# Validated develop builds publish the page to the gh-pages branch. This script
+# makes sure the payload is complete and cannot drift from the runtime contract:
+# flavors match the Dockerfile targets, the ports and environment settings it
+# emits still exist in the image or backend runtime, and the
 # script parses. Runs on every CI build (Jenkinsfile stage "Docs checks").
 #
 # Usage:
@@ -27,6 +26,7 @@ fail() { printf '[command-builder] ERROR: %s\n' "$*" >&2; exit 1; }
 
 [[ -f "$SITE_DIR/index.html" ]] || fail "docs/index.html is missing"
 [[ -f "$SITE_DIR/builder/app.js" ]] || fail "docs/builder/app.js is missing"
+[[ -f "$SITE_DIR/builder/style.css" ]] || fail "docs/builder/style.css is missing"
 [[ -f "$SITE_DIR/builder/runtime-options.json" ]] || fail "docs/builder/runtime-options.json is missing"
 [[ -f "$SITE_DIR/.nojekyll" ]] || fail "docs/.nojekyll is missing (GitHub Pages would run Jekyll over docs/)"
 
@@ -40,6 +40,18 @@ dockerfile = (root / "Dockerfile").read_text(encoding="utf-8")
 compose = (root / "docker-compose.yml").read_text(encoding="utf-8")
 entrypoint = (root / "entrypoint.sh").read_text(encoding="utf-8")
 builder = (root / "docs/builder/app.js").read_text(encoding="utf-8")
+backend_runtime = "\n".join(
+    path.read_text(encoding="utf-8")
+    for path in (root / "backend/app").rglob("*.py")
+)
+runtime_sources = "\n".join(
+    [
+        entrypoint,
+        dockerfile,
+        backend_runtime,
+        (root / "warp-setup.sh").read_text(encoding="utf-8"),
+    ]
+)
 errors = []
 
 # Every flavor on the page must be a real Dockerfile target, and vice versa.
@@ -72,6 +84,59 @@ for var in ("ENABLE_ACESTREAM_ENGINE", "ENABLE_ACEXY", "ENABLE_WARP", "ACEXY_HOS
     if var not in entrypoint:
         errors.append(f"entrypoint.sh no longer references {var}")
 
+# Advanced environment settings are declarative so adding a runtime knob does
+# not require another hard-coded HTML field. Their applicability is part of the
+# safety contract: unsupported image/platform options must never be rendered or
+# emitted for the current selection.
+groups = {group["id"] for group in data.get("settingGroups", [])}
+settings = data.get("runtimeSettings", [])
+allowed_types = {"text", "password", "number", "boolean"}
+allowed_conditions = {
+    "always",
+    "engineOn",
+    "zeronetEmbeddedOn",
+    "zeronetUiPublished",
+    "ipfsEmbeddedOn",
+    "warpOn",
+}
+expected_conditions = {
+    "ACESTREAM_BIND_ALL": "engineOn",
+    "ENABLE_TOR": "zeronetEmbeddedOn",
+    "ZERONET_UI_HOST": "zeronetUiPublished",
+    "IPFS_PROFILE": "ipfsEmbeddedOn",
+    "WARP_LICENSE_KEY": "warpOn",
+}
+seen_ids = set()
+seen_env = set()
+inherited_runtime_env = {"TZ"}
+for setting in settings:
+    setting_id = setting.get("id")
+    env_name = setting.get("env")
+    if not setting_id or setting_id in seen_ids:
+        errors.append(f"runtime setting id is missing or duplicated: {setting_id!r}")
+    seen_ids.add(setting_id)
+    if not env_name or env_name in seen_env:
+        errors.append(f"runtime setting env is missing or duplicated: {env_name!r}")
+    seen_env.add(env_name)
+    if setting.get("group") not in groups:
+        errors.append(f"runtime setting {setting_id} references unknown group {setting.get('group')!r}")
+    if setting.get("type") not in allowed_types:
+        errors.append(f"runtime setting {setting_id} has unknown type {setting.get('type')!r}")
+    if "integer" in setting and (
+        setting.get("type") != "number" or not isinstance(setting.get("integer"), bool)
+    ):
+        errors.append(f"runtime setting {setting_id} has invalid integer constraint")
+    if setting.get("appliesWhen") not in allowed_conditions:
+        errors.append(f"runtime setting {setting_id} has unknown appliesWhen {setting.get('appliesWhen')!r}")
+    if env_name and env_name not in runtime_sources and env_name not in inherited_runtime_env:
+        errors.append(f"runtime setting {env_name} is not referenced by the image or backend runtime")
+for env_name, condition in expected_conditions.items():
+    matches = [setting for setting in settings if setting.get("env") == env_name]
+    if not matches or matches[0].get("appliesWhen") != condition:
+        errors.append(f"runtime setting {env_name} must use appliesWhen={condition}")
+if "engineOn && platform.id !== 'amd64'" not in builder:
+    errors.append("engine state volume is not limited to ARM engine selections")
+
 for required in ("WARP_ENABLE_NAT", "/dev/net/tun:/dev/net/tun", "--cap-add NET_ADMIN", "--cap-add SYS_ADMIN"):
     if required not in builder:
         errors.append(f"command builder no longer emits required WARP setting: {required}")
@@ -98,6 +163,14 @@ if data["player"]["maxSessionsDefault"] != int(re.search(r'PLAYER_MAX_SESSIONS:-
     errors.append("player.maxSessionsDefault differs from PLAYER_MAX_SESSIONS default in entrypoint.sh")
 if data["player"]["tunerNetworksDefault"] != re.search(r'TUNER_ALLOWED_NETWORKS:-([^}]+)\}', entrypoint).group(1):
     errors.append("player.tunerNetworksDefault differs from TUNER_ALLOWED_NETWORKS default in entrypoint.sh")
+if data["player"]["startTimeoutSecondsDefault"] != int(re.search(r'PLAYER_START_TIMEOUT_SECONDS:-(\d+)', entrypoint).group(1)):
+    errors.append("player.startTimeoutSecondsDefault differs from PLAYER_START_TIMEOUT_SECONDS default in entrypoint.sh")
+if data["player"]["mediaServerMinRefreshMinutesDefault"] != int(re.search(r'MEDIA_SERVER_MIN_REFRESH_MINUTES:-(\d+)', entrypoint).group(1)):
+    errors.append("player.mediaServerMinRefreshMinutesDefault differs from MEDIA_SERVER_MIN_REFRESH_MINUTES default in entrypoint.sh")
+if data["player"]["forwardedAllowIpsDefault"] != re.search(r'FORWARDED_ALLOW_IPS:-([^}]+)\}', entrypoint).group(1):
+    errors.append("player.forwardedAllowIpsDefault differs from FORWARDED_ALLOW_IPS default in entrypoint.sh")
+if data["player"]["hlsDirDefault"] != re.search(r'PLAYER_HLS_DIR:-([^}]+)\}', entrypoint).group(1):
+    errors.append("player.hlsDirDefault differs from PLAYER_HLS_DIR default in entrypoint.sh")
 
 for f in data["flavors"]:
     for key in ("releaseTag", "developTag", "versionTagPattern"):
@@ -109,7 +182,7 @@ if errors:
     for e in errors:
         print(f"  - {e}", file=sys.stderr)
     sys.exit(1)
-print(f"[command-builder] runtime-options.json ok: {len(flavors)} flavors, {len(data['ports'])} ports, {len(data['volumes'])} volumes")
+print(f"[command-builder] runtime-options.json ok: {len(flavors)} flavors, {len(data['ports'])} ports, {len(data['volumes'])} volumes, {len(settings)} conditional settings")
 PY
 
 if command -v node >/dev/null 2>&1; then

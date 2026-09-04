@@ -125,9 +125,10 @@ test.describe('TV channels', () => {
     const tv = new TVChannelsPage(page);
     await tv.open();
     const wasFavorite = (await api.findTvChannel(spec.name))!.is_favorite;
-    await tv.favoriteToggle(spec.name).click();
+    await tv.toggleFavorite(spec.name);
     await tv.expectAlert(wasFavorite ? `Removed ${spec.name} from favorites.` : `Added ${spec.name} to favorites.`);
     await expect.poll(async () => (await api.findTvChannel(spec.name))?.is_favorite).toBe(!wasFavorite);
+    await expect(tv.favoriteMark(spec.name)).toHaveCount(wasFavorite ? 0 : 1);
     await expect(tv.openButton(spec.name)).toBeEnabled();
 
     const dialog = await tv.openEdit(spec.name);

@@ -22,6 +22,7 @@ import {
 import { Edit, Delete, OpenInNew, Star, StarBorder } from '@mui/icons-material';
 import PlayArrowRounded from '@mui/icons-material/PlayArrowRounded';
 import { TVChannel } from '../types/tvChannelTypes';
+import RowActionsMenu, { type RowAction } from './RowActionsMenu';
 import EmptyState from './state/EmptyState';
 import { shouldDisableGridVirtualization } from '../config/runtime';
 
@@ -77,24 +78,21 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
 
   const renderActions = (channel: TVChannel, isMobile = false) => {
     const canPlay = Boolean(onPlay) && Boolean(channel.acestream_channels?.length);
-    const favoriteButton = (
-      <Tooltip title={channel.is_favorite ? 'Remove from favorites' : 'Add to favorites'}>
-        <IconButton
-          size={isMobile ? 'medium' : 'small'}
-          color={channel.is_favorite ? 'warning' : 'default'}
-          aria-label={`toggle favorite for tv channel ${channel.name}`}
-          aria-pressed={channel.is_favorite}
-          onClick={() => onToggleFavorite(channel)}
-        >
-          {channel.is_favorite ? <Star fontSize="small" /> : <StarBorder fontSize="small" />}
-        </IconButton>
-      </Tooltip>
-    );
 
     if (isMobile) {
       return (
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
-          {favoriteButton}
+          <Tooltip title={channel.is_favorite ? 'Remove from favorites' : 'Add to favorites'}>
+            <IconButton
+              size="medium"
+              color={channel.is_favorite ? 'warning' : 'default'}
+              aria-label={`toggle favorite for tv channel ${channel.name}`}
+              aria-pressed={channel.is_favorite}
+              onClick={() => onToggleFavorite(channel)}
+            >
+              {channel.is_favorite ? <Star fontSize="small" /> : <StarBorder fontSize="small" />}
+            </IconButton>
+          </Tooltip>
           <Button
             variant="outlined"
             startIcon={<Edit fontSize="small" />}
@@ -133,19 +131,21 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
       );
     }
 
+    // Two visible actions (play, open) and the rest behind "More actions", the
+    // row-action rule the Acestream rows follow. Favorite state stays visible
+    // on the row through the star next to the name.
+    const menuActions: RowAction[] = [
+      {
+        label: channel.is_favorite ? 'Remove from favorites' : 'Add to favorites',
+        icon: channel.is_favorite ? <Star fontSize="small" /> : <StarBorder fontSize="small" />,
+        onClick: () => onToggleFavorite(channel),
+      },
+      { label: 'Edit', icon: <Edit fontSize="small" />, onClick: () => onEdit(channel) },
+      { label: 'Delete', icon: <Delete fontSize="small" />, danger: true, onClick: () => onDelete(channel.id) },
+    ];
+
     return (
-      <Box display="flex" gap={1} role="group" aria-label={`TV channel actions for ${channel.name}`}>
-        {favoriteButton}
-        <Tooltip title="Edit">
-          <IconButton size="small" aria-label={`edit tv channel ${channel.name}`} onClick={() => onEdit(channel)}>
-            <Edit fontSize="small" />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Delete">
-          <IconButton size="small" aria-label={`delete tv channel ${channel.name}`} onClick={() => onDelete(channel.id)}>
-            <Delete fontSize="small" />
-          </IconButton>
-        </Tooltip>
+      <Box display="flex" gap={0.25} role="group" aria-label={`TV channel actions for ${channel.name}`}>
         <Tooltip title={canPlay ? 'Play the best stream' : 'No stream to play yet'}>
           <span>
             <IconButton
@@ -164,6 +164,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
             <OpenInNew fontSize="small" />
           </IconButton>
         </Tooltip>
+        <RowActionsMenu label={`More actions for ${channel.name}`} actions={menuActions} />
       </Box>
     );
   };
@@ -346,15 +347,18 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
       flex: 1,
       minWidth: 140,
       renderCell: (params: GridRenderCellParams<TVChannel>) => (
-        <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>
-          {params.row.name}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
+          {params.row.is_favorite ? <Star fontSize="small" color="warning" titleAccess="Favorite" /> : null}
+          <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>
+            {params.row.name}
+          </Box>
         </Box>
       ),
     },
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 240,
+      width: 130,
       sortable: false,
       renderCell: (params: GridRenderCellParams<TVChannel>) => renderActions(params.row),
     },

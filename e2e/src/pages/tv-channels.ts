@@ -51,22 +51,28 @@ export class TVChannelsPage extends AppShell {
   }
 
   async openEdit(name: string): Promise<Locator> {
-    await this.row(name).getByRole('button', { name: `edit tv channel ${name}` }).click();
+    await this.rowMenuAction(this.row(name), name, 'Edit');
     const dialog = this.dialog('Edit TV Channel');
     await expect(dialog).toBeVisible();
     return dialog;
   }
 
   async delete(name: string): Promise<void> {
-    await this.row(name).getByRole('button', { name: `delete tv channel ${name}` }).click();
+    await this.rowMenuAction(this.row(name), name, 'Delete');
     const dialog = this.dialog('Delete TV Channel');
     await expect(dialog).toBeVisible();
     await dialog.getByRole('button', { name: 'Delete TV Channel' }).click();
     await expect(dialog).toBeHidden();
   }
 
-  favoriteToggle(name: string): Locator {
-    return this.row(name).getByRole('button', { name: `toggle favorite for tv channel ${name}` });
+  /** Row overflow menu: "Add to favorites" or "Remove from favorites". */
+  async toggleFavorite(name: string): Promise<void> {
+    await this.rowMenuAction(this.row(name), name, /favorites$/);
+  }
+
+  /** The star the row shows next to the name while the channel is a favorite. */
+  favoriteMark(name: string): Locator {
+    return this.row(name).getByRole('img', { name: 'Favorite' });
   }
 
   openButton(name: string): Locator {

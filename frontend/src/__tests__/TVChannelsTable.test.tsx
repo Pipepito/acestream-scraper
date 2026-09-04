@@ -104,12 +104,37 @@ describe('TVChannelsTable', () => {
     );
 
     const inventoryRegion = screen.getByRole('region', { name: 'TV channel inventory' });
+    const actions = within(inventoryRegion).getByRole('group', { name: 'TV channel actions for Arena TV' });
 
     expect(within(inventoryRegion).getByRole('grid')).toBeInTheDocument();
-    expect(within(inventoryRegion).getByRole('group', { name: 'TV channel actions for Arena TV' })).toBeInTheDocument();
-    expect(within(inventoryRegion).getByRole('button', { name: 'edit tv channel Arena TV' })).toBeInTheDocument();
-    expect(within(inventoryRegion).getByRole('button', { name: 'delete tv channel Arena TV' })).toBeInTheDocument();
-    expect(within(inventoryRegion).getByRole('button', { name: 'open tv channel Arena TV' })).toBeInTheDocument();
+    // At most two visible row actions; the rest live in "More actions".
+    expect(within(actions).getAllByRole('button').map((button) => button.getAttribute('aria-label'))).toEqual([
+      'play tv channel Arena TV',
+      'open tv channel Arena TV',
+      'More actions for Arena TV',
+    ]);
+  });
+
+  it('keeps edit, delete and the favorite toggle in the row overflow menu', () => {
+    const onEdit = jest.fn();
+    const onDelete = jest.fn();
+
+    renderTable(<TVChannelsTable channels={[channelWithStreams]} {...baseProps} onEdit={onEdit} onDelete={onDelete} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'More actions for Arena TV' }));
+    const menu = screen.getByRole('menu');
+    expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent)).toEqual([
+      'Add to favorites',
+      'Edit',
+      'Delete',
+    ]);
+
+    fireEvent.click(within(menu).getByRole('menuitem', { name: 'Edit' }));
+    expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ id: 42 }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'More actions for Arena TV' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    expect(onDelete).toHaveBeenCalledWith(42);
   });
 
   it('keeps the first desktop row action keyboard focusable with its accessible label intact', async () => {
@@ -135,12 +160,12 @@ describe('TVChannelsTable', () => {
       />
     );
 
-    const editButton = screen.getByRole('button', { name: 'edit tv channel Arena TV' });
+    const openButton = screen.getByRole('button', { name: 'open tv channel Arena TV' });
 
-    await tabUntilFocus(editButton);
+    await tabUntilFocus(openButton);
 
-    expect(editButton).toHaveFocus();
-    expect(editButton).toHaveAccessibleName('edit tv channel Arena TV');
+    expect(openButton).toHaveFocus();
+    expect(openButton).toHaveAccessibleName('open tv channel Arena TV');
   });
 
   it('renders a stacked mobile summary with secondary metadata, explicit status text, and actions in compact mode', () => {
@@ -200,8 +225,12 @@ describe('TVChannelsTable', () => {
 
     const { unmount } = renderTable(<TVChannelsTable channels={[favoriteChannel]} {...baseProps} />);
 
-    expect(screen.getByRole('grid')).not.toHaveTextContent('Favorite');
-    expect(screen.getByRole('button', { name: 'toggle favorite for tv channel Arena TV' })).toHaveAttribute('aria-pressed', 'true');
+    // Desktop keeps the state next to the name and the toggle in the menu.
+    expect(within(screen.getByRole('grid')).getByRole('img', { name: 'Favorite' })).toBeInTheDocument();
+    expect(within(screen.getByRole('grid')).queryByRole('button', { name: /favorite/i })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'More actions for Arena TV' }));
+    expect(screen.getByRole('menuitem', { name: 'Remove from favorites' })).toBeInTheDocument();
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
 
     unmount();
 
@@ -212,7 +241,7 @@ describe('TVChannelsTable', () => {
     expect(within(card).getByRole('button', { name: 'toggle favorite for tv channel Arena TV' })).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('exposes a favorite star toggle that reports the channel in desktop and compact modes', () => {
+  it('reports the channel from the favorite action in desktop and compact modes', () => {
     const channel = {
       id: 42,
       name: 'Arena TV',
@@ -233,11 +262,10 @@ describe('TVChannelsTable', () => {
       <TVChannelsTable channels={[channel]} {...baseProps} onToggleFavorite={onToggleFavorite} />
     );
 
-    const desktopStar = screen.getByRole('button', { name: 'toggle favorite for tv channel Arena TV' });
+    expect(within(screen.getByRole('grid')).queryByRole('img', { name: 'Favorite' })).not.toBeInTheDocument();
 
-    expect(desktopStar).toHaveAttribute('aria-pressed', 'false');
-
-    fireEvent.click(desktopStar);
+    fireEvent.click(screen.getByRole('button', { name: 'More actions for Arena TV' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Add to favorites' }));
 
     expect(onToggleFavorite).toHaveBeenCalledWith(channel);
 

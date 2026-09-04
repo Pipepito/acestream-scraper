@@ -9,12 +9,13 @@ if [[ ! -x /opt/backend-venv/bin/python || ! -d /opt/frontend-node_modules ]]; t
   exit 1
 fi
 
-# The runner image owns dependencies. The pull-request workspace only receives
-# symlinks, so dependency installation and its network access never happen while
-# contributor code is executing.
+# The runner image owns dependencies. Python is read-only; frontend dependencies
+# are copied into the size-limited workspace because Vite may write caches there.
+# No dependency installation or network access happens while contributor code is
+# executing.
 rm -rf backend/venv frontend/node_modules
 ln -s /opt/backend-venv backend/venv
-ln -s /opt/frontend-node_modules frontend/node_modules
+cp -a /opt/frontend-node_modules frontend/node_modules
 
 echo "Running repository and runtime contract checks..."
 bash scripts/ci/assert_no_legacy_paths.sh --strict

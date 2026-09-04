@@ -86,6 +86,7 @@ def main() -> int:
          and "publish_pages.sh" not in pr_jenkinsfile),
         ("PR pipeline confines contributor code to the hardened runner",
          "--network none" in pr_jenkinsfile
+         and "--read-only" in pr_jenkinsfile
          and "--cap-drop ALL" in pr_jenkinsfile
          and "no-new-privileges" in pr_jenkinsfile
          and '$WORKSPACE:/source:ro' in pr_jenkinsfile

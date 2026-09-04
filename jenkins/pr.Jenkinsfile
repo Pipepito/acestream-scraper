@@ -77,6 +77,7 @@ host_gid="$(id -g)"
 docker run --rm --init \
   --name "$PR_SANDBOX_NAME" \
   --network none \
+  --read-only \
   --user "$host_uid:$host_gid" \
   --cap-drop ALL \
   --security-opt no-new-privileges \
@@ -85,6 +86,7 @@ docker run --rm --init \
   --memory-swap 8g \
   --cpus 3 \
   --tmpfs /tmp:rw,nosuid,nodev,size=1g \
+  --tmpfs /workspace:rw,nosuid,nodev,size=3g,mode=1777 \
   --env CI=true \
   --env HOME=/tmp/ci-home \
   --env PYTHONDONTWRITEBYTECODE=1 \

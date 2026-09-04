@@ -31,7 +31,6 @@ COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci \
     && npm cache clean --force \
     && mv node_modules /opt/frontend-node_modules \
-    && chmod -R a+rwX /opt/frontend-node_modules \
     && rm -rf /tmp/frontend-install
 
 ENV CI=true \
@@ -39,7 +38,6 @@ ENV CI=true \
     PATH=/opt/backend-venv/bin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin \
     PYTHONDONTWRITEBYTECODE=1
 
-RUN mkdir -p /workspace /tmp/ci-home \
-    && chmod 0777 /workspace /tmp/ci-home
+RUN mkdir -p /workspace /tmp/ci-home
 
 WORKDIR /workspace

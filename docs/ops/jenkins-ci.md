@@ -832,7 +832,7 @@ This avoids blocking merges on a mismatched check name.
 Fork PRs are discovered, but remain untrusted by construction:
 
 - GitHub Branch Source trust is **Nobody**, so `jenkins/pr.Jenkinsfile` is always loaded from the PR's target branch for a fork. A fork cannot replace or weaken the container boundary in its PR.
-- The proposed merge revision is mounted read-only, copied into the disposable container filesystem, and executed with `--network none`, `--cap-drop ALL`, `no-new-privileges`, an unprivileged uid, and finite CPU, memory, and PID limits.
+- The proposed merge revision is mounted read-only, copied into a size-limited tmpfs workspace, and executed on a read-only container filesystem with `--network none`, `--cap-drop ALL`, `no-new-privileges`, an unprivileged uid, and finite CPU, memory, and PID limits.
 - The container never receives a Jenkins credential, the Docker socket, host paths other than its workspace, or Jenkins environment variables.
 - Dependency installation happens while the trusted develop job builds the runner image, not while fork code executes. A dependency-changing fork may need a maintainer-owned follow-up after review.
 - PR validation intentionally omits privileged image builds and engine runtime smokes. The trusted develop pipeline reruns the full suite and those smokes before any `:develop*` or documentation publication.

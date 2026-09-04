@@ -125,12 +125,15 @@ def test_a_device_id_that_cannot_be_stored_raises(db_session, monkeypatch):
 
     from app.services.tuner_service import TunerDeviceIdError
 
-    # A handler on the module logger rather than caplog: the app installs its
-    # own root handlers, and what matters here is that this logger emitted.
+    # A handler on the module logger rather than caplog, and `disabled` reset:
+    # Alembic's env.py runs logging's fileConfig, which disables every logger
+    # that already exists, so an earlier alembic-backed test in the same
+    # process leaves this one mute.
     records = []
     handler = logging.Handler(level=logging.ERROR)
     handler.emit = records.append  # type: ignore[method-assign]
     module_logger = logging.getLogger("app.services.tuner_service")
+    was_disabled, module_logger.disabled = module_logger.disabled, False
     module_logger.addHandler(handler)
 
     svc = TunerService(db_session)
@@ -140,4 +143,5 @@ def test_a_device_id_that_cannot_be_stored_raises(db_session, monkeypatch):
             svc.device_id()
     finally:
         module_logger.removeHandler(handler)
+        module_logger.disabled = was_disabled
     assert any("device id" in record.getMessage() for record in records)

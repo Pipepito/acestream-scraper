@@ -311,6 +311,60 @@ describe('Integrations page', () => {
     expect(text).toMatch(/\/tuner\/lineup\.json/);
   });
 
+  it('warns instead of claiming success when connecting Plex leaves it without a DVR', async () => {
+    const plex = {
+      id: 2, kind: 'plex', name: 'Plex', base_url: 'http://192.168.1.13:32400', tuner_mode: 'hdhomerun', enabled: true,
+      auto_refresh: true, has_api_key: false, connected: false, tuner_host_id: null, listing_provider_id: null, dvr_key: null,
+      last_sync_at: null, last_sync_status: 'manual', last_error: null, server_version: '1.40.0', created_at: '', updated_at: '',
+    };
+    mockServers.mockReturnValue({ data: [plex], isLoading: false });
+    mockConnectServer.mockResolvedValue(plex);
+    renderPage();
+    const card = screen.getByRole('group', { name: 'Media server Plex' });
+    fireEvent.click(within(card).getByRole('button', { name: 'Connect Plex' }));
+    await waitFor(() => expect(mockConnectServer).toHaveBeenCalledWith(2));
+    expect(await screen.findByText(/Plex has no DVR using this tuner yet/)).toBeInTheDocument();
+    expect(screen.queryByText('Plex is connected.')).not.toBeInTheDocument();
+  });
+
+  it('says a connected server is connected', async () => {
+    const jelly = {
+      id: 1, kind: 'jellyfin', name: 'Jelly', base_url: 'http://192.168.1.12:8096', tuner_mode: 'hdhomerun', enabled: true,
+      auto_refresh: true, has_api_key: true, connected: false, tuner_host_id: null, listing_provider_id: null, dvr_key: null,
+      last_sync_at: null, last_sync_status: 'never', last_error: null, server_version: '10.9.11', created_at: '', updated_at: '',
+    };
+    mockServers.mockReturnValue({ data: [jelly], isLoading: false });
+    mockConnectServer.mockResolvedValue({ ...jelly, connected: true, tuner_host_id: 'th-1', listing_provider_id: 'lp-1' });
+    renderPage();
+    const card = screen.getByRole('group', { name: 'Media server Jelly' });
+    fireEvent.click(within(card).getByRole('button', { name: 'Connect Jelly' }));
+    expect(await screen.findByText('Jelly is connected.')).toBeInTheDocument();
+  });
+
+  it('keeps tuner numbers the API would reject out of the request', async () => {
+    renderPage();
+    const section = screen.getByRole('region', { name: 'Media servers' });
+    fireEvent.click(within(section).getByRole('button', { name: 'Tuner settings' }));
+    const streams = within(section).getByRole('spinbutton', { name: 'Streams at once' });
+    const save = within(section).getByRole('button', { name: 'Save tuner settings' });
+
+    fireEvent.change(streams, { target: { value: '' } });
+    expect(within(section).getByText('Enter a whole number between 1 and 16.')).toBeInTheDocument();
+    expect(save).toBeDisabled();
+
+    fireEvent.change(streams, { target: { value: '20' } });
+    expect(save).toBeDisabled();
+
+    fireEvent.change(within(section).getByRole('spinbutton', { name: 'Most channels to publish' }), { target: { value: '0' } });
+    expect(within(section).getByText('Enter a whole number between 1 and 1000.')).toBeInTheDocument();
+
+    fireEvent.change(streams, { target: { value: '2' } });
+    fireEvent.change(within(section).getByRole('spinbutton', { name: 'Most channels to publish' }), { target: { value: '300' } });
+    expect(save).toBeEnabled();
+    fireEvent.click(save);
+    await waitFor(() => expect(mockUpdateTunerSettings).toHaveBeenCalledWith(expect.objectContaining({ tuner_count: 2, max_channels: 300 })));
+  });
+
   it('saves the tuner settings from the collapsible block', async () => {
     mockUpdateTunerSettings.mockResolvedValue({ friendly_name: 'Living room tuner', tuner_count: 4, max_channels: 450, only_online: false });
     renderPage();

@@ -112,8 +112,19 @@ const ServerCard: React.FC<ServerCardProps> = ({ server, notify, onEdit, onTest,
 
   const runConnect = async () => {
     try {
-      await connect.mutateAsync(server.id);
-      notify(`${server.name} is connected.`, 'success');
+      // Plex answers happily without a token or before its DVR exists, and comes
+      // back not connected — say so instead of claiming success the card denies.
+      const saved = await connect.mutateAsync(server.id);
+      if (saved.connected) {
+        notify(`${server.name} is connected.`, 'success');
+        return;
+      }
+      notify(
+        saved.kind === 'plex'
+          ? `${server.name} answered, but Plex has no DVR using this tuner yet. Add it in Plex with the steps on this card, then connect again.`
+          : `${server.name} answered, but it is not connected yet. Test the connection and try again.`,
+        'warning'
+      );
     } catch (err) {
       notify(describeMediaServerError(err), 'error');
     }
@@ -235,21 +246,60 @@ const ServerCard: React.FC<ServerCardProps> = ({ server, notify, onEdit, onTest,
   );
 };
 
+interface NumberRange {
+  min: number;
+  max: number;
+}
+
+/** The ranges `TunerSettingsUpdate` accepts; anything else comes back as a bare 422. */
+const TUNER_COUNT_RANGE: NumberRange = { min: 1, max: 16 };
+const MAX_CHANNELS_RANGE: NumberRange = { min: 1, max: 1000 };
+
+/** The two numbers stay text while editing so a cleared field stays cleared instead of turning into 0. */
+interface TunerFormState {
+  friendly_name: string;
+  tuner_count: string;
+  max_channels: string;
+  only_online: boolean;
+}
+
+const rangeError = (value: string, { min, max }: NumberRange): string | null => {
+  const parsed = Number(value);
+  const valid = value.trim() !== '' && Number.isInteger(parsed) && parsed >= min && parsed <= max;
+  return valid ? null : `Enter a whole number between ${min} and ${max}.`;
+};
+
+const toForm = (settings: TunerSettings): TunerFormState => ({
+  friendly_name: settings.friendly_name,
+  tuner_count: String(settings.tuner_count),
+  max_channels: String(settings.max_channels),
+  only_online: settings.only_online,
+});
+
 /** Friendly name, stream cap and lineup size the tuner reports to Jellyfin and Plex. */
 const TunerSettingsBlock: React.FC<{ notify: MediaServerNotify }> = ({ notify }) => {
   const { data } = useTunerSettings();
   const update = useUpdateTunerSettings();
-  const [form, setForm] = useState<TunerSettings | null>(null);
+  const [form, setForm] = useState<TunerFormState | null>(null);
 
   useEffect(() => {
-    if (data) setForm(data);
+    if (data) setForm(toForm(data));
   }, [data]);
+
+  const countError = form ? rangeError(form.tuner_count, TUNER_COUNT_RANGE) : null;
+  const channelsError = form ? rangeError(form.max_channels, MAX_CHANNELS_RANGE) : null;
+  const canSave = form !== null && countError === null && channelsError === null;
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!form) return;
+    if (!form || !canSave) return;
     try {
-      await update.mutateAsync(form);
+      await update.mutateAsync({
+        friendly_name: form.friendly_name,
+        tuner_count: Number(form.tuner_count),
+        max_channels: Number(form.max_channels),
+        only_online: form.only_online,
+      });
       notify('Tuner settings saved.', 'success');
     } catch (err) {
       notify(describeMediaServerError(err), 'error');
@@ -277,20 +327,24 @@ const TunerSettingsBlock: React.FC<{ notify: MediaServerNotify }> = ({ notify })
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <TextField
               size="small"
+              type="number"
               label="Streams at once"
               value={form?.tuner_count ?? ''}
-              onChange={(event) => setForm((prev) => (prev ? { ...prev, tuner_count: Number(event.target.value) || 0 } : prev))}
-              inputProps={{ 'aria-label': 'Streams at once', inputMode: 'numeric' }}
-              helperText="How many channels can play through the tuner at the same time."
+              onChange={(event) => setForm((prev) => (prev ? { ...prev, tuner_count: event.target.value } : prev))}
+              inputProps={{ 'aria-label': 'Streams at once', min: TUNER_COUNT_RANGE.min, max: TUNER_COUNT_RANGE.max, step: 1 }}
+              error={countError !== null}
+              helperText={countError ?? 'How many channels can play through the tuner at the same time.'}
               fullWidth
             />
             <TextField
               size="small"
+              type="number"
               label="Most channels to publish"
               value={form?.max_channels ?? ''}
-              onChange={(event) => setForm((prev) => (prev ? { ...prev, max_channels: Number(event.target.value) || 0 } : prev))}
-              inputProps={{ 'aria-label': 'Most channels to publish', inputMode: 'numeric' }}
-              helperText="Plex stops saving channel maps at roughly 450-480 channels."
+              onChange={(event) => setForm((prev) => (prev ? { ...prev, max_channels: event.target.value } : prev))}
+              inputProps={{ 'aria-label': 'Most channels to publish', min: MAX_CHANNELS_RANGE.min, max: MAX_CHANNELS_RANGE.max, step: 1 }}
+              error={channelsError !== null}
+              helperText={channelsError ?? 'Plex stops saving channel maps at roughly 450-480 channels.'}
               fullWidth
             />
           </Stack>
@@ -304,7 +358,7 @@ const TunerSettingsBlock: React.FC<{ notify: MediaServerNotify }> = ({ notify })
             label="Publish only channels that are online"
           />
           <Box>
-            <Button type="submit" variant="contained" size="small" aria-label="Save tuner settings" disabled={!form || update.isPending}>
+            <Button type="submit" variant="contained" size="small" aria-label="Save tuner settings" disabled={!canSave || update.isPending}>
               Save
             </Button>
           </Box>

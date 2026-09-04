@@ -324,6 +324,38 @@ PY
     fi
 done
 
+# ffmpeg rides in runtime-base, so every flavor gets the vendored source
+# (sha256-verified in the ffmpeg-builder stage).
+FFMPEG_MANIFEST="${FFMPEG_MANIFEST:-$ROOT_DIR/docker/manifests/ffmpeg.json}"
+if [[ ! -f "$FFMPEG_MANIFEST" ]]; then
+    echo "ffmpeg manifest not found: $FFMPEG_MANIFEST" >&2
+    exit 1
+fi
+if ! ffmpeg_derived="$(python3 - "$FFMPEG_MANIFEST" <<'PY'
+import json, sys
+m = json.load(open(sys.argv[1]))
+for key in ("vendored_file", "sha256", "source_url", "mirror_urls"):
+    if not m.get(key):
+        raise SystemExit(f"ffmpeg manifest missing required key: {key}")
+print(f"FFMPEG_VENDORED_FILE={m['vendored_file']}")
+print(f"FFMPEG_SHA256={m['sha256']}")
+print(f"FFMPEG_SOURCE_URL={m['source_url']}")
+print("FFMPEG_MIRROR_URLS=" + " ".join(m["mirror_urls"]))
+PY
+)"; then
+    printf 'ERROR: failed to derive ffmpeg build args\n%s\n' "$ffmpeg_derived" >&2
+    exit 1
+fi
+while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    key="${line%%=*}"
+    already=0
+    for existing in "${BUILD_ARGS[@]:-}"; do
+        if [[ "$existing" == "$key="* ]]; then already=1; break; fi
+    done
+    if [[ "$already" -eq 0 ]]; then BUILD_ARGS+=("--build-arg" "$line"); fi
+done <<< "$ffmpeg_derived"
+
 if [[ "$LOAD" -eq 1 && "$PLATFORMS" == *","* ]]; then
   echo "--load supports a single platform only. Use --push for multi-platform manifests."
   exit 1

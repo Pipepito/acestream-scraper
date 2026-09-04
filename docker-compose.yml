@@ -4,8 +4,15 @@ services:
       context: .
       dockerfile: Dockerfile
     image: pipepito/acestream-scraper:latest
+    # Live stream relays get 3 s to close, then the app tears down ffmpeg and
+    # engine sessions; give Docker enough room before its SIGKILL.
+    stop_grace_period: 20s
     ports:
-      - "8000:8000"
+      # IPv4-only on purpose: an unaddressed "8000:8000" also listens on [::]
+      # and docker-proxy rewrites every IPv6 client to the bridge gateway,
+      # which defeats TUNER_ALLOWED_NETWORKS. For IPv6, enable it on the network
+      # and add "[::]:8000:8000".
+      - "0.0.0.0:8000:8000"
       # Publish these when running the embedded IPFS daemon (ENABLE_IPFS=true).
       # The gateway sits on 8081 in-container because Acexy owns 8080; the RPC
       # API (5001) is unauthenticated — keep it bound to the host's loopback.

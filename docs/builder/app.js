@@ -50,9 +50,9 @@
     extEnginePort: 6878,
     ports: {},    // id -> { enabled, host }
     volumes: {},  // id -> { enabled, source }
+    runtimeSettings: {}, // id -> user-selected value
     containerName: 'acestream-scraper',
-    restart: 'unless-stopped',
-    tz: ''
+    restart: 'unless-stopped'
   };
 
   // ---------------------------------------------------------------------------
@@ -82,13 +82,53 @@
     });
     const activeVolumes = data.volumes.filter((v) => {
       if (v.id === 'config') return true;
-      if (v.id === 'engineState') return engineOn;
+      if (v.id === 'engineState') return engineOn && platform.id !== 'amd64';
       if (v.id === 'ipfsRepo') return ipfsEmbeddedOn;
       if (v.id === 'zeronetData') return zeronetEmbeddedOn;
       return false;
     });
 
     return { flavor, platform, imageHasEngine, imageHasAcexy, engineOn, acexyOn, warpOn, needsExternalEngine, ipfsEmbeddedOn, ipfsExternalOn, zeronetEmbeddedOn, zeronetExternalOn, activePorts, activeVolumes };
+  }
+
+  function valueAtPath(path) {
+    return path.split('.').reduce((value, key) => value && value[key], data);
+  }
+
+  function settingApplies(setting, d) {
+    if (setting.appliesWhen === 'always') return true;
+    if (setting.appliesWhen === 'engineOn') return d.engineOn;
+    if (setting.appliesWhen === 'zeronetEmbeddedOn') return d.zeronetEmbeddedOn;
+    if (setting.appliesWhen === 'zeronetUiPublished') {
+      return d.zeronetEmbeddedOn && !!state.ports.zeronetUi?.enabled;
+    }
+    if (setting.appliesWhen === 'ipfsEmbeddedOn') return d.ipfsEmbeddedOn;
+    if (setting.appliesWhen === 'warpOn') return d.warpOn;
+    return false;
+  }
+
+  function activeRuntimeSettings(d) {
+    return data.runtimeSettings.filter((setting) => settingApplies(setting, d));
+  }
+
+  function validRuntimeNumber(setting, value) {
+    if (String(value).trim() === '') return null;
+    const number = Number(value);
+    if (!Number.isFinite(number)) return null;
+    if (setting.integer && !Number.isInteger(number)) return null;
+    if (setting.min != null && number < setting.min) return null;
+    if (setting.max != null && number > setting.max) return null;
+    return number;
+  }
+
+  function validPublicOrigin(value) {
+    try {
+      const parsed = new URL(value);
+      return ['http:', 'https:'].includes(parsed.protocol) && !!parsed.hostname && parsed.pathname === '/' &&
+        !parsed.search && !parsed.hash && !parsed.username && !parsed.password;
+    } catch (_) {
+      return false;
+    }
   }
 
   function imageTag(flavor) {
@@ -130,8 +170,29 @@
     if (d.zeronetExternalOn) env.push(['ZERONET_URL', state.zeronetUrl.trim() || data.zeronet.defaultUrl]);
     if (d.ipfsEmbeddedOn) env.push(['ENABLE_IPFS', 'true']);
     if (d.ipfsExternalOn) env.push(['IPFS_GATEWAY_URL', state.ipfsGatewayUrl.trim() || data.ipfs.defaultGatewayUrl]);
-    if (state.tz.trim()) env.push(['TZ', state.tz.trim()]);
+    for (const setting of activeRuntimeSettings(d)) {
+      const value = state.runtimeSettings[setting.id];
+      if (setting.type === 'boolean') {
+        if (value !== setting.default) env.push([setting.env, String(value)]);
+      } else if (setting.type === 'number') {
+        const number = validRuntimeNumber(setting, value);
+        if (number != null) env.push([setting.env, String(number)]);
+      } else if (String(value || '').trim()) {
+        const text = String(value).trim();
+        if (setting.id !== 'publicBaseUrl' || validPublicOrigin(text)) env.push([setting.env, text]);
+      }
+    }
     return env;
+  }
+
+  function shellQuote(value) {
+    const text = String(value);
+    if (/^[a-zA-Z0-9_./:@,+-]+$/.test(text)) return text;
+    return `'${text.replace(/'/g, `'\\''`)}'`;
+  }
+
+  function yamlQuote(value) {
+    return JSON.stringify(String(value));
   }
 
   function portEntries(d) {
@@ -141,7 +202,11 @@
       if (!s || !s.enabled) continue;
       const host = validPort(s.host) || p.defaultHost;
       for (const proto of p.protocols) {
-        out.push({ host, container: p.container, proto, label: p.label });
+        // hostAddress pins a mapping to one host address. The web port uses it
+        // (see runtime-options.json): an unaddressed publish also listens on
+        // [::], and docker-proxy then rewrites every IPv6 client to the bridge
+        // gateway, which defeats the tuner routes' network check.
+        out.push({ address: p.hostAddress ? p.hostAddress + ':' : '', host, container: p.container, proto, label: p.label });
       }
     }
     return out;
@@ -184,10 +249,10 @@
       lines.push('  --device /dev/net/tun:/dev/net/tun \\');
     }
     if (usesHostGateway(d)) lines.push('  --add-host host.docker.internal:host-gateway \\');
-    for (const [k, v] of envEntries(d)) lines.push(`  -e ${k}=${v} \\`);
+    for (const [k, v] of envEntries(d)) lines.push(`  -e ${k}=${shellQuote(v)} \\`);
     for (const p of portEntries(d)) {
       const suffix = p.proto === 'udp' ? '/udp' : '';
-      lines.push(`  -p ${p.host}:${p.container}${suffix} \\`);
+      lines.push(`  -p ${p.address}${p.host}:${p.container}${suffix} \\`);
     }
     for (const v of volumeEntries(d)) lines.push(`  -v ${runVolumeFlag(v.source, v.target)} \\`);
     lines.push(`  ${image}`);
@@ -205,8 +270,8 @@
       lines.push('    ports:');
       for (const p of ports) {
         const suffix = p.proto === 'udp' ? '/udp' : '';
-        const mapping = `"${p.host}:${p.container}${suffix}"`;
-        lines.push(`      - ${mapping.padEnd(18)} # ${p.label}${p.proto === 'udp' ? ' (UDP)' : ''}`);
+        const mapping = `"${p.address}${p.host}:${p.container}${suffix}"`;
+        lines.push(`      - ${mapping.padEnd(20)} # ${p.label}${p.proto === 'udp' ? ' (UDP)' : ''}`);
       }
     }
 
@@ -222,7 +287,7 @@
     }
     if (env.length) {
       lines.push('    environment:');
-      for (const [k, v] of env) lines.push(`      - ${k}=${v}`);
+      for (const [k, v] of env) lines.push(`      - ${yamlQuote(`${k}=${v}`)}`);
     }
 
     const volumes = volumeEntries(d);
@@ -257,6 +322,24 @@
     if (state.channel === 'version' && !state.version.trim()) {
       out.push(['error', 'Enter the version to pin (for example v2.0.0). Release tags are listed on Docker Hub.']);
     }
+    for (const setting of activeRuntimeSettings(d)) {
+      const value = state.runtimeSettings[setting.id];
+      if (setting.type === 'number' && String(value).trim() && validRuntimeNumber(setting, value) == null) {
+        const range = setting.min != null ? ` of ${setting.min} or more` : '';
+        const kind = setting.integer ? 'a whole number' : 'a number';
+        out.push(['error', `${setting.label} must be ${kind}${range}. The invalid value is left out of the command.`]);
+      }
+    }
+    const publicBaseUrl = String(state.runtimeSettings.publicBaseUrl || '').trim();
+    if (publicBaseUrl && !validPublicOrigin(publicBaseUrl)) {
+      out.push(['error', 'Public address must be an http:// or https:// origin without a path, query, fragment or credentials. It is left out of the command until corrected.']);
+    }
+    if (String(state.runtimeSettings.tunerNetworks || '').trim() === '*') {
+      out.push(['warn', 'Tuner-allowed networks is set to *: anyone who can reach the web port can use the token-free tuner and relay routes.']);
+    }
+    if (String(state.runtimeSettings.forwardedAllowIps || '').trim() === '*') {
+      out.push(['warn', 'Trusted reverse proxies is set to *: any peer can supply forwarded client and host headers.']);
+    }
     if (!d.imageHasEngine) {
       out.push(['info', 'This flavor has no AceStream engine. ' + notes.externalEngineSettings]);
     } else if (!d.engineOn) {
@@ -270,7 +353,6 @@
     }
     if (d.engineOn && d.platform.id === 'armv7') out.push(['warn', notes.armv7Experimental]);
     if (d.engineOn && d.platform.id !== 'amd64') out.push(['info', notes.armPageSize]);
-    if (state.warp && !d.platform.warpAvailable) out.push(['warn', 'WARP is switched off for this platform. ' + notes.warpArm]);
     if (d.warpOn) out.push(['info', notes.warpCaps + ' They are included below.']);
     const engineApi = data.ports.find((p) => p.id === 'engineApi');
     if (d.engineOn && engineApi && state.ports.engineApi && state.ports.engineApi.enabled) {
@@ -282,18 +364,13 @@
     if (d.engineOn && d.platform.id !== 'amd64' && state.volumes.engineState && !state.volumes.engineState.enabled) {
       out.push(['info', 'Without the engine state folder the ARM engine rebuilds its cache and device id on every container replacement.']);
     }
-    if (state.zeronet && state.zeronetEmbedded && !d.platform.zeronetAvailable) {
-      out.push(['warn', 'The bundled ZeroNet node is switched off for this platform. ' + data.notes.zeronetArm]);
-    }
     if (d.zeronetEmbeddedOn && state.volumes.zeronetData && !state.volumes.zeronetData.enabled) {
       out.push(['info', 'Without the ZeroNet state folder the node re-downloads its sites on every container replacement.']);
     }
     const zeronetUi = data.ports.find((p) => p.id === 'zeronetUi');
     if (d.zeronetEmbeddedOn && zeronetUi && state.ports.zeronetUi && state.ports.zeronetUi.enabled) {
-      out.push(['warn', zeronetUi.securityNote + ' Set ZERONET_UI_HOST for access from other machines.']);
-    }
-    if (state.ipfs && state.ipfsEmbedded && !d.platform.ipfsAvailable) {
-      out.push(['warn', 'The embedded IPFS node is switched off for this platform. ' + data.notes.ipfsArmv7]);
+      const uiHost = String(state.runtimeSettings.zeronetUiHost || '').trim();
+      out.push(['warn', zeronetUi.securityNote + (uiHost ? '' : ' Add the hostnames that should be accepted under Advanced settings.')]);
     }
     if (d.ipfsEmbeddedOn && state.volumes.ipfsRepo && !state.volumes.ipfsRepo.enabled) {
       out.push(['info', 'Without the IPFS repository folder the node re-initializes with a new identity on every container replacement.']);
@@ -344,12 +421,17 @@
   function renderPlatforms() {
     const box = $('#platform-options');
     box.replaceChildren();
+    const selectedFlavor = data.flavors.find((f) => f.id === state.flavor) || data.flavors[0];
+    const imageHasEngine = selectedFlavor.features.includes('acestream');
     for (const p of data.platforms) {
       const input = el('input', { type: 'radio', name: 'platform', value: p.id, checked: p.id === state.platform });
       input.addEventListener('change', () => { state.platform = p.id; update(); });
-      const chips = [el('span', { class: 'chip', text: p.engine })];
-      if (p.engineSupport === 'experimental') chips.push(el('span', { class: 'chip chip-warm', text: 'Engine: experimental' }));
-      if (!p.warpAvailable) chips.push(el('span', { class: 'chip', text: 'No WARP' }));
+      const chips = [];
+      if (imageHasEngine) chips.push(el('span', { class: 'chip', text: p.engine }));
+      if (imageHasEngine && p.engineSupport === 'experimental') chips.push(el('span', { class: 'chip chip-warm', text: 'Engine: experimental' }));
+      if (p.warpAvailable) chips.push(el('span', { class: 'chip', text: 'WARP' }));
+      if (p.ipfsAvailable) chips.push(el('span', { class: 'chip', text: 'Embedded IPFS' }));
+      if (p.zeronetAvailable) chips.push(el('span', { class: 'chip', text: 'Embedded ZeroNet' }));
       box.append(el('label', { class: 'card' + (p.id === state.platform ? ' selected' : '') }, [
         input,
         el('div', { class: 'card-title', text: p.label }),
@@ -384,6 +466,21 @@
   function renderFeatures(d) {
     const box = $('#feature-toggles');
     box.replaceChildren();
+    const included = ['web app'];
+    if (d.imageHasEngine) included.push('AceStream engine');
+    if (d.imageHasAcexy) included.push('Acexy proxy');
+    const available = [];
+    if (d.platform.warpAvailable) available.push('WARP');
+    if (d.platform.ipfsAvailable) available.push('embedded IPFS');
+    if (d.platform.zeronetAvailable) available.push('embedded ZeroNet');
+    const externalOnly = [];
+    if (!d.platform.ipfsAvailable) externalOnly.push('IPFS');
+    if (!d.platform.zeronetAvailable) externalOnly.push('ZeroNet');
+    const summary = [`${d.flavor.label} on ${d.platform.label} includes ${included.join(', ')}.`];
+    if (available.length) summary.push(`Available add-ons: ${available.join(', ')}.`);
+    if (externalOnly.length) summary.push(`${externalOnly.join(' and ')} use an external service on this platform.`);
+    $('#selection-summary').textContent = summary.join(' ');
+
     const list = el('div', { class: 'toggle-list' });
     if (d.imageHasEngine) {
       list.append(toggleRow('engine', 'Run the AceStream engine in this container',
@@ -395,26 +492,26 @@
         'Serves streams to your players over plain HTTP and handles engine sessions for you.',
         state.acexy, (v) => { state.acexy = v; }));
     }
-    list.append(toggleRow('warp', 'Route through Cloudflare WARP',
-      d.platform.warpAvailable
-        ? 'Connects the container through WARP. Adds the required capabilities and TUN device.'
-        : data.notes.warpArm,
-      d.platform.warpAvailable && state.warp, (v) => { state.warp = v; }, !d.platform.warpAvailable));
+    if (d.platform.warpAvailable) {
+      list.append(toggleRow('warp', 'Route through Cloudflare WARP',
+        'Connects the container through WARP. Adds the required capabilities and TUN device.',
+        state.warp, (v) => { state.warp = v; }));
+    }
     list.append(toggleRow('zeronet', 'Scrape ZeroNet sources',
-      data.zeronet.description,
+      d.platform.zeronetAvailable ? data.zeronet.description : data.notes.zeronetArm,
       state.zeronet, (v) => { state.zeronet = v; }));
-    if (state.zeronet) {
+    if (state.zeronet && d.platform.zeronetAvailable) {
       list.append(toggleRow('zeronet-embedded', 'Run the bundled ZeroNet node in this container',
-        d.platform.zeronetAvailable ? data.zeronet.embeddedDescription : data.notes.zeronetArm,
-        d.platform.zeronetAvailable && state.zeronetEmbedded, (v) => { state.zeronetEmbedded = v; }, !d.platform.zeronetAvailable));
+        data.zeronet.embeddedDescription,
+        state.zeronetEmbedded, (v) => { state.zeronetEmbedded = v; }));
     }
     list.append(toggleRow('ipfs', 'Scrape IPFS sources',
-      data.ipfs.description,
+      d.platform.ipfsAvailable ? data.ipfs.description : data.notes.ipfsArmv7,
       state.ipfs, (v) => { state.ipfs = v; }));
-    if (state.ipfs) {
+    if (state.ipfs && d.platform.ipfsAvailable) {
       list.append(toggleRow('ipfs-embedded', 'Run the embedded IPFS node in this container',
-        d.platform.ipfsAvailable ? data.ipfs.embeddedDescription : data.notes.ipfsArmv7,
-        d.platform.ipfsAvailable && state.ipfsEmbedded, (v) => { state.ipfsEmbedded = v; }, !d.platform.ipfsAvailable));
+        data.ipfs.embeddedDescription,
+        state.ipfsEmbedded, (v) => { state.ipfsEmbedded = v; }));
     }
     box.append(list);
 
@@ -487,6 +584,71 @@
     box.append(list);
   }
 
+  function runtimeSettingControl(setting) {
+    const value = state.runtimeSettings[setting.id];
+    const inputId = `setting-${setting.id}`;
+    const envName = el('code', { class: 'env-name', text: setting.env });
+
+    if (setting.type === 'boolean') {
+      const input = el('input', { type: 'checkbox', id: inputId, checked: value });
+      input.addEventListener('change', () => {
+        state.runtimeSettings[setting.id] = input.checked;
+        updateOutput();
+      });
+      return el('label', { class: 'toggle setting-toggle', for: inputId }, [
+        input,
+        el('span', { class: 'switch', 'aria-hidden': 'true' }),
+        el('span', {}, [
+          el('span', { class: 'setting-title-row' }, [el('span', { class: 'toggle-title', text: setting.label }), envName]),
+          el('p', { class: 'toggle-desc', text: setting.description })
+        ])
+      ]);
+    }
+
+    const attrs = {
+      type: setting.type,
+      id: inputId,
+      value,
+      placeholder: setting.placeholderFrom ? String(valueAtPath(setting.placeholderFrom)) : setting.placeholder,
+      spellcheck: 'false',
+      autocomplete: setting.type === 'password' ? 'new-password' : 'off'
+    };
+    if (setting.min != null) attrs.min = setting.min;
+    if (setting.max != null) attrs.max = setting.max;
+    if (setting.step != null) attrs.step = setting.step;
+    const input = el('input', attrs);
+    input.addEventListener('input', () => {
+      state.runtimeSettings[setting.id] = input.value;
+      updateOutput();
+    });
+    return el('div', { class: 'field runtime-field' }, [
+      el('div', { class: 'setting-title-row' }, [el('label', { for: inputId, text: setting.label }), envName]),
+      input,
+      el('p', { class: 'hint', text: setting.description })
+    ]);
+  }
+
+  function renderRuntimeSettings(d) {
+    const box = $('#runtime-setting-groups');
+    const openGroups = new Set(Array.from(box.querySelectorAll('details[open]')).map((node) => node.dataset.group));
+    box.replaceChildren();
+    const active = activeRuntimeSettings(d);
+    for (const group of data.settingGroups) {
+      const settings = active.filter((setting) => setting.group === group.id);
+      if (!settings.length) continue;
+      box.append(el('details', { class: 'setting-group', 'data-group': group.id, open: openGroups.has(group.id) }, [
+        el('summary', { class: 'setting-group-summary' }, [
+          el('span', { class: 'setting-group-copy' }, [
+            el('span', { class: 'setting-group-title', text: group.label }),
+            el('span', { class: 'setting-group-description', text: group.description })
+          ]),
+          el('span', { class: 'chip', text: `${settings.length} ${settings.length === 1 ? 'setting' : 'settings'}` })
+        ]),
+        el('div', { class: 'runtime-setting-grid' }, settings.map(runtimeSettingControl))
+      ]));
+    }
+  }
+
   function renderWarnings(d) {
     const box = $('#warnings');
     box.replaceChildren();
@@ -504,6 +666,7 @@
     box.replaceChildren();
     const web = state.ports.web ? (validPort(state.ports.web.host) || 8000) : 8000;
     box.append(el('p', { html: data.notes.afterRun.replace('{webPort}', String(web)).replace(/^Then /, '<strong>Then</strong> ') }));
+    box.append(el('p', { text: data.notes.publicBaseUrl }));
     if (d.acexyOn && state.ports.acexy && state.ports.acexy.enabled) {
       const acexyPort = validPort(state.ports.acexy.host) || 8080;
       box.append(el('p', { html: `<strong>Players:</strong> point them at <code>http://&lt;server-ip&gt;:${acexyPort}/ace/getstream?id=&lt;channel id&gt;</code> — the playlist in the web interface uses this base URL once you set it under Settings.` }));
@@ -526,12 +689,13 @@
   function update() {
     const d = derive();
     document.querySelectorAll('#flavor-options .card').forEach((c) => c.classList.toggle('selected', c.querySelector('input').checked));
-    document.querySelectorAll('#platform-options .card').forEach((c) => c.classList.toggle('selected', c.querySelector('input').checked));
+    renderPlatforms();
     document.querySelectorAll('#channel-options .pill').forEach((c) => c.classList.toggle('selected', c.querySelector('input').checked));
     $('#version-field').hidden = state.channel !== 'version';
     renderFeatures(d);
     renderPorts(d);
     renderVolumes(d);
+    renderRuntimeSettings(d);
     updateOutput();
   }
 
@@ -549,7 +713,6 @@
     bind('#zeronet-url', 'zeronetUrl');
     bind('#ipfs-gateway-url', 'ipfsGatewayUrl');
     bind('#container-name', 'containerName');
-    bind('#tz-input', 'tz');
     $('#restart-policy').addEventListener('change', (e) => { state.restart = e.target.value; updateOutput(); });
 
     const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
@@ -598,12 +761,14 @@
     state.flavor = (data.flavors.find((f) => f.recommended) || data.flavors[0]).id;
     state.zeronetUrl = data.zeronet.defaultUrl;
     state.ipfsGatewayUrl = data.ipfs.defaultGatewayUrl;
+    for (const setting of data.runtimeSettings) {
+      state.runtimeSettings[setting.id] = setting.type === 'boolean' ? setting.default : '';
+    }
     // The engine API, the IPFS gateway and the (unauthenticated) ZeroNet UI
     // work in-container without being published; keep them opt-in.
     for (const p of data.ports) state.ports[p.id] = { enabled: !['engineApi', 'ipfsGateway', 'zeronetUi'].includes(p.id), host: p.defaultHost };
     for (const v of data.volumes) state.volumes[v.id] = { enabled: true, source: v.defaultSource };
     renderFlavors();
-    renderPlatforms();
     renderChannels();
     bindStatic();
     update();

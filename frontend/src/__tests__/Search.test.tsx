@@ -26,6 +26,16 @@ jest.mock('../hooks/useSearch', () => ({
   useAddAcestreamChannel: (...args: unknown[]) => mockUseAddAcestreamChannel(...args),
 }));
 
+jest.mock('../components/player/StreamPlayerDialog', () => ({
+  __esModule: true,
+  default: ({ open, title, contentId }: { open: boolean; title: string; contentId: string | null }) =>
+    open ? (
+      <div role="dialog" aria-label={title}>
+        {contentId}
+      </div>
+    ) : null,
+}));
+
 describe('Search page', () => {
   const theme = createAppTheme('light');
   const defaultResults = {
@@ -179,6 +189,20 @@ describe('Search page', () => {
     });
 
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['acestream-channels'] });
+  });
+
+  it('plays a result without adding it', () => {
+    const mutateAsync = jest.fn().mockResolvedValue({});
+    mockUseAddAcestreamChannel.mockReturnValue({ mutateAsync, isPending: false });
+
+    renderPage();
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search Query' }), { target: { value: 'arena' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+    fireEvent.click(screen.getByRole('button', { name: 'play Arena Premium' }));
+
+    expect(screen.getByRole('dialog', { name: 'Arena Premium' })).toHaveTextContent('ace-1');
+    expect(mutateAsync).not.toHaveBeenCalled();
   });
 
   it('removes a successfully added single result from the current selection summary', async () => {

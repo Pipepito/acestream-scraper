@@ -163,3 +163,68 @@ def test_scraped_urls_schema_matches_runtime_contract(tmp_path):
         )
     finally:
         engine.dispose()
+
+
+def test_media_integration_tables_match_models(tmp_path):
+    engine, inspector = _migrated_inspector(tmp_path, 'media-integrations-parity.db')
+    try:
+        players = _column_map(inspector, 'remote_players')
+        assert set(players) == {'id', 'name', 'kind', 'host', 'port', 'username', 'password', 'base_url_id', 'created_at', 'updated_at'}
+        assert players['name']['nullable'] is False and players['port']['nullable'] is False
+        assert any(c.get('column_names') == ['name'] for c in inspector.get_unique_constraints('remote_players')) or \
+            _has_single_column_index(inspector.get_indexes('remote_players'), 'name', unique=True)
+        assert any(fk.get('constrained_columns') == ['base_url_id'] and fk.get('referred_table') == 'base_urls'
+                   for fk in inspector.get_foreign_keys('remote_players'))
+
+        servers = _column_map(inspector, 'media_servers')
+        assert set(servers) == {
+            'id', 'kind', 'name', 'base_url', 'api_key', 'tuner_mode', 'enabled', 'auto_refresh', 'tuner_host_id',
+            'listing_provider_id', 'dvr_key', 'last_lineup_fingerprint', 'last_guide_fingerprint', 'last_sync_at',
+            'last_sync_status', 'last_error', 'server_version', 'created_at', 'updated_at',
+        }
+        assert servers['tuner_mode']['nullable'] is False and servers['last_sync_status']['nullable'] is False
+    finally:
+        engine.dispose()
+
+
+# Columns the migrated schema carries that the ORM never mapped. They predate
+# the model hub and are harmless (nothing reads them), but they are listed
+# explicitly so this drift stays visible instead of growing quietly.
+UNMAPPED_MIGRATED_COLUMNS = {
+    'epg_sources': {'created_at', 'updated_at'},
+    'epg_string_mappings': {'created_at', 'updated_at'},
+}
+
+
+def test_models_describe_no_table_or_column_the_alembic_head_lacks(tmp_path):
+    """``ensure_schema_stamped`` repairs a database an older image's
+    ``create_all`` left behind by creating the missing tables from the models
+    and then recording the head, so a model must never describe a table or a
+    column the head does not have — the repaired database would be wrong in a
+    way no later revision fixes.
+    """
+    from sqlalchemy import create_engine, inspect
+
+    import app.models.models  # noqa: F401  (registers every table on Base)
+    from app.config.database import Base
+
+    engine, inspector = _migrated_inspector(tmp_path, 'model-head-parity.db')
+    created = create_engine(f"sqlite:///{(tmp_path / 'create-all-parity.db').as_posix()}")
+    try:
+        Base.metadata.create_all(bind=created)
+        create_all_inspector = inspect(created)
+
+        migrated_tables = set(inspector.get_table_names()) - {'alembic_version'}
+        create_all_tables = set(create_all_inspector.get_table_names())
+        assert create_all_tables == migrated_tables
+
+        for table in sorted(create_all_tables):
+            migrated_columns = set(_column_map(inspector, table))
+            model_columns = {column['name'] for column in create_all_inspector.get_columns(table)}
+            assert model_columns <= migrated_columns, f"{table}: model columns the head lacks: {sorted(model_columns - migrated_columns)}"
+            assert migrated_columns - model_columns == UNMAPPED_MIGRATED_COLUMNS.get(table, set()), (
+                f"{table}: columns only the migrated schema has: {sorted(migrated_columns - model_columns)}"
+            )
+    finally:
+        created.dispose()
+        engine.dispose()

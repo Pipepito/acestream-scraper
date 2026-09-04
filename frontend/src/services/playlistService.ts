@@ -3,6 +3,7 @@
  */
 import apiClient from './apiClient';
 import { getPlaylistDownloadBaseUrl } from '../config/runtime';
+import { getApiToken } from './apiToken';
 
 /**
  * Playlist filter parameters
@@ -66,11 +67,21 @@ export const playlistService = {
   }
 };
 
+/** Absolute URL for a backend path, resolved against the public base URL when known. */
+export const buildPublicUrl = (pathWithQuery: string, publicBaseUrl?: string): string => {
+  const fallbackOrigin = typeof window === 'undefined' ? '' : window.location.origin;
+  const origin = publicBaseUrl && publicBaseUrl.trim() !== '' ? publicBaseUrl.trim() : fallbackOrigin;
+  if (!origin) return pathWithQuery;
+  return new URL(pathWithQuery, origin.endsWith('/') ? origin : `${origin}/`).toString();
+};
+
 /** Absolute playlist URL for players on other devices (QR codes, copy button). */
-export const getAbsolutePlaylistUrl = (filters?: PlaylistFilters): string => {
-  const relative = playlistService.getPlaylistDownloadUrl(filters);
-  if (typeof window === 'undefined') return relative;
-  return new URL(relative, window.location.origin).toString();
+export const getAbsolutePlaylistUrl = (filters?: PlaylistFilters, publicBaseUrl?: string): string => {
+  const params = new URLSearchParams(playlistService.getPlaylistDownloadUrl(filters).split('?')[1] ?? '');
+  const token = getApiToken();
+  if (token) params.set('token', token);
+  const query = params.toString();
+  return buildPublicUrl(`/api/v1/playlists/m3u${query ? `?${query}` : ''}`, publicBaseUrl);
 };
 
 export default playlistService;

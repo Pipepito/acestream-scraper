@@ -110,6 +110,26 @@ class Settings(BaseSettings):
     FRONTEND_BUILD_PATH: str = "frontend_build"
     ACE_ENGINE_URL: str = "http://localhost:6878"
 
+    # --- Media integrations (spec 4.3–4.5) ---------------------------------
+    # Externally reachable origin (scheme://host[:port]) advertised to tuners,
+    # remote players and the SPA copy link. Empty = derive from the request.
+    PUBLIC_BASE_URL: str = ""
+    # Peers whose X-Forwarded-* headers the app trusts (IPs, CIDRs, "*", or
+    # literal tokens such as "testclient"). uvicorn's own proxy-header handling
+    # is disabled in favour of app/middleware/forwarded.py.
+    FORWARDED_ALLOW_IPS: str = "127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+    # Networks allowed to reach the token-free /tuner/* routes ("*" disables).
+    TUNER_ALLOWED_NETWORKS: str = (
+        "127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10"
+    )
+    # Web player (plan 2).
+    PLAYER_HLS_DIR: str = "/tmp/acestream-player"
+    PLAYER_MAX_SESSIONS: int = 3
+    PLAYER_START_TIMEOUT_SECONDS: int = 45
+    FFMPEG_BINARY_PATH: str = ""
+    # Media servers (plan 4): minimum minutes between automatic guide refreshes; 0 disables the debounce.
+    MEDIA_SERVER_MIN_REFRESH_MINUTES: int = 30
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def normalize_cors_origins(cls, value):

@@ -36,3 +36,10 @@ class ServiceRestartResponse(BaseModel):
     name: str
     success: bool
     message: str
+
+
+class PublicUrlResponse(BaseModel):
+    """The origin external clients must use to reach this server (spec 4.3)."""
+    url: str = Field(description="scheme://host[:port], no trailing slash")
+    source: Literal["setting", "forwarded", "request"]
+    warnings: List[str] = Field(default_factory=list, description="localhost | docker-internal | unset | proxied")

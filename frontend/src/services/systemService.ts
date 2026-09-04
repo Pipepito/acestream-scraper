@@ -32,6 +32,15 @@ export interface ServiceRestartResponse {
   message: string;
 }
 
+export type PublicUrlSource = 'setting' | 'forwarded' | 'request';
+export type PublicUrlWarning = 'localhost' | 'docker-internal' | 'unset' | 'proxied';
+
+export interface PublicUrlResponse {
+  url: string;
+  source: PublicUrlSource;
+  warnings: PublicUrlWarning[];
+}
+
 const BASE_URL = '/v1/system';
 
 export const systemService = {
@@ -41,6 +50,11 @@ export const systemService = {
   },
   restartService: async (name: string): Promise<ServiceRestartResponse> => {
     const { data } = await apiClient.post<ServiceRestartResponse>(`${BASE_URL}/services/${name}/restart`);
+    return data;
+  },
+  /** Origin that tuners, players and copied links must use to reach this server. */
+  getPublicUrl: async (): Promise<PublicUrlResponse> => {
+    const { data } = await apiClient.get<PublicUrlResponse>(`${BASE_URL}/public-url`);
     return data;
   },
 };

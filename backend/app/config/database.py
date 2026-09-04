@@ -6,7 +6,7 @@ The engine and session factory are built lazily so tests can swap the bound
 module-level ``Base`` is constructed once and reused for every binding so
 SQLAlchemy's mapper registry stays consistent across the test suite.
 """
-from typing import Optional
+from typing import List, Optional
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
@@ -168,18 +168,54 @@ def upgrade_schema_to_head() -> None:
     command.upgrade(_alembic_config(), "head")
 
 
-def ensure_schema_stamped(database_url: Optional[str] = None) -> bool:
-    """Stamp an ``unstamped`` database with the Alembic head; return True if stamped.
+def create_missing_model_tables(database_url: Optional[str] = None) -> List[str]:
+    """Create the tables the models declare and the database does not have.
 
-    The schema created by ``Base.metadata.create_all`` matches the Alembic
-    head (``tests/test_schema_parity.py`` guards this), so recording the head
-    revision is the correct repair — it lets future revisions apply instead of
+    Returns the table names created. Existing tables are left untouched
+    (``checkfirst``), so this adds nothing to a database already at head.
+    """
+    import logging
+
+    from sqlalchemy import create_engine, inspect
+
+    import app.models.models  # noqa: F401 - registers every table on Base
+
+    url = database_url or get_settings().DATABASE_URL
+    engine = create_engine(url)
+    try:
+        before = set(inspect(engine).get_table_names())
+        Base.metadata.create_all(bind=engine, checkfirst=True)
+        created = sorted(set(inspect(engine).get_table_names()) - before)
+    finally:
+        engine.dispose()
+    if created:
+        logging.getLogger(__name__).warning(
+            "Created %d table(s) an older image's create_all never provisioned: %s",
+            len(created),
+            ", ".join(created),
+        )
+    return created
+
+
+def ensure_schema_stamped(database_url: Optional[str] = None) -> bool:
+    """Converge an ``unstamped`` database on the Alembic head; return True if stamped.
+
+    Stamping alone is only correct for a database whose schema *is* today's
+    head. An unstamped database is one an older image's ``create_all`` left
+    behind, so it carries that image's tables: recording today's head there
+    marks every revision since as applied, and the tables those revisions add
+    (``base_urls``, ``remote_players``, ``media_servers``, ...) are then never
+    created — startup reports success and the features that need them fail on
+    "no such table". So the missing tables are created from the models first
+    (the models are the head's tables — ``tests/test_schema_parity.py``), and
+    only then is the head recorded, which lets future revisions apply instead of
     failing on ``CREATE TABLE`` for tables that already exist.
     """
     if schema_stamp_state(database_url) != "unstamped":
         return False
     from alembic import command
 
+    create_missing_model_tables(database_url)
     command.stamp(_alembic_config(), "head")
     return True
 
@@ -229,3 +265,122 @@ def provision_schema(database_url: Optional[str] = None) -> str:
         ensure_schema_stamped(database_url)
     upgrade_schema_to_head()
     return state
+
+
+def current_revision(database_url: Optional[str] = None) -> Optional[str]:
+    """The revision recorded in ``alembic_version`` (None when unstamped/missing)."""
+    import os
+    import sqlite3
+
+    url = database_url or get_settings().DATABASE_URL
+    path = _sqlite_path_from_url(url)
+    if path is None or not os.path.exists(path):
+        return None
+    conn = sqlite3.connect(path)
+    try:
+        names = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if "alembic_version" not in names:
+            return None
+        row = conn.execute("SELECT version_num FROM alembic_version").fetchone()
+        return row[0] if row else None
+    finally:
+        conn.close()
+
+
+def head_revision() -> str:
+    """The Alembic head of the bundled migrations."""
+    from alembic.script import ScriptDirectory
+
+    return ScriptDirectory.from_config(_alembic_config()).get_current_head()
+
+
+def _is_complete_sqlite_file(path: str) -> bool:
+    """Whether ``path`` is a SQLite database rather than an empty or truncated
+    leftover. ``os.path.isfile`` alone would let a 0-byte file stand in for a
+    backup the operator is told to roll back to."""
+    import os
+
+    try:
+        if os.path.getsize(path) < 512:  # smaller than one SQLite page
+            return False
+        with open(path, "rb") as handle:
+            return handle.read(16) == b"SQLite format 3\x00"
+    except OSError:
+        return False
+
+
+def _discard(*paths: str) -> None:
+    """Remove files best-effort; used to clean up a copy that did not finish."""
+    import contextlib
+    import os
+
+    for path in paths:
+        with contextlib.suppress(OSError):
+            os.remove(path)
+
+
+def backup_sqlite(database_url: Optional[str] = None, label: str = "pre-upgrade") -> Optional[str]:
+    """Copy the SQLite file to ``<db dir>/backups/<stamp>-<label>/<name>`` via the
+    online backup API (safe while the file is open). Returns the copy's path, or
+    None for non-SQLite URLs.
+
+    A *complete* copy already taken under the same ``label`` is reused instead
+    of written again. The label encodes the from->to revision pair, so a
+    container whose upgrade fails and that Docker keeps relaunching writes one
+    backup rather than a full copy of the database on every boot (which fills
+    the volume). Nothing is ever deleted here: successive upgrades keep one copy
+    each.
+
+    The copy is written to ``<name>.part`` and renamed only once SQLite is done,
+    so an interrupted run (a full config volume mid-copy — exactly when the
+    backup matters most) leaves nothing that a later boot could mistake for a
+    good backup and upgrade over.
+    """
+    import contextlib
+    import glob
+    import logging
+    import os
+    import sqlite3
+    from datetime import datetime, timezone
+
+    url = database_url or get_settings().DATABASE_URL
+    path = _sqlite_path_from_url(url)
+    if path is None or not os.path.exists(path):
+        return None
+    name = os.path.basename(path)
+    backups_root = os.path.join(os.path.dirname(os.path.abspath(path)), "backups")
+    existing = sorted(
+        candidate
+        for candidate in glob.glob(
+            os.path.join(glob.escape(backups_root), f"*-{glob.escape(label)}", glob.escape(name))
+        )
+        if _is_complete_sqlite_file(candidate)
+    )
+    if existing:
+        logging.getLogger(__name__).warning(
+            "Reusing existing pre-upgrade backup %s (label %s); not writing another copy",
+            existing[-1],
+            label,
+        )
+        return existing[-1]
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    target_dir = os.path.join(backups_root, f"{stamp}-{label}")
+    os.makedirs(target_dir, exist_ok=True)
+    target = os.path.join(target_dir, name)
+    partial = f"{target}.part"
+    source = sqlite3.connect(path)
+    try:
+        destination = sqlite3.connect(partial)
+        try:
+            source.backup(destination)
+        finally:
+            destination.close()
+    except BaseException:
+        _discard(partial, f"{partial}-journal", f"{partial}-wal")
+        with contextlib.suppress(OSError):
+            os.rmdir(target_dir)
+        raise
+    finally:
+        source.close()
+    os.replace(partial, target)
+    return target

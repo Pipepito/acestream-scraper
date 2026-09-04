@@ -44,6 +44,8 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
   onPaginationModelChange,
   onSelectionChange,
   onCopyId,
+  onPlay,
+  onPlayOn,
   onCheckStatus,
   onEdit,
   onToggleHidden,
@@ -127,6 +129,8 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
           <ChannelRowActions
             channel={params.row}
             checking={Boolean(checkingStatus[params.row.id])}
+            onPlay={onPlay}
+            onPlayOn={onPlayOn}
             onCheckStatus={onCheckStatus}
             onEdit={onEdit}
             onToggleHidden={onToggleHidden}
@@ -138,7 +142,7 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
         ),
       },
     ],
-    [checkingStatus, onAssignTV, onCheckStatus, onCopyId, onDelete, onEdit, onOpenTV, onToggleHidden, onToggleTVFavorite]
+    [checkingStatus, onAssignTV, onCheckStatus, onCopyId, onDelete, onEdit, onOpenTV, onPlay, onPlayOn, onToggleHidden, onToggleTVFavorite]
   );
 
   const NoRowsOverlay = hasActiveFilters

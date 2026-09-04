@@ -32,6 +32,8 @@ const mountList = (overrides: Partial<React.ComponentProps<typeof ChannelCardLis
     pageSize: 25,
     onPageChange: jest.fn(),
     onCopyId: jest.fn(),
+    onPlay: jest.fn(),
+    onPlayOn: jest.fn(),
     onCheckStatus: jest.fn(),
     onEdit: jest.fn(),
     onToggleHidden: jest.fn(),
@@ -59,7 +61,11 @@ describe('ChannelCardList', () => {
     expect(within(card).getByText('Hidden')).toBeInTheDocument();
     expect(within(card).getByText('Checked never')).toBeInTheDocument();
     expect(within(card).getByText('abc123')).toBeInTheDocument();
-    expect(within(card).getByRole('button', { name: 'go to tv channel Arena TV' })).toBeInTheDocument();
+    expect(within(card).getByRole('button', { name: 'play channel Alpha Sports' })).toBeInTheDocument();
+
+    fireEvent.click(within(card).getByRole('button', { name: 'More actions for Alpha Sports' }));
+    expect(screen.getByRole('menuitem', { name: 'Open TV channel: Arena TV' })).toBeInTheDocument();
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape', code: 'Escape' });
 
     fireEvent.click(within(card).getByRole('checkbox', { name: 'Select Alpha Sports' }));
     expect(props.onSelectionChange).toHaveBeenCalledWith(['abc123']);

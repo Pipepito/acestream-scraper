@@ -234,8 +234,24 @@ if [ -z "${IMAGE_HAS_IPFS:-}" ]; then
     if [ -x "$IPFS_BINARY_PATH" ]; then IMAGE_HAS_IPFS=true; else IMAGE_HAS_IPFS=false; fi
 fi
 IMAGE_HAS_IPFS=$(normalize_bool "$IMAGE_HAS_IPFS")
+# The web player needs ffmpeg; every image ships a static build, but a
+# custom mount (or bare-metal run) may not — detect it like IPFS/ZeroNet.
+FFMPEG_BINARY_PATH="${FFMPEG_BINARY_PATH:-/opt/ffmpeg/bin/ffmpeg}"
+if [ -z "${IMAGE_HAS_FFMPEG:-}" ]; then
+    if [ -x "$FFMPEG_BINARY_PATH" ]; then IMAGE_HAS_FFMPEG=true; else IMAGE_HAS_FFMPEG=false; fi
+fi
+IMAGE_HAS_FFMPEG=$(normalize_bool "$IMAGE_HAS_FFMPEG")
+if [ ! -x "$FFMPEG_BINARY_PATH" ]; then
+    # Unlike the sidecar paths above (which only entrypoint.sh launches), this
+    # one is a Settings knob the app reads, and its declared default is empty:
+    # "resolve ffmpeg from PATH" (spec 4.5). Hand the app that default rather
+    # than a path with nothing behind it — an operator's own ffmpeg on PATH is
+    # a better answer than a guaranteed ENOENT.
+    log "no executable ffmpeg at $FFMPEG_BINARY_PATH; the web player will look for one on PATH"
+    FFMPEG_BINARY_PATH=""
+fi
 
-export ENABLE_WARP ENABLE_ACESTREAM_ENGINE ENABLE_ACEXY ENABLE_IPFS ENABLE_ZERONET ENABLE_TOR IMAGE_HAS_ACESTREAM IMAGE_HAS_ACEXY IMAGE_HAS_IPFS IMAGE_HAS_ZERONET IPFS_BINARY_PATH ZERONET_BINARY_PATH
+export ENABLE_WARP ENABLE_ACESTREAM_ENGINE ENABLE_ACEXY ENABLE_IPFS ENABLE_ZERONET ENABLE_TOR IMAGE_HAS_ACESTREAM IMAGE_HAS_ACEXY IMAGE_HAS_IPFS IMAGE_HAS_ZERONET IMAGE_HAS_FFMPEG IPFS_BINARY_PATH ZERONET_BINARY_PATH FFMPEG_BINARY_PATH
 export FLASK_PORT="${FLASK_PORT:-8000}"
 export ACESTREAM_HTTP_HOST="${ACESTREAM_HTTP_HOST:-localhost}"
 export ACESTREAM_HTTP_PORT="${ACESTREAM_HTTP_PORT:-6878}"
@@ -265,6 +281,24 @@ export IPFS_API_PORT="${IPFS_API_PORT:-5001}"
 # 8080 belongs to Acexy in-container, so the embedded gateway defaults to 8081.
 export IPFS_GATEWAY_PORT="${IPFS_GATEWAY_PORT:-8081}"
 export IPFS_GATEWAY_URL="${IPFS_GATEWAY_URL:-http://127.0.0.1:$IPFS_GATEWAY_PORT}"
+# Media integrations (spec 4.5): one declared default per knob, mirrored by
+# app/config/settings.py (backend/tests/test_settings_env.py fails if the two
+# drift). PUBLIC_BASE_URL is the origin tuners/players use to reach this
+# container; TUNER_ALLOWED_NETWORKS gates the token-free /tuner/* routes;
+# PLAYER_* size the web player's transcode sessions; FORWARDED_ALLOW_IPS is
+# consumed by the app's own forwarded-headers middleware (uvicorn's is disabled
+# below); FFMPEG_BINARY_PATH was already resolved with the image flags above,
+# and is empty here exactly when nothing executable sits at that path, which is
+# Settings' own default and means "resolve ffmpeg from PATH";
+# MEDIA_SERVER_MIN_REFRESH_MINUTES debounces Jellyfin/Plex guide refreshes.
+export PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-}"
+export TUNER_ALLOWED_NETWORKS="${TUNER_ALLOWED_NETWORKS:-127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10}"
+export PLAYER_HLS_DIR="${PLAYER_HLS_DIR:-/tmp/acestream-player}"
+export PLAYER_MAX_SESSIONS="${PLAYER_MAX_SESSIONS:-3}"
+export PLAYER_START_TIMEOUT_SECONDS="${PLAYER_START_TIMEOUT_SECONDS:-45}"
+export FORWARDED_ALLOW_IPS="${FORWARDED_ALLOW_IPS:-127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}"
+export FFMPEG_BINARY_PATH="${FFMPEG_BINARY_PATH:-}"
+export MEDIA_SERVER_MIN_REFRESH_MINUTES="${MEDIA_SERVER_MIN_REFRESH_MINUTES:-30}"
 
 if ! feature_enabled "$ENABLE_WARP"; then
     log "WARP disabled; skipping setup"
@@ -407,7 +441,17 @@ if feature_enabled "$ENABLE_IPFS" && [ -n "${IPFS_START_COMMAND:-}" ]; then
     child_names+=("IPFS")
 fi
 
+# The engine's HTTP API only admits loopback and RFC1918 clients by default;
+# --bind-all lifts that so players on VPN/CGNAT ranges (Tailscale) or the
+# Docker Desktop host path are accepted through a published 6878. The API is
+# unauthenticated either way: publish 6878 only on trusted networks.
+# ACESTREAM_BIND_ALL=false restores the engine's own address filter.
+ACESTREAM_BIND_ALL=$(normalize_bool "${ACESTREAM_BIND_ALL:-true}")
+export ACESTREAM_BIND_ALL
 if feature_enabled "$ENABLE_ACESTREAM_ENGINE" && [ -n "${ACESTREAM_START_COMMAND:-}" ]; then
+    if feature_enabled "$ACESTREAM_BIND_ALL"; then
+        case " $ACESTREAM_START_COMMAND " in *" --bind-all "*) ;; *) ACESTREAM_START_COMMAND="$ACESTREAM_START_COMMAND --bind-all" ;; esac
+    fi
     supervise_service "AceStream" "$ACESTREAM_START_COMMAND" &
     child_pids+=("$!")
     child_names+=("AceStream")
@@ -421,7 +465,10 @@ fi
 
 APP_COMMAND=("$@")
 if [ "${#APP_COMMAND[@]}" -eq 0 ]; then
-    APP_COMMAND=(uvicorn main:app --host 0.0.0.0 --port "$FLASK_PORT")
+    # --no-proxy-headers: the app's ForwardedHeadersMiddleware owns X-Forwarded-*
+    # trust (FORWARDED_ALLOW_IPS). --timeout-graceful-shutdown: live stream
+    # relays would otherwise hold the shutdown open until Docker's SIGKILL.
+    APP_COMMAND=(uvicorn main:app --host 0.0.0.0 --port "$FLASK_PORT" --no-proxy-headers --timeout-graceful-shutdown 3)
 fi
 
 wait_for_supervised_exit() {
@@ -438,7 +485,7 @@ wait_for_supervised_exit() {
     done
 }
 
-trap 'shutdown_children "${child_pids[@]:-}" "$app_pid"' INT TERM EXIT
+trap 'shutdown_children "$app_pid" "${child_pids[@]:-}"' INT TERM EXIT
 
 "${APP_COMMAND[@]}" &
 app_pid=$!

@@ -27,7 +27,7 @@ Docker is a platform that uses containerization technology to package applicatio
 - Manages individual containers
 - Best for simple deployments
 - Uses CLI commands to configure containers
-- Example: `docker run -p 8000:8000 pipepito/acestream-scraper:latest`
+- Example: `docker run -p 0.0.0.0:8000:8000 pipepito/acestream-scraper:latest`
 
 ### Docker Compose
 - Manages multi-container applications
@@ -55,7 +55,13 @@ Every flavor is published for `linux/amd64`, `linux/arm64`, and `linux/arm/v7`. 
 | `linux/arm64` | Android engine 3.2.17 from [`jopsis/acestream:v3.2.17-fix`](https://hub.docker.com/r/jopsis/acestream), digest-pinned and run natively | stable |
 | `linux/arm/v7` | Android engine 3.2.17 from [`jopsis/acestream:v3.2.17-fix`](https://hub.docker.com/r/jopsis/acestream), digest-pinned and run natively | experimental |
 
-Upstream only publishes native Linux engine builds for x86_64, so the ARM images unpack the engine payload from the official AceStream Android APK (the ones listed on https://docs.acestream.media/products/) and run it unmodified against a minimal Android 9 bionic userland shipped under `/system`. No chroot, `--privileged`, seccomp changes, or extra capabilities are needed. `linux/arm/v7` builds and installs but has not been runtime-tested on real ARMv7 hardware yet, so treat it as experimental.
+Upstream only publishes native Linux engine builds for x86_64. Both ARM images
+copy the matching platform variant from the digest-pinned
+`jopsis/acestream:v3.2.17-fix` image and run its Android engine against the
+matching bionic userland under `/system`. No chroot, `--privileged`, seccomp
+changes, or extra capabilities are needed. `linux/arm/v7` builds and installs
+but has not been runtime-tested on real ARMv7 hardware yet, so treat it as
+experimental.
 
 WARP is installed in every flavor's `linux/amd64` and `linux/arm64` images, but it only starts when `ENABLE_WARP=true` (it needs `--cap-add NET_ADMIN --cap-add SYS_ADMIN` and `--device /dev/net/tun`). The `linux/arm/v7` images ship without the WARP client (Cloudflare publishes no 32-bit ARM build), so `ENABLE_WARP` is unsupported there.
 
@@ -93,7 +99,7 @@ docker pull pipepito/acestream-scraper:latest
 
 ### Run the Container
 ```bash
-docker run -d -p 8000:8000 --name acestream-scraper pipepito/acestream-scraper:latest
+docker run -d -p 0.0.0.0:8000:8000 --name acestream-scraper pipepito/acestream-scraper:latest
 ```
 
 `latest` is the full `scraper-acestream-acexy` image. If you want to pin behavior explicitly, pull one of the flavor tags instead.
@@ -122,7 +128,7 @@ docker run -d \
   --device /dev/net/tun:/dev/net/tun \
   -e ENABLE_WARP=true \
   -e WARP_ENABLE_NAT=true \
-  -p 8000:8000 \
+  -p 0.0.0.0:8000:8000 \
   --name acestream-scraper \
   pipepito/acestream-scraper:latest
 ```
@@ -134,7 +140,7 @@ The engine is installed in `latest`, `scraper-acestream`, and `scraper-acestream
 ```bash
 docker run -d \
   -e ENABLE_ACESTREAM_ENGINE=true \
-  -p 8000:8000 \
+  -p 0.0.0.0:8000:8000 \
   -p 6878:6878 \
   -p 8621:8621 \
   -p 8621:8621/udp \
@@ -146,7 +152,7 @@ docker run -d \
 
 - `ENABLE_ACESTREAM_ENGINE=true` starts the engine; no extra capabilities are required (only WARP needs `NET_ADMIN`/`SYS_ADMIN`).
 - On ARM, `/var/lib/acestream` (`ACESTREAM_HOME`) holds the Android engine's state: `acestream.conf`, `acestream.log`, `acestream_error.log`, and the `.ACEStream/` directory with the disk cache. Mount a named volume there so the cache and the per-install device id (`.device_id`) survive container replacement; the mount is harmless on amd64.
-- Ports: `6878` is the engine HTTP API (the backend talks to it through `ACE_ENGINE_URL`, default `http://localhost:6878`); `8621` tcp/udp is the P2P port. Only publish `6878` if you want to reach the engine from outside the container, and only on trusted networks: the ARM engine is started with `--bind-all` so published-port clients are accepted, and the engine HTTP API has no authentication.
+- Ports: `6878` is the engine HTTP API (the backend talks to it through `ACE_ENGINE_URL`, default `http://localhost:6878`); `8621` tcp/udp is the P2P port. Only publish `6878` if you want to reach the engine from outside the container, and only on trusted networks: the engine is started with `--bind-all` on every platform (`ACESTREAM_BIND_ALL=true` by default; set it to `false` to keep the engine's loopback/RFC1918-only filter) so published-port clients are accepted, and the engine HTTP API has no authentication.
 - Logs: the entrypoint supervises the engine, so its output shows up in `docker logs acestream-scraper` (on ARM the launcher passes `--log-stdout` for this). On ARM the engine also writes `acestream.log` / `acestream_error.log` under `/var/lib/acestream`.
 - Health: the backend polls `/server/api?api_version=3&method=get_status` and `method=get_network_connection_status` on the engine. To confirm which engine is running: `curl "http://localhost:6878/webui/api/service?method=get_version"` returns `{"platform":"android","version":"3.2.17"}` on ARM64 and ARMv7. The dashboard also shows `Engine package: jopsis/acestream v3.2.17-fix` with a link to the source image.
 
@@ -160,6 +166,25 @@ ARM caveats:
 - **Performance and streaming stability** on real ARM hardware are not yet validated; report results if you try it.
 - Repackaging the official APK payload is a grey area under the AceStream user agreement, as with every community ARM image. Enable the engine at your own discretion.
 
+#### Playing streams on ARM
+
+The web player, remote players (VLC/Kodi) and the Jellyfin/Plex tuner all ask the engine to start a stream, so what they can do depends on which engine your platform runs:
+
+- **amd64** runs the native Linux engine 3.2.11 and is unaffected. Everything works as documented.
+- **arm64** runs the `jopsis/acestream:v3.2.17-fix` distribution, which is not premium-gated. The web player, remote players and the tuner should work. What has been checked on real hardware is that the engine starts and answers its API — a live channel has not yet been played end to end on an ARM64 board, so treat playback there as expected rather than proven. If a stream does fail you will see it plainly: the player says "The AceStream engine could not start this channel: …" with the engine's own words after it. Tell us if it works (or does not) on your board.
+- **armv7** uses the matching 32-bit variant of
+  `jopsis/acestream:v3.2.17-fix`. It builds and installs, but cannot execute
+  under QEMU user emulation and has not been runtime-tested on real ARMv7
+  hardware, so playback is unverified rather than promised.
+
+The official Android engines are still known to answer playback outside
+AceStream's own app with "To continue, you need to activate premium"; the
+current ARM images avoid those official builds. Do not work around that check
+by reporting a false app identity. Two related failures can look similar:
+
+- **A DNS blocklist.** Pi-hole/AdGuard lists that sinkhole `*.acestream.media` or `*.acestream.net` cut the 3.2.x engines off from their licence check, and the failure looks identical. Allow those two domains on the host running the engine before blaming the engine version.
+- **The engine refusing a client address.** `ACESTREAM_BIND_ALL` (default `true`) applies on every platform: the entrypoint appends `--bind-all` to the engine start command so clients that are not on loopback or a private address — Tailscale, IPv6 LANs, unusual Docker networks — are accepted on a published `6878`. Set it to `false` to restore the engine's own filter.
+
 ### Run the Bundled ZeroNet Node (amd64)
 
 ZeroNet is installed in every amd64 flavor but only starts when `ENABLE_ZERONET=true`:
@@ -167,7 +192,7 @@ ZeroNet is installed in every amd64 flavor but only starts when `ENABLE_ZERONET=
 ```bash
 docker run -d \
   -e ENABLE_ZERONET=true \
-  -p 8000:8000 \
+  -p 0.0.0.0:8000:8000 \
   -p 43110:43110 \
   -p 26552:26552 \
   -v "${PWD}/config:/app/config" \
@@ -189,7 +214,7 @@ Kubo is installed in every flavor but only starts when `ENABLE_IPFS=true`:
 ```bash
 docker run -d \
   -e ENABLE_IPFS=true \
-  -p 8000:8000 \
+  -p 0.0.0.0:8000:8000 \
   -p 4001:4001 \
   -p 4001:4001/udp \
   -p 8081:8081 \
@@ -273,7 +298,7 @@ These volumes should be mounted to local directories (or named volumes) to ensur
 
 Example:
 ```bash
-docker run -d -p 8000:8000 -v "${PWD}/config:/app/config" pipepito/acestream-scraper:latest
+docker run -d -p 0.0.0.0:8000:8000 -v "${PWD}/config:/app/config" pipepito/acestream-scraper:latest
 ```
 
 This mounts your local `./config` directory to the container's `/app/config` directory.

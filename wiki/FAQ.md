@@ -81,7 +81,7 @@ docker run -d \
   --device /dev/net/tun:/dev/net/tun \
   -e ENABLE_WARP=true \
   -e WARP_ENABLE_NAT=true \
-  -p 8000:8000 \
+  -p 0.0.0.0:8000:8000 \
   -v "${PWD}/config:/app/config" \
   --name acestream-scraper \
   pipepito/acestream-scraper:latest

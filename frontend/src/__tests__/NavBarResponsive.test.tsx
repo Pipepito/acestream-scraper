@@ -177,6 +177,9 @@ describe('NavBar responsive shell behavior', () => {
     expect(screen.getByRole('link', { name: 'Playlist' })).toHaveFocus();
 
     await tab();
+    expect(screen.getByRole('link', { name: 'Integrations' })).toHaveFocus();
+
+    await tab();
     expect(screen.getByRole('link', { name: 'Settings' })).toHaveFocus();
   });
 

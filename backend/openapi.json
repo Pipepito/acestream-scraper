@@ -486,6 +486,112 @@
         "title": "AcestreamStatusResponse",
         "type": "object"
       },
+      "ActiveStream": {
+        "description": "One thing the server is streaming right now.\n\n``browser`` is an ffmpeg/HLS player session; ``relay`` is a raw MPEG-TS\nrelay of ``/tuner/stream/<id>.ts`` \u2014 what a media server's tuner and a\nremote player on the server-relay link format pull.",
+        "properties": {
+          "channel_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel Name"
+          },
+          "client_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Label"
+          },
+          "content_id": {
+            "title": "Content Id",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "browser",
+              "relay"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "peers": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Peers"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "state": {
+            "enum": [
+              "starting",
+              "ready",
+              "error",
+              "stopped",
+              "streaming"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "viewers": {
+            "default": 1,
+            "title": "Viewers",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "content_id",
+          "state"
+        ],
+        "title": "ActiveStream",
+        "type": "object"
+      },
+      "ActiveStreamListResponse": {
+        "properties": {
+          "streams": {
+            "items": {
+              "$ref": "#/components/schemas/ActiveStream"
+            },
+            "title": "Streams",
+            "type": "array"
+          }
+        },
+        "required": [
+          "streams"
+        ],
+        "title": "ActiveStreamListResponse",
+        "type": "object"
+      },
       "AddChannelRequest": {
         "properties": {
           "category": {
@@ -1898,6 +2004,504 @@
         "title": "HealthURLTotals",
         "type": "object"
       },
+      "MediaServerCreate": {
+        "properties": {
+          "api_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Jellyfin API key or Plex owner token",
+            "title": "Api Key"
+          },
+          "auto_refresh": {
+            "default": true,
+            "title": "Auto Refresh",
+            "type": "boolean"
+          },
+          "base_url": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Base Url",
+            "type": "string"
+          },
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "kind": {
+            "enum": [
+              "jellyfin",
+              "plex"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "tuner_mode": {
+            "default": "hdhomerun",
+            "enum": [
+              "hdhomerun",
+              "m3u"
+            ],
+            "title": "Tuner Mode",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "name",
+          "base_url"
+        ],
+        "title": "MediaServerCreate",
+        "type": "object"
+      },
+      "MediaServerProbeResponse": {
+        "properties": {
+          "authenticated": {
+            "title": "Authenticated",
+            "type": "boolean"
+          },
+          "credentials": {
+            "enum": [
+              "ok",
+              "missing",
+              "rejected"
+            ],
+            "title": "Credentials",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "reachable": {
+            "title": "Reachable",
+            "type": "boolean"
+          },
+          "tuner_access": {
+            "$ref": "#/components/schemas/TunerAccessResponse"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "required": [
+          "reachable",
+          "authenticated",
+          "credentials",
+          "message",
+          "tuner_access"
+        ],
+        "title": "MediaServerProbeResponse",
+        "type": "object"
+      },
+      "MediaServerRefreshResponse": {
+        "properties": {
+          "last_sync_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Sync At"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "error",
+              "manual"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "MediaServerRefreshResponse",
+        "type": "object"
+      },
+      "MediaServerResponse": {
+        "properties": {
+          "auto_refresh": {
+            "title": "Auto Refresh",
+            "type": "boolean"
+          },
+          "base_url": {
+            "title": "Base Url",
+            "type": "string"
+          },
+          "connected": {
+            "title": "Connected",
+            "type": "boolean"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "dvr_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dvr Key"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "has_api_key": {
+            "title": "Has Api Key",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "jellyfin",
+              "plex"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          },
+          "last_sync_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Sync At"
+          },
+          "last_sync_status": {
+            "enum": [
+              "ok",
+              "error",
+              "never",
+              "manual"
+            ],
+            "title": "Last Sync Status",
+            "type": "string"
+          },
+          "listing_provider_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Listing Provider Id"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "server_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Server Version"
+          },
+          "tuner_host_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tuner Host Id"
+          },
+          "tuner_mode": {
+            "enum": [
+              "hdhomerun",
+              "m3u"
+            ],
+            "title": "Tuner Mode",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "base_url",
+          "tuner_mode",
+          "enabled",
+          "auto_refresh",
+          "has_api_key",
+          "connected",
+          "last_sync_status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "MediaServerResponse",
+        "type": "object"
+      },
+      "MediaServerStatusResponse": {
+        "properties": {
+          "channel_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel Count"
+          },
+          "connected": {
+            "title": "Connected",
+            "type": "boolean"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "last_result": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Result"
+          },
+          "paste": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Paste",
+            "type": "object"
+          },
+          "refresh_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refresh State"
+          },
+          "steps": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Steps",
+            "type": "array"
+          }
+        },
+        "required": [
+          "connected"
+        ],
+        "title": "MediaServerStatusResponse",
+        "type": "object"
+      },
+      "MediaServerTestRequest": {
+        "properties": {
+          "api_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Api Key"
+          },
+          "base_url": {
+            "title": "Base Url",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "kind": {
+            "enum": [
+              "jellyfin",
+              "plex"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "base_url"
+        ],
+        "title": "MediaServerTestRequest",
+        "type": "object"
+      },
+      "MediaServerUpdate": {
+        "properties": {
+          "api_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "omit = keep, empty = clear",
+            "title": "Api Key"
+          },
+          "auto_refresh": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Refresh"
+          },
+          "base_url": {
+            "anyOf": [
+              {
+                "maxLength": 1024,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Url"
+          },
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "tuner_mode": {
+            "anyOf": [
+              {
+                "enum": [
+                  "hdhomerun",
+                  "m3u"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tuner Mode"
+          }
+        },
+        "title": "MediaServerUpdate",
+        "type": "object"
+      },
       "MessageResponse": {
         "description": "Generic operation message response",
         "properties": {
@@ -1910,6 +2514,783 @@
           "message"
         ],
         "title": "MessageResponse",
+        "type": "object"
+      },
+      "PlayerCapabilities": {
+        "properties": {
+          "ffmpeg_available": {
+            "title": "Ffmpeg Available",
+            "type": "boolean"
+          },
+          "ffmpeg_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ffmpeg Path"
+          },
+          "hls_dir": {
+            "title": "Hls Dir",
+            "type": "string"
+          },
+          "max_sessions": {
+            "title": "Max Sessions",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ffmpeg_available",
+          "max_sessions",
+          "hls_dir"
+        ],
+        "title": "PlayerCapabilities",
+        "type": "object"
+      },
+      "PlayerCodecs": {
+        "properties": {
+          "audio": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio"
+          },
+          "video": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video"
+          }
+        },
+        "title": "PlayerCodecs",
+        "type": "object"
+      },
+      "PlayerSessionCreate": {
+        "properties": {
+          "content_id": {
+            "description": "AceStream content id (40 hex)",
+            "pattern": "^[0-9a-fA-F]{40}$",
+            "title": "Content Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "content_id"
+        ],
+        "title": "PlayerSessionCreate",
+        "type": "object"
+      },
+      "PlayerSessionListResponse": {
+        "properties": {
+          "sessions": {
+            "items": {
+              "$ref": "#/components/schemas/PlayerSessionStatus"
+            },
+            "title": "Sessions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "sessions"
+        ],
+        "title": "PlayerSessionListResponse",
+        "type": "object"
+      },
+      "PlayerSessionStatus": {
+        "properties": {
+          "codecs": {
+            "$ref": "#/components/schemas/PlayerCodecs"
+          },
+          "content_id": {
+            "title": "Content Id",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "enum": [
+                  "engine_unavailable",
+                  "engine_refused",
+                  "engine_stalled",
+                  "ffmpeg_missing",
+                  "ffmpeg_failed"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "error_message": {
+            "default": "",
+            "title": "Error Message",
+            "type": "string"
+          },
+          "hls_ready": {
+            "title": "Hls Ready",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "playlist_url": {
+            "title": "Playlist Url",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "starting",
+              "ready",
+              "error",
+              "stopped"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "stats": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlayerStats"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "viewers": {
+            "title": "Viewers",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "content_id",
+          "state",
+          "codecs",
+          "viewers",
+          "playlist_url",
+          "hls_ready"
+        ],
+        "title": "PlayerSessionStatus",
+        "type": "object"
+      },
+      "PlayerStats": {
+        "properties": {
+          "peers": {
+            "title": "Peers",
+            "type": "integer"
+          },
+          "speed_down": {
+            "title": "Speed Down",
+            "type": "integer"
+          },
+          "speed_up": {
+            "title": "Speed Up",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "peers",
+          "speed_down",
+          "speed_up"
+        ],
+        "title": "PlayerStats",
+        "type": "object"
+      },
+      "PublicBaseUrlUpdate": {
+        "description": "Schema for updating the externally reachable origin (spec 4.3).",
+        "properties": {
+          "value": {
+            "default": "",
+            "description": "http(s)://host[:port]; empty clears the override",
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "title": "PublicBaseUrlUpdate",
+        "type": "object"
+      },
+      "PublicUrlResponse": {
+        "description": "The origin external clients must use to reach this server (spec 4.3).",
+        "properties": {
+          "source": {
+            "enum": [
+              "setting",
+              "forwarded",
+              "request"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "url": {
+            "description": "scheme://host[:port], no trailing slash",
+            "title": "Url",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "localhost | docker-internal | unset | proxied",
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "url",
+          "source"
+        ],
+        "title": "PublicUrlResponse",
+        "type": "object"
+      },
+      "RemotePlayerCommandRequest": {
+        "properties": {
+          "command": {
+            "enum": [
+              "pause",
+              "resume",
+              "stop",
+              "volume"
+            ],
+            "title": "Command",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "maximum": 200.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Percent, volume only",
+            "title": "Value"
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "title": "RemotePlayerCommandRequest",
+        "type": "object"
+      },
+      "RemotePlayerCreate": {
+        "properties": {
+          "base_url_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Stream link format; null = server relay URL",
+            "title": "Base Url Id"
+          },
+          "host": {
+            "description": "Hostname or IP, no scheme",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Host",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "vlc",
+              "kodi"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "maxLength": 1024,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password"
+          },
+          "port": {
+            "default": 8080,
+            "maximum": 65535.0,
+            "minimum": 1.0,
+            "title": "Port",
+            "type": "integer"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Kodi only; default kodi",
+            "title": "Username"
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "host"
+        ],
+        "title": "RemotePlayerCreate",
+        "type": "object"
+      },
+      "RemotePlayerPlayRequest": {
+        "properties": {
+          "content_id": {
+            "pattern": "^[0-9a-fA-F]{40}$",
+            "title": "Content Id",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "content_id"
+        ],
+        "title": "RemotePlayerPlayRequest",
+        "type": "object"
+      },
+      "RemotePlayerPlayResponse": {
+        "properties": {
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "Why the player probably cannot fetch this URL: localhost | docker-internal | tuner_blocked",
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "RemotePlayerPlayResponse",
+        "type": "object"
+      },
+      "RemotePlayerProbeResponse": {
+        "properties": {
+          "authenticated": {
+            "title": "Authenticated",
+            "type": "boolean"
+          },
+          "hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hint"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "reachable": {
+            "title": "Reachable",
+            "type": "boolean"
+          },
+          "tuner_access": {
+            "$ref": "#/components/schemas/TunerAccessResponse"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "required": [
+          "reachable",
+          "authenticated",
+          "message",
+          "tuner_access"
+        ],
+        "title": "RemotePlayerProbeResponse",
+        "type": "object"
+      },
+      "RemotePlayerResponse": {
+        "properties": {
+          "base_url_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Stream link format; null = server relay URL",
+            "title": "Base Url Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "has_password": {
+            "title": "Has Password",
+            "type": "boolean"
+          },
+          "host": {
+            "description": "Hostname or IP, no scheme",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Host",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "vlc",
+              "kodi"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "port": {
+            "default": 8080,
+            "maximum": 65535.0,
+            "minimum": 1.0,
+            "title": "Port",
+            "type": "integer"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Kodi only; default kodi",
+            "title": "Username"
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "host",
+          "id",
+          "has_password",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "RemotePlayerResponse",
+        "type": "object"
+      },
+      "RemotePlayerStatusResponse": {
+        "properties": {
+          "length_s": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Length S"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "position_s": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position S"
+          },
+          "state": {
+            "enum": [
+              "playing",
+              "paused",
+              "stopped"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "volume_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Volume Pct"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "RemotePlayerStatusResponse",
+        "type": "object"
+      },
+      "RemotePlayerTestRequest": {
+        "properties": {
+          "host": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Host",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Use this saved player's password when none is given",
+            "title": "Id"
+          },
+          "kind": {
+            "enum": [
+              "vlc",
+              "kodi"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password"
+          },
+          "port": {
+            "default": 8080,
+            "maximum": 65535.0,
+            "minimum": 1.0,
+            "title": "Port",
+            "type": "integer"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          }
+        },
+        "required": [
+          "kind",
+          "host"
+        ],
+        "title": "RemotePlayerTestRequest",
+        "type": "object"
+      },
+      "RemotePlayerUpdate": {
+        "properties": {
+          "base_url_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Url Id"
+          },
+          "clear_base_url": {
+            "default": false,
+            "title": "Clear Base Url",
+            "type": "boolean"
+          },
+          "host": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Host"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "enum": [
+                  "vlc",
+                  "kodi"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kind"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "maxLength": 1024,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "omit = keep, empty string = clear",
+            "title": "Password"
+          },
+          "port": {
+            "anyOf": [
+              {
+                "maximum": 65535.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Port"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          }
+        },
+        "title": "RemotePlayerUpdate",
         "type": "object"
       },
       "RescrapeIntervalUpdate": {
@@ -1941,6 +3322,116 @@
           }
         },
         "title": "RescrapeIntervalUpdate",
+        "type": "object"
+      },
+      "ScanDefaultResponse": {
+        "properties": {
+          "cidr": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cidr"
+          },
+          "hint": {
+            "title": "Hint",
+            "type": "string"
+          }
+        },
+        "required": [
+          "hint"
+        ],
+        "title": "ScanDefaultResponse",
+        "type": "object"
+      },
+      "ScanHitResponse": {
+        "properties": {
+          "hint": {
+            "title": "Hint",
+            "type": "string"
+          },
+          "host": {
+            "title": "Host",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "vlc",
+              "kodi",
+              "unknown"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "port": {
+            "title": "Port",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "host",
+          "port",
+          "kind",
+          "hint"
+        ],
+        "title": "ScanHitResponse",
+        "type": "object"
+      },
+      "ScanRequest": {
+        "properties": {
+          "cidr": {
+            "title": "Cidr",
+            "type": "string"
+          },
+          "ports": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Ports",
+            "type": "array"
+          },
+          "timeout_ms": {
+            "default": 400,
+            "maximum": 5000.0,
+            "minimum": 50.0,
+            "title": "Timeout Ms",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "cidr"
+        ],
+        "title": "ScanRequest",
+        "type": "object"
+      },
+      "ScanResultResponse": {
+        "properties": {
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "hosts": {
+            "items": {
+              "$ref": "#/components/schemas/ScanHitResponse"
+            },
+            "title": "Hosts",
+            "type": "array"
+          },
+          "scanned": {
+            "title": "Scanned",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "hosts",
+          "scanned",
+          "duration_ms"
+        ],
+        "title": "ScanResultResponse",
         "type": "object"
       },
       "ScraperRequest": {
@@ -3297,6 +4788,306 @@
           }
         },
         "title": "TVChannelUpdate",
+        "type": "object"
+      },
+      "TunerAccessResponse": {
+        "properties": {
+          "addresses": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Addresses",
+            "type": "array"
+          },
+          "allowed": {
+            "title": "Allowed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "addresses",
+          "allowed"
+        ],
+        "title": "TunerAccessResponse",
+        "type": "object"
+      },
+      "TunerDenial": {
+        "properties": {
+          "at": {
+            "title": "At",
+            "type": "number"
+          },
+          "client_ip": {
+            "title": "Client Ip",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "peer": {
+            "title": "Peer",
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_ip",
+          "peer",
+          "path",
+          "at"
+        ],
+        "title": "TunerDenial",
+        "type": "object"
+      },
+      "TunerRenumbered": {
+        "properties": {
+          "assigned_number": {
+            "title": "Assigned Number",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "requested_number": {
+            "title": "Requested Number",
+            "type": "integer"
+          },
+          "tv_channel_id": {
+            "title": "Tv Channel Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tv_channel_id",
+          "name",
+          "requested_number",
+          "assigned_number"
+        ],
+        "title": "TunerRenumbered",
+        "type": "object"
+      },
+      "TunerSettingsResponse": {
+        "properties": {
+          "friendly_name": {
+            "title": "Friendly Name",
+            "type": "string"
+          },
+          "max_channels": {
+            "title": "Max Channels",
+            "type": "integer"
+          },
+          "only_online": {
+            "title": "Only Online",
+            "type": "boolean"
+          },
+          "tuner_count": {
+            "title": "Tuner Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "friendly_name",
+          "tuner_count",
+          "max_channels",
+          "only_online"
+        ],
+        "title": "TunerSettingsResponse",
+        "type": "object"
+      },
+      "TunerSettingsUpdate": {
+        "properties": {
+          "friendly_name": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Friendly Name"
+          },
+          "max_channels": {
+            "anyOf": [
+              {
+                "maximum": 1000.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Channels"
+          },
+          "only_online": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Only Online"
+          },
+          "tuner_count": {
+            "anyOf": [
+              {
+                "maximum": 16.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tuner Count"
+          }
+        },
+        "title": "TunerSettingsUpdate",
+        "type": "object"
+      },
+      "TunerStatusResponse": {
+        "properties": {
+          "allowed_networks": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Allowed Networks",
+            "type": "array"
+          },
+          "channel_count": {
+            "title": "Channel Count",
+            "type": "integer"
+          },
+          "client_allowed": {
+            "title": "Client Allowed",
+            "type": "boolean"
+          },
+          "client_ip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Ip"
+          },
+          "client_source": {
+            "enum": [
+              "direct",
+              "forwarded",
+              "docker-gateway",
+              "loopback"
+            ],
+            "title": "Client Source",
+            "type": "string"
+          },
+          "device_id": {
+            "title": "Device Id",
+            "type": "string"
+          },
+          "ffmpeg_available": {
+            "title": "Ffmpeg Available",
+            "type": "boolean"
+          },
+          "overflow": {
+            "title": "Overflow",
+            "type": "integer"
+          },
+          "peer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Peer"
+          },
+          "recent_denials": {
+            "items": {
+              "$ref": "#/components/schemas/TunerDenial"
+            },
+            "title": "Recent Denials",
+            "type": "array"
+          },
+          "renumbered": {
+            "items": {
+              "$ref": "#/components/schemas/TunerRenumbered"
+            },
+            "title": "Renumbered",
+            "type": "array"
+          },
+          "urls": {
+            "$ref": "#/components/schemas/TunerUrls"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "channel_count",
+          "renumbered",
+          "overflow",
+          "device_id",
+          "urls",
+          "ffmpeg_available",
+          "allowed_networks",
+          "client_allowed",
+          "client_source",
+          "warnings",
+          "recent_denials"
+        ],
+        "title": "TunerStatusResponse",
+        "type": "object"
+      },
+      "TunerUrls": {
+        "properties": {
+          "epg": {
+            "title": "Epg",
+            "type": "string"
+          },
+          "guide": {
+            "title": "Guide",
+            "type": "string"
+          },
+          "lineup": {
+            "title": "Lineup",
+            "type": "string"
+          },
+          "playlist": {
+            "title": "Playlist",
+            "type": "string"
+          },
+          "stream_template": {
+            "title": "Stream Template",
+            "type": "string"
+          },
+          "tuner": {
+            "title": "Tuner",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tuner",
+          "lineup",
+          "guide",
+          "playlist",
+          "epg",
+          "stream_template"
+        ],
+        "title": "TunerUrls",
         "type": "object"
       },
       "URLCreate": {
@@ -6272,6 +8063,70 @@
         ]
       }
     },
+    "/api/v1/config/public_base_url": {
+      "get": {
+        "description": "Externally reachable origin used for tuner, player and copy links.",
+        "operationId": "get_public_base_url_api_v1_config_public_base_url_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Public Base Url",
+        "tags": [
+          "config",
+          "config"
+        ]
+      },
+      "put": {
+        "description": "Update the externally reachable origin (empty value clears the override).",
+        "operationId": "update_public_base_url_api_v1_config_public_base_url_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicBaseUrlUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigUpdateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Public Base Url",
+        "tags": [
+          "config",
+          "config"
+        ]
+      }
+    },
     "/api/v1/config/rescrape_interval": {
       "get": {
         "description": "Get the interval between automatic rescrapes in hours.",
@@ -7431,6 +9286,682 @@
         ]
       }
     },
+    "/api/v1/media-servers": {
+      "get": {
+        "operationId": "list_media_servers_api_v1_media_servers_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MediaServerResponse"
+                  },
+                  "title": "Response List Media Servers Api V1 Media Servers Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Saved media servers",
+        "tags": [
+          "media-servers",
+          "media-servers"
+        ]
+      },
+      "post": {
+        "operationId": "create_media_server_api_v1_media_servers_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MediaServerCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaServerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Media Server",
+        "tags": [
+          "media-servers",
+          "media-servers"
+        ]
+      }
+    },
+    "/api/v1/media-servers/test": {
+      "post": {
+        "operationId": "test_media_server_api_v1_media_servers_test_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MediaServerTestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaServerProbeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Probe a media server before saving it",
+        "tags": [
+          "media-servers",
+          "media-servers"
+        ]
+      }
+    },
+    "/api/v1/media-servers/{server_id}": {
+      "delete": {
+        "operationId": "delete_media_server_api_v1_media_servers__server_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "server_id",
+            "required": true,
+            "schema": {
+              "title": "Server Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Media Server",
+        "tags": [
+          "media-servers",
+          "media-servers"
+        ]
+      },
+      "patch": {
+        "operationId": "update_media_server_api_v1_media_servers__server_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "server_id",
+            "required": true,
+            "schema": {
+              "title": "Server Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MediaServerUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaServerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Media Server",
+        "tags": [
+          "media-servers",
+          "media-servers"
+        ]
+      }
+    },
+    "/api/v1/media-servers/{server_id}/connect": {
+      "post": {
+        "operationId": "connect_media_server_api_v1_media_servers__server_id__connect_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "server_id",
+            "required": true,
+            "schema": {
+              "title": "Server Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaServerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Register the tuner and guide",
+        "tags": [
+          "media-servers",
+          "media-servers"
+        ]
+      }
+    },
+    "/api/v1/media-servers/{server_id}/disconnect": {
+      "post": {
+        "operationId": "disconnect_media_server_api_v1_media_servers__server_id__disconnect_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "server_id",
+            "required": true,
+            "schema": {
+              "title": "Server Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaServerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Unregister the tuner and guide",
+        "tags": [
+          "media-servers",
+          "media-servers"
+        ]
+      }
+    },
+    "/api/v1/media-servers/{server_id}/refresh": {
+      "post": {
+        "description": "Bypasses the sync job's debounce \u2014 the user asked for it explicitly.",
+        "operationId": "refresh_media_server_api_v1_media_servers__server_id__refresh_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "server_id",
+            "required": true,
+            "schema": {
+              "title": "Server Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaServerRefreshResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Refresh the guide now",
+        "tags": [
+          "media-servers",
+          "media-servers"
+        ]
+      }
+    },
+    "/api/v1/media-servers/{server_id}/status": {
+      "get": {
+        "operationId": "media_server_status_api_v1_media_servers__server_id__status_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "server_id",
+            "required": true,
+            "schema": {
+              "title": "Server Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaServerStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Media Server Status",
+        "tags": [
+          "media-servers",
+          "media-servers"
+        ]
+      }
+    },
+    "/api/v1/media-servers/{server_id}/test": {
+      "post": {
+        "operationId": "test_saved_media_server_api_v1_media_servers__server_id__test_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "server_id",
+            "required": true,
+            "schema": {
+              "title": "Server Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaServerProbeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Probe a saved media server",
+        "tags": [
+          "media-servers",
+          "media-servers"
+        ]
+      }
+    },
+    "/api/v1/player/capabilities": {
+      "get": {
+        "operationId": "capabilities_api_v1_player_capabilities_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerCapabilities"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Whether the server can prepare streams for browsers",
+        "tags": [
+          "player",
+          "player"
+        ]
+      }
+    },
+    "/api/v1/player/sessions": {
+      "get": {
+        "operationId": "list_sessions_api_v1_player_sessions_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerSessionListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Active player sessions",
+        "tags": [
+          "player",
+          "player"
+        ]
+      },
+      "post": {
+        "operationId": "create_session_api_v1_player_sessions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlayerSessionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerSessionStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start (or join) playback of a channel",
+        "tags": [
+          "player",
+          "player"
+        ]
+      }
+    },
+    "/api/v1/player/sessions/{session_id}": {
+      "delete": {
+        "operationId": "leave_session_api_v1_player_sessions__session_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Leave a session",
+        "tags": [
+          "player",
+          "player"
+        ]
+      },
+      "get": {
+        "operationId": "get_session_api_v1_player_sessions__session_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerSessionStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Session status (heartbeat)",
+        "tags": [
+          "player",
+          "player"
+        ]
+      }
+    },
+    "/api/v1/player/sessions/{session_id}/index.m3u8": {
+      "get": {
+        "operationId": "playlist_api_v1_player_sessions__session_id__index_m3u8_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "HLS playlist",
+        "tags": [
+          "player",
+          "player"
+        ]
+      }
+    },
+    "/api/v1/player/sessions/{session_id}/{segment}": {
+      "get": {
+        "operationId": "segment_api_v1_player_sessions__session_id___segment__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "segment",
+            "required": true,
+            "schema": {
+              "title": "Segment",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "HLS segment",
+        "tags": [
+          "player",
+          "player"
+        ]
+      }
+    },
+    "/api/v1/player/streams": {
+      "get": {
+        "description": "Browser sessions and raw relays in one list, named where we know the name.\n\nDeclared ``def``, not ``async def``: it reads the database, so FastAPI runs\nit in the threadpool instead of blocking the event loop that is feeding the\nrelays this very endpoint reports.",
+        "operationId": "active_streams_api_v1_player_streams_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActiveStreamListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Everything the server is streaming right now",
+        "tags": [
+          "player",
+          "player"
+        ]
+      }
+    },
     "/api/v1/playlists/all-streams/m3u": {
       "get": {
         "description": "Generate an M3U playlist of numbered TV channels followed by unassigned\nacestreams (numbered from 9000).\n\n- **search**: Optional search term for channel names\n- **include_unassigned**: Append streams not assigned to any TV channel\n- **refresh**: Trigger a background rescrape of all enabled URLs",
@@ -8042,6 +10573,450 @@
         "summary": "Get Tv Channels Playlist",
         "tags": [
           "playlists"
+        ]
+      }
+    },
+    "/api/v1/remote-players": {
+      "get": {
+        "operationId": "list_players_api_v1_remote_players_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RemotePlayerResponse"
+                  },
+                  "title": "Response List Players Api V1 Remote Players Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Saved remote players",
+        "tags": [
+          "remote-players",
+          "remote-players"
+        ]
+      },
+      "post": {
+        "operationId": "create_player_api_v1_remote_players_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemotePlayerCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemotePlayerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Player",
+        "tags": [
+          "remote-players",
+          "remote-players"
+        ]
+      }
+    },
+    "/api/v1/remote-players/scan": {
+      "post": {
+        "operationId": "scan_api_v1_remote_players_scan_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanResultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Find VLC/Kodi web interfaces on a private network",
+        "tags": [
+          "remote-players",
+          "remote-players"
+        ]
+      }
+    },
+    "/api/v1/remote-players/scan/default": {
+      "get": {
+        "operationId": "scan_default_api_v1_remote_players_scan_default_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanDefaultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Suggested network to scan",
+        "tags": [
+          "remote-players",
+          "remote-players"
+        ]
+      }
+    },
+    "/api/v1/remote-players/test": {
+      "post": {
+        "operationId": "test_player_api_v1_remote_players_test_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemotePlayerTestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemotePlayerProbeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Probe a player before saving it",
+        "tags": [
+          "remote-players",
+          "remote-players"
+        ]
+      }
+    },
+    "/api/v1/remote-players/{player_id}": {
+      "delete": {
+        "operationId": "delete_player_api_v1_remote_players__player_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "player_id",
+            "required": true,
+            "schema": {
+              "title": "Player Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Player",
+        "tags": [
+          "remote-players",
+          "remote-players"
+        ]
+      },
+      "patch": {
+        "operationId": "update_player_api_v1_remote_players__player_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "player_id",
+            "required": true,
+            "schema": {
+              "title": "Player Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemotePlayerUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemotePlayerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Player",
+        "tags": [
+          "remote-players",
+          "remote-players"
+        ]
+      }
+    },
+    "/api/v1/remote-players/{player_id}/command": {
+      "post": {
+        "operationId": "player_command_api_v1_remote_players__player_id__command_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "player_id",
+            "required": true,
+            "schema": {
+              "title": "Player Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemotePlayerCommandRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Player Command",
+        "tags": [
+          "remote-players",
+          "remote-players"
+        ]
+      }
+    },
+    "/api/v1/remote-players/{player_id}/play": {
+      "post": {
+        "operationId": "play_on_player_api_v1_remote_players__player_id__play_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "player_id",
+            "required": true,
+            "schema": {
+              "title": "Player Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemotePlayerPlayRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemotePlayerPlayResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Send a channel to the player",
+        "tags": [
+          "remote-players",
+          "remote-players"
+        ]
+      }
+    },
+    "/api/v1/remote-players/{player_id}/status": {
+      "get": {
+        "operationId": "player_status_api_v1_remote_players__player_id__status_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "player_id",
+            "required": true,
+            "schema": {
+              "title": "Player Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemotePlayerStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Player Status",
+        "tags": [
+          "remote-players",
+          "remote-players"
+        ]
+      }
+    },
+    "/api/v1/remote-players/{player_id}/test": {
+      "post": {
+        "operationId": "test_saved_player_api_v1_remote_players__player_id__test_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "player_id",
+            "required": true,
+            "schema": {
+              "title": "Player Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemotePlayerProbeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Probe a saved player",
+        "tags": [
+          "remote-players",
+          "remote-players"
         ]
       }
     },
@@ -8670,6 +11645,29 @@
         ]
       }
     },
+    "/api/v1/system/public-url": {
+      "get": {
+        "description": "Sync on purpose: it reads the settings table.",
+        "operationId": "get_public_url_api_v1_system_public_url_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicUrlResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Origin external clients must use",
+        "tags": [
+          "system",
+          "system"
+        ]
+      }
+    },
     "/api/v1/system/services": {
       "get": {
         "description": "Sync endpoint on purpose: the probes block for up to a couple of seconds each.",
@@ -8776,6 +11774,88 @@
         "tags": [
           "system",
           "system"
+        ]
+      }
+    },
+    "/api/v1/tuner/settings": {
+      "get": {
+        "operationId": "get_tuner_settings_api_v1_tuner_settings_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TunerSettingsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Tuner settings",
+        "tags": [
+          "tuner"
+        ]
+      },
+      "put": {
+        "operationId": "update_tuner_settings_api_v1_tuner_settings_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TunerSettingsUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TunerSettingsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Change the tuner settings",
+        "tags": [
+          "tuner"
+        ]
+      }
+    },
+    "/api/v1/tuner/status": {
+      "get": {
+        "description": "Everything the Integrations page needs to explain the tuner: the lineup\nit would serve, the URLs to paste into a media server, and whether the\nallowlist can actually tell this caller apart from any other.",
+        "operationId": "tuner_status_api_v1_tuner_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TunerStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Lineup, URLs and allowlist state",
+        "tags": [
+          "tuner"
         ]
       }
     },
@@ -10030,6 +13110,50 @@
           }
         },
         "summary": "Public M3U Playlist"
+      }
+    },
+    "/tuner/stream/{content_id}.ts": {
+      "get": {
+        "description": "Relays the engine's MPEG-TS bytes. Unknown query params (transcode,\nduration) are ignored. HEAD answers headers only and never starts a\nsession.",
+        "operationId": "tuner_stream_tuner_stream__content_id__ts_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "content_id",
+            "required": true,
+            "schema": {
+              "title": "Content Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "video/mp2t": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "MPEG-TS relay of one channel",
+        "tags": [
+          "hdhomerun"
+        ]
       }
     }
   }

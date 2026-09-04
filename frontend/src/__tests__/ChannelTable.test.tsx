@@ -70,6 +70,8 @@ const baseChannel = {
 };
 
 const handlers = () => ({
+  onPlay: jest.fn(),
+  onPlayOn: jest.fn(),
   onCheckStatus: jest.fn(),
   onEdit: jest.fn(),
   onToggleHidden: jest.fn(),
@@ -133,8 +135,11 @@ describe('ChannelTable', () => {
 
     expect(screen.getByText('Hidden')).toBeInTheDocument();
     expect(screen.getByText('Sports · TV: Arena TV')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'go to tv channel Arena TV' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: `assign tv channel to ${baseChannel.name}` })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: `More actions for ${baseChannel.name}` }));
+    const menu = screen.getByRole('menu');
+    expect(within(menu).getByRole('menuitem', { name: 'Open TV channel: Arena TV' })).toBeInTheDocument();
+    expect(within(menu).queryByRole('menuitem', { name: 'Link to a TV channel' })).not.toBeInTheDocument();
   });
 
   it('renders the empty overlay, with filter-specific copy when filters are active', () => {
@@ -167,23 +172,28 @@ describe('ChannelTable', () => {
     expect(within(unknownRow).getByText('Unknown')).toBeInTheDocument();
   });
 
-  it('exposes check status and TV link as visible buttons and the rest behind More actions', () => {
+  it('exposes play and check status as visible buttons and the rest behind More actions', () => {
     const handlersOf = mountTable();
+
+    fireEvent.click(screen.getByRole('button', { name: `play channel ${baseChannel.name}` }));
+    expect(handlersOf.onPlay).toHaveBeenCalledWith(expect.objectContaining({ id: baseChannel.id }));
 
     fireEvent.click(screen.getByRole('button', { name: `check channel status ${baseChannel.name}` }));
     expect(handlersOf.onCheckStatus).toHaveBeenCalledWith(expect.objectContaining({ id: baseChannel.id }));
 
-    fireEvent.click(screen.getByRole('button', { name: `assign tv channel to ${baseChannel.name}` }));
-    expect(handlersOf.onAssignTV).toHaveBeenCalledWith(expect.objectContaining({ id: baseChannel.id }));
-
     fireEvent.click(screen.getByRole('button', { name: `More actions for ${baseChannel.name}` }));
     const menu = screen.getByRole('menu');
+    expect(within(menu).getByRole('menuitem', { name: 'Link to a TV channel' })).toBeInTheDocument();
     expect(within(menu).getByRole('menuitem', { name: 'Edit' })).toBeInTheDocument();
     expect(within(menu).getByRole('menuitem', { name: 'Hide from playlist' })).toBeInTheDocument();
     expect(within(menu).getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
     expect(within(menu).queryByRole('menuitem', { name: /favorites/ })).not.toBeInTheDocument();
 
-    fireEvent.click(within(menu).getByRole('menuitem', { name: 'Hide from playlist' }));
+    fireEvent.click(within(menu).getByRole('menuitem', { name: 'Link to a TV channel' }));
+    expect(handlersOf.onAssignTV).toHaveBeenCalledWith(expect.objectContaining({ id: baseChannel.id }));
+
+    fireEvent.click(screen.getByRole('button', { name: `More actions for ${baseChannel.name}` }));
+    fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: 'Hide from playlist' }));
     expect(handlersOf.onToggleHidden).toHaveBeenCalledWith(expect.objectContaining({ id: baseChannel.id }));
   });
 

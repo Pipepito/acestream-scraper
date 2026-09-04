@@ -331,6 +331,18 @@ export interface paths {
      */
     put: operations["update_epg_refresh_interval_api_v1_config_epg_refresh_interval_put"];
   };
+  "/api/v1/config/public_base_url": {
+    /**
+     * Get Public Base Url
+     * @description Externally reachable origin used for tuner, player and copy links.
+     */
+    get: operations["get_public_base_url_api_v1_config_public_base_url_get"];
+    /**
+     * Update Public Base Url
+     * @description Update the externally reachable origin (empty value clears the override).
+     */
+    put: operations["update_public_base_url_api_v1_config_public_base_url_put"];
+  };
   "/api/v1/config/rescrape_interval": {
     /**
      * Get Rescrape Interval
@@ -512,6 +524,80 @@ export interface paths {
      */
     get: operations["check_health_api_v1_health_get"];
   };
+  "/api/v1/media-servers": {
+    /** Saved media servers */
+    get: operations["list_media_servers_api_v1_media_servers_get"];
+    /** Create Media Server */
+    post: operations["create_media_server_api_v1_media_servers_post"];
+  };
+  "/api/v1/media-servers/test": {
+    /** Probe a media server before saving it */
+    post: operations["test_media_server_api_v1_media_servers_test_post"];
+  };
+  "/api/v1/media-servers/{server_id}": {
+    /** Delete Media Server */
+    delete: operations["delete_media_server_api_v1_media_servers__server_id__delete"];
+    /** Update Media Server */
+    patch: operations["update_media_server_api_v1_media_servers__server_id__patch"];
+  };
+  "/api/v1/media-servers/{server_id}/connect": {
+    /** Register the tuner and guide */
+    post: operations["connect_media_server_api_v1_media_servers__server_id__connect_post"];
+  };
+  "/api/v1/media-servers/{server_id}/disconnect": {
+    /** Unregister the tuner and guide */
+    post: operations["disconnect_media_server_api_v1_media_servers__server_id__disconnect_post"];
+  };
+  "/api/v1/media-servers/{server_id}/refresh": {
+    /**
+     * Refresh the guide now
+     * @description Bypasses the sync job's debounce — the user asked for it explicitly.
+     */
+    post: operations["refresh_media_server_api_v1_media_servers__server_id__refresh_post"];
+  };
+  "/api/v1/media-servers/{server_id}/status": {
+    /** Media Server Status */
+    get: operations["media_server_status_api_v1_media_servers__server_id__status_get"];
+  };
+  "/api/v1/media-servers/{server_id}/test": {
+    /** Probe a saved media server */
+    post: operations["test_saved_media_server_api_v1_media_servers__server_id__test_post"];
+  };
+  "/api/v1/player/capabilities": {
+    /** Whether the server can prepare streams for browsers */
+    get: operations["capabilities_api_v1_player_capabilities_get"];
+  };
+  "/api/v1/player/sessions": {
+    /** Active player sessions */
+    get: operations["list_sessions_api_v1_player_sessions_get"];
+    /** Start (or join) playback of a channel */
+    post: operations["create_session_api_v1_player_sessions_post"];
+  };
+  "/api/v1/player/sessions/{session_id}": {
+    /** Session status (heartbeat) */
+    get: operations["get_session_api_v1_player_sessions__session_id__get"];
+    /** Leave a session */
+    delete: operations["leave_session_api_v1_player_sessions__session_id__delete"];
+  };
+  "/api/v1/player/sessions/{session_id}/index.m3u8": {
+    /** HLS playlist */
+    get: operations["playlist_api_v1_player_sessions__session_id__index_m3u8_get"];
+  };
+  "/api/v1/player/sessions/{session_id}/{segment}": {
+    /** HLS segment */
+    get: operations["segment_api_v1_player_sessions__session_id___segment__get"];
+  };
+  "/api/v1/player/streams": {
+    /**
+     * Everything the server is streaming right now
+     * @description Browser sessions and raw relays in one list, named where we know the name.
+     *
+     * Declared ``def``, not ``async def``: it reads the database, so FastAPI runs
+     * it in the threadpool instead of blocking the event loop that is feeding the
+     * relays this very endpoint reports.
+     */
+    get: operations["active_streams_api_v1_player_streams_get"];
+  };
   "/api/v1/playlists/all-streams/m3u": {
     /**
      * Get All Streams Playlist
@@ -566,6 +652,46 @@ export interface paths {
      * - **refresh**: Trigger a background rescrape of all enabled URLs
      */
     get: operations["get_tv_channels_playlist_api_v1_playlists_tv_channels_m3u_get"];
+  };
+  "/api/v1/remote-players": {
+    /** Saved remote players */
+    get: operations["list_players_api_v1_remote_players_get"];
+    /** Create Player */
+    post: operations["create_player_api_v1_remote_players_post"];
+  };
+  "/api/v1/remote-players/scan": {
+    /** Find VLC/Kodi web interfaces on a private network */
+    post: operations["scan_api_v1_remote_players_scan_post"];
+  };
+  "/api/v1/remote-players/scan/default": {
+    /** Suggested network to scan */
+    get: operations["scan_default_api_v1_remote_players_scan_default_get"];
+  };
+  "/api/v1/remote-players/test": {
+    /** Probe a player before saving it */
+    post: operations["test_player_api_v1_remote_players_test_post"];
+  };
+  "/api/v1/remote-players/{player_id}": {
+    /** Delete Player */
+    delete: operations["delete_player_api_v1_remote_players__player_id__delete"];
+    /** Update Player */
+    patch: operations["update_player_api_v1_remote_players__player_id__patch"];
+  };
+  "/api/v1/remote-players/{player_id}/command": {
+    /** Player Command */
+    post: operations["player_command_api_v1_remote_players__player_id__command_post"];
+  };
+  "/api/v1/remote-players/{player_id}/play": {
+    /** Send a channel to the player */
+    post: operations["play_on_player_api_v1_remote_players__player_id__play_post"];
+  };
+  "/api/v1/remote-players/{player_id}/status": {
+    /** Player Status */
+    get: operations["player_status_api_v1_remote_players__player_id__status_get"];
+  };
+  "/api/v1/remote-players/{player_id}/test": {
+    /** Probe a saved player */
+    post: operations["test_saved_player_api_v1_remote_players__player_id__test_post"];
   };
   "/api/v1/scrapers/scrape": {
     /**
@@ -662,6 +788,13 @@ export interface paths {
     /** Get Active Streams */
     get: operations["get_active_streams_api_v1_streams_active_get"];
   };
+  "/api/v1/system/public-url": {
+    /**
+     * Origin external clients must use
+     * @description Sync on purpose: it reads the settings table.
+     */
+    get: operations["get_public_url_api_v1_system_public_url_get"];
+  };
   "/api/v1/system/services": {
     /**
      * Status of the sidecar services
@@ -676,6 +809,21 @@ export interface paths {
   "/api/v1/system/services/{name}/restart": {
     /** Restart a service supervised by this container */
     post: operations["restart_service_api_v1_system_services__name__restart_post"];
+  };
+  "/api/v1/tuner/settings": {
+    /** Tuner settings */
+    get: operations["get_tuner_settings_api_v1_tuner_settings_get"];
+    /** Change the tuner settings */
+    put: operations["update_tuner_settings_api_v1_tuner_settings_put"];
+  };
+  "/api/v1/tuner/status": {
+    /**
+     * Lineup, URLs and allowlist state
+     * @description Everything the Integrations page needs to explain the tuner: the lineup
+     * it would serve, the URLs to paste into a media server, and whether the
+     * allowlist can actually tell this caller apart from any other.
+     */
+    get: operations["tuner_status_api_v1_tuner_status_get"];
   };
   "/api/v1/tv-channels/": {
     /**
@@ -844,6 +992,15 @@ export interface paths {
      */
     get: operations["public_m3u_playlist_playlists_m3u_get"];
   };
+  "/tuner/stream/{content_id}.ts": {
+    /**
+     * MPEG-TS relay of one channel
+     * @description Relays the engine's MPEG-TS bytes. Unknown query params (transcode,
+     * duration) are ignored. HEAD answers headers only and never starts a
+     * session.
+     */
+    get: operations["tuner_stream_tuner_stream__content_id__ts_get"];
+  };
 }
 
 export type webhooks = Record<string, never>;
@@ -992,6 +1149,48 @@ export interface components {
       playlist_loaded?: boolean | null;
       /** Version */
       version?: string | null;
+    };
+    /**
+     * ActiveStream
+     * @description One thing the server is streaming right now.
+     *
+     * ``browser`` is an ffmpeg/HLS player session; ``relay`` is a raw MPEG-TS
+     * relay of ``/tuner/stream/<id>.ts`` — what a media server's tuner and a
+     * remote player on the server-relay link format pull.
+     */
+    ActiveStream: {
+      /** Channel Name */
+      channel_name?: string | null;
+      /** Client Label */
+      client_label?: string | null;
+      /** Content Id */
+      content_id: string;
+      /** Id */
+      id: string;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "browser" | "relay";
+      /** Peers */
+      peers?: number | null;
+      /** Started At */
+      started_at?: string | null;
+      /**
+       * State
+       * @enum {string}
+       */
+      state: "starting" | "ready" | "error" | "stopped" | "streaming";
+      /**
+       * Viewers
+       * @default 1
+       */
+      viewers?: number;
+    };
+    /** ActiveStreamListResponse */
+    ActiveStreamListResponse: {
+      /** Streams */
+      streams: components["schemas"]["ActiveStream"][];
     };
     /** AddChannelRequest */
     AddChannelRequest: {
@@ -1619,6 +1818,173 @@ export interface components {
       /** Total */
       total: number;
     };
+    /** MediaServerCreate */
+    MediaServerCreate: {
+      /**
+       * Api Key
+       * @description Jellyfin API key or Plex owner token
+       */
+      api_key?: string | null;
+      /**
+       * Auto Refresh
+       * @default true
+       */
+      auto_refresh?: boolean;
+      /** Base Url */
+      base_url: string;
+      /**
+       * Enabled
+       * @default true
+       */
+      enabled?: boolean;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "jellyfin" | "plex";
+      /** Name */
+      name: string;
+      /**
+       * Tuner Mode
+       * @default hdhomerun
+       * @enum {string}
+       */
+      tuner_mode?: "hdhomerun" | "m3u";
+    };
+    /** MediaServerProbeResponse */
+    MediaServerProbeResponse: {
+      /** Authenticated */
+      authenticated: boolean;
+      /**
+       * Credentials
+       * @enum {string}
+       */
+      credentials: "ok" | "missing" | "rejected";
+      /** Message */
+      message: string;
+      /** Reachable */
+      reachable: boolean;
+      tuner_access: components["schemas"]["TunerAccessResponse"];
+      /** Version */
+      version?: string | null;
+    };
+    /** MediaServerRefreshResponse */
+    MediaServerRefreshResponse: {
+      /** Last Sync At */
+      last_sync_at?: string | null;
+      /** Message */
+      message?: string | null;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "ok" | "error" | "manual";
+    };
+    /** MediaServerResponse */
+    MediaServerResponse: {
+      /** Auto Refresh */
+      auto_refresh: boolean;
+      /** Base Url */
+      base_url: string;
+      /** Connected */
+      connected: boolean;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Dvr Key */
+      dvr_key?: string | null;
+      /** Enabled */
+      enabled: boolean;
+      /** Has Api Key */
+      has_api_key: boolean;
+      /** Id */
+      id: number;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "jellyfin" | "plex";
+      /** Last Error */
+      last_error?: string | null;
+      /** Last Sync At */
+      last_sync_at?: string | null;
+      /**
+       * Last Sync Status
+       * @enum {string}
+       */
+      last_sync_status: "ok" | "error" | "never" | "manual";
+      /** Listing Provider Id */
+      listing_provider_id?: string | null;
+      /** Name */
+      name: string;
+      /** Server Version */
+      server_version?: string | null;
+      /** Tuner Host Id */
+      tuner_host_id?: string | null;
+      /**
+       * Tuner Mode
+       * @enum {string}
+       */
+      tuner_mode: "hdhomerun" | "m3u";
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+    };
+    /** MediaServerStatusResponse */
+    MediaServerStatusResponse: {
+      /** Channel Count */
+      channel_count?: number | null;
+      /** Connected */
+      connected: boolean;
+      /** Error */
+      error?: string | null;
+      /** Last Result */
+      last_result?: string | null;
+      /** Paste */
+      paste?: {
+        [key: string]: string;
+      };
+      /** Refresh State */
+      refresh_state?: string | null;
+      /** Steps */
+      steps?: string[];
+    };
+    /** MediaServerTestRequest */
+    MediaServerTestRequest: {
+      /** Api Key */
+      api_key?: string | null;
+      /** Base Url */
+      base_url: string;
+      /** Id */
+      id?: number | null;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "jellyfin" | "plex";
+    };
+    /** MediaServerUpdate */
+    MediaServerUpdate: {
+      /**
+       * Api Key
+       * @description omit = keep, empty = clear
+       */
+      api_key?: string | null;
+      /** Auto Refresh */
+      auto_refresh?: boolean | null;
+      /** Base Url */
+      base_url?: string | null;
+      /** Enabled */
+      enabled?: boolean | null;
+      /** Name */
+      name?: string | null;
+      /** Tuner Mode */
+      tuner_mode?: ("hdhomerun" | "m3u") | null;
+    };
     /**
      * MessageResponse
      * @description Generic operation message response
@@ -1626,6 +1992,295 @@ export interface components {
     MessageResponse: {
       /** Message */
       message: string;
+    };
+    /** PlayerCapabilities */
+    PlayerCapabilities: {
+      /** Ffmpeg Available */
+      ffmpeg_available: boolean;
+      /** Ffmpeg Path */
+      ffmpeg_path?: string | null;
+      /** Hls Dir */
+      hls_dir: string;
+      /** Max Sessions */
+      max_sessions: number;
+    };
+    /** PlayerCodecs */
+    PlayerCodecs: {
+      /** Audio */
+      audio?: string | null;
+      /** Video */
+      video?: string | null;
+    };
+    /** PlayerSessionCreate */
+    PlayerSessionCreate: {
+      /**
+       * Content Id
+       * @description AceStream content id (40 hex)
+       */
+      content_id: string;
+    };
+    /** PlayerSessionListResponse */
+    PlayerSessionListResponse: {
+      /** Sessions */
+      sessions: components["schemas"]["PlayerSessionStatus"][];
+    };
+    /** PlayerSessionStatus */
+    PlayerSessionStatus: {
+      codecs: components["schemas"]["PlayerCodecs"];
+      /** Content Id */
+      content_id: string;
+      /** Error */
+      error?: ("engine_unavailable" | "engine_refused" | "engine_stalled" | "ffmpeg_missing" | "ffmpeg_failed") | null;
+      /**
+       * Error Message
+       * @default
+       */
+      error_message?: string;
+      /** Hls Ready */
+      hls_ready: boolean;
+      /** Id */
+      id: string;
+      /** Playlist Url */
+      playlist_url: string;
+      /**
+       * State
+       * @enum {string}
+       */
+      state: "starting" | "ready" | "error" | "stopped";
+      stats?: components["schemas"]["PlayerStats"] | null;
+      /** Viewers */
+      viewers: number;
+    };
+    /** PlayerStats */
+    PlayerStats: {
+      /** Peers */
+      peers: number;
+      /** Speed Down */
+      speed_down: number;
+      /** Speed Up */
+      speed_up: number;
+      /** Status */
+      status: string;
+    };
+    /**
+     * PublicBaseUrlUpdate
+     * @description Schema for updating the externally reachable origin (spec 4.3).
+     */
+    PublicBaseUrlUpdate: {
+      /**
+       * Value
+       * @description http(s)://host[:port]; empty clears the override
+       * @default
+       */
+      value?: string;
+    };
+    /**
+     * PublicUrlResponse
+     * @description The origin external clients must use to reach this server (spec 4.3).
+     */
+    PublicUrlResponse: {
+      /**
+       * Source
+       * @enum {string}
+       */
+      source: "setting" | "forwarded" | "request";
+      /**
+       * Url
+       * @description scheme://host[:port], no trailing slash
+       */
+      url: string;
+      /**
+       * Warnings
+       * @description localhost | docker-internal | unset | proxied
+       */
+      warnings?: string[];
+    };
+    /** RemotePlayerCommandRequest */
+    RemotePlayerCommandRequest: {
+      /**
+       * Command
+       * @enum {string}
+       */
+      command: "pause" | "resume" | "stop" | "volume";
+      /**
+       * Value
+       * @description Percent, volume only
+       */
+      value?: number | null;
+    };
+    /** RemotePlayerCreate */
+    RemotePlayerCreate: {
+      /**
+       * Base Url Id
+       * @description Stream link format; null = server relay URL
+       */
+      base_url_id?: number | null;
+      /**
+       * Host
+       * @description Hostname or IP, no scheme
+       */
+      host: string;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "vlc" | "kodi";
+      /** Name */
+      name: string;
+      /** Password */
+      password?: string | null;
+      /**
+       * Port
+       * @default 8080
+       */
+      port?: number;
+      /**
+       * Username
+       * @description Kodi only; default kodi
+       */
+      username?: string | null;
+    };
+    /** RemotePlayerPlayRequest */
+    RemotePlayerPlayRequest: {
+      /** Content Id */
+      content_id: string;
+      /** Title */
+      title?: string | null;
+    };
+    /** RemotePlayerPlayResponse */
+    RemotePlayerPlayResponse: {
+      /** Url */
+      url: string;
+      /**
+       * Warnings
+       * @description Why the player probably cannot fetch this URL: localhost | docker-internal | tuner_blocked
+       */
+      warnings?: string[];
+    };
+    /** RemotePlayerProbeResponse */
+    RemotePlayerProbeResponse: {
+      /** Authenticated */
+      authenticated: boolean;
+      /** Hint */
+      hint?: string | null;
+      /** Message */
+      message: string;
+      /** Reachable */
+      reachable: boolean;
+      tuner_access: components["schemas"]["TunerAccessResponse"];
+      /** Version */
+      version?: string | null;
+    };
+    /** RemotePlayerResponse */
+    RemotePlayerResponse: {
+      /**
+       * Base Url Id
+       * @description Stream link format; null = server relay URL
+       */
+      base_url_id?: number | null;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Has Password */
+      has_password: boolean;
+      /**
+       * Host
+       * @description Hostname or IP, no scheme
+       */
+      host: string;
+      /** Id */
+      id: number;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "vlc" | "kodi";
+      /** Name */
+      name: string;
+      /**
+       * Port
+       * @default 8080
+       */
+      port?: number;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      /**
+       * Username
+       * @description Kodi only; default kodi
+       */
+      username?: string | null;
+    };
+    /** RemotePlayerStatusResponse */
+    RemotePlayerStatusResponse: {
+      /** Length S */
+      length_s?: number | null;
+      /** Message */
+      message?: string | null;
+      /** Position S */
+      position_s?: number | null;
+      /**
+       * State
+       * @enum {string}
+       */
+      state: "playing" | "paused" | "stopped";
+      /** Title */
+      title?: string | null;
+      /** Volume Pct */
+      volume_pct?: number | null;
+    };
+    /** RemotePlayerTestRequest */
+    RemotePlayerTestRequest: {
+      /** Host */
+      host: string;
+      /**
+       * Id
+       * @description Use this saved player's password when none is given
+       */
+      id?: number | null;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "vlc" | "kodi";
+      /** Password */
+      password?: string | null;
+      /**
+       * Port
+       * @default 8080
+       */
+      port?: number;
+      /** Username */
+      username?: string | null;
+    };
+    /** RemotePlayerUpdate */
+    RemotePlayerUpdate: {
+      /** Base Url Id */
+      base_url_id?: number | null;
+      /**
+       * Clear Base Url
+       * @default false
+       */
+      clear_base_url?: boolean;
+      /** Host */
+      host?: string | null;
+      /** Kind */
+      kind?: ("vlc" | "kodi") | null;
+      /** Name */
+      name?: string | null;
+      /**
+       * Password
+       * @description omit = keep, empty string = clear
+       */
+      password?: string | null;
+      /** Port */
+      port?: number | null;
+      /** Username */
+      username?: string | null;
     };
     /**
      * RescrapeIntervalUpdate
@@ -1642,6 +2297,48 @@ export interface components {
        * @description Hours between automatic rescrapes
        */
       value?: string | null;
+    };
+    /** ScanDefaultResponse */
+    ScanDefaultResponse: {
+      /** Cidr */
+      cidr?: string | null;
+      /** Hint */
+      hint: string;
+    };
+    /** ScanHitResponse */
+    ScanHitResponse: {
+      /** Hint */
+      hint: string;
+      /** Host */
+      host: string;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "vlc" | "kodi" | "unknown";
+      /** Port */
+      port: number;
+    };
+    /** ScanRequest */
+    ScanRequest: {
+      /** Cidr */
+      cidr: string;
+      /** Ports */
+      ports?: number[];
+      /**
+       * Timeout Ms
+       * @default 400
+       */
+      timeout_ms?: number;
+    };
+    /** ScanResultResponse */
+    ScanResultResponse: {
+      /** Duration Ms */
+      duration_ms: number;
+      /** Hosts */
+      hosts: components["schemas"]["ScanHitResponse"][];
+      /** Scanned */
+      scanned: number;
     };
     /**
      * ScraperRequest
@@ -2185,6 +2882,103 @@ export interface components {
       name?: string | null;
       /** Website */
       website?: string | null;
+    };
+    /** TunerAccessResponse */
+    TunerAccessResponse: {
+      /** Addresses */
+      addresses: string[];
+      /** Allowed */
+      allowed: boolean;
+    };
+    /** TunerDenial */
+    TunerDenial: {
+      /** At */
+      at: number;
+      /** Client Ip */
+      client_ip: string;
+      /** Path */
+      path: string;
+      /** Peer */
+      peer: string;
+    };
+    /** TunerRenumbered */
+    TunerRenumbered: {
+      /** Assigned Number */
+      assigned_number: number;
+      /** Name */
+      name: string;
+      /** Requested Number */
+      requested_number: number;
+      /** Tv Channel Id */
+      tv_channel_id: number;
+    };
+    /** TunerSettingsResponse */
+    TunerSettingsResponse: {
+      /** Friendly Name */
+      friendly_name: string;
+      /** Max Channels */
+      max_channels: number;
+      /** Only Online */
+      only_online: boolean;
+      /** Tuner Count */
+      tuner_count: number;
+    };
+    /** TunerSettingsUpdate */
+    TunerSettingsUpdate: {
+      /** Friendly Name */
+      friendly_name?: string | null;
+      /** Max Channels */
+      max_channels?: number | null;
+      /** Only Online */
+      only_online?: boolean | null;
+      /** Tuner Count */
+      tuner_count?: number | null;
+    };
+    /** TunerStatusResponse */
+    TunerStatusResponse: {
+      /** Allowed Networks */
+      allowed_networks: string[];
+      /** Channel Count */
+      channel_count: number;
+      /** Client Allowed */
+      client_allowed: boolean;
+      /** Client Ip */
+      client_ip?: string | null;
+      /**
+       * Client Source
+       * @enum {string}
+       */
+      client_source: "direct" | "forwarded" | "docker-gateway" | "loopback";
+      /** Device Id */
+      device_id: string;
+      /** Ffmpeg Available */
+      ffmpeg_available: boolean;
+      /** Overflow */
+      overflow: number;
+      /** Peer */
+      peer?: string | null;
+      /** Recent Denials */
+      recent_denials: components["schemas"]["TunerDenial"][];
+      /** Renumbered */
+      renumbered: components["schemas"]["TunerRenumbered"][];
+      urls: components["schemas"]["TunerUrls"];
+      /** Warnings */
+      warnings: string[];
+    };
+    /** TunerUrls */
+    TunerUrls: {
+      /** Epg */
+      epg: string;
+      /** Guide */
+      guide: string;
+      /** Lineup */
+      lineup: string;
+      /** Playlist */
+      playlist: string;
+      /** Stream Template */
+      stream_template: string;
+      /** Tuner */
+      tuner: string;
     };
     /**
      * URLCreate
@@ -3546,6 +4340,45 @@ export interface operations {
     };
   };
   /**
+   * Get Public Base Url
+   * @description Externally reachable origin used for tuner, player and copy links.
+   */
+  get_public_base_url_api_v1_config_public_base_url_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["SettingResponse"];
+        };
+      };
+    };
+  };
+  /**
+   * Update Public Base Url
+   * @description Update the externally reachable origin (empty value clears the override).
+   */
+  update_public_base_url_api_v1_config_public_base_url_put: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PublicBaseUrlUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ConfigUpdateResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
    * Get Rescrape Interval
    * @description Get the interval between automatic rescrapes in hours.
    */
@@ -4180,6 +5013,366 @@ export interface operations {
       };
     };
   };
+  /** Saved media servers */
+  list_media_servers_api_v1_media_servers_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["MediaServerResponse"][];
+        };
+      };
+    };
+  };
+  /** Create Media Server */
+  create_media_server_api_v1_media_servers_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["MediaServerCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        content: {
+          "application/json": components["schemas"]["MediaServerResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Probe a media server before saving it */
+  test_media_server_api_v1_media_servers_test_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["MediaServerTestRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["MediaServerProbeResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Delete Media Server */
+  delete_media_server_api_v1_media_servers__server_id__delete: {
+    parameters: {
+      path: {
+        server_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Update Media Server */
+  update_media_server_api_v1_media_servers__server_id__patch: {
+    parameters: {
+      path: {
+        server_id: number;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["MediaServerUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["MediaServerResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Register the tuner and guide */
+  connect_media_server_api_v1_media_servers__server_id__connect_post: {
+    parameters: {
+      path: {
+        server_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["MediaServerResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Unregister the tuner and guide */
+  disconnect_media_server_api_v1_media_servers__server_id__disconnect_post: {
+    parameters: {
+      path: {
+        server_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["MediaServerResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Refresh the guide now
+   * @description Bypasses the sync job's debounce — the user asked for it explicitly.
+   */
+  refresh_media_server_api_v1_media_servers__server_id__refresh_post: {
+    parameters: {
+      path: {
+        server_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["MediaServerRefreshResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Media Server Status */
+  media_server_status_api_v1_media_servers__server_id__status_get: {
+    parameters: {
+      path: {
+        server_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["MediaServerStatusResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Probe a saved media server */
+  test_saved_media_server_api_v1_media_servers__server_id__test_post: {
+    parameters: {
+      path: {
+        server_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["MediaServerProbeResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Whether the server can prepare streams for browsers */
+  capabilities_api_v1_player_capabilities_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlayerCapabilities"];
+        };
+      };
+    };
+  };
+  /** Active player sessions */
+  list_sessions_api_v1_player_sessions_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlayerSessionListResponse"];
+        };
+      };
+    };
+  };
+  /** Start (or join) playback of a channel */
+  create_session_api_v1_player_sessions_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PlayerSessionCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlayerSessionStatus"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Session status (heartbeat) */
+  get_session_api_v1_player_sessions__session_id__get: {
+    parameters: {
+      path: {
+        session_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlayerSessionStatus"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Leave a session */
+  leave_session_api_v1_player_sessions__session_id__delete: {
+    parameters: {
+      path: {
+        session_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** HLS playlist */
+  playlist_api_v1_player_sessions__session_id__index_m3u8_get: {
+    parameters: {
+      path: {
+        session_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** HLS segment */
+  segment_api_v1_player_sessions__session_id___segment__get: {
+    parameters: {
+      path: {
+        session_id: string;
+        segment: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Everything the server is streaming right now
+   * @description Browser sessions and raw relays in one list, named where we know the name.
+   *
+   * Declared ``def``, not ``async def``: it reads the database, so FastAPI runs
+   * it in the threadpool instead of blocking the event loop that is feeding the
+   * relays this very endpoint reports.
+   */
+  active_streams_api_v1_player_streams_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ActiveStreamListResponse"];
+        };
+      };
+    };
+  };
   /**
    * Get All Streams Playlist
    * @description Generate an M3U playlist of numbered TV channels followed by unassigned
@@ -4332,6 +5525,237 @@ export interface operations {
       200: {
         content: {
           "text/plain": string;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Saved remote players */
+  list_players_api_v1_remote_players_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["RemotePlayerResponse"][];
+        };
+      };
+    };
+  };
+  /** Create Player */
+  create_player_api_v1_remote_players_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RemotePlayerCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        content: {
+          "application/json": components["schemas"]["RemotePlayerResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Find VLC/Kodi web interfaces on a private network */
+  scan_api_v1_remote_players_scan_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ScanRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ScanResultResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Suggested network to scan */
+  scan_default_api_v1_remote_players_scan_default_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ScanDefaultResponse"];
+        };
+      };
+    };
+  };
+  /** Probe a player before saving it */
+  test_player_api_v1_remote_players_test_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RemotePlayerTestRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["RemotePlayerProbeResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Delete Player */
+  delete_player_api_v1_remote_players__player_id__delete: {
+    parameters: {
+      path: {
+        player_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Update Player */
+  update_player_api_v1_remote_players__player_id__patch: {
+    parameters: {
+      path: {
+        player_id: number;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RemotePlayerUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["RemotePlayerResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Player Command */
+  player_command_api_v1_remote_players__player_id__command_post: {
+    parameters: {
+      path: {
+        player_id: number;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RemotePlayerCommandRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Send a channel to the player */
+  play_on_player_api_v1_remote_players__player_id__play_post: {
+    parameters: {
+      path: {
+        player_id: number;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RemotePlayerPlayRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      202: {
+        content: {
+          "application/json": components["schemas"]["RemotePlayerPlayResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Player Status */
+  player_status_api_v1_remote_players__player_id__status_get: {
+    parameters: {
+      path: {
+        player_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["RemotePlayerStatusResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Probe a saved player */
+  test_saved_player_api_v1_remote_players__player_id__test_post: {
+    parameters: {
+      path: {
+        player_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["RemotePlayerProbeResponse"];
         };
       };
       /** @description Validation Error */
@@ -4681,6 +6105,20 @@ export interface operations {
     };
   };
   /**
+   * Origin external clients must use
+   * @description Sync on purpose: it reads the settings table.
+   */
+  get_public_url_api_v1_system_public_url_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PublicUrlResponse"];
+        };
+      };
+    };
+  };
+  /**
    * Status of the sidecar services
    * @description Sync endpoint on purpose: the probes block for up to a couple of seconds each.
    */
@@ -4734,6 +6172,55 @@ export interface operations {
       422: {
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Tuner settings */
+  get_tuner_settings_api_v1_tuner_settings_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TunerSettingsResponse"];
+        };
+      };
+    };
+  };
+  /** Change the tuner settings */
+  update_tuner_settings_api_v1_tuner_settings_put: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TunerSettingsUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TunerSettingsResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Lineup, URLs and allowlist state
+   * @description Everything the Integrations page needs to explain the tuner: the lineup
+   * it would serve, the URLs to paste into a media server, and whether the
+   * allowlist can actually tell this caller apart from any other.
+   */
+  tuner_status_api_v1_tuner_status_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TunerStatusResponse"];
         };
       };
     };
@@ -5332,6 +6819,33 @@ export interface operations {
       200: {
         content: {
           "text/plain": string;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * MPEG-TS relay of one channel
+   * @description Relays the engine's MPEG-TS bytes. Unknown query params (transcode,
+   * duration) are ignored. HEAD answers headers only and never starts a
+   * session.
+   */
+  tuner_stream_tuner_stream__content_id__ts_get: {
+    parameters: {
+      path: {
+        content_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "video/mp2t": string;
         };
       };
       /** @description Validation Error */

@@ -9,6 +9,7 @@ from app.config.database import get_db
 from app.services.tvchannel_service import TVChannelService
 from app.services.acestreamchannel_service import AcestreamChannelService
 from app.services.epg_match_service import EPGMatchService
+from app.services.stream_ranking import sort_streams_curated
 from app.schemas.channel import (
     AcestreamChannelResponse,
     EPGMatchAnalysisRequest,
@@ -224,7 +225,7 @@ async def get_tv_channel_acestreams(tv_channel_id: int, db: Session = Depends(ge
     if not tv_channel:
         raise HTTPException(status_code=404, detail="TV Channel not found")
 
-    return tv_channel.acestream_channels
+    return sort_streams_curated(tv_channel.acestream_channels)
 
 
 @router.post(

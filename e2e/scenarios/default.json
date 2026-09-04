@@ -80,6 +80,10 @@
     "baseUrlName": "E2E Acexy",
     "baseUrlPattern": "http://127.0.0.1:8081/ace/getstream?id={channel_id}"
   },
+  "integrations": {
+    "playbackChannelName": "dazn",
+    "playbackTimeoutMs": 60000
+  },
   "errors": {
     "allowedApiErrorPatterns": [],
     "allowedConsolePatterns": [

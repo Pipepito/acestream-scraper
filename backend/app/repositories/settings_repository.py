@@ -17,6 +17,12 @@ class SettingsRepository:
     ADDPID = 'addpid'
     EPG_REFRESH_INTERVAL = 'epg_refresh_interval'
     ACESTREAM_CHECK_TIMEOUT = 'acestream_check_timeout'
+    PUBLIC_BASE_URL = 'public_base_url'
+    TUNER_DEVICE_ID = 'tuner_device_id'
+    TUNER_FRIENDLY_NAME = 'tuner_friendly_name'
+    TUNER_COUNT = 'tuner_count'
+    TUNER_MAX_CHANNELS = 'tuner_max_channels'
+    TUNER_ONLY_ONLINE = 'tuner_only_online'
 
     # Constants for default values
     DEFAULT_BASE_URL = 'acestream://'
@@ -27,6 +33,36 @@ class SettingsRepository:
     DEFAULT_ADDPID = 'false'
     DEFAULT_EPG_REFRESH_INTERVAL = '6'
     DEFAULT_ACESTREAM_CHECK_TIMEOUT = '10'
+    # The tuner keys have no setup_defaults entry: get_setting falls back to
+    # these, and the device id is generated on first use by TunerService.
+    DEFAULT_TUNER_DEVICE_ID = ''
+    DEFAULT_TUNER_FRIENDLY_NAME = 'AceStream Scraper'
+    DEFAULT_TUNER_COUNT = '4'
+    DEFAULT_TUNER_MAX_CHANNELS = '450'
+    DEFAULT_TUNER_ONLY_ONLINE = 'false'
+
+    # Keys whose stored empty value means "not configured" rather than
+    # "deliberately blank". Their DEFAULT_<KEY> comes from the environment, and
+    # setup_defaults seeds the row on first boot -- before the operator may have
+    # set the variable. Without this, that empty row would win for good and
+    # PUBLIC_BASE_URL would be inert with nothing to explain why.
+    # Precedence: a non-empty stored value > the environment > unset.
+    ENV_BACKED_KEYS = frozenset({PUBLIC_BASE_URL})
+
+    @property
+    def DEFAULT_PUBLIC_BASE_URL(self) -> str:  # noqa: N802 - matches the DEFAULT_<KEY> lookup convention
+        # Read at call time (not import time) so tests and runtime env changes apply.
+        from app.config.settings import get_settings
+        from app.services.public_url_service import InvalidPublicBaseUrl, normalize_public_base_url
+
+        raw = get_settings().PUBLIC_BASE_URL or ''
+        try:
+            # Seed the same canonical origin the API stores; a typo'd env value is
+            # dropped (and logged) instead of being persisted unvalidated.
+            return normalize_public_base_url(raw)
+        except InvalidPublicBaseUrl as exc:
+            logger.warning("Ignoring invalid PUBLIC_BASE_URL=%r: %s", raw, exc)
+            return ''
 
     def __init__(self, db: Session):
         self.db = db
@@ -35,8 +71,12 @@ class SettingsRepository:
         """Get a setting value by key"""
         try:
             setting = self.db.query(Setting).filter(Setting.key == key).first()
-            if setting:
-                return setting.value
+            if setting is not None:
+                value = setting.value
+                if (value or '').strip() or key not in self.ENV_BACKED_KEYS:
+                    return value
+                logger.info(f"Setting {key} is empty, using the environment default")
+                return self._get_class_default(key, default)
             logger.info(f"Setting {key} not found, using default")
             # Use class default if available
             return self._get_class_default(key, default)
@@ -95,7 +135,8 @@ class SettingsRepository:
             self.RESCRAPE_INTERVAL: (self.DEFAULT_RESCRAPE_INTERVAL, "Hours between automatic rescrapes"),
             self.ADDPID: (self.DEFAULT_ADDPID, "Add PID to Acestream links"),
             self.EPG_REFRESH_INTERVAL: (self.DEFAULT_EPG_REFRESH_INTERVAL, "Hours between EPG refreshes"),
-            self.ACESTREAM_CHECK_TIMEOUT: (self.DEFAULT_ACESTREAM_CHECK_TIMEOUT, "Seconds before an engine status check times out")
+            self.ACESTREAM_CHECK_TIMEOUT: (self.DEFAULT_ACESTREAM_CHECK_TIMEOUT, "Seconds before an engine status check times out"),
+            self.PUBLIC_BASE_URL: (self.DEFAULT_PUBLIC_BASE_URL, "Externally reachable origin for tuners and players"),
         }
 
         success = True

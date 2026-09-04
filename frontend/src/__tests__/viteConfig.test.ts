@@ -12,7 +12,9 @@ describe('vite config', () => {
     expect(configSource).toContain("return 'mui-icons'");
     expect(configSource).toContain("return 'data-vendor'");
     expect(configSource).toContain("return 'tv-channels-page'");
+    expect(configSource).toContain("return 'player-vendor'");
     expect(configSource).toContain("id.includes('node_modules/react/')");
     expect(configSource).toContain("id.includes('node_modules/react-dom/')");
+    expect(configSource).toContain("id.includes('node_modules/hls.js')");
   });
 });

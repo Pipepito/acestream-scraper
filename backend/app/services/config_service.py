@@ -5,6 +5,7 @@ from fastapi import HTTPException
 import re
 
 from app.repositories.settings_repository import SettingsRepository
+from app.services.public_url_service import InvalidPublicBaseUrl, normalize_public_base_url
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +49,32 @@ class ConfigService:
             SettingsRepository.ACE_ENGINE_URL,
             url,
             "Acestream Engine URL"
+        )
+
+    @staticmethod
+    def normalize_public_base_url(value: str) -> str:
+        """Accept http(s)://host[:port] only; strip a trailing slash; '' clears.
+
+        Every rejection (a bad scheme, a missing host, a path/query/fragment/
+        credentials, or a string urlsplit itself refuses such as "http://[::1")
+        becomes a 422 rather than an uncaught ValueError.
+        """
+        try:
+            return normalize_public_base_url(value)
+        except InvalidPublicBaseUrl as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    def get_public_base_url(self) -> str:
+        """Get the externally reachable origin advertised to tuners and players"""
+        return self.settings_repo.get_setting(SettingsRepository.PUBLIC_BASE_URL) or ""
+
+    def set_public_base_url(self, value: str) -> bool:
+        """Set (or, with an empty value, clear) the externally reachable origin"""
+        normalized = self.normalize_public_base_url(value)
+        return self.settings_repo.set_setting(
+            SettingsRepository.PUBLIC_BASE_URL,
+            normalized,
+            "Externally reachable origin for tuners and players",
         )
 
     def get_rescrape_interval(self) -> int:

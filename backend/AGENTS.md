@@ -10,7 +10,7 @@ Run from the repository root unless a command says otherwise:
 python3 -m venv backend/venv
 source backend/venv/bin/activate
 pip install -r backend/requirements.txt
-cd backend && uvicorn main:app --reload --host 0.0.0.0 --port 8000
+cd backend && uvicorn main:app --reload --host 0.0.0.0 --port 8000 --no-proxy-headers
 PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests
 PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/test_channels.py
 PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/test_channels.py::test_name

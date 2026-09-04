@@ -1,8 +1,26 @@
 import logging
 import os
+import re
 import sys
 from logging.handlers import RotatingFileHandler
 from .path import log_dir
+
+_TOKEN_RE = re.compile(r'([?&]token=)[^&\s"]*')
+
+
+class RedactTokenFilter(logging.Filter):
+    """Hide ?token= values in access-log lines (spec 4.4): native HLS players
+    and copied links carry the API token in the query string."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if isinstance(record.args, tuple):
+            record.args = tuple(
+                _TOKEN_RE.sub(r"\1[redacted]", arg) if isinstance(arg, str) else arg for arg in record.args
+            )
+        elif isinstance(record.msg, str):
+            record.msg = _TOKEN_RE.sub(r"\1[redacted]", record.msg)
+        return True
+
 
 def setup_logging():
     """Configure application-wide logging for FastAPI."""
@@ -39,5 +57,9 @@ def setup_logging():
         console.setLevel(logging.DEBUG)
         # Do NOT enable SQLAlchemy engine SQL logs in debug mode
         # logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+
+    access_logger = logging.getLogger('uvicorn.access')
+    if not any(isinstance(f, RedactTokenFilter) for f in access_logger.filters):
+        access_logger.addFilter(RedactTokenFilter())
 
     return root_logger

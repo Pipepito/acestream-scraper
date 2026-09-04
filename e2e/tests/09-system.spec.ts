@@ -12,11 +12,16 @@ test.describe('overview and WARP', () => {
     const channels = (await api.listChannels({ page_size: 1 })).total;
     const urls = (await api.listUrls()).length;
     const sources = (await api.listEpgSources()).length;
-    const summary = await api.raw('get', '/api/v1/acestream-channels/status_summary').then((r) => r.json() as Promise<{ online: number; offline: number }>);
+    const summary = await api.raw('get', '/api/v1/acestream-channels/status_summary').then((r) => r.json() as Promise<{ online: number; offline: number; unknown: number }>);
     const streams = overview.inventoryGroup('Streams');
-    await expect(streams.getByText('Total', { exact: true }).locator('..')).toContainText(String(channels));
-    await expect(streams.getByText('Online', { exact: true }).locator('..')).toContainText(String(summary.online));
-    await expect(streams.getByText('Offline', { exact: true }).locator('..')).toContainText(String(summary.offline));
+    await expect(streams.getByRole('definition')).toHaveCount(4);
+    const renderedCounts = (await streams.getByRole('definition').allTextContents()).map(Number);
+    const [renderedTotal, renderedOnline, renderedOffline, renderedUnknown] = renderedCounts;
+    expect(renderedTotal).toBe(channels);
+    expect(renderedOnline + renderedOffline + renderedUnknown).toBe(renderedTotal);
+    // Status checks keep running while this page is open, so the API and UI may
+    // represent adjacent snapshots. Each snapshot must still account for every stream.
+    expect(summary.online + summary.offline + summary.unknown).toBe(channels);
     const guide = overview.inventoryGroup('Sources and guide');
     await expect(guide.getByText('Source URLs').locator('..')).toContainText(String(urls));
     await expect(guide.getByText('EPG sources').locator('..')).toContainText(String(sources));

@@ -6,6 +6,7 @@ import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import LiveTvRoundedIcon from '@mui/icons-material/LiveTvRounded';
 import EventNoteRoundedIcon from '@mui/icons-material/EventNoteRounded';
 import PlaylistPlayRoundedIcon from '@mui/icons-material/PlaylistPlayRounded';
+import HubRoundedIcon from '@mui/icons-material/HubRounded';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 
 export interface NavItem {
@@ -24,6 +25,7 @@ export const navItems: NavItem[] = [
   { text: 'TV Channels', path: '/tv-channels', icon: <LiveTvRoundedIcon />, section: 'Operations', matchPrefixes: ['/tv-channels'] },
   { text: 'EPG', path: '/epg', icon: <EventNoteRoundedIcon />, section: 'Operations', matchPrefixes: ['/epg/channels'] },
   { text: 'Playlist', path: '/playlist', icon: <PlaylistPlayRoundedIcon />, section: 'Operations' },
+  { text: 'Integrations', path: '/integrations', icon: <HubRoundedIcon />, section: 'System' },
   { text: 'Settings', path: '/settings', icon: <SettingsRoundedIcon />, section: 'System' },
 ];
 

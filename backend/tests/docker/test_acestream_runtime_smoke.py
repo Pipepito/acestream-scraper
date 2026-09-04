@@ -179,6 +179,34 @@ def test_scraper_acestream_starts_real_engine(request: pytest.FixtureRequest, pl
         )
         assert status.returncode == 0, status.stderr
 
+        # A client from a non-RFC1918 range must be admitted now that the
+        # entrypoint passes --bind-all (spec: ACESTREAM_BIND_ALL default true).
+        network = f"acestream-smoke-net-{host_port}"
+        subprocess.run(["docker", "network", "rm", network], capture_output=True)
+        subprocess.run(
+            ["docker", "network", "create", "--subnet", "11.22.33.0/24", network],
+            check=True, capture_output=True,
+        )
+        try:
+            subprocess.run(["docker", "network", "connect", network, container], check=True, capture_output=True)
+            engine_ip = subprocess.run(
+                ["docker", "inspect", "-f",
+                 "{{(index .NetworkSettings.Networks \"" + network + "\").IPAddress}}", container],
+                capture_output=True, text=True, check=True,
+            ).stdout.strip()
+            probe = subprocess.run(
+                ["docker", "run", "--rm", "--network", network, "--ip", "11.22.33.4",
+                 "curlimages/curl:8.10.1", "-fsS", "--max-time", "15",
+                 f"http://{engine_ip}:6878/webui/api/service?method=get_version"],
+                capture_output=True, text=True, timeout=60,
+            )
+            assert probe.returncode == 0, (
+                f"engine denied a non-RFC1918 client (11.22.33.4) on {platform}: {probe.stderr!r}"
+            )
+        finally:
+            subprocess.run(["docker", "network", "disconnect", "-f", network, container], capture_output=True)
+            subprocess.run(["docker", "network", "rm", network], capture_output=True)
+
         # The image's own HEALTHCHECK script must pass with the engine enabled
         # (it probes the app and the engine; the engine root URL is a 500).
         health = subprocess.run(

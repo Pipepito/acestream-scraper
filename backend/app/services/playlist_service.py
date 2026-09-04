@@ -9,6 +9,8 @@ import time
 
 from app.repositories.channel_repository import ChannelRepository
 from app.models.models import AcestreamChannel
+from app.services.stream_ranking import score_acestream, sort_streams_curated
+from app.utils.m3u import m3u_attr
 
 
 class PlaylistService:
@@ -169,7 +171,7 @@ class PlaylistService:
             streams = [s for s in tv_channel.acestream_channels if s.id]
             if not streams:
                 continue
-            streams = sorted(streams, key=lambda s: (-self._score_acestream(s), s.id))
+            streams = sort_streams_curated(streams)
             multi = len(streams) > 1
 
             for index, stream in enumerate(streams, start=1):
@@ -218,17 +220,12 @@ class PlaylistService:
 
     @staticmethod
     def _score_acestream(stream: AcestreamChannel) -> int:
-        """Rank a stream's quality for best-stream-first ordering."""
-        score = 0
-        if stream.is_online:
-            score += 10
-        if stream.logo:
-            score += 3
-        if stream.tvg_id:
-            score += 2
-        if stream.tvg_name:
-            score += 1
-        return score
+        """Rank a stream's quality for best-stream-first ordering.
+
+        Thin alias over the shared helper (app.services.stream_ranking) so
+        the playlist, tuner lineup and TV-channel API stay on one ranking.
+        """
+        return score_acestream(stream)
 
     @staticmethod
     def _dedupe_name(name: str, name_counts: Dict[str, int]) -> str:
@@ -253,8 +250,12 @@ class PlaylistService:
 
     @staticmethod
     def _attr(value) -> str:
-        """Sanitize a value for use inside a double-quoted EXTINF attribute."""
-        return str(value).replace('"', "'").replace("\r", " ").replace("\n", " ")
+        """Sanitize a value for use inside a double-quoted EXTINF attribute.
+
+        Thin alias over the shared helper (app.utils.m3u) so the curated
+        playlists and the tuner playlist quote attributes identically.
+        """
+        return m3u_attr(value)
 
     @staticmethod
     def _stream_link(base_url: str, channel_id: str, pid: Optional[int] = None) -> str:

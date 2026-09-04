@@ -1,6 +1,6 @@
 import React from 'react';
 import { ThemeProvider } from '@mui/material/styles';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AcestreamChannels from '../pages/AcestreamChannels';
 import { createAppTheme } from '../theme';
@@ -15,6 +15,8 @@ const mockCheckAllStatuses = jest.fn();
 const mockUpdateAcestreamChannel = jest.fn();
 const mockUpdateTVChannel = jest.fn();
 const mockDeleteMutate = jest.fn();
+const mockRemotePlayers = jest.fn();
+const mockPlayOn = jest.fn();
 
 type Row = { id: string; name: string; is_active?: boolean; tv_channel_id?: number; tv_channel_name?: string; tv_channel_is_favorite?: boolean };
 type Handlers = {
@@ -24,11 +26,13 @@ type Handlers = {
   onDelete: (row: Row) => void;
   onToggleHidden: (row: Row) => void;
   onToggleTVFavorite: (row: Row) => void;
+  onPlay: (row: Row) => void;
+  onPlayOn: (row: Row) => void;
 };
 
 jest.mock('../components/ChannelTable', () => ({
   __esModule: true,
-  default: ({ channels, loading, hasActiveFilters, onDelete, onToggleHidden, onToggleTVFavorite }: Handlers) => (
+  default: ({ channels, loading, hasActiveFilters, onDelete, onToggleHidden, onToggleTVFavorite, onPlay, onPlayOn }: Handlers) => (
     <div data-testid="channel-table">
       channels:{channels.length};loading:{String(loading)};filtered:{String(Boolean(hasActiveFilters))}
       {channels.map((channel) => (
@@ -37,10 +41,16 @@ jest.mock('../components/ChannelTable', () => ({
           <button type="button" onClick={() => onDelete(channel)}>{`delete ${channel.name}`}</button>
           <button type="button" onClick={() => onToggleHidden(channel)}>{`hide ${channel.name}`}</button>
           <button type="button" onClick={() => onToggleTVFavorite(channel)}>{`favorite ${channel.name}`}</button>
+          <button type="button" onClick={() => onPlay(channel)}>{`play ${channel.name}`}</button>
+          <button type="button" onClick={() => onPlayOn(channel)}>{`play on ${channel.name}`}</button>
         </div>
       ))}
     </div>
   ),
+}));
+jest.mock('../components/player/StreamPlayerDialog', () => ({
+  __esModule: true,
+  default: ({ open, title }: { open: boolean; title: string }) => (open ? <div role="dialog">{title}</div> : null),
 }));
 jest.mock('../components/channels/ChannelFilterBar', () => ({
   __esModule: true,
@@ -75,6 +85,10 @@ jest.mock('../services/channelService', () => ({
     bulkActivateAcestreamChannels: jest.fn(),
     exportAcestreamChannelsCSV: jest.fn(),
   },
+}));
+jest.mock('../hooks/useRemotePlayers', () => ({
+  useRemotePlayers: () => mockRemotePlayers(),
+  usePlayOnRemotePlayer: () => ({ mutateAsync: mockPlayOn, isPending: false }),
 }));
 jest.mock('../services/tvChannelService', () => ({
   tvChannelService: { update: (...args: unknown[]) => mockUpdateTVChannel(...args) },
@@ -117,6 +131,8 @@ describe('AcestreamChannels page', () => {
     mockCheckAllStatuses.mockResolvedValue({ message: 'Acestream status check task triggered successfully.' });
     mockUpdateTVChannel.mockResolvedValue(undefined);
     mockUpdateAcestreamChannel.mockResolvedValue(undefined);
+    mockRemotePlayers.mockReturnValue({ data: [], isLoading: false });
+    mockPlayOn.mockResolvedValue({ url: 'http://player/stream' });
   });
 
   it('shows the summary line, filter bar and table without a hero or separate filters section', async () => {
@@ -200,6 +216,34 @@ describe('AcestreamChannels page', () => {
     await user().click(within(dialog).getByRole('button', { name: 'Cancel' }));
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Delete Alpha Sports?' })).not.toBeInTheDocument());
     expect(mockDeleteMutate).not.toHaveBeenCalled();
+  });
+
+  it('opens the player dialog for the channel picked from the row', async () => {
+    renderPage();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    await user().click(screen.getByRole('button', { name: 'play Alpha Sports' }));
+    expect(await screen.findByRole('dialog')).toHaveTextContent('Alpha Sports');
+  });
+
+  it('offers the saved remote players for the channel picked from the row', async () => {
+    renderPage();
+    await user().click(screen.getByRole('button', { name: 'play on Alpha Sports' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Play on…' });
+    expect(within(dialog).getByRole('button', { name: 'Play on…' })).toBeInTheDocument();
+  });
+
+  it('confirms the send in the page snackbar after the Play on… dialog closes', async () => {
+    mockRemotePlayers.mockReturnValue({ data: [{ id: 4, name: 'Living room', kind: 'vlc' }], isLoading: false });
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'play on Alpha Sports' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Play on…' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Play on…' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Living room (VLC)' }));
+
+    await waitFor(() => expect(mockPlayOn).toHaveBeenCalledWith({ id: 4, contentId: 'ace-100', title: 'Alpha Sports' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Play on…' })).not.toBeInTheDocument());
+    expect(await screen.findByText('Sent Alpha Sports to Living room.')).toBeInTheDocument();
   });
 
   it('routes check-all through the channel service and shows validation errors in the snackbar', async () => {

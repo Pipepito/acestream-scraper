@@ -61,6 +61,16 @@ export const configService = {
     await apiClient.put(`${BASE_URL}/base_url`, { base_url: baseUrl });
   },
 
+  /** Externally reachable origin (empty string = derived from the request). */
+  getPublicBaseUrl: async (): Promise<string> => {
+    const response = await apiClient.get<Setting>(`${BASE_URL}/public_base_url`);
+    return response.data.value;
+  },
+
+  updatePublicBaseUrl: async (value: string): Promise<void> => {
+    await apiClient.put(`${BASE_URL}/public_base_url`, { value });
+  },
+
   /**
    * Get the Acestream Engine URL
    */

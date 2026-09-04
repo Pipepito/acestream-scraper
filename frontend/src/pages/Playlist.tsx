@@ -31,6 +31,7 @@ import { ContentCopy, Download, ExpandLess, ExpandMore, QrCode } from '@mui/icon
 import { QRCodeSVG } from 'qrcode.react';
 import { useChannelGroups, usePlaylistChannelSummary } from '../hooks/usePlaylists';
 import { useBaseUrls } from '../hooks/useBaseUrls';
+import { usePublicUrl } from '../hooks/useSystemServices';
 import { PlaylistFilters, playlistService, getAbsolutePlaylistUrl } from '../services/playlistService';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
@@ -46,6 +47,7 @@ const Playlist: React.FC = () => {
 
   const { data: channelGroups = [], isLoading: loadingGroups } = useChannelGroups();
   const { data: namedBaseUrls = [], isLoading: loadingBaseUrls } = useBaseUrls();
+  const { data: publicUrl } = usePublicUrl();
   const { data: summary } = usePlaylistChannelSummary();
 
   const effectiveFilters: PlaylistFilters = {
@@ -54,7 +56,7 @@ const Playlist: React.FC = () => {
     base_url_id: selectedBaseUrlId === '' ? undefined : selectedBaseUrlId,
   };
   const playlistUrl = playlistService.getPlaylistDownloadUrl(effectiveFilters);
-  const absolutePlaylistUrl = getAbsolutePlaylistUrl(effectiveFilters);
+  const absolutePlaylistUrl = getAbsolutePlaylistUrl(effectiveFilters, publicUrl?.url);
 
   const handleGroups = (key: 'include_groups' | 'exclude_groups') => (event: SelectChangeEvent<string[]>) => {
     setFilters((prev) => ({ ...prev, [key]: event.target.value as string[] }));

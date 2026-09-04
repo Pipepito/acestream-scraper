@@ -219,6 +219,39 @@ RUN --mount=type=bind,source=docker/vendor,target=/tmp/acexy-vendor,readonly \
        go build -ldflags "-s -w" -o "/out/$ACEXY_BINARY_NAME" .
 
 
+# Minimal static ffmpeg for the web player (spec 4.5): cross-compiled on the
+# build host with Debian's toolchains (no QEMU), ~5-10 MB, no runtime deps.
+# The vendored source is bind-mounted, not copied into a layer.
+FROM --platform=$BUILDPLATFORM debian:trixie-slim AS ffmpeg-builder
+
+ARG TARGETARCH
+ARG TARGETVARIANT
+ARG FFMPEG_VENDORED_FILE
+ARG FFMPEG_SHA256
+ARG FFMPEG_SOURCE_URL
+ARG FFMPEG_MIRROR_URLS
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential ca-certificates curl make nasm pkg-config xz-utils \
+    && host="$(dpkg --print-architecture)" \
+    && case "${TARGETARCH}:${host}" in \
+        amd64:amd64|arm64:arm64) ;; \
+        amd64:*) apt-get install -y --no-install-recommends gcc-x86-64-linux-gnu libc6-dev-amd64-cross ;; \
+        arm64:*) apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu libc6-dev-arm64-cross ;; \
+        arm:*)   apt-get install -y --no-install-recommends gcc-arm-linux-gnueabihf libc6-dev-armhf-cross ;; \
+       esac \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY docker/scripts/build-ffmpeg.sh /usr/local/lib/ffmpeg-build/build-ffmpeg.sh
+RUN --mount=type=bind,source=docker/vendor,target=/tmp/ffmpeg-vendor,readonly \
+    chmod +x /usr/local/lib/ffmpeg-build/build-ffmpeg.sh \
+    && TARGETARCH="${TARGETARCH}" TARGETVARIANT="${TARGETVARIANT}" \
+       FFMPEG_VENDORED_FILE="${FFMPEG_VENDORED_FILE}" FFMPEG_SHA256="${FFMPEG_SHA256}" \
+       FFMPEG_SOURCE_URL="${FFMPEG_SOURCE_URL}" FFMPEG_MIRROR_URLS="${FFMPEG_MIRROR_URLS}" \
+       /usr/local/lib/ffmpeg-build/build-ffmpeg.sh
+
+
 FROM python:${APP_PYTHON_VERSION}-slim AS runtime-base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -251,7 +284,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     IPFS_START_COMMAND="/opt/ipfs/bin/ipfs daemon --migrate=true" \
     IPFS_SWARM_PORT=4001 \
     IPFS_API_PORT=5001 \
-    IPFS_GATEWAY_PORT=8081
+    IPFS_GATEWAY_PORT=8081 \
+    FFMPEG_BINARY_PATH=/opt/ffmpeg/bin/ffmpeg
 
 WORKDIR /app
 
@@ -307,6 +341,10 @@ RUN mkdir -p /data/zeronet \
         && apt-get install -y --no-install-recommends tor \
         && rm -rf /var/lib/apt/lists/*; \
     fi
+
+# Static ffmpeg/ffprobe for the web player (every flavor and platform).
+COPY --from=ffmpeg-builder /out/ /opt/ffmpeg/bin/
+
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY warp-setup.sh /usr/local/bin/warp-setup.sh
 COPY healthcheck.sh /usr/local/bin/healthcheck.sh
@@ -314,7 +352,7 @@ COPY healthcheck.sh /usr/local/bin/healthcheck.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/warp-setup.sh /usr/local/bin/healthcheck.sh
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/entrypoint.sh"]
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--no-proxy-headers", "--timeout-graceful-shutdown", "3"]
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 CMD ["/usr/local/bin/healthcheck.sh"]
 
@@ -348,6 +386,7 @@ RUN mkdir -p /var/lib/acestream /data
 ENV IMAGE_HAS_ACESTREAM=true \
     ACESTREAM_BINARY_PATH=/opt/acestream/bin/acestreamengine \
     ACESTREAM_HOME=/var/lib/acestream \
+    ACESTREAM_BIND_ALL=true \
     ACESTREAM_START_COMMAND="env PYTHONPATH=/opt/acestream/python-deps /opt/acestream/start-engine --client-console --http-port 6878"
 
 

@@ -39,6 +39,14 @@ export const TvChannelSchema = z.object({
   epgXmlId: z.string().min(1).optional(),
 });
 
+/** Optional knobs for the integrations journey (10-integrations.spec.ts). */
+export const IntegrationsSchema = z.object({
+  /** Substring of the Acestream channel used for the playback checks; the first channel otherwise. */
+  playbackChannelName: z.string().min(1).optional(),
+  /** Seconds the deterministic playback check waits for the dialog to report "Playing". */
+  playbackTimeoutMs: z.number().int().positive().default(60_000),
+});
+
 export const ScenarioSchema = z.object({
   name: z.string().min(1),
   description: z.string().default(''),
@@ -61,6 +69,7 @@ export const ScenarioSchema = z.object({
     baseUrlName: z.string().min(1),
     baseUrlPattern: z.string().min(1),
   }),
+  integrations: IntegrationsSchema.default({ playbackTimeoutMs: 60_000 }),
   errors: z
     .object({
       allowedApiErrorPatterns: z.array(z.string()).default([]),
@@ -70,6 +79,7 @@ export const ScenarioSchema = z.object({
 });
 
 export type Scenario = z.infer<typeof ScenarioSchema>;
+export type IntegrationsSpec = z.infer<typeof IntegrationsSchema>;
 export type ScrapeSource = z.infer<typeof ScrapeSourceSchema>;
 export type SearchQuery = z.infer<typeof SearchQuerySchema>;
 export type EpgSource = z.infer<typeof EpgSourceSchema>;

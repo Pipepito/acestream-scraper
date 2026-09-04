@@ -61,11 +61,26 @@ Acestream Scraper is configured from the web interface (**Settings** and **Scrap
 | `FLASK_PORT` | Port the web app (uvicorn) listens on | `8000` | Name kept from v1 but still the real setting: `entrypoint.sh` passes it to `uvicorn --port` and `healthcheck.sh` probes `http://localhost:${FLASK_PORT}/api/v1/health`. Change it if port 8000 is in use |
 | `FLASK_ENV` | *Superseded (2026-08-28)* — v1 Flask environment mode, not read by the v2 (FastAPI) runtime | – | For local debugging run `uvicorn main:app --reload` from `backend/` instead |
 | `API_TOKEN` | Require a token on API and playlist routes | unset (open) | Sent as `Authorization: Bearer`, `X-Api-Token`, or `?token=` (for IPTV players); `/api/v1/health` stays public |
-| `ALLOW_PRIVATE_SCRAPE_TARGETS` | Allow scrape/EPG URLs on private/LAN addresses | `true` | Set `false` to block loopback/private/link-local targets; the cloud metadata endpoint is always blocked |
+| `ALLOW_PRIVATE_SCRAPE_TARGETS` | Allow scrape/EPG URLs on private/LAN addresses | `true` | Set `false` to block loopback/private/link-local targets; the cloud metadata endpoint is always blocked. It does not affect remote players, media servers or player discovery, which are LAN targets by design; the metadata/link-local block still applies to them |
 | `ACESTREAM_STATUS_TIMEOUT` | Timeout (seconds) for the engine status probe | `10` | A timed-out probe retries once with a doubled timeout |
 | `EPG_PROGRAM_RETENTION_HOURS` | How long finished EPG programs are kept | `24` | The hourly `epg_program_cleanup` job deletes programs that ended earlier than this, and a v1→v2 migration skips them (they are useless once aired — the EPG refresh keeps adding upcoming ones). `2` keeps only the last couple of hours; a negative value disables the purge. The XMLTV export's default `days_back=1` needs at least `24` |
 | `SUPERVISED_RESTART_DELAY_SECONDS` | Delay before restarting a crashed engine/Acexy process | `5` | Supervision applies to in-container AceStream and Acexy |
 | `SUPERVISED_FAST_EXIT_LIMIT` | Consecutive fast exits before giving up | `3` | With `SUPERVISED_FAST_EXIT_WINDOW` (default `10`s); a crash loop fails the container |
+
+### Media Integrations
+
+External players and media servers (VLC, Kodi, Jellyfin, Plex) fetch streams over the network, so the app has to know which origin to advertise and which peers to trust:
+
+| Variable | Description | Default | Notes |
+|----------|-------------|---------|-------|
+| `PUBLIC_BASE_URL` | Origin (`http://host:port`) that Jellyfin/Plex/VLC use to reach this server | *(empty)* | Empty derives it from each request. The same value is editable at runtime as the `public_base_url` setting, which wins over the variable |
+| `FORWARDED_ALLOW_IPS` | Peers whose `X-Forwarded-*` headers the app trusts | `127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16` | Comma-separated addresses/CIDRs, or `*` to trust every peer. uvicorn's own handling is disabled (`--no-proxy-headers`) — the app does it |
+| `TUNER_ALLOWED_NETWORKS` | Networks allowed to use the token-free `/tuner/*` routes | `127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10` | `*` disables the check. Media servers cannot send an `API_TOKEN`, so these routes are gated by address instead. Publish the web port as `-p 0.0.0.0:8000:8000` (never the bare `8000:8000`): an unaddressed mapping also listens on `[::]`, and Docker then presents every IPv6 client to the app as the bridge gateway (`172.17.0.1`), which is inside this default list |
+| `PLAYER_HLS_DIR` | Where the web player writes HLS segments | `/tmp/acestream-player` | `/dev/shm/acestream-player` with a larger `shm_size` keeps them in RAM |
+| `PLAYER_MAX_SESSIONS` | Maximum channels the web player prepares at once | `3` | Each session costs one engine stream and one ffmpeg process |
+| `PLAYER_START_TIMEOUT_SECONDS` | Seconds a web-player session may stay in "starting" before it is reported as stalled | `45` | Raise it on slow links where streams take longer to buffer |
+| `FFMPEG_BINARY_PATH` | ffmpeg used by the web player | *(empty)* | Empty falls back to `ffmpeg` on `PATH`; images that bundle ffmpeg set it to `/opt/ffmpeg/bin/ffmpeg` |
+| `MEDIA_SERVER_MIN_REFRESH_MINUTES` | Minimum minutes between automatic Jellyfin/Plex guide refreshes | `30` | `0` disables the debounce |
 
 ### Acestream Configuration
 
@@ -74,6 +89,7 @@ Acestream Scraper is configured from the web interface (**Settings** and **Scrap
 | `ENABLE_ACESTREAM_ENGINE` | Enable built-in Acestream Engine | Matches `ENABLE_ACEXY` | Set to `true` to run Acestream in the container |
 | `ACESTREAM_HTTP_PORT` | Port for Acestream engine | `6878` | Internal Acestream Engine HTTP port |
 | `ACESTREAM_HTTP_HOST` | Host for Acestream engine | Uses `ACEXY_HOST` | Address to access Acestream Engine |
+| `ACESTREAM_BIND_ALL` | Append `--bind-all` to the engine start command so any client address is accepted on a published `6878` | `true` | The engine otherwise admits only loopback/RFC1918 sources; `false` restores the engine's own filter |
 
 ### Acexy Configuration
 
@@ -144,7 +160,7 @@ Cloudflare WARP provides enhanced privacy and secure connection options:
 
 ```bash
 docker run -d \
-  -p 8000:8000 \
+  -p 0.0.0.0:8000:8000 \
   --cap-add NET_ADMIN \
   --cap-add SYS_ADMIN \
   --device /dev/net/tun:/dev/net/tun \
@@ -174,7 +190,7 @@ services:
       - ENABLE_WARP=true
       - WARP_ENABLE_NAT=true
     ports:
-      - "8000:8000"
+      - "0.0.0.0:8000:8000"
     volumes:
       - ./data/config:/app/config
     restart: unless-stopped
@@ -200,7 +216,7 @@ When using Docker, map these ports as needed:
 
 | Port | Service | Notes |
 |------|---------|-------|
-| 8000 | Main web interface | Configurable via `FLASK_PORT` |
+| 8000 | Main web interface | Configurable via `FLASK_PORT`. Publish it as `0.0.0.0:8000:8000`; a bare `8000:8000` also binds `[::]` and makes every IPv6 client look like the Docker bridge gateway, which defeats `TUNER_ALLOWED_NETWORKS` |
 | 8080 | Acexy web interface | Only if Acexy is enabled |
 | 6878 | Acestream HTTP API | Configurable via `ACESTREAM_HTTP_PORT` |
 | 8621 | Acestream P2P port | For Acestream peer connections |
@@ -250,8 +266,9 @@ Either way, add your ZeroNet sources in the Scraper page with the **ZeroNet** UR
 The application includes proper headers handling for running behind a reverse proxy:
 
 - Automatic handling of SSL/TLS termination
-- Correct handling of X-Forwarded-Proto and X-Forwarded-Host headers
+- Correct handling of X-Forwarded-Proto, X-Forwarded-Host and X-Forwarded-For headers, honoured only when the proxy's own address is listed in `FORWARDED_ALLOW_IPS` (default: loopback and private ranges)
 - Works with nginx, Apache, Traefik or other reverse proxies
+- Set `PUBLIC_BASE_URL` when the proxy rewrites `Host` or serves the app under a sub-path, so playlist and tuner links stay reachable
 
 ### Nginx Example
 

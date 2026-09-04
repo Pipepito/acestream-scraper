@@ -155,6 +155,8 @@ PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_acexy_ru
 # 32-bit bionic engine cannot run under qemu-user; arm64 runtime smoke runs on
 # arm64 hosts via the same pytest).
 PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_install_acestream.py -v -k "arm_oci_image_install_layout"
+# The web player's static ffmpeg must build for every platform and run on it.
+PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_ffmpeg_vendor.py backend/tests/docker/test_ffmpeg_build.py -v
 '''
       }
       post {

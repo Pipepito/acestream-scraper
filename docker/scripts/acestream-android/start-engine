@@ -15,10 +15,10 @@
 #                        no --http-port; the image's ACESTREAM_START_COMMAND
 #                        passes --http-port 6878 explicitly, and later flags win.
 # Extra arguments are appended to the engine command line (later flags win).
-# --bind-all lets the engine accept non-loopback clients (allow_remote=1);
-# without it, clients arriving through a published 6878 port get "Internal
-# server error". Only publish 6878 on trusted networks: the engine API has no
-# authentication.
+# --bind-all is added unless ACESTREAM_BIND_ALL=false so clients arriving
+# through a published 6878 port are accepted (the engine otherwise admits only
+# loopback and RFC1918 sources). The engine API has no authentication: publish
+# 6878 only on trusted networks.
 set -eu
 
 ACE="${ACESTREAM_INSTALL_DIR:-/opt/acestream}"
@@ -59,9 +59,13 @@ if [ ! -f "$ACESTREAM_HOME/acestream.conf" ]; then
 fi
 
 cd "$ACE"
+# --bind-all unless ACESTREAM_BIND_ALL=false (the entrypoint appends it to the
+# start command too; never pass it twice).
+if [ "$(printf '%s' "${ACESTREAM_BIND_ALL:-true}" | tr '[:upper:]' '[:lower:]')" != "false" ]; then
+    case " $* " in *" --bind-all "*) ;; *) set -- --bind-all "$@" ;; esac
+fi
 exec "$ACE/python/bin/python" "$ACE/main_linux.py" \
     --http-port "${ACESTREAM_HTTP_PORT:-6878}" \
-    --bind-all \
     --disable-sentry \
     --log-stdout \
     "$@"

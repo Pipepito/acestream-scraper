@@ -1,9 +1,10 @@
 """
 Main application entry point for Acestream Scraper v2 backend.
 """
+import asyncio
 import logging
 import os
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from typing import Optional
 from uuid import uuid4
 
@@ -16,6 +17,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.api import api_router
 from app.api.auth import require_api_token
+from app.api.endpoints import tuner as tuner_endpoints
 from app.api.endpoints.playlists import (
     get_all_streams_playlist,
     get_m3u_playlist,
@@ -23,10 +25,20 @@ from app.api.endpoints.playlists import (
     trigger_url_scrape_refresh,
 )
 from app.api.error_handlers import register_error_handlers
-from app.config.database import backfill_scraped_url_flags, ensure_schema_stamped, get_db, provision_schema
-from app.config.settings import get_env_compat_events, settings
+from app.config.database import (
+    backfill_scraped_url_flags,
+    backup_sqlite,
+    current_revision,
+    get_db,
+    head_revision,
+    provision_schema,
+)
+from app.config.settings import get_env_compat_events, get_settings, settings
+from app.middleware.forwarded import ForwardedHeadersMiddleware, parse_trusted
 from app.services.epg_service import EPGService
+from app.services.player_service import player_service
 from app.services.playlist_service import PlaylistService
+from app.services.stream_relay import relay_registry
 from app.services.task_service import task_service
 from app.tasks.activity_log_cleanup import run_activity_log_cleanup
 from app.tasks.channel_cleanup_task import run_channel_cleanup_task
@@ -34,6 +46,7 @@ from app.tasks.channel_status_task import run_channel_status_task
 from app.tasks.epg_program_cleanup_task import run_epg_program_cleanup_task
 from app.tasks.epg_refresh_task import run_epg_refresh_task
 from app.tasks.legacy_migration_task import TASK_ID as LEGACY_MIGRATION_TASK_ID, run_v1_epg_programs_migration
+from app.tasks.media_server_sync_task import run_media_server_sync_task
 from app.tasks.url_scraping_task import run_url_scraping_task
 from app.utils.logging import setup_logging
 
@@ -71,21 +84,24 @@ def initialize_database():
         if migrated:
             print("Migration completed successfully!")
 
-    # Fresh v2 databases are provisioned through Alembic so startup uses the
-    # same schema path as tests and deployments. Existing databases are left
-    # alone, except for recording the Alembic head on databases an older
-    # migrator created without a stamp (otherwise later revisions would fail).
-    if not os.path.exists(migrator.v2_db_path):
-        print("Creating fresh v2 database via Alembic...")
-        provision_schema()
-        print("Fresh v2 database created!")
-    else:
-        if ensure_schema_stamped():
-            print("Recorded the current Alembic head on the existing (unstamped) v2 database")
-        repaired = backfill_scraped_url_flags()
-        if repaired:
-            print(f"Backfilled scrape_bare_ids on {repaired} scraped URL row(s) left NULL by an older migrator")
-        print("V2 database ready")
+    # Every database converges to the Alembic head on startup (spec 4.6):
+    # fresh files are provisioned, unstamped ones (pre-2026-08-29 migrator)
+    # are stamped first, and existing databases receive new revisions. A
+    # pending upgrade is preceded by an on-disk copy under <db dir>/backups/.
+    current = current_revision()
+    target = head_revision()
+    if os.path.exists(migrator.v2_db_path) and current != target:
+        backup_path = backup_sqlite(label=f"pre-upgrade-{current or 'unstamped'}-{target}")
+        print(f"Upgrading v2 database schema {current or 'unstamped'} -> {target} (backup: {backup_path})")
+    state = provision_schema()
+    if state == "missing":
+        print("Fresh v2 database created via Alembic!")
+    elif state == "unstamped":
+        print("Recorded the current Alembic head on the existing (unstamped) v2 database")
+    repaired = backfill_scraped_url_flags()
+    if repaired:
+        print(f"Backfilled scrape_bare_ids on {repaired} scraped URL row(s) left NULL by an older migrator")
+    print("V2 database ready")
 
 
 def _schedule_deferred_migration() -> bool:
@@ -121,6 +137,25 @@ def _configured_intervals() -> tuple[int, int]:
         db.close()
 
 
+RELAY_REAP_INTERVAL_SECONDS = 30
+RELAY_REAP_AGE_SECONDS = 30
+
+
+async def reap_relays_forever() -> None:
+    """Forget relays that finished long enough ago that no status view needs them.
+
+    The task lives for the whole process, so one failing sweep must not end it:
+    a dead reaper would keep every finished relay in the registry forever (and
+    re-raise its exception at shutdown).
+    """
+    while True:
+        await asyncio.sleep(RELAY_REAP_INTERVAL_SECONDS)
+        try:
+            relay_registry.reap_finished(older_than_seconds=RELAY_REAP_AGE_SECONDS)
+        except Exception:  # noqa: BLE001 - keep sweeping whatever one sweep hit
+            logging.getLogger("main").exception("Relay reaper sweep failed")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan: provision the database, start the scheduler, and
@@ -136,10 +171,20 @@ async def lifespan(app: FastAPI):
     task_service.add_interval_task(run_url_scraping_task, seconds=scrape_hours * 3600, job_id="url_scraping")  # settings: rescrape_interval
     task_service.add_interval_task(run_channel_cleanup_task, seconds=86400, job_id="channel_cleanup")  # daily
     task_service.add_interval_task(run_channel_status_task, seconds=600, job_id="channel_status")  # every 10 min
+    task_service.add_interval_task(run_media_server_sync_task, seconds=600, job_id="media_server_sync")  # every 10 min
     _schedule_deferred_migration()
+
+    reaper = asyncio.create_task(reap_relays_forever())
     try:
+        # Inside the try: the web player is optional, and a broken
+        # PLAYER_HLS_DIR must not leave the scheduler and the reaper running.
+        await player_service.start()
         yield
     finally:
+        reaper.cancel()
+        with suppress(asyncio.CancelledError):
+            await reaper
+        await player_service.stop()
         task_service.shutdown()
 
 
@@ -169,10 +214,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Outermost user middleware: rewrites scheme/host/client from X-Forwarded-*
+# only for peers in FORWARDED_ALLOW_IPS and records the raw peer as
+# request.state.peer (spec 4.3). uvicorn runs with --no-proxy-headers.
+app.add_middleware(ForwardedHeadersMiddleware, trusted=parse_trusted(get_settings().FORWARDED_ALLOW_IPS))
+
 # Add API routes with versioning. The token dependency is a no-op unless the
 # API_TOKEN environment variable is set (see app/api/auth.py); /api/v1/health
 # stays public for container health probes.
 app.include_router(api_router, prefix="/api/v1", dependencies=[Depends(require_api_token)])
+
+# HDHomeRun-style tuner routes: token-free by design (tuner clients cannot send
+# credentials), gated by TUNER_ALLOWED_NETWORKS inside the router (spec 4.4).
+app.include_router(tuner_endpoints.hdhr_router)
 register_error_handlers(app)
 
 # Static files serving
@@ -378,7 +432,7 @@ async def legacy_epg_xml(
 async def spa_server(request: Request, exc: StarletteHTTPException):
     """Serve SPA for all non-API routes."""
     # Only handle 404s for non-API routes (client-side routing)
-    if exc.status_code == 404 and not request.url.path.startswith("/api"):
+    if exc.status_code == 404 and not request.url.path.startswith(("/api", "/tuner")):
         return FileResponse(os.path.join(frontend_dir, "index.html"))
     # For API routes or other status codes, return the exception as an HTTP
     # response, preserving headers such as WWW-Authenticate on 401s.
@@ -399,4 +453,4 @@ async def read_index():
         return HTMLResponse(content="<html><body><h1>Acestream Scraper</h1><p>Frontend not built yet. Please run 'npm run build' in the frontend directory.</p></body></html>")
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, proxy_headers=False, timeout_graceful_shutdown=3)

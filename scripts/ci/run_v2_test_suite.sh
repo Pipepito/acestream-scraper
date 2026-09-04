@@ -47,11 +47,19 @@ else
   fi
 fi
 
+# The only file under backend/tests/docker that builds nothing: it reads the ARM
+# engine docs and fails if the current per-platform playback caveats or
+# ACESTREAM_BIND_ALL are edited out. Both profiles exclude that directory below,
+# so run it by name.
+echo "Running docs contract guard..."
+PYTHONPATH=backend "$BACKEND_PYTEST" -q backend/tests/docker/test_docs_contract.py
+
 echo "Running canonical backend suite ($PROFILE)..."
 if [[ "$PROFILE" == "quick" ]]; then
   PYTHONPATH=backend "$BACKEND_PYTEST" -q \
     backend/tests/contracts/test_channel_contracts.py \
     backend/tests/contracts/test_config_contracts.py \
+    backend/tests/contracts/test_integrations_contracts.py \
     backend/tests/contracts/test_urls_contracts.py \
     backend/tests/test_error_contracts.py \
     backend/tests/regression/test_legacy_behavior_parity.py

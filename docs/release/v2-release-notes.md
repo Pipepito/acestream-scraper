@@ -76,6 +76,16 @@ Acexy-bearing flavors now build and run the real upstream Acexy 0.2.2 proxy. The
 
 On first boot, v2 provisions its schema and migrates URLs, EPG sources, TV/EPG/AceStream channels, matching rules, and settings before serving requests. Large EPG programme history is copied in resumable background batches so the UI becomes available promptly. The original v1 database is archived as `acestream.db.migrated`; migration progress is checkpointed in `acestream.db.migration.json`.
 
+### Database upgrades on every boot
+
+Every start brings `config/scraper.db` to the Alembic head, not just fresh databases: an existing installation receives new revisions, and a database with tables but no recorded revision (what the pre-2026-08-29 migrator left behind) is stamped first.
+
+- **Backup.** When the recorded revision differs from the head, startup first copies the SQLite file to `config/backups/<UTC stamp>-pre-upgrade-<from>-<to>/scraper.db` and logs one `Upgrading v2 database schema` line.
+- **How many.** One copy per `<from>-<to>` pair. A boot that finds an existing copy for the same pair reuses it, so a container Docker keeps restarting against a failing upgrade does not fill the config volume.
+- **Pruning.** None. Delete the folders you no longer want.
+- **Failure is fatal.** A failed upgrade aborts startup; there is no `create_all` fallback and no partially-migrated schema.
+- **Rolling back needs the backup.** An older image started against a database stamped with a revision it does not ship aborts with an Alembic "Can't locate revision" error. Restore the matching folder from `config/backups/` before running the older image.
+
 Legacy environment aliases available during the v2.0.0 transition:
 
 | Legacy | Canonical |

@@ -1,5 +1,5 @@
 {
-  "_comment": "Source of truth for the command builder page (docs/index.html, served by GitHub Pages from the docs/ folder of main). Facts only — the wiring logic lives in docs/builder/app.js and references entries here by id. Keep this file in sync with entrypoint.sh, Dockerfile, docker-compose.yml and wiki/Docker.md; scripts/ci/validate_command_builder.sh cross-checks a few key values on every CI build.",
+  "_comment": "Source of truth for the command builder page (docs/index.html, published from validated develop builds to the gh-pages branch). Facts only — the wiring logic lives in docs/builder/app.js and references entries here by id. Keep this file in sync with entrypoint.sh, Dockerfile, docker-compose.yml and wiki/Docker.md; scripts/ci/validate_command_builder.sh checks the contract on every CI build.",
   "image": "pipepito/acestream-scraper",
   "repoUrl": "https://github.com/Pipepito/acestream-scraper",
   "wikiUrl": "https://github.com/Pipepito/acestream-scraper/wiki",
@@ -81,8 +81,9 @@
       "container": 8000,
       "protocols": ["tcp"],
       "defaultHost": 8000,
+      "hostAddress": "0.0.0.0",
       "label": "Web interface",
-      "description": "The scraper's web UI and API (uvicorn, port set by FLASK_PORT)."
+      "description": "The scraper's web UI and API (uvicorn, port set by FLASK_PORT). Published on 0.0.0.0 (IPv4) on purpose: an unaddressed mapping also listens on [::], and Docker then shows every IPv6 client to the app as the bridge gateway \u2014 which defeats the address check that keeps the token-free tuner routes (/tuner/*, used by Jellyfin and Plex) off the wider network."
     },
     {
       "id": "acexy",
@@ -157,7 +158,7 @@
       "defaultSource": "acestream-state",
       "target": "/var/lib/acestream",
       "label": "Engine state & cache",
-      "description": "Engine state, disk cache and logs (ACESTREAM_HOME). Used by the Android engine on ARM; harmless on amd64."
+      "description": "Engine state, disk cache and logs (ACESTREAM_HOME). Used by the Android engine on ARM."
     },
     {
       "id": "ipfsRepo",
@@ -174,6 +175,224 @@
       "description": "Sites, keys and content of the bundled ZeroNet node (ZERONET_DATA_DIR). Without it the node re-downloads everything on every container replacement."
     }
   ],
+  "settingGroups": [
+    {
+      "id": "access",
+      "label": "App access & scraping",
+      "description": "Protect the API and choose whether scraper sources may point at services on your private network."
+    },
+    {
+      "id": "integrations",
+      "label": "Players & media servers",
+      "description": "Control the address advertised to VLC, Kodi, Jellyfin and Plex, plus tuner and reverse-proxy trust."
+    },
+    {
+      "id": "player",
+      "label": "Web player & guide refresh",
+      "description": "Tune browser-player capacity, startup timing, temporary storage and media-server refresh pacing."
+    },
+    {
+      "id": "engine",
+      "label": "AceStream engine",
+      "description": "Shown only while this image is configured to run its bundled engine."
+    },
+    {
+      "id": "zeronet",
+      "label": "Embedded ZeroNet",
+      "description": "Shown only when this platform can run the bundled node and it is enabled."
+    },
+    {
+      "id": "ipfs",
+      "label": "Embedded IPFS",
+      "description": "Shown only when this platform can run the bundled Kubo node and it is enabled."
+    },
+    {
+      "id": "warp",
+      "label": "Cloudflare WARP",
+      "description": "Shown only when WARP is available on the selected platform and enabled."
+    }
+  ],
+  "runtimeSettings": [
+    {
+      "id": "timezone",
+      "env": "TZ",
+      "group": "access",
+      "label": "Timezone",
+      "description": "Timezone used for logs and scheduled work.",
+      "type": "text",
+      "placeholder": "Europe/Madrid",
+      "appliesWhen": "always"
+    },
+    {
+      "id": "apiToken",
+      "env": "API_TOKEN",
+      "group": "access",
+      "label": "API token",
+      "description": "Requires this token on API and playlist routes. Tuner routes stay token-free and use the allowed-network list below.",
+      "type": "password",
+      "placeholder": "Choose a long random token",
+      "appliesWhen": "always"
+    },
+    {
+      "id": "allowPrivateScrapeTargets",
+      "env": "ALLOW_PRIVATE_SCRAPE_TARGETS",
+      "group": "access",
+      "label": "Allow private-network scraper sources",
+      "description": "Turn off to block scraper and EPG URLs on private, loopback and link-local addresses.",
+      "type": "boolean",
+      "default": true,
+      "appliesWhen": "always"
+    },
+    {
+      "id": "epgRetentionHours",
+      "env": "EPG_PROGRAM_RETENTION_HOURS",
+      "group": "access",
+      "label": "EPG retention hours",
+      "description": "Finished guide programs older than this are removed. A negative value keeps everything.",
+      "type": "number",
+      "placeholder": "24",
+      "step": "any",
+      "appliesWhen": "always"
+    },
+    {
+      "id": "channelCleanupDays",
+      "env": "CHANNEL_CLEANUP_DAYS",
+      "group": "access",
+      "label": "Inactive-channel cleanup days",
+      "description": "How long an unlinked inactive channel may go unseen before automatic cleanup.",
+      "type": "number",
+      "placeholder": "30",
+      "min": 0,
+      "integer": true,
+      "appliesWhen": "always"
+    },
+    {
+      "id": "publicBaseUrl",
+      "env": "PUBLIC_BASE_URL",
+      "group": "integrations",
+      "label": "Public address",
+      "description": "Origin Jellyfin, Plex, VLC and Kodi use to reach this server. Leave empty to derive it from each request.",
+      "type": "text",
+      "placeholder": "http://192.168.1.10:8000",
+      "appliesWhen": "always"
+    },
+    {
+      "id": "tunerNetworks",
+      "env": "TUNER_ALLOWED_NETWORKS",
+      "group": "integrations",
+      "label": "Tuner-allowed networks",
+      "description": "Comma-separated networks allowed to use token-free tuner and relay routes. Leave empty for the private-network defaults.",
+      "type": "text",
+      "placeholderFrom": "player.tunerNetworksDefault",
+      "appliesWhen": "always"
+    },
+    {
+      "id": "forwardedAllowIps",
+      "env": "FORWARDED_ALLOW_IPS",
+      "group": "integrations",
+      "label": "Trusted reverse proxies",
+      "description": "Comma-separated proxy addresses whose forwarded client and host headers the app may trust. Leave empty for the built-in private-network list.",
+      "type": "text",
+      "placeholderFrom": "player.forwardedAllowIpsDefault",
+      "appliesWhen": "always"
+    },
+    {
+      "id": "playerMaxSessions",
+      "env": "PLAYER_MAX_SESSIONS",
+      "group": "player",
+      "label": "Maximum browser-player sessions",
+      "description": "Channels the browser player prepares at once. Each uses one engine stream and one ffmpeg process.",
+      "type": "number",
+      "placeholderFrom": "player.maxSessionsDefault",
+      "min": 1,
+      "integer": true,
+      "appliesWhen": "always"
+    },
+    {
+      "id": "playerStartTimeout",
+      "env": "PLAYER_START_TIMEOUT_SECONDS",
+      "group": "player",
+      "label": "Player startup timeout",
+      "description": "Seconds a browser-player session may remain in starting state before it is reported as stalled.",
+      "type": "number",
+      "placeholderFrom": "player.startTimeoutSecondsDefault",
+      "min": 1,
+      "integer": true,
+      "appliesWhen": "always"
+    },
+    {
+      "id": "playerHlsDir",
+      "env": "PLAYER_HLS_DIR",
+      "group": "player",
+      "label": "Player temporary folder",
+      "description": "Where ffmpeg writes HLS playlists and segments. The bundled default is suitable for most installations.",
+      "type": "text",
+      "placeholderFrom": "player.hlsDirDefault",
+      "appliesWhen": "always"
+    },
+    {
+      "id": "mediaServerRefreshMinutes",
+      "env": "MEDIA_SERVER_MIN_REFRESH_MINUTES",
+      "group": "player",
+      "label": "Media-server refresh interval",
+      "description": "Minimum minutes between automatic Jellyfin or Plex guide refreshes. Zero removes the delay.",
+      "type": "number",
+      "placeholderFrom": "player.mediaServerMinRefreshMinutesDefault",
+      "min": 0,
+      "integer": true,
+      "appliesWhen": "always"
+    },
+    {
+      "id": "engineBindAll",
+      "env": "ACESTREAM_BIND_ALL",
+      "group": "engine",
+      "label": "Accept engine clients from any address",
+      "description": "Leave on for Tailscale, IPv6 LANs and unusual Docker networks. Only publish the unauthenticated engine API on trusted networks.",
+      "type": "boolean",
+      "default": true,
+      "appliesWhen": "engineOn"
+    },
+    {
+      "id": "zeronetTor",
+      "env": "ENABLE_TOR",
+      "group": "zeronet",
+      "label": "Route embedded ZeroNet through Tor",
+      "description": "Starts the bundled Tor service and connects the embedded ZeroNet node to it.",
+      "type": "boolean",
+      "default": false,
+      "appliesWhen": "zeronetEmbeddedOn"
+    },
+    {
+      "id": "zeronetUiHost",
+      "env": "ZERONET_UI_HOST",
+      "group": "zeronet",
+      "label": "Accepted ZeroNet UI hostnames",
+      "description": "Space-separated hostnames or addresses accepted by the unauthenticated ZeroNet UI.",
+      "type": "text",
+      "placeholder": "media-box.local 192.168.1.10",
+      "appliesWhen": "zeronetUiPublished"
+    },
+    {
+      "id": "ipfsProfile",
+      "env": "IPFS_PROFILE",
+      "group": "ipfs",
+      "label": "IPFS initialization profile",
+      "description": "Optional Kubo profile applied only when a new repository is initialized, such as lowpower or server.",
+      "type": "text",
+      "placeholder": "lowpower",
+      "appliesWhen": "ipfsEmbeddedOn"
+    },
+    {
+      "id": "warpLicenseKey",
+      "env": "WARP_LICENSE_KEY",
+      "group": "warp",
+      "label": "WARP license key",
+      "description": "Optional WARP+ or Teams license used while configuring the enabled WARP service.",
+      "type": "password",
+      "placeholder": "Optional",
+      "appliesWhen": "warpOn"
+    }
+  ],
   "zeronet": {
     "defaultUrl": "http://host.docker.internal:43110",
     "description": "Scrape zero:// sources. The amd64 images bundle a ZeroNet node (opt-in via ENABLE_ZERONET), or point ZERONET_URL at an external ZeroNet service.",
@@ -184,6 +403,16 @@
     "description": "Scrape ipfs:// and ipns:// sources. Every image bundles the Kubo daemon on amd64/arm64 (opt-in via ENABLE_IPFS), or point IPFS_GATEWAY_URL at an external IPFS gateway.",
     "embeddedDescription": "Starts the bundled Kubo daemon; ipfs:// sources are fetched through its gateway on 8081 (8080 belongs to Acexy). Turn off to use an external gateway instead."
   },
+  "player": {
+    "hlsDirDefault": "/tmp/acestream-player",
+    "hlsDirShmHint": "Set PLAYER_HLS_DIR=/dev/shm/acestream-player with a larger --shm-size to keep player segments in RAM.",
+    "maxSessionsDefault": 3,
+    "startTimeoutSecondsDefault": 45,
+    "mediaServerMinRefreshMinutesDefault": 30,
+    "forwardedAllowIpsDefault": "127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16",
+    "tunerNetworksDefault": "127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10",
+    "description": "The web player and the Jellyfin/Plex tuner routes ship in every flavor; ffmpeg is bundled."
+  },
   "notes": {
     "developChannel": "The develop tags are moving pre-release builds meant for testing the next release — not for production.",
     "armv7Experimental": "The 32-bit ARM engine builds and installs but has not been runtime-tested on real hardware. Prefer a 64-bit OS where the device supports it.",
@@ -193,6 +422,7 @@
     "zeronetArm": "The bundled ZeroNet node ships in the amd64 images only. ZeroNet sources still work through an external service (ZERONET_URL).",
     "warpCaps": "WARP needs the NET_ADMIN and SYS_ADMIN capabilities plus the /dev/net/tun device.",
     "acexyExternalEngine": "Acexy refuses to start against localhost:6878 when the in-container engine is disabled — point it at your external engine's address.",
+    "publicBaseUrl": "Jellyfin, Plex and VLC need an address they can reach: set it under Integrations → Public address, or pass PUBLIC_BASE_URL.",
     "externalEngineSettings": "The scraper's own engine connection (used for channel status checks) is configured in the web interface under Settings → Acestream Engine URL.",
     "afterRun": "Then open http://localhost:{webPort} — set the stream base URL and engine URL under Settings, and add source URLs under Scraper."
   }

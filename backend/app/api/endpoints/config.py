@@ -16,6 +16,7 @@ from app.schemas.config import (
     ConfigUpdateResponse,
     DashboardConfigResponse,
     DashboardConfigUpdate,
+    PublicBaseUrlUpdate,
     RescrapeIntervalUpdate,
     SettingResponse,
     SettingsResponse,
@@ -182,6 +183,24 @@ def update_addpid(
     return {"message": "Setting updated successfully", "value": update.value}
 
 
+@router.get("/public_base_url", response_model=SettingResponse)
+def get_public_base_url(config_service: ConfigService = Depends(get_config_service)):
+    """Externally reachable origin used for tuner, player and copy links."""
+    return {"key": "public_base_url", "value": config_service.get_public_base_url()}
+
+
+@router.put("/public_base_url", response_model=ConfigUpdateResponse)
+def update_public_base_url(
+    update: PublicBaseUrlUpdate,
+    config_service: ConfigService = Depends(get_config_service),
+):
+    """Update the externally reachable origin (empty value clears the override)."""
+    success = config_service.set_public_base_url(update.value)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to update public_base_url")
+    return {"message": "Setting updated successfully", "value": config_service.get_public_base_url()}
+
+
 @router.get("/all", response_model=SettingsResponse)
 def get_all_settings(config_service: ConfigService = Depends(get_config_service)):
     """Get all settings."""
@@ -233,6 +252,8 @@ def get_config_key(key: str, config_service: ConfigService = Depends(get_config_
         value = str(config_service.get_epg_refresh_interval())
     elif key == "addpid":
         value = config_service.get_addpid()
+    elif key == "public_base_url":
+        value = config_service.get_public_base_url()
     else:
         raise HTTPException(status_code=404, detail=f"Unknown config key: {key}")
     return {"key": key, "value": value}
@@ -306,5 +327,11 @@ def update_config_key(
             "Add PID to Acestream links",
         )
         return {"message": "Setting updated successfully", "value": value}
+
+    if key == "public_base_url":
+        success = config_service.set_public_base_url(value or "")
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to update public_base_url")
+        return {"message": "Setting updated successfully", "value": config_service.get_public_base_url()}
 
     raise HTTPException(status_code=404, detail=f"Unknown config key: {key}")

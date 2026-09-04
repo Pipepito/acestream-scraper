@@ -506,3 +506,232 @@ def test_run_jenkins_release_channel_dry_run_is_platform_major(tmp_path):
     assert out.count("imagetools create") == 4
     assert "--tag pipepito/acestream-scraper:develop " in out
     assert "pipepito/acestream-scraper:latest" not in out
+
+
+def test_entrypoint_exports_media_integration_defaults():
+    entrypoint = (REPO_ROOT / "entrypoint.sh").read_text()
+
+    assert 'export PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-}"' in entrypoint
+    assert (
+        'export TUNER_ALLOWED_NETWORKS="${TUNER_ALLOWED_NETWORKS:-'
+        '127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10}"'
+    ) in entrypoint
+    assert 'export PLAYER_HLS_DIR="${PLAYER_HLS_DIR:-/tmp/acestream-player}"' in entrypoint
+    assert 'export PLAYER_MAX_SESSIONS="${PLAYER_MAX_SESSIONS:-3}"' in entrypoint
+    assert 'export FORWARDED_ALLOW_IPS="${FORWARDED_ALLOW_IPS:-127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}"' in entrypoint
+
+
+def test_uvicorn_is_launched_with_app_owned_proxy_trust_and_graceful_timeout():
+    entrypoint = (REPO_ROOT / "entrypoint.sh").read_text()
+    dockerfile = (REPO_ROOT / "Dockerfile").read_text()
+    backend_dockerfile = (REPO_ROOT / "backend" / "Dockerfile").read_text()
+    e2e_start = (REPO_ROOT / "e2e" / "stack" / "backend-start.sh").read_text()
+
+    flags = '--no-proxy-headers --timeout-graceful-shutdown 3'
+    cmd = 'CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--no-proxy-headers", "--timeout-graceful-shutdown", "3"]'
+    assert f'APP_COMMAND=(uvicorn main:app --host 0.0.0.0 --port "$FLASK_PORT" {flags})' in entrypoint
+    assert cmd in dockerfile
+    # The backend-only image is the fourth launch path; it must not hand
+    # uvicorn X-Forwarded-* trust that ForwardedHeadersMiddleware owns.
+    assert cmd in backend_dockerfile
+    assert "--no-proxy-headers" in e2e_start and "--timeout-graceful-shutdown 3" in e2e_start
+
+
+def test_entrypoint_stops_the_app_before_sidecars_on_signals():
+    entrypoint = (REPO_ROOT / "entrypoint.sh").read_text()
+    # The lifespan's engine `stop` calls must reach a live engine, so the app
+    # goes down first on INT/TERM (it already does on the normal exit path).
+    assert """trap 'shutdown_children "$app_pid" "${child_pids[@]:-}"' INT TERM EXIT""" in entrypoint
+
+
+def test_entrypoint_appends_bind_all_to_engine_command_by_default():
+    entrypoint = (REPO_ROOT / "entrypoint.sh").read_text()
+    dockerfile = (REPO_ROOT / "Dockerfile").read_text()
+    start_engine = (REPO_ROOT / "docker" / "scripts" / "acestream-android" / "start-engine").read_text()
+
+    assert 'ACESTREAM_BIND_ALL=$(normalize_bool "${ACESTREAM_BIND_ALL:-true}")' in entrypoint
+    assert 'case " $ACESTREAM_START_COMMAND " in *" --bind-all "*) ;; *) ACESTREAM_START_COMMAND="$ACESTREAM_START_COMMAND --bind-all" ;; esac' in entrypoint
+    assert "ACESTREAM_BIND_ALL=true" in dockerfile
+    # The ARM launcher must not pass --bind-all twice or ignore the knob.
+    assert 'if [ "$(printf \'%s\' "${ACESTREAM_BIND_ALL:-true}" | tr \'[:upper:]\' \'[:lower:]\')" != "false" ]; then' in start_engine
+    assert '--bind-all' in start_engine
+
+
+def test_docker_compose_publishes_ipv4_only_and_sets_stop_grace_period():
+    compose_file = (REPO_ROOT / "docker-compose.yml").read_text()
+
+    assert '- "0.0.0.0:8000:8000"' in compose_file
+    assert "stop_grace_period: 20s" in compose_file
+
+
+def _docs_pages_with_examples() -> list[Path]:
+    """Every user-facing markdown page that shows a docker run/compose example."""
+    pages = [REPO_ROOT / "README.md"]
+    pages += sorted((REPO_ROOT / "wiki").rglob("*.md"))
+    pages += sorted(
+        path
+        for path in (REPO_ROOT / "docs").rglob("*.md")
+        if "superpowers" not in path.relative_to(REPO_ROOT).parts
+    )
+    return pages
+
+
+def test_command_builder_and_docs_publish_the_web_port_on_ipv4_only():
+    """spec 4.4: an unaddressed ``8000:8000`` also listens on ``[::]`` and
+    docker-proxy rewrites every IPv6 client to the bridge gateway (172.17.0.1),
+    which sits inside the default ``TUNER_ALLOWED_NETWORKS`` — the token-free
+    ``/tuner/*`` routes would then accept any IPv6 client on the LAN.
+    docker-compose.yml already publishes ``0.0.0.0:8000:8000``; the command
+    builder (the path a non-technical user actually follows) and the docs
+    examples must not hand out the bypassable form either."""
+    options = json.loads((REPO_ROOT / "docs" / "builder" / "runtime-options.json").read_text())
+    app_js = (REPO_ROOT / "docs" / "builder" / "app.js").read_text()
+
+    web = next(port for port in options["ports"] if port["id"] == "web")
+    assert web.get("hostAddress") == "0.0.0.0", (
+        "The web port in runtime-options.json must pin an explicit host address; "
+        f"got {web.get('hostAddress')!r}"
+    )
+    assert "address: p.hostAddress" in app_js, "app.js must carry hostAddress into the emitted mapping"
+    assert "-p ${p.address}${p.host}:${p.container}${suffix}" in app_js, "docker run emission ignores the address"
+    assert '"${p.address}${p.host}:${p.container}${suffix}"' in app_js, "compose emission ignores the address"
+
+    offenders = [
+        f"{path.relative_to(REPO_ROOT)}:{number}: {line.strip()}"
+        for path in _docs_pages_with_examples()
+        for number, line in enumerate(path.read_text().splitlines(), 1)
+        if "8000:8000" in line and "0.0.0.0:8000:8000" not in line and "[::]:8000:8000" not in line
+    ]
+    assert not offenders, (
+        "Docs examples must publish the web port on an explicit address "
+        "(0.0.0.0:8000:8000), otherwise docker-proxy defeats TUNER_ALLOWED_NETWORKS:\n"
+        + "\n".join(offenders)
+    )
+
+
+def test_entrypoint_detects_bundled_ffmpeg():
+    entrypoint = (REPO_ROOT / "entrypoint.sh").read_text()
+    dockerfile = (REPO_ROOT / "Dockerfile").read_text()
+
+    assert 'FFMPEG_BINARY_PATH="${FFMPEG_BINARY_PATH:-/opt/ffmpeg/bin/ffmpeg}"' in entrypoint
+    assert 'if [ -x "$FFMPEG_BINARY_PATH" ]; then IMAGE_HAS_FFMPEG=true; else IMAGE_HAS_FFMPEG=false; fi' in entrypoint
+    assert "IMAGE_HAS_FFMPEG" in entrypoint.split("export ENABLE_WARP", 1)[1].split("\n", 1)[0]
+    # With nothing executable there the app must get Settings' empty default
+    # ("resolve ffmpeg from PATH"), not a path that is guaranteed to ENOENT.
+    assert 'if [ ! -x "$FFMPEG_BINARY_PATH" ]; then' in entrypoint
+    assert 'FFMPEG_BINARY_PATH=""' in entrypoint
+    assert "FFMPEG_BINARY_PATH=/opt/ffmpeg/bin/ffmpeg" in dockerfile
+    assert "FROM --platform=$BUILDPLATFORM debian:trixie-slim AS ffmpeg-builder" in dockerfile
+
+
+def _entrypoint_env(tmp_path: Path, **overrides: str) -> dict[str, str]:
+    """Run entrypoint.sh with every sidecar off and report the env the app is handed."""
+    env = os.environ.copy()
+    env.update(
+        {
+            "LOG_DIR": str(tmp_path / "logs"),
+            "LOGROTATE_DIR": str(tmp_path / "logrotate"),
+            "SUPERVISOR_RUN_DIR": str(tmp_path / "run"),
+            "ENABLE_WARP": "false",
+            "ENABLE_ACESTREAM_ENGINE": "false",
+            "ENABLE_ACEXY": "false",
+            "ENABLE_IPFS": "false",
+            "ENABLE_ZERONET": "false",
+            "ENABLE_TOR": "false",
+            "IMAGE_HAS_ACESTREAM": "false",
+            "IMAGE_HAS_ACEXY": "false",
+        }
+    )
+    env.pop("IMAGE_HAS_FFMPEG", None)
+    env.update(overrides)
+
+    result = subprocess.run(
+        [
+            "/bin/bash",
+            str(REPO_ROOT / "entrypoint.sh"),
+            "sh",
+            "-c",
+            'printf "REPORT FFMPEG_BINARY_PATH=[%s]\nREPORT IMAGE_HAS_FFMPEG=[%s]\n"'
+            ' "${FFMPEG_BINARY_PATH-<unset>}" "${IMAGE_HAS_FFMPEG-<unset>}"',
+        ],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=120,
+        env=env,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    reported: dict[str, str] = {}
+    for line in result.stdout.splitlines():
+        if line.startswith("REPORT "):
+            name, _, value = line[len("REPORT ") :].partition("=")
+            reported[name] = value[1:-1]
+    return reported
+
+
+def test_entrypoint_hands_the_app_the_bundled_ffmpeg_when_it_is_installed(tmp_path):
+    ffmpeg = tmp_path / "ffmpeg"
+    _write_executable(ffmpeg, "#!/bin/sh\nexit 0\n")
+
+    reported = _entrypoint_env(tmp_path, FFMPEG_BINARY_PATH=str(ffmpeg))
+
+    assert reported["FFMPEG_BINARY_PATH"] == str(ffmpeg)
+    assert reported["IMAGE_HAS_FFMPEG"] == "true"
+
+
+def test_entrypoint_clears_the_ffmpeg_path_when_nothing_is_installed_there(tmp_path):
+    reported = _entrypoint_env(tmp_path, FFMPEG_BINARY_PATH=str(tmp_path / "no-such-ffmpeg"))
+
+    # Settings' own default, so the backend falls back to shutil.which("ffmpeg")
+    # (spec 4.5) instead of spawning a path with nothing behind it.
+    assert reported["FFMPEG_BINARY_PATH"] == ""
+    assert reported["IMAGE_HAS_FFMPEG"] == "false"
+
+
+def test_jenkins_smoke_stage_runs_the_ffmpeg_build_test():
+    pipeline = (REPO_ROOT / "Jenkinsfile").read_text()
+    assert "backend/tests/docker/test_ffmpeg_build.py" in pipeline
+    assert "backend/tests/docker/test_ffmpeg_vendor.py" in pipeline
+
+
+def test_command_builder_declares_current_runtime_settings_and_filters_them():
+    import json
+    data = json.loads((REPO_ROOT / "docs" / "builder" / "runtime-options.json").read_text())
+    app_js = (REPO_ROOT / "docs" / "builder" / "app.js").read_text()
+    validator = (REPO_ROOT / "scripts" / "ci" / "validate_command_builder.sh").read_text()
+
+    assert data["player"]["maxSessionsDefault"] == 3
+    assert data["player"]["hlsDirDefault"] == "/tmp/acestream-player"
+    assert data["player"]["startTimeoutSecondsDefault"] == 45
+    assert data["player"]["mediaServerMinRefreshMinutesDefault"] == 30
+    assert data["player"]["tunerNetworksDefault"].startswith("127.0.0.0/8,10.0.0.0/8,100.64.0.0/10")
+    assert "publicBaseUrl" in data["notes"]
+    settings = {setting["env"]: setting for setting in data["runtimeSettings"]}
+    for name in (
+        "PUBLIC_BASE_URL",
+        "FORWARDED_ALLOW_IPS",
+        "TUNER_ALLOWED_NETWORKS",
+        "PLAYER_HLS_DIR",
+        "PLAYER_MAX_SESSIONS",
+        "PLAYER_START_TIMEOUT_SECONDS",
+        "MEDIA_SERVER_MIN_REFRESH_MINUTES",
+    ):
+        assert settings[name]["appliesWhen"] == "always", name
+        assert name in validator, name
+
+    assert settings["ACESTREAM_BIND_ALL"]["appliesWhen"] == "engineOn"
+    assert settings["ENABLE_TOR"]["appliesWhen"] == "zeronetEmbeddedOn"
+    assert settings["ZERONET_UI_HOST"]["appliesWhen"] == "zeronetUiPublished"
+    assert settings["IPFS_PROFILE"]["appliesWhen"] == "ipfsEmbeddedOn"
+    assert settings["WARP_LICENSE_KEY"]["appliesWhen"] == "warpOn"
+    for name in (
+        "CHANNEL_CLEANUP_DAYS",
+        "PLAYER_MAX_SESSIONS",
+        "PLAYER_START_TIMEOUT_SECONDS",
+        "MEDIA_SERVER_MIN_REFRESH_MINUTES",
+    ):
+        assert settings[name]["integer"] is True, name
+    assert "activeRuntimeSettings(d)" in app_js
+    assert "engineOn && platform.id !== 'amd64'" in app_js

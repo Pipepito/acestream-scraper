@@ -413,3 +413,43 @@ git ls-remote --tags https://github.com/Javinator9889/acexy.git
 bash scripts/ci/build_multiarch_images.sh --dry-run --flavor scraper-acexy | grep ACEXY_
 PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_acexy_runtime_smoke.py
 ```
+
+## ffmpeg (`docker/manifests/ffmpeg.json`)
+
+The web player transcodes AceStream output to HLS with a minimal static
+ffmpeg that the `ffmpeg-builder` Dockerfile stage cross-compiles from the
+vendored source (`docker/vendor/ffmpeg`, `docker/scripts/build-ffmpeg.sh`).
+It rides in `runtime-base`, so **every flavor and every platform** ships
+`/opt/ffmpeg/bin/ffmpeg` and `ffprobe`; `runtime-base` also bakes
+`FFMPEG_BINARY_PATH=/opt/ffmpeg/bin/ffmpeg`, and `entrypoint.sh` exports
+`IMAGE_HAS_FFMPEG` from `-x "$FFMPEG_BINARY_PATH"` (so a stripped-down mount
+or a bare-metal run is detected rather than assumed). When nothing executable
+sits at that path the entrypoint clears `FFMPEG_BINARY_PATH` before handing it
+to the app, which is `Settings.FFMPEG_BINARY_PATH`'s declared default and means
+"resolve `ffmpeg` from `PATH`" — the app is never given a path it cannot spawn.
+
+Keys: `version`, `vendor_dir` (must be `docker/vendor/ffmpeg` — the Dockerfile
+bind-mounts `docker/vendor`), `vendored_file`, `sha256`, `source_url`,
+`mirror_base_url`, `mirror_urls`.
+`scripts/ci/build_multiarch_images.sh` derives `FFMPEG_VENDORED_FILE`,
+`FFMPEG_SHA256`, `FFMPEG_SOURCE_URL` and `FFMPEG_MIRROR_URLS` (space-separated)
+from them for every flavor; the build script resolves vendored copy →
+`source_url` → each mirror and verifies the sha256 either way.
+
+Bumping the pin is `docker/vendor/ffmpeg/README.md` (download the release
+tarball, refresh `SHA256SUMS` and the manifest, upload the archive to the
+release tag named by `mirror_base_url`), then:
+
+```bash
+python3 scripts/ci/validate_docker_manifest_metadata.py
+bash scripts/ci/build_multiarch_images.sh --dry-run --flavor scraper | tr ' ' '\n' | grep FFMPEG_
+PYTHONPATH=backend backend/venv/bin/pytest -q \
+  backend/tests/docker/test_ffmpeg_vendor.py backend/tests/docker/test_ffmpeg_build.py
+```
+
+`test_ffmpeg_build.py` builds the stage for `linux/amd64`, `linux/arm64` and
+`linux/arm/v7` and runs the resulting binary on each target against
+`backend/tests/docker/fixtures/`: copy remux TS→HLS, AC-3→AAC into fMP4 HLS,
+and the web player's exact command line, so a configure set that drops a
+muxer, encoder or bitstream filter fails here rather than at playback.
+The Jenkins `Acestream Engine Runtime Smoke` stage runs both files.

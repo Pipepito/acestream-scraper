@@ -32,7 +32,7 @@ This repository now uses a single root deployment model:
 
 ## Developer Entry Points
 
-- Backend local run: `cd backend && pip install -r requirements.txt && uvicorn main:app --reload --host 0.0.0.0 --port 8000`
+- Backend local run: `cd backend && pip install -r requirements.txt && uvicorn main:app --reload --host 0.0.0.0 --port 8000 --no-proxy-headers`
 - Frontend local run: `cd frontend && npm install && npm start`
 - Container stack: `docker compose up --build`
 

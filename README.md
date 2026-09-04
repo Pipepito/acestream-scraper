@@ -59,6 +59,12 @@ The manifest currently covers `linux/amd64` (native Linux engine 3.2.11), `linux
 
 When you enable the engine on ARM, it keeps its config, cache, and logs under `/var/lib/acestream` (`ACESTREAM_HOME`); mount a volume there (for example `-v acestream-state:/var/lib/acestream`) so they survive container replacement, and publish `6878` (engine HTTP API — unauthenticated, so only on trusted networks) plus `8621` tcp/udp (P2P) if they must be reachable from outside the container. Raspberry Pi 5: the Android engine needs a 4 KB kernel page size, so set `kernel=kernel8.img` in `config.txt` (the default `kernel_2712` kernel uses 16 KB pages and the engine refuses to start). WARP is available on ARM64 but not ARMv7. See [wiki/Docker.md](wiki/Docker.md) for the full ARM engine notes and caveats.
 
+**Web player**: every image bundles a static ffmpeg (`ffmpeg-builder` stage, one binary per platform/flavor), so channels play straight in the browser with no plugin and no separate install — press Play, and the backend transcodes the channel's audio to AAC (video is passed through) and serves it as HLS. Jellyfin, Plex, VLC and Kodi instead pull an HDHomeRun-style tuner stream from `/tuner/*`, gated by network address (`TUNER_ALLOWED_NETWORKS`) rather than the API token, since those clients cannot send one; `PUBLIC_BASE_URL` tells the app which address to advertise to them. See [wiki/Web-Player.md](wiki/Web-Player.md).
+
+**Remote players**: save the VLC or Kodi boxes on your network under **Integrations**, then send any channel to one and drive it from the app (play/pause, stop, volume, live status). Both are reached through the web interface they already ship — VLC's Lua HTTP interface, Kodi's `Settings > Services > Control` — so nothing is installed on the player; **Find players** scans a private network for them, and each player picks the stream link it is handed (the server relay at `/tuner/*` by default, which needs only port 8000 published, or a named Acexy/engine base URL, which needs that port reachable from the player instead). Player passwords are stored unencrypted in the app database and never returned by the API. See [wiki/Remote-Players.md](wiki/Remote-Players.md).
+
+**Jellyfin and Plex**: the app publishes your TV channels as an HDHomeRun tuner with an XMLTV guide, so they show up under Live TV in the media server you already use — no plugin, nothing installed there. Add the server under **Integrations** with a Jellyfin API key and press **Connect**, and the app registers the tuner and the guide provider for you; Plex (Plex Pass required) has no API for that, so the card hands you the exact tuner address and guide URL to paste into **Set Up Plex Tuner**. A background job notices when your channels or guide change and asks the server to refresh, at most every `MEDIA_SERVER_MIN_REFRESH_MINUTES`. The tuner routes carry no API token — media servers cannot send one — so they are gated by client address (`TUNER_ALLOWED_NETWORKS`), which means publishing the web port as `-p 0.0.0.0:8000:8000` and, behind a reverse proxy, keeping `/tuner/` out of proxy auth. Plex stops saving channel maps at roughly 450-480 channels, so the tuner publishes at most 450 by default. API keys and Plex tokens are stored unencrypted in the app database and never returned by the API. See [wiki/Media-Servers.md](wiki/Media-Servers.md).
+
 ### Local Development
 
 Backend:
@@ -68,7 +74,7 @@ python3 -m venv backend/venv
 source backend/venv/bin/activate
 pip install -r backend/requirements.txt
 cd backend
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+uvicorn main:app --reload --host 0.0.0.0 --port 8000 --no-proxy-headers
 ```
 
 Frontend (optional dev server):
@@ -109,6 +115,7 @@ npm start
 
 - `ENABLE_WARP` (default: `false`)
 - `ENABLE_ACESTREAM_ENGINE` (default: `false`)
+- `ACESTREAM_BIND_ALL` (default: `true`; appends `--bind-all` to the engine start command so any client address is accepted on a published `6878` — the engine otherwise admits only loopback/RFC1918 sources. `false` restores the engine's own filter)
 - `ENABLE_ACEXY` (default: `false`)
 - `ACESTREAM_HTTP_HOST` (default: `localhost`)
 - `ACESTREAM_HTTP_PORT` (default: `6878`)
@@ -123,6 +130,10 @@ npm start
 - `ZERONET_DATA_DIR` (default: `/data/zeronet`; the bundled node's state — mount a volume there)
 - `ZERONET_UI_PORT` (default: `43110`), `ZERONET_FILESERVER_PORT` (default: `26552`), `ZERONET_UI_HOST` (extra Host headers the UI should accept)
 - `ZERONET_TRACKERS` (default: three public UDP bootstrap trackers; space-separated tracker URLs used to bootstrap access to ZeroNet's dynamic tracker list)
+- `PUBLIC_BASE_URL` (default: empty; origin Jellyfin/Plex/VLC use to reach this server — empty derives it from each request)
+- `TUNER_ALLOWED_NETWORKS` (default: `127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10`; networks allowed to use the token-free `/tuner/*` routes)
+- `PLAYER_MAX_SESSIONS` (default: `3`; channels the web player transcodes at once)
+- `MEDIA_SERVER_MIN_REFRESH_MINUTES` (default: `30`; minimum gap between automatic Jellyfin/Plex guide refreshes — `0` disables the debounce)
 
 Docker flavor choice controls which optional binaries are installed. Runtime env vars control whether those installed services actually start.
 

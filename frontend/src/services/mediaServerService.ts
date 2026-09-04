@@ -1,4 +1,5 @@
 import apiClient from './apiClient';
+import type { components } from '../types/api-generated';
 
 export type MediaServerKind = 'jellyfin' | 'plex';
 /** How channels reach Jellyfin: as an HDHomeRun tuner or as an M3U playlist. */
@@ -56,7 +57,7 @@ export interface MediaServerProbe {
   credentials: MediaServerCredentials;
   version: string | null;
   message: string;
-  tuner_access: { addresses: string[]; allowed: boolean };
+  tuner_access: components['schemas']['TunerAccessResponse'];
 }
 
 export interface MediaServerRefreshResult {

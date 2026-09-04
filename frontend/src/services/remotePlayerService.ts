@@ -1,4 +1,5 @@
 import apiClient from './apiClient';
+import type { components } from '../types/api-generated';
 
 export type RemotePlayerKind = 'vlc' | 'kodi';
 export type RemotePlayerCommand = 'pause' | 'resume' | 'stop' | 'volume';
@@ -39,10 +40,8 @@ export interface RemotePlayerTestRequest {
   id?: number;
 }
 
-export interface TunerAccess {
-  addresses: string[];
-  allowed: boolean;
-}
+/** The tuner address gate's verdict, as the backend declares it. */
+export type TunerAccess = components['schemas']['TunerAccessResponse'];
 
 export interface RemotePlayerProbe {
   reachable: boolean;

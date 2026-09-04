@@ -22,6 +22,7 @@ from app.schemas.media_servers import (
     MediaServerTestRequest,
     MediaServerUpdate,
 )
+from app.schemas.remote_players import TunerAccessResponse
 from app.services.media_servers.base import (
     MediaServerAuthError,
     MediaServerError,
@@ -219,7 +220,9 @@ def _probe(
         raise _translate(exc) from exc
     # Same warning the remote players give: can this host reach our tuner URLs?
     access = RemotePlayerService(service.db).tuner_access(urlsplit(base_url).hostname or "")
-    return MediaServerProbeResponse(**probe, tuner_access={"addresses": access.addresses, "allowed": access.allowed})
+    return MediaServerProbeResponse(
+        **probe, tuner_access=TunerAccessResponse(addresses=access.addresses, allowed=access.allowed)
+    )
 
 
 @router.post(

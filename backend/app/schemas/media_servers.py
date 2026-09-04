@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional
+from typing import Dict, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from app.schemas.remote_players import TunerAccessResponse
 
 MediaServerKind = Literal["jellyfin", "plex"]
 TunerMode = Literal["hdhomerun", "m3u"]
@@ -68,7 +70,7 @@ class MediaServerProbeResponse(BaseModel):
     credentials: Literal["ok", "missing", "rejected"]
     version: Optional[str] = None
     message: str
-    tuner_access: Dict[str, Any]
+    tuner_access: TunerAccessResponse
 
 
 class MediaServerRefreshResponse(BaseModel):

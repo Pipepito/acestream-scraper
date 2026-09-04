@@ -1864,10 +1864,7 @@ export interface components {
       message: string;
       /** Reachable */
       reachable: boolean;
-      /** Tuner Access */
-      tuner_access: {
-        [key: string]: unknown;
-      };
+      tuner_access: components["schemas"]["TunerAccessResponse"];
       /** Version */
       version?: string | null;
     };

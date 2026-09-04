@@ -2090,9 +2090,7 @@
             "type": "boolean"
           },
           "tuner_access": {
-            "additionalProperties": true,
-            "title": "Tuner Access",
-            "type": "object"
+            "$ref": "#/components/schemas/TunerAccessResponse"
           },
           "version": {
             "anyOf": [

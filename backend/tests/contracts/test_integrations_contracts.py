@@ -347,3 +347,17 @@ def test_forbidden_media_server_url_error_contract(alembic_client, media_server_
     error = response.json()["error"]
     assert error["code"] == "MEDIA_SERVER_URL_FORBIDDEN"
     assert error["context"]["base_url"] == "http://169.254.169.254"
+
+
+def test_both_probes_publish_the_same_tuner_access_schema(alembic_client):
+    """`tuner_access` means one thing, so it must be one named schema.
+
+    Declared inline as a bare object it still serialises correctly, but the
+    generated frontend types degrade it to an index signature and the fields
+    disappear from the client contract.
+    """
+    schemas = alembic_client.get("/openapi.json").json()["components"]["schemas"]
+    reference = {"$ref": "#/components/schemas/TunerAccessResponse"}
+    assert schemas["MediaServerProbeResponse"]["properties"]["tuner_access"] == reference
+    assert schemas["RemotePlayerProbeResponse"]["properties"]["tuner_access"] == reference
+    assert set(schemas["TunerAccessResponse"]["properties"]) == {"addresses", "allowed"}

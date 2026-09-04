@@ -4,13 +4,19 @@ from __future__ import annotations
 
 import re
 import stat as stat_module
+from datetime import datetime, timezone
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import FileResponse
+from sqlalchemy.orm import Session
 
 from app.api.error_handlers import APIError
+from app.config.database import get_db
+from app.repositories.channel_repository import ChannelRepository
 from app.schemas.player import (
+    ActiveStream,
+    ActiveStreamListResponse,
     PlayerCapabilities,
     PlayerCodecs,
     PlayerSessionCreate,
@@ -19,6 +25,7 @@ from app.schemas.player import (
     PlayerStats,
 )
 from app.services.player_service import PlayerLimitReached, PlayerSession, player_service
+from app.services.stream_relay import relay_registry
 
 router = APIRouter(tags=["player"])
 _SEGMENT = re.compile(r"^seg\d{5}\.ts$")
@@ -61,6 +68,51 @@ async def capabilities() -> PlayerCapabilities:
 @router.get("/sessions", response_model=PlayerSessionListResponse, summary="Active player sessions")
 async def list_sessions() -> PlayerSessionListResponse:
     return PlayerSessionListResponse(sessions=[_status(s) for s in player_service.list_sessions()])
+
+
+@router.get(
+    "/streams",
+    response_model=ActiveStreamListResponse,
+    summary="Everything the server is streaming right now",
+)
+def active_streams(db: Session = Depends(get_db)) -> ActiveStreamListResponse:
+    """Browser sessions and raw relays in one list, named where we know the name.
+
+    Declared ``def``, not ``async def``: it reads the database, so FastAPI runs
+    it in the threadpool instead of blocking the event loop that is feeding the
+    relays this very endpoint reports.
+    """
+    sessions = player_service.list_sessions()
+    relays = relay_registry.active()
+    names = ChannelRepository(db).names_by_id(
+        [session.content_id for session in sessions] + [relay.content_id for relay in relays]
+    )
+    streams = [
+        ActiveStream(
+            kind="browser",
+            id=session.id,
+            content_id=session.content_id,
+            channel_name=names.get(session.content_id.lower()),
+            state=session.state,
+            viewers=session.viewers,
+            peers=session.stats.peers if session.stats else None,
+        )
+        for session in sessions
+    ]
+    streams += [
+        ActiveStream(
+            kind="relay",
+            id=relay.id,
+            content_id=relay.content_id,
+            channel_name=names.get(relay.content_id.lower()),
+            state="streaming",
+            viewers=1,
+            client_label=relay.client_label,
+            started_at=datetime.fromtimestamp(relay.started_at, tz=timezone.utc),
+        )
+        for relay in relays
+    ]
+    return ActiveStreamListResponse(streams=streams)
 
 
 @router.post("/sessions", response_model=PlayerSessionStatus, summary="Start (or join) playback of a channel")

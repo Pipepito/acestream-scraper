@@ -3,7 +3,7 @@ Repository for channel data operations
 """
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
-from typing import List, Optional, Dict, Any
+from typing import Dict, Any, Iterable, List, Optional
 from datetime import datetime, timezone
 
 from app.models.models import AcestreamChannel, EPGChannel, TVChannel
@@ -198,6 +198,24 @@ class ChannelRepository:
     def get_channel_by_id(self, channel_id: str) -> Optional[AcestreamChannel]:
         """Get a channel by ID"""
         return self.db.query(AcestreamChannel).filter(AcestreamChannel.id == channel_id).first()
+
+    def names_by_id(self, channel_ids: Iterable[str]) -> Dict[str, str]:
+        """Channel names for these acestream ids, keyed by the lowercase id.
+
+        Ids arrive lowercased (the player and the relay routes normalise them)
+        while a scraped row can carry either spelling, so both go into the IN
+        list -- which keeps the primary-key index in play, unlike lower().
+        """
+        wanted = {channel_id.lower() for channel_id in channel_ids if channel_id}
+        if not wanted:
+            return {}
+        spellings = [spelling for channel_id in wanted for spelling in (channel_id, channel_id.upper())]
+        rows = (
+            self.db.query(AcestreamChannel.id, AcestreamChannel.name)
+            .filter(AcestreamChannel.id.in_(spellings))
+            .all()
+        )
+        return {row[0].lower(): row[1] for row in rows if row[1]}
 
     def create_or_update_channel(self,
                                channel_id: str,

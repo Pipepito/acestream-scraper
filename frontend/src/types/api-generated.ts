@@ -587,6 +587,17 @@ export interface paths {
     /** HLS segment */
     get: operations["segment_api_v1_player_sessions__session_id___segment__get"];
   };
+  "/api/v1/player/streams": {
+    /**
+     * Everything the server is streaming right now
+     * @description Browser sessions and raw relays in one list, named where we know the name.
+     *
+     * Declared ``def``, not ``async def``: it reads the database, so FastAPI runs
+     * it in the threadpool instead of blocking the event loop that is feeding the
+     * relays this very endpoint reports.
+     */
+    get: operations["active_streams_api_v1_player_streams_get"];
+  };
   "/api/v1/playlists/all-streams/m3u": {
     /**
      * Get All Streams Playlist
@@ -1138,6 +1149,48 @@ export interface components {
       playlist_loaded?: boolean | null;
       /** Version */
       version?: string | null;
+    };
+    /**
+     * ActiveStream
+     * @description One thing the server is streaming right now.
+     *
+     * ``browser`` is an ffmpeg/HLS player session; ``relay`` is a raw MPEG-TS
+     * relay of ``/tuner/stream/<id>.ts`` — what a media server's tuner and a
+     * remote player on the server-relay link format pull.
+     */
+    ActiveStream: {
+      /** Channel Name */
+      channel_name?: string | null;
+      /** Client Label */
+      client_label?: string | null;
+      /** Content Id */
+      content_id: string;
+      /** Id */
+      id: string;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "browser" | "relay";
+      /** Peers */
+      peers?: number | null;
+      /** Started At */
+      started_at?: string | null;
+      /**
+       * State
+       * @enum {string}
+       */
+      state: "starting" | "ready" | "error" | "stopped" | "streaming";
+      /**
+       * Viewers
+       * @default 1
+       */
+      viewers?: number;
+    };
+    /** ActiveStreamListResponse */
+    ActiveStreamListResponse: {
+      /** Streams */
+      streams: components["schemas"]["ActiveStream"][];
     };
     /** AddChannelRequest */
     AddChannelRequest: {
@@ -5302,6 +5355,24 @@ export interface operations {
       422: {
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Everything the server is streaming right now
+   * @description Browser sessions and raw relays in one list, named where we know the name.
+   *
+   * Declared ``def``, not ``async def``: it reads the database, so FastAPI runs
+   * it in the threadpool instead of blocking the event loop that is feeding the
+   * relays this very endpoint reports.
+   */
+  active_streams_api_v1_player_streams_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ActiveStreamListResponse"];
         };
       };
     };

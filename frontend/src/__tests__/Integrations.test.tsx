@@ -8,7 +8,7 @@ import { TestMemoryRouter } from '../testUtils/router';
 const mockPublicUrl = jest.fn();
 const mockUpdatePublicBaseUrl = jest.fn();
 const mockCapabilities = jest.fn();
-const mockSessions = jest.fn();
+const mockStreams = jest.fn();
 const mockPlayers = jest.fn();
 const mockStatus = jest.fn();
 const mockDelete = jest.fn();
@@ -38,7 +38,7 @@ jest.mock('../services/remotePlayerService', () => {
 
 jest.mock('../hooks/useSystemServices', () => ({ usePublicUrl: () => mockPublicUrl(), PUBLIC_URL_QUERY_KEY: ['system', 'public-url'] }));
 jest.mock('../services/configService', () => ({ configService: { updatePublicBaseUrl: (...a: unknown[]) => mockUpdatePublicBaseUrl(...a) } }));
-jest.mock('../hooks/usePlayer', () => ({ usePlayerCapabilities: () => mockCapabilities(), usePlayerSessions: () => mockSessions() }));
+jest.mock('../hooks/usePlayer', () => ({ usePlayerCapabilities: () => mockCapabilities(), useActiveStreams: () => mockStreams() }));
 jest.mock('../hooks/useRemotePlayers', () => ({
   useRemotePlayers: () => mockPlayers(),
   useRemotePlayerStatus: (id: number) => mockStatus(id),
@@ -120,7 +120,7 @@ describe('Integrations page', () => {
     jest.clearAllMocks();
     mockPublicUrl.mockReturnValue({ data: { url: 'http://localhost:8000', source: 'request', warnings: ['localhost', 'unset'] }, isLoading: false });
     mockCapabilities.mockReturnValue({ data: { ffmpeg_available: true, ffmpeg_path: '/opt/ffmpeg/bin/ffmpeg', max_sessions: 3, hls_dir: '/tmp/x' } });
-    mockSessions.mockReturnValue({ data: { sessions: [] } });
+    mockStreams.mockReturnValue({ data: { streams: [] } });
     mockPlayers.mockReturnValue({
       data: [{ id: 1, name: 'Living room', kind: 'vlc', host: '192.168.1.20', port: 8080, username: null, base_url_id: null, has_password: true, created_at: '', updated_at: '' }],
       isLoading: false,
@@ -215,6 +215,56 @@ describe('Integrations page', () => {
     const web = screen.getByRole('region', { name: 'Web player' });
     expect(within(web).getByText('Checking ffmpeg…')).toBeInTheDocument();
     expect(within(web).queryByText(/ffmpeg ready/)).not.toBeInTheDocument();
+  });
+
+  it('names what is streaming and shows relays next to browser sessions', () => {
+    mockStreams.mockReturnValue({
+      data: {
+        streams: [
+          {
+            kind: 'browser',
+            id: 'sess-1',
+            content_id: 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678',
+            channel_name: 'Arena TV',
+            state: 'ready',
+            viewers: 2,
+            peers: 7,
+            client_label: null,
+            started_at: null,
+          },
+          {
+            kind: 'relay',
+            id: 'relay-1',
+            content_id: 'ffeeddccbbaa00998877665544332211aabbccdd',
+            channel_name: null,
+            state: 'streaming',
+            viewers: 1,
+            peers: null,
+            client_label: 'tuner:192.168.1.5',
+            started_at: new Date(Date.now() - 4 * 60_000).toISOString(),
+          },
+        ],
+      },
+    });
+    renderPage();
+
+    const web = screen.getByRole('region', { name: 'Web player' });
+    const rows = within(web).getAllByRole('listitem');
+    expect(rows).toHaveLength(2);
+
+    // The name, not the 40-character id, is what the row is called; the id stays
+    // on the row for anyone who needs it.
+    expect(within(rows[0]).getByText('Arena TV')).toBeInTheDocument();
+    expect(within(rows[0]).getByText('a1b2c3d4e5f60718293a4b5c6d7e8f9012345678')).toBeInTheDocument();
+    expect(within(rows[0]).getByText(/In a browser · 2 viewers · 7 peers/)).toBeInTheDocument();
+    expect(within(rows[0]).getByText('Playing')).toBeInTheDocument();
+
+    // A relay is a stream too, and without a known channel the head of the id names it.
+    expect(within(rows[1]).getByText('Unnamed channel ffeeddcc…')).toBeInTheDocument();
+    expect(within(rows[1]).getByText(/Media server or player at 192\.168\.1\.5 · started 4 min ago/)).toBeInTheDocument();
+    expect(within(rows[1]).getByText('Streaming')).toBeInTheDocument();
+
+    expect(screen.getByRole('status', { name: 'Integration summary' })).toHaveTextContent('Active streams2');
   });
 
   it('shows player cards with live status, transport and a menu with confirm on delete', async () => {

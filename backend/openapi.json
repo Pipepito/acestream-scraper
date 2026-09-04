@@ -486,6 +486,112 @@
         "title": "AcestreamStatusResponse",
         "type": "object"
       },
+      "ActiveStream": {
+        "description": "One thing the server is streaming right now.\n\n``browser`` is an ffmpeg/HLS player session; ``relay`` is a raw MPEG-TS\nrelay of ``/tuner/stream/<id>.ts`` \u2014 what a media server's tuner and a\nremote player on the server-relay link format pull.",
+        "properties": {
+          "channel_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel Name"
+          },
+          "client_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Label"
+          },
+          "content_id": {
+            "title": "Content Id",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "browser",
+              "relay"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "peers": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Peers"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "state": {
+            "enum": [
+              "starting",
+              "ready",
+              "error",
+              "stopped",
+              "streaming"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "viewers": {
+            "default": 1,
+            "title": "Viewers",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "content_id",
+          "state"
+        ],
+        "title": "ActiveStream",
+        "type": "object"
+      },
+      "ActiveStreamListResponse": {
+        "properties": {
+          "streams": {
+            "items": {
+              "$ref": "#/components/schemas/ActiveStream"
+            },
+            "title": "Streams",
+            "type": "array"
+          }
+        },
+        "required": [
+          "streams"
+        ],
+        "title": "ActiveStreamListResponse",
+        "type": "object"
+      },
       "AddChannelRequest": {
         "properties": {
           "category": {
@@ -9829,6 +9935,29 @@
           }
         },
         "summary": "HLS segment",
+        "tags": [
+          "player",
+          "player"
+        ]
+      }
+    },
+    "/api/v1/player/streams": {
+      "get": {
+        "description": "Browser sessions and raw relays in one list, named where we know the name.\n\nDeclared ``def``, not ``async def``: it reads the database, so FastAPI runs\nit in the threadpool instead of blocking the event loop that is feeding the\nrelays this very endpoint reports.",
+        "operationId": "active_streams_api_v1_player_streams_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActiveStreamListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Everything the server is streaming right now",
         "tags": [
           "player",
           "player"

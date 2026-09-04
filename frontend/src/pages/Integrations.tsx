@@ -8,7 +8,7 @@ import RemotePlayersSection from '../components/integrations/RemotePlayersSectio
 import MediaServersSection from '../components/integrations/MediaServersSection';
 import type { PlayerNotify } from '../components/player/playerCopy';
 import { usePublicUrl } from '../hooks/useSystemServices';
-import { usePlayerSessions } from '../hooks/usePlayer';
+import { useActiveStreams } from '../hooks/usePlayer';
 import { useRemotePlayers } from '../hooks/useRemotePlayers';
 import { useMediaServers } from '../hooks/useMediaServers';
 
@@ -21,7 +21,7 @@ const Integrations: React.FC = () => {
   const { data: publicUrl } = usePublicUrl();
   const { data: players } = useRemotePlayers();
   const { data: servers } = useMediaServers();
-  const { data: sessions } = usePlayerSessions();
+  const { data: active } = useActiveStreams();
 
   return (
     <Box>
@@ -39,7 +39,7 @@ const Integrations: React.FC = () => {
           },
           { label: 'Players', value: players ? String(players.length) : '…' },
           { label: 'Media servers', value: servers ? String(servers.length) : '…' },
-          { label: 'Active streams', value: sessions ? String(sessions.sessions.length) : '…' },
+          { label: 'Active streams', value: active ? String(active.streams.length) : '…' },
         ]}
       />
       <PublicAddressSection notify={notify} />

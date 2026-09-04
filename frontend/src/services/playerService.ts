@@ -42,6 +42,21 @@ export interface PlayerSessionStatus {
   hls_ready: boolean;
 }
 
+/** One thing the server is streaming right now: a browser session or a relay. */
+export interface ActiveStream {
+  kind: 'browser' | 'relay';
+  id: string;
+  content_id: string;
+  /** Name of the acestream channel, when the server knows one with this id. */
+  channel_name: string | null;
+  state: 'starting' | 'ready' | 'error' | 'stopped' | 'streaming';
+  viewers: number;
+  peers: number | null;
+  /** Relays only: who is pulling them, e.g. "tuner:192.168.1.5". */
+  client_label: string | null;
+  started_at: string | null;
+}
+
 export interface PlayerCapabilities {
   ffmpeg_available: boolean;
   ffmpeg_path: string | null;
@@ -60,9 +75,9 @@ export const playerService = {
     const { data } = await apiClient.post<PlayerSessionStatus>(`${BASE_URL}/sessions`, { content_id: contentId });
     return data;
   },
-  /** Every session the server is currently preparing or serving (Integrations page). */
-  listSessions: async (): Promise<{ sessions: PlayerSessionStatus[] }> => {
-    const { data } = await apiClient.get<{ sessions: PlayerSessionStatus[] }>(`${BASE_URL}/sessions`);
+  /** Browser sessions and tuner/remote-player relays in one list (Integrations page). */
+  listActiveStreams: async (): Promise<{ streams: ActiveStream[] }> => {
+    const { data } = await apiClient.get<{ streams: ActiveStream[] }>(`${BASE_URL}/streams`);
     return data;
   },
   getSession: async (id: string): Promise<PlayerSessionStatus> => {

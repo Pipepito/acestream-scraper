@@ -40,6 +40,12 @@ def test_player_sessions_response_contract(client):
     assert set(response.json()) == {"sessions"}
 
 
+def test_active_streams_response_contract(client):
+    response = client.get("/api/v1/player/streams")
+    assert response.status_code == 200
+    assert set(response.json()) == {"streams"}
+
+
 def test_public_url_response_contract(client):
     response = client.get("/api/v1/system/public-url")
     assert response.status_code == 200
@@ -330,7 +336,8 @@ def test_media_server_probe_response_contract(alembic_client, media_server_trans
     )
     assert response.status_code == 200, response.text
     body = response.json()
-    assert set(body) == {"reachable", "authenticated", "version", "message", "tuner_access"}
+    assert set(body) == {"reachable", "authenticated", "credentials", "version", "message", "tuner_access"}
+    assert body["credentials"] == "ok"
     assert set(body["tuner_access"]) == {"addresses", "allowed"}
 
 

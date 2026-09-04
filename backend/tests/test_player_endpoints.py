@@ -183,3 +183,41 @@ def test_segment_missing_is_404_and_served_response_carries_its_own_stat(client,
     response = client.portal.call(endpoint.segment, created["id"], newest)
     assert response.stat_result is not None
     assert response.headers["content-length"] == str(response.stat_result.st_size)
+
+
+def test_active_streams_lists_relays_next_to_browser_sessions_with_channel_names(client, player, db_session):
+    """The Integrations page asks one question -- what is streaming right now --
+    and tuner/remote-player relays are half the answer."""
+    from app.models.models import AcestreamChannel
+    from app.services.stream_relay import relay_registry
+
+    relay_id = "1" * 40
+    db_session.add(AcestreamChannel(id=IH, name="Arena TV"))
+    db_session.add(AcestreamChannel(id=relay_id, name="Sports 1"))
+    db_session.commit()
+
+    session = client.post("/api/v1/player/sessions", json={"content_id": IH}).json()
+    relay = relay_registry.open(relay_id, "tuner:192.168.1.5")
+    try:
+        body = client.get("/api/v1/player/streams").json()
+    finally:
+        relay_registry.close(relay.id)
+
+    streams = {stream["kind"]: stream for stream in body["streams"]}
+    assert set(streams) == {"browser", "relay"}
+    assert streams["browser"]["id"] == session["id"] and streams["browser"]["content_id"] == IH
+    assert streams["browser"]["channel_name"] == "Arena TV" and streams["browser"]["viewers"] == 1
+    assert streams["relay"]["content_id"] == relay_id and streams["relay"]["channel_name"] == "Sports 1"
+    assert streams["relay"]["state"] == "streaming" and streams["relay"]["client_label"] == "tuner:192.168.1.5"
+    assert streams["relay"]["started_at"]
+
+    client.delete(f"/api/v1/player/sessions/{session['id']}")
+
+
+def test_active_streams_names_an_unknown_channel_nothing(client, player):
+    session = client.post("/api/v1/player/sessions", json={"content_id": IH}).json()
+    try:
+        body = client.get("/api/v1/player/streams").json()
+        assert [stream["channel_name"] for stream in body["streams"]] == [None]
+    finally:
+        client.delete(f"/api/v1/player/sessions/{session['id']}")

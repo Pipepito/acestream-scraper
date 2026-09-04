@@ -117,7 +117,7 @@ def test_fingerprints_change_with_lineup_and_epg_sources(db_session):
     assert svc.guide_fingerprint() == g0  # failed sources are ignored
 
 
-def test_a_device_id_that_cannot_be_stored_raises(db_session, monkeypatch, caplog):
+def test_a_device_id_that_cannot_be_stored_raises(db_session, monkeypatch):
     """A media server adopts the tuner by its device id, so a failed write must
     be loud: returning a fresh id on every call would silently orphan the
     Jellyfin/Plex lineup."""
@@ -125,9 +125,19 @@ def test_a_device_id_that_cannot_be_stored_raises(db_session, monkeypatch, caplo
 
     from app.services.tuner_service import TunerDeviceIdError
 
+    # A handler on the module logger rather than caplog: the app installs its
+    # own root handlers, and what matters here is that this logger emitted.
+    records = []
+    handler = logging.Handler(level=logging.ERROR)
+    handler.emit = records.append  # type: ignore[method-assign]
+    module_logger = logging.getLogger("app.services.tuner_service")
+    module_logger.addHandler(handler)
+
     svc = TunerService(db_session)
     monkeypatch.setattr(svc.settings_repo, "set_setting", lambda *a, **k: False)
-    with caplog.at_level(logging.ERROR, logger="app.services.tuner_service"):
+    try:
         with pytest.raises(TunerDeviceIdError):
             svc.device_id()
-    assert "device id" in caplog.text
+    finally:
+        module_logger.removeHandler(handler)
+    assert any("device id" in record.getMessage() for record in records)

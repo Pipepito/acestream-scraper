@@ -55,7 +55,13 @@ Every flavor is published for `linux/amd64`, `linux/arm64`, and `linux/arm/v7`. 
 | `linux/arm64` | Android engine 3.2.17 from [`jopsis/acestream:v3.2.17-fix`](https://hub.docker.com/r/jopsis/acestream), digest-pinned and run natively | stable |
 | `linux/arm/v7` | Android engine 3.2.17 from [`jopsis/acestream:v3.2.17-fix`](https://hub.docker.com/r/jopsis/acestream), digest-pinned and run natively | experimental |
 
-Upstream only publishes native Linux engine builds for x86_64, so the ARM images unpack the engine payload from the official AceStream Android APK (the ones listed on https://docs.acestream.media/products/) and run it unmodified against a minimal Android 9 bionic userland shipped under `/system`. No chroot, `--privileged`, seccomp changes, or extra capabilities are needed. `linux/arm/v7` builds and installs but has not been runtime-tested on real ARMv7 hardware yet, so treat it as experimental.
+Upstream only publishes native Linux engine builds for x86_64. Both ARM images
+copy the matching platform variant from the digest-pinned
+`jopsis/acestream:v3.2.17-fix` image and run its Android engine against the
+matching bionic userland under `/system`. No chroot, `--privileged`, seccomp
+changes, or extra capabilities are needed. `linux/arm/v7` builds and installs
+but has not been runtime-tested on real ARMv7 hardware yet, so treat it as
+experimental.
 
 WARP is installed in every flavor's `linux/amd64` and `linux/arm64` images, but it only starts when `ENABLE_WARP=true` (it needs `--cap-add NET_ADMIN --cap-add SYS_ADMIN` and `--device /dev/net/tun`). The `linux/arm/v7` images ship without the WARP client (Cloudflare publishes no 32-bit ARM build), so `ENABLE_WARP` is unsupported there.
 
@@ -166,9 +172,15 @@ The web player, remote players (VLC/Kodi) and the Jellyfin/Plex tuner all ask th
 
 - **amd64** runs the native Linux engine 3.2.11 and is unaffected. Everything works as documented.
 - **arm64** runs the `jopsis/acestream:v3.2.17-fix` distribution, which is not premium-gated. The web player, remote players and the tuner should work. What has been checked on real hardware is that the engine starts and answers its API — a live channel has not yet been played end to end on an ARM64 board, so treat playback there as expected rather than proven. If a stream does fail you will see it plainly: the player says "The AceStream engine could not start this channel: …" with the engine's own words after it. Tell us if it works (or does not) on your board.
-- **armv7** runs the official Android engine 3.1.80.0, and that engine answers every playback request outside AceStream's own app with "To continue, you need to activate premium". That is AceStream's policy for Android engines (their staff say so in forum threads t3928, t3945 and t4002), not something this image can package around: no newer official engine lifts it. **On 32-bit ARM the media features need a Premium account on the engine.** If you do not have one, run the engine on an amd64 or arm64 machine and point this app at it with `ACE_ENGINE_URL`, or install a 64-bit OS if the board supports one.
+- **armv7** uses the matching 32-bit variant of
+  `jopsis/acestream:v3.2.17-fix`. It builds and installs, but cannot execute
+  under QEMU user emulation and has not been runtime-tested on real ARMv7
+  hardware, so playback is unverified rather than promised.
 
-Two things that look like the premium gate but are not:
+The official Android engines are still known to answer playback outside
+AceStream's own app with "To continue, you need to activate premium"; the
+current ARM images avoid those official builds. Do not work around that check
+by reporting a false app identity. Two related failures can look similar:
 
 - **A DNS blocklist.** Pi-hole/AdGuard lists that sinkhole `*.acestream.media` or `*.acestream.net` cut the 3.2.x engines off from their licence check, and the failure looks identical. Allow those two domains on the host running the engine before blaming the engine version.
 - **The engine refusing a client address.** `ACESTREAM_BIND_ALL` (default `true`) applies on every platform: the entrypoint appends `--bind-all` to the engine start command so clients that are not on loopback or a private address — Tailscale, IPv6 LANs, unusual Docker networks — are accepted on a published `6878`. Set it to `false` to restore the engine's own filter.

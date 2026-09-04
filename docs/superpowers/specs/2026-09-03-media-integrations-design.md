@@ -480,6 +480,15 @@ than a timeout. Follow-up (not in scope, needs hardware): a real playback test
 of the 3.2.17 arm64 image against a public content id, which would let the ARM
 support level and this documentation be tightened.
 
+**Post-spec target update (2026-09-04).** After this design was implemented,
+`origin/develop` commit `77c7ad3` moved `linux/arm/v7` from the official 3.1.80
+APK to the matching platform variant of the digest-pinned
+`jopsis/acestream:v3.2.17-fix` OCI image. That target-branch decision supersedes
+only the ARMv7 packaging and premium-gate statements above; the research about
+official engines and the prohibition on false app identities still stand.
+ARMv7 now builds and installs the community distribution but remains
+experimental because it has not been runtime-tested on real 32-bit hardware.
+
 ## 5. Web player
 
 ### 5.1 Backend (`app/services/player_service.py`, `/api/v1/player`)

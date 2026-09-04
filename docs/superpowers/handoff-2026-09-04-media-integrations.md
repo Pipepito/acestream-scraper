@@ -4,6 +4,13 @@ Written 2026-09-04, at the end of the build. The feature is complete and unpushe
 on `feature/media-integrations`. This document is what the next agent needs to
 pick it up.
 
+> **Post-handoff target update (2026-09-04):** `origin/develop` subsequently
+> advanced through `77c7ad3`, which moved `linux/arm/v7` to the matching
+> `jopsis/acestream:v3.2.17-fix` OCI variant. Statements below that ARMv7 still
+> runs the official 3.1.80 APK describe the branch at handoff time and are
+> superseded by that target-branch change. ARMv7 remains experimental and has
+> not been runtime-tested on real 32-bit hardware.
+
 ## Where things stand
 
 | | |

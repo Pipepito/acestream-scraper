@@ -4,6 +4,12 @@ Run 2026-09-04 on the branch head, no code changed. This is the document to read
 instead of trusting the branch. The gates all pass; the last section is the part
 that matters, because it lists what the gates do not cover.
 
+> **Historical snapshot:** after this verification was recorded,
+> `origin/develop` advanced through `77c7ad3` (ARMv7 community engine) and
+> `1d9c2df` (isolated PR/develop Jenkins pipelines). The takeover merged those
+> target-branch commits and reran verification; the commit counts and ARMv7
+> packaging statements below describe the pre-merge snapshot.
+
 - Branch: `feature/media-integrations`
 - Merge-base with `origin/develop`: `0e76c66f10e37f1bddcb69a0d42ba88220e90aa3`
 - Head: `1052226bdb2489133e4756765d5abe6824f79978`

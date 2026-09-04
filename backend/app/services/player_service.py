@@ -293,10 +293,11 @@ class PlayerService:
         except EngineUnavailableError as exc:
             await self._fail(session, "engine_unavailable", str(exc))
             return
-        if session.state == "stopped":
-            # The reaper (or shutdown) tore the session down while the engine was
-            # answering — a teardown that already ran would never reap what we are
-            # about to create, so hand the engine handle back and spawn nothing.
+        if session.state in ("stopped", "error"):
+            # The reaper (or shutdown) tore the session down, or the start-timeout
+            # tick failed it, while the engine was answering — the teardown or
+            # _fail that already ran would never reap what we are about to create,
+            # so hand the engine handle back and spawn nothing.
             await self._stop_engine_session(session.content_id, engine_session)
             return
         session.engine_session = engine_session
@@ -310,7 +311,7 @@ class PlayerService:
             )
         except OSError as exc:
             await self._fail(session, "ffmpeg_failed", f"could not start ffmpeg: {exc}")
-        if session.state == "stopped":  # torn down during the spawn itself
+        if session.state in ("stopped", "error"):  # torn down or failed during the spawn itself
             if process is not None:
                 await self._terminate(process, immediate=True)
             shutil.rmtree(session.dir, ignore_errors=True)

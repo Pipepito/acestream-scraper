@@ -74,10 +74,8 @@ export const playerService = {
     const token = getApiToken();
     const query = token ? `?${new URLSearchParams({ token }).toString()}` : '';
     const url = `${getApiBaseUrl({ dev: process.env.NODE_ENV === 'development' })}${BASE_URL}/sessions/${id}${query}`;
-    try {
-      void fetch(url, { method: 'DELETE', keepalive: true });
-    } catch {
-      // Best effort: the backend reaps idle sessions anyway.
-    }
+    // Best effort: the backend reaps idle sessions anyway. A rejection has to be
+    // caught on the promise — try/catch would only see a synchronous throw.
+    void fetch(url, { method: 'DELETE', keepalive: true }).catch(() => undefined);
   },
 };

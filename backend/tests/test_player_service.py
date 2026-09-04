@@ -477,3 +477,50 @@ def test_startup_sweep_survives_an_unreadable_hls_dir(make_service, monkeypatch)
         await svc.start()
         await svc.stop()
     asyncio.run(run())
+
+
+def test_launch_abandons_a_session_that_failed_while_the_engine_answers(make_service):
+    """The start-timeout tick can move a session to ``error`` while _launch is
+    still waiting on the engine. ``_fail`` has already released everything that
+    session owned and freed its slot, so resuming must not hand it a fresh
+    engine handle and an ffmpeg that nothing counts or reaps."""
+    gate = threading.Event()
+    stops: list[str] = []
+
+    def handler(request):
+        path = request.url.path
+        if path == "/ace/getstream":
+            gate.wait(10)
+            return httpx.Response(200, json=_STREAM_OK)
+        if "/ace/cmd/" in path:
+            stops.append(str(request.url))
+            return httpx.Response(200, text="ok")
+        return httpx.Response(200, json=_STAT_OK)
+
+    svc = make_service(handler=handler, start_timeout=1)
+
+    async def run():
+        session = None
+        try:
+            opening = asyncio.create_task(svc.open_session(IH))
+            assert await _wait(lambda: bool(svc.sessions))
+            session = next(iter(svc.sessions.values()))
+            svc._clock["now"] += 2  # the start timeout fires mid-launch
+            await svc.tick()
+            assert session.state == "error" and session.error == "engine_stalled"
+            gate.set()
+            assert await opening is session
+            assert session.process is None, "no ffmpeg may be spawned for a failed session"
+            assert session.engine_session is None, "a failed session must not own an engine stream"
+            assert not session.dir.exists(), "no directory may be left behind"
+            assert any("method=stop" in url for url in stops), "the engine handle the abandoned launch opened must be released"
+        finally:
+            gate.set()
+            # Only reached when the abort is missing: reap the leak by hand so the
+            # assertion is what fails, instead of the loop hanging on its reader.
+            if session is not None and session.process is not None:
+                session.process.kill()
+                await session.process.wait()
+            await svc.stop()
+
+    asyncio.run(run())

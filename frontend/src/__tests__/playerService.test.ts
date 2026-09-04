@@ -31,4 +31,18 @@ describe('playerService', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/player/sessions/s1?token=t+k', { method: 'DELETE', keepalive: true });
     window.localStorage.removeItem('apiToken');
   });
+
+  it('swallows a failed release instead of leaving an unhandled rejection', async () => {
+    // try/catch around `void fetch(...)` cannot catch an async rejection: a
+    // stopped backend or a closed tab would surface the fire-and-forget DELETE
+    // as an unhandled promise rejection.
+    const rejection = Promise.reject(new Error('offline'));
+    const attach = jest.spyOn(rejection, 'catch');
+    (global as unknown as { fetch: jest.Mock }).fetch = jest.fn().mockReturnValue(rejection);
+
+    expect(() => playerService.leaveSession('s1')).not.toThrow();
+    const handled = attach.mock.calls.length > 0;
+    rejection.catch(() => undefined); // never leave it unhandled, even on a failing run
+    expect(handled).toBe(true);
+  });
 });

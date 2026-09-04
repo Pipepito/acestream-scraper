@@ -125,6 +125,13 @@ esac
 EOF
 chmod +x "$FAKE_BIN/curl"
 
+cat > "$FAKE_BIN/zeronet" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$@" > "${ZERONET_ARG_LOG:?ZERONET_ARG_LOG is required}"
+EOF
+chmod +x "$FAKE_BIN/zeronet"
+
 cat > "$FAKE_BIN/sudo" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -296,6 +303,16 @@ expect_failure_contains \
 expect_success \
     "WARP disabled skip path" \
     env PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR" ENABLE_WARP=false bash "$WARP_SETUP_SCRIPT"
+
+ZERONET_ARG_LOG="$TMP_DIR/zeronet-args.log"
+expect_success \
+    "ZeroNet tracker override does not consume the main action" \
+    env PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR" ENABLE_WARP=false ENABLE_ZERONET=true IMAGE_HAS_ZERONET=true ZERONET_BINARY_PATH="$FAKE_BIN/zeronet" ZERONET_DATA_DIR="$TMP_DIR/zeronet-data" ZERONET_TRACKERS="udp://tracker-one.example:80/announce udp://tracker-two.example:80/announce" ZERONET_ARG_LOG="$ZERONET_ARG_LOG" bash "$ENTRYPOINT_SCRIPT" sleep 1
+zeronet_args=$(tr '\n' ' ' < "$ZERONET_ARG_LOG")
+case "$zeronet_args" in
+    *"--trackers udp://tracker-one.example:80/announce udp://tracker-two.example:80/announce --ui_ip 0.0.0.0"*" main ") ;;
+    *) fail "ZeroNet arguments did not terminate --trackers before the main action: $zeronet_args" ;;
+esac
 
 : > "$FAKE_DBUS_LOG"
 : > "$FAKE_WARP_SVC_LOG"

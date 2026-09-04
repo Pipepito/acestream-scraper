@@ -122,6 +122,7 @@ npm start
 - `ENABLE_TOR` (default: `false`; runs TOR for the bundled ZeroNet node — only with `ENABLE_ZERONET=true`)
 - `ZERONET_DATA_DIR` (default: `/data/zeronet`; the bundled node's state — mount a volume there)
 - `ZERONET_UI_PORT` (default: `43110`), `ZERONET_FILESERVER_PORT` (default: `26552`), `ZERONET_UI_HOST` (extra Host headers the UI should accept)
+- `ZERONET_TRACKERS` (default: three public UDP bootstrap trackers; space-separated tracker URLs used to bootstrap access to ZeroNet's dynamic tracker list)
 
 Docker flavor choice controls which optional binaries are installed. Runtime env vars control whether those installed services actually start.
 

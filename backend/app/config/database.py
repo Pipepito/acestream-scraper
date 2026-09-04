@@ -6,7 +6,7 @@ The engine and session factory are built lazily so tests can swap the bound
 module-level ``Base`` is constructed once and reused for every binding so
 SQLAlchemy's mapper registry stays consistent across the test suite.
 """
-from typing import Optional
+from typing import List, Optional
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
@@ -168,18 +168,54 @@ def upgrade_schema_to_head() -> None:
     command.upgrade(_alembic_config(), "head")
 
 
-def ensure_schema_stamped(database_url: Optional[str] = None) -> bool:
-    """Stamp an ``unstamped`` database with the Alembic head; return True if stamped.
+def create_missing_model_tables(database_url: Optional[str] = None) -> List[str]:
+    """Create the tables the models declare and the database does not have.
 
-    The schema created by ``Base.metadata.create_all`` matches the Alembic
-    head (``tests/test_schema_parity.py`` guards this), so recording the head
-    revision is the correct repair — it lets future revisions apply instead of
+    Returns the table names created. Existing tables are left untouched
+    (``checkfirst``), so this adds nothing to a database already at head.
+    """
+    import logging
+
+    from sqlalchemy import create_engine, inspect
+
+    import app.models.models  # noqa: F401 - registers every table on Base
+
+    url = database_url or get_settings().DATABASE_URL
+    engine = create_engine(url)
+    try:
+        before = set(inspect(engine).get_table_names())
+        Base.metadata.create_all(bind=engine, checkfirst=True)
+        created = sorted(set(inspect(engine).get_table_names()) - before)
+    finally:
+        engine.dispose()
+    if created:
+        logging.getLogger(__name__).warning(
+            "Created %d table(s) an older image's create_all never provisioned: %s",
+            len(created),
+            ", ".join(created),
+        )
+    return created
+
+
+def ensure_schema_stamped(database_url: Optional[str] = None) -> bool:
+    """Converge an ``unstamped`` database on the Alembic head; return True if stamped.
+
+    Stamping alone is only correct for a database whose schema *is* today's
+    head. An unstamped database is one an older image's ``create_all`` left
+    behind, so it carries that image's tables: recording today's head there
+    marks every revision since as applied, and the tables those revisions add
+    (``base_urls``, ``remote_players``, ``media_servers``, ...) are then never
+    created — startup reports success and the features that need them fail on
+    "no such table". So the missing tables are created from the models first
+    (the models are the head's tables — ``tests/test_schema_parity.py``), and
+    only then is the head recorded, which lets future revisions apply instead of
     failing on ``CREATE TABLE`` for tables that already exist.
     """
     if schema_stamp_state(database_url) != "unstamped":
         return False
     from alembic import command
 
+    create_missing_model_tables(database_url)
     command.stamp(_alembic_config(), "head")
     return True
 

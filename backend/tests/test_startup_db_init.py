@@ -245,6 +245,41 @@ def test_configured_intervals_come_from_the_settings_table(db_session, monkeypat
     assert _configured_intervals() == (3, 2)
 
 
+def test_startup_creates_the_tables_an_older_images_create_all_never_had(tmp_path):
+    """An unstamped database is one an *older* image's ``create_all`` left
+    behind, so it carries that image's tables. Stamping today's head on it
+    marks every revision since as applied; startup must still end up with the
+    tables those revisions add, or a headline feature dies on "no such table"
+    while startup reports success."""
+    import sqlite3
+
+    from tests.migration_test_utils import upgrade_to_revision
+
+    db_path = tmp_path / "config" / "scraper.db"
+    db_path.parent.mkdir(parents=True)
+    legacy_db_path = tmp_path / "config" / "acestream.db"
+    upgrade_to_revision(db_path, "20260824_1000")
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.execute("DROP TABLE alembic_version")
+        conn.commit()
+    finally:
+        conn.close()
+    assert not {"base_urls", "remote_players", "media_servers"} & _inspect_tables(db_path)
+
+    result = _run_main_import(
+        database_url=_database_url_for(db_path),
+        legacy_database_url=_database_url_for(legacy_db_path),
+        frontend_build_path=tmp_path / "frontend-build",
+    )
+
+    assert result.returncode == 0, f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+    tables = _inspect_tables(db_path)
+    assert {"base_urls", "remote_players", "media_servers", "alembic_version"} <= tables, (
+        f"tables: {sorted(tables)}\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+    )
+
+
 def test_startup_upgrades_existing_stamped_database_with_backup(tmp_path):
     """Existing installs must receive new revisions: startup upgrades a
     database stamped behind head and keeps a pre-upgrade copy."""

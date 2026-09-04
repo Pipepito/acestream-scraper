@@ -185,3 +185,46 @@ def test_media_integration_tables_match_models(tmp_path):
         assert servers['tuner_mode']['nullable'] is False and servers['last_sync_status']['nullable'] is False
     finally:
         engine.dispose()
+
+
+# Columns the migrated schema carries that the ORM never mapped. They predate
+# the model hub and are harmless (nothing reads them), but they are listed
+# explicitly so this drift stays visible instead of growing quietly.
+UNMAPPED_MIGRATED_COLUMNS = {
+    'epg_sources': {'created_at', 'updated_at'},
+    'epg_string_mappings': {'created_at', 'updated_at'},
+}
+
+
+def test_models_describe_no_table_or_column_the_alembic_head_lacks(tmp_path):
+    """``ensure_schema_stamped`` repairs a database an older image's
+    ``create_all`` left behind by creating the missing tables from the models
+    and then recording the head, so a model must never describe a table or a
+    column the head does not have — the repaired database would be wrong in a
+    way no later revision fixes.
+    """
+    from sqlalchemy import create_engine, inspect
+
+    import app.models.models  # noqa: F401  (registers every table on Base)
+    from app.config.database import Base
+
+    engine, inspector = _migrated_inspector(tmp_path, 'model-head-parity.db')
+    created = create_engine(f"sqlite:///{(tmp_path / 'create-all-parity.db').as_posix()}")
+    try:
+        Base.metadata.create_all(bind=created)
+        create_all_inspector = inspect(created)
+
+        migrated_tables = set(inspector.get_table_names()) - {'alembic_version'}
+        create_all_tables = set(create_all_inspector.get_table_names())
+        assert create_all_tables == migrated_tables
+
+        for table in sorted(create_all_tables):
+            migrated_columns = set(_column_map(inspector, table))
+            model_columns = {column['name'] for column in create_all_inspector.get_columns(table)}
+            assert model_columns <= migrated_columns, f"{table}: model columns the head lacks: {sorted(model_columns - migrated_columns)}"
+            assert migrated_columns - model_columns == UNMAPPED_MIGRATED_COLUMNS.get(table, set()), (
+                f"{table}: columns only the migrated schema has: {sorted(migrated_columns - model_columns)}"
+            )
+    finally:
+        created.dispose()
+        engine.dispose()

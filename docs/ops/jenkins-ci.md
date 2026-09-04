@@ -26,7 +26,7 @@ Current job model (adopted 2026-09-04):
 Security boundary:
 
 - Jenkins itself launches on the trusted Docker-capable executor labeled `dorat-nuc-ci`, but fork-controlled files execute only inside `acestream-scraper-pr-ci:develop`.
-- The PR container receives only the checked-out workspace. It receives no Jenkins credential, no Docker socket, no host network, and no inherited Jenkins environment. It runs as the agent's unprivileged uid with all Linux capabilities dropped, `no-new-privileges`, and CPU/memory/PID limits.
+- The PR container receives only the checked-out workspace. It receives no Jenkins credential, no Docker socket, no host network, and no inherited Jenkins environment. It runs as the agent's unprivileged uid with all Linux capabilities dropped, `no-new-privileges`, and CPU/memory/PID limits. Forks execute the validation orchestrator from the target branch; maintainer-owned origin PRs may exercise their proposed orchestrator. Every PR runs the complete non-Docker backend and frontend suites from the pinned dependency image; privileged engine and packaging smokes stay on trusted `develop`.
 - The runner image is built only by the trusted `develop` job from digest-pinned official Python and Node base images. A fork build fails closed if the image is missing.
 - Privileged Docker builds, engine runtime smokes, Docker Hub credentials, and GitHub publication credentials exist only in the trusted develop/release pipelines.
 - The container boundary reduces host and credential exposure; it does not replace maintainer review. Tests and repository scripts are contributor-controlled inputs.

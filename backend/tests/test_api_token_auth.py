@@ -93,3 +93,16 @@ class TestTokenEnforced:
             assert client.get("/tuner/nope").status_code == 404
         finally:
             get_settings.cache_clear(); get_tuner_gate.cache_clear()
+
+    def test_tuner_admin_routes_require_token_but_tuner_routes_stay_public(self, client, token_enabled, monkeypatch):
+        from app.config.settings import get_settings
+        from app.services.tuner_network import get_tuner_gate
+        monkeypatch.setenv("TUNER_ALLOWED_NETWORKS", "*")
+        get_settings.cache_clear(); get_tuner_gate.cache_clear()
+        try:
+            assert client.get("/api/v1/tuner/settings").status_code == 401
+            assert client.get("/api/v1/tuner/status").status_code == 401
+            assert client.get("/tuner/discover.json").status_code == 200
+            assert client.get("/tuner/settings").status_code == 404
+        finally:
+            get_settings.cache_clear(); get_tuner_gate.cache_clear()

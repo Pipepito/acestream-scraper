@@ -18,6 +18,11 @@ class SettingsRepository:
     EPG_REFRESH_INTERVAL = 'epg_refresh_interval'
     ACESTREAM_CHECK_TIMEOUT = 'acestream_check_timeout'
     PUBLIC_BASE_URL = 'public_base_url'
+    TUNER_DEVICE_ID = 'tuner_device_id'
+    TUNER_FRIENDLY_NAME = 'tuner_friendly_name'
+    TUNER_COUNT = 'tuner_count'
+    TUNER_MAX_CHANNELS = 'tuner_max_channels'
+    TUNER_ONLY_ONLINE = 'tuner_only_online'
 
     # Constants for default values
     DEFAULT_BASE_URL = 'acestream://'
@@ -28,6 +33,13 @@ class SettingsRepository:
     DEFAULT_ADDPID = 'false'
     DEFAULT_EPG_REFRESH_INTERVAL = '6'
     DEFAULT_ACESTREAM_CHECK_TIMEOUT = '10'
+    # The tuner keys have no setup_defaults entry: get_setting falls back to
+    # these, and the device id is generated on first use by TunerService.
+    DEFAULT_TUNER_DEVICE_ID = ''
+    DEFAULT_TUNER_FRIENDLY_NAME = 'AceStream Scraper'
+    DEFAULT_TUNER_COUNT = '4'
+    DEFAULT_TUNER_MAX_CHANNELS = '450'
+    DEFAULT_TUNER_ONLY_ONLINE = 'false'
 
     @property
     def DEFAULT_PUBLIC_BASE_URL(self) -> str:  # noqa: N802 - matches the DEFAULT_<KEY> lookup convention

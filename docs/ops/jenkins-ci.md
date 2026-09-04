@@ -740,7 +740,7 @@ Expected behavior:
 
 - Jenkins launches on `dorat-nuc-ci`, but contributor code runs only in the restricted PR container.
 - The job never calls `withCredentials`, never mounts `/var/run/docker.sock`, and never gives the container network access.
-- The container executes `bash scripts/ci/run_pr_validation.sh` using dependencies baked by the trusted develop job.
+- The container executes `scripts/ci/run_pr_validation.sh` as read from the target branch's first parent, using dependencies baked by the trusted develop job. A fork cannot replace the top-level validation orchestrator.
 - A missing runner image fails fork builds closed; only a trusted origin PR may build a one-use candidate image.
 - `Branch Policy` (since 2026-08-28): a PR into `main` fails unless its head is `develop`.
 - Docker/runtime smokes and every real publish are intentionally absent from this job.

@@ -90,7 +90,7 @@ def main() -> int:
          and "--cap-drop ALL" in pr_jenkinsfile
          and "no-new-privileges" in pr_jenkinsfile
          and '$WORKSPACE:/source:ro' in pr_jenkinsfile
-         and "bash scripts/ci/run_pr_validation.sh" in pr_jenkinsfile
+         and "git show HEAD^1:scripts/ci/run_pr_validation.sh" in pr_jenkinsfile
          and "runnerInputsChanged" in pr_jenkinsfile
          and "env.CHANGE_FORK" in pr_jenkinsfile),
         ("PR pipeline rejects PRs into main that do not come from develop",

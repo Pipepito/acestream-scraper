@@ -524,6 +524,45 @@ export interface paths {
      */
     get: operations["check_health_api_v1_health_get"];
   };
+  "/api/v1/media-servers": {
+    /** Saved media servers */
+    get: operations["list_media_servers_api_v1_media_servers_get"];
+    /** Create Media Server */
+    post: operations["create_media_server_api_v1_media_servers_post"];
+  };
+  "/api/v1/media-servers/test": {
+    /** Probe a media server before saving it */
+    post: operations["test_media_server_api_v1_media_servers_test_post"];
+  };
+  "/api/v1/media-servers/{server_id}": {
+    /** Delete Media Server */
+    delete: operations["delete_media_server_api_v1_media_servers__server_id__delete"];
+    /** Update Media Server */
+    patch: operations["update_media_server_api_v1_media_servers__server_id__patch"];
+  };
+  "/api/v1/media-servers/{server_id}/connect": {
+    /** Register the tuner and guide */
+    post: operations["connect_media_server_api_v1_media_servers__server_id__connect_post"];
+  };
+  "/api/v1/media-servers/{server_id}/disconnect": {
+    /** Unregister the tuner and guide */
+    post: operations["disconnect_media_server_api_v1_media_servers__server_id__disconnect_post"];
+  };
+  "/api/v1/media-servers/{server_id}/refresh": {
+    /**
+     * Refresh the guide now
+     * @description Bypasses the sync job's debounce — the user asked for it explicitly.
+     */
+    post: operations["refresh_media_server_api_v1_media_servers__server_id__refresh_post"];
+  };
+  "/api/v1/media-servers/{server_id}/status": {
+    /** Media Server Status */
+    get: operations["media_server_status_api_v1_media_servers__server_id__status_get"];
+  };
+  "/api/v1/media-servers/{server_id}/test": {
+    /** Probe a saved media server */
+    post: operations["test_saved_media_server_api_v1_media_servers__server_id__test_post"];
+  };
   "/api/v1/player/capabilities": {
     /** Whether the server can prepare streams for browsers */
     get: operations["capabilities_api_v1_player_capabilities_get"];
@@ -759,6 +798,21 @@ export interface paths {
   "/api/v1/system/services/{name}/restart": {
     /** Restart a service supervised by this container */
     post: operations["restart_service_api_v1_system_services__name__restart_post"];
+  };
+  "/api/v1/tuner/settings": {
+    /** Tuner settings */
+    get: operations["get_tuner_settings_api_v1_tuner_settings_get"];
+    /** Change the tuner settings */
+    put: operations["update_tuner_settings_api_v1_tuner_settings_put"];
+  };
+  "/api/v1/tuner/status": {
+    /**
+     * Lineup, URLs and allowlist state
+     * @description Everything the Integrations page needs to explain the tuner: the lineup
+     * it would serve, the URLs to paste into a media server, and whether the
+     * allowlist can actually tell this caller apart from any other.
+     */
+    get: operations["tuner_status_api_v1_tuner_status_get"];
   };
   "/api/v1/tv-channels/": {
     /**
@@ -1711,6 +1765,171 @@ export interface components {
       /** Total */
       total: number;
     };
+    /** MediaServerCreate */
+    MediaServerCreate: {
+      /**
+       * Api Key
+       * @description Jellyfin API key or Plex owner token
+       */
+      api_key?: string | null;
+      /**
+       * Auto Refresh
+       * @default true
+       */
+      auto_refresh?: boolean;
+      /** Base Url */
+      base_url: string;
+      /**
+       * Enabled
+       * @default true
+       */
+      enabled?: boolean;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "jellyfin" | "plex";
+      /** Name */
+      name: string;
+      /**
+       * Tuner Mode
+       * @default hdhomerun
+       * @enum {string}
+       */
+      tuner_mode?: "hdhomerun" | "m3u";
+    };
+    /** MediaServerProbeResponse */
+    MediaServerProbeResponse: {
+      /** Authenticated */
+      authenticated: boolean;
+      /** Message */
+      message: string;
+      /** Reachable */
+      reachable: boolean;
+      /** Tuner Access */
+      tuner_access: {
+        [key: string]: unknown;
+      };
+      /** Version */
+      version?: string | null;
+    };
+    /** MediaServerRefreshResponse */
+    MediaServerRefreshResponse: {
+      /** Last Sync At */
+      last_sync_at?: string | null;
+      /** Message */
+      message?: string | null;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "ok" | "error" | "manual";
+    };
+    /** MediaServerResponse */
+    MediaServerResponse: {
+      /** Auto Refresh */
+      auto_refresh: boolean;
+      /** Base Url */
+      base_url: string;
+      /** Connected */
+      connected: boolean;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Dvr Key */
+      dvr_key?: string | null;
+      /** Enabled */
+      enabled: boolean;
+      /** Has Api Key */
+      has_api_key: boolean;
+      /** Id */
+      id: number;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "jellyfin" | "plex";
+      /** Last Error */
+      last_error?: string | null;
+      /** Last Sync At */
+      last_sync_at?: string | null;
+      /**
+       * Last Sync Status
+       * @enum {string}
+       */
+      last_sync_status: "ok" | "error" | "never" | "manual";
+      /** Listing Provider Id */
+      listing_provider_id?: string | null;
+      /** Name */
+      name: string;
+      /** Server Version */
+      server_version?: string | null;
+      /** Tuner Host Id */
+      tuner_host_id?: string | null;
+      /**
+       * Tuner Mode
+       * @enum {string}
+       */
+      tuner_mode: "hdhomerun" | "m3u";
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+    };
+    /** MediaServerStatusResponse */
+    MediaServerStatusResponse: {
+      /** Channel Count */
+      channel_count?: number | null;
+      /** Connected */
+      connected: boolean;
+      /** Error */
+      error?: string | null;
+      /** Last Result */
+      last_result?: string | null;
+      /** Paste */
+      paste?: {
+        [key: string]: string;
+      };
+      /** Refresh State */
+      refresh_state?: string | null;
+      /** Steps */
+      steps?: string[];
+    };
+    /** MediaServerTestRequest */
+    MediaServerTestRequest: {
+      /** Api Key */
+      api_key?: string | null;
+      /** Base Url */
+      base_url: string;
+      /** Id */
+      id?: number | null;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "jellyfin" | "plex";
+    };
+    /** MediaServerUpdate */
+    MediaServerUpdate: {
+      /**
+       * Api Key
+       * @description omit = keep, empty = clear
+       */
+      api_key?: string | null;
+      /** Auto Refresh */
+      auto_refresh?: boolean | null;
+      /** Base Url */
+      base_url?: string | null;
+      /** Enabled */
+      enabled?: boolean | null;
+      /** Name */
+      name?: string | null;
+      /** Tuner Mode */
+      tuner_mode?: ("hdhomerun" | "m3u") | null;
+    };
     /**
      * MessageResponse
      * @description Generic operation message response
@@ -2615,6 +2834,96 @@ export interface components {
       addresses: string[];
       /** Allowed */
       allowed: boolean;
+    };
+    /** TunerDenial */
+    TunerDenial: {
+      /** At */
+      at: number;
+      /** Client Ip */
+      client_ip: string;
+      /** Path */
+      path: string;
+      /** Peer */
+      peer: string;
+    };
+    /** TunerRenumbered */
+    TunerRenumbered: {
+      /** Assigned Number */
+      assigned_number: number;
+      /** Name */
+      name: string;
+      /** Requested Number */
+      requested_number: number;
+      /** Tv Channel Id */
+      tv_channel_id: number;
+    };
+    /** TunerSettingsResponse */
+    TunerSettingsResponse: {
+      /** Friendly Name */
+      friendly_name: string;
+      /** Max Channels */
+      max_channels: number;
+      /** Only Online */
+      only_online: boolean;
+      /** Tuner Count */
+      tuner_count: number;
+    };
+    /** TunerSettingsUpdate */
+    TunerSettingsUpdate: {
+      /** Friendly Name */
+      friendly_name?: string | null;
+      /** Max Channels */
+      max_channels?: number | null;
+      /** Only Online */
+      only_online?: boolean | null;
+      /** Tuner Count */
+      tuner_count?: number | null;
+    };
+    /** TunerStatusResponse */
+    TunerStatusResponse: {
+      /** Allowed Networks */
+      allowed_networks: string[];
+      /** Channel Count */
+      channel_count: number;
+      /** Client Allowed */
+      client_allowed: boolean;
+      /** Client Ip */
+      client_ip?: string | null;
+      /**
+       * Client Source
+       * @enum {string}
+       */
+      client_source: "direct" | "forwarded" | "docker-gateway" | "loopback";
+      /** Device Id */
+      device_id: string;
+      /** Ffmpeg Available */
+      ffmpeg_available: boolean;
+      /** Overflow */
+      overflow: number;
+      /** Peer */
+      peer?: string | null;
+      /** Recent Denials */
+      recent_denials: components["schemas"]["TunerDenial"][];
+      /** Renumbered */
+      renumbered: components["schemas"]["TunerRenumbered"][];
+      urls: components["schemas"]["TunerUrls"];
+      /** Warnings */
+      warnings: string[];
+    };
+    /** TunerUrls */
+    TunerUrls: {
+      /** Epg */
+      epg: string;
+      /** Guide */
+      guide: string;
+      /** Lineup */
+      lineup: string;
+      /** Playlist */
+      playlist: string;
+      /** Stream Template */
+      stream_template: string;
+      /** Tuner */
+      tuner: string;
     };
     /**
      * URLCreate
@@ -4649,6 +4958,221 @@ export interface operations {
       };
     };
   };
+  /** Saved media servers */
+  list_media_servers_api_v1_media_servers_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["MediaServerResponse"][];
+        };
+      };
+    };
+  };
+  /** Create Media Server */
+  create_media_server_api_v1_media_servers_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["MediaServerCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        content: {
+          "application/json": components["schemas"]["MediaServerResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Probe a media server before saving it */
+  test_media_server_api_v1_media_servers_test_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["MediaServerTestRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["MediaServerProbeResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Delete Media Server */
+  delete_media_server_api_v1_media_servers__server_id__delete: {
+    parameters: {
+      path: {
+        server_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Update Media Server */
+  update_media_server_api_v1_media_servers__server_id__patch: {
+    parameters: {
+      path: {
+        server_id: number;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["MediaServerUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["MediaServerResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Register the tuner and guide */
+  connect_media_server_api_v1_media_servers__server_id__connect_post: {
+    parameters: {
+      path: {
+        server_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["MediaServerResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Unregister the tuner and guide */
+  disconnect_media_server_api_v1_media_servers__server_id__disconnect_post: {
+    parameters: {
+      path: {
+        server_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["MediaServerResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Refresh the guide now
+   * @description Bypasses the sync job's debounce — the user asked for it explicitly.
+   */
+  refresh_media_server_api_v1_media_servers__server_id__refresh_post: {
+    parameters: {
+      path: {
+        server_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["MediaServerRefreshResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Media Server Status */
+  media_server_status_api_v1_media_servers__server_id__status_get: {
+    parameters: {
+      path: {
+        server_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["MediaServerStatusResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Probe a saved media server */
+  test_saved_media_server_api_v1_media_servers__server_id__test_post: {
+    parameters: {
+      path: {
+        server_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["MediaServerProbeResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   /** Whether the server can prepare streams for browsers */
   capabilities_api_v1_player_capabilities_get: {
     responses: {
@@ -5575,6 +6099,55 @@ export interface operations {
       422: {
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Tuner settings */
+  get_tuner_settings_api_v1_tuner_settings_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TunerSettingsResponse"];
+        };
+      };
+    };
+  };
+  /** Change the tuner settings */
+  update_tuner_settings_api_v1_tuner_settings_put: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TunerSettingsUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TunerSettingsResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Lineup, URLs and allowlist state
+   * @description Everything the Integrations page needs to explain the tuner: the lineup
+   * it would serve, the URLs to paste into a media server, and whether the
+   * allowlist can actually tell this caller apart from any other.
+   */
+  tuner_status_api_v1_tuner_status_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TunerStatusResponse"];
         };
       };
     };

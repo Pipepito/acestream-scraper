@@ -26,6 +26,10 @@ export ALLOW_PRIVATE_SCRAPE_TARGETS="true"
 # Native ipfs:// and ipns:// sources are fetched through this gateway (the kubo sidecar).
 export IPFS_GATEWAY_URL="$E2E_IPFS_GATEWAY"
 export EPG_PROGRAM_RETENTION_HOURS="${EPG_PROGRAM_RETENTION_HOURS:-24}"
+# The web player needs ffmpeg. The container image bundles one; running from
+# source it is whatever the host has, and an empty value leaves the player
+# reporting ffmpeg_missing (the playback specs skip themselves in that case).
+export FFMPEG_BINARY_PATH="${FFMPEG_BINARY_PATH:-$(command -v ffmpeg || true)}"
 
 cd "$REPO_ROOT/backend"
 : >"$BACKEND_LOG"

@@ -245,10 +245,59 @@ docker exec acestream-scraper curl -fsS "http://localhost:6878/webui/api/service
 - `/opt/acestream/install-metadata.txt`: what the image installed (platform,
   kind, version, support level, engine and bionic sources).
 
+## Playing Streams On ARM
+
+The media features (web player, remote players, the HDHomeRun tuner Jellyfin
+and Plex use) all start a stream through the engine, so what they can promise
+depends on which engine the platform runs.
+
+| Platform | Engine | What playback to expect |
+|---|---|---|
+| `linux/amd64` | Native Linux engine 3.2.11 | Unaffected. This is the reference platform for every media feature. |
+| `linux/arm64` | `jopsis/acestream:v3.2.17-fix` (community distribution) | Expected to work. API and startup are verified on ARM64 hardware; live playback is **not** confirmed on hardware yet. |
+| `linux/arm/v7` | `jopsis/acestream:v3.2.17-fix` (community distribution) | Builds and installs, but has not been runtime-tested on real ARMv7 hardware; live playback is unconfirmed. |
+
+**ARM64.** The 3.2.17 distribution is not premium-gated, so the web player,
+remote players and the tuner should all work there. What has actually been
+verified is that the engine starts and answers its API; nobody has yet played a
+live channel end to end on an ARM64 board. If a stream does fail, the app says
+so instead of hanging: the web player reports "The AceStream engine could not
+start this channel: …" with the engine's own text appended, the tuner answers
+`502 ENGINE_REFUSED`, and a remote player gets the same message. Reports from
+real hardware are welcome — that is the one thing that would let this row and
+the support level be tightened.
+
+**ARMv7.** The current image uses the matching 32-bit variant of the same
+`jopsis/acestream:v3.2.17-fix` distribution. It builds and installs, but the
+32-bit bionic engine cannot execute under QEMU user emulation and has not been
+runtime-tested on real ARMv7 hardware. Live playback is therefore unverified.
+The previous official 3.1.80 APK did refuse playback outside AceStream's own
+player with "To continue, you need to activate premium"; a 2026-09-03 spike
+confirmed that newer official engines do not remove that policy and can answer
+`mod_detected` when given a false app identity. Do not replace the community
+distribution with an official engine or report a different app identity as a
+workaround.
+
+**DNS blocklists break 3.2.x licensing.** Pi-hole/AdGuard-style blocklists that
+sinkhole `*.acestream.media` or `*.acestream.net` cut the 3.2.x engines off from
+their licence path, which looks exactly like a premium denial. Allow those two
+domains for the host running the engine before concluding anything about the
+engine version.
+
+**`ACESTREAM_BIND_ALL` applies everywhere.** `entrypoint.sh` reads the knob on
+every platform (default `true`) and appends `--bind-all` to the default engine
+start command, so clients that are not on loopback or an RFC1918 address —
+Tailscale peers, IPv6 LANs, unusual Docker networks — are accepted when `6878`
+is published. Only the native amd64 engine enforces the address filter this
+lifts; on the Android engines the flag is harmless. An explicit
+`ACESTREAM_START_COMMAND` is never rewritten.
+
 ## Known Gaps And Limitations
 
 - Engine version skew: ARM64 and ARMv7 run 3.2.17, while amd64 runs 3.2.11;
   `get_version` reports `"platform":"android"` on ARM.
+- Live playback is unconfirmed on ARM64 hardware, and the ARMv7 engine has not
+  been runtime-tested on real 32-bit hardware (see "Playing Streams On ARM").
 - No WebRTC transport on ARM: `pywebrtc` needs Android GPU/audio libraries that
   are not shipped. The engine logs a non-fatal error at startup and keeps
   working over the classic transports.

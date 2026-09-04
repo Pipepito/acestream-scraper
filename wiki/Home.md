@@ -31,6 +31,7 @@ Continuous integration (pull-request validation and Docker image releases) runs 
 - **External Acestream Support**: Connect to existing Acestream Engine instances
 - **Web Player**: Play any channel in the browser, no plugin and nothing to install
 - **Remote Players**: Send channels to VLC or Kodi elsewhere on your network and control playback from the app
+- **Jellyfin and Plex**: Publish your channels as an HDHomeRun tuner with a full XMLTV guide, so they appear in the media server you already use
 - **Cloudflare WARP Integration**: Enhanced privacy and geo-unblocking capabilities
 - **Channel Status Monitoring**: Check which channels are online or offline
 - **In-App Configuration**: Manage engine, link formats, automation, API access, and sources from the web interface
@@ -59,6 +60,7 @@ The application follows a service-oriented architecture with:
 - [Usage Guide](Usage.md) - How to use the application's features
 - [Web Player](Web-Player.md) - Play a channel straight in the browser
 - [Remote Players](Remote-Players.md) - Send channels to VLC or Kodi on your network and control them from the app
+- [Media Servers](Media-Servers.md) - Watch your channels in Jellyfin or Plex, with a full guide
 - [Configuration Reference](Configuration.md) - Detailed configuration information
 - [Requirements](Requirements.md) - System and software requirements
 - [FAQ](FAQ.md) - Frequently asked questions

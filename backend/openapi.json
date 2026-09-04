@@ -1898,6 +1898,496 @@
         "title": "HealthURLTotals",
         "type": "object"
       },
+      "MediaServerCreate": {
+        "properties": {
+          "api_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Jellyfin API key or Plex owner token",
+            "title": "Api Key"
+          },
+          "auto_refresh": {
+            "default": true,
+            "title": "Auto Refresh",
+            "type": "boolean"
+          },
+          "base_url": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Base Url",
+            "type": "string"
+          },
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "kind": {
+            "enum": [
+              "jellyfin",
+              "plex"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "tuner_mode": {
+            "default": "hdhomerun",
+            "enum": [
+              "hdhomerun",
+              "m3u"
+            ],
+            "title": "Tuner Mode",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "name",
+          "base_url"
+        ],
+        "title": "MediaServerCreate",
+        "type": "object"
+      },
+      "MediaServerProbeResponse": {
+        "properties": {
+          "authenticated": {
+            "title": "Authenticated",
+            "type": "boolean"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "reachable": {
+            "title": "Reachable",
+            "type": "boolean"
+          },
+          "tuner_access": {
+            "additionalProperties": true,
+            "title": "Tuner Access",
+            "type": "object"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "required": [
+          "reachable",
+          "authenticated",
+          "message",
+          "tuner_access"
+        ],
+        "title": "MediaServerProbeResponse",
+        "type": "object"
+      },
+      "MediaServerRefreshResponse": {
+        "properties": {
+          "last_sync_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Sync At"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "error",
+              "manual"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "MediaServerRefreshResponse",
+        "type": "object"
+      },
+      "MediaServerResponse": {
+        "properties": {
+          "auto_refresh": {
+            "title": "Auto Refresh",
+            "type": "boolean"
+          },
+          "base_url": {
+            "title": "Base Url",
+            "type": "string"
+          },
+          "connected": {
+            "title": "Connected",
+            "type": "boolean"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "dvr_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dvr Key"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "has_api_key": {
+            "title": "Has Api Key",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "jellyfin",
+              "plex"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          },
+          "last_sync_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Sync At"
+          },
+          "last_sync_status": {
+            "enum": [
+              "ok",
+              "error",
+              "never",
+              "manual"
+            ],
+            "title": "Last Sync Status",
+            "type": "string"
+          },
+          "listing_provider_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Listing Provider Id"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "server_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Server Version"
+          },
+          "tuner_host_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tuner Host Id"
+          },
+          "tuner_mode": {
+            "enum": [
+              "hdhomerun",
+              "m3u"
+            ],
+            "title": "Tuner Mode",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "base_url",
+          "tuner_mode",
+          "enabled",
+          "auto_refresh",
+          "has_api_key",
+          "connected",
+          "last_sync_status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "MediaServerResponse",
+        "type": "object"
+      },
+      "MediaServerStatusResponse": {
+        "properties": {
+          "channel_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel Count"
+          },
+          "connected": {
+            "title": "Connected",
+            "type": "boolean"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "last_result": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Result"
+          },
+          "paste": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Paste",
+            "type": "object"
+          },
+          "refresh_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refresh State"
+          },
+          "steps": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Steps",
+            "type": "array"
+          }
+        },
+        "required": [
+          "connected"
+        ],
+        "title": "MediaServerStatusResponse",
+        "type": "object"
+      },
+      "MediaServerTestRequest": {
+        "properties": {
+          "api_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Api Key"
+          },
+          "base_url": {
+            "title": "Base Url",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "kind": {
+            "enum": [
+              "jellyfin",
+              "plex"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "base_url"
+        ],
+        "title": "MediaServerTestRequest",
+        "type": "object"
+      },
+      "MediaServerUpdate": {
+        "properties": {
+          "api_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "omit = keep, empty = clear",
+            "title": "Api Key"
+          },
+          "auto_refresh": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Refresh"
+          },
+          "base_url": {
+            "anyOf": [
+              {
+                "maxLength": 1024,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Url"
+          },
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "tuner_mode": {
+            "anyOf": [
+              {
+                "enum": [
+                  "hdhomerun",
+                  "m3u"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tuner Mode"
+          }
+        },
+        "title": "MediaServerUpdate",
+        "type": "object"
+      },
       "MessageResponse": {
         "description": "Generic operation message response",
         "properties": {
@@ -4205,6 +4695,285 @@
           "allowed"
         ],
         "title": "TunerAccessResponse",
+        "type": "object"
+      },
+      "TunerDenial": {
+        "properties": {
+          "at": {
+            "title": "At",
+            "type": "number"
+          },
+          "client_ip": {
+            "title": "Client Ip",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "peer": {
+            "title": "Peer",
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_ip",
+          "peer",
+          "path",
+          "at"
+        ],
+        "title": "TunerDenial",
+        "type": "object"
+      },
+      "TunerRenumbered": {
+        "properties": {
+          "assigned_number": {
+            "title": "Assigned Number",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "requested_number": {
+            "title": "Requested Number",
+            "type": "integer"
+          },
+          "tv_channel_id": {
+            "title": "Tv Channel Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tv_channel_id",
+          "name",
+          "requested_number",
+          "assigned_number"
+        ],
+        "title": "TunerRenumbered",
+        "type": "object"
+      },
+      "TunerSettingsResponse": {
+        "properties": {
+          "friendly_name": {
+            "title": "Friendly Name",
+            "type": "string"
+          },
+          "max_channels": {
+            "title": "Max Channels",
+            "type": "integer"
+          },
+          "only_online": {
+            "title": "Only Online",
+            "type": "boolean"
+          },
+          "tuner_count": {
+            "title": "Tuner Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "friendly_name",
+          "tuner_count",
+          "max_channels",
+          "only_online"
+        ],
+        "title": "TunerSettingsResponse",
+        "type": "object"
+      },
+      "TunerSettingsUpdate": {
+        "properties": {
+          "friendly_name": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Friendly Name"
+          },
+          "max_channels": {
+            "anyOf": [
+              {
+                "maximum": 1000.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Channels"
+          },
+          "only_online": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Only Online"
+          },
+          "tuner_count": {
+            "anyOf": [
+              {
+                "maximum": 16.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tuner Count"
+          }
+        },
+        "title": "TunerSettingsUpdate",
+        "type": "object"
+      },
+      "TunerStatusResponse": {
+        "properties": {
+          "allowed_networks": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Allowed Networks",
+            "type": "array"
+          },
+          "channel_count": {
+            "title": "Channel Count",
+            "type": "integer"
+          },
+          "client_allowed": {
+            "title": "Client Allowed",
+            "type": "boolean"
+          },
+          "client_ip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Ip"
+          },
+          "client_source": {
+            "enum": [
+              "direct",
+              "forwarded",
+              "docker-gateway",
+              "loopback"
+            ],
+            "title": "Client Source",
+            "type": "string"
+          },
+          "device_id": {
+            "title": "Device Id",
+            "type": "string"
+          },
+          "ffmpeg_available": {
+            "title": "Ffmpeg Available",
+            "type": "boolean"
+          },
+          "overflow": {
+            "title": "Overflow",
+            "type": "integer"
+          },
+          "peer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Peer"
+          },
+          "recent_denials": {
+            "items": {
+              "$ref": "#/components/schemas/TunerDenial"
+            },
+            "title": "Recent Denials",
+            "type": "array"
+          },
+          "renumbered": {
+            "items": {
+              "$ref": "#/components/schemas/TunerRenumbered"
+            },
+            "title": "Renumbered",
+            "type": "array"
+          },
+          "urls": {
+            "$ref": "#/components/schemas/TunerUrls"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "channel_count",
+          "renumbered",
+          "overflow",
+          "device_id",
+          "urls",
+          "ffmpeg_available",
+          "allowed_networks",
+          "client_allowed",
+          "client_source",
+          "warnings",
+          "recent_denials"
+        ],
+        "title": "TunerStatusResponse",
+        "type": "object"
+      },
+      "TunerUrls": {
+        "properties": {
+          "epg": {
+            "title": "Epg",
+            "type": "string"
+          },
+          "guide": {
+            "title": "Guide",
+            "type": "string"
+          },
+          "lineup": {
+            "title": "Lineup",
+            "type": "string"
+          },
+          "playlist": {
+            "title": "Playlist",
+            "type": "string"
+          },
+          "stream_template": {
+            "title": "Stream Template",
+            "type": "string"
+          },
+          "tuner": {
+            "title": "Tuner",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tuner",
+          "lineup",
+          "guide",
+          "playlist",
+          "epg",
+          "stream_template"
+        ],
+        "title": "TunerUrls",
         "type": "object"
       },
       "URLCreate": {
@@ -8403,6 +9172,417 @@
         ]
       }
     },
+    "/api/v1/media-servers": {
+      "get": {
+        "operationId": "list_media_servers_api_v1_media_servers_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MediaServerResponse"
+                  },
+                  "title": "Response List Media Servers Api V1 Media Servers Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Saved media servers",
+        "tags": [
+          "media-servers",
+          "media-servers"
+        ]
+      },
+      "post": {
+        "operationId": "create_media_server_api_v1_media_servers_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MediaServerCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaServerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Media Server",
+        "tags": [
+          "media-servers",
+          "media-servers"
+        ]
+      }
+    },
+    "/api/v1/media-servers/test": {
+      "post": {
+        "operationId": "test_media_server_api_v1_media_servers_test_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MediaServerTestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaServerProbeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Probe a media server before saving it",
+        "tags": [
+          "media-servers",
+          "media-servers"
+        ]
+      }
+    },
+    "/api/v1/media-servers/{server_id}": {
+      "delete": {
+        "operationId": "delete_media_server_api_v1_media_servers__server_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "server_id",
+            "required": true,
+            "schema": {
+              "title": "Server Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Media Server",
+        "tags": [
+          "media-servers",
+          "media-servers"
+        ]
+      },
+      "patch": {
+        "operationId": "update_media_server_api_v1_media_servers__server_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "server_id",
+            "required": true,
+            "schema": {
+              "title": "Server Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MediaServerUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaServerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Media Server",
+        "tags": [
+          "media-servers",
+          "media-servers"
+        ]
+      }
+    },
+    "/api/v1/media-servers/{server_id}/connect": {
+      "post": {
+        "operationId": "connect_media_server_api_v1_media_servers__server_id__connect_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "server_id",
+            "required": true,
+            "schema": {
+              "title": "Server Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaServerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Register the tuner and guide",
+        "tags": [
+          "media-servers",
+          "media-servers"
+        ]
+      }
+    },
+    "/api/v1/media-servers/{server_id}/disconnect": {
+      "post": {
+        "operationId": "disconnect_media_server_api_v1_media_servers__server_id__disconnect_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "server_id",
+            "required": true,
+            "schema": {
+              "title": "Server Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaServerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Unregister the tuner and guide",
+        "tags": [
+          "media-servers",
+          "media-servers"
+        ]
+      }
+    },
+    "/api/v1/media-servers/{server_id}/refresh": {
+      "post": {
+        "description": "Bypasses the sync job's debounce \u2014 the user asked for it explicitly.",
+        "operationId": "refresh_media_server_api_v1_media_servers__server_id__refresh_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "server_id",
+            "required": true,
+            "schema": {
+              "title": "Server Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaServerRefreshResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Refresh the guide now",
+        "tags": [
+          "media-servers",
+          "media-servers"
+        ]
+      }
+    },
+    "/api/v1/media-servers/{server_id}/status": {
+      "get": {
+        "operationId": "media_server_status_api_v1_media_servers__server_id__status_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "server_id",
+            "required": true,
+            "schema": {
+              "title": "Server Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaServerStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Media Server Status",
+        "tags": [
+          "media-servers",
+          "media-servers"
+        ]
+      }
+    },
+    "/api/v1/media-servers/{server_id}/test": {
+      "post": {
+        "operationId": "test_saved_media_server_api_v1_media_servers__server_id__test_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "server_id",
+            "required": true,
+            "schema": {
+              "title": "Server Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaServerProbeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Probe a saved media server",
+        "tags": [
+          "media-servers",
+          "media-servers"
+        ]
+      }
+    },
     "/api/v1/player/capabilities": {
       "get": {
         "operationId": "capabilities_api_v1_player_capabilities_get",
@@ -10457,6 +11637,88 @@
         "tags": [
           "system",
           "system"
+        ]
+      }
+    },
+    "/api/v1/tuner/settings": {
+      "get": {
+        "operationId": "get_tuner_settings_api_v1_tuner_settings_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TunerSettingsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Tuner settings",
+        "tags": [
+          "tuner"
+        ]
+      },
+      "put": {
+        "operationId": "update_tuner_settings_api_v1_tuner_settings_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TunerSettingsUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TunerSettingsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Change the tuner settings",
+        "tags": [
+          "tuner"
+        ]
+      }
+    },
+    "/api/v1/tuner/status": {
+      "get": {
+        "description": "Everything the Integrations page needs to explain the tuner: the lineup\nit would serve, the URLs to paste into a media server, and whether the\nallowlist can actually tell this caller apart from any other.",
+        "operationId": "tuner_status_api_v1_tuner_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TunerStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Lineup, URLs and allowlist state",
+        "tags": [
+          "tuner"
         ]
       }
     },

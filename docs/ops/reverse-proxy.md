@@ -7,6 +7,7 @@ TLS-terminating reverse proxy for access from outside a trusted network:
 
 - nginx, Caddy, and Traefik configurations
 - proxy-level authentication, and the app's optional `API_TOKEN`
+- the `/tuner/*` carve-out media servers (Jellyfin, Plex) need
 - how the `base_url` setting interacts with a proxied deployment
 - which container ports must never be exposed publicly
 - WARP interaction with remote access
@@ -40,6 +41,8 @@ Everything is served by the one uvicorn process on `:8000`:
 - Player-facing URLs: `/playlist.m3u`, `/playlists/m3u`,
   `/api/playlists/m3u`, `/api/playlists/epg.xml`,
   `/api/v1/playlists/tv-channels/m3u`, `/api/v1/playlists/all-streams/m3u`
+- Tuner routes for Jellyfin/Plex: `/tuner/*` (no API token, gated by client
+  address — see the carve-out rule below)
 
 Proxying notes that apply to all three configs:
 
@@ -56,11 +59,21 @@ Proxying notes that apply to all three configs:
 - **Set `PUBLIC_BASE_URL`** when the proxy rewrites `Host` or mounts the app
   under a sub-path. Without it the app derives its public origin per request,
   and links handed to players and media servers point at the wrong name.
-- **Keep `/tuner/*` out of proxy basic auth.** Media servers cannot send
-  credentials or an `API_TOKEN` on those routes; they are gated by
-  `TUNER_ALLOWED_NETWORKS` instead, so an auth challenge in front of them
-  breaks discovery and playback. The examples below authenticate everything,
-  so carve `/tuner/` out of them once a media server needs it.
+- **`/tuner/` cannot sit behind proxy authentication.** Jellyfin fetches
+  `/tuner/discover.json`, `/tuner/lineup.json`, `/tuner/guide.xml` and the
+  stream URLs with a bare `HttpClient` that has no credential store, and Plex's
+  tuner setup has no credential field at all. A basic-auth challenge on those
+  paths shows up as "tuner not found" or an empty channel list, never as a login
+  prompt. The routes carry no `API_TOKEN` either — they are gated by client
+  address (`TUNER_ALLOWED_NETWORKS`) instead. Every example below therefore
+  carves `/tuner/` out of the authenticated location, with buffering off so a
+  live stream is not held in the proxy.
+- **The proxy must be inside `FORWARDED_ALLOW_IPS`**, or the app ignores its
+  `X-Forwarded-*` headers and every tuner request looks like it came from the
+  proxy itself. And when `TUNER_ALLOWED_NETWORKS` is narrowed below the private
+  defaults, the proxy's own address has to be inside *that* list too: the gate
+  checks the raw peer (the proxy) **and** the forwarded client, and refuses
+  unless both are allowed.
 - **Enable gzip at the proxy.** The app does not compress responses, and
   M3U (`text/plain`) and XMLTV EPG (`application/xml`) payloads compress
   very well.
@@ -83,6 +96,18 @@ server {
     auth_basic "acestream-scraper";
     auth_basic_user_file /etc/nginx/htpasswd-scraper;
 
+    # Jellyfin/Plex reach the tuner without credentials, and streams must not
+    # be buffered. ^~ wins over the regex locations, so it must come first.
+    location ^~ /tuner/ {
+        auth_basic off;
+        proxy_buffering off;
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
     location / {
         proxy_pass http://127.0.0.1:8000;
         proxy_set_header Host $host;
@@ -92,6 +117,9 @@ server {
     }
 }
 ```
+
+`auth_basic off;` has to be repeated inside the `/tuner/` location: `auth_basic`
+is inherited from the `server` block, and only an explicit `off` clears it.
 
 Create the credentials file:
 
@@ -107,11 +135,19 @@ Caddy provisions TLS certificates automatically and sets the
 ```caddyfile
 scraper.example.com {
     encode gzip
-    basic_auth {
-        # Generate the hash with: caddy hash-password
-        youruser $2a$14$REPLACE_WITH_CADDY_HASH
+
+    # Media servers first: this handle matches before the authenticated one.
+    handle /tuner/* {
+        reverse_proxy 127.0.0.1:8000
     }
-    reverse_proxy 127.0.0.1:8000
+
+    handle {
+        basic_auth {
+            # Generate the hash with: caddy hash-password
+            youruser $2a$14$REPLACE_WITH_CADDY_HASH
+        }
+        reverse_proxy 127.0.0.1:8000
+    }
 }
 ```
 
@@ -141,6 +177,14 @@ services:
       - traefik.http.middlewares.scraper-auth.basicauth.users=youruser:$$2y$$05$$REPLACE_WITH_HASH
       - traefik.http.middlewares.scraper-gzip.compress=true
       - traefik.http.routers.scraper.middlewares=scraper-auth,scraper-gzip
+      # Tuner routes: no basic auth, higher priority so they win over the
+      # Host-only rule above.
+      - traefik.http.routers.scraper-tuner.rule=Host(`scraper.example.com`) && PathPrefix(`/tuner/`)
+      - traefik.http.routers.scraper-tuner.priority=100
+      - traefik.http.routers.scraper-tuner.entrypoints=websecure
+      - traefik.http.routers.scraper-tuner.tls.certresolver=letsencrypt
+      - traefik.http.routers.scraper-tuner.service=scraper
+      - traefik.http.routers.scraper-tuner.middlewares=scraper-gzip
 ```
 
 Assumes an existing Traefik instance with a `websecure` entrypoint and a
@@ -263,6 +307,12 @@ curl -su youruser:yourpass -H 'Accept-Encoding: gzip' -I https://scraper.example
 # Stream ports are NOT reachable from outside
 curl -s --max-time 5 http://scraper.example.com:6878/webui/api/service || echo "6878 closed (good)"
 curl -s --max-time 5 http://scraper.example.com:8080/ace/status || echo "8080 closed (good)"
+
+# The tuner is reachable without credentials, and only from the allowed networks
+curl -s -o /dev/null -w '%{http_code}\n' https://scraper.example.com/tuner/discover.json
+# 403 from outside TUNER_ALLOWED_NETWORKS (the carve-out works, the gate holds)
+# 200 from the LAN / from the media server's host
+# 401 means basic auth is still in front of /tuner/ — the carve-out is not applied
 ```
 
 Then open a playlist entry in a player from the network position it will

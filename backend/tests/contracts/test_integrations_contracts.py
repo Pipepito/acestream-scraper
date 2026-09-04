@@ -8,6 +8,7 @@ import httpx
 import pytest
 from pydantic import ValidationError
 
+from app.schemas.media_servers import MediaServerCreate
 from app.schemas.player import PlayerSessionCreate
 from app.schemas.remote_players import RemotePlayerCreate
 
@@ -140,3 +141,202 @@ def test_non_private_scan_cidr_error_contract(alembic_client):
     response = alembic_client.post("/api/v1/remote-players/scan", json={"cidr": "8.8.8.0/24"})
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "SCAN_CIDR_NOT_PRIVATE"
+
+
+# --- Tuner (spec 7.1, 7.2) -----------------------------------------------------
+
+
+@pytest.fixture
+def tuner_gate(monkeypatch):
+    """Set TUNER_ALLOWED_NETWORKS for one test and clear both caches around it.
+
+    Both are `lru_cache`d, so a test that leaves them warm decides the gate for
+    every later one — the teardown matters as much as the setup.
+    """
+    from app.config.settings import get_settings
+    from app.services.tuner_network import get_tuner_gate
+
+    def apply(spec: str) -> None:
+        monkeypatch.setenv("TUNER_ALLOWED_NETWORKS", spec)
+        get_settings.cache_clear()
+        get_tuner_gate.cache_clear()
+
+    yield apply
+    get_settings.cache_clear()
+    get_tuner_gate.cache_clear()
+
+
+def test_tuner_settings_response_contract(client):
+    response = client.get("/api/v1/tuner/settings")
+    assert response.status_code == 200
+    assert set(response.json()) == {"friendly_name", "tuner_count", "max_channels", "only_online"}
+
+
+def test_tuner_status_response_contract(client, tuner_gate):
+    tuner_gate("*")
+    response = client.get("/api/v1/tuner/status")
+    assert response.status_code == 200
+    body = response.json()
+    assert set(body) == {
+        "channel_count",
+        "renumbered",
+        "overflow",
+        "device_id",
+        "urls",
+        "ffmpeg_available",
+        "allowed_networks",
+        "client_ip",
+        "peer",
+        "client_allowed",
+        "client_source",
+        "warnings",
+        "recent_denials",
+    }
+    assert set(body["urls"]) == {"tuner", "lineup", "guide", "playlist", "epg", "stream_template"}
+
+
+def test_denied_tuner_client_error_contract(client, tuner_gate):
+    tuner_gate("10.0.0.0/8")  # the TestClient peer is "testclient", so every /tuner route is refused
+    response = client.get("/tuner/discover.json")
+    assert response.status_code == 403
+    error = response.json()["error"]
+    assert error["code"] == "TUNER_NETWORK_DENIED"
+    assert set(error["context"]) == {"client_ip", "peer", "allowed_networks"}
+    assert error["context"]["allowed_networks"] == ["10.0.0.0/8"]
+
+
+def test_tuner_busy_error_contract(alembic_client, alembic_db_session, tuner_gate):
+    """A relay beyond `tuner_count` is 503 TUNER_BUSY carrying the cap it hit."""
+    tuner_gate("*")
+    from app.services.stream_relay import relay_registry
+    from app.services.tuner_service import TunerService
+
+    content_id = "b" * 40
+    TunerService(alembic_db_session).update_settings(tuner_count=1)
+    claim = relay_registry.open(content_id, "tuner:contract-test")
+    try:
+        response = alembic_client.get(f"/tuner/stream/{content_id}.ts")
+    finally:
+        relay_registry.close(claim.id)
+    assert response.status_code == 503
+    error = response.json()["error"]
+    assert error["code"] == "TUNER_BUSY"
+    assert error["context"] == {"limit": 1}
+
+
+# --- Media servers (spec 7.3) --------------------------------------------------
+
+MEDIA_SERVER_KEYS = {
+    "id",
+    "kind",
+    "name",
+    "base_url",
+    "tuner_mode",
+    "enabled",
+    "auto_refresh",
+    "has_api_key",
+    "connected",
+    "tuner_host_id",
+    "listing_provider_id",
+    "dvr_key",
+    "last_sync_at",
+    "last_sync_status",
+    "last_error",
+    "server_version",
+    "created_at",
+    "updated_at",
+}
+
+
+JELLYFIN_INFO = {"Version": "10.11.11", "ServerName": "Jellyfin", "Id": "abc"}
+
+
+@pytest.fixture
+def media_server_transport(monkeypatch):
+    """Answer as a healthy Jellyfin, so these tests touch no network.
+
+    The base URL is a loopback literal: `guard()` resolves the host before every
+    request, and a made-up name would fail there instead of reaching the mock.
+    """
+    import app.api.endpoints.media_servers as endpoint
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/System/Info/Public":
+            return httpx.Response(200, json=JELLYFIN_INFO)
+        if request.url.path == "/System/Configuration/livetv":
+            return httpx.Response(200, json={"TunerHosts": [], "ListingProviders": []})
+        return httpx.Response(404, json={})
+
+    transport = httpx.MockTransport(handler)
+    monkeypatch.setattr(endpoint, "_client_factory", lambda: httpx.Client(transport=transport))
+
+
+def _media_server_body(**overrides):
+    body = {"kind": "jellyfin", "name": "Jellyfin", "base_url": "http://127.0.0.1:8096", "api_key": "good"}
+    body.update(overrides)
+    return body
+
+
+@pytest.mark.parametrize("kind", ["jellyfin", "plex"])
+def test_media_server_create_accepts_both_kinds(kind):
+    assert MediaServerCreate(**_media_server_body(kind=kind)).kind == kind
+
+
+@pytest.mark.parametrize("kind", ["emby", "Jellyfin", "", "plex "])
+def test_media_server_create_rejects_other_kinds(kind):
+    with pytest.raises(ValidationError):
+        MediaServerCreate(**_media_server_body(kind=kind))
+
+
+@pytest.mark.parametrize("mode", ["hdhomerun", "m3u"])
+def test_media_server_create_accepts_both_tuner_modes(mode):
+    assert MediaServerCreate(**_media_server_body(tuner_mode=mode)).tuner_mode == mode
+
+
+@pytest.mark.parametrize("mode", ["hdhr", "M3U", "", "xmltv"])
+def test_media_server_create_rejects_other_tuner_modes(mode):
+    with pytest.raises(ValidationError):
+        MediaServerCreate(**_media_server_body(tuner_mode=mode))
+
+
+def test_media_server_create_defaults_to_the_hdhomerun_mode():
+    body = _media_server_body()
+    assert "tuner_mode" not in body
+    created = MediaServerCreate(**body)
+    assert created.tuner_mode == "hdhomerun" and created.enabled is True and created.auto_refresh is True
+
+
+def test_media_server_response_contract(alembic_client, media_server_transport):
+    created = alembic_client.post("/api/v1/media-servers", json=_media_server_body())
+    assert created.status_code == 201, created.text
+    assert set(created.json()) == MEDIA_SERVER_KEYS
+    assert "api_key" not in created.json()
+    listed = alembic_client.get("/api/v1/media-servers")
+    assert listed.status_code == 200
+    assert [set(item) for item in listed.json()] == [MEDIA_SERVER_KEYS]
+
+
+def test_media_server_status_response_contract(alembic_client, media_server_transport):
+    server = alembic_client.post("/api/v1/media-servers", json=_media_server_body()).json()
+    response = alembic_client.get(f"/api/v1/media-servers/{server['id']}/status")
+    assert response.status_code == 200
+    assert set(response.json()) == {"connected", "channel_count", "refresh_state", "last_result", "steps", "paste", "error"}
+
+
+def test_media_server_probe_response_contract(alembic_client, media_server_transport):
+    response = alembic_client.post(
+        "/api/v1/media-servers/test",
+        json={"kind": "jellyfin", "base_url": "http://127.0.0.1:8096", "api_key": "good"},
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert set(body) == {"reachable", "authenticated", "version", "message", "tuner_access"}
+    assert set(body["tuner_access"]) == {"addresses", "allowed"}
+
+
+def test_forbidden_media_server_url_error_contract(alembic_client, media_server_transport):
+    response = alembic_client.post("/api/v1/media-servers", json=_media_server_body(base_url="http://169.254.169.254"))
+    assert response.status_code == 422
+    error = response.json()["error"]
+    assert error["code"] == "MEDIA_SERVER_URL_FORBIDDEN"
+    assert error["context"]["base_url"] == "http://169.254.169.254"

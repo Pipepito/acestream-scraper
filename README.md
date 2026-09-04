@@ -63,6 +63,8 @@ When you enable the engine on ARM, it keeps its config, cache, and logs under `/
 
 **Remote players**: save the VLC or Kodi boxes on your network under **Integrations**, then send any channel to one and drive it from the app (play/pause, stop, volume, live status). Both are reached through the web interface they already ship — VLC's Lua HTTP interface, Kodi's `Settings > Services > Control` — so nothing is installed on the player; **Find players** scans a private network for them, and each player picks the stream link it is handed (the server relay at `/tuner/*` by default, which needs only port 8000 published, or a named Acexy/engine base URL, which needs that port reachable from the player instead). Player passwords are stored unencrypted in the app database and never returned by the API. See [wiki/Remote-Players.md](wiki/Remote-Players.md).
 
+**Jellyfin and Plex**: the app publishes your TV channels as an HDHomeRun tuner with an XMLTV guide, so they show up under Live TV in the media server you already use — no plugin, nothing installed there. Add the server under **Integrations** with a Jellyfin API key and press **Connect**, and the app registers the tuner and the guide provider for you; Plex (Plex Pass required) has no API for that, so the card hands you the exact tuner address and guide URL to paste into **Set Up Plex Tuner**. A background job notices when your channels or guide change and asks the server to refresh, at most every `MEDIA_SERVER_MIN_REFRESH_MINUTES`. The tuner routes carry no API token — media servers cannot send one — so they are gated by client address (`TUNER_ALLOWED_NETWORKS`), which means publishing the web port as `-p 0.0.0.0:8000:8000` and, behind a reverse proxy, keeping `/tuner/` out of proxy auth. Plex stops saving channel maps at roughly 450-480 channels, so the tuner publishes at most 450 by default. API keys and Plex tokens are stored unencrypted in the app database and never returned by the API. See [wiki/Media-Servers.md](wiki/Media-Servers.md).
+
 ### Local Development
 
 Backend:
@@ -131,6 +133,7 @@ npm start
 - `PUBLIC_BASE_URL` (default: empty; origin Jellyfin/Plex/VLC use to reach this server — empty derives it from each request)
 - `TUNER_ALLOWED_NETWORKS` (default: `127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10`; networks allowed to use the token-free `/tuner/*` routes)
 - `PLAYER_MAX_SESSIONS` (default: `3`; channels the web player transcodes at once)
+- `MEDIA_SERVER_MIN_REFRESH_MINUTES` (default: `30`; minimum gap between automatic Jellyfin/Plex guide refreshes — `0` disables the debounce)
 
 Docker flavor choice controls which optional binaries are installed. Runtime env vars control whether those installed services actually start.
 

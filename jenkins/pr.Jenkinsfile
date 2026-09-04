@@ -101,6 +101,9 @@ docker run --rm --init \
   --env CI=true \
   --env HOME=/tmp/ci-home \
   --env PYTHONDONTWRITEBYTECODE=1 \
+  --env GIT_CONFIG_COUNT=1 \
+  --env GIT_CONFIG_KEY_0=safe.directory \
+  --env GIT_CONFIG_VALUE_0=/workspace \
   --volume "$WORKSPACE:/source:ro" \
   --workdir /workspace \
   "$PR_RUNNER_IMAGE" \

@@ -91,6 +91,8 @@ def main() -> int:
          and "--cap-drop ALL" in pr_jenkinsfile
          and "no-new-privileges" in pr_jenkinsfile
          and '$WORKSPACE:/source:ro' in pr_jenkinsfile
+         and "GIT_CONFIG_KEY_0=safe.directory" in pr_jenkinsfile
+         and "GIT_CONFIG_VALUE_0=/workspace" in pr_jenkinsfile
          and "git show HEAD^1:scripts/ci/run_pr_validation.sh" in pr_jenkinsfile
          and "runnerInputsChanged" in pr_jenkinsfile
          and "env.CHANGE_FORK" in pr_jenkinsfile),

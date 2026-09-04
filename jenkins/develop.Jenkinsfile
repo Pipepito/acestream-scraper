@@ -91,6 +91,9 @@ docker run --rm \
   --cpus 3 \
   --tmpfs /tmp:rw,nosuid,nodev,size=1g \
   --tmpfs /workspace:rw,nosuid,nodev,size=3g,mode=1777 \
+  --env GIT_CONFIG_COUNT=1 \
+  --env GIT_CONFIG_KEY_0=safe.directory \
+  --env GIT_CONFIG_VALUE_0=/workspace \
   --volume "$WORKSPACE:/source:ro" \
   --volume "$artifact_dir:/artifacts:rw" \
   --workdir /workspace \

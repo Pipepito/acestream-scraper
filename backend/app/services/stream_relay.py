@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import ipaddress
 import logging
+import threading
 import time
 import uuid
 from dataclasses import dataclass
@@ -75,25 +76,48 @@ class RelayInfo:
 
 
 class RelayRegistry:
-    """In-memory book of the relays this process is serving."""
+    """In-memory book of the relays this process is serving.
+
+    Every method takes ``_lock``: relays open and close on the event loop, the
+    reaper runs from a scheduler thread, and ``try_open`` has to count and
+    claim as one step.
+    """
 
     def __init__(self) -> None:
         self._relays: Dict[str, RelayInfo] = {}
+        self._lock = threading.Lock()
 
     def open(self, content_id: str, client_label: str) -> RelayInfo:
+        with self._lock:
+            return self._add(content_id, client_label)
+
+    def try_open(self, content_id: str, client_label: str, limit: int) -> Optional[RelayInfo]:
+        """Claim one of ``limit`` slots, or return None when they are all busy.
+
+        Counting and claiming under one lock is what makes a cap hold: the
+        caller reserves the slot *before* the multi-second engine start, so two
+        clients arriving together cannot both pass a check that the other's
+        relay is about to invalidate. Release the claim with ``close``.
+        """
+        with self._lock:
+            if sum(1 for info in self._relays.values() if info.finished_at is None) >= limit:
+                return None
+            return self._add(content_id, client_label)
+
+    def _add(self, content_id: str, client_label: str) -> RelayInfo:
         info = RelayInfo(id=uuid.uuid4().hex, content_id=content_id, client_label=client_label, started_at=time.time())
         self._relays[info.id] = info
         return info
 
     def close(self, relay_id: str) -> None:
-        info = self._relays.get(relay_id)
-        if info is not None and info.finished_at is None:
-            info.finished_at = time.time()
+        with self._lock:
+            info = self._relays.get(relay_id)
+            if info is not None and info.finished_at is None:
+                info.finished_at = time.time()
 
     def active(self) -> List[RelayInfo]:
-        # Snapshot first: relays open and close on the event loop while the
-        # reaper may run from a scheduler thread.
-        return [info for info in list(self._relays.values()) if info.finished_at is None]
+        with self._lock:
+            return [info for info in self._relays.values() if info.finished_at is None]
 
     def count_active(self) -> int:
         return len(self.active())
@@ -101,8 +125,9 @@ class RelayRegistry:
     def reap_finished(self, older_than_seconds: float = 30.0) -> int:
         """Forget relays that finished more than ``older_than_seconds`` ago."""
         cutoff = time.time() - older_than_seconds
-        stale = [rid for rid, info in list(self._relays.items()) if info.finished_at is not None and info.finished_at <= cutoff]
-        return sum(1 for rid in stale if self._relays.pop(rid, None) is not None)
+        with self._lock:
+            stale = [rid for rid, info in self._relays.items() if info.finished_at is not None and info.finished_at <= cutoff]
+            return sum(1 for rid in stale if self._relays.pop(rid, None) is not None)
 
 
 relay_registry = RelayRegistry()
@@ -146,6 +171,7 @@ async def relay_engine_stream(
     *,
     client_factory: Optional[Callable[..., httpx.AsyncClient]] = None,
     registry: Optional[RelayRegistry] = None,
+    claim: Optional[RelayInfo] = None,
 ) -> AsyncIterator[bytes]:
     """Yield MPEG-TS bytes for ``content_id``.
 
@@ -155,13 +181,20 @@ async def relay_engine_stream(
     (connect refused, read timeout, redirect loop). A transport failure later
     in the stream raises EngineStreamError as well. The engine session is
     stopped on every exit path.
+
+    ``claim`` is a slot already reserved with ``RelayRegistry.try_open`` -- how
+    a capped caller (the tuner) reserves before the engine round-trip. The
+    relay adopts it and releases it on every exit path, a failed session start
+    included; without one it registers itself, likewise before the start, so a
+    relay is on the books for as long as it holds an engine session.
     """
     registry = registry or relay_registry
     factory = client_factory or _default_client_factory
-    session: EngineSession = await run_in_threadpool(engine.start, content_id)
-    info = registry.open(content_id, client_label)
-    engine_host = _host_identity(urlsplit(engine.engine_url).hostname)
+    info = claim if claim is not None else registry.open(content_id, client_label)
+    session: Optional[EngineSession] = None
     try:
+        session = await run_in_threadpool(engine.start, content_id)
+        engine_host = _host_identity(urlsplit(engine.engine_url).hostname)
         try:
             async with factory(follow_redirects=True, max_redirects=3, timeout=RELAY_TIMEOUT) as client:
                 async with client.stream("GET", session.playback_url) as response:
@@ -178,5 +211,6 @@ async def relay_engine_stream(
             raise EngineStreamError(f"Engine stream failed: {exc}") from exc
     finally:
         registry.close(info.id)
-        with anyio.CancelScope(shield=True):
-            await run_in_threadpool(engine.stop, session)
+        if session is not None:
+            with anyio.CancelScope(shield=True):
+                await run_in_threadpool(engine.stop, session)

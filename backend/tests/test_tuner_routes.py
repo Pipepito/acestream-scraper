@@ -95,6 +95,65 @@ def test_stream_relays_are_capped_by_tuner_count(alembic_client, alembic_db_sess
             relay_registry.close(info.id)
 
 
+def test_two_clients_starting_at_once_cannot_exceed_the_tuner_count(alembic_client, alembic_db_session, open_gate, monkeypatch):
+    """The slot has to be claimed, not just counted: the engine round-trip in
+    between takes seconds, and every client arriving in that window would pass
+    a plain count check."""
+    import threading
+
+    from app.api.endpoints import tuner as tuner_module
+    from app.services.engine_client import EngineUnavailableError
+    from app.services.stream_relay import relay_registry
+    from app.services.tuner_service import TunerService
+    TunerService(alembic_db_session).update_settings(tuner_count=1)
+
+    in_engine, release = threading.Event(), threading.Event()
+
+    def slow_engine():
+        in_engine.set()
+        release.wait(5)
+        raise EngineUnavailableError("Acestream engine is not configured")
+
+    monkeypatch.setattr(tuner_module, "_engine", slow_engine)
+    statuses = {}
+    first = threading.Thread(target=lambda: statuses.update(first=alembic_client.get(f"/tuner/stream/{IH}.ts").status_code))
+    first.start()
+    try:
+        assert in_engine.wait(5), "the first request never reached the engine"
+        statuses["second"] = alembic_client.get(f"/tuner/stream/{IH}.ts").status_code
+    finally:
+        release.set()
+        first.join(5)
+    assert statuses["second"] == 503  # the one slot is already claimed
+    assert statuses["first"] == 502
+    assert relay_registry.count_active() == 0
+
+
+def test_a_relay_that_never_starts_gives_its_tuner_slot_back(alembic_client, alembic_db_session, open_gate, monkeypatch):
+    """The slot is claimed before the engine is contacted, so every path that
+    fails afterwards has to release it -- otherwise one 502 leaves a one-tuner
+    device permanently busy."""
+    from app.api.endpoints import tuner as tuner_module
+    from app.services.engine_client import EngineUnavailableError
+    from app.services.stream_relay import relay_registry
+    from app.services.tuner_service import TunerService
+    TunerService(alembic_db_session).update_settings(tuner_count=1)
+
+    def unavailable():
+        raise EngineUnavailableError("Acestream engine is not configured")
+
+    monkeypatch.setattr(tuner_module, "_engine", unavailable)
+    try:
+        first = alembic_client.get(f"/tuner/stream/{IH}.ts")
+        assert first.status_code == 502 and first.json()["error"]["code"] == "ENGINE_UNAVAILABLE"
+        assert relay_registry.count_active() == 0
+        second = alembic_client.get(f"/tuner/stream/{IH}.ts")
+        assert second.status_code == 502 and second.json()["error"]["code"] == "ENGINE_UNAVAILABLE"
+    finally:
+        for info in relay_registry.active():
+            relay_registry.close(info.id)
+
+
 def test_status_warns_when_the_allowlist_cannot_see_clients_apart_and_when_capped(backend_runtime, override_get_db, db_session, open_gate):
     from fastapi.testclient import TestClient
     from app.models.models import AcestreamChannel, TVChannel

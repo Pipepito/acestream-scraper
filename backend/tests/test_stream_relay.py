@@ -335,6 +335,50 @@ def test_relay_headers_reach_the_client_through_a_route():
     assert response.content == payload
 
 
+def test_try_open_claims_a_slot_and_refuses_once_the_limit_is_taken():
+    registry = RelayRegistry()
+    first = registry.try_open(IH, "tuner:a", 2)
+    second = registry.try_open(IH, "tuner:b", 2)
+    assert first is not None and second is not None
+    assert registry.try_open(IH, "tuner:c", 2) is None
+    registry.close(first.id)
+    third = registry.try_open(IH, "tuner:c", 2)
+    assert third is not None and registry.count_active() == 2
+
+
+def test_relay_takes_its_claim_before_the_engine_round_trip():
+    """The cap only holds if the slot is on the books before the engine start:
+    that call takes seconds, and a check-then-act cap lets every client that
+    arrives in the meantime through."""
+    registry = RelayRegistry()
+    seen = []
+    engine, factory = _engine_and_factory(_fake_engine([]))
+    real_start = engine.start
+
+    def start(content_id, pid=None):
+        seen.append(registry.count_active())
+        return real_start(content_id, pid)
+
+    engine.start = start
+    claim = registry.try_open(IH, "tuner:1.2.3.4", 1)
+    assert registry.try_open(IH, "tuner:5.6.7.8", 1) is None  # busy while the first one starts
+    body = _collect(relay_engine_stream(engine, IH, "tuner:1.2.3.4", client_factory=factory, registry=registry, claim=claim))
+    assert body == BODY
+    assert seen == [1]  # the engine was called with the slot already claimed
+    assert registry.count_active() == 0
+
+
+def test_a_failed_engine_start_gives_the_claimed_slot_back():
+    def handler(request):
+        return httpx.Response(200, json={"response": None, "error": "activate premium"})
+    engine, factory = _engine_and_factory(handler)
+    registry = RelayRegistry()
+    claim = registry.try_open(IH, "tuner:1.2.3.4", 1)
+    with pytest.raises(EngineRefusedError):
+        _collect(relay_engine_stream(engine, IH, "tuner:1.2.3.4", client_factory=factory, registry=registry, claim=claim))
+    assert registry.count_active() == 0
+
+
 def test_registry_tracks_and_reaps():
     registry = RelayRegistry()
     info = registry.open("c" * 40, "vlc")

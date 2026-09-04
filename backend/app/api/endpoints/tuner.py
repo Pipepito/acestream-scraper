@@ -193,40 +193,51 @@ async def tuner_stream(content_id: str, request: Request):
     content_id = _validate_content_id(content_id)
     if request.method == "HEAD":
         return Response(status_code=200, headers=RELAY_HEADERS)
-    # The cap is checked before the engine is touched, so a busy tuner answers
-    # 503 rather than starting a session it is about to refuse.
+    # Claim a tuner slot before anything slow happens. The registry counts and
+    # claims under one lock, so two clients arriving together cannot both pass
+    # a check whose slot the other is about to take -- the engine start that
+    # follows takes seconds, which is all the room a check-then-act cap needs
+    # to be overshot. The relay adopts the claim and releases it when it ends.
     limit = await run_in_threadpool(_tuner_count)
-    if relay_registry.count_active() >= limit:
+    peer = request.client.host if request.client else "?"
+    claim = relay_registry.try_open(content_id, f"tuner:{peer}", limit)
+    if claim is None:
         raise APIError(
             code="TUNER_BUSY",
             message=f"All {limit} tuner slots are in use",
             status_code=503,
             context={"limit": limit},
         )
-    # The settings read is a blocking DB call: keep it off the event loop.
     try:
-        engine = await run_in_threadpool(_engine)
-    except EngineUnavailableError as exc:
-        raise APIError(code="ENGINE_UNAVAILABLE", message=str(exc), status_code=502, context={"content_id": content_id}) from exc
-    peer = request.client.host if request.client else "?"
-    iterator = relay_engine_stream(engine, content_id, f"tuner:{peer}", client_factory=_relay_client_factory)
-    # The first chunk is pulled here so an engine failure becomes a 502 body
-    # instead of a truncated 200 stream. Every path that does not hand the
-    # iterator to a response closes the engine's connection pool itself.
-    try:
-        first = await iterator.__anext__()
-    except EngineRefusedError as exc:
-        engine.close()
-        raise APIError(code="ENGINE_REFUSED", message=str(exc), status_code=502, context={"content_id": content_id}) from exc
-    except EngineUnavailableError as exc:
-        engine.close()
-        raise APIError(code="ENGINE_UNAVAILABLE", message=str(exc), status_code=502, context={"content_id": content_id}) from exc
-    except EngineStreamError as exc:
-        engine.close()
-        raise APIError(code="ENGINE_STREAM_FAILED", message=str(exc), status_code=502, context={"content_id": content_id}) from exc
-    except StopAsyncIteration:
-        engine.close()
-        return Response(status_code=200, headers=RELAY_HEADERS)
+        # The settings read is a blocking DB call: keep it off the event loop.
+        try:
+            engine = await run_in_threadpool(_engine)
+        except EngineUnavailableError as exc:
+            raise APIError(code="ENGINE_UNAVAILABLE", message=str(exc), status_code=502, context={"content_id": content_id}) from exc
+        iterator = relay_engine_stream(engine, content_id, f"tuner:{peer}", client_factory=_relay_client_factory, claim=claim)
+        # The first chunk is pulled here so an engine failure becomes a 502 body
+        # instead of a truncated 200 stream. Every path that does not hand the
+        # iterator to a response closes the engine's connection pool itself.
+        try:
+            first = await iterator.__anext__()
+        except EngineRefusedError as exc:
+            engine.close()
+            raise APIError(code="ENGINE_REFUSED", message=str(exc), status_code=502, context={"content_id": content_id}) from exc
+        except EngineUnavailableError as exc:
+            engine.close()
+            raise APIError(code="ENGINE_UNAVAILABLE", message=str(exc), status_code=502, context={"content_id": content_id}) from exc
+        except EngineStreamError as exc:
+            engine.close()
+            raise APIError(code="ENGINE_STREAM_FAILED", message=str(exc), status_code=502, context={"content_id": content_id}) from exc
+        except StopAsyncIteration:
+            engine.close()
+            return Response(status_code=200, headers=RELAY_HEADERS)
+    except BaseException:
+        # Nothing is streaming, so the slot has to go back now -- including on
+        # a cancelled request, which no generator is left to finalise. Closing
+        # a claim the relay already released is a no-op.
+        relay_registry.close(claim.id)
+        raise
 
     async def body():
         try:

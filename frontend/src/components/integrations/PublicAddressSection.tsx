@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
 import ContentSection from '../layout/ContentSection';
+import { MEDIA_SERVERS_QUERY_KEY } from '../../hooks/useMediaServers';
 import { PUBLIC_URL_QUERY_KEY, usePublicUrl } from '../../hooks/useSystemServices';
 import { useTunerStatus } from '../../hooks/useTuner';
 import { configService } from '../../services/configService';
@@ -57,6 +58,9 @@ const PublicAddressSection: React.FC<PublicAddressSectionProps> = ({ notify }) =
       notify(value.trim() ? 'Public address saved.' : 'Public address cleared.', 'success');
       await queryClient.invalidateQueries({ queryKey: PUBLIC_URL_QUERY_KEY });
       await queryClient.invalidateQueries({ queryKey: ['tuner'] });
+      // The Plex cards paste absolute URLs built from this address; without
+      // this they would keep the old ones until the next 30 s status poll.
+      await queryClient.invalidateQueries({ queryKey: MEDIA_SERVERS_QUERY_KEY });
     } catch (err) {
       notify(getErrorMessage(err), 'error');
     } finally {

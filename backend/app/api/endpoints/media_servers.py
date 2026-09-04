@@ -28,7 +28,7 @@ from app.services.media_servers.base import (
     MediaServerUnreachable,
     new_client,
 )
-from app.services.media_servers.service import MediaServerService, RefreshResult
+from app.services.media_servers.service import MediaServerService, RefreshResult, same_target
 from app.services.public_url_service import resolve_public_base_url
 from app.services.remote_players.service import RemotePlayerService
 from app.utils.url_guard import BlockedURLError
@@ -157,8 +157,11 @@ def update_media_server(
 ):
     server = _server_or_404(service, server_id)
     _ensure_unique_name(service, payload.name, server)
+    moved = False
     if payload.base_url is not None:
-        server.base_url = _validated_base_url(service, payload.base_url)
+        base_url = _validated_base_url(service, payload.base_url)
+        moved = not same_target(server, base_url)
+        server.base_url = base_url
     if payload.name is not None:
         server.name = payload.name
     if payload.tuner_mode is not None:
@@ -167,9 +170,24 @@ def update_media_server(
         server.enabled = payload.enabled
     if payload.auto_refresh is not None:
         server.auto_refresh = payload.auto_refresh
-    if "api_key" in payload.model_fields_set:
+    typed_key = "api_key" in payload.model_fields_set
+    if typed_key:
         # Omitted keeps the stored secret; an empty string (or null) clears it.
         server.api_key = payload.api_key or None
+    if moved:
+        # A server at a new address is a new server — the rule remote players
+        # keep in password_for_update. test() refuses to send a stored key to an
+        # address the row does not name, but the row itself can be moved:
+        # without this, PATCH {"base_url": ...} followed by POST /{id}/test
+        # would hand the key to any address the caller picks. The registration
+        # ids go with it: they name objects on the server we just left, so
+        # keeping them would report "connected" about a server that never heard
+        # of us and would point disconnect() at the wrong one.
+        if not typed_key:
+            server.api_key = None
+        server.tuner_host_id = None
+        server.listing_provider_id = None
+        server.dvr_key = None
     return _response(service.repo.save(server))
 
 
@@ -268,6 +286,11 @@ def disconnect_media_server(server_id: int, service: MediaServerService = Depend
 
 
 @router.get("/{server_id}/status", response_model=MediaServerStatusResponse)
-def media_server_status(server_id: int, service: MediaServerService = Depends(_service)):
+def media_server_status(
+    server_id: int, request: Request, service: MediaServerService = Depends(_service)
+):
+    """The Plex paste values are absolute URLs, so the origin is resolved per
+    request like every other one the backend emits (spec 4.3)."""
     server = _server_or_404(service, server_id)
-    return MediaServerStatusResponse(**service.status(server))
+    public = resolve_public_base_url(request, SettingsRepository(service.db)).url
+    return MediaServerStatusResponse(**service.status(server, public))

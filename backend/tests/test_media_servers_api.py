@@ -83,6 +83,65 @@ def test_test_endpoint_and_plex_manual(alembic_client, fakes):
     assert alembic_client.post(f"/api/v1/media-servers/{plex['id']}/refresh").json()["status"] == "manual"
 
 
+def test_plex_paste_values_use_the_request_origin_when_no_public_address_is_set(alembic_client, fakes):
+    """Spec 4.3: every absolute URL the backend emits — the pasted tuner values
+    included — is resolved from the request when no public address is saved."""
+    plex = _create(alembic_client, kind="plex", name="Plex", base_url="http://plex.lan:32400", api_key=None).json()
+    paste = alembic_client.get(f"/api/v1/media-servers/{plex['id']}/status").json()["paste"]
+    assert paste["tuner_address"] == "testserver/tuner"
+    assert paste["guide_url"] == "http://testserver/tuner/guide.xml"
+
+    alembic_client.put("/api/v1/config/public_base_url", json={"value": "http://scraper.lan:8000"})
+    paste = alembic_client.get(f"/api/v1/media-servers/{plex['id']}/status").json()["paste"]
+    assert paste["tuner_address"] == "scraper.lan:8000/tuner"
+    assert paste["guide_url"] == "http://scraper.lan:8000/tuner/guide.xml"
+
+
+def test_test_with_an_id_sends_the_stored_key_only_to_that_address(alembic_client, fakes):
+    """The saved key never travels to a server the row does not already name:
+    the API only reports has_api_key, so a caller who cannot read the secret
+    back must not be able to name a listener and have us hand it over."""
+    jelly, _ = fakes
+    server = _create(alembic_client).json()  # stored api_key "good"
+
+    same = alembic_client.post(
+        "/api/v1/media-servers/test",
+        json={"kind": "jellyfin", "base_url": "http://jellyfin.lan:8096/", "id": server["id"]},
+    )
+    assert same.status_code == 200 and same.json()["authenticated"] is True
+
+    jelly.requests.clear()
+    elsewhere = alembic_client.post(
+        "/api/v1/media-servers/test",
+        json={"kind": "jellyfin", "base_url": "http://collector.lan:8096", "id": server["id"]},
+    )
+    assert elsewhere.status_code == 200 and elsewhere.json()["authenticated"] is False
+    assert jelly.requests
+    assert all("good" not in request.headers.get("Authorization", "") for request in jelly.requests)
+
+
+def test_moving_a_media_server_forgets_its_key_and_registration(alembic_client, fakes):
+    jelly, _ = fakes
+    server = _create(alembic_client).json()
+    alembic_client.put("/api/v1/config/public_base_url", json={"value": "http://scraper.lan:8000"})
+    assert alembic_client.post(f"/api/v1/media-servers/{server['id']}/connect").json()["connected"] is True
+
+    same_address = alembic_client.patch(
+        f"/api/v1/media-servers/{server['id']}", json={"base_url": "http://jellyfin.lan:8096/"}
+    ).json()
+    assert same_address["has_api_key"] is True and same_address["connected"] is True
+
+    moved = alembic_client.patch(
+        f"/api/v1/media-servers/{server['id']}", json={"base_url": "http://collector.lan:8096"}
+    ).json()
+    assert moved["has_api_key"] is False and moved["connected"] is False
+
+    jelly.requests.clear()
+    alembic_client.post(f"/api/v1/media-servers/{server['id']}/test")
+    assert jelly.requests
+    assert all("good" not in request.headers.get("Authorization", "") for request in jelly.requests)
+
+
 def test_manual_refresh_leaves_nothing_for_the_sync_job(alembic_client, alembic_db_session, fakes):
     """A manual refresh records the same fingerprints a scheduled pass would, so
     the job does not refresh a second time moments later."""

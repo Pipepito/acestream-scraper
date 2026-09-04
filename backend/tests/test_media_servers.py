@@ -6,7 +6,6 @@ from datetime import datetime, timedelta, timezone
 import httpx
 import pytest
 
-from app.repositories.settings_repository import SettingsRepository
 from app.services.media_servers.base import MediaServerAuthError, MediaServerError, MediaServerUnreachable
 from app.services.media_servers.service import MediaServerService, RefreshResult
 
@@ -118,7 +117,7 @@ def test_jellyfin_connect_upserts_and_refresh_triggers_task(alembic_db_session, 
     jellyfin.refresh_state = "Running"
     assert svc.refresh(server).status == "ok" and jellyfin.started == [1]  # already running: not re-triggered
 
-    status = svc.status(server)
+    status = svc.status(server, PUBLIC)
     assert status["connected"] is True and status["channel_count"] == 42 and status["refresh_state"] == "Running"
 
     svc.disconnect(server)
@@ -140,6 +139,11 @@ def test_test_uses_stored_key_when_none_given_and_maps_auth(alembic_db_session, 
     assert probe["reachable"] and probe["authenticated"] and probe["version"] == "10.11.11"
     probe = svc.test("jellyfin", "http://jellyfin.lan:8096", "bad", stored_id=None)
     assert probe["reachable"] and probe["authenticated"] is False
+    # ... but only for the address that row already talks to.
+    jellyfin.requests.clear()
+    probe = svc.test("jellyfin", "http://collector.lan:8096", None, stored_id=server.id)
+    assert probe["authenticated"] is False
+    assert all("good" not in r.headers.get("Authorization", "") for r in jellyfin.requests)
     jellyfin.reject_key = True
     with pytest.raises(MediaServerAuthError):
         svc.refresh(server)
@@ -171,8 +175,7 @@ def test_plex_connect_finds_the_dvr_and_refreshes(alembic_db_session, monkeypatc
     svc.connect(server, PUBLIC)
     assert server.dvr_key == "7"
     assert svc.refresh(server).status == "ok" and plex.reloads == [1]
-    SettingsRepository(alembic_db_session).set_setting(SettingsRepository.PUBLIC_BASE_URL, PUBLIC)
-    instructions = svc.status(server)
+    instructions = svc.status(server, PUBLIC)
     assert instructions["steps"] and f"{PUBLIC}/tuner/guide.xml" in json.dumps(instructions)
 
 
@@ -309,5 +312,5 @@ def test_a_non_json_answer_stays_inside_the_error_contract(alembic_db_session):
     svc.repo.save(server)
     assert svc.sync_if_changed(server).status == "error"
     assert server.last_lineup_fingerprint is None and "expected JSON" in server.last_error
-    reported = svc.status(server)
+    reported = svc.status(server, PUBLIC)
     assert reported["connected"] is True and "expected JSON" in reported["error"]

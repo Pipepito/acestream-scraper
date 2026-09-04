@@ -13,7 +13,6 @@ from sqlalchemy.orm import Session
 from app.config.settings import get_settings
 from app.models.models import MediaServer
 from app.repositories.media_server_repository import MediaServerRepository
-from app.repositories.settings_repository import SettingsRepository
 from app.services.tuner_service import TunerService
 from app.utils.url_guard import validate_lan_target
 
@@ -28,12 +27,31 @@ APP_VERSION = "2.0.0"
 # Jellyfin answers 503 while Live TV is still starting up; one retry clears it.
 BUSY_RETRY_SECONDS = 2.0
 
+# Ports a scheme implies, so "https://jf.lan" and "https://jf.lan:443" are one target.
+_DEFAULT_PORTS = {"http": 80, "https": 443}
+
 PLEX_STEPS = [
     "In Plex Web open Settings > Live TV & DVR and choose Set Up Plex Tuner (Plex Pass is required).",
     "Click \"Don't see your HDHomeRun device? Enter its network address manually\" and paste the tuner address.",
     "Pick any country, then choose \"Have an XMLTV guide on your server?\" and paste the guide URL.",
     "Review the channel mapping and finish. After channels change here, use Manage Channels > Rescan in Plex (or add a Plex token so the guide refreshes automatically).",
 ]
+
+
+def _target_key(base_url: str) -> Tuple[str, str, int, str]:
+    """The server a base URL names: scheme, host, effective port and path."""
+    parts = urlsplit((base_url or "").strip().rstrip("/"))
+    scheme = (parts.scheme or "").lower()
+    try:
+        port = parts.port
+    except ValueError:  # a malformed authority names no server we know
+        port = None
+    return scheme, (parts.hostname or "").lower(), port or _DEFAULT_PORTS.get(scheme, 0), parts.path.rstrip("/")
+
+
+def same_target(server: MediaServer, base_url: str) -> bool:
+    """True when the saved row already sends its API key to this base URL."""
+    return _target_key(server.base_url) == _target_key(base_url)
 
 
 @dataclass
@@ -65,23 +83,27 @@ class MediaServerService:
     def _plex(self, base_url: str, token: Optional[str]) -> PlexClient:
         return PlexClient(base_url, token, client=self._client_factory())
 
-    def _secret(self, api_key: Optional[str], stored_id: Optional[int]) -> Optional[str]:
+    def _secret(self, api_key: Optional[str], stored_id: Optional[int], base_url: str) -> Optional[str]:
+        """Secret rule (spec 7.3, the same one remote players use): the typed key
+        when non-empty; else the stored one when ``stored_id`` names a row that
+        already talks to this same base URL; else no credentials.
+
+        A stored key never travels to a server the saved row does not already
+        name: the API only ever reports ``has_api_key``, so a caller who cannot
+        read the secret back could otherwise post any address and have us hand
+        a Jellyfin administrator key (or a Plex owner token) to a listener of
+        their choosing."""
         if api_key:
             return api_key
         if stored_id is not None:
             stored = self.repo.get(stored_id)
-            if stored is not None:
+            if stored is not None and same_target(stored, base_url):
                 return stored.api_key
         return None
 
-    def _public_base_url(self) -> str:
-        """The origin the media server must fetch us on: the operator's setting,
-        falling back to the PUBLIC_BASE_URL env seed."""
-        return (SettingsRepository(self.db).get_setting(SettingsRepository.PUBLIC_BASE_URL) or "").strip().rstrip("/")
-
     # --- use cases -----------------------------------------------------------------
     def test(self, kind: str, base_url: str, api_key: Optional[str], stored_id: Optional[int] = None) -> dict:
-        secret = self._secret(api_key, stored_id)
+        secret = self._secret(api_key, stored_id, base_url)
         try:
             if kind == "jellyfin":
                 client = self._jellyfin(base_url, secret)
@@ -175,14 +197,17 @@ class MediaServerService:
             client.start_task(str(task["Id"]))
         return RefreshResult("ok", "Jellyfin is refreshing its guide")
 
-    def status(self, server: MediaServer) -> dict:
-        public = self._public_base_url()
+    def status(self, server: MediaServer, public_base_url: str) -> dict:
+        """One card's live state. ``public_base_url`` is the origin the caller
+        resolved for this request (spec 4.3) — every absolute URL we hand the
+        user to paste is built from it, never from the raw setting, which is
+        empty on a default install."""
+        public = (public_base_url or "").rstrip("/")
         base = {"connected": False, "channel_count": None, "refresh_state": None, "last_result": None, "steps": [], "paste": {}, "error": None}
         if server.kind == "plex":
             base["connected"] = bool(server.dvr_key)
             base["steps"] = PLEX_STEPS
-            host_port = urlsplit(public).netloc if public else "<public address>"
-            base["paste"] = {"tuner_address": f"{host_port}/tuner", "guide_url": f"{public or '<public address>'}/tuner/guide.xml", "device_id": TunerService(self.db).device_id()}
+            base["paste"] = {"tuner_address": f"{urlsplit(public).netloc}/tuner", "guide_url": f"{public}/tuner/guide.xml", "device_id": TunerService(self.db).device_id()}
             return base
         base["connected"] = bool(server.tuner_host_id and server.listing_provider_id)
         if not base["connected"] or not server.api_key:

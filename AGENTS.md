@@ -27,7 +27,8 @@ loads the applicable file when working below those directories.
 - `frontend/`: React 18, TypeScript, Vite, MUI v5, React Query v5, Jest/RTL.
 - `e2e/`: Playwright/Firefox journeys against the built SPA and real sidecars.
 - `Dockerfile`, `docker/`, `entrypoint.sh`: multi-flavor, multi-architecture image.
-- `Jenkinsfile`: multibranch PR validation and validated `develop` channel publish.
+- `jenkins/pr.Jenkinsfile`: fork-aware, credential-free multibranch PR validation.
+- `jenkins/develop.Jenkinsfile`: trusted `develop` validation and automatic channel/docs publish.
 - `jenkins/release.Jenkinsfile`: manual release job, allowed from `main` only.
 - `scripts/ci/`: required checks, Docker builds, publishing, and CI helpers.
 - `docs/ops/jenkins-ci.md`: authoritative Jenkins and release runbook.
@@ -90,10 +91,10 @@ not part of the required PR gate; see `e2e/AGENTS.md` before running it.
 ## Branch and release policy
 
 - Feature and hotfix PRs target `develop`.
-- Only `develop` may open a PR into `main`; `Jenkinsfile` enforces this.
+- Only `develop` may open a PR into `main`; `jenkins/pr.Jenkinsfile` enforces this.
 - Both protected branches require the `PR Validation` status and disallow direct
   pushes, force-pushes, and deletion.
-- A validated `develop` branch/PR build publishes only floating `:develop*` tags.
+- A validated trusted `develop` job publishes only floating `:develop*` tags.
   It must never publish `:latest` or version tags.
 - Releases are manual through `acestream-scraper-release` on `main`. Publishing
   version tags and promoting `:latest` are separate, deliberate phases.
@@ -117,9 +118,12 @@ not part of the required PR gate; see `e2e/AGENTS.md` before running it.
 - Infrastructure inspection is read-only by default. Triggering/cancelling jobs,
   replaying builds, changing Jenkins jobs/credentials/nodes, or publishing artifacts
   is an external mutation and needs explicit user authorization.
-- The multibranch validation job is `acestream-scraper-pr`; the manual release job
-  is `acestream-scraper-release`. The executor label expected by both pipelines is
-  `dorat-nuc-ci`.
+- The multibranch validation job is `acestream-scraper-pr`; trusted publication
+  uses `acestream-scraper-develop`, and manual releases use
+  `acestream-scraper-release`. All currently launch on `dorat-nuc-ci`, but fork
+  code runs only inside the network-disabled container defined by
+  `docker/ci/pr-runner.Dockerfile`; it must never receive the Docker socket or a
+  Jenkins credential.
 - When Jenkins and GitHub disagree, distinguish the Jenkins build result from the
   GitHub commit status and record the commit SHA each result belongs to.
 

@@ -73,8 +73,7 @@ test.describe('integrations', () => {
       await integrations.testConnection();
       await integrations.expectProbe(/web interface has no password/i);
 
-      await page.getByRole('dialog').getByRole('button', { name: 'Add player', exact: true }).click();
-      await expect(integrations.playerCard(name)).toBeVisible();
+      await integrations.savePlayer(name);
       await integrations.deletePlayer(name);
     } finally {
       await vlc.close();

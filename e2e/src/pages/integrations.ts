@@ -62,12 +62,18 @@ export class IntegrationsPage extends AppShell {
     return dialog;
   }
 
-  /** Fill the dialog and save; resolves once the player's card is on the page. */
-  async addPlayer(fields: RemotePlayerFields): Promise<void> {
-    const dialog = await this.openAddPlayer(fields);
+  /** Submit the open Add player dialog; resolves once the player's card is on the page. */
+  async savePlayer(name: string): Promise<void> {
+    const dialog = this.dialog('Add player');
     await dialog.getByRole('button', { name: 'Add player', exact: true }).click();
     await expect(dialog).toBeHidden();
-    await expect(this.playerCard(fields.name)).toBeVisible();
+    await expect(this.playerCard(name)).toBeVisible();
+  }
+
+  /** Fill the dialog and save it in one go, for a player whose probe does not matter. */
+  async addPlayer(fields: RemotePlayerFields): Promise<void> {
+    await this.openAddPlayer(fields);
+    await this.savePlayer(fields.name);
   }
 
   /** Run the dialog's inline probe. The dialog must already be open. */
@@ -79,12 +85,6 @@ export class IntegrationsPage extends AppShell {
   /** The probe result the dialog shows, as guided plain-language copy. */
   async expectProbe(text: string | RegExp): Promise<void> {
     await expect(this.page.getByRole('dialog').getByRole('alert').filter({ hasText: text }).first()).toBeVisible({ timeout: 30_000 });
-  }
-
-  async closeDialog(): Promise<void> {
-    const dialog = this.page.getByRole('dialog');
-    await dialog.getByRole('button', { name: 'Cancel' }).click();
-    await expect(dialog).toBeHidden();
   }
 
   async deletePlayer(name: string): Promise<void> {

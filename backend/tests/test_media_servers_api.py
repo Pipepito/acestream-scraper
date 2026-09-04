@@ -83,6 +83,27 @@ def test_test_endpoint_and_plex_manual(alembic_client, fakes):
     assert alembic_client.post(f"/api/v1/media-servers/{plex['id']}/refresh").json()["status"] == "manual"
 
 
+def test_manual_refresh_leaves_nothing_for_the_sync_job(alembic_client, alembic_db_session, fakes):
+    """A manual refresh records the same fingerprints a scheduled pass would, so
+    the job does not refresh a second time moments later."""
+    import app.api.endpoints.media_servers as endpoint
+    from app.services.media_servers.service import MediaServerService
+
+    jelly, _ = fakes
+    jellyfin = _create(alembic_client).json()
+    alembic_client.put("/api/v1/config/public_base_url", json={"value": "http://scraper.lan:8000"})
+    alembic_client.post(f"/api/v1/media-servers/{jellyfin['id']}/connect")
+    assert alembic_client.post(f"/api/v1/media-servers/{jellyfin['id']}/refresh").json()["status"] == "ok"
+    assert jelly.started == [1]
+    plex = _create(alembic_client, kind="plex", name="Plex", base_url="http://plex.lan:32400", api_key=None).json()
+    assert alembic_client.post(f"/api/v1/media-servers/{plex['id']}/refresh").json()["status"] == "manual"
+
+    service = MediaServerService(alembic_db_session, client_factory=endpoint._client_factory)
+    assert service.sync_if_changed(service.repo.get(jellyfin["id"])) is None
+    assert service.sync_if_changed(service.repo.get(plex["id"])) is None
+    assert jelly.started == [1]  # the job asked Jellyfin for nothing more
+
+
 def test_scheduler_registers_the_sync_job():
     import re
     from pathlib import Path

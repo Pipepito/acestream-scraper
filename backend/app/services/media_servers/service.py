@@ -4,7 +4,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Callable, Optional
+from typing import Callable, Optional, Tuple
 from urllib.parse import urlsplit
 
 import httpx
@@ -212,11 +212,27 @@ class MediaServerService:
         return self.repo.save(server)
 
     # --- sync ------------------------------------------------------------------------
-    def sync_if_changed(self, server: MediaServer) -> Optional[RefreshResult]:
+    def current_fingerprints(self) -> Tuple[str, str]:
+        """The lineup/guide stamps a refresh publishes: (lineup, guide)."""
         tuner = TunerService(self.db)
-        lineup_fp = tuner.lineup_fingerprint(tuner.build_lineup())
-        guide_fp = tuner.guide_fingerprint()
-        if lineup_fp == server.last_lineup_fingerprint and guide_fp == server.last_guide_fingerprint:
+        return tuner.lineup_fingerprint(tuner.build_lineup()), tuner.guide_fingerprint()
+
+    def record_result(self, server: MediaServer, result: RefreshResult, fingerprints: Tuple[str, str]) -> MediaServer:
+        """Store one refresh outcome — the scheduled sync and a manual refresh
+        both land here, so a manual pass leaves the server unchanged for the job."""
+        if result.status != "error":
+            # A failed pass keeps the stored fingerprints so the next run sees the
+            # same change and retries it; advancing them would drop it for good.
+            server.last_lineup_fingerprint, server.last_guide_fingerprint = fingerprints
+        server.last_sync_status = result.status
+        server.last_error = result.message if result.status == "error" else None
+        if result.status == "ok":
+            server.last_sync_at = datetime.now(timezone.utc)
+        return self.repo.save(server)
+
+    def sync_if_changed(self, server: MediaServer) -> Optional[RefreshResult]:
+        fingerprints = self.current_fingerprints()
+        if fingerprints == (server.last_lineup_fingerprint, server.last_guide_fingerprint):
             return None
         min_minutes = int(self._settings().MEDIA_SERVER_MIN_REFRESH_MINUTES)
         now = datetime.now(timezone.utc)
@@ -226,14 +242,5 @@ class MediaServerService:
             result = self.refresh(server)
         except (MediaServerUnreachable, MediaServerAuthError, MediaServerError) as exc:
             result = RefreshResult("error", str(exc))
-        if result.status != "error":
-            # A failed pass keeps the stored fingerprints so the next run sees the
-            # same change and retries it; advancing them would drop it for good.
-            server.last_lineup_fingerprint = lineup_fp
-            server.last_guide_fingerprint = guide_fp
-        server.last_sync_status = result.status
-        server.last_error = result.message if result.status == "error" else None
-        if result.status == "ok":
-            server.last_sync_at = now
-        self.repo.save(server)
+        self.record_result(server, result, fingerprints)
         return result

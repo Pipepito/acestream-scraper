@@ -3,7 +3,6 @@ up to a few seconds and every handler touches the database."""
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
 from typing import List, Optional
 from urllib.parse import urlsplit
 
@@ -29,7 +28,7 @@ from app.services.media_servers.base import (
     MediaServerUnreachable,
     new_client,
 )
-from app.services.media_servers.service import MediaServerService
+from app.services.media_servers.service import MediaServerService, RefreshResult
 from app.services.public_url_service import resolve_public_base_url
 from app.services.remote_players.service import RemotePlayerService
 from app.utils.url_guard import BlockedURLError
@@ -238,18 +237,15 @@ def connect_media_server(
 def refresh_media_server(server_id: int, service: MediaServerService = Depends(_service)):
     """Bypasses the sync job's debounce — the user asked for it explicitly."""
     server = _server_or_404(service, server_id)
+    # Recorded like a scheduled pass — a manual refresh publishes the same
+    # fingerprints, so the sync job does not repeat it moments later.
+    fingerprints = service.current_fingerprints()
     try:
         result = service.refresh(server)
     except CLIENT_ERRORS as exc:
-        server.last_sync_status = "error"
-        server.last_error = str(exc)
-        service.repo.save(server)
+        service.record_result(server, RefreshResult("error", str(exc)), fingerprints)
         raise _translate(exc) from exc
-    server.last_sync_status = result.status
-    server.last_error = result.message if result.status == "error" else None
-    if result.status == "ok":
-        server.last_sync_at = datetime.now(timezone.utc)
-    service.repo.save(server)
+    server = service.record_result(server, result, fingerprints)
     return MediaServerRefreshResponse(
         status=result.status, message=result.message, last_sync_at=server.last_sync_at
     )

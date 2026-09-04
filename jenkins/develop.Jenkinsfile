@@ -89,7 +89,7 @@ docker run --rm \
   --memory 8g \
   --memory-swap 8g \
   --cpus 3 \
-  --tmpfs /tmp:rw,nosuid,nodev,size=1g \
+  --tmpfs /tmp:rw,nosuid,nodev,exec,size=1g \
   --tmpfs /workspace:rw,nosuid,nodev,size=3g,mode=1777 \
   --env GIT_CONFIG_COUNT=1 \
   --env GIT_CONFIG_KEY_0=safe.directory \

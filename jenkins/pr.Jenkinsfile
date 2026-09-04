@@ -96,7 +96,7 @@ docker run --rm --init \
   --memory 8g \
   --memory-swap 8g \
   --cpus 3 \
-  --tmpfs /tmp:rw,nosuid,nodev,size=1g \
+  --tmpfs /tmp:rw,nosuid,nodev,exec,size=1g \
   --tmpfs /workspace:rw,nosuid,nodev,size=3g,mode=1777 \
   --env CI=true \
   --env HOME=/tmp/ci-home \

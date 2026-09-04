@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from typing import List, Optional
 
 class SearchResultItem(BaseModel):
@@ -8,6 +8,21 @@ class SearchResultItem(BaseModel):
     categories: List[str] = Field(default_factory=list, description="Categories of the channel")
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def _name_as_text(cls, v):
+        """The engine catalogue returns purely numeric names as JSON numbers.
+
+        A single such entry made FastAPI reject the whole response with a 500,
+        taking the entire search endpoint down for every query whose page
+        happened to contain it.
+        """
+        if isinstance(v, bool) or v is None:
+            return v
+        if isinstance(v, (int, float)):
+            return str(v)
+        return v
 
 class SearchPagination(BaseModel):
     page: int = Field(..., description="Current page number")

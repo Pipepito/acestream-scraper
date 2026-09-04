@@ -43,6 +43,18 @@ describe('PlayOnMenu', () => {
     expect(await screen.findByText('Sent Arena TV to Living room.')).toBeInTheDocument();
   });
 
+  it('warns instead of confirming when the link cannot reach the player', async () => {
+    mockPlayers.mockReturnValue({ data: [{ id: 1, name: 'Living room', kind: 'vlc' }], isLoading: false });
+    mockPlay.mockResolvedValue({ url: 'http://localhost:8000/tuner/stream/x.ts', warnings: ['localhost'] });
+    mount();
+    fireEvent.click(screen.getByRole('button', { name: 'Play on…' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Living room (VLC)' }));
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Sent Arena TV to Living room.');
+    expect(alert).toHaveTextContent(/means the player itself/);
+    expect(alert.className).toContain('Warning');
+  });
+
   it('points at the Integrations page when there are no players', () => {
     mockPlayers.mockReturnValue({ data: [], isLoading: false });
     mount();

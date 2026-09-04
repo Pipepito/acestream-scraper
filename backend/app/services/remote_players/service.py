@@ -14,6 +14,7 @@ from app.models.models import RemotePlayer
 from app.repositories.base_url_repository import BaseUrlRepository
 from app.repositories.remote_player_repository import RemotePlayerRepository
 from app.services.playlist_service import PlaylistService
+from app.services.public_url_service import host_warnings
 from app.services.tuner_network import TunerNetworkGate
 from app.utils.url_guard import BlockedURLError, validate_lan_target
 
@@ -163,14 +164,43 @@ class RemotePlayerService:
         return self.driver_for(player).status()
 
     # --- playback --------------------------------------------------------------
+    def _stream_pattern(self, player: RemotePlayer) -> Optional[str]:
+        """The player's own stream link format, or None when it gets the relay
+        URL — including when the format has been deleted: SQLite runs without
+        foreign keys, so the id can dangle."""
+        if player.base_url_id is None:
+            return None
+        entry = BaseUrlRepository(self.db).get(player.base_url_id)
+        return entry.pattern if entry is not None else None
+
     def resolve_stream_url(self, player: RemotePlayer, content_id: str, public_base_url: str) -> str:
         """The player's own stream link format when it has one, else the
         backend relay URL (spec 6.3)."""
-        if player.base_url_id is not None:
-            entry = BaseUrlRepository(self.db).get(player.base_url_id)
-            if entry is not None:
-                return PlaylistService._stream_link(entry.pattern, content_id, None)
+        pattern = self._stream_pattern(player)
+        if pattern is not None:
+            return PlaylistService._stream_link(pattern, content_id, None)
         return f"{public_base_url.rstrip('/')}/tuner/stream/{content_id}.ts"
+
+    def play_warnings(self, player: RemotePlayer, public_base_url: str) -> List[str]:
+        """Reasons the player will probably not be able to fetch the relay URL,
+        as codes the UI turns into guided copy:
+
+        - ``localhost`` / ``docker-internal``: the address in the link only
+          means something on this machine, so on the player it points at itself.
+        - ``tuner_blocked``: the player is outside TUNER_ALLOWED_NETWORKS, so
+          the relay route answers it 403.
+
+        Both are the checks the Test-connection probe and the Integrations
+        public-address section already make; play makes them too, because
+        "Sent X to Y" with nothing happening on the TV is the worst answer we
+        can give. A player with its own stream link format fetches neither the
+        relay URL nor the public address, so neither check applies to it."""
+        if self._stream_pattern(player) is not None:
+            return []
+        warnings = host_warnings(public_base_url)
+        if not self.tuner_access(player.host).allowed:
+            warnings.append("tuner_blocked")
+        return warnings
 
     def play(self, player: RemotePlayer, content_id: str, public_base_url: str, title: str) -> str:
         url = self.resolve_stream_url(player, content_id, public_base_url)

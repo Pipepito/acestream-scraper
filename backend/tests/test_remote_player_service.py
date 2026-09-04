@@ -129,3 +129,36 @@ def test_ipv6_host_reaches_the_driver_as_a_valid_url(alembic_db_session):
     probe, _access = svc.probe("vlc", host, 8080, None, "pw")
     assert probe.reachable
     assert seen == ["http://[fd00::1]:8080/requests/status.json"]
+
+
+def test_play_warnings_flag_a_link_the_player_cannot_fetch(alembic_db_session):
+    """"Sent it" is the wrong answer for a link the player provably cannot
+    fetch: a localhost public address means the player itself, and a player
+    outside TUNER_ALLOWED_NETWORKS is refused by the relay route (403)."""
+    from app.repositories.base_url_repository import BaseUrlRepository
+    svc = _service(alembic_db_session)
+    pattern = BaseUrlRepository(alembic_db_session).create("Acexy", "http://192.168.1.10:8080/ace/getstream?id={channel_id}")
+    lan = svc.repo.create(name="lan", kind="vlc", host="192.168.1.20", port=8080, username=None, password="pw", base_url_id=None)
+    far = svc.repo.create(name="far", kind="vlc", host="8.8.8.8", port=8080, username=None, password="pw", base_url_id=None)
+    custom = svc.repo.create(name="custom", kind="vlc", host="8.8.8.8", port=8080, username=None, password="pw", base_url_id=pattern.id)
+
+    assert svc.play_warnings(lan, "http://192.168.1.5:8000") == []
+    assert svc.play_warnings(lan, "http://localhost:8000") == ["localhost"]
+    assert svc.play_warnings(far, "http://192.168.1.5:8000") == ["tuner_blocked"]
+    # A player with its own stream link format fetches neither the relay URL nor
+    # the public address, so neither check applies to it.
+    assert svc.play_warnings(custom, "http://localhost:8000") == []
+
+
+def test_play_warnings_survive_a_deleted_stream_link_format(alembic_db_session):
+    """SQLite runs without foreign keys, so a deleted format leaves the id
+    dangling and resolve_stream_url falls back to the relay URL — the warnings
+    have to follow that same fallback."""
+    from app.repositories.base_url_repository import BaseUrlRepository
+    svc = _service(alembic_db_session)
+    repo = BaseUrlRepository(alembic_db_session)
+    pattern = repo.create("Acexy", "http://192.168.1.10:8080/ace/getstream?id={channel_id}")
+    player = svc.repo.create(name="p", kind="vlc", host="192.168.1.20", port=8080, username=None, password="pw", base_url_id=pattern.id)
+    repo.delete(pattern)
+    assert svc.resolve_stream_url(player, IH, "http://localhost:8000").startswith("http://localhost:8000/")
+    assert svc.play_warnings(player, "http://localhost:8000") == ["localhost"]

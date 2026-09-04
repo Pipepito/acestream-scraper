@@ -261,7 +261,7 @@ def play_on_player(
         url = service.play(player, payload.content_id.lower(), public, payload.title or payload.content_id)
     except (PlayerAuthError, PlayerUnreachable, PlayerCommandError) as exc:
         raise _translate(exc) from exc
-    return RemotePlayerPlayResponse(url=url)
+    return RemotePlayerPlayResponse(url=url, warnings=service.play_warnings(player, public))
 
 
 @router.post("/{player_id}/command", status_code=status.HTTP_204_NO_CONTENT)

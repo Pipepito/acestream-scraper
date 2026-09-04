@@ -170,3 +170,24 @@ def test_editing_a_player_in_place_keeps_its_password(alembic_client, vlc):
         f"/api/v1/remote-players/{player['id']}", json={"host": "192.168.1.99", "password": "new"}
     )
     assert moved_with_secret.json()["has_password"] is True
+
+
+def test_play_reports_why_a_link_will_not_reach_the_player(alembic_client, vlc, monkeypatch):
+    """The play response carries the same warnings the probe and the public
+    address section already show, so "Sent X to Y" is never the whole story
+    when the player cannot fetch what it was handed."""
+    monkeypatch.delenv("PUBLIC_BASE_URL", raising=False)
+    player = _create(alembic_client).json()
+    clean = alembic_client.post(f"/api/v1/remote-players/{player['id']}/play", json={"content_id": IH})
+    assert clean.status_code == 202 and clean.json()["warnings"] == []
+
+    assert alembic_client.put("/api/v1/config/public_base_url", json={"value": "http://localhost:8000"}).status_code == 200
+    played = alembic_client.post(f"/api/v1/remote-players/{player['id']}/play", json={"content_id": IH})
+    assert played.status_code == 202
+    assert played.json()["url"] == f"http://localhost:8000/tuner/stream/{IH}.ts"
+    assert played.json()["warnings"] == ["localhost"]
+
+    far = _create(alembic_client, name="Far away", host="8.8.8.8").json()
+    assert "tuner_blocked" in alembic_client.post(
+        f"/api/v1/remote-players/{far['id']}/play", json={"content_id": IH}
+    ).json()["warnings"]

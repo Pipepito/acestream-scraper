@@ -51,7 +51,10 @@ class ResolvedPublicUrl:
     warnings: List[str] = field(default_factory=list)
 
 
-def _host_warnings(url: str) -> List[str]:
+def host_warnings(url: str) -> List[str]:
+    """Codes for an origin other devices cannot reach: it names this machine
+    ("localhost") or a Docker-internal address. Shared with the remote-player
+    play response, which warns about the link it hands a player."""
     host = urlsplit(url).hostname or ""
     if host in ("localhost", "0.0.0.0", "::", "::1") or host.startswith("127."):
         return ["localhost"]
@@ -72,11 +75,11 @@ def request_origin(request: Request) -> str:
 def resolve_public_base_url(request: Request, settings_repo: SettingsRepository) -> ResolvedPublicUrl:
     configured = (settings_repo.get_setting(SettingsRepository.PUBLIC_BASE_URL) or "").strip()
     if configured:
-        warnings = _host_warnings(configured)
+        warnings = host_warnings(configured)
         if urlsplit(configured).hostname != request.url.hostname:
             warnings.append("proxied")
         return ResolvedPublicUrl(url=configured.rstrip("/"), source="setting", warnings=warnings)
     origin = request_origin(request)
     forwarded = bool(getattr(request.state, "forwarded", False))
-    warnings = _host_warnings(origin) + ["unset"]
+    warnings = host_warnings(origin) + ["unset"]
     return ResolvedPublicUrl(url=origin, source="forwarded" if forwarded else "request", warnings=warnings)

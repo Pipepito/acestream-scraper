@@ -5,16 +5,17 @@ import StatusLine from '../components/StatusLine';
 import PublicAddressSection from '../components/integrations/PublicAddressSection';
 import WebPlayerSection from '../components/integrations/WebPlayerSection';
 import RemotePlayersSection from '../components/integrations/RemotePlayersSection';
+import type { PlayerNotify } from '../components/player/playerCopy';
 import { usePublicUrl } from '../hooks/useSystemServices';
 import { usePlayerSessions } from '../hooks/usePlayer';
 import { useRemotePlayers } from '../hooks/useRemotePlayers';
 
-type Feedback = { message: string; severity: 'success' | 'error' } | null;
+type Feedback = { message: string; severity: 'success' | 'warning' | 'error' } | null;
 
 /** Play channels in the browser and on players in your network. */
 const Integrations: React.FC = () => {
   const [feedback, setFeedback] = useState<Feedback>(null);
-  const notify = (message: string, severity: 'success' | 'error') => setFeedback({ message, severity });
+  const notify: PlayerNotify = (message, severity) => setFeedback({ message, severity });
   const { data: publicUrl } = usePublicUrl();
   const { data: players } = useRemotePlayers();
   const { data: sessions } = usePlayerSessions();

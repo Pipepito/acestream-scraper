@@ -1877,6 +1877,11 @@ export interface components {
     RemotePlayerPlayResponse: {
       /** Url */
       url: string;
+      /**
+       * Warnings
+       * @description Why the player probably cannot fetch this URL: localhost | docker-internal | tuner_blocked
+       */
+      warnings?: string[];
     };
     /** RemotePlayerProbeResponse */
     RemotePlayerProbeResponse: {

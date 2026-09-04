@@ -16,13 +16,13 @@ import {
 import { ApiError } from '../../services/apiErrors';
 import { remotePlayerService, type RemotePlayer, type RemotePlayerKind } from '../../services/remotePlayerService';
 import { getErrorMessage } from '../../utils/errorUtils';
-import { describeRemotePlayerError } from '../player/playerCopy';
+import { describeRemotePlayerError, type PlayerNotify } from '../player/playerCopy';
 import ChannelPickerDialog from '../player/ChannelPickerDialog';
 import FindPlayersDialog from './FindPlayersDialog';
 import RemotePlayerDialog from './RemotePlayerDialog';
 
 export interface RemotePlayersSectionProps {
-  notify: (message: string, severity: 'success' | 'error') => void;
+  notify: PlayerNotify;
 }
 
 const KIND_LABEL: Record<RemotePlayerKind, string> = { vlc: 'VLC', kodi: 'Kodi' };
@@ -277,7 +277,7 @@ const RemotePlayersSection: React.FC<RemotePlayersSectionProps> = ({ notify }) =
           setAdding(true);
         }}
       />
-      <ChannelPickerDialog open={sending !== null} player={sending} onClose={() => setSending(null)} />
+      <ChannelPickerDialog open={sending !== null} player={sending} onClose={() => setSending(null)} notify={notify} />
       {confirmDialog}
     </ContentSection>
   );

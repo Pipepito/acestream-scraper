@@ -28,6 +28,8 @@ import PlayOnMenu from '../components/player/PlayOnMenu';
 type SnackbarNotice = {
   message: string;
   error?: unknown;
+  /** Set by callers that distinguish more than "worked"/"failed" (a warning). */
+  severity?: 'success' | 'warning' | 'error';
 };
 
 interface BulkStatusCheckSummary {
@@ -498,7 +500,7 @@ const AcestreamChannels: React.FC = () => {
               contentId={playOnTarget.contentId}
               title={playOnTarget.title}
               onDone={() => setPlayOnTarget(null)}
-              notify={(message, severity) => setNotice({ message, error: severity === 'error' })}
+              notify={(message, severity) => setNotice({ message, severity })}
             />
           ) : null}
         </DialogContent>
@@ -515,7 +517,11 @@ const AcestreamChannels: React.FC = () => {
         onClose={() => setNotice(null)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert onClose={() => setNotice(null)} severity={notice?.error ? 'error' : 'success'} sx={{ width: '100%' }}>
+        <Alert
+          onClose={() => setNotice(null)}
+          severity={notice?.severity ?? (notice?.error ? 'error' : 'success')}
+          sx={{ width: '100%' }}
+        >
           {notice?.message}
         </Alert>
       </Snackbar>

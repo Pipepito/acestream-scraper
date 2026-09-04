@@ -62,6 +62,12 @@ export interface RemotePlayerStatus {
   message: string | null;
 }
 
+export interface RemotePlayerPlayResult {
+  url: string;
+  /** Why the player probably cannot fetch `url`: localhost | docker-internal | tuner_blocked. */
+  warnings?: string[];
+}
+
 export interface ScanHit {
   host: string;
   port: number;
@@ -96,8 +102,8 @@ export const remotePlayerService = {
   test: async (body: RemotePlayerTestRequest): Promise<RemotePlayerProbe> => (await apiClient.post<RemotePlayerProbe>(`${BASE_URL}/test`, body)).data,
   testSaved: async (id: number): Promise<RemotePlayerProbe> => (await apiClient.post<RemotePlayerProbe>(`${BASE_URL}/${id}/test`)).data,
   status: async (id: number): Promise<RemotePlayerStatus> => (await apiClient.get<RemotePlayerStatus>(`${BASE_URL}/${id}/status`)).data,
-  play: async (id: number, contentId: string, title?: string): Promise<{ url: string }> =>
-    (await apiClient.post<{ url: string }>(`${BASE_URL}/${id}/play`, { content_id: contentId, title })).data,
+  play: async (id: number, contentId: string, title?: string): Promise<RemotePlayerPlayResult> =>
+    (await apiClient.post<RemotePlayerPlayResult>(`${BASE_URL}/${id}/play`, { content_id: contentId, title })).data,
   command: async (id: number, command: RemotePlayerCommand, value?: number): Promise<void> => {
     await apiClient.post(`${BASE_URL}/${id}/command`, value === undefined ? { command } : { command, value });
   },

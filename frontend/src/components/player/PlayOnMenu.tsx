@@ -4,7 +4,7 @@ import CastRoundedIcon from '@mui/icons-material/CastRounded';
 import { Link as RouterLink } from 'react-router-dom';
 import { usePlayOnRemotePlayer, useRemotePlayers } from '../../hooks/useRemotePlayers';
 import { ApiError } from '../../services/apiErrors';
-import { describeRemotePlayerError } from './playerCopy';
+import { describePlaySent, describeRemotePlayerError, type PlayerNotify } from './playerCopy';
 
 export interface PlayOnMenuProps {
   contentId: string;
@@ -16,7 +16,7 @@ export interface PlayOnMenuProps {
    * Where feedback goes. Callers that close their dialog in `onDone` must pass this:
    * closing unmounts the menu's own snackbar before the confirmation can be read.
    */
-  notify?: (message: string, severity: 'success' | 'error') => void;
+  notify?: PlayerNotify;
 }
 
 const KIND_LABEL: Record<string, string> = { vlc: 'VLC', kodi: 'Kodi' };
@@ -24,11 +24,11 @@ const KIND_LABEL: Record<string, string> = { vlc: 'VLC', kodi: 'Kodi' };
 /** "Play on…": send a channel to a saved VLC/Kodi player. */
 const PlayOnMenu: React.FC<PlayOnMenuProps> = ({ contentId, title, onDone, notify }) => {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
-  const [notice, setNotice] = useState<{ message: string; severity: 'success' | 'error' } | null>(null);
+  const [notice, setNotice] = useState<{ message: string; severity: 'success' | 'warning' | 'error' } | null>(null);
   const { data: players = [], isLoading } = useRemotePlayers();
   const play = usePlayOnRemotePlayer();
 
-  const report = (message: string, severity: 'success' | 'error') => {
+  const report: PlayerNotify = (message, severity) => {
     if (notify) notify(message, severity);
     else setNotice({ message, severity });
   };
@@ -36,8 +36,9 @@ const PlayOnMenu: React.FC<PlayOnMenuProps> = ({ contentId, title, onDone, notif
   const send = async (id: number, name: string) => {
     setAnchor(null);
     try {
-      await play.mutateAsync({ id, contentId, title });
-      report(`Sent ${title} to ${name}.`, 'success');
+      const result = await play.mutateAsync({ id, contentId, title });
+      const sent = describePlaySent(title, name, result.warnings);
+      report(sent.message, sent.severity);
       onDone?.();
     } catch (err) {
       report(err instanceof ApiError ? describeRemotePlayerError(err) : 'Could not reach the player.', 'error');

@@ -77,6 +77,8 @@ A player reachable over Tailscale works out of the box: Tailscale addresses are 
 
 ## Errors while playing
 
+When you send a channel, the app checks the link before it confirms. If that link cannot work — it points at `localhost` (which on the player means the player itself) or at a Docker-internal address, or the player's address is not allowed to fetch streams from this server — the confirmation becomes a warning that names the cause and what to change, instead of a plain "Sent…". Fix it under **Integrations › Public address**, or by giving the player a different [stream link format](#stream-link-format).
+
 If a player stops answering, its card says "The player did not answer. Is it running with its web interface on?" and the transport buttons stop working until it comes back. Sending a channel to a player that has lost its password shows the same guided password message as **Test connection** — the app never confuses a player's password with the app's own `API_TOKEN`.
 
 Seeking is deliberately absent. These are live streams, and VLC and Kodi disagree about what a seek means on one.

@@ -18,12 +18,14 @@ import { usePlayOnRemotePlayer } from '../../hooks/useRemotePlayers';
 import { useTVChannelCatalog } from '../../hooks/useTVChannels';
 import { ApiError } from '../../services/apiErrors';
 import type { RemotePlayer } from '../../services/remotePlayerService';
-import { describeRemotePlayerError } from './playerCopy';
+import { describePlaySent, describeRemotePlayerError, type PlayerNotify } from './playerCopy';
 
 export interface ChannelPickerDialogProps {
   open: boolean;
   player: RemotePlayer | null;
   onClose: () => void;
+  /** Where the send's outcome goes: the dialog closes, so it cannot show it itself. */
+  notify: PlayerNotify;
 }
 
 interface PickerOption {
@@ -46,7 +48,7 @@ const useDebounced = (value: string, ms: number) => {
 };
 
 /** Pick a TV channel (best stream) or a raw stream and send it to a remote player. */
-const ChannelPickerDialog: React.FC<ChannelPickerDialogProps> = ({ open, player, onClose }) => {
+const ChannelPickerDialog: React.FC<ChannelPickerDialogProps> = ({ open, player, onClose, notify }) => {
   const [mode, setMode] = useState<'tv' | 'streams'>('tv');
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<PickerOption | null>(null);
@@ -93,9 +95,11 @@ const ChannelPickerDialog: React.FC<ChannelPickerDialogProps> = ({ open, player,
     if (!player || !selected) return;
     setError(null);
     try {
-      await play.mutateAsync({ id: player.id, contentId: selected.contentId, title: selected.label });
+      const result = await play.mutateAsync({ id: player.id, contentId: selected.contentId, title: selected.label });
+      const sent = describePlaySent(selected.label, player.name, result.warnings);
       setSelected(null);
       onClose();
+      notify(sent.message, sent.severity);
     } catch (err) {
       setError(err instanceof ApiError ? describeRemotePlayerError(err) : 'Could not reach the player.');
     }

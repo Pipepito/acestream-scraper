@@ -1,6 +1,10 @@
 import type { ApiError } from '../../services/apiErrors';
 import type { PlayerCodecs, PlayerError } from '../../services/playerService';
 
+/** How a page reports a player action's outcome. A send can succeed and still
+ * warn: the player took the link but probably cannot fetch it. */
+export type PlayerNotify = (message: string, severity: 'success' | 'warning' | 'error') => void;
+
 export interface PlayerErrorInput {
   error: PlayerError | null;
   error_message: string;
@@ -54,4 +58,33 @@ export const describeRemotePlayerError = (error: ApiError): string => {
   if (error.code === 'REMOTE_PLAYER_UNREACHABLE') return 'The player did not answer. Is it running with its web interface on?';
   if (error.code === 'REMOTE_PLAYER_COMMAND_FAILED') return `The player refused the command: ${error.message}`;
   return error.message || 'Something went wrong talking to the player.';
+};
+
+/**
+ * Why a channel the player accepted probably will not start, in the same codes
+ * the public address section already renders (`POST /remote-players/{id}/play`
+ * returns them alongside the URL it sent).
+ */
+const PLAY_WARNING_TEXT: Record<string, string> = {
+  localhost:
+    'the link points at localhost, which on the player means the player itself. Set the public address under Integrations to this server\u2019s network address.',
+  'docker-internal':
+    'the link points at a Docker-internal address other devices cannot reach. Set the public address under Integrations to this server\u2019s network address.',
+  tuner_blocked:
+    'this player\u2019s address is not allowed to fetch streams from this server, so it will be refused. Add its network to the allowed list, or give the player a stream link format that points at the engine or Acexy.',
+};
+
+export interface PlaySentFeedback {
+  message: string;
+  severity: 'success' | 'warning';
+}
+
+/** What to tell the user after a player accepted a channel: plain confirmation,
+ * or a warning when the server says the link will not reach it. */
+export const describePlaySent = (title: string, playerName: string, warnings?: string[]): PlaySentFeedback => {
+  const sent = `Sent ${title} to ${playerName}.`;
+  const reasons = (warnings ?? []).map((code) => PLAY_WARNING_TEXT[code]).filter(Boolean);
+  return reasons.length === 0
+    ? { message: sent, severity: 'success' }
+    : { message: `${sent} It may not start: ${reasons.join(' Also, ')}`, severity: 'warning' };
 };

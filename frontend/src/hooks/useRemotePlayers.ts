@@ -5,6 +5,7 @@ import {
   type RemotePlayer,
   type RemotePlayerCommand,
   type RemotePlayerCreate,
+  type RemotePlayerPlayResult,
   type RemotePlayerProbe,
   type RemotePlayerStatus,
   type RemotePlayerTestRequest,
@@ -56,7 +57,7 @@ export const useRemotePlayerStatus = (id: number, enabled = true) =>
   });
 
 export const usePlayOnRemotePlayer = () =>
-  useMutation<{ url: string }, ApiError, { id: number; contentId: string; title?: string }>({
+  useMutation<RemotePlayerPlayResult, ApiError, { id: number; contentId: string; title?: string }>({
     mutationFn: ({ id, contentId, title }) => remotePlayerService.play(id, contentId, title),
   });
 

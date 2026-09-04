@@ -24,10 +24,10 @@ const player = {
   updated_at: '',
 };
 
-const mount = (onClose: () => void) =>
+const mount = (onClose: () => void, notify: jest.Mock = jest.fn()) =>
   render(
     <ThemeProvider theme={createAppTheme('light')}>
-      <ChannelPickerDialog open player={player} onClose={onClose} />
+      <ChannelPickerDialog open player={player} onClose={onClose} notify={notify} />
     </ThemeProvider>
   );
 
@@ -53,9 +53,10 @@ describe('ChannelPickerDialog', () => {
       isLoading: false,
     });
     mockChannels.mockReturnValue({ data: { items: [] }, isLoading: false });
-    mockPlay.mockResolvedValue({ url: 'x' });
+    mockPlay.mockResolvedValue({ url: 'x', warnings: [] });
     const onClose = jest.fn();
-    mount(onClose);
+    const notify = jest.fn();
+    mount(onClose, notify);
     const input = screen.getByRole('combobox', { name: 'Channel' });
     fireEvent.mouseDown(input);
     expect(screen.queryByText('Empty')).not.toBeInTheDocument();
@@ -63,6 +64,22 @@ describe('ChannelPickerDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Send to Living room' }));
     await waitFor(() => expect(mockPlay).toHaveBeenCalledWith({ id: 1, contentId: 'best', title: 'Arena TV' }));
     expect(onClose).toHaveBeenCalled();
+    expect(notify).toHaveBeenCalledWith('Sent Arena TV to Living room.', 'success');
+  });
+
+  it('reports a link the player cannot fetch as a warning, not a confirmation', async () => {
+    mockCatalog.mockReturnValue({
+      data: [{ id: 7, name: 'Arena TV', is_active: true, acestream_channels: [{ id: 'best', name: 'Feed 1', is_online: true }] }],
+      isLoading: false,
+    });
+    mockChannels.mockReturnValue({ data: { items: [] }, isLoading: false });
+    mockPlay.mockResolvedValue({ url: 'http://scraper.lan:8000/tuner/stream/best.ts', warnings: ['tuner_blocked'] });
+    const notify = jest.fn();
+    mount(jest.fn(), notify);
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Channel' }));
+    fireEvent.click(screen.getByRole('option', { name: /Arena TV/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Send to Living room' }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringMatching(/It may not start/), 'warning'));
   });
 
   it('switches to raw streams', () => {

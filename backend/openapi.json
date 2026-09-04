@@ -2299,6 +2299,14 @@
           "url": {
             "title": "Url",
             "type": "string"
+          },
+          "warnings": {
+            "description": "Why the player probably cannot fetch this URL: localhost | docker-internal | tuner_blocked",
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
           }
         },
         "required": [

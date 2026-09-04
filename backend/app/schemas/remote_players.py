@@ -82,6 +82,10 @@ class RemotePlayerPlayRequest(BaseModel):
 
 class RemotePlayerPlayResponse(BaseModel):
     url: str
+    warnings: List[str] = Field(
+        default_factory=list,
+        description="Why the player probably cannot fetch this URL: localhost | docker-internal | tuner_blocked",
+    )
 
 
 class RemotePlayerCommandRequest(BaseModel):

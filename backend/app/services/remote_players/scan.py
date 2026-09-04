@@ -9,6 +9,8 @@ from typing import Callable, List, Optional, Tuple, Union
 
 import httpx
 
+from app.utils.url_guard import BlockedURLError, validate_lan_target
+
 PRIVATE_SCAN_NETWORKS = tuple(
     ipaddress.ip_network(n)
     for n in ("10.0.0.0/8", "100.64.0.0/10", "172.16.0.0/12", "192.168.0.0/16", "fc00::/7")
@@ -19,6 +21,7 @@ _DOCKER_DESKTOP = ipaddress.ip_network("192.168.65.0/24")
 _DOCKER_BRIDGE = ipaddress.ip_network("172.16.0.0/12")
 _PROBE_TIMEOUT = httpx.Timeout(2.0, connect=1.0)
 OUT_OF_TIME_HINT = "port is open, but the scan ran out of time before identifying it"
+REFUSED_HINT = "port is open, but this is not an address the app will contact"
 
 
 class ScanValidationError(ValueError):
@@ -112,6 +115,25 @@ def _capped_timeout(deadline: Optional[float]) -> dict:
     }
 
 
+def _contactable(host: str) -> bool:
+    """The scan's copy of the guard every other outbound path in this feature
+    runs. An accepted scan range can still hold an address the app refuses to
+    talk to: fd00:ec2::254 (the cloud metadata endpoint) is inside fc00::/7,
+    and a /122 around it is private and small enough for validate_scan_request."""
+    try:
+        validate_lan_target(host, resolve=False)
+    except BlockedURLError:
+        return False
+    return True
+
+
+def _url_host(host: str) -> str:
+    """An IPv6 literal needs brackets to be a URL: httpx parses
+    ``http://fd00::1:8080`` as a bad port and raises InvalidURL, which is not an
+    httpx.HTTPError and so escapes the handlers in classify()."""
+    return f"[{host}]" if ":" in host and not host.startswith("[") else host
+
+
 async def _tcp_open(host: str, port: int, timeout: float) -> bool:
     try:
         _, writer = await asyncio.wait_for(asyncio.open_connection(host, port), timeout=timeout)
@@ -126,10 +148,15 @@ def classify(host: str, port: int, client: httpx.Client, deadline: Optional[floa
     JSON-RPC body on /jsonrpc. Kodi's Basic realm keeps it out of the VLC branch.
 
     ``deadline`` is a ``time.monotonic()`` stamp: once it has passed, the port is
-    reported as unidentified instead of spending more HTTP requests on it."""
+    reported as unidentified instead of spending more HTTP requests on it.
+
+    ``host`` is a bare address (an IPv6 literal is bracketed only for the URL) so
+    that a hit prefills the Add dialog, where validate_host brackets it again."""
+    if not _contactable(host):
+        return ScanHit(host=host, port=port, kind="unknown", hint=REFUSED_HINT)
     if _out_of_time(deadline):
         return ScanHit(host=host, port=port, kind="unknown", hint=OUT_OF_TIME_HINT)
-    base = f"http://{host}:{port}"
+    base = f"http://{_url_host(host)}:{port}"
     try:
         response = client.get(f"{base}/requests/status.json", **_capped_timeout(deadline))
         looks_like_vlc_auth = (
@@ -179,7 +206,9 @@ async def scan_network(
     semaphore = asyncio.Semaphore(concurrency)
     timeout = max(0.05, timeout_ms / 1000)
     hosts = [
-        str(a) for a in (network.hosts() if network.num_addresses > 2 else [network.network_address])
+        str(a)
+        for a in (network.hosts() if network.num_addresses > 2 else [network.network_address])
+        if _contactable(str(a))
     ]
     outcome = ScanOutcome()
 

@@ -135,3 +135,71 @@ def test_classify_caps_each_request_at_the_time_left():
     # rejects a negative timeout with a ValueError that no handler here catches.
     lapsed = scan._capped_timeout(time.monotonic() - 5)["timeout"]
     assert lapsed.read == 0.0 and lapsed.connect == 0.0
+
+
+def test_classify_brackets_an_ipv6_host():
+    """`http://fd00::1:8080` is not a URL: httpx raises InvalidURL, which is not
+    an httpx.HTTPError, so it escapes classify()'s handlers and 500s the scan.
+    The hit keeps the bare address — the Add dialog prefills from it."""
+    seen = []
+
+    def handler(request):
+        seen.append(str(request.url))
+        return httpx.Response(200, json={"apiversion": 3})
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        hit = scan.classify("fd00::1", 8080, client)
+    assert hit.kind == "vlc" and hit.host == "fd00::1"
+    assert seen == ["http://[fd00::1]:8080/requests/status.json"]
+
+
+def test_scan_identifies_players_on_an_ipv6_network(monkeypatch):
+    """fc00::/7 is an accepted, documented scan range, so an IPv6 network with an
+    open port has to come back as hits rather than as an unhandled error."""
+    async def always_open(host, port, timeout):
+        return True
+
+    monkeypatch.setattr(scan, "_tcp_open", always_open)
+
+    def handler(request):
+        return httpx.Response(401, headers={"WWW-Authenticate": 'Basic realm="Kodi"'})
+
+    outcome = asyncio.run(
+        scan_network(
+            ipaddress.ip_network("fd00::/126"),
+            [8080],
+            client_factory=lambda: httpx.Client(transport=httpx.MockTransport(handler)),
+        )
+    )
+    assert [h.host for h in outcome.hits] == ["fd00::1", "fd00::2", "fd00::3"]
+    assert {h.kind for h in outcome.hits} == {"kodi"}
+
+
+def test_classify_refuses_addresses_the_lan_guard_blocks():
+    """classify() is an outbound request builder like the drivers, so it runs the
+    same guard: fd00:ec2::254 (the cloud metadata endpoint) is inside fc00::/7."""
+    seen = []
+
+    def handler(request):
+        seen.append(str(request.url))
+        return httpx.Response(200, json={"apiversion": 3})
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        hit = scan.classify("fd00:ec2::254", 8080, client)
+    assert hit.kind == "unknown" and seen == []
+
+
+def test_scan_skips_addresses_the_lan_guard_blocks(monkeypatch):
+    """validate_scan_request accepts a /122 around fd00:ec2::254 — every address
+    in it is private — so the scan itself must leave the metadata endpoint alone."""
+    validate_scan_request("fd00:ec2::240/122", [8080])  # accepted, by design
+    connects = []
+
+    async def note(host, port, timeout):
+        connects.append(host)
+        return False
+
+    monkeypatch.setattr(scan, "_tcp_open", note)
+    outcome = asyncio.run(scan_network(ipaddress.ip_network("fd00:ec2::250/125"), [8080]))
+    assert "fd00:ec2::254" not in connects
+    assert connects and outcome.scanned == len(connects)

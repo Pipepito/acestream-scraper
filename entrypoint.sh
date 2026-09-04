@@ -381,7 +381,12 @@ if feature_enabled "$ENABLE_ZERONET"; then
         # accepts requests whose Host header it knows, so set
         # ZERONET_UI_HOST (space-separated hostnames) to reach the UI from
         # another machine. ZERONET_EXTRA_ARGS passes anything else through.
-        ZERONET_START_COMMAND="$ZERONET_BINARY_PATH --ui_ip 0.0.0.0 --ui_port $ZERONET_UI_PORT --fileserver_port $ZERONET_FILESERVER_PORT --data_dir $ZERONET_DATA_DIR --log_dir $LOG_DIR --tor $zeronet_tor_mode${ZERONET_UI_HOST:+ --ui_host $ZERONET_UI_HOST}${ZERONET_EXTRA_ARGS:+ $ZERONET_EXTRA_ARGS} main"
+        #
+        # --ui_host goes FIRST: it is declared nargs='*', so immediately
+        # before the trailing `main` it consumes the action name too and
+        # ZeroNet dies with KeyError: None in Config.getActionArguments().
+        # Any following flag ends the greedy match.
+        ZERONET_START_COMMAND="$ZERONET_BINARY_PATH${ZERONET_UI_HOST:+ --ui_host $ZERONET_UI_HOST} --ui_ip 0.0.0.0 --ui_port $ZERONET_UI_PORT --fileserver_port $ZERONET_FILESERVER_PORT --data_dir $ZERONET_DATA_DIR --log_dir $LOG_DIR --tor $zeronet_tor_mode${ZERONET_EXTRA_ARGS:+ $ZERONET_EXTRA_ARGS} main"
     fi
     supervise_service "ZeroNet" "$ZERONET_START_COMMAND" &
     child_pids+=("$!")

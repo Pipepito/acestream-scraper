@@ -64,7 +64,10 @@ def test_removes_only_old_transient_images_and_keeps_current(tmp_path: Path):
         "acestream-installer-test:apk-armeabi-v7a",
     }
     assert "docker image prune -f" in calls
-    assert "docker image prune -af --filter until=24h" in calls
+    assert (
+        "docker image prune -af --filter until=24h "
+        "--filter label!=org.acestream-scraper.ci.keep=true"
+    ) in calls
     prunes = [c for c in calls if c.startswith("docker buildx prune --builder")]
     assert "docker buildx prune --builder acestream-builder -f --max-used-space 3GB" in prunes
     assert "docker buildx prune --builder default -f --max-used-space 3GB" in prunes

@@ -52,6 +52,9 @@ async def test_http_scraper_uses_certifi_ssl_context(monkeypatch):
         session_kwargs.update(kwargs)
         return MockSessionContext()
 
+    # URL-policy behavior is covered separately. Keep this SSL wiring test fully
+    # offline so it is deterministic in network-isolated CI.
+    monkeypatch.setattr(http_scraper_module, "validate_outbound_url", lambda _url: None)
     monkeypatch.setattr(http_scraper_module, "ssl", SimpleNamespace(create_default_context=fake_create_default_context), raising=False)
     monkeypatch.setattr(http_scraper_module, "certifi", SimpleNamespace(where=lambda: "/tmp/certifi.pem"), raising=False)
     monkeypatch.setattr(http_scraper_module.aiohttp, "ClientSession", fake_client_session)

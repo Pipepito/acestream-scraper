@@ -28,6 +28,9 @@ export interface RemotePlayersSectionProps {
 
 const KIND_LABEL: Record<RemotePlayerKind, string> = { vlc: 'VLC', kodi: 'Kodi' };
 
+/** The loudest each player accepts: VLC goes to 200 %, Kodi clamps at 100 %. */
+const MAX_VOLUME_PCT: Record<RemotePlayerKind, number> = { vlc: 200, kodi: 100 };
+
 const formatClock = (seconds: number | null | undefined): string => {
   if (seconds === null || seconds === undefined) return '';
   const minutes = Math.floor(seconds / 60);
@@ -158,9 +161,9 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete, onSen
         <Slider
           size="small"
           aria-label={`Volume ${player.name}`}
-          value={volumePct}
+          value={Math.min(volumePct, MAX_VOLUME_PCT[player.kind])}
           min={0}
-          max={200}
+          max={MAX_VOLUME_PCT[player.kind]}
           sx={{ mx: 1, flex: 1 }}
           disabled={!status}
           onChange={(_event, value) => setVolumeDraft(Array.isArray(value) ? value[0] : value)}

@@ -237,6 +237,24 @@ describe('Integrations page', () => {
     expect(slider.value).toBe('75');
   });
 
+  it('bounds the volume slider by what the player accepts', () => {
+    // Kodi's API clamps at 100 %, so a 0-200 slider would do nothing above half.
+    mockPlayers.mockReturnValue({
+      data: [
+        { id: 1, name: 'Living room', kind: 'vlc', host: '192.168.1.20', port: 8080, username: null, base_url_id: null, has_password: true, created_at: '', updated_at: '' },
+        { id: 2, name: 'Bedroom', kind: 'kodi', host: '192.168.1.21', port: 8080, username: 'kodi', base_url_id: null, has_password: true, created_at: '', updated_at: '' },
+      ],
+      isLoading: false,
+    });
+    renderPage();
+
+    const vlc = within(screen.getByRole('group', { name: 'Player Living room' })).getByRole('slider', { name: 'Volume Living room' });
+    const kodi = within(screen.getByRole('group', { name: 'Player Bedroom' })).getByRole('slider', { name: 'Volume Bedroom' });
+
+    expect(vlc).toHaveAttribute('aria-valuemax', '200');
+    expect(kodi).toHaveAttribute('aria-valuemax', '100');
+  });
+
   it('opens the add dialog and runs Test connection with the guided VLC message', async () => {
     mockTest.mockResolvedValue({
       reachable: true,

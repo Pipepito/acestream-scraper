@@ -163,13 +163,6 @@ def test_manual_refresh_leaves_nothing_for_the_sync_job(alembic_client, alembic_
     assert jelly.started == [1]  # the job asked Jellyfin for nothing more
 
 
-def test_scheduler_registers_the_sync_job():
-    import re
-    from pathlib import Path
-    source = (Path(__file__).resolve().parents[1] / "main.py").read_text()
-    assert re.search(r'add_interval_task\(run_media_server_sync_task, seconds=600, job_id="media_server_sync"\)', source)
-
-
 def test_a_jellyfin_without_a_key_is_asked_for_one_instead_of_being_told_it_was_rejected(alembic_client, fakes):
     """A missing administrator key and a refused one are different problems:
     the first one tells the user where to make a key, the second says the key

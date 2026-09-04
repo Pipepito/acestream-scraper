@@ -63,7 +63,7 @@ Pick M3U only if you specifically want `tvg-id` linkage and accept the re-keying
 Three things move the guide along, and you rarely need to do anything by hand:
 
 - **Jellyfin's Refresh Guide task** is what actually pulls a new guide. The app asks Jellyfin to run it.
-- **Every hour**, this app refreshes its own EPG data from your EPG sources.
+- **On your EPG schedule**, this app refreshes its own EPG data from your EPG sources — every 6 hours unless you change **Refresh EPG every (hours)** on the Settings page.
 - **Every ten minutes**, a background job compares the current channel list and guide with what was last pushed. If either changed, it asks Jellyfin to refresh — no more often than `MEDIA_SERVER_MIN_REFRESH_MINUTES` (default 30 minutes) apart, so a busy evening of edits does not hammer the server. Set it to `0` to remove the delay.
 
 **Refresh now** on the card bypasses that delay and asks Jellyfin to refresh immediately.

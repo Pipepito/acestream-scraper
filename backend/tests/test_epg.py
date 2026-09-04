@@ -607,9 +607,21 @@ class TestEPGSourceTimestamps:
         assert abs((datetime.now(timezone.utc) - aware).total_seconds()) < 300
 
 
-def test_epg_xml_output_unchanged_by_refactor(client, seed_epg_programs, seed_tv_channels, db_session):
-    """Guard: the tuner refactor extracts helpers but must not change /api/v1/epg/xml."""
-    from app.services.epg_service import EPGService
-    first = client.get("/api/v1/epg/xml").text
-    assert first == EPGService(db_session).generate_epg_xml()
-    assert first.startswith('<?xml version="1.0" encoding="utf-8" ?>\n<!DOCTYPE tv SYSTEM "xmltv.dtd">\n<tv generator-info-name="Acestream Scraper EPG Generator"')
+def test_epg_xml_matches_the_recorded_pre_refactor_export(client, db_session, monkeypatch):
+    """Guard: /api/v1/epg/xml still emits the document it emitted before the
+    tuner refactor split ``generate_epg_xml`` into shared helpers.
+
+    ``fixtures/epg_xml_export.xml`` was recorded from the pre-refactor
+    implementation for exactly this guide, so a later change to
+    ``epg_channel_lookup`` / ``programs_in_window`` / ``programme_xml_lines``
+    — which the tuner guide also uses — shows up here as a diff.
+    """
+    from tests.epg_xml_fixture import RECORDED_EXPORT, frozen_epg_clock, seed_recorded_guide
+
+    seed_recorded_guide(db_session)
+    frozen_epg_clock(monkeypatch)
+
+    response = client.get("/api/v1/epg/xml")
+
+    assert response.status_code == 200
+    assert response.text == RECORDED_EXPORT.read_text(encoding="utf-8")

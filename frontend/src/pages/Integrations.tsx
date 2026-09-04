@@ -5,10 +5,12 @@ import StatusLine from '../components/StatusLine';
 import PublicAddressSection from '../components/integrations/PublicAddressSection';
 import WebPlayerSection from '../components/integrations/WebPlayerSection';
 import RemotePlayersSection from '../components/integrations/RemotePlayersSection';
+import MediaServersSection from '../components/integrations/MediaServersSection';
 import type { PlayerNotify } from '../components/player/playerCopy';
 import { usePublicUrl } from '../hooks/useSystemServices';
 import { usePlayerSessions } from '../hooks/usePlayer';
 import { useRemotePlayers } from '../hooks/useRemotePlayers';
+import { useMediaServers } from '../hooks/useMediaServers';
 
 type Feedback = { message: string; severity: 'success' | 'warning' | 'error' } | null;
 
@@ -18,6 +20,7 @@ const Integrations: React.FC = () => {
   const notify: PlayerNotify = (message, severity) => setFeedback({ message, severity });
   const { data: publicUrl } = usePublicUrl();
   const { data: players } = useRemotePlayers();
+  const { data: servers } = useMediaServers();
   const { data: sessions } = usePlayerSessions();
 
   return (
@@ -35,12 +38,14 @@ const Integrations: React.FC = () => {
             tone: publicUrl && publicUrl.warnings.length > 0 ? 'warning' : 'default',
           },
           { label: 'Players', value: players ? String(players.length) : '…' },
+          { label: 'Media servers', value: servers ? String(servers.length) : '…' },
           { label: 'Active streams', value: sessions ? String(sessions.sessions.length) : '…' },
         ]}
       />
       <PublicAddressSection notify={notify} />
       <WebPlayerSection />
       <RemotePlayersSection notify={notify} />
+      <MediaServersSection notify={notify} />
       <Snackbar
         open={feedback !== null}
         autoHideDuration={5000}

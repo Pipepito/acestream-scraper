@@ -3,8 +3,11 @@ import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material'
 import { useQueryClient } from '@tanstack/react-query';
 import ContentSection from '../layout/ContentSection';
 import { PUBLIC_URL_QUERY_KEY, usePublicUrl } from '../../hooks/useSystemServices';
+import { useTunerStatus } from '../../hooks/useTuner';
 import { configService } from '../../services/configService';
+import type { TunerDenial } from '../../services/tunerService';
 import { getErrorMessage } from '../../utils/errorUtils';
+import { formatRelativeTime } from '../../utils/format';
 
 const SOURCE_LABEL = { setting: 'Setting', forwarded: 'Proxy headers', request: 'Request' } as const;
 
@@ -17,6 +20,19 @@ const WARNING_TEXT: Record<string, string> = {
     'The saved address differs from the one you are browsing from. Make sure /tuner/ is not behind proxy authentication (see the reverse-proxy guide).',
 };
 
+const ALLOWLIST_INEFFECTIVE =
+  'This host hides real client addresses (Docker Desktop, rootless Docker, or IPv6 through docker-proxy); the private-network allowlist cannot tell your LAN from the internet. Publish the port IPv4-only, put a reverse proxy with allow/deny in front, or keep port 8000 off the internet.';
+
+/** The most recent request the allowlist turned away, or null when there is none. */
+const newestDenial = (denials: TunerDenial[]): TunerDenial | null =>
+  denials.reduce<TunerDenial | null>((newest, denial) => (newest === null || denial.at > newest.at ? denial : newest), null);
+
+/** Denials are stamped in POSIX seconds; formatRelativeTime wants an ISO string. */
+const denialTime = (denial: TunerDenial): string => {
+  const at = new Date(denial.at * 1000);
+  return formatRelativeTime(Number.isNaN(at.getTime()) ? null : at.toISOString());
+};
+
 export interface PublicAddressSectionProps {
   notify: (message: string, severity: 'success' | 'error') => void;
 }
@@ -25,6 +41,8 @@ export interface PublicAddressSectionProps {
 const PublicAddressSection: React.FC<PublicAddressSectionProps> = ({ notify }) => {
   const queryClient = useQueryClient();
   const { data, isLoading } = usePublicUrl();
+  const { data: tuner } = useTunerStatus();
+  const denial = newestDenial(tuner?.recent_denials ?? []);
   const [value, setValue] = useState('');
   const [saving, setSaving] = useState(false);
   const saved = data?.source === 'setting' ? data.url : '';
@@ -62,6 +80,19 @@ const PublicAddressSection: React.FC<PublicAddressSectionProps> = ({ notify }) =
               {WARNING_TEXT[warning] ?? warning}
             </Alert>
           ))}
+          {tuner?.warnings.includes('TUNER_ALLOWLIST_INEFFECTIVE') ? <Alert severity="warning">{ALLOWLIST_INEFFECTIVE}</Alert> : null}
+          {denial ? (
+            <Alert severity="warning">
+              Requests from {denial.client_ip} were denied {denialTime(denial)} ({denial.path}); add its network to TUNER_ALLOWED_NETWORKS if it is
+              yours.
+            </Alert>
+          ) : null}
+          {tuner && tuner.overflow > 0 ? (
+            <Alert severity="warning">
+              Plex stops saving channel maps at roughly 450-480 channels (it depends on channel number and name length). {tuner.overflow} channels
+              were left out; disable channels or lower the count.
+            </Alert>
+          ) : null}
           <Stack
             component="form"
             direction={{ xs: 'column', sm: 'row' }}

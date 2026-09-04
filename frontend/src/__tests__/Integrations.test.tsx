@@ -14,6 +14,18 @@ const mockStatus = jest.fn();
 const mockDelete = jest.fn();
 const mockCommand = jest.fn();
 const mockTest = jest.fn();
+const mockServers = jest.fn();
+const mockServerStatus = jest.fn();
+const mockCreateServer = jest.fn();
+const mockUpdateServer = jest.fn();
+const mockDeleteServer = jest.fn();
+const mockTestServer = jest.fn();
+const mockConnectServer = jest.fn();
+const mockRefreshServer = jest.fn();
+const mockDisconnectServer = jest.fn();
+const mockTunerStatus = jest.fn();
+const mockTunerSettings = jest.fn();
+const mockUpdateTunerSettings = jest.fn();
 
 jest.mock('../hooks/useSystemServices', () => ({ usePublicUrl: () => mockPublicUrl(), PUBLIC_URL_QUERY_KEY: ['system', 'public-url'] }));
 jest.mock('../services/configService', () => ({ configService: { updatePublicBaseUrl: (...a: unknown[]) => mockUpdatePublicBaseUrl(...a) } }));
@@ -30,10 +42,59 @@ jest.mock('../hooks/useRemotePlayers', () => ({
   useScanDefault: () => ({ data: { cidr: '192.168.1.0/24', hint: '' } }),
   usePlayOnRemotePlayer: () => ({ mutateAsync: jest.fn(), isPending: false }),
 }));
+jest.mock('../hooks/useMediaServers', () => ({
+  useMediaServers: () => mockServers(),
+  useMediaServerStatus: (id: number) => mockServerStatus(id),
+  useCreateMediaServer: () => ({ mutateAsync: mockCreateServer, isPending: false }),
+  useUpdateMediaServer: () => ({ mutateAsync: mockUpdateServer, isPending: false }),
+  useDeleteMediaServer: () => ({ mutateAsync: mockDeleteServer, isPending: false }),
+  useTestMediaServer: () => ({ mutateAsync: mockTestServer, isPending: false }),
+  useConnectMediaServer: () => ({ mutateAsync: mockConnectServer, isPending: false }),
+  useRefreshMediaServer: () => ({ mutateAsync: mockRefreshServer, isPending: false }),
+  useDisconnectMediaServer: () => ({ mutateAsync: mockDisconnectServer, isPending: false }),
+}));
+jest.mock('../hooks/useTuner', () => ({
+  useTunerStatus: () => mockTunerStatus(),
+  useTunerSettings: () => mockTunerSettings(),
+  useUpdateTunerSettings: () => ({ mutateAsync: mockUpdateTunerSettings, isPending: false }),
+}));
 jest.mock('../hooks/useBaseUrls', () => ({ useBaseUrls: () => ({ data: [], isLoading: false }) }));
 jest.mock('../hooks/useTVChannels', () => ({ useTVChannelCatalog: () => ({ data: [], isLoading: false }) }));
 jest.mock('../hooks/useChannels', () => ({ useAcestreamChannels: () => ({ data: { items: [] }, isLoading: false }) }));
 jest.mock('@tanstack/react-query', () => ({ ...jest.requireActual('@tanstack/react-query'), useQueryClient: () => ({ invalidateQueries: jest.fn() }) }));
+
+const PLEX_STEPS = [
+  'In Plex Web open Settings > Live TV & DVR and choose Set Up Plex Tuner (Plex Pass is required).',
+  'Click "Don\'t see your HDHomeRun device? Enter its network address manually" and paste the tuner address.',
+  'Pick any country, then choose "Have an XMLTV guide on your server?" and paste the guide URL.',
+  'Review the channel mapping and finish. After channels change here, use Manage Channels > Rescan in Plex.',
+];
+
+const tunerStatus = (overrides: Record<string, unknown> = {}) => ({
+  data: {
+    channel_count: 12,
+    renumbered: [],
+    overflow: 0,
+    device_id: 'ACE12345',
+    urls: {
+      tuner: 'http://192.168.1.10:8000/tuner',
+      lineup: 'http://192.168.1.10:8000/tuner/lineup.json',
+      guide: 'http://192.168.1.10:8000/tuner/guide.xml',
+      playlist: 'http://192.168.1.10:8000/tuner/playlist.m3u',
+      epg: 'http://192.168.1.10:8000/tuner/epg.xml',
+      stream_template: 'http://192.168.1.10:8000/tuner/stream/{content_id}.ts',
+    },
+    ffmpeg_available: true,
+    allowed_networks: ['192.168.0.0/16'],
+    client_ip: '192.168.1.5',
+    peer: '192.168.1.5',
+    client_allowed: true,
+    client_source: 'direct',
+    warnings: [],
+    recent_denials: [],
+    ...overrides,
+  },
+});
 
 const renderPage = () =>
   render(
@@ -55,13 +116,52 @@ describe('Integrations page', () => {
       isLoading: false,
     });
     mockStatus.mockReturnValue({ data: { state: 'playing', title: 'Arena TV', position_s: 61, length_s: null, volume_pct: 50, message: null }, error: null });
+    mockServers.mockReturnValue({
+      data: [
+        {
+          id: 1, kind: 'jellyfin', name: 'Jelly', base_url: 'http://192.168.1.12:8096', tuner_mode: 'hdhomerun', enabled: true,
+          auto_refresh: true, has_api_key: true, connected: true, tuner_host_id: 'th-1', listing_provider_id: 'lp-1', dvr_key: null,
+          last_sync_at: new Date(Date.now() - 12 * 60_000).toISOString(), last_sync_status: 'ok', last_error: null,
+          server_version: '10.9.11', created_at: '', updated_at: '',
+        },
+        {
+          id: 2, kind: 'plex', name: 'Plex', base_url: 'http://192.168.1.13:32400', tuner_mode: 'hdhomerun', enabled: true,
+          auto_refresh: true, has_api_key: false, connected: true, tuner_host_id: null, listing_provider_id: null, dvr_key: 'dvr-9',
+          last_sync_at: null, last_sync_status: 'manual', last_error: null, server_version: '1.40.0', created_at: '', updated_at: '',
+        },
+      ],
+      isLoading: false,
+    });
+    mockServerStatus.mockImplementation((id: number) =>
+      id === 1
+        ? { data: { connected: true, channel_count: 42, refresh_state: 'Idle', last_result: 'Completed', steps: [], paste: {}, error: null } }
+        : {
+            data: {
+              connected: true, channel_count: null, refresh_state: null, last_result: null, steps: PLEX_STEPS,
+              paste: {
+                tuner_address: '192.168.1.10:8000/tuner',
+                guide_url: 'http://192.168.1.10:8000/tuner/guide.xml',
+                device_id: 'ACE12345',
+              },
+              error: null,
+            },
+          }
+    );
+    mockTunerStatus.mockReturnValue(tunerStatus());
+    mockTunerSettings.mockReturnValue({ data: { friendly_name: 'AceStream Tuner', tuner_count: 4, max_channels: 450, only_online: false }, isLoading: false });
   });
 
-  it('renders the page skeleton with the three sections', () => {
+  it('renders the page skeleton with the four sections', () => {
     renderPage();
     expect(screen.getByRole('heading', { level: 1, name: 'Integrations' })).toBeInTheDocument();
-    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['Public address', 'Web player', 'Remote players']);
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([
+      'Public address',
+      'Web player',
+      'Remote players',
+      'Media servers',
+    ]);
     expect(screen.getByRole('status', { name: 'Integration summary' })).toHaveTextContent('Players1');
+    expect(screen.getByRole('status', { name: 'Integration summary' })).toHaveTextContent('Media servers2');
   });
 
   it('warns about a localhost public address and saves a new one', async () => {
@@ -121,5 +221,107 @@ describe('Integrations page', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Test connection' }));
     expect(await within(dialog).findByText(/Tools > Preferences/)).toBeInTheDocument();
     expect(mockTest).toHaveBeenCalledWith(expect.objectContaining({ kind: 'vlc', host: '192.168.1.21', port: 8080 }));
+  });
+
+  it('shows a connected Jellyfin card with two visible actions and confirms Disconnect and Delete', async () => {
+    mockDisconnectServer.mockResolvedValue(undefined);
+    mockDeleteServer.mockResolvedValue(undefined);
+    renderPage();
+    const card = screen.getByRole('group', { name: 'Media server Jelly' });
+    expect(within(card).getByText('Connected')).toBeInTheDocument();
+    expect(within(card).getByText('Guide up to date')).toBeInTheDocument();
+    expect(within(card).getByText(/42 channels/)).toBeInTheDocument();
+    expect(within(card).getByRole('button', { name: 'Refresh now Jelly' })).toBeEnabled();
+
+    fireEvent.click(within(card).getByRole('button', { name: 'More actions for Jelly' }));
+    const menu = screen.getByRole('menu');
+    expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Edit', 'Test connection', 'Delete']);
+    fireEvent.keyDown(menu, { key: 'Escape' });
+
+    fireEvent.click(within(card).getByRole('button', { name: 'Disconnect Jelly' }));
+    const disconnect = await screen.findByRole('dialog', { name: 'Disconnect Jelly?' });
+    expect(disconnect).toHaveTextContent(/removes the AceStream tuner and its guide provider from Jellyfin/);
+    fireEvent.click(within(disconnect).getByRole('button', { name: 'Disconnect' }));
+    await waitFor(() => expect(mockDisconnectServer).toHaveBeenCalledWith(1));
+
+    fireEvent.click(within(card).getByRole('button', { name: 'More actions for Jelly' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    expect(await screen.findByRole('dialog', { name: 'Delete Jelly?' })).toBeInTheDocument();
+  });
+
+  it('shows the Plex setup steps, copy buttons and a disabled refresh without a token', async () => {
+    const writeText = jest.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+    mockDisconnectServer.mockResolvedValue(undefined);
+    renderPage();
+    const card = screen.getByRole('group', { name: 'Media server Plex' });
+    expect(within(card).getByText('Rescan the guide in Plex')).toBeInTheDocument();
+    expect(within(card).getByText(/Set Up Plex Tuner/)).toBeInTheDocument();
+    expect(within(card).getAllByRole('listitem')).toHaveLength(PLEX_STEPS.length);
+    expect(within(card).getByRole('button', { name: 'Refresh now Plex' })).toBeDisabled();
+
+    fireEvent.click(within(card).getByRole('button', { name: 'Copy tuner address' }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith('192.168.1.10:8000/tuner'));
+    fireEvent.click(within(card).getByRole('button', { name: 'Copy guide URL' }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith('http://192.168.1.10:8000/tuner/guide.xml'));
+
+    // Plex disconnect only forgets the DVR key here, so it does not confirm.
+    fireEvent.click(within(card).getByRole('button', { name: 'Disconnect Plex' }));
+    await waitFor(() => expect(mockDisconnectServer).toHaveBeenCalledWith(2));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('offers the tuner mode radio only for Jellyfin and shows the probe message', async () => {
+    mockTestServer.mockResolvedValue({
+      reachable: true,
+      authenticated: true,
+      version: '10.9.11',
+      message: 'Jellyfin is reachable',
+      tuner_access: { addresses: ['192.168.1.12'], allowed: false },
+    });
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Add media server' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Add media server' });
+    expect(within(dialog).getByRole('radiogroup', { name: 'Channels reach Jellyfin as' })).toBeInTheDocument();
+
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Address' }), { target: { value: 'http://192.168.1.12:8096' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Test connection' }));
+    expect(await within(dialog).findByText(/Jellyfin is reachable/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/is outside TUNER_ALLOWED_NETWORKS/)).toBeInTheDocument();
+
+    fireEvent.mouseDown(within(dialog).getByRole('combobox', { name: 'Media server' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Plex' }));
+    expect(within(dialog).queryByRole('radiogroup')).not.toBeInTheDocument();
+  });
+
+  it('explains an ineffective allowlist and the requests it denied', () => {
+    mockTunerStatus.mockReturnValue(
+      tunerStatus({
+        warnings: ['TUNER_ALLOWLIST_INEFFECTIVE'],
+        recent_denials: [{ client_ip: '203.0.113.9', peer: '203.0.113.9', path: '/tuner/lineup.json', at: 1 }],
+      })
+    );
+    renderPage();
+    const section = screen.getByRole('region', { name: 'Public address' });
+    const alerts = within(section).getAllByRole('alert');
+    expect(alerts).toHaveLength(4);
+    const text = alerts.map((alert) => alert.textContent).join(' | ');
+    expect(text).toMatch(/hides real client addresses/);
+    expect(text).toMatch(/Requests from 203\.0\.113\.9 were denied/);
+    expect(text).toMatch(/\/tuner\/lineup\.json/);
+  });
+
+  it('saves the tuner settings from the collapsible block', async () => {
+    mockUpdateTunerSettings.mockResolvedValue({ friendly_name: 'Living room tuner', tuner_count: 4, max_channels: 450, only_online: false });
+    renderPage();
+    const section = screen.getByRole('region', { name: 'Media servers' });
+    fireEvent.click(within(section).getByRole('button', { name: 'Tuner settings' }));
+    fireEvent.change(within(section).getByRole('textbox', { name: 'Tuner name' }), { target: { value: 'Living room tuner' } });
+    fireEvent.click(within(section).getByRole('button', { name: 'Save tuner settings' }));
+    await waitFor(() =>
+      expect(mockUpdateTunerSettings).toHaveBeenCalledWith(
+        expect.objectContaining({ friendly_name: 'Living room tuner', tuner_count: 4, max_channels: 450, only_online: false })
+      )
+    );
   });
 });

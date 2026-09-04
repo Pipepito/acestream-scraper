@@ -1966,6 +1966,16 @@
             "title": "Authenticated",
             "type": "boolean"
           },
+          "credentials": {
+            "default": "missing",
+            "enum": [
+              "ok",
+              "missing",
+              "rejected"
+            ],
+            "title": "Credentials",
+            "type": "string"
+          },
           "message": {
             "title": "Message",
             "type": "string"

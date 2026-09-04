@@ -47,9 +47,13 @@ export interface MediaServerTestRequest {
   id?: number;
 }
 
+/** What the probe found about the key we hold: accepted, refused, or none sent. */
+export type MediaServerCredentials = 'ok' | 'missing' | 'rejected';
+
 export interface MediaServerProbe {
   reachable: boolean;
   authenticated: boolean;
+  credentials: MediaServerCredentials;
   version: string | null;
   message: string;
   tuner_access: { addresses: string[]; allowed: boolean };

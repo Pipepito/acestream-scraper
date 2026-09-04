@@ -27,6 +27,14 @@ const mockTunerStatus = jest.fn();
 const mockTunerSettings = jest.fn();
 const mockUpdateTunerSettings = jest.fn();
 const mockInvalidateQueries = jest.fn();
+const mockTestSaved = jest.fn();
+
+// The player card probes a saved player through the service (POST /{id}/test),
+// not through the test mutation the dialog uses.
+jest.mock('../services/remotePlayerService', () => {
+  const actual = jest.requireActual('../services/remotePlayerService');
+  return { ...actual, remotePlayerService: { ...actual.remotePlayerService, testSaved: (id: number) => mockTestSaved(id) } };
+});
 
 jest.mock('../hooks/useSystemServices', () => ({ usePublicUrl: () => mockPublicUrl(), PUBLIC_URL_QUERY_KEY: ['system', 'public-url'] }));
 jest.mock('../services/configService', () => ({ configService: { updatePublicBaseUrl: (...a: unknown[]) => mockUpdatePublicBaseUrl(...a) } }));
@@ -272,6 +280,93 @@ describe('Integrations page', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Test connection' }));
     expect(await within(dialog).findByText(/Tools > Preferences/)).toBeInTheDocument();
     expect(mockTest).toHaveBeenCalledWith(expect.objectContaining({ kind: 'vlc', host: '192.168.1.21', port: 8080 }));
+  });
+
+  it('gives the same Test connection verdict from a player card as from the dialog', async () => {
+    // Reachable and authenticated, but the player cannot fetch our stream link:
+    // the card used to call that a plain success.
+    mockTestSaved.mockResolvedValue({
+      reachable: true,
+      authenticated: true,
+      version: '3.0.20',
+      message: 'connected',
+      hint: null,
+      tuner_access: { addresses: ['192.168.1.20'], allowed: false },
+    });
+    renderPage();
+
+    const card = screen.getByRole('group', { name: 'Player Living room' });
+    fireEvent.click(within(card).getByRole('button', { name: 'More actions for Living room' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Test connection' }));
+
+    const alert = await screen.findByText(/Living room: Connected \(version 3\.0\.20\)\./);
+    expect(alert).toHaveTextContent(/outside TUNER_ALLOWED_NETWORKS/);
+  });
+
+  it('gives the same Test connection verdict from a media server card as from the dialog', async () => {
+    mockTestServer.mockResolvedValue({
+      reachable: true,
+      authenticated: true,
+      credentials: 'ok',
+      version: '10.9.11',
+      message: 'Jellyfin is reachable',
+      tuner_access: { addresses: ['192.168.1.12'], allowed: false },
+    });
+    renderPage();
+
+    const card = screen.getByRole('group', { name: 'Media server Jelly' });
+    fireEvent.click(within(card).getByRole('button', { name: 'More actions for Jelly' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Test connection' }));
+
+    expect(await screen.findByText(/Jelly: Jellyfin is reachable \(version 10\.9\.11\)\./)).toHaveTextContent(
+      /is outside TUNER_ALLOWED_NETWORKS/
+    );
+  });
+
+  it('tells a Jellyfin without an API key where to make one instead of calling it rejected', async () => {
+    mockTestServer.mockResolvedValue({
+      reachable: true,
+      authenticated: false,
+      credentials: 'missing',
+      version: '10.9.11',
+      message: 'Jellyfin needs an administrator API key. In Jellyfin open Dashboard > API Keys, create one, and paste it here.',
+      tuner_access: { addresses: ['192.168.1.12'], allowed: true },
+    });
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add media server' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Add media server' });
+    expect(within(dialog).getByText(/Dashboard > API Keys and create one/)).toBeInTheDocument();
+
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Address' }), { target: { value: 'http://192.168.1.12:8096' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Test connection' }));
+
+    const alert = await within(dialog).findByRole('alert');
+    expect(alert).toHaveTextContent(/needs an administrator API key/);
+    expect(alert).toHaveTextContent(/Dashboard > API Keys/);
+    expect(alert.className).toMatch(/Warning/);
+    expect(alert).not.toHaveTextContent(/reject/i);
+  });
+
+  it('calls a refused API key an error, not a missing one', async () => {
+    mockTestServer.mockResolvedValue({
+      reachable: true,
+      authenticated: false,
+      credentials: 'rejected',
+      version: '10.9.11',
+      message: 'Jellyfin rejected this API key. It must be an administrator API key from Dashboard > API Keys.',
+      tuner_access: { addresses: ['192.168.1.12'], allowed: true },
+    });
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add media server' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Add media server' });
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Address' }), { target: { value: 'http://192.168.1.12:8096' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Test connection' }));
+
+    const alert = await within(dialog).findByRole('alert');
+    expect(alert).toHaveTextContent(/rejected this API key/);
+    expect(alert.className).toMatch(/Error/);
   });
 
   it('shows a connected Jellyfin card with two visible actions and confirms Disconnect and Delete', async () => {

@@ -21,8 +21,8 @@ import {
 } from '@mui/material';
 import { useCreateMediaServer, useTestMediaServer, useUpdateMediaServer } from '../../hooks/useMediaServers';
 import { ApiError } from '../../services/apiErrors';
-import type { MediaServer, MediaServerKind, MediaServerProbe, MediaServerTunerMode } from '../../services/mediaServerService';
-import { describeMediaServerError, KIND_LABEL, type MediaServerNotify } from './mediaServerCopy';
+import type { MediaServer, MediaServerKind, MediaServerTunerMode } from '../../services/mediaServerService';
+import { describeMediaServerError, describeMediaServerProbe, KIND_LABEL, type MediaServerNotify } from './mediaServerCopy';
 
 export interface MediaServerDialogProps {
   open: boolean;
@@ -33,19 +33,8 @@ export interface MediaServerDialogProps {
 }
 
 const KEY_HELPER: Record<MediaServerKind, string> = {
-  jellyfin: 'Jellyfin: Dashboard > API Keys',
+  jellyfin: 'Jellyfin needs an administrator API key: in Jellyfin open Dashboard > API Keys and create one.',
   plex: 'Plex: optional owner token, only needed for automatic guide refresh',
-};
-
-const describeProbe = (probe: MediaServerProbe, kind: MediaServerKind): { severity: 'success' | 'warning' | 'error'; text: string } => {
-  if (!probe.reachable) return { severity: 'error', text: probe.message };
-  if (!probe.authenticated) return { severity: 'warning', text: probe.message };
-  const version = probe.version ? ` (version ${probe.version})` : '';
-  if (probe.tuner_access.allowed) return { severity: 'success', text: `${probe.message}${version}.` };
-  return {
-    severity: 'warning',
-    text: `${probe.message}${version}. ${KIND_LABEL[kind]} at ${probe.tuner_access.addresses.join(', ')} is outside TUNER_ALLOWED_NETWORKS and will get 403 from the tuner routes; add its network.`,
-  };
 };
 
 /** Add or edit one Jellyfin/Plex server, with an inline "Test connection" probe. */
@@ -85,7 +74,7 @@ const MediaServerDialog: React.FC<MediaServerDialogProps> = ({ open, server, onC
     setProbe(null);
     try {
       const result = await test.mutateAsync({ kind, base_url: baseUrl.trim(), api_key: apiKey || undefined, id: server?.id });
-      setProbe(describeProbe(result, kind));
+      setProbe(describeMediaServerProbe(result, kind));
     } catch (err) {
       setProbe({ severity: 'error', text: describeMediaServerError(err) });
     }

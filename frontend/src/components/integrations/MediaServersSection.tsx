@@ -42,7 +42,7 @@ import { useTunerSettings, useUpdateTunerSettings } from '../../hooks/useTuner';
 import type { MediaServer } from '../../services/mediaServerService';
 import type { TunerSettings } from '../../services/tunerService';
 import { formatRelativeTime } from '../../utils/format';
-import { describeMediaServerError, KIND_LABEL, SYNC_META, SYNC_NEEDS_ATTENTION, type MediaServerNotify } from './mediaServerCopy';
+import { describeMediaServerError, describeMediaServerProbe, KIND_LABEL, SYNC_META, SYNC_NEEDS_ATTENTION, type MediaServerNotify } from './mediaServerCopy';
 import MediaServerDialog from './MediaServerDialog';
 
 export interface MediaServersSectionProps {
@@ -418,9 +418,10 @@ const MediaServersSection: React.FC<MediaServersSectionProps> = ({ notify }) => 
 
   const handleTest = async (server: MediaServer) => {
     try {
+      // Same verdict the dialog's "Test connection" gives: one probe, one answer.
       const probe = await test.mutateAsync({ kind: server.kind, base_url: server.base_url, id: server.id });
-      const ok = probe.reachable && probe.authenticated;
-      notify(ok ? `${server.name} answered${probe.version ? ` (version ${probe.version})` : ''}.` : probe.message, ok ? 'success' : 'error');
+      const verdict = describeMediaServerProbe(probe, server.kind);
+      notify(`${server.name}: ${verdict.text}`, verdict.severity);
     } catch (err) {
       notify(describeMediaServerError(err), 'error');
     }

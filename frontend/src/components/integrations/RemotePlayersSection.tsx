@@ -17,7 +17,7 @@ import {
 import { ApiError } from '../../services/apiErrors';
 import { remotePlayerService, type RemotePlayer, type RemotePlayerKind } from '../../services/remotePlayerService';
 import { getErrorMessage } from '../../utils/errorUtils';
-import { describeRemotePlayerError, type PlayerNotify } from '../player/playerCopy';
+import { describeRemotePlayerError, describeRemotePlayerProbe, type PlayerNotify } from '../player/playerCopy';
 import ChannelPickerDialog from '../player/ChannelPickerDialog';
 import FindPlayersDialog from './FindPlayersDialog';
 import RemotePlayerDialog from './RemotePlayerDialog';
@@ -212,9 +212,10 @@ const RemotePlayersSection: React.FC<RemotePlayersSectionProps> = ({ notify }) =
 
   const handleTest = async (player: RemotePlayer) => {
     try {
+      // Same verdict the dialog's "Test connection" gives: one probe, one answer.
       const probe = await remotePlayerService.testSaved(player.id);
-      const ok = probe.reachable && probe.authenticated;
-      notify(ok ? `${player.name} answered${probe.version ? ` (version ${probe.version})` : ''}.` : probe.hint ?? probe.message, ok ? 'success' : 'error');
+      const verdict = describeRemotePlayerProbe(probe);
+      notify(`${player.name}: ${verdict.text}`, verdict.severity);
     } catch (err) {
       notify(getErrorMessage(err), 'error');
     }

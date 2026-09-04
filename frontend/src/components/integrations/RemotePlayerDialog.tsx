@@ -17,8 +17,9 @@ import {
 import { useBaseUrls } from '../../hooks/useBaseUrls';
 import { useCreateRemotePlayer, useTestRemotePlayer, useUpdateRemotePlayer } from '../../hooks/useRemotePlayers';
 import { ApiError } from '../../services/apiErrors';
-import type { RemotePlayer, RemotePlayerKind, RemotePlayerProbe } from '../../services/remotePlayerService';
+import type { RemotePlayer, RemotePlayerKind } from '../../services/remotePlayerService';
 import { getErrorMessage } from '../../utils/errorUtils';
+import { describeRemotePlayerProbe } from '../player/playerCopy';
 
 export interface RemotePlayerDialogProps {
   open: boolean;
@@ -28,18 +29,6 @@ export interface RemotePlayerDialogProps {
   onClose: () => void;
   notify: (message: string, severity: 'success' | 'error') => void;
 }
-
-const describeProbe = (probe: RemotePlayerProbe): { severity: 'success' | 'warning' | 'error'; text: string } => {
-  if (!probe.reachable) return { severity: 'error', text: `${probe.message} ${probe.hint ?? ''}`.trim() };
-  if (!probe.authenticated) return { severity: 'warning', text: probe.hint ?? probe.message };
-  const access = probe.tuner_access.allowed
-    ? ''
-    : ` This player (${probe.tuner_access.addresses.join(', ')}) is outside TUNER_ALLOWED_NETWORKS and will get 403 from the stream link: add its network or choose a stream link format that points at the engine or Acexy.`;
-  return {
-    severity: probe.tuner_access.allowed ? 'success' : 'warning',
-    text: `Connected${probe.version ? ` (version ${probe.version})` : ''}.${access}`,
-  };
-};
 
 /** Add or edit one VLC/Kodi player, with an inline "Test connection" probe. */
 const RemotePlayerDialog: React.FC<RemotePlayerDialogProps> = ({ open, player, prefill, onClose, notify }) => {
@@ -88,7 +77,7 @@ const RemotePlayerDialog: React.FC<RemotePlayerDialogProps> = ({ open, player, p
         password: password || undefined,
         id: player?.id,
       });
-      setProbe(describeProbe(result));
+      setProbe(describeRemotePlayerProbe(result));
     } catch (err) {
       setProbe({ severity: 'error', text: err instanceof ApiError ? err.message : getErrorMessage(err) });
     }

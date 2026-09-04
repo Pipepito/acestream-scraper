@@ -168,3 +168,27 @@ def test_scheduler_registers_the_sync_job():
     from pathlib import Path
     source = (Path(__file__).resolve().parents[1] / "main.py").read_text()
     assert re.search(r'add_interval_task\(run_media_server_sync_task, seconds=600, job_id="media_server_sync"\)', source)
+
+
+def test_a_jellyfin_without_a_key_is_asked_for_one_instead_of_being_told_it_was_rejected(alembic_client, fakes):
+    """A missing administrator key and a refused one are different problems:
+    the first one tells the user where to make a key, the second says the key
+    it has is wrong."""
+    missing = alembic_client.post(
+        "/api/v1/media-servers/test", json={"kind": "jellyfin", "base_url": "http://jellyfin.lan:8096"}
+    ).json()
+    assert missing["reachable"] is True and missing["authenticated"] is False
+    assert missing["credentials"] == "missing"
+    assert "administrator API key" in missing["message"] and "Dashboard > API Keys" in missing["message"]
+    assert "reject" not in missing["message"].lower()
+
+    refused = alembic_client.post(
+        "/api/v1/media-servers/test", json={"kind": "jellyfin", "base_url": "http://jellyfin.lan:8096", "api_key": "wrong"}
+    ).json()
+    assert refused["authenticated"] is False and refused["credentials"] == "rejected"
+    assert "reject" in refused["message"].lower()
+
+    accepted = alembic_client.post(
+        "/api/v1/media-servers/test", json={"kind": "jellyfin", "base_url": "http://jellyfin.lan:8096", "api_key": "good"}
+    ).json()
+    assert accepted["authenticated"] is True and accepted["credentials"] == "ok"

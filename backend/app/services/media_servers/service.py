@@ -50,6 +50,17 @@ def _target_key(base_url: str) -> Tuple[str, str, int, str]:
     return scheme, (parts.hostname or "").lower(), port or _DEFAULT_PORTS.get(scheme, 0), parts.path.rstrip("/")
 
 
+def _credentials(sent_a_secret: bool, authenticated: bool) -> str:
+    """Which of the three credential states a probe found.
+
+    ``missing`` means we had nothing to send, so nothing was rejected -- the
+    difference between "make an API key" and "this API key is wrong".
+    """
+    if authenticated:
+        return "ok" if sent_a_secret else "missing"
+    return "rejected" if sent_a_secret else "missing"
+
+
 def same_target(server: MediaServer, base_url: str) -> bool:
     """True when the saved row already sends its API key to this base URL."""
     return _target_key(server.base_url) == _target_key(base_url)
@@ -127,8 +138,17 @@ class MediaServerService:
                         authenticated = True
                     except MediaServerAuthError:
                         authenticated = False
-                return {"reachable": True, "authenticated": authenticated, "version": info.get("Version"),
-                        "message": "Jellyfin is reachable" if authenticated else "Jellyfin rejected the API key (it must be an administrator API key from Dashboard > API Keys)"}
+                # A server we never sent a key to has not rejected anything: the
+                # two states get their own message so the user is told what to do.
+                credentials = _credentials(bool(secret), authenticated)
+                if authenticated:
+                    message = "Jellyfin is reachable"
+                elif credentials == "missing":
+                    message = "Jellyfin needs an administrator API key. In Jellyfin open Dashboard > API Keys, create one, and paste it here."
+                else:
+                    message = "Jellyfin rejected this API key. It must be an administrator API key from Dashboard > API Keys."
+                return {"reachable": True, "authenticated": authenticated, "credentials": credentials,
+                        "version": info.get("Version"), "message": message}
             with self._plex(base_url, secret) as client:
                 identity = client.identity()
                 authenticated = True
@@ -137,10 +157,12 @@ class MediaServerService:
                         client.dvrs()
                     except MediaServerAuthError:
                         authenticated = False
-            return {"reachable": True, "authenticated": authenticated, "version": identity.get("version"),
-                    "message": "Plex is reachable" if authenticated else "Plex rejected the token"}
+            return {"reachable": True, "authenticated": authenticated, "credentials": _credentials(bool(secret), authenticated),
+                    "version": identity.get("version"),
+                    "message": "Plex is reachable" if authenticated else "Plex rejected this token"}
         except MediaServerUnreachable as exc:
-            return {"reachable": False, "authenticated": False, "version": None, "message": str(exc)}
+            return {"reachable": False, "authenticated": False, "credentials": _credentials(bool(secret), False),
+                    "version": None, "message": str(exc)}
 
     def connect(self, server: MediaServer, public_base_url: str) -> MediaServer:
         public = public_base_url.rstrip("/")

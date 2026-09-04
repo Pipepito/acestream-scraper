@@ -1802,6 +1802,12 @@ export interface components {
     MediaServerProbeResponse: {
       /** Authenticated */
       authenticated: boolean;
+      /**
+       * Credentials
+       * @default missing
+       * @enum {string}
+       */
+      credentials?: "ok" | "missing" | "rejected";
       /** Message */
       message: string;
       /** Reachable */

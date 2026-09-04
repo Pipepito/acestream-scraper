@@ -1,5 +1,6 @@
 import type { ApiError } from '../../services/apiErrors';
 import type { PlayerCodecs, PlayerError } from '../../services/playerService';
+import type { RemotePlayerProbe } from '../../services/remotePlayerService';
 
 /** How a page reports a player action's outcome. A send can succeed and still
  * warn: the player took the link but probably cannot fetch it. */
@@ -87,4 +88,23 @@ export const describePlaySent = (title: string, playerName: string, warnings?: s
   return reasons.length === 0
     ? { message: sent, severity: 'success' }
     : { message: `${sent} It may not start: ${reasons.join(' Also, ')}`, severity: 'warning' };
+};
+
+/** One "Test connection" outcome, so the card and the dialog say the same thing. */
+export interface ProbeVerdict {
+  severity: 'success' | 'warning' | 'error';
+  text: string;
+}
+
+/** The verdict for one remote-player probe: reachable, authenticated, and able to fetch our stream links. */
+export const describeRemotePlayerProbe = (probe: RemotePlayerProbe): ProbeVerdict => {
+  if (!probe.reachable) return { severity: 'error', text: `${probe.message} ${probe.hint ?? ''}`.trim() };
+  if (!probe.authenticated) return { severity: 'warning', text: probe.hint ?? probe.message };
+  const access = probe.tuner_access.allowed
+    ? ''
+    : ` This player (${probe.tuner_access.addresses.join(', ')}) is outside TUNER_ALLOWED_NETWORKS and will get 403 from the stream link: add its network or choose a stream link format that points at the engine or Acexy.`;
+  return {
+    severity: probe.tuner_access.allowed ? 'success' : 'warning',
+    text: `Connected${probe.version ? ` (version ${probe.version})` : ''}.${access}`,
+  };
 };

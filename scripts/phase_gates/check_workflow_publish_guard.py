@@ -81,6 +81,18 @@ def main() -> int:
     phase1_tags = [t.replace("${VERSION}", version) for t in PHASE1_TAGS]
 
     checks = [
+        ("all NUC Docker pipelines share one FIFO lock",
+         all(
+             "lock(resource: 'acestream-scraper-nuc-docker'" in pipeline
+             for pipeline in (pr_jenkinsfile, develop_jenkinsfile, release_jenkinsfile)
+         )
+         and "abortPrevious: true" not in pr_jenkinsfile),
+        ("NUC builds aggressively reclaim Docker space before building",
+         "--all-unused-images" in pr_runner_builder
+         and "--min-free-gb 8" in pr_runner_builder
+         and develop_jenkinsfile.count("--all-unused-images") >= 3
+         and "--all-unused-images" in release_jenkinsfile
+         and "--all-unused-images" in release_sh),
         ("PR architecture plan exercises all flavors",
          all(token in phase5_config for token in FLAVOR_TOKENS)),
         ("PR pipeline has no publication or credential binding",

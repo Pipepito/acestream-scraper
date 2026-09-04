@@ -11,6 +11,7 @@ pipeline {
   }
 
   options {
+    lock(resource: 'acestream-scraper-nuc-docker', reason: 'Exclusive Docker and BuildKit access on dorat-nuc-ci')
     disableConcurrentBuilds()
     buildDiscarder(logRotator(numToKeepStr: '20'))
     timeout(time: 4, unit: 'HOURS')
@@ -43,8 +44,10 @@ fi
         sh '''#!/usr/bin/env bash
 set -euo pipefail
 bash scripts/ci/cleanup_runner_docker.sh \
-  --keep "$PR_RUNNER_IMAGE" \
-  --transient-age-hours 0
+  --transient-age-hours 0 \
+  --all-unused-images \
+  --builder-keep 1GB \
+  --min-free-gb 8
 bash scripts/ci/bootstrap_jenkins_runner.sh
 python3 -m venv --clear backend/venv
 backend/venv/bin/pip install --upgrade pip
@@ -130,6 +133,11 @@ backend/venv/bin/python scripts/phase_gates/phase5_gate_runner.py \
       steps {
         sh '''#!/usr/bin/env bash
 set -euo pipefail
+bash scripts/ci/cleanup_runner_docker.sh \
+  --transient-age-hours 0 \
+  --all-unused-images \
+  --builder-keep 1GB \
+  --min-free-gb 8
 export BUILDX_BUILDER=default
 if ! bash scripts/ci/build_multiarch_images.sh \
   --flavor scraper-acestream \
@@ -176,6 +184,14 @@ fi
 
     stage('Publish develop channel') {
       steps {
+        sh '''#!/usr/bin/env bash
+set -euo pipefail
+bash scripts/ci/cleanup_runner_docker.sh \
+  --transient-age-hours 0 \
+  --all-unused-images \
+  --builder-keep 1GB \
+  --min-free-gb 8
+'''
         withCredentials([usernamePassword(
           credentialsId: 'dockerhub-publish',
           usernameVariable: 'DOCKERHUB_USERNAME',

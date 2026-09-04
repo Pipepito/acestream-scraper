@@ -6,8 +6,9 @@ pipeline {
   }
 
   options {
+    lock(resource: 'acestream-scraper-nuc-docker', reason: 'Exclusive Docker and BuildKit access on dorat-nuc-ci')
     skipDefaultCheckout(true)
-    disableConcurrentBuilds(abortPrevious: true)
+    disableConcurrentBuilds()
     buildDiscarder(logRotator(numToKeepStr: '20'))
     timeout(time: 45, unit: 'MINUTES')
     timestamps()
@@ -49,7 +50,9 @@ git diff --quiet "refs/remotes/origin/${CHANGE_TARGET}"...HEAD -- \
   backend/requirements.txt \
   frontend/package.json \
   frontend/package-lock.json \
-  docker/ci/pr-runner.Dockerfile
+  docker/ci/pr-runner.Dockerfile \
+  scripts/ci/build_pr_runner.sh \
+  scripts/ci/cleanup_runner_docker.sh
 '''
           ) != 0
 

@@ -87,7 +87,9 @@ fi
 
 # 2. Dangling layers + unused images older than the threshold.
 run docker image prune -f
-run docker image prune -af --filter "until=${IMAGE_AGE_HOURS}h"
+run docker image prune -af \
+  --filter "until=${IMAGE_AGE_HOURS}h" \
+  --filter "label!=org.acestream-scraper.ci.keep=true"
 
 # 3. Bound the BuildKit cache of EVERY builder. The docker-container builder
 #    (acestream-builder) keeps its cache in its own volume, invisible to

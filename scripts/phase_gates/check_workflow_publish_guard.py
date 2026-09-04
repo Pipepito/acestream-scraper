@@ -68,6 +68,7 @@ def main() -> int:
     pr_jenkinsfile = read("jenkins/pr.Jenkinsfile")
     develop_jenkinsfile = read("jenkins/develop.Jenkinsfile")
     develop_validation = read("scripts/ci/run_develop_validation.sh")
+    pr_validation = read("scripts/ci/run_pr_validation.sh")
     phase5_config = read("scripts/phase_gates/phase5_gate_config.yaml")
     release_sh = read("scripts/ci/run_jenkins_release.sh")
     release_jenkinsfile = read("jenkins/release.Jenkinsfile")
@@ -101,6 +102,11 @@ def main() -> int:
          "stage('Branch Policy')" in pr_jenkinsfile
          and "env.CHANGE_TARGET == 'main'" in pr_jenkinsfile
          and "env.CHANGE_BRANCH != 'develop'" in pr_jenkinsfile),
+        ("PR validation runs the full suites without installing dependencies",
+         "CI_USE_PREINSTALLED_DEPS=1" in pr_validation
+         and "run_v2_test_suite.sh --profile full" in pr_validation
+         and "npm test" not in pr_validation
+         and "pip install" not in pr_validation),
         ("develop publication has an exact-branch guard",
          "stage('Current develop guard')" in develop_jenkinsfile
          and "git rev-parse origin/develop" in develop_jenkinsfile),

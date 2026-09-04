@@ -46,7 +46,7 @@ pipeline {
           def runnerInputsChanged = sh(
             returnStatus: true,
             script: '''#!/usr/bin/env bash
-git diff --quiet HEAD^1 -- \
+git diff --quiet "refs/remotes/origin/${CHANGE_TARGET}"...HEAD -- \
   backend/requirements.txt \
   frontend/package.json \
   frontend/package-lock.json \
@@ -104,10 +104,11 @@ docker run --rm --init \
   --env GIT_CONFIG_COUNT=1 \
   --env GIT_CONFIG_KEY_0=safe.directory \
   --env GIT_CONFIG_VALUE_0=/workspace \
+  --env "PR_TARGET_REF=refs/remotes/origin/$CHANGE_TARGET" \
   --volume "$WORKSPACE:/source:ro" \
   --workdir /workspace \
   "$PR_RUNNER_IMAGE" \
-  bash -c 'cp -R /source/. /workspace/ && trusted_script=/workspace/scripts/ci/.jenkins-trusted-pr-validation.sh && rm -f "$trusted_script" && git show HEAD^1:scripts/ci/run_pr_validation.sh > "$trusted_script" && bash "$trusted_script"'
+  bash -c 'cp -R /source/. /workspace/ && trusted_script=/workspace/scripts/ci/.jenkins-trusted-pr-validation.sh && rm -f "$trusted_script" && git show "${PR_TARGET_REF}:scripts/ci/run_pr_validation.sh" > "$trusted_script" && bash "$trusted_script"'
 '''
       }
     }

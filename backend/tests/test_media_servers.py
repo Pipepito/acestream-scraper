@@ -264,3 +264,50 @@ def test_sync_task_skips_disabled_servers_and_isolates_errors(alembic_db_session
     assert task_module.run_media_server_sync_task() == {"checked": 4, "refreshed": 1, "manual": 1, "errors": 1}
     broken = svc.repo.get_by_name("broken")
     assert broken.last_sync_status == "error" and "no answer" in broken.last_error
+
+
+def test_a_failed_sync_keeps_the_fingerprints_so_the_next_pass_retries(alembic_db_session, jellyfin):
+    """An error must not consume the change: the next pass has to try it again."""
+    broken = {"passes": 1}
+
+    def handler(request):
+        if request.url.path == "/ScheduledTasks" and broken["passes"]:
+            broken["passes"] -= 1
+            return httpx.Response(500, text="Internal Server Error")
+        return jellyfin.handler(request)
+
+    svc = _service(alembic_db_session, handler)
+    server = _server(svc)
+
+    failed = svc.sync_if_changed(server)
+    assert failed.status == "error" and jellyfin.started == []
+    assert server.last_sync_status == "error" and "500" in server.last_error
+    assert server.last_lineup_fingerprint is None and server.last_guide_fingerprint is None
+
+    retried = svc.sync_if_changed(server)
+    assert retried.status == "ok" and jellyfin.started == [1]
+    assert server.last_lineup_fingerprint and server.last_guide_fingerprint
+    assert server.last_sync_status == "ok" and server.last_error is None
+
+
+def test_a_non_json_answer_stays_inside_the_error_contract(alembic_db_session):
+    """A wrong port/path answers 200 with HTML; that must map to MediaServerError."""
+
+    def html(request):
+        return httpx.Response(200, text="<html><body>not the API</body></html>", headers={"content-type": "text/html"})
+
+    svc = _service(alembic_db_session, html)
+
+    with pytest.raises(MediaServerError) as raised:
+        svc.test("jellyfin", "http://jellyfin.lan:8096", "good")
+    assert raised.value.status_code == 200 and "expected JSON" in str(raised.value)
+    with pytest.raises(MediaServerError):
+        svc.test("plex", "http://plex.lan:32400", "tok")
+
+    server = _server(svc)
+    server.tuner_host_id, server.listing_provider_id = "t1", "p1"
+    svc.repo.save(server)
+    assert svc.sync_if_changed(server).status == "error"
+    assert server.last_lineup_fingerprint is None and "expected JSON" in server.last_error
+    reported = svc.status(server)
+    assert reported["connected"] is True and "expected JSON" in reported["error"]

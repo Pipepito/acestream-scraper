@@ -6,7 +6,7 @@ from urllib.parse import urlsplit
 
 import httpx
 
-from .base import MediaServerUnreachable, guard, new_client, raise_for
+from .base import MediaServerUnreachable, decode_json, guard, new_client, raise_for
 
 
 class JellyfinClient:
@@ -33,30 +33,33 @@ class JellyfinClient:
         raise_for(response, f"{method} {path}")
         return response
 
+    def _json(self, method: str, path: str, **kwargs: Any) -> Any:
+        return decode_json(self._request(method, path, **kwargs), f"{method} {path}")
+
     def public_info(self) -> dict:
-        return self._request("GET", "/System/Info/Public", auth=False).json()
+        return self._json("GET", "/System/Info/Public", auth=False)
 
     def livetv_config(self) -> dict:
-        return self._request("GET", "/System/Configuration/livetv").json()
+        return self._json("GET", "/System/Configuration/livetv")
 
     def save_tuner_host(self, payload: dict) -> dict:
-        return self._request("POST", "/LiveTv/TunerHosts", json=payload).json()
+        return self._json("POST", "/LiveTv/TunerHosts", json=payload)
 
     def delete_tuner_host(self, tuner_id: str) -> None:
         self._request("DELETE", "/LiveTv/TunerHosts", params={"id": tuner_id})
 
     def save_listing_provider(self, payload: dict) -> dict:
-        return self._request("POST", "/LiveTv/ListingProviders", params={"validateListings": "false", "validateLogin": "false"}, json=payload).json()
+        return self._json("POST", "/LiveTv/ListingProviders", params={"validateListings": "false", "validateLogin": "false"}, json=payload)
 
     def delete_listing_provider(self, provider_id: str) -> None:
         self._request("DELETE", "/LiveTv/ListingProviders", params={"id": provider_id})
 
     def scheduled_tasks(self) -> List[dict]:
-        return self._request("GET", "/ScheduledTasks").json()
+        return self._json("GET", "/ScheduledTasks")
 
     def start_task(self, task_id: str) -> None:
         self._request("POST", f"/ScheduledTasks/Running/{task_id}")
 
     def channel_count(self) -> int:
-        body = self._request("GET", "/LiveTv/Channels", params={"addCurrentProgram": "false", "enableImages": "false", "limit": "1"}).json()
-        return int(body.get("TotalRecordCount") or 0)
+        body = self._json("GET", "/LiveTv/Channels", params={"addCurrentProgram": "false", "enableImages": "false", "limit": "1"})
+        return int((body or {}).get("TotalRecordCount") or 0)

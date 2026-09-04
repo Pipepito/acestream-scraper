@@ -226,8 +226,11 @@ class MediaServerService:
             result = self.refresh(server)
         except (MediaServerUnreachable, MediaServerAuthError, MediaServerError) as exc:
             result = RefreshResult("error", str(exc))
-        server.last_lineup_fingerprint = lineup_fp
-        server.last_guide_fingerprint = guide_fp
+        if result.status != "error":
+            # A failed pass keeps the stored fingerprints so the next run sees the
+            # same change and retries it; advancing them would drop it for good.
+            server.last_lineup_fingerprint = lineup_fp
+            server.last_guide_fingerprint = guide_fp
         server.last_sync_status = result.status
         server.last_error = result.message if result.status == "error" else None
         if result.status == "ok":

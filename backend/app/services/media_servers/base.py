@@ -1,7 +1,7 @@
 """Shared errors/client for Jellyfin and Plex adapters (spec 7.3)."""
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Optional
 
 import httpx
 
@@ -43,3 +43,19 @@ def raise_for(response: httpx.Response, what: str) -> None:
         raise MediaServerAuthError(f"{what}: the server rejected the API key/token (HTTP {response.status_code})")
     if response.status_code >= 400:
         raise MediaServerError(response.status_code, f"{what}: HTTP {response.status_code} {response.text[:200]}")
+
+
+def decode_json(response: httpx.Response, what: str) -> Any:
+    """Decode a JSON body, keeping a non-JSON answer inside the error contract.
+
+    A wrong port or path answers 200 with HTML, and a bare ``response.json()``
+    would raise ``json.JSONDecodeError`` — a type no caller catches.
+    """
+    try:
+        return response.json()
+    except ValueError as exc:
+        content_type = response.headers.get("content-type", "no content type")
+        raise MediaServerError(
+            response.status_code,
+            f"{what}: expected JSON but the server answered {content_type}; check the address",
+        ) from exc

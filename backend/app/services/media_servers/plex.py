@@ -1,12 +1,12 @@
 """Plex Media Server: identity, DVR lookup and guide reload (undocumented owner-token API)."""
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Any, List, Optional
 from urllib.parse import urlsplit
 
 import httpx
 
-from .base import MediaServerUnreachable, guard, new_client, raise_for
+from .base import MediaServerUnreachable, decode_json, guard, new_client, raise_for
 
 
 class PlexClient:
@@ -28,11 +28,14 @@ class PlexClient:
         raise_for(response, f"{method} {path}")
         return response
 
+    def _json(self, method: str, path: str, *, auth: bool = True) -> Any:
+        return decode_json(self._request(method, path, auth=auth), f"{method} {path}")
+
     def identity(self) -> dict:
-        return (self._request("GET", "/identity", auth=False).json() or {}).get("MediaContainer", {})
+        return (self._json("GET", "/identity", auth=False) or {}).get("MediaContainer", {})
 
     def dvrs(self) -> List[dict]:
-        return ((self._request("GET", "/livetv/dvrs").json() or {}).get("MediaContainer", {}) or {}).get("Dvr", []) or []
+        return ((self._json("GET", "/livetv/dvrs") or {}).get("MediaContainer", {}) or {}).get("Dvr", []) or []
 
     def find_dvr_key(self, device_id: str) -> Optional[str]:
         """The DVR whose HDHomeRun grabber points at our advertised device id."""

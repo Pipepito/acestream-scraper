@@ -32,26 +32,36 @@ git -C "$SOURCE" cat-file -e "${REF}^{commit}"
 CONTEXT=$(mktemp -d "${TMPDIR:-/tmp}/acestream-pr-runner.XXXXXX")
 trap 'rm -rf "$CONTEXT"' EXIT
 
-# These are the only inputs consumed by docker/ci/pr-runner.Dockerfile. For a
-# fork, REF is the target branch, so dependency installation cannot be changed
-# by contributor-controlled requirements, npm hooks, or Docker instructions.
+# These are the only inputs used by the network-enabled runner build and its
+# host cleanup. For a fork, REF is the target branch, so neither operation can
+# be changed by contributor-controlled requirements, scripts, npm hooks, or
+# Docker instructions.
 git -C "$SOURCE" archive "$REF" -- \
   backend/requirements.txt \
   frontend/package.json \
   frontend/package-lock.json \
   docker/ci/pr-runner.Dockerfile \
+  scripts/ci/cleanup_runner_docker.sh \
   | tar -x -C "$CONTEXT"
 
 for required in \
   backend/requirements.txt \
   frontend/package.json \
   frontend/package-lock.json \
-  docker/ci/pr-runner.Dockerfile; do
+  docker/ci/pr-runner.Dockerfile \
+  scripts/ci/cleanup_runner_docker.sh; do
   if [[ ! -f "$CONTEXT/$required" || -L "$CONTEXT/$required" ]]; then
     echo "Trusted runner input is missing or not a regular file: $required" >&2
     exit 1
   fi
 done
+
+bash "$CONTEXT/scripts/ci/cleanup_runner_docker.sh" \
+  --keep "$TAG" \
+  --transient-age-hours 0 \
+  --all-unused-images \
+  --builder-keep 1GB \
+  --min-free-gb 8
 
 docker build \
   --file "$CONTEXT/docker/ci/pr-runner.Dockerfile" \

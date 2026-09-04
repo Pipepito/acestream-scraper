@@ -429,9 +429,17 @@ own volume (6 GB after one three-platform build; it does not show under
 touches it), the default builder's cache (4.8 GB), and ~1.1 GB per Jenkins
 workspace including the ones of dead branch/PR jobs.
 
+The NUC exposes four Jenkins executors, but the PR, trusted `develop`, and
+release Jenkinsfiles all acquire the FIFO `acestream-scraper-nuc-docker`
+Lockable Resource for their complete run. This is intentional: those pipelines
+share one Docker daemon and BuildKit cache, and a cleanup or builder reset from
+one must never invalidate another pipeline between dependent stages. Waiting
+builds remain queued on the lock; newer runs of the same PR also queue instead
+of aborting the run that currently owns the NUC.
+
 What the pipelines do about it:
 
-- `Checkout / Bootstrap` runs `bash scripts/ci/cleanup_runner_docker.sh --transient-age-hours 0` first: removes this repo's transient CI images (`acestream-scraper:smoke-*`, `acestream-scraper-smoke:*`, `acestream-installer-test:*`, `acestream-scraper-task3:*`), prunes dangling layers and unused images older than 24 h, and prunes **every** builder listed by `docker buildx ls` down to `--builder-keep` (default **3 GB**), printing each builder's `docker buildx du` total. `--dry-run` shows the plan.
+- Before a heavy build, the lock holder runs `cleanup_runner_docker.sh` with zero-age transient cleanup, `--all-unused-images`, a 1 GB cap for every builder cache, and an 8 GB free-space preflight. It removes this repo's leaked transient CI images (`acestream-scraper:smoke-*`, `acestream-scraper-smoke:*`, `acestream-installer-test:*`, `acestream-scraper-task3:*`, `acestream-scraper-pr-ci:pr-*`), dangling layers, and every unused image not carrying `org.acestream-scraper.ci.keep=true`. If cleanup cannot leave 8 GB free on both the agent/workspace and Docker filesystems, the job fails immediately instead of filling the disk midway through image export. `--dry-run` shows the plan.
 - `scripts/ci/bootstrap_jenkins_runner.sh` creates `acestream-builder` with a `buildkitd.toml` that enables BuildKit garbage collection (`gckeepstorage`, 4 GB) and caps parallel build steps (`max-parallelism = 2`), so the cache is bounded *during* a multi-platform publish, not only between builds; when that config changes the bootstrap recreates the builder.
 - Multi-platform pushes build one platform at a time (next section), which also bounds the cache growth per step.
 - The PR smoke stage exports no image (cache-only warm-up); the pytest builds and removes its own run-scoped image; `post { always }` prunes dangling layers.

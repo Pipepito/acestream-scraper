@@ -35,7 +35,11 @@ def _fake_docker(tmp_path: Path, images: list[tuple[str, datetime]]) -> Path:
 def _run(tmp_path: Path, bin_dir: Path, *args: str) -> tuple[str, list[str]]:
     calls = tmp_path / "calls.log"
     calls.write_text("")
-    env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "DOCKER_CALLS": str(calls)}
+    env = {
+        **os.environ,
+        "PATH": f"{bin_dir}:{os.environ['PATH']}",
+        "DOCKER_CALLS": str(calls),
+    }
     out = subprocess.run(["bash", str(SCRIPT), *args], capture_output=True, text=True, env=env, check=True).stdout
     return out, [line for line in calls.read_text().splitlines() if line]
 
@@ -81,3 +85,34 @@ def test_dry_run_touches_nothing(tmp_path: Path):
     out, calls = _run(tmp_path, bin_dir, "--dry-run")
     assert "[dry-run] docker image rm -f acestream-scraper:smoke-7" in out
     assert not any(c.startswith("docker image rm") or "prune" in c for c in calls)
+
+
+def test_all_unused_images_omits_the_age_filter(tmp_path: Path):
+    bin_dir = _fake_docker(tmp_path, [])
+
+    _out, calls = _run(tmp_path, bin_dir, "--all-unused-images")
+
+    assert (
+        "docker image prune -af --filter label!=org.acestream-scraper.ci.keep=true"
+        in calls
+    )
+    assert not any("until=" in call for call in calls)
+
+
+def test_minimum_free_space_fails_early_when_cleanup_is_insufficient(tmp_path: Path):
+    bin_dir = _fake_docker(tmp_path, [])
+    calls = tmp_path / "calls.log"
+    calls.write_text("")
+    env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "DOCKER_CALLS": str(calls)}
+
+    result = subprocess.run(
+        ["bash", str(SCRIPT), "--min-free-gb", "999999"],
+        capture_output=True,
+        text=True,
+        env=env,
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "Cleanup left only" in result.stderr
+    assert "999999GB is required before building" in result.stderr

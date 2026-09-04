@@ -8,6 +8,7 @@ pipeline {
   }
 
   options {
+    lock(resource: 'acestream-scraper-nuc-docker', reason: 'Exclusive Docker and BuildKit access on dorat-nuc-ci')
     disableConcurrentBuilds()
     buildDiscarder(logRotator(numToKeepStr: '20'))
     timestamps()
@@ -48,6 +49,11 @@ if [[ "$head_sha" != "$origin_main_sha" ]]; then
   exit 1
 fi
 
+bash scripts/ci/cleanup_runner_docker.sh \
+  --transient-age-hours 0 \
+  --all-unused-images \
+  --builder-keep 1GB \
+  --min-free-gb 8
 bash scripts/ci/bootstrap_jenkins_runner.sh
 docker buildx use "${JENKINS_BUILDER:-acestream-builder}"
 '''

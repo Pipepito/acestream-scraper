@@ -94,8 +94,9 @@ def main() -> int:
          and '$WORKSPACE:/source:ro' in pr_jenkinsfile
          and "GIT_CONFIG_KEY_0=safe.directory" in pr_jenkinsfile
          and "GIT_CONFIG_VALUE_0=/workspace" in pr_jenkinsfile
-         and 'PR_TARGET_REF=refs/remotes/origin/$CHANGE_TARGET' in pr_jenkinsfile
-         and 'git show "${PR_TARGET_REF}:scripts/ci/run_pr_validation.sh"' in pr_jenkinsfile
+         and 'env.PR_VALIDATION_REF = env.CHANGE_FORK' in pr_jenkinsfile
+         and '"refs/remotes/origin/${env.CHANGE_TARGET}"' in pr_jenkinsfile
+         and 'git show "${PR_VALIDATION_REF}:scripts/ci/run_pr_validation.sh"' in pr_jenkinsfile
          and "runnerInputsChanged" in pr_jenkinsfile
          and "env.CHANGE_FORK" in pr_jenkinsfile),
         ("PR pipeline rejects PRs into main that do not come from develop",

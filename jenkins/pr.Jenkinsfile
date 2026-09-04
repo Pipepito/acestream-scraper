@@ -21,6 +21,9 @@ pipeline {
           currentBuild.displayName = "#${env.BUILD_NUMBER} ${env.BRANCH_NAME ?: 'pull-request'}"
           env.PR_SANDBOX_NAME = "acestream-${env.JOB_BASE_NAME}-${env.BUILD_NUMBER}"
             .replaceAll('[^A-Za-z0-9_.-]', '-')
+          env.PR_VALIDATION_REF = env.CHANGE_FORK \
+            ? "refs/remotes/origin/${env.CHANGE_TARGET}" \
+            : 'HEAD'
         }
       }
     }
@@ -104,11 +107,11 @@ docker run --rm --init \
   --env GIT_CONFIG_COUNT=1 \
   --env GIT_CONFIG_KEY_0=safe.directory \
   --env GIT_CONFIG_VALUE_0=/workspace \
-  --env "PR_TARGET_REF=refs/remotes/origin/$CHANGE_TARGET" \
+  --env "PR_VALIDATION_REF=$PR_VALIDATION_REF" \
   --volume "$WORKSPACE:/source:ro" \
   --workdir /workspace \
   "$PR_RUNNER_IMAGE" \
-  bash -c 'cp -R /source/. /workspace/ && trusted_script=/workspace/scripts/ci/.jenkins-trusted-pr-validation.sh && rm -f "$trusted_script" && git show "${PR_TARGET_REF}:scripts/ci/run_pr_validation.sh" > "$trusted_script" && bash "$trusted_script"'
+  bash -c 'cp -R /source/. /workspace/ && trusted_script=/workspace/scripts/ci/.jenkins-trusted-pr-validation.sh && rm -f "$trusted_script" && git show "${PR_VALIDATION_REF}:scripts/ci/run_pr_validation.sh" > "$trusted_script" && bash "$trusted_script"'
 '''
       }
     }

@@ -78,6 +78,11 @@ class ScraperService:
                     logo=metadata.get('tvg_logo', metadata.get('logo', '')),
                     tvg_id=metadata.get('tvg_id', ''),
                     tvg_name=metadata.get('tvg_name', ''),
+                    # auto_create_tv_channels_from_epg also handles IDs that
+                    # have not been persisted yet. Carry its staged
+                    # association into the INSERT; existing rows are assigned
+                    # by the repository's conflict-checked UPDATE above.
+                    tv_channel_id=metadata.get('tv_channel_id'),
                     is_online=True,
                     commit=False,
                 )

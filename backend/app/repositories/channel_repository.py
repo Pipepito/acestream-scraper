@@ -60,16 +60,31 @@ class ChannelRepository:
         """Assign multiple acestream channels to a TV channel by setting their tv_channel_id."""
         if not acestream_ids:
             return 0
-        available_count = (
-            self.db.query(AcestreamChannel)
-            .filter(
-                AcestreamChannel.id.in_(acestream_ids),
-                AcestreamChannel.tv_channel_id.is_(None),
-            )
-            .count()
+        # A conflict is a row that EXISTS and belongs to a different TV
+        # channel. Counting rows with tv_channel_id IS NULL instead flagged
+        # two harmless cases as errors:
+        #
+        #   - IDs not in the database yet. auto_create_tv_channels_from_epg
+        #     calls this with channels just parsed from an M3U, before they
+        #     are inserted, so every source carrying tvg-id aborted its whole
+        #     scrape with the misleading "already associated" message.
+        #   - IDs already assigned to this same TV channel, which made
+        #     re-assignment non-idempotent.
+        existing = (
+            self.db.query(AcestreamChannel.id, AcestreamChannel.tv_channel_id)
+            .filter(AcestreamChannel.id.in_(acestream_ids))
+            .all()
         )
-        if available_count != len(acestream_ids):
-            raise ValueError("One or more accepted Acestream channels are already associated with another TV channel.")
+        conflicting = sorted(
+            row.id
+            for row in existing
+            if row.tv_channel_id is not None and row.tv_channel_id != tv_channel_id
+        )
+        if conflicting:
+            raise ValueError(
+                "One or more accepted Acestream channels are already associated "
+                "with another TV channel: " + ", ".join(conflicting)
+            )
         updated = (
             self.db.query(AcestreamChannel)
             .filter(
@@ -192,6 +207,7 @@ class ChannelRepository:
                                logo: Optional[str] = None,
                                tvg_id: Optional[str] = None,
                                tvg_name: Optional[str] = None,
+                               tv_channel_id: Optional[int] = None,
                                is_online: Optional[bool] = None,
                                commit: bool = True) -> AcestreamChannel:
         """Create a new channel or update existing one. Always update tvg_id and tvg_name if present (even if empty string)."""
@@ -206,6 +222,7 @@ class ChannelRepository:
                 logo=logo or None,
                 tvg_id=tvg_id or None,
                 tvg_name=tvg_name or None,
+                tv_channel_id=tv_channel_id,
                 last_seen=datetime.now(timezone.utc),
                 is_active=True,
                 is_online=is_online if is_online is not None else True  # Default to True

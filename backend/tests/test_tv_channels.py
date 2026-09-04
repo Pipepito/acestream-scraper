@@ -832,3 +832,65 @@ class TestTVChannelCreateFromEPGAnalysis:
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
         assert "no accepted matches" in response.json()["detail"].lower()
+
+
+class TestAssignAcestreamsToTVChannel:
+    """Regression tests for ChannelRepository.assign_acestreams_to_tv_channel."""
+
+    @staticmethod
+    def _tv_channel(db_session, name):
+        tv = TVChannel(name=f"{name}-{uuid.uuid4().hex[:8]}")
+        db_session.add(tv)
+        db_session.commit()
+        return tv
+
+    @staticmethod
+    def _acestream(db_session, char, tv_channel_id=None):
+        channel = AcestreamChannel(id=char * 40, name=f"channel-{char}",
+                                   tv_channel_id=tv_channel_id)
+        db_session.add(channel)
+        db_session.commit()
+        return channel
+
+    def test_ignores_ids_not_yet_persisted(self, db_session):
+        """IDs absent from the database are not a conflict.
+
+        auto_create_tv_channels_from_epg assigns channels parsed from an M3U
+        before they are inserted. Treating a missing row as "already
+        associated" aborted the whole scrape of any source carrying tvg-id.
+        """
+        repo = ChannelRepository(db_session)
+        tv = self._tv_channel(db_session, "not-persisted")
+        persisted = self._acestream(db_session, "a")
+
+        updated = repo.assign_acestreams_to_tv_channel(
+            [persisted.id, "b" * 40], tv.id
+        )
+
+        assert updated == 1
+        db_session.refresh(persisted)
+        assert persisted.tv_channel_id == tv.id
+
+    def test_reassigning_to_same_tv_channel_is_idempotent(self, db_session):
+        """Re-running an assignment must not raise."""
+        repo = ChannelRepository(db_session)
+        tv = self._tv_channel(db_session, "idempotent")
+        channel = self._acestream(db_session, "c")
+
+        repo.assign_acestreams_to_tv_channel([channel.id], tv.id)
+        repo.assign_acestreams_to_tv_channel([channel.id], tv.id)
+
+        db_session.refresh(channel)
+        assert channel.tv_channel_id == tv.id
+
+    def test_raises_when_owned_by_another_tv_channel(self, db_session):
+        """The real conflict still raises, and names the offending IDs."""
+        repo = ChannelRepository(db_session)
+        owner = self._tv_channel(db_session, "owner")
+        other = self._tv_channel(db_session, "other")
+        taken = self._acestream(db_session, "d", tv_channel_id=owner.id)
+
+        with pytest.raises(ValueError) as excinfo:
+            repo.assign_acestreams_to_tv_channel([taken.id], other.id)
+
+        assert taken.id in str(excinfo.value)

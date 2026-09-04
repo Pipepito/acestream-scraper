@@ -289,8 +289,8 @@ def disconnect_media_server(server_id: int, service: MediaServerService = Depend
 def media_server_status(
     server_id: int, request: Request, service: MediaServerService = Depends(_service)
 ):
-    """The Plex paste values are absolute URLs, so the origin is resolved per
-    request like every other one the backend emits (spec 4.3)."""
+    # The Plex paste values are absolute URLs, so the origin is resolved per
+    # request like every other one the backend emits (spec 4.3).
     server = _server_or_404(service, server_id)
     public = resolve_public_base_url(request, SettingsRepository(service.db)).url
     return MediaServerStatusResponse(**service.status(server, public))

@@ -105,7 +105,7 @@ Each channel gets a **GuideNumber**, the number Jellyfin and Plex show and sort 
 - Everything else gets an automatic number starting at 1000 (or just above your highest manual number).
 - If two channels claim the same number, the first one in playlist order keeps it and the other gets an automatic number instead. Which channels this happened to is listed by `GET /api/v1/tuner/status` under `renumbered`.
 
-**One caveat worth knowing.** Giving a channel a manual number that is *higher* than the automatic range shifts the automatic numbers of every unnumbered channel. The lineup then looks completely new to the media server: Jellyfin re-identifies those channels, and Plex needs a rescan. If you plan to number your channels by hand, do it in one pass rather than one at a time.
+**One caveat worth knowing.** Giving a channel a manual number that is *higher* than the automatic range — or removing the channel that holds your highest manual number — shifts the automatic numbers of every unnumbered channel. The lineup then looks completely new to the media server: Jellyfin re-identifies those channels, and Plex needs a rescan. If you plan to number your channels by hand, do it in one pass rather than one at a time.
 
 ## Troubleshooting
 

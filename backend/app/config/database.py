@@ -258,17 +258,49 @@ def head_revision() -> str:
     return ScriptDirectory.from_config(_alembic_config()).get_current_head()
 
 
+def _is_complete_sqlite_file(path: str) -> bool:
+    """Whether ``path`` is a SQLite database rather than an empty or truncated
+    leftover. ``os.path.isfile`` alone would let a 0-byte file stand in for a
+    backup the operator is told to roll back to."""
+    import os
+
+    try:
+        if os.path.getsize(path) < 512:  # smaller than one SQLite page
+            return False
+        with open(path, "rb") as handle:
+            return handle.read(16) == b"SQLite format 3\x00"
+    except OSError:
+        return False
+
+
+def _discard(*paths: str) -> None:
+    """Remove files best-effort; used to clean up a copy that did not finish."""
+    import contextlib
+    import os
+
+    for path in paths:
+        with contextlib.suppress(OSError):
+            os.remove(path)
+
+
 def backup_sqlite(database_url: Optional[str] = None, label: str = "pre-upgrade") -> Optional[str]:
     """Copy the SQLite file to ``<db dir>/backups/<stamp>-<label>/<name>`` via the
     online backup API (safe while the file is open). Returns the copy's path, or
     None for non-SQLite URLs.
 
-    A copy already taken under the same ``label`` is reused instead of written
-    again. The label encodes the from->to revision pair, so a container whose
-    upgrade fails and that Docker keeps relaunching writes one backup rather
-    than a full copy of the database on every boot (which fills the volume).
-    Nothing is ever deleted here: successive upgrades keep one copy each.
+    A *complete* copy already taken under the same ``label`` is reused instead
+    of written again. The label encodes the from->to revision pair, so a
+    container whose upgrade fails and that Docker keeps relaunching writes one
+    backup rather than a full copy of the database on every boot (which fills
+    the volume). Nothing is ever deleted here: successive upgrades keep one copy
+    each.
+
+    The copy is written to ``<name>.part`` and renamed only once SQLite is done,
+    so an interrupted run (a full config volume mid-copy — exactly when the
+    backup matters most) leaves nothing that a later boot could mistake for a
+    good backup and upgrade over.
     """
+    import contextlib
     import glob
     import logging
     import os
@@ -286,7 +318,7 @@ def backup_sqlite(database_url: Optional[str] = None, label: str = "pre-upgrade"
         for candidate in glob.glob(
             os.path.join(glob.escape(backups_root), f"*-{glob.escape(label)}", glob.escape(name))
         )
-        if os.path.isfile(candidate)
+        if _is_complete_sqlite_file(candidate)
     )
     if existing:
         logging.getLogger(__name__).warning(
@@ -299,13 +331,20 @@ def backup_sqlite(database_url: Optional[str] = None, label: str = "pre-upgrade"
     target_dir = os.path.join(backups_root, f"{stamp}-{label}")
     os.makedirs(target_dir, exist_ok=True)
     target = os.path.join(target_dir, name)
+    partial = f"{target}.part"
     source = sqlite3.connect(path)
     try:
-        destination = sqlite3.connect(target)
+        destination = sqlite3.connect(partial)
         try:
             source.backup(destination)
         finally:
             destination.close()
+    except BaseException:
+        _discard(partial, f"{partial}-journal", f"{partial}-wal")
+        with contextlib.suppress(OSError):
+            os.rmdir(target_dir)
+        raise
     finally:
         source.close()
+    os.replace(partial, target)
     return target

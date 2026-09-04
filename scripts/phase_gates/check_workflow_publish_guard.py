@@ -69,6 +69,8 @@ def main() -> int:
     develop_jenkinsfile = read("jenkins/develop.Jenkinsfile")
     develop_validation = read("scripts/ci/run_develop_validation.sh")
     pr_validation = read("scripts/ci/run_pr_validation.sh")
+    pr_runner_builder = read("scripts/ci/build_pr_runner.sh")
+    pr_arch_contracts = read("scripts/ci/run_pr_arch_contracts.sh")
     phase5_config = read("scripts/phase_gates/phase5_gate_config.yaml")
     release_sh = read("scripts/ci/run_jenkins_release.sh")
     release_jenkinsfile = read("jenkins/release.Jenkinsfile")
@@ -99,6 +101,29 @@ def main() -> int:
          and 'git show "${PR_VALIDATION_REF}:scripts/ci/run_pr_validation.sh"' in pr_jenkinsfile
          and "runnerInputsChanged" in pr_jenkinsfile
          and "env.CHANGE_FORK" in pr_jenkinsfile),
+        ("every PR bootstraps a disposable runner from its validation ref",
+         "stage('Build isolated trusted runner')" in pr_jenkinsfile
+         and 'git show "${PR_VALIDATION_REF}:scripts/ci/build_pr_runner.sh"' in pr_jenkinsfile
+         and "env.PR_RUNNER_EPHEMERAL = '1'" in pr_jenkinsfile
+         and 'git -C "$SOURCE" archive "$REF"' in pr_runner_builder
+         and "backend/requirements.txt" in pr_runner_builder
+         and "frontend/package-lock.json" in pr_runner_builder
+         and "docker/ci/pr-runner.Dockerfile" in pr_runner_builder),
+        ("fork dependency changes fail before networked package installation",
+         "env.CHANGE_FORK && runnerInputsChanged" in pr_jenkinsfile
+         and "will not install them with network access" in pr_jenkinsfile),
+        ("PR runtime contracts execute under isolated amd64 and ARM userlands",
+         "stage('Isolated architecture runtime contracts')" in pr_jenkinsfile
+         and 'git show "${PR_VALIDATION_REF}:scripts/ci/run_pr_arch_contracts.sh"' in pr_jenkinsfile
+         and all(platform in pr_arch_contracts for platform in ("linux/amd64", "linux/arm64", "linux/arm/v7"))
+         and "--network none" in pr_arch_contracts
+         and "--read-only" in pr_arch_contracts
+         and "--cap-drop ALL" in pr_arch_contracts
+         and "no-new-privileges" in pr_arch_contracts
+         and "--pids-limit" in pr_arch_contracts
+         and "--memory 512m" in pr_arch_contracts
+         and "/var/run/docker.sock" not in pr_arch_contracts
+         and 'git -C "$SOURCE" show "${VALIDATION_REF}:scripts/ci/validate_runtime_contract.sh"' in pr_arch_contracts),
         ("PR pipeline rejects PRs into main that do not come from develop",
          "stage('Branch Policy')" in pr_jenkinsfile
          and "env.CHANGE_TARGET == 'main'" in pr_jenkinsfile
@@ -106,6 +131,7 @@ def main() -> int:
         ("PR validation runs the full suites without installing dependencies",
          "CI_USE_PREINSTALLED_DEPS=1" in pr_validation
          and "run_v2_test_suite.sh --profile full" in pr_validation
+         and "validate_dockerfile_contract.py" in pr_validation
          and "npm test" not in pr_validation
          and "pip install" not in pr_validation),
         ("develop publication has an exact-branch guard",

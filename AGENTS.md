@@ -121,9 +121,11 @@ not part of the required PR gate; see `e2e/AGENTS.md` before running it.
 - The multibranch validation job is `acestream-scraper-pr`; trusted publication
   uses `acestream-scraper-develop`, and manual releases use
   `acestream-scraper-release`. All currently launch on `dorat-nuc-ci`, but fork
-  code runs only inside the network-disabled container defined by
-  `docker/ci/pr-runner.Dockerfile`; it must never receive the Docker socket or a
-  Jenkins credential.
+  code runs only inside network-disabled containers; it must never receive the
+  Docker socket or a Jenkins credential. Each fork build creates a disposable
+  dependency runner from the trusted target ref, then runs runtime contracts in
+  pinned amd64, arm64, and arm/v7 userlands. Do not execute a fork-controlled
+  Dockerfile or install fork-controlled dependency inputs automatically.
 - When Jenkins and GitHub disagree, distinguish the Jenkins build result from the
   GitHub commit status and record the commit SHA each result belongs to.
 

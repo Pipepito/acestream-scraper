@@ -2,7 +2,7 @@ pipeline {
   agent { label 'dorat-nuc-ci' }
 
   environment {
-    PR_RUNNER_IMAGE = 'acestream-scraper-pr-ci:develop'
+    PR_RUNNER_REPOSITORY = 'acestream-scraper-pr-ci'
   }
 
   options {
@@ -39,13 +39,9 @@ pipeline {
       }
     }
 
-    stage('Select trusted runner') {
+    stage('Build isolated trusted runner') {
       steps {
         script {
-          def imageExists = sh(
-            returnStatus: true,
-            script: 'docker image inspect "$PR_RUNNER_IMAGE" >/dev/null 2>&1'
-          ) == 0
           def runnerInputsChanged = sh(
             returnStatus: true,
             script: '''#!/usr/bin/env bash
@@ -57,25 +53,29 @@ git diff --quiet "refs/remotes/origin/${CHANGE_TARGET}"...HEAD -- \
 '''
           ) != 0
 
-          if (!imageExists || runnerInputsChanged) {
-            if (env.CHANGE_FORK) {
-              def reason = runnerInputsChanged ? 'changes runner dependency inputs' : 'needs a runner image that is unavailable'
-              error("This fork ${reason}. Move the reviewed commit to a maintainer-owned branch so Jenkins can build a one-use candidate runner; fork code will not be allowed to build its own dependencies.")
-            }
-
-            // Bootstrap only this trusted origin PR. The candidate image is
-            // build-local and removed afterwards; it can never replace the
-            // shared image that is built exclusively from develop.
-            env.PR_RUNNER_IMAGE = "acestream-scraper-pr-ci:candidate-${env.BUILD_NUMBER}-${env.EXECUTOR_NUMBER}"
-            env.PR_RUNNER_EPHEMERAL = '1'
-            sh '''#!/usr/bin/env bash
-set -euo pipefail
-docker build \
-  --file docker/ci/pr-runner.Dockerfile \
-  --tag "$PR_RUNNER_IMAGE" \
-  .
-'''
+          if (env.CHANGE_FORK && runnerInputsChanged) {
+            error('This fork changes dependency or runner-image inputs. Those inputs can execute code during installation, so an automatic fork build will not install them with network access. Move the reviewed commit to a maintainer-owned branch to validate the dependency change.')
           }
+
+          // Every PR gets a disposable runner. For forks the build context is
+          // exported from the trusted target ref, never from contributor files.
+          // This removes the mutable :develop image as an availability and
+          // freshness dependency without allowing a fork to install packages.
+          def runnerSha = sh(
+            returnStdout: true,
+            script: 'git rev-parse "$PR_VALIDATION_REF"'
+          ).trim()
+          env.PR_RUNNER_IMAGE = "${env.PR_RUNNER_REPOSITORY}:pr-${env.BUILD_NUMBER}-${env.EXECUTOR_NUMBER}-${runnerSha.take(12)}"
+          env.PR_RUNNER_EPHEMERAL = '1'
+          sh '''#!/usr/bin/env bash
+set -euo pipefail
+trusted_builder="$WORKSPACE@tmp/build-pr-runner-${BUILD_NUMBER}.sh"
+git show "${PR_VALIDATION_REF}:scripts/ci/build_pr_runner.sh" > "$trusted_builder"
+bash "$trusted_builder" \
+  --source "$WORKSPACE" \
+  --ref "$PR_VALIDATION_REF" \
+  --tag "$PR_RUNNER_IMAGE"
+'''
         }
       }
     }
@@ -115,12 +115,29 @@ docker run --rm --init \
 '''
       }
     }
+
+    stage('Isolated architecture runtime contracts') {
+      steps {
+        sh '''#!/usr/bin/env bash
+set -euo pipefail
+trusted_arch_runner="$WORKSPACE@tmp/run-pr-arch-contracts-${BUILD_NUMBER}.sh"
+git show "${PR_VALIDATION_REF}:scripts/ci/run_pr_arch_contracts.sh" > "$trusted_arch_runner"
+bash "$trusted_arch_runner" \
+  --source "$WORKSPACE" \
+  --validation-ref "$PR_VALIDATION_REF" \
+  --name-prefix "$PR_SANDBOX_NAME"
+'''
+      }
+    }
   }
 
   post {
     always {
       sh '''#!/usr/bin/env bash
 docker rm --force "$PR_SANDBOX_NAME" >/dev/null 2>&1 || true
+for platform in linux-amd64 linux-arm64 linux-arm-v7; do
+  docker rm --force "${PR_SANDBOX_NAME}-${platform}" >/dev/null 2>&1 || true
+done
 if [[ "${PR_RUNNER_EPHEMERAL:-0}" == "1" ]]; then
   docker image rm --force "$PR_RUNNER_IMAGE" >/dev/null 2>&1 || true
 fi

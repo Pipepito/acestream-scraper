@@ -6,7 +6,13 @@ import asyncio
 import pytest
 import uuid
 from fastapi import status
-from app.models.models import AcestreamChannel, ScrapedURL
+from app.models.models import (
+    AcestreamChannel,
+    EPGChannel,
+    EPGSource,
+    ScrapedURL,
+    TVChannel,
+)
 from app.services.m3u_service import M3UService
 from app.services.scraper_service import ScraperService
 
@@ -447,6 +453,65 @@ acestream://4444444444444444444444444444444444444444
         assert direct_channel.group == "Sports"
         assert direct_channel.logo == "https://example.com/direct-logo.png"
         assert direct_channel.tvg_id == "direct-id"
+
+    def test_first_scrape_persists_new_channel_epg_association_idempotently(self, db_session, monkeypatch):
+        source_url = "https://example.com/new_epg_channels.m3u"
+        channel_id = "5555555555555555555555555555555555555555"
+        epg_source = EPGSource(url="https://example.com/guide.xml", name="Guide")
+        db_session.add(epg_source)
+        db_session.flush()
+        db_session.add(
+            EPGChannel(
+                epg_source_id=epg_source.id,
+                channel_xml_id="new-channel.example",
+                name="New Channel",
+            )
+        )
+        db_session.commit()
+
+        content = f"""#EXTM3U
+#EXTINF:-1 tvg-id="new-channel.example",New Channel
+acestream://{channel_id}
+"""
+
+        class _FakeScraper:
+            def __init__(self):
+                from app.models.url_types import RegularURL
+
+                self.url_obj = RegularURL(source_url)
+                self.db = None
+                self.epg_service = None
+                self.tv_channel_service = None
+
+            async def scrape(self):
+                return M3UService().extract_channels_from_content(
+                    content,
+                    db=self.db,
+                    epg_service=self.epg_service,
+                    tv_channel_service=self.tv_channel_service,
+                ), "OK"
+
+        monkeypatch.setattr(
+            "app.services.scraper_service.create_scraper_for_url",
+            lambda _url, _url_type: _FakeScraper(),
+        )
+
+        service = ScraperService(db_session)
+        first_channels, first_status = asyncio.run(service.scrape_url(source_url, "regular"))
+        second_channels, second_status = asyncio.run(service.scrape_url(source_url, "regular"))
+
+        assert first_status == second_status == "OK"
+        assert [channel.channel_id for channel in first_channels] == [channel_id]
+        assert [channel.channel_id for channel in second_channels] == [channel_id]
+
+        tv_channels = db_session.query(TVChannel).filter(
+            TVChannel.epg_id == "new-channel.example"
+        ).all()
+        assert len(tv_channels) == 1
+        persisted = db_session.query(AcestreamChannel).filter(
+            AcestreamChannel.id == channel_id
+        ).one()
+        assert persisted.tv_channel_id == tv_channels[0].id
 
     def test_scrape_service_clears_stale_metadata_on_rescrape(self, db_session, monkeypatch):
         source_url = "https://example.com/stale_metadata.m3u"

@@ -207,6 +207,7 @@ class ChannelRepository:
                                logo: Optional[str] = None,
                                tvg_id: Optional[str] = None,
                                tvg_name: Optional[str] = None,
+                               tv_channel_id: Optional[int] = None,
                                is_online: Optional[bool] = None,
                                commit: bool = True) -> AcestreamChannel:
         """Create a new channel or update existing one. Always update tvg_id and tvg_name if present (even if empty string)."""
@@ -221,6 +222,7 @@ class ChannelRepository:
                 logo=logo or None,
                 tvg_id=tvg_id or None,
                 tvg_name=tvg_name or None,
+                tv_channel_id=tv_channel_id,
                 last_seen=datetime.now(timezone.utc),
                 is_active=True,
                 is_online=is_online if is_online is not None else True  # Default to True

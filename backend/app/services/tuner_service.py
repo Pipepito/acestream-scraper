@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import html
+import logging
 import secrets
 from dataclasses import dataclass, field
 from typing import List, Optional, Set
@@ -20,8 +21,14 @@ from app.utils.m3u import m3u_attr
 # libhdhomerun's device-id checksum table, verbatim.
 _LOOKUP = [0xA, 0x5, 0xF, 0x6, 0x7, 0xC, 0x1, 0xB, 0x9, 0x2, 0x8, 0xD, 0x4, 0x3, 0xE, 0x0]
 
+logger = logging.getLogger(__name__)
+
 MIN_TUNER_COUNT, MAX_TUNER_COUNT = 1, 16
 MIN_MAX_CHANNELS, MAX_MAX_CHANNELS = 1, 1000
+
+
+class TunerDeviceIdError(RuntimeError):
+    """The HDHomeRun device id could not be stored, so it cannot be advertised."""
 
 
 def hdhr_device_id_valid(device_id: str) -> bool:
@@ -124,7 +131,14 @@ class TunerService:
         if hdhr_device_id_valid(current):
             return current
         generated = generate_hdhr_device_id()
-        self.settings_repo.set_setting(SettingsRepository.TUNER_DEVICE_ID, generated, "HDHomeRun device id advertised to Jellyfin/Plex")
+        if not self.settings_repo.set_setting(SettingsRepository.TUNER_DEVICE_ID, generated, "HDHomeRun device id advertised to Jellyfin/Plex"):
+            # A media server adopts this tuner by its device id. Handing out an
+            # id we could not store would give every later call a different one
+            # and orphan the Jellyfin/Plex lineup, so fail where it can be seen.
+            logger.error("Could not store the generated HDHomeRun device id %s", generated)
+            raise TunerDeviceIdError(
+                "Could not store the HDHomeRun device id; the tuner cannot be identified until the database accepts a write"
+            )
         return generated
 
     # --- lineup -------------------------------------------------------------

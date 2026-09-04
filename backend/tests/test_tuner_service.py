@@ -115,3 +115,19 @@ def test_fingerprints_change_with_lineup_and_epg_sources(db_session):
     assert g1 != g0
     source.last_error = "boom"; db_session.commit()
     assert svc.guide_fingerprint() == g0  # failed sources are ignored
+
+
+def test_a_device_id_that_cannot_be_stored_raises(db_session, monkeypatch, caplog):
+    """A media server adopts the tuner by its device id, so a failed write must
+    be loud: returning a fresh id on every call would silently orphan the
+    Jellyfin/Plex lineup."""
+    import logging
+
+    from app.services.tuner_service import TunerDeviceIdError
+
+    svc = TunerService(db_session)
+    monkeypatch.setattr(svc.settings_repo, "set_setting", lambda *a, **k: False)
+    with caplog.at_level(logging.ERROR, logger="app.services.tuner_service"):
+        with pytest.raises(TunerDeviceIdError):
+            svc.device_id()
+    assert "device id" in caplog.text

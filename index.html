@@ -34,7 +34,8 @@
   <main class="wrap" id="builder">
     <p class="intro">
       Answer three questions and copy a ready-to-run <code>docker run</code> command or
-      <code>docker-compose.yml</code> — with the right image tag, ports, folders and options for your setup.
+      <code>docker-compose.yml</code>. Each choice narrows the next one, so the page only
+      offers settings that can affect your selected image and machine.
     </p>
 
     <noscript>
@@ -56,7 +57,7 @@
           <fieldset>
             <legend>What machine will run it?</legend>
             <div class="card-grid" id="platform-options" role="radiogroup" aria-label="Host platform"></div>
-            <p class="hint">Every flavor is published for all three platforms under the same tag — Docker picks the right one. Your choice here only tunes the advice and warnings.</p>
+            <p class="hint">Every flavor is published for all three platforms under the same tag — Docker picks the right image. This choice filters embedded services and their settings.</p>
           </fieldset>
 
           <fieldset>
@@ -71,6 +72,7 @@
 
         <section class="step" aria-labelledby="step2-h">
           <h2 id="step2-h"><span class="step-num" aria-hidden="true">2</span>Choose features</h2>
+          <div class="selection-summary" id="selection-summary" role="status" aria-live="polite"></div>
           <div id="feature-toggles"></div>
 
           <div class="subfields" id="external-engine-fields" hidden>
@@ -118,25 +120,29 @@
           </fieldset>
 
           <details class="advanced">
-            <summary>Container options</summary>
-            <div class="field-row">
-              <div class="field">
-                <label for="container-name">Container name</label>
-                <input type="text" id="container-name" value="acestream-scraper" spellcheck="false" autocomplete="off" />
+            <summary>Advanced settings</summary>
+            <p class="advanced-lead">Defaults are already built into the image. Add an override only when your setup needs it; settings that cannot affect the current selection are left out.</p>
+            <section class="container-setting-group" aria-labelledby="container-settings-h">
+              <div class="setting-group-head">
+                <h3 id="container-settings-h">Container behavior</h3>
+                <p>Name the container and choose how Docker restarts it.</p>
               </div>
-              <div class="field">
-                <label for="restart-policy">Restart policy</label>
-                <select id="restart-policy">
-                  <option value="unless-stopped" selected>unless-stopped (recommended)</option>
-                  <option value="always">always</option>
-                  <option value="no">no</option>
-                </select>
+              <div class="field-row">
+                <div class="field">
+                  <label for="container-name">Container name</label>
+                  <input type="text" id="container-name" value="acestream-scraper" spellcheck="false" autocomplete="off" />
+                </div>
+                <div class="field">
+                  <label for="restart-policy">Restart policy</label>
+                  <select id="restart-policy">
+                    <option value="unless-stopped" selected>unless-stopped (recommended)</option>
+                    <option value="always">always</option>
+                    <option value="no">no</option>
+                  </select>
+                </div>
               </div>
-              <div class="field">
-                <label for="tz-input">Timezone <span class="optional">(optional)</span></label>
-                <input type="text" id="tz-input" placeholder="Europe/Madrid" spellcheck="false" autocomplete="off" />
-              </div>
-            </div>
+            </section>
+            <div id="runtime-setting-groups"></div>
           </details>
         </section>
       </div>
@@ -155,7 +161,7 @@
             <div class="code-block">
               <div class="code-head">
                 <span>Pull the image, then run it</span>
-                <button class="copy-btn" data-copy="run-output">Copy</button>
+                <button type="button" class="copy-btn" data-copy="run-output">Copy</button>
               </div>
               <pre><code id="run-output"></code></pre>
             </div>
@@ -165,14 +171,14 @@
             <div class="code-block">
               <div class="code-head">
                 <span>Save as <code>docker-compose.yml</code></span>
-                <button class="copy-btn" data-copy="compose-output">Copy</button>
+                <button type="button" class="copy-btn" data-copy="compose-output">Copy</button>
               </div>
               <pre><code id="compose-output"></code></pre>
             </div>
             <div class="code-block">
               <div class="code-head">
                 <span>Then start it</span>
-                <button class="copy-btn" data-copy="compose-up-output">Copy</button>
+                <button type="button" class="copy-btn" data-copy="compose-up-output">Copy</button>
               </div>
               <pre><code id="compose-up-output">docker compose up -d</code></pre>
             </div>
@@ -196,7 +202,7 @@
         Maintained with the
         <a href="https://github.com/Pipepito/acestream-scraper">AceStream Scraper</a> repository —
         the options on this page come from
-        <a href="https://github.com/Pipepito/acestream-scraper/blob/main/docs/builder/runtime-options.json"><code>docs/builder/runtime-options.json</code></a>.
+        <a href="https://github.com/Pipepito/acestream-scraper/blob/develop/docs/builder/runtime-options.json"><code>docs/builder/runtime-options.json</code></a>.
         Full documentation in the <a href="https://github.com/Pipepito/acestream-scraper/wiki">wiki</a>.
       </p>
     </div>

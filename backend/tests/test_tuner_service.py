@@ -64,6 +64,31 @@ def test_lineup_best_stream_numbers_and_renumbering(db_session):
     assert [(r.name, r.requested_number) for r in lineup.renumbered] == [("Second explicit 5", 5)]
 
 
+def test_automatic_numbers_do_not_move_when_another_channel_leaves_the_lineup(db_session):
+    """GuideNumber is the channel's identity in Jellyfin and Plex (and the XMLTV
+    id the guide is keyed on), so an automatic number must survive an unrelated
+    channel dropping out of the lineup."""
+    from app.models.models import AcestreamChannel
+
+    sports = _tv(db_session, "Sports HD", number=2000, streams=[(True, None)])
+    news = _tv(db_session, "News", streams=[(True, None)])
+    movies = _tv(db_session, "Movies", streams=[(True, None)])
+    svc = TunerService(db_session)
+    svc.update_settings(only_online=True)
+
+    before = {e.guide_name: e.guide_number for e in svc.build_lineup().entries}
+    assert before["News"] == str(2001 + news.id) and before["Movies"] == str(2001 + movies.id)
+
+    # Sports HD's only stream goes offline: it leaves the lineup, and nothing
+    # the user did concerns the other two channels' numbers.
+    db_session.query(AcestreamChannel).filter(AcestreamChannel.tv_channel_id == sports.id).update({"is_online": False})
+    db_session.commit()
+
+    after = {e.guide_name: e.guide_number for e in svc.build_lineup().entries}
+    assert "Sports HD" not in after
+    assert (after["News"], after["Movies"]) == (before["News"], before["Movies"])
+
+
 def test_lineup_cap_and_only_online(db_session):
     for i in range(3):
         _tv(db_session, f"C{i}", number=i + 1, streams=[(i != 1, None)])

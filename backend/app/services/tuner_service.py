@@ -7,6 +7,7 @@ import secrets
 from dataclasses import dataclass, field
 from typing import List, Optional, Set
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.models import EPGSource, TVChannel
@@ -141,9 +142,14 @@ class TunerService:
                 continue
             candidates.append((tv, sort_streams_curated(streams)[0]))
 
-        explicit = [tv.channel_number for tv, _ in candidates if tv.channel_number is not None]
-        # Above every explicit number, so a fallback can never collide with one.
-        fallback_base = max(1000, (max(explicit) if explicit else 0) + 1)
+        # Above every manual number in the database — not just the ones in this
+        # lineup: an automatic number is the channel's identity in Jellyfin and
+        # Plex (GuideNumber, and the XMLTV channel id the guide is keyed on), so
+        # it must not move when an unrelated channel drops out of the lineup
+        # because its streams went offline, it was deactivated, or the daily
+        # cleanup removed its last stream.
+        highest_manual = self.db.query(func.max(TVChannel.channel_number)).scalar()
+        fallback_base = max(1000, int(highest_manual or 0) + 1)
         taken: Set[int] = set()
         lineup = Lineup()
         for tv, best in candidates:

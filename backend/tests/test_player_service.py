@@ -524,3 +524,33 @@ def test_launch_abandons_a_session_that_failed_while_the_engine_answers(make_ser
             await svc.stop()
 
     asyncio.run(run())
+
+
+def test_tick_reads_session_stats_concurrently(make_service):
+    """Two sessions must not queue behind one another: a stat call that only
+    answers once both sessions have asked proves the tick fans them out. Run in
+    series the first call would block until the barrier times out, and neither
+    session would come back with statistics."""
+    barrier = threading.Barrier(2, timeout=3)
+
+    def handler(request):
+        path = request.url.path
+        if path == "/ace/getstream":
+            return httpx.Response(200, json={"response": {"playback_url": "http://engine:6878/content/x/1", "stat_url": "http://engine:6878/ace/stat/x/s", "command_url": "http://engine:6878/ace/cmd/x/s", "is_live": 1}, "error": None})
+        if "/ace/stat/" in path:
+            barrier.wait()  # BrokenBarrierError once the timeout expires
+            return httpx.Response(200, json={"response": {"status": "dl", "peers": 3, "speed_down": 500, "speed_up": 10}, "error": None})
+        return httpx.Response(200, text="ok")
+
+    svc = make_service(handler=handler)
+
+    async def run():
+        try:
+            first = await svc.open_session(IH)
+            second = await svc.open_session(IH2)
+            await svc.tick()
+            assert first.stats is not None and second.stats is not None
+            assert first.stats.peers == 3 and second.stats.peers == 3
+        finally:
+            await svc.stop()
+    asyncio.run(run())

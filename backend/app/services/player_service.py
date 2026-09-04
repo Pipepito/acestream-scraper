@@ -394,20 +394,34 @@ class PlayerService:
 
     # --- periodic work -------------------------------------------------------
     async def tick(self) -> None:
+        """One reaper pass: refresh every session's engine statistics, then
+        advance each session's state machine.
+
+        The stat calls run together. Awaited one after another they would add up
+        -- with several sessions and a slow engine the tick would take a
+        multiple of the per-call timeout, stretching the interval that decides
+        when a stale session is torn down.
+        """
         now = self._now()
-        for session in list(self.sessions.values()):
+        sessions = list(self.sessions.values())
+        await asyncio.gather(*(self._refresh_stats(session) for session in sessions))
+        for session in sessions:
             try:
-                await self._tick_session(session, now)
+                await self._advance_session(session, now)
             except Exception:  # noqa: BLE001 - one bad session must not stop the rest
                 logger.exception("Player session %s tick failed", session.id)
 
-    async def _tick_session(self, session: PlayerSession, now: float) -> None:
-        if session.state in ("starting", "ready") and session.engine_session is not None:
-            engine_session = session.engine_session
-            try:
-                session.stats = await run_in_threadpool(self._engine_call, lambda engine: engine.stat(engine_session))
-            except Exception as exc:  # noqa: BLE001 - stats are best effort
-                logger.warning("Player stats for %s unavailable: %s", session.content_id, exc)
+    async def _refresh_stats(self, session: PlayerSession) -> None:
+        """Read one session's engine statistics; failures are best effort."""
+        engine_session = session.engine_session
+        if session.state not in ("starting", "ready") or engine_session is None:
+            return
+        try:
+            session.stats = await run_in_threadpool(self._engine_call, lambda engine: engine.stat(engine_session))
+        except Exception as exc:  # noqa: BLE001 - stats are best effort
+            logger.warning("Player stats for %s unavailable: %s", session.content_id, exc)
+
+    async def _advance_session(self, session: PlayerSession, now: float) -> None:
         if session.state == "starting":
             if self.hls_ready(session):
                 session.state = "ready"

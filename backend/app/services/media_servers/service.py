@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 import time
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Callable, Optional, Tuple
+from typing import Callable, Iterator, Optional, Tuple
 from urllib.parse import urlsplit
 
 import httpx
@@ -77,11 +78,24 @@ class MediaServerService:
         return candidate
 
     # --- clients -----------------------------------------------------------------
-    def _jellyfin(self, base_url: str, api_key: Optional[str]) -> JellyfinClient:
-        return JellyfinClient(base_url, api_key, TunerService(self.db).device_id(), APP_VERSION, client=self._client_factory())
+    # Each use case borrows one HTTP client and gives it back: the factory
+    # (the seam the endpoint tests monkeypatch) builds a fresh client per call,
+    # so without the close every card refresh would leave a connection pool behind.
+    @contextmanager
+    def _jellyfin(self, base_url: str, api_key: Optional[str]) -> Iterator[JellyfinClient]:
+        http = self._client_factory()
+        try:
+            yield JellyfinClient(base_url, api_key, TunerService(self.db).device_id(), APP_VERSION, client=http)
+        finally:
+            http.close()
 
-    def _plex(self, base_url: str, token: Optional[str]) -> PlexClient:
-        return PlexClient(base_url, token, client=self._client_factory())
+    @contextmanager
+    def _plex(self, base_url: str, token: Optional[str]) -> Iterator[PlexClient]:
+        http = self._client_factory()
+        try:
+            yield PlexClient(base_url, token, client=http)
+        finally:
+            http.close()
 
     def _secret(self, api_key: Optional[str], stored_id: Optional[int], base_url: str) -> Optional[str]:
         """Secret rule (spec 7.3, the same one remote players use): the typed key
@@ -106,23 +120,23 @@ class MediaServerService:
         secret = self._secret(api_key, stored_id, base_url)
         try:
             if kind == "jellyfin":
-                client = self._jellyfin(base_url, secret)
-                info = client.public_info()
-                try:
-                    client.livetv_config()
-                    authenticated = True
-                except MediaServerAuthError:
-                    authenticated = False
+                with self._jellyfin(base_url, secret) as client:
+                    info = client.public_info()
+                    try:
+                        client.livetv_config()
+                        authenticated = True
+                    except MediaServerAuthError:
+                        authenticated = False
                 return {"reachable": True, "authenticated": authenticated, "version": info.get("Version"),
                         "message": "Jellyfin is reachable" if authenticated else "Jellyfin rejected the API key (it must be an administrator API key from Dashboard > API Keys)"}
-            client = self._plex(base_url, secret)
-            identity = client.identity()
-            authenticated = True
-            if secret:
-                try:
-                    client.dvrs()
-                except MediaServerAuthError:
-                    authenticated = False
+            with self._plex(base_url, secret) as client:
+                identity = client.identity()
+                authenticated = True
+                if secret:
+                    try:
+                        client.dvrs()
+                    except MediaServerAuthError:
+                        authenticated = False
             return {"reachable": True, "authenticated": authenticated, "version": identity.get("version"),
                     "message": "Plex is reachable" if authenticated else "Plex rejected the token"}
         except MediaServerUnreachable as exc:
@@ -131,61 +145,61 @@ class MediaServerService:
     def connect(self, server: MediaServer, public_base_url: str) -> MediaServer:
         public = public_base_url.rstrip("/")
         if server.kind == "jellyfin":
-            client = self._jellyfin(server.base_url, server.api_key)
-            server.server_version = str(client.public_info().get("Version") or "")
-            config = client.livetv_config()
-            tuner_url = f"{public}/tuner/playlist.m3u" if server.tuner_mode == "m3u" else f"{public}/tuner"
-            existing = next((t for t in config.get("TunerHosts", []) if t.get("Id") == server.tuner_host_id or t.get("Url") == tuner_url), None)
-            tuner_payload = {
-                "Id": (existing or {}).get("Id") or "",
-                "Type": "m3u" if server.tuner_mode == "m3u" else "hdhomerun",
-                "Url": tuner_url,
-                "FriendlyName": TunerService(self.db).settings().friendly_name,
-                "TunerCount": 0, "AllowHWTranscoding": False, "AllowStreamSharing": True, "ImportFavoritesOnly": False,
-                "EnableStreamLooping": False, "IgnoreDts": True,
-            }
-            try:
-                saved_tuner = client.save_tuner_host(tuner_payload)
-            except MediaServerError as exc:
-                # Jellyfin validates a tuner by fetching it, so its refusal is
-                # almost always a public address it cannot reach (spec 7.3).
-                raise MediaServerError(exc.status_code, f"Jellyfin could not download {tuner_url}; check the public address ({exc})") from exc
-            server.tuner_host_id = str(saved_tuner["Id"])
-            guide_url = f"{public}/tuner/epg.xml" if server.tuner_mode == "m3u" else f"{public}/tuner/guide.xml"
-            existing_provider = next((p for p in config.get("ListingProviders", []) if p.get("Id") == server.listing_provider_id or p.get("Path") == guide_url), None)
-            provider_payload = {
-                "Id": (existing_provider or {}).get("Id") or "",
-                "Type": "xmltv", "Path": guide_url, "EnableAllTuners": False, "EnabledTuners": [server.tuner_host_id],
-            }
-            saved_provider = client.save_listing_provider(provider_payload)
-            server.listing_provider_id = str(saved_provider["Id"])
+            with self._jellyfin(server.base_url, server.api_key) as client:
+                server.server_version = str(client.public_info().get("Version") or "")
+                config = client.livetv_config()
+                tuner_url = f"{public}/tuner/playlist.m3u" if server.tuner_mode == "m3u" else f"{public}/tuner"
+                existing = next((t for t in config.get("TunerHosts", []) if t.get("Id") == server.tuner_host_id or t.get("Url") == tuner_url), None)
+                tuner_payload = {
+                    "Id": (existing or {}).get("Id") or "",
+                    "Type": "m3u" if server.tuner_mode == "m3u" else "hdhomerun",
+                    "Url": tuner_url,
+                    "FriendlyName": TunerService(self.db).settings().friendly_name,
+                    "TunerCount": 0, "AllowHWTranscoding": False, "AllowStreamSharing": True, "ImportFavoritesOnly": False,
+                    "EnableStreamLooping": False, "IgnoreDts": True,
+                }
+                try:
+                    saved_tuner = client.save_tuner_host(tuner_payload)
+                except MediaServerError as exc:
+                    # Jellyfin validates a tuner by fetching it, so its refusal is
+                    # almost always a public address it cannot reach (spec 7.3).
+                    raise MediaServerError(exc.status_code, f"Jellyfin could not download {tuner_url}; check the public address ({exc})") from exc
+                server.tuner_host_id = str(saved_tuner["Id"])
+                guide_url = f"{public}/tuner/epg.xml" if server.tuner_mode == "m3u" else f"{public}/tuner/guide.xml"
+                existing_provider = next((p for p in config.get("ListingProviders", []) if p.get("Id") == server.listing_provider_id or p.get("Path") == guide_url), None)
+                provider_payload = {
+                    "Id": (existing_provider or {}).get("Id") or "",
+                    "Type": "xmltv", "Path": guide_url, "EnableAllTuners": False, "EnabledTuners": [server.tuner_host_id],
+                }
+                saved_provider = client.save_listing_provider(provider_payload)
+                server.listing_provider_id = str(saved_provider["Id"])
         else:
-            client = self._plex(server.base_url, server.api_key)
-            server.server_version = str(client.identity().get("version") or "")
-            if server.api_key:
-                server.dvr_key = client.find_dvr_key(TunerService(self.db).device_id())
+            with self._plex(server.base_url, server.api_key) as client:
+                server.server_version = str(client.identity().get("version") or "")
+                if server.api_key:
+                    server.dvr_key = client.find_dvr_key(TunerService(self.db).device_id())
         server.last_error = None
         return self.repo.save(server)
 
     def refresh(self, server: MediaServer) -> RefreshResult:
         if server.kind == "jellyfin":
-            client = self._jellyfin(server.base_url, server.api_key)
-            try:
-                return self._trigger_jellyfin_guide(client)
-            except MediaServerError as exc:
-                if exc.status_code != 503:
-                    raise
-                time.sleep(BUSY_RETRY_SECONDS)
-                return self._trigger_jellyfin_guide(client)
+            with self._jellyfin(server.base_url, server.api_key) as client:
+                try:
+                    return self._trigger_jellyfin_guide(client)
+                except MediaServerError as exc:
+                    if exc.status_code != 503:
+                        raise
+                    time.sleep(BUSY_RETRY_SECONDS)
+                    return self._trigger_jellyfin_guide(client)
         if not server.api_key:
             return RefreshResult("manual", "Rescan the guide in Plex (add a Plex token to refresh automatically)")
-        client = self._plex(server.base_url, server.api_key)
-        if not server.dvr_key:
-            server.dvr_key = client.find_dvr_key(TunerService(self.db).device_id())
-            self.repo.save(server)
-        if not server.dvr_key:
-            return RefreshResult("manual", "Plex has no DVR using this tuner yet; add it in Plex Web first")
-        client.reload_guide(server.dvr_key)
+        with self._plex(server.base_url, server.api_key) as client:
+            if not server.dvr_key:
+                server.dvr_key = client.find_dvr_key(TunerService(self.db).device_id())
+                self.repo.save(server)
+            if not server.dvr_key:
+                return RefreshResult("manual", "Plex has no DVR using this tuner yet; add it in Plex Web first")
+            client.reload_guide(server.dvr_key)
         return RefreshResult("ok", "Plex is reloading its guide")
 
     @staticmethod
@@ -213,22 +227,22 @@ class MediaServerService:
         if not base["connected"] or not server.api_key:
             return base
         try:
-            client = self._jellyfin(server.base_url, server.api_key)
-            task = next((t for t in client.scheduled_tasks() if t.get("Key") == "RefreshGuide"), None)
-            base["refresh_state"] = (task or {}).get("State")
-            base["last_result"] = ((task or {}).get("LastExecutionResult") or {}).get("Status")
-            base["channel_count"] = client.channel_count()
+            with self._jellyfin(server.base_url, server.api_key) as client:
+                task = next((t for t in client.scheduled_tasks() if t.get("Key") == "RefreshGuide"), None)
+                base["refresh_state"] = (task or {}).get("State")
+                base["last_result"] = ((task or {}).get("LastExecutionResult") or {}).get("Status")
+                base["channel_count"] = client.channel_count()
         except (MediaServerUnreachable, MediaServerAuthError, MediaServerError) as exc:
             base["error"] = str(exc)
         return base
 
     def disconnect(self, server: MediaServer) -> MediaServer:
         if server.kind == "jellyfin":
-            client = self._jellyfin(server.base_url, server.api_key)
-            if server.listing_provider_id:
-                client.delete_listing_provider(server.listing_provider_id)
-            if server.tuner_host_id:
-                client.delete_tuner_host(server.tuner_host_id)
+            with self._jellyfin(server.base_url, server.api_key) as client:
+                if server.listing_provider_id:
+                    client.delete_listing_provider(server.listing_provider_id)
+                if server.tuner_host_id:
+                    client.delete_tuner_host(server.tuner_host_id)
             server.tuner_host_id = None
             server.listing_provider_id = None
         else:

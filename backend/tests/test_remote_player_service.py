@@ -162,3 +162,38 @@ def test_play_warnings_survive_a_deleted_stream_link_format(alembic_db_session):
     repo.delete(pattern)
     assert svc.resolve_stream_url(player, IH, "http://localhost:8000").startswith("http://localhost:8000/")
     assert svc.play_warnings(player, "http://localhost:8000") == ["localhost"]
+
+
+def test_every_call_closes_the_http_client_it_borrowed(alembic_db_session):
+    """A player card is polled every few seconds: a client per call that is
+    never closed leaks a connection pool each time."""
+    clients = []
+
+    def factory():
+        client = httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(200, json=VLC_OK)))
+        clients.append(client)
+        return client
+
+    svc = RemotePlayerService(alembic_db_session, client_factory=factory)
+    player = svc.repo.create(name="p", kind="vlc", host="192.168.1.20", port=8080, username=None, password="pw", base_url_id=None)
+    svc.probe("vlc", "192.168.1.20", 8080, None, "pw")
+    svc.status(player)
+    svc.play(player, IH, "http://scraper.lan:8000", "Arena")
+    svc.command(player, "stop")
+    assert len(clients) == 4
+    assert [c.is_closed for c in clients] == [True] * 4
+
+
+def test_a_failing_call_still_closes_its_client(alembic_db_session):
+    clients = []
+
+    def factory():
+        client = httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(401)))
+        clients.append(client)
+        return client
+
+    svc = RemotePlayerService(alembic_db_session, client_factory=factory)
+    player = svc.repo.create(name="p", kind="vlc", host="192.168.1.20", port=8080, username=None, password="pw", base_url_id=None)
+    with pytest.raises(PlayerAuthError):
+        svc.status(player)
+    assert len(clients) == 1 and clients[0].is_closed

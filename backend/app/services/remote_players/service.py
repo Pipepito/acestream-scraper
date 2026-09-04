@@ -3,8 +3,9 @@ from __future__ import annotations
 
 import ipaddress
 import socket
+from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, Iterator, List, Optional, Tuple, Union
 
 import httpx
 from sqlalchemy.orm import Session
@@ -107,13 +108,28 @@ class RemotePlayerService:
         return TunerAccess(addresses=addresses, allowed=all(gate.is_allowed(a) for a in addresses))
 
     # --- drivers ---------------------------------------------------------------
+    @contextmanager
     def _driver(
         self, kind: str, host: str, port: int, username: Optional[str], password: Optional[str]
-    ) -> PlayerDriver:
-        return make_driver(kind, host, port, username, password, client=self._client_factory())
+    ) -> Iterator[PlayerDriver]:
+        """One driver for one call, with the HTTP client it borrows closed after.
 
-    def driver_for(self, player: RemotePlayer) -> PlayerDriver:
-        return self._driver(player.kind, player.host, player.port, player.username, player.password)
+        Every call builds its own client (``client_factory`` is the seam the
+        endpoint tests monkeypatch), so without the close each poll of a player
+        card would leave a connection pool behind for the GC to find.
+        """
+        client = self._client_factory()
+        try:
+            yield make_driver(kind, host, port, username, password, client=client)
+        finally:
+            client.close()
+
+    @contextmanager
+    def driver_for(self, player: RemotePlayer) -> Iterator[PlayerDriver]:
+        with self._driver(
+            player.kind, player.host, player.port, player.username, player.password
+        ) as driver:
+            yield driver
 
     def probe(
         self,
@@ -137,8 +153,9 @@ class RemotePlayerService:
             stored = self.repo.get(stored_id)
             if stored is not None and _same_target(stored, host, port):
                 secret = stored.password
-        driver = self._driver(kind, host, port, username, secret or "")
-        return driver.probe(), self.tuner_access(host)
+        with self._driver(kind, host, port, username, secret or "") as driver:
+            probe = driver.probe()
+        return probe, self.tuner_access(host)
 
     def password_for_update(
         self,
@@ -161,7 +178,8 @@ class RemotePlayerService:
         return None if _same_target(player, host or player.host, port or player.port) else ""
 
     def status(self, player: RemotePlayer) -> PlayerStatus:
-        return self.driver_for(player).status()
+        with self.driver_for(player) as driver:
+            return driver.status()
 
     # --- playback --------------------------------------------------------------
     def _stream_pattern(self, player: RemotePlayer) -> Optional[str]:
@@ -204,20 +222,21 @@ class RemotePlayerService:
 
     def play(self, player: RemotePlayer, content_id: str, public_base_url: str, title: str) -> str:
         url = self.resolve_stream_url(player, content_id, public_base_url)
-        self.driver_for(player).play(url, title)
+        with self.driver_for(player) as driver:
+            driver.play(url, title)
         return url
 
     def command(self, player: RemotePlayer, command: str, value: Optional[int] = None) -> None:
         if command not in COMMANDS:
             raise ValueError(f"unsupported command: {command}")
-        driver = self.driver_for(player)
-        if command == "pause":
-            driver.pause()
-        elif command == "resume":
-            driver.resume()
-        elif command == "stop":
-            driver.stop()
-        else:
-            if value is None:
-                raise ValueError("volume needs a value")
-            driver.set_volume(max(0, min(MAX_VOLUME_PCT, int(value))))
+        with self.driver_for(player) as driver:
+            if command == "pause":
+                driver.pause()
+            elif command == "resume":
+                driver.resume()
+            elif command == "stop":
+                driver.stop()
+            else:
+                if value is None:
+                    raise ValueError("volume needs a value")
+                driver.set_volume(max(0, min(MAX_VOLUME_PCT, int(value))))

@@ -314,3 +314,40 @@ def test_a_non_json_answer_stays_inside_the_error_contract(alembic_db_session):
     assert server.last_lineup_fingerprint is None and "expected JSON" in server.last_error
     reported = svc.status(server, PUBLIC)
     assert reported["connected"] is True and "expected JSON" in reported["error"]
+
+
+def test_every_call_closes_the_http_client_it_borrowed(alembic_db_session, jellyfin):
+    """The Integrations page polls every server card: a client per call that is
+    never closed leaks a connection pool each time."""
+    clients = []
+
+    def factory():
+        client = httpx.Client(transport=httpx.MockTransport(jellyfin.handler))
+        clients.append(client)
+        return client
+
+    svc = MediaServerService(alembic_db_session, client_factory=factory)
+    server = _server(svc)
+    svc.test("jellyfin", server.base_url, "good")
+    svc.connect(server, PUBLIC)
+    svc.refresh(server)
+    svc.status(server, PUBLIC)
+    svc.disconnect(server)
+    assert len(clients) == 5
+    assert [c.is_closed for c in clients] == [True] * 5
+
+
+def test_a_failing_call_still_closes_its_client(alembic_db_session, jellyfin):
+    clients = []
+
+    def factory():
+        client = httpx.Client(transport=httpx.MockTransport(jellyfin.handler))
+        clients.append(client)
+        return client
+
+    jellyfin.reject_key = True
+    svc = MediaServerService(alembic_db_session, client_factory=factory)
+    server = _server(svc)
+    with pytest.raises(MediaServerAuthError):
+        svc.connect(server, PUBLIC)
+    assert len(clients) == 1 and clients[0].is_closed

@@ -129,3 +129,22 @@ def test_invalid_env_seed_does_not_become_the_public_url(alembic_client, monkeyp
         assert body == {"url": "http://testserver", "source": "request", "warnings": ["unset"]}
     finally:
         get_settings.cache_clear()
+
+
+def test_env_default_applies_to_a_row_seeded_empty(alembic_client, clean_env, monkeypatch):
+    """An install that booted before PUBLIC_BASE_URL was set has an empty
+    settings row; the variable must still take effect (an empty stored value
+    means "not configured", so the environment default wins over it)."""
+    assert alembic_client.get("/api/v1/config/public_base_url").json()["value"] == ""
+    monkeypatch.setenv("PUBLIC_BASE_URL", "http://late.lan:8000")
+    get_settings.cache_clear()
+    assert alembic_client.get("/api/v1/config/public_base_url").json()["value"] == "http://late.lan:8000"
+    body = alembic_client.get("/api/v1/system/public-url").json()
+    assert body["url"] == "http://late.lan:8000" and body["source"] == "setting"
+
+
+def test_stored_value_still_wins_over_the_env_default(alembic_client, clean_env, monkeypatch):
+    assert alembic_client.put("/api/v1/config/public_base_url", json={"value": "http://stored.lan:8000"}).status_code == 200
+    monkeypatch.setenv("PUBLIC_BASE_URL", "http://env.lan:8000")
+    get_settings.cache_clear()
+    assert alembic_client.get("/api/v1/config/public_base_url").json()["value"] == "http://stored.lan:8000"

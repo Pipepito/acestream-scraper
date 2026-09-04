@@ -41,6 +41,14 @@ class SettingsRepository:
     DEFAULT_TUNER_MAX_CHANNELS = '450'
     DEFAULT_TUNER_ONLY_ONLINE = 'false'
 
+    # Keys whose stored empty value means "not configured" rather than
+    # "deliberately blank". Their DEFAULT_<KEY> comes from the environment, and
+    # setup_defaults seeds the row on first boot -- before the operator may have
+    # set the variable. Without this, that empty row would win for good and
+    # PUBLIC_BASE_URL would be inert with nothing to explain why.
+    # Precedence: a non-empty stored value > the environment > unset.
+    ENV_BACKED_KEYS = frozenset({PUBLIC_BASE_URL})
+
     @property
     def DEFAULT_PUBLIC_BASE_URL(self) -> str:  # noqa: N802 - matches the DEFAULT_<KEY> lookup convention
         # Read at call time (not import time) so tests and runtime env changes apply.
@@ -63,8 +71,12 @@ class SettingsRepository:
         """Get a setting value by key"""
         try:
             setting = self.db.query(Setting).filter(Setting.key == key).first()
-            if setting:
-                return setting.value
+            if setting is not None:
+                value = setting.value
+                if (value or '').strip() or key not in self.ENV_BACKED_KEYS:
+                    return value
+                logger.info(f"Setting {key} is empty, using the environment default")
+                return self._get_class_default(key, default)
             logger.info(f"Setting {key} not found, using default")
             # Use class default if available
             return self._get_class_default(key, default)

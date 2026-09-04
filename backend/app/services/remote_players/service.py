@@ -139,6 +139,26 @@ class RemotePlayerService:
         driver = self._driver(kind, host, port, username, secret or "")
         return driver.probe(), self.tuner_access(host)
 
+    def password_for_update(
+        self,
+        player: RemotePlayer,
+        host: Optional[str],
+        port: Optional[int],
+        password: Optional[str],
+    ) -> Optional[str]:
+        """The password a PATCH should store: the typed one when given, else the
+        stored one — unless the row is being pointed somewhere else, in which
+        case it is cleared ("" clears, None keeps; see the repository).
+
+        A player at a new address is a new device. probe() refuses to send a
+        stored secret to a host the row does not name, but the row itself can be
+        moved: without this rule, PATCH {"host": ...} followed by POST
+        /{id}/test hands the secret to any address the caller picks — the very
+        thing the API withholding the password is supposed to prevent."""
+        if password is not None:
+            return password
+        return None if _same_target(player, host or player.host, port or player.port) else ""
+
     def status(self, player: RemotePlayer) -> PlayerStatus:
         return self.driver_for(player).status()
 

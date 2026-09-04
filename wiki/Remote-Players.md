@@ -85,6 +85,8 @@ Seeking is deliberately absent. These are live streams, and VLC and Kodi disagre
 
 **Player passwords are stored unencrypted in the app's database** (`config/scraper.db`), the same way the app stores its other settings. They are never returned by the API (it only reports whether a password is set) and never written to the logs, but anyone who can read the database file can read them.
 
+A saved password belongs to one address: **change a player's address or port and the saved password is cleared**, so type it again in the same edit. A player at a new address is a new device, and the app will not send the old one's password to it.
+
 That is a deliberate trade-off for a single-user app with no key management: treat the database file as a secret, keep the app off untrusted networks, and use passwords you do not reuse elsewhere. See [Reverse Proxy / HTTPS](https://github.com/Pipepito/acestream-scraper/blob/main/docs/ops/reverse-proxy.md) if you expose the app beyond a trusted network.
 
 ## See also

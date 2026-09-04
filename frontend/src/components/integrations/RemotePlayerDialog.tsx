@@ -177,7 +177,7 @@ const RemotePlayerDialog: React.FC<RemotePlayerDialogProps> = ({ open, player, p
               fullWidth
               helperText={
                 player?.has_password
-                  ? 'Leave empty to keep the saved password.'
+                  ? 'Leave empty to keep the saved password. Moving the player to another address or port clears it — type it again.'
                   : kind === 'vlc'
                     ? 'The Lua HTTP password you set in VLC.'
                     : 'From Kodi > Settings > Services > Control.'

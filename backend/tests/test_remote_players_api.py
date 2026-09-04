@@ -31,8 +31,8 @@ def test_crud_masks_the_password(alembic_client, vlc):
     body = created.json()
     assert body["has_password"] is True and "password" not in body and body["base_url_id"] is None
     assert _create(alembic_client).status_code == 409
-    patched = alembic_client.patch(f"/api/v1/remote-players/{body['id']}", json={"name": "Lounge", "port": 9090})
-    assert patched.json()["name"] == "Lounge" and patched.json()["port"] == 9090 and patched.json()["has_password"] is True
+    patched = alembic_client.patch(f"/api/v1/remote-players/{body['id']}", json={"name": "Lounge"})
+    assert patched.json()["name"] == "Lounge" and patched.json()["port"] == 8080 and patched.json()["has_password"] is True
     assert alembic_client.get("/api/v1/remote-players").json()[0]["name"] == "Lounge"
     assert alembic_client.delete(f"/api/v1/remote-players/{body['id']}").status_code == 204
     assert alembic_client.get("/api/v1/remote-players").json() == []
@@ -136,3 +136,37 @@ def test_probe_with_an_id_reuses_the_password_only_for_that_target(alembic_clien
         assert alembic_client.post("/api/v1/remote-players/test", json=body).status_code == 200
     assert _basic_secret(seen[0]) == "pw"
     assert [_basic_secret(header) for header in seen[1:]] == ["", ""]
+
+
+def test_moving_a_player_forgets_its_password(alembic_client, vlc):
+    """PATCH host, then POST /{id}/test: without this rule those two requests
+    hand the stored secret to an address the row never talked to, which is
+    exactly what probe()'s _same_target guard exists to prevent."""
+    player = _create(alembic_client).json()  # 192.168.1.20:8080, password "pw"
+    seen = []
+
+    def handler(request):
+        seen.append(request.headers.get("Authorization"))
+        return httpx.Response(200, json=VLC_OK)
+    vlc["handler"] = handler
+
+    moved = alembic_client.patch(f"/api/v1/remote-players/{player['id']}", json={"host": "192.168.1.99"})
+    assert moved.status_code == 200, moved.text
+    assert moved.json()["has_password"] is False
+    assert alembic_client.post(f"/api/v1/remote-players/{player['id']}/test").status_code == 200
+    assert _basic_secret(seen[0]) == ""
+
+    repointed = alembic_client.patch(f"/api/v1/remote-players/{player['id']}", json={"port": 9090})
+    assert repointed.json()["has_password"] is False
+
+
+def test_editing_a_player_in_place_keeps_its_password(alembic_client, vlc):
+    """The edit dialog resends host and port unchanged and leaves the password
+    field empty; only a real move to another address drops the secret."""
+    player = _create(alembic_client).json()
+    same = {"name": "Lounge", "kind": "vlc", "host": "192.168.1.20", "port": 8080}
+    assert alembic_client.patch(f"/api/v1/remote-players/{player['id']}", json=same).json()["has_password"] is True
+    moved_with_secret = alembic_client.patch(
+        f"/api/v1/remote-players/{player['id']}", json={"host": "192.168.1.99", "password": "new"}
+    )
+    assert moved_with_secret.json()["has_password"] is True

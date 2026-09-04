@@ -161,7 +161,7 @@ def update_player(
         host=host,
         port=payload.port,
         username=payload.username,
-        password=payload.password,
+        password=service.password_for_update(player, host, payload.port, payload.password),
         base_url_id=payload.base_url_id,
     )
     if payload.clear_base_url:

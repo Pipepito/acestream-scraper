@@ -38,6 +38,7 @@ export const JOB_NAMES: Record<string, string> = {
   channel_status: 'Check stream status',
   channel_cleanup: 'Remove stale channels',
   activity_log_cleanup: 'Clean activity log',
+  media_server_sync: 'Sync media servers',
   v1_epg_programs_migration: 'Migrate v1 EPG programmes',
 };
 

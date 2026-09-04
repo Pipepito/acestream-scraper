@@ -46,6 +46,7 @@ from app.tasks.channel_status_task import run_channel_status_task
 from app.tasks.epg_program_cleanup_task import run_epg_program_cleanup_task
 from app.tasks.epg_refresh_task import run_epg_refresh_task
 from app.tasks.legacy_migration_task import TASK_ID as LEGACY_MIGRATION_TASK_ID, run_v1_epg_programs_migration
+from app.tasks.media_server_sync_task import run_media_server_sync_task
 from app.tasks.url_scraping_task import run_url_scraping_task
 from app.utils.logging import setup_logging
 
@@ -170,6 +171,7 @@ async def lifespan(app: FastAPI):
     task_service.add_interval_task(run_url_scraping_task, seconds=scrape_hours * 3600, job_id="url_scraping")  # settings: rescrape_interval
     task_service.add_interval_task(run_channel_cleanup_task, seconds=86400, job_id="channel_cleanup")  # daily
     task_service.add_interval_task(run_channel_status_task, seconds=600, job_id="channel_status")  # every 10 min
+    task_service.add_interval_task(run_media_server_sync_task, seconds=600, job_id="media_server_sync")  # every 10 min
     _schedule_deferred_migration()
 
     reaper = asyncio.create_task(reap_relays_forever())

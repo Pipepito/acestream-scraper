@@ -6,7 +6,8 @@
 #   1. this repo's transient CI images older than --transient-age-hours
 #      (acestream-scraper:smoke-*, acestream-scraper:release-smoke,
 #       acestream-scraper-smoke:*, acestream-installer-test:*,
-#       acestream-scraper-task3:*) — leaked when a test run crashes before
+#       acestream-scraper-task3:*, acestream-scraper-pr-ci:pr-*) — leaked when
+#      a test run crashes before
 #      its finalizers or when a build tag was never cleaned up;
 #   2. dangling layers and unused images older than --image-age-hours;
 #   3. every builder's BuildKit cache above --builder-keep (default 3GB).
@@ -60,6 +61,7 @@ patterns = [
     r"^acestream-scraper-smoke:",
     r"^acestream-installer-test:",
     r"^acestream-scraper-task3:",
+    r"^acestream-scraper-pr-ci:pr-",
 ]
 for line in sys.stdin:
     line = line.strip()

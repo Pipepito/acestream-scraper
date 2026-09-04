@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_ROOT=$(cd "$(dirname "$0")/../.." && pwd)
+REPO_ROOT=${RUNTIME_CONTRACT_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}
 ENTRYPOINT_SCRIPT="$REPO_ROOT/entrypoint.sh"
 WARP_SETUP_SCRIPT="$REPO_ROOT/warp-setup.sh"
 HEALTHCHECK_SCRIPT="$REPO_ROOT/healthcheck.sh"

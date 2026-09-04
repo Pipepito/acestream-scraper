@@ -47,6 +47,7 @@ def test_removes_only_old_transient_images_and_keeps_current(tmp_path: Path):
         ("acestream-scraper:smoke-PR-113-28", old),        # leaked smoke image -> remove
         ("acestream-scraper:smoke-29", old),               # legacy per-number tag -> remove
         ("acestream-installer-test:apk-armeabi-v7a", old),  # crashed pytest leftover -> remove
+        ("acestream-scraper-pr-ci:pr-12-0-deadbeef", old),  # crashed PR runner -> remove
         ("acestream-scraper-smoke:scraper-acexy-1a2b3c4d", fresh),  # other job, in flight -> keep (fresh)
         ("acestream-scraper:smoke-PR-113-30", old),        # current build -> keep (--keep)
         ("pipepito/acestream-scraper:latest", old),        # not transient -> never targeted here
@@ -62,6 +63,7 @@ def test_removes_only_old_transient_images_and_keeps_current(tmp_path: Path):
         "acestream-scraper:smoke-PR-113-28",
         "acestream-scraper:smoke-29",
         "acestream-installer-test:apk-armeabi-v7a",
+        "acestream-scraper-pr-ci:pr-12-0-deadbeef",
     }
     assert "docker image prune -f" in calls
     assert (

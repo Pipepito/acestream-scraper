@@ -4,9 +4,9 @@
 # runs inside it without network access, Jenkins credentials, or the Docker
 # socket. Keep both upstream images digest-pinned so rebuilding the sandbox is
 # deliberate and reviewable.
-FROM node:22.19.0-bookworm-slim@sha256:4a4884e8a44826194dff92ba316264f392056cbe243dcc9fd3551e71cea02b90 AS node
+FROM node:22-bookworm-slim@sha256:83f487e0a63425e5b4d146fb5e5be574bcbe1b7b843d3ebafdd95eaf7767a7e5 AS node
 
-FROM python:3.12.11-slim-bookworm@sha256:519591d6871b7bc437060736b9f7456b8731f1499a57e22e6c285135ae657bf7
+FROM python:3.12-slim-bookworm@sha256:782412e85d0f0984994c290652577d4018aff08145c85b262bb63dc0c7522254
 
 LABEL org.acestream-scraper.ci.keep="true"
 

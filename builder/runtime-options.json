@@ -68,7 +68,7 @@
       "id": "armv7",
       "label": "ARM 32-bit",
       "summary": "Older ARM boards running a 32-bit OS.",
-      "engine": "Android engine 3.1.80 on a bionic userland",
+      "engine": "Android engine 3.2.17 on a bionic userland",
       "engineSupport": "experimental",
       "warpAvailable": false,
       "ipfsAvailable": false,

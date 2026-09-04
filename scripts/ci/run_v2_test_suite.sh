@@ -47,6 +47,12 @@ else
   fi
 fi
 
+# The only file under backend/tests/docker that builds nothing: it reads the ARM
+# engine docs and fails if the Premium-playback policy or ACESTREAM_BIND_ALL is
+# edited out. Both profiles exclude that directory below, so run it by name.
+echo "Running docs contract guard..."
+PYTHONPATH=backend "$BACKEND_PYTEST" -q backend/tests/docker/test_docs_contract.py
+
 echo "Running canonical backend suite ($PROFILE)..."
 if [[ "$PROFILE" == "quick" ]]; then
   PYTHONPATH=backend "$BACKEND_PYTEST" -q \

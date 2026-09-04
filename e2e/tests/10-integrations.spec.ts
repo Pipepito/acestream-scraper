@@ -14,6 +14,12 @@ const IN_DOCKER = process.env.E2E_TARGET === 'docker';
 const HOST_FROM_APP = IN_DOCKER ? 'host.docker.internal' : '127.0.0.1';
 const TS_FIXTURE = path.resolve(__dirname, '..', '..', 'backend', 'tests', 'docker', 'fixtures', 'sample-h264-ac3.m2ts');
 
+/**
+ * hls.js reports recoverable buffer hiccups on the console; they are not app errors.
+ * Every test that can reach "Playing" has to declare them: `errors` is per-test.
+ */
+const HLS_PLAYBACK_NOISE = /mediaError|bufferStalledError|hlsError/i;
+
 /** A VLC whose web interface has no password: it answers every request 403. */
 async function startUnprotectedVlc(): Promise<{ port: number; close: () => Promise<void> }> {
   const server: Server = createServer((req, res) => {
@@ -115,8 +121,7 @@ test.describe('integrations', () => {
     }
 
     const target = await playbackChannel(api, scenario.integrations.playbackChannelName);
-    // hls.js reports recoverable buffer hiccups on the console; they are not app errors.
-    errors.allowConsole(/mediaError|bufferStalledError|hlsError/i);
+    errors.allowConsole(HLS_PLAYBACK_NOISE);
     const engineUrl = await api.getSetting('ace_engine_url');
     const stub = await startStubEngine(TS_FIXTURE);
     try {
@@ -153,7 +158,7 @@ test.describe('integrations', () => {
     }
   });
 
-  test('the same channel is attempted against the real engine', async ({ page, api, scenario }, testInfo) => {
+  test('the same channel is attempted against the real engine', async ({ page, api, scenario, errors }, testInfo) => {
     const caps = (await api.raw('get', '/api/v1/player/capabilities').then((r) => r.json())) as { ffmpeg_available: boolean };
     if (!caps.ffmpeg_available) {
       testInfo.annotations.push({ type: 'skipped', description: 'no ffmpeg on this host' });
@@ -161,6 +166,9 @@ test.describe('integrations', () => {
       return;
     }
     const target = await playbackChannel(api, scenario.integrations.playbackChannelName);
+    // The tolerant outcome this test exists to accept is a real stream playing, so the
+    // same hls.js noise has to be declared here too or E2E_STRICT=1 fails on success.
+    errors.allowConsole(HLS_PLAYBACK_NOISE);
     const channels = new ChannelsPage(page);
     await channels.open();
     await channels.filterByName(target.name);

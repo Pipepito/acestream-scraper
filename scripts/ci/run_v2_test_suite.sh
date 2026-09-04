@@ -21,22 +21,30 @@ if [[ ! -d backend/venv ]]; then
   "$PYTHON_BIN" -m venv backend/venv
 fi
 
-if ! backend/venv/bin/pip install --upgrade pip >/dev/null; then
-  echo "WARN: Could not upgrade pip (offline or restricted network)."
-fi
-
-if ! backend/venv/bin/pip install -r backend/requirements.txt >/dev/null; then
-  echo "WARN: Could not install backend requirements from network."
-  FALLBACK_BACKEND_PYTEST=$(find . -type f -path "*/backend/venv/bin/pytest" ! -path "./backend/venv/*" | head -n 1 || true)
-  if [[ -n "${FALLBACK_BACKEND_PYTEST:-}" && -x "$FALLBACK_BACKEND_PYTEST" ]]; then
-    echo "INFO: Falling back to discovered backend virtualenv for checks."
-    BACKEND_PYTEST="$FALLBACK_BACKEND_PYTEST"
-  else
-    echo "ERROR: No fallback backend virtualenv available."
+if [[ "${CI_USE_PREINSTALLED_DEPS:-0}" == "1" ]]; then
+  if [[ ! -x backend/venv/bin/pytest ]]; then
+    echo "ERROR: CI_USE_PREINSTALLED_DEPS=1 requires backend/venv/bin/pytest."
     exit 1
   fi
-else
   BACKEND_PYTEST="backend/venv/bin/pytest"
+else
+  if ! backend/venv/bin/pip install --upgrade pip >/dev/null; then
+    echo "WARN: Could not upgrade pip (offline or restricted network)."
+  fi
+
+  if ! backend/venv/bin/pip install -r backend/requirements.txt >/dev/null; then
+    echo "WARN: Could not install backend requirements from network."
+    FALLBACK_BACKEND_PYTEST=$(find . -type f -path "*/backend/venv/bin/pytest" ! -path "./backend/venv/*" | head -n 1 || true)
+    if [[ -n "${FALLBACK_BACKEND_PYTEST:-}" && -x "$FALLBACK_BACKEND_PYTEST" ]]; then
+      echo "INFO: Falling back to discovered backend virtualenv for checks."
+      BACKEND_PYTEST="$FALLBACK_BACKEND_PYTEST"
+    else
+      echo "ERROR: No fallback backend virtualenv available."
+      exit 1
+    fi
+  else
+    BACKEND_PYTEST="backend/venv/bin/pytest"
+  fi
 fi
 
 echo "Running canonical backend suite ($PROFILE)..."
@@ -61,7 +69,12 @@ PYTHONPATH=backend backend/venv/bin/python backend/scripts/dump_openapi.py
 echo "Running canonical frontend suite ($PROFILE)..."
 (
   cd frontend
-  if ! npm ci >/dev/null; then
+  if [[ "${CI_USE_PREINSTALLED_DEPS:-0}" == "1" ]]; then
+    if [[ ! -x node_modules/.bin/jest ]]; then
+      echo "ERROR: CI_USE_PREINSTALLED_DEPS=1 requires frontend/node_modules."
+      exit 1
+    fi
+  elif ! npm ci >/dev/null; then
     echo "WARN: npm ci failed (offline or restricted network)."
     FALLBACK_NODE_MODULES=$(find .. -type d -path "*/frontend/node_modules" ! -path "../frontend/node_modules" | head -n 1 || true)
     if [[ -n "${FALLBACK_NODE_MODULES:-}" && -d "$FALLBACK_NODE_MODULES" ]]; then

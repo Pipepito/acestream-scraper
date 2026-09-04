@@ -67,6 +67,7 @@ def read(rel: str) -> str:
 def main() -> int:
     pr_jenkinsfile = read("jenkins/pr.Jenkinsfile")
     develop_jenkinsfile = read("jenkins/develop.Jenkinsfile")
+    develop_validation = read("scripts/ci/run_develop_validation.sh")
     phase5_config = read("scripts/phase_gates/phase5_gate_config.yaml")
     release_sh = read("scripts/ci/run_jenkins_release.sh")
     release_jenkinsfile = read("jenkins/release.Jenkinsfile")
@@ -107,6 +108,13 @@ def main() -> int:
         ("develop pipeline builds the trusted fork runner",
          "docker/ci/pr-runner.Dockerfile" in develop_jenkinsfile
          and "acestream-scraper-pr-ci:develop" in develop_jenkinsfile),
+        ("develop tests use the pinned runner without network or dependency installs",
+         "--network none" in develop_jenkinsfile
+         and "scripts/ci/run_develop_validation.sh" in develop_jenkinsfile
+         and "CI_USE_PREINSTALLED_DEPS=1" in develop_validation
+         and "CUTOVER_SKIP_COMPOSE=1" in develop_validation
+         and "--skip-command compose_smoke" in develop_validation
+         and "docker compose config -q" in develop_jenkinsfile),
         ("release script channel mode never emits a version tag or :latest",
          all(tag in channel_plan for tag in CHANNEL_TAGS)
          and "pipepito/acestream-scraper:latest" not in channel_plan

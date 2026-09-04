@@ -45,12 +45,14 @@ def render_command(raw_command: str, python_bin: str) -> str:
 def build_summary(profile: str, config_version: str, results: List[Dict[str, Any]]) -> Dict[str, Any]:
     blocking_failures = [item["id"] for item in results if item["blocking"] and item["status"] == "failed"]
     non_blocking_failures = [item["id"] for item in results if not item["blocking"] and item["status"] == "failed"]
+    skipped_commands = [item["id"] for item in results if item["status"] == "skipped"]
     return {
         "profile": profile,
         "config_version": config_version,
         "passed": len(blocking_failures) == 0,
         "blocking_failures": blocking_failures,
         "non_blocking_failures": non_blocking_failures,
+        "skipped_commands": skipped_commands,
         "results": results,
     }
 
@@ -87,6 +89,12 @@ def main() -> int:
     parser.add_argument("--profile", default="quick", help="Gate profile to run (quick|full).")
     parser.add_argument("--config", default=str(DEFAULT_CONFIG), help="Path to gate config file.")
     parser.add_argument("--json-output", action="store_true", help="Print machine-readable JSON summary.")
+    parser.add_argument(
+        "--skip-command",
+        action="append",
+        default=[],
+        help="Record a command as delegated instead of running it (repeatable).",
+    )
     args = parser.parse_args()
 
     repo_root = Path(__file__).resolve().parents[2]
@@ -103,11 +111,30 @@ def main() -> int:
     profile = profiles[args.profile]
     commands = profile.get("commands", [])
     results: List[Dict[str, Any]] = []
+    skip_commands = set(args.skip_command)
+    known_commands = {command["id"] for command in commands}
+    unknown_skips = sorted(skip_commands - known_commands)
+    if unknown_skips:
+        print(f"Unknown command id(s) requested for skip: {', '.join(unknown_skips)}", file=sys.stderr)
+        return 2
 
     python_bin = resolve_python_bin()
 
     for command in commands:
         rendered_command = render_command(command["command"], python_bin)
+        if command["id"] in skip_commands:
+            results.append({
+                "id": command["id"],
+                "description": command.get("description", ""),
+                "command": rendered_command,
+                "blocking": bool(command.get("blocking", True)),
+                "status": "skipped",
+                "exit_code": 0,
+                "duration_ms": 0,
+                "stdout_tail": "Delegated to the trusted Jenkins host.",
+                "stderr_tail": "",
+            })
+            continue
         started = time.time()
         completed = run_command(rendered_command, repo_root)
         duration_ms = int((time.time() - started) * 1000)

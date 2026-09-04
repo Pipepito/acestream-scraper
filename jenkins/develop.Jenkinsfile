@@ -74,10 +74,33 @@ bash scripts/ci/publish_pages.sh --dry-run
       steps {
         sh '''#!/usr/bin/env bash
 set -euo pipefail
-backend/venv/bin/python scripts/phase_gates/phase3_gate_runner.py \
-  --profile full \
-  --json-output > phase3-gate-report-full.json
-bash scripts/ci/validate_runtime_contract.sh
+artifact_dir="$WORKSPACE/.ci-develop-artifacts"
+rm -rf "$artifact_dir"
+mkdir -p "$artifact_dir"
+host_uid="$(id -u)"
+host_gid="$(id -g)"
+docker run --rm \
+  --network none \
+  --read-only \
+  --user "$host_uid:$host_gid" \
+  --cap-drop ALL \
+  --security-opt no-new-privileges \
+  --pids-limit 1024 \
+  --memory 8g \
+  --memory-swap 8g \
+  --cpus 3 \
+  --tmpfs /tmp:rw,nosuid,nodev,exec,size=1g \
+  --tmpfs /workspace:rw,nosuid,nodev,exec,size=3g,mode=1777 \
+  --env GIT_CONFIG_COUNT=1 \
+  --env GIT_CONFIG_KEY_0=safe.directory \
+  --env GIT_CONFIG_VALUE_0=/workspace \
+  --volume "$WORKSPACE:/source:ro" \
+  --volume "$artifact_dir:/artifacts:rw" \
+  --workdir /workspace \
+  "$PR_RUNNER_IMAGE" \
+  bash -c 'cp -R /source/. /workspace/ && CI_OUTPUT_DIR=/artifacts bash scripts/ci/run_develop_validation.sh'
+cp "$artifact_dir"/*.json .
+docker compose config -q
 '''
       }
       post {

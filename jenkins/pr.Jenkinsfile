@@ -96,15 +96,18 @@ docker run --rm --init \
   --memory 8g \
   --memory-swap 8g \
   --cpus 3 \
-  --tmpfs /tmp:rw,nosuid,nodev,size=1g \
-  --tmpfs /workspace:rw,nosuid,nodev,size=3g,mode=1777 \
+  --tmpfs /tmp:rw,nosuid,nodev,exec,size=1g \
+  --tmpfs /workspace:rw,nosuid,nodev,exec,size=3g,mode=1777 \
   --env CI=true \
   --env HOME=/tmp/ci-home \
   --env PYTHONDONTWRITEBYTECODE=1 \
+  --env GIT_CONFIG_COUNT=1 \
+  --env GIT_CONFIG_KEY_0=safe.directory \
+  --env GIT_CONFIG_VALUE_0=/workspace \
   --volume "$WORKSPACE:/source:ro" \
   --workdir /workspace \
   "$PR_RUNNER_IMAGE" \
-  bash -c 'cp -a /source/. /workspace/ && git show HEAD^1:scripts/ci/run_pr_validation.sh > /tmp/trusted-pr-validation.sh && bash /tmp/trusted-pr-validation.sh'
+  bash -c 'cp -R /source/. /workspace/ && trusted_script=/workspace/scripts/ci/.jenkins-trusted-pr-validation.sh && rm -f "$trusted_script" && git show HEAD^1:scripts/ci/run_pr_validation.sh > "$trusted_script" && bash "$trusted_script"'
 '''
       }
     }

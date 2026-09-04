@@ -73,7 +73,7 @@ Pipeline enforcement in `jenkins/pr.Jenkinsfile` (multibranch job `acestream-scr
 
 Pipeline enforcement in `jenkins/develop.Jenkinsfile` (trusted job `acestream-scraper-develop`):
 
-- The job polls `develop`, requires checked-out `HEAD == origin/develop`, builds the trusted PR-runner image, and runs full application validation plus Docker/runtime smokes.
+- The job polls `develop`, requires checked-out `HEAD == origin/develop`, builds the trusted PR-runner image, and runs full application validation inside that pinned Python 3.12/Node runner with networking disabled. Compose validation and Docker/runtime smokes remain on the trusted host.
 - It repeats the `HEAD == origin/develop` comparison immediately before publication so an older queued build cannot move the channel backwards.
 - It then binds `dockerhub-publish` and runs `bash scripts/ci/run_jenkins_release.sh --channel develop`. Missing credentials or push failures fail the build.
   - Channel mode logs into Docker Hub, builds the four flavors multi-platform (`linux/amd64`, `linux/arm64`, `linux/arm/v7`) with `--push`, and verifies every pushed manifest.
@@ -750,7 +750,7 @@ Expected behavior:
 Create a Pipeline-from-SCM job inside the trusted publication subfolder. Point it at `*/develop` and set the script path to `jenkins/develop.Jenkinsfile`.
 
 - It polls SCM every five minutes, verifies the checkout is the current `origin/develop`, and refreshes the trusted PR-runner image.
-- It runs full application checks, dry-run architecture/publication policy, and the amd64/Acexy/ARM installer smokes.
+- It runs full application checks offline in the pinned runner, followed by trusted-host Compose validation, dry-run architecture/publication policy, and the amd64/Acexy/ARM installer smokes.
 - It checks `origin/develop` again immediately before publication.
 - Only then does it bind `dockerhub-publish` and `github-publish`, push the floating `:develop*` tags, and update the wiki and Pages.
 - Missing credentials and publication failures fail the build. The wiki's one-time uninitialized state remains `UNSTABLE` with an operator message.

@@ -605,3 +605,11 @@ class TestEPGSourceTimestamps:
         assert stored is not None
         aware = stored if stored.tzinfo else stored.replace(tzinfo=timezone.utc)
         assert abs((datetime.now(timezone.utc) - aware).total_seconds()) < 300
+
+
+def test_epg_xml_output_unchanged_by_refactor(client, seed_epg_programs, seed_tv_channels, db_session):
+    """Guard: the tuner refactor extracts helpers but must not change /api/v1/epg/xml."""
+    from app.services.epg_service import EPGService
+    first = client.get("/api/v1/epg/xml").text
+    assert first == EPGService(db_session).generate_epg_xml()
+    assert first.startswith('<?xml version="1.0" encoding="utf-8" ?>\n<!DOCTYPE tv SYSTEM "xmltv.dtd">\n<tv generator-info-name="Acestream Scraper EPG Generator"')

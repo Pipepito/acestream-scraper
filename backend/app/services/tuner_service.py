@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import html
 import secrets
 from dataclasses import dataclass, field
 from typing import List, Optional, Set
@@ -11,7 +12,9 @@ from sqlalchemy.orm import Session
 from app.models.models import EPGSource, TVChannel
 from app.repositories.channel_repository import ChannelRepository
 from app.repositories.settings_repository import SettingsRepository
+from app.services.epg_service import EPGService
 from app.services.stream_ranking import sort_streams_curated
+from app.utils.m3u import m3u_attr
 
 # libhdhomerun's device-id checksum table, verbatim.
 _LOOKUP = [0xA, 0x5, 0xF, 0x6, 0x7, 0xC, 0x1, 0xB, 0x9, 0x2, 0x8, 0xD, 0x4, 0x3, 0xE, 0x0]
@@ -183,3 +186,64 @@ class TunerService:
         for source_id, last_updated in rows:
             digest.update(f"{source_id}|{last_updated.isoformat() if last_updated else ''}\n".encode("utf-8"))
         return digest.hexdigest()
+
+    # --- exports ------------------------------------------------------------
+    def build_guide_xml(self, lineup: Lineup, days_back: int = 1, days_forward: int = 7) -> str:
+        """XMLTV whose channel ids are the lineup's GuideNumbers, which is how
+        Jellyfin and Plex match an HDHomeRun lineup to its guide."""
+        epg = EPGService(self.db)
+        tv_channels = (
+            self.db.query(TVChannel)
+            .filter(TVChannel.id.in_([entry.tv_channel_id for entry in lineup.entries]))
+            .all()
+            if lineup.entries
+            else []
+        )
+        lookup = epg.epg_channel_lookup(tv_channels)
+
+        lines = [
+            '<?xml version="1.0" encoding="utf-8" ?>',
+            '<!DOCTYPE tv SYSTEM "xmltv.dtd">',
+            '<tv generator-info-name="Acestream Scraper Tuner Guide" generator-info-url="https://github.com/pipepito/acestream-scraper">',
+        ]
+        mapped = []
+        for entry in lineup.entries:
+            lines.append(f'  <channel id="{entry.guide_number}">')
+            # Three display names: media servers match on any of the three forms.
+            lines.append(f'    <display-name>{entry.guide_number} {html.escape(entry.guide_name)}</display-name>')
+            lines.append(f'    <display-name>{entry.guide_number}</display-name>')
+            lines.append(f'    <display-name>{html.escape(entry.guide_name)}</display-name>')
+            if entry.logo_url:
+                lines.append(f'    <icon src="{html.escape(entry.logo_url)}" />')
+            lines.append('  </channel>')
+            epg_channel = lookup.get((entry.epg_source_id, entry.epg_id)) if entry.epg_id else None
+            if epg_channel is not None:
+                mapped.append((entry, epg_channel))
+        lines.append('')
+
+        programs = epg.programs_in_window([channel.id for _, channel in mapped], days_back, days_forward)
+        for entry, epg_channel in mapped:
+            for program in programs.get(epg_channel.id, []):
+                lines.extend(epg.programme_xml_lines(program, entry.guide_number))
+        lines.append('</tv>')
+        return '\n'.join(lines)
+
+    @staticmethod
+    def build_playlist_m3u(lineup: Lineup, public_base_url: str) -> str:
+        """M3U for Jellyfin's M3U tuner: tvg-id keeps the upstream EPG id, and
+        every stream URL points at the relay rather than at the engine."""
+        base = public_base_url.rstrip('/')
+        lines = ["#EXTM3U"]
+        for entry in lineup.entries:
+            attrs = []
+            if entry.epg_id:
+                attrs.append(f'tvg-id="{m3u_attr(entry.epg_id)}"')
+            attrs.append(f'tvg-chno="{entry.guide_number}"')
+            attrs.append(f'tvg-name="{m3u_attr(entry.guide_name)}"')
+            if entry.logo_url:
+                attrs.append(f'tvg-logo="{m3u_attr(entry.logo_url)}"')
+            if entry.category:
+                attrs.append(f'group-title="{m3u_attr(entry.category)}"')
+            lines.append(f'#EXTINF:-1 {" ".join(attrs)},{m3u_attr(entry.guide_name)}')
+            lines.append(f"{base}/tuner/stream/{entry.content_id}.ts")
+        return "\n".join(lines) + "\n"

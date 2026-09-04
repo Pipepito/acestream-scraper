@@ -10,6 +10,7 @@ import time
 from app.repositories.channel_repository import ChannelRepository
 from app.models.models import AcestreamChannel
 from app.services.stream_ranking import score_acestream, sort_streams_curated
+from app.utils.m3u import m3u_attr
 
 
 class PlaylistService:
@@ -249,8 +250,12 @@ class PlaylistService:
 
     @staticmethod
     def _attr(value) -> str:
-        """Sanitize a value for use inside a double-quoted EXTINF attribute."""
-        return str(value).replace('"', "'").replace("\r", " ").replace("\n", " ")
+        """Sanitize a value for use inside a double-quoted EXTINF attribute.
+
+        Thin alias over the shared helper (app.utils.m3u) so the curated
+        playlists and the tuner playlist quote attributes identically.
+        """
+        return m3u_attr(value)
 
     @staticmethod
     def _stream_link(base_url: str, channel_id: str, pid: Optional[int] = None) -> str:

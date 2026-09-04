@@ -1,13 +1,5 @@
 #!/usr/bin/env python3
-"""Assert the canonical CI surface still references all four image flavors.
-
-Replaces an inline python guard that previously read GitHub Actions
-files. All CI now lives on Jenkins: the PR pipeline (Jenkinsfile) must
-exercise every image flavor, and the publish logic lives in
-scripts/ci/run_jenkins_release.sh (Jenkins is the sole publisher). This
-guard checks the surfaces where flavor coverage and tag scheme actually
-live.
-"""
+"""Assert the canonical Jenkins validation and publication boundaries."""
 
 from __future__ import annotations
 
@@ -73,7 +65,11 @@ def read(rel: str) -> str:
 
 
 def main() -> int:
-    pr_jenkinsfile = read("Jenkinsfile")
+    pr_jenkinsfile = read("jenkins/pr.Jenkinsfile")
+    develop_jenkinsfile = read("jenkins/develop.Jenkinsfile")
+    develop_validation = read("scripts/ci/run_develop_validation.sh")
+    pr_validation = read("scripts/ci/run_pr_validation.sh")
+    phase5_config = read("scripts/phase_gates/phase5_gate_config.yaml")
     release_sh = read("scripts/ci/run_jenkins_release.sh")
     release_jenkinsfile = read("jenkins/release.Jenkinsfile")
     version = (ROOT / "version.txt").read_text(encoding="utf-8").strip()
@@ -83,23 +79,52 @@ def main() -> int:
     phase1_tags = [t.replace("${VERSION}", version) for t in PHASE1_TAGS]
 
     checks = [
-        ("PR pipeline (Jenkinsfile) exercises all flavors",
-         all(token in pr_jenkinsfile for token in FLAVOR_TOKENS)),
-        ("PR pipeline does not push to Docker Hub",
-         "--push" not in pr_jenkinsfile),
-        # The only publish from the PR pipeline is the develop pre-release
-        # channel: gated on develop (branch job, or the release PR whose head
-        # is develop), credential-bound, channel tags only.
-        ("PR pipeline publishes the develop channel only from develop",
-         "stage('Publish develop channel')" in pr_jenkinsfile
-         and "branch 'develop'" in pr_jenkinsfile
-         and "env.CHANGE_BRANCH == 'develop'" in pr_jenkinsfile
-         and "credentialsId: 'dockerhub-publish'" in pr_jenkinsfile
-         and "run_jenkins_release.sh --channel develop" in pr_jenkinsfile),
+        ("PR architecture plan exercises all flavors",
+         all(token in phase5_config for token in FLAVOR_TOKENS)),
+        ("PR pipeline has no publication or credential binding",
+         "withCredentials" not in pr_jenkinsfile
+         and "run_jenkins_release.sh" not in pr_jenkinsfile
+         and "publish_wiki.sh" not in pr_jenkinsfile
+         and "publish_pages.sh" not in pr_jenkinsfile),
+        ("PR pipeline confines contributor code to the hardened runner",
+         "--network none" in pr_jenkinsfile
+         and "--read-only" in pr_jenkinsfile
+         and "--cap-drop ALL" in pr_jenkinsfile
+         and "no-new-privileges" in pr_jenkinsfile
+         and '$WORKSPACE:/source:ro' in pr_jenkinsfile
+         and "GIT_CONFIG_KEY_0=safe.directory" in pr_jenkinsfile
+         and "GIT_CONFIG_VALUE_0=/workspace" in pr_jenkinsfile
+         and 'env.PR_VALIDATION_REF = env.CHANGE_FORK' in pr_jenkinsfile
+         and '"refs/remotes/origin/${env.CHANGE_TARGET}"' in pr_jenkinsfile
+         and 'git show "${PR_VALIDATION_REF}:scripts/ci/run_pr_validation.sh"' in pr_jenkinsfile
+         and "runnerInputsChanged" in pr_jenkinsfile
+         and "env.CHANGE_FORK" in pr_jenkinsfile),
         ("PR pipeline rejects PRs into main that do not come from develop",
          "stage('Branch Policy')" in pr_jenkinsfile
          and "env.CHANGE_TARGET == 'main'" in pr_jenkinsfile
          and "env.CHANGE_BRANCH != 'develop'" in pr_jenkinsfile),
+        ("PR validation runs the full suites without installing dependencies",
+         "CI_USE_PREINSTALLED_DEPS=1" in pr_validation
+         and "run_v2_test_suite.sh --profile full" in pr_validation
+         and "npm test" not in pr_validation
+         and "pip install" not in pr_validation),
+        ("develop publication has an exact-branch guard",
+         "stage('Current develop guard')" in develop_jenkinsfile
+         and "git rev-parse origin/develop" in develop_jenkinsfile),
+        ("develop publication is credential-bound in its dedicated pipeline",
+         "stage('Publish develop channel')" in develop_jenkinsfile
+         and "credentialsId: 'dockerhub-publish'" in develop_jenkinsfile
+         and "run_jenkins_release.sh --channel develop" in develop_jenkinsfile),
+        ("develop pipeline builds the trusted fork runner",
+         "docker/ci/pr-runner.Dockerfile" in develop_jenkinsfile
+         and "acestream-scraper-pr-ci:develop" in develop_jenkinsfile),
+        ("develop tests use the pinned runner without network or dependency installs",
+         "--network none" in develop_jenkinsfile
+         and "scripts/ci/run_develop_validation.sh" in develop_jenkinsfile
+         and "CI_USE_PREINSTALLED_DEPS=1" in develop_validation
+         and "CUTOVER_SKIP_COMPOSE=1" in develop_validation
+         and "--skip-command compose_smoke" in develop_validation
+         and "docker compose config -q" in develop_jenkinsfile),
         ("release script channel mode never emits a version tag or :latest",
          all(tag in channel_plan for tag in CHANNEL_TAGS)
          and "pipepito/acestream-scraper:latest" not in channel_plan

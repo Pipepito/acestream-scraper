@@ -314,6 +314,15 @@ case "$zeronet_args" in
     *) fail "ZeroNet arguments did not terminate --trackers before the main action: $zeronet_args" ;;
 esac
 
+expect_success \
+    "ZeroNet UI hosts do not consume the main action" \
+    env PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR" ENABLE_WARP=false ENABLE_ZERONET=true IMAGE_HAS_ZERONET=true ZERONET_BINARY_PATH="$FAKE_BIN/zeronet" ZERONET_DATA_DIR="$TMP_DIR/zeronet-data" ZERONET_UI_HOST="zeronet:43110 localhost:43110" ZERONET_ARG_LOG="$ZERONET_ARG_LOG" bash "$ENTRYPOINT_SCRIPT" sleep 1
+zeronet_args=$(tr '\n' ' ' < "$ZERONET_ARG_LOG")
+case "$zeronet_args" in
+    *"--ui_host zeronet:43110 localhost:43110 --trackers "*" --ui_ip 0.0.0.0"*" main ") ;;
+    *) fail "ZeroNet arguments did not terminate --ui_host before the main action: $zeronet_args" ;;
+esac
+
 : > "$FAKE_DBUS_LOG"
 : > "$FAKE_WARP_SVC_LOG"
 : > "$FAKE_WARP_CLI_LOG"

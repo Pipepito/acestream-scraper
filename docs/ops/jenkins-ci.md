@@ -16,21 +16,20 @@ Important constraint for this setup:
 - Do not copy `Jenkinsfile`, `jenkins/release.Jenkinsfile`, shell scripts, or helper files into the Jenkins Docker container.
 - Jenkins should load pipeline definitions directly from this Git repository through SCM configuration in the UI.
 
-Current workflow parity goal:
+Current job model (adopted 2026-09-04):
 
-- Jenkins multibranch validation (`Jenkinsfile`) is the canonical PR validation path.
-- Jenkins manual release (`jenkins/release.Jenkinsfile`) is the canonical release path. The GitHub Actions workflows are retired.
-- Since 2026-08-28 the same `Jenkinsfile` also publishes the floating `develop` pre-release channel tags after every validated build of `develop`; see `## Branching Model And Pre-release Channel`.
-- The repository files that make this work are `Jenkinsfile`, `jenkins/release.Jenkinsfile`, `scripts/ci/run_jenkins_validation.sh`, and `scripts/ci/run_jenkins_release.sh`.
-- Those files must be pushed to GitHub before Jenkins can load them through SCM.
+- `acestream-scraper-pr` is a multibranch job loading `jenkins/pr.Jenkinsfile`. It discovers origin and fork PRs, reports `PR Validation`, never binds a credential, and confines contributor code to the trusted PR-runner container.
+- `acestream-scraper-develop` is a Pipeline-from-SCM job loading `jenkins/develop.Jenkinsfile` from `develop`. It runs the full application suite and privileged Docker/runtime smokes, rejects stale revisions, then publishes the floating `develop` channel, wiki, and Pages.
+- `acestream-scraper-release` loads `jenkins/release.Jenkinsfile` from `main` and remains manual-only.
+- GitHub Actions workflows are retired; Jenkins is the sole CI/CD implementation.
 
-Current limitation:
+Security boundary:
 
-- The checked-in Jenkinsfiles still run directly on whatever executor matches the label `dorat-nuc-ci`; they do not currently define Docker-based ephemeral agents for you.
-- After `checkout scm`, both pipelines call `scripts/ci/bootstrap_jenkins_runner.sh` from the repository checkout to prepare the runtime.
-- The first build no longer assumes Python, Node, Docker, Buildx, or Docker Compose are already installed, but `git` must already be present so the initial `checkout scm` can succeed.
-- Passwordless `sudo` is only required when the bootstrap script needs to install missing software.
-- Builds may currently run as the operator runtime user before a dedicated `jenkins` user is fully ready, so Docker access must work for whichever user Jenkins actually uses on that node.
+- Jenkins itself launches on the trusted Docker-capable executor labeled `dorat-nuc-ci`, but fork-controlled files execute only inside `acestream-scraper-pr-ci:develop`.
+- The PR container receives only the checked-out workspace. It receives no Jenkins credential, no Docker socket, no host network, and no inherited Jenkins environment. It runs as the agent's unprivileged uid with all Linux capabilities dropped, `no-new-privileges`, and CPU/memory/PID limits. Forks execute the validation orchestrator from the target branch; maintainer-owned origin PRs may exercise their proposed orchestrator. Every PR runs the complete non-Docker backend and frontend suites from the pinned dependency image; privileged engine and packaging smokes stay on trusted `develop`.
+- The runner image is built only by the trusted `develop` job from digest-pinned official Python and Node base images. A fork build fails closed if the image is missing.
+- Privileged Docker builds, engine runtime smokes, Docker Hub credentials, and GitHub publication credentials exist only in the trusted develop/release pipelines.
+- The container boundary reduces host and credential exposure; it does not replace maintainer review. Tests and repository scripts are contributor-controlled inputs.
 
 Current ownership stance:
 
@@ -51,9 +50,9 @@ Networking model:
 
 Executor model:
 
-- The repository only requires a Jenkins executor labeled `dorat-nuc-ci`.
-- That executor can be an SSH-launched node, an inbound or WebSocket agent installed on the VM, or another Jenkins node model that lands builds directly on the Docker-capable host.
-- SSH is a documented example path, not a hard requirement of the checked-in pipelines.
+- The three pipelines currently launch on `dorat-nuc-ci`; the PR pipeline uses its Docker daemon only to start the hardened container and never mounts that daemon into the container.
+- The trusted develop and release jobs retain direct Docker/Buildx access for runtime smoke and publication.
+- SSH is a documented example agent-launch path, not a pipeline requirement.
 
 ## Branching Model And Pre-release Channel
 
@@ -67,13 +66,17 @@ Branch roles:
 
 Protections (GitHub, identical on `develop` and `main`): pull requests only (no direct pushes), required status check `PR Validation`, force-push and deletion disabled.
 
-Pipeline enforcement in `Jenkinsfile` (multibranch job `acestream-scraper-pr`):
+Pipeline enforcement in `jenkins/pr.Jenkinsfile` (multibranch job `acestream-scraper-pr`):
 
 - `Branch Policy` stage: runs when `env.CHANGE_TARGET == 'main'` and fails the build when `env.CHANGE_BRANCH != 'develop'` (`Pull requests into main must come from develop ...`). Feature PRs into `develop` skip it.
-- `Publish develop channel` stage (the final stage): runs for the `develop` branch job or for a PR whose head is `develop` (the release PR). Because the multibranch job excludes branches that are also filed as PRs (see `### 10.`), the `develop` branch job is suppressed while a release PR is open and that PR's `PR-<n>` builds publish the channel instead (`PR-162` today). Every validation stage (`Phase 1 Safety Gates`, `cutover-quick`, `Required Cutover Checks`, `Acestream Engine Runtime Smoke`, `Multi-Arch Quick Profile`) runs before it on the same revision; a failure anywhere earlier means nothing is published.
-  - Credential: binds the Jenkins username/password credential id `dockerhub-publish` as `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN`. Create it scoped to the `Acestream-Scraper` folder so both the multibranch job and the release job can bind it. PR builds from any other branch never reach the binding.
-  - Missing credential: the stage marks the build `UNSTABLE` (not `FAILED`) with `develop channel not published: Jenkins credential 'dockerhub-publish' is missing`; the validation result still stands. Any other error (build or push failure) fails the build.
-  - Commands: `bash scripts/ci/run_jenkins_release.sh --print-publish-plan --channel develop`, then `bash scripts/ci/run_jenkins_release.sh --channel develop`. Channel mode does not re-run the test suites (the PR stages already did on this revision); it logs into Docker Hub, builds the four flavors multi-platform (`linux/amd64`, `linux/arm64`, `linux/arm/v7`) with `--push`, and runs `verify_multiarch_manifest.sh` against every pushed tag.
+- `Credential-free PR validation` runs quick backend/frontend, generated API, runtime, docs, and architecture-plan checks inside the restricted container. It never publishes and cannot access the Docker daemon.
+
+Pipeline enforcement in `jenkins/develop.Jenkinsfile` (trusted job `acestream-scraper-develop`):
+
+- The job polls `develop`, requires checked-out `HEAD == origin/develop`, builds the trusted PR-runner image, and runs full application validation inside that pinned Python 3.12/Node runner with networking disabled. Compose validation and Docker/runtime smokes remain on the trusted host.
+- It repeats the `HEAD == origin/develop` comparison immediately before publication so an older queued build cannot move the channel backwards.
+- It then binds `dockerhub-publish` and runs `bash scripts/ci/run_jenkins_release.sh --channel develop`. Missing credentials or push failures fail the build.
+  - Channel mode logs into Docker Hub, builds the four flavors multi-platform (`linux/amd64`, `linux/arm64`, `linux/arm/v7`) with `--push`, and verifies every pushed manifest.
   - Tags pushed (floating only): `pipepito/acestream-scraper:develop` (= the full `scraper-acestream-acexy` payload, mirroring what `:latest` means for releases), `:develop-scraper`, `:develop-scraper-acestream`, `:develop-scraper-acexy`, `:develop-scraper-acestream-acexy`. Never a version tag, never `:latest`, no immutable per-commit tags. The channel tags move on every validated `develop` build.
   - Artifacts: `phase5-build-result-channel-develop-<flavor>.json` per flavor plus `phase5-build-result-channel-develop-metadata.json` (`mode: channel`, channel, version, git sha, builder, tags), archived by the stage as `phase5-build-result-channel-*.json`.
 
@@ -81,11 +84,11 @@ Versioning:
 
 - `version.txt` on `develop` carries the next version with a `-dev` suffix (for example `v2.1.0-dev`) once `v2.0.0` ships; a PR into `develop` bumps it to the final version right before the `develop` -> `main` release PR (the release PR's head is `develop`, so the bump cannot live in the release PR itself). As of 2026-08-28 `version.txt` reads `v2.0.0` (PR #162 is the v2.0.0 release PR), so the suffix convention starts with the next cycle.
 - Guard: `scripts/ci/run_jenkins_release.sh` refuses a release run (no `--channel`) while `version.txt` contains `-dev`: `Refusing to release a development version (version.txt = ...). Land the version bump on develop (via PR) before the develop -> main release PR.` The channel publish accepts a `-dev` version.
-- `scripts/phase_gates/check_workflow_publish_guard.py` (12 checks, wired into `scripts/phase_gates/phase5_gate_config.yaml`) enforces the gating strings: the channel stage is gated on `develop` and credential-bound, `Branch Policy` rejects non-`develop` PRs into `main`, channel mode never emits a version tag or `:latest`, and the `-dev` refusal exists.
+- `scripts/phase_gates/check_workflow_publish_guard.py` enforces the PR sandbox, credential separation, exact-develop guard, channel tags, release tags, and `:latest` promotion boundary.
 
 How a release is cut:
 
-1. Merge feature PRs into `develop`. Each one is validated by `PR Validation`; each validated `develop` build refreshes the `:develop` channel tags.
+1. Merge feature PRs into `develop` only after `PR Validation` and maintainer review. The separate trusted develop job reruns the full/privileged gates and refreshes `:develop*` only when they pass.
 2. Land the `version.txt` bump (`vX.Y.Z-dev` -> `vX.Y.Z`) on `develop` through its own PR, then open (or let Jenkins rebuild) the `develop` -> `main` release PR from `vX.Y.Z-dev` to `vX.Y.Z`. `Branch Policy` passes because the head is `develop`; the PR's builds keep publishing the channel.
 3. Merge the release PR. Nothing is published automatically on merge.
 4. Run the manual `acestream-scraper-release` job from `main` (`CONFIRM_RELEASE`, `DRY_RUN`, `PUBLISH_LATEST`): phase 1 pushes `:vX.Y.Z` plus the flavor tags; after canary validation, `PUBLISH_LATEST=true` retags the canaried version manifest to `:latest` (`scripts/ci/promote_latest.sh`). See `## Manual Release Job` and `## v2.0.0 Release Runbook`.
@@ -114,10 +117,11 @@ The following steps require operator intervention outside the repository:
 - Configure a Jenkins executor labeled `dorat-nuc-ci`.
 - Register the GitHub App, install it on the repository, and store its credentials in Jenkins.
 - If you want webhook-driven scans, expose Jenkins webhook endpoints over reachable HTTPS with working DNS or a reverse proxy/tunnel.
-- Create the Jenkins multibranch validation job from `Jenkinsfile`.
+- Create the Jenkins multibranch validation job from `jenkins/pr.Jenkinsfile`.
+- Create the automatic trusted develop job from `jenkins/develop.Jenkinsfile`.
 - Create the Jenkins manual release job from `jenkins/release.Jenkinsfile`.
 - Observe the Jenkins check name reported back to GitHub and update branch protection to require it (done 2026-08-28 on `main` and `develop`).
-- Create the `dockerhub-publish` credential scoped to the `Acestream-Scraper` folder, so the multibranch job's `Publish develop channel` stage and the release job can both bind it (see `## Branching Model And Pre-release Channel`).
+- Store `dockerhub-publish` and `github-publish` only in a trusted publication subfolder containing the develop and release jobs. The PR multibranch job must not be able to resolve them.
 - (Superseded 2026-08-26, e5657b9) Keep GitHub Actions fallback/reference workflows available until Jenkins hardening is verified; do not treat `main` publication through GitHub Actions as the primary operating path. Current state: GitHub Actions are retired; `main` is validated only by the Jenkins `PR Validation` status and published only by the manual Jenkins release job.
 
 ## Complete Setup Checklist
@@ -156,16 +160,18 @@ If you prefer to wire Jenkins jobs first and let the repository bootstrap the ru
 - [ ] If you are using SSH-launched nodes, add SSH credential `acestream-build-agent-ssh`.
 - [ ] Add GitHub App credential `github-app-acestream-scraper`.
       If your live controller already uses a different working credential id such as `github-builder-app`, keep using that live id until you intentionally normalize the controller configuration.
-- [ ] Add Docker Hub credential `dockerhub-publish`, scoped to the `Acestream-Scraper` folder (both jobs bind it).
+- [ ] Add `dockerhub-publish` and `github-publish` inside the trusted publication subfolder only.
 - [ ] Create the build executor and apply label `dorat-nuc-ci`.
 - [ ] Confirm the node comes online.
 - [ ] Push the repo branch/commit that contains:
-  - [ ] `Jenkinsfile`
+  - [ ] `jenkins/pr.Jenkinsfile`
+  - [ ] `jenkins/develop.Jenkinsfile`
   - [ ] `jenkins/release.Jenkinsfile`
   - [ ] `scripts/ci/bootstrap_jenkins_runner.sh`
   - [ ] `scripts/ci/run_jenkins_validation.sh`
   - [ ] `scripts/ci/run_jenkins_release.sh`
-- [ ] Create the multibranch PR-validation job from `Jenkinsfile`.
+- [ ] Create the multibranch PR-validation job from `jenkins/pr.Jenkinsfile`.
+- [ ] Create the automatic develop job from `jenkins/develop.Jenkinsfile`.
 - [ ] Create the manual release job from `jenkins/release.Jenkinsfile`.
 
 ### C. GitHub App And Validation Last
@@ -383,7 +389,7 @@ You are ready to rely on Jenkins for the next phase when all of these are true:
 
 - [ ] In Jenkins, add the GitHub App credential with id `github-app-acestream-scraper`.
       If your live controller already uses `github-builder-app`, keep that id in the Jenkins job configuration unless you are intentionally normalizing the controller.
-- [ ] In Jenkins, add the Docker Hub username/password credential with id `dockerhub-publish`. Scope it to the `Acestream-Scraper` folder: since 2026-08-28 the multibranch job (`Publish develop channel` stage) binds it as well as the release job; a global or release-job-only credential leaves the channel stage `UNSTABLE`.
+- [ ] In Jenkins, add the Docker Hub username/password credential with id `dockerhub-publish` inside the trusted publication subfolder. Only the develop and release jobs should inherit it.
 - [ ] If you are using SSH launch, confirm the SSH credential id is `acestream-build-agent-ssh`.
 - [ ] Do not rename these ids unless you also plan to change the checked-in pipeline files.
 
@@ -443,17 +449,17 @@ What is published, and how:
 Pipeline behaviour (`Jenkinsfile`):
 
 - `Docs checks` stage, every build: `bash scripts/ci/validate_command_builder.sh` checks that the JSON parses, the flavor ids equal the Dockerfile targets, the ports and env toggles the page emits still exist in `entrypoint.sh`/`Dockerfile`/`docker-compose.yml`, `docs/.nojekyll` exists and `node --check` passes on the script; `bash scripts/ci/publish_wiki.sh --dry-run` renders `wiki/**` into the flat page set the wiki needs (no folders), rewriting relative `.md` links to wiki page names (`[FAQ](FAQ.md)` -> `[FAQ](FAQ)`, `Docker.md#anchor` -> `Docker#anchor`) and failing on duplicate page names; `bash scripts/ci/publish_pages.sh --dry-run` assembles and lists the Pages payload.
-- `Publish wiki` stage, after every validation stage has passed on that revision: `bash scripts/ci/publish_wiki.sh` clones the wiki repository, replaces its content with the rendered pages and pushes only when something changed. Gated exactly like `Publish develop channel` (2026-08-29, superseding the `main`-only gate from earlier the same day): the `develop` branch job, or a PR whose head is `develop` (the release PR) while that PR suppresses the branch job. Docs go live as soon as the change lands on a validated `develop` — `main` never publishes (every `main` commit was a `develop` commit first).
+- `Publish wiki` stage, after every validation stage has passed in the trusted develop job: `bash scripts/ci/publish_wiki.sh` clones the wiki repository, replaces its content with the rendered pages and pushes only when something changed. Docs go live from validated `develop`; PR jobs and `main` never publish them.
 - `Publish docs site` stage, same gating: `bash scripts/ci/publish_pages.sh` assembles the builder payload (`docs/index.html`, `docs/builder/`, `.nojekyll`), clones `gh-pages` (creating the branch on the first publish), replaces its content and pushes only when something changed.
 - Credential (both publish stages): `github-publish` (see `## Jenkins Credential IDs`), bound as `GITHUB_PUBLISH_USERNAME`/`GITHUB_PUBLISH_TOKEN` and passed to git through `GIT_ASKPASS`, so the token never lands in a URL, a log line or a `.git/config`.
-- Outcomes: missing credential -> `UNSTABLE` (`wiki not published: ...` / `docs site not published: ...`); wiki repository not initialised (`publish_wiki.sh` exit status 3) -> `UNSTABLE` with an instruction; any other push or validation failure -> `FAILED`.
+- Outcomes: missing credentials and publication errors fail the trusted develop build; an uninitialized wiki repository (`publish_wiki.sh` exit status 3) remains `UNSTABLE` with an operator instruction.
 
 One-time operator setup:
 
 1. GitHub Pages: repository Settings -> Pages -> Build and deployment -> Source `Deploy from a branch`, Branch `gh-pages`, folder `/ (root)` (or `gh api -X POST repos/Pipepito/acestream-scraper/pages -f build_type=legacy -f 'source[branch]=gh-pages' -f 'source[path]=/'`). The branch only appears after the first `Publish docs site` run, so do this after the first publishing build — or create an empty `gh-pages` branch first. GitHub Pages is free for public repositories. Note that "deploy from a branch" is executed by GitHub's own managed `pages build and deployment` run, which shows up in the repository's Actions tab; nothing about it is authored or maintained here, but disabling Actions for the repository entirely would stop it.
 2. Wiki: repository Settings -> General -> Features -> Wikis enabled, and at least one page saved once in the Wiki tab (GitHub creates `<repo>.wiki.git` on the first save; verified present on 2026-08-29).
 3. Jenkins credential `github-publish` in the same store as `dockerhub-publish` (verified 2026-08-29: the system store, `Manage Jenkins -> Credentials -> System -> Global`), kind *Username with password*.
-4. Nothing else. Both publish stages run on validated `develop` builds, so no `main` build is needed (and none exists yet: verified 2026-08-29 that `origin/main`, still v1.3.04, has no `Jenkinsfile`, so branch indexing skips it — `'Jenkinsfile' not found — Does not meet criteria`). While the release PR (PR-162) is open it suppresses the `develop` branch job, and its `PR-<n>` builds do the publishing instead — the first wiki publish and the first `gh-pages` push happen on the first green build after this stage gating landed.
+4. Nothing else. Both documentation publish stages run only in the trusted develop job; the PR multibranch job never publishes.
 
 Local preview and checks:
 
@@ -477,7 +483,7 @@ For a local end-to-end check against a throwaway registry, the script accepts `R
 
 ## AceStream Engine Smoke Coverage
 
-Both pipelines run all of the checks below: the `Acestream Engine Runtime Smoke` stage in `Jenkinsfile` on every PR build (on `develop` it also gates the final `Publish develop channel` stage, so no `:develop` tag is pushed without it), and the pre-publish block in `scripts/ci/run_jenkins_release.sh` on publish runs (`DRY_RUN=false`; `DRY_RUN=true` exits after the dry-run preflight, before the smoke). (Superseded 2026-08-28: the Acexy runtime smoke used to be PR-job only; it now also runs on the release path, so no tag reaches Docker Hub without it.)
+The trusted develop pipeline and non-dry-run release pipeline run all of the checks below. Fork PR validation deliberately excludes these privileged Docker smokes. No Docker tag is published unless the corresponding trusted smoke path passes.
 
 | Check | Platform | What it proves |
 |---|---|---|
@@ -505,7 +511,7 @@ Monitor:
 
 Cleanup guidance:
 
-- Use Jenkins build retention; both pipelines already discard old build records after 20 runs.
+- Use Jenkins build retention; all three pipelines discard old build records after 20 runs.
 - Periodically prune stopped containers and unused images during a maintenance window:
 
 ```bash
@@ -529,7 +535,7 @@ Recommended model:
 
 - Run the Jenkins controller separately from the Docker build VM.
 - Run builds on any Jenkins executor that lands directly on the Docker-capable host.
-- Apply the label `dorat-nuc-ci` because both pipeline files require it.
+- Apply the label `dorat-nuc-ci` because the current PR, develop, and release pipelines require it.
 
 Current repo executor contract:
 
@@ -702,12 +708,12 @@ Private-controller alternative:
 
 ## Jenkins Credential IDs
 
-Create these Jenkins credentials with these exact ids so the checked-in pipeline files work without modification:
+Create these Jenkins credentials with these exact ids so the checked-in pipeline files work without modification. Scope them at the lowest usable folder:
 
-- `github-app-acestream-scraper`: GitHub App credential used for repository discovery, webhook integration, and commit/check reporting
+- `github-app-acestream-scraper` (the live controller currently uses `github-builder-app`): GitHub App credential used for repository discovery and commit/check reporting. Keep it at the `Acestream-Scraper` folder rather than system-global.
 - `acestream-build-agent-ssh`: SSH private key credential for the dedicated build VM agent if you use the SSH-launch model
-- `dockerhub-publish`: username/password credential used by `jenkins/release.Jenkinsfile` for Docker Hub publication and, since 2026-08-28, by the `Publish develop channel` stage of `Jenkinsfile`. Scope it to the `Acestream-Scraper` folder so both jobs can bind it.
-- `github-publish`: username/password credential (GitHub login + a personal access token with `repo` scope, or any token that can push to `<repo>.wiki.git` and the `gh-pages` branch) used since 2026-08-29 by the `Publish wiki` and `Publish docs site` stages of `Jenkinsfile`. Put it in the same store as `dockerhub-publish` (the system store as of 2026-08-29). Note: GitHub's fine-grained tokens have historically not been able to push to wiki repositories; a classic token with `repo` scope is the known-working choice. See `## Docs Site And Wiki Publishing`.
+- `dockerhub-publish`: username/password credential used only by `jenkins/develop.Jenkinsfile` and `jenkins/release.Jenkinsfile`. Store it inside the trusted publication subfolder.
+- `github-publish`: username/password credential used only by the trusted develop job for the wiki and `gh-pages`. Store it beside `dockerhub-publish`.
 
 Changing these ids would require repository changes, so treat them as part of the CI/CD contract.
 
@@ -715,31 +721,39 @@ Changing these ids would require repository changes, so treat them as part of th
 
 User action required.
 
-Create a multibranch pipeline job that points at this repository and uses the repository-root `Jenkinsfile`.
+Create a multibranch pipeline job that points at this repository and uses `jenkins/pr.Jenkinsfile`.
 
-This is UI-only setup. Do not copy `Jenkinsfile` into the Jenkins container.
+Do not copy the Jenkinsfile into the controller container; load it from SCM.
 
 Recommended configuration:
 
 1. New Item -> Multibranch Pipeline.
 2. Add the repository using the GitHub App credential `github-app-acestream-scraper`.
-3. Set the script path to `Jenkinsfile`.
-4. Discover branches and pull requests from the origin repository, with branch discovery set to `Exclude branches that are also filed as PRs` (live setting since 2026-08-28) so a branch with an open PR builds only as its PR job.
-5. Treat fork pull requests as restricted until you explicitly verify the trust model.
-6. Enable one trigger model: webhook-based indexing, periodic scans, or manual rescans.
+3. Set the script path to `jenkins/pr.Jenkinsfile`.
+4. Disable ordinary branch discovery; this job is for PR revisions only.
+5. Discover origin PR merge revisions.
+6. Discover fork PR merge revisions and set trust to **Nobody**. Jenkins then loads the Jenkinsfile from the target branch while checking out the proposed merge revision.
+7. Keep the notification context exactly `PR Validation`.
+8. Enable one trigger model: webhook-based indexing, periodic scans, or manual rescans.
 
 Expected behavior:
 
-- PR validation runs on label `dorat-nuc-ci`.
-- After checkout, the pipeline runs `scripts/ci/bootstrap_jenkins_runner.sh`.
-- The pipeline executes `bash scripts/ci/run_jenkins_validation.sh`.
-- Build result JSON artifacts are archived for each flavor validation run.
+- Jenkins launches on `dorat-nuc-ci`, but contributor code runs only in the restricted PR container.
+- The job never calls `withCredentials`, never mounts `/var/run/docker.sock`, and never gives the container network access.
+- The container executes `scripts/ci/run_pr_validation.sh` as read from the target branch's first parent, using dependencies baked by the trusted develop job. A fork cannot replace the top-level validation orchestrator.
+- A missing runner image fails fork builds closed; only a trusted origin PR may build a one-use candidate image.
 - `Branch Policy` (since 2026-08-28): a PR into `main` fails unless its head is `develop`.
-- `Publish develop channel` (since 2026-08-28, last stage): for the `develop` branch job or a PR whose head is `develop`, binds `dockerhub-publish` and runs `bash scripts/ci/run_jenkins_release.sh --channel develop`, pushing only the floating `:develop` and `:develop-<flavor>` tags and archiving `phase5-build-result-channel-*.json`. A missing credential makes the build `UNSTABLE`, not `FAILED`. See `## Branching Model And Pre-release Channel`.
-- `Docs checks` (since 2026-08-29, every build, right after `Branch Policy`): `bash scripts/ci/validate_command_builder.sh` (the GitHub Pages command builder in `docs/` matches the runtime contract), `bash scripts/ci/publish_wiki.sh --dry-run` (wiki/ renders into a valid page set) and `bash scripts/ci/publish_pages.sh --dry-run` (the Pages payload assembles). No credentials.
-- `Publish wiki` (since 2026-08-29): gated like `Publish develop channel` (the `develop` branch job, or a PR whose head is `develop`), binds `github-publish` and runs `bash scripts/ci/publish_wiki.sh` (wiki/ -> the GitHub wiki repository). A missing credential, or a wiki repository that has not been initialised yet, makes the build `UNSTABLE`, not `FAILED`. See `## Docs Site And Wiki Publishing`.
-- `Publish docs site` (since 2026-08-29, last stage): same gating and credential; runs `bash scripts/ci/publish_pages.sh` (the command builder payload -> the `gh-pages` branch, created on first publish, served by GitHub Pages). Missing credential makes the build `UNSTABLE`. See `## Docs Site And Wiki Publishing`.
-- The `Acestream Engine Runtime Smoke` stage builds `scraper-acestream` pinned to `--platforms linux/amd64 --load`, runs the amd64 engine runtime smoke and the Acexy runtime smoke, then builds both ARM OCI installer layouts (`test_install_acestream.py -k "arm_oci_image_install_layout"`). See `## AceStream Engine Smoke Coverage`.
+- Docker/runtime smokes and every real publish are intentionally absent from this job.
+
+## Trusted Develop Job
+
+Create a Pipeline-from-SCM job inside the trusted publication subfolder. Point it at `*/develop` and set the script path to `jenkins/develop.Jenkinsfile`.
+
+- It polls SCM every five minutes, verifies the checkout is the current `origin/develop`, and refreshes the trusted PR-runner image.
+- It runs full application checks offline in the pinned runner, followed by trusted-host Compose validation, dry-run architecture/publication policy, and the amd64/Acexy/ARM installer smokes.
+- It checks `origin/develop` again immediately before publication.
+- Only then does it bind `dockerhub-publish` and `github-publish`, push the floating `:develop*` tags, and update the wiki and Pages.
+- Missing credentials and publication failures fail the build. The wiki's one-time uninitialized state remains `UNSTABLE` with an operator message.
 
 ## Manual Release Job
 
@@ -761,12 +775,12 @@ Release behavior:
 
 - The job runs only from `main`: `jenkins/release.Jenkinsfile` errors on any other `BRANCH_NAME` and requires the checked-out `HEAD` to equal `origin/main`.
 - `CONFIRM_RELEASE=true` is required or the pipeline aborts.
-- Since 2026-08-28 `scripts/ci/run_jenkins_release.sh` also refuses any release run while `version.txt` contains `-dev` (`Refusing to release a development version`); only the `--channel develop` publish from the PR pipeline accepts such a version.
+- Since 2026-08-28 `scripts/ci/run_jenkins_release.sh` also refuses any release run while `version.txt` contains `-dev` (`Refusing to release a development version`); only the `--channel develop` publish from the trusted develop pipeline accepts such a version.
 - `DRY_RUN=true` (default) performs preflight only: `bash scripts/ci/run_jenkins_release.sh --dry-run` runs the full cutover suite and the four-flavor multi-arch dry-run builds, then exits without binding `dockerhub-publish`.
 - `DRY_RUN=false` binds `dockerhub-publish`, prints the publish plan (`bash scripts/ci/run_jenkins_release.sh --print-publish-plan`), runs the smoke block below, performs Docker Hub login and publishes tags.
 - `PUBLISH_LATEST` (default `false`, since 2026-08-26, 5ffed1d) controls the floating `:latest` tag. The Jenkinsfile exports it as `PUBLISH_LATEST=1`/`0`. With `0` (phase 1) the build pushes `:${VERSION}`, `:<flavor>` and `:${VERSION}-<flavor>` tags and never touches `:latest`. With `1` (phase 2) the script skips every build and test and runs `scripts/ci/promote_latest.sh`, which retags the canary-validated `pipepito/acestream-scraper:${VERSION}` manifest (the `scraper-acestream-acexy` payload) to `:latest` and verifies its platforms; `DRY_RUN=true` with `PUBLISH_LATEST=true` only prints that promotion plan. Only the full payload flavor can ever become `:latest`.
 - The job archives release result JSON files and `phase5-build-result-release-metadata.json`.
-- Before publishing, the script builds `scraper-acestream` for amd64, runs the engine and Acexy runtime smokes, then runs both ARM installer layout tests. If any fails, no Docker Hub login or push happens. Both ARM variants use the same digest-pinned multi-platform jopsis source image and require Docker Hub access on a cold builder; the amd64 archive remains vendored. The same checks run on every PR build; on the release job they run only on the publish run, not the dry run.
+- Before publishing, the script builds `scraper-acestream` for amd64, runs the engine and Acexy runtime smokes, then runs both ARM installer layout tests. If any fails, no Docker Hub login or push happens. Both ARM variants use the same digest-pinned multi-platform jopsis source image and require Docker Hub access on a cold builder; the amd64 archive remains vendored. The same checks run in the trusted develop job; on the release job they run only on the publish run, not the dry run.
 - The pushed `scraper-acestream`, `scraper-acestream-acexy`, version tags (and, after the phase-2 retag, `latest`) are multi-platform manifests that include `linux/arm64` and `linux/arm/v7`; `verify_multiarch_manifest.sh --image <tag> --flavor <flavor>` checks each remote manifest after the push. The arm64 engine runtime is not exercised by this job (amd64 runner); see `## AceStream Engine Smoke Coverage`.
 - Keep this path manual-only. Jenkins is the sole publisher; the GitHub Actions release workflow has been retired.
 
@@ -774,12 +788,12 @@ Release behavior:
 
 Sequence for shipping the v2 codebase from `develop` to Docker Hub through the release PR #162 (`develop` -> `main`; PR #113 from the pre-rename branch `ai-coding-documentation` was auto-closed by the rename on 2026-08-28). Under the branching model in `## Branching Model And Pre-release Channel` this is the template for every later release as well. Status 2026-08-28: no `v2.0.0` git tag or GitHub release exists yet; steps 1-2 are in progress.
 
-One-off prerequisites (operator, outside the repo): the Jenkins credential `dockerhub-publish` exists (not yet created as of 2026-08-28; without it every `DRY_RUN=false` run fails at credential binding and the PR pipeline's `Publish develop channel` stage goes `UNSTABLE`), scoped to the `Acestream-Scraper` folder so both the multibranch job and the release job can bind it, and the `acestream-scraper-release` job's branch specifier points at `*/main` (the job refuses any other branch and requires `HEAD == origin/main`).
+One-off prerequisites (operator, outside the repo): the Jenkins credential `dockerhub-publish` exists inside the trusted publication subfolder, and the `acestream-scraper-release` job's branch specifier points at `*/main` (the job refuses any other branch and requires `HEAD == origin/main`).
 
 1. Confirm `version.txt` reads the intended release tag (currently `v2.0.0`; from the next cycle on, a PR into `develop` bumps it right before the release PR from `vX.Y.Z-dev`, otherwise `scripts/ci/run_jenkins_release.sh` refuses the release in step 5).
-2. Use the `develop` -> `main` release PR (#162; the `Branch Policy` stage rejects any PR into `main` whose head is not `develop`). Wait for `acestream-scraper-pr` (Jenkins multibranch, GitHub status `PR Validation`) to go green. That build already runs the `Acestream Engine Runtime Smoke` stage (amd64 engine runtime, Acexy runtime, arm64 + armv7 installer layout) on the exact commit that will be merged, and its final `Publish develop channel` stage refreshes the `:develop` pre-release tags from the same commit (an `UNSTABLE` build — e.g. while `dockerhub-publish` was missing — is reported to GitHub as a failed `PR Validation` status, so the credential must exist before the release PR can merge; it was created on 2026-08-28).
+2. Use the `develop` -> `main` release PR (#162; the `Branch Policy` stage rejects any PR into `main` whose head is not `develop`). Wait for `acestream-scraper-pr` (GitHub status `PR Validation`) to go green and confirm the latest `acestream-scraper-develop` build for the same `develop` SHA passed its full suite, Docker/runtime smokes, and channel publication.
 3. Merge the PR to `main`. No automatic Docker Hub publish happens — Jenkins requires a manual trigger.
-4. In Jenkins, build `acestream-scraper-release` with parameters `CONFIRM_RELEASE=true`, `DRY_RUN=true`, `PUBLISH_LATEST=false`. This runs the full cutover suite and the multi-arch dry-run preflight without binding Docker Hub credentials. The release job's engine smoke does not run on a dry run (`scripts/ci/run_jenkins_release.sh --dry-run` exits after the preflight); it runs on the publish run in step 5 and already ran in the PR job in step 2. Verify it goes green.
+4. In Jenkins, build `acestream-scraper-release` with parameters `CONFIRM_RELEASE=true`, `DRY_RUN=true`, `PUBLISH_LATEST=false`. This runs the full cutover suite and the multi-arch dry-run preflight without binding Docker Hub credentials. The release job's engine smoke does not run on a dry run (`scripts/ci/run_jenkins_release.sh --dry-run` exits after the preflight); it runs on the publish run in step 5 and already ran in the trusted develop job. Verify it goes green.
 5. Publish phase 1: re-run `acestream-scraper-release` with `CONFIRM_RELEASE=true`, `DRY_RUN=false`, `PUBLISH_LATEST=false`. The pipeline reruns the full cutover suite, the dry-run preflight, the AceStream engine smoke + Acexy smoke + ARM installer layout (see `## AceStream Engine Smoke Coverage`), reclaims runner disk, then logs into Docker Hub and pushes `:v2.0.0`, the four flavor tags (`scraper`, `scraper-acestream`, `scraper-acexy`, `scraper-acestream-acexy`) and their `v2.0.0-<flavor>` variants as multi-platform manifests (`linux/amd64`, `linux/arm64`, `linux/arm/v7`). `:latest` is not touched.
 6. Verify the published tags on Docker Hub: `pipepito/acestream-scraper:v2.0.0`, the four flavor tags and their version-prefixed variants. Each should list all three platforms (`docker buildx imagetools inspect <tag>`). `:latest` still points at the previous release at this point.
 7. Canary: smoke-test `:v2.0.0` on a fresh amd64 host: `docker pull pipepito/acestream-scraper:v2.0.0 && docker run --rm -p 8000:8000 -p 6878:6878 -e ENABLE_ACESTREAM_ENGINE=true pipepito/acestream-scraper:v2.0.0` and confirm the FastAPI app and engine respond. Repeat on an arm64 host (Raspberry Pi 4/5 64-bit, 4 KB-page kernel) to confirm the Android engine answers `curl "http://localhost:6878/webui/api/service?method=get_version"` with `"platform":"android"`; CI does not cover that path. See `docs/ops/acestream-arm-engine.md`. If the canary fails, fix forward on `main` and restart from step 2; `:latest` never moved.
@@ -801,7 +815,7 @@ User action required.
 
 Do not guess the required check name. Observe the exact Jenkins-reported check on a real pull request first, then update GitHub branch protection.
 
-Status 2026-08-28: done. The observed check name is `PR Validation` and it is the required status check on `main` and on `develop` (both PR-only, no force-push, no deletion; see `## Branching Model And Pre-release Channel`). Multibranch branch discovery is set to `Exclude branches that are also filed as PRs`, so a branch with an open PR reports only through its PR build (`PR-113` for the pre-rename `ai-coding-documentation`; superseded 2026-08-28: the rename to `develop` closed #113 and `develop` now reports through the release PR `PR-162`).
+Status 2026-09-04: `PR Validation` remains the required Jenkins context on `main` and `develop`. The multibranch job discovers PR merge revisions only, including forks with trust set to Nobody; ordinary branch and publication work lives in the separate trusted develop job.
 
 Cutover sequence (historical record):
 
@@ -815,11 +829,14 @@ This avoids blocking merges on a mismatched check name.
 
 ## Fork Pull Request Policy
 
-Treat fork PRs as restricted until verified.
+Fork PRs are discovered, but remain untrusted by construction:
 
-- Do not assume untrusted fork builds can safely access the Docker-capable agent.
-- Keep fork PR discovery disabled or non-building until you validate the Jenkins trust settings, credential exposure, and workspace isolation model.
-- If fork PR support is required later, document the exact trust and approval policy before enabling it.
+- GitHub Branch Source trust is **Nobody**, so `jenkins/pr.Jenkinsfile` is always loaded from the PR's target branch for a fork. A fork cannot replace or weaken the container boundary in its PR.
+- The proposed merge revision is mounted read-only, copied into a size-limited tmpfs workspace, and executed on a read-only container filesystem with `--network none`, `--cap-drop ALL`, `no-new-privileges`, an unprivileged uid, and finite CPU, memory, and PID limits.
+- The container never receives a Jenkins credential, the Docker socket, host paths other than its workspace, or Jenkins environment variables.
+- Dependency installation happens while the trusted develop job builds the runner image, not while fork code executes. A fork that changes dependency or runner-image inputs fails closed and must be moved to a maintainer-owned branch after review; an origin PR gets a one-use candidate runner that cannot replace the shared develop image.
+- PR validation intentionally omits privileged image builds and engine runtime smokes. The trusted develop pipeline reruns the full suite and those smokes before any `:develop*` or documentation publication.
+- Maintainer review remains mandatory. CI confinement protects infrastructure; it does not prove that a contribution is benign or correct.
 
 ## GitHub Actions During The Proving Window
 
@@ -852,7 +869,7 @@ If Jenkins cutover causes merge or release risk:
 ## Ownership Matrix
 
 - Pipeline definitions:
-  Repo-owned: `Jenkinsfile`, `jenkins/release.Jenkinsfile`, `scripts/ci/bootstrap_jenkins_runner.sh`, `scripts/ci/run_jenkins_validation.sh`, `scripts/ci/run_jenkins_release.sh`
+  Repo-owned: `jenkins/pr.Jenkinsfile`, `jenkins/develop.Jenkinsfile`, `jenkins/release.Jenkinsfile`, `docker/ci/pr-runner.Dockerfile`, and the scripts under `scripts/ci/`
   User-owned: Job creation and Jenkins global or job settings
 
 - Build environment contract:
@@ -864,9 +881,9 @@ If Jenkins cutover causes merge or release risk:
   User-owned: GitHub App registration, installation, and optional webhook or polling setup
 
 - Branch policy:
-  Repo-owned: documentation of cutover order and fallback behavior, and the `Branch Policy` stage in `Jenkinsfile` (PRs into `main` must come from `develop`)
+  Repo-owned: documentation of cutover order and fallback behavior, and the `Branch Policy` stage in `jenkins/pr.Jenkinsfile` (PRs into `main` must come from `develop`)
   User-owned: branch protection updates, required check selection, rollback decision
 
 - Release publication:
-  Repo-owned: Docker Hub login binding in the release pipeline and in the PR pipeline's `Publish develop channel` stage
+  Repo-owned: Docker Hub bindings in the trusted develop and manual release pipelines; the PR pipeline has no credential binding or publication path
   User-owned: Docker Hub credential management and manual release approval

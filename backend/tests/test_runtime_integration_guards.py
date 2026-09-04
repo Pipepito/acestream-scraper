@@ -479,13 +479,18 @@ def test_build_script_push_by_digest_single_platform():
     assert bad.returncode != 0 and "exactly one platform" in bad.stdout + bad.stderr
 
 
-def test_run_jenkins_release_channel_dry_run_is_platform_major():
+def test_run_jenkins_release_channel_dry_run_is_platform_major(tmp_path):
     # Every flavor is built for one platform before the next platform, each
     # pushed by digest, the builder cache is pruned between platforms, and the
     # tags are assembled per flavor at the end.
     env = os.environ.copy()
     env.pop("PUBLISH_LATEST", None)
-    # The script fails fast without its builder; every docker host has "default".
+    # The release script deliberately verifies its configured builder even for a
+    # dry run. Keep this contract test independent of the host's Docker daemon.
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    _write_executable(fake_bin / "docker", "#!/usr/bin/env bash\nexit 0\n")
+    env["PATH"] = f"{fake_bin}:{env['PATH']}"
     env["JENKINS_BUILDER"] = "default"
     result = subprocess.run(
         ["/bin/bash", str(REPO_ROOT / "scripts/ci/run_jenkins_release.sh"), "--dry-run", "--channel", "develop"],

@@ -16,7 +16,11 @@ bash scripts/ci/assert_no_legacy_paths.sh --strict
 echo "Running canonical v2 test suite ($PROFILE)..."
 bash scripts/ci/run_v2_test_suite.sh --profile "$PROFILE"
 
-docker compose config >/dev/null
+if [[ "${CUTOVER_SKIP_COMPOSE:-0}" == "1" ]]; then
+  echo "Compose validation delegated to the trusted host."
+else
+  docker compose config >/dev/null
+fi
 
 if [[ "${CUTOVER_INCLUDE_MULTIARCH:-0}" == "1" ]]; then
   echo "Running optional multi-arch matrix validation (dry-run)..."

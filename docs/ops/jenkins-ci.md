@@ -25,9 +25,10 @@ Current job model (adopted 2026-09-04):
 
 Security boundary:
 
-- Jenkins itself launches on the trusted Docker-capable executor labeled `dorat-nuc-ci`, but fork-controlled files execute only inside `acestream-scraper-pr-ci:develop`.
-- The PR container receives only the checked-out workspace. It receives no Jenkins credential, no Docker socket, no host network, and no inherited Jenkins environment. It runs as the agent's unprivileged uid with all Linux capabilities dropped, `no-new-privileges`, and CPU/memory/PID limits. Forks execute the validation orchestrator from the target branch; maintainer-owned origin PRs may exercise their proposed orchestrator. Every PR runs the complete non-Docker backend and frontend suites from the pinned dependency image; privileged engine and packaging smokes stay on trusted `develop`.
-- The runner image is built only by the trusted `develop` job from digest-pinned official Python and Node base images. A fork build fails closed if the image is missing.
+- Jenkins itself launches on the trusted Docker-capable executor labeled `dorat-nuc-ci`, but fork-controlled files execute only inside disposable restricted containers.
+- The main PR container receives only the checked-out workspace. It receives no Jenkins credential, no Docker socket, no host network, and no inherited Jenkins environment. It runs as the agent's unprivileged uid with all Linux capabilities dropped, `no-new-privileges`, and CPU/memory/PID limits. Forks execute validation orchestrators from the target branch; maintainer-owned origin PRs may exercise their proposed orchestrators. Every PR runs the complete non-Docker backend and frontend suites.
+- Each PR bootstraps a one-use dependency runner. For a fork, Jenkins exports an allowlist of runner inputs from the trusted target ref and builds from that isolated context; the job therefore does not depend on the retained `acestream-scraper-pr-ci:develop` image and contributor files cannot affect the networked dependency build. Fork changes to Python/npm requirements or the runner Dockerfile fail closed and require promotion to a reviewed maintainer branch.
+- A second stage runs the target branch's trusted runtime validator against the PR's entrypoint, WARP setup, and healthcheck files under pinned `linux/amd64`, `linux/arm64`, and `linux/arm/v7` Python userlands. Each userland is network-disabled, read-only, capability-dropped, resource-limited, and receives neither credentials nor the Docker socket.
 - Privileged Docker builds, engine runtime smokes, Docker Hub credentials, and GitHub publication credentials exist only in the trusted develop/release pipelines.
 - The container boundary reduces host and credential exposure; it does not replace maintainer review. Tests and repository scripts are contributor-controlled inputs.
 
@@ -69,7 +70,8 @@ Protections (GitHub, identical on `develop` and `main`): pull requests only (no 
 Pipeline enforcement in `jenkins/pr.Jenkinsfile` (multibranch job `acestream-scraper-pr`):
 
 - `Branch Policy` stage: runs when `env.CHANGE_TARGET == 'main'` and fails the build when `env.CHANGE_BRANCH != 'develop'` (`Pull requests into main must come from develop ...`). Feature PRs into `develop` skip it.
-- `Credential-free PR validation` runs quick backend/frontend, generated API, runtime, docs, and architecture-plan checks inside the restricted container. It never publishes and cannot access the Docker daemon.
+- `Credential-free PR validation` runs the complete backend/frontend suites plus generated API, runtime, Dockerfile-contract, docs, and four-flavor architecture-plan checks inside the restricted container. It never publishes and cannot access the Docker daemon.
+- `Isolated architecture runtime contracts` executes the trusted runtime validator against PR runtime scripts in real amd64, arm64, and arm/v7 userlands through binfmt/QEMU. This tests shell/runtime behavior across CPUs without building or executing a contributor-controlled Dockerfile.
 
 Pipeline enforcement in `jenkins/develop.Jenkinsfile` (trusted job `acestream-scraper-develop`):
 
@@ -740,10 +742,11 @@ Expected behavior:
 
 - Jenkins launches on `dorat-nuc-ci`, but contributor code runs only in the restricted PR container.
 - The job never calls `withCredentials`, never mounts `/var/run/docker.sock`, and never gives the container network access.
-- The container executes `scripts/ci/run_pr_validation.sh` as read from the target branch's first parent, using dependencies baked by the trusted develop job. A fork cannot replace the top-level validation orchestrator.
-- A missing runner image fails fork builds closed; only a trusted origin PR may build a one-use candidate image.
+- The job exports only the dependency manifests and runner Dockerfile from `PR_VALIDATION_REF`, then builds a one-use runner. For a fork that ref is the trusted target branch; a fork cannot alter the network-enabled build context or replace the top-level validation orchestrator.
+- A fork that changes dependency manifests or the runner Dockerfile fails closed. After review, move the commit to a maintainer-owned branch; origin PRs may build their own proposed dependency runner.
+- The container executes `scripts/ci/run_pr_validation.sh` as read from the validation ref. The architecture stage likewise extracts its driver and runtime validator from that ref, then executes the PR runtime files in three constrained CPU userlands.
 - `Branch Policy` (since 2026-08-28): a PR into `main` fails unless its head is `develop`.
-- Docker/runtime smokes and every real publish are intentionally absent from this job.
+- The PR gate statically verifies the production Dockerfile, dry-runs every flavor/platform build plan, and executes runtime scripts across three architectures. Actual production Dockerfile builds, engine smokes, and every publish remain absent because giving arbitrary fork build instructions networked Docker/BuildKit execution would cross the trust boundary.
 
 ## Trusted Develop Job
 
@@ -834,8 +837,9 @@ Fork PRs are discovered, but remain untrusted by construction:
 - GitHub Branch Source trust is **Nobody**, so `jenkins/pr.Jenkinsfile` is always loaded from the PR's target branch for a fork. A fork cannot replace or weaken the container boundary in its PR.
 - The proposed merge revision is mounted read-only, copied into a size-limited tmpfs workspace, and executed on a read-only container filesystem with `--network none`, `--cap-drop ALL`, `no-new-privileges`, an unprivileged uid, and finite CPU, memory, and PID limits.
 - The container never receives a Jenkins credential, the Docker socket, host paths other than its workspace, or Jenkins environment variables.
-- Dependency installation happens while the trusted develop job builds the runner image, not while fork code executes. A fork that changes dependency or runner-image inputs fails closed and must be moved to a maintainer-owned branch after review; an origin PR gets a one-use candidate runner that cannot replace the shared develop image.
-- PR validation intentionally omits privileged image builds and engine runtime smokes. The trusted develop pipeline reruns the full suite and those smokes before any `:develop*` or documentation publication.
+- Every PR receives a one-use runner. A fork runner's four-file build context is exported from the target branch, so availability does not depend on a retained local image and fork code cannot affect dependency installation. A fork that changes dependency or runner-image inputs still fails closed and must be moved to a maintainer-owned branch after review.
+- The target branch's trusted runtime validator executes against PR scripts under pinned amd64, arm64, and arm/v7 userlands. Those containers have the same network, capability, privilege, credential, Docker-socket, and resource restrictions as the application gate.
+- PR validation intentionally omits production image builds and engine runtime smokes for forks. The Dockerfile contract and all flavor/platform plans are checked without execution; the trusted develop pipeline reruns the full suite and privileged smokes before any `:develop*` or documentation publication.
 - Maintainer review remains mandatory. CI confinement protects infrastructure; it does not prove that a contribution is benign or correct.
 
 ## GitHub Actions During The Proving Window

@@ -107,7 +107,7 @@ docker run --rm --init \
   --volume "$WORKSPACE:/source:ro" \
   --workdir /workspace \
   "$PR_RUNNER_IMAGE" \
-  bash -c 'cp -R /source/. /workspace/ && git show HEAD^1:scripts/ci/run_pr_validation.sh > /tmp/trusted-pr-validation.sh && bash /tmp/trusted-pr-validation.sh'
+  bash -c 'cp -R /source/. /workspace/ && trusted_script=/workspace/scripts/ci/.jenkins-trusted-pr-validation.sh && rm -f "$trusted_script" && git show HEAD^1:scripts/ci/run_pr_validation.sh > "$trusted_script" && bash "$trusted_script"'
 '''
       }
     }

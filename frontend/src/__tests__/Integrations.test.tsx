@@ -26,6 +26,7 @@ const mockDisconnectServer = jest.fn();
 const mockTunerStatus = jest.fn();
 const mockTunerSettings = jest.fn();
 const mockUpdateTunerSettings = jest.fn();
+const mockInvalidateQueries = jest.fn();
 
 jest.mock('../hooks/useSystemServices', () => ({ usePublicUrl: () => mockPublicUrl(), PUBLIC_URL_QUERY_KEY: ['system', 'public-url'] }));
 jest.mock('../services/configService', () => ({ configService: { updatePublicBaseUrl: (...a: unknown[]) => mockUpdatePublicBaseUrl(...a) } }));
@@ -43,6 +44,7 @@ jest.mock('../hooks/useRemotePlayers', () => ({
   usePlayOnRemotePlayer: () => ({ mutateAsync: jest.fn(), isPending: false }),
 }));
 jest.mock('../hooks/useMediaServers', () => ({
+  MEDIA_SERVERS_QUERY_KEY: ['media-servers'],
   useMediaServers: () => mockServers(),
   useMediaServerStatus: (id: number) => mockServerStatus(id),
   useCreateMediaServer: () => ({ mutateAsync: mockCreateServer, isPending: false }),
@@ -61,7 +63,7 @@ jest.mock('../hooks/useTuner', () => ({
 jest.mock('../hooks/useBaseUrls', () => ({ useBaseUrls: () => ({ data: [], isLoading: false }) }));
 jest.mock('../hooks/useTVChannels', () => ({ useTVChannelCatalog: () => ({ data: [], isLoading: false }) }));
 jest.mock('../hooks/useChannels', () => ({ useAcestreamChannels: () => ({ data: { items: [] }, isLoading: false }) }));
-jest.mock('@tanstack/react-query', () => ({ ...jest.requireActual('@tanstack/react-query'), useQueryClient: () => ({ invalidateQueries: jest.fn() }) }));
+jest.mock('@tanstack/react-query', () => ({ ...jest.requireActual('@tanstack/react-query'), useQueryClient: () => ({ invalidateQueries: mockInvalidateQueries }) }));
 
 const PLEX_STEPS = [
   'In Plex Web open Settings > Live TV & DVR and choose Set Up Plex Tuner (Plex Pass is required).',
@@ -174,6 +176,37 @@ describe('Integrations page', () => {
     fireEvent.change(within(section).getByRole('textbox', { name: 'Public address' }), { target: { value: 'http://192.168.1.10:8000' } });
     fireEvent.click(within(section).getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(mockUpdatePublicBaseUrl).toHaveBeenCalledWith('http://192.168.1.10:8000'));
+    // The Plex cards paste absolute URLs built from this address, so their
+    // status queries have to be re-read too.
+    await waitFor(() => expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['media-servers'] }));
+  });
+
+  it('reports a failed load instead of showing an empty list or claiming ffmpeg is ready', () => {
+    mockServers.mockReturnValue({ data: undefined, isLoading: false, isError: true, error: new Error('Request failed'), refetch: jest.fn() });
+    mockPlayers.mockReturnValue({ data: undefined, isLoading: false, isError: true, error: new Error('Request failed'), refetch: jest.fn() });
+    mockCapabilities.mockReturnValue({ data: undefined, isError: true, error: new Error('Request failed') });
+    renderPage();
+
+    const servers = screen.getByRole('region', { name: 'Media servers' });
+    expect(within(servers).getByText('Unable to load media servers')).toBeInTheDocument();
+    expect(within(servers).queryByText('No media servers yet')).not.toBeInTheDocument();
+    expect(within(servers).getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+
+    const players = screen.getByRole('region', { name: 'Remote players' });
+    expect(within(players).getByText('Unable to load players')).toBeInTheDocument();
+    expect(within(players).queryByText('No players yet')).not.toBeInTheDocument();
+
+    const web = screen.getByRole('region', { name: 'Web player' });
+    expect(within(web).getByText('Unable to check the web player')).toBeInTheDocument();
+    expect(within(web).queryByText(/ffmpeg ready/)).not.toBeInTheDocument();
+  });
+
+  it('does not claim ffmpeg is ready before the capabilities answer', () => {
+    mockCapabilities.mockReturnValue({ data: undefined, isError: false, error: null });
+    renderPage();
+    const web = screen.getByRole('region', { name: 'Web player' });
+    expect(within(web).getByText('Checking ffmpeg…')).toBeInTheDocument();
+    expect(within(web).queryByText(/ffmpeg ready/)).not.toBeInTheDocument();
   });
 
   it('shows player cards with live status, transport and a menu with confirm on delete', async () => {

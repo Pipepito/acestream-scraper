@@ -7,6 +7,7 @@ import ContentSection from '../layout/ContentSection';
 import RowActionsMenu from '../RowActionsMenu';
 import { useConfirm } from '../ConfirmDialog';
 import EmptyState from '../state/EmptyState';
+import InlineStatusNotice from '../state/InlineStatusNotice';
 import {
   useDeleteRemotePlayer,
   useRemotePlayerCommand,
@@ -181,7 +182,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete, onSen
 
 /** Saved VLC/Kodi players with live status and transport controls. */
 const RemotePlayersSection: React.FC<RemotePlayersSectionProps> = ({ notify }) => {
-  const { data: players = [], isLoading } = useRemotePlayers();
+  const { data: players = [], isLoading, isError, error, refetch } = useRemotePlayers();
   const remove = useDeleteRemotePlayer();
   const { confirm, dialog: confirmDialog } = useConfirm();
   const [editing, setEditing] = useState<RemotePlayer | null>(null);
@@ -238,7 +239,18 @@ const RemotePlayersSection: React.FC<RemotePlayersSectionProps> = ({ notify }) =
         </Stack>
       }
     >
-      {isLoading ? (
+      {isError ? (
+        <InlineStatusNotice
+          severity="error"
+          title="Unable to load players"
+          description={getErrorMessage(error)}
+          action={
+            <Button variant="outlined" size="small" onClick={() => void refetch()}>
+              Try again
+            </Button>
+          }
+        />
+      ) : isLoading ? (
         <Typography variant="body2">Loading players…</Typography>
       ) : players.length === 0 ? (
         <EmptyState title="No players yet" description="Add VLC or Kodi from a device on this network, or scan for them." />

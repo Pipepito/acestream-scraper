@@ -28,6 +28,7 @@ import ContentSection from '../layout/ContentSection';
 import RowActionsMenu from '../RowActionsMenu';
 import { useConfirm } from '../ConfirmDialog';
 import EmptyState from '../state/EmptyState';
+import InlineStatusNotice from '../state/InlineStatusNotice';
 import {
   useConnectMediaServer,
   useDeleteMediaServer,
@@ -370,7 +371,7 @@ const TunerSettingsBlock: React.FC<{ notify: MediaServerNotify }> = ({ notify })
 
 /** Saved Jellyfin/Plex servers, what they know about our tuner, and the tuner's own settings. */
 const MediaServersSection: React.FC<MediaServersSectionProps> = ({ notify }) => {
-  const { data: servers = [], isLoading } = useMediaServers();
+  const { data: servers = [], isLoading, isError, error, refetch } = useMediaServers();
   const remove = useDeleteMediaServer();
   const disconnect = useDisconnectMediaServer();
   const test = useTestMediaServer();
@@ -435,7 +436,18 @@ const MediaServersSection: React.FC<MediaServersSectionProps> = ({ notify }) => 
         </Button>
       }
     >
-      {isLoading ? (
+      {isError ? (
+        <InlineStatusNotice
+          severity="error"
+          title="Unable to load media servers"
+          description={describeMediaServerError(error)}
+          action={
+            <Button variant="outlined" size="small" onClick={() => void refetch()}>
+              Try again
+            </Button>
+          }
+        />
+      ) : isLoading ? (
         <Typography variant="body2">Loading media servers…</Typography>
       ) : servers.length === 0 ? (
         <EmptyState title="No media servers yet" description="Add Jellyfin or Plex to watch these channels there with a full guide." />

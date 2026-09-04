@@ -52,16 +52,11 @@ VLC_STATUS = {"apiversion": 3, "version": "3.0.21", "state": "stopped", "volume"
 
 @pytest.fixture
 def remote_player_transport(monkeypatch):
-    """Route every driver client through a MockTransport; tests set `.handler`."""
+    """Answer every driver request as a healthy VLC, so these tests touch no network."""
     import app.api.endpoints.remote_players as endpoint
 
-    state = {"handler": lambda request: httpx.Response(200, json=VLC_STATUS)}
-    monkeypatch.setattr(
-        endpoint,
-        "_client_factory",
-        lambda: httpx.Client(transport=httpx.MockTransport(lambda r: state["handler"](r))),
-    )
-    return state
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json=VLC_STATUS))
+    monkeypatch.setattr(endpoint, "_client_factory", lambda: httpx.Client(transport=transport))
 
 
 def _player_body(**overrides):
@@ -141,7 +136,7 @@ def test_forbidden_player_host_error_contract(alembic_client, remote_player_tran
     assert error["context"]["host"] == "169.254.169.254"
 
 
-def test_public_scan_cidr_error_contract(alembic_client):
+def test_non_private_scan_cidr_error_contract(alembic_client):
     response = alembic_client.post("/api/v1/remote-players/scan", json={"cidr": "8.8.8.0/24"})
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "SCAN_CIDR_NOT_PRIVATE"

@@ -43,10 +43,21 @@ pipeline {
             returnStatus: true,
             script: 'docker image inspect "$PR_RUNNER_IMAGE" >/dev/null 2>&1'
           ) == 0
+          def runnerInputsChanged = sh(
+            returnStatus: true,
+            script: '''#!/usr/bin/env bash
+git diff --quiet HEAD^1 -- \
+  backend/requirements.txt \
+  frontend/package.json \
+  frontend/package-lock.json \
+  docker/ci/pr-runner.Dockerfile
+'''
+          ) != 0
 
-          if (!imageExists) {
+          if (!imageExists || runnerInputsChanged) {
             if (env.CHANGE_FORK) {
-              error("Trusted PR runner image '${env.PR_RUNNER_IMAGE}' is unavailable. Run the develop pipeline to rebuild it; fork code will not be allowed to build its own runner.")
+              def reason = runnerInputsChanged ? 'changes runner dependency inputs' : 'needs a runner image that is unavailable'
+              error("This fork ${reason}. Move the reviewed commit to a maintainer-owned branch so Jenkins can build a one-use candidate runner; fork code will not be allowed to build its own dependencies.")
             }
 
             // Bootstrap only this trusted origin PR. The candidate image is

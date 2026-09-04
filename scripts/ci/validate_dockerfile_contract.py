@@ -36,6 +36,36 @@ def logical_instructions(text: str) -> list[str]:
     return instructions
 
 
+def runtime_command_errors(runtime: list[str]) -> list[str]:
+    """Validate the required Uvicorn command while allowing extra safe flags."""
+    commands = [instruction for instruction in runtime if instruction.startswith("CMD ")]
+    if len(commands) != 1:
+        return [f"runtime-base must define exactly one CMD instruction; found {len(commands)}"]
+
+    command = commands[0]
+    try:
+        argv = json.loads(command.removeprefix("CMD "))
+    except json.JSONDecodeError:
+        return ["runtime-base CMD must use valid JSON array syntax"]
+
+    if not isinstance(argv, list) or not all(isinstance(arg, str) for arg in argv):
+        return ["runtime-base CMD must be a JSON array of strings"]
+    if argv[:2] != ["uvicorn", "main:app"]:
+        return ["runtime-base CMD must launch uvicorn main:app"]
+
+    errors: list[str] = []
+    for option, expected in (("--host", "0.0.0.0"), ("--port", "8000")):
+        positions = [index for index, arg in enumerate(argv) if arg == option]
+        if len(positions) != 1:
+            errors.append(f"runtime-base CMD must define {option} exactly once")
+            continue
+        position = positions[0]
+        actual = argv[position + 1] if position + 1 < len(argv) else None
+        if actual != expected:
+            errors.append(f"runtime-base CMD must set {option} to {expected}")
+    return errors
+
+
 def main() -> int:
     instructions = logical_instructions(DOCKERFILE.read_text(encoding="utf-8"))
     stages: dict[str, list[str]] = {}
@@ -70,12 +100,12 @@ def main() -> int:
         "COPY warp-setup.sh /usr/local/bin/warp-setup.sh",
         "COPY healthcheck.sh /usr/local/bin/healthcheck.sh",
         'ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/entrypoint.sh"]',
-        'CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]',
         'HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 CMD ["/usr/local/bin/healthcheck.sh"]',
     }
     for required in sorted(required_runtime):
         if required not in runtime:
             errors.append(f"runtime-base is missing exact contract instruction: {required}")
+    errors.extend(runtime_command_errors(runtime))
 
     platform_data = json.loads(PLATFORMS.read_text(encoding="utf-8"))
     expected_platforms = {"linux/amd64", "linux/arm64", "linux/arm/v7"}

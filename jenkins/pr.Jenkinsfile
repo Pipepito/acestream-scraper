@@ -97,7 +97,7 @@ docker run --rm --init \
   --memory-swap 8g \
   --cpus 3 \
   --tmpfs /tmp:rw,nosuid,nodev,exec,size=1g \
-  --tmpfs /workspace:rw,nosuid,nodev,size=3g,mode=1777 \
+  --tmpfs /workspace:rw,nosuid,nodev,exec,size=3g,mode=1777 \
   --env CI=true \
   --env HOME=/tmp/ci-home \
   --env PYTHONDONTWRITEBYTECODE=1 \

@@ -37,7 +37,10 @@ def test_start_parses_the_json_contract():
 def test_start_generates_a_pid_when_absent():
     def handler(request):
         assert len(request.url.params["pid"]) == 32
-        return httpx.Response(200, json={"response": {"playback_url": "u", "stat_url": "s", "command_url": "c", "is_live": 0}, "error": None})
+        return httpx.Response(200, json={"response": {
+            "playback_url": "http://engine:6878/ace/r/%s/tok" % IH,
+            "stat_url": "http://engine:6878/ace/stat/%s/s1" % IH,
+            "command_url": "http://engine:6878/ace/cmd/%s/s1" % IH, "is_live": 0}, "error": None})
     assert EngineClient("http://engine:6878", client=_client(handler)).start(CID).is_live is False
 
 
@@ -143,3 +146,18 @@ def test_an_injected_client_outlives_the_engine_client():
     # Still usable by its owner after the EngineClient is done with it.
     assert EngineClient("http://engine:6878", client=injected).stat(session).status == "dl"
     injected.close()
+
+
+@pytest.mark.parametrize("bad", ["file:///etc/passwd", "concat:/etc/passwd|/etc/shadow", "/ace/r/tok", "http://[::1"])
+def test_start_refuses_a_playback_url_that_is_not_http(bad):
+    """playback_url is handed to ffmpeg's -i, whose input is not limited to
+    HTTP: a non-http(s) value is unusable and must be named as the engine's
+    fault, not passed on to a subprocess."""
+    def handler(request):
+        return httpx.Response(200, json={"response": {
+            "playback_url": bad,
+            "stat_url": "http://engine:6878/ace/stat/%s/s1" % IH,
+            "command_url": "http://engine:6878/ace/cmd/%s/s1" % IH, "is_live": 1}, "error": None})
+
+    with pytest.raises(EngineUnavailableError, match="playback_url"):
+        EngineClient("http://engine:6878", client=_client(handler)).start(CID)

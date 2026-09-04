@@ -10,6 +10,7 @@ import uuid
 from dataclasses import dataclass
 from types import TracebackType
 from typing import Optional
+from urllib.parse import urlsplit
 
 import httpx
 
@@ -49,6 +50,29 @@ class EngineStats:
 
 def new_pid() -> str:
     return uuid.uuid4().hex
+
+
+def _engine_target(value: object, field: str) -> str:
+    """One absolute http(s) URL out of the engine's start response.
+
+    The engine is trusted infrastructure and stays trusted for *where* it
+    serves a stream from -- which host may answer is the relay's check, made on
+    the final post-redirect URL where it can actually be enforced. What is
+    checked here is the shape: these three strings are handed to ffmpeg's -i
+    and to httpx verbatim, and ffmpeg's input is not limited to HTTP
+    ("file:", "concat:", "subfile:"), so a wrong or tampered-with engine answer
+    could turn playback into a local-file read re-streamed to the viewer. A
+    non-http(s) value is also simply unusable, so refusing it names the fault
+    instead of leaving ffmpeg to fail obscurely a moment later.
+    """
+    url = str(value)
+    try:
+        parts = urlsplit(url)
+    except ValueError as exc:  # e.g. an unbalanced IPv6 bracket
+        raise EngineUnavailableError(f"Engine returned an unusable {field}: {url!r}") from exc
+    if parts.scheme not in ("http", "https") or not parts.hostname:
+        raise EngineUnavailableError(f"Engine returned a {field} that is not an http(s) URL: {url!r}")
+    return url
 
 
 def engine_url_from_settings(settings_repo: SettingsRepository) -> str:
@@ -119,9 +143,9 @@ class EngineClient:
             return EngineSession(
                 content_id=content_id,
                 pid=pid,
-                playback_url=str(body["playback_url"]),
-                stat_url=str(body["stat_url"]),
-                command_url=str(body["command_url"]),
+                playback_url=_engine_target(body["playback_url"], "playback_url"),
+                stat_url=_engine_target(body["stat_url"], "stat_url"),
+                command_url=_engine_target(body["command_url"], "command_url"),
                 is_live=bool(int(body.get("is_live") or 0)),
             )
         except (KeyError, TypeError, ValueError) as exc:

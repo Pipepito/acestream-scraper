@@ -65,7 +65,7 @@ class MediaServerProbeResponse(BaseModel):
     authenticated: bool
     #: ok = the key was accepted, rejected = the server refused it, missing =
     #: we had no key to send (nothing was rejected).
-    credentials: Literal["ok", "missing", "rejected"] = "missing"
+    credentials: Literal["ok", "missing", "rejected"]
     version: Optional[str] = None
     message: str
     tuner_access: Dict[str, Any]

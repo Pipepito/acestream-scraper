@@ -1857,10 +1857,9 @@ export interface components {
       authenticated: boolean;
       /**
        * Credentials
-       * @default missing
        * @enum {string}
        */
-      credentials?: "ok" | "missing" | "rejected";
+      credentials: "ok" | "missing" | "rejected";
       /** Message */
       message: string;
       /** Reachable */

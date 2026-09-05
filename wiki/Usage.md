@@ -44,6 +44,17 @@ Open **Scraper**, select **Add URL**, and enter a page or feed that contains Ace
 2. Use **Regular HTTP** for normal web pages, **ZeroNet** for ZeroNet content, or **IPFS** for `ipfs://`, `ipns://`, and gateway content that should be fetched through the configured IPFS gateway.
 3. Keep the source **Enabled** so scheduled scrapes include it.
 4. Turn on **Harvest bare content IDs** only when the source lists raw 40-character hashes without `acestream://` links.
+
+With **Auto** or **IPFS**, `inbrowser.link` IPFS/IPNS links are fetched through
+`IPFS_GATEWAY_URL` (default `http://127.0.0.1:8081` inside the container).
+The browser gateway relies on a service worker and cannot serve scraper requests
+like a normal HTTP gateway. Enable IPFS or configure a reachable HTTP gateway.
+Native `ipns://<name>/path` links use the same route. An explicit **Regular HTTP**
+selection preserves direct HTTP fetching.
+
+Plain `.txt` lists with alternating channel-name and 40-character ID lines are
+recognized automatically, preserving their names. Malformed hashes are skipped.
+Unstructured bare hashes on other pages still require **Harvest bare content IDs**.
 5. Select **Add**, then use the row's **Scrape** action. **Scrape all** processes every enabled source.
 
 The table records the last result, last run, and number of channels found. If a source fails, its error remains visible there.
@@ -117,6 +128,20 @@ In VLC, choose **Media → Open Network Stream**, paste the playlist URL, and pl
 ## Search and manual additions
 
 Use **Search** to query the connected AceStream engine catalogue. Add one result or select several and add them together. Use **Add channel** on **Acestream Channels** when you already know a content ID.
+
+Search shows the catalogue's availability and last update separately from the
+current broadcast. **Catalogue: available** is an upstream report, not proof of
+an emission now. **Check broadcast** opens a temporary engine session for that
+infohash, observes whether downloaded bytes increase, and stops the session.
+It does not add the result to your channels. **No broadcast detected** means the
+check could not confirm data transfer within its time limit; it is not proof
+that a scheduled event or a temporarily unreachable stream will never work.
+
+Saved-channel status checks use the same data-transfer verification. A live-type
+flag, connected peers, cached download totals, or “got newer download” alone no
+longer marks a channel online. Session creation retries once on timeout; data
+observation uses the `acestream_check_timeout` setting (10 seconds by default,
+capped at 120 seconds), followed by bounded session cleanup.
 
 ## API and health endpoints
 

@@ -39,6 +39,7 @@ import { normalizeApiError } from '../services/apiErrors';
 import { CreateAcestreamChannelDTO } from '../services/channelService';
 import { SearchResultItem } from '../services/searchService';
 import { formatBitrate } from '../utils/format';
+import SearchBroadcastStatus from '../components/SearchBroadcastStatus';
 
 const Search: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -255,6 +256,7 @@ const Search: React.FC = () => {
                       <TableCell>Name</TableCell>
                       <TableCell>Categories</TableCell>
                       <TableCell>Bitrate</TableCell>
+                      <TableCell>Availability</TableCell>
                       <TableCell>Action</TableCell>
                     </TableRow>
                   </TableHead>
@@ -285,6 +287,9 @@ const Search: React.FC = () => {
                             <Typography variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
                               {formatBitrate(channel.bitrate)}
                             </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <SearchBroadcastStatus channel={channel} />
                           </TableCell>
                           <TableCell>
                             <Stack direction="row" spacing={1} alignItems="center">

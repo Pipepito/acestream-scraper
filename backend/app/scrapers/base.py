@@ -7,6 +7,7 @@ import json
 from abc import ABC, abstractmethod
 from typing import List, Tuple, Set, Dict, Union, Any
 from datetime import datetime
+from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 
 from app.models.url_types import BaseURL
@@ -128,6 +129,36 @@ class BaseScraper(ABC):
                     self.identified_ids.add(id)
                 # Do NOT add channels with generated names based on IDs
 
+        return channels
+
+    def extract_named_text_list(self, content: str) -> List[Tuple[str, str, Dict[str, Any]]]:
+        """Recognize a complete plain-text list of alternating names and IDs.
+
+        Unlike arbitrary bare-hash scanning this requires a .txt source and
+        every nonblank line to belong to a named pair; HTML and mixed prose
+        still require the explicit bare-ID option.
+        """
+        if not urlparse(self.current_url).path.lower().endswith('.txt'):
+            return []
+        lines = [line.strip() for line in content.lstrip('\ufeff').splitlines() if line.strip()]
+        if not lines or len(lines) % 2 or re.search(r'<\s*/?\s*[a-zA-Z][^>]*>', content):
+            return []
+        pairs = list(zip(lines[::2], lines[1::2]))
+        if any(not re.fullmatch(r'[a-zA-Z0-9]{40}', channel_id)
+               or len(name) > 200 or re.match(r'\w+://', name)
+               or re.fullmatch(r'[0-9a-fA-F]{40}', name)
+               for name, channel_id in pairs):
+            return []
+        channels = []
+        for name, channel_id in pairs:
+            # A malformed hash in one otherwise structured row must not
+            # discard the rest of the list or create an invalid channel.
+            if not re.fullmatch(r'[0-9a-fA-F]{40}', channel_id):
+                continue
+            channel_id = channel_id.lower()
+            if channel_id not in self.identified_ids:
+                channels.append((channel_id, self.clean_channel_name(name), {}))
+                self.identified_ids.add(channel_id)
         return channels
 
     def extract_bare_ids(self, content: str) -> List[Tuple[str, str]]:
@@ -261,6 +292,10 @@ class BaseScraper(ABC):
         while retries_left >= 0:
             try:
                 content = await self.fetch_content(url_to_scrape)
+                named_channels = self.extract_named_text_list(content)
+                if named_channels:
+                    channels.extend(named_channels)
+                    break
                 if is_m3u_file:
                     logger.info(f"Processing direct M3U file: {url_to_scrape}")
                     direct_channels = self.m3u_service.extract_channels_from_content(

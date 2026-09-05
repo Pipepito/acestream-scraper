@@ -3561,6 +3561,30 @@
       },
       "SearchResultItem": {
         "properties": {
+          "availability": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Catalogue availability score",
+            "title": "Availability"
+          },
+          "availability_updated_at": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Unix timestamp of the catalogue availability update",
+            "title": "Availability Updated At"
+          },
           "bitrate": {
             "anyOf": [
               {
@@ -3590,6 +3614,18 @@
             "description": "Channel name",
             "title": "Name",
             "type": "string"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Catalogue status: 2 available, 1 uncertain; not a live probe",
+            "title": "Status"
           }
         },
         "required": [
@@ -11552,6 +11588,51 @@
           }
         },
         "summary": "Add Multiple Channels",
+        "tags": [
+          "search",
+          "search"
+        ]
+      }
+    },
+    "/api/v1/search/{infohash}/check_status": {
+      "post": {
+        "description": "Verify a search result's broadcast without adding it to the inventory.",
+        "operationId": "check_search_broadcast_api_v1_search__infohash__check_status_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "infohash",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9a-fA-F]{40}$",
+              "title": "Infohash",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Check Search Broadcast",
         "tags": [
           "search",
           "search"

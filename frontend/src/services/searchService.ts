@@ -1,11 +1,8 @@
 import apiClient from './apiClient';
+import type { components } from '../types/api-generated';
 
-export interface SearchResultItem {
-  id: string;
-  name: string;
-  bitrate?: number;
-  categories: string[];
-}
+export type SearchResultItem = components['schemas']['SearchResultItem'];
+export type BroadcastStatus = components['schemas']['ChannelStatusResponse'];
 
 export interface SearchPagination {
   page: number;
@@ -46,6 +43,14 @@ export interface AddMultipleResponse {
 const BASE_URL = '/v1/search';
 
 export const searchService = {
+  checkBroadcast: async (id: string): Promise<BroadcastStatus> => {
+    // Allow the configured 120s maximum, one doubled startup retry, an
+    // observation window, and cleanup. Normal checks use 10s windows.
+    const response = await apiClient.post<BroadcastStatus>(
+      `${BASE_URL}/${encodeURIComponent(id)}/check_status`, {}, { timeout: 500000 }
+    );
+    return response.data;
+  },
   /**
    * Search for Acestream channels
    */

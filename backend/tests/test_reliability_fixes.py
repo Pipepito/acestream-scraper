@@ -161,7 +161,8 @@ class TestChannelStatusTimeouts:
         service._fetch_engine_response = fake_fetch
         result = asyncio.run(service.check_channel_status(channel))
 
-        assert result["is_online"] is True
+        # A successful metadata retry still does not prove an emission.
+        assert result["is_online"] is False
         assert len(attempts) == 2
         # Retry uses a doubled timeout
         assert attempts[1] == attempts[0] * 2

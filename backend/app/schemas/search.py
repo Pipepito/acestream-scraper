@@ -6,6 +6,9 @@ class SearchResultItem(BaseModel):
     name: str = Field(..., description="Channel name")
     bitrate: Optional[int] = Field(None, description="Channel bitrate")
     categories: List[str] = Field(default_factory=list, description="Categories of the channel")
+    status: Optional[int] = Field(None, description="Catalogue status: 2 available, 1 uncertain; not a live probe")
+    availability: Optional[float] = Field(None, description="Catalogue availability score")
+    availability_updated_at: Optional[int] = Field(None, description="Unix timestamp of the catalogue availability update")
 
     model_config = ConfigDict(from_attributes=True)
 

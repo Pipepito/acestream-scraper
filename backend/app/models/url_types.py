@@ -106,6 +106,28 @@ class IpfsURL(BaseURL):
 
     GATEWAY_PATH_PREFIXES = ('/ipfs/', '/ipns/')
 
+    @staticmethod
+    def browser_gateway_native_url(url: str) -> Optional[str]:
+        """Browser-only gateways serve a service worker, not the requested file.
+
+        Resolve their explicit IPFS/IPNS address through our configured gateway.
+        Match the exact gateway domain so lookalike hosts remain ordinary HTTP.
+        """
+        parsed = urlparse(url)
+        if parsed.scheme not in ('http', 'https') or parsed.username or parsed.password:
+            return None
+        host = parsed.hostname or ''
+        if host == 'inbrowser.link':
+            for prefix in IpfsURL.GATEWAY_PATH_PREFIXES:
+                if parsed.path.startswith(prefix) and parsed.path[len(prefix):]:
+                    native = f"{prefix.strip('/')}://{parsed.path[len(prefix):]}"
+                    return native + (f'?{parsed.query}' if parsed.query else '')
+        labels = host.split('.')
+        if len(labels) == 4 and labels[1] in ('ipfs', 'ipns') and labels[2:] == ['inbrowser', 'link']:
+            native = f"{labels[1]}://{labels[0]}{parsed.path or '/'}"
+            return native + (f'?{parsed.query}' if parsed.query else '')
+        return None
+
     def _validate(self) -> None:
         """Validate IPFS URL format"""
         if self.skip_validation:
@@ -117,6 +139,9 @@ class IpfsURL(BaseURL):
 
     def get_normalized_url(self) -> str:
         """Return a normalized IPFS URL (ipfs://<cid>/... or ipns://<name>/...)"""
+        browser_url = self.browser_gateway_native_url(self.original_url)
+        if browser_url:
+            return browser_url
         # If validation was skipped, return original URL as is
         if self.skip_validation:
             return self.original_url
@@ -145,6 +170,7 @@ class IpfsURL(BaseURL):
         """Map a native ipfs://ipns:// URL onto an HTTP gateway; other URLs
         (already-HTTP gateway links, plain http) are returned untouched."""
         base = gateway_base.rstrip('/')
+        url = IpfsURL.browser_gateway_native_url(url) or url
         if url.startswith('ipfs://'):
             return f"{base}/ipfs/{url[len('ipfs://'):]}"
         if url.startswith('ipns://'):
@@ -163,6 +189,8 @@ class IpfsURL(BaseURL):
     @staticmethod
     def is_valid_url(url: str) -> bool:
         """Check if a URL is a valid IPFS URL"""
+        if IpfsURL.browser_gateway_native_url(url):
+            return True
         if url.startswith('ipfs://') or url.startswith('ipns://'):
             return len(url.split('://', 1)[1]) > 0
         parsed = urlparse(url)
@@ -229,9 +257,9 @@ def create_url_object(url: str, url_type: str = 'auto') -> BaseURL:
         raise ValueError(f"Unsupported URL type: {url_type}")
     
     # For auto detection, try to determine the type
-    if url.startswith('ipfs://') or url.startswith('ipns://'):
-        # Native IPFS scheme detected; gateway-style http(s) URLs stay
-        # regular unless the user explicitly picks the ipfs type.
+    if url.startswith(('ipfs://', 'ipns://')) or IpfsURL.browser_gateway_native_url(url):
+        # Native addresses and browser-only gateways need the local gateway.
+        # Other HTTP gateways retain their existing direct-fetch behavior.
         return IpfsURL(url)
 
     if url.startswith('zero://') or (

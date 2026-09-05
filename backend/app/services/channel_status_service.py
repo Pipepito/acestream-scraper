@@ -4,11 +4,14 @@ Service for checking Acestream channel status
 import asyncio
 import logging
 import aiohttp
+import math
+import re
+from urllib.parse import urlparse
+from uuid import uuid4
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 
-from app.config.settings import get_settings
 from app.models.models import AcestreamChannel
 from app.repositories.channel_repository import ChannelRepository
 
@@ -26,7 +29,6 @@ class ChannelStatusService:
         from app.repositories.settings_repository import SettingsRepository
         self.settings_repo = SettingsRepository(db)
         self.timeout = 10
-        self._next_player_id = 0
 
     def _get_timeout(self) -> float:
         """Engine status timeout in seconds, configurable via the
@@ -39,7 +41,7 @@ class ChannelStatusService:
             value = float(raw)
         except (TypeError, ValueError):
             return float(self.timeout)
-        return value if value > 0 else float(self.timeout)
+        return min(value, 120.0) if math.isfinite(value) and value > 0 else float(self.timeout)
 
     async def _fetch_engine_response(self, status_url: str, params: Dict[str, str], timeout: float):
         """Query the engine once. Returns (http_status, parsed_json_or_None,
@@ -48,7 +50,8 @@ class ChannelStatusService:
             async with session.get(
                 status_url,
                 params=params,
-                timeout=aiohttp.ClientTimeout(total=timeout)
+                timeout=aiohttp.ClientTimeout(total=timeout),
+                allow_redirects=False,
             ) as response:
                 if response.status != 200:
                     return response.status, None, None
@@ -66,173 +69,98 @@ class ChannelStatusService:
             url = f"http://{url}"
         return url.rstrip('/')
 
-    async def check_channel_status(self, channel: AcestreamChannel) -> Dict[str, Any]:
+    @staticmethod
+    def _session_url(engine_url: str, value: Any, kind: str) -> Optional[str]:
+        """Keep session requests on the configured engine, including remote engines
+        which advertise localhost URLs. Never follow arbitrary upstream targets.
         """
-        Check if a single channel is online by querying the Acestream engine
+        if not isinstance(value, str):
+            return None
+        path = urlparse(value).path
+        if not re.fullmatch(rf"/ace/{kind}/[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+", path):
+            return None
+        return f"{engine_url}{path}"
 
-        Args:
-            channel: The channel to check
-
-        Returns:
-            Dict with status information
-        """
-        check_time = datetime.now(timezone.utc)
-
+    async def _verify_broadcast(self, engine_url: str, data: Dict[str, Any], timeout: float):
+        response = data.get('response')
+        if not isinstance(response, dict):
+            return False, 'Invalid response format'
+        stat_url = self._session_url(engine_url, response.get('stat_url'), 'stat')
+        command_url = self._session_url(engine_url, response.get('command_url'), 'cmd')
         try:
-            # Generate unique player ID
-            self._next_player_id = (self._next_player_id + 1) % 100000
+            if data.get('error'):
+                return False, 'Engine could not start the stream'
+            if not stat_url or not command_url:
+                return False, 'Engine did not provide a verifiable playback session'
+            deadline = asyncio.get_running_loop().time() + timeout
+            previous_downloaded = None
+            while True:
+                remaining = deadline - asyncio.get_running_loop().time()
+                if remaining <= 0:
+                    return False, 'No broadcast data received before timeout'
+                http_status, stats, parse_error = await self._fetch_engine_response(stat_url, {}, remaining)
+                if http_status != 200 or parse_error or not isinstance(stats, dict):
+                    return False, 'Could not read stream statistics'
+                state = stats.get('response')
+                if stats.get('error') or not isinstance(state, dict):
+                    return False, 'Engine could not read stream statistics'
+                if state.get('status') in ('error', 'err', 'idle', 'stopped'):
+                    return False, 'Stream is not broadcasting'
+                downloaded = state.get('downloaded')
+                if (isinstance(downloaded, (int, float)) and not isinstance(downloaded, bool)
+                        and math.isfinite(downloaded) and downloaded >= 0):
+                    # Metadata (is_live), connected peers, a cached byte total,
+                    # and catalogue status cannot prove current emission.
+                    if (previous_downloaded is not None and downloaded > previous_downloaded
+                            and state.get('status') in ('dl', 'prebuf', 'buf')):
+                        return True, 'Broadcast data is arriving'
+                    previous_downloaded = downloaded
+                await asyncio.sleep(min(1.0, max(0, deadline - asyncio.get_running_loop().time())))
+        finally:
+            if command_url:
+                try:
+                    await self._fetch_engine_response(command_url, {'method': 'stop'}, 3.0)
+                except Exception:
+                    logger.warning('Could not stop channel status probe session')
 
-            # Always fetch the latest engine_url from DB
+    async def check_channel_status(
+        self, channel: AcestreamChannel, *, identifier: str = 'id', persist: bool = True
+    ) -> Dict[str, Any]:
+        """Check current data transfer in an isolated, bounded playback session."""
+        online = False
+        try:
             engine_url = self._get_engine_url()
             status_url = f"{engine_url}/ace/getstream"
-            params = {
-                'id': channel.id,
-                'format': 'json',
-                'method': 'get_status',
-                'pid': str(self._next_player_id)
-            }
-
+            params = {identifier: channel.id, 'format': 'json', 'pid': uuid4().hex}
             timeout = self._get_timeout()
             try:
-                http_status, data, parse_error = await self._fetch_engine_response(
-                    status_url, params, timeout
-                )
+                http_status, data, parse_error = await self._fetch_engine_response(status_url, params, timeout)
             except asyncio.TimeoutError:
-                # A busy-but-alive engine often just responds slowly; retry
-                # once with a doubled timeout before declaring the channel
-                # offline (#129).
-                logger.warning(
-                    "Timeout checking channel channel_id=%s channel_name=%s; retrying with %.0fs timeout",
-                    channel.id,
-                    channel.name,
-                    timeout * 2,
-                )
-                http_status, data, parse_error = await self._fetch_engine_response(
-                    status_url, params, timeout * 2
-                )
-
-            if http_status == 200 and parse_error is None:
-                if isinstance(data, dict):
-                    response_data = data.get('response', {})
-                    error = data.get('error')
-
-                    # Check for "got newer download" message (indicates channel exists)
-                    if error and "got newer download" in str(error).lower():
-                        self.channel_repository.update_channel_status(
-                            channel.id, True, None
-                        )
-                        return {
-                            'channel_id': channel.id,
-                            'is_online': True,
-                            'status': 'online',
-                            'message': 'Channel is available',
-                            'last_checked': check_time,
-                            'error': None
-                        }
-
-                    # Check regular online status
-                    if (error is None and
-                        response_data and
-                        response_data.get('is_live') == 1):
-                        self.channel_repository.update_channel_status(
-                            channel.id, True, None
-                        )
-                        return {
-                            'channel_id': channel.id,
-                            'is_online': True,
-                            'status': 'online',
-                            'message': 'Channel is live',
-                            'last_checked': check_time,
-                            'error': None
-                        }
-
-                    # Channel exists but not available
-                    error_msg = error if error else "Channel is not live"
-                    self.channel_repository.update_channel_status(
-                        channel.id, False, str(error_msg)
-                    )
-                    return {
-                        'channel_id': channel.id,
-                        'is_online': False,
-                        'status': 'offline',
-                        'message': error_msg,
-                        'last_checked': check_time,
-                        'error': error_msg
-                    }
-
-                # Invalid response format
-                error_msg = "Invalid response format"
-                self.channel_repository.update_channel_status(
-                    channel.id, False, error_msg
-                )
-                return {
-                    'channel_id': channel.id,
-                    'is_online': False,
-                    'status': 'offline',
-                    'message': error_msg,
-                    'last_checked': check_time,
-                    'error': error_msg
-                }
-
-            if http_status == 200 and parse_error is not None:
-                self.channel_repository.update_channel_status(
-                    channel.id, False, parse_error
-                )
-                return {
-                    'channel_id': channel.id,
-                    'is_online': False,
-                    'status': 'offline',
-                    'message': parse_error,
-                    'last_checked': check_time,
-                    'error': parse_error
-                }
-
-            # HTTP error
-            error_msg = f"HTTP {http_status}"
-            self.channel_repository.update_channel_status(
-                channel.id, False, error_msg
-            )
-            return {
-                'channel_id': channel.id,
-                'is_online': False,
-                'status': 'offline',
-                'message': error_msg,
-                'last_checked': check_time,
-                'error': error_msg
-            }
-
+                logger.warning('Channel probe start timed out; retrying once channel_id=%s', channel.id)
+                http_status, data, parse_error = await self._fetch_engine_response(status_url, params, timeout * 2)
+            if http_status != 200:
+                message = f'HTTP {http_status}'
+            elif parse_error or not isinstance(data, dict):
+                message = 'Invalid response format'
+            else:
+                online, message = await self._verify_broadcast(engine_url, data, timeout)
         except asyncio.TimeoutError:
-            error_msg = "Request timeout"
-            self.channel_repository.update_channel_status(
-                channel.id, False, error_msg
-            )
-            logger.warning(
-                "Timeout checking channel channel_id=%s channel_name=%s after retry",
-                channel.id,
-                channel.name,
-            )
-            return {
-                'channel_id': channel.id,
-                'is_online': False,
-                'status': 'offline',
-                'message': error_msg,
-                'last_checked': check_time,
-                'error': error_msg
-            }
-        except Exception as e:
-            error_msg = str(e)
-            self.channel_repository.update_channel_status(
-                channel.id, False, error_msg
-            )
-            logger.error("Error checking channel channel_id=%s error=%s", channel.id, e)
-            return {
-                'channel_id': channel.id,
-                'is_online': False,
-                'status': 'offline',
-                'message': error_msg,
-                'last_checked': check_time,
-                'error': error_msg
-            }
+            message = 'Request timeout'
+        except Exception:
+            message = 'Could not verify broadcast with the engine'
+            logger.warning('Channel broadcast probe failed channel_id=%s', channel.id)
+        check_time = datetime.now(timezone.utc)
+        error = None if online else message
+        if persist:
+            self.channel_repository.update_channel_status(channel.id, online, error)
+        return {
+            'channel_id': channel.id,
+            'is_online': online,
+            'status': 'online' if online else 'offline',
+            'message': message,
+            'last_checked': check_time,
+            'error': error,
+        }
 
     async def check_multiple_channels(
         self,

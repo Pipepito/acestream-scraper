@@ -47,3 +47,12 @@ class TestSearchResultItemName:
         }
         response = SearchResponse(**payload)
         assert [r.name for r in response.results] == ["M. LaLiga", "777"]
+
+
+def test_catalogue_availability_survives_response_schema():
+    item = SearchResultItem(id='a' * 40, name='Example', status=2,
+                            availability=0.95, availability_updated_at=1788614461)
+    assert item.model_dump()['status'] == 2
+    assert item.model_dump()['availability'] == 0.95
+    assert item.model_dump()['availability_updated_at'] == 1788614461
+    assert 'is_online' not in item.model_dump()

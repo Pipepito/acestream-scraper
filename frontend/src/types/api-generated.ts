@@ -769,6 +769,13 @@ export interface paths {
      */
     post: operations["add_multiple_channels_api_v1_search_add_multiple_post"];
   };
+  "/api/v1/search/{infohash}/check_status": {
+    /**
+     * Check Search Broadcast
+     * @description Verify a search result's broadcast without adding it to the inventory.
+     */
+    post: operations["check_search_broadcast_api_v1_search__infohash__check_status_post"];
+  };
   "/api/v1/stats": {
     /**
      * Get Stats
@@ -2417,6 +2424,16 @@ export interface components {
     /** SearchResultItem */
     SearchResultItem: {
       /**
+       * Availability
+       * @description Catalogue availability score
+       */
+      availability?: number | null;
+      /**
+       * Availability Updated At
+       * @description Unix timestamp of the catalogue availability update
+       */
+      availability_updated_at?: number | null;
+      /**
        * Bitrate
        * @description Channel bitrate
        */
@@ -2436,6 +2453,11 @@ export interface components {
        * @description Channel name
        */
       name: string;
+      /**
+       * Status
+       * @description Catalogue status: 2 available, 1 uncertain; not a live probe
+       */
+      status?: number | null;
     };
     /** ServiceRestartResponse */
     ServiceRestartResponse: {
@@ -6047,6 +6069,31 @@ export interface operations {
       200: {
         content: {
           "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Check Search Broadcast
+   * @description Verify a search result's broadcast without adding it to the inventory.
+   */
+  check_search_broadcast_api_v1_search__infohash__check_status_post: {
+    parameters: {
+      path: {
+        infohash: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ChannelStatusResponse"];
         };
       };
       /** @description Validation Error */

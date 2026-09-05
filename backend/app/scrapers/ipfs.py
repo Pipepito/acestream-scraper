@@ -2,13 +2,13 @@
 IPFS scraper implementation
 """
 import logging
-import aiohttp
 import asyncio
 
 from bs4 import BeautifulSoup
 
 from app.models.url_types import IpfsURL
 from app.scrapers.base import BaseScraper
+from app.scrapers.http import HTTPScraper
 from app.config.settings import settings
 from app.utils.url_guard import BlockedURLError, validate_outbound_url
 
@@ -28,8 +28,8 @@ class IpfsScraper(BaseScraper):
         }
 
     def resolve_fetch_url(self, url: str) -> str:
-        """Map native ipfs://ipns:// URLs onto the configured HTTP gateway;
-        plain http(s) URLs (including explicit gateway links) pass through."""
+        """Map native and browser-gateway addresses onto the configured gateway;
+        other explicit HTTP gateway links pass through."""
         return IpfsURL.to_gateway_url(url, self.gateway_url)
 
     async def fetch_content(self, url: str) -> str:
@@ -47,14 +47,10 @@ class IpfsScraper(BaseScraper):
         last_error = None
         while retry_count < self.retries:
             try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(
-                        fetch_url,
-                        headers=self.headers,
-                        timeout=self.timeout
-                    ) as response:
-                        response.raise_for_status()
-                        return await response.text()
+                # Reuse the HTTP fetcher's TLS and per-redirect SSRF checks.
+                return await HTTPScraper.fetch_content(self, fetch_url)
+            except BlockedURLError:
+                raise
             except Exception as e:
                 last_error = e
                 retry_count += 1
@@ -94,7 +90,10 @@ class IpfsScraper(BaseScraper):
 
         is_m3u = (url_to_scrape.lower().endswith(('.m3u', '.m3u8'))
                   or content.lstrip().startswith('#EXTM3U'))
-        if is_m3u:
+        named_channels = self.extract_named_text_list(content)
+        if named_channels:
+            channels.extend(named_channels)
+        elif is_m3u:
             m3u_channels = self.m3u_service.extract_channels_from_content(
                 content,
                 db=self.db,

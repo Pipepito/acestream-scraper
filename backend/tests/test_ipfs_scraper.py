@@ -12,6 +12,7 @@ from app.scrapers.ipfs import IpfsScraper
 
 
 CID = "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi"
+IPNS_NAME = 'k2k4r8lm8tkmuxbc8lkmq1in3v0oya1p6pe9o5bu0hu30br5ko08k2gb'
 
 M3U_CONTENT = """#EXTM3U
 #EXTINF:-1 group-title="Sports" tvg-logo="http://logo/1.png",Sports One
@@ -22,6 +23,33 @@ acestream://bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
 
 
 class TestIpfsURLType:
+    @pytest.mark.parametrize('suffix', ['/?tab=canales', '/data/listas/listaplana.txt'])
+    @pytest.mark.parametrize('url_type', ['auto', 'ipfs'])
+    def test_browser_gateway_resolves_through_configured_gateway(self, suffix, url_type):
+        url = f'https://{IPNS_NAME}.ipns.inbrowser.link{suffix}'
+        scraper = create_scraper_for_url(url, url_type)
+        assert isinstance(scraper, IpfsScraper)
+        scraper.gateway_url = 'http://gateway.test:8081'
+        assert scraper.url_obj.get_normalized_url() == f'ipns://{IPNS_NAME}{suffix}'
+        assert scraper.resolve_fetch_url(url) == f'http://gateway.test:8081/ipns/{IPNS_NAME}{suffix}'
+
+    def test_browser_gateway_path_style(self):
+        url = f'https://inbrowser.link/ipfs/{CID}/list.txt?download=1'
+        assert IpfsURL.browser_gateway_native_url(url) == f'ipfs://{CID}/list.txt?download=1'
+
+    @pytest.mark.parametrize('url', [
+        'https://name.ipns.inbrowser.link.attacker.test/list.txt',
+        'https://name.ipns.notinbrowser.link/list.txt',
+        'https://user:password@name.ipns.inbrowser.link/list.txt',
+        'https://inbrowser.link/ipns/',
+    ])
+    def test_browser_gateway_lookalikes_are_not_rewritten(self, url):
+        assert IpfsURL.browser_gateway_native_url(url) is None
+
+    def test_explicit_regular_override_preserved(self):
+        scraper = create_scraper_for_url(f'https://{IPNS_NAME}.ipns.inbrowser.link/', 'regular')
+        assert not isinstance(scraper, IpfsScraper)
+
     def test_auto_detects_ipfs_scheme(self):
         url_obj = create_url_object(f"ipfs://{CID}/list.m3u")
         assert isinstance(url_obj, IpfsURL)
@@ -87,6 +115,38 @@ class TestIpfsScraperFactory:
 
 
 class TestIpfsScraper:
+    @pytest.mark.parametrize('url', [
+        f'https://{IPNS_NAME}.ipns.inbrowser.link/list.txt?download=1',
+        'https://example.test/list.txt',
+        f'ipns://{IPNS_NAME}/list.txt',
+    ])
+    def test_named_plain_text_pairs_without_bare_id_option(self, url, db_session, monkeypatch):
+        scraper = create_scraper_for_url(url, 'auto')
+        scraper.db = db_session
+
+        async def fake_fetch(_url):
+            return '\ufeffEvent One --> Example\r\n' + 'A' * 40 + '\r\n\r\nNews Two\n' + 'b' * 40
+
+        monkeypatch.setattr(scraper, 'fetch_content', fake_fetch)
+        channels, status = asyncio.run(scraper.scrape())
+        assert status == 'OK'
+        assert channels == [('a' * 40, 'Event One --> Example', {}), ('b' * 40, 'News Two', {})]
+
+    @pytest.mark.parametrize('content', [
+        'a' * 40 + '\n' + 'b' * 40,
+        '<div>Example</div>\n' + 'a' * 40,
+        'https://example.test/commit\n' + 'a' * 40,
+        'Example\n' + 'a' * 40 + '\nExtra prose',
+    ])
+    def test_arbitrary_hashes_are_not_a_named_text_list(self, content):
+        scraper = create_scraper_for_url('https://example.test/list.txt', 'auto')
+        assert scraper.extract_named_text_list(content) == []
+
+    def test_named_list_skips_invalid_hash_and_preserves_urls_in_labels(self):
+        scraper = create_scraper_for_url('https://example.test/list.txt', 'auto')
+        content = 'Bad hash\n' + 'a' * 39 + 'y\nNews | https://example.test\n' + 'b' * 40
+        assert scraper.extract_named_text_list(content) == [('b' * 40, 'News | https://example.test', {})]
+
     def _scraper(self, url: str, url_type: str = "auto") -> IpfsScraper:
         return create_scraper_for_url(url, url_type)
 

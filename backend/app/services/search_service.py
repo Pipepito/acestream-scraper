@@ -2,6 +2,7 @@ from typing import Dict, Any, List, Optional, Tuple
 import logging
 import requests
 import json
+import asyncio
 from fastapi import HTTPException
 
 from app.config.settings import get_settings
@@ -87,7 +88,7 @@ class SearchService:
 
             # Make request to Acestream engine
 
-            response = requests.get(search_url, params=params, timeout=10)
+            response = await asyncio.to_thread(requests.get, search_url, params=params, timeout=10)
 
             # Enhanced logging - log the actual status code
             logger.info(f"Search API response status code: {response.status_code}")
@@ -170,6 +171,17 @@ class SearchService:
             logger.error(error_msg)
             logger.exception("Exception details:")
             raise HTTPException(status_code=500, detail=error_msg)
+
+    async def check_broadcast(self, infohash: str) -> Dict[str, Any]:
+        from app.models.models import AcestreamChannel
+        from app.services.channel_status_service import ChannelStatusService
+
+        # Search IDs are infohashes, not transport-file content IDs. This
+        # preview must not add a channel or overwrite an inventory record.
+        service = ChannelStatusService(self.db)
+        return await service.check_channel_status(
+            AcestreamChannel(id=infohash, name=infohash), identifier='infohash', persist=False
+        )
 
     def extract_acestream_id(self, url: str) -> Optional[str]:
         """

@@ -18,7 +18,7 @@ beforeEach(() => jest.clearAllMocks());
 test('reviews suggestions and submits only selected streams', async () => {
   preview.mockResolvedValue({ tv_channels: 2, unassigned_streams: 3, ambiguous_streams: 1, unmatched_streams: 0, candidates: [
     { acestream_channel_id: 'a', acestream_name: 'DAZN 1 HD', tv_channel_id: 1, tv_channel_name: 'DAZN 1', score: .99, reason: 'Normalized name', recommended: true },
-    { acestream_channel_id: 'b', acestream_name: 'Sky Sport', tv_channel_id: 2, tv_channel_name: 'UK | Sky Sport', score: .94, reason: 'Country needs review', recommended: false },
+    { acestream_channel_id: 'b', acestream_name: 'DAZN LaLiga 1', tv_channel_id: 2, tv_channel_name: 'DAZN LaLiga', score: .96, reason: 'Catalog alias; review required', recommended: false },
   ] });
   apply.mockResolvedValue({ assigned_count: 1, skipped_count: 0 });
   setup();

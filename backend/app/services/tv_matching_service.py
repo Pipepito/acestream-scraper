@@ -2,7 +2,6 @@
 import re
 import unicodedata
 from dataclasses import dataclass
-from difflib import SequenceMatcher
 
 from sqlalchemy.orm import Session
 
@@ -18,7 +17,6 @@ REGION = re.compile(rf'^({COUNTRIES})\s*[|:]\s*|[\[(]({COUNTRIES})[\])]|\b(spain
 class ChannelName:
     text: str
     country: str
-    numbers: tuple[str, ...]
 
 
 def normalize_name(value: str | None, country: str | None = None) -> ChannelName:
@@ -36,30 +34,29 @@ def normalize_name(value: str | None, country: str | None = None) -> ChannelName
     value = re.sub(r'\bla liga\b', 'laliga', value)
     value = re.sub(r'^sky sports\b', 'sky sport', value)
     value = re.sub(r'^movistar plus plus\b', 'movistar plus', value)
-    # Narrow catalog aliases, never generic substring removal.
+    return ChannelName(value, region)
+
+
+def catalog_alias(value: str) -> str:
+    """Possible catalog equivalences need review, not automatic selection."""
     value = re.sub(r'^(?:movistar )?liga de campeones\b', 'movistar liga de campeones', value)
     value = re.sub(r'^(?:laliga tv )?hypermotion\b', 'laliga tv hypermotion', value)
     value = re.sub(r'^dazn laliga 1$', 'dazn laliga', value)
-    return ChannelName(value, region, tuple(re.findall(r'\d+', value)))
+    return value
 
 
 def name_score(target: ChannelName, candidate: ChannelName) -> tuple[float, str] | None:
-    if not target.text or not candidate.text or target.numbers != candidate.numbers:
+    if not target.text or not candidate.text:
         return None
-    if target.country and candidate.country and target.country != candidate.country:
+    # A country present on only one side is insufficient evidence of an edition.
+    if target.country != candidate.country:
         return None
-    # These modifiers identify different feeds even when the rest is very similar.
-    for token in ('bar', 'plus', 'hdr', 'extra', 'xtra'):
-        if (token in target.text.split()) != (token in candidate.text.split()):
-            return None
-    region_unknown = target.country != candidate.country
     if target.text == candidate.text:
-        return (0.94, 'Normalized name; country needs review') if region_unknown else (0.99, 'Normalized name')
-    if min(len(target.text), len(candidate.text)) < 7:
-        return None
-    ratio = SequenceMatcher(None, target.text, candidate.text).ratio()
-    if ratio >= 0.90:
-        return min(ratio, 0.93), 'Similar name; review required'
+        return 0.99, 'Normalized name'
+    if catalog_alias(target.text) == catalog_alias(candidate.text):
+        return 0.96, 'Catalog alias; review required'
+    # Similarity percentages are not evidence that two feeds are the same station.
+    # Keep all other spellings and added/dropped words in the manual assign flow.
     return None
 
 
@@ -77,9 +74,22 @@ class TVMatchingService:
         for stream in streams:
             variants = [normalize_name(name) for name in (stream.name, stream.tvg_name) if name]
             claims = []
+            id_targets = {tv.id for tv in targets if stream.tvg_id and tv.epg_id == stream.tvg_id}
+            # Missing region cannot choose between editions with the same name.
+            edition_conflict = any(
+                not variant.country and len({names[tv.id].country for tv in targets
+                    if names[tv.id].text == variant.text}) > 1
+                for variant in variants
+            )
             for tv in targets:
+                if id_targets and tv.id not in id_targets:
+                    continue
                 if tv.epg_id and stream.tvg_id == tv.epg_id:
-                    score, reason = 1.0, 'Exact EPG ID'
+                    agrees = [name_score(names[tv.id], variant) for variant in variants]
+                    if all(result and result[0] == 0.99 for result in agrees) and agrees:
+                        score, reason = 1.0, 'Exact EPG ID'
+                    else:
+                        score, reason = 0.95, 'EPG ID matches; name or country needs review'
                 else:
                     # Conflicting explicit EPG IDs must not be overridden by a name guess.
                     if tv.epg_id and stream.tvg_id:
@@ -88,13 +98,17 @@ class TVMatchingService:
                     if not scores:
                         continue
                     score, reason = max(scores)
+                    if len(scores) != len(variants) or (score >= 0.99 and any(item[0] < 0.99 for item in scores)):
+                        score, reason = min(score, 0.95), 'Conflicting stream names; review required'
                 claims.append(TVMatchCandidate(
                     acestream_channel_id=stream.id, acestream_name=stream.name or stream.tvg_name or stream.id,
                     tv_channel_id=tv.id, tv_channel_name=tv.name, score=score, reason=reason,
                     recommended=score >= 0.99,
                 ))
             claims.sort(key=lambda item: (-item.score, item.tv_channel_id))
-            if not claims:
+            if edition_conflict and not id_targets:
+                ambiguous += 1
+            elif not claims:
                 unmatched += 1
             elif len(claims) > 1 and (claims[0].score == claims[1].score or
                     (claims[0].score < 0.99 and claims[0].score - claims[1].score < 0.05)):

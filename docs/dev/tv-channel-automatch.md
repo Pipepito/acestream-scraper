@@ -26,24 +26,32 @@ These are historical references, not runtime paths to restore in V2.
 EPG creation workflow and per-channel manual assignment remain separate.
 
 1. Only unassigned streams enter analysis; every existing TV channel competes.
-2. An exact EPG ID has priority. Conflicting nonempty EPG IDs block name guesses.
+2. An exact EPG ID restricts candidates to that identity. It is preselected only
+   when every supplied stream name also agrees with the TV channel's name and
+   country. Conflicting metadata stays unselected for review. Conflicting
+   nonempty EPG IDs block name guesses.
 3. Normalize case, Unicode accents, quality labels (including FHDp/1080p),
    punctuation, digit spacing, and provider suffixes after `-->`.
-4. Narrow aliases cover M+/M./Movistar, La Liga/LaLiga, Sky Sports/Sky Sport,
-   Liga de Campeones and Hypermotion prefixes, and DAZN LaLiga's first feed.
-   No generic substring matching or removal of arbitrary bracket contents.
-5. Preserve channel numbers, BAR, plus, HDR, extra and xtra. Conflicting explicit
-   country markers block a match. Country metadata missing on either side makes
-   a name match review-only; an unmarked stream prefers an unmarked exact target.
-6. Similar names need at least 90% sequence similarity and at least seven
-   characters on both sides. These suggestions are never preselected.
-7. Ties are withheld. Fuzzy/review candidates also require a 0.05 lead over their
+4. Spelling equivalents cover M+/M./Movistar, La Liga/LaLiga and Sky Sports/Sky
+   Sport. Inferred Liga de Campeones/Hypermotion prefixes and DAZN LaLiga's first
+   feed are separate catalog-alias suggestions and are never preselected.
+5. Full normalized names must agree, preserving channel numbers, BAR, TV, plus,
+   HDR and other identity words. General fuzzy similarity is not used: for
+   example, M+ LaLiga TV must not match M+ LaLiga.
+6. Name matching requires equal country information, including both being
+   unmarked. When an unmarked stream could belong to multiple country editions
+   with the same normalized name, it is ambiguous rather than defaulting to the
+   unmarked TV channel. An exact EPG ID may resolve that ambiguity.
+7. Ties are withheld. Review candidates also require a 0.05 lead over their
    runner-up. No alphabetical or database-ID tie breaking assigns a stream.
+8. If `name` and `tvg_name` disagree, a suggestion is not preselected merely
+   because one of them happens to match.
 
-Exact EPG/name suggestions are preselected. Scores are ranking values, not
-probabilities of correct broadcast content. Country labels and fuzzy names need
-manual review. Historical rebrands such as BT Sport/TNT or Eleven/DAZN are not
-assumed. Unmatched or ambiguous streams can be assigned from channel details.
+Scores are ranking values, not probabilities of correct broadcast content.
+Historical rebrands such as BT Sport/TNT or Eleven/DAZN are not assumed.
+Unmatched or ambiguous streams can be assigned from channel details. Multiple
+IDs for the same station remain valid suggestions; there is no arbitrary cap
+that would discard backup streams just to reduce the match count.
 
 ## API and persistence
 
@@ -61,9 +69,10 @@ assumed. Unmatched or ambiguous streams can be assigned from channel details.
 ## Read-only sample evaluation
 
 On 2026-09-06 the user's server supplied 111 TV channels and 397 streams, four
-already linked to one TV channel. Local analysis of those samples produced 184
-recommended matches, 39 country-review suggestions, zero ambiguous streams and
-170 unmatched streams. This measures coverage, not verified content accuracy.
+already linked to one TV channel. After tightening the rules, local analysis produced 125
+recommended matches, 42 catalog-alias suggestions requiring review, 17 ambiguous
+streams and 209 unmatched streams. The earlier iteration had 184 recommended
+matches and 39 country-review suggestions; those broader rules are superseded. This measures coverage, not verified content accuracy.
 No server data was changed. Raw inventories and infrastructure addresses are
 not committed.
 

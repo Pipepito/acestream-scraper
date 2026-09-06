@@ -50,7 +50,7 @@ export default function TVAutoMatchDialog({ onClose }: TVAutoMatchDialogProps) {
           {apply.data ? <Alert severity="success">{apply.data.assigned_count} streams assigned. {apply.data.skipped_count} skipped because they changed or were already assigned.</Alert> : null}
           {preview ? <>
             <Typography role="status">{preview.candidates.length} suggestions from {preview.unassigned_streams} unassigned streams across {preview.tv_channels} TV channels. {preview.ambiguous_streams} ambiguous; {preview.unmatched_streams} without a match.</Typography>
-            <Alert severity="info">Country differences and similar names need review and are not selected automatically. Ambiguous matches are left for manual assignment.</Alert>
+            <Alert severity="info">Only exact names are recommended. Catalog aliases and conflicting metadata need review. Uncertain country editions and other names are left for manual assignment.</Alert>
             {preview.candidates.length === 0 ? <Alert severity="info">No matches found. You can assign streams from a TV channel’s detail page.</Alert> : <>
               <Stack direction="row" spacing={1}>
                 <Button disabled={busy} onClick={() => setSelected(new Set(preview.candidates.filter((item) => item.recommended).map((item) => item.acestream_channel_id)))}>Select recommended</Button>

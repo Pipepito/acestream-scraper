@@ -7,9 +7,6 @@ from app.services.tv_matching_service import normalize_name, name_score
     ('M+ Acción', 'MOVISTAR ACCION HD --> NEW ERA III'),
     ('M+ Deportes', 'M. Deportes FHDp ** --> ELCANO'),
     ('Esport 3', 'Esport3 FHDp * --> ELCANO'),
-    ('DAZN LaLiga', 'DAZN LA LIGA 1 FHD --> ELCANO'),
-    ('LaLiga TV Hypermotion 2', 'HYPERMOTION 2 --> ELCANO'),
-    ('M+ Liga de Campeones 2', 'LIGA DE CAMPEONES 2 FHD --> ELCANO'),
     ('Movistar Plus+', 'MOVISTAR PLUS FHD --> ELCANO'),
     ('Матч! Футбол 1 (RU)', 'Матч! Футбол 1 HD (RU)'),
 ])
@@ -72,11 +69,11 @@ def test_ambiguity_epg_and_metadata_changes(client, db_session):
     assert client.post('/api/v1/tv-channels/automatch/apply', json=request).status_code == 422
 
 
-def test_country_and_typo_require_review():
-    assert name_score(normalize_name('FR | beIN Sports 1'), normalize_name('beIN Sports 1'))[0] < .99
+def test_country_and_typo_guesses_are_withheld():
+    assert name_score(normalize_name('FR | beIN Sports 1'), normalize_name('beIN Sports 1')) is None
     assert name_score(normalize_name('Discovery'), normalize_name('Discoveri')) is None
-    result = name_score(normalize_name('National Geographic'), normalize_name('National Geografic'))
-    assert result is not None and result[0] < .99
+    result = name_score(normalize_name('National Geographic'), normalize_name('National Geographik'))
+    assert result is None
 
 
 def test_tvg_name_fallback_and_workload_limit(client, db_session, monkeypatch):
@@ -87,8 +84,64 @@ def test_tvg_name_fallback_and_workload_limit(client, db_session, monkeypatch):
     db_session.commit()
     data = client.post('/api/v1/tv-channels/automatch/preview').json()
     assert len(data['candidates']) == 1
-    assert data['candidates'][0]['recommended'] is True
+    assert data['candidates'][0]['recommended'] is False
     monkeypatch.setattr(ChannelRepository, 'get_tv_matching_inventory', lambda self: ([None] * 1500, [None] * 1500))
     response = client.post('/api/v1/tv-channels/automatch/preview')
     assert response.status_code == 422
     assert 'too large' in response.json()['detail']
+
+
+@pytest.mark.parametrize('target,stream', [
+    ('M+ LaLiga', 'M+ LaLiga TV'),
+    ('M+ Deportes', 'M+ Deporte'),
+    ('National Geographic', 'National Geographic Wild'),
+    ('ESPN', 'ESPN [US]'),
+    ('UK | Sky Sport Arena', 'Sky Sports Arena'),
+    ('DAZN 1', 'PT | DAZN 1'),
+])
+def test_rejects_broad_name_and_edition_guesses(target, stream):
+    assert name_score(normalize_name(target), normalize_name(stream)) is None
+
+
+@pytest.mark.parametrize('target,stream', [
+    ('DAZN LaLiga', 'DAZN LA LIGA 1 FHD --> ELCANO'),
+    ('LaLiga TV Hypermotion 2', 'HYPERMOTION 2 --> ELCANO'),
+    ('M+ Liga de Campeones 2', 'LIGA DE CAMPEONES 2 FHD --> ELCANO'),
+])
+def test_inferred_aliases_are_never_strong_matches(target, stream):
+    result = name_score(normalize_name(target), normalize_name(stream))
+    assert result == (0.96, 'Catalog alias; review required')
+
+
+def test_unknown_edition_is_ambiguous_and_epg_conflicts_need_review(client, db_session):
+    from app.models.models import AcestreamChannel, TVChannel
+    spanish = TVChannel(name='DAZN 1', epg_id='dazn-es')
+    portuguese = TVChannel(name='PT | DAZN 1', epg_id='dazn-pt')
+    db_session.add_all([spanish, portuguese]); db_session.flush()
+    streams = [
+        AcestreamChannel(id='e'*40, name='DAZN 1 HD'),
+        AcestreamChannel(id='f'*40, name='DAZN 1 HD', tvg_id='dazn-es'),
+        AcestreamChannel(id='g'*40, name='DAZN 2 HD', tvg_id='dazn-es'),
+        AcestreamChannel(id='h'*40, name='DAZN 1 HD', tvg_name='DAZN 2 HD', tvg_id='dazn-es'),
+    ]
+    db_session.add_all(streams); db_session.commit()
+    data = client.post('/api/v1/tv-channels/automatch/preview').json()
+    assert data['ambiguous_streams'] == 1
+    matches = {item['acestream_channel_id']: item for item in data['candidates']}
+    assert 'e'*40 not in matches
+    assert matches['f'*40]['recommended'] is True
+    assert matches['g'*40]['recommended'] is False
+    assert matches['h'*40]['recommended'] is False
+    request = {'assignments': [{'acestream_channel_id': 'e'*40, 'tv_channel_id': spanish.id}]}
+    assert client.post('/api/v1/tv-channels/automatch/apply', json=request).json()['skipped_count'] == 1
+
+
+
+def test_alias_in_one_stream_name_does_not_become_exact_via_another(client, db_session):
+    from app.models.models import AcestreamChannel, TVChannel
+    db_session.add(TVChannel(name='DAZN LaLiga'))
+    db_session.add(AcestreamChannel(id='i'*40, name='DAZN LaLiga 1', tvg_name='DAZN LaLiga'))
+    db_session.commit()
+    matches = client.post('/api/v1/tv-channels/automatch/preview').json()['candidates']
+    assert len(matches) == 1
+    assert matches[0]['recommended'] is False

@@ -136,3 +136,18 @@ curl -s -o /dev/null -w '%{http_code}\n' http://192.168.1.10:8000/tuner/discover
 - [Web Player](Web-Player.md) — play a channel straight in the browser
 - [Remote Players](Remote-Players.md) — send channels to VLC or Kodi
 - [Configuration](Configuration.md) — every setting mentioned here
+
+
+## Channels with several streams
+
+The HDHomeRun lineup advertises one entry per active TV channel with streams.
+When the lineup is generated, the app picks one attached stream: online status
+ranks first, then logo and EPG metadata; equal scores use the content ID as a
+stable tie-breaker. This ranking does not measure picture quality or buffering.
+
+The advertised URL is `/tuner/stream/<acestream-content-id>.ts`. Jellyfin requests
+that exact stream through the app's relay. It does not receive the other stream
+IDs, and the relay does not retry them automatically if the chosen one fails.
+A later lineup refresh can advertise a different stream after status changes;
+it does not switch an existing playback session. A saved online result can also
+become stale before playback starts.

@@ -3728,6 +3728,19 @@
             "title": "Name",
             "type": "string"
           },
+          "open_streams": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Distinct open streams; includes startup and idle grace. Null means unavailable, not zero.",
+            "title": "Open Streams"
+          },
           "pid": {
             "anyOf": [
               {
@@ -3755,6 +3768,22 @@
             ],
             "title": "State",
             "type": "string"
+          },
+          "stream_count_scope": {
+            "anyOf": [
+              {
+                "enum": [
+                  "app",
+                  "service"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "app counts web-player and relay content IDs only; service is the Acexy-reported total. Counts may overlap.",
+            "title": "Stream Count Scope"
           },
           "uptime_seconds": {
             "anyOf": [

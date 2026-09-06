@@ -28,9 +28,14 @@ While a channel is starting, the dialog shows the engine's peer count and downlo
 
 Open **Live TV** from navigation to browse active TV channels, search by name,
 category or channel number, and filter favorites. Each channel shows its current
-and next programme when its EPG source and ID are mapped. Channels without streams
-remain visible with Watch disabled. The list loads guides for at most twelve visible
-channels at a time.
+and next programme when its EPG source and ID are mapped. Only channels with attached
+streams appear here; TV Channels remains the full management inventory. The list
+loads guides for at most twelve visible channels at a time.
+
+**Online streams without a channel** lists streams whose last check was online and
+which have no TV channel assignment. It has its own search and pagination and
+refreshes every 30 seconds. Watch opens the same player, without an invented TV
+schedule. Online is a saved check result, not a guarantee that playback will start.
 
 Press **Watch** to open the player and schedule. The **Stream** selector lists every
 attached stream, its last known online status and a short ID. Switching releases
@@ -91,3 +96,21 @@ The [Docker command builder](https://pipepito.github.io/acestream-scraper/) can 
 ## API token
 
 If you have set an `API_TOKEN`, links elsewhere in the app that need it (the M3U playlist link, in particular) carry it automatically as `?token=` when you copy them. The web player's own stream link does not carry a token — it does not need one, because the tuner route it uses is gated by network address instead (see above). The HLS video stream itself carries the token too, with nothing for you to do: browsers that play it through `hls.js` (Chrome, Firefox, Edge) send it as a request header, while Safari and iOS — which play HLS themselves and cannot add headers — get it as `?token=` on the stream address instead.
+
+
+## Open-stream counts
+
+The Overview service details refresh every 30 seconds and show:
+
+- **AceStream engine — Open streams through this app:** distinct content IDs in
+  this app process's web-player and relay registries. Multiple viewers of the same
+  ID count once. Starting sessions and sessions waiting to close count; failed
+  web-player sessions and closed relays do not. Direct external players and Acexy
+  are outside this count, so zero does not establish that the entire engine is idle.
+- **Acexy — Open streams through Acexy:** the proxy's `streams` value from
+  `/ace/status`, including any streams retained until its cleanup timeout. This is
+  not a viewer count. Missing or invalid telemetry is **Unavailable**, not zero.
+
+The counts can overlap and must not be added. Neither count proves that a player
+is currently receiving video. The documented [engine status API](https://docs.acestream.net/developers/api-reference/#get_status)
+does not provide an engine-wide playback total.

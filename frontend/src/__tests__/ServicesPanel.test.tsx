@@ -131,3 +131,20 @@ describe('ServicesPanel', () => {
     expect(restartDisabledReason(service({ managed: false }), false)).toMatch(/outside this container/);
   });
 });
+
+
+it('distinguishes a measured idle proxy from unavailable telemetry and scopes engine counts', () => {
+  mockUseSystemServices.mockReturnValue({ data: { supervised: true, services: [
+    service({ open_streams: 2, stream_count_scope: 'app' }),
+    service({ name: 'acexy', label: 'Acexy proxy', open_streams: 0, stream_count_scope: 'service' }),
+  ] } });
+  const { rerender } = renderPanel();
+  expect(screen.getByText('Open streams through this app: 2')).toBeInTheDocument();
+  expect(screen.getByText('Open streams through Acexy: 0')).toBeInTheDocument();
+  expect(screen.getByText(/excludes direct players and Acexy/)).toBeInTheDocument();
+  mockUseSystemServices.mockReturnValue({ data: { supervised: true, services: [
+    service({ name: 'acexy', label: 'Acexy proxy', open_streams: null, stream_count_scope: 'service' }),
+  ] } });
+  rerender(<ThemeProvider theme={createAppTheme('dark')}><ServicesPanel /></ThemeProvider>);
+  expect(screen.getByText('Open streams through Acexy: Unavailable')).toBeInTheDocument();
+});

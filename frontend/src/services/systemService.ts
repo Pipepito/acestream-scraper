@@ -1,4 +1,5 @@
 import apiClient from './apiClient';
+import type { components } from '../types/api-generated';
 
 export type ServiceState = 'running' | 'unhealthy' | 'stopped' | 'disabled' | 'external' | 'not-installed';
 
@@ -12,6 +13,8 @@ export interface ServiceStatus {
   managed: boolean;
   running: boolean;
   endpoint: string | null;
+  open_streams?: components['schemas']['ServiceStatus']['open_streams'];
+  stream_count_scope?: components['schemas']['ServiceStatus']['stream_count_scope'];
   version: string | null;
   distribution: string | null;
   distribution_url: string | null;

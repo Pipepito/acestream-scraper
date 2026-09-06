@@ -61,6 +61,7 @@ class ProbeResult:
     ok: bool
     message: str = ""
     version: Optional[str] = None
+    open_streams: Optional[int] = None
 
 
 @dataclass
@@ -162,6 +163,38 @@ class SystemServicesService:
         result.message = f"Engine answering at {base_url}"
         return result
 
+    def _probe_acexy(self, base_url: str) -> ProbeResult:
+        try:
+            response = self._get(f"{base_url}/ace/status")
+        except requests.RequestException:
+            return ProbeResult(False, "Acexy is not answering")
+        if not 200 <= response.status_code < 300:
+            return ProbeResult(False, f"Acexy answered HTTP {response.status_code}")
+        result = ProbeResult(True)
+        try:
+            payload = response.json()
+            count = payload.get("streams") if isinstance(payload, dict) else None
+            if type(count) is int and count >= 0:
+                result.open_streams = count
+        except ValueError:
+            pass  # A reachable proxy may not expose compatible playback telemetry.
+        return result
+
+    @staticmethod
+    def _app_open_streams() -> int:
+        """Distinct content IDs held by this app, including startup/idle grace.
+
+        This is not an engine-wide total: direct players and Acexy are external
+        to these registries. Never sum this with Acexy's count (IDs can overlap).
+        """
+        from app.services.player_service import player_service
+        from app.services.stream_relay import relay_registry
+
+        ids = {session.content_id for session in player_service.list_sessions()
+               if session.state in ("starting", "ready")}
+        ids.update(relay.content_id for relay in relay_registry.active())
+        return len(ids)
+
     def _probe_ipfs_api(self, api_url: str) -> ProbeResult:
         result = self._probe_http(f"{api_url}/api/v0/version", method="post")
         if result.ok:
@@ -223,7 +256,7 @@ class SystemServicesService:
             installed = _flag("IMAGE_HAS_ACEXY")
             enabled = _flag("ENABLE_ACEXY")
             endpoint = _acexy_endpoint(env) if (installed or enabled) else None
-            probe = self._probe_http(f"{endpoint}/ace/status") if endpoint else ProbeResult(False, "Not part of this image")
+            probe = self._probe_acexy(endpoint) if endpoint else ProbeResult(False, "Not part of this image")
             if probe.ok:
                 probe.message = f"Proxying to {env.get('ACEXY_HOST', 'localhost')}:{env.get('ACEXY_PORT', '6878')}"
             label, description = "Acexy proxy", "HTTP proxy in front of the engine for players (/ace/getstream)."
@@ -287,6 +320,8 @@ class SystemServicesService:
             "running": probe.ok,
             "endpoint": endpoint,
             "version": probe.version,
+            "open_streams": self._app_open_streams() if name == "acestream" else probe.open_streams,
+            "stream_count_scope": "app" if name == "acestream" else "service" if name == "acexy" else None,
             "distribution": distribution,
             "distribution_url": distribution_url,
             "message": message,

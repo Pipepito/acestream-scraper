@@ -2519,6 +2519,11 @@ export interface components {
        * @description Stable identifier: acestream, acexy, ipfs, zeronet, warp
        */
       name: string;
+      /**
+       * Open Streams
+       * @description Distinct open streams; includes startup and idle grace. Null means unavailable, not zero.
+       */
+      open_streams?: number | null;
       /** Pid */
       pid?: number | null;
       /**
@@ -2531,6 +2536,11 @@ export interface components {
        * @enum {string}
        */
       state: "running" | "unhealthy" | "stopped" | "disabled" | "external" | "not-installed";
+      /**
+       * Stream Count Scope
+       * @description app counts web-player and relay content IDs only; service is the Acexy-reported total. Counts may overlap.
+       */
+      stream_count_scope?: ("app" | "service") | null;
       /** Uptime Seconds */
       uptime_seconds?: number | null;
       /** Version */

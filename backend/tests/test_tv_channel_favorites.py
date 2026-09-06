@@ -113,3 +113,18 @@ class TestUnassignedChannelFilter:
         data = response.json()
         names = {item["name"] for item in data["items"]}
         assert names == {seed_channels[0].name}
+
+
+    def test_online_unassigned_filter_and_pagination(self, client, seed_channels, seed_tv_channels, db_session):
+        seed_channels[0].tv_channel_id = seed_tv_channels[0].id
+        seed_channels[0].is_online = True
+        seed_channels[1].tv_channel_id = None
+        seed_channels[1].is_online = True
+        seed_channels[2].tv_channel_id = None
+        seed_channels[2].is_online = False
+        db_session.commit()
+
+        response = client.get("/api/v1/acestream-channels?assigned=false&is_online=true&page=1&page_size=1")
+        assert response.status_code == 200
+        assert response.json()["total"] == 1
+        assert [item["id"] for item in response.json()["items"]] == [seed_channels[1].id]

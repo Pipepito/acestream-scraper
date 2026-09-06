@@ -18,6 +18,8 @@ class ServiceStatus(BaseModel):
     managed: bool = Field(description="Supervised by this container's entrypoint (restart available)")
     running: bool = Field(description="The service answered its health probe")
     endpoint: Optional[str] = Field(default=None, description="Where the app reaches the service")
+    open_streams: Optional[int] = Field(default=None, ge=0, description="Distinct open streams; includes startup and idle grace. Null means unavailable, not zero.")
+    stream_count_scope: Optional[Literal["app", "service"]] = Field(default=None, description="app counts web-player and relay content IDs only; service is the Acexy-reported total. Counts may overlap.")
     version: Optional[str] = None
     distribution: Optional[str] = Field(default=None, description="Package or image that supplied the service")
     distribution_url: Optional[str] = Field(default=None, description="Public attribution page for the distribution")

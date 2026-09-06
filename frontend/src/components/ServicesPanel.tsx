@@ -197,6 +197,16 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
                 <Typography variant="body2" sx={{ mt: 0.5 }}>
                   {service.message}
                 </Typography>
+                {service.stream_count_scope ? <Box>
+                  <Typography variant="body2">
+                    {service.stream_count_scope === 'app' ? 'Open streams through this app' : 'Open streams through Acexy'}: {service.open_streams ?? 'Unavailable'}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {service.stream_count_scope === 'app'
+                      ? 'Web player and relay only; excludes direct players and Acexy. Includes streams starting or waiting to close.'
+                      : 'Reported by the proxy, including streams waiting to close. This is a stream count, not a viewer count.'}
+                  </Typography>
+                </Box> : null}
                 <Stack spacing={0.25} sx={{ color: 'text.secondary', fontSize: theme.typography.caption.fontSize }}>
                   {service.endpoint ? <span>Endpoint: {service.endpoint}</span> : null}
                   {service.version ? <span>Version: {service.version}</span> : null}

@@ -202,3 +202,56 @@ def test_acexy_probe_follows_listen_addr(tmp_path, monkeypatch, listen_addr, end
     assert acexy["state"] == "running"
     assert acexy["endpoint"] == endpoint
     assert f"{endpoint}/ace/status" in http.calls
+
+
+@pytest.mark.parametrize("payload, expected", [({"streams": 0}, 0), ({"streams": 3}, 3),
+    ({}, None), ({"streams": -1}, None), ({"streams": True}, None),
+    ({"streams": "3"}, None), ([], None)])
+def test_acexy_stream_count(tmp_path, monkeypatch, payload, expected):
+    _clear_env(monkeypatch)
+    monkeypatch.setenv("IMAGE_HAS_ACEXY", "true")
+    monkeypatch.setenv("ENABLE_ACEXY", "true")
+    http = FakeHttp({"http://127.0.0.1:8080/ace/status": payload})
+    result = _service(tmp_path, http).get_service("acexy")
+    assert result["running"] is True
+    assert result["open_streams"] == expected
+    assert result["stream_count_scope"] == "service"
+    assert len(http.calls) == 1
+
+
+def test_unavailable_acexy_count_is_not_zero(tmp_path, monkeypatch):
+    _clear_env(monkeypatch)
+    result = _service(tmp_path, FakeHttp({})).get_service("acexy")
+    assert result["open_streams"] is None
+
+
+def test_engine_count_deduplicates_app_streams_and_excludes_errors(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from app.services.player_service import player_service
+    from app.services.stream_relay import relay_registry
+
+    _clear_env(monkeypatch)
+    monkeypatch.setattr(player_service, "list_sessions", lambda: [
+        SimpleNamespace(content_id="one", state="ready"),
+        SimpleNamespace(content_id="two", state="starting"),
+        SimpleNamespace(content_id="failed", state="error"),
+    ])
+    monkeypatch.setattr(relay_registry, "active", lambda: [
+        SimpleNamespace(content_id="one"), SimpleNamespace(content_id="three"),
+    ])
+    result = _service(tmp_path, FakeHttp({})).get_service("acestream")
+    assert result["open_streams"] == 3
+    assert result["stream_count_scope"] == "app"
+
+
+@pytest.mark.parametrize("status_code", [200, 503])
+def test_acexy_invalid_json_does_not_break_service_status(tmp_path, monkeypatch, status_code):
+    _clear_env(monkeypatch)
+    monkeypatch.setenv("IMAGE_HAS_ACEXY", "true")
+    response = MagicMock(spec=requests.Response)
+    response.status_code = status_code
+    response.json.side_effect = ValueError("invalid JSON")
+    service = SystemServicesService(run_dir=str(tmp_path), http_get=lambda *a, **kw: response)
+    result = service.get_service("acexy")
+    assert result["open_streams"] is None
+    assert result["running"] is (status_code == 200)

@@ -4,6 +4,7 @@ const streams = [
   { id: 'a'.repeat(40), name: 'Arena HD', is_online: true, is_active: true, tv_channel_id: 1 },
   { id: 'b'.repeat(40), name: 'Arena backup', is_online: false, is_active: true, tv_channel_id: 1 },
 ];
+const orphan = { id: 'c'.repeat(40), name: 'Independent live stream', is_online: true, tv_channel_id: null };
 const channel = { id: 1, name: 'Arena TV', channel_number: 1, is_active: true, is_favorite: true, epg_source_id: 1, epg_id: 'arena', acestream_channels: streams };
 const channels = [channel, { ...channel, id: 2, name: 'No guide TV', is_favorite: false, epg_source_id: null, epg_id: null }, { ...channel, id: 3, name: 'No streams TV', acestream_channels: [], epg_source_id: null, epg_id: null }];
 
@@ -17,6 +18,12 @@ async function fixtures(page: Page) {
     let data: unknown = {};
     if (path === '/tv-channels') data = { items: channels, total: channels.length };
     else if (path === '/tv-channels/1') data = channel;
+    else if (path === '/acestream-channels') {
+      expect(new URL(request.url()).searchParams.get('assigned')).toBe('false');
+      expect(new URL(request.url()).searchParams.get('is_online')).toBe('true');
+      data = { items: [orphan], total: 1 };
+    }
+    else if (path === `/acestream-channels/${orphan.id}`) data = orphan;
     else if (path.startsWith('/acestream-channels/') || path.startsWith('/channels/')) data = streams[0];
     else if (path === '/epg/channels/resolve') data = { id: 1, name: 'Arena guide' };
     else if (path === '/epg/channels/1/programs') data = [
@@ -46,7 +53,9 @@ for (const mode of ['light', 'dark']) {
     await expect(page.getByRole('heading', { name: 'Live TV', exact: true })).toBeVisible();
     await expect(page.getByText('Now · Live match')).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await expect(page.getByRole('button', { name: 'Watch No streams TV' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Watch No streams TV' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Watch Independent live stream' })).toBeVisible();
+    await page.screenshot({ path: test.info().outputPath(`catalog-${mode}.png`), fullPage: true });
     await page.getByRole('checkbox', { name: 'Favorites only' }).check();
     await expect(page.getByRole('button', { name: 'Watch No guide TV' })).toHaveCount(0);
     await page.getByRole('searchbox', { name: 'Find a channel' }).fill('missing');
@@ -65,6 +74,11 @@ for (const mode of ['light', 'dark']) {
     await page.getByRole('button', { name: 'Close', exact: true }).click();
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect.poll(() => leaves).toContain('session-2');
+    await page.getByRole('button', { name: 'Watch Independent live stream' }).focus();
+    await page.keyboard.press('Enter');
+    await expect.poll(() => starts).toEqual([streams[0].id, streams[1].id, orphan.id]);
+    await expect(page.getByRole('heading', { name: 'Schedule', exact: true })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Close', exact: true }).click();
     expect(errors).toEqual([]);
   });
 }

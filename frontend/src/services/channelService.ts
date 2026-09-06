@@ -71,6 +71,7 @@ export interface AcestreamChannelFilters {
   group?: string;
   is_active?: boolean;
   is_online?: boolean;
+  assigned?: boolean;
   id?: string; // Acestream ID filter
   country?: string;
   language?: string;

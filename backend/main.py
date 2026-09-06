@@ -35,6 +35,8 @@ from app.config.database import (
 )
 from app.config.settings import get_env_compat_events, get_settings, settings
 from app.middleware.forwarded import ForwardedHeadersMiddleware, parse_trusted
+from app.services.startup_service import startup_service
+from app.repositories.startup_recovery import database_path, legacy_disabled, recover_database
 from app.services.epg_service import EPGService
 from app.services.player_service import player_service
 from app.services.playlist_service import PlaylistService
@@ -78,11 +80,17 @@ def initialize_database():
     migrator = DatabaseMigrator()
 
     # Only run migration if acestream.db exists and hasn't been migrated yet.
-    if migrator.should_migrate():
+    startup_service.record("Checking the database")
+    if not legacy_disabled() and migrator.should_migrate():
+        startup_service.record("Backing up databases before the V1 import")
+        backup_sqlite(get_settings().LEGACY_DATABASE_URL, label='pre-v1-import')
+        backup_sqlite(label='pre-v1-import')
+        startup_service.record("Importing settings and channels from V1")
         print("Found v1 database, running migration...")
         migrated = migrator.run_migration()
-        if migrated:
-            print("Migration completed successfully!")
+        if not migrated:
+            raise RuntimeError("Legacy database migration could not complete")
+        startup_service.record("V1 settings and channels imported")
 
     # Every database converges to the Alembic head on startup (spec 4.6):
     # fresh files are provisioned, unstamped ones (pre-2026-08-29 migrator)
@@ -91,8 +99,10 @@ def initialize_database():
     current = current_revision()
     target = head_revision()
     if os.path.exists(migrator.v2_db_path) and current != target:
+        startup_service.record("Backing up the database before upgrading")
         backup_path = backup_sqlite(label=f"pre-upgrade-{current or 'unstamped'}-{target}")
         print(f"Upgrading v2 database schema {current or 'unstamped'} -> {target} (backup: {backup_path})")
+    startup_service.record("Applying database updates")
     state = provision_schema()
     if state == "missing":
         print("Fresh v2 database created via Alembic!")
@@ -102,16 +112,22 @@ def initialize_database():
     if repaired:
         print(f"Backfilled scrape_bare_ids on {repaired} scraped URL row(s) left NULL by an older migrator")
     print("V2 database ready")
+    startup_service.record("Database ready")
 
 
 def _schedule_deferred_migration() -> bool:
     """Queue the background EPG programs copy when a v1 migration left work behind."""
     from migrate_database import DatabaseMigrator
 
+    if legacy_disabled():
+        return False
     migrator = DatabaseMigrator()
+    state = migrator.deferred_programs_state() or {}
+    if state:
+        startup_service.progress(migrator._progress_snapshot(state))
     if not migrator.has_deferred_work():
         return False
-    state = migrator.deferred_programs_state() or {}
+    startup_service.record("Programme listings will continue importing in the background")
     logging.getLogger("main").info(
         "Scheduling background v1 EPG programs migration task=%s total=%s migrated=%s status=%s",
         LEGACY_MIGRATION_TASK_ID, state.get("total"), state.get("migrated"), state.get("status"),
@@ -158,34 +174,88 @@ async def reap_relays_forever() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan: provision the database, start the scheduler, and
-    register periodic tasks on startup; tear the scheduler down on shutdown.
-    Replaces the deprecated ``@app.on_event("startup"|"shutdown")`` hooks.
-    """
-    initialize_database()
-    task_service.start()
-    task_service.add_interval_task(run_activity_log_cleanup, seconds=86400, job_id="activity_log_cleanup")  # daily
-    scrape_hours, epg_hours = _configured_intervals()
-    task_service.add_interval_task(run_epg_refresh_task, seconds=epg_hours * 3600, job_id="epg_refresh")  # settings: epg_refresh_interval
-    task_service.add_interval_task(run_epg_program_cleanup_task, seconds=3600, job_id="epg_program_cleanup")  # every hour
-    task_service.add_interval_task(run_url_scraping_task, seconds=scrape_hours * 3600, job_id="url_scraping")  # settings: rescrape_interval
-    task_service.add_interval_task(run_channel_cleanup_task, seconds=86400, job_id="channel_cleanup")  # daily
-    task_service.add_interval_task(run_channel_status_task, seconds=600, job_id="channel_status")  # every 10 min
-    task_service.add_interval_task(run_media_server_sync_task, seconds=600, job_id="media_server_sync")  # every 10 min
-    _schedule_deferred_migration()
+    """Serve the SPA and diagnostics while an isolated startup task runs."""
+    import fcntl
+    startup_service.reset()
+    startup_service.active = True
+    reaper = None
+    data_lock = None
+    services_started = False
 
-    reaper = asyncio.create_task(reap_relays_forever())
+    async def stop_services():
+        nonlocal reaper, services_started
+        if reaper is not None:
+            reaper.cancel()
+            with suppress(asyncio.CancelledError):
+                await reaper
+            reaper = None
+        if services_started:
+            try:
+                await player_service.stop()
+            finally:
+                task_service.shutdown()
+                services_started = False
+
+    async def boot(action='retry'):
+        nonlocal reaper, data_lock, services_started
+        database_phase = True
+        try:
+            if data_lock is None:
+                path = database_path()
+                await asyncio.to_thread(path.parent.mkdir, parents=True, exist_ok=True)
+                candidate = open(str(path) + '.startup.lock', 'a')
+                try:
+                    fcntl.flock(candidate, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                except BaseException:
+                    candidate.close()
+                    database_phase = False
+                    raise
+                data_lock = candidate
+            if action != 'retry':
+                await asyncio.to_thread(recover_database, action, startup_service.record)
+            await asyncio.to_thread(initialize_database)
+            database_phase = False
+            startup_service.record('Starting background services')
+            services_started = True
+            task_service.start()
+            task_service.add_interval_task(run_activity_log_cleanup, seconds=86400, job_id="activity_log_cleanup")  # daily
+            scrape_hours, epg_hours = await asyncio.to_thread(_configured_intervals)
+            task_service.add_interval_task(run_epg_refresh_task, seconds=epg_hours * 3600, job_id="epg_refresh")  # settings: epg_refresh_interval
+            task_service.add_interval_task(run_epg_program_cleanup_task, seconds=3600, job_id="epg_program_cleanup")  # every hour
+            task_service.add_interval_task(run_url_scraping_task, seconds=scrape_hours * 3600, job_id="url_scraping")  # settings: rescrape_interval
+            task_service.add_interval_task(run_channel_cleanup_task, seconds=86400, job_id="channel_cleanup")  # daily
+            task_service.add_interval_task(run_channel_status_task, seconds=600, job_id="channel_status")  # every 10 min
+            task_service.add_interval_task(run_media_server_sync_task, seconds=600, job_id="media_server_sync")  # every 10 min
+            await player_service.start()
+            await asyncio.to_thread(_schedule_deferred_migration)
+            reaper = asyncio.create_task(reap_relays_forever())
+            startup_service.record('Ready to use')
+            startup_service.status = 'ready'
+        except Exception as exc:
+            logging.getLogger('main').exception('Startup failed')
+            try:
+                await stop_services()
+            except Exception:
+                database_phase = False
+                logging.getLogger('main').exception('Startup service cleanup failed')
+            startup_service.fail(exc, database=database_phase and data_lock is not None)
+
+    def retry_startup(action):
+        app.state.startup_task = asyncio.create_task(boot(action))
+
+    app.state.retry_startup = retry_startup
+    retry_startup('retry')
     try:
-        # Inside the try: the web player is optional, and a broken
-        # PLAYER_HLS_DIR must not leave the scheduler and the reaper running.
-        await player_service.start()
         yield
     finally:
-        reaper.cancel()
-        with suppress(asyncio.CancelledError):
-            await reaper
-        await player_service.stop()
-        task_service.shutdown()
+        # Do not cancel a to_thread database operation and release its lock
+        # while it is still writing. Finish the current operation first.
+        await app.state.startup_task
+        await stop_services()
+        if data_lock is not None:
+            data_lock.close()
+        startup_service.active = False
+        del app.state.retry_startup
 
 
 app = FastAPI(
@@ -194,6 +264,25 @@ app = FastAPI(
     version="2.0.0",
     lifespan=lifespan,
 )
+
+
+@app.middleware("http")
+async def startup_readiness(request: Request, call_next):
+    path = request.url.path
+    if startup_service.active and startup_service.status != 'ready':
+        spa_paths = {'/', '/startup', '/live-tv', '/tv-channels', '/acestream-channels',
+                     '/scraper', '/epg', '/playlist', '/warp', '/search', '/integrations', '/settings'}
+        allowed = path in spa_paths or path.startswith(('/assets/', '/static/', '/api/v1/startup'))
+        allowed = allowed or path.startswith(('/tv-channels/', '/epg/channels/'))
+        allowed = allowed or path in {'/favicon.ico', '/manifest.json', '/robots.txt'}
+        if not allowed and request.method != 'OPTIONS':
+            return JSONResponse({'detail': 'The app is starting. Open the startup screen for progress.',
+                                 'status': startup_service.status}, status_code=503,
+                                headers={'Retry-After': '2', 'Cache-Control': 'no-store'})
+    response = await call_next(request)
+    if path.startswith('/api/v1/startup'):
+        response.headers['Cache-Control'] = 'no-store'
+    return response
 
 
 @app.middleware("http")

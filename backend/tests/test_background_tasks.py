@@ -1,10 +1,15 @@
 import pytest
+import time
 from fastapi.testclient import TestClient
 
 
 @pytest.fixture
 def alembic_started_client(alembic_backend_runtime, alembic_override_get_db):
     with TestClient(alembic_backend_runtime.app) as client:
+        deadline = time.monotonic() + 10
+        while alembic_backend_runtime.app.state.startup_task.done() is False:
+            assert time.monotonic() < deadline
+            time.sleep(0.01)
         yield client
 
 

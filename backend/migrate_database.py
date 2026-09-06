@@ -45,6 +45,7 @@ class DatabaseMigrator:
         epg_retention_hours: Optional[float] = None,
         now: Optional[datetime] = None,
     ):
+        self.error_count = 0
         settings = get_settings()
         self.v1_db_path = settings.LEGACY_DATABASE_URL.replace("sqlite:///", "")
         self.v2_db_path = settings.DATABASE_URL.replace("sqlite:///", "")
@@ -72,6 +73,15 @@ class DatabaseMigrator:
             'epg_channels': {},     # old_id -> new_id
         }
 
+    def _log(self, message):
+        print(message)
+        if str(message).startswith('Error'):
+            self.error_count += 1
+        elif str(message).startswith('Successfully migrated '):
+            # These messages contain only generated counts and fixed table labels.
+            from app.services.startup_service import startup_service
+            startup_service.record(message)
+
     def should_migrate(self) -> bool:
         """Check if the foreground migration should run"""
         return os.path.exists(self.v1_db_path) and not os.path.exists(self.v1_migrated_path)
@@ -79,7 +89,7 @@ class DatabaseMigrator:
     def inspect_v1_database(self) -> Dict[str, List[Dict[str, Any]]]:
         """Inspect v1 database structure and return table schemas"""
         if not os.path.exists(self.v1_db_path):
-            print(f"V1 database not found at {self.v1_db_path}")
+            self._log(f"V1 database not found at {self.v1_db_path}")
             return {}
 
         schemas = {}
@@ -92,14 +102,14 @@ class DatabaseMigrator:
                 cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
                 tables = cursor.fetchall()
 
-                print(f"Found {len(tables)} tables in v1 database:")
+                self._log(f"Found {len(tables)} tables in v1 database:")
 
                 for table_name in tables:
                     table_name = table_name[0]
                     if table_name == 'alembic_version':
                         continue
 
-                    print(f"\nTable: {table_name}")
+                    self._log(f"\nTable: {table_name}")
 
                     # Get table schema
                     cursor.execute(f"PRAGMA table_info({table_name});")
@@ -115,17 +125,17 @@ class DatabaseMigrator:
                             'pk': col[5]
                         }
                         table_schema.append(col_info)
-                        print(f"  - {col_info['name']}: {col_info['type']} (pk={col_info['pk']}, notnull={col_info['notnull']})")
+                        self._log(f"  - {col_info['name']}: {col_info['type']} (pk={col_info['pk']}, notnull={col_info['notnull']})")
 
                     schemas[table_name] = table_schema
 
                     # Show row count
                     cursor.execute(f"SELECT COUNT(*) FROM {table_name};")
                     count = cursor.fetchone()[0]
-                    print(f"  Rows: {count}")
+                    self._log(f"  Rows: {count}")
 
         except Exception as e:
-            print(f"Error inspecting v1 database: {e}")
+            self._log(f"Error inspecting v1 database: {e}")
             return {}
 
         return schemas
@@ -137,15 +147,15 @@ class DatabaseMigrator:
         databases without an ``alembic_version`` stamp and broke every later
         schema revision. ``provision_schema`` stamps such databases first.
         """
-        print("Provisioning v2 database schema via Alembic...")
+        self._log("Provisioning v2 database schema via Alembic...")
         state = provision_schema()
         if state == "unstamped":
-            print("Existing v2 database was not stamped; recorded the current Alembic head")
-        print("V2 database schema ready!")
+            self._log("Existing v2 database was not stamped; recorded the current Alembic head")
+        self._log("V2 database schema ready!")
 
     def update_v2_schema(self):
         """Update v2 database schema to add missing columns"""
-        print("Updating v2 database schema...")
+        self._log("Updating v2 database schema...")
 
         try:
             v2_conn = sqlite3.connect(self.v2_db_path)
@@ -158,27 +168,27 @@ class DatabaseMigrator:
 
             # Add check_error column if it doesn't exist
             if 'check_error' not in column_names:
-                print("Adding check_error column to acestream_channels table...")
+                self._log("Adding check_error column to acestream_channels table...")
                 v2_cursor.execute("""
                     ALTER TABLE acestream_channels
                     ADD COLUMN check_error TEXT
                 """)
                 v2_conn.commit()
-                print("check_error column added successfully!")
+                self._log("check_error column added successfully!")
             else:
-                print("check_error column already exists in acestream_channels table")
+                self._log("check_error column already exists in acestream_channels table")
 
             v2_conn.close()
 
         except Exception as e:
-            print(f"Error updating v2 database schema: {e}")
+            self._log(f"Error updating v2 database schema: {e}")
 
     def migrate_scraped_urls(self):
         """Migrate scraped URLs first (needed for foreign keys)"""
         if not os.path.exists(self.v1_db_path):
             return
 
-        print("Migrating scraped URLs...")
+        self._log("Migrating scraped URLs...")
 
         v1_conn = None
         v2_conn = None
@@ -193,13 +203,13 @@ class DatabaseMigrator:
             # Check if table exists
             v1_cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='scraped_urls';")
             if not v1_cursor.fetchone():
-                print("scraped_urls table not found in v1 database")
+                self._log("scraped_urls table not found in v1 database")
                 return
 
             v1_cursor.execute("SELECT * FROM scraped_urls ORDER BY id;")
             v1_urls = v1_cursor.fetchall()
 
-            print(f"Found {len(v1_urls)} scraped URLs in v1 database")
+            self._log(f"Found {len(v1_urls)} scraped URLs in v1 database")
 
             migrated_count = 0
             for row in v1_urls:
@@ -244,14 +254,14 @@ class DatabaseMigrator:
                     migrated_count += 1
 
                 except Exception as e:
-                    print(f"Error migrating scraped URL {row['id']}: {e}")
+                    self._log(f"Error migrating scraped URL {row['id']}: {e}")
                     continue
 
             v2_conn.commit()
-            print(f"Successfully migrated {migrated_count} scraped URLs")
+            self._log(f"Successfully migrated {migrated_count} scraped URLs")
 
         except Exception as e:
-            print(f"Error during scraped URLs migration: {e}")
+            self._log(f"Error during scraped URLs migration: {e}")
         finally:
             if v1_conn:
                 v1_conn.close()
@@ -263,7 +273,7 @@ class DatabaseMigrator:
         if not os.path.exists(self.v1_db_path):
             return
 
-        print("Migrating EPG sources...")
+        self._log("Migrating EPG sources...")
 
         v1_conn = None
         v2_conn = None
@@ -278,13 +288,13 @@ class DatabaseMigrator:
             # Check if table exists
             v1_cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='epg_sources';")
             if not v1_cursor.fetchone():
-                print("epg_sources table not found in v1 database")
+                self._log("epg_sources table not found in v1 database")
                 return
 
             v1_cursor.execute("SELECT * FROM epg_sources ORDER BY id;")
             v1_sources = v1_cursor.fetchall()
 
-            print(f"Found {len(v1_sources)} EPG sources in v1 database")
+            self._log(f"Found {len(v1_sources)} EPG sources in v1 database")
 
             migrated_count = 0
             for row in v1_sources:
@@ -310,14 +320,14 @@ class DatabaseMigrator:
                     migrated_count += 1
 
                 except Exception as e:
-                    print(f"Error migrating EPG source {row['id']}: {e}")
+                    self._log(f"Error migrating EPG source {row['id']}: {e}")
                     continue
 
             v2_conn.commit()
-            print(f"Successfully migrated {migrated_count} EPG sources")
+            self._log(f"Successfully migrated {migrated_count} EPG sources")
 
         except Exception as e:
-            print(f"Error during EPG sources migration: {e}")
+            self._log(f"Error during EPG sources migration: {e}")
         finally:
             if v1_conn:
                 v1_conn.close()
@@ -329,7 +339,7 @@ class DatabaseMigrator:
         if not os.path.exists(self.v1_db_path):
             return
 
-        print("Migrating TV channels...")
+        self._log("Migrating TV channels...")
 
         v1_conn = None
         v2_conn = None
@@ -344,13 +354,13 @@ class DatabaseMigrator:
             # Check if table exists
             v1_cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='tv_channels';")
             if not v1_cursor.fetchone():
-                print("tv_channels table not found in v1 database")
+                self._log("tv_channels table not found in v1 database")
                 return
 
             v1_cursor.execute("SELECT * FROM tv_channels ORDER BY id;")
             v1_channels = v1_cursor.fetchall()
 
-            print(f"Found {len(v1_channels)} TV channels in v1 database")
+            self._log(f"Found {len(v1_channels)} TV channels in v1 database")
 
             migrated_count = 0
             for row in v1_channels:
@@ -388,14 +398,14 @@ class DatabaseMigrator:
                     migrated_count += 1
 
                 except Exception as e:
-                    print(f"Error migrating TV channel {row['id']}: {e}")
+                    self._log(f"Error migrating TV channel {row['id']}: {e}")
                     continue
 
             v2_conn.commit()
-            print(f"Successfully migrated {migrated_count} TV channels")
+            self._log(f"Successfully migrated {migrated_count} TV channels")
 
         except Exception as e:
-            print(f"Error during TV channels migration: {e}")
+            self._log(f"Error during TV channels migration: {e}")
         finally:
             if v1_conn:
                 v1_conn.close()
@@ -407,7 +417,7 @@ class DatabaseMigrator:
         if not os.path.exists(self.v1_db_path):
             return
 
-        print("Migrating EPG channels...")
+        self._log("Migrating EPG channels...")
 
         v1_conn = None
         v2_conn = None
@@ -422,13 +432,13 @@ class DatabaseMigrator:
             # Check if table exists
             v1_cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='epg_channels';")
             if not v1_cursor.fetchone():
-                print("epg_channels table not found in v1 database")
+                self._log("epg_channels table not found in v1 database")
                 return
 
             v1_cursor.execute("SELECT * FROM epg_channels ORDER BY id;")
             v1_epg_channels = v1_cursor.fetchall()
 
-            print(f"Found {len(v1_epg_channels)} EPG channels in v1 database")
+            self._log(f"Found {len(v1_epg_channels)} EPG channels in v1 database")
 
             migrated_count = 0
             for row in v1_epg_channels:
@@ -438,7 +448,7 @@ class DatabaseMigrator:
                     if row['epg_source_id']:
                         epg_source_id = self.id_mappings['epg_sources'].get(row['epg_source_id'])
                         if not epg_source_id:
-                            print(f"Warning: EPG source {row['epg_source_id']} not found for channel {row['id']}")
+                            self._log(f"Warning: EPG source {row['epg_source_id']} not found for channel {row['id']}")
                             continue
 
                     # Insert and get new ID
@@ -461,14 +471,14 @@ class DatabaseMigrator:
                     migrated_count += 1
 
                 except Exception as e:
-                    print(f"Error migrating EPG channel {row['id']}: {e}")
+                    self._log(f"Error migrating EPG channel {row['id']}: {e}")
                     continue
 
             v2_conn.commit()
-            print(f"Successfully migrated {migrated_count} EPG channels")
+            self._log(f"Successfully migrated {migrated_count} EPG channels")
 
         except Exception as e:
-            print(f"Error during EPG channels migration: {e}")
+            self._log(f"Error during EPG channels migration: {e}")
         finally:
             if v1_conn:
                 v1_conn.close()
@@ -480,7 +490,7 @@ class DatabaseMigrator:
         if not os.path.exists(self.v1_db_path):
             return
 
-        print("Migrating acestream channels...")
+        self._log("Migrating acestream channels...")
 
         v1_conn = None
         v2_conn = None
@@ -495,13 +505,13 @@ class DatabaseMigrator:
             # Check if table exists
             v1_cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='acestream_channels';")
             if not v1_cursor.fetchone():
-                print("acestream_channels table not found in v1 database")
+                self._log("acestream_channels table not found in v1 database")
                 return
 
             v1_cursor.execute("SELECT * FROM acestream_channels;")
             v1_channels = v1_cursor.fetchall()
 
-            print(f"Found {len(v1_channels)} acestream channels in v1 database")
+            self._log(f"Found {len(v1_channels)} acestream channels in v1 database")
 
             migrated_count = 0
             for row in v1_channels:
@@ -538,14 +548,14 @@ class DatabaseMigrator:
                     migrated_count += 1
 
                 except Exception as e:
-                    print(f"Error migrating acestream channel {row['id']}: {e}")
+                    self._log(f"Error migrating acestream channel {row['id']}: {e}")
                     continue
 
             v2_conn.commit()
-            print(f"Successfully migrated {migrated_count} acestream channels")
+            self._log(f"Successfully migrated {migrated_count} acestream channels")
 
         except Exception as e:
-            print(f"Error during acestream channels migration: {e}")
+            self._log(f"Error during acestream channels migration: {e}")
         finally:
             if v1_conn:
                 v1_conn.close()
@@ -557,7 +567,7 @@ class DatabaseMigrator:
         if not os.path.exists(self.v1_db_path):
             return
 
-        print("Migrating EPG string mappings...")
+        self._log("Migrating EPG string mappings...")
 
         v1_conn = None
         v2_conn = None
@@ -572,13 +582,13 @@ class DatabaseMigrator:
             # Check if table exists
             v1_cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='epg_string_mappings';")
             if not v1_cursor.fetchone():
-                print("epg_string_mappings table not found in v1 database")
+                self._log("epg_string_mappings table not found in v1 database")
                 return
 
             v1_cursor.execute("SELECT * FROM epg_string_mappings;")
             v1_mappings = v1_cursor.fetchall()
 
-            print(f"Found {len(v1_mappings)} EPG string mappings in v1 database")
+            self._log(f"Found {len(v1_mappings)} EPG string mappings in v1 database")
 
             migrated_count = 0
             for row in v1_mappings:
@@ -597,7 +607,7 @@ class DatabaseMigrator:
                     if result:
                         epg_channel_id = result[0]
                     else:
-                        print(f"Warning: EPG channel {row['epg_channel_id']} not found for mapping {row['id']}")
+                        self._log(f"Warning: EPG channel {row['epg_channel_id']} not found for mapping {row['id']}")
                         continue
 
                     # Insert into v2 database
@@ -613,14 +623,14 @@ class DatabaseMigrator:
                     migrated_count += 1
 
                 except Exception as e:
-                    print(f"Error migrating EPG string mapping {row['id']}: {e}")
+                    self._log(f"Error migrating EPG string mapping {row['id']}: {e}")
                     continue
 
             v2_conn.commit()
-            print(f"Successfully migrated {migrated_count} EPG string mappings")
+            self._log(f"Successfully migrated {migrated_count} EPG string mappings")
 
         except Exception as e:
-            print(f"Error during EPG string mappings migration: {e}")
+            self._log(f"Error during EPG string mappings migration: {e}")
         finally:
             if v1_conn:
                 v1_conn.close()
@@ -632,7 +642,7 @@ class DatabaseMigrator:
         if not os.path.exists(self.v1_db_path):
             return
 
-        print("Migrating settings...")
+        self._log("Migrating settings...")
 
         v1_conn = None
         v2_conn = None
@@ -647,13 +657,13 @@ class DatabaseMigrator:
             # Check if table exists
             v1_cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='settings';")
             if not v1_cursor.fetchone():
-                print("settings table not found in v1 database")
+                self._log("settings table not found in v1 database")
                 return
 
             v1_cursor.execute("SELECT * FROM settings;")
             v1_settings = v1_cursor.fetchall()
 
-            print(f"Found {len(v1_settings)} settings in v1 database")
+            self._log(f"Found {len(v1_settings)} settings in v1 database")
 
             migrated_count = 0
             for row in v1_settings:
@@ -669,14 +679,14 @@ class DatabaseMigrator:
                     ))
                     migrated_count += 1
                 except Exception as e:
-                    print(f"Error migrating setting {row['key']}: {e}")
+                    self._log(f"Error migrating setting {row['key']}: {e}")
                     continue
 
             v2_conn.commit()
-            print(f"Successfully migrated {migrated_count} settings")
+            self._log(f"Successfully migrated {migrated_count} settings")
 
         except Exception as e:
-            print(f"Error during settings migration: {e}")
+            self._log(f"Error during settings migration: {e}")
         finally:
             if v1_conn:
                 v1_conn.close()
@@ -686,12 +696,12 @@ class DatabaseMigrator:
     def finalize_migration(self):
         """Rename old database and cleanup"""
         if os.path.exists(self.v1_db_path):
-            print(f"Renaming {self.v1_db_path} to {self.v1_migrated_path}")
+            self._log(f"Renaming {self.v1_db_path} to {self.v1_migrated_path}")
             try:
                 shutil.move(self.v1_db_path, self.v1_migrated_path)
-                print("Migration completed and old database archived!")
+                self._log("Migration completed and old database archived!")
             except Exception as e:
-                print(f"Error renaming database: {e}")
+                self._log(f"Error renaming database: {e}")
 
     # ------------------------------------------------------------------
     # Deferred EPG programs migration
@@ -716,7 +726,7 @@ class DatabaseMigrator:
             with open(self.state_path, "r", encoding="utf-8") as handle:
                 return json.load(handle)
         except (OSError, ValueError) as exc:
-            print(f"Ignoring unreadable migration state {self.state_path}: {exc}")
+            self._log(f"Ignoring unreadable migration state {self.state_path}: {exc}")
             return None
 
     def _save_state(self, state: Dict[str, Any]) -> None:
@@ -953,12 +963,12 @@ class DatabaseMigrator:
     def run_migration(self) -> bool:
         """Run the foreground migration; EPG programs are deferred to the background task."""
         if not self.should_migrate():
-            print("No migration needed - either v1 database doesn't exist or already migrated")
+            self._log("No migration needed - either v1 database doesn't exist or already migrated")
             return False
 
-        print("Starting database migration...")
-        print(f"V1 database: {self.v1_db_path}")
-        print(f"V2 database: {self.v2_db_path}")
+        self._log("Starting database migration...")
+        self._log(f"V1 database: {self.v1_db_path}")
+        self._log(f"V2 database: {self.v2_db_path}")
 
         # Provision the v2 schema first so the tables exist even if the v1 file
         # turns out to be unreadable.
@@ -968,27 +978,39 @@ class DatabaseMigrator:
         schemas = self.inspect_v1_database()
 
         if not schemas:
-            print("No v1 database to migrate")
+            self._log("No v1 database to migrate")
             return False
 
         # Update v2 schema with any missing columns
         self.update_v2_schema()
 
+        from app.services.startup_service import startup_service
+
         # Migrate the small tables in order (respecting foreign keys)
+        startup_service.record('Importing scraper sources')
         self.migrate_scraped_urls()
+        startup_service.record('Importing programme sources')
         self.migrate_epg_sources()
+        startup_service.record('Importing TV channels')
         self.migrate_tv_channels()
+        startup_service.record('Importing programme channels')
         self.migrate_epg_channels()
+        startup_service.record('Importing AceStream channels')
         self.migrate_acestream_channels()
+        startup_service.record('Importing channel matching rules')
         self.migrate_epg_string_mappings()
+        startup_service.record('Importing settings')
         self.migrate_settings()
+
+        if self.error_count:
+            raise RuntimeError('Some legacy data could not be imported; originals have been kept')
 
         deferred_total = self._count_v1_epg_programs()
         if deferred_total:
             # Record the deferred work BEFORE archiving so a crash in between
             # cannot lose the programs silently.
             self._record_deferred_programs(deferred_total)
-            print(
+            self._log(
                 f"Deferred {deferred_total} EPG programs to background task "
                 f"'{self.DEFERRED_TASK_ID}' (state: {self.state_path})"
             )
@@ -997,8 +1019,10 @@ class DatabaseMigrator:
 
         # Finalize migration
         self.finalize_migration()
+        if self.error_count:
+            raise RuntimeError("Legacy database could not be archived")
 
-        print("Migration completed successfully!")
+        self._log("Migration completed successfully!")
         return True
 
 

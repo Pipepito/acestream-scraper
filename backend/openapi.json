@@ -2626,6 +2626,49 @@
         "title": "MessageResponse",
         "type": "object"
       },
+      "MigrationProgress": {
+        "properties": {
+          "migrated": {
+            "default": 0,
+            "title": "Migrated",
+            "type": "integer"
+          },
+          "percent": {
+            "default": 0,
+            "title": "Percent",
+            "type": "number"
+          },
+          "processed": {
+            "default": 0,
+            "title": "Processed",
+            "type": "integer"
+          },
+          "skipped": {
+            "default": 0,
+            "title": "Skipped",
+            "type": "integer"
+          },
+          "stale": {
+            "default": 0,
+            "title": "Stale",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "MigrationProgress",
+        "type": "object"
+      },
       "PlayerCapabilities": {
         "properties": {
           "ffmpeg_available": {
@@ -4028,6 +4071,124 @@
           "settings"
         ],
         "title": "SettingsResponse",
+        "type": "object"
+      },
+      "StartupEvent": {
+        "properties": {
+          "level": {
+            "default": "info",
+            "enum": [
+              "info",
+              "warning",
+              "error"
+            ],
+            "title": "Level",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "time": {
+            "title": "Time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "time",
+          "message"
+        ],
+        "title": "StartupEvent",
+        "type": "object"
+      },
+      "StartupRecoveryRequest": {
+        "properties": {
+          "action": {
+            "enum": [
+              "retry",
+              "salvage",
+              "fresh"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "confirm": {
+            "default": false,
+            "title": "Confirm",
+            "type": "boolean"
+          },
+          "recovery_token": {
+            "title": "Recovery Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "recovery_token"
+        ],
+        "title": "StartupRecoveryRequest",
+        "type": "object"
+      },
+      "StartupStatus": {
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/StartupEvent"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "guidance": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Guidance"
+          },
+          "migration": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MigrationProgress"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "phase": {
+            "title": "Phase",
+            "type": "string"
+          },
+          "recovery_available": {
+            "default": false,
+            "title": "Recovery Available",
+            "type": "boolean"
+          },
+          "recovery_token": {
+            "title": "Recovery Token",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "starting",
+              "ready",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "phase",
+          "events",
+          "recovery_token"
+        ],
+        "title": "StartupStatus",
         "type": "object"
       },
       "StatsResponse": {
@@ -12004,6 +12165,89 @@
         "tags": [
           "search",
           "search"
+        ]
+      }
+    },
+    "/api/v1/startup": {
+      "get": {
+        "operationId": "status_api_v1_startup_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StartupStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Status",
+        "tags": [
+          "startup"
+        ]
+      }
+    },
+    "/api/v1/startup/diagnostics": {
+      "get": {
+        "operationId": "diagnostics_api_v1_startup_diagnostics_get",
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Diagnostics",
+        "tags": [
+          "startup"
+        ]
+      }
+    },
+    "/api/v1/startup/recover": {
+      "post": {
+        "operationId": "recover_api_v1_startup_recover_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartupRecoveryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StartupStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Recover",
+        "tags": [
+          "startup"
         ]
       }
     },

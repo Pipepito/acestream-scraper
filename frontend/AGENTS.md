@@ -25,6 +25,10 @@ testing the SPA through FastAPI rather than the Vite server.
 ## Structure and data flow
 
 - `src/App.tsx` owns routes and compatibility redirects.
+- `StartupGate` in `AppBootstrap` blocks normal views until boot is ready, serves
+  `/startup` diagnostics, accepts the optional API token, and shows deferred import
+  progress. Preserve confirmation and backup consequences for recovery actions;
+  see `docs/ops/startup-recovery.md`.
 - `src/components/layout/AppShell.tsx` owns the application shell.
 - `src/pages/` contains route-level views; reusable UI belongs in `src/components/`.
 - API calls belong in `src/services/`, built on `apiClient.ts`.

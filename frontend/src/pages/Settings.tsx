@@ -24,6 +24,8 @@ import {
 } from '@mui/material';
 import { Delete as DeleteIcon, Edit as EditIcon, Visibility as VisibilityIcon, VisibilityOff as VisibilityOffIcon } from '@mui/icons-material';
 import {
+  useChannelStatusInterval,
+  useUpdateChannelStatusInterval,
   useBaseUrl,
   useUpdateBaseUrl,
   useAceEngineUrl,
@@ -309,6 +311,7 @@ const StreamLinkFormatsSection: React.FC<StreamLinkFormatsSectionProps> = ({ not
 };
 
 interface IntervalFieldProps {
+  max?: number;
   id: string;
   label: string;
   helper: string;
@@ -319,7 +322,7 @@ interface IntervalFieldProps {
   onSave: () => void;
 }
 
-const IntervalField: React.FC<IntervalFieldProps> = ({ id, label, helper, value, saved, pending, onChange, onSave }) => (
+const IntervalField: React.FC<IntervalFieldProps> = ({ max = 168, id, label, helper, value, saved, pending, onChange, onSave }) => (
   <Stack
     component="form"
     aria-label={`${label} form`}
@@ -338,17 +341,20 @@ const IntervalField: React.FC<IntervalFieldProps> = ({ id, label, helper, value,
       size="small"
       value={value}
       onChange={(e) => onChange(e.target.value === '' ? '' : Number(e.target.value))}
-      InputProps={{ inputProps: { min: 1, max: 168 } }}
+      InputProps={{ inputProps: { min: 1, max, step: 1 } }}
       helperText={helper}
       sx={{ width: 220 }}
     />
-    <Button type="submit" variant="outlined" size="small" disabled={pending || value === '' || value === saved} sx={{ mt: 0.5 }}>
+    <Button type="submit" variant="outlined" size="small" disabled={pending || value === '' || !Number.isInteger(value) || value < 1 || value > max || value === saved} sx={{ mt: 0.5 }}>
       {pending ? <CircularProgress size={18} color="inherit" /> : 'Save'}
     </Button>
   </Stack>
 );
 
 const Settings: React.FC = () => {
+  const [channelStatusInterval, setChannelStatusInterval] = useState<number | ''>(60);
+  const channelStatusIntervalQuery = useChannelStatusInterval();
+  const updateChannelStatusIntervalMutation = useUpdateChannelStatusInterval();
   const [aceEngineUrl, setAceEngineUrl] = useState('');
   const [rescrapeInterval, setRescrapeInterval] = useState<number | ''>(24);
   const [epgRefreshInterval, setEpgRefreshInterval] = useState<number | ''>(1);
@@ -397,6 +403,18 @@ const Settings: React.FC = () => {
   useEffect(() => {
     if (addPidQuery.data !== undefined) setAddPid(addPidQuery.data);
   }, [addPidQuery.data]);
+
+  useEffect(() => {
+    if (channelStatusIntervalQuery.data !== undefined) setChannelStatusInterval(channelStatusIntervalQuery.data);
+  }, [channelStatusIntervalQuery.data]);
+
+  const handleChannelStatusSave = () => {
+    if (channelStatusInterval === '') return;
+    updateChannelStatusIntervalMutation.mutate(channelStatusInterval, {
+      onSuccess: () => notify(`Streams will be checked every ${channelStatusInterval} min`, 'success'),
+      onError: (error) => notify(`Failed to save the stream check interval: ${getErrorMessage(error)}`, 'error'),
+    });
+  };
 
   const handleAceEngineUrlSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -555,6 +573,18 @@ const Settings: React.FC = () => {
             pending={updateEpgRefreshIntervalMutation.isPending}
             onChange={setEpgRefreshInterval}
             onSave={handleEpgRefreshSave}
+          />
+          {channelStatusIntervalQuery.isError ? <Alert severity="error">Could not load the stream check interval. Reload to try again.</Alert> : null}
+          <IntervalField
+            id="channel-status-interval"
+            label="Stream check interval (minutes)"
+            helper="Default: 60 minutes. Channel playback also checks its sources in the background."
+            max={10080}
+            value={channelStatusInterval}
+            saved={channelStatusIntervalQuery.data}
+            pending={updateChannelStatusIntervalMutation.isPending || channelStatusIntervalQuery.isLoading || channelStatusIntervalQuery.isError}
+            onChange={setChannelStatusInterval}
+            onSave={handleChannelStatusSave}
           />
           <Box>
             <FormControlLabel control={<Switch checked={addPid} onChange={handleAddPidChange} disabled={updateAddPidMutation.isPending} />} label="Append PID to stream links" />

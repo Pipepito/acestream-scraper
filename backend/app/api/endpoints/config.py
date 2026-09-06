@@ -261,6 +261,8 @@ def get_config_key(key: str, config_service: ConfigService = Depends(get_config_
         value = str(config_service.get_rescrape_interval())
     elif key == "epg_refresh_interval":
         value = str(config_service.get_epg_refresh_interval())
+    elif key == "channel_status_interval":
+        value = str(config_service.get_channel_status_interval())
     elif key == "addpid":
         value = config_service.get_addpid()
     elif key == "public_base_url":
@@ -325,6 +327,16 @@ def update_config_key(
             raise HTTPException(status_code=500, detail="Failed to update epg_refresh_interval")
         task_service.reschedule_task("epg_refresh", hours * 3600)
         return {"message": "Setting updated successfully", "value": str(hours)}
+
+    if key == "channel_status_interval":
+        try:
+            minutes = int(value or "")
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail="Stream check interval must be a whole number of minutes") from exc
+        if not config_service.set_channel_status_interval(minutes):
+            raise HTTPException(status_code=500, detail="Failed to update stream check interval")
+        task_service.reschedule_task("channel_status", minutes * 60)
+        return {"message": "Setting updated successfully", "value": str(minutes)}
 
     if key == "addpid":
         if not value:

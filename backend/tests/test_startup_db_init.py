@@ -243,9 +243,10 @@ def test_configured_intervals_come_from_the_settings_table(db_session, monkeypat
     repo = SettingsRepository(db_session)
     repo.set_setting(SettingsRepository.RESCRAPE_INTERVAL, "3")
     repo.set_setting(SettingsRepository.EPG_REFRESH_INTERVAL, "2")
+    repo.set_setting(SettingsRepository.CHANNEL_STATUS_INTERVAL, "90")
     monkeypatch.setattr(database_module, "SessionLocal", lambda: db_session)
 
-    assert _configured_intervals() == (3, 2)
+    assert _configured_intervals() == (3, 2, 90)
 
 
 def test_startup_creates_the_tables_an_older_images_create_all_never_had(tmp_path):

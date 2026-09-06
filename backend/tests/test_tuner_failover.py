@@ -138,7 +138,7 @@ def test_channel_url_resolves_current_sources_and_head_never_starts_engine(alemb
         assert alembic_client.head(url).status_code == 200
         engine.assert_not_called()
         assert alembic_client.get('/tuner/lineup.json').json()[0]['URL'].endswith(url)
-        row.is_online = False; alembic_db_session.commit()
+        row.is_online = False; tv.is_active = False; alembic_db_session.commit()
         assert alembic_client.get(url).json()['error']['code'] == 'NO_ONLINE_STREAMS'
         engine.assert_not_called()
     finally:
@@ -174,3 +174,89 @@ async def test_real_relay_stops_failed_session_before_starting_backup():
         assert output == b'video bytes'
         assert events == [('start', 'high'), ('stop', 'high'), ('start', 'low'), ('stop', 'low')]
         assert registry.count_active() == 0
+
+
+@pytest.mark.asyncio
+async def test_newly_verified_source_is_used_during_same_startup(monkeypatch):
+    attempts = []
+    async def relay(_engine, content_id, *args, **kwargs):
+        attempts.append(content_id)
+        if content_id == 'stale':
+            raise EngineStreamError('offline')
+        yield b'backup'
+    monkeypatch.setattr('app.services.tuner_playback_service.relay_engine_stream', relay)
+    provider = AsyncMock(side_effect=[([], True), (['stale', 'recovered'], False)])
+    registry = RelayRegistry()
+    claim = registry.try_open('stale', 'viewer', 1)
+    data = b''.join([part async for part in relay_ranked_streams(Mock(), ['stale'], 'viewer', claim,
+        registry=registry, candidate_provider=provider)])
+    assert data == b'backup'
+    assert attempts == ['stale', 'recovered']
+    assert registry.count_active() == 0
+
+
+@pytest.mark.asyncio
+async def test_no_stored_online_sources_waits_for_refresh(monkeypatch):
+    async def relay(*args, **kwargs):
+        yield b'recovered'
+    monkeypatch.setattr('app.services.tuner_playback_service.relay_engine_stream', relay)
+    registry = RelayRegistry()
+    claim = registry.try_open('offline', 'viewer', 1)
+    provider = AsyncMock(return_value=(['recovered'], False))
+    assert b''.join([part async for part in relay_ranked_streams(Mock(), [], 'viewer', claim,
+        registry=registry, candidate_provider=provider)]) == b'recovered'
+
+
+@pytest.mark.asyncio
+async def test_refresh_wait_stays_inside_startup_budget(monkeypatch):
+    monkeypatch.setattr('app.services.tuner_playback_service.STARTUP_BUDGET_SECONDS', 0.01)
+    registry = RelayRegistry()
+    claim = registry.try_open('offline', 'viewer', 1)
+    provider = AsyncMock(return_value=([], True))
+    with pytest.raises(EngineStreamError):
+        await anext(relay_ranked_streams(Mock(), [], 'viewer', claim, registry=registry, candidate_provider=provider))
+    assert registry.count_active() == 0
+
+
+def test_channel_get_starts_quiet_refresh_and_recovers_offline_source(alembic_client, alembic_db_session, monkeypatch):
+    from app.api.endpoints import tuner
+    from app.config.database import SessionLocal
+    from app.models.models import AcestreamChannel, TVChannel
+    from app.services.tuner_network import get_tuner_gate
+    from app.config.settings import get_settings
+    monkeypatch.setenv('TUNER_ALLOWED_NETWORKS', '*')
+    get_settings.cache_clear()
+    get_tuner_gate.cache_clear()
+    try:
+        tv = TVChannel(name='Recoverable', is_active=True)
+        alembic_db_session.add(tv)
+        alembic_db_session.flush()
+        cid = 'b' * 40
+        alembic_db_session.add(AcestreamChannel(id=cid, name='Backup', tv_channel_id=tv.id,
+                                              is_active=True, is_online=False))
+        alembic_db_session.commit()
+        def refresh(channel_id):
+            assert channel_id == tv.id
+            with SessionLocal() as db:
+                db.get(AcestreamChannel, cid).is_online = True
+                db.commit()
+            return None
+        start = Mock(side_effect=refresh)
+        monkeypatch.setattr(tuner.tuner_probe_service, 'start', start)
+        engine = Mock()
+        monkeypatch.setattr(tuner, '_engine', lambda: engine)
+        async def relay(_engine, content_id, *args, **kwargs):
+            assert content_id == cid
+            yield b'recovered video'
+        monkeypatch.setattr('app.services.tuner_playback_service.relay_engine_stream', relay)
+        url = f'/tuner/channel/{tv.id}.ts'
+        assert alembic_client.head(url).status_code == 200
+        start.assert_not_called()
+        response = alembic_client.get(url)
+        assert response.status_code == 200
+        assert response.content == b'recovered video'
+        start.assert_called_once_with(tv.id)
+        engine.close.assert_called_once()
+    finally:
+        get_settings.cache_clear()
+        get_tuner_gate.cache_clear()

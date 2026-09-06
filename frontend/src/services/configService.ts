@@ -113,8 +113,17 @@ export const configService = {
   },
 
   /**
-   * Get the EPG refresh interval in hours
+   * Get the stream status check interval in minutes
    */
+  getChannelStatusInterval: async (): Promise<number> => {
+    const response = await apiClient.get<Setting>(`${BASE_URL}/channel_status_interval`);
+    return Number(response.data.value);
+  },
+
+  updateChannelStatusInterval: async (minutes: number): Promise<void> => {
+    await apiClient.put(`${BASE_URL}/channel_status_interval`, { value: String(minutes) });
+  },
+
   getEpgRefreshInterval: async (): Promise<number> => {
     const response = await apiClient.get<Setting>(`${BASE_URL}/epg_refresh_interval`);
     return parseInt(response.data.value, 10);

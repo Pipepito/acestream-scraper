@@ -1286,6 +1286,7 @@
                 "type": "null"
               }
             ],
+            "description": "Setting value; channel_status_interval uses whole minutes (1\u201310080, default 60)",
             "title": "Value"
           }
         },

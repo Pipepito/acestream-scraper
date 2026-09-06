@@ -89,6 +89,12 @@ PYTHONPATH=backend alembic -c backend/migrations/alembic.ini upgrade head
   not change another viewer's session, evade capacity limits, or leak an engine
   session. Parse input audio tracks only, excluding ffmpeg output declarations.
 
+- Status probes use unique PIDs, but native AceStream 3.2.11 stop affects viewers
+  of the same source despite distinct PIDs. Preserve the active-playback guard
+  before probing and before cleanup, the shared two-probe limit, and per-source
+  serialization. Stable tuner GETs refresh alternatives in the background; HEAD
+  must not start probes. See `docs/ops/stream-check-pid.md` for live evidence.
+
 ## Playback routing
 
 `GET/PUT /api/v1/config/playback-routing` persists `use_acexy` and `acexy_url`

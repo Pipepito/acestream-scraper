@@ -94,6 +94,20 @@ class ConfigService:
         except (ValueError, TypeError):
             return int(self.settings_repo.DEFAULT_RESCRAPE_INTERVAL)
 
+    def get_channel_status_interval(self) -> int:
+        try:
+            value = int(self.settings_repo.get_setting(SettingsRepository.CHANNEL_STATUS_INTERVAL))
+            return value if 1 <= value <= 10080 else 60
+        except (ValueError, TypeError):
+            return 60
+
+    def set_channel_status_interval(self, minutes: int) -> bool:
+        if not 1 <= minutes <= 10080:
+            raise HTTPException(status_code=422, detail="Stream check interval must be 1 to 10080 minutes")
+        return self.settings_repo.set_setting(
+            SettingsRepository.CHANNEL_STATUS_INTERVAL, str(minutes), "Minutes between stream online checks"
+        )
+
     def get_epg_refresh_interval(self) -> int:
         """Hours between automatic EPG refreshes."""
         interval_str = self.settings_repo.get_setting(SettingsRepository.EPG_REFRESH_INTERVAL)

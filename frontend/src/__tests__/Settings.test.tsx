@@ -40,6 +40,8 @@ describe('Settings page', () => {
     (configHooks.useUpdateRescrapeInterval as jest.Mock).mockReturnValue({ mutate: succeedingMutate(), isPending: false });
     (configHooks.useEpgRefreshInterval as jest.Mock).mockReturnValue({ data: 1, isLoading: false });
     (configHooks.useUpdateEpgRefreshInterval as jest.Mock).mockReturnValue({ mutate: succeedingMutate(), isPending: false });
+    (configHooks.useChannelStatusInterval as jest.Mock).mockReturnValue({ data: 60, isLoading: false });
+    (configHooks.useUpdateChannelStatusInterval as jest.Mock).mockReturnValue({ mutate: succeedingMutate(), isPending: false });
     (configHooks.useAddPid as jest.Mock).mockReturnValue({ data: true, isLoading: false });
     (configHooks.useUpdateAddPid as jest.Mock).mockReturnValue({ mutate: succeedingMutate(), isPending: false });
     (configHooks.useAcestreamStatus as jest.Mock).mockReturnValue({
@@ -78,6 +80,18 @@ describe('Settings page', () => {
     expect(engineStatus).toHaveTextContent('Online');
     expect(engineStatus).toHaveTextContent('Engine online and ready');
     expect(screen.getByText('Adds the app id to acestream:// links for players that require it (rare).')).toBeInTheDocument();
+  });
+
+  it('saves the stream check interval in minutes and reports failure', async () => {
+    const mutate = jest.fn((_value, options) => options.onError(new Error('Unavailable')));
+    (configHooks.useUpdateChannelStatusInterval as jest.Mock).mockReturnValue({ mutate, isPending: false });
+    renderPage();
+    const input = await screen.findByRole('spinbutton', { name: 'Stream check interval (minutes)' });
+    expect(input).toHaveValue(60);
+    fireEvent.change(input, { target: { value: '90' } });
+    fireEvent.submit(screen.getByRole('form', { name: 'Stream check interval (minutes) form' }));
+    expect(mutate).toHaveBeenCalledWith(90, expect.any(Object));
+    expect(await screen.findByText(/Failed to save the stream check interval/)).toBeInTheDocument();
   });
 
   it('saves both automation intervals and confirms with a snackbar', async () => {

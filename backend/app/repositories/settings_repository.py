@@ -17,6 +17,7 @@ class SettingsRepository:
     RESCRAPE_INTERVAL = 'rescrape_interval'
     ADDPID = 'addpid'
     EPG_REFRESH_INTERVAL = 'epg_refresh_interval'
+    CHANNEL_STATUS_INTERVAL = 'channel_status_interval'
     ACESTREAM_CHECK_TIMEOUT = 'acestream_check_timeout'
     PUBLIC_BASE_URL = 'public_base_url'
     TUNER_DEVICE_ID = 'tuner_device_id'
@@ -34,6 +35,7 @@ class SettingsRepository:
     DEFAULT_RESCRAPE_INTERVAL = '24'
     DEFAULT_ADDPID = 'false'
     DEFAULT_EPG_REFRESH_INTERVAL = '6'
+    DEFAULT_CHANNEL_STATUS_INTERVAL = '60'
     DEFAULT_ACESTREAM_CHECK_TIMEOUT = '10'
     # The tuner keys have no setup_defaults entry: get_setting falls back to
     # these, and the device id is generated on first use by TunerService.
@@ -137,6 +139,7 @@ class SettingsRepository:
             self.RESCRAPE_INTERVAL: (self.DEFAULT_RESCRAPE_INTERVAL, "Hours between automatic rescrapes"),
             self.ADDPID: (self.DEFAULT_ADDPID, "Add PID to Acestream links"),
             self.EPG_REFRESH_INTERVAL: (self.DEFAULT_EPG_REFRESH_INTERVAL, "Hours between EPG refreshes"),
+            self.CHANNEL_STATUS_INTERVAL: (self.DEFAULT_CHANNEL_STATUS_INTERVAL, "Minutes between stream online checks"),
             self.ACESTREAM_CHECK_TIMEOUT: (self.DEFAULT_ACESTREAM_CHECK_TIMEOUT, "Seconds before an engine status check times out"),
             self.PUBLIC_BASE_URL: (self.DEFAULT_PUBLIC_BASE_URL, "Externally reachable origin for tuners and players"),
         }

@@ -121,3 +121,77 @@ async def test_online_check_persists_measured_media_but_probe_failure_stays_onli
         assert result['is_online'] is True
         assert probe.channel_repository.update_channel_status.call_args.kwargs['bitrate_bps'] == (metadata['bitrate_bps'] if metadata else None)
         assert probe.channel_repository.update_channel_status.call_args.kwargs['audio_tracks'] == (metadata['audio_tracks'] if metadata else None)
+
+
+@pytest.mark.asyncio
+async def test_probes_use_distinct_pids_but_timeout_retry_reuses_pid(probe):
+    probe._fetch_engine_response = AsyncMock(side_effect=[
+        asyncio.TimeoutError(), (500, None, None), (500, None, None),
+    ])
+    channel = AcestreamChannel(id='a' * 40, name='Example')
+    await probe.check_channel_status(channel, persist=False)
+    await probe.check_channel_status(channel, persist=False)
+    params = [call.args[1] for call in probe._fetch_engine_response.call_args_list]
+    assert len(params[0]['pid']) == 32
+    assert params[0]['pid'] == params[1]['pid']
+    assert params[0]['pid'] != params[2]['pid']
+
+
+@pytest.mark.asyncio
+async def test_active_relay_is_not_probed_or_marked_offline(probe):
+    from app.services.stream_relay import relay_registry
+    channel = AcestreamChannel(id='a' * 40, name='Example', is_online=True)
+    claim = relay_registry.open(channel.id, 'test')
+    probe._fetch_engine_response = AsyncMock()
+    try:
+        result = await probe.check_channel_status(channel)
+        assert result['status'] == 'skipped'
+        assert result['is_online'] is True
+        probe._fetch_engine_response.assert_not_called()
+        probe.channel_repository.update_channel_status.assert_not_called()
+    finally:
+        relay_registry.close(claim.id)
+
+
+@pytest.mark.asyncio
+async def test_playback_started_during_probe_prevents_stop_and_status_overwrite(probe):
+    from app.services.stream_relay import relay_registry
+    channel = AcestreamChannel(id='a' * 40, name='Example', is_online=True)
+    claim = None
+    async def fetch(url, params, timeout):
+        nonlocal claim
+        if '/ace/getstream' in url:
+            claim = relay_registry.open(channel.id, 'test')
+            return 200, session_response(), None
+        if '/ace/stat/' in url:
+            return 200, {'response': {'status': 'error'}}, None
+        pytest.fail('Must not stop the source now owned by playback')
+    probe._fetch_engine_response = fetch
+    try:
+        assert (await probe.check_channel_status(channel))['status'] == 'skipped'
+        probe.channel_repository.update_channel_status.assert_not_called()
+    finally:
+        if claim:
+            relay_registry.close(claim.id)
+
+
+@pytest.mark.asyncio
+async def test_probe_limit_and_same_source_serialization(probe, monkeypatch):
+    running = set()
+    peak = 0
+    calls = []
+    async def check(channel, **kwargs):
+        nonlocal peak
+        assert channel.id not in running
+        running.add(channel.id)
+        peak = max(peak, len(running))
+        calls.append(channel.id)
+        await asyncio.sleep(.01)
+        running.remove(channel.id)
+        return {'channel_id': channel.id}
+    monkeypatch.setattr(probe, '_check_channel_status', check)
+    channels = [AcestreamChannel(id=key * 40, name=key) for key in ('a', 'a', 'b', 'c')]
+    await asyncio.gather(*(probe.check_channel_status(channel, persist=False) for channel in channels))
+    assert peak == 2
+    assert len(calls) == 4
+    assert running == set()

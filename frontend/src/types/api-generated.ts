@@ -1547,7 +1547,10 @@ export interface components {
       base_url?: string | null;
       /** Hours */
       hours?: number | null;
-      /** Value */
+      /**
+       * Value
+       * @description Setting value; channel_status_interval uses whole minutes (1–10080, default 60)
+       */
       value?: string | null;
     };
     /**

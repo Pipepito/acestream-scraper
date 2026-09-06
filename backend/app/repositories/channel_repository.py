@@ -10,12 +10,17 @@ from app.models.models import AcestreamChannel, EPGChannel, TVChannel
 
 
 class ChannelRepository:
-    def get_online_tuner_streams(self, tv_channel_id: int) -> List[AcestreamChannel]:
-        return (self.db.query(AcestreamChannel)
+    def get_tuner_streams(self, tv_channel_id: int, *, online_only: bool = False) -> List[AcestreamChannel]:
+        query = (self.db.query(AcestreamChannel)
                 .join(TVChannel, TVChannel.id == AcestreamChannel.tv_channel_id)
                 .filter(TVChannel.id == tv_channel_id, TVChannel.is_active.is_(True),
-                        AcestreamChannel.is_active.is_(True), AcestreamChannel.is_online.is_(True))
-                .all())
+                        AcestreamChannel.is_active.is_(True)))
+        if online_only:
+            query = query.filter(AcestreamChannel.is_online.is_(True))
+        return query.all()
+
+    def get_online_tuner_streams(self, tv_channel_id: int) -> List[AcestreamChannel]:
+        return self.get_tuner_streams(tv_channel_id, online_only=True)
 
     def get_tv_matching_inventory(self) -> tuple[list[TVChannel], list[AcestreamChannel]]:
         targets = self.db.query(TVChannel).order_by(TVChannel.id).all()

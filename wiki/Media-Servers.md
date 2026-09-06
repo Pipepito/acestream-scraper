@@ -174,3 +174,18 @@ The MPEG-TS relay preserves the source's audio tracks; Jellyfin/Plex can discove
 them from the media. The channel API also exposes measured bitrate, its timestamp,
 and known audio tracks. No database/network work stays attached to an hours-long
 relay session.
+
+### Source checks during playback
+
+A GET of `/tuner/channel/{tv_channel_id}.ts` (HDHomeRun, tuner M3U, or a player
+opening a stable channel URL) queues a quiet refresh of that channel's active
+sources. Already-online sources start immediately. Newly verified alternatives
+can join startup failover within its existing 45-second budget, including when
+all sources were previously offline. The app checks one channel at a time,
+coalesces concurrent requests for that channel, and bounds the queue to 32 channels.
+A full queue leaves playback using the currently known sources.
+
+HEAD requests and direct content-ID URLs do not trigger these refreshes. Sources
+currently used by an app relay or web player are protected from disruptive probes.
+After media bytes have been sent, a failed feed ends the response; the player must
+reopen the stable channel URL to choose another feed safely.

@@ -30,6 +30,7 @@ from app.services.stream_relay import RELAY_HEADERS, ClosingStreamingResponse, E
 from app.services.tuner_network import get_tuner_gate, require_tuner_network
 from app.services.tuner_service import TunerService
 from app.services.tuner_playback_service import relay_ranked_streams
+from app.services.tuner_probe_service import tuner_probe_service
 
 hdhr_router = APIRouter(prefix="/tuner", dependencies=[Depends(require_tuner_network)], tags=["hdhomerun"])
 router = APIRouter()  # /api/v1/tuner settings + status
@@ -252,10 +253,10 @@ async def tuner_stream(content_id: str, request: Request):
     return ClosingStreamingResponse(body(), headers=RELAY_HEADERS)
 
 
-def _channel_candidates(tv_channel_id: int) -> List[str]:
+def _channel_candidates(tv_channel_id: int, *, include_offline: bool = False) -> List[str]:
     db = SessionLocal()
     try:
-        return TunerService(db).online_stream_ids(tv_channel_id)
+        return TunerService(db).stream_ids(tv_channel_id, online_only=not include_offline)
     finally:
         db.close()
 
@@ -266,20 +267,28 @@ def _channel_candidates(tv_channel_id: int) -> List[str]:
     responses={200: {"content": {"video/mp2t": {"schema": {"type": "string", "format": "binary"}}}}})
 async def tuner_channel(tv_channel_id: int, request: Request):
     candidates = await run_in_threadpool(_channel_candidates, tv_channel_id)
-    if not candidates:
+    eligible = candidates or await run_in_threadpool(_channel_candidates, tv_channel_id, include_offline=True)
+    if not eligible:
         raise APIError(code="NO_ONLINE_STREAMS", message="This channel has no online sources available", status_code=503)
     if request.method == "HEAD":
         return Response(status_code=200, headers=RELAY_HEADERS)
     limit = await run_in_threadpool(_tuner_count)
     label = f"tuner:{request.client.host if request.client else '?'}"
-    claim = relay_registry.try_open(candidates[0], label, limit)
+    claim = relay_registry.try_open(candidates[0] if candidates else "", label, limit)
     if claim is None:
         raise APIError(code="TUNER_BUSY", message=f"All {limit} tuner slots are in use", status_code=503)
+    refresh = tuner_probe_service.start(tv_channel_id)
+
+    async def refreshed_candidates() -> tuple[List[str], bool]:
+        current = await run_in_threadpool(_channel_candidates, tv_channel_id)
+        return current, refresh is not None and not refresh.done()
+
     iterator = None
     engine = None
     try:
         engine = await run_in_threadpool(_engine)
-        iterator = relay_ranked_streams(engine, candidates, label, claim, client_factory=_relay_client_factory)
+        iterator = relay_ranked_streams(engine, candidates, label, claim, client_factory=_relay_client_factory,
+                                      candidate_provider=refreshed_candidates)
         first = await anext(iterator)
     except BaseException as exc:
         if iterator is not None:

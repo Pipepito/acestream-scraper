@@ -29,7 +29,7 @@ from app.services.engine_client import (
     EngineSession,
     EngineStats,
     EngineUnavailableError,
-    engine_url_from_settings,
+    playback_client_from_settings,
 )
 
 logger = logging.getLogger(__name__)
@@ -95,7 +95,7 @@ def _engine_from_settings() -> EngineClient:
 
     db = SessionLocal()
     try:
-        return EngineClient(engine_url_from_settings(SettingsRepository(db)))
+        return playback_client_from_settings(SettingsRepository(db))
     finally:
         db.close()
 
@@ -430,7 +430,7 @@ class PlayerService:
     async def _refresh_stats(self, session: PlayerSession) -> None:
         """Read one session's engine statistics; failures are best effort."""
         engine_session = session.engine_session
-        if session.state not in ("starting", "ready") or engine_session is None:
+        if session.state not in ("starting", "ready") or engine_session is None or engine_session.managed_by_acexy:
             return
         try:
             session.stats = await run_in_threadpool(self._engine_call, lambda engine: engine.stat(engine_session))

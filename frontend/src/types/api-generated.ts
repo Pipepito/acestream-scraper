@@ -331,6 +331,12 @@ export interface paths {
      */
     put: operations["update_epg_refresh_interval_api_v1_config_epg_refresh_interval_put"];
   };
+  "/api/v1/config/playback-routing": {
+    /** Get Playback Routing */
+    get: operations["get_playback_routing_api_v1_config_playback_routing_get"];
+    /** Update Playback Routing */
+    put: operations["update_playback_routing_api_v1_config_playback_routing_put"];
+  };
   "/api/v1/config/public_base_url": {
     /**
      * Get Public Base Url
@@ -2145,6 +2151,21 @@ export interface components {
        * @default 0
        */
       total?: number;
+    };
+    /** PlaybackRouting */
+    PlaybackRouting: {
+      /**
+       * Acexy Url
+       * @description HTTP(S) origin where the backend reaches Acexy in MPEG-TS mode
+       * @default http://localhost:8080
+       */
+      acexy_url?: string;
+      /**
+       * Use Acexy
+       * @description Route web, tuner and remote-player playback through Acexy
+       * @default false
+       */
+      use_acexy?: boolean;
     };
     /** PlayerCapabilities */
     PlayerCapabilities: {
@@ -4637,6 +4658,39 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["ConfigUpdateResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get Playback Routing */
+  get_playback_routing_api_v1_config_playback_routing_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlaybackRouting"];
+        };
+      };
+    };
+  };
+  /** Update Playback Routing */
+  update_playback_routing_api_v1_config_playback_routing_put: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PlaybackRouting"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlaybackRouting"];
         };
       };
       /** @description Validation Error */

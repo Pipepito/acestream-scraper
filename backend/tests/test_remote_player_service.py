@@ -75,7 +75,9 @@ def test_resolve_stream_url_relay_and_pattern(alembic_db_session):
     relay = svc.repo.create(name="relay", kind="vlc", host="192.168.1.20", port=8080, username=None, password="pw", base_url_id=None)
     custom = svc.repo.create(name="custom", kind="vlc", host="192.168.1.21", port=8080, username=None, password="pw", base_url_id=pattern.id)
     assert svc.resolve_stream_url(relay, IH, "http://scraper.lan:8000") == f"http://scraper.lan:8000/tuner/stream/{IH}.ts"
-    assert svc.resolve_stream_url(custom, IH, "http://scraper.lan:8000") == f"http://192.168.1.10:8080/ace/getstream?id={IH}"
+    url = httpx.URL(svc.resolve_stream_url(custom, IH, "http://scraper.lan:8000"))
+    assert url.params["id"] == IH
+    assert len(url.params["pid"]) == 32
 
 
 def test_play_and_commands_go_through_the_driver(alembic_db_session):
@@ -197,3 +199,50 @@ def test_a_failing_call_still_closes_its_client(alembic_db_session):
     with pytest.raises(PlayerAuthError):
         svc.status(player)
     assert len(clients) == 1 and clients[0].is_closed
+
+
+@pytest.mark.parametrize('pattern', [
+    'http://engine:6878/ace/getstream?id={channel_id}&pid={pid}&token=keep',
+    'http://engine:6878/ace/getstream?id={channel_id}&token=keep',
+    'http://engine:6878/ace/manifest.m3u8?id={channel_id}&pid=fixed&sid=old&token=keep',
+    'http://engine:6878/ace/getstream?token=keep&id=',
+])
+def test_direct_engine_sends_have_independent_pids(alembic_db_session, pattern):
+    from app.repositories.base_url_repository import BaseUrlRepository
+    svc = _service(alembic_db_session)
+    entry = BaseUrlRepository(alembic_db_session).create('Direct', pattern)
+    player = svc.repo.create(name='Direct', kind='vlc', host='192.168.1.20', port=8080,
+                             username=None, password='pw', base_url_id=entry.id)
+    urls = [httpx.URL(svc.resolve_stream_url(player, IH, 'http://scraper:8000')) for _ in range(2)]
+    assert urls[0].params['pid'] != urls[1].params['pid']
+    for url in urls:
+        assert len(url.params['pid']) == 32
+        assert url.params['id'] == IH
+        assert url.params['token'] == 'keep'
+        assert 'sid' not in url.params
+        assert len(url.params.get_list('pid')) == 1
+
+
+@pytest.mark.parametrize('pattern', ['acestream://{channel_id}', 'https://proxy/stream/{channel_id}?token=keep'])
+def test_non_engine_formats_are_preserved(alembic_db_session, pattern):
+    from app.repositories.base_url_repository import BaseUrlRepository
+    svc = _service(alembic_db_session)
+    entry = BaseUrlRepository(alembic_db_session).create('Custom', pattern)
+    player = svc.repo.create(name='Custom', kind='vlc', host='192.168.1.20', port=8080,
+                             username=None, password='pw', base_url_id=entry.id)
+    assert svc.resolve_stream_url(player, IH, 'http://scraper:8000') == pattern.replace('{channel_id}', IH)
+
+
+def test_acexy_routing_overrides_player_format_and_checks_relay_access(alembic_db_session):
+    from app.repositories.settings_repository import SettingsRepository
+    from app.repositories.base_url_repository import BaseUrlRepository
+    repo = SettingsRepository(alembic_db_session)
+    repo.set_setting('playback_routing', '{"use_acexy":true,"acexy_url":"http://proxy:8080"}')
+    svc = _service(alembic_db_session)
+    entry = BaseUrlRepository(alembic_db_session).create('Direct', 'http://engine:6878/ace/getstream?id={channel_id}&pid={pid}')
+    player = svc.repo.create(name='Direct', kind='vlc', host='192.168.1.20', port=8080,
+                             username=None, password='pw', base_url_id=entry.id)
+    assert svc.resolve_stream_url(player, IH, 'http://localhost:8000') == f'http://localhost:8000/tuner/stream/{IH}.ts'
+    assert 'localhost' in svc.play_warnings(player, 'http://localhost:8000')
+    repo.set_setting('playback_routing', '{"use_acexy":false,"acexy_url":"http://proxy:8080"}')
+    assert httpx.URL(svc.resolve_stream_url(player, IH, 'http://scraper:8000')).params['pid']

@@ -387,3 +387,36 @@ def test_registry_tracks_and_reaps():
     assert registry.count_active() == 0
     assert registry.reap_finished(older_than_seconds=0) == 1
     assert registry.active() == []
+
+
+def test_simultaneous_relays_for_same_content_use_distinct_pids():
+    calls = []
+    engine, factory = _engine_and_factory(_fake_engine(calls))
+
+    async def run():
+        first = relay_engine_stream(engine, IH, 'tuner', client_factory=factory)
+        second = relay_engine_stream(engine, IH, 'external-player', client_factory=factory)
+        try:
+            assert await anext(first) == BODY
+            assert await anext(second) == BODY
+            starts = [httpx.URL(url) for _, url in calls if '/ace/getstream?' in url]
+            assert len(starts) == 2
+            assert starts[0].params['pid'] != starts[1].params['pid']
+            assert all(len(url.params['pid']) == 32 for url in starts)
+        finally:
+            await first.aclose()
+            await second.aclose()
+    asyncio.run(run())
+
+
+def test_acexy_relay_reads_bytes_without_pid_json_or_stop():
+    calls = []
+    def handler(request):
+        calls.append(request.url)
+        assert request.url.path == '/ace/getstream'
+        assert dict(request.url.params) == {'id': IH}
+        return httpx.Response(200, content=BODY, headers={'Content-Type': 'video/mp2t'})
+    engine, factory = _engine_and_factory(handler)
+    engine.use_acexy = True
+    assert _collect(relay_engine_stream(engine, IH, 'tuner', client_factory=factory)) == BODY
+    assert len(calls) == 1

@@ -259,6 +259,7 @@ const RemotePlayerDialog: React.FC<RemotePlayerDialogProps> = ({ open, player, p
                 ))}
               </Select>
             </FormControl>
+            <Alert severity="info">When Acexy routing is enabled in Settings, playback uses the server relay instead of this link format.</Alert>
             {probe ? <Alert severity={probe.severity}>{probe.text}</Alert> : null}
           </Stack>
         </DialogContent>

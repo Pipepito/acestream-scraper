@@ -184,3 +184,16 @@ shares sessions only for matching channel/audio choices (default equals track ze
 Input audio metadata is discovered from ffmpeg input logging; output tracks are
 excluded. Choosing audio restarts that viewer, follows normal capacity/grace rules,
 and does not alter another viewer's session or a remote player's raw source URL.
+
+## Playback routing
+
+`GET/PUT /api/v1/config/playback-routing` persists `use_acexy` and `acexy_url`
+as one JSON setting. Direct mode is the default. Web-player and tuner factories
+use `playback_client_from_settings`; engine health/probes remain direct.
+Acexy mode reads MPEG-TS from `/ace/getstream?id=…` with no PID or engine JSON
+start/stat/stop calls. The session retains its Acexy ownership flag across
+configuration changes so cleanup never stops another proxy client. Remote
+players use the server relay in Acexy mode, bypassing saved custom link formats;
+direct mode honors their formats and adds a unique PID to direct engine links.
+Existing shared browser sessions retain their route until teardown. See
+`wiki/Remote-Players.md#playback-routing` for operator behavior.

@@ -1,10 +1,16 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import LiveTV from '../pages/LiveTV';
 import { createAppTheme } from '../theme';
 
+const mockSend = jest.fn();
+const mockPlayers = jest.fn();
+jest.mock('../hooks/useRemotePlayers', () => ({
+  useRemotePlayers: () => mockPlayers(),
+  usePlayOnRemotePlayer: () => ({ mutateAsync: mockSend }),
+}));
 const mockCatalog = jest.fn();
 const mockUnassigned = jest.fn();
 jest.mock('../hooks/useTVChannels', () => ({ useTVChannelCatalog: () => mockCatalog(), useTVChannel: () => ({}) }));
@@ -15,6 +21,8 @@ const renderPage = () => render(<MemoryRouter><ThemeProvider theme={createAppThe
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockPlayers.mockReturnValue({ data: [{ id: 7, name: 'Living room', kind: 'vlc' }] });
+  mockSend.mockResolvedValue({ warnings: [] });
   mockCatalog.mockReturnValue({ data: [
     { id: 1, name: 'Watchable', is_active: true, acestream_channels: [{ id: 'one' }] },
     { id: 2, name: 'Empty channel', is_active: true, acestream_channels: [] },
@@ -61,4 +69,29 @@ it('shows loading and empty states independently', () => {
   renderPage();
   expect(screen.getByText(/No active TV channels with streams yet/)).toBeInTheDocument();
   expect(screen.getByText('No online streams without a channel.')).toBeInTheDocument();
+});
+
+it.each([['Watchable', 'one'], ['Independent', 'raw']])('sends %s directly without opening the web player', async (title, contentId) => {
+  renderPage();
+  fireEvent.click(screen.getByRole('button', { name: `Send to player ${title}` }));
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Living room (VLC)' }));
+  await waitFor(() => expect(mockSend).toHaveBeenCalledWith({ id: 7, contentId, title }));
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(await screen.findByText(`Sent ${title} to Living room.`)).toBeInTheDocument();
+});
+
+it('offers setup when no external players are saved', () => {
+  mockPlayers.mockReturnValue({ data: [] });
+  renderPage();
+  fireEvent.click(screen.getByRole('button', { name: 'Send to player Watchable' }));
+  expect(screen.getByRole('menuitem', { name: /Add a player/ })).toHaveAttribute('href', '/integrations');
+});
+
+it('reports a failed send without opening the web player', async () => {
+  mockSend.mockRejectedValue(new Error('offline'));
+  renderPage();
+  fireEvent.click(screen.getByRole('button', { name: 'Send to player Watchable' }));
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Living room (VLC)' }));
+  expect(await screen.findByText('Could not reach the player.')).toBeInTheDocument();
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });

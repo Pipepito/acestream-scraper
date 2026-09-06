@@ -8,6 +8,7 @@ You save each player once (name, VLC or Kodi, its address and password). After t
 
 - **Integrations › Remote players** lists every saved player with a live status line (Idle, or what it is playing and how far in), a play/pause button, a stop button and a volume slider.
 - **Send channel…** (under "More actions for" the player) opens a picker over your TV channels and Acestream streams; pick one and it starts on that player.
+- **Live TV › Send to player** lets you pick a saved player directly beside Watch, for both TV channels and unassigned streams. It sends the first listed source for a TV channel without opening the web player. To choose a different source, use the stream selector in the web player and its **Play on…** menu.
 - **Play on…** appears on every channel row and in the web player dialog, so you can push whatever you are looking at to a player without leaving the page.
 
 Nothing is installed on the player. The app talks to the web interface that VLC and Kodi already ship, and hands the player a normal stream link that it opens by itself. The video never passes through your browser.
@@ -138,3 +139,32 @@ That is a deliberate trade-off for a single-user app with no key management: tre
 
 - [Web Player](Web-Player.md) — play a channel in the browser instead
 - [Configuration Reference](Configuration.md#media-integrations) — `TUNER_ALLOWED_NETWORKS`, `PUBLIC_BASE_URL` and the rest
+
+## Playback routing
+
+In **Settings › Engine**, turn **Route playback through Acexy** on or off and
+save the **Acexy URL** reachable from the backend (default
+`http://localhost:8080`). Direct engine mode is the default. Acexy must already
+be running in MPEG-TS mode; this setting does not launch or reconfigure it.
+
+- **Acexy on:** web-player sessions and tuner relays read
+  `/ace/getstream?id=…` from Acexy without a PID. External players receive the
+  server relay URL so they follow the same route, even if a custom player link
+  format is saved. The public server address and tuner allowlist must therefore
+  allow those players to connect. Acexy owns multiplexing, PIDs and engine
+  cleanup; the app closes its stream connection when playback ends.
+- **Acexy off:** web-player sessions and tuner relay connections start the
+  configured engine directly with a fresh PID. External players use the server
+  relay or their saved link format. Direct HTTP AceStream links get a fresh PID
+  on each send, replacing fixed PIDs and the deprecated `sid` alias and filling
+  `{pid}` placeholders. Other URL options are preserved.
+
+The choice applies to new sessions; existing sessions, including shared browser
+sessions, keep their route until they end. Browser viewers of the same channel
+and audio track still share one HLS session. Engine health/status checks continue
+to use the engine URL, and copied links and exported playlists keep their own
+link-format settings. Acexy does not expose the engine's per-session peer
+statistics through this playback path.
+
+See the [Acexy usage documentation](https://github.com/Javinator9889/acexy#usage-)
+and the [AceStream playback API parameters](https://docs.acestream.net/developers/api-reference/).

@@ -30,6 +30,8 @@ describe('Settings page', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (configHooks.usePlaybackRouting as jest.Mock).mockReturnValue({ data: { use_acexy: false, acexy_url: 'http://localhost:8080' } });
+    (configHooks.useUpdatePlaybackRouting as jest.Mock).mockReturnValue({ mutate: succeedingMutate(), reset: jest.fn(), isPending: false });
     (configHooks.useBaseUrl as jest.Mock).mockReturnValue({ data: 'acestream://', isLoading: false });
     (configHooks.useUpdateBaseUrl as jest.Mock).mockReturnValue({ mutate: succeedingMutate(), isPending: false });
     (configHooks.useAceEngineUrl as jest.Mock).mockReturnValue({ data: 'http://localhost:6878', isLoading: false });
@@ -197,4 +199,15 @@ describe('Settings page', () => {
     expect(appIdToggle).not.toBeChecked();
     expect(screen.getByText(/failed to update appid setting/i)).toBeInTheDocument();
   });
+it('saves Acexy routing and its backend URL together', async () => {
+  const mutate = jest.fn();
+  (configHooks.usePlaybackRouting as jest.Mock).mockReturnValue({ data: { use_acexy: false, acexy_url: 'http://localhost:8080' } });
+  (configHooks.useUpdatePlaybackRouting as jest.Mock).mockReturnValue({ mutate, reset: jest.fn() });
+  render(<ThemeProvider theme={createAppTheme('light')}><TestMemoryRouter><Settings /></TestMemoryRouter></ThemeProvider>);
+  fireEvent.click(await screen.findByRole('checkbox', { name: 'Route playback through Acexy' }));
+  fireEvent.change(screen.getByLabelText('Acexy URL', { exact: false }), { target: { value: 'http://proxy.lan:8080' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Save playback routing' }));
+  expect(mutate).toHaveBeenCalledWith({ use_acexy: true, acexy_url: 'http://proxy.lan:8080' }, expect.anything());
+});
+
 });

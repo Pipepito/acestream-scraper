@@ -332,3 +332,23 @@ class TestConfigIntegration:
             assert data["key"] == endpoint
             assert data["value"] is not None
             assert data["value"] != ""
+
+
+def test_playback_routing_defaults_and_round_trip(alembic_client):
+    path = '/api/v1/config/playback-routing'
+    assert alembic_client.get(path).json() == {'use_acexy': False, 'acexy_url': 'http://localhost:8080'}
+    saved = {'use_acexy': True, 'acexy_url': 'http://proxy.lan:8080/'}
+    result = alembic_client.put(path, json=saved)
+    assert result.status_code == 200
+    assert result.json() == {'use_acexy': True, 'acexy_url': 'http://proxy.lan:8080'}
+    assert alembic_client.get(path).json() == result.json()
+    assert alembic_client.put(path, json={**saved, 'use_acexy': False}).json()['use_acexy'] is False
+
+
+@pytest.mark.parametrize('url', ['', 'file:///tmp/stream', 'http://proxy/path', 'http://user:secret@proxy', 'http://bad host', 'http://[::1'])
+def test_playback_routing_rejects_invalid_origin_without_saving(alembic_client, url):
+    path = '/api/v1/config/playback-routing'
+    before = alembic_client.get(path).json()
+    response = alembic_client.put(path, json={'use_acexy': True, 'acexy_url': url})
+    assert response.status_code == 422
+    assert alembic_client.get(path).json() == before

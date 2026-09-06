@@ -13,6 +13,7 @@ class SettingsRepository:
     # Constants for settings keys
     BASE_URL = 'base_url'
     ACE_ENGINE_URL = 'ace_engine_url'
+    PLAYBACK_ROUTING = 'playback_routing'
     RESCRAPE_INTERVAL = 'rescrape_interval'
     ADDPID = 'addpid'
     EPG_REFRESH_INTERVAL = 'epg_refresh_interval'
@@ -26,6 +27,7 @@ class SettingsRepository:
 
     # Constants for default values
     DEFAULT_BASE_URL = 'acestream://'
+    DEFAULT_PLAYBACK_ROUTING = '{"use_acexy":false,"acexy_url":"http://localhost:8080"}'
     # A container that runs no engine of its own points at an external one through ACE_ENGINE_URL
     # (legacy alias ACESTREAM_ENGINE_URL); the Settings page can still override it per database.
     DEFAULT_ACE_ENGINE_URL = os.environ.get('ACE_ENGINE_URL') or os.environ.get('ACESTREAM_ENGINE_URL') or 'http://localhost:6878'

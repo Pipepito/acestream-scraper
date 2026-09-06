@@ -16,7 +16,8 @@ async function fixtures(page: Page) {
     const request = route.request();
     const path = new URL(request.url()).pathname.replace('/api/v1', '');
     let data: unknown = {};
-    if (path === '/tv-channels') data = { items: channels, total: channels.length };
+    if (path === '/startup') data = { status: 'ready', phase: 'Ready to use', events: [], recovery_token: 'test' };
+    else if (path === '/tv-channels') data = { items: channels, total: channels.length };
     else if (path === '/tv-channels/1') data = channel;
     else if (path === '/acestream-channels') {
       expect(new URL(request.url()).searchParams.get('assigned')).toBe('false');

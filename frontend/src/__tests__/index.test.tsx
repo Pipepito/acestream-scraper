@@ -1,6 +1,10 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 
+jest.mock('../components/StartupGate', () => ({
+  __esModule: true, default: ({ children }: React.PropsWithChildren) => <>{children}</>,
+}));
+
 jest.mock('../App', () => ({
   __esModule: true,
   default: function MockApp() {

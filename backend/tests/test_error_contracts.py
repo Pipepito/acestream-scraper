@@ -33,6 +33,11 @@ def test_unexpected_error_uses_internal_error_contract(backend_runtime):
     backend_runtime.app.dependency_overrides[get_scraper_service] = lambda: _FailingScraperService()
     try:
         with TestClient(backend_runtime.app, raise_server_exceptions=False) as safe_client:
+            import time
+            deadline = time.monotonic() + 10
+            while not backend_runtime.app.state.startup_task.done():
+                assert time.monotonic() < deadline
+                time.sleep(0.01)
             response = safe_client.get("/api/v1/scrapers/urls")
     finally:
         backend_runtime.app.dependency_overrides.pop(get_scraper_service, None)

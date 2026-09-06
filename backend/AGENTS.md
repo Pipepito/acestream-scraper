@@ -43,9 +43,14 @@ PYTHONPATH=backend alembic -c backend/migrations/alembic.ini upgrade head
 - `initialize_database()` migrates a legacy v1 SQLite database in two phases. Small
   tables move during startup; EPG programs are copied later in resumable batches.
   Never move the large copy back into the blocking startup path.
-- Existing stamped databases are not automatically upgraded by
-  `initialize_database()`. Deployment/preflight behavior must be considered when a
-  new revision is added.
+- Existing stamped databases are backed up and upgraded to Alembic head by
+  `initialize_database()`. Keep deployment/preflight and upgrade-path tests aligned.
+- Startup runs in a background boot task, with blocking DB work in a thread. The
+  SPA and authenticated startup diagnostics stay available on failure; other APIs
+  and public health return 503 until ready. Preserve the per-database process lock,
+  confirmed backup-first staged recovery, and interrupted-recovery marker. See
+  `docs/ops/startup-recovery.md`. Never expose raw exceptions or DB values in
+  downloadable diagnostics.
 - Preserve migration checkpointing, keyset pagination, deduplication, retention
   filtering, and shutdown cancellation in deferred EPG migration work.
 - Use timezone-aware UTC datetimes throughout models, schemas, services, and tests.

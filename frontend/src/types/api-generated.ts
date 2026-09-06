@@ -776,6 +776,18 @@ export interface paths {
      */
     post: operations["check_search_broadcast_api_v1_search__infohash__check_status_post"];
   };
+  "/api/v1/startup": {
+    /** Status */
+    get: operations["status_api_v1_startup_get"];
+  };
+  "/api/v1/startup/diagnostics": {
+    /** Diagnostics */
+    get: operations["diagnostics_api_v1_startup_diagnostics_get"];
+  };
+  "/api/v1/startup/recover": {
+    /** Recover */
+    post: operations["recover_api_v1_startup_recover_post"];
+  };
   "/api/v1/stats": {
     /**
      * Get Stats
@@ -2008,6 +2020,41 @@ export interface components {
       /** Message */
       message: string;
     };
+    /** MigrationProgress */
+    MigrationProgress: {
+      /**
+       * Migrated
+       * @default 0
+       */
+      migrated?: number;
+      /**
+       * Percent
+       * @default 0
+       */
+      percent?: number;
+      /**
+       * Processed
+       * @default 0
+       */
+      processed?: number;
+      /**
+       * Skipped
+       * @default 0
+       */
+      skipped?: number;
+      /**
+       * Stale
+       * @default 0
+       */
+      stale?: number;
+      /** Status */
+      status: string;
+      /**
+       * Total
+       * @default 0
+       */
+      total?: number;
+    };
     /** PlayerCapabilities */
     PlayerCapabilities: {
       /** Ffmpeg Available */
@@ -2586,6 +2633,56 @@ export interface components {
       settings: {
         [key: string]: string;
       };
+    };
+    /** StartupEvent */
+    StartupEvent: {
+      /**
+       * Level
+       * @default info
+       * @enum {string}
+       */
+      level?: "info" | "warning" | "error";
+      /** Message */
+      message: string;
+      /** Time */
+      time: string;
+    };
+    /** StartupRecoveryRequest */
+    StartupRecoveryRequest: {
+      /**
+       * Action
+       * @enum {string}
+       */
+      action: "retry" | "salvage" | "fresh";
+      /**
+       * Confirm
+       * @default false
+       */
+      confirm?: boolean;
+      /** Recovery Token */
+      recovery_token: string;
+    };
+    /** StartupStatus */
+    StartupStatus: {
+      /** Events */
+      events: components["schemas"]["StartupEvent"][];
+      /** Guidance */
+      guidance?: string | null;
+      migration?: components["schemas"]["MigrationProgress"] | null;
+      /** Phase */
+      phase: string;
+      /**
+       * Recovery Available
+       * @default false
+       */
+      recovery_available?: boolean;
+      /** Recovery Token */
+      recovery_token: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "starting" | "ready" | "failed";
     };
     /** StatsResponse */
     StatsResponse: {
@@ -6174,6 +6271,50 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["ChannelStatusResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Status */
+  status_api_v1_startup_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["StartupStatus"];
+        };
+      };
+    };
+  };
+  /** Diagnostics */
+  diagnostics_api_v1_startup_diagnostics_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "text/plain": string;
+        };
+      };
+    };
+  };
+  /** Recover */
+  recover_api_v1_startup_recover_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["StartupRecoveryRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      202: {
+        content: {
+          "application/json": components["schemas"]["StartupStatus"];
         };
       };
       /** @description Validation Error */

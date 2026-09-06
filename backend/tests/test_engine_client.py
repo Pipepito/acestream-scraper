@@ -161,3 +161,32 @@ def test_start_refuses_a_playback_url_that_is_not_http(bad):
 
     with pytest.raises(EngineUnavailableError, match="playback_url"):
         EngineClient("http://engine:6878", client=_client(handler)).start(CID)
+
+
+def test_acexy_owns_session_lifecycle_without_pid_or_engine_api():
+    def handler(request):
+        pytest.fail(f'Unexpected engine API call: {request.url.path}')
+    direct = EngineClient('http://engine:6878', client=_client(handler))
+    proxy = EngineClient('http://acexy:8080', client=_client(handler), use_acexy=True)
+    session = proxy.start(CID, pid='must-not-be-sent')
+    assert session.playback_url == f'http://acexy:8080/ace/getstream?id={CID}'
+    assert session.pid == '' and session.managed_by_acexy
+    # Reconfiguring routing while playback is active must not stop Acexy's
+    # shared engine session or try to use engine statistics for it.
+    direct.stop(session)
+    assert direct.stat(session) is None
+    proxy.stop(session)
+    assert proxy.stat(session) is None
+
+
+def test_playback_factory_uses_saved_routing_but_engine_checks_remain_direct(db_session):
+    from app.repositories.settings_repository import SettingsRepository
+    from app.services.engine_client import playback_client_from_settings
+    repo = SettingsRepository(db_session)
+    repo.set_setting('ace_engine_url', 'http://engine:6878')
+    with playback_client_from_settings(repo) as client:
+        assert client.engine_url == 'http://engine:6878' and not client.use_acexy
+    repo.set_setting('playback_routing', '{"use_acexy":true,"acexy_url":"http://proxy:8080"}')
+    with playback_client_from_settings(repo) as client:
+        assert client.engine_url == 'http://proxy:8080' and client.use_acexy
+    assert engine_url_from_settings(repo) == 'http://engine:6878'

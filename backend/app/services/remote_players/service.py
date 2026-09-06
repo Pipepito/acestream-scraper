@@ -14,6 +14,9 @@ from app.config.settings import get_settings
 from app.models.models import RemotePlayer
 from app.repositories.base_url_repository import BaseUrlRepository
 from app.repositories.remote_player_repository import RemotePlayerRepository
+from app.repositories.settings_repository import SettingsRepository
+from app.schemas.config import PlaybackRouting
+from app.services.engine_client import new_pid
 from app.services.playlist_service import PlaylistService
 from app.services.public_url_service import host_warnings
 from app.services.tuner_network import TunerNetworkGate
@@ -192,8 +195,12 @@ class RemotePlayerService:
     def _stream_pattern(self, player: RemotePlayer) -> Optional[str]:
         """The player's own stream link format, or None when it gets the relay
         URL — including when the format has been deleted: SQLite runs without
-        foreign keys, so the id can dangle."""
-        if player.base_url_id is None:
+        foreign keys, so the id can dangle. Acexy routing always uses the relay
+        so every external player follows the global routing choice."""
+        routing = PlaybackRouting.model_validate_json(
+            SettingsRepository(self.db).get_setting(SettingsRepository.PLAYBACK_ROUTING)
+        )
+        if routing.use_acexy or player.base_url_id is None:
             return None
         entry = BaseUrlRepository(self.db).get(player.base_url_id)
         return entry.pattern if entry is not None else None
@@ -203,7 +210,14 @@ class RemotePlayerService:
         backend relay URL (spec 6.3)."""
         pattern = self._stream_pattern(player)
         if pattern is not None:
-            return PlaylistService._stream_link(pattern, content_id, None)
+            pid = new_pid()
+            url = PlaylistService._stream_link(pattern.replace("{pid}", pid), content_id, None)
+            parsed = httpx.URL(url)
+            if parsed.scheme in ("http", "https") and parsed.path.rstrip("/").endswith(("/ace/getstream", "/ace/manifest.m3u8")):
+                # Each send owns a playback session, even for patterns with a
+                # missing or fixed PID. Keep unrelated query options intact.
+                url = str(parsed.copy_remove_param("sid").copy_merge_params({"pid": pid}))
+            return url
         return f"{public_base_url.rstrip('/')}/tuner/stream/{content_id}.ts"
 
     def play_warnings(self, player: RemotePlayer, public_base_url: str) -> List[str]:

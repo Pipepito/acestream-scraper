@@ -115,3 +115,31 @@ test('audio track selection requests the chosen language', async ({ page }) => {
   await expect.poll(() => selectedAudio).toEqual([1]);
   await page.getByRole('button', { name: 'Close', exact: true }).click();
 });
+
+for (const mode of ['light', 'dark']) {
+  test(`${mode}: send to an external player without starting browser playback`, async ({ page }) => {
+    const { starts } = await fixtures(page);
+    const sends: unknown[] = [];
+    await page.route('**/api/v1/remote-players', (route) => route.fulfill({ json: [{ id: 7, name: 'Living room', kind: 'vlc' }] }));
+    await page.route('**/api/v1/remote-players/7/play', (route) => {
+      sends.push(route.request().postDataJSON());
+      return route.fulfill({ json: { warnings: [] } });
+    });
+    await page.addInitScript((value) => localStorage.setItem('app-theme-mode', value), mode);
+    await page.goto('/live-tv');
+    for (const title of ['Arena TV', 'Independent live stream']) {
+      await page.getByRole('button', { name: `Send to player ${title}`, exact: true }).focus();
+      await page.keyboard.press('Enter');
+      await page.getByRole('menuitem', { name: 'Living room (VLC)' }).click();
+      await expect(page.getByText(`Sent ${title} to Living room.`)).toBeVisible();
+    }
+    expect(sends).toEqual([
+      { content_id: streams[0].id, title: 'Arena TV' },
+      { content_id: orphan.id, title: 'Independent live stream' },
+    ]);
+    expect(starts).toEqual([]);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: test.info().outputPath(`send-to-player-${mode}.png`), fullPage: true });
+  });
+}

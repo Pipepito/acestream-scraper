@@ -12,6 +12,7 @@ import PageHeader from '../components/layout/PageHeader';
 import StatusLine from '../components/StatusLine';
 import ChannelGuide from '../components/player/ChannelGuide';
 import ChannelPlayerDialog from '../components/player/ChannelPlayerDialog';
+import PlayOnMenu from '../components/player/PlayOnMenu';
 
 const PAGE_SIZE = 12;
 
@@ -57,13 +58,16 @@ const LiveTV: React.FC = () => {
       </Alert> : null}
       <Box>
         {channels.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((channel) => <Box component="article" key={channel.id} sx={{ py: 2, borderBottom: 1, borderColor: 'divider' }}>
-          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1 }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', sm: 'center' }} sx={{ mb: 1 }}>
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography component="h3" variant="h6" sx={{ overflowWrap: 'anywhere' }}>{channel.channel_number != null ? `${channel.channel_number}. ` : ''}{channel.name}</Typography>
               <Typography variant="body2" color="text.secondary">{channel.acestream_channels.length ? `${channel.acestream_channels.length} stream${channel.acestream_channels.length === 1 ? '' : 's'}` : 'No streams attached'}{channel.category ? ` · ${channel.category}` : ''}</Typography>
             </Box>
-            <Button variant="contained" startIcon={<PlayArrowRounded />} disabled={!channel.acestream_channels.length}
-              aria-label={`Watch ${channel.name}`} onClick={() => { const next = new URLSearchParams(params); next.set('channel', String(channel.id)); setParams(next); }}>Watch</Button>
+            <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0 }}>
+              <Button variant="contained" startIcon={<PlayArrowRounded />} disabled={!channel.acestream_channels.length}
+                aria-label={`Watch ${channel.name}`} onClick={() => { const next = new URLSearchParams(params); next.set('channel', String(channel.id)); setParams(next); }}>Watch</Button>
+              <PlayOnMenu contentId={channel.acestream_channels[0].id} title={channel.name} label="Send to player" />
+            </Stack>
           </Stack>
           <ChannelGuide channel={channel} now={now} compact />
         </Box>)}
@@ -78,12 +82,15 @@ const LiveTV: React.FC = () => {
       {!unassigned.isLoading && !unassigned.isError && !unassigned.data?.items.length ? <Alert severity="info" sx={{ mt: 2 }}>
         {streamSearch ? 'No online unassigned streams match this search.' : 'No online streams without a channel.'}
       </Alert> : null}
-      {unassigned.data?.items.map((stream) => <Stack component="article" key={stream.id} direction="row" spacing={1.5} alignItems="center" sx={{ py: 2, borderBottom: 1, borderColor: 'divider' }}>
+      {unassigned.data?.items.map((stream) => <Stack component="article" key={stream.id} direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', sm: 'center' }} sx={{ py: 2, borderBottom: 1, borderColor: 'divider' }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography component="h3" variant="h6" sx={{ overflowWrap: 'anywhere' }}>{stream.name}</Typography>
           <Typography variant="body2" color="text.secondary">Online at last check · {stream.last_checked ? formatRelativeTime(stream.last_checked) : 'Check time unavailable'}{stream.group ? ` · ${stream.group}` : ''}</Typography>
         </Box>
-        <Button variant="outlined" startIcon={<PlayArrowRounded />} aria-label={`Watch ${stream.name}`} onClick={() => setPlayingStream(stream)}>Watch</Button>
+        <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0 }}>
+          <Button variant="outlined" startIcon={<PlayArrowRounded />} aria-label={`Watch ${stream.name}`} onClick={() => setPlayingStream(stream)}>Watch</Button>
+          <PlayOnMenu contentId={stream.id} title={stream.name} label="Send to player" />
+        </Stack>
       </Stack>)}
       {(unassigned.data?.total ?? 0) > PAGE_SIZE ? <Pagination aria-label="Unassigned stream pages" count={streamPageCount} page={streamPage} onChange={(_event, value) => setStreamPage(value)} size="small" siblingCount={0} sx={{ my: 2 }} /> : null}
     </ContentSection>

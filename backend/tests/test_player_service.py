@@ -27,7 +27,7 @@ class FakeSettings:
         self.FFMPEG_BINARY_PATH = ""
 
 
-def _engine(handler=None):
+def _engine(handler=None, use_acexy=False):
     def default(request):
         p = request.url.path
         if p == "/ace/getstream":
@@ -35,17 +35,17 @@ def _engine(handler=None):
         if "/ace/stat/" in p:
             return httpx.Response(200, json={"response": {"status": "dl", "peers": 3, "speed_down": 500, "speed_up": 10}, "error": None})
         return httpx.Response(200, text="ok")
-    return EngineClient("http://engine:6878", client=httpx.Client(transport=httpx.MockTransport(handler or default)))
+    return EngineClient("http://engine:6878", client=httpx.Client(transport=httpx.MockTransport(handler or default)), use_acexy=use_acexy)
 
 
 @pytest.fixture
 def make_service(tmp_path, monkeypatch):
-    def factory(mode="normal", ffmpeg=str(FAKE_FFMPEG), handler=None, **settings):
+    def factory(mode="normal", ffmpeg=str(FAKE_FFMPEG), handler=None, use_acexy=False, **settings):
         monkeypatch.setenv("FAKE_FFMPEG_MODE", mode)
         clock = {"now": 1000.0}
         svc = PlayerService(
             settings_getter=lambda: FakeSettings(tmp_path / "hls", **settings),
-            engine_factory=lambda: _engine(handler),
+            engine_factory=lambda: _engine(handler, use_acexy),
             ffmpeg_path=ffmpeg,
             monotonic=lambda: clock["now"],
         )
@@ -595,11 +595,32 @@ def test_audio_selection_isolated_and_tracks_discovered_from_input(make_service,
             assert same is original
             alternate = await svc.open_session(IH, audio_index=1)
             assert alternate is not original
+            assert len(original.engine_session.pid) == 32
+            assert alternate.engine_session.pid != original.engine_session.pid
             assert alternate.audio_index == 1 and original.audio_index is None
             assert original.viewers == 2
             assert await svc.open_session(IH, audio_index=1) is alternate
             argv = svc.ffmpeg_argv('http://engine/media', Path('/tmp/hls'), audio_index=1)
             assert '0:a:1' in argv and '0:a:0?' not in argv
+        finally:
+            await svc.stop()
+    asyncio.run(run())
+
+
+def test_web_player_reads_acexy_and_leaves_shared_session_management_to_proxy(make_service):
+    def handler(request):
+        pytest.fail(f'Unexpected direct engine API call: {request.url.path}')
+    svc = make_service(handler=handler, use_acexy=True)
+    async def run():
+        await svc.start()
+        try:
+            session = await svc.open_session(IH)
+            assert session.engine_session.managed_by_acexy
+            assert session.engine_session.playback_url == f'http://engine:6878/ace/getstream?id={IH}'
+            assert await _wait(lambda: svc.hls_ready(session))
+            await svc.tick()
+            assert session.state == 'ready' and session.stats is None
+            assert await svc.open_session(IH) is session
         finally:
             await svc.stop()
     asyncio.run(run())

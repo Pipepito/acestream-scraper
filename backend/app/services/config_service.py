@@ -5,6 +5,7 @@ from fastapi import HTTPException
 import re
 
 from app.repositories.settings_repository import SettingsRepository
+from app.schemas.config import PlaybackRouting
 from app.services.public_url_service import InvalidPublicBaseUrl, normalize_public_base_url
 
 logger = logging.getLogger(__name__)
@@ -40,6 +41,14 @@ class ConfigService:
     def get_ace_engine_url(self) -> str:
         """Get the Acestream Engine URL"""
         return self.settings_repo.get_setting(SettingsRepository.ACE_ENGINE_URL)
+
+    def get_playback_routing(self) -> PlaybackRouting:
+        return PlaybackRouting.model_validate_json(self.settings_repo.get_setting(SettingsRepository.PLAYBACK_ROUTING))
+
+    def set_playback_routing(self, routing: PlaybackRouting) -> PlaybackRouting:
+        if not self.settings_repo.set_setting(SettingsRepository.PLAYBACK_ROUTING, routing.model_dump_json(), "Playback routing"):
+            raise HTTPException(status_code=500, detail="Failed to save playback routing")
+        return routing
 
     def set_ace_engine_url(self, url: str) -> bool:
         """Set the Acestream Engine URL"""

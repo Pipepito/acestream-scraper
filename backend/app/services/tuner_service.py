@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import html
 import logging
+import re
 import secrets
 from dataclasses import dataclass, field
 from typing import List, Optional, Set
@@ -141,6 +142,12 @@ class TunerService:
             )
         return generated
 
+    def online_stream_ids(self, tv_channel_id: int) -> List[str]:
+        streams = ChannelRepository(self.db).get_online_tuner_streams(tv_channel_id)
+        valid = [stream for stream in streams if re.fullmatch(r"[0-9a-fA-F]{40}", stream.id)]
+        valid.sort(key=lambda stream: (-(stream.bitrate_bps or 0), stream.id))
+        return list(dict.fromkeys(stream.id.lower() for stream in valid))
+
     # --- lineup -------------------------------------------------------------
     def build_lineup(self) -> Lineup:
         """Active TV channels with at least one stream, in curated playlist
@@ -190,7 +197,7 @@ class TunerService:
         """Changes whenever a media server would have to re-read the lineup."""
         digest = hashlib.sha256()
         for entry in lineup.entries:
-            digest.update(f"{entry.guide_number}|{entry.guide_name}|{entry.content_id}\n".encode("utf-8"))
+            digest.update(f"channel-v1|{entry.guide_number}|{entry.guide_name}|{entry.tv_channel_id}\n".encode("utf-8"))
         return digest.hexdigest()
 
     def guide_fingerprint(self) -> str:
@@ -265,5 +272,5 @@ class TunerService:
             if entry.category:
                 attrs.append(f'group-title="{m3u_attr(entry.category)}"')
             lines.append(f'#EXTINF:-1 {" ".join(attrs)},{m3u_attr(entry.guide_name)}')
-            lines.append(f"{base}/tuner/stream/{entry.content_id}.ts")
+            lines.append(f"{base}/tuner/channel/{entry.tv_channel_id}.ts")
         return "\n".join(lines) + "\n"

@@ -46,3 +46,9 @@ describe('playerService', () => {
     expect(handled).toBe(true);
   });
 });
+
+it('sends the requested audio index when starting playback', async () => {
+  (apiClient.post as jest.Mock).mockResolvedValue({ data: { id: 'audio-session', audio_index: 1 } });
+  await playerService.startSession('a'.repeat(40), 1);
+  expect(apiClient.post).toHaveBeenLastCalledWith('/v1/player/sessions', { content_id: 'a'.repeat(40), audio_index: 1 });
+});

@@ -576,3 +576,30 @@ def test_docker_build_test_runs_the_real_player_command():
         "player_service.ffmpeg_argv and the Docker build test's PLAYER_COMMAND have drifted; "
         "update PLAYER_COMMAND so that test still exercises the command the app runs"
     )
+
+
+def test_audio_selection_isolated_and_tracks_discovered_from_input(make_service, monkeypatch):
+    monkeypatch.setenv("FAKE_FFMPEG_MULTI_AUDIO", "1")
+    svc = make_service()
+    async def run():
+        try:
+            original = await svc.open_session(IH)
+            assert await _wait(lambda: len(original.audio_tracks) == 2)
+            assert [track.index for track in original.audio_tracks] == [0, 1]
+            assert original.audio_tracks[1].language == 'eng'
+            assert original.audio_tracks[1].codec == 'aac'
+            assert original.audio_tracks[1].channel_layout == 'stereo'
+            # Output audio must not be advertised as another input track.
+            assert len(original.audio_tracks) == 2
+            same = await svc.open_session(IH, audio_index=0)
+            assert same is original
+            alternate = await svc.open_session(IH, audio_index=1)
+            assert alternate is not original
+            assert alternate.audio_index == 1 and original.audio_index is None
+            assert original.viewers == 2
+            assert await svc.open_session(IH, audio_index=1) is alternate
+            argv = svc.ffmpeg_argv('http://engine/media', Path('/tmp/hls'), audio_index=1)
+            assert '0:a:1' in argv and '0:a:0?' not in argv
+        finally:
+            await svc.stop()
+    asyncio.run(run())

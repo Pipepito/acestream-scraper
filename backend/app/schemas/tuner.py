@@ -33,7 +33,7 @@ class TunerUrls(BaseModel):
     guide: str
     playlist: str
     epg: str
-    stream_template: str
+    stream_template: str = Field(description="Stable TV channel playback URL template; replace {tv_channel_id} with its numeric ID")
 
 
 class TunerDenial(BaseModel):

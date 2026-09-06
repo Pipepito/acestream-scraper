@@ -10,6 +10,13 @@ from app.models.models import AcestreamChannel, EPGChannel, TVChannel
 
 
 class ChannelRepository:
+    def get_online_tuner_streams(self, tv_channel_id: int) -> List[AcestreamChannel]:
+        return (self.db.query(AcestreamChannel)
+                .join(TVChannel, TVChannel.id == AcestreamChannel.tv_channel_id)
+                .filter(TVChannel.id == tv_channel_id, TVChannel.is_active.is_(True),
+                        AcestreamChannel.is_active.is_(True), AcestreamChannel.is_online.is_(True))
+                .all())
+
     def get_tv_matching_inventory(self) -> tuple[list[TVChannel], list[AcestreamChannel]]:
         targets = self.db.query(TVChannel).order_by(TVChannel.id).all()
         return targets, self.get_unassigned_channels()
@@ -367,7 +374,7 @@ class ChannelRepository:
             .all()
         )
 
-    def update_channel_status(self, channel_id: str, is_online: bool, error: str = None) -> AcestreamChannel:
+    def update_channel_status(self, channel_id: str, is_online: bool, error: str = None, *, bitrate_bps: Optional[int] = None, audio_tracks: Optional[list] = None) -> AcestreamChannel:
         """Update the online status of a channel"""
         channel = self.get_channel_by_id(channel_id)
         if not channel:
@@ -376,6 +383,11 @@ class ChannelRepository:
         channel.is_online = is_online
         channel.last_checked = datetime.now(timezone.utc)
         channel.check_error = error
+        if audio_tracks is not None:
+            channel.audio_tracks = audio_tracks
+        if bitrate_bps is not None:
+            channel.bitrate_bps = bitrate_bps
+            channel.bitrate_checked_at = channel.last_checked
         self.db.commit()
         self.db.refresh(channel)
         return channel

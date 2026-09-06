@@ -37,7 +37,7 @@ async function fixtures(page: Page) {
       data = { id: `session-${starts.length}`, state: 'error', error: 'engine_unavailable', codecs: {}, hls_ready: false };
     } else if (path.startsWith('/player/sessions/')) {
       if (request.method() === 'DELETE') leaves.push(path.split('/').pop()!);
-      data = { id: path.split('/').pop(), state: 'error', error: 'engine_unavailable', codecs: {}, hls_ready: false };
+      data = { id: path.split('/').pop(), state: 'error', error: 'engine_unavailable', codecs: {}, hls_ready: false, audio_tracks: [{ index: 0, language: 'spa', codec: 'ac3' }, { index: 1, language: 'eng', codec: 'aac' }] };
     }
     await route.fulfill({ json: data });
   });
@@ -97,4 +97,21 @@ test('direct channel URL, guide error and retry, browser Back', async ({ page })
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.goto('/live-tv?channel=1');
   await expect(page.getByRole('combobox', { name: /^Stream/ })).toBeVisible();
+});
+
+
+test('audio track selection requests the chosen language', async ({ page }) => {
+  await fixtures(page);
+  const selectedAudio: number[] = [];
+  page.on('request', (request) => {
+    if (request.method() === 'POST' && request.url().endsWith('/player/sessions')) {
+      const index = request.postDataJSON().audio_index;
+      if (index !== undefined) selectedAudio.push(index);
+    }
+  });
+  await page.goto('/live-tv?channel=1');
+  await page.getByRole('combobox', { name: 'Audio track' }).click();
+  await page.getByRole('option', { name: /Track 2 · eng/ }).click();
+  await expect.poll(() => selectedAudio).toEqual([1]);
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
 });

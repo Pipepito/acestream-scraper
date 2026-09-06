@@ -1,3 +1,4 @@
+import type { components } from './api-generated';
 export interface ChannelBase {
   channel_id: string;
   name: string;
@@ -24,6 +25,9 @@ export interface ChannelUpdate {
 }
 
 export interface AcestreamChannel extends ChannelBase {
+  bitrate_bps?: components['schemas']['AcestreamChannelResponse']['bitrate_bps'];
+  bitrate_checked_at?: components['schemas']['AcestreamChannelResponse']['bitrate_checked_at'];
+  audio_tracks?: components['schemas']['AcestreamChannelResponse']['audio_tracks'];
   id: string; // Acestream hash ID
   group?: string;
   logo?: string;

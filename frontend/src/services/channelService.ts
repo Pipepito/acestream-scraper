@@ -2,6 +2,7 @@
  * Acestream Channel API service
  */
 import apiClient from './apiClient';
+import type { components } from '../types/api-generated';
 
 /**
  * Channel model interface
@@ -23,6 +24,9 @@ export interface AcestreamChannel {
   is_online: boolean | null;
   last_checked?: string;
   check_error?: string;
+  audio_tracks?: components['schemas']['AcestreamChannelResponse']['audio_tracks'];
+  bitrate_bps?: components['schemas']['AcestreamChannelResponse']['bitrate_bps'];
+  bitrate_checked_at?: components['schemas']['AcestreamChannelResponse']['bitrate_checked_at'];
   epg_update_protected: boolean;
   tv_channel_id?: number;
   tv_channel_name?: string;

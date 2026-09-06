@@ -1,5 +1,5 @@
 """Web player sessions: one shared ffmpeg (video copy, audio -> AAC, HLS) per
-channel, an asyncio reaper/stat loop and a startup sweep (spec 5.1)."""
+channel/audio choice, an asyncio reaper/stat loop and a startup sweep (spec 5.1)."""
 from __future__ import annotations
 
 import asyncio
@@ -22,6 +22,7 @@ from typing import Any, Callable, Deque, Dict, List, Literal, Optional, TypeVar
 from fastapi.concurrency import run_in_threadpool
 
 from app.config.settings import get_settings
+from app.schemas.media import AudioTrack
 from app.services.engine_client import (
     EngineClient,
     EngineRefusedError,
@@ -48,7 +49,7 @@ T = TypeVar("T")
 
 
 class PlayerLimitReached(RuntimeError):
-    """More distinct channels were requested than ``PLAYER_MAX_SESSIONS`` allows."""
+    """More playback sessions were requested than ``PLAYER_MAX_SESSIONS`` allows."""
 
     def __init__(self, limit: int, active: int):
         super().__init__(f"player session limit reached ({active}/{limit})")
@@ -63,6 +64,8 @@ class PlayerSession:
     dir: Path
     created_at: float
     last_access: float
+    audio_index: Optional[int] = None
+    audio_tracks: List[AudioTrack] = field(default_factory=list)
     state: PlayerState = "starting"
     error: Optional[PlayerError] = None
     error_message: str = ""
@@ -138,11 +141,11 @@ class PlayerService:
             "hls_dir": str(self.hls_dir()),
         }
 
-    def ffmpeg_argv(self, playback_url: str, directory: Path) -> List[str]:
+    def ffmpeg_argv(self, playback_url: str, directory: Path, audio_index: Optional[int] = None) -> List[str]:
         return [
             str(self.ffmpeg_path()), "-nostdin", "-hide_banner", "-loglevel", "info", "-nostats",
             "-rw_timeout", "20000000", "-fflags", "+genpts+discardcorrupt",
-            "-i", playback_url, "-map", "0:v:0", "-map", "0:a:0?", "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-ac", "2",
+            "-i", playback_url, "-map", "0:v:0", "-map", f"0:a:{audio_index}" if audio_index is not None else "0:a:0?", "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-ac", "2",
             "-f", "hls", "-hls_time", "2", "-hls_list_size", "6", "-hls_delete_threshold", "2",
             "-hls_flags", "delete_segments+independent_segments+omit_endlist+temp_file",
             "-hls_segment_type", "mpegts", "-hls_segment_filename", str(directory / "seg%05d.ts"),
@@ -241,10 +244,10 @@ class PlayerService:
             return False
         return sum(1 for line in lines if line.strip().endswith(".ts")) >= 2
 
-    async def open_session(self, content_id: str) -> PlayerSession:
+    async def open_session(self, content_id: str, audio_index: Optional[int] = None) -> PlayerSession:
         async with self._lock:
             for existing in self.sessions.values():
-                if existing.content_id == content_id and existing.state in ("starting", "ready"):
+                if existing.content_id == content_id and (existing.audio_index or 0) == (audio_index or 0) and existing.state in ("starting", "ready"):
                     existing.viewers += 1
                     existing.viewers_zero_since = None
                     existing.last_access = self._now()
@@ -264,6 +267,7 @@ class PlayerService:
             session = PlayerSession(
                 id=session_id,
                 content_id=content_id,
+                audio_index=audio_index,
                 dir=self.hls_dir() / session_id,
                 created_at=now,
                 last_access=now,
@@ -302,7 +306,7 @@ class PlayerService:
             return
         session.engine_session = engine_session
         session.dir.mkdir(parents=True, exist_ok=True)
-        argv = self.ffmpeg_argv(engine_session.playback_url, session.dir)
+        argv = self.ffmpeg_argv(engine_session.playback_url, session.dir, session.audio_index)
         process: Optional[asyncio.subprocess.Process] = None
         try:
             process = await asyncio.create_subprocess_exec(
@@ -364,6 +368,8 @@ class PlayerService:
         if proc is None or proc.stderr is None:
             return
         stream = proc.stderr
+        input_streams = True
+        audio_stream_ids: set[int] = set()
         try:
             while True:
                 try:
@@ -377,10 +383,20 @@ class PlayerService:
                 if not line:
                     continue
                 session.stderr_tail.append(line[-300:])
+                if line.startswith(("Stream mapping:", "Output #")):
+                    input_streams = False
+                audio = re.search(r"Stream #0:(\d+)(?:\[[^]]*\])?(?:\(([^)]*)\))?: Audio: ([A-Za-z0-9_]+)(.*)", line)
+                if input_streams and audio and int(audio.group(1)) not in audio_stream_ids:
+                    audio_stream_ids.add(int(audio.group(1)))
+                    layout = re.search(r", (mono|stereo|[0-9]+\.[0-9]+)(?:[ ,]|$)", audio.group(4))
+                    session.audio_tracks.append(AudioTrack(index=len(session.audio_tracks),
+                        language=audio.group(2), codec=audio.group(3), channel_layout=layout.group(1) if layout else None))
                 match = _STREAM_LINE.search(line)
-                if match:
+                if match and input_streams:
                     kind, codec = match.group(1).lower(), match.group(2).lower()
-                    if session.codecs.get(kind) is None:
+                    if kind == "audio" and len(session.audio_tracks) - 1 == (session.audio_index or 0):
+                        session.codecs[kind] = codec
+                    elif kind != "audio" and session.codecs.get(kind) is None:
                         session.codecs[kind] = codec
         finally:
             with contextlib.suppress(Exception):

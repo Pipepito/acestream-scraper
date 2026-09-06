@@ -3,7 +3,7 @@ SQLAlchemy models for the application
 """
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, Integer, String, Text, false
+from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Index, Integer, String, Text, false
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from sqlalchemy.types import TypeDecorator
@@ -114,6 +114,9 @@ class AcestreamChannel(Base):
     is_online = Column(Boolean, nullable=True)
     last_checked = Column(UtcDateTime(), nullable=True)
     check_error = Column(Text, nullable=True)
+    audio_tracks = Column(JSON, nullable=True)
+    bitrate_bps = Column(Integer, nullable=True)
+    bitrate_checked_at = Column(UtcDateTime(), nullable=True)
     original_url = Column(String(2048), nullable=True)
     epg_update_protected = Column(Boolean, default=False)
 

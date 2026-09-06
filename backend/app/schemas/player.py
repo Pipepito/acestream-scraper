@@ -5,12 +5,14 @@ from datetime import datetime
 from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field
+from app.schemas.media import AudioTrack
 
 PlayerStateValue = Literal["starting", "ready", "error", "stopped"]
 PlayerErrorValue = Literal["engine_unavailable", "engine_refused", "engine_stalled", "ffmpeg_missing", "ffmpeg_failed"]
 
 
 class PlayerSessionCreate(BaseModel):
+    audio_index: Optional[int] = Field(None, ge=0, le=63, description="Audio track to play; null uses the first available audio track")
     content_id: str = Field(..., pattern=r"^[0-9a-fA-F]{40}$", description="AceStream content id (40 hex)")
 
 
@@ -27,6 +29,8 @@ class PlayerStats(BaseModel):
 
 
 class PlayerSessionStatus(BaseModel):
+    audio_index: Optional[int] = None
+    audio_tracks: List[AudioTrack] = Field(default_factory=list)
     id: str
     content_id: str
     state: PlayerStateValue

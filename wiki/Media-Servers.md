@@ -140,14 +140,37 @@ curl -s -o /dev/null -w '%{http_code}\n' http://192.168.1.10:8000/tuner/discover
 
 ## Channels with several streams
 
-The HDHomeRun lineup advertises one entry per active TV channel with streams.
-When the lineup is generated, the app picks one attached stream: online status
-ranks first, then logo and EPG metadata; equal scores use the content ID as a
-stable tie-breaker. This ranking does not measure picture quality or buffering.
+Jellyfin and Plex receive one stable URL per TV channel:
+`/tuner/channel/<tv-channel-id>.ts`. The HDHomeRun lineup and tuner M3U both use
+this URL. Refresh the media server's guide once after upgrading so it picks up
+the new links; existing `/tuner/stream/<content-id>.ts` links still play that exact
+source without failover.
 
-The advertised URL is `/tuner/stream/<acestream-content-id>.ts`. Jellyfin requests
-that exact stream through the app's relay. It does not receive the other stream
-IDs, and the relay does not retry them automatically if the chosen one fails.
-A later lineup refresh can advertise a different stream after status changes;
-it does not switch an existing playback session. A saved online result can also
-become stale before playback starts.
+On each tune, the app reads the channel's active sources whose saved status is
+**online**. It tries known measured bitrates from highest to lowest, then sources
+whose bitrate is unknown. Equal bitrates use content ID order. Offline, unchecked,
+inactive, and malformed source IDs are excluded. If the TV channel is disabled or
+has no eligible sources, playback returns `503 NO_ONLINE_STREAMS`.
+
+Refused, empty, timed-out, or otherwise failed starts advance to the next source.
+Each source is tried once, with a 15-second attempt deadline and a 45-second overall
+startup budget. In-flight blocking engine calls and cleanup may finish after that
+deadline before returning. One tuner slot stays reserved across all attempts.
+If none starts, the response is `502 CHANNEL_STREAM_FAILED`.
+
+Once video bytes have reached the player, a later failure ends that response.
+The app does not splice feeds with unrelated timestamps or codecs together.
+Reopening the same channel URL resolves the latest source list again. This is
+**startup failover**, not seamless recovery during a programme.
+
+Successful channel status checks also take a bounded media sample (at most 2 MiB
+and 10 seconds including analysis) to estimate encoded bitrate and discover audio
+tracks with bundled ffprobe. P2P download speed is never treated as media bitrate.
+Existing channels start with unknown metadata; normal status checks populate it.
+A failed metadata probe leaves the previous measurement intact and does not turn
+an otherwise broadcasting source offline. Measurements are estimates and can age.
+
+The MPEG-TS relay preserves the source's audio tracks; Jellyfin/Plex can discover
+them from the media. The channel API also exposes measured bitrate, its timestamp,
+and known audio tracks. No database/network work stays attached to an hours-long
+relay session.

@@ -109,6 +109,10 @@ class RelayRegistry:
         self._relays[info.id] = info
         return info
 
+    def select_stream(self, relay_id: str, content_id: str) -> None:
+        with self._lock:
+            self._relays[relay_id].content_id = content_id
+
     def close(self, relay_id: str) -> None:
         with self._lock:
             info = self._relays.get(relay_id)
@@ -172,6 +176,7 @@ async def relay_engine_stream(
     client_factory: Optional[Callable[..., httpx.AsyncClient]] = None,
     registry: Optional[RelayRegistry] = None,
     claim: Optional[RelayInfo] = None,
+    release_claim: bool = True,
 ) -> AsyncIterator[bytes]:
     """Yield MPEG-TS bytes for ``content_id``.
 
@@ -185,7 +190,9 @@ async def relay_engine_stream(
     ``claim`` is a slot already reserved with ``RelayRegistry.try_open`` -- how
     a capped caller (the tuner) reserves before the engine round-trip. The
     relay adopts it and releases it on every exit path, a failed session start
-    included; without one it registers itself, likewise before the start, so a
+    included. A failover owner can pass release_claim=False to retain its slot
+    across attempts and must close the claim itself. Without a claim the relay
+    registers itself, likewise before the start, so a
     relay is on the books for as long as it holds an engine session.
     """
     registry = registry or relay_registry
@@ -210,7 +217,8 @@ async def relay_engine_stream(
             # playback_url: the route needs EngineStreamError to answer 502.
             raise EngineStreamError(f"Engine stream failed: {exc}") from exc
     finally:
-        registry.close(info.id)
+        if release_claim:
+            registry.close(info.id)
         if session is not None:
             with anyio.CancelScope(shield=True):
                 await run_in_threadpool(engine.stop, session)

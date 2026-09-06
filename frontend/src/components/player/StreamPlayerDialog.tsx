@@ -8,6 +8,8 @@ import {
   DialogContent,
   DialogTitle,
   Snackbar,
+  MenuItem,
+  TextField,
   Stack,
   Typography,
   useMediaQuery,
@@ -71,6 +73,8 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
   const leftRef = useRef(false);
   const requestGeneration = useRef(0);
 
+  const [audioSelection, setAudioSelection] = useState<{ contentId: string | null; index: number | null }>({ contentId: null, index: null });
+  const audioIndex = audioSelection.contentId === contentId ? audioSelection.index : null;
   const start = useStartPlayerSession();
   const { data: status, error: statusError } = usePlayerSessionStatus(sessionId);
   const { data: publicUrl } = usePublicUrl();
@@ -100,7 +104,7 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
     setSessionId(null);
     const generation = ++requestGeneration.current;
     // Promise handlers also run after unmount; stale starts must release their viewer.
-    void start.mutateAsync(contentId).then((session) => {
+    void start.mutateAsync(audioIndex === null ? contentId : { contentId, audioIndex }).then((session) => {
         if (generation !== requestGeneration.current) {
           playerService.leaveSession(session.id);
           return;
@@ -119,7 +123,7 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
         }
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contentId, leave]);
+  }, [contentId, audioIndex, leave]);
 
   useEffect(() => {
     if (open && contentId) startSession();
@@ -139,7 +143,7 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
       setSessionId(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, contentId]);
+  }, [open, contentId, audioIndex]);
 
   useEffect(() => {
     const onPageHide = () => leave();
@@ -257,6 +261,14 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
               Video {status.codecs.video.toUpperCase()} · audio {(status.codecs.audio ?? 'unknown').toUpperCase()} re-encoded to AAC
             </Typography>
           ) : null}
+          {status?.audio_tracks?.length ? <TextField select fullWidth label="Audio track" value={audioIndex ?? 'default'}
+            onChange={(event) => setAudioSelection({ contentId, index: event.target.value === 'default' ? null : Number(event.target.value) })}
+            helperText="Changing audio restarts your playback. Other viewers keep their selected track.">
+            <MenuItem value="default">Default audio</MenuItem>
+            {status.audio_tracks.map((track) => <MenuItem key={track.index} value={track.index} sx={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>
+              {`Track ${track.index + 1}${track.language ? ` · ${track.language}` : ''}${track.title ? ` · ${track.title}` : ''}${track.codec ? ` · ${track.codec.toUpperCase()}` : ''}${track.channel_layout ? ` · ${track.channel_layout}` : ''}`}
+            </MenuItem>)}
+          </TextField> : null}
           {details}
         </Stack>
       </DialogContent>

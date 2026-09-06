@@ -129,6 +129,46 @@
       "AcestreamChannelResponse": {
         "description": "Schema for Acestream channel response",
         "properties": {
+          "audio_tracks": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AudioTrack"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Audio tracks found at the last successful media probe; null means unknown",
+            "title": "Audio Tracks"
+          },
+          "bitrate_bps": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Last measured encoded media bitrate in bits per second; not P2P download speed",
+            "title": "Bitrate Bps"
+          },
+          "bitrate_checked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bitrate Checked At"
+          },
           "check_error": {
             "anyOf": [
               {
@@ -812,6 +852,76 @@
           "value"
         ],
         "title": "AppIdUpdate",
+        "type": "object"
+      },
+      "AudioTrack": {
+        "properties": {
+          "channel_layout": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel Layout"
+          },
+          "channels": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channels"
+          },
+          "codec": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Codec"
+          },
+          "index": {
+            "description": "Zero-based audio track index (ffmpeg 0:a:index)",
+            "minimum": 0.0,
+            "title": "Index",
+            "type": "integer"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "index"
+        ],
+        "title": "AudioTrack",
         "type": "object"
       },
       "BaseUrlCreate": {
@@ -2718,6 +2828,20 @@
       },
       "PlayerSessionCreate": {
         "properties": {
+          "audio_index": {
+            "anyOf": [
+              {
+                "maximum": 63.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Audio track to play; null uses the first available audio track",
+            "title": "Audio Index"
+          },
           "content_id": {
             "description": "AceStream content id (40 hex)",
             "pattern": "^[0-9a-fA-F]{40}$",
@@ -2749,6 +2873,24 @@
       },
       "PlayerSessionStatus": {
         "properties": {
+          "audio_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Index"
+          },
+          "audio_tracks": {
+            "items": {
+              "$ref": "#/components/schemas/AudioTrack"
+            },
+            "title": "Audio Tracks",
+            "type": "array"
+          },
           "codecs": {
             "$ref": "#/components/schemas/PlayerCodecs"
           },
@@ -5592,6 +5734,7 @@
             "type": "string"
           },
           "stream_template": {
+            "description": "Stable TV channel playback URL template; replace {tv_channel_id} with its numeric ID",
             "title": "Stream Template",
             "type": "string"
           },
@@ -13932,6 +14075,49 @@
           }
         },
         "summary": "Public M3U Playlist"
+      }
+    },
+    "/tuner/channel/{tv_channel_id}.ts": {
+      "get": {
+        "operationId": "tuner_channel_tuner_channel__tv_channel_id__ts_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tv_channel_id",
+            "required": true,
+            "schema": {
+              "title": "Tv Channel Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "video/mp2t": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "TV channel MPEG-TS with online source startup failover",
+        "tags": [
+          "hdhomerun"
+        ]
       }
     },
     "/tuner/stream/{content_id}.ts": {

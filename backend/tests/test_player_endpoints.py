@@ -221,3 +221,12 @@ def test_active_streams_names_an_unknown_channel_nothing(client, player):
         assert [stream["channel_name"] for stream in body["streams"]] == [None]
     finally:
         client.delete(f"/api/v1/player/sessions/{session['id']}")
+
+
+def test_audio_track_request_validation_and_status(client, player):
+    assert client.post('/api/v1/player/sessions', json={'content_id': IH, 'audio_index': -1}).status_code == 422
+    assert client.post('/api/v1/player/sessions', json={'content_id': IH, 'audio_index': 64}).status_code == 422
+    response = client.post('/api/v1/player/sessions', json={'content_id': IH, 'audio_index': 1})
+    assert response.status_code == 200
+    assert response.json()['audio_index'] == 1
+    assert isinstance(response.json()['audio_tracks'], list)

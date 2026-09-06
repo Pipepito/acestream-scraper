@@ -32,13 +32,13 @@ def test_guide_xml_uses_guide_numbers_and_three_display_names(db_session):
 
 
 def test_playlist_m3u_uses_relay_urls_and_tvg_attributes(db_session):
-    _seed(db_session)
+    tv = _seed(db_session)
     svc = TunerService(db_session)
     m3u = svc.build_playlist_m3u(svc.build_lineup(), "http://scraper.lan:8000")
     lines = m3u.strip().split("\n")
     assert lines[0] == "#EXTM3U"
     assert lines[1] == '#EXTINF:-1 tvg-id="DAZN LaLiga HD" tvg-chno="12" tvg-name="DAZN 1" tvg-logo="http://logo" group-title="Sports",DAZN 1'
-    assert lines[2] == "http://scraper.lan:8000/tuner/stream/" + "a" * 40 + ".ts"
+    assert lines[2] == f"http://scraper.lan:8000/tuner/channel/{tv.id}.ts"
 
 
 def test_generate_epg_xml_restricts_to_ids_and_stays_identical_without(db_session):

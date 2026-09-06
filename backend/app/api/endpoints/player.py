@@ -36,6 +36,8 @@ def _status(session: PlayerSession) -> PlayerSessionStatus:
     return PlayerSessionStatus(
         id=session.id,
         content_id=session.content_id,
+        audio_index=session.audio_index,
+        audio_tracks=session.audio_tracks,
         state=session.state,
         error=session.error,
         error_message=session.error_message,
@@ -118,7 +120,7 @@ def active_streams(db: Session = Depends(get_db)) -> ActiveStreamListResponse:
 @router.post("/sessions", response_model=PlayerSessionStatus, summary="Start (or join) playback of a channel")
 async def create_session(payload: PlayerSessionCreate) -> PlayerSessionStatus:
     try:
-        session = await player_service.open_session(payload.content_id.lower())
+        session = await player_service.open_session(payload.content_id.lower(), audio_index=payload.audio_index)
     except PlayerLimitReached as exc:
         raise APIError(
             code="PLAYER_LIMIT_REACHED",

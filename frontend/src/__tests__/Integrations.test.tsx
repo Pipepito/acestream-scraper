@@ -92,7 +92,7 @@ const tunerStatus = (overrides: Record<string, unknown> = {}) => ({
       guide: 'http://192.168.1.10:8000/tuner/guide.xml',
       playlist: 'http://192.168.1.10:8000/tuner/playlist.m3u',
       epg: 'http://192.168.1.10:8000/tuner/epg.xml',
-      stream_template: 'http://192.168.1.10:8000/tuner/stream/{content_id}.ts',
+      stream_template: 'http://192.168.1.10:8000/tuner/channel/{tv_channel_id}.ts',
     },
     ffmpeg_available: true,
     allowed_networks: ['192.168.0.0/16'],

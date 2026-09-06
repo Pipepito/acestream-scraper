@@ -2917,6 +2917,11 @@ export interface components {
     TVMatchApplyRequest: {
       /** Assignments */
       assignments: components["schemas"]["TVMatchAssignment"][];
+      /**
+       * Assumed Country
+       * @description Matching-only country for unlabelled streams and TV channels; explicit countries take precedence.
+       */
+      assumed_country?: ("ES" | "PT" | "FR" | "DE" | "IT" | "GB" | "US" | "NL" | "PL" | "TR" | "BE" | "AR" | "RU") | null;
     };
     /** TVMatchApplyResponse */
     TVMatchApplyResponse: {
@@ -2948,6 +2953,14 @@ export interface components {
       tv_channel_id: number;
       /** Tv Channel Name */
       tv_channel_name: string;
+    };
+    /** TVMatchOptions */
+    TVMatchOptions: {
+      /**
+       * Assumed Country
+       * @description Matching-only country for unlabelled streams and TV channels; explicit countries take precedence.
+       */
+      assumed_country?: ("ES" | "PT" | "FR" | "DE" | "IT" | "GB" | "US" | "NL" | "PL" | "TR" | "BE" | "AR" | "RU") | null;
     };
     /** TVMatchPreview */
     TVMatchPreview: {
@@ -6448,11 +6461,22 @@ export interface operations {
   };
   /** Preview Tv Matches */
   preview_tv_matches_api_v1_tv_channels_automatch_preview_post: {
+    requestBody?: {
+      content: {
+        "application/json": components["schemas"]["TVMatchOptions"] | null;
+      };
+    };
     responses: {
       /** @description Successful Response */
       200: {
         content: {
           "application/json": components["schemas"]["TVMatchPreview"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };

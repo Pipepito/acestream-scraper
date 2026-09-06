@@ -39,10 +39,11 @@ EPG creation workflow and per-channel manual assignment remain separate.
 5. Full normalized names preserve channel numbers, BAR, TV, plus, HDR, genres
    and every other station identity word. Brand-only DAZN/Movistar labels do not
    identify a station. Acción, Comedia and Peliculas remain separate.
-6. Country information must agree, including both being unmarked. An unmarked
+6. Country information must agree, including both being unmarked. The optional
+   assumption described below fills missing values before this comparison. An unmarked
    stream with multiple country editions in the TV catalog is ambiguous. An
    exact EPG ID can resolve that ambiguity only when names/countries agree.
-   Contradictory country labels or metadata are discarded.
+   Contradictory country labels or metadata are discarded even with an assumption.
 7. Multiple eligible destinations are ambiguous. No score, alphabetical order
    or database ID decides a winner between stations.
 8. Apply uses these same rules, so an explicit request cannot attach a discarded
@@ -52,6 +53,28 @@ This is identity matching from names/metadata, not verification of broadcast
 content. Multiple IDs with the same complete station name remain distinct backup
 streams. They are grouped under one station in the review UI, with nothing
 preselected. Discarded streams remain available in the manual assignment flow.
+
+## Optional country assumption
+
+**Assume country for unlabelled channels** defaults to **No assumption**. The
+selected country fills missing country information on both streams and target TV
+channels for this analysis only. Explicit name markers and TV country metadata
+always take precedence; contradictory labels still block matching. The setting is
+not a country filter, so an explicitly Portuguese stream can still match an
+explicitly Portuguese TV station. No metadata is written and there is no global
+or persistent assumption.
+
+For the reviewed catalog, selecting Spain produces 149 eligible IDs across 44
+stations: the original 125, plus 17 DAZN 1–4 IDs and seven explicitly Spanish
+Movistar IDs. It discards 244 others and preserves the four existing assignments.
+The reviewed fixture has explicit Spain-mode expectations for every changed row;
+the same full-catalog regression test checks both modes.
+
+Changing the selector clears the preview and selections. Both API operations
+accept optional `assumed_country` in the JSON body (for example `"ES"`). Apply
+recomputes with that same value; omitting it retains the strict default. Candidate
+reasons identify when the assumption was used. The API validates supported country
+codes, and the preview still accepts a request without a body for compatibility.
 
 ## API and persistence
 

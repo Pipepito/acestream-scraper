@@ -1,7 +1,7 @@
 """Conservative matching for existing TV channels; analysis never writes data."""
 import re
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from sqlalchemy.orm import Session
 
@@ -9,7 +9,7 @@ from app.repositories.channel_repository import ChannelRepository
 from app.schemas.tv_matching import TVMatchApplyRequest, TVMatchCandidate, TVMatchPreview
 
 QUALITY = re.compile(r'\b(?:[fus]?hdp?|sd[p]?|uhd|4k|8k|1080[pi]?|720[pi]?|576[pi]?|480[pi]?)\b')
-COUNTRIES = 'es|en|fr|de|it|pt|ru|nl|uk|us|pl|tr|be|ar'
+COUNTRIES = 'es|en|fr|de|it|pt|ru|nl|uk|gb|us|pl|tr|be|ar'
 REGION = re.compile(rf'^({COUNTRIES})\s*[|:]\s*|[\[(]({COUNTRIES})[\])]|\b(spain)\s*$', re.I)
 
 
@@ -18,6 +18,7 @@ class ChannelName:
     text: str
     country: str
     country_conflict: bool = False
+    country_assumed: bool = False
 
 
 def normalize_name(value: str | None, country: str | None = None) -> ChannelName:
@@ -39,6 +40,13 @@ def normalize_name(value: str | None, country: str | None = None) -> ChannelName
     return ChannelName(value, region, len(set(country_values)) > 1)
 
 
+def apply_country_assumption(name: ChannelName, assumed_country: str | None) -> ChannelName:
+    if not assumed_country or name.country or name.country_conflict:
+        return name
+    region = assumed_country.casefold()
+    return replace(name, country={'gb': 'uk'}.get(region, region), country_assumed=True)
+
+
 def name_score(target: ChannelName, candidate: ChannelName) -> tuple[float, str] | None:
     if not target.text or not candidate.text or target.text in {'dazn', 'movistar'}:
         return None
@@ -56,15 +64,15 @@ class TVMatchingService:
     def __init__(self, db: Session):
         self.repository = ChannelRepository(db)
 
-    def preview(self) -> TVMatchPreview:
+    def preview(self, assumed_country: str | None = None) -> TVMatchPreview:
         targets, streams = self.repository.get_tv_matching_inventory()
         if len(targets) * len(streams) > 2_000_000:
             raise ValueError('Channel inventory is too large for automatch (maximum 2 million comparisons).')
-        names = {tv.id: normalize_name(tv.name, tv.country) for tv in targets}
+        names = {tv.id: apply_country_assumption(normalize_name(tv.name, tv.country), assumed_country) for tv in targets}
         candidates = []
         ambiguous = unmatched = 0
         for stream in streams:
-            variants = [normalize_name(name) for name in (stream.name, stream.tvg_name) if name]
+            variants = [apply_country_assumption(normalize_name(name), assumed_country) for name in (stream.name, stream.tvg_name) if name]
             claims = []
             id_targets = {tv.id for tv in targets if stream.tvg_id and tv.epg_id == stream.tvg_id}
             # Missing region cannot choose between editions with the same name.
@@ -87,6 +95,8 @@ class TVMatchingService:
                     score, reason = 1.0, 'Exact EPG ID and normalized name'
                 else:
                     score, reason = 0.99, 'Exact normalized name'
+                if names[tv.id].country_assumed or any(variant.country_assumed for variant in variants):
+                    reason += f'; country assumed: {assumed_country}'
                 claims.append(TVMatchCandidate(
                     acestream_channel_id=stream.id, acestream_name=stream.name or stream.tvg_name or stream.id,
                     tv_channel_id=tv.id, tv_channel_name=tv.name, score=score, reason=reason,
@@ -110,5 +120,5 @@ class TVMatchingService:
         if len({item[0] for item in selected}) != len(selected):
             raise ValueError('A stream can only be assigned to one TV channel.')
         # Recompute against current metadata, including all competing TV channels.
-        accepted = {(item.acestream_channel_id, item.tv_channel_id) for item in self.preview().candidates}
+        accepted = {(item.acestream_channel_id, item.tv_channel_id) for item in self.preview(assumed_country=request.assumed_country).candidates}
         return self.repository.apply_tv_matches(selected, accepted)

@@ -256,7 +256,8 @@
       "name": "DAZN 1",
       "copies": 3,
       "expected_tv_name": null,
-      "reason": "ambiguous DAZN country edition"
+      "reason": "ambiguous DAZN country edition",
+      "expected_tv_name_with_es": "DAZN 1"
     },
     {
       "name": "DAZN 1 BAR FHD",
@@ -268,13 +269,15 @@
       "name": "DAZN 1 FHD",
       "copies": 3,
       "expected_tv_name": null,
-      "reason": "ambiguous DAZN country edition"
+      "reason": "ambiguous DAZN country edition",
+      "expected_tv_name_with_es": "DAZN 1"
     },
     {
       "name": "DAZN 2",
       "copies": 4,
       "expected_tv_name": null,
-      "reason": "ambiguous DAZN country edition"
+      "reason": "ambiguous DAZN country edition",
+      "expected_tv_name_with_es": "DAZN 2"
     },
     {
       "name": "DAZN 2 BAR FHD",
@@ -286,25 +289,29 @@
       "name": "DAZN 2 FHD",
       "copies": 2,
       "expected_tv_name": null,
-      "reason": "ambiguous DAZN country edition"
+      "reason": "ambiguous DAZN country edition",
+      "expected_tv_name_with_es": "DAZN 2"
     },
     {
       "name": "DAZN 3",
       "copies": 2,
       "expected_tv_name": null,
-      "reason": "ambiguous DAZN country edition"
+      "reason": "ambiguous DAZN country edition",
+      "expected_tv_name_with_es": "DAZN 3"
     },
     {
       "name": "DAZN 4",
       "copies": 2,
       "expected_tv_name": null,
-      "reason": "ambiguous DAZN country edition"
+      "reason": "ambiguous DAZN country edition",
+      "expected_tv_name_with_es": "DAZN 4"
     },
     {
       "name": "DAZN 4 FHD",
       "copies": 1,
       "expected_tv_name": null,
-      "reason": "ambiguous DAZN country edition"
+      "reason": "ambiguous DAZN country edition",
+      "expected_tv_name_with_es": "DAZN 4"
     },
     {
       "name": "DAZN F1",
@@ -784,19 +791,22 @@
       "name": "M+ CINE ESPAnOL HD Spain",
       "copies": 1,
       "expected_tv_name": null,
-      "reason": "country/edition not established"
+      "reason": "country/edition not established",
+      "expected_tv_name_with_es": "M+ Cine Español"
     },
     {
       "name": "M+ DRAMA HD Spain",
       "copies": 1,
       "expected_tv_name": null,
-      "reason": "country/edition not established"
+      "reason": "country/edition not established",
+      "expected_tv_name_with_es": "M+ Drama"
     },
     {
       "name": "M+ Documentales HD Spain",
       "copies": 1,
       "expected_tv_name": null,
-      "reason": "country/edition not established"
+      "reason": "country/edition not established",
+      "expected_tv_name_with_es": "M+ Documentales"
     },
     {
       "name": "M+ Golf 2 FHDp *",
@@ -820,13 +830,15 @@
       "name": "M+ Hits HD Spain",
       "copies": 1,
       "expected_tv_name": null,
-      "reason": "country/edition not established"
+      "reason": "country/edition not established",
+      "expected_tv_name_with_es": "M+ Hits"
     },
     {
       "name": "M+ Indie HD Spain",
       "copies": 1,
       "expected_tv_name": null,
-      "reason": "country/edition not established"
+      "reason": "country/edition not established",
+      "expected_tv_name_with_es": "M+ Indie"
     },
     {
       "name": "M+ LALIGA",
@@ -862,7 +874,8 @@
       "name": "M+ Originales HD Spain",
       "copies": 1,
       "expected_tv_name": null,
-      "reason": "country/edition not established"
+      "reason": "country/edition not established",
+      "expected_tv_name_with_es": "M+ Originales"
     },
     {
       "name": "M+ Romance HD Spain",
@@ -892,7 +905,8 @@
       "name": "M. Deportes HD (ES)",
       "copies": 1,
       "expected_tv_name": null,
-      "reason": "country/edition not established"
+      "reason": "country/edition not established",
+      "expected_tv_name_with_es": "M+ Deportes"
     },
     {
       "name": "MOTORS TV HD",

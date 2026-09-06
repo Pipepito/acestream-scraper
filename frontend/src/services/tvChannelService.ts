@@ -76,12 +76,13 @@ export interface TVChannelListFilters {
 }
 
 export type TVMatchPreview = components['schemas']['TVMatchPreview'];
+export type TVMatchOptions = components['schemas']['TVMatchOptions'];
 type TVMatchApplyRequest = components['schemas']['TVMatchApplyRequest'];
 type TVMatchApplyResponse = components['schemas']['TVMatchApplyResponse'];
 
 export const tvChannelService = {
-  previewAutoMatch: async (): Promise<TVMatchPreview> => {
-    const response = await apiClient.post<TVMatchPreview>(`${BASE_URL}/automatch/preview`);
+  previewAutoMatch: async (options: TVMatchOptions = {}): Promise<TVMatchPreview> => {
+    const response = await apiClient.post<TVMatchPreview>(`${BASE_URL}/automatch/preview`, options);
     return response.data;
   },
   applyAutoMatch: async (request: TVMatchApplyRequest): Promise<TVMatchApplyResponse> => {

@@ -1,8 +1,18 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, Box, Button, Checkbox, CircularProgress, Collapse, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Stack, TablePagination, Typography, useMediaQuery, useTheme } from '@mui/material';
+import { Alert, Box, Button, Checkbox, CircularProgress, Collapse, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Stack, TablePagination, TextField, MenuItem, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { tvChannelService, TVMatchPreview } from '../services/tvChannelService';
+import { tvChannelService, TVMatchPreview, TVMatchOptions } from '../services/tvChannelService';
 import { normalizeApiError } from '../services/apiErrors';
+
+const COUNTRY_OPTIONS: Array<{ value: NonNullable<TVMatchOptions['assumed_country']>; label: string }> = [
+  { value: 'ES', label: 'Spain' }, { value: 'PT', label: 'Portugal' },
+  { value: 'FR', label: 'France' }, { value: 'DE', label: 'Germany' },
+  { value: 'IT', label: 'Italy' }, { value: 'GB', label: 'United Kingdom' },
+  { value: 'US', label: 'United States' }, { value: 'NL', label: 'Netherlands' },
+  { value: 'PL', label: 'Poland' }, { value: 'TR', label: 'Türkiye' },
+  { value: 'BE', label: 'Belgium' }, { value: 'AR', label: 'Argentina' },
+  { value: 'RU', label: 'Russia' },
+];
 
 interface StationMatches {
   id: number;
@@ -18,6 +28,7 @@ export default function TVAutoMatchDialog({ onClose }: TVAutoMatchDialogProps) {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const queryClient = useQueryClient();
+  const [assumedCountry, setAssumedCountry] = useState<NonNullable<TVMatchOptions['assumed_country']> | ''>('');
   const [preview, setPreview] = useState<TVMatchPreview | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(0);
@@ -68,7 +79,20 @@ export default function TVAutoMatchDialog({ onClose }: TVAutoMatchDialogProps) {
       <DialogContent>
         <Stack spacing={2}>
           <Typography>Find streams for all TV channels. Existing assignments are preserved. Review the suggestions before assigning.</Typography>
-          <Button variant="outlined" disabled={busy} onClick={() => analyze.mutate()}>{preview ? 'Analyze again' : 'Find matches'}</Button>
+          <TextField select label="Assume country for unlabelled channels" value={assumedCountry} disabled={busy} helperText="Applies to streams and TV channels without a country. Explicit country labels take precedence. Stored channel data is unchanged." onChange={(event) => {
+            const country = COUNTRY_OPTIONS.find((option) => option.value === event.target.value)?.value ?? '';
+            setAssumedCountry(country);
+            setPreview(null);
+            setSelected(new Set());
+            setExpanded(new Set());
+            setPage(0);
+            analyze.reset();
+            apply.reset();
+          }}>
+            <MenuItem value="">No assumption</MenuItem>
+            {COUNTRY_OPTIONS.map((option) => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
+          </TextField>
+          <Button variant="outlined" disabled={busy} onClick={() => analyze.mutate({ assumed_country: assumedCountry || null })}>{preview ? 'Analyze again' : 'Find matches'}</Button>
           {busy ? <CircularProgress size={24} aria-label={analyze.isPending ? 'Finding matches' : 'Assigning streams'} /> : null}
           {error ? <Alert severity="error">{normalizeApiError(error).message}</Alert> : null}
           {apply.data ? <Alert severity="success">{apply.data.assigned_count} streams assigned. {apply.data.skipped_count} skipped because they changed or were already assigned.</Alert> : null}
@@ -105,7 +129,7 @@ export default function TVAutoMatchDialog({ onClose }: TVAutoMatchDialogProps) {
       </DialogContent>
       <DialogActions>
         <Button disabled={busy} onClick={onClose}>Close</Button>
-        <Button variant="contained" disabled={busy || !selected.size || !preview} onClick={() => apply.mutate({ assignments: (preview?.candidates ?? []).filter((item) => selected.has(item.acestream_channel_id)).map((item) => ({ acestream_channel_id: item.acestream_channel_id, tv_channel_id: item.tv_channel_id })) })}>Assign selected ({selected.size})</Button>
+        <Button variant="contained" disabled={busy || !selected.size || !preview} onClick={() => apply.mutate({ assumed_country: assumedCountry || null, assignments: (preview?.candidates ?? []).filter((item) => selected.has(item.acestream_channel_id)).map((item) => ({ acestream_channel_id: item.acestream_channel_id, tv_channel_id: item.tv_channel_id })) })}>Assign selected ({selected.size})</Button>
       </DialogActions>
     </Dialog>
   );

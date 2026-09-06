@@ -88,6 +88,13 @@ Open **TV Channels**. A TV channel is the user-facing station in your playlist; 
 To fill existing TV channels from scraped streams, select **Auto-match streams**
 then **Find matches**. This checks all TV channels, including those outside the
 current filters. Results are grouped by TV station with a count of matching stream IDs.
+If the source sites mostly carry one country, choose it under **Assume country
+for unlabelled channels** before finding matches. For example, **Spain** treats
+unlabelled streams and TV channels as Spanish for this analysis. Explicit country
+labels take precedence; stored metadata is unchanged. This fills missing countries,
+it does not filter out explicitly labelled foreign channels. The default is
+**No assumption**. Changing it clears the preview and selections.
+
 Nothing is selected initially. Select a station or expand its streams and select
 individual IDs, then select **Assign selected**. Only full station identities
 are shown; uncertain names, editions and conflicting metadata are discarded.

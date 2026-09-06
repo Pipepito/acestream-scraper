@@ -31,7 +31,7 @@ test('groups exact stations, starts unselected and submits only selected streams
   fireEvent.click(await screen.findByRole('checkbox', { name: /DAZN 1 HD/ }));
   expect(checks[1]).not.toBeChecked();
   fireEvent.click(screen.getByRole('button', { name: 'Assign selected (1)' }));
-  await waitFor(() => expect(apply).toHaveBeenCalledWith({ assignments: [{ acestream_channel_id: 'a', tv_channel_id: 1 }] }, expect.anything()));
+  await waitFor(() => expect(apply).toHaveBeenCalledWith({ assumed_country: null, assignments: [{ acestream_channel_id: 'a', tv_channel_id: 1 }] }, expect.anything()));
   expect(await screen.findByText(/1 streams assigned/)).toBeInTheDocument();
   expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
 });
@@ -60,5 +60,25 @@ test('selects a station’s backup IDs together and allows excluding an individu
   fireEvent.click(screen.getByRole('button', { name: 'Review streams for DAZN F1' }));
   fireEvent.click(await screen.findByRole('checkbox', { name: /DAZN F1 SD/ }));
   fireEvent.click(screen.getByRole('button', { name: 'Assign selected (1)' }));
-  await waitFor(() => expect(apply).toHaveBeenCalledWith({ assignments: [{ acestream_channel_id: 'f1-a', tv_channel_id: 1 }] }, expect.anything()));
+  await waitFor(() => expect(apply).toHaveBeenCalledWith({ assumed_country: null, assignments: [{ acestream_channel_id: 'f1-a', tv_channel_id: 1 }] }, expect.anything()));
+});
+
+test('changing assumed country clears the old preview and sends the same country when applying', async () => {
+  preview.mockResolvedValue({ tv_channels: 1, unassigned_streams: 1, ambiguous_streams: 0, unmatched_streams: 0, candidates: [
+    { acestream_channel_id: 'es-stream', acestream_name: 'DAZN 1 HD', tv_channel_id: 1, tv_channel_name: 'DAZN 1', score: .99, reason: 'Exact normalized name; country assumed: ES', recommended: true },
+  ] });
+  apply.mockResolvedValue({ assigned_count: 1, skipped_count: 0 });
+  setup();
+  fireEvent.click(screen.getByRole('button', { name: 'Find matches' }));
+  fireEvent.click(await screen.findByRole('checkbox', { name: 'DAZN 1 · 1 stream ID' }));
+  expect(screen.getByRole('button', { name: 'Assign selected (1)' })).toBeEnabled();
+  fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Assume country for unlabelled channels' }));
+  fireEvent.click(await screen.findByRole('option', { name: 'Spain' }));
+  expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Assign selected (0)' })).toBeDisabled();
+  fireEvent.click(screen.getByRole('button', { name: 'Find matches' }));
+  await waitFor(() => expect(preview).toHaveBeenLastCalledWith({ assumed_country: 'ES' }, expect.anything()));
+  fireEvent.click(await screen.findByRole('checkbox', { name: 'DAZN 1 · 1 stream ID' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Assign selected (1)' }));
+  await waitFor(() => expect(apply).toHaveBeenCalledWith({ assumed_country: 'ES', assignments: [{ acestream_channel_id: 'es-stream', tv_channel_id: 1 }] }, expect.anything()));
 });

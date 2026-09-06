@@ -4836,6 +4836,33 @@
             "minItems": 1,
             "title": "Assignments",
             "type": "array"
+          },
+          "assumed_country": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ES",
+                  "PT",
+                  "FR",
+                  "DE",
+                  "IT",
+                  "GB",
+                  "US",
+                  "NL",
+                  "PL",
+                  "TR",
+                  "BE",
+                  "AR",
+                  "RU"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Matching-only country for unlabelled streams and TV channels; explicit countries take precedence.",
+            "title": "Assumed Country"
           }
         },
         "required": [
@@ -4924,6 +4951,39 @@
           "recommended"
         ],
         "title": "TVMatchCandidate",
+        "type": "object"
+      },
+      "TVMatchOptions": {
+        "properties": {
+          "assumed_country": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ES",
+                  "PT",
+                  "FR",
+                  "DE",
+                  "IT",
+                  "GB",
+                  "US",
+                  "NL",
+                  "PL",
+                  "TR",
+                  "BE",
+                  "AR",
+                  "RU"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Matching-only country for unlabelled streams and TV channels; explicit countries take precedence.",
+            "title": "Assumed Country"
+          }
+        },
+        "title": "TVMatchOptions",
         "type": "object"
       },
       "TVMatchPreview": {
@@ -12311,6 +12371,23 @@
     "/api/v1/tv-channels/automatch/preview": {
       "post": {
         "operationId": "preview_tv_matches_api_v1_tv_channels_automatch_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/TVMatchOptions"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Request"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "content": {
@@ -12321,6 +12398,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "summary": "Preview Tv Matches",

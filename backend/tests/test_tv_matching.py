@@ -200,6 +200,16 @@ def test_complete_reviewed_catalog_matches_independent_expectations(client, db_s
     assert len(actual) == 125
     assert len(Counter(actual.values())) == 38
     assert all(actual.get(stream_id) == destination for stream_id, destination in expected.items())
+    es_result = client.post('/api/v1/tv-channels/automatch/preview', json={'assumed_country': 'ES'}).json()
+    es_expected = {}
+    for group_index, group in enumerate(fixture['stream_groups']):
+        destination = by_name.get(group.get('expected_tv_name_with_es', group['expected_tv_name']))
+        for copy in range(group['copies']):
+            es_expected[f'{group_index:036d}{copy:04d}'] = destination
+    es_actual = {item['acestream_channel_id']: item['tv_channel_id'] for item in es_result['candidates']}
+    assert len(es_actual) == 149
+    assert len(set(es_actual.values())) == 44
+    assert all(es_actual.get(stream_id) == destination for stream_id, destination in es_expected.items())
     # Reverse insertion order must not resolve ambiguous editions differently.
     from app.services.tv_matching_service import TVMatchingService
     from app.repositories.channel_repository import ChannelRepository
@@ -225,3 +235,45 @@ def test_every_reviewed_tv_station_stays_separate_from_every_other():
                 assert name_score(normalize_name(target), normalize_name(candidate)) is None, (target, candidate)
         for suffix in (' BAR', ' Kids', ' Extra', ' 99', ' TV'):
             assert name_score(normalize_name(target), normalize_name(target + suffix)) is None
+
+
+def test_country_assumption_resolves_only_unlabelled_editions_and_revalidates(client, db_session):
+    from app.models.models import AcestreamChannel, TVChannel
+    targets = [TVChannel(name='DAZN 1'), TVChannel(name='PT | DAZN 1'), TVChannel(name='FR | beIN Sports 1')]
+    db_session.add_all(targets); db_session.flush()
+    streams = [AcestreamChannel(id='a'*40, name='DAZN 1 HD'),
+               AcestreamChannel(id='b'*40, name='DAZN 1 HD (PT)'),
+               AcestreamChannel(id='c'*40, name='beIN Sports 1 HD'),
+               AcestreamChannel(id='d'*40, name='DAZN 1 HD', tvg_name='DAZN 1 (PT)'),
+               AcestreamChannel(id='e'*40, name='DAZN 1 (ES) [PT]')]
+    db_session.add_all(streams); db_session.commit()
+    url = '/api/v1/tv-channels/automatch/preview'
+    base = client.post(url).json()
+    assert 'a'*40 not in {item['acestream_channel_id'] for item in base['candidates']}
+    preview = client.post(url, json={'assumed_country': 'ES'}).json()
+    actual = {item['acestream_channel_id']: item for item in preview['candidates']}
+    assert set(actual) == {'a'*40, 'b'*40}
+    assert actual['a'*40]['tv_channel_id'] == targets[0].id
+    assert 'country assumed: ES' in actual['a'*40]['reason']
+    assert actual['b'*40]['tv_channel_id'] == targets[1].id  # Explicit PT is never relabelled.
+    assert 'assumed' not in actual['b'*40]['reason']
+    assignments = [{'acestream_channel_id': streams[0].id, 'tv_channel_id': targets[0].id}]
+    assert client.post('/api/v1/tv-channels/automatch/apply', json={'assignments': assignments}).json()['skipped_count'] == 1
+    result = client.post('/api/v1/tv-channels/automatch/apply', json={'assignments': assignments, 'assumed_country': 'ES'})
+    assert result.json()['assigned_count'] == 1
+    db_session.expire_all()
+    assert targets[0].country is None
+    assert streams[0].tvg_id is None
+
+
+def test_assumption_matches_explicit_country_and_rejects_invalid_option(client, db_session):
+    from app.models.models import AcestreamChannel, TVChannel
+    target = TVChannel(name='Sports', country='Spain')
+    db_session.add(target)
+    db_session.add(AcestreamChannel(id='j'*40, name='Sports HD'))
+    db_session.commit()
+    assert client.post('/api/v1/tv-channels/automatch/preview').json()['candidates'] == []
+    matches = client.post('/api/v1/tv-channels/automatch/preview', json={'assumed_country':'ES'}).json()['candidates']
+    assert len(matches) == 1
+    assert client.post('/api/v1/tv-channels/automatch/preview', json={'assumed_country':'ZZ'}).status_code == 422
+    assert client.post('/api/v1/tv-channels/automatch/apply', json={'assumed_country':'ZZ', 'assignments':[{'acestream_channel_id':'j'*40,'tv_channel_id':target.id}]}).status_code == 422

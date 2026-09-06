@@ -10,6 +10,25 @@ from app.models.models import AcestreamChannel, EPGChannel, TVChannel
 
 
 class ChannelRepository:
+    def get_tv_matching_inventory(self) -> tuple[list[TVChannel], list[AcestreamChannel]]:
+        targets = self.db.query(TVChannel).order_by(TVChannel.id).all()
+        return targets, self.get_unassigned_channels()
+
+    def apply_tv_matches(self, selected: set[tuple[str, int]], accepted: set[tuple[str, int]]) -> dict[str, int]:
+        assigned = 0
+        try:
+            for stream_id, tv_id in sorted(selected & accepted):
+                # Conditional update also protects assignments made after analysis.
+                assigned += self.db.query(AcestreamChannel).filter(
+                    AcestreamChannel.id == stream_id,
+                    AcestreamChannel.tv_channel_id.is_(None),
+                ).update({AcestreamChannel.tv_channel_id: tv_id}, synchronize_session=False)
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
+        return {"assigned_count": assigned, "skipped_count": len(selected) - assigned}
+
     def get_tv_channels_with_total(self, skip: int = 0, limit: int = 100,
                                    search: Optional[str] = None,
                                    favorites_only: bool = False) -> (list, int):

@@ -85,6 +85,22 @@ Open **TV Channels**. A TV channel is the user-facing station in your playlist; 
 4. Set its EPG ID or link it from the EPG workflow.
 5. Mark frequently used channels as favorites if you plan to create a favorites-only playlist.
 
+To fill existing TV channels from scraped streams, select **Auto-match streams**
+then **Find matches**. This checks all TV channels, including those outside the
+current filters. Results are grouped by TV station with a count of matching stream IDs.
+If the source sites mostly carry one country, choose it under **Assume country
+for unlabelled channels** before finding matches. For example, **Spain** treats
+unlabelled streams and TV channels as Spanish for this analysis. Explicit country
+labels take precedence; stored metadata is unchanged. This fills missing countries,
+it does not filter out explicitly labelled foreign channels. The default is
+**No assumption**. Changing it clears the preview and selections.
+
+Nothing is selected initially. Select a station or expand its streams and select
+individual IDs, then select **Assign selected**. Only full station identities
+are shown; uncertain names, editions and conflicting metadata are discarded.
+Existing stream assignments are preserved. Ambiguous or
+unmatched streams can still be assigned from the channel detail page.
+
 The channel detail page also shows the linked guide's current and upcoming programmes.
 
 ![TV Channels inventory with filters, favorites, and stream counts](usage-04-tv-channels.png)

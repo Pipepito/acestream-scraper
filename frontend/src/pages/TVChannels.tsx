@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { lazy, Suspense, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -29,9 +29,12 @@ import StatusLine from '../components/StatusLine';
 import { getShellLayout } from '../styles/layout';
 import { normalizeApiError } from '../services/apiErrors';
 
+const TVAutoMatchDialog = lazy(() => import('../components/TVAutoMatchDialog'));
+
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 const TVChannels: React.FC = () => {
+  const [autoMatchOpen, setAutoMatchOpen] = useState(false);
   const theme = useTheme();
   const shellLayout = getShellLayout(theme);
   const isPhone = useMediaQuery(`(max-width:${shellLayout.phoneMaxWidth}px)`);
@@ -259,6 +262,7 @@ const TVChannels: React.FC = () => {
         subtitle="The channels you publish. Each one groups its streams and carries the EPG for the playlist."
         primaryActions={
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+            <Button variant="outlined" onClick={() => setAutoMatchOpen(true)}>Auto-match streams</Button>
             <Button variant="outlined" onClick={() => refetchCatalog()}>
               Refresh
             </Button>
@@ -343,6 +347,8 @@ const TVChannels: React.FC = () => {
           ) : null}
         </ContentSection>
       </Box>
+
+      {autoMatchOpen ? <Suspense fallback={<CircularProgress aria-label="Loading auto-match" />}><TVAutoMatchDialog onClose={() => setAutoMatchOpen(false)} /></Suspense> : null}
 
       <TVChannelFormDialog
         mode="create"

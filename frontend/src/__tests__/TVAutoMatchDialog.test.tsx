@@ -1,0 +1,44 @@
+import React from 'react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import TVAutoMatchDialog from '../components/TVAutoMatchDialog';
+import { tvChannelService } from '../services/tvChannelService';
+
+jest.mock('../services/tvChannelService', () => ({ tvChannelService: { previewAutoMatch: jest.fn(), applyAutoMatch: jest.fn() } }));
+const preview = jest.mocked(tvChannelService.previewAutoMatch);
+const apply = jest.mocked(tvChannelService.applyAutoMatch);
+
+function setup() {
+  const client = new QueryClient({ defaultOptions: { mutations: { retry: false }, queries: { retry: false } } });
+  render(<QueryClientProvider client={client}><TVAutoMatchDialog onClose={jest.fn()} /></QueryClientProvider>);
+}
+
+beforeEach(() => jest.clearAllMocks());
+
+test('reviews suggestions and submits only selected streams', async () => {
+  preview.mockResolvedValue({ tv_channels: 2, unassigned_streams: 3, ambiguous_streams: 1, unmatched_streams: 0, candidates: [
+    { acestream_channel_id: 'a', acestream_name: 'DAZN 1 HD', tv_channel_id: 1, tv_channel_name: 'DAZN 1', score: .99, reason: 'Normalized name', recommended: true },
+    { acestream_channel_id: 'b', acestream_name: 'Sky Sport', tv_channel_id: 2, tv_channel_name: 'UK | Sky Sport', score: .94, reason: 'Country needs review', recommended: false },
+  ] });
+  apply.mockResolvedValue({ assigned_count: 1, skipped_count: 0 });
+  setup();
+  expect(preview).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Find matches' }));
+  const checks = await screen.findAllByRole('checkbox');
+  expect(checks[0]).toBeChecked();
+  expect(checks[1]).not.toBeChecked();
+  fireEvent.click(screen.getByRole('button', { name: 'Assign selected (1)' }));
+  await waitFor(() => expect(apply).toHaveBeenCalledWith({ assignments: [{ acestream_channel_id: 'a', tv_channel_id: 1 }] }, expect.anything()));
+  expect(await screen.findByText(/1 streams assigned/)).toBeInTheDocument();
+  expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+});
+
+test('shows empty analysis and supports retry after errors', async () => {
+  preview.mockRejectedValueOnce(new Error('Unable to analyze')).mockResolvedValueOnce({ tv_channels: 0, unassigned_streams: 0, ambiguous_streams: 0, unmatched_streams: 0, candidates: [] });
+  setup();
+  fireEvent.click(screen.getByRole('button', { name: 'Find matches' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent(/Unable to analyze/);
+  fireEvent.click(screen.getByRole('button', { name: 'Find matches' }));
+  expect(await screen.findByText(/No matches found/)).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Assign selected (0)' })).toBeDisabled();
+});

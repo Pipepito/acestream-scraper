@@ -4826,6 +4826,142 @@
         "title": "TVChannelUpdate",
         "type": "object"
       },
+      "TVMatchApplyRequest": {
+        "properties": {
+          "assignments": {
+            "items": {
+              "$ref": "#/components/schemas/TVMatchAssignment"
+            },
+            "maxItems": 10000,
+            "minItems": 1,
+            "title": "Assignments",
+            "type": "array"
+          }
+        },
+        "required": [
+          "assignments"
+        ],
+        "title": "TVMatchApplyRequest",
+        "type": "object"
+      },
+      "TVMatchApplyResponse": {
+        "properties": {
+          "assigned_count": {
+            "title": "Assigned Count",
+            "type": "integer"
+          },
+          "skipped_count": {
+            "title": "Skipped Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "assigned_count",
+          "skipped_count"
+        ],
+        "title": "TVMatchApplyResponse",
+        "type": "object"
+      },
+      "TVMatchAssignment": {
+        "properties": {
+          "acestream_channel_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Acestream Channel Id",
+            "type": "string"
+          },
+          "tv_channel_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Tv Channel Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "acestream_channel_id",
+          "tv_channel_id"
+        ],
+        "title": "TVMatchAssignment",
+        "type": "object"
+      },
+      "TVMatchCandidate": {
+        "properties": {
+          "acestream_channel_id": {
+            "title": "Acestream Channel Id",
+            "type": "string"
+          },
+          "acestream_name": {
+            "title": "Acestream Name",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "recommended": {
+            "title": "Recommended",
+            "type": "boolean"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          },
+          "tv_channel_id": {
+            "title": "Tv Channel Id",
+            "type": "integer"
+          },
+          "tv_channel_name": {
+            "title": "Tv Channel Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "acestream_channel_id",
+          "acestream_name",
+          "tv_channel_id",
+          "tv_channel_name",
+          "score",
+          "reason",
+          "recommended"
+        ],
+        "title": "TVMatchCandidate",
+        "type": "object"
+      },
+      "TVMatchPreview": {
+        "properties": {
+          "ambiguous_streams": {
+            "title": "Ambiguous Streams",
+            "type": "integer"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/TVMatchCandidate"
+            },
+            "title": "Candidates",
+            "type": "array"
+          },
+          "tv_channels": {
+            "title": "Tv Channels",
+            "type": "integer"
+          },
+          "unassigned_streams": {
+            "title": "Unassigned Streams",
+            "type": "integer"
+          },
+          "unmatched_streams": {
+            "title": "Unmatched Streams",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tv_channels",
+          "unassigned_streams",
+          "ambiguous_streams",
+          "unmatched_streams",
+          "candidates"
+        ],
+        "title": "TVMatchPreview",
+        "type": "object"
+      },
       "TunerAccessResponse": {
         "properties": {
           "addresses": {
@@ -12126,6 +12262,68 @@
           }
         },
         "summary": "Associate By Epg",
+        "tags": [
+          "tv-channels"
+        ]
+      }
+    },
+    "/api/v1/tv-channels/automatch/apply": {
+      "post": {
+        "operationId": "apply_tv_matches_api_v1_tv_channels_automatch_apply_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TVMatchApplyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TVMatchApplyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Apply Tv Matches",
+        "tags": [
+          "tv-channels"
+        ]
+      }
+    },
+    "/api/v1/tv-channels/automatch/preview": {
+      "post": {
+        "operationId": "preview_tv_matches_api_v1_tv_channels_automatch_preview_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TVMatchPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Preview Tv Matches",
         "tags": [
           "tv-channels"
         ]

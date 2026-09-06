@@ -859,6 +859,14 @@ export interface paths {
      */
     post: operations["associate_by_epg_api_v1_tv_channels_associate_by_epg_post"];
   };
+  "/api/v1/tv-channels/automatch/apply": {
+    /** Apply Tv Matches */
+    post: operations["apply_tv_matches_api_v1_tv_channels_automatch_apply_post"];
+  };
+  "/api/v1/tv-channels/automatch/preview": {
+    /** Preview Tv Matches */
+    post: operations["preview_tv_matches_api_v1_tv_channels_automatch_preview_post"];
+  };
   "/api/v1/tv-channels/batch-assign": {
     /**
      * Batch Assign Acestreams
@@ -2904,6 +2912,55 @@ export interface components {
       name?: string | null;
       /** Website */
       website?: string | null;
+    };
+    /** TVMatchApplyRequest */
+    TVMatchApplyRequest: {
+      /** Assignments */
+      assignments: components["schemas"]["TVMatchAssignment"][];
+    };
+    /** TVMatchApplyResponse */
+    TVMatchApplyResponse: {
+      /** Assigned Count */
+      assigned_count: number;
+      /** Skipped Count */
+      skipped_count: number;
+    };
+    /** TVMatchAssignment */
+    TVMatchAssignment: {
+      /** Acestream Channel Id */
+      acestream_channel_id: string;
+      /** Tv Channel Id */
+      tv_channel_id: number;
+    };
+    /** TVMatchCandidate */
+    TVMatchCandidate: {
+      /** Acestream Channel Id */
+      acestream_channel_id: string;
+      /** Acestream Name */
+      acestream_name: string;
+      /** Reason */
+      reason: string;
+      /** Recommended */
+      recommended: boolean;
+      /** Score */
+      score: number;
+      /** Tv Channel Id */
+      tv_channel_id: number;
+      /** Tv Channel Name */
+      tv_channel_name: string;
+    };
+    /** TVMatchPreview */
+    TVMatchPreview: {
+      /** Ambiguous Streams */
+      ambiguous_streams: number;
+      /** Candidates */
+      candidates: components["schemas"]["TVMatchCandidate"][];
+      /** Tv Channels */
+      tv_channels: number;
+      /** Unassigned Streams */
+      unassigned_streams: number;
+      /** Unmatched Streams */
+      unmatched_streams: number;
     };
     /** TunerAccessResponse */
     TunerAccessResponse: {
@@ -6363,6 +6420,39 @@ export interface operations {
       200: {
         content: {
           "application/json": unknown;
+        };
+      };
+    };
+  };
+  /** Apply Tv Matches */
+  apply_tv_matches_api_v1_tv_channels_automatch_apply_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TVMatchApplyRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TVMatchApplyResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Preview Tv Matches */
+  preview_tv_matches_api_v1_tv_channels_automatch_preview_post: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TVMatchPreview"];
         };
       };
     };

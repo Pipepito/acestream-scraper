@@ -11,6 +11,7 @@ export interface ServiceStatus {
   installed: boolean;
   enabled: boolean;
   managed: boolean;
+  stopped_by_user?: boolean;
   running: boolean;
   endpoint: string | null;
   open_streams?: components['schemas']['ServiceStatus']['open_streams'];
@@ -53,6 +54,10 @@ export const systemService = {
   },
   restartService: async (name: string): Promise<ServiceRestartResponse> => {
     const { data } = await apiClient.post<ServiceRestartResponse>(`${BASE_URL}/services/${name}/restart`);
+    return data;
+  },
+  controlEngine: async (action: 'start' | 'stop'): Promise<ServiceRestartResponse> => {
+    const { data } = await apiClient.post<ServiceRestartResponse>(`${BASE_URL}/services/acestream/${action}`);
     return data;
   },
   /** Origin that tuners, players and copied links must use to reach this server. */

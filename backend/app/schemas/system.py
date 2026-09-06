@@ -15,7 +15,8 @@ class ServiceStatus(BaseModel):
     state: ServiceState
     installed: bool = Field(description="Shipped in this image flavor")
     enabled: bool = Field(description="Turned on through its ENABLE_* variable")
-    managed: bool = Field(description="Supervised by this container's entrypoint (restart available)")
+    managed: bool = Field(description="Supervised by this container's entrypoint (controls available)")
+    stopped_by_user: bool = Field(default=False, description="Intentionally stopped until Start or container restart")
     running: bool = Field(description="The service answered its health probe")
     endpoint: Optional[str] = Field(default=None, description="Where the app reaches the service")
     open_streams: Optional[int] = Field(default=None, ge=0, description="Distinct open streams; includes startup and idle grace. Null means unavailable, not zero.")

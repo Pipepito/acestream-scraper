@@ -61,6 +61,27 @@ def restart_service(name: str, db: Session = Depends(get_db)):
         ) from exc
 
 
+def _control_engine(action: str, db: Session) -> dict[str, object]:
+    try:
+        return _service(db).control_engine(action)
+    except ServiceNotManagedError as exc:
+        raise APIError(code="SERVICE_NOT_MANAGED", message=str(exc),
+                       status_code=status.HTTP_409_CONFLICT,
+                       context={"service": "acestream"}) from exc
+
+
+@router.post("/services/acestream/start", response_model=ServiceRestartResponse,
+             status_code=status.HTTP_202_ACCEPTED, summary="Start the supervised AceStream engine")
+def start_engine(db: Session = Depends(get_db)) -> dict[str, object]:
+    return _control_engine("start", db)
+
+
+@router.post("/services/acestream/stop", response_model=ServiceRestartResponse,
+             status_code=status.HTTP_202_ACCEPTED, summary="Stop AceStream until Start or container restart")
+def stop_engine(db: Session = Depends(get_db)) -> dict[str, object]:
+    return _control_engine("stop", db)
+
+
 @router.get("/public-url", response_model=PublicUrlResponse, summary="Origin external clients must use")
 def get_public_url(request: Request, db: Session = Depends(get_db)):
     """Sync on purpose: it reads the settings table."""

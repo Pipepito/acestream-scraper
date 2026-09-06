@@ -45,6 +45,11 @@ case "$response" in
     *'"status":"degraded"'*) fail "System health is degraded" ;;
 esac
 
+engine_stopped=false
+if [ "$ENABLE_ACESTREAM_ENGINE" = "true" ] && [ -f "${SUPERVISOR_RUN_DIR:-/run/acestream-scraper}/acestream.stopped" ]; then
+    engine_stopped=true
+fi
+
 if [ "$ENABLE_ACEXY" = "true" ]; then
     if [ "$ENABLE_ACESTREAM_ENGINE" != "true" ]; then
         case "$ACEXY_HOST:$ACEXY_PORT" in
@@ -56,8 +61,17 @@ if [ "$ENABLE_ACEXY" = "true" ]; then
         curl -fsS "http://${ACEXY_HOST}:${ACEXY_PORT}/webui/api/service?method=get_version" > /dev/null || fail "External AceStream engine not accessible"
     fi
 
-    curl -fsS "http://${ACEXY_STATUS_HOST}:${ACEXY_STATUS_PORT}/ace/status" > /dev/null || fail "Acexy healthcheck failed"
-elif [ "$ENABLE_ACESTREAM_ENGINE" = "true" ]; then
+    # Acexy's status depends on its upstream engine. An intentional local
+    # engine stop is not a container failure; still check the proxy responds.
+    acexy_curl_flags=-fsS
+    case "$ACEXY_HOST" in
+        localhost|127.0.0.1|::1)
+            if [ "$engine_stopped" = true ] && [ "$ACEXY_PORT" = "$ACESTREAM_HTTP_PORT" ]; then
+                acexy_curl_flags=-sS
+            fi ;;
+    esac
+    curl "$acexy_curl_flags" "http://${ACEXY_STATUS_HOST}:${ACEXY_STATUS_PORT}/ace/status" > /dev/null || fail "Acexy healthcheck failed"
+elif [ "$ENABLE_ACESTREAM_ENGINE" = "true" ] && [ "$engine_stopped" != true ]; then
     # The engine root URL answers HTTP 500 ("couldn't find resource") on both
     # the native 3.2.x and the Android engine; get_version is the lightest
     # unauthenticated endpoint they all serve.

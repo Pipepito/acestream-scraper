@@ -26,7 +26,7 @@ import LinkIcon from '@mui/icons-material/Link';
 import BlockIcon from '@mui/icons-material/Block';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { useTheme } from '@mui/material/styles';
-import { useRestartService, useSystemServices } from '../hooks/useSystemServices';
+import { useControlEngine, useRestartService, useSystemServices } from '../hooks/useSystemServices';
 import type { ServiceState, ServiceStatus } from '../services/systemService';
 import { useSnackbar } from '../hooks/useSnackbar';
 import { normalizeApiError } from '../services/apiErrors';
@@ -71,6 +71,7 @@ interface RestartWatch {
   name: string;
   label: string;
   previousPid: number | null;
+  action?: 'start' | 'stop';
   startedAt: number;
 }
 
@@ -88,6 +89,7 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
     refetchInterval: watch ? 3_000 : pollIntervalMs,
   });
   const restart = useRestartService();
+  const control = useControlEngine();
   const showSnackbarRef = useRef(showSnackbar);
   showSnackbarRef.current = showSnackbar;
 
@@ -97,11 +99,14 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
     const current = data.services?.find((s) => s.name === watch.name);
     if (!current) return;
     const relaunched = current.pid !== null && current.pid !== watch.previousPid;
-    if (relaunched && current.state === 'running') {
+    if (watch.action === 'stop' && current.stopped_by_user && current.pid === null) {
+      showSnackbarRef.current(`${watch.label} is stopped. Select Start to resume.`, 'success');
+      setWatch(null);
+    } else if (watch.action !== 'stop' && relaunched && current.state === 'running') {
       showSnackbarRef.current(`${watch.label} is back: ${current.message}`, 'success');
       setWatch(null);
     } else if (Date.now() - watch.startedAt > RESTART_TIMEOUT_MS) {
-      showSnackbarRef.current(`${watch.label} has not reported healthy yet. Check the container logs.`, 'warning');
+      showSnackbarRef.current(`${watch.label} has not completed the requested action yet. Check the container logs.`, 'warning');
       setWatch(null);
     }
   }, [data, watch]);
@@ -120,6 +125,17 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
     } catch (err) {
       const normalized = normalizeApiError(err);
       showSnackbar(`Could not restart ${target.label}: ${normalized.message}`, 'error');
+    }
+  };
+
+  const handleEngineControl = async (target: ServiceStatus) => {
+    const action = target.stopped_by_user ? 'start' : 'stop';
+    try {
+      const result = await control.mutateAsync(action);
+      showSnackbar(result.message, 'info');
+      setWatch({ name: target.name, label: target.label, previousPid: target.pid, action, startedAt: Date.now() });
+    } catch (err) {
+      showSnackbar(`Could not ${action} ${target.label}: ${normalizeApiError(err).message}`, 'error');
     }
   };
 
@@ -188,9 +204,9 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
                   </Box>
                   <Chip
                     size="small"
-                    color={meta.color}
+                    color={service.stopped_by_user ? 'default' : meta.color}
                     icon={meta.icon}
-                    label={restarting ? 'Restarting…' : meta.label}
+                    label={restarting ? (watch.action === 'stop' ? 'Stopping…' : watch.action === 'start' ? 'Starting…' : 'Restarting…') : meta.label}
                     data-state={service.state}
                   />
                 </Stack>
@@ -237,13 +253,24 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
                         variant="outlined"
                         startIcon={<RestartAltIcon />}
                         aria-label={`Restart ${service.label}`}
-                        disabled={Boolean(disabledReason) || restarting || restart.isPending}
+                        disabled={Boolean(disabledReason) || restarting || restart.isPending || control.isPending}
                         onClick={() => setConfirming(service)}
                       >
                         Restart
                       </Button>
                     </span>
                   </Tooltip>
+                  {service.name === 'acestream' && service.managed ? (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      aria-label={`${service.stopped_by_user ? 'Start' : 'Stop'} ${service.label}`}
+                      disabled={restarting || restart.isPending || control.isPending}
+                      onClick={() => handleEngineControl(service)}
+                    >
+                      {service.stopped_by_user ? 'Start' : 'Stop'}
+                    </Button>
+                  ) : null}
                   {disabledReason ? (
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
                       {disabledReason}

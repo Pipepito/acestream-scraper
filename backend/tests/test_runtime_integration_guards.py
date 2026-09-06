@@ -735,3 +735,9 @@ def test_command_builder_declares_current_runtime_settings_and_filters_them():
         assert settings[name]["integer"] is True, name
     assert "activeRuntimeSettings(d)" in app_js
     assert "engineOn && platform.id !== 'amd64'" in app_js
+
+
+def test_engine_has_persistent_supervision():
+    entrypoint = (REPO_ROOT / "entrypoint.sh").read_text()
+    assert 'supervise_engine "$ACESTREAM_START_COMMAND" &' in entrypoint
+    assert 'acestream.supervisor' in entrypoint

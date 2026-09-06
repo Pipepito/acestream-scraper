@@ -52,6 +52,11 @@ loads the applicable file when working below those directories.
   `docs/builder/runtime-options.json` and run the command-builder contract check.
 - Changes to sidecar installation/runtime behavior must consider image flavor,
   CPU architecture, supervisor behavior, health probes, and Docker documentation.
+- AceStream uses persistent foreground process supervision on every platform:
+  retry all exits indefinitely; only UI Stop pauses recovery until Start/Restart
+  or container restart. Preserve the supervisor command mailbox, process-group
+  cleanup and intentional-stop healthcheck handling. Custom engine commands must
+  stay in the foreground. Other sidecars retain their existing fast-exit budget.
 - ARM64 and ARMv7 AceStream builds use the matching platform variants from the
   digest-pinned `jopsis/acestream:v3.2.17-fix` OCI image. ARMv7 remains
   experimental until its engine is runtime-tested on real ARMv7 hardware.

@@ -7,9 +7,11 @@ import type { ServiceStatus } from '../services/systemService';
 
 const mockUseSystemServices = jest.fn();
 const mockMutateAsync = jest.fn();
+const mockControlAsync = jest.fn();
 
 jest.mock('../hooks/useSystemServices', () => ({
   useSystemServices: (...args: unknown[]) => mockUseSystemServices(...args),
+  useControlEngine: () => ({ mutateAsync: mockControlAsync, isPending: false }),
   useRestartService: () => ({ mutateAsync: mockMutateAsync, isPending: false }),
 }));
 
@@ -42,6 +44,7 @@ const renderPanel = () =>
 describe('ServicesPanel', () => {
   beforeEach(() => {
     mockMutateAsync.mockReset();
+    mockControlAsync.mockReset();
     mockUseSystemServices.mockReset();
   });
 
@@ -119,6 +122,48 @@ describe('ServicesPanel', () => {
     await waitFor(() => expect(mockMutateAsync).toHaveBeenCalledWith('acestream'));
     expect(await screen.findByText(/Restart requested; the supervisor relaunches acestream/)).toBeInTheDocument();
     expect(screen.getByText('Restarting…')).toBeInTheDocument();
+  });
+
+  it.each([false, true])('requests %s engine state and reports pending action', async (stopped) => {
+    mockUseSystemServices.mockReturnValue({
+      data: { supervised: true, services: [service({ stopped_by_user: stopped, state: stopped ? 'stopped' : 'running', pid: stopped ? null : 42 })] },
+      isLoading: false, isFetching: false, error: null, refetch: jest.fn(),
+    });
+    mockControlAsync.mockResolvedValue({ success: true, message: 'Action requested.' });
+    renderPanel();
+    fireEvent.click(screen.getByRole('button', { name: `${stopped ? 'Start' : 'Stop'} AceStream engine` }));
+    await waitFor(() => expect(mockControlAsync).toHaveBeenCalledWith(stopped ? 'start' : 'stop'));
+    expect(await screen.findByText(stopped ? 'Starting…' : 'Stopping…')).toBeInTheDocument();
+  });
+
+  it('reports a rejected stop without showing a pending operation', async () => {
+    mockUseSystemServices.mockReturnValue({
+      data: { supervised: true, services: [service({})] },
+      isLoading: false, isFetching: false, error: null, refetch: jest.fn(),
+    });
+    mockControlAsync.mockRejectedValue(new Error('Unavailable'));
+    renderPanel();
+    fireEvent.click(screen.getByRole('button', { name: 'Stop AceStream engine' }));
+    expect(await screen.findByText(/Could not stop AceStream engine/)).toBeInTheDocument();
+    expect(screen.queryByText('Stopping…')).not.toBeInTheDocument();
+  });
+
+  it('confirms Stop only after the child has gone, then offers Start', async () => {
+    const response = {
+      data: { supervised: true, services: [service({})] },
+      isLoading: false, isFetching: false, error: null, refetch: jest.fn(),
+    };
+    mockUseSystemServices.mockReturnValue(response);
+    mockControlAsync.mockResolvedValue({ success: true, message: 'Requested.' });
+    const { rerender } = renderPanel();
+    fireEvent.click(screen.getByRole('button', { name: 'Stop AceStream engine' }));
+    await screen.findByText('Stopping…');
+    mockUseSystemServices.mockReturnValue({
+      ...response, data: { supervised: true, services: [service({ state: 'stopped', stopped_by_user: true, pid: null, running: false })] },
+    });
+    rerender(<ThemeProvider theme={createAppTheme('light')}><ServicesPanel /></ThemeProvider>);
+    expect(await screen.findByText('AceStream engine is stopped. Select Start to resume.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Start AceStream engine' })).toBeEnabled();
   });
 
   it('formats uptime and restart reasons', () => {

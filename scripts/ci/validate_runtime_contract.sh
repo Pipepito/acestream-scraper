@@ -111,6 +111,15 @@ if [ -n "${CURL_FAIL_MATCH:-}" ]; then
     esac
 fi
 
+# Model HTTP failures separately from connection failures: curl -sS accepts
+# an HTTP 503, while -fsS rejects it.
+if [ -n "${CURL_HTTP_ERROR_MATCH:-}" ] && [[ "$url" == *"$CURL_HTTP_ERROR_MATCH"* ]]; then
+    for arg in "$@"; do
+        case "$arg" in -f*|--fail) exit 22 ;; esac
+    done
+    exit 0
+fi
+
 case "$url" in
     */api/v1/health|*/health)
         printf '{"status":"ok"}'
@@ -393,5 +402,91 @@ expect_success \
     "Entrypoint tolerates successful daemonizing launcher" \
     env PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR" LOGROTATE_DIR="$TMP_DIR/logrotate" ENABLE_WARP=false IMAGE_HAS_ACESTREAM=false IMAGE_HAS_ACEXY=true ENABLE_ACESTREAM_ENGINE=false ENABLE_ACEXY=true ACEXY_HOST=engine.example ACEXY_PORT=9999 ACEXY_START_COMMAND='sleep 1 &' APP_DONE_FILE="$APP_DONE_FILE" bash "$ENTRYPOINT_SCRIPT" bash -lc 'sleep 0.3; printf done > "$APP_DONE_FILE"'
 [ -f "$APP_DONE_FILE" ] || fail "Entrypoint returned before the main app command completed"
+
+# Persistent engine lifecycle: survive clean/error/signal exits beyond the old
+# fast-exit budget, then honor Stop/Start/Restart through the same UI mailbox.
+ENGINE_TEST_DIR="$TMP_DIR/engine-lifecycle"
+mkdir -p "$ENGINE_TEST_DIR"
+cat > "$ENGINE_TEST_DIR/engine.sh" <<'EOF'
+#!/usr/bin/env bash
+printf 'launch\n' >> "$ENGINE_TEST_DIR/launches"
+count=$(( $(wc -l < "$ENGINE_TEST_DIR/launches") ))
+case "$count" in
+    1|3) exit 0 ;;
+    2|4) exit 7 ;;
+    5) kill -KILL "$$" ;;
+esac
+exec sleep 60
+EOF
+cat > "$ENGINE_TEST_DIR/check.sh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+request() {
+    printf '%s' "$1" > "$SUPERVISOR_RUN_DIR/request.tmp"
+    mv "$SUPERVISOR_RUN_DIR/request.tmp" "$SUPERVISOR_RUN_DIR/acestream.command"
+}
+wait_for() {
+    local attempts=40
+    until "$@"; do
+        attempts=$((attempts - 1))
+        [ "$attempts" -gt 0 ] || { echo "Timed out: $*" >&2; exit 1; }
+        sleep 0.5
+    done
+}
+launched() { [ -f "$ENGINE_TEST_DIR/launches" ] && [ "$(wc -l < "$ENGINE_TEST_DIR/launches")" -ge "$1" ]; }
+no_pid() { [ ! -f "$SUPERVISOR_RUN_DIR/acestream.pid" ]; }
+wait_for launched 6
+request stop
+wait_for test -f "$SUPERVISOR_RUN_DIR/acestream.stopped"
+wait_for no_pid
+sleep 3
+[ "$(wc -l < "$ENGINE_TEST_DIR/launches")" -eq 6 ]
+kill -0 "$(cat "$SUPERVISOR_RUN_DIR/acestream.supervisor")"
+request start
+wait_for launched 7
+[ ! -f "$SUPERVISOR_RUN_DIR/acestream.stopped" ]
+request start
+sleep 2
+[ "$(wc -l < "$ENGINE_TEST_DIR/launches")" -eq 7 ]
+old_pid=$(cat "$SUPERVISOR_RUN_DIR/acestream.pid")
+request restart
+wait_for launched 8
+! kill -0 "$old_pid" 2>/dev/null
+# Stop during the recovery delay must cancel the next automatic launch.
+kill -TERM "$(cat "$SUPERVISOR_RUN_DIR/acestream.pid")"
+wait_for no_pid
+request stop
+wait_for test -f "$SUPERVISOR_RUN_DIR/acestream.stopped"
+sleep 3
+[ "$(wc -l < "$ENGINE_TEST_DIR/launches")" -eq 8 ]
+request start
+wait_for launched 9
+cp "$SUPERVISOR_RUN_DIR/acestream.pid" "$ENGINE_TEST_DIR/last.pid"
+EOF
+expect_success \
+    "Engine recovers indefinitely and respects UI lifecycle commands" \
+    env PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR" LOGROTATE_DIR="$TMP_DIR/engine-logrotate" SUPERVISOR_RUN_DIR="$ENGINE_TEST_DIR/run" ENGINE_TEST_DIR="$ENGINE_TEST_DIR" ENABLE_WARP=false ENABLE_IPFS=false ENABLE_ZERONET=false ENABLE_TOR=false IMAGE_HAS_ACESTREAM=true IMAGE_HAS_ACEXY=false ENABLE_ACESTREAM_ENGINE=true ENABLE_ACEXY=false SUPERVISED_RESTART_DELAY_SECONDS=2 ACESTREAM_START_COMMAND='exec bash "$ENGINE_TEST_DIR/engine.sh"' \
+    bash "$ENTRYPOINT_SCRIPT" bash "$ENGINE_TEST_DIR/check.sh"
+[ ! -f "$ENGINE_TEST_DIR/run/acestream.supervisor" ] || fail "Engine supervisor survived container shutdown"
+if kill -0 "$(cat "$ENGINE_TEST_DIR/last.pid")" 2>/dev/null; then
+    fail "Engine survived container shutdown"
+fi
+
+touch "$ENGINE_TEST_DIR/run/acestream.stopped"
+expect_success \
+    "Healthcheck accepts an intentionally stopped engine" \
+    env PATH="$BASE_PATH" CURL_LOG_FILE="$TMP_DIR/engine-stopped-health.log" CURL_FAIL_MATCH="method=get_version" SUPERVISOR_RUN_DIR="$ENGINE_TEST_DIR/run" ENABLE_ACESTREAM_ENGINE=true ENABLE_ACEXY=false bash "$HEALTHCHECK_SCRIPT"
+
+expect_success \
+    "Stopped local engine permits an answering Acexy with unavailable upstream" \
+    env PATH="$BASE_PATH" CURL_LOG_FILE="$TMP_DIR/engine-stopped-proxy-health.log" CURL_HTTP_ERROR_MATCH="/ace/status" SUPERVISOR_RUN_DIR="$ENGINE_TEST_DIR/run" ENABLE_ACESTREAM_ENGINE=true ENABLE_ACEXY=true ACEXY_HOST=localhost ACEXY_PORT=6878 bash "$HEALTHCHECK_SCRIPT"
+expect_failure_contains \
+    "Stopping the local engine does not mask an unrelated Acexy upstream failure" \
+    "Acexy healthcheck failed" \
+    env PATH="$BASE_PATH" CURL_LOG_FILE="$TMP_DIR/engine-stopped-other-proxy-health.log" CURL_HTTP_ERROR_MATCH="/ace/status" SUPERVISOR_RUN_DIR="$ENGINE_TEST_DIR/run" ENABLE_ACESTREAM_ENGINE=true ENABLE_ACEXY=true ACEXY_HOST=localhost ACEXY_PORT=9999 bash "$HEALTHCHECK_SCRIPT"
+expect_failure_contains \
+    "Unexpected engine outage remains a healthcheck failure" \
+    "In-container AceStream engine not accessible" \
+    env PATH="$BASE_PATH" CURL_LOG_FILE="$TMP_DIR/engine-down-health.log" CURL_FAIL_MATCH="method=get_version" SUPERVISOR_RUN_DIR="$TMP_DIR/unstopped-run" ENABLE_ACESTREAM_ENGINE=true ENABLE_ACEXY=false bash "$HEALTHCHECK_SCRIPT"
 
 printf 'Runtime contract validation passed.\n'

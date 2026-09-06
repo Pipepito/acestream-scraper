@@ -237,7 +237,13 @@ docker exec acestream-scraper curl -fsS "http://localhost:6878/webui/api/service
 
 - `docker logs <container>`: `entrypoint.sh` supervision messages plus the
   engine's `--log-stdout` output (the Linux bootstrap does not redirect it into
-  a file, unlike the APK's `main.py`).
+  a file, unlike the APK's `main.py`). The engine supervisor is the same on every
+  platform: it restarts after every exit (including exit 0 and repeated startup
+  failures) after `SUPERVISED_RESTART_DELAY_SECONDS`, minimum 1 second.
+  Overview → Services offers Start, Stop and Restart. Stop pauses automatic
+  recovery until Start/Restart or a container restart, and is not a container
+  health failure. Custom `ACESTREAM_START_COMMAND` launchers must keep the
+  engine in the foreground; do not add daemon/background flags.
 - `${ACESTREAM_HOME}/acestream.log`: bootstrap and engine log, rotated by the
   engine (`--log-max-size 15000000`, `--log-backup-count 1` from `acestream.conf`).
 - `${ACESTREAM_HOME}/acestream_error.log`: tracebacks when the engine fails to

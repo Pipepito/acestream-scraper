@@ -28,12 +28,13 @@ const Overview: React.FC = () => {
   const health = useHealth({ refetchInterval: REFRESH_MS });
 
   const engine = services.data?.services?.find((s) => s.name === 'acestream');
-  const attention = services.data?.services?.filter((s) => s.enabled && (s.state === 'stopped' || s.state === 'unhealthy')) ?? [];
+  const attention = services.data?.services?.filter((s) => s.enabled && !s.stopped_by_user && (s.state === 'stopped' || s.state === 'unhealthy')) ?? [];
   // The engine the app talks to may live outside this container: trust the backend's probe, not the service list.
   const engineProbe = health.data?.acestream;
   const engineOnline = engineProbe ? engineProbe.status === 'online' : Boolean(engine?.running);
   const engineExternal = engineOnline && Boolean(engine) && !engine?.running;
-  const needsAttention = attention.length > 0 || !engineOnline;
+  const engineStopped = Boolean(engine?.stopped_by_user) && !engineOnline;
+  const needsAttention = attention.length > 0 || (!engineOnline && !engineStopped);
 
   const lastScrape = tasks.data?.find((t) => t.task_name === 'url_scraping')?.last_run ?? null;
   const lastEpg = tasks.data?.find((t) => t.task_name === 'epg_refresh')?.last_run ?? null;
@@ -87,8 +88,8 @@ const Overview: React.FC = () => {
         items={[
           {
             label: 'Engine',
-            value: engineOnline ? (engineExternal ? 'online (external)' : engine?.version ?? 'online') : 'not reachable',
-            tone: engineOnline ? 'success' : 'error',
+            value: engineOnline ? (engineExternal ? 'online (external)' : engine?.version ?? 'online') : engineStopped ? 'stopped by you' : 'not reachable',
+            tone: engineOnline ? 'success' : engineStopped ? 'default' : 'error',
           },
           ...(stats.data
             ? [{ label: 'Streams', value: `${stats.data.channels.total}, ${stats.data.channels.online} online` }]
@@ -111,7 +112,7 @@ const Overview: React.FC = () => {
         </Alert>
       ) : null}
 
-      <ContentSection title="Services" description="What this image ships, what is switched on, and whether each service answers. Restart a supervised service without recreating the container.">
+      <ContentSection title="Services" description="What this image ships, what is switched on, and whether each service answers. Start, stop or restart the engine without recreating the container.">
         <ServicesPanel pollIntervalMs={REFRESH_MS} />
       </ContentSection>
 

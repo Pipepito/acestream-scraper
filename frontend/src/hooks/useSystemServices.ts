@@ -34,3 +34,14 @@ export const useRestartService = () => {
     },
   });
 };
+
+/** Change the engine's desired state without racing its current child PID. */
+export const useControlEngine = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (action: 'start' | 'stop') => systemService.controlEngine(action),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: SYSTEM_SERVICES_QUERY_KEY });
+    },
+  });
+};

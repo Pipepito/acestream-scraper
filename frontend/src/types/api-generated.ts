@@ -829,6 +829,14 @@ export interface paths {
      */
     get: operations["list_services_api_v1_system_services_get"];
   };
+  "/api/v1/system/services/acestream/start": {
+    /** Start the supervised AceStream engine */
+    post: operations["start_engine_api_v1_system_services_acestream_start_post"];
+  };
+  "/api/v1/system/services/acestream/stop": {
+    /** Stop AceStream until Start or container restart */
+    post: operations["stop_engine_api_v1_system_services_acestream_stop_post"];
+  };
   "/api/v1/system/services/{name}": {
     /** Status of one sidecar service */
     get: operations["get_service_api_v1_system_services__name__get"];
@@ -2648,7 +2656,7 @@ export interface components {
       label: string;
       /**
        * Managed
-       * @description Supervised by this container's entrypoint (restart available)
+       * @description Supervised by this container's entrypoint (controls available)
        */
       managed: boolean;
       /** Message */
@@ -2675,6 +2683,12 @@ export interface components {
        * @enum {string}
        */
       state: "running" | "unhealthy" | "stopped" | "disabled" | "external" | "not-installed";
+      /**
+       * Stopped By User
+       * @description Intentionally stopped until Start or container restart
+       * @default false
+       */
+      stopped_by_user?: boolean;
       /**
        * Stream Count Scope
        * @description app counts web-player and relay content IDs only; service is the Acexy-reported total. Counts may overlap.
@@ -6535,6 +6549,28 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["ServicesStatusResponse"];
+        };
+      };
+    };
+  };
+  /** Start the supervised AceStream engine */
+  start_engine_api_v1_system_services_acestream_start_post: {
+    responses: {
+      /** @description Successful Response */
+      202: {
+        content: {
+          "application/json": components["schemas"]["ServiceRestartResponse"];
+        };
+      };
+    };
+  };
+  /** Stop AceStream until Start or container restart */
+  stop_engine_api_v1_system_services_acestream_stop_post: {
+    responses: {
+      /** @description Successful Response */
+      202: {
+        content: {
+          "application/json": components["schemas"]["ServiceRestartResponse"];
         };
       };
     };

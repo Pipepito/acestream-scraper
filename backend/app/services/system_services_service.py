@@ -13,6 +13,7 @@ import logging
 import os
 import shutil
 import signal
+import tempfile
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -112,7 +113,9 @@ class SystemServicesService:
             return ProcessInfo()
         try:
             pid = int(pid_file.read_text().strip())
-        except ValueError:
+        except (OSError, ValueError):
+            return ProcessInfo()
+        if pid <= 1:
             return ProcessInfo()
         alive = self._pid_alive(pid)
         uptime = None
@@ -120,7 +123,7 @@ class SystemServicesService:
         if alive and started_file.exists():
             try:
                 uptime = max(0, int(time.time()) - int(started_file.read_text().strip()))
-            except ValueError:
+            except (OSError, ValueError):
                 uptime = None
         return ProcessInfo(pid=pid, alive=alive, uptime_seconds=uptime)
 
@@ -291,7 +294,8 @@ class SystemServicesService:
             raise ServiceNotFoundError(name)
 
         proc = self.process_info(name)
-        managed = proc.alive
+        managed = proc.alive or (name == "acestream" and self.engine_supervised())
+        stopped_by_user = name == "acestream" and (self.run_dir / "acestream.stopped").exists()
         if not installed and not enabled:
             if external_possible and probe.ok:
                 state, message = "external", f"Not in this image; using an external instance. {probe.message}"
@@ -302,9 +306,11 @@ class SystemServicesService:
                 state, message = "external", f"Disabled here; using an external instance. {probe.message}"
             else:
                 state, message = "disabled", f"Installed but turned off ({self._enable_var(name)}=false)."
+        elif stopped_by_user:
+            state, message = "stopped", "Stopped by you. Select Start to resume automatic recovery."
         elif probe.ok:
             state, message = "running", probe.message
-        elif managed:
+        elif proc.alive:
             state, message = "unhealthy", f"Process is up but not answering. {probe.message}"
         else:
             state, message = "stopped", f"Enabled but not running. {probe.message}"
@@ -317,6 +323,7 @@ class SystemServicesService:
             "installed": installed,
             "enabled": enabled,
             "managed": managed,
+            "stopped_by_user": stopped_by_user,
             "running": probe.ok,
             "endpoint": endpoint,
             "version": probe.version,
@@ -351,10 +358,35 @@ class SystemServicesService:
             raise ServiceNotFoundError(name)
         return self._evaluate(name)
 
+    def engine_supervised(self) -> bool:
+        try:
+            pid = int((self.run_dir / "acestream.supervisor").read_text().strip())
+        except (OSError, ValueError):
+            return False
+        return pid > 1 and self._pid_alive(pid)
+
+    def control_engine(self, action: str) -> Dict[str, object]:
+        if action not in ("start", "stop", "restart"):
+            raise ValueError("Unknown engine action")
+        if not self.engine_supervised():
+            raise ServiceNotManagedError("AceStream is not supervised by this container.")
+        # Publish complete commands atomically, including concurrent requests.
+        # The supervisor alone signals children and owns the stopped state.
+        with tempfile.NamedTemporaryFile(mode="w", dir=self.run_dir, delete=False) as request:
+            temporary = Path(request.name)
+            request.write(action)
+        try:
+            temporary.replace(self.run_dir / "acestream.command")
+        finally:
+            temporary.unlink(missing_ok=True)
+        return {"name": "acestream", "success": True, "message": f"AceStream {action} requested."}
+
     # ---------- restart ----------
     def restart(self, name: str) -> Dict[str, object]:
         if name not in SERVICE_NAMES:
             raise ServiceNotFoundError(name)
+        if name == "acestream":
+            return self.control_engine("restart")
         proc = self.process_info(name)
         if not proc.alive or proc.pid is None:
             raise ServiceNotManagedError(

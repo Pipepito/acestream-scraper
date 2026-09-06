@@ -64,6 +64,83 @@ shutdown_children() {
     done
 }
 
+# The engine must stay in the foreground (both packaged launchers do). Its
+# supervisor stays alive even while deliberately stopped, so the UI can start
+# it again. Only this process signals the child: API requests use marker files,
+# avoiding stale child-pid races during automatic recovery.
+supervise_engine() {
+    local command="$1" inner_pid="" sleeper_pid="" next_launch=0
+    local restart_delay="${SUPERVISED_RESTART_DELAY_SECONDS:-5}"
+    local state_dir="$SUPERVISOR_RUN_DIR" action status
+    # Always leave a delay on repeated startup failures; never spin or give up.
+    case "$restart_delay" in ''|*[!0-9]*) restart_delay=5 ;; esac
+    [ "$restart_delay" -ge 1 ] || restart_delay=1
+    rm -f "$state_dir/acestream.pid" "$state_dir/acestream.started" \
+        "$state_dir/acestream.command" "$state_dir/acestream.stopped"
+
+    engine_terminate() {
+        if [ -n "$inner_pid" ]; then
+            kill -TERM -- "-$inner_pid" 2>/dev/null || kill -TERM "$inner_pid" 2>/dev/null || true
+            # Bound shutdown even when the engine ignores TERM. Kill remaining
+            # group members too, before another launch can bind the same ports.
+            local remaining=5
+            while kill -0 "$inner_pid" 2>/dev/null && [ "$remaining" -gt 0 ]; do
+                sleep 1
+                remaining=$((remaining - 1))
+            done
+            kill -KILL -- "-$inner_pid" 2>/dev/null || kill -KILL "$inner_pid" 2>/dev/null || true
+            wait "$inner_pid" 2>/dev/null || true
+            inner_pid=""
+        fi
+        rm -f "$state_dir/acestream.pid" "$state_dir/acestream.started"
+    }
+    trap 'trap "" INT TERM; [ -z "$sleeper_pid" ] || kill "$sleeper_pid" 2>/dev/null || true; engine_terminate; rm -f "$state_dir/acestream.supervisor"; exit 0' INT TERM
+
+    while :; do
+        action=""
+        if [ -f "$state_dir/acestream.command" ]; then
+            # Rename before reading: a concurrent request remains queued for
+            # the next iteration instead of being deleted with this request.
+            mv "$state_dir/acestream.command" "$state_dir/acestream.processing"
+            action=$(cat "$state_dir/acestream.processing")
+            rm -f "$state_dir/acestream.processing"
+        fi
+        case "$action" in
+            stop)
+                touch "$state_dir/acestream.stopped"
+                engine_terminate
+                log "AceStream stopped by operator; waiting for Start"
+                ;;
+            start|restart)
+                rm -f "$state_dir/acestream.stopped"
+                if [ "$action" = restart ]; then engine_terminate; fi
+                next_launch=0
+                ;;
+        esac
+        if [ -n "$inner_pid" ] && ! kill -0 "$inner_pid" 2>/dev/null; then
+            status=0
+            wait "$inner_pid" || status=$?
+            engine_terminate
+            log "AceStream exited with status $status; restarting in ${restart_delay}s"
+            next_launch=$(($(date +%s) + restart_delay))
+        fi
+        if [ -z "$inner_pid" ] && [ ! -f "$state_dir/acestream.stopped" ] && [ "$(date +%s)" -ge "$next_launch" ]; then
+            if command -v setsid >/dev/null 2>&1; then
+                setsid bash -lc "$command" &
+            else
+                bash -lc "$command" &
+            fi
+            inner_pid=$!
+            printf '%s\n' "$inner_pid" > "$state_dir/acestream.pid"
+            date +%s > "$state_dir/acestream.started"
+        fi
+        sleep 1 &
+        sleeper_pid=$!
+        wait "$sleeper_pid" || true
+        sleeper_pid=""
+    done
+}
+
 # Supervise an auxiliary service: restart it when it dies (#119 — Acexy can
 # wedge or crash under fast stream switching), but fail the container on a
 # crash loop (SUPERVISED_FAST_EXIT_LIMIT consecutive exits within
@@ -452,7 +529,8 @@ if feature_enabled "$ENABLE_ACESTREAM_ENGINE" && [ -n "${ACESTREAM_START_COMMAND
     if feature_enabled "$ACESTREAM_BIND_ALL"; then
         case " $ACESTREAM_START_COMMAND " in *" --bind-all "*) ;; *) ACESTREAM_START_COMMAND="$ACESTREAM_START_COMMAND --bind-all" ;; esac
     fi
-    supervise_service "AceStream" "$ACESTREAM_START_COMMAND" &
+    supervise_engine "$ACESTREAM_START_COMMAND" &
+    printf '%s\n' "$!" > "$SUPERVISOR_RUN_DIR/acestream.supervisor"
     child_pids+=("$!")
     child_names+=("AceStream")
 fi

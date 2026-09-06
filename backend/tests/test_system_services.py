@@ -255,3 +255,56 @@ def test_acexy_invalid_json_does_not_break_service_status(tmp_path, monkeypatch,
     result = service.get_service("acexy")
     assert result["open_streams"] is None
     assert result["running"] is (status_code == 200)
+
+
+@pytest.mark.parametrize("action", ["start", "stop", "restart"])
+def test_engine_control_uses_supervisor_mailbox(client, tmp_path, monkeypatch, action):
+    _clear_env(monkeypatch)
+    monkeypatch.setenv("SUPERVISOR_RUN_DIR", str(tmp_path))
+    endpoint = f"/api/v1/system/services/acestream/{action}"
+    assert client.post(endpoint).status_code == 409
+    (tmp_path / "acestream.supervisor").write_text(str(os.getpid()))
+    # No live engine PID is needed during a stop or restart delay.
+    response = client.post(endpoint)
+    assert response.status_code == 202
+    assert (tmp_path / "acestream.command").read_text() == action
+    assert not (tmp_path / "acestream.stopped").exists()
+
+
+def test_intentional_engine_stop_stays_managed(tmp_path, monkeypatch):
+    _clear_env(monkeypatch)
+    monkeypatch.setenv("IMAGE_HAS_ACESTREAM", "true")
+    monkeypatch.setenv("ENABLE_ACESTREAM_ENGINE", "true")
+    (tmp_path / "acestream.supervisor").write_text(str(os.getpid()))
+    (tmp_path / "acestream.stopped").touch()
+    status = _service(tmp_path, FakeHttp({})).get_service("acestream")
+    assert status["managed"] is True
+    assert status["stopped_by_user"] is True
+    assert status["state"] == "stopped"
+    assert status["pid"] is None
+    assert "Select Start" in status["message"]
+
+
+def test_engine_recovery_stays_managed(tmp_path, monkeypatch):
+    _clear_env(monkeypatch)
+    monkeypatch.setenv("IMAGE_HAS_ACESTREAM", "true")
+    monkeypatch.setenv("ENABLE_ACESTREAM_ENGINE", "true")
+    (tmp_path / "acestream.supervisor").write_text(str(os.getpid()))
+    status = _service(tmp_path, FakeHttp({})).get_service("acestream")
+    assert status["managed"] is True
+    assert status["stopped_by_user"] is False
+    assert status["state"] == "stopped"
+
+
+def test_status_tolerates_pid_file_removed_during_restart(tmp_path, monkeypatch):
+    pid_path = tmp_path / "acestream.pid"
+    pid_path.write_text("123")
+    original = Path.read_text
+
+    def racing_read(path, *args, **kwargs):
+        if path == pid_path:
+            path.unlink()
+        return original(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", racing_read)
+    assert _service(tmp_path, FakeHttp({})).process_info("acestream").alive is False

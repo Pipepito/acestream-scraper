@@ -102,6 +102,14 @@ describe('Overview', () => {
     expect(within(screen.getByRole('status', { name: 'Overview summary' })).getByText('online (external)')).toBeInTheDocument();
   });
 
+  it('shows an intentional engine stop without flagging it as a failure', () => {
+    mockUseHealth.mockReturnValue(query({ status: 'healthy', acestream: { status: 'error' } }));
+    mockUseSystemServices.mockReturnValue(query({ supervised: true, services: [service('acestream', 'stopped', { stopped_by_user: true })] }));
+    renderPage();
+    expect(screen.getByText('HEALTHY')).toBeInTheDocument();
+    expect(within(screen.getByRole('status', { name: 'Overview summary' })).getByText('stopped by you')).toBeInTheDocument();
+  });
+
   it('flags attention when the engine probe fails even if no service is marked stopped', () => {
     mockUseHealth.mockReturnValue(query({ status: 'healthy', acestream: { status: 'error', message: 'Connection refused' }, settings: {}, version: '2.1.0' }));
     renderPage();

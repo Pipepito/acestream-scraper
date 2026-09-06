@@ -10,3 +10,10 @@ describe('systemService.getPublicUrl', () => {
     expect(apiClient.get).toHaveBeenCalledWith('/v1/system/public-url');
   });
 });
+
+it.each(['start', 'stop'] as const)('sends engine %s to the lifecycle endpoint', async (action) => {
+  const result = { name: 'acestream', success: true, message: 'Requested.' };
+  (apiClient.post as jest.Mock).mockResolvedValue({ data: result });
+  await expect(systemService.controlEngine(action)).resolves.toEqual(result);
+  expect(apiClient.post).toHaveBeenCalledWith(`/v1/system/services/acestream/${action}`);
+});

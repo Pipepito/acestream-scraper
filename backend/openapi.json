@@ -3999,7 +3999,7 @@
             "type": "string"
           },
           "managed": {
-            "description": "Supervised by this container's entrypoint (restart available)",
+            "description": "Supervised by this container's entrypoint (controls available)",
             "title": "Managed",
             "type": "boolean"
           },
@@ -4052,6 +4052,12 @@
             ],
             "title": "State",
             "type": "string"
+          },
+          "stopped_by_user": {
+            "default": false,
+            "description": "Intentionally stopped until Start or container restart",
+            "title": "Stopped By User",
+            "type": "boolean"
           },
           "stream_count_scope": {
             "anyOf": [
@@ -12561,6 +12567,50 @@
           }
         },
         "summary": "Status of the sidecar services",
+        "tags": [
+          "system",
+          "system"
+        ]
+      }
+    },
+    "/api/v1/system/services/acestream/start": {
+      "post": {
+        "operationId": "start_engine_api_v1_system_services_acestream_start_post",
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRestartResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Start the supervised AceStream engine",
+        "tags": [
+          "system",
+          "system"
+        ]
+      }
+    },
+    "/api/v1/system/services/acestream/stop": {
+      "post": {
+        "operationId": "stop_engine_api_v1_system_services_acestream_stop_post",
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRestartResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Stop AceStream until Start or container restart",
         "tags": [
           "system",
           "system"

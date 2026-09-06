@@ -36,9 +36,12 @@ testing the SPA through FastAPI rather than the Vite server.
 
 ## UI contract
 
-- Navigation has eight primary destinations: Overview, Scraper, Search, Acestream
-  Channels, TV Channels, EPG, Playlist, and Settings. WARP remains a hidden route
+- Navigation has ten primary destinations: Live TV, Overview, Scraper, Search,
+  Acestream Channels, TV Channels, EPG, Playlist, Integrations, and Settings. WARP remains a hidden route
   reached from the Overview services panel.
+- Live TV (`/live-tv`) is the viewing catalog; TV Channels remains the management
+  inventory. Use `ChannelPlayerDialog` to retain or resolve TV context and
+  `StreamPlayerDialog` for the underlying HLS lifecycle.
 - A primary page follows `PageHeader` -> `StatusLine` -> `ContentSection`.
 - Keep headings and nav labels aligned. Prefer measured status facts and clear next
   actions over hero copy or explanatory filler.

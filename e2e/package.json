@@ -15,7 +15,8 @@
     "stack:up": "bash stack/stack-up.sh",
     "stack:down": "bash stack/stack-down.sh",
     "backend:start": "bash stack/backend-start.sh",
-    "backend:stop": "bash stack/backend-stop.sh"
+    "backend:stop": "bash stack/backend-stop.sh",
+    "test:mobile": "playwright test --config playwright.mobile.config.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",

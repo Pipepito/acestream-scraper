@@ -41,18 +41,21 @@ jest.mock('hls.js', () => {
   return { __esModule: true, default: MockHls };
 });
 jest.mock('../hooks/usePlayer', () => ({
-  useStartPlayerSession: () => ({ mutate: mockStart, isPending: false }),
+  useStartPlayerSession: () => ({ mutateAsync: mockStart, isPending: false }),
   usePlayerSessionStatus: (id: string | null) => mockStatus(id),
 }));
 jest.mock('../hooks/useSystemServices', () => ({ usePublicUrl: () => mockPublicUrl() }));
 jest.mock('../services/playerService', () => ({ playerService: { leaveSession: (...args: unknown[]) => mockLeave(...args) } }));
 
-const renderDialog = (props: Partial<React.ComponentProps<typeof StreamPlayerDialog>> = {}) =>
-  render(
+const renderDialog = async (props: Partial<React.ComponentProps<typeof StreamPlayerDialog>> = {}) => {
+  const view = render(
     <ThemeProvider theme={createAppTheme('light')}>
       <StreamPlayerDialog open contentId={'a'.repeat(40)} title="Arena TV" onClose={jest.fn()} {...props} />
     </ThemeProvider>
   );
+  await act(async () => { await Promise.resolve(); });
+  return view;
+};
 
 const readySession = {
   data: { id: 's1', state: 'ready', hls_ready: true, stats: null, codecs: {}, playlist_url: '/p', viewers: 1, error: null, error_message: '' },
@@ -63,13 +66,13 @@ describe('StreamPlayerDialog', () => {
     jest.clearAllMocks();
     hlsInstances.length = 0;
     mockPublicUrl.mockReturnValue({ data: { url: 'http://scraper.lan:8000', source: 'setting', warnings: [] } });
-    mockStart.mockImplementation((_id: string, opts: { onSuccess: (s: { id: string }) => void }) => opts.onSuccess({ id: 's1' }));
+    mockStart.mockResolvedValue({ id: 's1' });
   });
 
-  it('starts a session on open, shows starting stats, then attaches hls.js when ready', () => {
+  it('starts a session on open, shows starting stats, then attaches hls.js when ready', async () => {
     mockStatus.mockReturnValue({ data: { id: 's1', state: 'starting', hls_ready: false, stats: { peers: 4, speed_down: 900, speed_up: 0, status: 'prebuf' }, codecs: {}, playlist_url: '/api/v1/player/sessions/s1/index.m3u8', viewers: 1, error: null, error_message: '' } });
-    const { rerender } = renderDialog();
-    expect(mockStart).toHaveBeenCalledWith('a'.repeat(40), expect.any(Object));
+    const { rerender } = await renderDialog();
+    expect(mockStart).toHaveBeenCalledWith('a'.repeat(40));
     expect(screen.getByRole('status')).toHaveTextContent(/Starting.*4 peers/);
     mockStatus.mockReturnValue({ data: { id: 's1', state: 'ready', hls_ready: true, stats: null, codecs: { video: 'h264', audio: 'ac3' }, playlist_url: '/api/v1/player/sessions/s1/index.m3u8', viewers: 1, error: null, error_message: '' } });
     rerender(
@@ -81,25 +84,25 @@ describe('StreamPlayerDialog', () => {
     expect(hlsInstances[0].loadSource).toHaveBeenCalledWith('/api/v1/player/sessions/s1/index.m3u8');
   });
 
-  it('explains errors in plain language and offers the stream link', () => {
+  it('explains errors in plain language and offers the stream link', async () => {
     mockStatus.mockReturnValue({ data: { id: 's1', state: 'error', error: 'engine_stalled', error_message: 'no peers', hls_ready: false, stats: null, codecs: {}, playlist_url: '', viewers: 1 } });
-    renderDialog();
+    await renderDialog();
     expect(screen.getByRole('alert')).toHaveTextContent('No one is sharing this channel right now');
     expect(screen.getByRole('button', { name: 'Copy stream link' })).toBeInTheDocument();
   });
 
-  it('leaves the session with a keepalive DELETE on pagehide', () => {
+  it('leaves the session with a keepalive DELETE on pagehide', async () => {
     mockStatus.mockReturnValue(readySession);
-    renderDialog();
+    await renderDialog();
     act(() => { window.dispatchEvent(new Event('pagehide')); });
     expect(mockLeave).toHaveBeenCalledTimes(1);
     expect(mockLeave).toHaveBeenCalledWith('s1');
   });
 
-  it('leaves the session with a keepalive DELETE on close, and only once', () => {
+  it('leaves the session with a keepalive DELETE on close, and only once', async () => {
     mockStatus.mockReturnValue(readySession);
     const onClose = jest.fn();
-    renderDialog({ onClose });
+    await renderDialog({ onClose });
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(mockLeave).toHaveBeenCalledTimes(1);
     expect(mockLeave).toHaveBeenCalledWith('s1');
@@ -109,9 +112,9 @@ describe('StreamPlayerDialog', () => {
   });
 
   /** Drives the real starting -> ready transition, which is what attaches hls.js. */
-  const renderPlaying = () => {
+  const renderPlaying = async () => {
     mockStatus.mockReturnValue({ data: { ...readySession.data, state: 'starting', hls_ready: false } });
-    const view = renderDialog();
+    const view = await renderDialog();
     mockStatus.mockReturnValue(readySession);
     view.rerender(
       <ThemeProvider theme={createAppTheme('light')}>
@@ -128,8 +131,8 @@ describe('StreamPlayerDialog', () => {
     act(() => { handler('hlsError', data); });
   };
 
-  it('recovers from fatal hls.js network and media errors instead of freezing', () => {
-    renderPlaying();
+  it('recovers from fatal hls.js network and media errors instead of freezing', async () => {
+    await renderPlaying();
     emitHlsError({ fatal: false, type: 'networkError', details: 'fragLoadError' });
     expect(hlsInstances[0].startLoad).not.toHaveBeenCalled();
     emitHlsError({ fatal: true, type: 'networkError', details: 'fragLoadError' });
@@ -139,8 +142,8 @@ describe('StreamPlayerDialog', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
-  it('gives up on an unrecoverable hls.js error and says so, with a Retry', () => {
-    renderPlaying();
+  it('gives up on an unrecoverable hls.js error and says so, with a Retry', async () => {
+    await renderPlaying();
     emitHlsError({ fatal: true, type: 'otherError', details: 'internalException' });
     expect(hlsInstances[0].destroy).toHaveBeenCalled();
     expect(screen.getByRole('alert')).toHaveTextContent(/Playback stopped/);
@@ -148,39 +151,46 @@ describe('StreamPlayerDialog', () => {
     expect(mockStart).toHaveBeenCalledTimes(2);
   });
 
-  it('explains a codec hls.js cannot buffer instead of retrying it', () => {
-    renderPlaying();
+  it('explains a codec hls.js cannot buffer instead of retrying it', async () => {
+    await renderPlaying();
     emitHlsError({ fatal: true, type: 'mediaError', details: 'bufferAddCodecError' });
     expect(hlsInstances[0].recoverMediaError).not.toHaveBeenCalled();
     expect(screen.getByRole('alert')).toHaveTextContent(/can't play this channel's video format/);
   });
 
-  it('offers Retry when the session could never be created', () => {
-    mockStart.mockImplementation((_id: string, opts: { onError: (err: { code: string; context: { limit: number } }) => void }) =>
-      opts.onError({ code: 'PLAYER_LIMIT_REACHED', context: { limit: 3 } })
-    );
-    mockStatus.mockReturnValue({});
-    renderDialog();
+  it('offers Retry when the session could never be created', async () => {
+    mockStart.mockRejectedValue({ code: 'PLAYER_LIMIT_REACHED', context: { limit: 3 } });
+    await renderDialog();
     expect(screen.getByRole('alert')).toHaveTextContent('Too many channels are playing at once (limit 3)');
     expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
   });
 
-  it('offers Retry when the session was reaped, but never when ffmpeg is missing', () => {
+  it('offers Retry when the session was reaped, but never when ffmpeg is missing', async () => {
     mockStatus.mockReturnValue({ data: readySession.data, error: { status: 404 } });
-    const { unmount } = renderDialog();
+    const { unmount } = await renderDialog();
     expect(screen.getByRole('alert')).toHaveTextContent('The stream ended.');
     expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
     unmount();
 
     mockStatus.mockReturnValue({ data: { ...readySession.data, state: 'error', hls_ready: false, error: 'ffmpeg_missing' } });
-    renderDialog();
+    await renderDialog();
     expect(screen.getByRole('alert')).toHaveTextContent("can't prepare streams");
     expect(screen.queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument();
   });
 });
 
 describe('describePlayerError', () => {
-  it('maps codes to copy', () => {
+  it('releases a session whose start finishes after the player closes', async () => {
+    let resolve!: (session: { id: string }) => void;
+    mockStart.mockReturnValue(new Promise((done) => { resolve = done; }));
+    mockStatus.mockReturnValue({ data: undefined });
+    const { unmount } = await renderDialog();
+    unmount();
+    await act(async () => { resolve({ id: 'late-session' }); });
+    expect(mockLeave).toHaveBeenCalledWith('late-session');
+  });
+
+  it('maps codes to copy', async () => {
     expect(describePlayerError({ error: 'ffmpeg_missing', error_message: '', codecs: {} }, false)).toMatch(/can't prepare streams/);
     expect(describePlayerError({ error: null, error_message: '', codecs: { video: 'mpeg2video' } }, false)).toMatch(/MPEG-2/);
     expect(describePlayerError({ error: null, error_message: '', codecs: {} }, true)).toMatch(/video format/);

@@ -19,8 +19,7 @@ import { AdvancedSearchFilters } from '../components/AdvancedSearch';
 import TVChannelsTable from '../components/TVChannelsTable';
 import TVChannelFormDialog from '../components/TVChannelFormDialog';
 import TVChannelDeleteDialog from '../components/TVChannelDeleteDialog';
-import StreamPlayerDialog from '../components/player/StreamPlayerDialog';
-import PlayOnMenu from '../components/player/PlayOnMenu';
+import ChannelPlayerDialog from '../components/player/ChannelPlayerDialog';
 import { TVChannel, TVChannelCreate, TVChannelUpdate } from '../types/tvChannelTypes';
 import AdvancedSearch from '../components/AdvancedSearch';
 import PageHeader from '../components/layout/PageHeader';
@@ -43,7 +42,7 @@ const TVChannels: React.FC = () => {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [deleteCandidate, setDeleteCandidate] = useState<TVChannel | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [playerTarget, setPlayerTarget] = useState<{ contentId: string; title: string } | null>(null);
+  const [playerTarget, setPlayerTarget] = useState<{ contentId: string; title: string; tvChannelId: number } | null>(null);
   const {
     openCreateDialog,
     setOpenCreateDialog,
@@ -329,7 +328,7 @@ const TVChannels: React.FC = () => {
             onDelete={handleRequestDelete}
             onOpen={(id) => navigate(`/tv-channels/${id}`)}
             onToggleFavorite={handleToggleFavorite}
-            onPlay={(channel) => setPlayerTarget({ contentId: channel.acestream_channels[0].id, title: channel.name })}
+            onPlay={(channel) => setPlayerTarget({ contentId: channel.acestream_channels[0].id, title: channel.name, tvChannelId: channel.id })}
           />
           {totalChannels === 0 && hasFilters ? (
             <Alert severity="info" sx={{ mt: 2 }}>
@@ -374,12 +373,12 @@ const TVChannels: React.FC = () => {
         onConfirm={handleConfirmDelete}
       />
 
-      <StreamPlayerDialog
+      <ChannelPlayerDialog
+        tvChannelId={playerTarget?.tvChannelId}
         open={Boolean(playerTarget)}
         contentId={playerTarget?.contentId ?? null}
         title={playerTarget?.title ?? ''}
         onClose={() => setPlayerTarget(null)}
-        extraActions={playerTarget ? <PlayOnMenu contentId={playerTarget.contentId} title={playerTarget.title} /> : undefined}
       />
     </Box>
   );

@@ -48,7 +48,7 @@ jest.mock('../components/ChannelTable', () => ({
     </div>
   ),
 }));
-jest.mock('../components/player/StreamPlayerDialog', () => ({
+jest.mock('../components/player/ChannelPlayerDialog', () => ({
   __esModule: true,
   default: ({ open, title }: { open: boolean; title: string }) => (open ? <div role="dialog">{title}</div> : null),
 }));

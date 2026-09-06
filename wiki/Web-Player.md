@@ -24,6 +24,39 @@ Wherever a channel appears in the app — Acestream Channels, TV Channels (inclu
 
 While a channel is starting, the dialog shows the engine's peer count and download speed as they become available. Once segments are ready it switches to **Playing**. Closing the dialog (or navigating away) releases the session; if you are the only viewer, the backend stops ffmpeg and the engine stream a few seconds later.
 
+## Live TV and choosing a stream
+
+Open **Live TV** from navigation to browse active TV channels, search by name,
+category or channel number, and filter favorites. Each channel shows its current
+and next programme when its EPG source and ID are mapped. Channels without streams
+remain visible with Watch disabled. The list loads guides for at most twelve visible
+channels at a time.
+
+Press **Watch** to open the player and schedule. The **Stream** selector lists every
+attached stream, its last known online status and a short ID. Switching releases
+the previous viewer and starts the selected stream. Copy stream link and Play on
+both follow the selected stream. A channel can be opened directly at
+`/live-tv?channel=123` (replace 123 with its TV channel ID).
+
+The initial stream uses the server's existing ranking: online status (+10), logo
+(+3), EPG ID (+2), and EPG name (+1), then stream ID to break ties. This ranking does
+not measure resolution or buffering. Choose another stream if the default fails.
+
+Players opened from TV Channels retain that channel's schedule and alternatives.
+Players opened from an AceStream ID look up its assigned TV channel; an unassigned
+ID has no channel schedule or alternatives.
+
+Guide times are shown in the viewing device's timezone, named beside the guide.
+XMLTV offsets are normalized to UTC by the backend and converted once for display.
+The on-air marker updates every 30 seconds and guides refresh every minute while
+open. No current programme means the guide has no matching entry; it does not mean
+the channel is offline. Correct your device clock and EPG mapping/source if the
+schedule is wrong. HLS playback can still trail the broadcast by several seconds.
+
+On phones, the player fills the screen and its schedule scrolls independently of
+the bottom actions. Scraper sources, EPG sources and scheduled jobs show stacked,
+labelled fields so their controls remain reachable without sideways scrolling.
+
 ## Status and error messages
 
 The player explains problems in plain language instead of raw codes:

@@ -41,6 +41,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
           </Button>
         ))
     : null;
+  const compactOverflow = isPhone && !primaryActions && Boolean(overflow);
   const groupedSecondaryActions = primaryActions ? (
     actions || overflowNode ? (
       <>
@@ -130,11 +131,11 @@ const PageHeader: React.FC<PageHeaderProps> = ({
                 alignItems: isPhone ? 'stretch' : 'center',
                 gap: 1,
                 minWidth: 0,
-                width: isPhone ? '100%' : 'auto',
+                width: compactOverflow ? 'auto' : isPhone ? '100%' : 'auto',
                 '& > *': {
                   minWidth: 0,
                   maxWidth: '100%',
-                  width: isPhone ? '100%' : 'auto',
+                  width: compactOverflow ? 'auto' : isPhone ? '100%' : 'auto',
                 },
               }}
             >

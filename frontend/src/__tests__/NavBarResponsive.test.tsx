@@ -73,7 +73,7 @@ describe('NavBar responsive shell behavior', () => {
     });
   });
 
-  it('keeps the menu button obvious on phone without repeating the current page title', () => {
+  it('keeps the menu button and current destination visible on phones', () => {
     renderWithResponsiveMode({
       pathname: '/scraper',
       isPhone: true,
@@ -86,7 +86,7 @@ describe('NavBar responsive shell behavior', () => {
     });
 
     expect(screen.getByRole('button', { name: 'open drawer' })).toBeVisible();
-    expect(screen.getByRole('banner')).not.toHaveTextContent('Scraper');
+    expect(screen.getByRole('banner')).toHaveTextContent('Scraper');
     expect(screen.getByRole('button', { name: /switch to dark theme/i })).toBeVisible();
     expect(screen.getByRole('main')).toHaveStyle({
       width: '100%',
@@ -111,7 +111,7 @@ describe('NavBar responsive shell behavior', () => {
     });
 
     expect(screen.queryByRole('button', { name: 'open drawer' })).not.toBeInTheDocument();
-    expect(screen.getByRole('banner')).not.toHaveTextContent('TV Channels');
+    expect(screen.getByRole('banner')).toHaveTextContent('TV Channels');
     expect(screen.getAllByText('Acestream Scraper').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: /switch to dark theme/i })).toBeVisible();
     expect(screen.getByRole('main')).toHaveStyle({ width: `calc(100% - ${layout.navWidth}px)` });
@@ -154,6 +154,9 @@ describe('NavBar responsive shell behavior', () => {
 
     await tab();
     expect(screen.getByRole('button', { name: /switch to dark theme/i })).toHaveFocus();
+
+    await tab();
+    expect(screen.getByRole('link', { name: 'Live TV' })).toHaveFocus();
 
     await tab();
     expect(screen.getByRole('link', { name: 'Overview' })).toHaveFocus();

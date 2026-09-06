@@ -30,6 +30,7 @@ export interface StreamPlayerDialogProps {
   onClose: () => void;
   /** Extra buttons (e.g. "Play on…") rendered next to Copy stream link. */
   extraActions?: React.ReactNode;
+  details?: React.ReactNode;
 }
 
 /** Fatal hls.js errors we try to ride out before telling the user. */
@@ -50,7 +51,7 @@ const startPlayback = (video: HTMLVideoElement): void => {
 };
 
 /** Plays one channel through the backend's HLS pipeline. */
-const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId, title, onClose, extraActions }) => {
+const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId, title, onClose, extraActions, details }) => {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('md'));
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -68,6 +69,7 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
   const recoveries = useRef(0);
   const [copied, setCopied] = useState<'ok' | 'failed' | null>(null);
   const leftRef = useRef(false);
+  const requestGeneration = useRef(0);
 
   const start = useStartPlayerSession();
   const { data: status, error: statusError } = usePlayerSessionStatus(sessionId);
@@ -96,12 +98,17 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
     leftRef.current = false;
     sessionIdRef.current = null;
     setSessionId(null);
-    start.mutate(contentId, {
-      onSuccess: (session) => {
+    const generation = ++requestGeneration.current;
+    // Promise handlers also run after unmount; stale starts must release their viewer.
+    void start.mutateAsync(contentId).then((session) => {
+        if (generation !== requestGeneration.current) {
+          playerService.leaveSession(session.id);
+          return;
+        }
         sessionIdRef.current = session.id;
         setSessionId(session.id);
-      },
-      onError: (err) => {
+      }, (err) => {
+        if (generation !== requestGeneration.current) return;
         if (err.code === 'PLAYER_LIMIT_REACHED') {
           const limit = (err.context as { limit?: number } | undefined)?.limit;
           setStartError(
@@ -110,18 +117,24 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
         } else {
           setStartError(getErrorMessage(err));
         }
-      },
-    });
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contentId, leave]);
 
   useEffect(() => {
     if (open && contentId) startSession();
+    const video = videoRef.current;
     return () => {
+      requestGeneration.current += 1;
       leave();
       hlsRef.current?.destroy();
       hlsRef.current = null;
       attachedUrl.current = null;
+      if (video) {
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+      }
       sessionIdRef.current = null;
       setSessionId(null);
     };
@@ -194,6 +207,7 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
   };
 
   const handleClose = () => {
+    requestGeneration.current += 1;
     leave();
     onClose();
   };
@@ -213,7 +227,7 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
 
   return (
     <Dialog open={open} onClose={handleClose} fullScreen={fullScreen} maxWidth="md" fullWidth aria-labelledby="stream-player-title">
-      <DialogTitle id="stream-player-title">{title}</DialogTitle>
+      <DialogTitle id="stream-player-title" sx={{ overflowWrap: 'anywhere' }}>{title}</DialogTitle>
       <DialogContent>
         <Stack spacing={1.5}>
           <Box sx={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', backgroundColor: '#000', borderRadius: 1, overflow: 'hidden' }}>
@@ -243,9 +257,10 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
               Video {status.codecs.video.toUpperCase()} · audio {(status.codecs.audio ?? 'unknown').toUpperCase()} re-encoded to AAC
             </Typography>
           ) : null}
+          {details}
         </Stack>
       </DialogContent>
-      <DialogActions>
+      <DialogActions sx={{ flexWrap: 'wrap', gap: 1, px: 2, pb: 'max(16px, env(safe-area-inset-bottom))' }}>
         {extraActions}
         <Button onClick={handleCopy} disabled={!streamLink}>
           Copy stream link

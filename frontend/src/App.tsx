@@ -14,6 +14,7 @@ import WARP from './pages/WARP';
 import Search from './pages/Search';
 import Integrations from './pages/Integrations';
 import Settings from './pages/Settings';
+import LiveTV from './pages/LiveTV';
 import NotFound from './pages/NotFound';
 
 /** Old URLs keep working: they land on the page that now holds that information. */
@@ -40,6 +41,7 @@ const App: React.FC = () => {
       <Routes>
         <Route path="/" element={<Overview />} />
         <Route path="/acestream-channels" element={<AcestreamChannels />} />
+        <Route path="/live-tv" element={<LiveTV />} />
         <Route path="/tv-channels" element={<TVChannels />} />
         <Route path="/tv-channels/:id" element={<TVChannelDetail />} />
         <Route path="/scraper" element={<Scraper />} />

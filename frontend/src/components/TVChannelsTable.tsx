@@ -146,7 +146,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
 
     return (
       <Box display="flex" gap={0.25} role="group" aria-label={`TV channel actions for ${channel.name}`}>
-        <Tooltip title={canPlay ? 'Play the best stream' : 'No stream to play yet'}>
+        <Tooltip title={canPlay ? 'Watch channel and choose a stream' : 'No stream to play yet'}>
           <span>
             <IconButton
               size="small"

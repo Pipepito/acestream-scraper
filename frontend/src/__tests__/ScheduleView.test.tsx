@@ -89,6 +89,6 @@ describe('ScheduleView', () => {
     mockUseEPGPrograms.mockReturnValue({ data: [], isLoading: false, error: null });
     renderView();
     expect(screen.getByText('No programmes today.')).toBeInTheDocument();
-    expect(screen.getByText('Nothing on air right now.')).toBeInTheDocument();
+    expect(screen.getByText('No current programme listed.')).toBeInTheDocument();
   });
 });

@@ -23,7 +23,7 @@ jest.mock('../components/epg/ScheduleView', () => ({
   __esModule: true,
   default: ({ epgChannelId }: { epgChannelId: number }) => <div data-testid="schedule-view">schedule for {epgChannelId}</div>,
 }));
-jest.mock('../components/player/StreamPlayerDialog', () => ({
+jest.mock('../components/player/ChannelPlayerDialog', () => ({
   __esModule: true,
   default: ({ open, title, contentId }: { open: boolean; title: string; contentId: string | null }) =>
     open ? (
@@ -156,15 +156,15 @@ describe('TVChannelDetail', () => {
     fireEvent.click(screen.getByRole('button', { name: 'play stream Arena Feed 2' }));
     expect(screen.getByRole('dialog', { name: 'Arena Feed 2' })).toHaveTextContent('ace-2');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Play best stream' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Watch channel' }));
     expect(screen.getByRole('dialog', { name: 'Arena TV' })).toHaveTextContent('ace-best');
   });
 
-  it('disables Play best stream when the channel has no streams', () => {
+  it('disables Watch channel when the channel has no streams', () => {
     mockUseTVChannel.mockReturnValue({ data: { ...baseChannel, acestream_channels: [] }, isLoading: false, isError: false });
     renderPage();
 
-    expect(screen.getByRole('button', { name: 'Play best stream' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Watch channel' })).toBeDisabled();
   });
 
   it('announces TV channel detail loading through a contextual status region', () => {

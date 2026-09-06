@@ -1,7 +1,7 @@
 import apiClient from './apiClient';
 import type { components } from '../types/api-generated';
 
-export type RemotePlayerKind = 'vlc' | 'kodi';
+export type RemotePlayerKind = components['schemas']['RemotePlayerResponse']['kind'];
 export type RemotePlayerCommand = 'pause' | 'resume' | 'stop' | 'volume';
 
 export interface RemotePlayer {
@@ -94,6 +94,10 @@ export interface ScanDefault {
 const BASE_URL = '/v1/remote-players';
 
 export const remotePlayerService = {
+  startAndroidPairing: async (host: string, port: number): Promise<components['schemas']['AndroidPairStartResponse']> =>
+    (await apiClient.post<components['schemas']['AndroidPairStartResponse']>(`${BASE_URL}/android/pair/start`, { host, port })).data,
+  finishAndroidPairing: async (body: components['schemas']['AndroidPairFinishRequest']): Promise<components['schemas']['AndroidPairFinishResponse']> =>
+    (await apiClient.post<components['schemas']['AndroidPairFinishResponse']>(`${BASE_URL}/android/pair/finish`, body)).data,
   list: async (): Promise<RemotePlayer[]> => (await apiClient.get<RemotePlayer[]>(BASE_URL)).data,
   create: async (body: RemotePlayerCreate): Promise<RemotePlayer> => (await apiClient.post<RemotePlayer>(BASE_URL, body)).data,
   update: async (id: number, body: RemotePlayerUpdate): Promise<RemotePlayer> => (await apiClient.patch<RemotePlayer>(`${BASE_URL}/${id}`, body)).data,

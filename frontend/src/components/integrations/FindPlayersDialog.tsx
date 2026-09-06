@@ -25,7 +25,7 @@ export interface FindPlayersDialogProps {
   onAdd: (prefill: { host: string; port: number; kind: RemotePlayerKind }) => void;
 }
 
-const KIND_LABEL: Record<ScanHit['kind'], string> = { vlc: 'VLC', kodi: 'Kodi', unknown: 'Unknown' };
+const KIND_LABEL: Record<ScanHit['kind'], string> = { vlc: 'VLC (desktop)', vlc_android: 'VLC Android', kodi: 'Kodi', unknown: 'Unknown' };
 
 /** Scan one private network for VLC/Kodi web interfaces and add what answers. */
 const FindPlayersDialog: React.FC<FindPlayersDialogProps> = ({ open, onClose, onAdd }) => {
@@ -54,7 +54,7 @@ const FindPlayersDialog: React.FC<FindPlayersDialogProps> = ({ open, onClose, on
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
           <Typography variant="body2" color="text.secondary">
-            Looks for VLC and Kodi web interfaces on port 8080. {suggestion?.hint}
+            Looks for desktop VLC and Kodi web interfaces on port 8080. Add VLC Android manually using its HTTPS address. {suggestion?.hint}
           </Typography>
           <Stack direction="row" spacing={1}>
             <TextField

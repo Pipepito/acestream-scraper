@@ -659,6 +659,14 @@ export interface paths {
     /** Create Player */
     post: operations["create_player_api_v1_remote_players_post"];
   };
+  "/api/v1/remote-players/android/pair/finish": {
+    /** Android Pair Finish */
+    post: operations["android_pair_finish_api_v1_remote_players_android_pair_finish_post"];
+  };
+  "/api/v1/remote-players/android/pair/start": {
+    /** Android Pair Start */
+    post: operations["android_pair_start_api_v1_remote_players_android_pair_start_post"];
+  };
   "/api/v1/remote-players/scan": {
     /** Find VLC/Kodi web interfaces on a private network */
     post: operations["scan_api_v1_remote_players_scan_post"];
@@ -1275,6 +1283,47 @@ export interface components {
        * @description Whether to add PID to Acestream links
        */
       value: string;
+    };
+    /** AndroidPairFinishRequest */
+    AndroidPairFinishRequest: {
+      /** Challenge */
+      challenge: string;
+      /** Code */
+      code: string;
+      /** Fingerprint */
+      fingerprint: string;
+      /** Host */
+      host: string;
+      /**
+       * Port
+       * @default 8443
+       */
+      port?: number;
+    };
+    /** AndroidPairFinishResponse */
+    AndroidPairFinishResponse: {
+      /**
+       * Password
+       * @description New paired credential; submit with player create/update. Never returned for saved players.
+       */
+      password: string;
+    };
+    /** AndroidPairStartRequest */
+    AndroidPairStartRequest: {
+      /** Host */
+      host: string;
+      /**
+       * Port
+       * @default 8443
+       */
+      port?: number;
+    };
+    /** AndroidPairStartResponse */
+    AndroidPairStartResponse: {
+      /** Challenge */
+      challenge: string;
+      /** Fingerprint */
+      fingerprint: string;
     };
     /**
      * AppIdUpdate
@@ -2186,7 +2235,7 @@ export interface components {
        * Kind
        * @enum {string}
        */
-      kind: "vlc" | "kodi";
+      kind: "vlc" | "kodi" | "vlc_android";
       /** Name */
       name: string;
       /** Password */
@@ -2258,7 +2307,7 @@ export interface components {
        * Kind
        * @enum {string}
        */
-      kind: "vlc" | "kodi";
+      kind: "vlc" | "kodi" | "vlc_android";
       /** Name */
       name: string;
       /**
@@ -2308,7 +2357,7 @@ export interface components {
        * Kind
        * @enum {string}
        */
-      kind: "vlc" | "kodi";
+      kind: "vlc" | "kodi" | "vlc_android";
       /** Password */
       password?: string | null;
       /**
@@ -2331,7 +2380,7 @@ export interface components {
       /** Host */
       host?: string | null;
       /** Kind */
-      kind?: ("vlc" | "kodi") | null;
+      kind?: ("vlc" | "kodi" | "vlc_android") | null;
       /** Name */
       name?: string | null;
       /**
@@ -5757,6 +5806,50 @@ export interface operations {
       201: {
         content: {
           "application/json": components["schemas"]["RemotePlayerResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Android Pair Finish */
+  android_pair_finish_api_v1_remote_players_android_pair_finish_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AndroidPairFinishRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AndroidPairFinishResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Android Pair Start */
+  android_pair_start_api_v1_remote_players_android_pair_start_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AndroidPairStartRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AndroidPairStartResponse"];
         };
       };
       /** @description Validation Error */

@@ -11,6 +11,10 @@ from app.config.database import get_db
 from app.models.models import RemotePlayer
 from app.repositories.settings_repository import SettingsRepository
 from app.schemas.remote_players import (
+    AndroidPairFinishRequest,
+    AndroidPairFinishResponse,
+    AndroidPairStartRequest,
+    AndroidPairStartResponse,
     RemotePlayerCommandRequest,
     RemotePlayerCreate,
     RemotePlayerPlayRequest,
@@ -52,7 +56,7 @@ NOT_A_PLAYER_HINT = (
     "Something is answering on this port, but it does not talk like a player. "
     "Check the port number and that you picked the right kind of player."
 )
-KIND_LABELS = {"vlc": "VLC", "kodi": "Kodi"}
+KIND_LABELS = {"vlc": "VLC", "kodi": "Kodi", "vlc_android": "VLC Android"}
 
 
 def _service(db: Session = Depends(get_db)) -> RemotePlayerService:
@@ -161,7 +165,7 @@ def update_player(
         host=host,
         port=payload.port,
         username=payload.username,
-        password=service.password_for_update(player, host, payload.port, payload.password),
+        password=service.password_for_update(player, host, payload.port, payload.password, payload.kind),
         base_url_id=payload.base_url_id,
     )
     if payload.clear_base_url:
@@ -303,3 +307,35 @@ def scan_default(request: Request):
         else "Type your network, for example 192.168.1.0/24 (this server cannot see it from here)."
     )
     return ScanDefaultResponse(cidr=cidr, hint=hint)
+
+
+@router.post("/android/pair/start", response_model=AndroidPairStartResponse)
+def android_pair_start(
+    payload: AndroidPairStartRequest, response: Response,
+    service: RemotePlayerService = Depends(_service),
+):
+    from app.services.remote_players.vlc_android import start_pairing
+
+    response.headers["Cache-Control"] = "no-store"
+    host = _validated_host(service, payload.host)
+    try:
+        return start_pairing(host, payload.port)
+    except (PlayerAuthError, PlayerUnreachable, PlayerCommandError) as exc:
+        raise _translate(exc) from exc
+
+
+@router.post("/android/pair/finish", response_model=AndroidPairFinishResponse)
+def android_pair_finish(
+    payload: AndroidPairFinishRequest, response: Response,
+    service: RemotePlayerService = Depends(_service),
+):
+    from app.services.remote_players.vlc_android import finish_pairing
+
+    response.headers["Cache-Control"] = "no-store"
+    host = _validated_host(service, payload.host)
+    try:
+        return AndroidPairFinishResponse(password=finish_pairing(
+            host, payload.port, payload.challenge, payload.fingerprint, payload.code,
+        ))
+    except (PlayerAuthError, PlayerUnreachable, PlayerCommandError) as exc:
+        raise _translate(exc) from exc

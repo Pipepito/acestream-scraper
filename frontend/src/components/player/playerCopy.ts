@@ -52,6 +52,7 @@ export const describePlayerError = (status: PlayerErrorInput, hlsCodecError: boo
 export const describeRemotePlayerError = (error: ApiError): string => {
   if (error.code === 'REMOTE_PLAYER_AUTH') {
     const kind = (error.context as { kind?: string } | undefined)?.kind;
+    if (kind === 'pairing_required') return error.message;
     return kind === 'no_password'
       ? "VLC's web interface has no password. In VLC: Tools > Preferences > All > Interface > Main interfaces > Web, then Lua > Lua HTTP > Password."
       : 'Check the password (VLC: Lua HTTP password; Kodi: Settings > Services > Control).';

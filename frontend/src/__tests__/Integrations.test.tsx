@@ -116,6 +116,14 @@ const renderPage = () =>
   );
 
 describe('Integrations page', () => {
+  it('offers Android pause and volume but no unsupported stop button', () => {
+    mockPlayers.mockReturnValue({ data: [{ id: 5, name: 'Android TV', kind: 'vlc_android', host: '192.168.1.20', port: 8443, has_password: true }], isLoading: false });
+    renderPage();
+    expect(screen.getByRole('button', { name: 'Pause Android TV' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Stop Android TV' })).not.toBeInTheDocument();
+    expect(screen.getByRole('slider', { name: 'Volume Android TV' })).toHaveAttribute('aria-valuemax', '100');
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
     mockPublicUrl.mockReturnValue({ data: { url: 'http://localhost:8000', source: 'request', warnings: ['localhost', 'unset'] }, isLoading: false });

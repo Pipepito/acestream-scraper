@@ -704,6 +704,101 @@
         "title": "AddPidUpdate",
         "type": "object"
       },
+      "AndroidPairFinishRequest": {
+        "properties": {
+          "challenge": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Challenge",
+            "type": "string"
+          },
+          "code": {
+            "pattern": "^[0-9]{6}$",
+            "title": "Code",
+            "type": "string"
+          },
+          "fingerprint": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Fingerprint",
+            "type": "string"
+          },
+          "host": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Host",
+            "type": "string"
+          },
+          "port": {
+            "default": 8443,
+            "maximum": 65535.0,
+            "minimum": 1.0,
+            "title": "Port",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "host",
+          "challenge",
+          "fingerprint",
+          "code"
+        ],
+        "title": "AndroidPairFinishRequest",
+        "type": "object"
+      },
+      "AndroidPairFinishResponse": {
+        "properties": {
+          "password": {
+            "description": "New paired credential; submit with player create/update. Never returned for saved players.",
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "title": "AndroidPairFinishResponse",
+        "type": "object"
+      },
+      "AndroidPairStartRequest": {
+        "properties": {
+          "host": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Host",
+            "type": "string"
+          },
+          "port": {
+            "default": 8443,
+            "maximum": 65535.0,
+            "minimum": 1.0,
+            "title": "Port",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "host"
+        ],
+        "title": "AndroidPairStartRequest",
+        "type": "object"
+      },
+      "AndroidPairStartResponse": {
+        "properties": {
+          "challenge": {
+            "title": "Challenge",
+            "type": "string"
+          },
+          "fingerprint": {
+            "title": "Fingerprint",
+            "type": "string"
+          }
+        },
+        "required": [
+          "challenge",
+          "fingerprint"
+        ],
+        "title": "AndroidPairStartResponse",
+        "type": "object"
+      },
       "AppIdUpdate": {
         "description": "Schema for updating appid setting",
         "properties": {
@@ -2864,7 +2959,8 @@
           "kind": {
             "enum": [
               "vlc",
-              "kodi"
+              "kodi",
+              "vlc_android"
             ],
             "title": "Kind",
             "type": "string"
@@ -3048,7 +3144,8 @@
           "kind": {
             "enum": [
               "vlc",
-              "kodi"
+              "kodi",
+              "vlc_android"
             ],
             "title": "Kind",
             "type": "string"
@@ -3193,7 +3290,8 @@
           "kind": {
             "enum": [
               "vlc",
-              "kodi"
+              "kodi",
+              "vlc_android"
             ],
             "title": "Kind",
             "type": "string"
@@ -3271,7 +3369,8 @@
               {
                 "enum": [
                   "vlc",
-                  "kodi"
+                  "kodi",
+                  "vlc_android"
                 ],
                 "type": "string"
               },
@@ -11058,6 +11157,90 @@
           }
         },
         "summary": "Create Player",
+        "tags": [
+          "remote-players",
+          "remote-players"
+        ]
+      }
+    },
+    "/api/v1/remote-players/android/pair/finish": {
+      "post": {
+        "operationId": "android_pair_finish_api_v1_remote_players_android_pair_finish_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AndroidPairFinishRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AndroidPairFinishResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Android Pair Finish",
+        "tags": [
+          "remote-players",
+          "remote-players"
+        ]
+      }
+    },
+    "/api/v1/remote-players/android/pair/start": {
+      "post": {
+        "operationId": "android_pair_start_api_v1_remote_players_android_pair_start_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AndroidPairStartRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AndroidPairStartResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Android Pair Start",
         "tags": [
           "remote-players",
           "remote-players"

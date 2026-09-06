@@ -118,6 +118,10 @@ class RemotePlayerService:
         endpoint tests monkeypatch), so without the close each poll of a player
         card would leave a connection pool behind for the GC to find.
         """
+        if kind == "vlc_android":
+            # Android owns a certificate-pinned HTTPS client for each operation.
+            yield make_driver(kind, host, port, username, password)
+            return
         client = self._client_factory()
         try:
             yield make_driver(kind, host, port, username, password, client=client)
@@ -151,7 +155,7 @@ class RemotePlayerService:
         secret = password if password else None
         if secret is None and stored_id is not None:
             stored = self.repo.get(stored_id)
-            if stored is not None and _same_target(stored, host, port):
+            if stored is not None and stored.kind == kind and _same_target(stored, host, port):
                 secret = stored.password
         with self._driver(kind, host, port, username, secret or "") as driver:
             probe = driver.probe()
@@ -163,6 +167,7 @@ class RemotePlayerService:
         host: Optional[str],
         port: Optional[int],
         password: Optional[str],
+        kind: Optional[str] = None,
     ) -> Optional[str]:
         """The password a PATCH should store: the typed one when given, else the
         stored one — unless the row is being pointed somewhere else, in which
@@ -175,6 +180,8 @@ class RemotePlayerService:
         thing the API withholding the password is supposed to prevent."""
         if password is not None:
             return password
+        if kind is not None and kind != player.kind:
+            return ""
         return None if _same_target(player, host or player.host, port or player.port) else ""
 
     def status(self, player: RemotePlayer) -> PlayerStatus:

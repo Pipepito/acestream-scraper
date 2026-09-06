@@ -6,7 +6,7 @@ from typing import List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-PlayerKind = Literal["vlc", "kodi"]
+PlayerKind = Literal["vlc", "kodi", "vlc_android"]
 PlayerCommand = Literal["pause", "resume", "stop", "volume"]
 
 
@@ -122,3 +122,23 @@ class ScanResultResponse(BaseModel):
 class ScanDefaultResponse(BaseModel):
     cidr: Optional[str] = None
     hint: str
+
+
+class AndroidPairStartRequest(BaseModel):
+    host: str = Field(..., min_length=1, max_length=255)
+    port: int = Field(8443, ge=1, le=65535)
+
+
+class AndroidPairStartResponse(BaseModel):
+    challenge: str
+    fingerprint: str
+
+
+class AndroidPairFinishRequest(AndroidPairStartRequest):
+    challenge: str = Field(..., min_length=1, max_length=256)
+    fingerprint: str = Field(..., pattern=r"^[0-9a-f]{64}$")
+    code: str = Field(..., pattern=r"^[0-9]{6}$")
+
+
+class AndroidPairFinishResponse(BaseModel):
+    password: str = Field(..., description="New paired credential; submit with player create/update. Never returned for saved players.")

@@ -12,7 +12,7 @@ You save each player once (name, VLC or Kodi, its address and password). After t
 
 Nothing is installed on the player. The app talks to the web interface that VLC and Kodi already ship, and hands the player a normal stream link that it opens by itself. The video never passes through your browser.
 
-## Set up VLC
+## Set up VLC desktop
 
 1. In VLC: **Tools › Preferences**, switch **Show settings** to **All** (bottom left).
 2. Go to **Interface › Main interfaces** and tick **Web**.
@@ -20,6 +20,49 @@ Nothing is installed on the player. The app talks to the web interface that VLC 
 4. Restart VLC. The first time it starts, your operating system asks whether to let VLC accept network connections — **allow it**, or nothing outside that machine can reach it.
 
 VLC's web interface listens on port **8080**. The app needs the password you set in step 3: VLC rejects every request without it, and its own error page says so in a way only VLC understands, which is why the app asks for it up front.
+
+## Set up VLC Android (3.6+)
+
+Android uses **Remote access**, a separate service from desktop VLC's Lua HTTP
+interface. A Lua password will not work. See VideoLAN's
+[Remote access documentation](https://docs.videolan.me/vlc-user/android/3.X/en/more/remoteaccess/remote_access.html).
+
+1. In VLC Android, enable **Settings > Remote access** and playback control.
+2. Note the host and **HTTPS** port shown by VLC (normally **8443**; VLC may
+   choose another free port). Keep VLC open and both devices on the same network.
+3. In **Integrations > Remote players > Add player**, select **VLC Android (3.6+)**
+   and enter that host and secure port. If you previously added the device as
+   desktop VLC, edit it and change the player type.
+4. Click **Request pairing code**. Confirm the request on your Android device,
+   then enter the six-digit code shown there within **60 seconds** and click
+   **Pair with VLC Android**. If it expires, request another code.
+5. Click **Add player** or **Save**. You can now send channels using **Play on…**.
+
+Pairing uses HTTPS with VLC's self-signed certificate. The first pairing trusts
+that device certificate and displays its SHA-256 fingerprint; future requests
+check the saved certificate before sending credentials. The saved session is
+bound to the host, port and certificate, and is never returned by the saved-player
+API. A changed address, reset certificate, or expired/revoked session requires
+pairing again. Changing the player type clears existing credentials.
+
+Android supports sending a network stream, status, pause, resume, and system
+volume from 0–100%. Its Remote access protocol has **no Stop command**, so the
+Android card omits Stop; stop playback on the device. Keep VLC in the foreground
+when opening video, or configure VLC's background/video app-switch behavior.
+If a command is forbidden, check Remote access playback permissions.
+
+**Find players** currently discovers desktop VLC and Kodi on HTTP port 8080.
+Add Android manually using its secure address; no ADB, extra Android app, or
+HTTP fallback is needed. Stream relay address and tuner-network rules below
+also apply to Android.
+
+Implementation contracts were checked against VideoLAN's **3.6.5** source:
+[HTTP routes](https://github.com/videolan/vlc-android/blob/3.6.5/application/remote-access-server/src/main/java/org/videolan/vlc/remoteaccessserver/RemoteAccessRouting.kt),
+[OTP verification](https://github.com/videolan/vlc-android/blob/3.6.5/application/remote-access-server/src/main/java/org/videolan/vlc/remoteaccessserver/RemoteAccessOTP.kt), and
+[playback messages](https://github.com/videolan/vlc-android/blob/3.6.5/application/remote-access-server/src/main/java/org/videolan/vlc/remoteaccessserver/websockets/WSIncomingMessage.kt).
+The integration uses `/code`, `/verify-code`, `/play`, `/playback-event`, and
+bounded `/longpolling` requests. The existing private credential column stores
+an Android session envelope; no database schema change is required.
 
 ## Set up Kodi
 

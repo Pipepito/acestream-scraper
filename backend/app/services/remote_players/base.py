@@ -8,7 +8,7 @@ import httpx
 
 from app.utils.url_guard import BlockedURLError, validate_lan_target
 
-AuthErrorKind = Literal["no_password", "wrong_password"]
+AuthErrorKind = Literal["no_password", "wrong_password", "pairing_required"]
 PlayerStateValue = Literal["playing", "paused", "stopped"]
 DRIVER_TIMEOUT = httpx.Timeout(5.0, connect=2.0)
 
@@ -84,6 +84,10 @@ def make_driver(
     password: Optional[str],
     client: Optional[httpx.Client] = None,
 ) -> PlayerDriver:
+    if kind == "vlc_android":
+        from .vlc_android import VlcAndroidDriver
+
+        return VlcAndroidDriver(host, port, password)
     if kind == "vlc":
         from .vlc import VlcDriver
 

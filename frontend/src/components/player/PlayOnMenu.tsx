@@ -19,7 +19,7 @@ export interface PlayOnMenuProps {
   notify?: PlayerNotify;
 }
 
-const KIND_LABEL: Record<string, string> = { vlc: 'VLC', kodi: 'Kodi' };
+const KIND_LABEL: Record<string, string> = { vlc: 'VLC', vlc_android: 'VLC Android', kodi: 'Kodi' };
 
 /** "Play on…": send a channel to a saved VLC/Kodi player. */
 const PlayOnMenu: React.FC<PlayOnMenuProps> = ({ contentId, title, onDone, notify }) => {

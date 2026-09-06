@@ -26,10 +26,10 @@ export interface RemotePlayersSectionProps {
   notify: PlayerNotify;
 }
 
-const KIND_LABEL: Record<RemotePlayerKind, string> = { vlc: 'VLC', kodi: 'Kodi' };
+const KIND_LABEL: Record<RemotePlayerKind, string> = { vlc: 'VLC (desktop)', vlc_android: 'VLC Android', kodi: 'Kodi' };
 
 /** The loudest each player accepts: VLC goes to 200 %, Kodi clamps at 100 %. */
-const MAX_VOLUME_PCT: Record<RemotePlayerKind, number> = { vlc: 200, kodi: 100 };
+const MAX_VOLUME_PCT: Record<RemotePlayerKind, number> = { vlc: 200, vlc_android: 100, kodi: 100 };
 
 const formatClock = (seconds: number | null | undefined): string => {
   if (seconds === null || seconds === undefined) return '';
@@ -146,7 +146,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete, onSen
             </span>
           </Tooltip>
         )}
-        <Tooltip title="Stop">
+        {player.kind !== 'vlc_android' ? <Tooltip title="Stop">
           <span>
             <IconButton
               size="small"
@@ -158,6 +158,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete, onSen
             </IconButton>
           </span>
         </Tooltip>
+        : null}
         <Slider
           size="small"
           aria-label={`Volume ${player.name}`}

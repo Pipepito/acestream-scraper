@@ -17,7 +17,7 @@ import {
 import { useBaseUrls } from '../../hooks/useBaseUrls';
 import { useCreateRemotePlayer, useTestRemotePlayer, useUpdateRemotePlayer } from '../../hooks/useRemotePlayers';
 import { ApiError } from '../../services/apiErrors';
-import type { RemotePlayer, RemotePlayerKind } from '../../services/remotePlayerService';
+import { remotePlayerService, type RemotePlayer, type RemotePlayerKind } from '../../services/remotePlayerService';
 import { getErrorMessage } from '../../utils/errorUtils';
 import { describeRemotePlayerProbe } from '../player/playerCopy';
 
@@ -32,6 +32,9 @@ export interface RemotePlayerDialogProps {
 
 /** Add or edit one VLC/Kodi player, with an inline "Test connection" probe. */
 const RemotePlayerDialog: React.FC<RemotePlayerDialogProps> = ({ open, player, prefill, onClose, notify }) => {
+  const [pairing, setPairing] = useState<{ challenge: string; fingerprint: string } | null>(null);
+  const [pairingBusy, setPairingBusy] = useState(false);
+  const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [kind, setKind] = useState<RemotePlayerKind>('vlc');
   const [host, setHost] = useState('');
@@ -49,6 +52,8 @@ const RemotePlayerDialog: React.FC<RemotePlayerDialogProps> = ({ open, player, p
     if (!open) return;
     setProbe(null);
     setPassword('');
+    setPairing(null);
+    setCode('');
     if (player) {
       setName(player.name);
       setKind(player.kind);
@@ -65,6 +70,36 @@ const RemotePlayerDialog: React.FC<RemotePlayerDialogProps> = ({ open, player, p
       setBaseUrlId('');
     }
   }, [open, player, prefill]);
+
+  const resetPairing = () => {
+    setPairing(null);
+    setCode('');
+    setPassword('');
+    setProbe(null);
+  };
+
+  const pairAndroid = async (finish: boolean) => {
+    setPairingBusy(true);
+    setProbe(null);
+    try {
+      if (finish && pairing) {
+        const result = await remotePlayerService.finishAndroidPairing({ host: host.trim(), port: Number(port), ...pairing, code });
+        setPassword(result.password);
+        setPairing(null);
+        setCode('');
+        setProbe({ severity: 'success', text: 'Paired with VLC Android. Save this player to keep the connection.' });
+      } else {
+        setPassword('');
+        setCode('');
+        setPairing(null);
+        setPairing(await remotePlayerService.startAndroidPairing(host.trim(), Number(port)));
+      }
+    } catch (err) {
+      setProbe({ severity: 'error', text: err instanceof ApiError ? err.message : getErrorMessage(err) });
+    } finally {
+      setPairingBusy(false);
+    }
+  };
 
   const runTest = async () => {
     setProbe(null);
@@ -85,6 +120,7 @@ const RemotePlayerDialog: React.FC<RemotePlayerDialogProps> = ({ open, player, p
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (pairingBusy || !valid) return;
     const body = {
       name: name.trim(),
       kind,
@@ -110,9 +146,11 @@ const RemotePlayerDialog: React.FC<RemotePlayerDialogProps> = ({ open, player, p
     }
   };
 
-  const valid = Boolean(name.trim() && host.trim() && /^\d+$/.test(port));
+  const validTarget = Boolean(host.trim() && /^\d+$/.test(port) && Number(port) >= 1 && Number(port) <= 65535);
+  const savedPairing = player?.kind === 'vlc_android' && player.has_password && player.host === host.trim() && player.port === Number(port);
+  const valid = Boolean(name.trim() && validTarget && (kind !== 'vlc_android' || password || savedPairing));
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" aria-labelledby="remote-player-dialog-title">
+    <Dialog open={open} onClose={pairingBusy ? undefined : onClose} fullWidth maxWidth="sm" aria-labelledby="remote-player-dialog-title">
       <form onSubmit={(event) => void submit(event)}>
         <DialogTitle id="remote-player-dialog-title">{player ? `Edit ${player.name}` : 'Add player'}</DialogTitle>
         <DialogContent>
@@ -131,9 +169,16 @@ const RemotePlayerDialog: React.FC<RemotePlayerDialogProps> = ({ open, player, p
                 labelId="remote-player-kind"
                 label="Player"
                 value={kind}
-                onChange={(event) => setKind(event.target.value as RemotePlayerKind)}
+                disabled={pairingBusy}
+                onChange={(event) => {
+                  const next = event.target.value as RemotePlayerKind;
+                  setKind(next);
+                  setPort(next === 'vlc_android' ? '8443' : '8080');
+                  resetPairing();
+                }}
               >
                 <MenuItem value="vlc">VLC (desktop)</MenuItem>
+                <MenuItem value="vlc_android">VLC Android (3.6+)</MenuItem>
                 <MenuItem value="kodi">Kodi</MenuItem>
               </Select>
             </FormControl>
@@ -141,16 +186,18 @@ const RemotePlayerDialog: React.FC<RemotePlayerDialogProps> = ({ open, player, p
               <TextField
                 label="Host"
                 value={host}
-                onChange={(event) => setHost(event.target.value)}
+                disabled={pairingBusy}
+                onChange={(event) => { setHost(event.target.value); resetPairing(); }}
                 inputProps={{ 'aria-label': 'Host' }}
                 fullWidth
                 required
-                helperText="IP address or hostname on your network"
+                helperText={kind === 'vlc_android' ? "Use the host and HTTPS port shown in VLC > Settings > Remote access." : "IP address or hostname on your network"}
               />
               <TextField
                 label="Port"
                 value={port}
-                onChange={(event) => setPort(event.target.value)}
+                disabled={pairingBusy}
+                onChange={(event) => { setPort(event.target.value); resetPairing(); }}
                 inputProps={{ 'aria-label': 'Port', inputMode: 'numeric' }}
                 sx={{ width: 120 }}
               />
@@ -158,7 +205,31 @@ const RemotePlayerDialog: React.FC<RemotePlayerDialogProps> = ({ open, player, p
             {kind === 'kodi' ? (
               <TextField label="Username" value={username} onChange={(event) => setUsername(event.target.value)} fullWidth />
             ) : null}
-            <TextField
+            {kind === 'vlc_android' ? (
+              <Stack spacing={1}>
+                <Alert severity="info">
+                  Enable Remote access and playback control in VLC Android 3.6 or later. Keep VLC open when sending video.
+                  Request a code, then enter the six digits shown on the Android device within 60 seconds.
+                  Android supports pause, resume and volume; stop playback on the device.
+                </Alert>
+                <Button onClick={() => void pairAndroid(false)} disabled={!validTarget || pairingBusy}>
+                  {pairingBusy ? 'Connecting…' : password || savedPairing ? 'Pair again' : 'Request pairing code'}
+                </Button>
+                {pairing ? <>
+                  <Alert severity="info" sx={{ overflowWrap: 'anywhere' }}>
+                    Confirm this is your device before pairing. This HTTPS certificate will be remembered.
+                    SHA-256: {pairing.fingerprint}
+                  </Alert>
+                  <TextField label="Pairing code" value={code} disabled={pairingBusy}
+                    onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                    inputProps={{ inputMode: 'numeric', autoComplete: 'one-time-code', maxLength: 6 }} />
+                  <Button onClick={() => void pairAndroid(true)} disabled={pairingBusy || !/^\d{6}$/.test(code)}>
+                    Pair with VLC Android
+                  </Button>
+                </> : null}
+                {savedPairing && !password ? <Alert severity="success">A paired connection is saved for this device.</Alert> : null}
+              </Stack>
+            ) : <TextField
               label="Password"
               type="password"
               value={password}
@@ -171,7 +242,7 @@ const RemotePlayerDialog: React.FC<RemotePlayerDialogProps> = ({ open, player, p
                     ? 'The Lua HTTP password you set in VLC.'
                     : 'From Kodi > Settings > Services > Control.'
               }
-            />
+            />}
             <FormControl fullWidth size="small">
               <InputLabel id="remote-player-link-format">Stream link format</InputLabel>
               <Select
@@ -192,13 +263,13 @@ const RemotePlayerDialog: React.FC<RemotePlayerDialogProps> = ({ open, player, p
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => void runTest()} disabled={!host.trim() || test.isPending}>
+          <Button onClick={() => void runTest()} disabled={!validTarget || test.isPending || pairingBusy}>
             {test.isPending ? <CircularProgress size={18} /> : 'Test connection'}
           </Button>
-          <Button onClick={onClose} color="inherit">
+          <Button onClick={onClose} color="inherit" disabled={pairingBusy}>
             Cancel
           </Button>
-          <Button type="submit" variant="contained" disabled={!valid || create.isPending || update.isPending}>
+          <Button type="submit" variant="contained" disabled={!valid || create.isPending || update.isPending || pairingBusy}>
             {player ? 'Save' : 'Add player'}
           </Button>
         </DialogActions>

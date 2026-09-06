@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.models.models import AcestreamChannel
 from app.repositories.channel_repository import ChannelRepository
+from app.services.stream_bitrate_service import probe_media
 
 logger = logging.getLogger(__name__)
 
@@ -84,28 +85,28 @@ class ChannelStatusService:
     async def _verify_broadcast(self, engine_url: str, data: Dict[str, Any], timeout: float):
         response = data.get('response')
         if not isinstance(response, dict):
-            return False, 'Invalid response format'
+            return False, 'Invalid response format', None
         stat_url = self._session_url(engine_url, response.get('stat_url'), 'stat')
         command_url = self._session_url(engine_url, response.get('command_url'), 'cmd')
         try:
             if data.get('error'):
-                return False, 'Engine could not start the stream'
+                return False, 'Engine could not start the stream', None
             if not stat_url or not command_url:
-                return False, 'Engine did not provide a verifiable playback session'
+                return False, 'Engine did not provide a verifiable playback session', None
             deadline = asyncio.get_running_loop().time() + timeout
             previous_downloaded = None
             while True:
                 remaining = deadline - asyncio.get_running_loop().time()
                 if remaining <= 0:
-                    return False, 'No broadcast data received before timeout'
+                    return False, 'No broadcast data received before timeout', None
                 http_status, stats, parse_error = await self._fetch_engine_response(stat_url, {}, remaining)
                 if http_status != 200 or parse_error or not isinstance(stats, dict):
-                    return False, 'Could not read stream statistics'
+                    return False, 'Could not read stream statistics', None
                 state = stats.get('response')
                 if stats.get('error') or not isinstance(state, dict):
-                    return False, 'Engine could not read stream statistics'
+                    return False, 'Engine could not read stream statistics', None
                 if state.get('status') in ('error', 'err', 'idle', 'stopped'):
-                    return False, 'Stream is not broadcasting'
+                    return False, 'Stream is not broadcasting', None
                 downloaded = state.get('downloaded')
                 if (isinstance(downloaded, (int, float)) and not isinstance(downloaded, bool)
                         and math.isfinite(downloaded) and downloaded >= 0):
@@ -113,7 +114,8 @@ class ChannelStatusService:
                     # and catalogue status cannot prove current emission.
                     if (previous_downloaded is not None and downloaded > previous_downloaded
                             and state.get('status') in ('dl', 'prebuf', 'buf')):
-                        return True, 'Broadcast data is arriving'
+                        media = await probe_media(engine_url, response.get('playback_url'))
+                        return True, 'Broadcast data is arriving', media
                     previous_downloaded = downloaded
                 await asyncio.sleep(min(1.0, max(0, deadline - asyncio.get_running_loop().time())))
         finally:
@@ -128,6 +130,7 @@ class ChannelStatusService:
     ) -> Dict[str, Any]:
         """Check current data transfer in an isolated, bounded playback session."""
         online = False
+        media = None
         try:
             engine_url = self._get_engine_url()
             status_url = f"{engine_url}/ace/getstream"
@@ -143,7 +146,7 @@ class ChannelStatusService:
             elif parse_error or not isinstance(data, dict):
                 message = 'Invalid response format'
             else:
-                online, message = await self._verify_broadcast(engine_url, data, timeout)
+                online, message, media = await self._verify_broadcast(engine_url, data, timeout)
         except asyncio.TimeoutError:
             message = 'Request timeout'
         except Exception:
@@ -152,7 +155,8 @@ class ChannelStatusService:
         check_time = datetime.now(timezone.utc)
         error = None if online else message
         if persist:
-            self.channel_repository.update_channel_status(channel.id, online, error)
+            self.channel_repository.update_channel_status(channel.id, online, error, bitrate_bps=media.get("bitrate_bps") if media else None,
+                audio_tracks=media.get("audio_tracks") if media else None)
         return {
             'channel_id': channel.id,
             'is_online': online,

@@ -104,3 +104,20 @@ async def test_probe_player_ids_are_unique_between_service_instances(db_session)
         await service.check_channel_status(AcestreamChannel(id='a' * 40, name='Example'), persist=False)
         ids.append(service._fetch_engine_response.call_args.args[1]['pid'])
     assert ids[0] != ids[1]
+
+
+@pytest.mark.asyncio
+async def test_online_check_persists_measured_media_but_probe_failure_stays_online(probe, monkeypatch):
+    monkeypatch.setattr('app.services.channel_status_service.asyncio.sleep', AsyncMock())
+    for metadata in [None, {'bitrate_bps': 8_000_000, 'audio_tracks': [{'index': 0, 'language': 'spa'}]}]:
+        monkeypatch.setattr('app.services.channel_status_service.probe_media', AsyncMock(return_value=metadata))
+        probe._fetch_engine_response = AsyncMock(side_effect=[
+            (200, session_response(), None),
+            (200, {'response': {'status': 'dl', 'downloaded': 100}}, None),
+            (200, {'response': {'status': 'dl', 'downloaded': 200}}, None),
+            (200, {'response': 'ok'}, None),
+        ])
+        result = await probe.check_channel_status(AcestreamChannel(id='a' * 40, name='Example'))
+        assert result['is_online'] is True
+        assert probe.channel_repository.update_channel_status.call_args.kwargs['bitrate_bps'] == (metadata['bitrate_bps'] if metadata else None)
+        assert probe.channel_repository.update_channel_status.call_args.kwargs['audio_tracks'] == (metadata['audio_tracks'] if metadata else None)

@@ -198,3 +198,20 @@ describe('describePlayerError', () => {
     expect(describePlayerError({ error: null, error_message: '', codecs: { video: 'h264' } }, false)).toBeNull();
   });
 });
+
+
+it('offers discovered audio languages and restarts only this viewer with the selected track', async () => {
+  mockPublicUrl.mockReturnValue({ data: { url: 'http://scraper.lan:8000' } });
+  mockStart.mockResolvedValue({ id: 's1' });
+  mockStatus.mockReturnValue({ data: { ...readySession.data, audio_tracks: [
+    { index: 0, language: 'spa', codec: 'ac3', channel_layout: 'stereo' },
+    { index: 1, language: 'eng', codec: 'aac', channel_layout: 'stereo' },
+  ] } });
+  await renderDialog();
+  fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Audio track' }));
+  fireEvent.click(screen.getByRole('option', { name: /Track 2 · eng/ }));
+  await act(async () => { await Promise.resolve(); });
+  expect(mockStart).toHaveBeenLastCalledWith({ contentId: 'a'.repeat(40), audioIndex: 1 });
+  expect(mockLeave).toHaveBeenCalledWith('s1');
+  expect(screen.getByText(/Other viewers keep their selected track/)).toBeInTheDocument();
+});

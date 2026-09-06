@@ -18,6 +18,11 @@ directory.mkdir(parents=True, exist_ok=True)
 sys.stderr.write("Input #0, mpegts, from 'http://engine':\n")
 sys.stderr.write("  Stream #0:0[0x100]: Video: %s (High) ([27][0][0][0] / 0x001B), yuv420p, 1920x1080\n" % os.environ.get("FAKE_FFMPEG_VIDEO", "h264"))
 sys.stderr.write("  Stream #0:1[0x101]: Audio: %s ([129][0][0][0] / 0x0081), 48000 Hz, stereo\n" % os.environ.get("FAKE_FFMPEG_AUDIO", "ac3"))
+if os.environ.get("FAKE_FFMPEG_MULTI_AUDIO") == "1":
+    sys.stderr.write("  Stream #0:2[0x102](eng): Audio: aac (LC), 48000 Hz, stereo\n")
+    sys.stderr.write("Stream mapping:\n")
+    sys.stderr.write("Output #0, hls, to 'index.m3u8':\n")
+    sys.stderr.write("  Stream #0:1: Audio: aac, 48000 Hz, stereo\n")
 sys.stderr.flush()
 
 if mode == "exit_early":

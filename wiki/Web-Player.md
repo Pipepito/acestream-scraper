@@ -8,7 +8,7 @@ Every image ships a small, statically-linked ffmpeg (built during the image buil
 
 That segmenting and buffering means the player runs roughly 6–10 seconds behind live — expected for HLS, not a fault.
 
-One ffmpeg process is shared per channel, not per viewer: if two browser tabs (or two people) play the same channel at once, they join the same session instead of doubling the transcode cost. A session is torn down automatically a few seconds after its last viewer leaves, or after it sits idle, so it does not keep using engine and CPU resources in the background.
+One ffmpeg process is shared per channel and selected audio track: if two browser tabs (or two people) play the same channel with the same audio selection, they join the same session instead of doubling the transcode cost. A session is torn down automatically a few seconds after its last viewer leaves, or after it sits idle, so it does not keep using engine and CPU resources in the background.
 
 Because the video track is passed through as-is, a browser that cannot decode it natively (MPEG-2, MPEG-1, VC-1, MPEG-4 v3) still cannot play the channel — the player tells you so and points you at VLC or Kodi instead of pretending it will work.
 
@@ -114,3 +114,23 @@ The Overview service details refresh every 30 seconds and show:
 The counts can overlap and must not be added. Neither count proves that a player
 is currently receiving video. The documented [engine status API](https://docs.acestream.net/developers/api-reference/#get_status)
 does not provide an engine-wide playback total.
+
+
+## Choosing audio
+
+The player discovers input audio tracks as ffmpeg opens the stream. **Audio track**
+shows the track number, language, codec and channel layout when the source provides
+them. Choose a track to restart your browser playback with that audio; other
+viewers keep their own selection. The first audio track is the default. A source
+without detectable audio metadata has no selector.
+
+Different audio selections use separate HLS/ffmpeg sessions and count against the
+player session limit. The previous session closes after its normal grace period;
+at capacity, close another player or wait for that cleanup before retrying.
+Selected audio is converted to stereo AAC. Copied raw stream links and remote
+player actions carry the original source with all its audio tracks, rather than
+forcing the browser's selection on that player.
+
+The channel stream picker also displays saved bitrate and audio-track counts when
+available from status checks. The tuner alone uses bitrate order; the web player's
+existing manual stream selection remains available.

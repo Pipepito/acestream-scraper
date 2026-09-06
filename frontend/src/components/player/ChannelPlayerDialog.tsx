@@ -6,6 +6,7 @@ import { useNow } from '../../hooks/useNow';
 import StreamPlayerDialog, { type StreamPlayerDialogProps } from './StreamPlayerDialog';
 import ChannelGuide from './ChannelGuide';
 import PlayOnMenu from './PlayOnMenu';
+import { formatBitrate } from '../../utils/format';
 
 interface ChannelPlayerDialogProps extends Omit<StreamPlayerDialogProps, 'extraActions' | 'details'> {
   tvChannelId?: number;
@@ -27,7 +28,7 @@ const OpenChannelPlayer: React.FC<ChannelPlayerDialogProps> = (props) => {
           helperText="Default order: online status, then available logo and EPG metadata. Picture quality and buffering are not measured.">
           {!channel.acestream_channels.some((item) => item.id === selectedId) && selectedId ? <MenuItem value={selectedId}>Opened stream · {selectedId}</MenuItem> : null}
           {channel.acestream_channels.map((item, index) => <MenuItem key={item.id} value={item.id} sx={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>
-            {index + 1}. {item.name} · {item.is_online === true ? 'Online' : item.is_online === false ? 'Offline' : 'Not checked'} · {item.id.slice(0, 8)}
+            {index + 1}. {item.name} · {item.is_online === true ? 'Online' : item.is_online === false ? 'Offline' : 'Not checked'} · {item.id.slice(0, 8)}{item.bitrate_bps ? ` · ${formatBitrate(item.bitrate_bps)}` : ''}{item.audio_tracks?.length ? ` · ${item.audio_tracks.length} audio track${item.audio_tracks.length === 1 ? '' : 's'}` : ''}
           </MenuItem>)}
         </TextField>
         <Typography component="h2" variant="h6">Schedule</Typography>

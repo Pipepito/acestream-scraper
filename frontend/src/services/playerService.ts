@@ -4,6 +4,7 @@
  * thin transport layer for that lifecycle.
  */
 import apiClient from './apiClient';
+import type { components } from '../types/api-generated';
 import { getApiBaseUrl } from '../config/runtime';
 import { getApiToken } from './apiToken';
 
@@ -30,6 +31,8 @@ export interface PlayerStats {
 }
 
 export interface PlayerSessionStatus {
+  audio_index?: components['schemas']['PlayerSessionStatus']['audio_index'];
+  audio_tracks?: components['schemas']['PlayerSessionStatus']['audio_tracks'];
   id: string;
   content_id: string;
   state: PlayerState;
@@ -71,8 +74,8 @@ export const playerService = {
     const { data } = await apiClient.get<PlayerCapabilities>(`${BASE_URL}/capabilities`);
     return data;
   },
-  startSession: async (contentId: string): Promise<PlayerSessionStatus> => {
-    const { data } = await apiClient.post<PlayerSessionStatus>(`${BASE_URL}/sessions`, { content_id: contentId });
+  startSession: async (contentId: string, audioIndex?: number): Promise<PlayerSessionStatus> => {
+    const { data } = await apiClient.post<PlayerSessionStatus>(`${BASE_URL}/sessions`, { content_id: contentId, ...(audioIndex !== undefined ? { audio_index: audioIndex } : {}) });
     return data;
   },
   /** Browser sessions and tuner/remote-player relays in one list (Integrations page). */

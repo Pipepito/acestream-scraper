@@ -1007,6 +1007,10 @@ export interface paths {
      */
     get: operations["public_m3u_playlist_playlists_m3u_get"];
   };
+  "/tuner/channel/{tv_channel_id}.ts": {
+    /** TV channel MPEG-TS with online source startup failover */
+    get: operations["tuner_channel_tuner_channel__tv_channel_id__ts_get"];
+  };
   "/tuner/stream/{content_id}.ts": {
     /**
      * MPEG-TS relay of one channel
@@ -1076,6 +1080,18 @@ export interface components {
      * @description Schema for Acestream channel response
      */
     AcestreamChannelResponse: {
+      /**
+       * Audio Tracks
+       * @description Audio tracks found at the last successful media probe; null means unknown
+       */
+      audio_tracks?: components["schemas"]["AudioTrack"][] | null;
+      /**
+       * Bitrate Bps
+       * @description Last measured encoded media bitrate in bits per second; not P2P download speed
+       */
+      bitrate_bps?: number | null;
+      /** Bitrate Checked At */
+      bitrate_checked_at?: string | null;
       /** Check Error */
       check_error?: string | null;
       /**
@@ -1274,6 +1290,24 @@ export interface components {
        * @description Whether to add appid to Acestream links
        */
       value: string;
+    };
+    /** AudioTrack */
+    AudioTrack: {
+      /** Channel Layout */
+      channel_layout?: string | null;
+      /** Channels */
+      channels?: number | null;
+      /** Codec */
+      codec?: string | null;
+      /**
+       * Index
+       * @description Zero-based audio track index (ffmpeg 0:a:index)
+       */
+      index: number;
+      /** Language */
+      language?: string | null;
+      /** Title */
+      title?: string | null;
     };
     /** BaseUrlCreate */
     BaseUrlCreate: {
@@ -2029,6 +2063,11 @@ export interface components {
     /** PlayerSessionCreate */
     PlayerSessionCreate: {
       /**
+       * Audio Index
+       * @description Audio track to play; null uses the first available audio track
+       */
+      audio_index?: number | null;
+      /**
        * Content Id
        * @description AceStream content id (40 hex)
        */
@@ -2041,6 +2080,10 @@ export interface components {
     };
     /** PlayerSessionStatus */
     PlayerSessionStatus: {
+      /** Audio Index */
+      audio_index?: number | null;
+      /** Audio Tracks */
+      audio_tracks?: components["schemas"]["AudioTrack"][];
       codecs: components["schemas"]["PlayerCodecs"];
       /** Content Id */
       content_id: string;
@@ -3077,7 +3120,10 @@ export interface components {
       lineup: string;
       /** Playlist */
       playlist: string;
-      /** Stream Template */
+      /**
+       * Stream Template
+       * @description Stable TV channel playback URL template; replace {tv_channel_id} with its numeric ID
+       */
       stream_template: string;
       /** Tuner */
       tuner: string;
@@ -6990,6 +7036,28 @@ export interface operations {
       200: {
         content: {
           "text/plain": string;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** TV channel MPEG-TS with online source startup failover */
+  tuner_channel_tuner_channel__tv_channel_id__ts_get: {
+    parameters: {
+      path: {
+        tv_channel_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "video/mp2t": string;
         };
       };
       /** @description Validation Error */

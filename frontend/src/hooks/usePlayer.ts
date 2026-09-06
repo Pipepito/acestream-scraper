@@ -23,8 +23,8 @@ export const useActiveStreams = () =>
   });
 
 export const useStartPlayerSession = () =>
-  useMutation<PlayerSessionStatus, ApiError, string>({
-    mutationFn: (contentId) => playerService.startSession(contentId),
+  useMutation<PlayerSessionStatus, ApiError, string | { contentId: string; audioIndex: number }>({
+    mutationFn: (input) => typeof input === 'string' ? playerService.startSession(input) : playerService.startSession(input.contentId, input.audioIndex),
   });
 
 /** Polls the session: 2 s while starting (also the heartbeat), 10 s while ready, stops on error or once the session is gone. */

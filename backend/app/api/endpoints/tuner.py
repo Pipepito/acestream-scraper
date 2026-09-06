@@ -29,6 +29,7 @@ from app.services.public_url_service import resolve_public_base_url
 from app.services.stream_relay import RELAY_HEADERS, ClosingStreamingResponse, EngineStreamError, relay_engine_stream, relay_registry
 from app.services.tuner_network import get_tuner_gate, require_tuner_network
 from app.services.tuner_service import TunerService
+from app.services.tuner_playback_service import relay_ranked_streams
 
 hdhr_router = APIRouter(prefix="/tuner", dependencies=[Depends(require_tuner_network)], tags=["hdhomerun"])
 router = APIRouter()  # /api/v1/tuner settings + status
@@ -108,7 +109,7 @@ def lineup_json(request: Request, db: Session = Depends(get_db)) -> JSONResponse
     public = _public(request, db)
     entries = TunerService(db).build_lineup().entries
     return JSONResponse(
-        [{"GuideNumber": e.guide_number, "GuideName": e.guide_name, "URL": f"{public}/tuner/stream/{e.content_id}.ts"} for e in entries],
+        [{"GuideNumber": e.guide_number, "GuideName": e.guide_name, "URL": f"{public}/tuner/channel/{e.tv_channel_id}.ts"} for e in entries],
         headers={"Cache-Control": "no-store"},
     )
 
@@ -251,6 +252,56 @@ async def tuner_stream(content_id: str, request: Request):
     return ClosingStreamingResponse(body(), headers=RELAY_HEADERS)
 
 
+def _channel_candidates(tv_channel_id: int) -> List[str]:
+    db = SessionLocal()
+    try:
+        return TunerService(db).online_stream_ids(tv_channel_id)
+    finally:
+        db.close()
+
+
+@hdhr_router.head("/channel/{tv_channel_id}.ts", include_in_schema=False)
+@hdhr_router.get("/channel/{tv_channel_id}.ts", response_class=Response,
+    summary="TV channel MPEG-TS with online source startup failover",
+    responses={200: {"content": {"video/mp2t": {"schema": {"type": "string", "format": "binary"}}}}})
+async def tuner_channel(tv_channel_id: int, request: Request):
+    candidates = await run_in_threadpool(_channel_candidates, tv_channel_id)
+    if not candidates:
+        raise APIError(code="NO_ONLINE_STREAMS", message="This channel has no online sources available", status_code=503)
+    if request.method == "HEAD":
+        return Response(status_code=200, headers=RELAY_HEADERS)
+    limit = await run_in_threadpool(_tuner_count)
+    label = f"tuner:{request.client.host if request.client else '?'}"
+    claim = relay_registry.try_open(candidates[0], label, limit)
+    if claim is None:
+        raise APIError(code="TUNER_BUSY", message=f"All {limit} tuner slots are in use", status_code=503)
+    iterator = None
+    engine = None
+    try:
+        engine = await run_in_threadpool(_engine)
+        iterator = relay_ranked_streams(engine, candidates, label, claim, client_factory=_relay_client_factory)
+        first = await anext(iterator)
+    except BaseException as exc:
+        if iterator is not None:
+            await iterator.aclose()
+        if engine is not None:
+            engine.close()
+        relay_registry.close(claim.id)
+        if isinstance(exc, (EngineStreamError, EngineUnavailableError)):
+            raise APIError(code="CHANNEL_STREAM_FAILED", message="No online source could start playback", status_code=502) from exc
+        raise
+
+    async def body():
+        try:
+            yield first
+            async for chunk in iterator:
+                yield chunk
+        finally:
+            await iterator.aclose()
+
+    return ClosingStreamingResponse(body(), headers=RELAY_HEADERS)
+
+
 # --- operator API (/api/v1/tuner, token-gated) -------------------------------
 @router.get("/settings", response_model=TunerSettingsResponse, summary="Tuner settings")
 def get_tuner_settings(db: Session = Depends(get_db)) -> TunerSettingsResponse:
@@ -286,7 +337,7 @@ def tuner_status(request: Request, db: Session = Depends(get_db)) -> TunerStatus
         device_id=service.device_id(),
         urls=TunerUrls(tuner=f"{public}/tuner", lineup=f"{public}/tuner/lineup.json", guide=f"{public}/tuner/guide.xml",
                        playlist=f"{public}/tuner/playlist.m3u", epg=f"{public}/tuner/epg.xml",
-                       stream_template=f"{public}/tuner/stream/{{content_id}}.ts"),
+                       stream_template=f"{public}/tuner/channel/{{tv_channel_id}}.ts"),
         ffmpeg_available=player_service.capabilities()["ffmpeg_available"],
         allowed_networks=gate.allowed_networks, client_ip=client_ip, peer=peer,
         client_allowed=gate.is_allowed(peer) and gate.is_allowed(client_ip), client_source=source, warnings=warnings,

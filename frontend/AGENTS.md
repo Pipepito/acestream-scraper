@@ -68,3 +68,10 @@ testing the SPA through FastAPI rather than the Vite server.
   journeys as appropriate after focused Jest coverage.
 - Preserve Vite `manualChunks` behavior unless bundle tuning is the task; a casual
   import change can move large MUI/data-grid/page chunks back into the entry bundle.
+
+## Player audio
+
+- Audio selection restarts only the current viewer and must release stale starts.
+  Show discovered language/codec/layout without assuming every source has metadata.
+- Browser audio selection does not change copied source links or remote-player
+  actions; those players receive the source with its original audio tracks.

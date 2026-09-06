@@ -24,14 +24,14 @@ def _seed(db):
 
 
 def test_discover_lineup_status_and_device_xml(client, db_session, open_gate):
-    _seed(db_session)
+    tv = _seed(db_session)
     discover = client.get("/tuner/discover.json", headers={"Host": "scraper.lan:8000"}).json()
     assert discover["Manufacturer"] == "Silicondust" and discover["ModelNumber"] == "HDTC-2US"
     assert discover["FirmwareName"] == "hdhomeruntc_atsc" and discover["FirmwareVersion"] == "20240101"
     assert discover["BaseURL"] == "http://scraper.lan:8000/tuner" and discover["LineupURL"] == "http://scraper.lan:8000/tuner/lineup.json"
     assert discover["TunerCount"] == 4 and discover["DeviceAuth"] == "" and len(discover["DeviceID"]) == 8
     lineup = client.get("/tuner/lineup.json", headers={"Host": "scraper.lan:8000"}).json()
-    assert lineup == [{"GuideNumber": "12", "GuideName": "DAZN 1", "URL": f"http://scraper.lan:8000/tuner/stream/{IH}.ts"}]
+    assert lineup == [{"GuideNumber": "12", "GuideName": "DAZN 1", "URL": f"http://scraper.lan:8000/tuner/channel/{tv.id}.ts"}]
     assert client.get("/tuner/lineup_status.json").json() == {"ScanInProgress": 0, "ScanPossible": 0, "Source": "Cable", "SourceList": ["Cable"]}
     assert client.post("/tuner/lineup.post").status_code == 200
     xml = client.get("/tuner/device.xml", headers={"Host": "scraper.lan:8000"})
@@ -40,11 +40,11 @@ def test_discover_lineup_status_and_device_xml(client, db_session, open_gate):
 
 
 def test_guide_playlist_and_epg_variants(client, db_session, open_gate):
-    _seed(db_session)
+    tv = _seed(db_session)
     guide = client.get("/tuner/guide.xml")
     assert guide.status_code == 200 and '<channel id="12">' in guide.text and "content-encoding" not in guide.headers
     playlist = client.get("/tuner/playlist.m3u", headers={"Host": "scraper.lan:8000"}).text
-    assert 'tvg-id="DAZN LaLiga HD"' in playlist and f"http://scraper.lan:8000/tuner/stream/{IH}.ts" in playlist
+    assert 'tvg-id="DAZN LaLiga HD"' in playlist and f"http://scraper.lan:8000/tuner/channel/{tv.id}.ts" in playlist
     epg = client.get("/tuner/epg.xml")
     assert epg.status_code == 200 and epg.headers["content-type"].startswith("application/xml")
 
@@ -53,7 +53,7 @@ def test_settings_and_status_are_token_gated_and_reflect_the_gate(client, db_ses
     _seed(db_session)
     body = client.get("/api/v1/tuner/status").json()
     assert body["channel_count"] == 1 and body["renumbered"] == [] and body["overflow"] == 0
-    assert body["urls"]["lineup"].endswith("/tuner/lineup.json") and body["urls"]["stream_template"].endswith("/tuner/stream/{content_id}.ts")
+    assert body["urls"]["lineup"].endswith("/tuner/lineup.json") and body["urls"]["stream_template"].endswith("/tuner/channel/{tv_channel_id}.ts")
     assert body["client_allowed"] is True and body["client_source"] == "direct" and body["allowed_networks"] == ["*"]
     assert isinstance(body["ffmpeg_available"], bool)
     updated = client.put("/api/v1/tuner/settings", json={"friendly_name": "Lounge", "tuner_count": 2, "max_channels": 100, "only_online": True}).json()

@@ -71,3 +71,15 @@ PYTHONPATH=backend alembic -c backend/migrations/alembic.ini upgrade head
 - Avoid leaking upstream response bodies, credentials, tokens, local paths, or
   infrastructure details in API errors and logs.
 - Move blocking network/filesystem/CPU work off the async event loop.
+
+## Tuner and player media selection
+
+- Stable tuner channel URLs resolve online, active sources by measured bitrate
+  (unknown last). Startup retries retain one tuner slot and close every failed
+  engine session. Never splice unrelated feeds after sending MPEG-TS bytes.
+- Bitrate/audio probes must stay bounded and restrict every HTTP redirect to the
+  engine host before issuing it. ffprobe consumes a byte sample through stdin,
+  never an upstream URL. Missing metadata is unknown, not zero bitrate.
+- Browser session sharing includes the selected audio track. An audio change must
+  not change another viewer's session, evade capacity limits, or leak an engine
+  session. Parse input audio tracks only, excluding ffmpeg output declarations.

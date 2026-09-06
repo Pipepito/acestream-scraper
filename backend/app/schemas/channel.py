@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.schemas.media import AudioTrack
 from app.services.stream_ranking import sort_streams_curated
 
 
@@ -53,6 +54,9 @@ class AcestreamChannelResponse(AcestreamChannelBase):
     is_online: Optional[bool] = None
     last_checked: Optional[datetime] = None
     check_error: Optional[str] = None
+    audio_tracks: Optional[List[AudioTrack]] = Field(None, description="Audio tracks found at the last successful media probe; null means unknown")
+    bitrate_bps: Optional[int] = Field(None, ge=1, description="Last measured encoded media bitrate in bits per second; not P2P download speed")
+    bitrate_checked_at: Optional[datetime] = None
     tv_channel_id: Optional[int] = None
     tv_channel_name: Optional[str] = None
     tv_channel_is_favorite: Optional[bool] = None

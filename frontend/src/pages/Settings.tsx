@@ -243,7 +243,7 @@ const StreamLinkFormatsSection: React.FC<StreamLinkFormatsSectionProps> = ({ not
             )}
           </Stack>
         )}
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
           A format without placeholders is a prefix put before the channel id (like <code>acestream://</code>). A format with{' '}
           <code>{'{channel_id}'}</code> is a template and may also use <code>{'{pid}'}</code>, for example{' '}
           <code>{'http://127.0.0.1:6878/ace/getstream?id={channel_id}&pid={pid}'}</code>.

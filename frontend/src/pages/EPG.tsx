@@ -210,6 +210,7 @@ const EPG: React.FC = () => {
         onChange={(_event, value: EPGTab) => selectTab(value)}
         variant="scrollable"
         scrollButtons="auto"
+        allowScrollButtonsMobile
         aria-label="EPG sections"
         sx={{ mb: 2, borderBottom: `1px solid ${theme.appTokens.surface.border}` }}
       >

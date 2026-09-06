@@ -1,5 +1,6 @@
+import { responsiveTableSx } from '../../styles/responsiveTable';
 import React from 'react';
-import { Chip, Table, TableBody, TableCell, TableHead, TableRow, Tooltip, Typography } from '@mui/material';
+import { Box, Chip, Table, TableBody, TableCell, TableHead, TableRow, Tooltip, Typography } from '@mui/material';
 import type { BackgroundTaskStatus } from '../../services/dashboardService';
 import { formatDateTime } from '../../utils/formatters';
 import { formatJobName, formatRelativeTime, summarizeJobResult } from '../../utils/format';
@@ -34,7 +35,7 @@ const ScheduledJobs: React.FC<ScheduledJobsProps> = ({ tasks }) => {
     return <Typography variant="body2">The scheduler is not running.</Typography>;
   }
   return (
-    <Table size="small" aria-label="Scheduled jobs">
+    <Box sx={responsiveTableSx}><Table size="small" aria-label="Scheduled jobs">
       <TableHead>
         <TableRow>
           <TableCell>Job</TableCell>
@@ -50,13 +51,13 @@ const ScheduledJobs: React.FC<ScheduledJobsProps> = ({ tasks }) => {
           const progress = task.progress && typeof task.progress.percent === 'number' ? ` · ${task.progress.percent}%` : '';
           return (
             <TableRow key={task.task_name}>
-              <TableCell>{formatJobName(task.task_name)}</TableCell>
-              <TableCell>
+              <TableCell data-label="Job">{formatJobName(task.task_name)}</TableCell>
+              <TableCell data-label="Last run">
                 <Tooltip title={task.last_run ? formatDateTime(task.last_run) : ''}>
                   <span>{formatRelativeTime(task.last_run)}</span>
                 </Tooltip>
               </TableCell>
-              <TableCell>
+              <TableCell data-label="Result">
                 {task.last_error ? (
                   <Typography variant="body2" color="error.main">
                     {task.last_error}
@@ -65,17 +66,17 @@ const ScheduledJobs: React.FC<ScheduledJobsProps> = ({ tasks }) => {
                   <span>{summary ?? '—'}{progress}</span>
                 )}
               </TableCell>
-              <TableCell>
+              <TableCell data-label="Next run">
                 <Tooltip title={task.next_run ? formatDateTime(task.next_run) : ''}>
                   <span>{task.next_run ? formatRelativeTime(task.next_run) : '—'}</span>
                 </Tooltip>
               </TableCell>
-              <TableCell>{statusChip(task.status)}</TableCell>
+              <TableCell data-label="Status">{statusChip(task.status)}</TableCell>
             </TableRow>
           );
         })}
       </TableBody>
-    </Table>
+    </Table></Box>
   );
 };
 

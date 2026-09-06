@@ -29,8 +29,7 @@ import BatchAcestreamAssignment from '../components/BatchAcestreamAssignment';
 import ScheduleView from '../components/epg/ScheduleView';
 import ContentSection from '../components/layout/ContentSection';
 import PageHeader from '../components/layout/PageHeader';
-import StreamPlayerDialog from '../components/player/StreamPlayerDialog';
-import PlayOnMenu from '../components/player/PlayOnMenu';
+import ChannelPlayerDialog from '../components/player/ChannelPlayerDialog';
 import { useConfirm } from '../components/ConfirmDialog';
 import { useAcestreamChannels } from '../hooks/useChannels';
 import { useResolveEPGChannel } from '../hooks/useEPG';
@@ -226,10 +225,10 @@ const TVChannelDetail: React.FC = () => {
               disabled={streamCount === 0}
               onClick={() => setPlayerTarget({ contentId: channel.acestream_channels[0].id, title: channel.name })}
             >
-              Play best stream
+              Watch channel
             </Button>
             {!isEditing ? (
-              <Button variant="contained" startIcon={<EditIcon />} onClick={handleEdit}>
+              <Button variant="outlined" startIcon={<EditIcon />} onClick={handleEdit}>
                 Edit
               </Button>
             ) : null}
@@ -332,7 +331,15 @@ const TVChannelDetail: React.FC = () => {
               <ListItem
                 key={acestream.id}
                 divider
-                sx={{ alignItems: 'flex-start', pr: 12 }}
+                sx={{
+                  alignItems: 'flex-start', px: { xs: 0, sm: 2 }, pr: { xs: 0, sm: 12 },
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  '& .MuiListItemSecondaryAction-root': {
+                    position: { xs: 'static', sm: 'absolute' },
+                    transform: { xs: 'none', sm: 'translateY(-50%)' },
+                    alignSelf: 'flex-end',
+                  },
+                }}
                 secondaryAction={
                   <Box role="group" aria-label={`Acestream actions for ${acestream.name}`}>
                     <Tooltip title="Play in the browser">
@@ -468,12 +475,12 @@ const TVChannelDetail: React.FC = () => {
         tvChannelName={channel.name}
       />
 
-      <StreamPlayerDialog
+      <ChannelPlayerDialog
+        tvChannelId={channelId}
         open={Boolean(playerTarget)}
         contentId={playerTarget?.contentId ?? null}
         title={playerTarget?.title ?? ''}
         onClose={() => setPlayerTarget(null)}
-        extraActions={playerTarget ? <PlayOnMenu contentId={playerTarget.contentId} title={playerTarget.title} /> : undefined}
       />
 
       {confirmDialog}

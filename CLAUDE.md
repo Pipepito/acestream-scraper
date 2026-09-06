@@ -55,6 +55,12 @@ Branching and release flow (adopted 2026-08-28):
 - `version.txt` on `develop` carries the next version with a `-dev` suffix (e.g. `v2.1.0-dev`, starting with the cycle after v2.0.0); a PR into `develop` bumps it right before the release PR to the final version. `run_jenkins_release.sh` refuses a release (non-channel) run while `version.txt` contains `-dev`; channel publishes accept it.
 - Releases stay manual: Jenkins job `acestream-scraper-release` (`jenkins/release.Jenkinsfile`, runs from `main`; params `CONFIRM_RELEASE`, `DRY_RUN`, `PUBLISH_LATEST`) pushes `:vX.Y.Z`, `:vX.Y.Z-<flavor>` and the flavor tags; `PUBLISH_LATEST=true` retags the canaried version manifest to `:latest` via `scripts/ci/promote_latest.sh`. Details: `docs/ops/jenkins-ci.md`.
 
+## Frontend viewing and mobile checks
+
+- `/live-tv` is the viewing catalog with current/next programmes, favorites, and direct channel links (`?channel=<id>`). TV Channels remains the management inventory.
+- `ChannelPlayerDialog` wraps `StreamPlayerDialog` with TV context, stream selection, and the schedule. Copy/remote actions follow the selected stream.
+- `cd e2e && npm run test:mobile` runs the standalone mocked-API browser suite across phone, tablet and desktop sizes. See `e2e/README.md`; actual media playback still needs the live stack.
+
 ## Architecture
 
 ### Top-level layout

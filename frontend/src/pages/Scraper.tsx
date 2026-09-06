@@ -1,3 +1,4 @@
+import { responsiveTableSx } from '../styles/responsiveTable';
 import React, { useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -349,7 +350,7 @@ const Scraper: React.FC = () => {
 
       <ContentSection title="Sources">
         {isLoading && <LinearProgress sx={{ mb: 2 }} />}
-        <TableContainer sx={{ maxHeight: 640 }}>
+        <TableContainer sx={[responsiveTableSx, { maxHeight: { xs: 'none', sm: 640 } }]}>
           <Table stickyHeader>
             <TableHead>
               <TableRow>
@@ -366,9 +367,9 @@ const Scraper: React.FC = () => {
               {urls && urls.length > 0 ? (
                 urls.map((url) => (
                   <TableRow key={url.id} hover>
-                    <TableCell sx={{ wordBreak: 'break-all' }}>{url.url}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{URL_TYPE_LABELS[url.url_type] ?? url.url_type}</TableCell>
-                    <TableCell>
+                    <TableCell data-label="URL" sx={{ wordBreak: 'break-all' }}>{url.url}</TableCell>
+                    <TableCell data-label="Type" sx={{ whiteSpace: 'nowrap' }}>{URL_TYPE_LABELS[url.url_type] ?? url.url_type}</TableCell>
+                    <TableCell data-label="Enabled">
                       <Switch
                         size="small"
                         checked={url.enabled}
@@ -377,14 +378,14 @@ const Scraper: React.FC = () => {
                         inputProps={{ 'aria-label': `Enable ${url.url}` }}
                       />
                     </TableCell>
-                    <TableCell>{renderScrapeResult(url)}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                    <TableCell data-label="Last result">{renderScrapeResult(url)}</TableCell>
+                    <TableCell data-label="Last scraped" sx={{ whiteSpace: 'nowrap' }}>
                       <Tooltip title={url.last_processed ? formatDateTime(url.last_processed) : ''}>
                         <span>{formatRelativeTime(url.last_processed)}</span>
                       </Tooltip>
                     </TableCell>
-                    <TableCell align="right">{url.channels_found || 0}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                    <TableCell data-label="Channels" align="right">{url.channels_found || 0}</TableCell>
+                    <TableCell data-label="Actions" sx={{ whiteSpace: 'nowrap' }}>
                       <Stack direction="row" spacing={0.5} alignItems="center">
                         <Button
                           size="small"

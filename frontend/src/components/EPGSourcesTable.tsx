@@ -1,3 +1,4 @@
+import { responsiveTableSx } from '../styles/responsiveTable';
 import React from 'react';
 import {
   Box,
@@ -34,7 +35,7 @@ const EPGSourcesTable: React.FC<EPGSourcesTableProps> = ({
   onEditSource,
   onDeleteSource,
 }) => (
-  <TableContainer component={Box} sx={{ overflowX: 'auto' }}>
+  <TableContainer component={Box} sx={responsiveTableSx}>
     <Table>
       <TableHead>
         <TableRow>
@@ -48,9 +49,9 @@ const EPGSourcesTable: React.FC<EPGSourcesTableProps> = ({
       <TableBody>
         {(sources || []).map((source) => (
           <TableRow key={source.id}>
-            <TableCell>{source.name}</TableCell>
-            <TableCell>{source.url}</TableCell>
-            <TableCell>
+            <TableCell data-label="Name">{source.name}</TableCell>
+            <TableCell data-label="URL">{source.url}</TableCell>
+            <TableCell data-label="Status">
               {source.enabled ? (
                 <Chip label="Enabled" color="success" size="small" />
               ) : (
@@ -63,14 +64,14 @@ const EPGSourcesTable: React.FC<EPGSourcesTableProps> = ({
                 </Typography>
               ) : null}
             </TableCell>
-            <TableCell>
+            <TableCell data-label="Last updated">
               {source.last_updated ? (
                 formatDistanceToNow(new Date(source.last_updated), { addSuffix: true })
               ) : (
                 'Never'
               )}
             </TableCell>
-            <TableCell>
+            <TableCell data-label="Actions">
               <IconButton
                 color="primary"
                 onClick={() => onRefreshSource(source.id)}

@@ -73,3 +73,15 @@ Useful variants:
   for every service. Set `E2E_IMAGE`/`E2E_PLATFORM` to test another flavor/platform.
 - The backend runs from source (`stack/backend-start.sh`) so bugs found by the suite can be debugged and
   fixed locally; its database and logs live under `e2e/.stack/`.
+
+## Mobile viewing regression suite
+
+`npm run test:mobile` builds the SPA and runs an independent preview on loopback
+port 3010. First install matching browsers with
+`npx playwright install chromium firefox webkit`. This suite uses deterministic API
+fixtures for channel/guide/player states and needs no Docker or live stream. It
+covers 320px WebKit, 390px Chromium, 768px Firefox and 1440px Chromium, in both themes
+and different timezones. It verifies guide retry, filters, direct links, browser
+Back, stream selection and viewer release. Traces and screenshots stay under the
+ignored `test-results/` directory. It does not verify actual media decoding; use
+the live-stack journeys above for that.

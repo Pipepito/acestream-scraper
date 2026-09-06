@@ -22,7 +22,7 @@ import ContentSection from '../components/layout/ContentSection';
 import InlineStatusNotice from '../components/state/InlineStatusNotice';
 import StatusLine from '../components/StatusLine';
 import { useConfirm } from '../components/ConfirmDialog';
-import StreamPlayerDialog from '../components/player/StreamPlayerDialog';
+import ChannelPlayerDialog from '../components/player/ChannelPlayerDialog';
 import PlayOnMenu from '../components/player/PlayOnMenu';
 
 type SnackbarNotice = {
@@ -478,12 +478,11 @@ const AcestreamChannels: React.FC = () => {
         error={assignError}
       />
 
-      <StreamPlayerDialog
+      <ChannelPlayerDialog
         open={Boolean(playerTarget)}
         contentId={playerTarget?.contentId ?? null}
         title={playerTarget?.title ?? ''}
         onClose={() => setPlayerTarget(null)}
-        extraActions={playerTarget ? <PlayOnMenu contentId={playerTarget.contentId} title={playerTarget.title} /> : undefined}
       />
 
       <Dialog

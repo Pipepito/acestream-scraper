@@ -339,6 +339,19 @@ export const createAppTheme = (mode: ThemeMode) => {
       },
     },
     components: {
+      MuiCssBaseline: {
+        styleOverrides: {
+          '@media (max-width: 599.95px)': {
+            '.MuiButton-root, .MuiIconButton-root, .MuiTab-root, .MuiListItemButton-root': { minHeight: 44 },
+            '.MuiIconButton-root': { minWidth: 44 },
+            '.MuiInputBase-input': { fontSize: 16 },
+            '.MuiDialog-paper:not(.MuiDialog-paperFullScreen)': { margin: 12, width: 'calc(100% - 24px)', maxHeight: 'calc(100% - 24px)' },
+            '.MuiDialogContent-root': { paddingLeft: 16, paddingRight: 16 },
+            '.MuiDialogActions-root': { flexWrap: 'wrap', gap: 8 },
+            '.MuiTablePagination-toolbar': { flexWrap: 'wrap', paddingLeft: 0, paddingRight: 0 },
+          },
+        },
+      },
       MuiAppBar: {
         defaultProps: {
           elevation: 0,

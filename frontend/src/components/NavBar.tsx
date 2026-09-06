@@ -20,7 +20,7 @@ import { alpha, useTheme } from '@mui/material/styles';
 import MenuIcon from '@mui/icons-material/Menu';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
-import { isNavItemSelected, navItems } from './layout/navItems';
+import { getNavTitle, isNavItemSelected, navItems } from './layout/navItems';
 import { getShellLayout } from '../styles/layout';
 import { useAppThemeMode } from '../bootstrap/AppBootstrap';
 
@@ -104,7 +104,8 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
   const drawer = (
     <Box
       sx={{
-        height: '100%',
+        minHeight: '100%',
+        pb: 'env(safe-area-inset-bottom)',
         display: 'flex',
         flexDirection: 'column',
         bgcolor: theme.appTokens.shell.navBg,
@@ -174,6 +175,7 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
               <MenuIcon />
             </IconButton>
           ) : null}
+          <Typography noWrap sx={{ minWidth: 0, fontWeight: 600 }}>{getNavTitle(location.pathname)}</Typography>
           <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 1 }}>
             <IconButton
               color="inherit"

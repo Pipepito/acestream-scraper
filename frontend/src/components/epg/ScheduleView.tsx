@@ -3,6 +3,7 @@ import { Alert, Box, Button, Chip, Collapse, LinearProgress, List, ListItem, Sta
 import { addDays, format, parseISO, startOfDay } from 'date-fns';
 import { useEPGPrograms } from '../../hooks/useEPG';
 import type { EPGProgram } from '../../services/epgService';
+import { useNow } from '../../hooks/useNow';
 import NowNext from './NowNext';
 
 export interface ScheduleViewProps {
@@ -59,7 +60,9 @@ const ProgramRow: React.FC<{ program: EPGProgram; past: boolean }> = ({ program,
 };
 
 /** Day-tabbed schedule for one guide channel: Now/Next for today, then the day's programmes grouped by hour. */
-const ScheduleView: React.FC<ScheduleViewProps> = ({ epgChannelId, now = new Date() }) => {
+const ScheduleView: React.FC<ScheduleViewProps> = ({ epgChannelId, now: suppliedNow }) => {
+  const clock = useNow();
+  const now = suppliedNow ?? clock;
   const theme = useTheme();
   const [dayOffset, setDayOffset] = useState(0);
   const today = useMemo(() => startOfDay(now), [now]);
@@ -71,7 +74,8 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ epgChannelId, now = new Dat
   const { data, isLoading, error } = useEPGPrograms(
     epgChannelId,
     addDays(dayStart, -1).toISOString(),
-    addDays(dayEnd, 1).toISOString()
+    addDays(dayEnd, 1).toISOString(),
+    { refetchInterval: 60_000 }
   );
 
   const programs = useMemo(
@@ -96,11 +100,13 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ epgChannelId, now = new Dat
 
   return (
     <Box>
+      <Typography variant="caption" color="text.secondary">Times in {Intl.DateTimeFormat().resolvedOptions().timeZone}</Typography>
       <Tabs
         value={dayOffset}
         onChange={(_event, value: number) => setDayOffset(value)}
         variant="scrollable"
         scrollButtons="auto"
+        allowScrollButtonsMobile
         aria-label="Schedule day"
         sx={{ mb: 2, borderBottom: `1px solid ${theme.appTokens.surface.border}` }}
       >

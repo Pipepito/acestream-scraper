@@ -57,7 +57,7 @@ const NowNext: React.FC<NowNextProps> = ({ programs, now }) => {
             </>
           ) : (
             <Typography component="p" color="text.secondary">
-              Nothing on air right now.
+              No current programme listed.
             </Typography>
           )}
         </Box>
@@ -70,7 +70,7 @@ const NowNext: React.FC<NowNextProps> = ({ programs, now }) => {
               <Typography component="p" sx={{ fontWeight: 600, overflowWrap: 'anywhere' }}>
                 {next.title}
               </Typography>
-              <Stack direction="row" spacing={1} alignItems="center">
+              <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
                 <Typography variant="body2" color="text.secondary">
                   {timeRange(next)} · starts {formatRelativeTime(next.start_time, now)}
                 </Typography>

@@ -7,6 +7,8 @@ from typing import List
 
 from app.config.database import get_db
 from app.services.tvchannel_service import TVChannelService
+from app.services.tv_matching_service import TVMatchingService
+from app.schemas.tv_matching import TVMatchPreview, TVMatchApplyRequest, TVMatchApplyResponse, TVMatchOptions
 from app.services.acestreamchannel_service import AcestreamChannelService
 from app.services.epg_match_service import EPGMatchService
 from app.services.stream_ranking import sort_streams_curated
@@ -34,6 +36,22 @@ router = APIRouter()
 
 
 from fastapi import Query
+
+
+@router.post("/automatch/preview", response_model=TVMatchPreview)
+def preview_tv_matches(request: TVMatchOptions | None = None, db: Session = Depends(get_db)) -> TVMatchPreview:
+    try:
+        return TVMatchingService(db).preview(assumed_country=request.assumed_country if request else None)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/automatch/apply", response_model=TVMatchApplyResponse)
+def apply_tv_matches(request: TVMatchApplyRequest, db: Session = Depends(get_db)) -> dict[str, int]:
+    try:
+        return TVMatchingService(db).apply(request)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.get("/", response_model=TVChannelListResponse)

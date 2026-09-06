@@ -1,3 +1,4 @@
+import type { components } from '../types/api-generated';
 import { TVChannel, TVChannelCreate, TVChannelUpdate, BatchAssignmentRequest, BatchAssignmentResult } from '../types/tvChannelTypes';
 import apiClient from './apiClient';
 
@@ -74,7 +75,20 @@ export interface TVChannelListFilters {
   search?: string;
 }
 
+export type TVMatchPreview = components['schemas']['TVMatchPreview'];
+export type TVMatchOptions = components['schemas']['TVMatchOptions'];
+type TVMatchApplyRequest = components['schemas']['TVMatchApplyRequest'];
+type TVMatchApplyResponse = components['schemas']['TVMatchApplyResponse'];
+
 export const tvChannelService = {
+  previewAutoMatch: async (options: TVMatchOptions = {}): Promise<TVMatchPreview> => {
+    const response = await apiClient.post<TVMatchPreview>(`${BASE_URL}/automatch/preview`, options);
+    return response.data;
+  },
+  applyAutoMatch: async (request: TVMatchApplyRequest): Promise<TVMatchApplyResponse> => {
+    const response = await apiClient.post<TVMatchApplyResponse>(`${BASE_URL}/automatch/apply`, request);
+    return response.data;
+  },
   /**
    * Get all TV channels
    */

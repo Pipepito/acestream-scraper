@@ -55,10 +55,12 @@ def _run_main_import(
     )
 
     boot_script = boot_script or (
-        "import main\n"
+        "import main, time\n"
         "from fastapi.testclient import TestClient\n"
-        "with TestClient(main.app):\n"
-        "    pass\n"
+        "with TestClient(main.app) as client:\n"
+        "    while main.startup_service.status == 'starting': time.sleep(0.01)\n"
+        "    print('STARTUP', main.startup_service.status)\n"
+        "    print('HEALTH_CODE', client.get('/api/v1/health').status_code)\n"
     )
 
     return subprocess.run(
@@ -128,7 +130,7 @@ def test_startup_surfaces_migration_failure_without_create_all_fallback(tmp_path
         extra_pythonpath=[override_dir],
     )
 
-    assert result.returncode != 0, (
+    assert result.returncode == 0 and "STARTUP failed" in result.stdout and "HEALTH_CODE 503" in result.stdout, (
         "Expected startup import to fail loudly when migrations fail instead of silently "
         "falling back to `create_all(...)`.\n"
         f"stdout:\n{result.stdout}\n"
@@ -149,6 +151,7 @@ import main
 from fastapi.testclient import TestClient
 
 with TestClient(main.app) as client:
+    while main.startup_service.status == "starting": time.sleep(0.01)
     health = client.get("/api/v1/health")
     print("HEALTH", health.status_code, health.json().get("status"))
     final = None
@@ -362,7 +365,7 @@ def test_repeated_failed_upgrade_boots_keep_one_pre_upgrade_backup(tmp_path):
         return sorted(p.name for p in (tmp_path / "config" / "backups").glob("*-pre-upgrade-ffffffffffff-*"))
 
     first = boot()
-    assert first.returncode != 0, f"stdout:\n{first.stdout}\nstderr:\n{first.stderr}"
+    assert first.returncode == 0 and "STARTUP failed" in first.stdout, f"stdout:\n{first.stdout}\nstderr:\n{first.stderr}"
     assert "Can't locate revision" in first.stdout + first.stderr, (
         f"stdout:\n{first.stdout}\nstderr:\n{first.stderr}"
     )
@@ -373,7 +376,7 @@ def test_repeated_failed_upgrade_boots_keep_one_pre_upgrade_backup(tmp_path):
     time.sleep(1.1)
 
     second = boot()
-    assert second.returncode != 0, f"stdout:\n{second.stdout}\nstderr:\n{second.stderr}"
+    assert second.returncode == 0 and "STARTUP failed" in second.stdout, f"stdout:\n{second.stdout}\nstderr:\n{second.stderr}"
     assert len(backup_dirs()) == 1, (
         "A restart loop against a failing upgrade must not write a new backup per boot.\n"
         f"backups: {backup_dirs()}\nstdout:\n{second.stdout}\nstderr:\n{second.stderr}"

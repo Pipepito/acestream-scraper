@@ -42,6 +42,7 @@ async def _lifespan_without_io(monkeypatch, registered=None, intervals=(24, 6)):
     # hang the suite rather than fail it, so bound the whole lifespan.
     async with asyncio.timeout(10):
         async with main.lifespan(main.app):
+            await main.app.state.startup_task
             yield
 
 
@@ -89,10 +90,11 @@ async def test_a_failing_player_start_still_stops_the_scheduler(monkeypatch):
     monkeypatch.setattr(main.player_service, "start", refuse_to_start)
     monkeypatch.setattr(main.player_service, "stop", _noop_async)
 
-    with pytest.raises(PermissionError):
-        async with asyncio.timeout(10):
-            async with main.lifespan(main.app):
-                pass
+    async with asyncio.timeout(10):
+        async with main.lifespan(main.app):
+            await main.app.state.startup_task
+            assert main.startup_service.status == "failed"
+            assert not main.startup_service.recovery_available
 
     assert shutdowns == [True], "the scheduler kept running after the player failed to start"
 

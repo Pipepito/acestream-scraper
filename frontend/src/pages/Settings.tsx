@@ -489,7 +489,7 @@ const Settings: React.FC = () => {
 
   return (
     <Box>
-      <PageHeader title="Settings" subtitle="Engine, stream links, automation and API access." />
+      <PageHeader title="Settings" subtitle="Engine, stream links, automation and API access." actions={<Button href="/startup" variant="outlined">Startup diagnostics</Button>} />
 
       <ContentSection
         title="Engine"

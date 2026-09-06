@@ -30,3 +30,6 @@ api_router.include_router(media_servers.router, prefix="/media-servers", tags=["
 # Operator-facing tuner settings/status. The token-free HDHomeRun routes are
 # tuner.hdhr_router, mounted on the app itself in main.py.
 api_router.include_router(tuner.router, prefix="/tuner", tags=["tuner"])
+
+from app.api.endpoints import startup
+api_router.include_router(startup.router, prefix="/startup")

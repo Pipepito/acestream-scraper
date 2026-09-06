@@ -22,7 +22,7 @@ from app.api.error_handlers import APIError
 from app.config.database import SessionLocal, get_db
 from app.repositories.settings_repository import SettingsRepository
 from app.schemas.tuner import TunerSettingsResponse, TunerSettingsUpdate, TunerStatusResponse, TunerUrls
-from app.services.engine_client import EngineClient, EngineRefusedError, EngineUnavailableError, engine_url_from_settings
+from app.services.engine_client import EngineClient, EngineRefusedError, EngineUnavailableError, playback_client_from_settings
 from app.services.epg_service import EPGService
 from app.services.player_service import player_service
 from app.services.public_url_service import resolve_public_base_url
@@ -48,7 +48,7 @@ def _engine() -> EngineClient:
     """
     db = SessionLocal()
     try:
-        return EngineClient(engine_url_from_settings(SettingsRepository(db)))
+        return playback_client_from_settings(SettingsRepository(db))
     finally:
         db.close()
 

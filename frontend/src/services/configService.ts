@@ -1,4 +1,7 @@
 import apiClient from './apiClient';
+import type { components } from '../types/api-generated';
+
+export type PlaybackRouting = components['schemas']['PlaybackRouting'];
 
 export interface Setting {
   value: string;
@@ -46,6 +49,14 @@ export interface Stats {
 const BASE_URL = '/v1/config';
 
 export const configService = {
+  getPlaybackRouting: async (): Promise<PlaybackRouting> => {
+    const response = await apiClient.get<PlaybackRouting>(`${BASE_URL}/playback-routing`);
+    return response.data;
+  },
+  updatePlaybackRouting: async (routing: PlaybackRouting): Promise<PlaybackRouting> => {
+    const response = await apiClient.put<PlaybackRouting>(`${BASE_URL}/playback-routing`, routing);
+    return response.data;
+  },
   /**
    * Get the base URL for Acestream links
    */

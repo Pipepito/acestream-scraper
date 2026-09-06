@@ -2765,6 +2765,24 @@
         "title": "MigrationProgress",
         "type": "object"
       },
+      "PlaybackRouting": {
+        "properties": {
+          "acexy_url": {
+            "default": "http://localhost:8080",
+            "description": "HTTP(S) origin where the backend reaches Acexy in MPEG-TS mode",
+            "title": "Acexy Url",
+            "type": "string"
+          },
+          "use_acexy": {
+            "default": false,
+            "description": "Route web, tuner and remote-player playback through Acexy",
+            "title": "Use Acexy",
+            "type": "boolean"
+          }
+        },
+        "title": "PlaybackRouting",
+        "type": "object"
+      },
       "PlayerCapabilities": {
         "properties": {
           "ffmpeg_available": {
@@ -8728,6 +8746,68 @@
           }
         },
         "summary": "Update Epg Refresh Interval",
+        "tags": [
+          "config",
+          "config"
+        ]
+      }
+    },
+    "/api/v1/config/playback-routing": {
+      "get": {
+        "operationId": "get_playback_routing_api_v1_config_playback_routing_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaybackRouting"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Playback Routing",
+        "tags": [
+          "config",
+          "config"
+        ]
+      },
+      "put": {
+        "operationId": "update_playback_routing_api_v1_config_playback_routing_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlaybackRouting"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaybackRouting"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Playback Routing",
         "tags": [
           "config",
           "config"

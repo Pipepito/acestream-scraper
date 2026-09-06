@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
-import { configService, HealthResponse, Stats, StatusResponse, TvChannelStats } from '../services/configService';
+import { configService, HealthResponse, Stats, StatusResponse, TvChannelStats, type PlaybackRouting } from '../services/configService';
 
 type QueryOpts<T> = Omit<UseQueryOptions<T>, 'queryKey' | 'queryFn'>;
 
@@ -154,6 +154,18 @@ export const useUpdateChannelStatusInterval = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['channelStatusInterval'] });
       queryClient.invalidateQueries({ queryKey: ['allSettings'] });
+    },
+  });
+};
+
+export const usePlaybackRouting = () => useQuery({ queryKey: ['playbackRouting'], queryFn: configService.getPlaybackRouting });
+export const useUpdatePlaybackRouting = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (routing: PlaybackRouting) => configService.updatePlaybackRouting(routing),
+    onSuccess: (routing) => {
+      queryClient.setQueryData(['playbackRouting'], routing);
+      void queryClient.invalidateQueries({ queryKey: ['allSettings'] });
     },
   });
 };

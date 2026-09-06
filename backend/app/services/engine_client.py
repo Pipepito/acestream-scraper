@@ -15,6 +15,7 @@ from urllib.parse import urlsplit
 import httpx
 
 from app.repositories.settings_repository import SettingsRepository
+from app.schemas.config import PlaybackRouting
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,7 @@ class EngineSession:
     stat_url: str
     command_url: str
     is_live: bool
+    managed_by_acexy: bool = False
 
 
 @dataclass(frozen=True)
@@ -84,6 +86,13 @@ def engine_url_from_settings(settings_repo: SettingsRepository) -> str:
     return url.rstrip("/")
 
 
+def playback_client_from_settings(settings_repo: SettingsRepository) -> "EngineClient":
+    routing = PlaybackRouting.model_validate_json(settings_repo.get_setting(SettingsRepository.PLAYBACK_ROUTING))
+    if routing.use_acexy:
+        return EngineClient(routing.acexy_url, use_acexy=True)
+    return EngineClient(engine_url_from_settings(settings_repo))
+
+
 class EngineClient:
     """Talks to one engine over HTTP.
 
@@ -93,8 +102,9 @@ class EngineClient:
     never closed here: whoever opened it closes it.
     """
 
-    def __init__(self, engine_url: str, client: Optional[httpx.Client] = None):
+    def __init__(self, engine_url: str, client: Optional[httpx.Client] = None, *, use_acexy: bool = False):
         self.engine_url = engine_url.rstrip("/")
+        self.use_acexy = use_acexy
         self._owns_client = client is None
         self._client = client or httpx.Client(timeout=START_TIMEOUT)
 
@@ -134,6 +144,11 @@ class EngineClient:
         return body
 
     def start(self, content_id: str, pid: Optional[str] = None) -> EngineSession:
+        if self.use_acexy:
+            # Acexy owns multiplexing and engine sessions. Reading/closing this
+            # stream is its lifecycle; never send JSON/start/stop or a PID.
+            url = str(httpx.URL(f"{self.engine_url}/ace/getstream", params={"id": content_id}))
+            return EngineSession(content_id, "", url, "", "", True, managed_by_acexy=True)
         pid = pid or new_pid()
         body = self._get_json(
             f"{self.engine_url}/ace/getstream",
@@ -152,6 +167,8 @@ class EngineClient:
             raise EngineUnavailableError(f"Engine start response is incomplete: {body}") from exc
 
     def stop(self, session: EngineSession) -> None:
+        if session.managed_by_acexy:
+            return
         # Merge rather than replace: the engine may hand back a command_url
         # that already carries a token or session id in its query.
         url = httpx.URL(session.command_url).copy_merge_params({"method": "stop"})
@@ -160,7 +177,9 @@ class EngineClient:
         except httpx.HTTPError as exc:
             logger.warning("Engine stop for %s failed: %s", session.content_id, exc)
 
-    def stat(self, session: EngineSession) -> EngineStats:
+    def stat(self, session: EngineSession) -> Optional[EngineStats]:
+        if session.managed_by_acexy:
+            return None
         body = self._get_json(session.stat_url, timeout=STAT_TIMEOUT)
         return EngineStats(
             status=str(body.get("status") or "unknown"),

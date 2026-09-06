@@ -1,6 +1,26 @@
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+
+class PlaybackRouting(BaseModel):
+    use_acexy: bool = Field(False, description="Route web, tuner and remote-player playback through Acexy")
+    acexy_url: str = Field("http://localhost:8080", description="HTTP(S) origin where the backend reaches Acexy in MPEG-TS mode")
+
+    @field_validator("acexy_url")
+    @classmethod
+    def validate_acexy_url(cls, value: str) -> str:
+        from app.services.public_url_service import normalize_public_base_url
+
+        if any(char.isspace() for char in value.strip()):
+            raise ValueError("Acexy URL must not contain whitespace")
+        try:
+            normalized = normalize_public_base_url(value)
+        except ValueError as exc:
+            raise ValueError("Acexy URL must be an HTTP(S) origin without a path, query or credentials") from exc
+        if not normalized:
+            raise ValueError("Acexy URL is required")
+        return normalized
 
 class BaseUrlUpdate(BaseModel):
     """Schema for updating the base URL for Acestream links"""

@@ -197,3 +197,16 @@ limit and serialize by source ID. Native engine 3.2.11 was live-tested on
 2026-09-06: distinct PIDs do not isolate stop for the same source. Skip sources
 owned by the relay/web player and recheck ownership before cleanup; do not remove
 this protection based on distinct session URLs. See `docs/ops/stream-check-pid.md`.
+
+## Playback routing
+
+`GET/PUT /api/v1/config/playback-routing` persists `use_acexy` and `acexy_url`
+as one JSON setting. Direct mode is the default. Web-player and tuner factories
+use `playback_client_from_settings`; engine health/probes remain direct.
+Acexy mode reads MPEG-TS from `/ace/getstream?id=…` with no PID or engine JSON
+start/stat/stop calls. The session retains its Acexy ownership flag across
+configuration changes so cleanup never stops another proxy client. Remote
+players use the server relay in Acexy mode, bypassing saved custom link formats;
+direct mode honors their formats and adds a unique PID to direct engine links.
+Existing shared browser sessions retain their route until teardown. See
+`wiki/Remote-Players.md#playback-routing` for operator behavior.

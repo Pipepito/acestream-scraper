@@ -6,6 +6,10 @@ Play a channel straight in your browser — no VLC, no Acestream engine plugin, 
 
 Every image ships a small, statically-linked ffmpeg (built during the image build, one static binary per platform/flavor — no extra install step). When you press **Play**, the backend asks the AceStream engine for that channel and starts one ffmpeg process for it: the video track is copied through untouched, the audio track is re-encoded to AAC (AceStream channels are often MPEG-2 audio or AC-3, which browsers cannot play), and the result is repackaged as an HLS stream (2-second segments, a 6-segment sliding window) that `hls.js` (or the browser's native HLS support on Safari/iOS) plays back.
 
+Playback can connect directly to the engine (with a unique PID per session) or
+through Acexy. Choose **Route playback through Acexy** under **Settings › Engine**;
+see [Playback routing](Remote-Players.md#playback-routing).
+
 That segmenting and buffering means the player runs roughly 6–10 seconds behind live — expected for HLS, not a fault.
 
 One ffmpeg process is shared per channel and selected audio track: if two browser tabs (or two people) play the same channel with the same audio selection, they join the same session instead of doubling the transcode cost. A session is torn down automatically a few seconds after its last viewer leaves, or after it sits idle, so it does not keep using engine and CPU resources in the background.
@@ -25,6 +29,10 @@ Wherever a channel appears in the app — Acestream Channels, TV Channels (inclu
 While a channel is starting, the dialog shows the engine's peer count and download speed as they become available. Once segments are ready it switches to **Playing**. Closing the dialog (or navigating away) releases the session; if you are the only viewer, the backend stops ffmpeg and the engine stream a few seconds later.
 
 ## Live TV and choosing a stream
+
+**Send to player** beside Watch sends a channel directly to a saved external
+player without starting browser playback. Add players and access their playback
+controls under **Integrations › Remote players**.
 
 Open **Live TV** from navigation to browse active TV channels, search by name,
 category or channel number, and filter favorites. Each channel shows its current

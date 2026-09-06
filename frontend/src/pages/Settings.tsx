@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import PlaybackRoutingFields from '../components/player/PlaybackRoutingFields';
 import {
   Alert,
   Box,
@@ -545,6 +546,7 @@ const Settings: React.FC = () => {
               </Button>
             </Stack>
           </form>
+          <PlaybackRoutingFields />
         </Stack>
       </ContentSection>
 

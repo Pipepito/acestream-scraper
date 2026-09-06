@@ -94,3 +94,16 @@ PYTHONPATH=backend alembic -c backend/migrations/alembic.ini upgrade head
   before probing and before cleanup, the shared two-probe limit, and per-source
   serialization. Stable tuner GETs refresh alternatives in the background; HEAD
   must not start probes. See `docs/ops/stream-check-pid.md` for live evidence.
+
+## Playback routing
+
+`GET/PUT /api/v1/config/playback-routing` persists `use_acexy` and `acexy_url`
+as one JSON setting. Direct mode is the default. Web-player and tuner factories
+use `playback_client_from_settings`; engine health/probes remain direct.
+Acexy mode reads MPEG-TS from `/ace/getstream?id=…` with no PID or engine JSON
+start/stat/stop calls. The session retains its Acexy ownership flag across
+configuration changes so cleanup never stops another proxy client. Remote
+players use the server relay in Acexy mode, bypassing saved custom link formats;
+direct mode honors their formats and adds a unique PID to direct engine links.
+Existing shared browser sessions retain their route until teardown. See
+`wiki/Remote-Players.md#playback-routing` for operator behavior.

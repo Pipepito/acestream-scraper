@@ -160,3 +160,16 @@ not part of the required PR gate; see `e2e/AGENTS.md` before running it.
   workflow that both agents need to know.
 - Do not turn dated CI status into timeless documentation. Label snapshots with a
   date and commit, and include the command/source future agents should recheck.
+
+## Playback routing
+
+`GET/PUT /api/v1/config/playback-routing` persists `use_acexy` and `acexy_url`
+as one JSON setting. Direct mode is the default. Web-player and tuner factories
+use `playback_client_from_settings`; engine health/probes remain direct.
+Acexy mode reads MPEG-TS from `/ace/getstream?id=…` with no PID or engine JSON
+start/stat/stop calls. The session retains its Acexy ownership flag across
+configuration changes so cleanup never stops another proxy client. Remote
+players use the server relay in Acexy mode, bypassing saved custom link formats;
+direct mode honors their formats and adds a unique PID to direct engine links.
+Existing shared browser sessions retain their route until teardown. See
+`wiki/Remote-Players.md#playback-routing` for operator behavior.

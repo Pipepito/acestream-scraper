@@ -9,6 +9,7 @@ import { describePlaySent, describeRemotePlayerError, type PlayerNotify } from '
 export interface PlayOnMenuProps {
   contentId: string;
   title: string;
+  label?: string;
   /** Rendered as a button that opens the menu (default). */
   variant?: 'button';
   onDone?: () => void;
@@ -22,7 +23,7 @@ export interface PlayOnMenuProps {
 const KIND_LABEL: Record<string, string> = { vlc: 'VLC', vlc_android: 'VLC Android', kodi: 'Kodi' };
 
 /** "Play on…": send a channel to a saved VLC/Kodi player. */
-const PlayOnMenu: React.FC<PlayOnMenuProps> = ({ contentId, title, onDone, notify }) => {
+const PlayOnMenu: React.FC<PlayOnMenuProps> = ({ contentId, title, label, onDone, notify }) => {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const [notice, setNotice] = useState<{ message: string; severity: 'success' | 'warning' | 'error' } | null>(null);
   const { data: players = [], isLoading } = useRemotePlayers();
@@ -51,10 +52,11 @@ const PlayOnMenu: React.FC<PlayOnMenuProps> = ({ contentId, title, onDone, notif
         startIcon={<CastRoundedIcon />}
         onClick={(event) => setAnchor(event.currentTarget)}
         aria-haspopup="menu"
+        aria-label={label ? `${label} ${title}` : undefined}
         aria-expanded={Boolean(anchor)}
         disabled={isLoading || play.isPending}
       >
-        Play on…
+        {label ?? 'Play on…'}
       </Button>
       <Menu anchorEl={anchor} open={Boolean(anchor)} onClose={() => setAnchor(null)}>
         {players.length === 0

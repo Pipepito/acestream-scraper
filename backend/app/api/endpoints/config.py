@@ -17,6 +17,7 @@ from app.schemas.config import (
     DashboardConfigResponse,
     DashboardConfigUpdate,
     PublicBaseUrlUpdate,
+    PlaybackRouting,
     RescrapeIntervalUpdate,
     SettingResponse,
     SettingsResponse,
@@ -37,6 +38,16 @@ def _validate_boolean_string(value: str, setting_name: str) -> None:
     valid_values = {"true", "false", "True", "False", "1", "0"}
     if value not in valid_values:
         raise HTTPException(status_code=422, detail=f"Invalid boolean value for {setting_name}")
+
+
+@router.get("/playback-routing", response_model=PlaybackRouting)
+def get_playback_routing(config_service: ConfigService = Depends(get_config_service)):
+    return config_service.get_playback_routing()
+
+
+@router.put("/playback-routing", response_model=PlaybackRouting)
+def update_playback_routing(update: PlaybackRouting, config_service: ConfigService = Depends(get_config_service)):
+    return config_service.set_playback_routing(update)
 
 
 @router.get("/appid", response_model=SettingResponse)

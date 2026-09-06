@@ -10,7 +10,7 @@ class ChannelStatusResponse(BaseModel):
     """Response schema for channel status check"""
     channel_id: str
     is_online: bool
-    status: str  # 'online', 'offline', 'error'
+    status: str  # 'online', 'offline', 'error', 'skipped' (in use; previous status retained)
     message: str
     last_checked: datetime
     error: Optional[str] = None

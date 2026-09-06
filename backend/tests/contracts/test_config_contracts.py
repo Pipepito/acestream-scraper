@@ -37,3 +37,18 @@ def test_generic_config_key_update_contract(client):
 def test_generic_config_key_contract_unknown_key(client):
     response = client.put("/api/v1/config/not-real-key", json={"value": "x"})
     assert response.status_code == 404
+
+
+def test_stream_check_interval_defaults_persists_and_reschedules(client, monkeypatch):
+    from unittest.mock import Mock
+    from app.api.endpoints.config import task_service
+    reschedule = Mock()
+    monkeypatch.setattr(task_service, 'reschedule_task', reschedule)
+    url = '/api/v1/config/channel_status_interval'
+    assert client.get(url).json() == {'key': 'channel_status_interval', 'value': '60'}
+    assert client.put(url, json={'value': '90'}).status_code == 200
+    assert client.get(url).json()['value'] == '90'
+    reschedule.assert_called_once_with('channel_status', 5400)
+    for value in ('0', '-1', '10081', '1.5', 'nan', '', 'abc'):
+        assert client.put(url, json={'value': value}).status_code == 422
+    assert client.get(url).json()['value'] == '90'

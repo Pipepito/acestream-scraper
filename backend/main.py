@@ -45,6 +45,7 @@ from app.services.task_service import task_service
 from app.tasks.activity_log_cleanup import run_activity_log_cleanup
 from app.tasks.channel_cleanup_task import run_channel_cleanup_task
 from app.tasks.channel_status_task import run_channel_status_task
+from app.services.tuner_probe_service import tuner_probe_service
 from app.tasks.epg_program_cleanup_task import run_epg_program_cleanup_task
 from app.tasks.epg_refresh_task import run_epg_refresh_task
 from app.tasks.legacy_migration_task import TASK_ID as LEGACY_MIGRATION_TASK_ID, run_v1_epg_programs_migration
@@ -136,8 +137,8 @@ def _schedule_deferred_migration() -> bool:
     return True
 
 
-def _configured_intervals() -> tuple[int, int]:
-    """(rescrape hours, EPG refresh hours) from the settings table; defaults on any failure."""
+def _configured_intervals() -> tuple[int, int, int]:
+    """(rescrape hours, EPG refresh hours, stream check minutes) from the settings table; defaults on any failure."""
     from app.config.database import SessionLocal
     from app.repositories.settings_repository import SettingsRepository
     from app.services.config_service import ConfigService
@@ -145,10 +146,10 @@ def _configured_intervals() -> tuple[int, int]:
     db = SessionLocal()
     try:
         config = ConfigService(SettingsRepository(db))
-        return max(1, int(config.get_rescrape_interval())), max(1, int(config.get_epg_refresh_interval()))
+        return max(1, int(config.get_rescrape_interval())), max(1, int(config.get_epg_refresh_interval())), config.get_channel_status_interval()
     except Exception as exc:  # noqa: BLE001 - never block startup on a settings read
         logging.getLogger("main").warning("Could not read scheduler intervals from settings (%s); using defaults", exc)
-        return 24, 6
+        return 24, 6, 60
     finally:
         db.close()
 
@@ -189,6 +190,7 @@ async def lifespan(app: FastAPI):
             with suppress(asyncio.CancelledError):
                 await reaper
             reaper = None
+        await tuner_probe_service.stop()
         if services_started:
             try:
                 await player_service.stop()
@@ -219,12 +221,12 @@ async def lifespan(app: FastAPI):
             services_started = True
             task_service.start()
             task_service.add_interval_task(run_activity_log_cleanup, seconds=86400, job_id="activity_log_cleanup")  # daily
-            scrape_hours, epg_hours = await asyncio.to_thread(_configured_intervals)
+            scrape_hours, epg_hours, status_minutes = await asyncio.to_thread(_configured_intervals)
             task_service.add_interval_task(run_epg_refresh_task, seconds=epg_hours * 3600, job_id="epg_refresh")  # settings: epg_refresh_interval
             task_service.add_interval_task(run_epg_program_cleanup_task, seconds=3600, job_id="epg_program_cleanup")  # every hour
             task_service.add_interval_task(run_url_scraping_task, seconds=scrape_hours * 3600, job_id="url_scraping")  # settings: rescrape_interval
             task_service.add_interval_task(run_channel_cleanup_task, seconds=86400, job_id="channel_cleanup")  # daily
-            task_service.add_interval_task(run_channel_status_task, seconds=600, job_id="channel_status")  # every 10 min
+            task_service.add_interval_task(run_channel_status_task, seconds=status_minutes * 60, job_id="channel_status")
             task_service.add_interval_task(run_media_server_sync_task, seconds=600, job_id="media_server_sync")  # every 10 min
             await player_service.start()
             await asyncio.to_thread(_schedule_deferred_migration)

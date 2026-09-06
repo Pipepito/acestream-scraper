@@ -51,6 +51,7 @@ Acestream Scraper is configured from the web interface (**Settings** and **Scrap
   - `http://server-ip:acexy_port/ace/getstream?id=` - For using built-in Acexy proxy
 - **ace_engine_url**: URL of your Acestream Engine instance
 - **rescrape_interval**: Hours between automatic rescans of URLs
+- **channel_status_interval**: Minutes between automatic online checks; default **60**, range **1–10080**. Change it in **Settings → Automation → Stream check interval (minutes)**. Saving updates the scheduler immediately. The API uses `GET/PUT /api/v1/config/channel_status_interval` with `{"value":"60"}` for updates.
 
 ## Environment Variables
 
@@ -203,6 +204,19 @@ The application verifies if channels are available:
 1. Ensure you have Acestream Engine running (built-in if ENABLE_ACESTREAM_ENGINE=true)
 2. Configure `ace_engine_url` to point to your Acestream Engine instance
 3. Use the "Check Status" buttons in the UI to verify channel availability
+
+Automatic checks run every 60 minutes by default. Manual checks remain available.
+All status probes share a maximum of two concurrent engine checks, with only one
+probe per source at a time. HDHomeRun and stable TV-channel stream URLs also
+refresh attached active sources quietly when playback is requested. Unknown and
+offline alternatives are checked first; checks less than 30 seconds old are reused.
+
+Each probe sends a unique `pid`. **PID alone does not protect playback on native
+AceStream 3.2.11:** stopping a probe of the same source can stop the viewer too.
+The app therefore skips sources used by its relay or web player, keeps their
+previous status, and checks again before probe cleanup. Players connected directly
+to an external engine are outside the app's playback registry and cannot receive
+this protection. See [the PID investigation](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/ops/stream-check-pid.md).
 
 ### Status Tracking
 

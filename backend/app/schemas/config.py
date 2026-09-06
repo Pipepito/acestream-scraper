@@ -61,7 +61,7 @@ class ConfigUpdateResponse(BaseModel):
 
 class ConfigKeyUpdate(BaseModel):
     """Schema for generic config key update endpoint"""
-    value: Optional[str] = None
+    value: Optional[str] = Field(None, description="Setting value; channel_status_interval uses whole minutes (1–10080, default 60)")
     base_url: Optional[str] = None
     hours: Optional[int] = None
 

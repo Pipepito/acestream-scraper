@@ -142,3 +142,18 @@ export const useStats = (options: QueryOpts<Stats> = {}) => {
 export const useTvChannelStats = (options: QueryOpts<TvChannelStats> = {}) => {
   return useQuery<TvChannelStats>({ queryKey: ['stats', 'tv-channels'], queryFn: configService.getTvChannelStats, ...options });
 };
+
+export const useChannelStatusInterval = () => useQuery({
+  queryKey: ['channelStatusInterval'], queryFn: configService.getChannelStatusInterval,
+});
+
+export const useUpdateChannelStatusInterval = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: configService.updateChannelStatusInterval,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['channelStatusInterval'] });
+      queryClient.invalidateQueries({ queryKey: ['allSettings'] });
+    },
+  });
+};

@@ -6,6 +6,7 @@ import logging
 import aiohttp
 import math
 import re
+from threading import Lock
 from urllib.parse import urlparse
 from uuid import uuid4
 from datetime import datetime, timezone
@@ -17,6 +18,9 @@ from app.repositories.channel_repository import ChannelRepository
 from app.services.stream_bitrate_service import probe_media
 
 logger = logging.getLogger(__name__)
+_probe_lock = Lock()
+_active_probes: set[str] = set()
+MAX_PROBES = 2
 
 
 
@@ -82,7 +86,7 @@ class ChannelStatusService:
             return None
         return f"{engine_url}{path}"
 
-    async def _verify_broadcast(self, engine_url: str, data: Dict[str, Any], timeout: float):
+    async def _verify_broadcast(self, engine_url: str, data: Dict[str, Any], timeout: float, channel_id: str = ""):
         response = data.get('response')
         if not isinstance(response, dict):
             return False, 'Invalid response format', None
@@ -114,21 +118,62 @@ class ChannelStatusService:
                     # and catalogue status cannot prove current emission.
                     if (previous_downloaded is not None and downloaded > previous_downloaded
                             and state.get('status') in ('dl', 'prebuf', 'buf')):
-                        media = await probe_media(engine_url, response.get('playback_url'))
+                        media = None if self._in_use(channel_id) else await probe_media(engine_url, response.get('playback_url'))
                         return True, 'Broadcast data is arriving', media
                     previous_downloaded = downloaded
                 await asyncio.sleep(min(1.0, max(0, deadline - asyncio.get_running_loop().time())))
         finally:
-            if command_url:
+            if command_url and not self._in_use(channel_id):
                 try:
                     await self._fetch_engine_response(command_url, {'method': 'stop'}, 3.0)
                 except Exception:
                     logger.warning('Could not stop channel status probe session')
 
+    @staticmethod
+    def _in_use(channel_id: str) -> bool:
+        from app.services.stream_relay import relay_registry
+        from app.services.player_service import player_service
+        key = channel_id.lower()
+        return any(relay.content_id.lower() == key for relay in relay_registry.active()) or any(
+            session.content_id.lower() == key and session.state in ('starting', 'ready')
+            for session in player_service.list_sessions()
+        )
+
+    @staticmethod
+    def _skipped_result(channel: AcestreamChannel) -> Dict[str, Any]:
+        return {
+            'channel_id': channel.id, 'is_online': channel.is_online is True,
+            'status': 'skipped', 'message': 'Source is in use; keeping its previous status',
+            'last_checked': channel.last_checked or datetime.now(timezone.utc), 'error': None,
+        }
+
     async def check_channel_status(
         self, channel: AcestreamChannel, *, identifier: str = 'id', persist: bool = True
     ) -> Dict[str, Any]:
-        """Check current data transfer in an isolated, bounded playback session."""
+        # PID does not isolate stop on native 3.2.11. Avoid probing app-owned
+        # playback, cap all scheduled/manual/tuner probes, and serialize each ID
+        # across scheduler threads and the HTTP event loop.
+        key = channel.id.lower()
+        while True:
+            if self._in_use(key):
+                return self._skipped_result(channel)
+            with _probe_lock:
+                acquired = key not in _active_probes and len(_active_probes) < MAX_PROBES
+                if acquired:
+                    _active_probes.add(key)
+            if acquired:
+                break
+            await asyncio.sleep(0.05)
+        try:
+            return await self._check_channel_status(channel, identifier=identifier, persist=persist)
+        finally:
+            with _probe_lock:
+                _active_probes.discard(key)
+
+    async def _check_channel_status(
+        self, channel: AcestreamChannel, *, identifier: str = 'id', persist: bool = True
+    ) -> Dict[str, Any]:
+        """Check current data transfer using a bounded probe with a unique PID."""
         online = False
         media = None
         try:
@@ -146,12 +191,14 @@ class ChannelStatusService:
             elif parse_error or not isinstance(data, dict):
                 message = 'Invalid response format'
             else:
-                online, message, media = await self._verify_broadcast(engine_url, data, timeout)
+                online, message, media = await self._verify_broadcast(engine_url, data, timeout, channel.id)
         except asyncio.TimeoutError:
             message = 'Request timeout'
         except Exception:
             message = 'Could not verify broadcast with the engine'
             logger.warning('Channel broadcast probe failed channel_id=%s', channel.id)
+        if self._in_use(channel.id):
+            return self._skipped_result(channel)
         check_time = datetime.now(timezone.utc)
         error = None if online else message
         if persist:

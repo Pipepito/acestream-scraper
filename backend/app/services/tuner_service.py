@@ -143,7 +143,10 @@ class TunerService:
         return generated
 
     def online_stream_ids(self, tv_channel_id: int) -> List[str]:
-        streams = ChannelRepository(self.db).get_online_tuner_streams(tv_channel_id)
+        return self.stream_ids(tv_channel_id, online_only=True)
+
+    def stream_ids(self, tv_channel_id: int, *, online_only: bool = False) -> List[str]:
+        streams = ChannelRepository(self.db).get_tuner_streams(tv_channel_id, online_only=online_only)
         valid = [stream for stream in streams if re.fullmatch(r"[0-9a-fA-F]{40}", stream.id)]
         valid.sort(key=lambda stream: (-(stream.bitrate_bps or 0), stream.id))
         return list(dict.fromkeys(stream.id.lower() for stream in valid))

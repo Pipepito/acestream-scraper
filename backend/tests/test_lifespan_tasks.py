@@ -13,7 +13,7 @@ import main
 
 
 @asynccontextmanager
-async def _lifespan_without_io(monkeypatch, registered=None, intervals=(24, 6)):
+async def _lifespan_without_io(monkeypatch, registered=None, intervals=(24, 6, 60)):
     """Run the real ``main.lifespan`` with its heavy startup work stubbed out.
 
     Only the database provisioning, the APScheduler wiring and the player
@@ -82,7 +82,7 @@ async def test_a_failing_player_start_still_stops_the_scheduler(monkeypatch):
         raise PermissionError(13, "Permission denied: /tmp/acestream-player")
 
     monkeypatch.setattr(main, "initialize_database", lambda: None)
-    monkeypatch.setattr(main, "_configured_intervals", lambda: (24, 6))
+    monkeypatch.setattr(main, "_configured_intervals", lambda: (24, 6, 60))
     monkeypatch.setattr(main, "_schedule_deferred_migration", lambda: False)
     monkeypatch.setattr(main.task_service, "start", lambda: None)
     monkeypatch.setattr(main.task_service, "add_interval_task", lambda *a, **k: None)
@@ -120,7 +120,7 @@ async def test_lifespan_registers_the_documented_interval_jobs(monkeypatch):
         ("epg_program_cleanup", 3600, main.run_epg_program_cleanup_task),
         ("url_scraping", 24 * 3600, main.run_url_scraping_task),
         ("channel_cleanup", 86400, main.run_channel_cleanup_task),
-        ("channel_status", 600, main.run_channel_status_task),
+        ("channel_status", 3600, main.run_channel_status_task),
         ("media_server_sync", 600, main.run_media_server_sync_task),
     ]
 
@@ -132,9 +132,10 @@ async def test_the_settings_driven_jobs_follow_the_configured_intervals(monkeypa
     """
     registered = []
 
-    async with _lifespan_without_io(monkeypatch, registered, intervals=(2, 12)):
+    async with _lifespan_without_io(monkeypatch, registered, intervals=(2, 12, 90)):
         pass
 
     periods = {job_id: seconds for job_id, seconds, _ in registered}
     assert periods["url_scraping"] == 2 * 3600
     assert periods["epg_refresh"] == 12 * 3600
+    assert periods["channel_status"] == 90 * 60

@@ -277,6 +277,7 @@ async def startup_readiness(request: Request, call_next):
         allowed = path in spa_paths or path.startswith(('/assets/', '/static/', '/api/v1/startup'))
         allowed = allowed or path.startswith(('/tv-channels/', '/epg/channels/'))
         allowed = allowed or path in {'/favicon.ico', '/manifest.json', '/robots.txt'}
+        allowed = allowed or path == '/api/v1/system/diagnostics'
         if not allowed and request.method != 'OPTIONS':
             return JSONResponse({'detail': 'The app is starting. Open the startup screen for progress.',
                                  'status': startup_service.status}, status_code=503,

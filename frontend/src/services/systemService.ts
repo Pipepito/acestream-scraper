@@ -48,6 +48,17 @@ export interface PublicUrlResponse {
 const BASE_URL = '/v1/system';
 
 export const systemService = {
+  downloadDiagnostics: async (): Promise<void> => {
+    const { data } = await apiClient.get<Blob>(`${BASE_URL}/diagnostics`, { responseType: 'blob', timeout: 30000 });
+    const url = URL.createObjectURL(data);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'acestream-diagnostics.zip';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  },
   getServices: async (): Promise<ServicesStatusResponse> => {
     const { data } = await apiClient.get<ServicesStatusResponse>(`${BASE_URL}/services`);
     return data;

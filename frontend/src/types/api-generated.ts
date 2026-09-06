@@ -821,6 +821,10 @@ export interface paths {
     /** Get Active Streams */
     get: operations["get_active_streams_api_v1_streams_active_get"];
   };
+  "/api/v1/system/diagnostics": {
+    /** Download recent runtime diagnostics */
+    get: operations["download_diagnostics_api_v1_system_diagnostics_get"];
+  };
   "/api/v1/system/public-url": {
     /**
      * Origin external clients must use
@@ -6578,6 +6582,17 @@ export interface operations {
       200: {
         content: {
           "application/json": unknown;
+        };
+      };
+    };
+  };
+  /** Download recent runtime diagnostics */
+  download_diagnostics_api_v1_system_diagnostics_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/zip": string;
         };
       };
     };

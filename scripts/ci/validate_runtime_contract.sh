@@ -489,4 +489,9 @@ expect_failure_contains \
     "In-container AceStream engine not accessible" \
     env PATH="$BASE_PATH" CURL_LOG_FILE="$TMP_DIR/engine-down-health.log" CURL_FAIL_MATCH="method=get_version" SUPERVISOR_RUN_DIR="$TMP_DIR/unstopped-run" ENABLE_ACESTREAM_ENGINE=true ENABLE_ACEXY=false bash "$HEALTHCHECK_SCRIPT"
 
+if [ -f "$REPO_ROOT/backend/capture_logs.py" ]; then
+    assert_file_contains "$VALIDATION_LOG_DIR/console.log" "AceStream exited with status"
+    assert_file_contains "$VALIDATION_LOG_DIR/console.log" "AceStream stopped by operator"
+fi
+
 printf 'Runtime contract validation passed.\n'

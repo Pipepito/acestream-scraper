@@ -210,3 +210,12 @@ players use the server relay in Acexy mode, bypassing saved custom link formats;
 direct mode honors their formats and adds a unique PID to direct engine links.
 Existing shared browser sessions retain their route until teardown. See
 `wiki/Remote-Players.md#playback-routing` for operator behavior.
+
+## Runtime diagnostic downloads
+
+Every container flavour captures bounded combined stdout/stderr in `LOG_DIR` via
+`backend/capture_logs.py`, installed beside the entrypoint. Preserve child PIDs,
+exit codes and supervisor cleanup when modifying capture. The authenticated
+`GET /api/v1/system/diagnostics` ZIP export is DB-independent and available during
+startup failures; Overview exposes the download. Keep file selection fixed, reads
+bounded and credential masking on export. See `docs/ops/runtime-diagnostics.md`.

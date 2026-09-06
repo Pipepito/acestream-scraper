@@ -353,6 +353,8 @@ class PlayerService:
         session.state = "error"
         session.error = error
         session.error_message = message
+        # Retain the cause after a viewer closes the dialog and the session is reaped.
+        logger.warning('Player session %s failed (%s): %s', session.id, error, message)
         session.error_since = self._now()
         process, session.process = session.process, None
         engine_session, session.engine_session = session.engine_session, None
@@ -405,7 +407,7 @@ class PlayerService:
                 await self._fail(
                     session,
                     "ffmpeg_failed",
-                    " | ".join(list(session.stderr_tail)[-5:]) or f"ffmpeg exited with {proc.returncode}",
+                    f"ffmpeg exited with {proc.returncode}: " + " | ".join(session.stderr_tail),
                 )
 
     # --- periodic work -------------------------------------------------------

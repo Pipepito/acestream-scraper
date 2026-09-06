@@ -173,3 +173,12 @@ players use the server relay in Acexy mode, bypassing saved custom link formats;
 direct mode honors their formats and adds a unique PID to direct engine links.
 Existing shared browser sessions retain their route until teardown. See
 `wiki/Remote-Players.md#playback-routing` for operator behavior.
+
+## Runtime diagnostics
+
+All image flavours inherit bounded console capture from `backend/capture_logs.py`
+in the shared image layer. Preserve Docker console output, child PIDs/exit codes,
+process-group cleanup and intentional-stop behavior. The DB-independent
+`GET /api/v1/system/diagnostics` endpoint exports bounded fixed-file tails with
+credential masking and normal API-token enforcement, including during startup
+failure. Overview provides the download. See `docs/ops/runtime-diagnostics.md`.

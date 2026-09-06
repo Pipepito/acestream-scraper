@@ -12608,6 +12608,29 @@
         ]
       }
     },
+    "/api/v1/system/diagnostics": {
+      "get": {
+        "operationId": "download_diagnostics_api_v1_system_diagnostics_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Download recent runtime diagnostics",
+        "tags": [
+          "system",
+          "system"
+        ]
+      }
+    },
     "/api/v1/system/public-url": {
       "get": {
         "description": "Sync on purpose: it reads the settings table.",

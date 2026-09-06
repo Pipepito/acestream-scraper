@@ -3,6 +3,20 @@ set -euo pipefail
 
 LOG_DIR=${LOG_DIR:-/app/logs}
 mkdir -p "$LOG_DIR"
+export LOG_DIR
+# Mirror combined child output without wrapping the supervised processes or
+# changing their PIDs/exit codes. The reader rotates its own bounded files.
+CAPTURE_SCRIPT="$(dirname "$0")/capture_logs.py"
+if [ ! -f "$CAPTURE_SCRIPT" ]; then
+    CAPTURE_SCRIPT="$(dirname "$0")/backend/capture_logs.py"
+fi
+if [ -f "$CAPTURE_SCRIPT" ]; then
+    # Architecture contracts intentionally use a restricted PATH; official
+    # Python images install their interpreter under /usr/local/bin.
+    CAPTURE_PYTHON=$(command -v python3 || true)
+    if [ -z "$CAPTURE_PYTHON" ]; then CAPTURE_PYTHON=/usr/local/bin/python3; fi
+    exec > >("$CAPTURE_PYTHON" -u "$CAPTURE_SCRIPT" "$LOG_DIR") 2>&1
+fi
 # Supervisor state the app reads to report/restart sidecar services:
 #   <run dir>/<service>.pid      pid of the current launch (session leader)
 #   <run dir>/<service>.started  epoch of the current launch
@@ -478,7 +492,7 @@ if feature_enabled "$ENABLE_WARP"; then
     # warp-svc inherits this from its supervisor (warp-setup.sh only exports it for its own run).
     export WARP_FORCE_IPV4="${WARP_FORCE_IPV4:-true}"
     WARP_SETUP_SCRIPT="$(dirname "$0")/warp-setup.sh"
-    supervise_service "WARP" "${WARP_START_COMMAND:-warp-svc --accept-tos >> \"$LOG_DIR/warp-svc.log\" 2>&1}" "bash \"$WARP_SETUP_SCRIPT\" configure" &
+    supervise_service "WARP" "${WARP_START_COMMAND:-warp-svc --accept-tos}" "bash \"$WARP_SETUP_SCRIPT\" configure" &
     child_pids+=("$!")
     child_names+=("WARP")
     if ! bash "$WARP_SETUP_SCRIPT" configure; then

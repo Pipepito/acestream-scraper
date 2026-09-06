@@ -107,3 +107,11 @@ players use the server relay in Acexy mode, bypassing saved custom link formats;
 direct mode honors their formats and adds a unique PID to direct engine links.
 Existing shared browser sessions retain their route until teardown. See
 `wiki/Remote-Players.md#playback-routing` for operator behavior.
+
+## Diagnostic exports
+
+`GET /api/v1/system/diagnostics` must remain DB-independent, authenticated by the
+normal API-token dependency, and available while startup is failing. Export only
+fixed, bounded regular-file tails; reject symlinks/devices and mask credentials.
+Never add a Docker socket, arbitrary file path input, environment dump or DB export.
+See `docs/ops/runtime-diagnostics.md` for capture and retention behavior.

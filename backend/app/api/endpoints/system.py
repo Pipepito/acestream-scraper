@@ -1,5 +1,7 @@
 """Sidecar service status and restart (/api/v1/system)."""
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import Response
+from app.services.diagnostics_service import build_bundle, DiagnosticsBusy
 from sqlalchemy.orm import Session
 
 from app.api.error_handlers import APIError
@@ -19,6 +21,20 @@ from app.services.system_services_service import (
 )
 
 router = APIRouter(tags=["system"])
+
+
+@router.get('/diagnostics', response_class=Response,
+            responses={200: {'content': {'application/zip': {'schema': {'type': 'string', 'format': 'binary'}}}}},
+            summary='Download recent runtime diagnostics')
+def download_diagnostics() -> Response:
+    try:
+        bundle = build_bundle()
+    except DiagnosticsBusy:
+        raise HTTPException(503, 'Diagnostics are being collected. Try again shortly.', headers={'Retry-After': '2'})
+    return Response(bundle, media_type='application/zip', headers={
+        'Content-Disposition': 'attachment; filename="acestream-diagnostics.zip"',
+        'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
+    })
 
 
 def _service(db: Session) -> SystemServicesService:

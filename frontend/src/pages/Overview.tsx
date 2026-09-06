@@ -5,6 +5,7 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
 import ServicesPanel from '../components/ServicesPanel';
+import DiagnosticsDownload from '../components/DiagnosticsDownload';
 import StatusLine from '../components/StatusLine';
 import InventoryTotals from '../components/overview/InventoryTotals';
 import ScheduledJobs from '../components/overview/ScheduledJobs';
@@ -59,6 +60,7 @@ const Overview: React.FC = () => {
     return (
       <Box>
         <PageHeader title="Overview" />
+        <DiagnosticsDownload />
         <Alert
           severity="error"
           action={
@@ -114,6 +116,7 @@ const Overview: React.FC = () => {
 
       <ContentSection title="Services" description="What this image ships, what is switched on, and whether each service answers. Start, stop or restart the engine without recreating the container.">
         <ServicesPanel pollIntervalMs={REFRESH_MS} />
+        <DiagnosticsDownload />
       </ContentSection>
 
       <ContentSection title="Inventory" description="What is loaded right now.">

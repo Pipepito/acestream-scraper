@@ -346,6 +346,7 @@ RUN mkdir -p /data/zeronet \
 COPY --from=ffmpeg-builder /out/ /opt/ffmpeg/bin/
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY backend/capture_logs.py /usr/local/bin/capture_logs.py
 COPY warp-setup.sh /usr/local/bin/warp-setup.sh
 COPY healthcheck.sh /usr/local/bin/healthcheck.sh
 

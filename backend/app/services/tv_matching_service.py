@@ -17,14 +17,16 @@ REGION = re.compile(rf'^({COUNTRIES})\s*[|:]\s*|[\[(]({COUNTRIES})[\])]|\b(spain
 class ChannelName:
     text: str
     country: str
+    country_conflict: bool = False
 
 
 def normalize_name(value: str | None, country: str | None = None) -> ChannelName:
     value = (value or '').casefold().split('-->', 1)[0]
     value = ''.join(c for c in unicodedata.normalize('NFKD', value) if not unicodedata.combining(c))
     regions = [next(v for v in match if v) for match in REGION.findall(value)]
-    region = (country or (regions[0] if regions else '')).casefold()
-    region = {'spain': 'es', 'gb': 'uk'}.get(region, region)
+    country_values = [part.strip().casefold() for part in [country, *regions] if part and part.strip()]
+    country_values = [{'spain': 'es', 'gb': 'uk'}.get(part, part) for part in country_values]
+    region = country_values[0] if country_values else ''
     value = REGION.sub(' ', value)
     value = QUALITY.sub(' ', value)
     value = re.sub(r'^m\s*[+.](?=\s|\w)', 'movistar ', value)
@@ -34,27 +36,17 @@ def normalize_name(value: str | None, country: str | None = None) -> ChannelName
     value = re.sub(r'\bla liga\b', 'laliga', value)
     value = re.sub(r'^sky sports\b', 'sky sport', value)
     value = re.sub(r'^movistar plus plus\b', 'movistar plus', value)
-    return ChannelName(value, region)
-
-
-def catalog_alias(value: str) -> str:
-    """Possible catalog equivalences need review, not automatic selection."""
-    value = re.sub(r'^(?:movistar )?liga de campeones\b', 'movistar liga de campeones', value)
-    value = re.sub(r'^(?:laliga tv )?hypermotion\b', 'laliga tv hypermotion', value)
-    value = re.sub(r'^dazn laliga 1$', 'dazn laliga', value)
-    return value
+    return ChannelName(value, region, len(set(country_values)) > 1)
 
 
 def name_score(target: ChannelName, candidate: ChannelName) -> tuple[float, str] | None:
-    if not target.text or not candidate.text:
+    if not target.text or not candidate.text or target.text in {'dazn', 'movistar'}:
         return None
     # A country present on only one side is insufficient evidence of an edition.
-    if target.country != candidate.country:
+    if target.country_conflict or candidate.country_conflict or target.country != candidate.country:
         return None
     if target.text == candidate.text:
         return 0.99, 'Normalized name'
-    if catalog_alias(target.text) == catalog_alias(candidate.text):
-        return 0.96, 'Catalog alias; review required'
     # Similarity percentages are not evidence that two feeds are the same station.
     # Keep all other spellings and added/dropped words in the manual assign flow.
     return None
@@ -84,22 +76,17 @@ class TVMatchingService:
             for tv in targets:
                 if id_targets and tv.id not in id_targets:
                     continue
-                if tv.epg_id and stream.tvg_id == tv.epg_id:
-                    agrees = [name_score(names[tv.id], variant) for variant in variants]
-                    if all(result and result[0] == 0.99 for result in agrees) and agrees:
-                        score, reason = 1.0, 'Exact EPG ID'
-                    else:
-                        score, reason = 0.95, 'EPG ID matches; name or country needs review'
+                # Every supplied name must identify this exact station. EPG IDs
+                # constrain identity but cannot rescue conflicting/missing names.
+                scores = [name_score(names[tv.id], variant) for variant in variants]
+                if not scores or any(result is None for result in scores):
+                    continue
+                if tv.epg_id and stream.tvg_id:
+                    if stream.tvg_id != tv.epg_id:
+                        continue
+                    score, reason = 1.0, 'Exact EPG ID and normalized name'
                 else:
-                    # Conflicting explicit EPG IDs must not be overridden by a name guess.
-                    if tv.epg_id and stream.tvg_id:
-                        continue
-                    scores = [result for name in variants if (result := name_score(names[tv.id], name))]
-                    if not scores:
-                        continue
-                    score, reason = max(scores)
-                    if len(scores) != len(variants) or (score >= 0.99 and any(item[0] < 0.99 for item in scores)):
-                        score, reason = min(score, 0.95), 'Conflicting stream names; review required'
+                    score, reason = 0.99, 'Exact normalized name'
                 claims.append(TVMatchCandidate(
                     acestream_channel_id=stream.id, acestream_name=stream.name or stream.tvg_name or stream.id,
                     tv_channel_id=tv.id, tv_channel_name=tv.name, score=score, reason=reason,
@@ -110,8 +97,7 @@ class TVMatchingService:
                 ambiguous += 1
             elif not claims:
                 unmatched += 1
-            elif len(claims) > 1 and (claims[0].score == claims[1].score or
-                    (claims[0].score < 0.99 and claims[0].score - claims[1].score < 0.05)):
+            elif len(claims) > 1:
                 ambiguous += 1
             else:
                 candidates.append(claims[0])

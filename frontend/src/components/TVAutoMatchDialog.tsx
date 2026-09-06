@@ -1,8 +1,14 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, Box, Button, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Stack, TablePagination, Typography, useMediaQuery, useTheme } from '@mui/material';
+import { Alert, Box, Button, Checkbox, CircularProgress, Collapse, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Stack, TablePagination, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { tvChannelService, TVMatchPreview } from '../services/tvChannelService';
 import { normalizeApiError } from '../services/apiErrors';
+
+interface StationMatches {
+  id: number;
+  name: string;
+  streams: TVMatchPreview['candidates'];
+}
 
 interface TVAutoMatchDialogProps {
   onClose: () => void;
@@ -15,11 +21,13 @@ export default function TVAutoMatchDialog({ onClose }: TVAutoMatchDialogProps) {
   const [preview, setPreview] = useState<TVMatchPreview | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(0);
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const analyze = useMutation({
     mutationFn: tvChannelService.previewAutoMatch,
     onSuccess: (result) => {
       setPreview(result);
-      setSelected(new Set(result.candidates.filter((item) => item.recommended).map((item) => item.acestream_channel_id)));
+      setSelected(new Set());
+      setExpanded(new Set());
       setPage(0);
       apply.reset();
     },
@@ -35,7 +43,23 @@ export default function TVAutoMatchDialog({ onClose }: TVAutoMatchDialogProps) {
       }
     },
   });
-  const rows = useMemo(() => preview?.candidates.slice(page * 25, (page + 1) * 25) ?? [], [preview, page]);
+  const stations = useMemo(() => {
+    const groups = new Map<number, StationMatches>();
+    for (const item of preview?.candidates ?? []) {
+      const group = groups.get(item.tv_channel_id) ?? { id: item.tv_channel_id, name: item.tv_channel_name, streams: [] };
+      group.streams.push(item);
+      groups.set(group.id, group);
+    }
+    return Array.from(groups.values());
+  }, [preview]);
+  const rows = stations.slice(page * 10, (page + 1) * 10);
+  const toggleStreams = (ids: string[], checked: boolean) => setSelected((current) => {
+    const next = new Set(current);
+    for (const id of ids) {
+      if (checked) next.add(id); else next.delete(id);
+    }
+    return next;
+  });
   const busy = analyze.isPending || apply.isPending;
   const error = analyze.error || apply.error;
   return (
@@ -49,25 +73,32 @@ export default function TVAutoMatchDialog({ onClose }: TVAutoMatchDialogProps) {
           {error ? <Alert severity="error">{normalizeApiError(error).message}</Alert> : null}
           {apply.data ? <Alert severity="success">{apply.data.assigned_count} streams assigned. {apply.data.skipped_count} skipped because they changed or were already assigned.</Alert> : null}
           {preview ? <>
-            <Typography role="status">{preview.candidates.length} suggestions from {preview.unassigned_streams} unassigned streams across {preview.tv_channels} TV channels. {preview.ambiguous_streams} ambiguous; {preview.unmatched_streams} without a match.</Typography>
-            <Alert severity="info">Only exact names are recommended. Catalog aliases and conflicting metadata need review. Uncertain country editions and other names are left for manual assignment.</Alert>
+            <Typography role="status">{stations.length} TV channels with {preview.candidates.length} matching stream IDs. Checked {preview.tv_channels} TV channels and {preview.unassigned_streams} unassigned streams. {preview.ambiguous_streams} ambiguous; {preview.unmatched_streams} without a match.</Typography>
+            <Alert severity="info">Only exact station identities are shown. Uncertain names, editions and conflicting metadata are discarded. Select the stations or individual streams to assign.</Alert>
             {preview.candidates.length === 0 ? <Alert severity="info">No matches found. You can assign streams from a TV channel’s detail page.</Alert> : <>
-              <Stack direction="row" spacing={1}>
-                <Button disabled={busy} onClick={() => setSelected(new Set(preview.candidates.filter((item) => item.recommended).map((item) => item.acestream_channel_id)))}>Select recommended</Button>
-                <Button disabled={busy} onClick={() => setSelected(new Set())}>Clear selection</Button>
-              </Stack>
-              {rows.map((item) => <Box key={item.acestream_channel_id} sx={{ borderBottom: 1, borderColor: 'divider', pb: 1, overflowWrap: 'anywhere' }}>
-                <FormControlLabel sx={{ alignItems: 'flex-start', m: 0 }} control={<Checkbox disabled={busy} checked={selected.has(item.acestream_channel_id)} onChange={(_, checked) => setSelected((current) => {
-                  const next = new Set(current);
-                  if (checked) next.add(item.acestream_channel_id); else next.delete(item.acestream_channel_id);
-                  return next;
-                })} />} label={<Box sx={{ pt: 1 }}>
-                  <Typography>{item.acestream_name} → {item.tv_channel_name}</Typography>
-                  <Typography variant="body2" color="text.secondary">{item.reason} · {Math.round(item.score * 100)}% match score</Typography>
-                  <Typography variant="caption" color="text.secondary">{item.acestream_channel_id}</Typography>
-                </Box>} />
-              </Box>)}
-              <TablePagination component="div" count={preview.candidates.length} page={page} rowsPerPage={25} rowsPerPageOptions={[25]} onPageChange={(_, next) => setPage(next)} />
+              <Button disabled={busy || !selected.size} onClick={() => setSelected(new Set())}>Clear selection</Button>
+              {rows.map((station) => {
+                const selectedCount = station.streams.filter((item) => selected.has(item.acestream_channel_id)).length;
+                const open = expanded.has(station.id);
+                return <Box key={station.id} sx={{ borderBottom: 1, borderColor: 'divider', pb: 1, overflowWrap: 'anywhere' }}>
+                  <FormControlLabel control={<Checkbox disabled={busy} checked={selectedCount === station.streams.length} indeterminate={selectedCount > 0 && selectedCount < station.streams.length} onChange={(_, checked) => toggleStreams(station.streams.map((item) => item.acestream_channel_id), checked)} />} label={`${station.name} · ${station.streams.length} stream ${station.streams.length === 1 ? 'ID' : 'IDs'}`} />
+                  <Button aria-expanded={open} aria-controls={`station-streams-${station.id}`} onClick={() => setExpanded((current) => {
+                    const next = new Set(current);
+                    if (open) next.delete(station.id); else next.add(station.id);
+                    return next;
+                  })}>{open ? 'Hide' : 'Review'} streams for {station.name}</Button>
+                  <Collapse in={open} unmountOnExit id={`station-streams-${station.id}`}>
+                    {station.streams.map((item) => <Box key={item.acestream_channel_id} sx={{ pl: 2 }}>
+                      <FormControlLabel sx={{ alignItems: 'flex-start', m: 0 }} control={<Checkbox disabled={busy} checked={selected.has(item.acestream_channel_id)} onChange={(_, checked) => toggleStreams([item.acestream_channel_id], checked)} />} label={<Box sx={{ pt: 1 }}>
+                        <Typography>{item.acestream_name}</Typography>
+                        <Typography variant="body2" color="text.secondary">{item.reason}</Typography>
+                        <Typography variant="caption" color="text.secondary">{item.acestream_channel_id}</Typography>
+                      </Box>} />
+                    </Box>)}
+                  </Collapse>
+                </Box>;
+              })}
+              <TablePagination component="div" count={stations.length} page={page} rowsPerPage={10} rowsPerPageOptions={[10]} labelDisplayedRows={({ from, to, count }) => `${from}–${to} of ${count} TV channels`} onPageChange={(_, next) => setPage(next)} />
             </>}
           </> : null}
         </Stack>

@@ -87,9 +87,11 @@ Open **TV Channels**. A TV channel is the user-facing station in your playlist; 
 
 To fill existing TV channels from scraped streams, select **Auto-match streams**
 then **Find matches**. This checks all TV channels, including those outside the
-current filters. Exact name matches are selected automatically. Catalog aliases and conflicting
-metadata need review; uncertain country editions and fuzzy names are withheld. Check or uncheck individual streams, then select
-**Assign selected**. Existing stream assignments are preserved. Ambiguous or
+current filters. Results are grouped by TV station with a count of matching stream IDs.
+Nothing is selected initially. Select a station or expand its streams and select
+individual IDs, then select **Assign selected**. Only full station identities
+are shown; uncertain names, editions and conflicting metadata are discarded.
+Existing stream assignments are preserved. Ambiguous or
 unmatched streams can still be assigned from the channel detail page.
 
 The channel detail page also shows the linked guide's current and upcoming programmes.

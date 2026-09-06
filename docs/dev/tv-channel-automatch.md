@@ -1,8 +1,9 @@
 # TV channel automatch
 
 TV Channels → **Auto-match streams** → **Find matches** analyzes the complete
-catalog, independently of page filters. Review individual stream suggestions,
-then **Assign selected**. Analysis never writes data. The apply operation only
+catalog, independently of page filters. Results are grouped by TV station and show the number of distinct stream IDs.
+Nothing is selected initially. Select a station or expand its stream list and
+select individual IDs, then **Assign selected**. Analysis never writes data. The apply operation only
 sets `tv_channel_id`; it does not create TV channels or rewrite EPG metadata.
 
 ## V1 analysis
@@ -26,32 +27,31 @@ These are historical references, not runtime paths to restore in V2.
 EPG creation workflow and per-channel manual assignment remain separate.
 
 1. Only unassigned streams enter analysis; every existing TV channel competes.
-2. An exact EPG ID restricts candidates to that identity. It is preselected only
-   when every supplied stream name also agrees with the TV channel's name and
-   country. Conflicting metadata stays unselected for review. Conflicting
-   nonempty EPG IDs block name guesses.
+2. Every supplied stream name must agree with the full normalized TV station
+   name and country. Conflicting names or the absence of any usable name cause the stream to be discarded, even if an
+   EPG ID agrees. Conflicting nonempty EPG IDs block assignment.
 3. Normalize case, Unicode accents, quality labels (including FHDp/1080p),
    punctuation, digit spacing, and provider suffixes after `-->`.
 4. Spelling equivalents cover M+/M./Movistar, La Liga/LaLiga and Sky Sports/Sky
-   Sport. Inferred Liga de Campeones/Hypermotion prefixes and DAZN LaLiga's first
-   feed are separate catalog-alias suggestions and are never preselected.
-5. Full normalized names must agree, preserving channel numbers, BAR, TV, plus,
-   HDR and other identity words. General fuzzy similarity is not used: for
-   example, M+ LaLiga TV must not match M+ LaLiga.
-6. Name matching requires equal country information, including both being
-   unmarked. When an unmarked stream could belong to multiple country editions
-   with the same normalized name, it is ambiguous rather than defaulting to the
-   unmarked TV channel. An exact EPG ID may resolve that ambiguity.
-7. Ties are withheld. Review candidates also require a 0.05 lead over their
-   runner-up. No alphabetical or database-ID tie breaking assigns a stream.
-8. If `name` and `tvg_name` disagree, a suggestion is not preselected merely
-   because one of them happens to match.
+   Sport. No inferred station prefixes, dropped channel numbers, rebrands,
+   substring matching or fuzzy similarity. `DAZN LaLiga 1` is not silently
+   mapped to `DAZN LaLiga`; `Liga de Campeones` does not acquire an M+ prefix.
+5. Full normalized names preserve channel numbers, BAR, TV, plus, HDR, genres
+   and every other station identity word. Brand-only DAZN/Movistar labels do not
+   identify a station. Acción, Comedia and Peliculas remain separate.
+6. Country information must agree, including both being unmarked. An unmarked
+   stream with multiple country editions in the TV catalog is ambiguous. An
+   exact EPG ID can resolve that ambiguity only when names/countries agree.
+   Contradictory country labels or metadata are discarded.
+7. Multiple eligible destinations are ambiguous. No score, alphabetical order
+   or database ID decides a winner between stations.
+8. Apply uses these same rules, so an explicit request cannot attach a discarded
+   candidate or assign a valid stream to a different station.
 
-Scores are ranking values, not probabilities of correct broadcast content.
-Historical rebrands such as BT Sport/TNT or Eleven/DAZN are not assumed.
-Unmatched or ambiguous streams can be assigned from channel details. Multiple
-IDs for the same station remain valid suggestions; there is no arbitrary cap
-that would discard backup streams just to reduce the match count.
+This is identity matching from names/metadata, not verification of broadcast
+content. Multiple IDs with the same complete station name remain distinct backup
+streams. They are grouped under one station in the review UI, with nothing
+preselected. Discarded streams remain available in the manual assignment flow.
 
 ## API and persistence
 
@@ -68,13 +68,25 @@ that would discard backup streams just to reduce the match count.
 
 ## Read-only sample evaluation
 
-On 2026-09-06 the user's server supplied 111 TV channels and 397 streams, four
-already linked to one TV channel. After tightening the rules, local analysis produced 125
-recommended matches, 42 catalog-alias suggestions requiring review, 17 ambiguous
-streams and 209 unmatched streams. The earlier iteration had 184 recommended
-matches and 39 country-review suggestions; those broader rules are superseded. This measures coverage, not verified content accuracy.
-No server data was changed. Raw inventories and infrastructure addresses are
-not committed.
+On 2026-09-06, all 397 streams (262 names before provider suffixes) and all 111
+TV channels were reviewed in both directions: stream-to-TV, then TV-to-stream.
+Expected destinations were specified independently of the matcher and checked
+against its output. The exact-only matcher agrees with all reviewed decisions:
+125 eligible stream IDs across 38 TV stations, 268 discarded, and four existing
+assignments preserved. Of the discarded IDs, 17 are ambiguous editions and 251
+have no sufficiently certain match. No live-server data was changed.
+
+For example, the inventory contains 21 distinct IDs explicitly named DAZN F1,
+one Movistar Acción ID and two Movistar Comedia IDs. The total of 125 is across
+the whole catalog; it is not a per-station count or a target to optimize.
+
+`backend/tests/fixtures/tv_matching_reviewed_catalog.json` is the independently
+reviewed, name-only regression corpus, including rejected groups and every TV
+station. Real content IDs and infrastructure are excluded; a provider advertising
+string is replaced with synthetic text. Tests evaluate all 393 unassigned
+entries, reverse inventory order, compare every TV name against every other,
+and reject extra station qualifiers. This verifies the identity policy against
+reviewed labels, not whether the live content of an ID matches its advertised name.
 
 Regression tests: `backend/tests/test_tv_matching.py` and
 `frontend/src/__tests__/TVAutoMatchDialog.test.tsx`.

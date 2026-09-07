@@ -78,4 +78,7 @@ elif [ "$ENABLE_ACESTREAM_ENGINE" = "true" ] && [ "$engine_stopped" != true ]; t
     curl -fsS "http://${ACESTREAM_HTTP_HOST}:${ACESTREAM_HTTP_PORT}/webui/api/service?method=get_version" > /dev/null || fail "In-container AceStream engine not accessible"
 fi
 
+# The optional checking engine is monitored by its supervisor, Services panel
+# and each bounded channel probe. Do not fail container health on its outage:
+# automatic container replacement would interrupt the healthy playback engine.
 printf 'All health checks passed\n'

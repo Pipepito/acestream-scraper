@@ -352,3 +352,26 @@ docker run -d -p 0.0.0.0:8000:8000 -v "${PWD}/config:/app/config" pipepito/acest
 This mounts your local `./config` directory to the container's `/app/config` directory.
 
 With the engine enabled on ARM, add `-v "${PWD}/acestream_state:/var/lib/acestream"` (or a local directory) so the engine cache is not rebuilt on every container replacement.
+
+### Isolate channel checks from playback
+
+For images containing AceStream, enable `ENABLE_ACESTREAM_CHECK_ENGINE=true`
+alongside `ENABLE_ACESTREAM_ENGINE=true`. This opt-in starts one reusable checking
+engine, with independent state/cache under `/var/lib/acestream-check` and internal
+HTTP port 6880 (HTTPS reserves 6881, legacy API 62063, P2P 8622). Leave these ports unpublished and
+reserve them when customizing playback. You can mount a separate host directory
+at `/var/lib/acestream-check`; never reuse the playback state directory.
+
+Other images can use a separate external engine via `ACE_CHECK_ENGINE_URL`.
+Choose the bundled switch or the external URL, not both. With neither configured,
+checks use the saved engine URL as before. An unavailable dedicated checker
+preserves previous channel results and never sends checks to the playback engine.
+
+Overview → Services provides separate checking-engine Start/Stop/Restart controls.
+Its crashes recover automatically without restarting playback; its health is shown
+there rather than failing the entire container healthcheck. Diagnostic downloads
+include its own rotating log. The checker adds memory and bandwidth usage (256 MiB
+disk-cache limit, 64 MiB live-cache size; total RAM is not capped by these values).
+Checks remain serialized. ARMv7 still requires testing on real hardware.
+See [stream-check isolation](../docs/ops/stream-check-pid.md) for ownership behavior
+and remaining limitations with players connected directly to an engine.

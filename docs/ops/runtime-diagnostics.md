@@ -21,7 +21,7 @@ mark unavailable logs in the manifest.
 The collector writes separate files under `LOG_DIR` (`/app/logs` by default):
 
 - `scraper.log`: the application, including Uvicorn and background jobs.
-- `acestream.log`, `acexy.log`, `ipfs.log`, `zeronet.log`, `warp.log`, `tor.log`:
+- `acestream.log`, `acestream-check.log` (when the dedicated checker is enabled), `acexy.log`, `ipfs.log`, `zeronet.log`, `warp.log`, `tor.log`:
   stdout/stderr and supervisor lifecycle messages for each launched service.
 - `entrypoint.log`: container setup and overall lifecycle messages.
 

@@ -11,7 +11,7 @@ from threading import Lock
 from zipfile import ZipFile, ZIP_DEFLATED
 
 LIMIT = 256 * 1024
-SERVICES = ('acestream', 'acexy', 'ipfs', 'zeronet', 'warp', 'tor')
+SERVICES = ('acestream', 'acestream-check', 'acexy', 'ipfs', 'zeronet', 'warp', 'tor')
 CAPTURE_NAMES = ('scraper', 'entrypoint', *SERVICES)
 LOG_NAMES = tuple(
     f'{name}.log{suffix}'

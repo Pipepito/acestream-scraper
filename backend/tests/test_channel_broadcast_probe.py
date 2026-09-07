@@ -48,7 +48,13 @@ async def test_metadata_and_errors_do_not_mean_online(probe, payload):
 
 
 @pytest.mark.asyncio
-async def test_media_packets_confirm_broadcast_and_stop_session(probe, monkeypatch):
+@pytest.mark.parametrize("dedicated", [False, True])
+async def test_media_packets_confirm_broadcast_and_stop_session(probe, monkeypatch, dedicated):
+    engine_url = "http://checker.test:6880" if dedicated else "http://engine.test:6878"
+    if dedicated:
+        from app.config.settings import settings
+        monkeypatch.setattr(settings, "ACE_CHECK_ENGINE_URL", engine_url)
+        probe._get_engine_url = ChannelStatusService._get_engine_url.__get__(probe)
     monkeypatch.setattr('app.services.channel_status_service.asyncio.sleep', AsyncMock())
     media_probe = AsyncMock(return_value={'signal_verified': True})
     monkeypatch.setattr('app.services.channel_status_service.probe_media', media_probe)
@@ -61,12 +67,12 @@ async def test_media_packets_confirm_broadcast_and_stop_session(probe, monkeypat
     result = await probe.check_channel_status(AcestreamChannel(id='a' * 40, name='Example'), identifier='infohash', persist=False)
     assert result['is_online'] is True
     assert result['network_status'] == 'found'
-    media_probe.assert_awaited_once_with('http://engine.test:6878', 'http://engine.test:6878/ace/r/hash/session')
+    media_probe.assert_awaited_once_with(engine_url, f'{engine_url}/ace/r/hash/session')
     calls = probe._fetch_engine_response.call_args_list
     assert calls[0].args[1]['infohash'] == 'a' * 40
     assert 'method' not in calls[0].args[1]
-    assert calls[1].args[0] == 'http://engine.test:6878/ace/stat/hash/session'
-    assert calls[-1].args[:2] == ('http://engine.test:6878/ace/cmd/hash/session', {'method': 'stop'})
+    assert calls[1].args[0] == f'{engine_url}/ace/stat/hash/session'
+    assert calls[-1].args[:2] == (f'{engine_url}/ace/cmd/hash/session', {'method': 'stop'})
     probe.channel_repository.update_channel_status.assert_not_called()
 
 
@@ -293,3 +299,28 @@ def test_catalogue_upsert_does_not_claim_or_overwrite_signal(db_session):
     channel = repo.create_or_update_channel(channel_id=channel.id, name='Listed again')
     assert channel.is_online is False
     assert channel.network_status == 'found'
+
+
+@pytest.mark.asyncio
+async def test_dedicated_checker_down_never_falls_back_to_playback(db_session, monkeypatch):
+    from app.config.settings import settings
+    monkeypatch.setattr(settings, 'ACE_CHECK_ENGINE_URL', 'http://checker.test:6879')
+    service = ChannelStatusService(db_session)
+    service.channel_repository = MagicMock()
+    service._wait_for_engine = AsyncMock(return_value=False)
+    service._fetch_engine_response = AsyncMock()
+    result = await service.check_channel_status(AcestreamChannel(id='f' * 40, name='Example'))
+    service._wait_for_engine.assert_awaited_once_with('http://checker.test:6879')
+    service._fetch_engine_response.assert_not_awaited()
+    service.channel_repository.update_channel_status.assert_not_called()
+    assert result['status'] == 'skipped'
+
+
+def test_probe_endpoint_uses_explicit_route_or_saved_engine(db_session, monkeypatch):
+    from app.config.settings import settings
+    service = ChannelStatusService(db_session)
+    service.settings_repo.set_setting('ace_engine_url', 'http://playback.test:6878')
+    monkeypatch.setattr(settings, 'ACE_CHECK_ENGINE_URL', ' checker.test:6879/ ')
+    assert service._get_engine_url() == 'http://checker.test:6879'
+    monkeypatch.setattr(settings, 'ACE_CHECK_ENGINE_URL', '')
+    assert service._get_engine_url() == 'http://playback.test:6878'

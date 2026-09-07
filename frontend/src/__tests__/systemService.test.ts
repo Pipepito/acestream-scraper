@@ -17,3 +17,11 @@ it.each(['start', 'stop'] as const)('sends engine %s to the lifecycle endpoint',
   await expect(systemService.controlEngine(action)).resolves.toEqual(result);
   expect(apiClient.post).toHaveBeenCalledWith(`/v1/system/services/acestream/${action}`);
 });
+
+
+it('controls the checking engine independently', async () => {
+  const result = { name: 'acestream-check', success: true, message: 'Stopped' };
+  jest.spyOn(apiClient, 'post').mockResolvedValueOnce({ data: result });
+  await expect(systemService.controlEngine('stop', 'acestream-check')).resolves.toEqual(result);
+  expect(apiClient.post).toHaveBeenLastCalledWith('/v1/system/services/acestream-check/stop');
+});

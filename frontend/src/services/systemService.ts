@@ -67,8 +67,8 @@ export const systemService = {
     const { data } = await apiClient.post<ServiceRestartResponse>(`${BASE_URL}/services/${name}/restart`);
     return data;
   },
-  controlEngine: async (action: 'start' | 'stop'): Promise<ServiceRestartResponse> => {
-    const { data } = await apiClient.post<ServiceRestartResponse>(`${BASE_URL}/services/acestream/${action}`);
+  controlEngine: async (action: 'start' | 'stop', name: 'acestream' | 'acestream-check' = 'acestream'): Promise<ServiceRestartResponse> => {
+    const { data } = await apiClient.post<ServiceRestartResponse>(`${BASE_URL}/services/${name}/${action}`);
     return data;
   },
   /** Origin that tuners, players and copied links must use to reach this server. */

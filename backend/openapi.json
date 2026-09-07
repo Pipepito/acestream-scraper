@@ -4137,7 +4137,7 @@
             "type": "string"
           },
           "name": {
-            "description": "Stable identifier: acestream, acexy, ipfs, zeronet, warp",
+            "description": "Stable identifier: acestream, acestream-check, acexy, ipfs, zeronet, warp",
             "title": "Name",
             "type": "string"
           },
@@ -12787,6 +12787,50 @@
           }
         },
         "summary": "Status of the sidecar services",
+        "tags": [
+          "system",
+          "system"
+        ]
+      }
+    },
+    "/api/v1/system/services/acestream-check/start": {
+      "post": {
+        "operationId": "start_check_engine_api_v1_system_services_acestream_check_start_post",
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRestartResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Start the supervised checking engine",
+        "tags": [
+          "system",
+          "system"
+        ]
+      }
+    },
+    "/api/v1/system/services/acestream-check/stop": {
+      "post": {
+        "operationId": "stop_check_engine_api_v1_system_services_acestream_check_stop_post",
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRestartResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Stop channel checks until Start or container restart",
         "tags": [
           "system",
           "system"

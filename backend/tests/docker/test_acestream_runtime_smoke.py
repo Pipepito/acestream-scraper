@@ -120,6 +120,7 @@ def test_scraper_acestream_starts_real_engine(request: pytest.FixtureRequest, pl
             "--platform", platform,
             "--name", container,
             "-e", "ENABLE_ACESTREAM_ENGINE=true",
+            "-e", "ENABLE_ACESTREAM_CHECK_ENGINE=true",
             "-p", f"{host_port}:8000",
             tag,
         ],
@@ -178,6 +179,15 @@ def test_scraper_acestream_starts_real_engine(request: pytest.FixtureRequest, pl
             capture_output=True, text=True, timeout=15,
         )
         assert status.returncode == 0, status.stderr
+
+        # Run both real engines, crash/recover/stop only the checker, and prove
+        # that playback retains its PID and answering API throughout.
+        lifecycle = subprocess.run(
+            ["docker", "exec", "-i", container, "python", "-"],
+            input=(REPO_ROOT / "docker/testdata/check_engine_lifecycle.py").read_text(),
+            capture_output=True, text=True, timeout=150,
+        )
+        assert lifecycle.returncode == 0, lifecycle.stdout + lifecycle.stderr
 
         # A client from a non-RFC1918 range must be admitted now that the
         # entrypoint passes --bind-all (spec: ACESTREAM_BIND_ALL default true).

@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_RUN_DIR = "/run/acestream-scraper"
 PROBE_TIMEOUT_SECONDS = 2.0
-SERVICE_NAMES = ("acestream", "acexy", "ipfs", "zeronet", "warp")
+SERVICE_NAMES = ("acestream", "acestream-check", "acexy", "ipfs", "zeronet", "warp")
 
 
 class ServiceNotFoundError(KeyError):
@@ -253,7 +253,16 @@ class SystemServicesService:
             probe = self._probe_engine(endpoint)
             if installed:
                 distribution, distribution_url = _engine_distribution()
-            label, description = "AceStream engine", "Resolves and plays acestream:// content; used by search and status checks."
+            label, description = "AceStream engine", "Resolves and plays acestream:// content; also checks channels when no dedicated checker is configured."
+            external_possible = True
+        elif name == "acestream-check":
+            installed = _flag("IMAGE_HAS_ACESTREAM")
+            enabled = _flag("ENABLE_ACESTREAM_CHECK_ENGINE")
+            endpoint = (env.get("ACE_CHECK_ENGINE_URL") or settings.ACE_CHECK_ENGINE_URL).strip() or None
+            if endpoint and not endpoint.startswith(("http://", "https://")):
+                endpoint = "http://" + endpoint
+            probe = self._probe_engine(endpoint) if endpoint else ProbeResult(False, "Dedicated checks are not configured")
+            label, description = "AceStream checking engine", "Verifies channel signal independently of playback. No playback fallback on failure."
             external_possible = True
         elif name == "acexy":
             installed = _flag("IMAGE_HAS_ACEXY")
@@ -294,9 +303,12 @@ class SystemServicesService:
             raise ServiceNotFoundError(name)
 
         proc = self.process_info(name)
-        managed = proc.alive or (name == "acestream" and self.engine_supervised())
-        stopped_by_user = name == "acestream" and (self.run_dir / "acestream.stopped").exists()
-        if not installed and not enabled:
+        managed = proc.alive or (name in ("acestream", "acestream-check") and self.engine_supervised(name))
+        stopped_by_user = name in ("acestream", "acestream-check") and (self.run_dir / f"{name}.stopped").exists()
+        if name == "acestream-check" and endpoint and not enabled:
+            state = "external" if probe.ok else "unhealthy"
+            message = probe.message if probe.ok else "Checking engine unavailable; previous channel statuses are preserved."
+        elif not installed and not enabled:
             if external_possible and probe.ok:
                 state, message = "external", f"Not in this image; using an external instance. {probe.message}"
             else:
@@ -340,6 +352,7 @@ class SystemServicesService:
     def _enable_var(name: str) -> str:
         return {
             "acestream": "ENABLE_ACESTREAM_ENGINE",
+            "acestream-check": "ENABLE_ACESTREAM_CHECK_ENGINE",
             "acexy": "ENABLE_ACEXY",
             "ipfs": "ENABLE_IPFS",
             "zeronet": "ENABLE_ZERONET",
@@ -358,35 +371,38 @@ class SystemServicesService:
             raise ServiceNotFoundError(name)
         return self._evaluate(name)
 
-    def engine_supervised(self) -> bool:
+    def engine_supervised(self, name: str = "acestream") -> bool:
         try:
-            pid = int((self.run_dir / "acestream.supervisor").read_text().strip())
+            pid = int((self.run_dir / f"{name}.supervisor").read_text().strip())
         except (OSError, ValueError):
             return False
         return pid > 1 and self._pid_alive(pid)
 
-    def control_engine(self, action: str) -> Dict[str, object]:
+    def control_engine(self, action: str, name: str = "acestream") -> Dict[str, object]:
+        if name not in ("acestream", "acestream-check"):
+            raise ServiceNotFoundError(name)
         if action not in ("start", "stop", "restart"):
             raise ValueError("Unknown engine action")
-        if not self.engine_supervised():
-            raise ServiceNotManagedError("AceStream is not supervised by this container.")
+        label = "AceStream checking engine" if name == "acestream-check" else "AceStream"
+        if not self.engine_supervised(name):
+            raise ServiceNotManagedError(f"{label} is not supervised by this container.")
         # Publish complete commands atomically, including concurrent requests.
         # The supervisor alone signals children and owns the stopped state.
         with tempfile.NamedTemporaryFile(mode="w", dir=self.run_dir, delete=False) as request:
             temporary = Path(request.name)
             request.write(action)
         try:
-            temporary.replace(self.run_dir / "acestream.command")
+            temporary.replace(self.run_dir / f"{name}.command")
         finally:
             temporary.unlink(missing_ok=True)
-        return {"name": "acestream", "success": True, "message": f"AceStream {action} requested."}
+        return {"name": name, "success": True, "message": f"{label} {action} requested."}
 
     # ---------- restart ----------
     def restart(self, name: str) -> Dict[str, object]:
         if name not in SERVICE_NAMES:
             raise ServiceNotFoundError(name)
-        if name == "acestream":
-            return self.control_engine("restart")
+        if name in ("acestream", "acestream-check"):
+            return self.control_engine("restart", name)
         proc = self.process_info(name)
         if not proc.alive or proc.pid is None:
             raise ServiceNotManagedError(

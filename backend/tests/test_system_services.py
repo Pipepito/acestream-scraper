@@ -41,7 +41,7 @@ def _clear_env(monkeypatch: pytest.MonkeyPatch) -> None:
         "ENABLE_ACESTREAM_ENGINE", "ENABLE_ACEXY", "ENABLE_IPFS", "ENABLE_ZERONET", "ENABLE_WARP",
         "SUPERVISOR_RUN_DIR", "IPFS_GATEWAY_URL", "ZERONET_URL",
         "ACEXY_LISTEN_ADDR", "ACEXY_STATUS_PORT",
-        "ACESTREAM_INSTALL_METADATA",
+        "ACESTREAM_INSTALL_METADATA", "ACE_CHECK_ENGINE_URL", "ENABLE_ACESTREAM_CHECK_ENGINE",
     ):
         monkeypatch.delenv(var, raising=False)
 
@@ -61,6 +61,7 @@ def test_nothing_installed_and_nothing_reachable(tmp_path, monkeypatch):
 
     assert {name: s["state"] for name, s in services.items()} == {
         "acestream": "not-installed",
+        "acestream-check": "not-installed",
         "acexy": "not-installed",
         "ipfs": "not-installed",
         "zeronet": "not-installed",
@@ -159,7 +160,7 @@ def test_endpoints(client, tmp_path, monkeypatch):
     listing = client.get("/api/v1/system/services")
     assert listing.status_code == 200
     body = listing.json()
-    assert [s["name"] for s in body["services"]] == ["acestream", "acexy", "ipfs", "zeronet", "warp"]
+    assert [s["name"] for s in body["services"]] == ["acestream", "acestream-check", "acexy", "ipfs", "zeronet", "warp"]
     assert body["supervised"] is True
 
     assert client.get("/api/v1/system/services/nope").status_code == 404
@@ -308,3 +309,35 @@ def test_status_tolerates_pid_file_removed_during_restart(tmp_path, monkeypatch)
 
     monkeypatch.setattr(Path, "read_text", racing_read)
     assert _service(tmp_path, FakeHttp({})).process_info("acestream").alive is False
+
+
+@pytest.mark.parametrize('action', ['start', 'stop', 'restart'])
+def test_checker_controls_use_independent_mailbox(tmp_path, monkeypatch, action):
+    _clear_env(monkeypatch)
+    service = _service(tmp_path, FakeHttp({}))
+    (tmp_path / 'acestream-check.supervisor').write_text(str(os.getpid()))
+    (tmp_path / 'acestream.command').write_text('start')
+    result = service.control_engine(action, 'acestream-check')
+    assert result['name'] == 'acestream-check'
+    assert (tmp_path / 'acestream-check.command').read_text() == action
+    assert (tmp_path / 'acestream.command').read_text() == 'start'
+
+
+def test_external_checker_failure_is_visible(tmp_path, monkeypatch):
+    _clear_env(monkeypatch)
+    monkeypatch.setenv('ACE_CHECK_ENGINE_URL', 'http://checker.test:6880')
+    result = _service(tmp_path, FakeHttp({})).get_service('acestream-check')
+    assert result['state'] == 'unhealthy'
+    assert result['managed'] is False
+    assert 'preserved' in result['message']
+
+
+@pytest.mark.parametrize('action', ['start', 'stop'])
+def test_checker_control_routes(client, tmp_path, monkeypatch, action):
+    monkeypatch.setenv('SUPERVISOR_RUN_DIR', str(tmp_path))
+    (tmp_path / 'acestream-check.supervisor').write_text(str(os.getpid()))
+    response = client.post(f'/api/v1/system/services/acestream-check/{action}')
+    assert response.status_code == 202
+    assert response.json()['name'] == 'acestream-check'
+    assert (tmp_path / 'acestream-check.command').read_text() == action
+    assert not (tmp_path / 'acestream.command').exists()

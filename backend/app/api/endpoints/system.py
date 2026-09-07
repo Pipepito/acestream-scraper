@@ -77,13 +77,13 @@ def restart_service(name: str, db: Session = Depends(get_db)):
         ) from exc
 
 
-def _control_engine(action: str, db: Session) -> dict[str, object]:
+def _control_engine(action: str, db: Session, name: str = "acestream") -> dict[str, object]:
     try:
-        return _service(db).control_engine(action)
+        return _service(db).control_engine(action, name)
     except ServiceNotManagedError as exc:
         raise APIError(code="SERVICE_NOT_MANAGED", message=str(exc),
                        status_code=status.HTTP_409_CONFLICT,
-                       context={"service": "acestream"}) from exc
+                       context={"service": name}) from exc
 
 
 @router.post("/services/acestream/start", response_model=ServiceRestartResponse,
@@ -96,6 +96,18 @@ def start_engine(db: Session = Depends(get_db)) -> dict[str, object]:
              status_code=status.HTTP_202_ACCEPTED, summary="Stop AceStream until Start or container restart")
 def stop_engine(db: Session = Depends(get_db)) -> dict[str, object]:
     return _control_engine("stop", db)
+
+
+@router.post("/services/acestream-check/start", response_model=ServiceRestartResponse,
+             status_code=status.HTTP_202_ACCEPTED, summary="Start the supervised checking engine")
+def start_check_engine(db: Session = Depends(get_db)) -> dict[str, object]:
+    return _control_engine("start", db, "acestream-check")
+
+
+@router.post("/services/acestream-check/stop", response_model=ServiceRestartResponse,
+             status_code=status.HTTP_202_ACCEPTED, summary="Stop channel checks until Start or container restart")
+def stop_check_engine(db: Session = Depends(get_db)) -> dict[str, object]:
+    return _control_engine("stop", db, "acestream-check")
 
 
 @router.get("/public-url", response_model=PublicUrlResponse, summary="Origin external clients must use")

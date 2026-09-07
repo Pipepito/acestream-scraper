@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import TracebackType
 from typing import Optional
 from urllib.parse import urlsplit
@@ -16,6 +16,7 @@ import httpx
 
 from app.repositories.settings_repository import SettingsRepository
 from app.schemas.config import PlaybackRouting
+from app.services.playback_ownership import PlaybackLease, source_ownership
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,7 @@ class EngineSession:
     command_url: str
     is_live: bool
     managed_by_acexy: bool = False
+    lease: Optional[PlaybackLease] = field(default=None, compare=False, repr=False)
 
 
 @dataclass(frozen=True)
@@ -149,7 +151,14 @@ class EngineClient:
             # stream is its lifecycle; never send JSON/start/stop or a PID.
             url = str(httpx.URL(f"{self.engine_url}/ace/getstream", params={"id": content_id}))
             return EngineSession(content_id, "", url, "", "", True, managed_by_acexy=True)
-        pid = pid or new_pid()
+        source = source_ownership(self.engine_url, content_id)
+        with source.lock:
+            lease = PlaybackLease(source)
+            session = self._start_direct(content_id, pid or new_pid(), lease)
+            source.leases.add(lease)
+            return session
+
+    def _start_direct(self, content_id: str, pid: str, lease: PlaybackLease) -> EngineSession:
         body = self._get_json(
             f"{self.engine_url}/ace/getstream",
             params={"id": content_id, "pid": pid, "format": "json"},
@@ -158,6 +167,7 @@ class EngineClient:
             return EngineSession(
                 content_id=content_id,
                 pid=pid,
+                lease=lease,
                 playback_url=_engine_target(body["playback_url"], "playback_url"),
                 stat_url=_engine_target(body["stat_url"], "stat_url"),
                 command_url=_engine_target(body["command_url"], "command_url"),
@@ -169,6 +179,20 @@ class EngineClient:
     def stop(self, session: EngineSession) -> None:
         if session.managed_by_acexy:
             return
+        if session.lease is None:
+            # Compatibility for injected clients / pre-existing session handles.
+            self._stop_direct(session)
+            return
+        lease = session.lease
+        with lease.source.lock:
+            if lease.released:
+                return
+            lease.released = True
+            lease.source.leases.discard(lease)
+            if not lease.source.leases:
+                self._stop_direct(session)
+
+    def _stop_direct(self, session: EngineSession) -> None:
         # Merge rather than replace: the engine may hand back a command_url
         # that already carries a token or session id in its query.
         url = httpx.URL(session.command_url).copy_merge_params({"method": "stop"})

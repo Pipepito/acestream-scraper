@@ -403,6 +403,16 @@ expect_success \
     env PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR" LOGROTATE_DIR="$TMP_DIR/logrotate" ENABLE_WARP=false IMAGE_HAS_ACESTREAM=false IMAGE_HAS_ACEXY=true ENABLE_ACESTREAM_ENGINE=false ENABLE_ACEXY=true ACEXY_HOST=engine.example ACEXY_PORT=9999 ACEXY_START_COMMAND='sleep 1 &' APP_DONE_FILE="$APP_DONE_FILE" bash "$ENTRYPOINT_SCRIPT" bash -lc 'sleep 0.3; printf done > "$APP_DONE_FILE"'
 [ -f "$APP_DONE_FILE" ] || fail "Entrypoint returned before the main app command completed"
 
+# Reject unsupported or ambiguous checker configurations before launching anything.
+expect_failure_contains \
+    "Checking engine needs a bundled engine image" \
+    "Checking engine requires an image with AceStream" \
+    env PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR" LOGROTATE_DIR="$TMP_DIR/checker-logrotate" ENABLE_WARP=false IMAGE_HAS_ACESTREAM=false ENABLE_ACESTREAM_ENGINE=false ENABLE_ACEXY=false ENABLE_ACESTREAM_CHECK_ENGINE=true bash "$ENTRYPOINT_SCRIPT" true
+expect_failure_contains \
+    "Checking engine rejects a simultaneous external route" \
+    "Choose bundled checking engine or ACE_CHECK_ENGINE_URL, not both" \
+    env PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR" LOGROTATE_DIR="$TMP_DIR/checker-logrotate" ENABLE_WARP=false IMAGE_HAS_ACESTREAM=true ENABLE_ACESTREAM_ENGINE=true ENABLE_ACEXY=false ENABLE_ACESTREAM_CHECK_ENGINE=true ACE_CHECK_ENGINE_URL=http://checker:6880 bash "$ENTRYPOINT_SCRIPT" true
+
 # Persistent engine lifecycle: survive clean/error/signal exits beyond the old
 # fast-exit budget, then honor Stop/Start/Restart through the same UI mailbox.
 ENGINE_TEST_DIR="$TMP_DIR/engine-lifecycle"

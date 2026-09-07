@@ -219,6 +219,7 @@ async def lifespan(app: FastAPI):
             database_phase = False
             startup_service.record('Starting background services')
             services_started = True
+            await asyncio.to_thread(task_service.restore_states)
             task_service.start()
             task_service.add_interval_task(run_activity_log_cleanup, seconds=86400, job_id="activity_log_cleanup")  # daily
             scrape_hours, epg_hours, status_minutes = await asyncio.to_thread(_configured_intervals)

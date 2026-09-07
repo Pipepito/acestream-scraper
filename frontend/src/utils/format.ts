@@ -42,7 +42,9 @@ export const JOB_NAMES: Record<string, string> = {
   v1_epg_programs_migration: 'Migrate v1 EPG programmes',
 };
 
-export const formatJobName = (id: string): string => JOB_NAMES[id] ?? id.replace(/_/g, ' ');
+export const formatJobName = (id: string): string => id.startsWith('manual_')
+  ? `${JOB_NAMES[id.slice(7)] ?? id.slice(7).replace(/_/g, ' ')} (manual)`
+  : JOB_NAMES[id] ?? id.replace(/_/g, ' ');
 
 const num = (value: unknown): number | null => (typeof value === 'number' && Number.isFinite(value) ? value : null);
 const field = (result: unknown, key: string): number | null =>
@@ -51,7 +53,7 @@ const field = (result: unknown, key: string): number | null =>
 /** One sentence describing a job's last result, or null when there is nothing to say. */
 export const summarizeJobResult = (id: string, result: unknown): string | null => {
   if (result === null || result === undefined) return null;
-  switch (id) {
+  switch (id.startsWith('manual_') ? id.slice(7) : id) {
     case 'url_scraping': {
       const processed = field(result, 'processed');
       const failures = field(result, 'failures') ?? 0;

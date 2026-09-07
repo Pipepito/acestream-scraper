@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock
 
-from app.services.stream_bitrate_service import sample_bitrate, probe_media
+from app.services.stream_bitrate_service import sample_bitrate, probe_media, has_media_packets
 
 
 @pytest.mark.parametrize('value', ['N/A', None, -1, 0, 'nan', 'inf'])
@@ -81,3 +81,29 @@ async def test_probe_rejects_redirect_before_contacting_other_host(monkeypatch):
         lambda **kwargs: factory(transport=httpx.MockTransport(handler), **kwargs))
     assert await probe_media('http://engine', 'http://engine/media') is None
     assert requested == ['engine']
+
+
+@pytest.mark.parametrize('packets,expected', [
+    ([], False),
+    ([{'stream_index': 0, 'size': '0'}], False),
+    ([{'stream_index': 1, 'size': '123'}], False),
+    ([{'stream_index': 0, 'size': '123'}], True),
+    ([{'stream_index': 0, 'size': 'invalid'}], False),
+])
+def test_signal_requires_packets_from_identified_media_stream(packets, expected):
+    assert has_media_packets({'streams': [{'index': 0, 'codec_type': 'video', 'codec_name': 'h264'}], 'packets': packets}) is expected
+
+
+def test_signal_and_history_migration_resets_unverified_status(tmp_path):
+    from sqlalchemy import create_engine, inspect, text
+    from migration_test_utils import upgrade_to_revision, database_url_for, upgrade_to_head
+    path = tmp_path / 'signal.db'
+    upgrade_to_revision(path, '20260906_1300')
+    engine = create_engine(database_url_for(path))
+    with engine.begin() as conn:
+        conn.execute(text("INSERT INTO acestream_channels (id, name, is_online, bitrate_bps) VALUES ('existing', 'Existing', 1, 8000000)"))
+    upgrade_to_head(path)
+    with engine.connect() as conn:
+        assert conn.execute(text('SELECT name, is_online, network_status, bitrate_bps FROM acestream_channels')).one() == ('Existing', None, None, 8000000)
+    assert 'scheduled_task_states' in inspect(engine).get_table_names()
+    engine.dispose()

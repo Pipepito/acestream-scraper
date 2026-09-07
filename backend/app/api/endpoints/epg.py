@@ -2,6 +2,7 @@
 API endpoints for EPG management
 """
 import logging
+from app.services.manual_job_service import run_manual_job, refresh_epg_batch
 
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Response, Body
 from sqlalchemy.orm import Session
@@ -113,7 +114,7 @@ def refresh_epg_source(
         raise HTTPException(status_code=404, detail="EPG source not found")
 
     try:
-        background_tasks.add_task(epg_service.refresh_source, source_id)
+        background_tasks.add_task(run_manual_job, "epg_refresh", epg_service.refresh_source, source_id)
     except Exception as exc:
         logger.error("Failed to enqueue EPG refresh source_id=%s error=%s", source_id, exc)
         raise APIError(
@@ -143,9 +144,11 @@ def refresh_all_epg_sources(
     sources = epg_service.get_enabled_sources()
 
     results = []
+    if sources:
+        background_tasks.add_task(run_manual_job, "epg_refresh", refresh_epg_batch, epg_service,
+                                  [source.id for source in sources])
     for source in sources:
         try:
-            background_tasks.add_task(epg_service.refresh_source, source.id)
             results.append({
                 "source_id": source.id,
                 "message": f"EPG refresh started for source: {source.name}",

@@ -57,7 +57,7 @@ describe('ChannelCardList', () => {
     const card = screen.getByRole('article', { name: 'Alpha Sports' });
 
     expect(within(card).getByText('Sports · TV: Arena TV')).toBeInTheDocument();
-    expect(within(card).getByText('Offline')).toBeInTheDocument();
+    expect(within(card).getByText('No signal verified')).toBeInTheDocument();
     expect(within(card).getByText('Hidden')).toBeInTheDocument();
     expect(within(card).getByText('Checked never')).toBeInTheDocument();
     expect(within(card).getByText('abc123')).toBeInTheDocument();

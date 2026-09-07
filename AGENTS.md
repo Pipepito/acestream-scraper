@@ -182,3 +182,14 @@ process-group cleanup and intentional-stop behavior. The DB-independent
 `GET /api/v1/system/diagnostics` endpoint exports bounded fixed-file tails with
 credential masking and normal API-token enforcement, including during startup
 failure. Overview provides the download. See `docs/ops/runtime-diagnostics.md`.
+
+## Verified signal and scheduled job history
+
+Catalogue imports do not imply online status. Channel probes separate engine ID
+lookup (`network_status`) from media delivery (`is_online`); require identified A/V
+packets before claiming signal. Keep timeout/engine errors distinct from explicit
+ID-not-found responses. See `docs/ops/stream-check-pid.md`.
+
+Scheduled job launch times and outcomes persist in `scheduled_task_states`; restore
+after schema upgrade off the event loop and mark unfinished runs interrupted. Keep
+scalar results valid in the status API. See `docs/ops/scheduled-job-history.md`.

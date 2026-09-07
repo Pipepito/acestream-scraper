@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+from app.models.background_task_status import BackgroundTaskStatus
 import logging
 
 from app.api.error_handlers import APIError
@@ -9,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 status_service = BackgroundTaskStatusService()
 
-@router.get("/background-tasks/status", tags=["background-tasks"])
+@router.get("/background-tasks/status", response_model=list[BackgroundTaskStatus], tags=["background-tasks"])
 def get_background_tasks_status():
     try:
         return [task.model_dump() for task in status_service.get_all_statuses()]

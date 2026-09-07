@@ -11,6 +11,8 @@ const statusChip = (status: string) => {
   switch (status) {
     case 'running':
       return <Chip size="small" color="info" label="Running" />;
+    case 'interrupted':
+      return <Chip size="small" color="warning" label="Interrupted" />;
     case 'error':
       return <Chip size="small" color="error" label="Error" />;
     case 'removed':
@@ -39,7 +41,7 @@ const ScheduledJobs: React.FC<ScheduledJobsProps> = ({ tasks }) => {
       <TableHead>
         <TableRow>
           <TableCell>Job</TableCell>
-          <TableCell>Last run</TableCell>
+          <TableCell>Last started</TableCell>
           <TableCell>Result</TableCell>
           <TableCell>Next run</TableCell>
           <TableCell>Status</TableCell>
@@ -52,7 +54,7 @@ const ScheduledJobs: React.FC<ScheduledJobsProps> = ({ tasks }) => {
           return (
             <TableRow key={task.task_name}>
               <TableCell data-label="Job">{formatJobName(task.task_name)}</TableCell>
-              <TableCell data-label="Last run">
+              <TableCell data-label="Last started">
                 <Tooltip title={task.last_run ? formatDateTime(task.last_run) : ''}>
                   <span>{formatRelativeTime(task.last_run)}</span>
                 </Tooltip>
@@ -63,7 +65,7 @@ const ScheduledJobs: React.FC<ScheduledJobsProps> = ({ tasks }) => {
                     {task.last_error}
                   </Typography>
                 ) : (
-                  <span>{summary ?? '—'}{progress}</span>
+                  <span>{task.status === 'running' ? 'In progress' : summary ?? (task.last_run ? 'Completed' : 'Not run yet')}{progress}</span>
                 )}
               </TableCell>
               <TableCell data-label="Next run">

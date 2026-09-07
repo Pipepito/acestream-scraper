@@ -26,6 +26,7 @@ def probe(db_session):
 def session_response():
     return {'response': {
         'is_live': 1,
+        'playback_url': 'http://127.0.0.1:6878/ace/r/hash/session',
         'stat_url': 'http://127.0.0.1:6878/ace/stat/hash/session',
         'command_url': 'http://127.0.0.1:6878/ace/cmd/hash/session',
     }, 'error': None}
@@ -47,8 +48,10 @@ async def test_metadata_and_errors_do_not_mean_online(probe, payload):
 
 
 @pytest.mark.asyncio
-async def test_only_increasing_downloads_confirm_broadcast_and_stop_session(probe, monkeypatch):
+async def test_media_packets_confirm_broadcast_and_stop_session(probe, monkeypatch):
     monkeypatch.setattr('app.services.channel_status_service.asyncio.sleep', AsyncMock())
+    media_probe = AsyncMock(return_value={'signal_verified': True})
+    monkeypatch.setattr('app.services.channel_status_service.probe_media', media_probe)
     probe._fetch_engine_response = AsyncMock(side_effect=[
         (200, session_response(), None),
         (200, {'response': {'status': 'dl', 'downloaded': 100}}, None),
@@ -57,6 +60,8 @@ async def test_only_increasing_downloads_confirm_broadcast_and_stop_session(prob
     ])
     result = await probe.check_channel_status(AcestreamChannel(id='a' * 40, name='Example'), identifier='infohash', persist=False)
     assert result['is_online'] is True
+    assert result['network_status'] == 'found'
+    media_probe.assert_awaited_once_with('http://engine.test:6878', 'http://engine.test:6878/ace/r/hash/session')
     calls = probe._fetch_engine_response.call_args_list
     assert calls[0].args[1]['infohash'] == 'a' * 40
     assert 'method' not in calls[0].args[1]
@@ -115,9 +120,9 @@ async def test_probe_player_ids_are_unique_between_service_instances(db_session)
 
 
 @pytest.mark.asyncio
-async def test_online_check_persists_measured_media_but_probe_failure_stays_online(probe, monkeypatch):
+async def test_downloads_without_verified_media_are_not_online(probe, monkeypatch):
     monkeypatch.setattr('app.services.channel_status_service.asyncio.sleep', AsyncMock())
-    for metadata in [None, {'bitrate_bps': 8_000_000, 'audio_tracks': [{'index': 0, 'language': 'spa'}]}]:
+    for metadata in [None, {'signal_verified': False, 'bitrate_bps': None, 'audio_tracks': []}, {'signal_verified': True, 'bitrate_bps': 8_000_000, 'audio_tracks': [{'index': 0, 'language': 'spa'}]}]:
         monkeypatch.setattr('app.services.channel_status_service.probe_media', AsyncMock(return_value=metadata))
         probe._fetch_engine_response = AsyncMock(side_effect=[
             (200, session_response(), None),
@@ -126,7 +131,8 @@ async def test_online_check_persists_measured_media_but_probe_failure_stays_onli
             (200, {'response': 'ok'}, None),
         ])
         result = await probe.check_channel_status(AcestreamChannel(id='a' * 40, name='Example'))
-        assert result['is_online'] is True
+        assert result['is_online'] is bool(metadata and metadata['signal_verified'])
+        assert result['network_status'] == 'found'
         assert probe.channel_repository.update_channel_status.call_args.kwargs['bitrate_bps'] == (metadata['bitrate_bps'] if metadata else None)
         assert probe.channel_repository.update_channel_status.call_args.kwargs['audio_tracks'] == (metadata['audio_tracks'] if metadata else None)
 
@@ -260,3 +266,30 @@ def test_bulk_status_counts_exclude_skipped_probes(client, db_session, monkeypat
     assert result.json()['offline_count'] == 0
     assert result.json()['total_checked'] == 0
     assert '1 skipped' in result.json()['message']
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('http_status,payload,expected', [
+    (200, {'error': 'not found'}, 'not_found'),
+    (200, {'error': 'content not found'}, 'not_found'),
+    (200, {'error': 'no peers'}, 'unknown'),
+    (404, None, 'unknown'),  # an absent API route is not an absent content ID
+    (500, None, 'unknown'),
+])
+async def test_lookup_failure_is_separate_from_signal(probe, http_status, payload, expected):
+    probe._fetch_engine_response = AsyncMock(return_value=(http_status, payload, None))
+    result = await probe.check_channel_status(AcestreamChannel(id='f' * 40, name='Example'))
+    assert result['network_status'] == expected
+    assert result['is_online'] is False
+    assert probe.channel_repository.update_channel_status.call_args.kwargs['network_status'] == expected
+
+
+def test_catalogue_upsert_does_not_claim_or_overwrite_signal(db_session):
+    from app.repositories.channel_repository import ChannelRepository
+    repo = ChannelRepository(db_session)
+    channel = repo.create_or_update_channel(channel_id='f' * 40, name='Example')
+    assert channel.is_online is None
+    repo.update_channel_status(channel.id, False, 'No signal', network_status='found')
+    channel = repo.create_or_update_channel(channel_id=channel.id, name='Listed again')
+    assert channel.is_online is False
+    assert channel.network_status == 'found'

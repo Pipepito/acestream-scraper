@@ -5,6 +5,7 @@ import { ContentCopy } from '@mui/icons-material';
 import EmptyState from './state/EmptyState';
 import ChannelRowActions, { type ChannelActionHandlers } from './channels/ChannelRowActions';
 import OnlineChip from './channels/OnlineChip';
+import NetworkStatusChip from './channels/NetworkStatusChip';
 import { AcestreamChannel, acestreamChannelService } from '../services/channelService';
 import { shouldDisableGridVirtualization } from '../config/runtime';
 import { formatRelativeTime } from '../utils/format';
@@ -104,9 +105,15 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
         ),
       },
       {
+        field: 'network_status',
+        headerName: 'Network ID',
+        width: 145,
+        renderCell: (params: GridRenderCellParams<AcestreamChannel>) => <NetworkStatusChip status={params.row.network_status} />,
+      },
+      {
         field: 'is_online',
-        headerName: 'Online',
-        width: 110,
+        headerName: 'Signal',
+        width: 145,
         renderCell: (params: GridRenderCellParams<AcestreamChannel>) => <OnlineChip isOnline={params.row.is_online} />,
       },
       {

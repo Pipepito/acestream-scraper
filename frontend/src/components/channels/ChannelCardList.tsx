@@ -4,6 +4,7 @@ import { ContentCopy } from '@mui/icons-material';
 import EmptyState from '../state/EmptyState';
 import ChannelRowActions, { type ChannelActionHandlers } from './ChannelRowActions';
 import OnlineChip from './OnlineChip';
+import NetworkStatusChip from './NetworkStatusChip';
 import type { AcestreamChannel } from '../../services/channelService';
 import { formatRelativeTime } from '../../utils/format';
 import { formatDateTime } from '../../utils/formatters';
@@ -85,6 +86,7 @@ const ChannelCardList: React.FC<ChannelCardListProps> = ({
             </Stack>
 
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
+              <NetworkStatusChip status={channel.network_status} />
               <OnlineChip isOnline={channel.is_online} />
               {hidden ? <Chip label="Hidden" size="small" variant="outlined" sx={{ minWidth: 72 }} /> : null}
               <Tooltip title={channel.last_checked ? formatDateTime(channel.last_checked) : 'Never checked'}>

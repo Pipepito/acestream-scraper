@@ -11,8 +11,12 @@ from threading import Lock
 from zipfile import ZipFile, ZIP_DEFLATED
 
 LIMIT = 256 * 1024
-LOG_NAMES = ('console.log', 'console.log.1', 'console.log.2', 'warp-svc.log', 'debug.log', 'error.log')
-SERVICES = ('acestream', 'acexy', 'ipfs', 'zeronet', 'warp')
+SERVICES = ('acestream', 'acexy', 'ipfs', 'zeronet', 'warp', 'tor')
+CAPTURE_NAMES = ('scraper', 'entrypoint', *SERVICES)
+LOG_NAMES = tuple(
+    f'{name}.log{suffix}'
+    for name in CAPTURE_NAMES for suffix in ('', '.1', '.2')
+) + ('console.log', 'console.log.1', 'console.log.2', 'warp-svc.log', 'debug.log', 'error.log')
 _lock = Lock()
 
 

@@ -217,7 +217,8 @@ Existing shared browser sessions retain their route until teardown. See
 
 ## Runtime diagnostic downloads
 
-Every container flavour captures bounded combined stdout/stderr in `LOG_DIR` via
+Every container flavour captures bounded stdout/stderr in separate scraper,
+service and entrypoint logs in `LOG_DIR` via
 `backend/capture_logs.py`, installed beside the entrypoint. Preserve child PIDs,
 exit codes and supervisor cleanup when modifying capture. The authenticated
 `GET /api/v1/system/diagnostics` ZIP export is DB-independent and available during

@@ -741,3 +741,23 @@ def test_engine_has_persistent_supervision():
     entrypoint = (REPO_ROOT / "entrypoint.sh").read_text()
     assert 'supervise_engine "$ACESTREAM_START_COMMAND" &' in entrypoint
     assert 'acestream.supervisor' in entrypoint
+
+
+def test_entrypoint_separates_app_service_and_setup_logs(tmp_path):
+    _entrypoint_env(
+        tmp_path,
+        IMAGE_HAS_ACEXY="true",
+        ENABLE_ACEXY="true",
+        ACEXY_HOST="engine.example",
+        ACEXY_START_COMMAND="printf 'ACEXY_STDOUT_MARKER\\n'; printf 'ACEXY_STDERR_MARKER\\n' >&2",
+    )
+    logs = tmp_path / "logs"
+    scraper = (logs / "scraper.log").read_text()
+    acexy = (logs / "acexy.log").read_text()
+    entrypoint = (logs / "entrypoint.log").read_text()
+    assert "REPORT FFMPEG_BINARY_PATH" in scraper
+    assert "ACEXY_STDOUT_MARKER" in acexy
+    assert "ACEXY_STDERR_MARKER" in acexy
+    assert "ACEXY_STDOUT_MARKER" not in scraper + entrypoint
+    assert "REPORT FFMPEG_BINARY_PATH" not in acexy + entrypoint
+    assert not (logs / "console.log").exists()

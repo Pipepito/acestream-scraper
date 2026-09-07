@@ -4,8 +4,9 @@ set -euo pipefail
 LOG_DIR=${LOG_DIR:-/app/logs}
 mkdir -p "$LOG_DIR"
 export LOG_DIR
-# Mirror combined child output without wrapping the supervised processes or
-# changing their PIDs/exit codes. The reader rotates its own bounded files.
+# Keep the original console separate from each collector so service output
+# is never copied into another service log. Redirection preserves child PIDs.
+exec 3>&1
 CAPTURE_SCRIPT="$(dirname "$0")/capture_logs.py"
 if [ ! -f "$CAPTURE_SCRIPT" ]; then
     CAPTURE_SCRIPT="$(dirname "$0")/backend/capture_logs.py"
@@ -15,8 +16,13 @@ if [ -f "$CAPTURE_SCRIPT" ]; then
     # Python images install their interpreter under /usr/local/bin.
     CAPTURE_PYTHON=$(command -v python3 || true)
     if [ -z "$CAPTURE_PYTHON" ]; then CAPTURE_PYTHON=/usr/local/bin/python3; fi
-    exec > >("$CAPTURE_PYTHON" -u "$CAPTURE_SCRIPT" "$LOG_DIR") 2>&1
 fi
+capture_output() {
+    if [ -f "$CAPTURE_SCRIPT" ]; then
+        exec > >("$CAPTURE_PYTHON" -u "$CAPTURE_SCRIPT" "$LOG_DIR" "$1.log" >&3) 2>&1
+    fi
+}
+capture_output entrypoint
 # Supervisor state the app reads to report/restart sidecar services:
 #   <run dir>/<service>.pid      pid of the current launch (session leader)
 #   <run dir>/<service>.started  epoch of the current launch
@@ -34,7 +40,7 @@ mkdir -p "$LOGROTATE_DIR"
 LOGROTATE_CONF="$LOGROTATE_DIR/acestream-services"
 
 cat > "$LOGROTATE_CONF" <<EOF
-$LOG_DIR/*.log {
+$LOG_DIR/warp-svc.log $LOG_DIR/debug.log $LOG_DIR/error.log {
     hourly
     rotate 7
     compress
@@ -83,6 +89,7 @@ shutdown_children() {
 # it again. Only this process signals the child: API requests use marker files,
 # avoiding stale child-pid races during automatic recovery.
 supervise_engine() {
+    capture_output acestream
     local command="$1" inner_pid="" sleeper_pid="" next_launch=0
     local restart_delay="${SUPERVISED_RESTART_DELAY_SECONDS:-5}"
     local state_dir="$SUPERVISOR_RUN_DIR" action status
@@ -176,6 +183,7 @@ supervise_service() {
     local sleeper_pid=""
     local slug
     slug=$(printf '%s' "$label" | tr '[:upper:]' '[:lower:]')
+    capture_output "$slug"
 
     trap '
         for p in ${inner_pid:-$(jobs -p)}; do
@@ -579,7 +587,7 @@ wait_for_supervised_exit() {
 
 trap 'shutdown_children "$app_pid" "${child_pids[@]:-}"' INT TERM EXIT
 
-"${APP_COMMAND[@]}" &
+(capture_output scraper; exec "${APP_COMMAND[@]}") &
 app_pid=$!
 
 if wait_for_supervised_exit; then

@@ -28,6 +28,24 @@ Runtime command:
 uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
+### Optional storage mounts (highly recommended)
+
+Keep `/app/config` mapped for persistent configuration and backups. Also map
+`/root/.ACEStream/.acestream_cache` for the embedded amd64 engine, or
+`/var/lib/acestream` for the ARM engine, and `/tmp/acestream-player` for browser
+playback on every platform. These cache/temporary mounts are optional but highly
+recommended to prevent writes accumulating in the container writable layer.
+On Unraid use bind mounts under `/mnt/user/appdata/acestream-scraper/` (for example
+`engine-cache`, `engine-state`, and `player`); named volumes may still use
+`docker.img`. Mounts move storage and do not enforce size limits.
+
+The player mount must follow a custom `PLAYER_HLS_DIR`. If using
+`/dev/shm/acestream-player` with an explicit shared-memory size instead, omit the
+player bind mount to retain RAM storage. Preserve existing configuration and any
+engine settings before recreating a container; its old disposable cache need not
+be copied. See [the Docker guide](../../wiki/Docker.md#recommended-cache-and-temporary-storage)
+for Unraid steps, platform-specific examples, player limits and log rotation.
+
 ### Compose Stack
 
 `docker-compose.yml` runs:
@@ -186,7 +204,7 @@ Runtime layout on ARM:
 
 - `/opt/acestream`: the APK's engine payload (python-for-android CPython 3.8 + compiled engine modules) plus `main_linux.py` (a Linux copy of the APK bootstrap that keeps `--log-stdout` output in `docker logs`) and `app_bridge.py` (a fake Android RPC host answering device-id, `statvfs`, and meminfo queries).
 - `/system`: the minimal Android 9 bionic userland (`bin/linker64` or `bin/linker`, `lib64/` or `lib/`, `etc/NOTICE-aosp-libs`). `start-engine` sets `ANDROID_ROOT=/system`, `PYTHONHOME`, `PYTHONPATH`, and `LD_LIBRARY_PATH`, then execs the bionic python with `main_linux.py`.
-- `/var/lib/acestream` (`ACESTREAM_HOME`): `acestream.conf` (seeded on first start), `acestream.log`, `acestream_error.log`, `.device_id` (persistent per-install device id), and `.ACEStream/` state including the disk cache. Recommend a volume: `-v acestream-state:/var/lib/acestream`.
+- `/var/lib/acestream` (`ACESTREAM_HOME`): `acestream.conf` (seeded on first start), `acestream.log`, `acestream_error.log`, `.device_id` (persistent per-install device id), and `.ACEStream/` state including the disk cache. Recommend a volume: `-v "${PWD}/acestream_state:/var/lib/acestream"`.
 - Ports: `6878` HTTP API, `8621` tcp/udp P2P. Health: the backend calls `/server/api?api_version=3&method=get_status` and `get_network_connection_status`; `/webui/api/service?method=get_version` returns `{"platform":"android","version":"3.2.17"}` on ARM64. The system dashboard reads build provenance and links the supplying package.
 
 Operator caveats specific to the ARM engine:

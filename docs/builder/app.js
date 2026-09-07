@@ -81,7 +81,8 @@
       return false;
     });
     const activeVolumes = data.volumes.filter((v) => {
-      if (v.id === 'config') return true;
+      if (v.id === 'config' || v.id === 'playerHls') return true;
+      if (v.id === 'engineCache') return engineOn && platform.id === 'amd64';
       if (v.id === 'engineState') return engineOn && platform.id !== 'amd64';
       if (v.id === 'ipfsRepo') return ipfsEmbeddedOn;
       if (v.id === 'zeronetData') return zeronetEmbeddedOn;
@@ -212,13 +213,18 @@
     return out;
   }
 
+  function volumeTarget(v) {
+    if (v.id === 'playerHls') return String(state.runtimeSettings.playerHlsDir || '').trim() || v.target;
+    return v.target;
+  }
+
   function volumeEntries(d) {
     const out = [];
     for (const v of d.activeVolumes) {
       const s = state.volumes[v.id];
       if (!s || !s.enabled) continue;
       const source = (s.source || '').trim() || v.defaultSource;
-      out.push({ source, target: v.target, label: v.label });
+      out.push({ source, target: volumeTarget(v), label: v.label });
     }
     return out;
   }
@@ -363,6 +369,9 @@
     }
     if (d.engineOn && d.platform.id !== 'amd64' && state.volumes.engineState && !state.volumes.engineState.enabled) {
       out.push(['info', 'Without the engine state folder the ARM engine rebuilds its cache and device id on every container replacement.']);
+    }
+    for (const v of d.activeVolumes.filter((v) => v.id === 'engineCache' || v.id === 'playerHls')) {
+      if (!state.volumes[v.id].enabled) out.push(['info', v.label + ': without a host folder or RAM storage, cache files use the container writable layer.']);
     }
     if (d.zeronetEmbeddedOn && state.volumes.zeronetData && !state.volumes.zeronetData.enabled) {
       out.push(['info', 'Without the ZeroNet state folder the node re-downloads its sites on every container replacement.']);
@@ -577,7 +586,7 @@
       const editor = el('div', { class: 'map-edit' }, [
         el('span', { text: 'Host folder or volume' }), input,
         el('span', { class: 'arrow', 'aria-hidden': 'true', text: '→' }),
-        el('span', { class: 'target', text: v.target })
+        el('span', { class: 'target', text: volumeTarget(v) })
       ]);
       list.append(mapRow('volume', v, s, editor));
     }
@@ -619,6 +628,7 @@
     const input = el('input', attrs);
     input.addEventListener('input', () => {
       state.runtimeSettings[setting.id] = input.value;
+      if (setting.id === 'playerHlsDir') renderVolumes(derive());
       updateOutput();
     });
     return el('div', { class: 'field runtime-field' }, [

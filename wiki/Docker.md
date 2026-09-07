@@ -37,6 +37,54 @@ Docker is a platform that uses containerization technology to package applicatio
 
 For Acestream Scraper, Docker Compose is recommended as it makes managing all configuration parameters easier.
 
+## Recommended cache and temporary storage
+
+These mounts are **optional but highly recommended**, especially on Unraid where
+unmapped writes consume `docker.img`. Keep the existing `/app/config` mapping for
+the database and backups, and add the applicable folders:
+
+| Use | Container path | Example Unraid host folder |
+| --- | --- | --- |
+| Embedded AceStream on amd64 | `/root/.ACEStream/.acestream_cache` | `/mnt/user/appdata/acestream-scraper/engine-cache` |
+| Embedded AceStream on ARM64 / ARMv7 | `/var/lib/acestream` | `/mnt/user/appdata/acestream-scraper/engine-state` |
+| Web player on any platform | `/tmp/acestream-player` | `/mnt/user/appdata/acestream-scraper/player` |
+
+In Unraid, add each as a read/write **Path** in the container template. Use host
+bind mounts: named Docker volumes can still occupy Unraid's Docker image. On other
+hosts, use suitable local folders, for example:
+
+```bash
+-v "${PWD}/acestream_cache:/root/.ACEStream/.acestream_cache" \
+-v "${PWD}/player_data:/tmp/acestream-player"
+```
+
+The engine-cache example is for the bundled amd64 engine's default cache path.
+On ARM, replace that mapping with `-v "${PWD}/acestream_state:/var/lib/acestream"`;
+`ACESTREAM_HOME` only controls the ARM engine. If you customize engine cache/state
+paths, mount the paths the engine actually uses.
+
+The player uses `PLAYER_HLS_DIR=/tmp/acestream-player` by default. If you change
+that variable, change the mount target too; the command builder does this for you.
+It deletes old HLS segments and cleans up inactive sessions, but the rolling
+playlist is not a hard byte quota. `PLAYER_MAX_SESSIONS` (default `3`) can reduce
+concurrent playback storage and process usage; use `1` if only one distinct
+channel/audio session is needed. Alternatively set
+`PLAYER_HLS_DIR=/dev/shm/acestream-player` with an appropriate `--shm-size`
+(for example `256m`) and **disable the player bind mount**. That uses bounded RAM
+storage; playback may fail if it fills.
+
+Mounting a cache moves writes; it does not impose a size limit. AceStream cache
+limits must match the installed engine's supported options. Save any engine
+settings kept only in the old container before applying a template change.
+Recreating the container discards its old writable layer; a simple restart does
+not reclaim it. Disposable stream cache can be rebuilt. Preserve `/app/config`
+and its existing host mapping when recreating the container.
+
+Optionally map `/app/logs` to retain diagnostics across replacement. Its console
+capture is bounded to about 6 MiB. Docker's own console log is separate: configure
+rotation, for example `--log-driver=json-file --log-opt max-size=10m
+--log-opt max-file=3`. Existing bounded Docker logging can be retained.
+
 ## Image Tags and Flavors
 
 Docker images are published under `pipepito/acestream-scraper`.
@@ -145,13 +193,13 @@ docker run -d \
   -p 8621:8621 \
   -p 8621:8621/udp \
   -v "${PWD}/config:/app/config" \
-  -v acestream-state:/var/lib/acestream \
+  -v "${PWD}/acestream_state:/var/lib/acestream" \
   --name acestream-scraper \
   pipepito/acestream-scraper:latest
 ```
 
 - `ENABLE_ACESTREAM_ENGINE=true` starts the engine; no extra capabilities are required (only WARP needs `NET_ADMIN`/`SYS_ADMIN`).
-- On ARM, `/var/lib/acestream` (`ACESTREAM_HOME`) holds the Android engine's state: `acestream.conf`, `acestream.log`, `acestream_error.log`, and the `.ACEStream/` directory with the disk cache. Mount a named volume there so the cache and the per-install device id (`.device_id`) survive container replacement; the mount is harmless on amd64.
+- On ARM, `/var/lib/acestream` (`ACESTREAM_HOME`) holds the Android engine's state: `acestream.conf`, `acestream.log`, `acestream_error.log`, and the `.ACEStream/` directory with the disk cache. A host-folder mount is optional but highly recommended so the cache and the per-install device id (`.device_id`) survive container replacement; the mount is harmless on amd64.
 - Ports: `6878` is the engine HTTP API (the backend talks to it through `ACE_ENGINE_URL`, default `http://localhost:6878`); `8621` tcp/udp is the P2P port. Only publish `6878` if you want to reach the engine from outside the container, and only on trusted networks: the engine is started with `--bind-all` on every platform (`ACESTREAM_BIND_ALL=true` by default; set it to `false` to keep the engine's loopback/RFC1918-only filter) so published-port clients are accepted, and the engine HTTP API has no authentication.
 - Logs: the entrypoint supervises the engine, so its output shows up in `docker logs acestream-scraper` (on ARM the launcher passes `--log-stdout` for this). On ARM the engine also writes `acestream.log` / `acestream_error.log` under `/var/lib/acestream`. Every image flavour also captures bounded console history: use **Overview → Services → Download diagnostics** to save a ZIP from your phone, or `GET /api/v1/system/diagnostics` with the normal API token. Collection begins after upgrading to an image with this feature. Common credentials and URLs are masked on export; review before sharing. See [runtime diagnostics](../docs/ops/runtime-diagnostics.md) for limits and retention.
 - Health: the backend polls `/server/api?api_version=3&method=get_status` and `method=get_network_connection_status` on the engine. To confirm which engine is running: `curl "http://localhost:6878/webui/api/service?method=get_version"` returns `{"platform":"android","version":"3.2.17"}` on ARM64 and ARMv7. The dashboard also shows `Engine package: jopsis/acestream v3.2.17-fix` with a link to the source image.
@@ -303,4 +351,4 @@ docker run -d -p 0.0.0.0:8000:8000 -v "${PWD}/config:/app/config" pipepito/acest
 
 This mounts your local `./config` directory to the container's `/app/config` directory.
 
-With the engine enabled on ARM, add `-v acestream-state:/var/lib/acestream` (or a local directory) so the engine cache is not rebuilt on every container replacement.
+With the engine enabled on ARM, add `-v "${PWD}/acestream_state:/var/lib/acestream"` (or a local directory) so the engine cache is not rebuilt on every container replacement.

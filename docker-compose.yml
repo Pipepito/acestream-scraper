@@ -29,6 +29,14 @@ services:
     volumes:
       - ./config:/app/config
       - ./ipfs_data:/data/ipfs
+      # Optional but highly recommended: keep cache/player writes outside Docker.
+      # On Unraid use absolute /mnt/user/appdata/... host paths.
+      # Embedded amd64 engine (default cache path):
+      # - ./acestream_cache:/root/.ACEStream/.acestream_cache
+      # Embedded ARM engine instead:
+      # - ./acestream_state:/var/lib/acestream
+      # All platforms; match PLAYER_HLS_DIR if customized. Omit for /dev/shm.
+      # - ./player_data:/tmp/acestream-player
       # Embedded ZeroNet node state (ENABLE_ZERONET=true):
       # - ./zeronet_app_data:/data/zeronet
     extra_hosts:

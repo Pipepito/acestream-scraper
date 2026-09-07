@@ -122,3 +122,25 @@ This feature creates a "TV Channel" entity that serves as a grouping mechanism f
 - EPG synchronization can be resource-intensive
 - Consider performance impacts when batch generating channels from large acestream collections
 - Name-based matching for channel generation is not perfect and may require manual review
+### Recovering EPG links
+
+Deleting a source, refreshing EPG data, or applying channel matching repairs TV
+channels whose EPG link is missing or unavailable. Repair first uses the XMLTV
+channel ID, then an unambiguous normalized channel name (including accented-name
+variants). Valid links stay in place. Existing TV channels retain their favorites,
+channel numbers, and stream assignments. EPG matching reuses an existing TV channel
+and adds accepted streams instead of requiring deletion and recreation.
+
+For channels left unlinked by an earlier source deletion, refresh the remaining
+EPG source to repair them. Ambiguous names need manual selection.
+
+### Playlist formats and external address
+
+Settings → Public address stores the HTTP(S) address other devices use to reach
+the container. Copied playlist links use it. Settings → Stream link formats offers
+editable suggestions for the AceStream app, the server relay, and enabled
+AceStream/Acexy services. Suggestions use the public host and standard sidecar
+ports; adjust those ports to your Docker port mappings before saving. Saved
+formats appear in Playlist → Stream link format. The server relay follows the
+configured playback route and tuner network access rules. Saved formats remain
+editable snapshots when the public address changes.

@@ -1,4 +1,5 @@
 import React from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { ThemeProvider } from '@mui/material/styles';
 import Settings from '../pages/Settings';
@@ -9,6 +10,12 @@ import * as baseUrlHooks from '../hooks/useBaseUrls';
 import { ApiError } from '../services/apiErrors';
 import { configService } from '../services/configService';
 
+jest.mock('../hooks/useSystemServices', () => ({
+  usePublicUrl: () => ({ data: { url: 'http://192.168.1.10:8000', source: 'setting', warnings: [] } }),
+  useSystemServices: () => ({ data: { services: [{ name: 'acestream', enabled: true }, { name: 'acexy', enabled: true }] } }),
+  PUBLIC_URL_QUERY_KEY: ['system', 'public-url'],
+}));
+jest.mock('../hooks/useTuner', () => ({ useTunerStatus: () => ({ data: undefined }) }));
 jest.mock('../hooks/useConfig');
 jest.mock('../hooks/useBaseUrls');
 jest.mock('../services/configService', () => ({
@@ -23,7 +30,7 @@ describe('Settings page', () => {
     render(
       <ThemeProvider theme={createAppTheme('light')}>
         <TestMemoryRouter>
-          <Settings />
+          <QueryClientProvider client={new QueryClient()}><Settings /></QueryClientProvider>
         </TestMemoryRouter>
       </ThemeProvider>
     );
@@ -66,12 +73,23 @@ describe('Settings page', () => {
     (baseUrlHooks.useDeleteBaseUrl as jest.Mock).mockReturnValue({ mutate: succeedingMutate(), isPending: false });
   });
 
+  it('prefills an editable Acexy format using the external host', async () => {
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Acexy' }));
+    const dialog = screen.getByRole('dialog', { name: 'Add link format' });
+    expect(within(dialog).getByLabelText('Name')).toHaveValue('Acexy');
+    expect(within(dialog).getByLabelText('Pattern')).toHaveValue('http://192.168.1.10:8080/ace/getstream?id={channel_id}');
+    fireEvent.change(within(dialog).getByLabelText('Pattern'), { target: { value: 'http://192.168.1.10:18080/ace/getstream?id={channel_id}' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Add base URL' }));
+    expect(baseUrlHooks.useCreateBaseUrl().mutate).toHaveBeenCalledWith({ name: 'Acexy', pattern: 'http://192.168.1.10:18080/ace/getstream?id={channel_id}', is_default: false }, expect.any(Object));
+  });
+
   it('shows one section per concern and drops the hero, appearance and inventory', async () => {
     renderPage();
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument();
     const headings = screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent);
-    expect(headings).toEqual(['Engine', 'Stream link formats', 'Automation', 'API access']);
+    expect(headings).toEqual(['Engine', 'Public address', 'Stream link formats', 'Automation', 'API access']);
     expect(screen.queryByText('Control center')).not.toBeInTheDocument();
     expect(screen.queryByRole('radio', { name: 'Light theme' })).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Base URL')).not.toBeInTheDocument();
@@ -217,7 +235,7 @@ it('saves Acexy routing and its backend URL together', async () => {
   const mutate = jest.fn();
   (configHooks.usePlaybackRouting as jest.Mock).mockReturnValue({ data: { use_acexy: false, acexy_url: 'http://localhost:8080' } });
   (configHooks.useUpdatePlaybackRouting as jest.Mock).mockReturnValue({ mutate, reset: jest.fn() });
-  render(<ThemeProvider theme={createAppTheme('light')}><TestMemoryRouter><Settings /></TestMemoryRouter></ThemeProvider>);
+  render(<ThemeProvider theme={createAppTheme('light')}><TestMemoryRouter><QueryClientProvider client={new QueryClient()}><Settings /></QueryClientProvider></TestMemoryRouter></ThemeProvider>);
   fireEvent.click(await screen.findByRole('checkbox', { name: 'Route playback through Acexy' }));
   fireEvent.change(screen.getByLabelText('Acexy URL', { exact: false }), { target: { value: 'http://proxy.lan:8080' } });
   fireEvent.click(screen.getByRole('button', { name: 'Save playback routing' }));

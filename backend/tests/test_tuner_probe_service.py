@@ -47,6 +47,7 @@ def test_refresh_checks_offline_first_skips_fresh_invalid_and_inactive(alembic_d
     monkeypatch.setattr(module.ChannelStatusService, 'check_channel_status', probe)
     module.refresh_channel(tv.id, Event())
     assert [call.args[0].id for call in probe.call_args_list] == ['b' * 40, 'c' * 40, 'a' * 40]
+    assert all(call.kwargs['priority'] == module.ProbePriority.PLAYBACK for call in probe.call_args_list)
 
 
 @pytest.mark.asyncio
@@ -66,3 +67,22 @@ async def test_shutdown_drains_running_probe_and_skips_queued_work(monkeypatch):
     await service.stop()
     assert calls == [1]
     assert service.tasks == {}
+
+
+@pytest.mark.asyncio
+async def test_browser_stream_refresh_resolves_tv_channel(alembic_db_session, monkeypatch):
+    db_session = alembic_db_session
+    from app.models.models import AcestreamChannel, TVChannel
+    tv = TVChannel(name='Browser channel')
+    db_session.add(tv)
+    db_session.flush()
+    stream = AcestreamChannel(id='f' * 40, name='Browser stream', tv_channel_id=tv.id)
+    db_session.add(stream)
+    db_session.commit()
+    service = module.TunerProbeService()
+    called = []
+    monkeypatch.setattr(service, 'start', called.append)
+    await service.start_for_stream(stream.id)
+    assert called == [tv.id]
+    await service.start_for_stream('0' * 40)
+    assert called == [tv.id]

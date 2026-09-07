@@ -51,7 +51,7 @@ Do not run the unguarded stop experiment against an engine serving real viewers.
 
 The scheduler defaults to 60 minutes and persists `channel_status_interval` in the
 existing settings table (no schema migration). Settings saves reschedule the job
-immediately. All status callers share two probe slots and serialize the same source
+immediately. All status callers share one probe slot and serialize every source
 ID across threads/event loops.
 
 Stable TV-channel GETs enqueue background checks without waiting for completion
@@ -69,3 +69,39 @@ status and do not overwrite it with a guessed online/offline result.
 This is protection for playback known to this app, by source ID. It cannot identify
 players connected directly to an external engine, different identifiers for the
 same underlying source, or provide atomic coordination with external engine calls.
+
+### Engine recovery before probes
+
+Every channel status probe checks the configured direct engine's status API before
+starting a stream. It waits up to approximately 60 seconds for recovery, polling
+every two seconds with a three-second request timeout. If the engine stays down,
+the check is skipped and the stored channel status, error, and last-check timestamp
+remain unchanged. A failed broadcast probe rechecks engine health before recording
+offline, so a crash during the probe also preserves the previous status. Waiting
+does not start an intentionally stopped engine. Existing playback ownership guards,
+probe limits, unique PIDs, and session cleanup still apply.
+
+### Priority and scan freshness
+
+The process-wide queue is shared by HTTP handlers and scheduler/tuner worker
+threads. It always selects waiting TV-playback checks first, then individual
+manual/search checks, then scheduled and bulk scans. Requests within each class
+keep arrival order. New interactive requests overtake already queued background
+work. A running check finishes its bounded probe and session cleanup before any
+other probe starts; it is not interrupted mid-session.
+
+The two-second cooldown starts after cleanup and applies to every caller. Engine
+unavailability extends that pause to ten seconds. A skipped fresh/in-use result
+adds no cooldown. Bulk API concurrency remains accepted for compatibility but
+cannot enable parallel engine probes.
+
+Scheduled and bulk scans reread committed status just before probing, avoiding
+stale ORM inventory. They skip anything checked within 30 seconds or since their
+scan began, whichever window is longer. Playback refreshes reuse 30-second results;
+individual manual checks can force a new check, but reuse a result that completed
+while their request was queued. These skips preserve the check timestamp and use
+the latest saved status. Sustained interactive demand can delay background scans.
+
+Stable tuner GETs and browser playback of a stream assigned to a TV channel queue
+playback-priority refreshes of that channel's candidates. Browser playback itself
+starts immediately; owned active sources remain protected from status probes.

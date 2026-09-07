@@ -77,6 +77,7 @@ describe('Playlist page', () => {
 
   it('appends base_url_id when a named link format is selected', () => {
     renderPage();
+    expect(screen.getByRole('combobox', { name: 'Stream link format' })).toHaveTextContent('Default');
     expect(urlField().value).not.toContain('base_url_id');
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Stream link format' }));
     fireEvent.click(screen.getByRole('option', { name: 'Local HLS' }));

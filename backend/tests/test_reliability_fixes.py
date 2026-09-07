@@ -106,10 +106,17 @@ class TestChannelStatusTimeouts:
     """ChannelStatusService retries a timed-out engine probe before marking
     a channel offline, with a configurable timeout."""
 
+    @pytest.fixture(autouse=True)
+    def isolated_probe_queue(self, monkeypatch):
+        from app.services.probe_queue import ProbeQueue
+        monkeypatch.setattr('app.services.channel_status_service.probe_queue', ProbeQueue(cooldown=0, outage_backoff=0))
+
     def _make_service(self, db_session):
         from app.services.channel_status_service import ChannelStatusService
 
+        from unittest.mock import AsyncMock
         service = ChannelStatusService(db_session)
+        service._engine_ready = AsyncMock(return_value=True)
         service.settings_repo.set_setting(service.settings_repo.ACE_ENGINE_URL, "http://engine:6878")
         return service
 

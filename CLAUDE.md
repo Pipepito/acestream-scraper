@@ -192,9 +192,13 @@ and does not alter another viewer's session or a remote player's raw source URL.
 editable in Settings and applied to APScheduler immediately. Stable tuner channel
 GETs queue a coalesced, bounded background refresh through `tuner_probe_service`;
 newly online candidates join the same startup failover budget. HEAD and raw
-content-ID URLs do not launch refreshes. Status probes share a two-probe global
-limit and serialize by source ID. Native engine 3.2.11 was live-tested on
-2026-09-06: distinct PIDs do not isolate stop for the same source. Skip sources
+content-ID relay URLs do not launch refreshes. Browser playback of an assigned
+stream also queues a TV-channel refresh. Status probes share one global priority
+queue (TV playback, individual manual, then scheduled/bulk), with a two-second cooldown after cleanup and a ten-second
+backoff after engine unavailability. Waiting background work yields to new
+interactive requests; running probes finish cleanup. Scheduled scans reread
+committed status and skip channels checked since the scan began or within 30
+seconds. Native engine 3.2.11 was live-tested on 2026-09-06: distinct PIDs do not isolate stop for the same source. Skip sources
 owned by the relay/web player and recheck ownership before cleanup; do not remove
 this protection based on distinct session URLs. See `docs/ops/stream-check-pid.md`.
 

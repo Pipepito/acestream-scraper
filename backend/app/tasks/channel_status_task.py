@@ -6,6 +6,9 @@ from app.services.channel_status_service import ChannelStatusService
 from app.models.models import AcestreamChannel
 import logging
 import asyncio
+from datetime import datetime, timezone
+from app.services.probe_queue import ProbePriority
+from app.services.task_service import task_service
 
 
 def run_channel_status_task():
@@ -17,17 +20,27 @@ def run_channel_status_task():
         logger.info(f"Starting channel status update for {len(channels)} channels.")
 
         async def check_all():
+            started = datetime.now(timezone.utc)
+            skipped = 0
             checked = 0
             failed = 0
             for channel in channels:
+                if task_service.shutdown_event.is_set():
+                    break
                 try:
-                    await service.check_channel_status(channel)
-                    checked += 1
+                    result = await service.check_channel_status(
+                        channel, priority=ProbePriority.BACKGROUND, scan_started_at=started,
+                    )
+                    if result['status'] == 'skipped':
+                        skipped += 1
+                    else:
+                        checked += 1
                 except Exception as exc:
                     failed += 1
                     logger.exception("Channel status check failed channel_id=%s error=%s", channel.id, exc)
             return {
                 "checked": checked,
+                "skipped": skipped,
                 "failed": failed,
             }
 

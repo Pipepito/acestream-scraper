@@ -7,11 +7,18 @@ from app.models.models import AcestreamChannel
 from app.services.channel_status_service import ChannelStatusService
 
 
+@pytest.fixture(autouse=True)
+def isolated_queue(monkeypatch):
+    from app.services.probe_queue import ProbeQueue
+    monkeypatch.setattr('app.services.channel_status_service.probe_queue', ProbeQueue(cooldown=0, outage_backoff=0))
+
+
 @pytest.fixture
 def probe(db_session):
     service = ChannelStatusService(db_session)
     service._get_engine_url = lambda: 'http://engine.test:6878'
     service._get_timeout = lambda: 0.015
+    service._engine_ready = AsyncMock(return_value=True)
     service.channel_repository = MagicMock()
     return service
 
@@ -100,6 +107,7 @@ async def test_probe_player_ids_are_unique_between_service_instances(db_session)
     for _ in range(2):
         service = ChannelStatusService(db_session)
         service._get_engine_url = lambda: 'http://engine:6878'
+        service._engine_ready = AsyncMock(return_value=True)
         service._fetch_engine_response = AsyncMock(return_value=(200, {'error': 'not found'}, None))
         await service.check_channel_status(AcestreamChannel(id='a' * 40, name='Example'), persist=False)
         ids.append(service._fetch_engine_response.call_args.args[1]['pid'])
@@ -192,6 +200,63 @@ async def test_probe_limit_and_same_source_serialization(probe, monkeypatch):
     monkeypatch.setattr(probe, '_check_channel_status', check)
     channels = [AcestreamChannel(id=key * 40, name=key) for key in ('a', 'a', 'b', 'c')]
     await asyncio.gather(*(probe.check_channel_status(channel, persist=False) for channel in channels))
-    assert peak == 2
+    assert peak == 1
     assert len(calls) == 4
     assert running == set()
+
+
+@pytest.mark.asyncio
+async def test_engine_recovery_precedes_channel_start(probe, monkeypatch):
+    events = []
+    readiness = iter([False, False, True, True])
+    async def ready(url):
+        events.append('health')
+        return next(readiness)
+    async def fetch(*args):
+        events.append('stream')
+        return 200, {'error': 'no peers'}, None
+    probe._engine_ready = ready
+    probe._fetch_engine_response = fetch
+    monkeypatch.setattr('app.services.channel_status_service.asyncio.sleep', AsyncMock())
+    await probe.check_channel_status(AcestreamChannel(id='b' * 40, name='Example'))
+    assert events[:4] == ['health', 'health', 'health', 'stream']
+
+
+@pytest.mark.asyncio
+async def test_engine_down_preserves_last_known_status(probe):
+    probe._wait_for_engine = AsyncMock(return_value=False)
+    probe._fetch_engine_response = AsyncMock()
+    result = await probe.check_channel_status(AcestreamChannel(id='c' * 40, name='Example', is_online=True))
+    assert result['status'] == 'skipped'
+    assert result['is_online'] is True
+    probe._fetch_engine_response.assert_not_called()
+    probe.channel_repository.update_channel_status.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_engine_crash_during_probe_does_not_mark_channel_offline(probe):
+    probe._engine_ready = AsyncMock(side_effect=[True, False])
+    probe._fetch_engine_response = AsyncMock(side_effect=ConnectionError())
+    result = await probe.check_channel_status(AcestreamChannel(id='d' * 40, name='Example', is_online=True))
+    assert result['status'] == 'skipped'
+    probe.channel_repository.update_channel_status.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('payload,expected', [({'result': {'version': {}}}, True), ({'response': {}}, False), ({'result': None}, False), ({'error': 'starting'}, False)])
+async def test_readiness_requires_engine_status_response(probe, payload, expected):
+    probe._fetch_engine_response = AsyncMock(return_value=(200, payload, None))
+    assert await ChannelStatusService._engine_ready(probe, 'http://engine.test:6878') is expected
+    assert probe._fetch_engine_response.call_args.args[0].endswith('/server/api')
+
+
+def test_bulk_status_counts_exclude_skipped_probes(client, db_session, monkeypatch):
+    channel = AcestreamChannel(id='e' * 40, name='Example', is_active=True)
+    db_session.add(channel)
+    db_session.commit()
+    monkeypatch.setattr(ChannelStatusService, 'check_multiple_channels', AsyncMock(return_value=[ChannelStatusService._skipped_result(channel)]))
+    result = client.post('/api/v1/channels/check_status_all', json={'channel_ids': [channel.id]})
+    assert result.status_code == 200
+    assert result.json()['offline_count'] == 0
+    assert result.json()['total_checked'] == 0
+    assert '1 skipped' in result.json()['message']

@@ -28,6 +28,7 @@ import {
 } from '@mui/material';
 import type { SelectChangeEvent } from '@mui/material';
 import { ContentCopy, Download, ExpandLess, ExpandMore, QrCode } from '@mui/icons-material';
+import { Link as RouterLink } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { useChannelGroups, usePlaylistChannelSummary } from '../hooks/usePlaylists';
 import { useBaseUrls } from '../hooks/useBaseUrls';
@@ -46,7 +47,7 @@ const Playlist: React.FC = () => {
   const [copied, setCopied] = useState<'ok' | 'failed' | null>(null);
 
   const { data: channelGroups = [], isLoading: loadingGroups } = useChannelGroups();
-  const { data: namedBaseUrls = [], isLoading: loadingBaseUrls } = useBaseUrls();
+  const { data: namedBaseUrls = [], isLoading: loadingBaseUrls, isError: baseUrlsError } = useBaseUrls();
   const { data: publicUrl } = usePublicUrl();
   const { data: summary } = usePlaylistChannelSummary();
 
@@ -127,15 +128,17 @@ const Playlist: React.FC = () => {
                 label="Favorite TV channels only"
               />
               <FormControl fullWidth size="small">
-                <InputLabel id="stream-base-url-label">Stream link format</InputLabel>
-                <Select
+                <InputLabel id="stream-base-url-label" shrink>Stream link format</InputLabel>
+                <Select<number | ''>
                   labelId="stream-base-url-label"
+                  displayEmpty
+                  renderValue={(value) => value === '' ? 'Default' : namedBaseUrls.find(entry => entry.id === value)?.name ?? 'Default'}
                   value={selectedBaseUrlId}
                   onChange={(event) => {
                     const value = event.target.value;
                     setSelectedBaseUrlId(value === '' ? '' : Number(value));
                   }}
-                  input={<OutlinedInput label="Stream link format" />}
+                  input={<OutlinedInput label="Stream link format" notched />}
                   disabled={loadingBaseUrls}
                 >
                   <MenuItem value="">Default</MenuItem>
@@ -145,8 +148,10 @@ const Playlist: React.FC = () => {
                     </MenuItem>
                   ))}
                 </Select>
-                <FormHelperText>Formats are managed in Settings. Default is the one marked there.</FormHelperText>
+                <FormHelperText>Default uses your saved format, or acestream:// when none is saved.</FormHelperText>
               </FormControl>
+              {baseUrlsError ? <Alert severity="warning">Could not load stream link formats. Try reloading the page.</Alert> : null}
+              <Button component={RouterLink} to="/settings" size="small">{namedBaseUrls.length ? 'Manage link formats and public address' : 'Set up suggested link formats and public address'}</Button>
               <Box>
                 <Button size="small" onClick={() => setShowGroups((value) => !value)} aria-expanded={showGroups} endIcon={showGroups ? <ExpandLess /> : <ExpandMore />}>
                   Group filters

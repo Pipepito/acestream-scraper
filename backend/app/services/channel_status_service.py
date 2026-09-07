@@ -6,21 +6,18 @@ import logging
 import aiohttp
 import math
 import re
-from threading import Lock
 from urllib.parse import urlparse
 from uuid import uuid4
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 
 from app.models.models import AcestreamChannel
 from app.repositories.channel_repository import ChannelRepository
 from app.services.stream_bitrate_service import probe_media
+from app.services.probe_queue import ProbePriority, probe_queue
 
 logger = logging.getLogger(__name__)
-_probe_lock = Lock()
-_active_probes: set[str] = set()
-MAX_PROBES = 2
 
 
 
@@ -34,6 +31,7 @@ class ChannelStatusService:
         from app.repositories.settings_repository import SettingsRepository
         self.settings_repo = SettingsRepository(db)
         self.timeout = 10
+        self.engine_unavailable = False
 
     def _get_timeout(self) -> float:
         """Engine status timeout in seconds, configurable via the
@@ -147,28 +145,71 @@ class ChannelStatusService:
             'last_checked': channel.last_checked or datetime.now(timezone.utc), 'error': None,
         }
 
+    def _recent_result(self, channel_id: str, since: datetime) -> Optional[Dict[str, Any]]:
+        # A scan's ORM inventory can be minutes old. Read committed status in a
+        # fresh session, off the event loop, so other callers' results are seen.
+        with Session(bind=self.db.get_bind()) as db:
+            snapshot = ChannelRepository(db).get_status_snapshot(channel_id)
+        if not snapshot or not snapshot['last_checked'] or snapshot['last_checked'] < since:
+            return None
+        return {
+            'channel_id': channel_id, 'is_online': snapshot['is_online'] is True,
+            'status': 'skipped', 'message': 'Recently checked; using the latest channel status',
+            'last_checked': snapshot['last_checked'], 'error': None,
+        }
+
     async def check_channel_status(
-        self, channel: AcestreamChannel, *, identifier: str = 'id', persist: bool = True
+        self, channel: AcestreamChannel, *, identifier: str = 'id', persist: bool = True,
+        priority: ProbePriority = ProbePriority.MANUAL, scan_started_at: Optional[datetime] = None,
     ) -> Dict[str, Any]:
-        # PID does not isolate stop on native 3.2.11. Avoid probing app-owned
-        # playback, cap all scheduled/manual/tuner probes, and serialize each ID
-        # across scheduler threads and the HTTP event loop.
-        key = channel.id.lower()
-        while True:
-            if self._in_use(key):
-                return self._skipped_result(channel)
-            with _probe_lock:
-                acquired = key not in _active_probes and len(_active_probes) < MAX_PROBES
-                if acquired:
-                    _active_probes.add(key)
-            if acquired:
-                break
-            await asyncio.sleep(0.05)
+        submitted = datetime.now(timezone.utc)
+        since = submitted if priority == ProbePriority.MANUAL else submitted - timedelta(seconds=30)
+        if priority == ProbePriority.BACKGROUND and scan_started_at is not None:
+            since = min(since, scan_started_at)
+        if self._in_use(channel.id):
+            return self._skipped_result(channel)
+        ticket = probe_queue.enqueue(priority)
+        probed = False
         try:
+            await probe_queue.acquire(ticket)
+            if self._in_use(channel.id):
+                return self._skipped_result(channel)
+            if persist and identifier == 'id':
+                recent = await asyncio.to_thread(self._recent_result, channel.id, since)
+                if recent:
+                    return recent
+            self.engine_unavailable = False
+            probed = True
             return await self._check_channel_status(channel, identifier=identifier, persist=persist)
         finally:
-            with _probe_lock:
-                _active_probes.discard(key)
+            probe_queue.cancel(ticket)
+            probe_queue.release(ticket, probed=probed, engine_unavailable=self.engine_unavailable)
+
+    async def _engine_ready(self, engine_url: str) -> bool:
+        try:
+            status, data, error = await self._fetch_engine_response(
+                f"{engine_url}/server/api",
+                {'api_version': '3', 'method': 'get_status'}, 3.0,
+            )
+            return status == 200 and not error and isinstance(data, dict) and isinstance(data.get('result'), dict) and not data.get('error')
+        except (aiohttp.ClientError, asyncio.TimeoutError):
+            return False
+
+    async def _wait_for_engine(self, engine_url: str) -> bool:
+        deadline = asyncio.get_running_loop().time() + 60.0
+        while True:
+            if await self._engine_ready(engine_url):
+                return True
+            remaining = deadline - asyncio.get_running_loop().time()
+            if remaining <= 0:
+                return False
+            await asyncio.sleep(min(2.0, remaining))
+
+    def _engine_unavailable_result(self, channel: AcestreamChannel) -> Dict[str, Any]:
+        self.engine_unavailable = True
+        result = self._skipped_result(channel)
+        result['message'] = 'Engine unavailable; keeping the previous channel status until a later check'
+        return result
 
     async def _check_channel_status(
         self, channel: AcestreamChannel, *, identifier: str = 'id', persist: bool = True
@@ -176,8 +217,13 @@ class ChannelStatusService:
         """Check current data transfer using a bounded probe with a unique PID."""
         online = False
         media = None
+        engine_url = None
         try:
             engine_url = self._get_engine_url()
+            if not await self._wait_for_engine(engine_url):
+                return self._engine_unavailable_result(channel)
+            if self._in_use(channel.id):
+                return self._skipped_result(channel)
             status_url = f"{engine_url}/ace/getstream"
             params = {identifier: channel.id, 'format': 'json', 'pid': uuid4().hex}
             timeout = self._get_timeout()
@@ -185,6 +231,10 @@ class ChannelStatusService:
                 http_status, data, parse_error = await self._fetch_engine_response(status_url, params, timeout)
             except asyncio.TimeoutError:
                 logger.warning('Channel probe start timed out; retrying once channel_id=%s', channel.id)
+                if not await self._wait_for_engine(engine_url):
+                    return self._engine_unavailable_result(channel)
+                if self._in_use(channel.id):
+                    return self._skipped_result(channel)
                 http_status, data, parse_error = await self._fetch_engine_response(status_url, params, timeout * 2)
             if http_status != 200:
                 message = f'HTTP {http_status}'
@@ -199,6 +249,8 @@ class ChannelStatusService:
             logger.warning('Channel broadcast probe failed channel_id=%s', channel.id)
         if self._in_use(channel.id):
             return self._skipped_result(channel)
+        if not online and (not engine_url or not await self._engine_ready(engine_url)):
+            return self._engine_unavailable_result(channel)
         check_time = datetime.now(timezone.utc)
         error = None if online else message
         if persist:
@@ -214,69 +266,29 @@ class ChannelStatusService:
         }
 
     async def check_multiple_channels(
-        self,
-        channels: List[AcestreamChannel],
-        concurrency: int = 3
+        self, channels: List[AcestreamChannel], concurrency: int = 3,
     ) -> List[Dict[str, Any]]:
+        """Bulk work queues one source at a time behind interactive requests.
+
+        ``concurrency`` remains accepted for API compatibility; all callers use
+        the single engine slot and its global cooldown.
         """
-        Check multiple channels concurrently with rate limiting
-
-        Args:
-            channels: List of channels to check
-            concurrency: Number of concurrent checks
-
-        Returns:
-            List of status results
-        """
-        semaphore = asyncio.Semaphore(concurrency)
-
-        async def check_with_semaphore(channel):
-            async with semaphore:
-                try:
-                    result = await self.check_channel_status(channel)
-                    # Add delay between requests to avoid overwhelming the engine
-                    await asyncio.sleep(1)
-                    return result
-                except Exception as e:
-                    logger.error("Error checking channel channel_id=%s error=%s", channel.id, e)
-                    return {
-                        'channel_id': channel.id,
-                        'is_online': False,
-                        'status': 'error',
-                        'message': str(e),
-                        'last_checked': datetime.now(timezone.utc),
-                        'error': str(e)
-                    }
-
-        # Process channels in batches to manage memory and connections
-        batch_size = 10
-        all_results = []
-
-        for i in range(0, len(channels), batch_size):
-            batch = channels[i:i + batch_size]
-            tasks = [asyncio.create_task(check_with_semaphore(channel)) for channel in batch]
-
+        started = datetime.now(timezone.utc)
+        results = []
+        for channel in channels:
             try:
-                batch_results = await asyncio.gather(*tasks, return_exceptions=True)
-                # Filter out exceptions and add valid results
-                for result in batch_results:
-                    if not isinstance(result, Exception):
-                        all_results.append(result)
-                    else:
-                        logger.error("Task exception result=%s", result)
-            except Exception as e:
-                logger.error("Error processing status batch error=%s", e)
-            finally:
-                # Cancel any remaining tasks
-                for task in tasks:
-                    if not task.done():
-                        task.cancel()
-
-            # Add delay between batches
-            if i + batch_size < len(channels):
-                await asyncio.sleep(2)
-
-        return all_results
+                results.append(await self.check_channel_status(
+                    channel, priority=ProbePriority.BACKGROUND, scan_started_at=started,
+                ))
+            except Exception:
+                logger.warning('Channel status check failed channel_id=%s', channel.id)
+                results.append({
+                    'channel_id': channel.id, 'is_online': channel.is_online is True,
+                    'status': 'error', 'message': 'Could not check channel status',
+                    'last_checked': channel.last_checked or datetime.now(timezone.utc),
+                    'error': 'Could not check channel status',
+                })
+        return results
 
     def get_channel_status_summary(self) -> Dict[str, Any]:
         """

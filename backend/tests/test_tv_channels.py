@@ -778,7 +778,7 @@ class TestTVChannelCreateFromEPGAnalysis:
         assert associated.status_code == status.HTTP_200_OK
         assert [row["id"] for row in associated.json()] == [seeded_match_data["acestream_channels"][0].id]
 
-    def test_create_from_epg_analysis_skips_existing_epg_id(self, client, seeded_match_data, db_session):
+    def test_create_from_epg_analysis_reuses_existing_epg_id(self, client, seeded_match_data, db_session):
         existing = TVChannel(name="Existing", epg_id=seeded_match_data["epg_channels"]["xml_exact"].channel_xml_id)
         db_session.add(existing)
         db_session.commit()
@@ -793,6 +793,10 @@ class TestTVChannelCreateFromEPGAnalysis:
         assert data["created_count"] == 0
         assert data["skipped_count"] == 1
         assert data["row_outcomes"][0]["status"] == "skipped_existing"
+        assert data["associated_count"] == 1
+        db_session.refresh(existing)
+        assert existing.epg_source_id == seeded_match_data["epg_channels"]["xml_exact"].epg_source_id
+        assert client.get(f"/api/v1/tv-channels/{existing.id}/acestreams").json()[0]["id"] == seeded_match_data["acestream_channels"][0].id
 
     def test_create_from_epg_analysis_rejects_duplicate_existing_epg_id_conflicts(self, client, seeded_match_data, db_session):
         epg_id = seeded_match_data["epg_channels"]["xml_exact"].channel_xml_id

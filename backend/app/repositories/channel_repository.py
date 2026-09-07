@@ -379,6 +379,17 @@ class ChannelRepository:
             .all()
         )
 
+    def get_tv_channel_id_for_stream(self, channel_id: str) -> Optional[int]:
+        return self.db.query(AcestreamChannel.tv_channel_id).filter(
+            AcestreamChannel.id == channel_id,
+        ).scalar()
+
+    def get_status_snapshot(self, channel_id: str) -> Optional[dict]:
+        row = self.db.query(AcestreamChannel.is_online, AcestreamChannel.last_checked).filter(
+            AcestreamChannel.id == channel_id,
+        ).first()
+        return dict(row._mapping) if row else None
+
     def update_channel_status(self, channel_id: str, is_online: bool, error: str = None, *, bitrate_bps: Optional[int] = None, audio_tracks: Optional[list] = None) -> AcestreamChannel:
         """Update the online status of a channel"""
         channel = self.get_channel_by_id(channel_id)

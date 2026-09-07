@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.repositories.channel_repository import ChannelRepository
 from app.models.models import AcestreamChannel, EPGChannel, TVChannel
 from app.services.epg_match_service import EPGMatchService
+from app.services.epg_link_service import EPGLinkService
 
 class TVChannelService:
     def get_tv_channels_with_total(self, skip: int = 0, limit: int = 100,
@@ -69,6 +70,9 @@ class TVChannelService:
         return results
 
     def create_tv_channels_from_epg(self, epg_channel_ids: List[int]) -> Dict[str, Any]:
+        links = EPGLinkService(self.repository.db)
+        links.repair()
+        self.repository.db.commit()
         created_channels: List[TVChannel] = []
         skipped_count = 0
         associated_count = 0
@@ -80,7 +84,7 @@ class TVChannelService:
         )
 
         for epg_channel in epg_channels:
-            existing_channel = self.get_tv_channel_by_epg_id(epg_channel.channel_xml_id)
+            existing_channel = links.existing(epg_channel)
             if existing_channel:
                 skipped_count += 1
                 continue
@@ -119,6 +123,8 @@ class TVChannelService:
         if not accepted_rows:
             raise ValueError("No accepted matches found for selected EPG rows.")
 
+        links = EPGLinkService(self.repository.db)
+        links.repair()
         epg_channels = {
             channel.id: channel
             for channel in self.repository.get_epg_channels_by_ids([row["epg_channel_id"] for row in selected_rows])
@@ -145,7 +151,7 @@ class TVChannelService:
                 )
                 continue
 
-            existing_channels = self.repository.get_tv_channels_by_epg_id(epg_channel.channel_xml_id)
+            existing_channels = links.existing(epg_channel)
             if len(existing_channels) > 1:
                 skipped_count += 1
                 row_outcomes.append(
@@ -159,14 +165,28 @@ class TVChannelService:
                 continue
 
             if len(existing_channels) == 1:
+                existing = existing_channels[0]
+                try:
+                    with self.repository.db.begin_nested():
+                        count = self.repository.assign_acestreams_to_tv_channel(
+                            [candidate["acestream_channel_id"] for candidate in row["candidates"]], existing.id)
+                except Exception:
+                    failure_count += 1
+                    row_outcomes.append({
+                        "epg_channel_id": epg_channel.id, "status": "failed",
+                        "reason": "Could not update stream assignments for the existing TV channel.",
+                        "associated_count": 0,
+                    })
+                    continue
+                associated_count += count
                 skipped_count += 1
                 row_outcomes.append(
                     {
                         "epg_channel_id": epg_channel.id,
                         "status": "skipped_existing",
-                        "reason": "A TV channel already exists for this epg_id.",
+                        "reason": "Reused the existing TV channel and updated its stream matches.",
                         "tv_channel_id": existing_channels[0].id,
-                        "associated_count": 0,
+                        "associated_count": count,
                     }
                 )
                 continue

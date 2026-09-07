@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import PublicAddressSection from '../components/integrations/PublicAddressSection';
+import StreamFormatSuggestions from '../components/StreamFormatSuggestions';
 import PlaybackRoutingFields from '../components/player/PlaybackRoutingFields';
 import {
   Alert,
@@ -201,6 +203,11 @@ const StreamLinkFormatsSection: React.FC<StreamLinkFormatsSectionProps> = ({ not
       }
     >
       <Stack spacing={1.5}>
+        <StreamFormatSuggestions onSelect={(name, pattern) => {
+          setNewName(name);
+          setNewPattern(pattern);
+          setAddOpen(true);
+        }} />
         {baseUrlsQuery.isLoading ? (
           <Box display="flex" alignItems="center">
             <CircularProgress size={20} sx={{ mr: 2 }} />
@@ -550,6 +557,7 @@ const Settings: React.FC = () => {
         </Stack>
       </ContentSection>
 
+      <PublicAddressSection notify={notify} />
       <StreamLinkFormatsSection notify={notify} />
 
       <ContentSection title="Automation" description="Background jobs run on these schedules. Changes apply right away.">

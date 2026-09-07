@@ -10,6 +10,7 @@ from threading import Event
 from app.config.database import SessionLocal
 from app.repositories.channel_repository import ChannelRepository
 from app.services.channel_status_service import ChannelStatusService
+from app.services.probe_queue import ProbePriority
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ def refresh_channel(tv_channel_id: int, stopping: Event) -> None:
                     checked = checked.replace(tzinfo=timezone.utc) if checked.tzinfo is None else checked
                     if (datetime.now(timezone.utc) - checked).total_seconds() < 30:
                         continue
-                await service.check_channel_status(channel)
+                await service.check_channel_status(channel, priority=ProbePriority.PLAYBACK)
         asyncio.run(check())
 
 
@@ -45,6 +46,17 @@ class TunerProbeService:
         self.tasks: dict[int, asyncio.Task] = {}
         self.stopping = Event()
         self.slots: asyncio.Semaphore | None = None
+
+    async def start_for_stream(self, content_id: str) -> None:
+        def tv_channel_id() -> int | None:
+            with SessionLocal() as db:
+                return ChannelRepository(db).get_tv_channel_id_for_stream(content_id)
+        try:
+            channel_id = await asyncio.to_thread(tv_channel_id)
+            if channel_id is not None:
+                self.start(channel_id)
+        except Exception:
+            logger.warning('Could not queue TV-channel refresh for browser playback')
 
     def start(self, tv_channel_id: int) -> asyncio.Task | None:
         existing = self.tasks.get(tv_channel_id)

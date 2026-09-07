@@ -160,15 +160,17 @@ async def check_all_channels_status(
             ) from exc
         summary = status_service.get_channel_status_summary()
 
-        # Count online and offline channels
-        online_count = sum(1 for r in results if r["is_online"])
-        offline_count = sum(1 for r in results if not r["is_online"])
+        # Skipped probes preserve old state and are not fresh measurements.
+        checked = [r for r in results if r["status"] != "skipped"]
+        online_count = sum(1 for r in checked if r["is_online"])
+        offline_count = sum(1 for r in checked if not r["is_online"])
+        skipped_count = len(results) - len(checked)
 
         return {
-            "message": f"Checked {len(results)} channels: {online_count} online, {offline_count} offline.",
+            "message": f"Checked {len(checked)} channels: {online_count} online, {offline_count} offline, {skipped_count} skipped.",
             "background": False,
             "total_channels": len(channels),
-            "total_checked": len(results),
+            "total_checked": len(checked),
             "online_count": online_count,
             "offline_count": offline_count,
             "results": results,

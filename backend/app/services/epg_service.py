@@ -84,6 +84,9 @@ class EPGService:
             self.db.delete(ch)
 
         self.db.delete(db_source)
+        self.db.flush()
+        from app.services.epg_link_service import EPGLinkService
+        EPGLinkService(self.db).repair()
         self.db.commit()
         return True
 
@@ -229,6 +232,8 @@ class EPGService:
                     db_program.category = category
                     db_program.image_url = image_url
 
+            from app.services.epg_link_service import EPGLinkService
+            EPGLinkService(self.db).repair()
             self.db.commit()
             return channels_found, programs_found
 
@@ -769,12 +774,15 @@ class EPGService:
 
     def auto_map_channels(self) -> Dict[str, Any]:
         """Auto-map TV channels to EPG channels based on string patterns (supports regex and case sensitivity)"""
+        from app.services.epg_link_service import EPGLinkService
+        links = EPGLinkService(self.db)
+        repaired = links.repair()
         tv_channels = self.db.query(TVChannel).all()
         epg_channels = self.db.query(EPGChannel).all()
         mappings = self.db.query(EPGStringMapping).all()
         auto_mapped = []
         for tv in tv_channels:
-            if tv.epg_id and tv.epg_source_id:
+            if links.available(tv):
                 continue
             for mapping in mappings:
                 pattern = mapping.search_pattern
@@ -819,6 +827,6 @@ class EPGService:
                     break
         self.db.commit()
         return {
-            'auto_mapped_count': len(auto_mapped),
+            'auto_mapped_count': len(auto_mapped) + repaired,
             'auto_mapped': auto_mapped
         }

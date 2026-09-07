@@ -121,4 +121,6 @@ class TVMatchingService:
             raise ValueError('A stream can only be assigned to one TV channel.')
         # Recompute against current metadata, including all competing TV channels.
         accepted = {(item.acestream_channel_id, item.tv_channel_id) for item in self.preview(assumed_country=request.assumed_country).candidates}
+        from app.services.epg_link_service import EPGLinkService
+        EPGLinkService(self.repository.db).repair()
         return self.repository.apply_tv_matches(selected, accepted)

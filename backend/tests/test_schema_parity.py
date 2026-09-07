@@ -102,6 +102,7 @@ def test_acestream_channels_schema_includes_runtime_last_seen(tmp_path):
             'last_seen',
             'is_active',
             'is_online',
+            'network_status',
             'last_checked',
             'check_error',
             'bitrate_bps',

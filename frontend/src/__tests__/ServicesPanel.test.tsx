@@ -124,15 +124,15 @@ describe('ServicesPanel', () => {
     expect(screen.getByText('Restarting…')).toBeInTheDocument();
   });
 
-  it.each([false, true])('requests %s engine state and reports pending action', async (stopped) => {
+  it.each([['acestream', false], ['acestream', true], ['acestream-check', false], ['acestream-check', true]] as const)('requests %s stopped=%s state and reports pending action', async (name, stopped) => {
     mockUseSystemServices.mockReturnValue({
-      data: { supervised: true, services: [service({ stopped_by_user: stopped, state: stopped ? 'stopped' : 'running', pid: stopped ? null : 42 })] },
+      data: { supervised: true, services: [service({ name, stopped_by_user: stopped, state: stopped ? 'stopped' : 'running', pid: stopped ? null : 42 })] },
       isLoading: false, isFetching: false, error: null, refetch: jest.fn(),
     });
     mockControlAsync.mockResolvedValue({ success: true, message: 'Action requested.' });
     renderPanel();
     fireEvent.click(screen.getByRole('button', { name: `${stopped ? 'Start' : 'Stop'} AceStream engine` }));
-    await waitFor(() => expect(mockControlAsync).toHaveBeenCalledWith(stopped ? 'start' : 'stop'));
+    await waitFor(() => expect(mockControlAsync).toHaveBeenCalledWith({ action: stopped ? 'start' : 'stop', name }));
     expect(await screen.findByText(stopped ? 'Starting…' : 'Stopping…')).toBeInTheDocument();
   });
 

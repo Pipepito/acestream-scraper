@@ -116,3 +116,16 @@ normal API-token dependency, and available while startup is failing. Export only
 fixed, bounded regular-file tails; reject symlinks/devices and mask credentials.
 Never add a Docker socket, arbitrary file path input, environment dump or DB export.
 See `docs/ops/runtime-diagnostics.md` for capture and retention behavior.
+
+
+## Dedicated checking engine and playback ownership
+
+`ENABLE_ACESTREAM_CHECK_ENGINE=true` opts bundled-engine images into a second
+persistent supervised engine (state `/var/lib/acestream-check`, HTTP 6880,
+legacy API 62063, P2P 8622). Alternatively, `ACE_CHECK_ENGINE_URL` selects an
+external checker. Never fall back to playback when a configured checker fails;
+preserve previous channel results. Keep checker supervision, controls and logs
+independent; checker outage must not fail whole-container health. Direct playback
+uses process-wide source ownership leases across clients; serialize starts with
+final stops, release exactly once, and preserve session ownership across settings
+changes. Acexy owns its sessions. See `docs/ops/stream-check-pid.md`.

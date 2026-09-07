@@ -89,15 +89,18 @@ shutdown_children() {
 # it again. Only this process signals the child: API requests use marker files,
 # avoiding stale child-pid races during automatic recovery.
 supervise_engine() {
-    capture_output acestream
+    local slug="${2:-acestream}"
+    local label="AceStream"
+    [ "$slug" != acestream-check ] || label="AceStream checker"
+    capture_output "$slug"
     local command="$1" inner_pid="" sleeper_pid="" next_launch=0
     local restart_delay="${SUPERVISED_RESTART_DELAY_SECONDS:-5}"
     local state_dir="$SUPERVISOR_RUN_DIR" action status
     # Always leave a delay on repeated startup failures; never spin or give up.
     case "$restart_delay" in ''|*[!0-9]*) restart_delay=5 ;; esac
     [ "$restart_delay" -ge 1 ] || restart_delay=1
-    rm -f "$state_dir/acestream.pid" "$state_dir/acestream.started" \
-        "$state_dir/acestream.command" "$state_dir/acestream.stopped"
+    rm -f "$state_dir/$slug.pid" "$state_dir/$slug.started" \
+        "$state_dir/$slug.command" "$state_dir/$slug.stopped"
 
     engine_terminate() {
         if [ -n "$inner_pid" ]; then
@@ -113,27 +116,27 @@ supervise_engine() {
             wait "$inner_pid" 2>/dev/null || true
             inner_pid=""
         fi
-        rm -f "$state_dir/acestream.pid" "$state_dir/acestream.started"
+        rm -f "$state_dir/$slug.pid" "$state_dir/$slug.started"
     }
-    trap 'trap "" INT TERM; [ -z "$sleeper_pid" ] || kill "$sleeper_pid" 2>/dev/null || true; engine_terminate; rm -f "$state_dir/acestream.supervisor"; exit 0' INT TERM
+    trap 'trap "" INT TERM; [ -z "$sleeper_pid" ] || kill "$sleeper_pid" 2>/dev/null || true; engine_terminate; rm -f "$state_dir/$slug.supervisor"; exit 0' INT TERM
 
     while :; do
         action=""
-        if [ -f "$state_dir/acestream.command" ]; then
+        if [ -f "$state_dir/$slug.command" ]; then
             # Rename before reading: a concurrent request remains queued for
             # the next iteration instead of being deleted with this request.
-            mv "$state_dir/acestream.command" "$state_dir/acestream.processing"
-            action=$(cat "$state_dir/acestream.processing")
-            rm -f "$state_dir/acestream.processing"
+            mv "$state_dir/$slug.command" "$state_dir/$slug.processing"
+            action=$(cat "$state_dir/$slug.processing")
+            rm -f "$state_dir/$slug.processing"
         fi
         case "$action" in
             stop)
-                touch "$state_dir/acestream.stopped"
+                touch "$state_dir/$slug.stopped"
                 engine_terminate
-                log "AceStream stopped by operator; waiting for Start"
+                log "$label stopped by operator; waiting for Start"
                 ;;
             start|restart)
-                rm -f "$state_dir/acestream.stopped"
+                rm -f "$state_dir/$slug.stopped"
                 if [ "$action" = restart ]; then engine_terminate; fi
                 next_launch=0
                 ;;
@@ -142,18 +145,18 @@ supervise_engine() {
             status=0
             wait "$inner_pid" || status=$?
             engine_terminate
-            log "AceStream exited with status $status; restarting in ${restart_delay}s"
+            log "$label exited with status $status; restarting in ${restart_delay}s"
             next_launch=$(($(date +%s) + restart_delay))
         fi
-        if [ -z "$inner_pid" ] && [ ! -f "$state_dir/acestream.stopped" ] && [ "$(date +%s)" -ge "$next_launch" ]; then
+        if [ -z "$inner_pid" ] && [ ! -f "$state_dir/$slug.stopped" ] && [ "$(date +%s)" -ge "$next_launch" ]; then
             if command -v setsid >/dev/null 2>&1; then
                 setsid bash -lc "$command" &
             else
                 bash -lc "$command" &
             fi
             inner_pid=$!
-            printf '%s\n' "$inner_pid" > "$state_dir/acestream.pid"
-            date +%s > "$state_dir/acestream.started"
+            printf '%s\n' "$inner_pid" > "$state_dir/$slug.pid"
+            date +%s > "$state_dir/$slug.started"
         fi
         sleep 1 &
         sleeper_pid=$!
@@ -440,6 +443,19 @@ if feature_enabled "$ENABLE_ACEXY" && ! feature_enabled "$ENABLE_ACESTREAM_ENGIN
 fi
 
 export ACE_ENGINE_URL="${ACE_ENGINE_URL:-http://$ACESTREAM_HTTP_HOST:$ACESTREAM_HTTP_PORT}"
+# Optional checker process: never derive its command from a custom playback
+# command, which may hard-code shared state, ports or background execution.
+ENABLE_ACESTREAM_CHECK_ENGINE=$(normalize_bool "${ENABLE_ACESTREAM_CHECK_ENGINE:-false}")
+export ENABLE_ACESTREAM_CHECK_ENGINE
+export ACE_CHECK_ENGINE_URL="${ACE_CHECK_ENGINE_URL:-}"
+if feature_enabled "$ENABLE_ACESTREAM_CHECK_ENGINE"; then
+    image_has_feature "$IMAGE_HAS_ACESTREAM" || fail "Checking engine requires an image with AceStream"
+    feature_enabled "$ENABLE_ACESTREAM_ENGINE" || fail "Checking engine requires ENABLE_ACESTREAM_ENGINE=true"
+    [ -z "$ACE_CHECK_ENGINE_URL" ] || fail "Choose bundled checking engine or ACE_CHECK_ENGINE_URL, not both"
+    [ "$ACESTREAM_HTTP_PORT" != 6880 ] || fail "Playback HTTP port conflicts with checking engine port 6880"
+    export ACE_CHECK_ENGINE_URL=http://127.0.0.1:6880
+fi
+
 
 log "ZeroNet endpoint for zero:// sources: $ZERONET_URL (embedded node: $ENABLE_ZERONET)"
 log "IPFS gateway for ipfs:// sources: $IPFS_GATEWAY_URL (embedded daemon: $ENABLE_IPFS)"
@@ -555,6 +571,13 @@ if feature_enabled "$ENABLE_ACESTREAM_ENGINE" && [ -n "${ACESTREAM_START_COMMAND
     printf '%s\n' "$!" > "$SUPERVISOR_RUN_DIR/acestream.supervisor"
     child_pids+=("$!")
     child_names+=("AceStream")
+fi
+
+if feature_enabled "$ENABLE_ACESTREAM_CHECK_ENGINE"; then
+    supervise_engine "exec /opt/acestream/start-check-engine" acestream-check &
+    printf '%s\n' "$!" > "$SUPERVISOR_RUN_DIR/acestream-check.supervisor"
+    child_pids+=("$!")
+    child_names+=("AceStream checker")
 fi
 
 if feature_enabled "$ENABLE_ACEXY" && [ -n "${ACEXY_START_COMMAND:-}" ]; then

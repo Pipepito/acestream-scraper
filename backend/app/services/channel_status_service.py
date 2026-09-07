@@ -64,11 +64,12 @@ class ChannelStatusService:
                     return response.status, None, f"Invalid response format: {str(e)}"
 
     def _get_engine_url(self) -> str:
-        url = self.settings_repo.get_setting(self.settings_repo.ACE_ENGINE_URL, None)
+        from app.config.settings import settings
+        url = settings.ACE_CHECK_ENGINE_URL.strip() or self.settings_repo.get_setting(self.settings_repo.ACE_ENGINE_URL, None)
         if not url:
             raise RuntimeError("Acestream Engine URL is not set in the database. Please configure it via the settings API.")
         url = url.strip()
-        if not url.startswith('http'):
+        if not url.startswith(('http://', 'https://')):
             url = f"http://{url}"
         return url.rstrip('/')
 

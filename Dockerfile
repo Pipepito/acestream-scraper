@@ -379,7 +379,8 @@ COPY --from=acestream-installer /opt/acestream/ /opt/acestream/
 # bionic userland; its ELF interpreter path is hard-coded to /system/bin/linker*.
 # The directory is empty for the native x86_64 engine.
 COPY --from=acestream-installer /opt/acestream-system/ /system/
-RUN mkdir -p /var/lib/acestream /data
+COPY --chmod=755 docker/scripts/start-check-engine /opt/acestream/start-check-engine
+RUN mkdir -p /var/lib/acestream /var/lib/acestream-check /data
 
 # The same start command works for every platform: on x86_64 start-engine is
 # upstream's wrapper; on ARM it is docker/scripts/acestream-android/start-engine

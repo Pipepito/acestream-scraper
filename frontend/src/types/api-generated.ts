@@ -839,6 +839,14 @@ export interface paths {
      */
     get: operations["list_services_api_v1_system_services_get"];
   };
+  "/api/v1/system/services/acestream-check/start": {
+    /** Start the supervised checking engine */
+    post: operations["start_check_engine_api_v1_system_services_acestream_check_start_post"];
+  };
+  "/api/v1/system/services/acestream-check/stop": {
+    /** Stop channel checks until Start or container restart */
+    post: operations["stop_check_engine_api_v1_system_services_acestream_check_stop_post"];
+  };
   "/api/v1/system/services/acestream/start": {
     /** Start the supervised AceStream engine */
     post: operations["start_engine_api_v1_system_services_acestream_start_post"];
@@ -2714,7 +2722,7 @@ export interface components {
       message: string;
       /**
        * Name
-       * @description Stable identifier: acestream, acexy, ipfs, zeronet, warp
+       * @description Stable identifier: acestream, acestream-check, acexy, ipfs, zeronet, warp
        */
       name: string;
       /**
@@ -6644,6 +6652,28 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["ServicesStatusResponse"];
+        };
+      };
+    };
+  };
+  /** Start the supervised checking engine */
+  start_check_engine_api_v1_system_services_acestream_check_start_post: {
+    responses: {
+      /** @description Successful Response */
+      202: {
+        content: {
+          "application/json": components["schemas"]["ServiceRestartResponse"];
+        };
+      };
+    };
+  };
+  /** Stop channel checks until Start or container restart */
+  stop_check_engine_api_v1_system_services_acestream_check_stop_post: {
+    responses: {
+      /** @description Successful Response */
+      202: {
+        content: {
+          "application/json": components["schemas"]["ServiceRestartResponse"];
         };
       };
     };

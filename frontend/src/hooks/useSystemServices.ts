@@ -39,7 +39,7 @@ export const useRestartService = () => {
 export const useControlEngine = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (action: 'start' | 'stop') => systemService.controlEngine(action),
+    mutationFn: ({ action, name }: { action: 'start' | 'stop'; name: 'acestream' | 'acestream-check' }) => systemService.controlEngine(action, name),
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: SYSTEM_SERVICES_QUERY_KEY });
     },

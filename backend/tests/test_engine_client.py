@@ -190,3 +190,102 @@ def test_playback_factory_uses_saved_routing_but_engine_checks_remain_direct(db_
     with playback_client_from_settings(repo) as client:
         assert client.engine_url == 'http://proxy:8080' and client.use_acexy
     assert engine_url_from_settings(repo) == 'http://engine:6878'
+
+
+def _ownership_client(host='engine', events=None):
+    events = events if events is not None else []
+
+    def handle(request):
+        events.append(request)
+        if 'getstream' in request.url.path:
+            pid = request.url.params['pid']
+            return httpx.Response(200, json={'response': {
+                'playback_url': f'http://{host}:6878/ace/r/hash/{pid}',
+                'stat_url': f'http://{host}:6878/ace/stat/hash/{pid}',
+                'command_url': f'http://{host}:6878/ace/cmd/hash/{pid}',
+            }})
+        return httpx.Response(200)
+
+    return EngineClient(f'http://{host}:6878', client=_client(handle)), events
+
+
+def test_shared_source_stop_waits_for_last_owner_across_clients():
+    first, calls = _ownership_client()
+    second, _ = _ownership_client(events=calls)
+    a = first.start(CID)
+    b = second.start(CID)
+    assert a.pid != b.pid
+    first.stop(a)
+    assert len(calls) == 2  # no stop while another viewer owns the source
+    second.stop(b)
+    assert calls[-1].url.params['method'] == 'stop'
+    first.stop(a)
+    second.stop(b)
+    assert len(calls) == 3  # duplicate cleanup cannot stop a later session
+
+
+def test_ownership_is_separate_for_each_engine_and_source():
+    first, calls = _ownership_client()
+    other, other_calls = _ownership_client('checker')
+    a = first.start(CID)
+    b = first.start('b' * 40)
+    c = other.start(CID)
+    first.stop(a)
+    assert len(calls) == 3
+    assert len(other_calls) == 1
+    first.stop(b)
+    other.stop(c)
+    assert len(calls) == 4 and len(other_calls) == 2
+
+
+def test_start_in_flight_prevents_old_viewer_cleanup():
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+
+    first, calls = _ownership_client()
+    a = first.start(CID)
+    entered, release = Event(), Event()
+    second, _ = _ownership_client(events=calls)
+    original = second._start_direct
+
+    def delayed(*args):
+        entered.set()
+        assert release.wait(3)
+        return original(*args)
+
+    second._start_direct = delayed
+    try:
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            starting = pool.submit(second.start, CID)
+            assert entered.wait(3)
+            stopping = pool.submit(first.stop, a)
+            assert not stopping.done()
+            release.set()
+            b = starting.result(timeout=3)
+            stopping.result(timeout=3)
+        assert len(calls) == 2
+        second.stop(b)
+        assert len(calls) == 3
+    finally:
+        release.set()
+
+
+def test_failed_start_does_not_keep_a_lease():
+    first, calls = _ownership_client()
+    a = first.start(CID)
+    failed = EngineClient('http://engine:6878', client=_client(lambda r: httpx.Response(500)))
+    with pytest.raises(EngineUnavailableError):
+        failed.start(CID)
+    first.stop(a)
+    assert len(calls) == 2
+
+
+def test_cleanup_keeps_original_ownership_after_routing_changes():
+    first, calls = _ownership_client()
+    a = first.start(CID)
+    b = first.start(CID)
+    changed, changed_calls = _ownership_client('different-engine')
+    changed.stop(a)
+    assert not changed_calls
+    changed.stop(b)
+    assert changed_calls[-1].url.host == 'engine'

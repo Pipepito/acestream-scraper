@@ -9,7 +9,7 @@ ServiceState = Literal["running", "unhealthy", "stopped", "disabled", "external"
 
 
 class ServiceStatus(BaseModel):
-    name: str = Field(description="Stable identifier: acestream, acexy, ipfs, zeronet, warp")
+    name: str = Field(description="Stable identifier: acestream, acestream-check, acexy, ipfs, zeronet, warp")
     label: str
     description: str
     state: ServiceState

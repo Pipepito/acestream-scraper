@@ -127,3 +127,88 @@ Catalogue imports leave new IDs unchecked and preserve an existing probe outcome
 The signal-status migration clears old online/check outcomes because earlier checks
 and imports could mark an ID online without receiving media. Channel records and
 historical audio/bitrate metadata remain. Run channel checks to populate fresh status.
+
+## Dedicated checking engine (opt-in)
+
+On `scraper-acestream` and `scraper-acestream-acexy`, set
+`ENABLE_ACESTREAM_ENGINE=true` and `ENABLE_ACESTREAM_CHECK_ENGINE=true` to run
+one persistent checking engine alongside playback. The default remains off.
+Every status caller (manual, search verification, tuner refresh and scheduled
+scan) uses `ACE_CHECK_ENGINE_URL`; the entrypoint supplies
+`http://127.0.0.1:6880` for the bundled checker. Other flavors can set an external
+`ACE_CHECK_ENGINE_URL` instead. Do not combine an external URL with the bundled
+checker switch. The saved Engine URL, Acexy upstream and playback routing retain
+their existing roles. Restart the container after changing these environment options.
+
+The checker has separate state, identity, locks, cache and scratch storage under
+`/var/lib/acestream-check` on every architecture. Its HTTP, legacy API and P2P
+ports are 6880, 62063 and 8622 respectively (HTTPS reserves 6881); playback defaults
+remain 6878, 62062 and 8621. No checking ports are published by the command builder. Reserve these
+ports when customizing the playback command. The checker always uses the packaged
+foreground launcher, independently of `ACESTREAM_START_COMMAND`. Never mount the
+same host directory for playback and checking state. An optional separate mount
+at `/var/lib/acestream-check` keeps its writes outside the writable image layer.
+
+The checker uses a 256 MiB disk-cache limit and 64 MiB live-cache size; these are
+engine cache settings, not a cap on total process RSS. Checks still share one
+probe slot and cooldown. Both processes consume host CPU, RAM and bandwidth;
+isolation prevents checker session stops/crashes from controlling playback, but
+does not remove resource contention or prove that either engine can play a stream
+continuously. Existing active-source guards remain conservative even on the
+separate route, avoiding duplicate traffic for app-owned playback.
+
+Overview → Services exposes **AceStream checking engine** with independent
+Start/Stop/Restart controls. All exits are retried indefinitely, except after UI
+Stop. Start/Restart or container restart resumes recovery. An unavailable checker
+causes checks to be skipped and stored status/timestamps to be preserved. It never
+falls back to the playback engine. Checker health appears in Services and probes;
+it deliberately does not fail container health, which could cause an external
+watchdog to restart healthy playback. Diagnostics include bounded
+`acestream-check.log` tails and separate supervisor state.
+
+## Shared direct-playback cleanup
+
+Direct `EngineClient` sessions now hold a process-wide ownership lease keyed by
+engine endpoint and source ID. Start and final Stop use the same per-source lock
+in worker threads, so a viewer starting while another closes cannot slip between
+the ownership check and the stop request. Closing a viewer releases its lease;
+only the last owner sends the engine Stop command. Repeated cleanup is idempotent,
+and each handle retains its original ownership through configuration changes.
+Browser session sharing and unique PIDs for newly created sessions remain intact.
+Acexy continues to own its sessions and receives no direct Stop commands.
+
+This covers app-owned direct browser and relay sessions, including distinct audio
+selections. It cannot track clients launched directly into an external player,
+resolve arbitrary DNS aliases or map different IDs to the same underlying source.
+Use server relays/Acexy for shared external viewing rather than assuming PID alone
+isolates readers. Cleanup of a released reader while others remain is left to the
+engine until the final owner's Stop; this is intentional.
+
+### Verification — 2026-09-07 working-tree implementation
+
+Implemented against base commit `3abe5ae`. Disposable containers used the existing
+bundled native amd64 **3.2.11** and
+ARM64 **3.2.17** binaries with the updated entrypoint/checker launcher mounted
+read-only. Both engines answered independently. Killing the checker triggered
+recovery; stopping it left the primary engine PID and API unchanged. Fresh ARM64
+homes produce independent device IDs. The native engine reserves HTTPS 6879 by
+default: using that as the second HTTP port makes it reset its port configuration.
+The checker therefore uses HTTP 6880 and explicitly reserves HTTPS 6881.
+
+A native live source (`is_live=1`) continued delivering bytes after the checker
+stopped the same infohash: 17,760,256 → 21,954,560 bytes over eight seconds.
+Using the updated `EngineClient` ownership implementation for two direct sessions
+with distinct PIDs, closing the second viewer left the first receiving media:
+14,614,528 → 18,808,832 bytes over eight seconds. This is a bounded reproduction,
+not a sustained-load guarantee. ARM64 refused the media attempt with
+`mod_detected`; its lifecycle isolation is verified, media isolation remains
+unverified. ARMv7 still needs real hardware.
+
+`backend/tests/docker/test_acestream_runtime_smoke.py` now exercises the dual-engine
+lifecycle through `docker/testdata/check_engine_lifecycle.py` in each freshly built
+runnable image. The full Docker build matrix was not rerun locally for this change.
+Focused ownership, probe-routing, player, tuner, service-control and UI regression
+checks accompany the implementation. The quick gate's committed-type comparison
+requires the newly regenerated API snapshot to be committed; regeneration was
+checked separately for byte-for-byte reproducibility, and the remaining quick
+frontend tests, lint, typecheck and build were run directly.

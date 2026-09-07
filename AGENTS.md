@@ -194,3 +194,16 @@ ID-not-found responses. See `docs/ops/stream-check-pid.md`.
 Scheduled job launch times and outcomes persist in `scheduled_task_states`; restore
 after schema upgrade off the event loop and mark unfinished runs interrupted. Keep
 scalar results valid in the status API. See `docs/ops/scheduled-job-history.md`.
+
+
+## Dedicated checking engine and playback ownership
+
+`ENABLE_ACESTREAM_CHECK_ENGINE=true` opts bundled-engine images into a second
+persistent supervised engine (state `/var/lib/acestream-check`, HTTP 6880,
+legacy API 62063, P2P 8622). Alternatively, `ACE_CHECK_ENGINE_URL` selects an
+external checker. Never fall back to playback when a configured checker fails;
+preserve previous channel results. Keep checker supervision, controls and logs
+independent; checker outage must not fail whole-container health. Direct playback
+uses process-wide source ownership leases across clients; serialize starts with
+final stops, release exactly once, and preserve session ownership across settings
+changes. Acexy owns its sessions. See `docs/ops/stream-check-pid.md`.

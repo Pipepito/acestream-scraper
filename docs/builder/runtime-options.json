@@ -357,6 +357,26 @@
       "appliesWhen": "always"
     },
     {
+      "id": "dedicatedCheckEngine",
+      "env": "ENABLE_ACESTREAM_CHECK_ENGINE",
+      "group": "engine",
+      "label": "Separate engine for channel checks",
+      "description": "Runs a second engine with its own state and cache. Isolates checks from playback but uses additional memory and bandwidth. Leave the external checking address empty when enabled.",
+      "type": "boolean",
+      "default": false,
+      "appliesWhen": "engineOn"
+    },
+    {
+      "id": "externalCheckEngine",
+      "env": "ACE_CHECK_ENGINE_URL",
+      "group": "integrations",
+      "label": "External checking engine address",
+      "description": "Optional dedicated AceStream HTTP endpoint for channel checks. Leave empty to use the bundled checker when enabled, otherwise the saved engine address. An unavailable checker never falls back to playback.",
+      "type": "text",
+      "placeholder": "http://checker:6878",
+      "appliesWhen": "always"
+    },
+    {
       "id": "engineBindAll",
       "env": "ACESTREAM_BIND_ALL",
       "group": "engine",
@@ -437,7 +457,7 @@
     "warpCaps": "WARP needs the NET_ADMIN and SYS_ADMIN capabilities plus the /dev/net/tun device.",
     "acexyExternalEngine": "Acexy refuses to start against localhost:6878 when the in-container engine is disabled — point it at your external engine's address.",
     "publicBaseUrl": "Jellyfin, Plex and VLC need an address they can reach: set it under Integrations → Public address, or pass PUBLIC_BASE_URL.",
-    "externalEngineSettings": "The scraper's own engine connection (used for channel status checks) is configured in the web interface under Settings → Acestream Engine URL.",
+    "externalEngineSettings": "The playback engine connection (also used for checks unless a dedicated checker is configured) is configured in the web interface under Settings → Acestream Engine URL.",
     "afterRun": "Then open http://localhost:{webPort} — set the stream base URL and engine URL under Settings, and add source URLs under Scraper."
   }
 }

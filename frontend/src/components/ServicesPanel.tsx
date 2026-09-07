@@ -129,9 +129,10 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
   };
 
   const handleEngineControl = async (target: ServiceStatus) => {
+    if (target.name !== 'acestream' && target.name !== 'acestream-check') return;
     const action = target.stopped_by_user ? 'start' : 'stop';
     try {
-      const result = await control.mutateAsync(action);
+      const result = await control.mutateAsync({ action, name: target.name });
       showSnackbar(result.message, 'info');
       setWatch({ name: target.name, label: target.label, previousPid: target.pid, action, startedAt: Date.now() });
     } catch (err) {
@@ -260,7 +261,7 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
                       </Button>
                     </span>
                   </Tooltip>
-                  {service.name === 'acestream' && service.managed ? (
+                  {(service.name === 'acestream' || service.name === 'acestream-check') && service.managed ? (
                     <Button
                       size="small"
                       variant="outlined"

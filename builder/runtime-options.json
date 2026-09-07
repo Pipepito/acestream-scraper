@@ -155,10 +155,24 @@
     },
     {
       "id": "engineState",
-      "defaultSource": "acestream-state",
+      "defaultSource": "./acestream_state",
       "target": "/var/lib/acestream",
       "label": "Engine state & cache",
-      "description": "Engine state, disk cache and logs (ACESTREAM_HOME). Used by the Android engine on ARM."
+      "description": "Optional but highly recommended on ARM. Stores engine state, disk cache and logs outside the container. On Unraid, use an appdata host folder instead of a named volume."
+    },
+    {
+      "id": "engineCache",
+      "defaultSource": "./acestream_cache",
+      "target": "/root/.ACEStream/.acestream_cache",
+      "label": "Engine disk cache (highly recommended)",
+      "description": "Optional amd64 cache folder. Prevents cached streams from filling the container writable layer. Use an Unraid appdata host folder; this mount does not impose a size limit."
+    },
+    {
+      "id": "playerHls",
+      "defaultSource": "./player_data",
+      "target": "/tmp/acestream-player",
+      "label": "Player temporary files (highly recommended)",
+      "description": "Optional folder for rolling HLS segments. Keeps playback writes outside the container. Follows Player temporary folder in Advanced settings; disable this mount when using /dev/shm for RAM storage."
     },
     {
       "id": "ipfsRepo",
@@ -325,7 +339,7 @@
       "env": "PLAYER_HLS_DIR",
       "group": "player",
       "label": "Player temporary folder",
-      "description": "Where ffmpeg writes HLS playlists and segments. The bundled default is suitable for most installations.",
+      "description": "Where ffmpeg writes rolling HLS playlists and segments. The player folder mount follows this path. For /dev/shm RAM storage, disable that mount and set an adequate shared-memory size.",
       "type": "text",
       "placeholderFrom": "player.hlsDirDefault",
       "appliesWhen": "always"

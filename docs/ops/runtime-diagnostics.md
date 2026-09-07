@@ -18,16 +18,30 @@ and custom commands that redirect output elsewhere are not captured. Direct sour
 runs without the entrypoint have no console capture; their exports still work and
 mark unavailable logs in the manifest.
 
-The collector stores `console.log` plus two rotated copies under the existing
-`LOG_DIR` (`/app/logs` by default), each bounded to 2 MiB. Rotation is automatic
-and independent of logrotate. Recording failure leaves console output flowing.
-Files survive application and engine restarts; retaining them across container
-replacement requires mounting the log directory. These local files contain raw
-operational output: restrict access to the log volume.
+The collector writes separate files under `LOG_DIR` (`/app/logs` by default):
 
-Exports contain the latest 256 KiB from each of six fixed log filenames, omitting
-missing files and rejecting symlinks and non-regular files. Rotated console copies
-provide recent history, not a guaranteed time window. The manifest records UTC export
+- `scraper.log`: the application, including Uvicorn and background jobs.
+- `acestream.log`, `acexy.log`, `ipfs.log`, `zeronet.log`, `warp.log`, `tor.log`:
+  stdout/stderr and supervisor lifecycle messages for each launched service.
+- `entrypoint.log`: container setup and overall lifecycle messages.
+
+Only processes launched by this container are captured. Disabled services do not
+create new logs; files from earlier runs remain available for troubleshooting.
+Each file has two rotated copies (`.log.1` and `.log.2`), each bounded to 2 MiB
+(up to 48 MiB for all eight collectors). Rotation is automatic and independent of
+logrotate; logrotate handles only the additional native service logs.
+Recording failure leaves console output flowing. Files survive application and
+engine restarts; retaining them across container replacement requires mounting
+the log directory. These local files contain raw operational output: restrict
+access to the log volume.
+
+Exports contain the latest 256 KiB from each fixed log filename and its two
+rotated copies, omitting missing files and rejecting symlinks and non-regular
+files. For upgrade troubleshooting, existing `console.log` and its two rotations
+are still exported, along with native `warp-svc.log`, `debug.log` and `error.log`.
+New runs no longer write combined `console.log` files. The allowlist is bounded
+at 30 files (7.5 MiB of input tails). Rotations provide recent history, not a
+guaranteed time window. The manifest records UTC export
 time, architecture, file availability/truncation, supervisor PIDs/start times and
 intentional Stop state. Linux cgroup v2 memory counters are included when readable,
 including OOM counters; these do not replace host kernel diagnostics.

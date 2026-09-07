@@ -86,3 +86,21 @@ def test_export_busy_returns_retryable_error(client):
 
 def test_long_unbroken_log_line_is_safe_to_redact():
     assert redact('x' * LIMIT) == 'x' * LIMIT
+
+
+def test_service_logs_rotate_independently_and_export(tmp_path, monkeypatch):
+    from app.services.diagnostics_service import CAPTURE_NAMES
+
+    monkeypatch.setenv('LOG_DIR', str(tmp_path))
+    for name in CAPTURE_NAMES:
+        data = f'{name} output password=private123\n'.encode() * 20
+        console = BytesIO()
+        capture(BytesIO(data), console, tmp_path, max_bytes=200, name=f'{name}.log')
+        assert console.getvalue() == data
+    with ZipFile(BytesIO(build_bundle())) as archive:
+        for name in CAPTURE_NAMES:
+            for suffix in ('', '.1', '.2'):
+                content = archive.read(f'logs/{name}.log{suffix}').decode()
+                assert f'{name} output' in content
+                assert 'private123' not in content
+                assert (tmp_path / f'{name}.log{suffix}').stat().st_size <= 200

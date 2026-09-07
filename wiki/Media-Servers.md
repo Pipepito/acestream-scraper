@@ -85,6 +85,12 @@ Plex also has no API for adding a tuner, so this part is done in Plex's own UI. 
 
 **Optional: automatic guide reloads.** Paste a Plex **owner token** (`X-Plex-Token`) into the server's API key field and the app finds your DVR and reloads its guide by itself, on the same ten-minute schedule as Jellyfin. Without a token the sync job still notices that channels changed — it just flags the card *Rescan the guide in Plex* instead of doing it. Finding your token is documented by Plex under "Finding an authentication token".
 
+After completing setup in Plex, press **Connect** on the scraper's Plex card to
+discover the DVR. The scraper matches its advertised DeviceID against Plex's
+device `deviceId` or HDHomeRun `uuid` (also accepting the older identity in `uri`).
+The card's **Connected** status means this DVR association is saved for guide
+refreshes; Live TV can work before that association is found.
+
 **The channel cap.** Plex stops saving channel maps somewhere around **450-480 channels** — the exact limit depends on how long your channel numbers and names are, and the failure is silent: the mapping simply does not stick. The tuner therefore stops at the **Most channels to publish** setting (default **450**) and tells you how many channels were left out. If you are near the limit, deactivate channels you do not watch rather than raising the number.
 
 ## Tuner settings

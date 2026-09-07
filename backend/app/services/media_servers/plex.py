@@ -39,11 +39,20 @@ class PlexClient:
 
     def find_dvr_key(self, device_id: str) -> Optional[str]:
         """The DVR whose HDHomeRun grabber points at our advertised device id."""
-        needle = f"tv.plex.grabbers.hdhomerun/{device_id}".lower()
+        expected_id = device_id.strip().lower()
+        if not expected_id:
+            return None
+        expected_uri = f"device://tv.plex.grabbers.hdhomerun/{expected_id}"
         for dvr in self.dvrs():
             for device in dvr.get("Device", []) or []:
-                if needle in str(device.get("uri", "")).lower():
-                    return str(dvr.get("key"))
+                # Plex reports the HTTP tuner address in uri and the HDHR
+                # identity in uuid/deviceId. Retain the older uri form too.
+                matches = str(device.get("deviceId", "")).strip().lower() == expected_id or any(
+                    str(device.get(field, "")).strip().lower() == expected_uri
+                    for field in ("uuid", "uri")
+                )
+                if matches and dvr.get("key") is not None:
+                    return str(dvr["key"])
         return None
 
     def reload_guide(self, dvr_key: str) -> None:

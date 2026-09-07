@@ -160,7 +160,7 @@ class FakePlex:
         if request.headers.get("X-Plex-Token") != "tok":
             return httpx.Response(401)
         if path == "/livetv/dvrs":
-            return httpx.Response(200, json={"MediaContainer": {"Dvr": [{"key": "7", "uuid": "u", "lineup": "lineup://tv.plex.providers.epg.xmltv/x", "Device": [{"uri": f"device://tv.plex.grabbers.hdhomerun/{'A' * 8}", "uuid": "d"}]}]}})
+            return httpx.Response(200, json={"MediaContainer": {"Dvr": [{"key": "7", "uuid": "u", "lineup": "lineup://tv.plex.providers.epg.xmltv/x", "Device": [{"uri": f"{PUBLIC}/tuner", "uuid": f"device://tv.plex.grabbers.hdhomerun/{'A' * 8}", "deviceId": "A" * 8}]}]}})
         if path == "/livetv/dvrs/7/reloadGuide" and request.method == "POST":
             self.reloads.append(1)
             return httpx.Response(200)
@@ -177,6 +177,27 @@ def test_plex_connect_finds_the_dvr_and_refreshes(alembic_db_session, monkeypatc
     assert svc.refresh(server).status == "ok" and plex.reloads == [1]
     instructions = svc.status(server, PUBLIC)
     assert instructions["steps"] and f"{PUBLIC}/tuner/guide.xml" in json.dumps(instructions)
+
+
+@pytest.mark.parametrize("device", [
+    {"deviceId": "abcdef12", "uri": f"{PUBLIC}/tuner"},
+    {"uuid": "device://tv.plex.grabbers.hdhomerun/abcdef12", "uri": f"{PUBLIC}/tuner"},
+    {"uri": "device://tv.plex.grabbers.hdhomerun/ABCDEF12"},
+])
+def test_plex_dvr_identity_fields(device):
+    from app.services.media_servers.plex import PlexClient
+
+    def handler(request):
+        return httpx.Response(200, json={"MediaContainer": {"Dvr": [
+            {"key": "other", "Device": [{"uuid": "device://tv.plex.grabbers.hdhomerun/ABCDEF123"}]},
+            {"key": "7", "Device": [device]},
+        ]}})
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as http:
+        plex = PlexClient("http://plex.lan:32400", "tok", http)
+        assert plex.find_dvr_key("ABCDEF12") == "7"
+        assert plex.find_dvr_key("12345678") is None
+        assert plex.find_dvr_key("") is None
 
 
 def test_plex_without_token_is_manual(alembic_db_session):

@@ -116,8 +116,11 @@ class ChannelStatusService:
                     # and catalogue status cannot prove current emission.
                     if (previous_downloaded is not None and downloaded > previous_downloaded
                             and state.get('status') in ('dl', 'prebuf', 'buf')):
-                        media = None if self._in_use(channel_id) else await probe_media(engine_url, response.get('playback_url'))
-                        return True, 'Broadcast data is arriving', media
+                        playback_url = self._session_url(engine_url, response.get('playback_url'), 'r')
+                        media = None if self._in_use(channel_id) else await probe_media(engine_url, playback_url)
+                        if media and media.get('signal_verified') is True:
+                            return True, 'Media signal verified', media
+                        return False, 'ID found, but no media signal verified before timeout', media
                     previous_downloaded = downloaded
                 await asyncio.sleep(min(1.0, max(0, deadline - asyncio.get_running_loop().time())))
         finally:
@@ -141,6 +144,7 @@ class ChannelStatusService:
     def _skipped_result(channel: AcestreamChannel) -> Dict[str, Any]:
         return {
             'channel_id': channel.id, 'is_online': channel.is_online is True,
+            'network_status': channel.network_status,
             'status': 'skipped', 'message': 'Source is in use; keeping its previous status',
             'last_checked': channel.last_checked or datetime.now(timezone.utc), 'error': None,
         }
@@ -154,6 +158,7 @@ class ChannelStatusService:
             return None
         return {
             'channel_id': channel_id, 'is_online': snapshot['is_online'] is True,
+            'network_status': snapshot.get('network_status'),
             'status': 'skipped', 'message': 'Recently checked; using the latest channel status',
             'last_checked': snapshot['last_checked'], 'error': None,
         }
@@ -218,6 +223,7 @@ class ChannelStatusService:
         online = False
         media = None
         engine_url = None
+        network_status = 'unknown'
         try:
             engine_url = self._get_engine_url()
             if not await self._wait_for_engine(engine_url):
@@ -236,12 +242,22 @@ class ChannelStatusService:
                 if self._in_use(channel.id):
                     return self._skipped_result(channel)
                 http_status, data, parse_error = await self._fetch_engine_response(status_url, params, timeout * 2)
+            if isinstance(data, dict):
+                error_text = str(data.get('error') or '').strip().lower()
+                if error_text in {'not found', 'content not found', 'content id not found', 'unknown content id'}:
+                    network_status = 'not_found'
+                elif not data.get('error') and isinstance(data.get('response'), dict):
+                    response = data['response']
+                    if self._session_url(engine_url, response.get('stat_url'), 'stat') and self._session_url(engine_url, response.get('command_url'), 'cmd'):
+                        network_status = 'found'
             if http_status != 200:
                 message = f'HTTP {http_status}'
             elif parse_error or not isinstance(data, dict):
                 message = 'Invalid response format'
             else:
                 online, message, media = await self._verify_broadcast(engine_url, data, timeout, channel.id)
+                if network_status == 'not_found':
+                    message = 'Engine reports this content ID was not found'
         except asyncio.TimeoutError:
             message = 'Request timeout'
         except Exception:
@@ -255,9 +271,10 @@ class ChannelStatusService:
         error = None if online else message
         if persist:
             self.channel_repository.update_channel_status(channel.id, online, error, bitrate_bps=media.get("bitrate_bps") if media else None,
-                audio_tracks=media.get("audio_tracks") if media else None)
+                audio_tracks=media.get("audio_tracks") if media else None, network_status=network_status)
         return {
             'channel_id': channel.id,
+            'network_status': network_status,
             'is_online': online,
             'status': 'online' if online else 'offline',
             'message': message,

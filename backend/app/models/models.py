@@ -112,6 +112,7 @@ class AcestreamChannel(Base):
     last_seen = Column(UtcDateTime(), default=_utcnow)
     is_active = Column(Boolean, default=True)
     is_online = Column(Boolean, nullable=True)
+    network_status = Column(String(16), nullable=True)
     last_checked = Column(UtcDateTime(), nullable=True)
     check_error = Column(Text, nullable=True)
     audio_tracks = Column(JSON, nullable=True)
@@ -348,3 +349,13 @@ class DashboardConfig(Base):
     retention_days = Column(Integer, nullable=False, server_default='7')
     auto_refresh_interval = Column(Integer, nullable=False, server_default='60')  # seconds
     # Add more config fields as needed
+
+
+class ScheduledTaskState(Base):
+    """Latest scheduler run, retained across application restarts."""
+    __tablename__ = "scheduled_task_states"
+    task_name = Column(String(128), primary_key=True)
+    last_run = Column(UtcDateTime(), nullable=True)
+    status = Column(String(32), nullable=False)
+    last_error = Column(Text, nullable=True)
+    last_result = Column(JSON, nullable=True)

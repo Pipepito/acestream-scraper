@@ -40,6 +40,20 @@ def sample_bitrate(payload: dict) -> int | None:
     return rate if 0 < rate <= 1_000_000_000 else None
 
 
+def has_media_packets(payload: dict) -> bool:
+    """Stream declarations alone are insufficient: require encoded A/V packets."""
+    indexes = {stream.get("index") for stream in payload.get("streams", [])
+               if stream.get("codec_type") in ("video", "audio") and stream.get("codec_name")
+               and isinstance(stream.get("index"), int)}
+    for packet in payload.get("packets", []):
+        try:
+            if packet.get("stream_index") in indexes and int(packet.get("size", 0)) > 0:
+                return True
+        except (TypeError, ValueError):
+            continue
+    return False
+
+
 async def probe_media(engine_url: str, playback_url: object) -> dict | None:
     configured = get_settings().FFMPEG_BINARY_PATH
     sibling = Path(configured).with_name("ffprobe") if configured else None
@@ -76,7 +90,7 @@ async def probe_media(engine_url: str, playback_url: object) -> dict | None:
                     return None
             process = await asyncio.create_subprocess_exec(
                 binary, "-v", "error", "-protocol_whitelist", "pipe", "-f", "mpegts",
-                "-show_entries", "format=bit_rate:packet=pts_time,size:stream=codec_type,codec_name,channels,channel_layout:stream_tags=language,title", "-of", "json", "-i", "pipe:0",
+                "-show_entries", "format=bit_rate:packet=stream_index,pts_time,size:stream=index,codec_type,codec_name,channels,channel_layout:stream_tags=language,title", "-of", "json", "-i", "pipe:0",
                 stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL,
             )
             stdout, _ = await process.communicate(bytes(sample))
@@ -84,7 +98,7 @@ async def probe_media(engine_url: str, playback_url: object) -> dict | None:
                 return None
             payload = json.loads(stdout)
             audio = [stream for stream in payload.get("streams", []) if stream.get("codec_type") == "audio"]
-            return {"bitrate_bps": sample_bitrate(payload), "audio_tracks": [
+            return {"signal_verified": has_media_packets(payload), "bitrate_bps": sample_bitrate(payload), "audio_tracks": [
                 {"index": index, "codec": stream.get("codec_name"), "channels": stream.get("channels"),
                  "channel_layout": stream.get("channel_layout"),
                  "language": stream.get("tags", {}).get("language"), "title": stream.get("tags", {}).get("title")}

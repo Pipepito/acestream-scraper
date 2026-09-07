@@ -83,7 +83,8 @@ class ScraperService:
                     # association into the INSERT; existing rows are assigned
                     # by the repository's conflict-checked UPDATE above.
                     tv_channel_id=metadata.get('tv_channel_id'),
-                    is_online=True,
+                    # Catalogue presence is not evidence of a live signal.
+                    is_online=None,
                     commit=False,
                 )
                 persisted_channels.append(persisted)

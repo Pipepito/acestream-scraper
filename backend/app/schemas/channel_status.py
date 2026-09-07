@@ -2,13 +2,14 @@
 Schemas for channel status operations
 """
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Literal
 from pydantic import BaseModel, ConfigDict
 
 
 class ChannelStatusResponse(BaseModel):
     """Response schema for channel status check"""
     channel_id: str
+    network_status: Optional[Literal["found", "not_found", "unknown"]] = None
     is_online: bool
     status: str  # 'online', 'offline', 'error', 'skipped' (in use; previous status retained)
     message: str

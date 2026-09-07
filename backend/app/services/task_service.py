@@ -15,7 +15,8 @@ import logging
 
 
 class TaskService:
-    def __init__(self):
+    def __init__(self, state_store=None):
+        self._state_store = state_store
         self.scheduler = self._new_scheduler()
         self.shutdown_event = Event()
         self.logger = logging.getLogger("TaskService")
@@ -42,6 +43,30 @@ class TaskService:
             if interval_seconds:
                 state["next_run"] = datetime.now(timezone.utc) + timedelta(seconds=interval_seconds)
             return state
+
+    def restore_states(self):
+        """Called after schema upgrade, off the application event loop."""
+        if self._state_store is None:
+            return
+        try:
+            states = self._state_store.load()
+            for state in states.values():
+                if state["status"] == "running":
+                    state["status"] = "interrupted"
+                    state["last_error"] = "Application stopped before this run completed"
+                    self._state_store.save(state)
+            with self._state_lock:
+                self._task_states = states
+        except Exception:
+            self.logger.exception("Could not restore scheduled task history")
+
+    def _persist_state(self, state):
+        if self._state_store is not None:
+            try:
+                self._state_store.save(dict(state))
+            except Exception:
+                # History failure must not turn successful maintenance into failure.
+                self.logger.exception("Could not save scheduled task history task=%s", state["task_name"])
 
     def start(self):
         if self.scheduler.running:
@@ -85,9 +110,11 @@ class TaskService:
             state = self._ensure_task_state(job_id)
             with self._state_lock:
                 state["status"] = "running"
+                state["last_run"] = datetime.now(timezone.utc)
                 state["last_error"] = None
                 state["last_result"] = None
                 state["progress"] = None
+            self.persist_current_state(job_id, state)
             try:
                 result = func(*args, **kwargs)
                 if asyncio.iscoroutine(result):
@@ -98,9 +125,9 @@ class TaskService:
                     next_run = job.next_run_time
                 with self._state_lock:
                     state["status"] = "idle"
-                    state["last_run"] = datetime.now(timezone.utc)
                     state["next_run"] = next_run
                     state["last_result"] = result
+                self.persist_current_state(job_id, state)
                 return result
             except Exception as exc:
                 next_run = None
@@ -109,10 +136,10 @@ class TaskService:
                     next_run = job.next_run_time
                 with self._state_lock:
                     state["status"] = "error"
-                    state["last_run"] = datetime.now(timezone.utc)
                     state["next_run"] = next_run
                     state["last_error"] = str(exc)
                     state["last_result"] = None
+                self.persist_current_state(job_id, state)
                 self.logger.exception("Scheduled task failed task=%s error=%s", job_id, exc)
                 raise
 
@@ -203,6 +230,16 @@ class TaskService:
         except JobLookupError:
             self.logger.warning(f"Tried to remove non-existent task '{job_id}'.")
 
+    def set_manual_state(self, job_id, state):
+        with self._state_lock:
+            self._task_states[job_id] = state
+
+    def persist_current_state(self, job_id, state):
+        # An older overlapping manual run must not overwrite the latest run.
+        with self._state_lock:
+            if self._task_states.get(job_id) is state:
+                self._persist_state(state)
+
     def get_jobs(self):
         return self.scheduler.get_jobs()
 
@@ -215,4 +252,6 @@ class TaskService:
         with self._state_lock:
             return {job_id: dict(state) for job_id, state in self._task_states.items()}
 
-task_service = TaskService()
+from app.repositories.task_state_repository import TaskStateRepository
+
+task_service = TaskService(state_store=TaskStateRepository())

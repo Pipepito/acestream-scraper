@@ -1087,10 +1087,7 @@ export interface components {
        * @description Acestream channel ID (required, GUID string)
        */
       id: string;
-      /**
-       * Is Online
-       * @default true
-       */
+      /** Is Online */
       is_online?: boolean | null;
       /** Logo */
       logo?: string | null;
@@ -1159,6 +1156,11 @@ export interface components {
       logo?: string | null;
       /** Name */
       name: string;
+      /**
+       * Network Status
+       * @description Last engine ID lookup: found, explicitly not found, or inconclusive; not proof of permanent network existence
+       */
+      network_status?: ("found" | "not_found" | "unknown") | null;
       /** Source Url */
       source_url?: string | null;
       /** Tv Channel Id */
@@ -1388,6 +1390,25 @@ export interface components {
       /** Title */
       title?: string | null;
     };
+    /** BackgroundTaskStatus */
+    BackgroundTaskStatus: {
+      /** Last Error */
+      last_error: string | null;
+      /** Last Result */
+      last_result: unknown;
+      /** Last Run */
+      last_run: string | null;
+      /** Next Run */
+      next_run: string | null;
+      /** Progress */
+      progress?: {
+        [key: string]: unknown;
+      } | null;
+      /** Status */
+      status: string;
+      /** Task Name */
+      task_name: string;
+    };
     /** BaseUrlCreate */
     BaseUrlCreate: {
       /**
@@ -1511,6 +1532,8 @@ export interface components {
       last_checked: string;
       /** Message */
       message: string;
+      /** Network Status */
+      network_status?: ("found" | "not_found" | "unknown") | null;
       /** Status */
       status: string;
     };
@@ -4022,7 +4045,7 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": unknown;
+          "application/json": components["schemas"]["BackgroundTaskStatus"][];
         };
       };
     };

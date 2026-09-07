@@ -102,3 +102,81 @@ def test_task_progress_is_reported_while_running():
 
     assert state["progress"] == {"percent": 42.0, "processed": 42, "total": 100}
     assert service.get_task_states()["progress_job"]["progress"]["percent"] == 42.0
+
+
+def test_run_start_outcome_and_interruption_survive_new_service(alembic_backend_runtime):
+    from app.repositories.task_state_repository import TaskStateRepository
+    from app.models.background_task_status import BackgroundTaskStatus
+    store = TaskStateRepository()
+    service = TaskService(state_store=store)
+    observed = {}
+
+    def cleanup():
+        during = store.load()['activity_log_cleanup']
+        assert during['status'] == 'running'
+        assert during['last_run'] is not None
+        observed['started'] = during['last_run']
+        return 3  # real cleanup result is a scalar, not a dictionary
+
+    service._instrument_task('activity_log_cleanup', cleanup)()
+    restored = TaskService(state_store=store)
+    restored.restore_states()
+    state = restored.get_task_state('activity_log_cleanup')
+    assert state['last_run'] == observed['started']
+    assert state['last_result'] == 3
+    assert BackgroundTaskStatus(**state).last_result == 3
+    store.save({**state, 'status': 'running'})
+    restored.restore_states()
+    interrupted = restored.get_task_state('activity_log_cleanup')
+    assert interrupted['status'] == 'interrupted'
+    assert 'before this run completed' in interrupted['last_error']
+
+
+def test_failed_run_survives_restart(alembic_backend_runtime):
+    import pytest
+    from app.repositories.task_state_repository import TaskStateRepository
+    store = TaskStateRepository()
+    service = TaskService(state_store=store)
+    def fail():
+        raise ValueError('test failure')
+    with pytest.raises(ValueError):
+        service._instrument_task('epg_refresh', fail)()
+    restored = TaskService(state_store=store)
+    restored.restore_states()
+    assert restored.get_task_state('epg_refresh')['last_error'] == 'test failure'
+    assert restored.get_task_state('epg_refresh')['status'] == 'error'
+
+
+async def _manual_overlap_scenario(monkeypatch):
+    import asyncio
+    from app.services import manual_job_service
+    service = TaskService()
+    monkeypatch.setattr(manual_job_service, 'task_service', service)
+    began = asyncio.Event()
+    finish = asyncio.Event()
+    async def old_scrape():
+        began.set()
+        await finish.wait()
+        return [], 'Error: older request failed'
+    first = asyncio.create_task(manual_job_service.run_manual_job('url_scraping', old_scrape))
+    await began.wait()
+    async def new_scrape():
+        return [1, 2], 'OK'
+    await manual_job_service.run_manual_job('url_scraping', new_scrape)
+    finish.set()
+    await first
+    state = service.get_task_state('manual_url_scraping')
+    assert state['status'] == 'idle'
+    assert state['last_result'] == {'processed': 1, 'failures': 0, 'channels': 2}
+    assert state['next_run'] is None
+
+
+def test_overlapping_manual_runs_keep_latest_started_outcome(monkeypatch):
+    import asyncio
+    asyncio.run(_manual_overlap_scenario(monkeypatch))
+
+
+def test_manual_bulk_summaries():
+    from app.services.manual_job_service import _summary
+    assert _summary('epg_refresh', [{'success': True}, {'success': False}]) == {'sources': 2, 'successful': 1, 'failed': 1}
+    assert _summary('url_scraping', [([], 'OK'), ([], 'Error: fetch failed')])['failures'] == 1

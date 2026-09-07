@@ -105,3 +105,25 @@ the latest saved status. Sustained interactive demand can delay background scans
 Stable tuner GETs and browser playback of a stream assigned to a TV channel queue
 playback-priority refreshes of that channel's candidates. Browser playback itself
 starts immediately; owned active sources remain protected from status probes.
+
+## ID lookup and signal verification
+
+Channel checks report `network_status` independently of `is_online`:
+
+- `found`: the engine recognized the ID and returned a verifiable session.
+- `not_found`: the engine explicitly reported that the content ID was not found.
+- `unknown` (or null before checking): lookup was inconclusive. A timeout, no peers,
+  generic HTTP 404, or engine outage does not establish permanent network absence.
+
+`is_online=true` now requires both increasing P2P downloads and a bounded HTTP
+media sample containing packets from an identified audio/video stream. Peer counts,
+prebuffering, stream declarations, or download speed alone are insufficient. A
+failed media probe yields no verified signal, including when ffprobe is unavailable.
+This is a snapshot at `last_checked`, not a continuous playback guarantee or a
+browser codec-compatibility test. The configured engine remains the probe route;
+existing active-playback guards and queue priorities still apply.
+
+Catalogue imports leave new IDs unchecked and preserve an existing probe outcome.
+The signal-status migration clears old online/check outcomes because earlier checks
+and imports could mark an ID online without receiving media. Channel records and
+historical audio/bitrate metadata remain. Run channel checks to populate fresh status.

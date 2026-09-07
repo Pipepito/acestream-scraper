@@ -122,7 +122,7 @@ describe('ChannelTable', () => {
     expect(screen.getByText(edgeCaseChannel.name)).toBeInTheDocument();
     expect(screen.getByText(edgeCaseChannel.group)).toBeInTheDocument();
     expect(screen.getByRole('group', { name: `Acestream channel actions for ${edgeCaseChannel.name}` })).toBeInTheDocument();
-    expect(screen.getByText('Online')).toBeInTheDocument();
+    expect(screen.getByText('Signal verified')).toBeInTheDocument();
     expect(screen.getByText(formatRelativeTime(edgeCaseChannel.last_checked))).toBeInTheDocument();
     expect(screen.queryByText('Hidden')).not.toBeInTheDocument();
 
@@ -159,7 +159,7 @@ describe('ChannelTable', () => {
     mountTable({
       channels: [
         baseChannel,
-        { ...baseChannel, id: 'acestream-2', name: 'Offline Channel', is_online: false },
+        { ...baseChannel, id: 'acestream-2', name: 'Offline Channel', is_online: false, network_status: 'found' },
         { ...baseChannel, id: 'acestream-3', name: 'Unknown Channel', is_online: null },
       ],
       totalCount: 3,
@@ -168,8 +168,9 @@ describe('ChannelTable', () => {
     const rows = screen.getAllByRole('row');
     const offlineRow = rows.find((row) => within(row).queryByText('Offline Channel')) as HTMLElement;
     const unknownRow = rows.find((row) => within(row).queryByText('Unknown Channel')) as HTMLElement;
-    expect(within(offlineRow).getByText('Offline')).toBeInTheDocument();
-    expect(within(unknownRow).getByText('Unknown')).toBeInTheDocument();
+    expect(within(offlineRow).getByText('ID found')).toBeInTheDocument();
+    expect(within(offlineRow).getByText('No signal verified')).toBeInTheDocument();
+    expect(within(unknownRow).getByText('Not checked')).toBeInTheDocument();
   });
 
   it('exposes play and check status as visible buttons and the rest behind More actions', () => {

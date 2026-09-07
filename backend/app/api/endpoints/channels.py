@@ -2,6 +2,7 @@
 API endpoints for channel management
 """
 import logging
+from app.services.manual_job_service import run_manual_job
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
@@ -149,7 +150,7 @@ async def check_all_channels_status(
     else:
         # Check immediately for small numbers
         try:
-            results = await status_service.check_multiple_channels(channels, concurrency)
+            results = await run_manual_job("channel_status", status_service.check_multiple_channels, channels, concurrency)
         except Exception as exc:
             logger.error("Bulk status check failed channels=%s error=%s", len(channels), exc)
             raise APIError(
@@ -274,7 +275,7 @@ async def check_acestream_channel_status(acestreamchannel_id: str, db: Session =
         raise HTTPException(status_code=404, detail="Channel not found")
 
     status_service = ChannelStatusService(db)
-    result = await status_service.check_channel_status(channel)
+    result = await run_manual_job("channel_status", status_service.check_channel_status, channel)
     return result
 
 
@@ -351,7 +352,7 @@ async def _background_status_check(
     """Background task for checking channel statuses"""
     try:
         status_service = ChannelStatusService(db)
-        await status_service.check_multiple_channels(channels, concurrency)
+        await run_manual_job("channel_status", status_service.check_multiple_channels, channels, concurrency)
     except Exception as e:
         # Log error but do not re-raise from background task context.
         logger.error(

@@ -10,6 +10,7 @@ from app.api.dependencies import get_scraper_service
 from app.api.error_handlers import APIError
 from app.schemas.scraper import ScraperRequest, ScraperResult, URLResponse, URLCreate, URLUpdate
 from app.services.scraper_service import ScraperService
+from app.services.manual_job_service import run_manual_job, scrape_batch
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -41,7 +42,7 @@ async def scrape_url(
         if request.run_async:
             # Run in background
             background_tasks.add_task(
-                scraper_service.scrape_url,
+                run_manual_job, "url_scraping", scraper_service.scrape_url,
                 request.url,
                 request.url_type
             )
@@ -54,7 +55,7 @@ async def scrape_url(
             )
         else:
             # Run synchronously
-            channels, status_msg = await scraper_service.scrape_url(request.url, request.url_type)
+            channels, status_msg = await run_manual_job("url_scraping", scraper_service.scrape_url, request.url, request.url_type)
 
             return ScraperResultExtended(
                 message="Scraping completed successfully" if status_msg == "OK" else status_msg,
@@ -163,7 +164,7 @@ async def scrape_specific_url(
     if url_entity and not url_entity.enabled:
         raise HTTPException(status_code=400, detail="URL is disabled")
     background_tasks.add_task(
-        scraper_service.scrape_url,
+        run_manual_job, "url_scraping", scraper_service.scrape_url,
         url.url,
         url.url_type
     )
@@ -189,12 +190,10 @@ async def scrape_all_urls(
     if limit is not None:
         urls = urls[:limit]
     results = []
+    if urls:
+        background_tasks.add_task(run_manual_job, "url_scraping", scrape_batch, scraper_service,
+                                  [(url.url, url.url_type) for url in urls])
     for url in urls:
-        background_tasks.add_task(
-            scraper_service.scrape_url,
-            url.url,
-            url.url_type
-        )
         results.append(ScraperResultExtended(
             message="Scraping started in background",
             channels=[],

@@ -44,7 +44,6 @@
                 "type": "null"
               }
             ],
-            "default": true,
             "title": "Is Online"
           },
           "logo": {
@@ -255,6 +254,23 @@
             "minLength": 1,
             "title": "Name",
             "type": "string"
+          },
+          "network_status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "found",
+                  "not_found",
+                  "unknown"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Last engine ID lookup: found, explicitly not found, or inconclusive; not proof of permanent network existence",
+            "title": "Network Status"
           },
           "source_url": {
             "anyOf": [
@@ -924,6 +940,84 @@
         "title": "AudioTrack",
         "type": "object"
       },
+      "BackgroundTaskStatus": {
+        "properties": {
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          },
+          "last_result": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Result"
+          },
+          "last_run": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Run"
+          },
+          "next_run": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Run"
+          },
+          "progress": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Progress"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "task_name": {
+            "title": "Task Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_name",
+          "last_run",
+          "next_run",
+          "status",
+          "last_error",
+          "last_result"
+        ],
+        "title": "BackgroundTaskStatus",
+        "type": "object"
+      },
       "BaseUrlCreate": {
         "properties": {
           "is_default": {
@@ -1172,6 +1266,22 @@
           "message": {
             "title": "Message",
             "type": "string"
+          },
+          "network_status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "found",
+                  "not_found",
+                  "unknown"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Network Status"
           },
           "status": {
             "title": "Status",
@@ -7529,7 +7639,13 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BackgroundTaskStatus"
+                  },
+                  "title": "Response Get Background Tasks Status Api V1 Background Tasks Status Get",
+                  "type": "array"
+                }
               }
             },
             "description": "Successful Response"

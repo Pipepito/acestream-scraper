@@ -9,7 +9,7 @@ export interface OnlineChipProps {
 const OnlineChip: React.FC<OnlineChipProps> = ({ isOnline }) => {
   const theme = useTheme();
   const tone = isOnline === true ? theme.appTokens.status.success : isOnline === false ? theme.appTokens.status.error : null;
-  const label = isOnline === true ? 'Online' : isOnline === false ? 'Offline' : 'Unknown';
+  const label = isOnline === true ? 'Signal verified' : isOnline === false ? 'No signal verified' : 'Not checked';
   return (
     <Chip
       label={label}

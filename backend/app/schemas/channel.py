@@ -23,7 +23,7 @@ class AcestreamChannelCreate(AcestreamChannelBase):
     logo: Optional[str] = None
     tvg_id: Optional[str] = None
     tvg_name: Optional[str] = None
-    is_online: Optional[bool] = True  # Default to True
+    is_online: Optional[bool] = None
 
 
 
@@ -52,6 +52,7 @@ class AcestreamChannelResponse(AcestreamChannelBase):
     last_seen: datetime
     is_active: bool
     is_online: Optional[bool] = None
+    network_status: Optional[Literal["found", "not_found", "unknown"]] = Field(None, description="Last engine ID lookup: found, explicitly not found, or inconclusive; not proof of permanent network existence")
     last_checked: Optional[datetime] = None
     check_error: Optional[str] = None
     audio_tracks: Optional[List[AudioTrack]] = Field(None, description="Audio tracks found at the last successful media probe; null means unknown")

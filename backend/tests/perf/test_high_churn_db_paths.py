@@ -3,9 +3,10 @@ Performance regression guards for phase 6 high-churn DB paths.
 """
 from contextlib import contextmanager
 
+import pytest
 from sqlalchemy import event
 
-from app.models.models import AcestreamChannel, EPGSource, ScrapedURL
+from app.models.models import AcestreamChannel, EPGSource, ScrapedURL, TVChannel
 from app.repositories.channel_repository import ChannelRepository
 from app.repositories.url_repository import URLRepository
 from app.services.epg_service import EPGService
@@ -88,7 +89,8 @@ def test_refresh_all_urls_query_budget(db_session):
     assert counter["value"] <= 2
 
 
-def test_repeat_epg_processing_query_budget(db_session):
+@pytest.mark.parametrize("linked_tv_channels", [False, True])
+def test_repeat_epg_processing_query_budget(db_session, linked_tv_channels):
     service = EPGService(db_session)
     source = EPGSource(url="https://example.com/perf-epg.xml", name="Perf Source", enabled=True)
     db_session.add(source)
@@ -96,6 +98,12 @@ def test_repeat_epg_processing_query_budget(db_session):
 
     payload = _build_epg_xml(channel_count=12, programs_per_channel=16)
     service._process_epg_xml(source.id, payload)
+    if linked_tv_channels:
+        db_session.add_all([
+            TVChannel(name=f"Channel {index}", epg_id=f"ch-{index}", epg_source_id=source.id)
+            for index in range(12)
+        ])
+        db_session.commit()
 
     with _query_counter(db_session) as counter:
         channels_found, programs_found = service._process_epg_xml(source.id, payload)

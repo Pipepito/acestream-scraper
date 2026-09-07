@@ -1,5 +1,6 @@
 """Repair unavailable EPG links without replacing the curated TV inventory."""
 from collections import defaultdict
+from functools import cached_property
 
 from sqlalchemy.orm import Session
 
@@ -12,22 +13,35 @@ class EPGLinkService:
     def __init__(self, db: Session):
         self.db = db
         self.repository = EPGLinkRepository(db)
-        self.channels = self.repository.enabled_channels()
-        self.links = {(ch.epg_source_id, ch.channel_xml_id) for ch in self.channels}
-        self.by_id = defaultdict(list)
-        self.by_name = defaultdict(list)
+
+    @cached_property
+    def channels(self) -> list[EPGChannel]:
+        return self.repository.enabled_channels()
+
+    @cached_property
+    def links(self) -> set[tuple[int, str]]:
+        return {(ch.epg_source_id, ch.channel_xml_id) for ch in self.channels}
+
+    @cached_property
+    def by_id(self) -> dict[str, list[EPGChannel]]:
+        index = defaultdict(list)
         for ch in self.channels:
-            self.by_id[ch.channel_xml_id].append(ch)
-            self.by_name[normalize_name(ch.name).text].append(ch)
+            index[ch.channel_xml_id].append(ch)
+        return index
+
+    @cached_property
+    def by_name(self) -> dict[str, list[EPGChannel]]:
+        index = defaultdict(list)
+        for ch in self.channels:
+            index[normalize_name(ch.name).text].append(ch)
+        return index
 
     def available(self, tv: TVChannel) -> bool:
         return (tv.epg_source_id, tv.epg_id) in self.links
 
     def repair(self) -> int:
         repaired = 0
-        for tv in self.repository.tv_channels():
-            if self.available(tv):
-                continue
+        for tv in self.repository.unlinked_tv_channels():
             candidates = self.by_id.get(tv.epg_id, [])
             if not candidates:
                 name = normalize_name(tv.name, tv.country)

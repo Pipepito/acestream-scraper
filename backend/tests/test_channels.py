@@ -4,6 +4,7 @@ Integration tests for Channel endpoints
 
 import pytest
 import uuid
+from unittest.mock import AsyncMock
 from fastapi import status
 
 
@@ -186,6 +187,20 @@ class TestChannelEndpoints:
 class TestChannelStatusEndpoints:
     """Test channel status checking endpoints."""
 
+    @pytest.fixture(autouse=True)
+    def engine_transport(self, monkeypatch):
+        from app.services.channel_status_service import ChannelStatusService
+        from app.services.probe_queue import ProbeQueue
+        # Exercise the actual queue, readiness and persistence without a live
+        # engine or real recovery/cooldown waits in endpoint contract tests.
+        async def fetch(_self, url, params, timeout):
+            if url.endswith('/server/api'):
+                return 200, {'result': {'version': {}}}, None
+            assert url.endswith('/ace/getstream')
+            return 200, {'error': 'Stream unavailable', 'response': {}}, None
+        monkeypatch.setattr(ChannelStatusService, '_fetch_engine_response', fetch)
+        monkeypatch.setattr('app.services.channel_status_service.probe_queue', ProbeQueue(cooldown=0, outage_backoff=0))
+
     def test_check_channel_status(self, client, seed_channels):
         """Test checking status of a specific channel."""
         channel_id = seed_channels[0].id
@@ -216,7 +231,7 @@ class TestChannelStatusEndpoints:
         assert len(data["results"]) == 3
         # The SPA shows this line verbatim; it must describe what happened.
         assert data["background"] is False
-        assert data["message"] == f"Checked 3 channels: {data['online_count']} online, {data['offline_count']} offline."
+        assert data["message"] == f"Checked 3 channels: {data['online_count']} online, {data['offline_count']} offline, 0 skipped."
 
     def test_check_all_channels_status_with_limit(self, client, seed_channels):
         """Test checking status of channels with limit."""
@@ -225,6 +240,21 @@ class TestChannelStatusEndpoints:
         data = response.json()
         assert data["total_checked"] == 2
         assert len(data["results"]) == 2
+
+    def test_engine_outage_skips_channels_without_recording_offline(self, client, seed_channels, monkeypatch, db_session):
+        from app.services.channel_status_service import ChannelStatusService
+        before = {channel.id: (channel.is_online, channel.last_checked) for channel in seed_channels}
+        monkeypatch.setattr(ChannelStatusService, '_wait_for_engine', AsyncMock(return_value=False))
+        response = client.post('/api/v1/channels/check_status_all')
+        assert response.status_code == 200
+        data = response.json()
+        assert data['total_checked'] == data['online_count'] == data['offline_count'] == 0
+        assert len(data['results']) == 3
+        assert all(result['status'] == 'skipped' for result in data['results'])
+        assert data['message'] == 'Checked 0 channels: 0 online, 0 offline, 3 skipped.'
+        for channel in seed_channels:
+            db_session.refresh(channel)
+            assert (channel.is_online, channel.last_checked) == before[channel.id]
 
     def test_export_csv_is_reachable(self, client, seed_channels):
         """The CSV export must not be shadowed by the /{acestreamchannel_id} route."""

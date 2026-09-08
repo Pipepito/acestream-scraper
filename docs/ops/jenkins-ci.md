@@ -23,6 +23,12 @@ Current job model (adopted 2026-09-04):
 - `acestream-scraper-release` loads `jenkins/release.Jenkinsfile` from `main` and remains manual-only.
 - GitHub Actions workflows are retired; Jenkins is the sole CI/CD implementation.
 
+Develop validation diagnostics:
+
+- Full application validation prints each gate start/result and failed command output, including nested parity test failures. JSON summaries remain machine-readable.
+- Current reports and complete outer gate logs are archived under `.ci-develop-artifacts/` even when the validation container exits nonzero. Root report copies are cleared before validation so an earlier build cannot appear as the current result.
+- Scraper tests that persist URL status must pass the `db_session` fixture to the scraper. The isolated runner has no writable application database; relying on local data or earlier tests can hide failures.
+
 Security boundary:
 
 - Jenkins itself launches on the trusted Docker-capable executor labeled `dorat-nuc-ci`, but fork-controlled files execute only inside disposable restricted containers.

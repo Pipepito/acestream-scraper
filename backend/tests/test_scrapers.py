@@ -740,7 +740,7 @@ acestream://8888888888888888888888888888888888888888
         assert rows[0].url == original_url
         assert rows[0].status == "OK"
 
-    def test_base_scraper_extracts_linked_m3u_metadata(self):
+    def test_base_scraper_extracts_linked_m3u_metadata(self, db_session):
         from app.models.url_types import RegularURL
         from app.scrapers.base import BaseScraper
 
@@ -756,7 +756,7 @@ acestream://9999999999999999999999999999999999999999
 """
                 raise AssertionError(f"Unexpected URL: {url}")
 
-        scraper = _FakeScraper(RegularURL(url="https://example.com/page"))
+        scraper = _FakeScraper(RegularURL(url="https://example.com/page"), db=db_session)
         channels, status = asyncio.run(scraper.scrape())
 
         assert status == "OK"
@@ -772,7 +772,7 @@ acestream://9999999999999999999999999999999999999999
             )
         ]
 
-    def test_base_scraper_resolves_relative_m3u_links_for_zeronet_normalized_sources(self):
+    def test_base_scraper_resolves_relative_m3u_links_for_zeronet_normalized_sources(self, db_session):
         from app.models.url_types import ZeronetURL
         from app.scrapers.base import BaseScraper
 
@@ -787,7 +787,7 @@ acestream://cccccccccccccccccccccccccccccccccccccccc
 """
                 raise AssertionError(f"Unexpected URL: {url}")
 
-        scraper = _FakeScraper(ZeronetURL("zero://site/path"))
+        scraper = _FakeScraper(ZeronetURL("zero://site/path"), db=db_session)
         channels, status = asyncio.run(scraper.scrape())
 
         assert status == "OK"

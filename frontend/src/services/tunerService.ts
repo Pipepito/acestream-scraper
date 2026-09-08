@@ -5,6 +5,7 @@ export interface TunerSettings {
   tuner_count: number;
   max_channels: number;
   only_online: boolean;
+  experimental_transcoding?: boolean;
 }
 
 export type TunerSettingsUpdate = Partial<TunerSettings>;

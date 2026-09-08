@@ -176,3 +176,13 @@ class TestPlaylistResolution:
         self._add_channel(client)
         content = client.get("/api/v1/playlists/m3u?only_online=false").text
         assert f"acestream://{CID}" in content
+
+
+def test_stable_tv_format_accepts_numeric_id_placeholder(client):
+    response = client.post('/api/v1/base-urls', json={'name': 'TV relay', 'pattern': 'http://scraper/tuner/channel/{tv_channel_id}.ts'})
+    assert response.status_code == 201
+
+
+def test_stable_tv_format_rejects_mixed_stream_placeholders(client):
+    for pattern in ['http://scraper/{tv_channel_id}/{channel_id}', 'http://scraper/{tv_channel_id}?pid={pid}', 'acestream://{tv_channel_id}']:
+        assert client.post('/api/v1/base-urls', json={'name': 'Invalid', 'pattern': pattern}).status_code == 422

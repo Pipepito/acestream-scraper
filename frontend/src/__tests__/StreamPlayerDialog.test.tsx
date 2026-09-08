@@ -69,6 +69,24 @@ describe('StreamPlayerDialog', () => {
     mockStart.mockResolvedValue({ id: 's1' });
   });
 
+  it('keeps the inline schedule open and resizes without restarting playback', async () => {
+    mockStatus.mockReturnValue(readySession);
+    const Harness = () => {
+      const [large, setLarge] = React.useState(false);
+      return <StreamPlayerDialog inline open contentId="one" title="Arena TV" onClose={jest.fn()}
+        schedule={<div>Upcoming programmes</div>} largePlayer={large} onTogglePlayerSize={() => setLarge(!large)} />;
+    };
+    render(<ThemeProvider theme={createAppTheme('light')}><Harness /></ThemeProvider>);
+    await act(async () => { await Promise.resolve(); });
+    expect(screen.getByRole('button', { name: 'Schedule' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('Upcoming programmes')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Playback options' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Larger player' }));
+    expect(screen.getByRole('button', { name: 'Standard player' })).toHaveAttribute('aria-pressed', 'true');
+    expect(mockStart).toHaveBeenCalledTimes(1);
+    expect(mockLeave).not.toHaveBeenCalled();
+  });
+
   it('starts a session on open, shows starting stats, then attaches hls.js when ready', async () => {
     mockStatus.mockReturnValue({ data: { id: 's1', state: 'starting', hls_ready: false, stats: { peers: 4, speed_down: 900, speed_up: 0, status: 'prebuf' }, codecs: {}, playlist_url: '/api/v1/player/sessions/s1/index.m3u8', viewers: 1, error: null, error_message: '' } });
     const { rerender } = await renderDialog();

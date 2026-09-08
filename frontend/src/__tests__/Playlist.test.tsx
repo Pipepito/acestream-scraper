@@ -67,12 +67,33 @@ describe('Playlist page', () => {
     expect(screen.getByLabelText('Exclude groups')).toBeInTheDocument();
   });
 
+  it('includes unassigned streams only when selected and excludes them for favorites', () => {
+    renderPage();
+    const option = screen.getByRole('checkbox', { name: 'Include unassigned streams at the end' });
+    expect(new URL(urlField().value).searchParams.get('include_unassigned')).toBe('false');
+    fireEvent.click(option);
+    expect(new URL(urlField().value).searchParams.get('include_unassigned')).toBe('true');
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Favorite TV channels only' }));
+    expect(option).toBeDisabled();
+    expect(new URL(urlField().value).searchParams.get('include_unassigned')).toBe('false');
+  });
+
   it('adds favorites-only to the link', () => {
     renderPage();
     const checkbox = screen.getByRole('checkbox', { name: 'Favorite TV channels only' });
     expect(urlField().value).not.toContain('favorites_only=true');
     fireEvent.click(checkbox);
     expect(urlField().value).toContain('favorites_only=true');
+  });
+
+  it('offers stable TV channel relay URLs without saving a custom format', () => {
+    renderPage();
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Stream link format' }));
+    fireEvent.click(screen.getByRole('option', { name: 'TV channel relay (automatic failover)' }));
+    const url = new URL(urlField().value);
+    expect(url.searchParams.get('base_url')).toContain('/tuner/channel/{tv_channel_id}.ts');
+    expect(url.searchParams.has('base_url_id')).toBe(false);
+    expect(screen.getByText(/One entry per TV channel/)).toBeVisible();
   });
 
   it('appends base_url_id when a named link format is selected', () => {

@@ -11,6 +11,7 @@ class TunerSettingsResponse(BaseModel):
     tuner_count: int
     max_channels: int
     only_online: bool
+    experimental_transcoding: bool = Field(False, description="Experimental CPU-intensive transcoding for midstream recovery; default recovery requires client reconnection")
 
 
 class TunerSettingsUpdate(BaseModel):
@@ -18,6 +19,7 @@ class TunerSettingsUpdate(BaseModel):
     tuner_count: Optional[int] = Field(None, ge=1, le=16)
     max_channels: Optional[int] = Field(None, ge=1, le=1000)
     only_online: Optional[bool] = None
+    experimental_transcoding: Optional[bool] = None
 
 
 class TunerRenumbered(BaseModel):

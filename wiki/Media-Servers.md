@@ -164,10 +164,31 @@ startup budget. In-flight blocking engine calls and cleanup may finish after tha
 deadline before returning. One tuner slot stays reserved across all attempts.
 If none starts, the response is `502 CHANNEL_STREAM_FAILED`.
 
-Once video bytes have reached the player, a later failure ends that response.
-The app does not splice feeds with unrelated timestamps or codecs together.
-Reopening the same channel URL resolves the latest source list again. This is
-**startup failover**, not seamless recovery during a programme.
+By default the relay copies the original media without FFmpeg or encoding. If a
+source ends, errors or stalls for 15 seconds after playback starts, the response
+ends. The client must reconnect to the **same stable TV channel URL**. Recently
+failed sources are deprioritized for 60 seconds, so working alternatives are tried
+first. This failure memory is process-local and bounded; it does not overwrite
+verified status results. Enable automatic reconnect in your player where supported.
+The server cannot issue an HTTP redirect after sending media, and cannot force a
+client to reconnect. Recovery timing therefore depends on the player.
+
+**Integrations → Media servers → Tuner settings → Experimental transcoding recovery**
+is off by default and applies to new connections. Enabling it requires FFmpeg and
+attempts recovery on the same HTTP connection. Each viewer encodes video to MPEG-2
+at 25 fps and audio to stereo AAC, using two video encoder threads. This is CPU
+intensive, can overload small servers, increase bandwidth and reduce quality. Use
+at your own risk; uninterrupted playback in Plex/Jellyfin is not guaranteed.
+Attempts use fresh transport tables, discontinuities and timestamp offsets.
+Programme positions are not synchronized. Every source is tried once per 45-second
+recovery window; 30 seconds of delivery resets the budget. Exhaustion ends the
+response. Disconnecting cancels recovery and cleans up the process/source session.
+
+On **Playlist**, choose **TV channel relay (automatic failover)** or save a format
+such as `http://scraper:8000/tuner/channel/{tv_channel_id}.ts`. This generates one
+entry per TV channel, preserving its number and EPG ID, and excludes unassigned
+streams. `{channel_id}` remains the hash of a specific AceStream source; use
+`/tuner/stream/{channel_id}.ts` when deliberately pinning that source.
 
 Successful channel status checks also take a bounded media sample (at most 2 MiB
 and 10 seconds including analysis) to estimate encoded bitrate and discover audio
@@ -176,7 +197,7 @@ Existing channels start with unknown metadata; normal status checks populate it.
 A failed metadata probe leaves the previous measurement intact and does not turn
 an otherwise broadcasting source offline. Measurements are estimates and can age.
 
-The MPEG-TS relay preserves the source's audio tracks; Jellyfin/Plex can discover
+The TV relay retains the source's audio tracks, encoding each as stereo AAC; Jellyfin/Plex can discover
 them from the media. The channel API also exposes measured bitrate, its timestamp,
 and known audio tracks. No database/network work stays attached to an hours-long
 relay session.
@@ -186,12 +207,22 @@ relay session.
 A GET of `/tuner/channel/{tv_channel_id}.ts` (HDHomeRun, tuner M3U, or a player
 opening a stable channel URL) queues a quiet refresh of that channel's active
 sources. Already-online sources start immediately. Newly verified alternatives
-can join startup failover within its existing 45-second budget, including when
+can join recovery within its 45-second budget, including when
 all sources were previously offline. The app checks one channel at a time,
 coalesces concurrent requests for that channel, and bounds the queue to 32 channels.
 A full queue leaves playback using the currently known sources.
 
 HEAD requests and direct content-ID URLs do not trigger these refreshes. Sources
 currently used by an app relay or web player are protected from disruptive probes.
-After media bytes have been sent, a failed feed ends the response; the player must
-reopen the stable channel URL to choose another feed safely.
+While the TV relay is active, refreshes repeat every 60 seconds and after source
+failure. Viewers share the existing bounded refresh queue; active playback ownership
+continues to protect sources from disruptive checks. Refreshing never switches away
+from a source that is still delivering.
+
+Playlist → **Include unassigned streams at the end** appends matching streams
+without a TV channel after assigned channels. It is off by default in the page.
+With a TV channel relay format, these entries use `/tuner/stream/<hash>.ts` on
+the same relay server and have no channel failover; their numbers start at 9000
+(or above the highest included TV number). Search, group and online filters still
+apply. Favorites-only excludes unassigned streams. The playlist URL carries
+`include_unassigned=true|false`; the all-streams endpoint includes them by default.

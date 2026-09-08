@@ -213,6 +213,7 @@ const StreamLinkFormatsSection: React.FC<StreamLinkFormatsSectionProps> = ({ not
           </Stack>
         )}
         <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
+          Use <code>{'{tv_channel_id}'}</code> with <code>/tuner/channel/</code> for one stable relay entry per TV channel and automatic source failover. Playlist can optionally append unassigned streams using individual relay URLs. <code>{'{channel_id}'}</code> is the AceStream hash for a specific source.{' '}
           A format without placeholders is a prefix put before the channel id (like <code>acestream://</code>). A format with{' '}
           <code>{'{channel_id}'}</code> is a template and may also use <code>{'{pid}'}</code>, for example{' '}
           <code>{'http://127.0.0.1:6878/ace/getstream?id={channel_id}&pid={pid}'}</code>.
@@ -230,7 +231,7 @@ const StreamLinkFormatsSection: React.FC<StreamLinkFormatsSectionProps> = ({ not
                 fullWidth
                 value={newPattern}
                 onChange={(e) => setNewPattern(e.target.value)}
-                helperText={'A prefix like acestream://, or a template using {channel_id} and optionally {pid}'}
+                helperText={'Use {tv_channel_id} for a stable TV relay, or {channel_id} for a specific stream'}
               />
               <FormControlLabel control={<Checkbox checked={newIsDefault} onChange={(e) => setNewIsDefault(e.target.checked)} />} label="Set as default" />
             </Stack>
@@ -257,7 +258,7 @@ const StreamLinkFormatsSection: React.FC<StreamLinkFormatsSectionProps> = ({ not
                 fullWidth
                 value={editPattern}
                 onChange={(e) => setEditPattern(e.target.value)}
-                helperText={'A prefix like acestream://, or a template using {channel_id} and optionally {pid}'}
+                helperText={'Use {tv_channel_id} for a stable TV relay, or {channel_id} for a specific stream'}
               />
             </Stack>
           </DialogContent>

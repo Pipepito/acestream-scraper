@@ -6,8 +6,35 @@ import pytest
 
 from app.services.stream_relay import EngineStreamError, RelayRegistry
 from app.services.engine_client import EngineRefusedError
-from app.services.tuner_playback_service import relay_ranked_streams
+from functools import partial
+from app.services.tuner_playback_service import relay_ranked_streams as default_relay_ranked_streams
+relay_ranked_streams = partial(default_relay_ranked_streams, experimental_transcoding=True)
 from app.services.tuner_service import TunerService
+
+
+@pytest.fixture(autouse=True)
+def remux_test_transport(monkeypatch):
+    monkeypatch.setattr('app.services.tuner_playback_service._failures', __import__('collections').OrderedDict())
+    # Lifecycle tests use byte markers; real media remuxing is tested separately.
+    async def identity(source, **kwargs):
+        try:
+            async for chunk in source:
+                yield chunk
+        finally:
+            await source.aclose()
+    monkeypatch.setattr('app.services.tuner_playback_service.remux_source', identity)
+    monkeypatch.setattr('app.api.endpoints.tuner.ffmpeg_binary', lambda: '/test/ffmpeg')
+
+
+async def collect_until_exhausted(iterator):
+    chunks = []
+    try:
+        async for chunk in iterator:
+            chunks.append(chunk)
+    except EngineStreamError:
+        if not chunks:
+            raise
+    return chunks
 
 
 def test_online_sources_rank_by_measured_bitrate_with_unknown_last(db_session):
@@ -54,7 +81,7 @@ async def test_retry_holds_one_slot_and_cleans_attempts(monkeypatch, failure):
             cleaned.append(content_id)
     monkeypatch.setattr('app.services.tuner_playback_service.relay_engine_stream', relay)
     monkeypatch.setattr('app.services.tuner_playback_service.ATTEMPT_SECONDS', 0.01)
-    data = b''.join([chunk async for chunk in relay_ranked_streams(engine, ['high', 'low'], 'viewer', claim, registry=registry)])
+    data = b''.join(await collect_until_exhausted(relay_ranked_streams(engine, ['high', 'low'], 'viewer', claim, registry=registry)))
     assert data == b'video'
     assert attempts == cleaned == ['high', 'low']
     assert registry.count_active() == 0
@@ -77,7 +104,7 @@ async def test_exhaustion_is_an_error_not_empty_success(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_midstream_failure_does_not_splice_in_another_feed(monkeypatch):
+async def test_midstream_failure_advances_to_remuxed_backup(monkeypatch):
     attempts = []
     async def relay(_engine, content_id, *args, **kwargs):
         attempts.append(content_id)
@@ -88,14 +115,16 @@ async def test_midstream_failure_does_not_splice_in_another_feed(monkeypatch):
     claim = registry.try_open('one', 'viewer', 1)
     iterator = relay_ranked_streams(Mock(), ['one', 'two'], 'viewer', claim, registry=registry)
     assert await anext(iterator) == b'first'
+    assert await anext(iterator) == b'first'
     with pytest.raises(EngineStreamError):
         await anext(iterator)
-    assert attempts == ['one']
+    assert attempts == ['one', 'two']
     assert registry.count_active() == 0
 
 
 @pytest.mark.asyncio
-async def test_cancel_does_not_start_backup_and_releases_slot(monkeypatch):
+@pytest.mark.parametrize("experimental", [False, True])
+async def test_cancel_does_not_start_backup_and_releases_slot(monkeypatch, experimental):
     cleaned = asyncio.Event()
     entered = asyncio.Event()
     async def relay(*args, **kwargs):
@@ -109,9 +138,9 @@ async def test_cancel_does_not_start_backup_and_releases_slot(monkeypatch):
     registry = RelayRegistry()
     claim = registry.try_open('one', 'viewer', 1)
     engine = Mock()
-    iterator = relay_ranked_streams(engine, ['one', 'two'], 'viewer', claim, registry=registry)
+    iterator = default_relay_ranked_streams(engine, ['one', 'two'], 'viewer', claim, registry=registry, experimental_transcoding=experimental)
     task = asyncio.create_task(anext(iterator))
-    await entered.wait()
+    await asyncio.wait_for(entered.wait(), timeout=2)
     task.cancel()
     with pytest.raises(asyncio.CancelledError):
         await task
@@ -169,8 +198,8 @@ async def test_real_relay_stops_failed_session_before_starting_backup():
         claim = registry.try_open('high', 'viewer', 1)
         def factory(**kwargs):
             return httpx.AsyncClient(transport=httpx.MockTransport(handler), **kwargs)
-        output = b''.join([chunk async for chunk in relay_ranked_streams(engine, ['high', 'low'], 'viewer', claim,
-            registry=registry, client_factory=factory)])
+        output = b''.join(await collect_until_exhausted(relay_ranked_streams(engine, ['high', 'low'], 'viewer', claim,
+            registry=registry, client_factory=factory)))
         assert output == b'video bytes'
         assert events == [('start', 'high'), ('stop', 'high'), ('start', 'low'), ('stop', 'low')]
         assert registry.count_active() == 0
@@ -185,11 +214,11 @@ async def test_newly_verified_source_is_used_during_same_startup(monkeypatch):
             raise EngineStreamError('offline')
         yield b'backup'
     monkeypatch.setattr('app.services.tuner_playback_service.relay_engine_stream', relay)
-    provider = AsyncMock(side_effect=[([], True), (['stale', 'recovered'], False)])
+    provider = AsyncMock(side_effect=[([], True), (['stale', 'recovered'], False), (['recovered'], False), (['recovered'], False)])
     registry = RelayRegistry()
     claim = registry.try_open('stale', 'viewer', 1)
-    data = b''.join([part async for part in relay_ranked_streams(Mock(), ['stale'], 'viewer', claim,
-        registry=registry, candidate_provider=provider)])
+    data = b''.join(await collect_until_exhausted(relay_ranked_streams(Mock(), ['stale'], 'viewer', claim,
+        registry=registry, candidate_provider=provider)))
     assert data == b'backup'
     assert attempts == ['stale', 'recovered']
     assert registry.count_active() == 0
@@ -203,8 +232,8 @@ async def test_no_stored_online_sources_waits_for_refresh(monkeypatch):
     registry = RelayRegistry()
     claim = registry.try_open('offline', 'viewer', 1)
     provider = AsyncMock(return_value=(['recovered'], False))
-    assert b''.join([part async for part in relay_ranked_streams(Mock(), [], 'viewer', claim,
-        registry=registry, candidate_provider=provider)]) == b'recovered'
+    assert b''.join(await collect_until_exhausted(relay_ranked_streams(Mock(), [], 'viewer', claim,
+        registry=registry, candidate_provider=provider))) == b'recovered'
 
 
 @pytest.mark.asyncio
@@ -248,7 +277,12 @@ def test_channel_get_starts_quiet_refresh_and_recovers_offline_source(alembic_cl
         async def relay(_engine, content_id, *args, **kwargs):
             assert content_id == cid
             yield b'recovered video'
-        monkeypatch.setattr('app.services.tuner_playback_service.relay_engine_stream', relay)
+        async def ranked(*args, candidate_provider, **kwargs):
+            candidates, _ = await candidate_provider()
+            assert candidates == [cid]
+            yield b'recovered video'
+            engine.close()
+        monkeypatch.setattr(tuner, 'relay_ranked_streams', ranked)
         url = f'/tuner/channel/{tv.id}.ts'
         assert alembic_client.head(url).status_code == 200
         start.assert_not_called()
@@ -260,3 +294,126 @@ def test_channel_get_starts_quiet_refresh_and_recovers_offline_source(alembic_cl
     finally:
         get_settings.cache_clear()
         get_tuner_gate.cache_clear()
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('ending', ['eof', 'stalled'])
+async def test_eof_or_stalled_feed_uses_next_source_without_releasing_slot(monkeypatch, ending):
+    attempts = []
+    async def relay(_engine, cid, *args, **kwargs):
+        attempts.append(cid)
+        yield cid.encode()
+        if ending == 'stalled':
+            await asyncio.Event().wait()
+    monkeypatch.setattr('app.services.tuner_playback_service.relay_engine_stream', relay)
+    monkeypatch.setattr('app.services.tuner_playback_service.STALL_SECONDS', .01)
+    registry = RelayRegistry()
+    claim = registry.try_open('one', 'viewer', 1)
+    engine = Mock()
+    iterator = relay_ranked_streams(engine, ['one', 'two'], 'viewer', claim, registry=registry)
+    assert await anext(iterator) == b'one'
+    assert await anext(iterator) == b'two'
+    assert registry.count_active() == 1
+    await iterator.aclose()
+    assert attempts == ['one', 'two']
+    assert registry.count_active() == 0
+    engine.close.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_long_lived_source_gets_new_recovery_budget(monkeypatch):
+    monkeypatch.setattr('app.services.tuner_playback_service.STARTUP_BUDGET_SECONDS', .01)
+    monkeypatch.setattr('app.services.tuner_playback_service.HEALTHY_SECONDS', .01)
+    async def relay(_engine, cid, *args, **kwargs):
+        yield cid.encode()
+        if cid == 'one':
+            await asyncio.sleep(.03)
+    monkeypatch.setattr('app.services.tuner_playback_service.relay_engine_stream', relay)
+    registry = RelayRegistry()
+    claim = registry.try_open('one', 'viewer', 1)
+    iterator = relay_ranked_streams(Mock(), ['one', 'two'], 'viewer', claim, registry=registry)
+    assert await anext(iterator) == b'one'
+    assert await anext(iterator) == b'two'
+    await iterator.aclose()
+
+
+@pytest.mark.asyncio
+async def test_channel_monitor_repeats_only_while_response_is_open(monkeypatch):
+    from starlette.requests import Request
+    from app.api.endpoints import tuner
+    registry = RelayRegistry()
+    monkeypatch.setattr(tuner, 'relay_registry', registry)
+    monkeypatch.setattr(tuner, '_channel_candidates', lambda *args, **kwargs: ['one'])
+    monkeypatch.setattr(tuner, '_tuner_count', lambda: 1)
+    engine = Mock()
+    monkeypatch.setattr(tuner, '_engine', lambda: engine)
+    monkeypatch.setattr(tuner, 'SOURCE_REFRESH_SECONDS', .01)
+    refresh = Mock(return_value=None)
+    monkeypatch.setattr(tuner.tuner_probe_service, 'start', refresh)
+    async def relay(_engine, _candidates, _label, claim, **kwargs):
+        try:
+            yield b'video'
+            await asyncio.Event().wait()
+        finally:
+            registry.close(claim.id)
+            engine.close()
+    monkeypatch.setattr(tuner, 'relay_ranked_streams', relay)
+    response = await tuner.tuner_channel(1, Request({'type': 'http', 'method': 'GET', 'client': ('127.0.0.1', 1)}))
+    assert await anext(response.body_iterator) == b'video'
+    await asyncio.sleep(.03)
+    assert refresh.call_count >= 2
+    await response.body_iterator.aclose()
+    calls = refresh.call_count
+    await asyncio.sleep(.03)
+    assert refresh.call_count == calls
+    assert registry.count_active() == 0
+    engine.close.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_default_reconnect_uses_backup_without_ffmpeg(monkeypatch):
+    opened = []
+    closed = []
+    async def raw(engine, cid, *args, **kwargs):
+        opened.append(cid)
+        try:
+            yield cid.encode()
+            raise EngineStreamError('lost signal')
+        finally:
+            closed.append(cid)
+    monkeypatch.setattr('app.services.tuner_playback_service.relay_engine_stream', raw)
+    remux = Mock(side_effect=AssertionError('Default must not encode'))
+    monkeypatch.setattr('app.services.tuner_playback_service.remux_source', remux)
+    registry = RelayRegistry()
+    for expected in ('one', 'two'):
+        engine = Mock()
+        claim = registry.try_open('one', 'viewer', 1)
+        iterator = default_relay_ranked_streams(engine, ['one', 'two'], 'viewer', claim, registry=registry)
+        assert b''.join([chunk async for chunk in iterator]) == expected.encode()
+        assert registry.count_active() == 0
+        engine.close.assert_called_once()
+    assert opened == closed == ['one', 'two']
+    remux.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_default_retries_startup_failure_without_encoding(monkeypatch):
+    async def raw(engine, cid, *args, **kwargs):
+        if cid == 'one':
+            raise EngineRefusedError('unavailable')
+        yield b'backup'
+    monkeypatch.setattr('app.services.tuner_playback_service.relay_engine_stream', raw)
+    monkeypatch.setattr('app.services.tuner_playback_service.remux_source', Mock(side_effect=AssertionError('No encoding')))
+    registry = RelayRegistry()
+    claim = registry.try_open('one', 'viewer', 1)
+    assert b''.join([chunk async for chunk in default_relay_ranked_streams(Mock(), ['one', 'two'], 'viewer', claim, registry=registry)]) == b'backup'
+    assert registry.count_active() == 0
+
+
+def test_failed_source_cooldown_expires(monkeypatch):
+    from app.services import tuner_playback_service as service
+    now = [100.0]
+    monkeypatch.setattr(service.time, 'monotonic', lambda: now[0])
+    service.record_source_failure('one')
+    assert service.prefer_recovered_sources(['one', 'two']) == ['two', 'one']
+    now[0] += service.FAILURE_COOLDOWN_SECONDS
+    assert service.prefer_recovered_sources(['one', 'two']) == ['one', 'two']

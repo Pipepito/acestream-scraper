@@ -1032,7 +1032,7 @@
             "type": "string"
           },
           "pattern": {
-            "description": "Prefix, or a mask using {channel_id} and optionally {pid}",
+            "description": "Prefix, a stream mask using {channel_id} and optionally {pid}, or a TV relay mask using {tv_channel_id}",
             "maxLength": 1024,
             "minLength": 1,
             "title": "Pattern",
@@ -1064,7 +1064,7 @@
             "type": "string"
           },
           "pattern": {
-            "description": "Prefix, or a mask using {channel_id} and optionally {pid}",
+            "description": "Prefix, a stream mask using {channel_id} and optionally {pid}, or a TV relay mask using {tv_channel_id}",
             "maxLength": 1024,
             "minLength": 1,
             "title": "Pattern",
@@ -5665,6 +5665,12 @@
       },
       "TunerSettingsResponse": {
         "properties": {
+          "experimental_transcoding": {
+            "default": false,
+            "description": "Experimental CPU-intensive transcoding for midstream recovery; default recovery requires client reconnection",
+            "title": "Experimental Transcoding",
+            "type": "boolean"
+          },
           "friendly_name": {
             "title": "Friendly Name",
             "type": "string"
@@ -5693,6 +5699,17 @@
       },
       "TunerSettingsUpdate": {
         "properties": {
+          "experimental_transcoding": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Experimental Transcoding"
+          },
           "friendly_name": {
             "anyOf": [
               {
@@ -6551,6 +6568,22 @@
               "default": true,
               "title": "Only Online",
               "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_unassigned",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Include Unassigned"
             }
           },
           {
@@ -10969,6 +11002,24 @@
             }
           },
           {
+            "description": "Append unassigned streams at the end; defaults off for TV relay formats, on for stream formats.",
+            "in": "query",
+            "name": "include_unassigned",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Append unassigned streams at the end; defaults off for TV relay formats, on for stream formats.",
+              "title": "Include Unassigned"
+            }
+          },
+          {
             "in": "query",
             "name": "favorites_only",
             "required": false,
@@ -11142,6 +11193,24 @@
               "default": true,
               "title": "Only Online",
               "type": "boolean"
+            }
+          },
+          {
+            "description": "Append unassigned streams at the end; defaults off for TV relay formats, on for stream formats.",
+            "in": "query",
+            "name": "include_unassigned",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Append unassigned streams at the end; defaults off for TV relay formats, on for stream formats.",
+              "title": "Include Unassigned"
             }
           },
           {
@@ -14104,6 +14173,22 @@
           },
           {
             "in": "query",
+            "name": "include_unassigned",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Include Unassigned"
+            }
+          },
+          {
+            "in": "query",
             "name": "include_groups",
             "required": false,
             "schema": {
@@ -14267,6 +14352,22 @@
           },
           {
             "in": "query",
+            "name": "include_unassigned",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Include Unassigned"
+            }
+          },
+          {
+            "in": "query",
             "name": "include_groups",
             "required": false,
             "schema": {
@@ -14418,7 +14519,7 @@
             "description": "Validation Error"
           }
         },
-        "summary": "TV channel MPEG-TS with online source startup failover",
+        "summary": "TV channel MPEG-TS with automatic source failover",
         "tags": [
           "hdhomerun"
         ]

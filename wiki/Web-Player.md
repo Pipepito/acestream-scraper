@@ -30,6 +30,17 @@ While a channel is starting, the dialog shows the engine's peer count and downlo
 
 ## Live TV and choosing a stream
 
+Live TV uses the available page width. While watching, TV channels and unassigned
+streams share a scrollable catalogue; each section grows with its content.
+**Playback options › Larger player** gives the video more space on desktop, and
+**Standard player** restores the split. The top-bar navigation button collapses
+or restores the sidebar. These layout controls do not restart playback.
+
+The watched channel's **Schedule** opens below the player controls by default in
+its own scrollable section. Today shows programmes still on air and upcoming
+programmes, hiding entries once their end time passes. Future day tabs retain
+their full schedule. Guide times remain in the browser's timezone.
+
 **Send to player** beside Watch sends a channel directly to a saved external
 player without starting browser playback. Add players and access their playback
 controls under **Integrations › Remote players**.

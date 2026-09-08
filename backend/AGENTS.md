@@ -81,7 +81,11 @@ PYTHONPATH=backend alembic -c backend/migrations/alembic.ini upgrade head
 
 - Stable tuner channel URLs resolve online, active sources by measured bitrate
   (unknown last). Startup retries retain one tuner slot and close every failed
-  engine session. Never splice unrelated feeds after sending MPEG-TS bytes.
+  engine session. Default midstream failures end the response for client reconnect;
+  deprioritize recently failed sources. Only explicit experimental transcoding
+  enables recovery within the connection through FFmpeg with new table
+  versions and discontinuity signalling; never concatenate raw source bytes. Keep
+  one tuner slot, bounded retries, and deterministic process/source cleanup.
 - Bitrate/audio probes must stay bounded and restrict every HTTP redirect to the
   engine host before issuing it. ffprobe consumes a byte sample through stdin,
   never an upstream URL. Missing metadata is unknown, not zero bitrate.

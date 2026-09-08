@@ -1057,7 +1057,7 @@ export interface paths {
     get: operations["public_m3u_playlist_playlists_m3u_get"];
   };
   "/tuner/channel/{tv_channel_id}.ts": {
-    /** TV channel MPEG-TS with online source startup failover */
+    /** TV channel MPEG-TS with automatic source failover */
     get: operations["tuner_channel_tuner_channel__tv_channel_id__ts_get"];
   };
   "/tuner/stream/{content_id}.ts": {
@@ -1431,7 +1431,7 @@ export interface components {
       name: string;
       /**
        * Pattern
-       * @description Prefix, or a mask using {channel_id} and optionally {pid}
+       * @description Prefix, a stream mask using {channel_id} and optionally {pid}, or a TV relay mask using {tv_channel_id}
        */
       pattern: string;
     };
@@ -1448,7 +1448,7 @@ export interface components {
       name: string;
       /**
        * Pattern
-       * @description Prefix, or a mask using {channel_id} and optionally {pid}
+       * @description Prefix, a stream mask using {channel_id} and optionally {pid}, or a TV relay mask using {tv_channel_id}
        */
       pattern: string;
     };
@@ -3298,6 +3298,12 @@ export interface components {
     };
     /** TunerSettingsResponse */
     TunerSettingsResponse: {
+      /**
+       * Experimental Transcoding
+       * @description Experimental CPU-intensive transcoding for midstream recovery; default recovery requires client reconnection
+       * @default false
+       */
+      experimental_transcoding?: boolean;
       /** Friendly Name */
       friendly_name: string;
       /** Max Channels */
@@ -3309,6 +3315,8 @@ export interface components {
     };
     /** TunerSettingsUpdate */
     TunerSettingsUpdate: {
+      /** Experimental Transcoding */
+      experimental_transcoding?: boolean | null;
       /** Friendly Name */
       friendly_name?: string | null;
       /** Max Channels */
@@ -3629,6 +3637,7 @@ export interface operations {
         search?: string | null;
         group?: string | null;
         only_online?: boolean;
+        include_unassigned?: boolean | null;
         include_groups?: string | null;
         exclude_groups?: string | null;
         base_url?: string | null;
@@ -5843,6 +5852,8 @@ export interface operations {
         search?: string | null;
         group?: string | null;
         only_online?: boolean;
+        /** @description Append unassigned streams at the end; defaults off for TV relay formats, on for stream formats. */
+        include_unassigned?: boolean | null;
         favorites_only?: boolean;
         include_groups?: string | null;
         exclude_groups?: string | null;
@@ -5880,6 +5891,8 @@ export interface operations {
         search?: string | null;
         group?: string | null;
         only_online?: boolean;
+        /** @description Append unassigned streams at the end; defaults off for TV relay formats, on for stream formats. */
+        include_unassigned?: boolean | null;
         favorites_only?: boolean;
         include_groups?: string | null;
         exclude_groups?: string | null;
@@ -7414,6 +7427,7 @@ export interface operations {
         search?: string | null;
         group?: string | null;
         only_online?: boolean;
+        include_unassigned?: boolean | null;
         include_groups?: string | null;
         exclude_groups?: string | null;
         base_url?: string | null;
@@ -7447,6 +7461,7 @@ export interface operations {
         search?: string | null;
         group?: string | null;
         only_online?: boolean;
+        include_unassigned?: boolean | null;
         include_groups?: string | null;
         exclude_groups?: string | null;
         base_url?: string | null;
@@ -7470,7 +7485,7 @@ export interface operations {
       };
     };
   };
-  /** TV channel MPEG-TS with online source startup failover */
+  /** TV channel MPEG-TS with automatic source failover */
   tuner_channel_tuner_channel__tv_channel_id__ts_get: {
     parameters: {
       path: {

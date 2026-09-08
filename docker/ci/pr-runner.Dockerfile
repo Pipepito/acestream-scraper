@@ -17,6 +17,7 @@ RUN apt-get update \
         bash \
         ca-certificates \
         git \
+        ffmpeg \
         jq \
         rsync \
     && rm -rf /var/lib/apt/lists/*

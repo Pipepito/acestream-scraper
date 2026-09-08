@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 from typing import List, Tuple, Set, Dict, Union, Any
 from datetime import datetime
 from urllib.parse import urlparse
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 from app.models.url_types import BaseURL
 from app.services.m3u_service import M3UService
@@ -114,7 +114,7 @@ class BaseScraper(ABC):
 
     def extract_from_content(self, soup: BeautifulSoup) -> List[Tuple[str, str]]:
         """Extract acestream links from general content."""
-        channels = []
+        channels = self.extract_stream_fields(soup)
         ids = self.acestream_pattern.findall(str(soup))
 
         for id in ids:
@@ -129,6 +129,79 @@ class BaseScraper(ABC):
                     self.identified_ids.add(id)
                 # Do NOT add channels with generated names based on IDs
 
+        return channels
+
+    def extract_stream_fields(self, soup: BeautifulSoup) -> List[Tuple[str, str]]:
+        """Read explicit links and copy fields without scanning arbitrary hashes.
+
+        Bare form values need either the per-source opt-in, an AceStream field
+        name, or a matching explicit link in the same container. Hidden form
+        tokens and unrelated element IDs are never candidates.
+        """
+        channels = []
+        explicit = re.compile(r'acestream://([0-9a-f]{40})', re.IGNORECASE)
+        bare = re.compile(r'[0-9a-f]{40}', re.IGNORECASE)
+
+        def usable_name(value: str) -> str:
+            value = self.clean_channel_name(value)
+            if (not value or len(value) > 200 or re.search(r'[0-9a-f]{40}', value, re.I)
+                    or '://' in value or value.lower().strip('! ') in
+                    {'copy', 'play', 'open', 'watch', 'click here', 'direct open'}):
+                return ''
+            return value
+
+        def name_for(element: Tag) -> str:
+            if element.get('id'):
+                label = soup.find('label', attrs={'for': element['id']})
+                if label and (name := usable_name(label.get_text(' ', strip=True))):
+                    return name
+            for attr in ('aria-label', 'title'):
+                if name := usable_name(element.get(attr, '')):
+                    return name
+            if element.name == 'a' and (name := usable_name(element.get_text(' ', strip=True))):
+                return name
+            node = element
+            # Stay near the field; never borrow the first channel's name from
+            # elsewhere on a multi-channel page.
+            for _ in range(2):
+                previous = node.find_previous_sibling()
+                if previous and previous.name in ('label', 'div', 'p', 'h2', 'h3', 'h4', 'td'):
+                    if not previous.select('input, textarea, a[href]'):
+                        if name := usable_name(previous.get_text(' ', strip=True)):
+                            return name
+                node = node.parent
+                if not isinstance(node, Tag) or node.name in ('body', 'html', '[document]'):
+                    break
+                label = node.select_one('.link-name, label')
+                if label and (name := usable_name(label.get_text(' ', strip=True))):
+                    return name
+            heading = element.find_previous(['h1', 'h2', 'h3', 'h4'])
+            if heading and (name := usable_name(heading.get_text(' ', strip=True))):
+                return name
+            return usable_name(element.get('placeholder', ''))
+
+        for element in soup.select('a[href], input[value], textarea, [data-acestream], [data-acestream-id]'):
+            if element.get('type', '').lower() in ('hidden', 'password'):
+                continue
+            value = (element.get('data-acestream-id') or element.get('data-acestream')
+                     or element.get('href') or element.get('value')
+                     or element.get_text()).strip()
+            match = explicit.fullmatch(value)
+            if match:
+                channel_id = match.group(1).lower()
+            elif bare.fullmatch(value) and element.name != 'a':
+                channel_id = value.lower()
+                hint = ' '.join(str(element.get(attr, '')) for attr in ('id', 'name', 'class'))
+                nearby_links = element.parent.find_all('a', href=explicit) if element.parent else []
+                linked = any(link['href'].lower() == f'acestream://{channel_id}' for link in nearby_links)
+                if not (self.scrape_bare_ids or linked or 'acestream' in hint.lower()
+                        or element.has_attr('data-acestream') or element.has_attr('data-acestream-id')):
+                    continue
+            else:
+                continue
+            if channel_id not in self.identified_ids:
+                channels.append((channel_id, name_for(element) or channel_id))
+                self.identified_ids.add(channel_id)
         return channels
 
     def extract_named_text_list(self, content: str) -> List[Tuple[str, str, Dict[str, Any]]]:

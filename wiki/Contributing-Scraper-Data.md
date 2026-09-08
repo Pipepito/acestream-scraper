@@ -6,6 +6,23 @@ The Acestream Scraper relies on specialized code to extract channel information 
 
 ## How You Can Help
 
+### Start without developer tools
+
+Add the page URL in Scraper and run it. Normal AceStream links and copy fields
+with matching links or explicit AceStream attributes are detected automatically.
+Names come from labels, nearby text or headings; a missing name keeps the content
+ID so you can rename it later. Duplicate IDs are imported once.
+
+If a page shows only raw content IDs, enable **Harvest bare IDs** in that URL's
+actions menu. This also reads text input values and textareas. Hidden fields,
+password fields and unrelated HTML element IDs are ignored.
+
+If nothing is found, report what you see on the page and the scraper's status.
+A screenshot of the channel area is useful; console commands are optional.
+Pages that require JavaScript or show a browser verification challenge may not
+provide channel data to the HTTP scraper. Extraction options cannot fix a blocked
+fetch. The advanced examples below are for contributors comfortable inspecting HTML.
+
 ### What We Need
 
 To improve our scrapers, we need to understand:

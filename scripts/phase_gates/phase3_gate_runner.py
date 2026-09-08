@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shlex
 import subprocess
 import sys
@@ -74,7 +75,7 @@ def print_human_report(summary: Dict[str, Any]) -> None:
         if result["status"] == "failed":
             if result["stderr_tail"]:
                 print(f"  stderr: {result['stderr_tail']}")
-            elif result["stdout_tail"]:
+            if result["stdout_tail"]:
                 print(f"  stdout: {result['stdout_tail']}")
         print()
 
@@ -88,6 +89,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run Phase 3 cutover gates.")
     parser.add_argument("--profile", default="quick", help="Gate profile to run (quick|full).")
     parser.add_argument("--config", default=str(DEFAULT_CONFIG), help="Path to gate config file.")
+    parser.add_argument("--log-dir", type=Path, help="Retain complete stdout/stderr for each gate command.")
     parser.add_argument("--json-output", action="store_true", help="Print machine-readable JSON summary.")
     parser.add_argument(
         "--skip-command",
@@ -135,10 +137,18 @@ def main() -> int:
                 "stderr_tail": "",
             })
             continue
+        print(f"[phase3] Running {command['id']}...", file=sys.stderr, flush=True)
         started = time.time()
         completed = run_command(rendered_command, repo_root)
         duration_ms = int((time.time() - started) * 1000)
 
+        print(f"[phase3] {command['id']}: exit {completed.returncode} ({duration_ms} ms)", file=sys.stderr, flush=True)
+        if args.log_dir:
+            args.log_dir.mkdir(parents=True, exist_ok=True)
+            log_name = re.sub(r'[^a-zA-Z0-9_.-]', '_', command['id'])
+            (args.log_dir / f"{log_name}.log").write_text(
+                f"Command: {rendered_command}\nExit: {completed.returncode}\n\nSTDOUT\n{completed.stdout}\nSTDERR\n{completed.stderr}", encoding="utf-8",
+            )
         stdout_lines = completed.stdout.strip().splitlines()
         stderr_lines = completed.stderr.strip().splitlines()
 
@@ -150,8 +160,8 @@ def main() -> int:
             "status": "passed" if completed.returncode == 0 else "failed",
             "exit_code": completed.returncode,
             "duration_ms": duration_ms,
-            "stdout_tail": stdout_lines[-1] if stdout_lines else "",
-            "stderr_tail": stderr_lines[-1] if stderr_lines else "",
+            "stdout_tail": "\n".join(stdout_lines[-80:])[-16000:],
+            "stderr_tail": "\n".join(stderr_lines[-80:])[-16000:],
         }
         results.append(result)
 

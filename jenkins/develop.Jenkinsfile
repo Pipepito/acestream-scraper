@@ -80,8 +80,10 @@ set -euo pipefail
 artifact_dir="$WORKSPACE/.ci-develop-artifacts"
 rm -rf "$artifact_dir"
 mkdir -p "$artifact_dir"
+rm -f phase3-gate-report-full.json phase3-phase1-full.json
 host_uid="$(id -u)"
 host_gid="$(id -g)"
+set +e
 docker run --rm \
   --network none \
   --read-only \
@@ -102,13 +104,21 @@ docker run --rm \
   --workdir /workspace \
   "$PR_RUNNER_IMAGE" \
   bash -c 'cp -R /source/. /workspace/ && CI_OUTPUT_DIR=/artifacts bash scripts/ci/run_develop_validation.sh'
-cp "$artifact_dir"/*.json .
+validation_status=$?
+set -e
+for report in "$artifact_dir"/*.json; do
+  if [[ -f "$report" ]]; then cp "$report" .; fi
+done
+if [[ "$validation_status" -ne 0 ]]; then
+  echo "Application validation failed (exit $validation_status); see the gate output and archived .ci-develop-artifacts reports."
+  exit "$validation_status"
+fi
 docker compose config -q
 '''
       }
       post {
         always {
-          archiveArtifacts artifacts: 'phase3-gate-report-full.json, phase3-phase1-full.json', allowEmptyArchive: true
+          archiveArtifacts artifacts: '.ci-develop-artifacts/**, phase3-gate-report-full.json, phase3-phase1-full.json', allowEmptyArchive: true
         }
       }
     }

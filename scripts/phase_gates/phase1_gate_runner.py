@@ -60,6 +60,8 @@ def print_human_report(summary: Dict[str, Any]) -> None:
             print(f"  exit: {result['exit_code']}")
         if result["status"] == "failed" and result["stderr_tail"]:
             print(f"  stderr: {result['stderr_tail']}")
+        if result["status"] == "failed" and result.get("stdout_tail"):
+            print(f"  stdout: {result['stdout_tail']}")
         print()
 
     print("Summary:")
@@ -122,6 +124,7 @@ def main() -> int:
             "status": "planned" if args.dry_run else "passed",
             "exit_code": None,
             "stderr_tail": "",
+            "stdout_tail": "",
         }
 
         if not args.dry_run:
@@ -129,8 +132,8 @@ def main() -> int:
             result["exit_code"] = completed.returncode
             result["status"] = "passed" if completed.returncode == 0 else "failed"
             if completed.returncode != 0:
-                stderr_lines = completed.stderr.strip().splitlines()
-                result["stderr_tail"] = stderr_lines[-1] if stderr_lines else ""
+                result["stderr_tail"] = "\n".join(completed.stderr.strip().splitlines()[-80:])[-16000:]
+                result["stdout_tail"] = "\n".join(completed.stdout.strip().splitlines()[-80:])[-16000:]
 
         results.append(result)
 

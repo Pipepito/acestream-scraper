@@ -37,6 +37,9 @@ export interface StreamPlayerDialogProps {
   /** Extra buttons (e.g. "Play on…") rendered next to Copy stream link. */
   extraActions?: React.ReactNode;
   details?: React.ReactNode;
+  schedule?: React.ReactNode;
+  largePlayer?: boolean;
+  onTogglePlayerSize?: () => void;
   /** Embedded viewing surface used by Live TV. */
   inline?: boolean;
 }
@@ -59,7 +62,7 @@ const startPlayback = (video: HTMLVideoElement): void => {
 };
 
 /** Plays one channel through the backend's HLS pipeline. */
-const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId, title, onClose, extraActions, details, inline = false }) => {
+const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId, title, onClose, extraActions, details, schedule, largePlayer, onTogglePlayerSize, inline = false }) => {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('md'));
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -236,6 +239,7 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
           : '';
 
   const playbackOptions = <>
+          {onTogglePlayerSize ? <Button onClick={onTogglePlayerSize} aria-pressed={largePlayer}>{largePlayer ? 'Standard player' : 'Larger player'}</Button> : null}
           {status?.codecs.video ? (
             <Typography variant="caption" color="text.secondary">
               Video {status.codecs.video.toUpperCase()} · audio {(status.codecs.audio ?? 'unknown').toUpperCase()} re-encoded to AAC
@@ -279,7 +283,7 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
               {statusText}
             </Typography>
           )}
-          {inline ? <Accordion disableGutters><AccordionSummary expandIcon={<ExpandMoreRounded />}><Typography>Playback options and schedule</Typography></AccordionSummary><AccordionDetails><Stack spacing={1.5}>{playbackOptions}</Stack></AccordionDetails></Accordion> : playbackOptions}
+          {inline ? <Accordion disableGutters><AccordionSummary expandIcon={<ExpandMoreRounded />}><Typography>Playback options</Typography></AccordionSummary><AccordionDetails><Stack spacing={1.5}>{playbackOptions}</Stack></AccordionDetails></Accordion> : playbackOptions}
         </Stack>
       </DialogContent>
       <DialogActions sx={{ flexWrap: 'wrap', gap: 1, px: 2, pb: 'max(16px, env(safe-area-inset-bottom))' }}>
@@ -291,6 +295,7 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
           {inline ? 'Stop watching' : 'Close'}
         </Button>
       </DialogActions>
+      {schedule ? <Accordion defaultExpanded disableGutters sx={{ mx: 2, mb: 2 }}><AccordionSummary expandIcon={<ExpandMoreRounded />}><Typography component="h3">Schedule</Typography></AccordionSummary><AccordionDetails sx={{ maxHeight: 420, overflowY: 'auto' }} tabIndex={0} aria-label="Channel schedule">{schedule}</AccordionDetails></Accordion> : null}
       <Snackbar open={copied !== null} autoHideDuration={3000} onClose={() => setCopied(null)}>
         <Alert severity={copied === 'ok' ? 'success' : 'error'} onClose={() => setCopied(null)}>
           {copied === 'ok' ? 'Stream link copied. Open it in VLC or any player on this network.' : 'Unable to copy the link.'}

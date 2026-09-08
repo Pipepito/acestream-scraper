@@ -3,6 +3,7 @@ Tests for the curated playlists: TV-channels and all-streams.
 """
 
 import uuid
+import pytest
 
 from fastapi import status
 
@@ -200,3 +201,70 @@ class TestDisplayNameCollisions:
         # quote count is exactly 2 per attribute.
         assert attrs_part.count('"') == 2 * attrs_part.count('="')
         assert "Canal 24' Ultra" in extinf[0]
+
+
+@pytest.mark.parametrize('path', ['/api/v1/playlists/m3u', '/api/v1/playlists/tv-channels/m3u', '/api/v1/playlists/all-streams/m3u'])
+def test_tv_id_template_emits_one_stable_entry_and_excludes_unassigned(client, seed_tv_channels, db_session, path):
+    tv = seed_tv_channels[0]
+    first = _make_stream(db_session, 'A', tv_channel_id=tv.id, is_online=True)
+    _make_stream(db_session, 'B', tv_channel_id=tv.id, is_online=True)
+    _make_stream(db_session, 'Unassigned', is_online=True)
+    pattern = 'http://scraper.test/tuner/channel/{tv_channel_id}.ts'
+    response = client.get(path, params={'base_url': pattern, 'only_online': 'false', 'include_unassigned': 'false'})
+    assert response.status_code == 200
+    links = [line for line in response.text.splitlines() if line and not line.startswith('#')]
+    assert links == [f'http://scraper.test/tuner/channel/{tv.id}.ts']
+    assert first.id not in response.text
+    assert f'tvg-chno="{tv.channel_number}"' in response.text
+    assert f'tvg-id="{tv.epg_id}"' in response.text
+
+
+def test_tv_relay_search_uses_tv_name_and_keeps_source_filters(client, seed_tv_channels, db_session):
+    tv = seed_tv_channels[0]
+    _make_stream(db_session, 'Different source name', tv_channel_id=tv.id, is_online=True)
+    params = {'base_url': 'http://scraper/tuner/channel/{tv_channel_id}.ts', 'search': tv.name}
+    response = client.get('/api/v1/playlists/m3u', params=params)
+    assert f'/tuner/channel/{tv.id}.ts' in response.text
+    response = client.get('/api/v1/playlists/m3u', params={**params, 'search': 'not a channel'})
+    assert '#EXTINF' not in response.text
+
+
+@pytest.mark.parametrize('relay', [False, True])
+def test_optional_unassigned_streams_are_last_and_filtered(client, seed_tv_channels, db_session, relay):
+    tv = seed_tv_channels[0]
+    assigned = _make_stream(db_session, 'Z assigned', tv_channel_id=tv.id, is_online=True, group='Keep')
+    loose = _make_stream(db_session, 'A loose', is_online=True, group='Keep')
+    offline = _make_stream(db_session, 'Offline', is_online=False, group='Keep')
+    excluded = _make_stream(db_session, 'Excluded', is_online=True, group='Other')
+    params = {'include_unassigned': 'true', 'only_online': 'true', 'group': 'Keep',
+              'base_url': 'http://scraper.test/tuner/channel/{tv_channel_id}.ts' if relay else 'acestream://{channel_id}'}
+    response = client.get('/api/v1/playlists/m3u', params=params)
+    assert response.status_code == 200
+    links = [line for line in response.text.splitlines() if line and not line.startswith('#')]
+    assert links == ([f'http://scraper.test/tuner/channel/{tv.id}.ts', f'http://scraper.test/tuner/stream/{loose.id}.ts'] if relay else [f'acestream://{assigned.id}', f'acestream://{loose.id}'])
+    assert offline.id not in response.text
+    assert excluded.id not in response.text
+    assert loose.id not in client.get('/api/v1/playlists/m3u', params={**params, 'include_unassigned': 'false'}).text
+    assert loose.id not in client.get('/api/v1/playlists/m3u', params={**params, 'favorites_only': 'true'}).text
+    searched = client.get('/api/v1/playlists/m3u', params={**params, 'search': 'A loose'})
+    assert loose.id in searched.text
+    assert assigned.id not in searched.text
+
+
+def test_all_streams_relay_appends_unassigned(client, seed_tv_channels, db_session):
+    tv = seed_tv_channels[0]
+    _make_stream(db_session, 'Assigned', tv_channel_id=tv.id)
+    loose = _make_stream(db_session, 'Loose')
+    response = client.get('/api/v1/playlists/all-streams/m3u', params={'base_url': 'http://scraper.test/tuner/channel/{tv_channel_id}.ts'})
+    assert response.status_code == 200
+    assert response.text.index(f'/tuner/channel/{tv.id}.ts') < response.text.index(f'/tuner/stream/{loose.id}.ts')
+    assert 'tvg-chno="9000"' in response.text
+
+
+@pytest.mark.parametrize('path', ['/playlists/m3u', '/playlist.m3u', '/api/playlists/m3u', '/api/v1/playlists/playlists/m3u'])
+def test_unassigned_option_in_compatibility_urls(client, db_session, path):
+    loose = _make_stream(db_session, 'Loose', is_online=True)
+    for include in ('true', 'false'):
+        response = client.get(path, params={'include_unassigned': include})
+        assert response.status_code == 200
+        assert (loose.id in response.text) == (include == 'true')

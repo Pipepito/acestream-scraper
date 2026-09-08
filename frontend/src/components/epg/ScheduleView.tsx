@@ -81,9 +81,10 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ epgChannelId, now: supplied
   const programs = useMemo(
     () =>
       (data ?? [])
-        .filter((program) => parseISO(program.end_time) > dayStart && parseISO(program.start_time) < dayEnd)
+        .filter((program) => parseISO(program.end_time) > dayStart && parseISO(program.start_time) < dayEnd
+          && (dayOffset !== 0 || parseISO(program.end_time) > now))
         .sort((a, b) => parseISO(a.start_time).getTime() - parseISO(b.start_time).getTime()),
-    [data, dayStart, dayEnd]
+    [data, dayStart, dayEnd, dayOffset, now]
   );
 
   const groups = useMemo(() => {

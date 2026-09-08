@@ -33,16 +33,16 @@ import { QRCodeSVG } from 'qrcode.react';
 import { useChannelGroups, usePlaylistChannelSummary } from '../hooks/usePlaylists';
 import { useBaseUrls } from '../hooks/useBaseUrls';
 import { usePublicUrl } from '../hooks/useSystemServices';
-import { PlaylistFilters, playlistService, getAbsolutePlaylistUrl } from '../services/playlistService';
+import { PlaylistFilters, playlistService, getAbsolutePlaylistUrl, buildPublicUrl } from '../services/playlistService';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
 
 /** Build the M3U link, then download it or hand it to a player. */
 const Playlist: React.FC = () => {
-  const [filters, setFilters] = useState<PlaylistFilters>({ only_online: false, include_groups: [], exclude_groups: [] });
+  const [filters, setFilters] = useState<PlaylistFilters>({ only_online: false, include_unassigned: false, include_groups: [], exclude_groups: [] });
   const [showGroups, setShowGroups] = useState(false);
   const [search, setSearch] = useState('');
-  const [selectedBaseUrlId, setSelectedBaseUrlId] = useState<number | ''>('');
+  const [selectedBaseUrlId, setSelectedBaseUrlId] = useState<number | '' | 'tv-relay'>('');
   const [formatsOpen, setFormatsOpen] = useState(false);
   const [formatNotice, setFormatNotice] = useState<{message: string; severity: 'success' | 'error'} | null>(null);
   const [qrOpen, setQrOpen] = useState(false);
@@ -54,14 +54,17 @@ const Playlist: React.FC = () => {
   const { data: summary } = usePlaylistChannelSummary();
 
   useEffect(() => {
-    if (!loadingBaseUrls && !baseUrlsError && selectedBaseUrlId !== '' && !namedBaseUrls.some(entry => entry.id === selectedBaseUrlId)) setSelectedBaseUrlId('');
+    if (!loadingBaseUrls && !baseUrlsError && selectedBaseUrlId !== '' && selectedBaseUrlId !== 'tv-relay' && !namedBaseUrls.some(entry => entry.id === selectedBaseUrlId)) setSelectedBaseUrlId('');
   }, [namedBaseUrls, loadingBaseUrls, baseUrlsError, selectedBaseUrlId]);
-  const selectedFormat = namedBaseUrls.find(entry => selectedBaseUrlId === '' ? entry.is_default : entry.id === selectedBaseUrlId);
+  const relayPattern = buildPublicUrl('/tuner/channel/{tv_channel_id}.ts', publicUrl?.url).replace('%7Btv_channel_id%7D', '{tv_channel_id}');
+  const selectedFormat = selectedBaseUrlId === 'tv-relay' ? { name: 'TV channel relay (automatic failover)', pattern: relayPattern } : namedBaseUrls.find(entry => selectedBaseUrlId === '' ? entry.is_default : entry.id === selectedBaseUrlId);
 
   const effectiveFilters: PlaylistFilters = {
     ...filters,
     search: search || undefined,
-    base_url_id: selectedBaseUrlId === '' ? undefined : selectedBaseUrlId,
+    include_unassigned: !filters.favorites_only && filters.include_unassigned,
+    base_url_id: typeof selectedBaseUrlId === 'number' ? selectedBaseUrlId : undefined,
+    base_url: selectedBaseUrlId === 'tv-relay' ? relayPattern : undefined,
   };
   const playlistUrl = playlistService.getPlaylistDownloadUrl(effectiveFilters);
   const absolutePlaylistUrl = getAbsolutePlaylistUrl(effectiveFilters, publicUrl?.url);
@@ -134,21 +137,29 @@ const Playlist: React.FC = () => {
                 control={<Checkbox checked={filters.favorites_only ?? false} onChange={(e) => setFilters((prev) => ({ ...prev, favorites_only: e.target.checked }))} />}
                 label="Favorite TV channels only"
               />
+              <Box>
+                <FormControlLabel
+                  control={<Checkbox checked={filters.include_unassigned ?? false} disabled={filters.favorites_only} onChange={(e) => setFilters((prev) => ({ ...prev, include_unassigned: e.target.checked }))} />}
+                  label="Include unassigned streams at the end"
+                />
+                <FormHelperText sx={{ mt: -0.5, ml: 4 }}>{filters.favorites_only ? 'Unassigned streams have no favorite TV channel.' : 'Streams without a TV channel appear last. In relay playlists they use individual stream URLs, without channel failover.'}</FormHelperText>
+              </Box>
               <FormControl fullWidth size="small">
                 <InputLabel id="stream-base-url-label" shrink>Stream link format</InputLabel>
-                <Select<number | ''>
+                <Select<number | '' | 'tv-relay'>
                   labelId="stream-base-url-label"
                   displayEmpty
-                  renderValue={(value) => value === '' ? 'Default' : namedBaseUrls.find(entry => entry.id === value)?.name ?? 'Default'}
+                  renderValue={(value) => value === '' ? 'Default' : value === 'tv-relay' ? 'TV channel relay (automatic failover)' : namedBaseUrls.find(entry => entry.id === value)?.name ?? 'Default'}
                   value={selectedBaseUrlId}
                   onChange={(event) => {
                     const value = event.target.value;
-                    setSelectedBaseUrlId(value === '' ? '' : Number(value));
+                    setSelectedBaseUrlId(value === '' || value === 'tv-relay' ? value : Number(value));
                   }}
                   input={<OutlinedInput label="Stream link format" notched />}
                   disabled={loadingBaseUrls}
                 >
                   <MenuItem value="">Default</MenuItem>
+                  <MenuItem value="tv-relay">TV channel relay (automatic failover)</MenuItem>
                   {namedBaseUrls.map((entry) => (
                     <MenuItem key={entry.id} value={entry.id}>
                       {entry.is_default ? `${entry.name} (default)` : entry.name}
@@ -158,6 +169,7 @@ const Playlist: React.FC = () => {
                 <FormHelperText>Default uses your saved format, or acestream:// when none is saved.</FormHelperText>
               </FormControl>
               {selectedFormat ? <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}><strong>{selectedFormat.name}:</strong> {selectedFormat.pattern}</Typography> : null}
+              {selectedFormat?.pattern.includes('{tv_channel_id}') ? <Alert severity="info">One entry per TV channel, using its stable ID. If playback fails, the relay selects another source when your player reconnects. Experimental transcoding recovery can be enabled in Integrations → Tuner settings. Unassigned streams can be included below the TV channels using individual relay URLs.</Alert> : null}
               {baseUrlsError ? <Alert severity="warning">Could not load stream link formats. Try reloading the page.</Alert> : null}
               <Button onClick={() => setFormatsOpen(value => !value)} aria-expanded={formatsOpen} aria-controls="playlist-formats" size="small">{namedBaseUrls.length ? 'Manage link formats' : 'Set up link formats'}</Button>
               <Box>

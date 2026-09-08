@@ -12,11 +12,13 @@ export interface PlaylistFilters {
   group?: string;
   search?: string;
   only_online?: boolean;
+  include_unassigned?: boolean;
   favorites_only?: boolean;
   include_groups?: string[];
   exclude_groups?: string[];
   /** ID of a named stream base URL entry (see baseUrlService) */
   base_url_id?: number;
+  base_url?: string;
 }
 
 /**
@@ -40,6 +42,7 @@ export const playlistService = {
   getPlaylistDownloadUrl: (filters?: PlaylistFilters): string => {
     const params = new URLSearchParams();
     if (filters) {
+      if (filters.include_unassigned !== undefined) params.append('include_unassigned', String(filters.include_unassigned));
       if (filters.group) params.append('group', filters.group);
       if (filters.search) params.append('search', filters.search);
       if (filters.only_online !== undefined) params.append('only_online', String(filters.only_online));
@@ -50,6 +53,7 @@ export const playlistService = {
       if (filters.exclude_groups) {
         filters.exclude_groups.forEach(g => params.append('exclude_groups', g));
       }
+      if (filters.base_url) params.append('base_url', filters.base_url);
       if (filters.base_url_id !== undefined) params.append('base_url_id', String(filters.base_url_id));
     }
     const base = getPlaylistDownloadBaseUrl({

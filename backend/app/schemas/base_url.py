@@ -7,6 +7,11 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 def _validate_pattern(pattern: str) -> str:
+    if "{tv_channel_id}" in pattern:
+        if "{channel_id}" in pattern or "{pid}" in pattern:
+            raise ValueError("TV channel relay formats cannot contain stream IDs or PID placeholders")
+        if not pattern.startswith(("http://", "https://")):
+            raise ValueError("TV channel relay formats must use HTTP or HTTPS")
     # {pid} only renders inside a mask; without {channel_id} the pattern
     # falls back to prefix mode and would glue the channel id onto a
     # literal placeholder.
@@ -18,7 +23,7 @@ def _validate_pattern(pattern: str) -> str:
 class BaseUrlBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     pattern: str = Field(..., min_length=1, max_length=1024,
-                         description="Prefix, or a mask using {channel_id} and optionally {pid}")
+                         description="Prefix, a stream mask using {channel_id} and optionally {pid}, or a TV relay mask using {tv_channel_id}")
     is_default: bool = False
 
     @field_validator("pattern")

@@ -7,7 +7,7 @@ jest.mock('../hooks/useChannels', () => ({ useAcestreamChannel: (...args: unknow
 jest.mock('../hooks/useTVChannels', () => ({ useTVChannel: (...args: unknown[]) => mockTV(...args) }));
 jest.mock('../components/player/ChannelGuide', () => ({ __esModule: true, default: () => <div>Channel schedule</div> }));
 jest.mock('../components/player/PlayOnMenu', () => ({ __esModule: true, default: ({ contentId }: { contentId: string }) => <button>Remote {contentId}</button> }));
-jest.mock('../components/player/StreamPlayerDialog', () => ({ __esModule: true, default: ({ contentId, details, extraActions }: { contentId: string; details: React.ReactNode; extraActions: React.ReactNode }) => <div><output>{contentId}</output>{details}{extraActions}</div> }));
+jest.mock('../components/player/StreamPlayerDialog', () => ({ __esModule: true, default: ({ contentId, details, schedule, extraActions }: { contentId: string; details: React.ReactNode; schedule: React.ReactNode; extraActions: React.ReactNode }) => <div><output>{contentId}</output>{details}{schedule}{extraActions}</div> }));
 const channel = { id: 5, name: 'Arena TV', acestream_channels: [{ id: 'one', name: 'HD', is_online: true }, { id: 'two', name: 'Backup', is_online: false }] };
 describe('channel-aware player', () => {
   beforeEach(() => { jest.clearAllMocks(); mockStream.mockReturnValue({ data: { tv_channel_id: 5 } }); mockTV.mockReturnValue({ data: channel }); });

@@ -105,3 +105,14 @@ def test_ffmpeg_builder_produces_a_working_static_binary(tmp_path, platform):
     player = subprocess.run(base + ["/ff/ffmpeg"] + PLAYER_COMMAND, capture_output=True, text=True, timeout=300)
     assert player.returncode == 0, player.stderr
     assert (out / "player" / "index.m3u8").exists() and list((out / "player").glob("seg*.ts"))
+
+    # Exercise the relay's actual encoding flags against the bundled binary.
+    from app.services.tuner_remux import remux_argv
+    relay = subprocess.run(base[:3] + ['-i'] + base[3:] + remux_argv('/ff/ffmpeg', version=1, offset=0),
+                           input=FIXTURE.read_bytes(), capture_output=True, timeout=300)
+    assert relay.returncode == 0, relay.stderr.decode(errors='replace')
+    (out / 'relay.ts').write_bytes(relay.stdout)
+    relay_probe = subprocess.run(base + ['/ff/ffprobe', '-v', 'error', '-show_entries',
+        'stream=codec_name', '-of', 'json', '/out/relay.ts'], capture_output=True, text=True, timeout=300)
+    assert relay_probe.returncode == 0, relay_probe.stderr
+    assert [item['codec_name'] for item in json.loads(relay_probe.stdout)['streams']] == ['mpeg2video', 'aac']

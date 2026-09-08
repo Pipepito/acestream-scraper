@@ -45,11 +45,18 @@ describe('ScheduleView', () => {
     expect(within(nowNext).getByText('Evening News')).toBeInTheDocument();
     expect(within(nowNext).getByText(/18:00–19:00 · starts in/)).toBeInTheDocument();
 
-    expect(screen.getByText('3 programmes today')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 3, name: '09:00' })).toBeInTheDocument();
+    expect(screen.getByText('2 programmes today')).toBeInTheDocument();
+    expect(screen.queryByText('Morning Show')).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 3, name: '09:00' })).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 3, name: '11:00' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 3, name: '18:00' })).toBeInTheDocument();
     expect(screen.queryByText('Tomorrow Special')).not.toBeInTheDocument();
+  });
+
+  it('removes a programme at its end time while retaining the next programme', () => {
+    render(<ThemeProvider theme={createAppTheme('light')}><ScheduleView epgChannelId={42} now={new Date(2026, 2, 25, 12, 30)} /></ThemeProvider>);
+    expect(screen.queryByText('Late Match')).not.toBeInTheDocument();
+    expect(screen.getByRole('listitem', { name: 'Evening News' })).toBeInTheDocument();
   });
 
   it('keeps descriptions collapsed until More is pressed', () => {

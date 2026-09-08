@@ -17,11 +17,18 @@ copy → `source_url` → `mirror_urls`).
 
 ## What the build enables
 
-Only what the web player needs: demuxers mpegts/hls/mov/matroska/aac/mp3/ac3/
+What the web player and TV-channel failover relay need: demuxers mpegts/hls/mov/matroska/aac/mp3/ac3/
 mpegvideo/h264/hevc, muxers hls/mpegts/mp4/segment, decoders h264/hevc/aac/
-aac_latm/ac3/eac3/mp2/mp3/mpeg2video, the native `aac` encoder, protocols
+aac_latm/ac3/eac3/mp2/mp3/mpeg2video, the native `aac` and `mpeg2video` encoders, protocols
 file/pipe/http/tcp/unix. No TLS, no libx264, no hardware acceleration
 (users who need more can mount their own binary and set `FFMPEG_BINARY_PATH`).
+
+The optional experimental TV relay recovery mode normalizes video to MPEG-2 (25 fps, quality 3, no B frames) and audio
+to stereo AAC to help decoders recover across source changes. Plex/Jellyfin
+compatibility is not guaranteed. This mode is off by default and uses CPU encoding;
+default TV relays copy source bytes and rely on client reconnection; the browser HLS player still copies video, and direct
+content-ID relays remain byte-for-byte. The encoder is built for amd64, arm64 and
+arm/v7 using the existing cross-compilation path without new codec libraries.
 
 ## Bumping the pin
 

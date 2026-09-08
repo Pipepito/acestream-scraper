@@ -25,6 +25,7 @@ class SettingsRepository:
     TUNER_COUNT = 'tuner_count'
     TUNER_MAX_CHANNELS = 'tuner_max_channels'
     TUNER_ONLY_ONLINE = 'tuner_only_online'
+    TUNER_EXPERIMENTAL_TRANSCODING = 'tuner_experimental_transcoding'
 
     # Constants for default values
     DEFAULT_BASE_URL = 'acestream://'

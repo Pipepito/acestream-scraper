@@ -2,6 +2,7 @@
 Service for managing and generating M3U playlists
 """
 import re
+from urllib.parse import urlsplit, urlunsplit
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -31,7 +32,8 @@ class PlaylistService:
         favorites_only: bool = False,
         base_url: Optional[str] = None,
         base_url_id: Optional[int] = None,
-        format: Optional[str] = None
+        format: Optional[str] = None,
+        include_unassigned: Optional[bool] = None,
     ) -> str:
         """
         Generate an M3U playlist with the specified filters
@@ -49,9 +51,10 @@ class PlaylistService:
         Returns:
             The M3U playlist content as a string
         """
+        base_url, addpid_enabled = self._resolve_output_settings(base_url, base_url_id)
         # Fetch channels that match criteria
         channels = self.channel_repository.get_filtered_channels(
-            search=search,
+            search=None if "{tv_channel_id}" in base_url else search,
             group=group,
             only_online=only_online,
             include_groups=include_groups,
@@ -59,9 +62,22 @@ class PlaylistService:
             favorites_only=favorites_only
         )
 
-        # Load runtime settings for base URL fallback and addpid toggle.
-        base_url, addpid_enabled = self._resolve_output_settings(base_url, base_url_id)
+        if "{tv_channel_id}" in base_url:
+            tv_ids = {channel.tv_channel_id for channel in channels if channel.tv_channel_id is not None}
+            tv_channels = [tv for tv in self.channel_repository.get_playlist_tv_channels(search=search, favorites_only=favorites_only)
+                           if tv.id in tv_ids]
+            name_counts = {}
+            entries, _, _ = self._tv_channel_entries(tv_channels, base_url, False, 1, name_counts)
+            if include_unassigned:
+                unassigned = [c for c in channels if c.tv_channel_id is None
+                              and (not search or search.casefold() in (c.name or '').casefold())]
+                entries.extend(self._unassigned_entries(unassigned, tv_channels, base_url, False, 1, name_counts))
+            return "#EXTM3U\n" + "\n".join(entries) + "\n"
 
+        if include_unassigned is False:
+            channels = [c for c in channels if c.tv_channel_id is not None]
+        # Keep unassigned streams after the assigned catalogue.
+        channels = sorted(channels, key=lambda c: c.tv_channel_id is None)
         # Generate M3U content
         m3u_content = self._generate_m3u_content(
             channels,
@@ -124,35 +140,35 @@ class PlaylistService:
 
         if include_unassigned:
             unassigned = self.channel_repository.get_unassigned_channels(search=search)
-
-            # Number unassigned streams after the TV-channel range, starting
-            # at 9000 (matching v1 behavior).
-            next_channel_number = 9000
-            numbers = [c.channel_number for c in tv_channels if c.channel_number is not None]
-            if numbers:
-                next_channel_number = max(next_channel_number, max(numbers) + 1)
-
-            for channel in unassigned:
-                if channel.id in processed_ids or not channel.id:
-                    continue
-                display_name = self._attr(channel.name) if channel.name else f"Stream {channel.id[:8]}"
-                display_name = self._dedupe_name(display_name, name_counts)
-
-                attrs = [f'tvg-chno="{next_channel_number}"']
-                next_channel_number += 1
-                if channel.tvg_id:
-                    attrs.append(f'tvg-id="{self._attr(channel.tvg_id)}"')
-                attrs.append(f'tvg-name="{display_name}"')
-                if channel.logo:
-                    attrs.append(f'tvg-logo="{self._attr(channel.logo)}"')
-                attrs.append(f'group-title="{self._attr(channel.group) if channel.group else "Unassigned Streams"}"')
-
-                lines.append(f'#EXTINF:-1 {" ".join(attrs)},{display_name}')
-                lines.append(self._stream_link(base_url, channel.id, pid_counter if addpid else None))
-                if addpid:
-                    pid_counter += 1
+            lines.extend(self._unassigned_entries(unassigned, tv_channels, base_url, addpid, pid_counter, name_counts))
 
         return "\n".join(lines) + "\n"
+
+    def _unassigned_entries(self, channels, tv_channels, base_url, addpid, pid_counter, name_counts):
+        """Append standalone streams after TV numbers, using raw relay IDs when needed."""
+        if "{tv_channel_id}" in base_url:
+            parts = urlsplit(base_url)
+            # Preserve a reverse-proxy prefix for the built-in tuner route.
+            prefix = parts.path.split('/tuner/channel/', 1)[0] if '/tuner/channel/' in parts.path else ''
+            base_url = urlunsplit((parts.scheme, parts.netloc, prefix + '/tuner/stream/{channel_id}.ts', parts.query, ''))
+            addpid = False
+        number = max([8999] + [tv.channel_number for tv in tv_channels if tv.channel_number is not None]) + 1
+        lines = []
+        for channel in channels:
+            if not channel.id:
+                continue
+            name = self._dedupe_name(self._attr(channel.name or f"Stream {channel.id[:8]}"), name_counts)
+            attrs = [f'tvg-chno="{number}"', f'tvg-name="{name}"']
+            number += 1
+            if channel.tvg_id:
+                attrs.append(f'tvg-id="{self._attr(channel.tvg_id)}"')
+            if channel.logo:
+                attrs.append(f'tvg-logo="{self._attr(channel.logo)}"')
+            attrs.append(f'group-title="{self._attr(channel.group or "Unassigned Streams")}"')
+            lines.extend([f'#EXTINF:-1 {" ".join(attrs)},{name}', self._stream_link(base_url, channel.id, pid_counter if addpid else None)])
+            if addpid:
+                pid_counter += 1
+        return lines
 
     def _tv_channel_entries(
         self,
@@ -172,6 +188,10 @@ class PlaylistService:
             if not streams:
                 continue
             streams = sort_streams_curated(streams)
+            stable = "{tv_channel_id}" in base_url
+            if stable:
+                processed_ids.update(stream.id for stream in streams)
+                streams = streams[:1]
             multi = len(streams) > 1
 
             for index, stream in enumerate(streams, start=1):
@@ -212,7 +232,7 @@ class PlaylistService:
                     attrs.append(f'group-title="{self._attr(tv_channel.category)}"')
 
                 lines.append(f'#EXTINF:-1 {" ".join(attrs)},{display_name}')
-                lines.append(self._stream_link(base_url, stream.id, pid_counter if addpid else None))
+                lines.append(self._stream_link(base_url, stream.id, pid_counter if addpid else None, tv_channel_id=tv_channel.id))
                 if addpid:
                     pid_counter += 1
 
@@ -258,7 +278,7 @@ class PlaylistService:
         return m3u_attr(value)
 
     @staticmethod
-    def _stream_link(base_url: str, channel_id: str, pid: Optional[int] = None) -> str:
+    def _stream_link(base_url: str, channel_id: str, pid: Optional[int] = None, *, tv_channel_id: Optional[int] = None) -> str:
         """Build a stream link from a base-URL pattern (#62).
 
         A pattern containing {channel_id} is rendered by substitution
@@ -266,6 +286,10 @@ class PlaylistService:
         pids are disabled); a pattern without placeholders is a plain
         prefix, matching the legacy base_url behavior.
         """
+        if "{tv_channel_id}" in base_url:
+            if tv_channel_id is None:
+                raise ValueError("This relay format requires a TV channel assignment")
+            return base_url.replace("{tv_channel_id}", str(tv_channel_id))
         if "{channel_id}" in base_url:
             link = base_url.replace("{channel_id}", str(channel_id))
             if "{pid}" in link:

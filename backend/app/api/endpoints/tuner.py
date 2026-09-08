@@ -7,6 +7,8 @@ API token protects like every other ``/api/v1`` route.
 """
 from __future__ import annotations
 
+import asyncio
+
 import html
 import re
 from dataclasses import asdict
@@ -29,7 +31,8 @@ from app.services.public_url_service import resolve_public_base_url
 from app.services.stream_relay import RELAY_HEADERS, ClosingStreamingResponse, EngineStreamError, relay_engine_stream, relay_registry
 from app.services.tuner_network import get_tuner_gate, require_tuner_network
 from app.services.tuner_service import TunerService
-from app.services.tuner_playback_service import relay_ranked_streams
+from app.services.tuner_playback_service import relay_ranked_streams, prefer_recovered_sources
+from app.services.tuner_remux import ffmpeg_binary
 from app.services.tuner_probe_service import tuner_probe_service
 
 hdhr_router = APIRouter(prefix="/tuner", dependencies=[Depends(require_tuner_network)], tags=["hdhomerun"])
@@ -176,6 +179,9 @@ def epg_xml(db: Session = Depends(get_db)) -> Response:
                     headers={"Cache-Control": "no-store"})
 
 
+SOURCE_REFRESH_SECONDS = 60.0
+
+
 # --- stream relay ------------------------------------------------------------
 # GET and HEAD are two registrations of one handler rather than a single
 # api_route(methods=["GET", "HEAD"]): FastAPI derives the operation id from the
@@ -256,14 +262,14 @@ async def tuner_stream(content_id: str, request: Request):
 def _channel_candidates(tv_channel_id: int, *, include_offline: bool = False) -> List[str]:
     db = SessionLocal()
     try:
-        return TunerService(db).stream_ids(tv_channel_id, online_only=not include_offline)
+        return prefer_recovered_sources(TunerService(db).stream_ids(tv_channel_id, online_only=not include_offline))
     finally:
         db.close()
 
 
 @hdhr_router.head("/channel/{tv_channel_id}.ts", include_in_schema=False)
 @hdhr_router.get("/channel/{tv_channel_id}.ts", response_class=Response,
-    summary="TV channel MPEG-TS with online source startup failover",
+    summary="TV channel MPEG-TS with automatic source failover",
     responses={200: {"content": {"video/mp2t": {"schema": {"type": "string", "format": "binary"}}}}})
 async def tuner_channel(tv_channel_id: int, request: Request):
     candidates = await run_in_threadpool(_channel_candidates, tv_channel_id)
@@ -279,6 +285,18 @@ async def tuner_channel(tv_channel_id: int, request: Request):
         raise APIError(code="TUNER_BUSY", message=f"All {limit} tuner slots are in use", status_code=503)
     refresh = tuner_probe_service.start(tv_channel_id)
 
+    async def refresh_failed_source(_content_id: str) -> None:
+        nonlocal refresh
+        refresh = tuner_probe_service.start(tv_channel_id)
+
+    async def monitor_alternatives() -> None:
+        nonlocal refresh
+        while True:
+            await asyncio.sleep(SOURCE_REFRESH_SECONDS)
+            refresh = tuner_probe_service.start(tv_channel_id)
+
+    monitor = asyncio.create_task(monitor_alternatives())
+
     async def refreshed_candidates() -> tuple[List[str], bool]:
         current = await run_in_threadpool(_channel_candidates, tv_channel_id)
         return current, refresh is not None and not refresh.done()
@@ -286,11 +304,20 @@ async def tuner_channel(tv_channel_id: int, request: Request):
     iterator = None
     engine = None
     try:
+        def read_recovery_mode():
+            with SessionLocal() as db:
+                return TunerService(db).settings().experimental_transcoding
+        experimental_transcoding = await run_in_threadpool(read_recovery_mode)
+        if experimental_transcoding:
+            await run_in_threadpool(ffmpeg_binary)
         engine = await run_in_threadpool(_engine)
         iterator = relay_ranked_streams(engine, candidates, label, claim, client_factory=_relay_client_factory,
-                                      candidate_provider=refreshed_candidates)
+                                      candidate_provider=refreshed_candidates, on_source_failure=refresh_failed_source,
+                                      experimental_transcoding=experimental_transcoding)
         first = await anext(iterator)
     except BaseException as exc:
+        monitor.cancel()
+        await asyncio.gather(monitor, return_exceptions=True)
         if iterator is not None:
             await iterator.aclose()
         if engine is not None:
@@ -306,6 +333,8 @@ async def tuner_channel(tv_channel_id: int, request: Request):
             async for chunk in iterator:
                 yield chunk
         finally:
+            monitor.cancel()
+            await asyncio.gather(monitor, return_exceptions=True)
             await iterator.aclose()
 
     return ClosingStreamingResponse(body(), headers=RELAY_HEADERS)

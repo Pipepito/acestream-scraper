@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  Alert,
   Accordion,
   AccordionDetails,
   AccordionSummary,
@@ -262,6 +263,7 @@ interface TunerFormState {
   tuner_count: string;
   max_channels: string;
   only_online: boolean;
+  experimental_transcoding: boolean;
 }
 
 const rangeError = (value: string, { min, max }: NumberRange): string | null => {
@@ -275,6 +277,7 @@ const toForm = (settings: TunerSettings): TunerFormState => ({
   tuner_count: String(settings.tuner_count),
   max_channels: String(settings.max_channels),
   only_online: settings.only_online,
+  experimental_transcoding: settings.experimental_transcoding ?? false,
 });
 
 /** Friendly name, stream cap and lineup size the tuner reports to Jellyfin and Plex. */
@@ -300,6 +303,7 @@ const TunerSettingsBlock: React.FC<{ notify: MediaServerNotify }> = ({ notify })
         tuner_count: Number(form.tuner_count),
         max_channels: Number(form.max_channels),
         only_online: form.only_online,
+        experimental_transcoding: form.experimental_transcoding,
       });
       notify('Tuner settings saved.', 'success');
     } catch (err) {
@@ -358,6 +362,16 @@ const TunerSettingsBlock: React.FC<{ notify: MediaServerNotify }> = ({ notify })
             }
             label="Publish only channels that are online"
           />
+          <FormControlLabel
+            control={<Switch checked={form?.experimental_transcoding ?? false} disabled={!form || update.isPending}
+              onChange={(event) => setForm(prev => prev ? { ...prev, experimental_transcoding: event.target.checked } : prev)} />}
+            label="Experimental transcoding recovery"
+          />
+          <Alert severity={form?.experimental_transcoding ? 'warning' : 'info'}>
+            {form?.experimental_transcoding
+              ? 'Use at your own risk. Each viewer uses CPU-intensive video and audio encoding. This can overload the server, increase bandwidth and reduce quality. Recovery without reconnecting is experimental and may not work in every player. Requires FFmpeg. Applies to new TV relay connections.'
+              : 'Default: original streams pass through without encoding. If a source fails, your player must reconnect to the same TV channel URL; the relay then prefers another working source. Enable automatic reconnection in your player.'}
+          </Alert>
           <Box>
             <Button type="submit" variant="contained" size="small" aria-label="Save tuner settings" disabled={!canSave || update.isPending}>
               Save

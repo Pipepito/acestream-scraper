@@ -1,6 +1,6 @@
 import { networkStatusLabel } from '../channels/NetworkStatusChip';
 import React, { useState } from 'react';
-import { Alert, MenuItem, TextField, Typography } from '@mui/material';
+import { Alert, MenuItem, TextField } from '@mui/material';
 import { useAcestreamChannel } from '../../hooks/useChannels';
 import { useTVChannel } from '../../hooks/useTVChannels';
 import { useNow } from '../../hooks/useNow';
@@ -9,7 +9,7 @@ import ChannelGuide from './ChannelGuide';
 import PlayOnMenu from './PlayOnMenu';
 import { formatBitrate } from '../../utils/format';
 
-interface ChannelPlayerDialogProps extends Omit<StreamPlayerDialogProps, 'extraActions' | 'details'> {
+interface ChannelPlayerDialogProps extends Omit<StreamPlayerDialogProps, 'extraActions' | 'details' | 'schedule'> {
   tvChannelId?: number;
 }
 
@@ -22,6 +22,7 @@ const OpenChannelPlayer: React.FC<ChannelPlayerDialogProps> = (props) => {
   const channel = tv.data;
   return <StreamPlayerDialog {...props} contentId={selectedId} title={channel?.name ?? props.title}
     extraActions={selectedId ? <PlayOnMenu contentId={selectedId} title={channel?.name ?? props.title} /> : undefined}
+    schedule={channel ? <ChannelGuide channel={channel} now={now} /> : undefined}
     details={<>
       {tv.isError ? <Alert severity="warning">Channel details are unavailable. You can still play this stream.</Alert> : null}
       {channel ? <>
@@ -32,8 +33,6 @@ const OpenChannelPlayer: React.FC<ChannelPlayerDialogProps> = (props) => {
             {index + 1}. {item.name} · {networkStatusLabel(item.network_status)} · {item.is_online === true ? 'Signal verified' : item.is_online === false ? 'No signal verified' : 'Signal not checked'} · {item.id.slice(0, 8)}{item.bitrate_bps ? ` · ${formatBitrate(item.bitrate_bps)}` : ''}{item.audio_tracks?.length ? ` · ${item.audio_tracks.length} audio track${item.audio_tracks.length === 1 ? '' : 's'}` : ''}
           </MenuItem>)}
         </TextField>
-        <Typography component="h3" variant="h6">Schedule</Typography>
-        <ChannelGuide channel={channel} now={now} />
       </> : null}
     </>} />;
 };

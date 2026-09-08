@@ -25,9 +25,11 @@ import { useAppThemeMode } from '../bootstrap/AppBootstrap';
 
 interface NavBarProps {
   drawerWidth?: number;
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
 }
 
-const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
+const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264, collapsed = false, onToggleCollapsed }) => {
   const [mobileOpen, setMobileOpen] = useState<boolean>(false);
   const location = useLocation();
   const theme = useTheme();
@@ -132,8 +134,8 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
         position="fixed"
         elevation={0}
         sx={{
-          width: isDesktop ? `calc(100% - ${drawerWidth}px)` : '100%',
-          ml: isDesktop ? `${drawerWidth}px` : 0,
+          width: isDesktop && !collapsed ? `calc(100% - ${drawerWidth}px)` : '100%',
+          ml: isDesktop && !collapsed ? `${drawerWidth}px` : 0,
           bgcolor: theme.appTokens.shell.appBarBg,
           color: theme.appTokens.text.primary,
           borderBottom: `1px solid ${theme.appTokens.shell.appBarBorder}`,
@@ -147,6 +149,7 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
               <MenuIcon />
             </IconButton>
           ) : null}
+          {isDesktop && onToggleCollapsed ? <IconButton color="inherit" aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'} aria-expanded={!collapsed} onClick={onToggleCollapsed} edge="start" sx={{ mr: 2 }}><MenuIcon /></IconButton> : null}
           <Typography noWrap sx={{ minWidth: 0, fontWeight: 600 }}>{getNavTitle(location.pathname)}</Typography>
           <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 1 }}>
             <IconButton
@@ -161,7 +164,7 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
       </AppBar>
       <Box
         component="nav"
-        sx={{ width: isDesktop ? drawerWidth : 0, flexShrink: isDesktop ? 0 : 1 }}
+        sx={{ width: isDesktop && !collapsed ? drawerWidth : 0, flexShrink: isDesktop ? 0 : 1 }}
         aria-label="navigation menu"
       >
         {isPhone ? (
@@ -183,7 +186,7 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
           >
             {drawer}
           </Drawer>
-        ) : (
+        ) : !collapsed ? (
           <Drawer
             variant="permanent"
             sx={{
@@ -198,7 +201,7 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
           >
             {drawer}
           </Drawer>
-        )}
+        ) : null}
       </Box>
     </>
   );

@@ -73,6 +73,16 @@ describe('NavBar responsive shell behavior', () => {
     });
   });
 
+  it('collapses and restores desktop navigation while keeping Live TV full width', async () => {
+    renderWithResponsiveMode({ pathname: '/live-tv', ui: <AppShell><div>Player</div></AppShell> });
+    expect(screen.getByTestId('app-shell-content')).toHaveStyle({ maxWidth: 'none' });
+    await userEvent.click(screen.getByRole('button', { name: 'Collapse navigation' }));
+    expect(screen.queryByRole('link', { name: 'TV Channels' })).not.toBeInTheDocument();
+    expect(screen.getByRole('main')).toHaveStyle({ width: '100%' });
+    await userEvent.click(screen.getByRole('button', { name: 'Expand navigation' }));
+    expect(screen.getByRole('link', { name: 'TV Channels' })).toBeVisible();
+  });
+
   it('keeps the menu button and current destination visible on phones', () => {
     renderWithResponsiveMode({
       pathname: '/scraper',

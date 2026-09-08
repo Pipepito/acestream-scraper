@@ -23,6 +23,9 @@ Current job model (adopted 2026-09-04):
 - `acestream-scraper-release` loads `jenkins/release.Jenkinsfile` from `main` and remains manual-only.
 - GitHub Actions workflows are retired; Jenkins is the sole CI/CD implementation.
 
+The disposable PR/develop runner includes FFmpeg for generated-video relay failover
+and decoder tests. Tests use synthetic local media and remain network-disabled.
+
 Develop validation diagnostics:
 
 - Full application validation prints each gate start/result and failed command output, including nested parity test failures. JSON summaries remain machine-readable.

@@ -10,6 +10,7 @@ from typing import Callable, Iterator, List, Optional, Tuple, Union
 import httpx
 from sqlalchemy.orm import Session
 
+from app.repositories.channel_repository import ChannelRepository
 from app.config.settings import get_settings
 from app.models.models import RemotePlayer
 from app.repositories.base_url_repository import BaseUrlRepository
@@ -210,8 +211,14 @@ class RemotePlayerService:
         backend relay URL (spec 6.3)."""
         pattern = self._stream_pattern(player)
         if pattern is not None:
+            tv_channel_id = None
+            if "{tv_channel_id}" in pattern:
+                tv_channel_id = ChannelRepository(self.db).get_tv_channel_id_for_stream(content_id)
+                if tv_channel_id is None:
+                    raise PlayerCommandError('This relay format requires the stream to be assigned to a TV channel')
             pid = new_pid()
-            url = PlaylistService._stream_link(pattern.replace("{pid}", pid), content_id, None)
+            url = PlaylistService._stream_link(pattern.replace("{pid}", pid), content_id, None,
+                tv_channel_id=tv_channel_id)
             parsed = httpx.URL(url)
             if parsed.scheme in ("http", "https") and parsed.path.rstrip("/").endswith(("/ace/getstream", "/ace/manifest.m3u8")):
                 # Each send owns a playback session, even for patterns with a

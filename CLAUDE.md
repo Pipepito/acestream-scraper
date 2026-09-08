@@ -167,12 +167,19 @@ The current product already points toward a structured operational dashboard: Ma
 - Meet WCAG AA expectations, respect reduced-motion preferences, and use more than color alone to communicate status or meaning.
 
 
-### Tuner startup failover and media metadata
+### Tuner automatic failover and media metadata
 
 `services/tuner_playback_service.py` tries online, active, valid sources returned by
 `TunerService.online_stream_ids()` in descending `bitrate_bps` order (unknown last).
 One reserved relay claim survives failed attempts; startup has per-attempt and total
-deadlines. Once bytes are sent, failures end the response without splicing streams.
+deadlines. By default failures after playback starts end the response; client
+reconnections prefer alternatives over sources that failed in the last 60 seconds. Each
+source passes through `tuner_remux.remux_source` only when experimental transcoding
+is explicitly enabled (off by default; otherwise clients reconnect after failure) with FFmpeg table versions and
+discontinuity signalling, MPEG-2 video and AAC audio normalization; never concatenate
+raw sources. Decoder recovery remains experimental and client-dependent. Stall detection is 15 seconds,
+recovery is bounded to 45 seconds, and 30 seconds of delivery resets failure history.
+FFmpeg is required only for experimental transcoding; default relays preserve source bytes.
 HDHomeRun and tuner M3U use stable TV-channel URLs; raw content-ID URLs stay compatible.
 `stream_bitrate_service.probe_media` samples at most 2 MiB within 10 seconds during
 successful broadcast checks, feeds ffprobe through stdin with only the pipe protocol,
@@ -191,7 +198,8 @@ and does not alter another viewer's session or a remote player's raw source URL.
 `channel_status_interval` is a database setting (1–10080 minutes, default 60),
 editable in Settings and applied to APScheduler immediately. Stable tuner channel
 GETs queue a coalesced, bounded background refresh through `tuner_probe_service`;
-newly online candidates join the same startup failover budget. HEAD and raw
+newly online candidates join the recovery budget. Active TV relays repeat refreshes
+every 60 seconds and after failures, retaining the shared queue and ownership guards. HEAD and raw
 content-ID relay URLs do not launch refreshes. Browser playback of an assigned
 stream also queues a TV-channel refresh. Status probes share one global priority
 queue (TV playback, individual manual, then scheduled/bulk), with a two-second cooldown after cleanup and a ten-second

@@ -569,6 +569,19 @@ describe('Integrations page', () => {
     await waitFor(() => expect(mockUpdateTunerSettings).toHaveBeenCalledWith(expect.objectContaining({ tuner_count: 2, max_channels: 300 })));
   });
 
+  it('requires explicitly enabling experimental transcoding recovery', async () => {
+    renderPage();
+    const section = screen.getByRole('region', { name: 'Media servers' });
+    fireEvent.click(within(section).getByRole('button', { name: 'Tuner settings' }));
+    const toggle = within(section).getByRole('checkbox', { name: 'Experimental transcoding recovery' });
+    expect(toggle).not.toBeChecked();
+    expect(within(section).getByText(/original streams pass through without encoding/)).toBeVisible();
+    fireEvent.click(toggle);
+    expect(within(section).getByText(/Use at your own risk/)).toBeVisible();
+    fireEvent.click(within(section).getByRole('button', { name: 'Save tuner settings' }));
+    await waitFor(() => expect(mockUpdateTunerSettings).toHaveBeenCalledWith(expect.objectContaining({ experimental_transcoding: true })));
+  });
+
   it('saves the tuner settings from the collapsible block', async () => {
     mockUpdateTunerSettings.mockResolvedValue({ friendly_name: 'Living room tuner', tuner_count: 4, max_channels: 450, only_online: false });
     renderPage();

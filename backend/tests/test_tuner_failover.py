@@ -171,6 +171,7 @@ def test_channel_url_resolves_current_sources_and_head_never_starts_engine(alemb
         assert alembic_client.get(url).json()['error']['code'] == 'NO_ONLINE_STREAMS'
         engine.assert_not_called()
     finally:
+        monkeypatch.undo()
         get_settings.cache_clear(); get_tuner_gate.cache_clear()
 
 
@@ -292,6 +293,7 @@ def test_channel_get_starts_quiet_refresh_and_recovers_offline_source(alembic_cl
         start.assert_called_once_with(tv.id)
         engine.close.assert_called_once()
     finally:
+        monkeypatch.undo()
         get_settings.cache_clear()
         get_tuner_gate.cache_clear()
 

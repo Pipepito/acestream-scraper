@@ -36,7 +36,7 @@
     {
       "id": "scraper",
       "label": "Scraper only",
-      "summary": "Just the scraper and web interface. Engine and proxy, if any, run somewhere else.",
+      "summary": "Just the scraper and web interface. Engines are optional: configure external playback or checking engines in Settings; without either, stream checks are skipped.",
       "features": [],
       "releaseTag": "scraper",
       "developTag": "develop-scraper",

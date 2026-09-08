@@ -52,10 +52,10 @@ test.describe('acestream channels', () => {
       .not.toBeNull()
       .then(() => api.getChannel(target.id));
     testInfo.annotations.push({ type: 'status', description: `${target.name}: online=${checked?.is_online} error=${checked?.check_error}` });
-    await expect(channels.onlineChip(target.name).first()).toContainText(/Online|Offline/, { timeout: 30_000 });
+    await expect(channels.onlineChip(target.name).first()).toContainText(/Signal verified|No signal verified/, { timeout: 30_000 });
 
     await channels.checkAllStatuses();
-    await channels.expectAlert(/Checked \d+ channels: \d+ online, \d+ offline|started in the background/, 120_000);
+    await channels.expectAlert(/Stream status job queued|stream status job is already running/, 120_000);
   });
 
   test('a channel can be created by hand, hidden from the playlist and deleted again', async ({ page, api }) => {

@@ -108,7 +108,7 @@ class Settings(BaseSettings):
     # the validator runs, rejecting the documented comma-separated form.
     CORS_ORIGINS: Annotated[List[str], NoDecode] = ["http://localhost:3000"]
     FRONTEND_BUILD_PATH: str = "frontend_build"
-    ACE_ENGINE_URL: str = "http://localhost:6878"
+    ACE_ENGINE_URL: str = ""
     # Explicit probe route; an unavailable checker must never fall back to playback.
     ACE_CHECK_ENGINE_URL: str = ""
 

@@ -287,3 +287,16 @@ class TVChannelBulkEPGUpdateResponse(BaseModel):
 class MessageResponse(BaseModel):
     """Generic operation message response"""
     message: str
+
+
+class TVChannelReorderRequest(BaseModel):
+    """Complete inventory in the desired order; saved as numbers 1 through N."""
+    channel_ids: List[int] = Field(..., min_length=1)
+    expected_order: List[int] = Field(..., min_length=1, description="Original inventory order; rejects stale reorder edits.")
+
+    @field_validator("channel_ids", "expected_order")
+    @classmethod
+    def unique_ids(cls, values: List[int]) -> List[int]:
+        if any(value <= 0 for value in values) or len(values) != len(set(values)):
+            raise ValueError("Channel IDs must be positive and unique")
+        return values

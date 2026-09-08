@@ -62,7 +62,7 @@ test.describe('overview and WARP', () => {
     }
     for (const target of managed) {
       await overview.restart(target.label);
-      await overview.expectAlert(/Restart requested/);
+      await overview.expectAlert(/restart requested|is back:/i);
       let restarted: { name: string; pid: number | null; state: string; message: string } | undefined;
       await expect.poll(async () => {
         const after = await api.raw('get', '/api/v1/system/services').then((r) => r.json() as Promise<{ services: { name: string; pid: number | null; state: string; message: string }[] }>);

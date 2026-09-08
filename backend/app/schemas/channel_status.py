@@ -2,7 +2,7 @@
 Schemas for channel status operations
 """
 from datetime import datetime
-from typing import Optional, List, Literal
+from typing import Optional, Literal
 from pydantic import BaseModel, ConfigDict
 
 
@@ -36,25 +36,6 @@ class ChannelStatusSummary(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class BulkStatusCheckResponse(BaseModel):
-    """Response for bulk status check operations"""
-    # Human-readable outcome shown by the SPA; `background` tells the client the
-    # counts are not final yet (large inventories are checked after the response).
-    message: Optional[str] = None
-    background: bool = False
-    total_channels: int
-    total_checked: int  # Changed from checked_channels to match test expectations
-    online_count: int  # Added to match test expectations
-    offline_count: int  # Added to match test expectations
-    results: List[ChannelStatusResponse]
-    summary: ChannelStatusSummary
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class StatusCheckRequest(BaseModel):
-    """Request schema for status checking"""
-    channel_ids: Optional[List[str]] = None
-    concurrency: Optional[int] = 3
-
-    model_config = ConfigDict(from_attributes=True)
+class ChannelStatusJobRunResponse(BaseModel):
+    status: Literal["triggered", "already_running", "disabled"]
+    message: str

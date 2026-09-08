@@ -57,7 +57,7 @@ export class ChannelsPage extends AppShell {
   }
 
   async checkAllStatuses(): Promise<void> {
-    await this.headerButton(/Check all statuses|Checking/).click();
+    await this.headerButton(/Run status check now|Checking/).click();
   }
 
   async deleteChannel(name: string): Promise<void> {

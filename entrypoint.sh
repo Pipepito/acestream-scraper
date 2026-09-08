@@ -442,7 +442,11 @@ if feature_enabled "$ENABLE_ACEXY" && ! feature_enabled "$ENABLE_ACESTREAM_ENGIN
     esac
 fi
 
-export ACE_ENGINE_URL="${ACE_ENGINE_URL:-http://$ACESTREAM_HTTP_HOST:$ACESTREAM_HTTP_PORT}"
+if feature_enabled "$ENABLE_ACESTREAM_ENGINE"; then
+    export ACE_ENGINE_URL="${ACE_ENGINE_URL:-http://$ACESTREAM_HTTP_HOST:$ACESTREAM_HTTP_PORT}"
+else
+    export ACE_ENGINE_URL="${ACE_ENGINE_URL:-}"
+fi
 # Optional checker process: never derive its command from a custom playback
 # command, which may hard-code shared state, ports or background execution.
 ENABLE_ACESTREAM_CHECK_ENGINE=$(normalize_bool "${ENABLE_ACESTREAM_CHECK_ENGINE:-false}")

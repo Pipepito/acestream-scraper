@@ -14,7 +14,7 @@ test.describe('settings', () => {
     const settings = new SettingsPage(page);
     await settings.open();
     const headings = await page.getByRole('heading', { level: 2 }).allInnerTexts();
-    expect(headings).toEqual(['Engine', 'Stream link formats', 'Automation', 'API access']);
+    expect(headings).toEqual(['Engine', 'Players and network']);
     await settings.refreshEngineStatus();
     await expect(settings.engineStatus()).toContainText(/Online/, { timeout: 20_000 });
   });
@@ -63,6 +63,7 @@ test.describe('settings', () => {
     await settings.saveInterval('Refresh EPG every (hours)', '1');
     await settings.expectAlert('EPG will refresh every 1 h');
 
+    await page.getByRole('tab', { name: 'Stream links', exact: true }).click();
     await expect(settings.appIdSwitch()).toBeVisible();
     await expect(page.getByText('Adds the app id to acestream:// links for players that require it (rare).')).toBeVisible();
   });

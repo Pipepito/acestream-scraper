@@ -26,10 +26,10 @@ type MutateOptions = { onSuccess?: () => void; onError?: (error: unknown) => voi
 const succeedingMutate = () => jest.fn((_value: unknown, options?: MutateOptions) => options?.onSuccess?.());
 
 describe('Settings page', () => {
-  const renderPage = () =>
+  const renderPage = (tab = 'playback') =>
     render(
       <ThemeProvider theme={createAppTheme('light')}>
-        <TestMemoryRouter>
+        <TestMemoryRouter initialEntries={[`/settings?tab=${tab}`]}>
           <QueryClientProvider client={new QueryClient()}><Settings /></QueryClientProvider>
         </TestMemoryRouter>
       </ThemeProvider>
@@ -37,6 +37,8 @@ describe('Settings page', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (configHooks.useCheckEngine as jest.Mock).mockReturnValue({ data: { use_dedicated: false, url: '', managed: false } });
+    (configHooks.useUpdateCheckEngine as jest.Mock).mockReturnValue({ mutate: jest.fn(), reset: jest.fn(), isPending: false });
     (configHooks.usePlaybackRouting as jest.Mock).mockReturnValue({ data: { use_acexy: false, acexy_url: 'http://localhost:8080' } });
     (configHooks.useUpdatePlaybackRouting as jest.Mock).mockReturnValue({ mutate: succeedingMutate(), reset: jest.fn(), isPending: false });
     (configHooks.useBaseUrl as jest.Mock).mockReturnValue({ data: 'acestream://', isLoading: false });
@@ -74,7 +76,7 @@ describe('Settings page', () => {
   });
 
   it('prefills an editable Acexy format using the external host', async () => {
-    renderPage();
+    renderPage('links');
     fireEvent.click(await screen.findByRole('button', { name: 'Acexy' }));
     const dialog = screen.getByRole('dialog', { name: 'Add link format' });
     expect(within(dialog).getByLabelText('Name')).toHaveValue('Acexy');
@@ -89,7 +91,7 @@ describe('Settings page', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument();
     const headings = screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent);
-    expect(headings).toEqual(['Engine', 'Public address', 'Stream link formats', 'Automation', 'API access']);
+    expect(headings).toEqual(['Engine', 'Players and network']);
     expect(screen.queryByText('Control center')).not.toBeInTheDocument();
     expect(screen.queryByRole('radio', { name: 'Light theme' })).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Base URL')).not.toBeInTheDocument();
@@ -97,13 +99,14 @@ describe('Settings page', () => {
     const engineStatus = screen.getByRole('status', { name: 'Engine status' });
     expect(engineStatus).toHaveTextContent('Online');
     expect(engineStatus).toHaveTextContent('Engine online and ready');
+    fireEvent.click(screen.getByRole('tab', { name: 'Stream links' }));
     expect(screen.getByText('Adds the app id to acestream:// links for players that require it (rare).')).toBeInTheDocument();
   });
 
   it('saves the stream check interval in minutes and reports failure', async () => {
     const mutate = jest.fn((_value, options) => options.onError(new Error('Unavailable')));
     (configHooks.useUpdateChannelStatusInterval as jest.Mock).mockReturnValue({ mutate, isPending: false });
-    renderPage();
+    renderPage('automation');
     const input = await screen.findByRole('spinbutton', { name: 'Stream check interval (minutes)' });
     expect(input).toHaveValue(60);
     fireEvent.change(input, { target: { value: '90' } });
@@ -117,7 +120,7 @@ describe('Settings page', () => {
     const epgMutate = succeedingMutate();
     (configHooks.useUpdateRescrapeInterval as jest.Mock).mockReturnValue({ mutate: rescrapeMutate, isPending: false });
     (configHooks.useUpdateEpgRefreshInterval as jest.Mock).mockReturnValue({ mutate: epgMutate, isPending: false });
-    renderPage();
+    renderPage('automation');
 
     const rescrape = await screen.findByLabelText('Scrape sources every (hours)');
     expect(rescrape).toHaveValue(24);
@@ -141,7 +144,7 @@ describe('Settings page', () => {
       options?.onError?.(new ApiError({ message: 'Interval must be between 1 and 168 hours', status: 422, kind: 'validation', canRetry: false }))
     );
     (configHooks.useUpdateRescrapeInterval as jest.Mock).mockReturnValue({ mutate: failingMutate, isPending: false });
-    renderPage();
+    renderPage('automation');
 
     const rescrape = await screen.findByLabelText('Scrape sources every (hours)');
     fireEvent.change(rescrape, { target: { value: '2' } });
@@ -150,7 +153,7 @@ describe('Settings page', () => {
   });
 
   it('lists named link formats with a default indicator and row actions', async () => {
-    renderPage();
+    renderPage('links');
 
     expect(await screen.findByRole('heading', { level: 2, name: 'Stream link formats' })).toBeInTheDocument();
     expect(screen.getByText('Ace player')).toBeInTheDocument();
@@ -170,7 +173,7 @@ describe('Settings page', () => {
       isLoading: false,
       error: undefined,
     });
-    renderPage();
+    renderPage('links');
 
     fireEvent.click(await screen.findByRole('button', { name: 'Edit default link format' }));
     expect(screen.getAllByText('acestream://').length).toBeGreaterThan(0);
@@ -184,7 +187,7 @@ describe('Settings page', () => {
   it('promotes a non-default entry when its make-default action is used', async () => {
     const patchMutate = succeedingMutate();
     (baseUrlHooks.usePatchBaseUrl as jest.Mock).mockReturnValue({ mutate: patchMutate, isPending: false });
-    renderPage();
+    renderPage('links');
     fireEvent.click(await screen.findByRole('button', { name: 'Make default' }));
     expect(patchMutate).toHaveBeenCalledWith({ id: 2, data: { is_default: true } }, expect.any(Object));
   });
@@ -194,7 +197,7 @@ describe('Settings page', () => {
       options?.onError?.(new ApiError({ message: 'Conflict', status: 409, kind: 'unknown', canRetry: false }));
     });
     (baseUrlHooks.useCreateBaseUrl as jest.Mock).mockReturnValue({ mutate: createMutate, isPending: false });
-    renderPage();
+    renderPage('links');
 
     fireEvent.click(await screen.findByRole('button', { name: 'Add format' }));
     const dialog = screen.getByRole('dialog', { name: 'Add link format' });
@@ -208,7 +211,7 @@ describe('Settings page', () => {
   it('asks before deleting a link format', async () => {
     const deleteMutate = succeedingMutate();
     (baseUrlHooks.useDeleteBaseUrl as jest.Mock).mockReturnValue({ mutate: deleteMutate, isPending: false });
-    renderPage();
+    renderPage('links');
 
     fireEvent.click(await screen.findByRole('button', { name: 'Delete base URL Local HLS' }));
     const dialog = await screen.findByRole('dialog', { name: 'Delete the link format “Local HLS”?' });
@@ -220,7 +223,7 @@ describe('Settings page', () => {
   it('recovers from AppID load failures and re-enables the switch after update failures', async () => {
     (configService.getAppId as jest.Mock).mockRejectedValueOnce(new Error('load failed'));
     (configService.updateAppId as jest.Mock).mockRejectedValueOnce(new Error('save failed'));
-    renderPage();
+    renderPage('links');
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument();
     expect(screen.getByText(/could not load the appid setting/i)).toBeInTheDocument();
@@ -233,7 +236,9 @@ describe('Settings page', () => {
   });
 it('saves Acexy routing and its backend URL together', async () => {
   const mutate = jest.fn();
-  (configHooks.usePlaybackRouting as jest.Mock).mockReturnValue({ data: { use_acexy: false, acexy_url: 'http://localhost:8080' } });
+  (configHooks.useCheckEngine as jest.Mock).mockReturnValue({ data: { use_dedicated: false, url: '', managed: false } });
+    (configHooks.useUpdateCheckEngine as jest.Mock).mockReturnValue({ mutate: jest.fn(), reset: jest.fn(), isPending: false });
+    (configHooks.usePlaybackRouting as jest.Mock).mockReturnValue({ data: { use_acexy: false, acexy_url: 'http://localhost:8080' } });
   (configHooks.useUpdatePlaybackRouting as jest.Mock).mockReturnValue({ mutate, reset: jest.fn() });
   render(<ThemeProvider theme={createAppTheme('light')}><TestMemoryRouter><QueryClientProvider client={new QueryClient()}><Settings /></QueryClientProvider></TestMemoryRouter></ThemeProvider>);
   fireEvent.click(await screen.findByRole('checkbox', { name: 'Route playback through Acexy' }));

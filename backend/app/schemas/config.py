@@ -1,6 +1,6 @@
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class PlaybackRouting(BaseModel):
@@ -118,3 +118,26 @@ class HealthResponse(BaseModel):
     database: Dict[str, Any] = Field(..., description="Database connection status")
     settings: Dict[str, Any] = Field(..., description="Application settings")
     version: str = Field(..., description="Application version")
+
+
+class CheckEngineConfig(BaseModel):
+    use_dedicated: bool = False
+    url: str = ""
+
+    @field_validator("url")
+    @classmethod
+    def validate_url(cls, value: str) -> str:
+        from app.services.public_url_service import normalize_public_base_url
+        if any(char.isspace() for char in value.strip()):
+            raise ValueError("Engine URL must not contain whitespace")
+        return normalize_public_base_url(value)
+
+    @model_validator(mode="after")
+    def require_dedicated_url(self):
+        if self.use_dedicated and not self.url:
+            raise ValueError("A dedicated checking engine URL is required")
+        return self
+
+
+class CheckEngineConfigResponse(CheckEngineConfig):
+    managed: bool = False

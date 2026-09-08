@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 class AcestreamStatusService:
     """Service for checking Acestream Engine status."""
     def __init__(self, engine_url: str = None):
-        self.config_engine_url = engine_url or getattr(settings, 'ACE_ENGINE_URL', None)
+        self.config_engine_url = engine_url if engine_url is not None else settings.ACE_ENGINE_URL
         self.is_internal_engine = self.is_enabled()
         # Determine the URL to use based on whether internal engine is enabled
         if self.is_internal_engine:
@@ -19,8 +19,8 @@ class AcestreamStatusService:
             port = os.environ.get('ACESTREAM_HTTP_PORT', '6878')
             self.engine_url = f"http://{host}:{port}"
         else:
-            self.engine_url = self.config_engine_url or "http://localhost:6878"
-        if not self.engine_url.startswith('http'):
+            self.engine_url = self.config_engine_url or ""
+        if self.engine_url and not self.engine_url.startswith('http'):
             self.engine_url = f"http://{self.engine_url}"
         self.engine_url = self.engine_url.rstrip('/')
 
@@ -46,6 +46,9 @@ class AcestreamStatusService:
             return requests.get(url, timeout=timeout * 2)
 
     def check_status(self) -> Dict[str, Any]:
+        if not self.engine_url:
+            return {"enabled": False, "is_internal": False, "engine_url": "", "available": False,
+                    "message": "No playback engine configured. An engine is optional."}
         try:
             status_url = f"{self.engine_url}/server/api?api_version=3&method=get_status"
             network_url = f"{self.engine_url}/server/api?api_version=3&method=get_network_connection_status"

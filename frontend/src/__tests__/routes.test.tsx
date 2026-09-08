@@ -31,8 +31,8 @@ describe('routes', () => {
     mockResponsiveShellQueries(useMediaQuery as jest.MockedFunction<typeof useMediaQuery>, createAppTheme('light'), { isPhone: false });
   });
 
-  it('exposes ten destinations whose labels are the page titles', () => {
-    expect(navItems.map((item) => item.text)).toEqual(['Live TV', 'Overview', 'Scraper', 'Search', 'Acestream Channels', 'TV Channels', 'EPG', 'Playlist', 'Integrations', 'Settings']);
+  it('exposes eleven destinations whose labels are the page titles', () => {
+    expect(navItems.map((item) => item.text)).toEqual(['Live TV', 'Overview', 'Scraper', 'Search', 'Acestream Channels', 'TV Channels', 'EPG', 'Playlist', 'Integrations', 'WARP', 'Settings']);
     expect(getNavTitle('/epg/channels/12')).toBe('EPG');
     expect(getNavTitle('/integrations')).toBe('Integrations');
     expect(getNavTitle('/warp')).toBe('WARP');

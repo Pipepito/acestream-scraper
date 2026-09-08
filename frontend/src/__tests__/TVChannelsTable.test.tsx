@@ -115,7 +115,7 @@ describe('TVChannelsTable', () => {
     ]);
   });
 
-  it('keeps edit, delete and the favorite toggle in the row overflow menu', () => {
+  it('keeps edit and delete in the row overflow menu', () => {
     const onEdit = jest.fn();
     const onDelete = jest.fn();
 
@@ -124,7 +124,6 @@ describe('TVChannelsTable', () => {
     fireEvent.click(screen.getByRole('button', { name: 'More actions for Arena TV' }));
     const menu = screen.getByRole('menu');
     expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent)).toEqual([
-      'Add to favorites',
       'Edit',
       'Delete',
     ]);
@@ -225,12 +224,7 @@ describe('TVChannelsTable', () => {
 
     const { unmount } = renderTable(<TVChannelsTable channels={[favoriteChannel]} {...baseProps} />);
 
-    // Desktop keeps the state next to the name and the toggle in the menu.
-    expect(within(screen.getByRole('grid')).getByRole('img', { name: 'Favorite' })).toBeInTheDocument();
-    expect(within(screen.getByRole('grid')).queryByRole('button', { name: /favorite/i })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'More actions for Arena TV' }));
-    expect(screen.getByRole('menuitem', { name: 'Remove from favorites' })).toBeInTheDocument();
-    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
+    expect(within(screen.getByRole('grid')).getByRole('button', { name: /toggle favorite/ })).toHaveAttribute('aria-pressed', 'true');
 
     unmount();
 
@@ -264,8 +258,7 @@ describe('TVChannelsTable', () => {
 
     expect(within(screen.getByRole('grid')).queryByRole('img', { name: 'Favorite' })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'More actions for Arena TV' }));
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Add to favorites' }));
+    fireEvent.click(screen.getByRole('button', { name: 'toggle favorite for tv channel Arena TV' }));
 
     expect(onToggleFavorite).toHaveBeenCalledWith(channel);
 
@@ -487,7 +480,7 @@ describe('TVChannelsTable', () => {
     expect(within(row).getByRole('button', { name: /open tv channel/i })).toBeInTheDocument();
   });
 
-  it('hides the Number, Language and Country columns when no row fills them', () => {
+  it('keeps Number and Favorite columns available even when metadata is empty', () => {
     renderTable(
       <TVChannelsTable
         channels={[
@@ -498,7 +491,7 @@ describe('TVChannelsTable', () => {
     );
     const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
     expect(headers).toEqual(expect.arrayContaining(['Name', 'Category', 'Streams', 'Status']));
-    expect(headers).not.toEqual(expect.arrayContaining(['Number']));
+    expect(headers).toEqual(expect.arrayContaining(['Number', 'Favorite']));
     expect(headers).not.toEqual(expect.arrayContaining(['Language']));
     expect(headers).not.toEqual(expect.arrayContaining(['Country']));
   });

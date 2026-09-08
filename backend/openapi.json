@@ -1154,63 +1154,6 @@
         "title": "BulkChannelEditRequest",
         "type": "object"
       },
-      "BulkStatusCheckResponse": {
-        "description": "Response for bulk status check operations",
-        "properties": {
-          "background": {
-            "default": false,
-            "title": "Background",
-            "type": "boolean"
-          },
-          "message": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Message"
-          },
-          "offline_count": {
-            "title": "Offline Count",
-            "type": "integer"
-          },
-          "online_count": {
-            "title": "Online Count",
-            "type": "integer"
-          },
-          "results": {
-            "items": {
-              "$ref": "#/components/schemas/ChannelStatusResponse"
-            },
-            "title": "Results",
-            "type": "array"
-          },
-          "summary": {
-            "$ref": "#/components/schemas/ChannelStatusSummary"
-          },
-          "total_channels": {
-            "title": "Total Channels",
-            "type": "integer"
-          },
-          "total_checked": {
-            "title": "Total Checked",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "total_channels",
-          "total_checked",
-          "online_count",
-          "offline_count",
-          "results",
-          "summary"
-        ],
-        "title": "BulkStatusCheckResponse",
-        "type": "object"
-      },
       "ChannelResult": {
         "description": "Schema for channel result from scraping",
         "properties": {
@@ -1234,6 +1177,29 @@
           "name"
         ],
         "title": "ChannelResult",
+        "type": "object"
+      },
+      "ChannelStatusJobRunResponse": {
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "triggered",
+              "already_running",
+              "disabled"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "message"
+        ],
+        "title": "ChannelStatusJobRunResponse",
         "type": "object"
       },
       "ChannelStatusResponse": {
@@ -1360,6 +1326,43 @@
           "checked_percentage"
         ],
         "title": "ChannelStatusSummary",
+        "type": "object"
+      },
+      "CheckEngineConfig": {
+        "properties": {
+          "url": {
+            "default": "",
+            "title": "Url",
+            "type": "string"
+          },
+          "use_dedicated": {
+            "default": false,
+            "title": "Use Dedicated",
+            "type": "boolean"
+          }
+        },
+        "title": "CheckEngineConfig",
+        "type": "object"
+      },
+      "CheckEngineConfigResponse": {
+        "properties": {
+          "managed": {
+            "default": false,
+            "title": "Managed",
+            "type": "boolean"
+          },
+          "url": {
+            "default": "",
+            "title": "Url",
+            "type": "string"
+          },
+          "use_dedicated": {
+            "default": false,
+            "title": "Use Dedicated",
+            "type": "boolean"
+          }
+        },
+        "title": "CheckEngineConfigResponse",
         "type": "object"
       },
       "ConfigKeyUpdate": {
@@ -4491,39 +4494,6 @@
         "title": "StatsResponse",
         "type": "object"
       },
-      "StatusCheckRequest": {
-        "description": "Request schema for status checking",
-        "properties": {
-          "channel_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Channel Ids"
-          },
-          "concurrency": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": 3,
-            "title": "Concurrency"
-          }
-        },
-        "title": "StatusCheckRequest",
-        "type": "object"
-      },
       "StatusResponse": {
         "description": "Schema for a status check response",
         "properties": {
@@ -5075,6 +5045,34 @@
           "total"
         ],
         "title": "TVChannelListResponse",
+        "type": "object"
+      },
+      "TVChannelReorderRequest": {
+        "description": "Complete inventory in the desired order; saved as numbers 1 through N.",
+        "properties": {
+          "channel_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 1,
+            "title": "Channel Ids",
+            "type": "array"
+          },
+          "expected_order": {
+            "description": "Original inventory order; rejects stale reorder edits.",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 1,
+            "title": "Expected Order",
+            "type": "array"
+          }
+        },
+        "required": [
+          "channel_ids",
+          "expected_order"
+        ],
+        "title": "TVChannelReorderRequest",
         "type": "object"
       },
       "TVChannelResponse": {
@@ -7121,73 +7119,6 @@
         ]
       }
     },
-    "/api/v1/acestream-channels/check_status_all": {
-      "post": {
-        "description": "Check the online status of all active channels or specific channels.",
-        "operationId": "check_all_channels_status_api_v1_acestream_channels_check_status_all_post",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Limit"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/StatusCheckRequest"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Request"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BulkStatusCheckResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Check All Channels Status",
-        "tags": [
-          "channels"
-        ]
-      }
-    },
     "/api/v1/acestream-channels/export_csv": {
       "get": {
         "description": "Export all Acestream channels as a CSV file.",
@@ -7629,6 +7560,28 @@
         "summary": "Get Recent Activity",
         "tags": [
           "activity"
+        ]
+      }
+    },
+    "/api/v1/background-tasks/channel_status/run": {
+      "post": {
+        "operationId": "run_channel_status_job_api_v1_background_tasks_channel_status_run_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelStatusJobRunResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Run Channel Status Job",
+        "tags": [
+          "background-tasks",
+          "background-tasks"
         ]
       }
     },
@@ -8137,73 +8090,6 @@
           }
         },
         "summary": "Bulk Edit Acestream Channels",
-        "tags": [
-          "channels"
-        ]
-      }
-    },
-    "/api/v1/channels/check_status_all": {
-      "post": {
-        "description": "Check the online status of all active channels or specific channels.",
-        "operationId": "check_all_channels_status_api_v1_channels_check_status_all_post",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Limit"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/StatusCheckRequest"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Request"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BulkStatusCheckResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Check All Channels Status",
         "tags": [
           "channels"
         ]
@@ -8736,6 +8622,68 @@
           }
         },
         "summary": "Update Base Url",
+        "tags": [
+          "config",
+          "config"
+        ]
+      }
+    },
+    "/api/v1/config/check-engine": {
+      "get": {
+        "operationId": "get_check_engine_api_v1_config_check_engine_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckEngineConfigResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Check Engine",
+        "tags": [
+          "config",
+          "config"
+        ]
+      },
+      "put": {
+        "operationId": "update_check_engine_api_v1_config_check_engine_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckEngineConfig"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckEngineConfigResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Check Engine",
         "tags": [
           "config",
           "config"
@@ -13490,6 +13438,48 @@
           }
         },
         "summary": "Create Tv Channels From Epg",
+        "tags": [
+          "tv-channels"
+        ]
+      }
+    },
+    "/api/v1/tv-channels/reorder": {
+      "post": {
+        "description": "Save the complete channel order atomically using consecutive channel numbers.",
+        "operationId": "reorder_tv_channels_api_v1_tv_channels_reorder_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TVChannelReorderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reorder Tv Channels",
         "tags": [
           "tv-channels"
         ]

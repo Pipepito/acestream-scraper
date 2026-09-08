@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Box,
@@ -28,7 +28,7 @@ import {
 } from '@mui/material';
 import type { SelectChangeEvent } from '@mui/material';
 import { ContentCopy, Download, ExpandLess, ExpandMore, QrCode } from '@mui/icons-material';
-import { Link as RouterLink } from 'react-router-dom';
+import StreamLinkFormatsSection from '../components/StreamLinkFormatsSection';
 import { QRCodeSVG } from 'qrcode.react';
 import { useChannelGroups, usePlaylistChannelSummary } from '../hooks/usePlaylists';
 import { useBaseUrls } from '../hooks/useBaseUrls';
@@ -43,6 +43,8 @@ const Playlist: React.FC = () => {
   const [showGroups, setShowGroups] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedBaseUrlId, setSelectedBaseUrlId] = useState<number | ''>('');
+  const [formatsOpen, setFormatsOpen] = useState(false);
+  const [formatNotice, setFormatNotice] = useState<{message: string; severity: 'success' | 'error'} | null>(null);
   const [qrOpen, setQrOpen] = useState(false);
   const [copied, setCopied] = useState<'ok' | 'failed' | null>(null);
 
@@ -50,6 +52,11 @@ const Playlist: React.FC = () => {
   const { data: namedBaseUrls = [], isLoading: loadingBaseUrls, isError: baseUrlsError } = useBaseUrls();
   const { data: publicUrl } = usePublicUrl();
   const { data: summary } = usePlaylistChannelSummary();
+
+  useEffect(() => {
+    if (!loadingBaseUrls && !baseUrlsError && selectedBaseUrlId !== '' && !namedBaseUrls.some(entry => entry.id === selectedBaseUrlId)) setSelectedBaseUrlId('');
+  }, [namedBaseUrls, loadingBaseUrls, baseUrlsError, selectedBaseUrlId]);
+  const selectedFormat = namedBaseUrls.find(entry => selectedBaseUrlId === '' ? entry.is_default : entry.id === selectedBaseUrlId);
 
   const effectiveFilters: PlaylistFilters = {
     ...filters,
@@ -150,8 +157,9 @@ const Playlist: React.FC = () => {
                 </Select>
                 <FormHelperText>Default uses your saved format, or acestream:// when none is saved.</FormHelperText>
               </FormControl>
+              {selectedFormat ? <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}><strong>{selectedFormat.name}:</strong> {selectedFormat.pattern}</Typography> : null}
               {baseUrlsError ? <Alert severity="warning">Could not load stream link formats. Try reloading the page.</Alert> : null}
-              <Button component={RouterLink} to="/settings" size="small">{namedBaseUrls.length ? 'Manage link formats and public address' : 'Set up suggested link formats and public address'}</Button>
+              <Button onClick={() => setFormatsOpen(value => !value)} aria-expanded={formatsOpen} aria-controls="playlist-formats" size="small">{namedBaseUrls.length ? 'Manage link formats' : 'Set up link formats'}</Button>
               <Box>
                 <Button size="small" onClick={() => setShowGroups((value) => !value)} aria-expanded={showGroups} endIcon={showGroups ? <ExpandLess /> : <ExpandMore />}>
                   Group filters
@@ -200,6 +208,12 @@ const Playlist: React.FC = () => {
           </Grid>
         </Grid>
       </ContentSection>
+
+      <Collapse in={formatsOpen} mountOnEnter unmountOnExit id="playlist-formats">
+        <Alert severity="info" sx={{ mb: 2 }}>Formats are shared with copied stream links and supported remote-player actions. Changing the default affects all links that use it.</Alert>
+        {formatNotice ? <Alert severity={formatNotice.severity} onClose={() => setFormatNotice(null)}>{formatNotice.message}</Alert> : null}
+        <StreamLinkFormatsSection notify={(message, severity) => setFormatNotice({ message, severity })} />
+      </Collapse>
 
       <Dialog open={qrOpen} onClose={() => setQrOpen(false)} aria-labelledby="playlist-qr-title">
         <DialogTitle id="playlist-qr-title">Playlist QR code</DialogTitle>

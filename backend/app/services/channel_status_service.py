@@ -64,10 +64,10 @@ class ChannelStatusService:
                     return response.status, None, f"Invalid response format: {str(e)}"
 
     def _get_engine_url(self) -> str:
-        from app.config.settings import settings
-        url = settings.ACE_CHECK_ENGINE_URL.strip() or self.settings_repo.get_setting(self.settings_repo.ACE_ENGINE_URL, None)
+        from app.services.check_engine_config_service import CheckEngineConfigService
+        url = CheckEngineConfigService(self.settings_repo).effective_url()
         if not url:
-            raise RuntimeError("Acestream Engine URL is not set in the database. Please configure it via the settings API.")
+            return ""
         url = url.strip()
         if not url.startswith(('http://', 'https://')):
             url = f"http://{url}"
@@ -168,6 +168,10 @@ class ChannelStatusService:
         self, channel: AcestreamChannel, *, identifier: str = 'id', persist: bool = True,
         priority: ProbePriority = ProbePriority.MANUAL, scan_started_at: Optional[datetime] = None,
     ) -> Dict[str, Any]:
+        if not self._get_engine_url():
+            result = self._skipped_result(channel)
+            result['message'] = 'No engine configured; stream status checks are disabled.'
+            return result
         submitted = datetime.now(timezone.utc)
         since = submitted if priority == ProbePriority.MANUAL else submitted - timedelta(seconds=30)
         if priority == ProbePriority.BACKGROUND and scan_started_at is not None:
@@ -227,6 +231,8 @@ class ChannelStatusService:
         network_status = 'unknown'
         try:
             engine_url = self._get_engine_url()
+            if not engine_url:
+                return self._skipped_result(channel)
             if not await self._wait_for_engine(engine_url):
                 return self._engine_unavailable_result(channel)
             if self._in_use(channel.id):
@@ -282,31 +288,6 @@ class ChannelStatusService:
             'last_checked': check_time,
             'error': error,
         }
-
-    async def check_multiple_channels(
-        self, channels: List[AcestreamChannel], concurrency: int = 3,
-    ) -> List[Dict[str, Any]]:
-        """Bulk work queues one source at a time behind interactive requests.
-
-        ``concurrency`` remains accepted for API compatibility; all callers use
-        the single engine slot and its global cooldown.
-        """
-        started = datetime.now(timezone.utc)
-        results = []
-        for channel in channels:
-            try:
-                results.append(await self.check_channel_status(
-                    channel, priority=ProbePriority.BACKGROUND, scan_started_at=started,
-                ))
-            except Exception:
-                logger.warning('Channel status check failed channel_id=%s', channel.id)
-                results.append({
-                    'channel_id': channel.id, 'is_online': channel.is_online is True,
-                    'status': 'error', 'message': 'Could not check channel status',
-                    'last_checked': channel.last_checked or datetime.now(timezone.utc),
-                    'error': 'Could not check channel status',
-                })
-        return results
 
     def get_channel_status_summary(self) -> Dict[str, Any]:
         """

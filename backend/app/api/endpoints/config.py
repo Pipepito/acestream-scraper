@@ -25,6 +25,9 @@ from app.schemas.config import (
 from app.services.config_service import ConfigService
 from app.services.dashboard_config_service import DashboardConfigService
 
+from app.schemas.config import CheckEngineConfig, CheckEngineConfigResponse
+from app.services.check_engine_config_service import CheckEngineConfigService
+
 router = APIRouter(tags=["config"])
 logger = logging.getLogger(__name__)
 
@@ -250,6 +253,16 @@ def update_dashboard_config(
     }
 
 
+@router.get("/check-engine", response_model=CheckEngineConfigResponse)
+def get_check_engine(db: Session = Depends(get_db)):
+    return CheckEngineConfigService(SettingsRepository(db)).get()
+
+
+@router.put("/check-engine", response_model=CheckEngineConfigResponse)
+def update_check_engine(config: CheckEngineConfig, db: Session = Depends(get_db)):
+    return CheckEngineConfigService(SettingsRepository(db)).save(config)
+
+
 @router.get("/{key}", response_model=SettingResponse)
 def get_config_key(key: str, config_service: ConfigService = Depends(get_config_service)):
     """Generic GET for config keys."""
@@ -291,7 +304,7 @@ def update_config_key(
         return {"message": "Base URL updated successfully", "value": value}
 
     if key == "ace_engine_url":
-        if not value:
+        if value is None:
             raise HTTPException(status_code=422, detail="Missing ace_engine_url value")
         success = config_service.set_ace_engine_url(value)
         if not success:

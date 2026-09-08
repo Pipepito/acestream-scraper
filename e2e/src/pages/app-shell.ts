@@ -1,16 +1,18 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
-export type NavLabel = 'Overview' | 'Scraper' | 'Search' | 'Acestream Channels' | 'TV Channels' | 'EPG' | 'Playlist' | 'Integrations' | 'Settings';
+export type NavLabel = 'Live TV' | 'WARP' | 'Overview' | 'Scraper' | 'Search' | 'Acestream Channels' | 'TV Channels' | 'EPG' | 'Playlist' | 'Integrations' | 'Settings';
 
 export const NAV_ROUTES: Record<NavLabel, string> = {
-  Overview: '/',
+  'Live TV': '/live-tv',
   Scraper: '/scraper',
   Search: '/search',
   'Acestream Channels': '/acestream-channels',
   'TV Channels': '/tv-channels',
   EPG: '/epg',
   Playlist: '/playlist',
+  Overview: '/',
   Integrations: '/integrations',
+  WARP: '/warp',
   Settings: '/settings',
 };
 

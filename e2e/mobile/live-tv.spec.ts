@@ -18,7 +18,7 @@ async function fixtures(page: Page) {
     let data: unknown = {};
     if (path === '/startup') data = { status: 'ready', phase: 'Ready to use', events: [], recovery_token: 'test' };
     else if (path === '/tv-channels') data = { items: channels, total: channels.length };
-    else if (path === '/tv-channels/1') data = channel;
+    else if (/^\/tv-channels\/\d+$/.test(path)) data = channels.find((item) => item.id === Number(path.split('/').pop()));
     else if (path === '/acestream-channels') {
       expect(new URL(request.url()).searchParams.get('assigned')).toBe('false');
       expect(new URL(request.url()).searchParams.get('is_online')).toBe('true');
@@ -63,23 +63,24 @@ for (const mode of ['light', 'dark']) {
     await expect(page.getByText('No channels match these filters.')).toBeVisible();
     await page.getByRole('searchbox', { name: 'Find a channel' }).clear();
     await page.getByRole('button', { name: 'Watch Arena TV' }).click();
-    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Live TV player', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Playback options and schedule' }).click();
     await expect(page.getByRole('heading', { name: 'Schedule', exact: true })).toBeVisible();
     await page.getByRole('combobox', { name: /^Stream/ }).click();
     await page.getByRole('option', { name: /Arena backup/ }).click();
     await expect(page.getByRole('listbox')).toHaveCount(0);
     await expect.poll(() => starts).toEqual([streams[0].id, streams[1].id]);
     await expect.poll(() => leaves).toContain('session-1');
-    await expect(page.getByRole('dialog')).toHaveJSProperty('scrollWidth', await page.getByRole('dialog').evaluate((el) => el.clientWidth));
+    await expect(page.getByRole('region', { name: 'Live TV player', exact: true })).toHaveJSProperty('scrollWidth', await page.getByRole('region', { name: 'Live TV player', exact: true }).evaluate((el) => el.clientWidth));
     await page.screenshot({ path: test.info().outputPath(`player-${mode}.png`), fullPage: true });
-    await page.getByRole('button', { name: 'Close', exact: true }).click();
-    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Stop watching', exact: true }).click();
+    await expect(page.getByRole('region', { name: 'Live TV player', exact: true })).toHaveCount(0);
     await expect.poll(() => leaves).toContain('session-2');
     await page.getByRole('button', { name: 'Watch Independent live stream' }).focus();
     await page.keyboard.press('Enter');
     await expect.poll(() => starts).toEqual([streams[0].id, streams[1].id, orphan.id]);
     await expect(page.getByRole('heading', { name: 'Schedule', exact: true })).toHaveCount(0);
-    await page.getByRole('button', { name: 'Close', exact: true }).click();
+    await page.getByRole('button', { name: 'Stop watching', exact: true }).click();
     expect(errors).toEqual([]);
   });
 }
@@ -94,8 +95,9 @@ test('direct channel URL, guide error and retry, browser Back', async ({ page })
   await expect(page.getByText('Now · Live match')).toBeVisible();
   await page.getByRole('button', { name: 'Watch Arena TV' }).click();
   await page.goBack();
-  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Live TV player', exact: true })).toHaveCount(0);
   await page.goto('/live-tv?channel=1');
+  await page.getByRole('button', { name: 'Playback options and schedule' }).click();
   await expect(page.getByRole('combobox', { name: /^Stream/ })).toBeVisible();
 });
 
@@ -110,10 +112,11 @@ test('audio track selection requests the chosen language', async ({ page }) => {
     }
   });
   await page.goto('/live-tv?channel=1');
+  await page.getByRole('button', { name: 'Playback options and schedule' }).click();
   await page.getByRole('combobox', { name: 'Audio track' }).click();
   await page.getByRole('option', { name: /Track 2 · eng/ }).click();
   await expect.poll(() => selectedAudio).toEqual([1]);
-  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.getByRole('button', { name: 'Stop watching', exact: true }).click();
 });
 
 for (const mode of ['light', 'dark']) {
@@ -138,8 +141,29 @@ for (const mode of ['light', 'dark']) {
       { content_id: orphan.id, title: 'Independent live stream' },
     ]);
     expect(starts).toEqual([]);
-    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.getByRole('region', { name: 'Live TV player', exact: true })).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: test.info().outputPath(`send-to-player-${mode}.png`), fullPage: true });
   });
 }
+
+ test('browse and switch channels without closing the player', async ({ page }) => {
+  const { starts, leaves } = await fixtures(page);
+  await page.goto('/live-tv');
+  await page.getByRole('button', { name: 'Watch Arena TV' }).click();
+  await expect.poll(() => starts.length).toBe(1);
+  await page.getByRole('searchbox', { name: 'Find a channel' }).fill('No guide');
+  await expect(page.getByRole('region', { name: 'Live TV player', exact: true })).toBeVisible();
+  const video = page.getByLabel('Video player for Arena TV');
+  await expect(video).toBeInViewport();
+  await expect(page.getByRole('searchbox', { name: 'Find a channel' })).toBeInViewport();
+  await page.screenshot({ path: test.info().outputPath('watch-and-browse.png') });
+  expect(starts).toHaveLength(1);
+  expect(leaves).toHaveLength(0);
+  await page.getByRole('button', { name: 'Watch No guide TV' }).click();
+  await expect(page.getByRole('region', { name: 'Live TV player', exact: true }).getByRole('heading', { name: 'No guide TV', exact: true })).toBeVisible();
+  await expect.poll(() => starts.length).toBe(2);
+  await expect.poll(() => leaves).toContain('session-1');
+  await page.getByRole('button', { name: 'Stop watching' }).click();
+  await expect.poll(() => leaves).toContain('session-2');
+ });

@@ -920,3 +920,25 @@ def test_acestream_channels_returned_in_curated_order(client, db_session):
     assert [s["id"] for s in listing["acestream_channels"]] == expected
     acestreams = client.get(f"/api/v1/tv-channels/{tv.id}/acestreams").json()
     assert [s["id"] for s in acestreams] == expected
+
+
+def test_reorder_tv_channels_is_complete_and_persistent(client, seed_tv_channels):
+    before = client.get('/api/v1/tv-channels/').json()['items']
+    expected = [channel['id'] for channel in before]
+    reordered = list(reversed(expected))
+    response = client.post('/api/v1/tv-channels/reorder', json={'channel_ids': reordered, 'expected_order': expected})
+    assert response.status_code == 200
+    after = client.get('/api/v1/tv-channels/').json()['items']
+    assert [channel['id'] for channel in after] == reordered
+    assert [channel['channel_number'] for channel in after] == [1, 2, 3]
+    # A stale editor must not overwrite the newly saved order.
+    assert client.post('/api/v1/tv-channels/reorder', json={'channel_ids': expected, 'expected_order': expected}).status_code == 409
+    assert [c['id'] for c in client.get('/api/v1/tv-channels/').json()['items']] == reordered
+
+
+def test_reorder_rejects_partial_and_duplicate_lists_without_changes(client, seed_tv_channels):
+    before = client.get('/api/v1/tv-channels/').json()['items']
+    ids = [channel['id'] for channel in before]
+    assert client.post('/api/v1/tv-channels/reorder', json={'channel_ids': ids[:-1], 'expected_order': ids}).status_code == 409
+    assert client.post('/api/v1/tv-channels/reorder', json={'channel_ids': [ids[0]] * 3, 'expected_order': ids}).status_code == 422
+    assert client.get('/api/v1/tv-channels/').json()['items'] == before

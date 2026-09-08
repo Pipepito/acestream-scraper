@@ -1,11 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { DataGrid, GridColDef, GridRenderCellParams, GridSortModel } from '@mui/x-data-grid';
-import { Alert, Box, Chip, IconButton, Snackbar, Tooltip, Typography } from '@mui/material';
-import { ContentCopy } from '@mui/icons-material';
+import { Alert, Box, Chip, Snackbar, Tooltip, Typography } from '@mui/material';
 import EmptyState from './state/EmptyState';
 import ChannelRowActions, { type ChannelActionHandlers } from './channels/ChannelRowActions';
 import OnlineChip from './channels/OnlineChip';
-import NetworkStatusChip from './channels/NetworkStatusChip';
+import SelectableStreamId from './channels/SelectableStreamId';
 import { AcestreamChannel, acestreamChannelService } from '../services/channelService';
 import { shouldDisableGridVirtualization } from '../config/runtime';
 import { formatRelativeTime } from '../utils/format';
@@ -83,32 +82,11 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
       {
         field: 'id',
         headerName: 'ID',
-        minWidth: 180,
-        flex: 0.8,
+        minWidth: 300,
+        flex: 1,
         renderCell: (params: GridRenderCellParams<AcestreamChannel>) => (
-          <Box sx={{ display: 'flex', alignItems: 'center', fontFamily: 'monospace', fontSize: 12.5, width: '100%', minWidth: 0 }}>
-            <Box sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{params.row.id}</Box>
-            <Tooltip title="Copy ID">
-              <IconButton
-                size="small"
-                aria-label={`copy acestream id ${params.row.id}`}
-                sx={{ ml: 0.5 }}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onCopyId(params.row.id);
-                }}
-              >
-                <ContentCopy fontSize="inherit" />
-              </IconButton>
-            </Tooltip>
-          </Box>
+          <SelectableStreamId id={params.row.id} networkStatus={params.row.network_status} onCopyId={onCopyId} />
         ),
-      },
-      {
-        field: 'network_status',
-        headerName: 'Network ID',
-        width: 145,
-        renderCell: (params: GridRenderCellParams<AcestreamChannel>) => <NetworkStatusChip status={params.row.network_status} />,
       },
       {
         field: 'is_online',
@@ -174,7 +152,7 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
         getRowId={(row) => row.id}
         columns={columns}
         loading={loading}
-        rowHeight={56}
+        rowHeight={76}
         columnBuffer={12}
         disableVirtualization={shouldDisableGridVirtualization({ mode: process.env.NODE_ENV })}
         disableColumnFilter

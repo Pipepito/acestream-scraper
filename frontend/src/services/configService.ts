@@ -1,6 +1,7 @@
 import apiClient from './apiClient';
 import type { components } from '../types/api-generated';
 
+export type CheckEngineConfig = components['schemas']['CheckEngineConfigResponse'];
 export type PlaybackRouting = components['schemas']['PlaybackRouting'];
 
 export interface Setting {
@@ -49,6 +50,8 @@ export interface Stats {
 const BASE_URL = '/v1/config';
 
 export const configService = {
+  getCheckEngine: async (): Promise<CheckEngineConfig> => (await apiClient.get<CheckEngineConfig>(`${BASE_URL}/check-engine`)).data,
+  updateCheckEngine: async (config: CheckEngineConfig): Promise<CheckEngineConfig> => (await apiClient.put<CheckEngineConfig>(`${BASE_URL}/check-engine`, { use_dedicated: config.use_dedicated, url: config.url })).data,
   getPlaybackRouting: async (): Promise<PlaybackRouting> => {
     const response = await apiClient.get<PlaybackRouting>(`${BASE_URL}/playback-routing`);
     return response.data;

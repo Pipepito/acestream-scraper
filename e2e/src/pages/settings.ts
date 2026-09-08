@@ -33,6 +33,7 @@ export class SettingsPage extends AppShell {
   }
 
   async addLinkFormat(name: string, pattern: string, isDefault = false): Promise<void> {
+    await this.page.getByRole('tab', { name: 'Stream links', exact: true }).click();
     await this.linkFormats().getByRole('button', { name: 'Add format' }).click();
     const dialog = this.dialog('Add link format');
     await expect(dialog).toBeVisible();
@@ -53,6 +54,7 @@ export class SettingsPage extends AppShell {
   }
 
   async saveInterval(label: 'Scrape sources every (hours)' | 'Refresh EPG every (hours)', hours: string): Promise<void> {
+    await this.page.getByRole('tab', { name: 'Automation', exact: true }).click();
     const form = this.automation().getByRole('form', { name: `${label} form` });
     await form.getByRole('spinbutton', { name: label }).fill(hours);
     await form.getByRole('button', { name: 'Save' }).click();

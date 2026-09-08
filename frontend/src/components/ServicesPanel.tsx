@@ -272,9 +272,12 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
                       {service.stopped_by_user ? 'Start' : 'Stop'}
                     </Button>
                   ) : null}
+                  {(service.name === 'acestream' || service.name === 'acestream-check') && !service.managed ? (
+                    <Button component={RouterLink} to={service.name === 'acestream-check' ? '/settings?tab=automation' : '/settings?tab=playback'} size="small">Configure engine</Button>
+                  ) : null}
                   {disabledReason ? (
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                      {disabledReason}
+                      {(service.name === 'acestream' || service.name === 'acestream-check') && !service.managed ? 'Configure an external engine in Settings. Start or stop it on its own host.' : disabledReason}
                     </Typography>
                   ) : null}
                 </Box>

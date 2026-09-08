@@ -1,3 +1,4 @@
+import ChannelNumberField from './ChannelNumberField';
 import React from 'react';
 import { DataGrid, GridColDef, GridRenderCellParams, GridSortModel } from '@mui/x-data-grid';
 import {
@@ -40,6 +41,7 @@ interface TVChannelsTableProps {
   onOpen: (id: number) => void;
   onToggleFavorite: (channel: TVChannel) => void;
   /** Plays the channel's best stream. Omit it and the Play control stays disabled. */
+  onNumberChange?: (channel: TVChannel, value: number | null) => Promise<void>;
   onPlay?: (channel: TVChannel) => void;
 }
 
@@ -57,6 +59,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
   onOpen,
   onToggleFavorite,
   onPlay,
+  onNumberChange,
 }) => {
   const theme = useTheme();
   const isCompact = useMediaQuery(theme.breakpoints.down('md'));
@@ -72,17 +75,11 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
     onPageChange(0);
   };
 
-  const hasNumbers = channels.some((channel) => Boolean(channel.channel_number));
   const hasLanguage = channels.some((channel) => Boolean(channel.language));
   const hasCountry = channels.some((channel) => Boolean(channel.country));
 
-  const renderActions = (channel: TVChannel, isMobile = false) => {
-    const canPlay = Boolean(onPlay) && Boolean(channel.acestream_channels?.length);
-
-    if (isMobile) {
-      return (
-        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
-          <Tooltip title={channel.is_favorite ? 'Remove from favorites' : 'Add to favorites'}>
+  const renderFavorite = (channel: TVChannel) => (
+<Tooltip title={channel.is_favorite ? 'Remove from favorites' : 'Add to favorites'}>
             <IconButton
               size="medium"
               color={channel.is_favorite ? 'warning' : 'default'}
@@ -93,6 +90,14 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
               {channel.is_favorite ? <Star fontSize="small" /> : <StarBorder fontSize="small" />}
             </IconButton>
           </Tooltip>
+  );
+
+  const renderActions = (channel: TVChannel, isMobile = false) => {
+    const canPlay = Boolean(onPlay) && Boolean(channel.acestream_channels?.length);
+
+    if (isMobile) {
+      return (
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
           <Button
             variant="outlined"
             startIcon={<Edit fontSize="small" />}
@@ -135,11 +140,6 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
     // row-action rule the Acestream rows follow. Favorite state stays visible
     // on the row through the star next to the name.
     const menuActions: RowAction[] = [
-      {
-        label: channel.is_favorite ? 'Remove from favorites' : 'Add to favorites',
-        icon: channel.is_favorite ? <Star fontSize="small" /> : <StarBorder fontSize="small" />,
-        onClick: () => onToggleFavorite(channel),
-      },
       { label: 'Edit', icon: <Edit fontSize="small" />, onClick: () => onEdit(channel) },
       { label: 'Delete', icon: <Delete fontSize="small" />, danger: true, onClick: () => onDelete(channel.id) },
     ];
@@ -348,7 +348,6 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
       minWidth: 140,
       renderCell: (params: GridRenderCellParams<TVChannel>) => (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
-          {params.row.is_favorite ? <Star fontSize="small" color="warning" titleAccess="Favorite" /> : null}
           <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>
             {params.row.name}
           </Box>
@@ -362,7 +361,8 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
       sortable: false,
       renderCell: (params: GridRenderCellParams<TVChannel>) => renderActions(params.row),
     },
-    { field: 'channel_number', headerName: 'Number', width: 90 },
+    { field: 'channel_number', headerName: 'Number', width: 135, renderCell: (params: GridRenderCellParams<TVChannel>) => onNumberChange ? <ChannelNumberField channel={params.row} onSave={onNumberChange} /> : params.row.channel_number ?? '—' },
+    { field: 'is_favorite', headerName: 'Favorite', width: 90, renderCell: (params: GridRenderCellParams<TVChannel>) => renderFavorite(params.row) },
     { field: 'category', headerName: 'Category', width: 120 },
     { field: 'language', headerName: 'Language', width: 100 },
     { field: 'country', headerName: 'Country', width: 100 },
@@ -438,6 +438,10 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
                     <Chip label={`${streamCount} ${streamCount === 1 ? 'stream' : 'streams'}`} size="small" variant="outlined" />
                   </Stack>
 
+                  <Stack direction="row" spacing={1} alignItems="flex-start">
+                    {onNumberChange ? <ChannelNumberField channel={channel} onSave={onNumberChange} /> : null}
+                    {renderFavorite(channel)}
+                  </Stack>
                   {renderMobileMetadata(channel)}
 
                   {renderActions(channel, true)}
@@ -496,6 +500,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
         density={isCompact ? 'compact' : 'standard'}
         columnBuffer={12}
         disableVirtualization={shouldDisableGridVirtualization({ mode: process.env.NODE_ENV })}
+        getRowHeight={() => 'auto'}
         autoHeight
         pagination
         paginationMode="server"
@@ -507,7 +512,6 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
           onPageSizeChange(model.pageSize);
         }}
         columnVisibilityModel={{
-          channel_number: hasNumbers,
           country: !isCompact && hasCountry,
           language: !isCompact && hasLanguage,
         }}

@@ -1,7 +1,7 @@
 import React from 'react';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
-import { useMediaQuery } from '@mui/material';
+import { Link, useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import NavBar from '../NavBar';
 import { getShellContentMaxWidth, getShellLayout } from '../../styles/layout';
@@ -19,9 +19,12 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
 
   return (
     <Box data-testid="app-shell-root" sx={{ display: 'flex', minHeight: '100vh', minWidth: 0, bgcolor: theme.appTokens.surface.canvas }}>
+      <Link href="#main-content" sx={{ position: 'fixed', top: -100, left: 16, zIndex: 1600, p: 1.5, bgcolor: 'background.paper', color: 'text.primary', '&:focus': { top: 8 } }}>Skip to content</Link>
       <NavBar drawerWidth={layout.navWidth} />
       <Box
         component="main"
+        id="main-content"
+        tabIndex={-1}
         sx={{
           flexGrow: 1,
           minWidth: 0,

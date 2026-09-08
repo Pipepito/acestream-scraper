@@ -9,7 +9,7 @@ export interface TVChannelBase {
   language?: string;
   website?: string;
   epg_id?: string;
-  channel_number?: number;
+  channel_number?: number | null;
 }
 
 export interface TVChannelCreate extends TVChannelBase {
@@ -29,7 +29,7 @@ export interface TVChannelUpdate {
   epg_id?: string;
   is_active?: boolean;
   is_favorite?: boolean;
-  channel_number?: number;
+  channel_number?: number | null;
   epg_source_id?: number;
 }
 

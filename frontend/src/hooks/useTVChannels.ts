@@ -197,3 +197,16 @@ export const useBulkUpdateEpg = () => {
     },
   });
 };
+
+export const useReorderTVChannels = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ids, expected }: { ids: number[]; expected: number[] }) => tvChannelService.reorder(ids, expected),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.ALL_TV_CHANNELS] }),
+        queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TV_CHANNEL_DETAIL] }),
+      ]);
+    },
+  });
+};

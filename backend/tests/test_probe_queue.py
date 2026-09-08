@@ -10,6 +10,13 @@ from app.services import probe_queue as module
 from app.services.probe_queue import ProbePriority, ProbeQueue
 
 
+@pytest.fixture
+def configured_engine(db_session):
+    """Queue tests exercise probes, so configure their mocked engine explicitly."""
+    from app.repositories.settings_repository import SettingsRepository
+    SettingsRepository(db_session).set_setting('ace_engine_url', 'http://engine.test:6878')
+
+
 @pytest.mark.asyncio
 async def test_priority_fifo_and_non_preemption():
     queue = ProbeQueue(cooldown=0)
@@ -103,7 +110,7 @@ async def test_queue_is_shared_across_thread_event_loops():
 
 
 @pytest.mark.asyncio
-async def test_scan_skips_result_written_by_request_that_overtook_it(db_session, monkeypatch):
+async def test_scan_skips_result_written_by_request_that_overtook_it(db_session, monkeypatch, configured_engine):
     from sqlalchemy.orm import Session
     from app.models.models import AcestreamChannel
     from app.repositories.channel_repository import ChannelRepository
@@ -118,7 +125,7 @@ async def test_scan_skips_result_written_by_request_that_overtook_it(db_session,
     async def probe(self, channel, **kwargs):
         if channel.name == 'a':
             entered.set()
-            await release.wait()
+            await asyncio.wait_for(release.wait(), 3)
         order.append(channel.name)
         with Session(bind=db_session.get_bind()) as db:
             ChannelRepository(db).update_channel_status(channel.id, True)
@@ -129,7 +136,7 @@ async def test_scan_skips_result_written_by_request_that_overtook_it(db_session,
             channels[key], priority=priority, scan_started_at=started,
         )
     active = asyncio.create_task(check('a', ProbePriority.BACKGROUND))
-    await entered.wait()
+    await asyncio.wait_for(entered.wait(), 3)
     background = asyncio.create_task(check('b', ProbePriority.BACKGROUND))
     manual = asyncio.create_task(check('c', ProbePriority.MANUAL))
     playback = asyncio.create_task(check('d', ProbePriority.PLAYBACK))
@@ -144,7 +151,7 @@ async def test_scan_skips_result_written_by_request_that_overtook_it(db_session,
 
 
 @pytest.mark.asyncio
-async def test_manual_request_can_recheck_old_result_but_background_uses_scan_start(db_session, monkeypatch):
+async def test_manual_request_can_recheck_old_result_but_background_uses_scan_start(db_session, monkeypatch, configured_engine):
     from app.models.models import AcestreamChannel
     from app.services.channel_status_service import ChannelStatusService
     monkeypatch.setattr('app.services.channel_status_service.probe_queue', ProbeQueue(cooldown=0))
@@ -162,7 +169,7 @@ async def test_manual_request_can_recheck_old_result_but_background_uses_scan_st
 
 
 @pytest.mark.asyncio
-async def test_cancelled_active_probe_finishes_cleanup_before_next_probe(db_session, monkeypatch):
+async def test_cancelled_active_probe_finishes_cleanup_before_next_probe(db_session, monkeypatch, configured_engine):
     from app.models.models import AcestreamChannel
     from app.services.channel_status_service import ChannelStatusService
     monkeypatch.setattr('app.services.channel_status_service.probe_queue', ProbeQueue(cooldown=0))
@@ -176,14 +183,14 @@ async def test_cancelled_active_probe_finishes_cleanup_before_next_probe(db_sess
                 await asyncio.Event().wait()
             finally:
                 cleaning.set()
-                await cleaned.wait()
+                await asyncio.wait_for(cleaned.wait(), 3)
         urgent_started.set()
         return {'status': 'online'}
     service._check_channel_status = probe
     active = asyncio.create_task(service.check_channel_status(AcestreamChannel(id='a' * 40, name='scheduled'), persist=False, priority=ProbePriority.BACKGROUND))
-    await entered.wait()
+    await asyncio.wait_for(entered.wait(), 3)
     active.cancel()
-    await cleaning.wait()
+    await asyncio.wait_for(cleaning.wait(), 3)
     urgent = asyncio.create_task(service.check_channel_status(AcestreamChannel(id='b' * 40, name='urgent'), persist=False, priority=ProbePriority.PLAYBACK))
     await asyncio.sleep(.06)
     assert not urgent_started.is_set()
@@ -196,6 +203,8 @@ async def test_cancelled_active_probe_finishes_cleanup_before_next_probe(db_sess
 
 def test_scheduled_task_uses_background_priority_and_counts_skips(alembic_db_session, monkeypatch):
     db_session = alembic_db_session
+    from app.repositories.settings_repository import SettingsRepository
+    SettingsRepository(db_session).set_setting('ace_engine_url', 'http://engine.test:6878')
     from app.models.models import AcestreamChannel
     from app.tasks import channel_status_task
     channel = AcestreamChannel(id='9' * 40, name='Scheduled', is_active=True)

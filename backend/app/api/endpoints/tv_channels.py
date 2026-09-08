@@ -30,6 +30,7 @@ from app.schemas.channel import (
     TVChannelListResponse,
     TVChannelResponse,
     TVChannelUpdate,
+    TVChannelReorderRequest,
 )
 
 router = APIRouter()
@@ -123,6 +124,16 @@ async def analyze_epg_matches(request: EPGMatchAnalysisRequest, db: Session = De
         return service.analyze_matches(strictness=request.strictness, source_id=request.source_id)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+
+
+@router.post("/reorder", response_model=MessageResponse)
+def reorder_tv_channels(request: TVChannelReorderRequest, db: Session = Depends(get_db)):
+    """Save the complete channel order atomically using consecutive channel numbers."""
+    try:
+        TVChannelService(db).reorder_channels(request.channel_ids, request.expected_order)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {"message": "Channel order saved."}
 
 
 @router.get("/{tv_channel_id}", response_model=TVChannelResponse)

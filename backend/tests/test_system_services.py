@@ -61,7 +61,7 @@ def test_nothing_installed_and_nothing_reachable(tmp_path, monkeypatch):
 
     assert {name: s["state"] for name, s in services.items()} == {
         "acestream": "not-installed",
-        "acestream-check": "not-installed",
+        "acestream-check": "disabled",
         "acexy": "not-installed",
         "ipfs": "not-installed",
         "zeronet": "not-installed",

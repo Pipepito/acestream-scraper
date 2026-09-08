@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import {
   Alert,
   Box,
@@ -223,7 +223,7 @@ const EPG: React.FC = () => {
         {activeTab === 'sources' ? (
           <ContentSection
             title="Sources"
-            description="Each source is an XMLTV feed. Refreshes run every hour; refresh by hand after adding one."
+            description="Each source is an XMLTV feed. Automatic refresh follows your schedule in Settings; refresh by hand after adding one."
             actions={
               <>
                 <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={handleAddSourceClick}>
@@ -236,6 +236,7 @@ const EPG: React.FC = () => {
             }
           >
             {isLoadingSources || isRefreshingAll ? <LinearProgress sx={{ mb: 2 }} /> : null}
+            <Button component={RouterLink} to="/settings?tab=automation" sx={{ mb: 1 }}>Edit refresh schedule</Button>
             <EPGSourcesTable
               sources={epgSources}
               refreshingSourceId={refreshingSourceId}

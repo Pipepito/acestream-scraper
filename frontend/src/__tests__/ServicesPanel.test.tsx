@@ -1,3 +1,4 @@
+import { TestMemoryRouter } from '../testUtils/router';
 import React from 'react';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { ThemeProvider } from '@mui/material/styles';
@@ -37,7 +38,7 @@ const service = (overrides: Partial<ServiceStatus>): ServiceStatus => ({
 const renderPanel = () =>
   render(
     <ThemeProvider theme={createAppTheme('light')}>
-      <ServicesPanel pollIntervalMs={60000} />
+      <TestMemoryRouter><ServicesPanel pollIntervalMs={60000} /></TestMemoryRouter>
     </ThemeProvider>
   );
 
@@ -100,7 +101,7 @@ describe('ServicesPanel', () => {
 
     expect(screen.getByText(/not running under the container entrypoint/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Restart AceStream engine' })).toBeDisabled();
-    expect(screen.getByText('Managed outside this container; restart it where it runs.')).toBeInTheDocument();
+    expect(screen.getByText('Configure an external engine in Settings. Start or stop it on its own host.')).toBeInTheDocument();
   });
 
   it('asks for confirmation, then requests the restart and reports it', async () => {
@@ -161,7 +162,7 @@ describe('ServicesPanel', () => {
     mockUseSystemServices.mockReturnValue({
       ...response, data: { supervised: true, services: [service({ state: 'stopped', stopped_by_user: true, pid: null, running: false })] },
     });
-    rerender(<ThemeProvider theme={createAppTheme('light')}><ServicesPanel /></ThemeProvider>);
+    rerender(<ThemeProvider theme={createAppTheme('light')}><TestMemoryRouter><ServicesPanel /></TestMemoryRouter></ThemeProvider>);
     expect(await screen.findByText('AceStream engine is stopped. Select Start to resume.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Start AceStream engine' })).toBeEnabled();
   });

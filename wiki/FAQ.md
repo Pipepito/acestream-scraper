@@ -1,260 +1,85 @@
 # Frequently Asked Questions
 
-## General Questions
+## Do I need an AceStream engine?
 
-### What is Acestream Scraper?
-Acestream Scraper is an application that automatically discovers, manages, and organizes Acestream channels from various sources. It provides a web interface for channel management and generates M3U playlists that can be used with media players.
+Not for scraping, organizing channels or generating playlists for clients with their own engine. Browser playback, engine catalogue search and server relays need a playback endpoint. Signal checks need a playback or dedicated checking endpoint. New scraper-only installs leave playback empty; with no engine configured, checks are skipped without changing saved results.
 
-### Is this application legal?
-Acestream Scraper itself is just a tool that manages links and generates playlists. The legality depends on the content you access and the laws in your region. The application doesn't host or distribute any content directly - it only organizes links that are already available elsewhere. Always ensure you have the proper rights to access any content and follow your local regulations.
+Choose bundled or external services with the [Docker command builder](https://pipepito.github.io/acestream-scraper/). Installed services remain off until enabled.
 
-### What is Acestream?
-Acestream is a peer-to-peer (P2P) media streaming technology based on the BitTorrent protocol. It allows users to stream audio and video content with minimal latency. Unlike traditional streaming, it distributes the load across users, making it efficient for high-quality streams.
+## What is the difference between a stream and a TV channel?
 
-### How does Acestream Scraper relate to Acestream Engine?
-Acestream Scraper is a management layer that works with Acestream Engine. The Engine handles the actual streaming, while the Scraper finds, organizes, and provides an interface to access channels. The Scraper can either use a built-in Acestream Engine or connect to an external one.
+A stream is one AceStream content ID. A TV channel represents a station and groups primary/backup streams, a number, favorite flag and EPG mapping. **Acestream Channels** manages IDs; **TV Channels** manages stations; **Live TV** displays active stations with attached streams and a separate online-unassigned section.
 
-### What's the difference between Acestream Engine and Acexy?
-- **Acestream Engine**: The core technology that handles the P2P streaming
-- **Acexy**: An enhanced proxy interface for Acestream Engine that manages multiple connections efficiently
+## What is Acexy, and do I need it?
 
-Acexy acts as a connection manager between clients and the Acestream Engine. When multiple users access the same stream, the Acestream Engine needs a unique process identifier (PID) for each connection to handle them independently. Without proper PID management, when one stream ends, it might affect other clients.
+Acexy proxies engine streams and manages their sharing/cleanup. It is optional: direct engine mode is the app default. Enable the service in Docker, then select **Settings → Playback → Route playback through Acexy** if you want app playback to use it. The backend-facing Acexy URL and the player-facing published address may differ.
 
-Acexy handles this PID management automatically under the hood, so you don't need to manually add `pid=id` parameters to your stream URLs. It then proxies these properly formatted requests to the Acestream Engine, greatly simplifying the user experience and making multi-client setups more reliable.
+This routing applies to new web-player, tuner and remote-player sessions; it does not rewrite every copied or exported link. See [Playback routing](Remote-Players.md#playback-routing).
 
-## Installation Questions
+## Why use a separate checking engine?
 
-### Do I need Docker to use Acestream Scraper?
-No, but it's the recommended method. Docker simplifies installation by packaging all dependencies. You can also install manually if you have Python 3.11+ and Node.js 20+ (to build the web interface) installed on your system, but you'll need to manage dependencies yourself — see [Manual Installation](Installation.md#manual-installation).
+It isolates signal checks from playback. Native engine 3.2.11 can stop another viewer of the same source despite different PIDs. The app coordinates its own sessions, but cannot track all players connected directly to the engine. A bundled or external checker avoids sharing that engine, at the cost of additional memory, cache and bandwidth. A failed dedicated checker never falls back to playback.
 
-### How do I update to the latest version?
-If using Docker Compose:
+## Which playlist format should I choose?
+
+| Player/setup | Format |
+|---|---|
+| One station entry with backup sources through this server | **TV channel relay (automatic failover)**: `/tuner/channel/{tv_channel_id}.ts` |
+| One exact stream through this server | **Server relay**: `/tuner/stream/{channel_id}.ts` |
+| A client with native AceStream support | **AceStream app**: `acestream://{channel_id}` |
+| A player connecting directly to an engine or Acexy | **AceStream direct** or **Acexy**, using a host/port reachable from that player |
+
+Add/select formats in **Playlist → Manage link formats** or **Settings → Stream links**. Default follows the saved default. Unassigned streams can be appended at the end; they have no TV-channel failover. The [walkthrough](Usage.md#step-7-build-the-playlist-url) explains filters and import.
+
+## Does automatic failover mean uninterrupted playback?
+
+No. Default stable TV relays preserve source bytes and close a failed response; the player must reconnect to the same channel URL to try alternatives. Raw stream URLs do not fail over. Experimental transcoding recovery can attempt a source change within one connection, but uses substantial CPU and is client-dependent. See [relay recovery](Media-Servers.md#channels-with-several-streams).
+
+## Why does an online stream fail to play?
+
+Online means the last check observed increasing P2P downloads and verified audio/video media. Broadcasts can stop, peers can disappear and browsers may not support the source's video codec. Catalogue availability and ID lookup are separate from verified signal. Try another stream or VLC/Kodi; see [playback troubleshooting](Troubleshooting.md#playback-will-not-start-or-stops).
+
+## Can I choose another audio language?
+
+Use **Audio track** in the browser player when tracks are detected. Changing audio restarts your viewer; other viewers retain their choices. Different audio selections count as separate sessions. Raw links and remote players retain the source audio tracks and choose audio in their own player.
+
+## Where did the old setup wizard go?
+
+V2 uses **Settings → Playback / Automation / Stream links / API access**, **Integrations → Public address**, and **Scraper** for source URLs. Values persist in the database; `config/config.json` is no longer read. See [Configuration](Configuration.md).
+
+## How often does automation run?
+
+By default: scraping every 24 hours, EPG refresh every 6 hours, signal checks every 60 minutes. Change them in **Settings → Automation**; they apply immediately. **Overview → Scheduled jobs** retains launch times/results after restart and marks unfinished runs interrupted. Playback can also queue source checks.
+
+## How do I reorder stations or hide a stream?
+
+Edit **Number** on TV Channels and press Enter or leave the field; blank clears it. **Reorder channels** previews the complete catalogue with drag handles and keyboard/arrow controls, then saves consecutive numbers atomically. Cancel preserves the stored order. Favorites and advanced filters are separate controls.
+
+Hide a stream through its Acestream Channels row actions to exclude it from generated playlists while retaining its record. See [Channel management](tasks/channel-management.md).
+
+## How do I update without losing data?
+
+Persist `/app/config`, back it up, keep the image tag/digest, and recreate with the same mounts:
+
 ```bash
-docker-compose pull
-docker-compose up -d
+docker compose pull
+docker compose up -d
 ```
 
-If using Docker directly:
-```bash
-docker pull pipepito/acestream-scraper:latest
-docker stop acestream-scraper
-docker rm acestream-scraper
-# Then run the container again with your preferred configuration
-```
+Also retain enabled service state/cache and optionally logs. Schema upgrades take a database backup before applying changes; rollback needs the matching old database, not just an older image. See [Installation](Installation.md#updating-to-a-newer-image). `develop` tags move after validation; `latest` changes only on explicit release promotion.
 
-### Will my data be lost when I update?
-No, as long as you've properly mounted the volumes for `/app/config` (database and settings) and, when the matching feature is enabled, `/var/lib/acestream` (engine state on ARM), `/data/ipfs` (embedded IPFS repository) and `/data/zeronet` (bundled ZeroNet node state). These volumes store your configuration and data persistently outside the container.
+## Does it work on ARM?
 
-## Configuration Questions
+The Docker images cover amd64, arm64 and arm/v7. Both ARM engine variants use the pinned community Android 3.2.17 distribution; ARMv7 remains experimental and requires real-hardware runtime validation. ARM engine playback is not promised by a successful image build. Raspberry Pi 5 needs a 4 KB page-size kernel for this engine. WARP/IPFS are unavailable in ARMv7 images; bundled ZeroNet is amd64-only. External gateways remain usable. See [Docker platforms](Docker.md).
 
-### What's the difference between base_url and ace_engine_url?
-- **base_url**: The URL format used in the generated M3U playlists (e.g., `acestream://` or `http://localhost:6878/ace/getstream?id=`)
-- **ace_engine_url**: The URL of your Acestream Engine for checking channel status (e.g., `http://localhost:6878`)
+## Do I need to expose the engine port?
 
-### What's the difference between Acestream Engine and Acexy?
-- **Acestream Engine**: The core technology that handles the P2P streaming
-- **Acexy**: An enhanced proxy interface for Acestream Engine
+Only for clients connecting to it directly. Browser playback and server relays use the scraper web port; the backend reaches the engine internally. Engine/Acexy APIs have no authentication and belong on trusted networks. `/tuner/*` uses an address allowlist, not `API_TOKEN`. Set the public address in Integrations and read [network configuration](Configuration.md#media-integrations).
 
-### Which Base URL format should I use?
-It depends on your setup:
-- Use `acestream://` if your media player supports the Acestream protocol directly
-- Use `http://localhost:6878/ace/getstream?id=` for local HTTP streaming
-- Use `http://[server-ip]:8080/ace/getstream?id=` if using Acexy proxy
-- Use `http://[external-acestream]:port/ace/getstream?id=` for remote Acestream instances
+## How do I enable WARP or troubleshoot IPFS/ZeroNet?
 
-### How often does it update the channel list?
-By default, it rescans URLs every 24 hours. You can change this with the `rescrape_interval` setting in the configuration page or by setting the value when going through the setup wizard.
+Use the builder's feature selection and the WARP page under System. Availability depends on architecture. See [optional-service troubleshooting](Troubleshooting.md#scraper-or-optional-service-fails) for runtime flags, gateway routing and connection checks.
 
-### What is Cloudflare WARP and why would I use it?
-Cloudflare WARP is a privacy-focused VPN-like service that encrypts your traffic and routes it through Cloudflare's global network. Benefits include:
-- **Privacy**: Encrypts your internet traffic
-- **Access**: Can bypass certain geographical restrictions
-- **Performance**: Often provides optimized routing through Cloudflare's network
-- **Security**: Protection against certain network-based attacks
+## How can I get help or contribute?
 
-### How do I enable WARP in Acestream Scraper?
-You need to add specific Docker capabilities and environment variables:
-```bash
-docker run -d \
-  --cap-add NET_ADMIN \
-  --cap-add SYS_ADMIN \
-  --device /dev/net/tun:/dev/net/tun \
-  -e ENABLE_WARP=true \
-  -e WARP_ENABLE_NAT=true \
-  -p 0.0.0.0:8000:8000 \
-  -v "${PWD}/config:/app/config" \
-  --name acestream-scraper \
-  pipepito/acestream-scraper:latest
-```
-
-### What WARP modes are available?
-- **WARP**: Full tunnel mode - routes all traffic through WARP
-- **DoT**: DNS-over-TLS mode - only DNS traffic is secured
-- **Proxy**: Proxy mode - selective routing through WARP
-- **Off**: WARP disabled but the service remains running
-
-### How do I use WARP+ or Team features?
-If you have a license key for WARP+ or a WARP Team account:
-1. Navigate to the Configuration page in the web interface
-2. Find the WARP License Management section
-3. Enter your license key and register it
-4. Alternatively, set the `WARP_LICENSE_KEY` environment variable when starting the container
-
-### How do I specify URL types when adding sources?
-
-When adding URLs to scrape, you can explicitly select the URL type:
-
-1. **Regular HTTP**: For standard websites using HTTP or HTTPS protocols
-2. **ZeroNet**: For ZeroNet-specific URLs
-3. **IPFS**: For content on the IPFS network (`ipfs://` / `ipns://` URLs)
-
-The application provides a dropdown menu next to the URL input field to select the type. This is important because:
-
-- **Regular HTTP URLs**: Will be accessed directly via HTTP/HTTPS protocols
-- **ZeroNet URLs**: Will be accessed via the ZeroNet network (either internal or external)
-- **IPFS URLs**: Will be fetched through an IPFS HTTP gateway (`IPFS_GATEWAY_URL`, defaulting to the embedded Kubo daemon's gateway)
-
-It's important to correctly specify the URL type when adding sources to ensure the application can access the content properly.
-
-### Do I need ZeroNet running inside the container to use ZeroNet URLs?
-
-No, you can use ZeroNet URLs with an external ZeroNet service by:
-
-1. Explicitly selecting "ZeroNet" as the URL type when adding the URL
-2. Providing the full URL to your external ZeroNet service
-
-You have both options:
-- **Bundled node (amd64 images):** set `ENABLE_ZERONET=true` (optionally `ENABLE_TOR=true`) and mount `/data/zeronet` — the scraper finds it automatically
-- Start the optional `zeronet` sidecar from the repository's `docker-compose.yml` (`docker compose --profile zeronet up -d`)
-- Connect to a ZeroNet service running elsewhere on your network
-- Use publicly accessible ZeroNet gateways
-
-For the external options, point `ZERONET_URL` at whichever one you use (the compose default is `http://host.docker.internal:43110`). ARM images ship without the bundled node, so use an external service there.
-
-### Do I need to enable the embedded IPFS daemon to use IPFS URLs?
-
-No. `ipfs://` and `ipns://` sources are fetched through the gateway configured in `IPFS_GATEWAY_URL`:
-
-- Set `ENABLE_IPFS=true` to run the bundled Kubo daemon in the container (amd64/arm64 images; the gateway then answers on `http://127.0.0.1:8081` in-container)
-- Or keep it disabled and point `IPFS_GATEWAY_URL` at an external node — for example a Kubo or IPFS Desktop install on the Docker host (`http://host.docker.internal:8080`); this also works on `linux/arm/v7`, where Kubo ships no 32-bit build
-
-When the embedded daemon is enabled, mount `/data/ipfs` so the node identity and blockstore persist, and publish `4001` (tcp+udp) for better peer connectivity.
-
-## Usage Questions
-
-### How do I access the web interface?
-After starting the container, open your browser and navigate to:
-- `http://localhost:8000` (or replace localhost with your server IP)
-
-### Why are some channels offline?
-Acestream channels may go offline for several reasons:
-- The original broadcaster stopped streaming
-- Network issues between you and the peers
-- Not enough peers to provide the stream
-- Channel ID has changed
-
-### How do I add my own channels manually?
-1. Go to the Dashboard
-2. Find the "Add Channel" form
-3. Enter the Acestream ID (the hash) and a name for the channel
-4. Click "Add"
-
-### How do I use the playlist with my media player?
-1. Copy the playlist URL: `http://[your-server]:8000/playlist.m3u`
-2. In your media player (like VLC), select "Open Network Stream" or similar
-3. Paste the URL and play
-4. For auto-updating playlists, use the URL directly rather than downloading the file
-
-## Troubleshooting Questions
-
-### My channels are all showing as offline
-1. Check if your Acestream Engine is running (`ENABLE_ACESTREAM_ENGINE=true` or external)
-2. Verify the `ace_engine_url` points to the correct address
-3. Make sure the necessary ports are open (6878 for Acestream Engine)
-4. Try refreshing one of your URLs to get updated channel information
-
-### The Docker container fails to start
-Check the logs for errors:
-```bash
-docker logs acestream-scraper
-```
-Common issues include:
-- Port conflicts (another service using port 8000)
-- Invalid environment variables
-- Insufficient permissions on mounted volumes
-
-### ZeroNet is not working
-1. With the bundled node, confirm it is enabled (`ENABLE_ZERONET=true`), the image is amd64 (the container exits with a clear error elsewhere), and `ZERONET_URL` is unset or points at `http://127.0.0.1:43110`
-2. With an external service, verify it is running and reachable from the container (`ZERONET_URL`, default `http://host.docker.internal:43110` in the compose example); the compose sidecar needs `docker compose --profile zeronet up -d`
-3. Check the container logs — the entrypoint prints the ZeroNet endpoint it uses and supervises the bundled node
-4. Some ZeroNet sites may be unavailable or require specific permissions
-
-### IPFS sources are not working
-1. If you rely on the embedded daemon, confirm it is enabled (`ENABLE_IPFS=true`) and that the image is amd64/arm64 (Kubo has no 32-bit ARM build — the container logs an explicit error on 32-bit ARM)
-2. With an external node, verify `IPFS_GATEWAY_URL` is reachable from the container (e.g. `http://host.docker.internal:8080`)
-3. Cold content can take a while on first fetch — the gateway has to find providers on the network; retry after a minute
-4. Check the container logs: the entrypoint prints the gateway URL and supervises the daemon
-
-### Media player can't access the streams
-1. Ensure your media player has access to the Acestream Engine
-2. Check if you're using the correct Base URL format for your setup
-3. Verify the channel is online using the "Check Status" button
-4. If using Acexy, make sure it's properly configured and running
-
-### WARP shows as "Running but Not Connected"
-1. Check the WARP section in the Configuration page
-2. Try clicking the "Connect" button
-3. If connection fails, try changing the WARP mode to a different setting
-4. Ensure your container has the proper capabilities (`NET_ADMIN` and `SYS_ADMIN`)
-5. Check container logs for WARP-related errors
-
-### I can see Acestream channels on a website in my browser, but the app doesn't find any when scraping it
-This is usually caused by one of these issues:
-
-1. **JavaScript-dependent content**: The website uses JavaScript to dynamically display content. Our scraper doesn't execute JavaScript like a browser does.
-   
-2. **Wrong URL type selection**: Make sure you're using the correct URL type:
-   - Use `Regular HTTP` for standard websites
-   - Use `ZeroNet` for ZeroNet sites
-
-3. **Content requires authentication**: The site might require login cookies that the scraper doesn't have.
-
-4. **Content is in iframes**: The channels might be loaded in iframes from another domain that our scraper doesn't automatically follow.
-
-5. **Anti-scraping protections**: The site might have measures to detect and block automated scraping.
-
-Solutions to try:
-- Inspect the site in your browser's developer tools to find direct links to M3U playlists
-- Try scraping a different page on the same site that has a simpler structure
-- Add channels manually if scraping consistently fails
-- Use the browser developer tools (F12) to find the actual Acestream IDs in the page source
-- If the site lists channels in a consistent format, consider submitting a feature request for a specialized scraper
-
-## Advanced Questions
-
-### Can I run multiple instances?
-Yes, but you need to change the port mappings to avoid conflicts. For example:
-```yaml
-ports:
-  - "8001:8000"  # First instance
-  - "8002:8000"  # Second instance
-```
-
-### How can I contribute to the project?
-Contributions are welcome! You can:
-- Fork the repository on GitHub
-- Submit pull requests with improvements
-- Report bugs or suggest features
-- Help improve the documentation
-
-### Can I customize the appearance of the web interface?
-The web interface is a React + Material UI single-page app (sources under `frontend/`, compiled into `backend/frontend_build/`), so the v1 approach of mounting Flask templates no longer applies (superseded 2026-08-28). You can customize it by:
-1. Editing the sources under `frontend/src/` (theme, components, pages)
-2. Rebuilding with `npm run build:backend` from `frontend/` so the backend serves your build
-3. Building your own Docker image from the repository (advanced)
-
-### How do I monitor the application's health?
-The application includes comprehensive health checks:
-- HTTP endpoint: `/api/v1/health` (stays public even when `API_TOKEN` is set)
-- Docker health checks are configured
-- You can use monitoring tools like Prometheus with the health endpoint
+Start with [Troubleshooting](Troubleshooting.md). For unresolved problems, [collect diagnostics and open a bug report](Bug-Reporting.md). For extraction improvements, read [Contributing Scraper Data](Contributing-Scraper-Data.md). Use sources you have permission to access; availability in a catalogue does not establish permission to view or redistribute a broadcast.

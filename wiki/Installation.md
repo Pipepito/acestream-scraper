@@ -59,7 +59,7 @@ Docker Compose provides the easiest way to get started with Acestream Scraper.
    
    Open your browser and navigate to `http://localhost:8000`
    
-   Open **Settings** in the left navigation to set the stream base URL, Acestream Engine URL and rescrape interval, and **Scraper** to add the source URLs to scrape. (The v1 first-run wizard no longer exists — superseded 2026-08-28.)
+   Follow the [illustrated walkthrough](Usage.md): **Settings → Playback** for the engine, **Automation** for schedules/checks, **Stream links** for player formats, **Integrations → Public address** for client-facing links and **Scraper** for source URLs. There is no v2 setup wizard.
 
 ## Docker Method
 
@@ -208,7 +208,7 @@ For advanced users who want to run the application directly on their system.
 
    ```bash
    cd backend
-   uvicorn main:app --host 0.0.0.0 --port 8000
+   uvicorn main:app --host 0.0.0.0 --port 8000 --no-proxy-headers
    ```
 
    For development add `--reload`. For a hot-reloading UI run `npm start` in `frontend/` (Vite on port 3000, proxying `/api` to port 8000) instead of rebuilding after every change.
@@ -219,10 +219,12 @@ For advanced users who want to run the application directly on their system.
 
 ## Migrating from v1
 
+Before upgrading, stop the old instance and back up the complete config directory, deployment file and old image tag/digest. If using this checkout, run `bash scripts/ops/preflight_v2_deploy.sh` as an additional database preflight; keep an independent copy of your volume. Do not start v1 and v2 against the same files.
+
 When the container (or `uvicorn`) starts and finds a v1 `acestream.db` in the config directory that is not yet archived, it migrates it automatically — no manual step is needed:
 
-1. **Before the first request (seconds):** the v2 schema is created, and your scraped URLs, EPG sources, TV/EPG/AceStream channels, EPG string mappings and settings are copied. `acestream.db` is then renamed to `acestream.db.migrated` and a small `acestream.db.migration.json` file records what is still pending.
-2. **In the background:** the EPG programs — usually by far the largest table — are copied by the `v1_epg_programs_migration` task while the dashboard is already reachable and the container reports healthy. Programs that already ended more than `EPG_PROGRAM_RETENTION_HOURS` (default 24) hours ago are not copied at all — a v1 database that accumulated months of listings shrinks to the current day plus upcoming programs. Watch its progress on the dashboard's **Background Tasks** card (`Progress: 12,000 / 300,000 · 4%`) or in the container log (`v1 EPG programs migration progress …`). The regular hourly EPG refresh keeps running; already-present programs are never duplicated.
+1. **During startup:** the v2 schema is created, and your scraped URLs, EPG sources, TV/EPG/AceStream channels, EPG string mappings and settings are copied. `acestream.db` is then renamed to `acestream.db.migrated` and a small `acestream.db.migration.json` file records what is still pending.
+2. **In the background:** the EPG programs — usually by far the largest table — are copied by the `v1_epg_programs_migration` task while the dashboard is already reachable and the container reports healthy. Programs that already ended more than `EPG_PROGRAM_RETENTION_HOURS` (default 24) hours ago are not copied at all — a v1 database that accumulated months of listings shrinks to the current day plus upcoming programs. Watch its progress on the startup/progress screen, linked from the import banner and **Settings → Startup diagnostics** or in the container log (`v1 EPG programs migration progress …`). The regular EPG refresh (every 6 hours by default, configurable) keeps running; already-present programs are never duplicated.
 3. **Restarts are safe:** the copy checkpoints after every batch and resumes where it stopped. Once it reports `done`, `acestream.db.migrated` is only kept as a backup and can be deleted together with `acestream.db.migration.json`.
 
 If the archived `acestream.db.migrated` is removed before the copy finishes, the task logs an error and stops; the EPG refresh will re-download current programs from your EPG sources on its next run.
@@ -233,7 +235,7 @@ Pull the new image and recreate the container (`docker compose pull && docker co
 
 1. **The schema is upgraded in place.** If `config/scraper.db` was written by an older version, the new one applies the missing migrations while starting. Nothing to run by hand.
 2. **A copy is taken first.** Before applying anything, the app copies the database to `config/backups/<date>-<time>-pre-upgrade-<from>-<to>/scraper.db` and logs `Upgrading v2 database schema … (backup: …)`. One copy is kept per upgrade step; if the container fails and restarts, the existing copy is reused instead of writing another one. **Nothing here is ever deleted automatically** — remove old folders yourself when the disk gets tight.
-3. **A failed upgrade stops the container** rather than starting with a half-migrated database. The log line naming the failing migration is what to include in a bug report.
+3. **A failed upgrade keeps the startup/recovery screen available.** Normal APIs and health return 503 until startup succeeds. Correct disk space or permissions and choose **Try startup again**; confirmed recovery options can salvage readable data or start fresh after backup. See [startup troubleshooting](Troubleshooting.md#startup-or-upgrade-does-not-finish).
 
 ### Going back to an older image
 

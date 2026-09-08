@@ -14,7 +14,7 @@ The app pretends to be an **HDHomeRun tuner** — a network TV tuner both Jellyf
 
 3. **The app sees real client addresses.** Publish the web port as `-p 0.0.0.0:8000:8000`, never the bare `-p 8000:8000`. An unaddressed mapping also listens on IPv6, and Docker then rewrites every IPv6 client to the bridge gateway (`172.17.0.1`) before the app sees it — which is inside the allowed list, so the address gate stops meaning anything. The **Public address** block on the Integrations page warns you when it sees this ("This host hides real client addresses…").
 
-Behind a reverse proxy there is one more rule: `/tuner/` must be excluded from proxy authentication, because these clients cannot answer a login prompt. The nginx, Caddy and Traefik snippets are in [Reverse Proxy / HTTPS](https://github.com/Pipepito/acestream-scraper/blob/main/docs/ops/reverse-proxy.md).
+Behind a reverse proxy there is one more rule: `/tuner/` must be excluded from proxy authentication, because these clients cannot answer a login prompt. The nginx, Caddy and Traefik snippets are in [Reverse Proxy / HTTPS](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/ops/reverse-proxy.md).
 
 ## Jellyfin
 
@@ -74,7 +74,7 @@ The card's second chip tells you where the guide stands: *Guide up to date*, *No
 
 Plex Live TV needs an active **Plex Pass**. Without one, Plex does not offer tuner setup at all.
 
-Plex also has no API for adding a tuner, so this part is done in Plex's own UI. The app gives you the exact values to paste, with copy buttons, on the server's card.
+Plex tuner setup is completed in Plex's own UI. The app gives you the exact values to paste, with copy buttons, on the server's card.
 
 1. In Plex Web: **Settings › Live TV & DVR › Set Up Plex Tuner**.
 2. Plex scans for tuners and will not find this one (it is not on the multicast discovery network). Click **"Don't see your HDHomeRun device? Enter its network address manually"** and paste the **tuner address** — `host:port/tuner`, for example `192.168.1.10:8000/tuner`. No `http://`.
@@ -186,8 +186,8 @@ response. Disconnecting cancels recovery and cleans up the process/source sessio
 
 On **Playlist**, choose **TV channel relay (automatic failover)** or save a format
 such as `http://scraper:8000/tuner/channel/{tv_channel_id}.ts`. This generates one
-entry per TV channel, preserving its number and EPG ID, and excludes unassigned
-streams. `{channel_id}` remains the hash of a specific AceStream source; use
+entry per TV channel, preserving its number and EPG ID, and can append unassigned
+streams when **Include unassigned streams at the end** is selected; those use individual URLs without failover. `{channel_id}` remains the hash of a specific AceStream source; use
 `/tuner/stream/{channel_id}.ts` when deliberately pinning that source.
 
 Successful channel status checks also take a bounded media sample (at most 2 MiB
@@ -197,8 +197,7 @@ Existing channels start with unknown metadata; normal status checks populate it.
 A failed metadata probe leaves the previous measurement intact and does not turn
 an otherwise broadcasting source offline. Measurements are estimates and can age.
 
-The TV relay retains the source's audio tracks, encoding each as stereo AAC; Jellyfin/Plex can discover
-them from the media. The channel API also exposes measured bitrate, its timestamp,
+The default relay preserves source audio and video bytes, including the original audio tracks. Experimental transcoding recovery converts audio to stereo AAC; Jellyfin/Plex discover tracks from the delivered media. The channel API also exposes measured bitrate, its timestamp,
 and known audio tracks. No database/network work stays attached to an hours-long
 relay session.
 

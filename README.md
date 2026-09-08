@@ -1,28 +1,47 @@
 # Acestream Scraper v2
 
-> Current release line: **v2.0.0** — FastAPI backend, React web interface, multi-flavor Docker images, and amd64/ARM deployment.
+> **v2 launch documentation** — FastAPI, React, browser Live TV and multi-architecture Docker images. Use `:develop` to test the upcoming release; `:latest` changes only when a release is explicitly promoted.
 
-Acestream Scraper now runs on a single canonical root stack:
+Discover AceStream IDs from web pages, playlists, JSON, text, ZeroNet and IPFS; organize them into TV channels with programme guides; watch in the browser or publish playlists to your players.
 
-- `backend/` (FastAPI + SQLAlchemy + scraper logic)
-- `frontend/` (React + TypeScript)
+- **Live TV:** current/next programmes, favorites, stream and audio selection, a larger-player layout and a scrollable catalogue.
+- **Channel management:** source imports, engine search, automatic matching, channel numbers, favorites and drag/keyboard reordering.
+- **Playback:** optional bundled or external engines, Acexy routing, VLC/Kodi controls, and Jellyfin/Plex tuner integration.
+- **Stable TV playlists:** one URL per station with backup sources; default relay recovery needs client reconnection. Experimental transcoding recovery is opt-in.
+- **Operations:** verified signal checks, a separate checking engine, persistent job history, diagnostic downloads and backup-first startup recovery.
 
-Legacy Flask runtime entrypoints were retired during the v2 cutover. All deployment and development instructions below use only `backend/` and `frontend/`.
+Engines are optional for scraping and playlist management. Browser playback and engine search need a playback endpoint; status checks need a playback or checking endpoint. All Docker images include FFmpeg for browser playback.
+
+![Live TV with the channel catalogue and programme guide](wiki/usage-09-live-tv.png)
 
 ## Choose Your Starting Point
 
 - **Installing with Docker:** use the [interactive Docker command builder](https://pipepito.github.io/acestream-scraper/) to generate the correct image tag, ports, volumes, and environment options for your machine.
 - **Using the application:** follow the [illustrated v2 walkthrough](https://github.com/Pipepito/acestream-scraper/wiki/Usage), from checking services through importing the generated playlist.
 - **Upgrading from v1:** read the [migration guide](wiki/Installation.md#migrating-from-v1) and run the preflight backup before starting v2.
+- **Something is not working:** use [Troubleshooting](wiki/Troubleshooting.md), [FAQ](wiki/FAQ.md), or [collect a diagnostic report](wiki/Bug-Reporting.md).
 - **Developing or operating the service:** use the local-development section below and the [documentation index](#documentation-index).
 
 ## Quick Start
 
 ### Docker Compose
 
+Generate a Compose file with the [Docker command builder](https://pipepito.github.io/acestream-scraper/), or clone this repository to use its checked-in example. Run from the directory containing your `docker-compose.yml`:
+
 ```bash
+docker compose pull
 docker compose up -d
 ```
+
+Persist `/app/config` before adding data. For pre-release testing select the **Pre-release (develop)** channel in the builder. After startup:
+
+1. Check **Overview → Services**.
+2. Set the optional engine and routing in **Settings → Playback**; configure checks/schedules under **Automation**.
+3. Add URLs in **Scraper**, then scrape and organize streams in **TV Channels**. Add XMLTV sources under **EPG**.
+4. Open **Live TV**, or use **Playlist → Manage link formats** to choose the format your player needs.
+5. Set **Integrations → Public address** before copying links to other devices.
+
+The [walkthrough](wiki/Usage.md) includes screenshots for these steps.
 
 To start the example ZeroNet sidecar from `docker-compose.yml`, enable its optional profile:
 
@@ -72,7 +91,7 @@ When you enable the engine on ARM, it keeps its config, cache, and logs under `/
 
 **Remote players**: save the VLC or Kodi boxes on your network under **Integrations**, then send any channel to one and drive it from the app (play/pause, stop, volume, live status). Both are reached through the web interface they already ship — VLC's Lua HTTP interface, Kodi's `Settings > Services > Control` — so nothing is installed on the player; **Find players** scans a private network for them, and each player picks the stream link it is handed (the server relay at `/tuner/*` by default, which needs only port 8000 published, or a named Acexy/engine base URL, which needs that port reachable from the player instead). Player passwords are stored unencrypted in the app database and never returned by the API. See [wiki/Remote-Players.md](wiki/Remote-Players.md).
 
-**Jellyfin and Plex**: the app publishes your TV channels as an HDHomeRun tuner with an XMLTV guide, so they show up under Live TV in the media server you already use — no plugin, nothing installed there. Add the server under **Integrations** with a Jellyfin API key and press **Connect**, and the app registers the tuner and the guide provider for you; Plex (Plex Pass required) has no API for that, so the card hands you the exact tuner address and guide URL to paste into **Set Up Plex Tuner**. A background job notices when your channels or guide change and asks the server to refresh, at most every `MEDIA_SERVER_MIN_REFRESH_MINUTES`. The tuner routes carry no API token — media servers cannot send one — so they are gated by client address (`TUNER_ALLOWED_NETWORKS`), which means publishing the web port as `-p 0.0.0.0:8000:8000` and, behind a reverse proxy, keeping `/tuner/` out of proxy auth. Plex stops saving channel maps at roughly 450-480 channels, so the tuner publishes at most 450 by default. API keys and Plex tokens are stored unencrypted in the app database and never returned by the API. See [wiki/Media-Servers.md](wiki/Media-Servers.md).
+**Jellyfin and Plex**: the app publishes your TV channels as an HDHomeRun tuner with an XMLTV guide, so they show up under Live TV in the media server you already use — no plugin, nothing installed there. Add the server under **Integrations** with a Jellyfin API key and press **Connect**, and the app registers the tuner and the guide provider for you; Plex setup (Plex Pass required) is completed manually, so the card hands you the exact tuner address and guide URL to paste into **Set Up Plex Tuner**. A background job notices when your channels or guide change and asks the server to refresh, at most every `MEDIA_SERVER_MIN_REFRESH_MINUTES`. The tuner routes carry no API token — media servers cannot send one — so they are gated by client address (`TUNER_ALLOWED_NETWORKS`), which means publishing the web port as `-p 0.0.0.0:8000:8000` and, behind a reverse proxy, keeping `/tuner/` out of proxy auth. Plex stops saving channel maps at roughly 450-480 channels, so the tuner publishes at most 450 by default. API keys and Plex tokens are stored unencrypted in the app database and never returned by the API. See [wiki/Media-Servers.md](wiki/Media-Servers.md).
 
 ### Local Development
 
@@ -118,12 +137,14 @@ npm start
 - `IPFS_GATEWAY_URL` (default: the embedded gateway `http://127.0.0.1:8081`; point it at an external IPFS gateway when `ENABLE_IPFS=false`)
 - `CORS_ORIGINS` (default: `http://localhost:3000`)
 - `FRONTEND_BUILD_PATH` (default: `frontend_build`)
-- `ACE_ENGINE_URL` (default: `http://localhost:6878`)
+- `ACE_ENGINE_URL` (empty for new scraper-only installs; `http://localhost:6878` when bundled playback is enabled; saved Settings → Playback URLs take precedence)
+- `ACE_CHECK_ENGINE_URL` (optional external checker default, editable in Settings → Automation; an unavailable dedicated checker never falls back to playback)
 
 ### Docker Runtime Toggles
 
 - `ENABLE_WARP` (default: `false`)
 - `ENABLE_ACESTREAM_ENGINE` (default: `false`)
+- `ENABLE_ACESTREAM_CHECK_ENGINE` (default: `false`; requires bundled playback enabled; keeps its own state at `/var/lib/acestream-check`, internal HTTP 6880, legacy API 62063 and P2P 8622; do not also set `ACE_CHECK_ENGINE_URL`)
 - `ACESTREAM_BIND_ALL` (default: `true`; appends `--bind-all` to the engine start command so any client address is accepted on a published `6878` — the engine otherwise admits only loopback/RFC1918 sources. `false` restores the engine's own filter)
 - `ENABLE_ACEXY` (default: `false`)
 - `ACESTREAM_HTTP_HOST` (default: `localhost`)

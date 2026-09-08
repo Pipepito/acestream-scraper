@@ -47,6 +47,7 @@ the database and backups, and add the applicable folders:
 | --- | --- | --- |
 | Embedded AceStream on amd64 | `/root/.ACEStream/.acestream_cache` | `/mnt/user/appdata/acestream-scraper/engine-cache` |
 | Embedded AceStream on ARM64 / ARMv7 | `/var/lib/acestream` | `/mnt/user/appdata/acestream-scraper/engine-state` |
+| Bundled checking engine on any platform | `/var/lib/acestream-check` | `/mnt/user/appdata/acestream-scraper/checker-state` |
 | Web player on any platform | `/tmp/acestream-player` | `/mnt/user/appdata/acestream-scraper/player` |
 
 In Unraid, add each as a read/write **Path** in the container template. Use host
@@ -81,7 +82,7 @@ not reclaim it. Disposable stream cache can be rebuilt. Preserve `/app/config`
 and its existing host mapping when recreating the container.
 
 Optionally map `/app/logs` to retain diagnostics across replacement. Its console
-capture is bounded to about 6 MiB. Docker's own console log is separate: configure
+capture rotates each scraper/service/entrypoint log independently: up to 6 MiB per collector (54 MiB across all nine collectors). Other native service logs have their own retention. Docker's own console log is separate: configure
 rotation, for example `--log-driver=json-file --log-opt max-size=10m
 --log-opt max-file=3`. Existing bounded Docker logging can be retained.
 
@@ -201,7 +202,7 @@ docker run -d \
 - `ENABLE_ACESTREAM_ENGINE=true` starts the engine; no extra capabilities are required (only WARP needs `NET_ADMIN`/`SYS_ADMIN`).
 - On ARM, `/var/lib/acestream` (`ACESTREAM_HOME`) holds the Android engine's state: `acestream.conf`, `acestream.log`, `acestream_error.log`, and the `.ACEStream/` directory with the disk cache. A host-folder mount is optional but highly recommended so the cache and the per-install device id (`.device_id`) survive container replacement; the mount is harmless on amd64.
 - Ports: `6878` is the engine HTTP API (the backend talks to it through `ACE_ENGINE_URL`, default `http://localhost:6878` when the bundled engine is enabled; otherwise empty); `8621` tcp/udp is the P2P port. Only publish `6878` if you want to reach the engine from outside the container, and only on trusted networks: the engine is started with `--bind-all` on every platform (`ACESTREAM_BIND_ALL=true` by default; set it to `false` to keep the engine's loopback/RFC1918-only filter) so published-port clients are accepted, and the engine HTTP API has no authentication.
-- Logs: the entrypoint supervises the engine, so its output shows up in `docker logs acestream-scraper` (on ARM the launcher passes `--log-stdout` for this). On ARM the engine also writes `acestream.log` / `acestream_error.log` under `/var/lib/acestream`. Every image flavour also captures bounded console history: use **Overview → Services → Download diagnostics** to save a ZIP from your phone, or `GET /api/v1/system/diagnostics` with the normal API token. Collection begins after upgrading to an image with this feature. Common credentials and URLs are masked on export; review before sharing. See [runtime diagnostics](../docs/ops/runtime-diagnostics.md) for limits and retention.
+- Logs: the entrypoint supervises the engine, so its output shows up in `docker logs acestream-scraper` (on ARM the launcher passes `--log-stdout` for this). On ARM the engine also writes `acestream.log` / `acestream_error.log` under `/var/lib/acestream`. Every image flavour also captures bounded console history: use **Overview → Services → Download diagnostics** to save a ZIP from your phone, or `GET /api/v1/system/diagnostics` with the normal API token. Collection begins after upgrading to an image with this feature. Common credentials and URLs are masked on export; review before sharing. See [runtime diagnostics](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/ops/runtime-diagnostics.md) for limits and retention.
 - Health: the backend polls `/server/api?api_version=3&method=get_status` and `method=get_network_connection_status` on the engine. To confirm which engine is running: `curl "http://localhost:6878/webui/api/service?method=get_version"` returns `{"platform":"android","version":"3.2.17"}` on ARM64 and ARMv7. The dashboard also shows `Engine package: jopsis/acestream v3.2.17-fix` with a link to the source image.
 
 ARM caveats:
@@ -362,6 +363,8 @@ HTTP port 6880 (HTTPS reserves 6881, legacy API 62063, P2P 8622). Leave these po
 reserve them when customizing playback. You can mount a separate host directory
 at `/var/lib/acestream-check`; never reuse the playback state directory.
 
+The command builder adds a separate checker-state mount when you enable **Advanced settings → AceStream engine → Separate engine for channel checks**. Its external checking field is omitted while the bundled checker is selected, so the generated command cannot enable both.
+
 Other images can use a separate external engine via `ACE_CHECK_ENGINE_URL`.
 Choose the bundled switch or the external URL, not both. With neither configured,
 checks use the saved engine URL as before. An unavailable dedicated checker
@@ -373,7 +376,7 @@ there rather than failing the entire container healthcheck. Diagnostic downloads
 include its own rotating log. The checker adds memory and bandwidth usage (256 MiB
 disk-cache limit, 64 MiB live-cache size; total RAM is not capped by these values).
 Checks remain serialized. ARMv7 still requires testing on real hardware.
-See [stream-check isolation](../docs/ops/stream-check-pid.md) for ownership behavior
+See [stream-check isolation](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/ops/stream-check-pid.md) for ownership behavior
 and remaining limitations with players connected directly to an engine.
 
 
@@ -382,4 +385,4 @@ Settings → Playback, and optionally a dedicated checking endpoint in Settings 
 Automation. With neither configured, stream status checks are skipped. An external
 `ACE_CHECK_ENGINE_URL` is a default that can be overridden in Settings; bundled
 checker configuration remains controlled by the container. See
-[stream-check routing](../docs/ops/stream-check-pid.md#optional-engines-and-settings).
+[stream-check routing](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/ops/stream-check-pid.md#optional-engines-and-settings).

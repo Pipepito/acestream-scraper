@@ -5,6 +5,15 @@ This repository now uses a single root deployment model:
 - `backend/` is the API/runtime source of truth.
 - `frontend/` is the web UI source of truth.
 
+## User guides
+
+- [Illustrated v2 walkthrough](../wiki/Usage.md): sources, checks, TV channels, EPG, playlists and Live TV.
+- [Installation and upgrades](../wiki/Installation.md) and [Docker storage/platforms](../wiki/Docker.md).
+- [Configuration](../wiki/Configuration.md), [troubleshooting](../wiki/Troubleshooting.md) and [diagnostic bug reports](../wiki/Bug-Reporting.md).
+- [Docker command builder](https://pipepito.github.io/acestream-scraper/): generated commands with platform-aware services, checker isolation and storage.
+
+The `wiki/` directory is mirrored to the GitHub wiki after a validated `develop` build; edit that source directory for durable user-guide changes.
+
 ## Key Docs
 
 - `AGENTS.md`: repository-wide Codex instructions, with layered backend, frontend,
@@ -27,6 +36,8 @@ This repository now uses a single root deployment model:
 - `docs/release/phase5-multiarch-evidence.md`: how multi-arch evidence is produced on Jenkins and the per-release record.
 
 ## Testing
+
+- [V2 documentation/browser review, 8 September 2026](testing/v2-launch-doc-review.md): scope, validation and follow-up observations.
 
 - `docs/testing/test-ownership-matrix.md`: canonical test locations and the required-check ownership policy.
 

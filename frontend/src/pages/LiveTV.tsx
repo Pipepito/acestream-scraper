@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import { Alert, Box, Button, Checkbox, FormControlLabel, LinearProgress, Pagination, Stack, TextField, Typography } from '@mui/material';
 import PlayArrowRounded from '@mui/icons-material/PlayArrowRounded';
@@ -17,6 +17,7 @@ import PlayOnMenu from '../components/player/PlayOnMenu';
 const PAGE_SIZE = 12;
 
 const LiveTV: React.FC = () => {
+  const viewingArea = useRef<HTMLDivElement>(null);
   const catalog = useTVChannelCatalog();
   const [streamPage, setStreamPage] = useState(1);
   const [streamSearch, setStreamSearch] = useState('');
@@ -39,6 +40,10 @@ const LiveTV: React.FC = () => {
     .sort((a, b) => (a.channel_number ?? Infinity) - (b.channel_number ?? Infinity) || a.name.localeCompare(b.name)), [catalog.data, search, favorites]);
   const pageCount = Math.max(1, Math.ceil(channels.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
+  const isWatching = Boolean(playingStream || (selectedId && selected.data?.acestream_channels.length));
+  useEffect(() => {
+    if (isWatching) viewingArea.current?.scrollIntoView?.({ block: 'start' });
+  }, [isWatching]);
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const close = () => { const next = new URLSearchParams(params); next.delete('channel'); setParams(next, { replace: true }); };
 
@@ -46,6 +51,16 @@ const LiveTV: React.FC = () => {
     <PageHeader title="Live TV" subtitle="Choose a channel, see what’s on, and watch."
       actions={<Button component={RouterLink} to="/tv-channels" variant="outlined">Manage channels</Button>} />
     <StatusLine items={[{ label: 'Channels', value: channels.length }, { label: 'Guide times', value: timezone }]} />
+    <Box ref={viewingArea} sx={{ scrollMarginTop: '76px', ...(isWatching ? { height: 'calc(100dvh - 92px)', gridTemplateRows: { xs: 'minmax(0, 1fr) minmax(0, 1fr)', lg: 'minmax(0, 1fr)' } } : {}), display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: isWatching ? 'minmax(0, 1.3fr) minmax(320px, 1fr)' : 'minmax(0, 1fr)' }, gap: 2, alignItems: 'start' }}>
+      <Box sx={{ minWidth: 0, minHeight: 0, ...(isWatching ? { height: '100%', overflowY: 'auto' } : {}), display: isWatching || selectedId ? 'block' : 'none' }}>
+    <ChannelPlayerDialog inline open={Boolean(playingStream)} contentId={playingStream?.id ?? null} title={playingStream?.name ?? ''} onClose={() => setPlayingStream(null)} />
+    {selectedId && selected.isLoading ? <LinearProgress aria-label="Loading selected channel" /> : null}
+    {selectedId && selected.isError ? <Alert severity="error" action={<Button color="inherit" onClick={close}>Dismiss</Button>}>Unable to open this channel.</Alert> : null}
+    {selected.data && selectedId && !selected.data.acestream_channels.length ? <Alert severity="info" action={<Button color="inherit" onClick={close}>Dismiss</Button>}>This channel has no streams attached.</Alert> : null}
+    <ChannelPlayerDialog inline open={Boolean(selectedId && selected.data?.acestream_channels.length)} tvChannelId={selectedId}
+      contentId={selected.data?.acestream_channels[0]?.id ?? null} title={selected.data?.name ?? ''} onClose={close} />
+      </Box>
+      <Box component="section" aria-label="Browse channels" tabIndex={0} sx={{ minWidth: 0, ...(isWatching ? { height: '100%', minHeight: 0, overflowY: 'auto', overscrollBehavior: 'contain', pr: 0.5 } : {}) }}>
     <ContentSection title="TV channels">
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mb: 2 }}>
         <TextField fullWidth label="Find a channel" type="search" value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} />
@@ -65,7 +80,7 @@ const LiveTV: React.FC = () => {
             </Box>
             <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0 }}>
               <Button variant="contained" startIcon={<PlayArrowRounded />} disabled={!channel.acestream_channels.length}
-                aria-label={`Watch ${channel.name}`} onClick={() => { const next = new URLSearchParams(params); next.set('channel', String(channel.id)); setParams(next); }}>Watch</Button>
+                aria-pressed={selectedId === channel.id} aria-label={`Watch ${channel.name}`} onClick={() => { setPlayingStream(null); const next = new URLSearchParams(params); next.set('channel', String(channel.id)); setParams(next); }}>{selectedId === channel.id ? 'Selected' : 'Watch'}</Button>
               <PlayOnMenu contentId={channel.acestream_channels[0].id} title={channel.name} label="Send to player" />
             </Stack>
           </Stack>
@@ -88,18 +103,14 @@ const LiveTV: React.FC = () => {
           <Typography variant="body2" color="text.secondary">Online at last check · {stream.last_checked ? formatRelativeTime(stream.last_checked) : 'Check time unavailable'}{stream.group ? ` · ${stream.group}` : ''}</Typography>
         </Box>
         <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0 }}>
-          <Button variant="outlined" startIcon={<PlayArrowRounded />} aria-label={`Watch ${stream.name}`} onClick={() => setPlayingStream(stream)}>Watch</Button>
+          <Button variant="outlined" startIcon={<PlayArrowRounded />} aria-label={`Watch ${stream.name}`} onClick={() => { close(); setPlayingStream(stream); }}>Watch</Button>
           <PlayOnMenu contentId={stream.id} title={stream.name} label="Send to player" />
         </Stack>
       </Stack>)}
       {(unassigned.data?.total ?? 0) > PAGE_SIZE ? <Pagination aria-label="Unassigned stream pages" count={streamPageCount} page={streamPage} onChange={(_event, value) => setStreamPage(value)} size="small" siblingCount={0} sx={{ my: 2 }} /> : null}
     </ContentSection>
-    <ChannelPlayerDialog open={Boolean(playingStream)} contentId={playingStream?.id ?? null} title={playingStream?.name ?? ''} onClose={() => setPlayingStream(null)} />
-    {selectedId && selected.isLoading ? <LinearProgress aria-label="Loading selected channel" /> : null}
-    {selectedId && selected.isError ? <Alert severity="error" action={<Button color="inherit" onClick={close}>Dismiss</Button>}>Unable to open this channel.</Alert> : null}
-    {selected.data && selectedId && !selected.data.acestream_channels.length ? <Alert severity="info" action={<Button color="inherit" onClick={close}>Dismiss</Button>}>This channel has no streams attached.</Alert> : null}
-    <ChannelPlayerDialog open={Boolean(selectedId && selected.data?.acestream_channels.length)} tvChannelId={selectedId}
-      contentId={selected.data?.acestream_channels[0]?.id ?? null} title={selected.data?.name ?? ''} onClose={close} />
+      </Box>
+    </Box>
   </Box>;
 };
 export default LiveTV;

@@ -1,5 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Alert,
   Box,
   Button,
@@ -16,6 +19,7 @@ import {
   useTheme,
 } from '@mui/material';
 import Hls from 'hls.js';
+import ExpandMoreRounded from '@mui/icons-material/ExpandMoreRounded';
 import { usePlayerSessionStatus, useStartPlayerSession } from '../../hooks/usePlayer';
 import { usePublicUrl } from '../../hooks/useSystemServices';
 import { playerService } from '../../services/playerService';
@@ -33,6 +37,8 @@ export interface StreamPlayerDialogProps {
   /** Extra buttons (e.g. "Play on…") rendered next to Copy stream link. */
   extraActions?: React.ReactNode;
   details?: React.ReactNode;
+  /** Embedded viewing surface used by Live TV. */
+  inline?: boolean;
 }
 
 /** Fatal hls.js errors we try to ride out before telling the user. */
@@ -53,7 +59,7 @@ const startPlayback = (video: HTMLVideoElement): void => {
 };
 
 /** Plays one channel through the backend's HLS pipeline. */
-const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId, title, onClose, extraActions, details }) => {
+const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId, title, onClose, extraActions, details, inline = false }) => {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('md'));
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -229,9 +235,26 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
           ? 'Starting…'
           : '';
 
-  return (
-    <Dialog open={open} onClose={handleClose} fullScreen={fullScreen} maxWidth="md" fullWidth aria-labelledby="stream-player-title">
-      <DialogTitle id="stream-player-title" sx={{ overflowWrap: 'anywhere' }}>{title}</DialogTitle>
+  const playbackOptions = <>
+          {status?.codecs.video ? (
+            <Typography variant="caption" color="text.secondary">
+              Video {status.codecs.video.toUpperCase()} · audio {(status.codecs.audio ?? 'unknown').toUpperCase()} re-encoded to AAC
+            </Typography>
+          ) : null}
+          {status?.audio_tracks?.length ? <TextField select fullWidth label="Audio track" value={audioIndex ?? 'default'}
+            onChange={(event) => setAudioSelection({ contentId, index: event.target.value === 'default' ? null : Number(event.target.value) })}
+            helperText="Changing audio restarts your playback. Other viewers keep their selected track.">
+            <MenuItem value="default">Default audio</MenuItem>
+            {status.audio_tracks.map((track) => <MenuItem key={track.index} value={track.index} sx={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>
+              {`Track ${track.index + 1}${track.language ? ` · ${track.language}` : ''}${track.title ? ` · ${track.title}` : ''}${track.codec ? ` · ${track.codec.toUpperCase()}` : ''}${track.channel_layout ? ` · ${track.channel_layout}` : ''}`}
+            </MenuItem>)}
+          </TextField> : null}
+          {details}
+  </>;
+
+  const playerContent = (
+    <>
+      <DialogTitle id="stream-player-title" sx={{ overflowWrap: 'anywhere', ...(inline ? { px: 2, py: 1, fontSize: '1.1rem' } : {}) }}>{title}</DialogTitle>
       <DialogContent>
         <Stack spacing={1.5}>
           <Box sx={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', backgroundColor: '#000', borderRadius: 1, overflow: 'hidden' }}>
@@ -256,20 +279,7 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
               {statusText}
             </Typography>
           )}
-          {status?.codecs.video ? (
-            <Typography variant="caption" color="text.secondary">
-              Video {status.codecs.video.toUpperCase()} · audio {(status.codecs.audio ?? 'unknown').toUpperCase()} re-encoded to AAC
-            </Typography>
-          ) : null}
-          {status?.audio_tracks?.length ? <TextField select fullWidth label="Audio track" value={audioIndex ?? 'default'}
-            onChange={(event) => setAudioSelection({ contentId, index: event.target.value === 'default' ? null : Number(event.target.value) })}
-            helperText="Changing audio restarts your playback. Other viewers keep their selected track.">
-            <MenuItem value="default">Default audio</MenuItem>
-            {status.audio_tracks.map((track) => <MenuItem key={track.index} value={track.index} sx={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>
-              {`Track ${track.index + 1}${track.language ? ` · ${track.language}` : ''}${track.title ? ` · ${track.title}` : ''}${track.codec ? ` · ${track.codec.toUpperCase()}` : ''}${track.channel_layout ? ` · ${track.channel_layout}` : ''}`}
-            </MenuItem>)}
-          </TextField> : null}
-          {details}
+          {inline ? <Accordion disableGutters><AccordionSummary expandIcon={<ExpandMoreRounded />}><Typography>Playback options and schedule</Typography></AccordionSummary><AccordionDetails><Stack spacing={1.5}>{playbackOptions}</Stack></AccordionDetails></Accordion> : playbackOptions}
         </Stack>
       </DialogContent>
       <DialogActions sx={{ flexWrap: 'wrap', gap: 1, px: 2, pb: 'max(16px, env(safe-area-inset-bottom))' }}>
@@ -278,7 +288,7 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
           Copy stream link
         </Button>
         <Button variant="contained" onClick={handleClose}>
-          Close
+          {inline ? 'Stop watching' : 'Close'}
         </Button>
       </DialogActions>
       <Snackbar open={copied !== null} autoHideDuration={3000} onClose={() => setCopied(null)}>
@@ -286,8 +296,11 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
           {copied === 'ok' ? 'Stream link copied. Open it in VLC or any player on this network.' : 'Unable to copy the link.'}
         </Alert>
       </Snackbar>
-    </Dialog>
+    </>
   );
+
+  if (inline) return open ? <Box component="section" aria-label="Live TV player" sx={{ minWidth: 0, bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 2 }}>{playerContent}</Box> : null;
+  return <Dialog open={open} onClose={handleClose} fullScreen={fullScreen} maxWidth="md" fullWidth aria-labelledby="stream-player-title">{playerContent}</Dialog>;
 };
 
 export default StreamPlayerDialog;

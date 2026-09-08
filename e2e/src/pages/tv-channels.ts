@@ -65,14 +65,14 @@ export class TVChannelsPage extends AppShell {
     await expect(dialog).toBeHidden();
   }
 
-  /** Row overflow menu: "Add to favorites" or "Remove from favorites". */
+  /** Dedicated favorite column (also available on phone cards). */
   async toggleFavorite(name: string): Promise<void> {
-    await this.rowMenuAction(this.row(name), name, /favorites$/);
+    await this.row(name).getByRole('button', { name: `toggle favorite for tv channel ${name}` }).click();
   }
 
   /** The star the row shows next to the name while the channel is a favorite. */
   favoriteMark(name: string): Locator {
-    return this.row(name).getByRole('img', { name: 'Favorite' });
+    return this.row(name).getByRole('button', { name: `toggle favorite for tv channel ${name}`, pressed: true });
   }
 
   openButton(name: string): Locator {

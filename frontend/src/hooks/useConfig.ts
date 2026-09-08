@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
-import { configService, HealthResponse, Stats, StatusResponse, TvChannelStats, type PlaybackRouting } from '../services/configService';
+import { configService, HealthResponse, Stats, StatusResponse, TvChannelStats, type PlaybackRouting, type CheckEngineConfig } from '../services/configService';
 
 type QueryOpts<T> = Omit<UseQueryOptions<T>, 'queryKey' | 'queryFn'>;
 
@@ -40,6 +40,8 @@ export const useUpdateAceEngineUrl = () => {
     mutationFn: (aceEngineUrl: string) => configService.updateAceEngineUrl(aceEngineUrl),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['aceEngineUrl'] });
+      queryClient.invalidateQueries({ queryKey: ['acestreamStatus'] });
+      queryClient.invalidateQueries({ queryKey: ['system', 'services'] });
       queryClient.invalidateQueries({ queryKey: ['allSettings'] });
     },
   });
@@ -168,4 +170,14 @@ export const useUpdatePlaybackRouting = () => {
       void queryClient.invalidateQueries({ queryKey: ['allSettings'] });
     },
   });
+};
+
+
+export const useCheckEngine = () => useQuery({ queryKey: ['checkEngine'], queryFn: configService.getCheckEngine });
+export const useUpdateCheckEngine = () => {
+  const client = useQueryClient();
+  return useMutation({ mutationFn: (config: CheckEngineConfig) => configService.updateCheckEngine(config), onSuccess: () => {
+    void client.invalidateQueries({ queryKey: ['checkEngine'] });
+    void client.invalidateQueries({ queryKey: ['system', 'services'] });
+  } });
 };

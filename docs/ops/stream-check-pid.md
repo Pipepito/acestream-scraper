@@ -212,3 +212,23 @@ checks accompany the implementation. The quick gate's committed-type comparison
 requires the newly regenerated API snapshot to be committed; regeneration was
 checked separately for byte-for-byte reproducibility, and the remaining quick
 frontend tests, lint, typecheck and build were run directly.
+
+### Optional engines and Settings
+
+Settings → Automation → Stream status checks stores an optional dedicated engine
+through `GET/PUT /api/v1/config/check-engine` (`use_dedicated`, `url`). With the
+switch off, checks use the saved playback engine URL. Clearing the playback URL
+and leaving the dedicated checker off disables status probes; scheduled runs
+return a no-engine result and Run status check now does not queue a job. Previous
+channel results remain unchanged. Scraping and catalogue management need no engine.
+
+A dedicated endpoint that fails never falls back to playback. `ACE_CHECK_ENGINE_URL`
+seeds the external choice until Settings saves an explicit choice; disabling it in
+Settings overrides that environment default. The bundled checker remains managed
+by `ENABLE_ACESTREAM_CHECK_ENGINE` and its supervisor; its route is read-only in
+Settings. Overview offers configuration links for unmanaged engines and shows an
+unconfigured engine as disabled, not unhealthy.
+
+New scraper-only installs default to no playback endpoint. Bundled enabled engines
+retain their internal endpoint. Existing saved URLs are preserved; clear an old
+localhost URL in Playback if the installation no longer has an engine.

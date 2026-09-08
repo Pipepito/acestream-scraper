@@ -43,7 +43,11 @@ const json = (res: ServerResponse, body: unknown): void => {
  *
  * @param fixturePath absolute path to an MPEG-TS file (backend/tests/docker/fixtures/sample-h264-ac3.m2ts).
  */
-export async function startStubEngine(fixturePath: string): Promise<StubEngine> {
+export async function startStubEngine(
+  fixturePath: string,
+  network: { bindHost?: string; advertisedHost?: string } = {},
+): Promise<StubEngine> {
+  const advertisedHost = network.advertisedHost ?? '127.0.0.1';
   const fixture = await readFile(fixturePath);
   if (fixture.length < PACKET_BYTES) throw new Error(`stub engine fixture is too small: ${fixturePath}`);
 
@@ -85,7 +89,7 @@ export async function startStubEngine(fixturePath: string): Promise<StubEngine> 
 
   const server: Server = createServer((req: IncomingMessage, res: ServerResponse) => {
     const requestUrl = new URL(req.url ?? '/', `http://${req.headers.host ?? '127.0.0.1'}`);
-    const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    const base = `http://${advertisedHost}:${(server.address() as AddressInfo).port}`;
 
     if (requestUrl.pathname === '/ace/getstream') {
       json(res, {
@@ -116,11 +120,11 @@ export async function startStubEngine(fixturePath: string): Promise<StubEngine> 
     res.end('{"error":"not found"}');
   });
 
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  await new Promise<void>((resolve) => server.listen(0, network.bindHost ?? '127.0.0.1', resolve));
   const { port } = server.address() as AddressInfo;
 
   return {
-    url: `http://127.0.0.1:${port}`,
+    url: `http://${advertisedHost}:${port}`,
     streamCount: () => streams,
     stopped: () => stopped,
     close: async () => {

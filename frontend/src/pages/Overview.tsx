@@ -1,3 +1,4 @@
+import { Link as RouterLink } from 'react-router-dom';
 import React from 'react';
 import { Alert, Box, Button, Chip, CircularProgress } from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
@@ -35,7 +36,8 @@ const Overview: React.FC = () => {
   const engineOnline = engineProbe ? engineProbe.status === 'online' : Boolean(engine?.running);
   const engineExternal = engineOnline && Boolean(engine) && !engine?.running;
   const engineStopped = Boolean(engine?.stopped_by_user) && !engineOnline;
-  const needsAttention = attention.length > 0 || (!engineOnline && !engineStopped);
+  const engineConfigured = Boolean(engine?.endpoint || engine?.enabled);
+  const needsAttention = attention.length > 0 || (engineConfigured && !engineOnline && !engineStopped);
 
   const lastScrape = tasks.data?.find((t) => t.task_name === 'url_scraping')?.last_run ?? null;
   const lastEpg = tasks.data?.find((t) => t.task_name === 'epg_refresh')?.last_run ?? null;
@@ -90,8 +92,8 @@ const Overview: React.FC = () => {
         items={[
           {
             label: 'Engine',
-            value: engineOnline ? (engineExternal ? 'online (external)' : engine?.version ?? 'online') : engineStopped ? 'stopped by you' : 'not reachable',
-            tone: engineOnline ? 'success' : engineStopped ? 'default' : 'error',
+            value: engineOnline ? (engineExternal ? 'online (external)' : engine?.version ?? 'online') : !engineConfigured ? 'not configured' : engineStopped ? 'stopped by you' : 'not reachable',
+            tone: engineOnline ? 'success' : !engineConfigured || engineStopped ? 'default' : 'error',
           },
           ...(stats.data
             ? [{ label: 'Streams', value: `${stats.data.channels.total}, ${stats.data.channels.online} online` }]
@@ -123,7 +125,7 @@ const Overview: React.FC = () => {
         {stats.data ? <InventoryTotals stats={stats.data} tvStats={tvStats.data} /> : null}
       </ContentSection>
 
-      <ContentSection title="Scheduled jobs" description="What ran last, what it did, and when it runs again.">
+      <ContentSection actions={<Button component={RouterLink} to="/settings?tab=automation">Edit schedules</Button>} title="Scheduled jobs" description="What ran last, what it did, and when it runs again.">
         {tasks.error ? (
           <Alert severity="error">Could not load the scheduler status: {normalizeApiError(tasks.error).message}</Alert>
         ) : (

@@ -32,7 +32,7 @@ const OpenChannelPlayer: React.FC<ChannelPlayerDialogProps> = (props) => {
             {index + 1}. {item.name} · {networkStatusLabel(item.network_status)} · {item.is_online === true ? 'Signal verified' : item.is_online === false ? 'No signal verified' : 'Signal not checked'} · {item.id.slice(0, 8)}{item.bitrate_bps ? ` · ${formatBitrate(item.bitrate_bps)}` : ''}{item.audio_tracks?.length ? ` · ${item.audio_tracks.length} audio track${item.audio_tracks.length === 1 ? '' : 's'}` : ''}
           </MenuItem>)}
         </TextField>
-        <Typography component="h2" variant="h6">Schedule</Typography>
+        <Typography component="h3" variant="h6">Schedule</Typography>
         <ChannelGuide channel={channel} now={now} />
       </> : null}
     </>} />;

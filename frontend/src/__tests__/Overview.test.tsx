@@ -110,6 +110,14 @@ describe('Overview', () => {
     expect(within(screen.getByRole('status', { name: 'Overview summary' })).getByText('stopped by you')).toBeInTheDocument();
   });
 
+  it('treats an engine-free scraper as healthy', () => {
+    mockUseHealth.mockReturnValue(query({ status: 'healthy', acestream: { status: 'unknown' } }));
+    mockUseSystemServices.mockReturnValue(query({ supervised: false, services: [service('acestream', 'disabled', { enabled: false, endpoint: null, running: false })] }));
+    renderPage();
+    expect(screen.getByText('HEALTHY')).toBeInTheDocument();
+    expect(within(screen.getByRole('status', { name: 'Overview summary' })).getByText('not configured')).toHaveAttribute('data-tone', 'default');
+  });
+
   it('flags attention when the engine probe fails even if no service is marked stopped', () => {
     mockUseHealth.mockReturnValue(query({ status: 'healthy', acestream: { status: 'error', message: 'Connection refused' }, settings: {}, version: '2.1.0' }));
     renderPage();

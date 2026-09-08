@@ -218,43 +218,33 @@ class TestChannelStatusEndpoints:
         response = client.post(f"/api/v1/channels/{fake_id}/check_status")
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_check_all_channels_status(self, client, seed_channels):
-        """Test checking status of all channels."""
-        response = client.post("/api/v1/channels/check_status_all")
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert "results" in data
-        assert "total_checked" in data
-        assert "online_count" in data
-        assert "offline_count" in data
-        assert data["total_checked"] == 3
-        assert len(data["results"]) == 3
-        # The SPA shows this line verbatim; it must describe what happened.
-        assert data["background"] is False
-        assert data["message"] == f"Checked 3 channels: {data['online_count']} online, {data['offline_count']} offline, 0 skipped."
+    @pytest.mark.parametrize("outcome,code", [("triggered", 200), ("already_running", 200), ("unavailable", 503)])
+    def test_run_existing_status_job(self, client, monkeypatch, outcome, code, db_session):
+        from app.repositories.settings_repository import SettingsRepository
+        SettingsRepository(db_session).set_setting("ace_engine_url", "http://engine.test:6878")
+        from unittest.mock import Mock
+        from app.services.task_service import task_service
+        trigger = Mock(return_value=outcome)
+        monkeypatch.setattr(task_service, "run_task_now", trigger)
+        response = client.post("/api/v1/background-tasks/channel_status/run")
+        assert response.status_code == code
+        trigger.assert_called_once_with("channel_status")
+        if code == 200:
+            assert response.json()["status"] == outcome
 
-    def test_check_all_channels_status_with_limit(self, client, seed_channels):
-        """Test checking status of channels with limit."""
-        response = client.post("/api/v1/channels/check_status_all?limit=2")
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["total_checked"] == 2
-        assert len(data["results"]) == 2
+    def test_manual_bulk_endpoint_removed(self, client):
+        assert client.post("/api/v1/channels/check_status_all").status_code in (404, 405)
 
-    def test_engine_outage_skips_channels_without_recording_offline(self, client, seed_channels, monkeypatch, db_session):
+    def test_engine_outage_preserves_single_channel_status(self, client, seed_channels, monkeypatch, db_session):
         from app.services.channel_status_service import ChannelStatusService
-        before = {channel.id: (channel.is_online, channel.last_checked) for channel in seed_channels}
+        channel = seed_channels[0]
+        before = (channel.is_online, channel.last_checked)
         monkeypatch.setattr(ChannelStatusService, '_wait_for_engine', AsyncMock(return_value=False))
-        response = client.post('/api/v1/channels/check_status_all')
+        response = client.post(f'/api/v1/channels/{channel.id}/check_status')
         assert response.status_code == 200
-        data = response.json()
-        assert data['total_checked'] == data['online_count'] == data['offline_count'] == 0
-        assert len(data['results']) == 3
-        assert all(result['status'] == 'skipped' for result in data['results'])
-        assert data['message'] == 'Checked 0 channels: 0 online, 0 offline, 3 skipped.'
-        for channel in seed_channels:
-            db_session.refresh(channel)
-            assert (channel.is_online, channel.last_checked) == before[channel.id]
+        assert response.json()['status'] == 'skipped'
+        db_session.refresh(channel)
+        assert (channel.is_online, channel.last_checked) == before
 
     def test_export_csv_is_reachable(self, client, seed_channels):
         """The CSV export must not be shadowed by the /{acestreamchannel_id} route."""
@@ -324,3 +314,30 @@ class TestChannelGroupEndpoints:
         assert data["total"] == 1
         assert len(data["items"]) == 1
         assert data["items"][0]["group"] == "Group 1"
+
+
+def test_scheduled_status_scan_has_no_hundred_channel_limit(db_session, monkeypatch):
+    from unittest.mock import Mock
+    from app.models.models import AcestreamChannel
+    from app.tasks import channel_status_task as task
+    from app.repositories.settings_repository import SettingsRepository
+    SettingsRepository(db_session).set_setting("ace_engine_url", "http://engine.test:6878")
+    db_session.add_all([AcestreamChannel(id=f'{i:040x}', name=f'Stream {i}', is_active=True) for i in range(151)])
+    db_session.add(AcestreamChannel(id='f' * 40, name='Hidden', is_active=False))
+    db_session.commit()
+    monkeypatch.setattr(task, 'SessionLocal', lambda: db_session)
+    monkeypatch.setattr(task.task_service.shutdown_event, 'is_set', Mock(return_value=False))
+    check = AsyncMock(return_value={'status': 'skipped'})
+    monkeypatch.setattr(task.ChannelStatusService, 'check_channel_status', check)
+    result = task.run_channel_status_task()
+    assert check.call_count == 151
+    assert result == {'checked': 0, 'skipped': 151, 'failed': 0}
+
+
+def test_retired_manual_status_is_not_exposed(monkeypatch):
+    from app.services.background_task_status_service import BackgroundTaskStatusService
+    service = BackgroundTaskStatusService()
+    monkeypatch.setattr(service._task_service, 'get_jobs', lambda: [])
+    monkeypatch.setattr(service._task_service, 'get_task_states', lambda: {'manual_channel_status': {}, 'channel_status': {}})
+    monkeypatch.setattr(service._task_service, 'get_task_state', lambda name: {})
+    assert [s.task_name for s in service.get_all_statuses()] == ['channel_status']

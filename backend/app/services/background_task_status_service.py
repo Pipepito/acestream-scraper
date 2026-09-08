@@ -31,7 +31,7 @@ class BackgroundTaskStatusService:
             seen.add(task_name)
 
         for task_name, state in self._task_service.get_task_states().items():
-            if task_name in seen:
+            if task_name in seen or task_name == "manual_channel_status":
                 continue
             statuses.append(BackgroundTaskStatus(**self._base_payload(task_name)))
 

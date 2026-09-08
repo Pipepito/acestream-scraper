@@ -262,18 +262,6 @@ async def test_readiness_requires_engine_status_response(probe, payload, expecte
     assert probe._fetch_engine_response.call_args.args[0].endswith('/server/api')
 
 
-def test_bulk_status_counts_exclude_skipped_probes(client, db_session, monkeypatch):
-    channel = AcestreamChannel(id='e' * 40, name='Example', is_active=True)
-    db_session.add(channel)
-    db_session.commit()
-    monkeypatch.setattr(ChannelStatusService, 'check_multiple_channels', AsyncMock(return_value=[ChannelStatusService._skipped_result(channel)]))
-    result = client.post('/api/v1/channels/check_status_all', json={'channel_ids': [channel.id]})
-    assert result.status_code == 200
-    assert result.json()['offline_count'] == 0
-    assert result.json()['total_checked'] == 0
-    assert '1 skipped' in result.json()['message']
-
-
 @pytest.mark.asyncio
 @pytest.mark.parametrize('http_status,payload,expected', [
     (200, {'error': 'not found'}, 'not_found'),

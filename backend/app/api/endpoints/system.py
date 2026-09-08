@@ -39,8 +39,13 @@ def download_diagnostics() -> Response:
 
 def _service(db: Session) -> SystemServicesService:
     # The external engine the app really talks to is the DB setting, not the env default.
-    engine_url = SettingsRepository(db).get_setting("ace_engine_url") or None
-    return SystemServicesService(external_engine_url=engine_url)
+    from app.services.check_engine_config_service import CheckEngineConfigService
+    repository = SettingsRepository(db)
+    checker = CheckEngineConfigService(repository).get()
+    return SystemServicesService(
+        external_engine_url=repository.get_setting("ace_engine_url") or "",
+        check_engine_url=checker.url if checker.use_dedicated else "",
+    )
 
 
 @router.get("/services", response_model=ServicesStatusResponse, summary="Status of the sidecar services")

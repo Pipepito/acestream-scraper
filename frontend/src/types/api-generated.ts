@@ -81,13 +81,6 @@ export interface paths {
      */
     put: operations["bulk_edit_acestream_channels_api_v1_acestream_channels_bulk_edit_put"];
   };
-  "/api/v1/acestream-channels/check_status_all": {
-    /**
-     * Check All Channels Status
-     * @description Check the online status of all active channels or specific channels.
-     */
-    post: operations["check_all_channels_status_api_v1_acestream_channels_check_status_all_post"];
-  };
   "/api/v1/acestream-channels/export_csv": {
     /**
      * Export Acestream Channels Csv
@@ -145,6 +138,10 @@ export interface paths {
     /** Get Recent Activity */
     get: operations["get_recent_activity_api_v1_activity_recent_get"];
   };
+  "/api/v1/background-tasks/channel_status/run": {
+    /** Run Channel Status Job */
+    post: operations["run_channel_status_job_api_v1_background_tasks_channel_status_run_post"];
+  };
   "/api/v1/background-tasks/status": {
     /** Get Background Tasks Status */
     get: operations["get_background_tasks_status_api_v1_background_tasks_status_get"];
@@ -198,13 +195,6 @@ export interface paths {
      * updates: {"acestreamchannel_ids": [...], "fields": {...}}
      */
     put: operations["bulk_edit_acestream_channels_api_v1_channels_bulk_edit_put"];
-  };
-  "/api/v1/channels/check_status_all": {
-    /**
-     * Check All Channels Status
-     * @description Check the online status of all active channels or specific channels.
-     */
-    post: operations["check_all_channels_status_api_v1_channels_check_status_all_post"];
   };
   "/api/v1/channels/export_csv": {
     /**
@@ -312,6 +302,12 @@ export interface paths {
      * @description Update the base URL for Acestream links.
      */
     put: operations["update_base_url_api_v1_config_base_url_put"];
+  };
+  "/api/v1/config/check-engine": {
+    /** Get Check Engine */
+    get: operations["get_check_engine_api_v1_config_check_engine_get"];
+    /** Update Check Engine */
+    put: operations["update_check_engine_api_v1_config_check_engine_put"];
   };
   "/api/v1/config/dashboard": {
     /** Get Dashboard Config */
@@ -954,6 +950,13 @@ export interface paths {
     /** Create Tv Channels From Epg */
     post: operations["create_tv_channels_from_epg_api_v1_tv_channels_from_epg_post"];
   };
+  "/api/v1/tv-channels/reorder": {
+    /**
+     * Reorder Tv Channels
+     * @description Save the complete channel order atomically using consecutive channel numbers.
+     */
+    post: operations["reorder_tv_channels_api_v1_tv_channels_reorder_post"];
+  };
   "/api/v1/tv-channels/{tv_channel_id}": {
     /**
      * Get Tv Channel
@@ -1482,30 +1485,6 @@ export interface components {
       fields: components["schemas"]["AcestreamChannelUpdate"];
     };
     /**
-     * BulkStatusCheckResponse
-     * @description Response for bulk status check operations
-     */
-    BulkStatusCheckResponse: {
-      /**
-       * Background
-       * @default false
-       */
-      background?: boolean;
-      /** Message */
-      message?: string | null;
-      /** Offline Count */
-      offline_count: number;
-      /** Online Count */
-      online_count: number;
-      /** Results */
-      results: components["schemas"]["ChannelStatusResponse"][];
-      summary: components["schemas"]["ChannelStatusSummary"];
-      /** Total Channels */
-      total_channels: number;
-      /** Total Checked */
-      total_checked: number;
-    };
-    /**
      * ChannelResult
      * @description Schema for channel result from scraping
      */
@@ -1521,6 +1500,16 @@ export interface components {
       };
       /** Name */
       name: string;
+    };
+    /** ChannelStatusJobRunResponse */
+    ChannelStatusJobRunResponse: {
+      /** Message */
+      message: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "triggered" | "already_running" | "disabled";
     };
     /**
      * ChannelStatusResponse
@@ -1572,6 +1561,37 @@ export interface components {
       total_channels: number;
       /** Unknown */
       unknown: number;
+    };
+    /** CheckEngineConfig */
+    CheckEngineConfig: {
+      /**
+       * Url
+       * @default
+       */
+      url?: string;
+      /**
+       * Use Dedicated
+       * @default false
+       */
+      use_dedicated?: boolean;
+    };
+    /** CheckEngineConfigResponse */
+    CheckEngineConfigResponse: {
+      /**
+       * Managed
+       * @default false
+       */
+      managed?: boolean;
+      /**
+       * Url
+       * @default
+       */
+      url?: string;
+      /**
+       * Use Dedicated
+       * @default false
+       */
+      use_dedicated?: boolean;
     };
     /**
      * ConfigKeyUpdate
@@ -2875,19 +2895,6 @@ export interface components {
       urls: components["schemas"]["URLStats"][];
     };
     /**
-     * StatusCheckRequest
-     * @description Request schema for status checking
-     */
-    StatusCheckRequest: {
-      /** Channel Ids */
-      channel_ids?: string[] | null;
-      /**
-       * Concurrency
-       * @default 3
-       */
-      concurrency?: number | null;
-    };
-    /**
      * StatusResponse
      * @description Schema for a status check response
      */
@@ -3096,6 +3103,19 @@ export interface components {
       items: components["schemas"]["TVChannelResponse"][];
       /** Total */
       total: number;
+    };
+    /**
+     * TVChannelReorderRequest
+     * @description Complete inventory in the desired order; saved as numbers 1 through N.
+     */
+    TVChannelReorderRequest: {
+      /** Channel Ids */
+      channel_ids: number[];
+      /**
+       * Expected Order
+       * @description Original inventory order; rejects stale reorder edits.
+       */
+      expected_order: number[];
     };
     /**
      * TVChannelResponse
@@ -3801,36 +3821,6 @@ export interface operations {
     };
   };
   /**
-   * Check All Channels Status
-   * @description Check the online status of all active channels or specific channels.
-   */
-  check_all_channels_status_api_v1_acestream_channels_check_status_all_post: {
-    parameters: {
-      query?: {
-        limit?: number | null;
-      };
-    };
-    requestBody?: {
-      content: {
-        "application/json": components["schemas"]["StatusCheckRequest"] | null;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["BulkStatusCheckResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
    * Export Acestream Channels Csv
    * @description Export all Acestream channels as a CSV file.
    */
@@ -4043,6 +4033,17 @@ export interface operations {
       422: {
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Run Channel Status Job */
+  run_channel_status_job_api_v1_background_tasks_channel_status_run_post: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ChannelStatusJobRunResponse"];
         };
       };
     };
@@ -4265,36 +4266,6 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["AcestreamChannelResponse"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Check All Channels Status
-   * @description Check the online status of all active channels or specific channels.
-   */
-  check_all_channels_status_api_v1_channels_check_status_all_post: {
-    parameters: {
-      query?: {
-        limit?: number | null;
-      };
-    };
-    requestBody?: {
-      content: {
-        "application/json": components["schemas"]["StatusCheckRequest"] | null;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["BulkStatusCheckResponse"];
         };
       };
       /** @description Validation Error */
@@ -4624,6 +4595,39 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["ConfigUpdateResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get Check Engine */
+  get_check_engine_api_v1_config_check_engine_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["CheckEngineConfigResponse"];
+        };
+      };
+    };
+  };
+  /** Update Check Engine */
+  update_check_engine_api_v1_config_check_engine_put: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CheckEngineConfig"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["CheckEngineConfigResponse"];
         };
       };
       /** @description Validation Error */
@@ -7035,6 +7039,31 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["TVChannelCreateFromEPGResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Reorder Tv Channels
+   * @description Save the complete channel order atomically using consecutive channel numbers.
+   */
+  reorder_tv_channels_api_v1_tv_channels_reorder_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TVChannelReorderRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["MessageResponse"];
         };
       };
       /** @description Validation Error */

@@ -185,8 +185,8 @@ const Search: React.FC = () => {
           </Grid>
           <Grid item xs={12} md={3}>
             <FormControl fullWidth>
-              <InputLabel>Category</InputLabel>
-              <Select value={category} label="Category" onChange={handleCategoryChange}>
+              <InputLabel id="search-category-label">Category</InputLabel>
+              <Select labelId="search-category-label" value={category} label="Category" onChange={handleCategoryChange}>
                 <MenuItem value="">All Categories</MenuItem>
                 <MenuItem value="sports">Sports</MenuItem>
                 <MenuItem value="movies">Movies</MenuItem>

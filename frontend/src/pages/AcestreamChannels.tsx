@@ -15,7 +15,7 @@ import BulkOperations from '../components/BulkOperations';
 import BatchAssignDialog from '../components/BatchAssignDialog';
 import QuickEditDialog, { type QuickEditChannel, type QuickEditValues } from '../components/QuickEditDialog';
 import AssignTVChannelDialog from '../components/AssignTVChannelDialog';
-import { useAllTVChannels } from '../hooks/useTVChannels';
+import { useTVChannelCatalog } from '../hooks/useTVChannels';
 import { tvChannelService } from '../services/tvChannelService';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
@@ -30,25 +30,6 @@ type SnackbarNotice = {
   error?: unknown;
   /** Set by callers that distinguish more than "worked"/"failed" (a warning). */
   severity?: 'success' | 'warning' | 'error';
-};
-
-interface BulkStatusCheckSummary {
-  message?: string | null;
-  background?: boolean;
-  total_channels?: number;
-  total_checked?: number;
-  online_count?: number;
-  offline_count?: number;
-}
-
-/** Turn the bulk status-check payload into one sentence a user can act on. */
-export const describeBulkStatusCheck = (data: BulkStatusCheckSummary): string => {
-  if (data.message) return data.message;
-  if (data.background) {
-    return `Status check started in the background for ${data.total_channels ?? 0} channels. Refresh the list in a few minutes to see the results.`;
-  }
-  const checked = data.total_checked ?? 0;
-  return `Checked ${checked} channels: ${data.online_count ?? 0} online, ${data.offline_count ?? 0} offline.`;
 };
 
 const hasAnyFilter = (filters: AcestreamChannelFilters): boolean =>
@@ -94,7 +75,7 @@ const AcestreamChannels: React.FC = () => {
   const channels = channelsData.items;
   const totalCount = channelsData.total;
   const deleteChannel = useDeleteAcestreamChannel();
-  const { data: tvChannels } = useAllTVChannels(0, 100);
+  const { data: tvChannels, isLoading: loadingTVChannels, error: tvChannelsError, refetch: reloadTVChannels } = useTVChannelCatalog();
   const selectedChannels = useMemo(() => channels.filter((channel) => selectedIds.includes(channel.id)), [channels, selectedIds]);
   const filtered = hasAnyFilter(filters);
 
@@ -132,7 +113,7 @@ const AcestreamChannels: React.FC = () => {
       await navigator.clipboard.writeText(id);
       setNotice({ message: 'Acestream ID copied.' });
     } catch {
-      setError('Unable to copy the Acestream ID right now.');
+      setNotice({ message: 'ID selected. Press Ctrl+C or ⌘C, or use your device’s Copy menu.', severity: 'warning' });
     }
   }, []);
 
@@ -224,7 +205,7 @@ const AcestreamChannels: React.FC = () => {
     setAssignError(null);
     try {
       await Promise.all(assignTargetIds.map((id) => acestreamChannelService.assignToTVChannel(id, tvChannelId)));
-      const assigned = tvChannels?.items.find((tvChannel) => tvChannel.id === tvChannelId);
+      const assigned = tvChannels?.find((tvChannel) => tvChannel.id === tvChannelId);
       if (assigned) {
         await Promise.all(
           assignTargetIds.map((id) =>
@@ -307,8 +288,8 @@ const AcestreamChannels: React.FC = () => {
   const handleCheckAllStatuses = async () => {
     setCheckingAll(true);
     try {
-      const data = await acestreamChannelService.checkAllStatuses();
-      setNotice({ message: describeBulkStatusCheck(data) });
+      const data = await acestreamChannelService.runStatusCheckNow();
+      setNotice({ message: data.message, severity: data.status === 'disabled' ? 'warning' : 'success' });
     } catch (err) {
       setNotice({ message: getErrorMessage(err), error: err });
     } finally {
@@ -343,7 +324,7 @@ const AcestreamChannels: React.FC = () => {
         }
         overflowActions={[
           { label: 'Refresh', icon: <Refresh fontSize="small" />, onClick: () => void refetch() },
-          { label: checkingAll ? 'Checking…' : 'Check all statuses', onClick: () => void handleCheckAllStatuses(), disabled: checkingAll },
+          { label: checkingAll ? 'Requesting…' : 'Run status check now', onClick: () => void handleCheckAllStatuses(), disabled: checkingAll },
           { label: 'Export CSV', icon: <FileDownload fontSize="small" />, onClick: () => void handleExportCSV() },
         ]}
       />
@@ -473,6 +454,9 @@ const AcestreamChannels: React.FC = () => {
         open={assignDialogOpen}
         onClose={handleCloseAssignDialog}
         tvChannels={tvChannels}
+        catalogLoading={loadingTVChannels}
+        catalogError={tvChannelsError ? getErrorMessage(tvChannelsError) : null}
+        onRetry={() => void reloadTVChannels()}
         onAssign={handleAssignTVChannel}
         loading={assigning}
         error={assignError}

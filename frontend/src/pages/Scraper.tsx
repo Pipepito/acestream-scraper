@@ -1,3 +1,4 @@
+import { Link as RouterLink } from 'react-router-dom';
 import { responsiveTableSx } from '../styles/responsiveTable';
 import React, { useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -348,7 +349,7 @@ const Scraper: React.FC = () => {
         ]}
       />
 
-      <ContentSection title="Sources">
+      <ContentSection actions={<Button component={RouterLink} to="/settings?tab=automation">Edit schedule</Button>} title="Sources">
         {isLoading && <LinearProgress sx={{ mb: 2 }} />}
         <TableContainer sx={[responsiveTableSx, { maxHeight: { xs: 'none', sm: 640 } }]}>
           <Table stickyHeader>

@@ -98,11 +98,13 @@ class SystemServicesService:
         self,
         run_dir: Optional[str] = None,
         external_engine_url: Optional[str] = None,
+        check_engine_url: Optional[str] = None,
         http_get: Optional[Callable[..., requests.Response]] = None,
         http_post: Optional[Callable[..., requests.Response]] = None,
     ) -> None:
         self.run_dir = Path(run_dir or os.environ.get("SUPERVISOR_RUN_DIR", DEFAULT_RUN_DIR))
-        self.external_engine_url = (external_engine_url or getattr(settings, "ACE_ENGINE_URL", "http://localhost:6878")).rstrip("/")
+        self.external_engine_url = (external_engine_url if external_engine_url is not None else settings.ACE_ENGINE_URL).rstrip("/")
+        self.check_engine_url = check_engine_url if check_engine_url is not None else (os.environ.get("ACE_CHECK_ENGINE_URL") or settings.ACE_CHECK_ENGINE_URL)
         self._get = http_get or (lambda url, **kw: requests.get(url, timeout=PROBE_TIMEOUT_SECONDS, **kw))
         self._post = http_post or (lambda url, **kw: requests.post(url, timeout=PROBE_TIMEOUT_SECONDS, **kw))
 
@@ -250,7 +252,7 @@ class SystemServicesService:
             enabled = _flag("ENABLE_ACESTREAM_ENGINE")
             internal = f"http://{env.get('ACESTREAM_HTTP_HOST', 'localhost')}:{env.get('ACESTREAM_HTTP_PORT', '6878')}"
             endpoint = internal if enabled else self.external_engine_url
-            probe = self._probe_engine(endpoint)
+            probe = self._probe_engine(endpoint) if endpoint else ProbeResult(False, "No playback engine configured")
             if installed:
                 distribution, distribution_url = _engine_distribution()
             label, description = "AceStream engine", "Resolves and plays acestream:// content; also checks channels when no dedicated checker is configured."
@@ -258,7 +260,7 @@ class SystemServicesService:
         elif name == "acestream-check":
             installed = _flag("IMAGE_HAS_ACESTREAM")
             enabled = _flag("ENABLE_ACESTREAM_CHECK_ENGINE")
-            endpoint = (env.get("ACE_CHECK_ENGINE_URL") or settings.ACE_CHECK_ENGINE_URL).strip() or None
+            endpoint = self.check_engine_url.strip() or None
             if endpoint and not endpoint.startswith(("http://", "https://")):
                 endpoint = "http://" + endpoint
             probe = self._probe_engine(endpoint) if endpoint else ProbeResult(False, "Dedicated checks are not configured")
@@ -305,7 +307,13 @@ class SystemServicesService:
         proc = self.process_info(name)
         managed = proc.alive or (name in ("acestream", "acestream-check") and self.engine_supervised(name))
         stopped_by_user = name in ("acestream", "acestream-check") and (self.run_dir / f"{name}.stopped").exists()
-        if name == "acestream-check" and endpoint and not enabled:
+        if name in ("acestream", "acestream-check") and not endpoint and not enabled:
+            state = "disabled"
+            message = (
+                "Dedicated checker is off; checks use the playback engine." if name == "acestream-check" and self.external_engine_url
+                else "No engine configured; stream checks are disabled. Configure an optional engine in Settings."
+            )
+        elif name == "acestream-check" and endpoint and not enabled:
             state = "external" if probe.ok else "unhealthy"
             message = probe.message if probe.ok else "Checking engine unavailable; previous channel statuses are preserved."
         elif not installed and not enabled:

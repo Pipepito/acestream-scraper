@@ -41,6 +41,23 @@ class ChannelRepository:
             raise
         return {"assigned_count": assigned, "skipped_count": len(selected) - assigned}
 
+    def reorder_tv_channels(self, channel_ids: List[int], expected_order: List[int]) -> None:
+        """Validate the complete snapshot and commit all numbers together."""
+        try:
+            channels = self.db.query(TVChannel).order_by(*self._tv_channel_ordering()).all()
+            current_ids = [channel.id for channel in channels]
+            if current_ids != expected_order or set(current_ids) != set(channel_ids):
+                raise ValueError("The channel list changed. Cancel and reopen Reorder channels to load the latest order.")
+            by_id = {channel.id: channel for channel in channels}
+            now = datetime.now(timezone.utc)
+            for number, channel_id in enumerate(channel_ids, start=1):
+                by_id[channel_id].channel_number = number
+                by_id[channel_id].updated_at = now
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
+
     def get_tv_channels_with_total(self, skip: int = 0, limit: int = 100,
                                    search: Optional[str] = None,
                                    favorites_only: bool = False) -> (list, int):

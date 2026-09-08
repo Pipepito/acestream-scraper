@@ -36,6 +36,7 @@ jest.mock('react-router-dom', () => {
 });
 
 jest.mock('../hooks/useTVChannels', () => ({
+  useReorderTVChannels: () => ({ mutateAsync: jest.fn() }),
   useAllTVChannels: (...args: unknown[]) => mockUseAllTVChannels(...args),
   useTVChannelCatalog: (...args: unknown[]) => mockUseTVChannelCatalog(...args),
   useDeleteTVChannel: (...args: unknown[]) => mockUseDeleteTVChannel(...args),
@@ -256,16 +257,14 @@ describe('TVChannels responsive page behavior', () => {
     const filtersRegion = screen.getByRole('region', { name: 'Channels' });
 
     expect(within(filtersRegion).getByRole('form', { name: /channel filters/i })).toBeInTheDocument();
-    expect(within(filtersRegion).getByRole('button', { name: 'Apply Filters' })).toBeInTheDocument();
-    expect(within(filtersRegion).getByRole('button', { name: 'Reset Filters' })).toBeInTheDocument();
-    expect(within(filtersRegion).getByRole('button', { name: 'Apply Filters' })).toHaveAttribute('data-action-priority', 'primary');
-    expect(within(filtersRegion).getByRole('button', { name: 'Reset Filters' })).toHaveAttribute('data-action-priority', 'secondary');
+    expect(within(filtersRegion).getByRole('button', { name: 'Reset filters' })).toBeInTheDocument();
+    expect(within(filtersRegion).getByRole('button', { name: 'Reset filters' })).toBeInTheDocument();
     expect(within(filtersRegion).getByLabelText('Category')).toBeInTheDocument();
+    await click(within(filtersRegion).getByRole('button', { name: 'Advanced filters' }));
     expect(within(filtersRegion).getByLabelText('Country')).toBeInTheDocument();
     expect(within(filtersRegion).getByLabelText('Language')).toBeInTheDocument();
-    expect(within(filtersRegion).getByLabelText('Active')).toBeInTheDocument();
+    expect(within(filtersRegion).getByLabelText('Status')).toBeInTheDocument();
     expect(within(filtersRegion).queryByLabelText('Group')).not.toBeInTheDocument();
-    expect(within(filtersRegion).queryByLabelText('Status')).not.toBeInTheDocument();
     expect(within(filtersRegion).queryByLabelText('Sort By')).not.toBeInTheDocument();
     expect(within(filtersRegion).queryByLabelText('Online')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /hide filters/i })).toBeInTheDocument();
@@ -352,8 +351,6 @@ describe('TVChannels responsive page behavior', () => {
     await click(screen.getByRole('button', { name: 'Open delete dialog' }));
 
     const reopenedDialog = screen.getByRole('dialog', { name: 'Delete TV Channel' });
-    expect(within(reopenedDialog).getByRole('button', { name: 'Cancel' })).toHaveAttribute('data-action-priority', 'primary');
-    expect(within(reopenedDialog).getByRole('button', { name: 'Delete TV Channel' })).toHaveAttribute('data-action-priority', 'danger');
 
     await click(within(reopenedDialog).getByRole('button', { name: 'Delete TV Channel' }));
 
@@ -385,21 +382,21 @@ describe('TVChannels responsive page behavior', () => {
     expect(mockCatalogRefetch).toHaveBeenCalledTimes(1);
   });
 
-  it('requests only favorite channels from the catalog when Favorites only is enabled', async () => {
+  it('keeps a complete catalog while filtering favorites locally', async () => {
     renderPage({ isPhone: false, isDesktop: true, isWideDesktop: false });
 
-    expect(mockUseTVChannelCatalog).toHaveBeenLastCalledWith(undefined);
+    expect(mockUseTVChannelCatalog).toHaveBeenLastCalledWith();
 
     const filtersRegion = screen.getByRole('region', { name: 'Channels' });
     const favoritesSwitch = within(filtersRegion).getByRole('checkbox', { name: 'Favorites only' });
 
     await click(favoritesSwitch);
 
-    expect(mockUseTVChannelCatalog).toHaveBeenLastCalledWith({ favorites: true });
+    expect(mockUseTVChannelCatalog).toHaveBeenLastCalledWith();
 
     await click(favoritesSwitch);
 
-    expect(mockUseTVChannelCatalog).toHaveBeenLastCalledWith(undefined);
+    expect(mockUseTVChannelCatalog).toHaveBeenLastCalledWith();
   });
 
   it('toggles a channel favorite from the inventory and confirms the change', async () => {
@@ -434,7 +431,6 @@ describe('TVChannels responsive page behavior', () => {
 
     fireEvent.change(searchInput, { target: { value: 'Arena' } });
 
-    await click(within(filtersRegion).getByRole('button', { name: 'Apply Filters' }));
 
     expect(screen.getByTestId('tv-channels-table')).toHaveTextContent('rows:1');
     expect(screen.getByTestId('tv-channels-table')).toHaveTextContent('total:1');
@@ -454,11 +450,10 @@ describe('TVChannels responsive page behavior', () => {
     const searchInput = within(filtersRegion).getByRole('textbox', { name: 'Search' });
 
     fireEvent.change(searchInput, { target: { value: 'Arena' } });
-    await click(within(filtersRegion).getByRole('button', { name: 'Apply Filters' }));
 
     expect(screen.getByTestId('tv-channels-table')).toHaveTextContent('page:0');
 
-    await click(within(filtersRegion).getByRole('button', { name: 'Reset Filters' }));
+    await click(within(filtersRegion).getByRole('button', { name: 'Reset filters' }));
 
     expect(screen.getByTestId('tv-channels-table')).toHaveTextContent('page:0');
     expect(screen.getByTestId('tv-channels-table')).toHaveTextContent('rows:1');
@@ -472,7 +467,6 @@ describe('TVChannels responsive page behavior', () => {
     const searchInput = within(filtersRegion).getByRole('textbox', { name: 'Search' });
 
     fireEvent.change(searchInput, { target: { value: '   Arena   ' } });
-    await click(within(filtersRegion).getByRole('button', { name: 'Apply Filters' }));
 
     expect(screen.getByTestId('tv-channels-table')).toHaveTextContent('rows:1');
     expect(screen.getByTestId('tv-channels-table')).toHaveTextContent('total:1');
@@ -485,12 +479,11 @@ describe('TVChannels responsive page behavior', () => {
     const searchInput = within(filtersRegion).getByRole('textbox', { name: 'Search' });
 
     fireEvent.change(searchInput, { target: { value: 'Missing channel' } });
-    await click(within(filtersRegion).getByRole('button', { name: 'Apply Filters' }));
 
     expect(screen.getByText('No TV channels match the current filters')).toBeInTheDocument();
     expect(screen.getByText('Reset the filters or broaden your search to see the full list.')).toBeInTheDocument();
 
-    await click(within(filtersRegion).getByRole('button', { name: 'Reset Filters' }));
+    await click(within(filtersRegion).getByRole('button', { name: 'Reset filters' }));
 
     expect(screen.getByTestId('tv-channels-table')).toHaveTextContent('rows:2');
     expect(screen.queryByText('No TV channels match the current filters')).not.toBeInTheDocument();

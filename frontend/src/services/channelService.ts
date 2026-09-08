@@ -111,9 +111,6 @@ interface ActivityLogResponse {
   total?: number;
 }
 
-interface CheckAllStatusesResponse {
-  message?: string;
-}
 
 function parseBooleanFilter(value: unknown): boolean | undefined {
   if (typeof value === 'boolean') {
@@ -207,10 +204,10 @@ const acestreamChannelService = {
   },
 
   /**
-   * Trigger a bulk status check for all channels
+   * Run the existing scheduled status job for all active streams
    */
-  checkAllStatuses: async (): Promise<CheckAllStatusesResponse> => {
-    const { data } = await apiClient.post('/v1/channels/check_status_all', {});
+  runStatusCheckNow: async (): Promise<components['schemas']['ChannelStatusJobRunResponse']> => {
+    const { data } = await apiClient.post('/v1/background-tasks/channel_status/run', {});
     return data;
   },
 

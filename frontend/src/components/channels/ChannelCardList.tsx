@@ -1,10 +1,9 @@
 import React from 'react';
-import { Box, Button, Checkbox, Chip, IconButton, Paper, Stack, Tooltip, Typography, useTheme } from '@mui/material';
-import { ContentCopy } from '@mui/icons-material';
+import { Box, Button, Checkbox, Chip, Paper, Stack, Tooltip, Typography, useTheme } from '@mui/material';
 import EmptyState from '../state/EmptyState';
 import ChannelRowActions, { type ChannelActionHandlers } from './ChannelRowActions';
 import OnlineChip from './OnlineChip';
-import NetworkStatusChip from './NetworkStatusChip';
+import SelectableStreamId from './SelectableStreamId';
 import type { AcestreamChannel } from '../../services/channelService';
 import { formatRelativeTime } from '../../utils/format';
 import { formatDateTime } from '../../utils/formatters';
@@ -86,7 +85,6 @@ const ChannelCardList: React.FC<ChannelCardListProps> = ({
             </Stack>
 
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
-              <NetworkStatusChip status={channel.network_status} />
               <OnlineChip isOnline={channel.is_online} />
               {hidden ? <Chip label="Hidden" size="small" variant="outlined" sx={{ minWidth: 72 }} /> : null}
               <Tooltip title={channel.last_checked ? formatDateTime(channel.last_checked) : 'Never checked'}>
@@ -96,16 +94,9 @@ const ChannelCardList: React.FC<ChannelCardListProps> = ({
               </Tooltip>
             </Stack>
 
-            <Stack direction="row" alignItems="center" sx={{ mt: 1, fontFamily: 'monospace', fontSize: 12.5, minWidth: 0 }}>
-              <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {channel.id}
-              </Box>
-              <Tooltip title="Copy ID">
-                <IconButton size="small" aria-label={`copy acestream id ${channel.id}`} onClick={() => onCopyId(channel.id)}>
-                  <ContentCopy fontSize="inherit" />
-                </IconButton>
-              </Tooltip>
-            </Stack>
+            <Box sx={{ mt: 1 }}>
+              <SelectableStreamId id={channel.id} networkStatus={channel.network_status} onCopyId={onCopyId} />
+            </Box>
 
             <Box sx={{ mt: 1 }}>
               <ChannelRowActions channel={channel} checking={Boolean(checkingStatus[channel.id])} {...handlers} />

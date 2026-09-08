@@ -1,3 +1,4 @@
+import TVChannelReorder from '../components/TVChannelReorder';
 import React, { lazy, Suspense, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -13,15 +14,15 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import { useTVChannelCatalog, useDeleteTVChannel, useCreateTVChannel, useUpdateTVChannel, useToggleTVChannelFavorite } from '../hooks/useTVChannels';
+import { useReorderTVChannels, useTVChannelCatalog, useDeleteTVChannel, useCreateTVChannel, useUpdateTVChannel, useToggleTVChannelFavorite } from '../hooks/useTVChannels';
 import { useTVChannelForm } from '../hooks/useTVChannelForm';
-import { AdvancedSearchFilters } from '../components/AdvancedSearch';
+import TVChannelFilters, { matchesTVFilters, TVFilters } from '../components/TVChannelFilters';
+import { GridSortModel } from '@mui/x-data-grid';
 import TVChannelsTable from '../components/TVChannelsTable';
 import TVChannelFormDialog from '../components/TVChannelFormDialog';
 import TVChannelDeleteDialog from '../components/TVChannelDeleteDialog';
 import ChannelPlayerDialog from '../components/player/ChannelPlayerDialog';
 import { TVChannel, TVChannelCreate, TVChannelUpdate } from '../types/tvChannelTypes';
-import AdvancedSearch from '../components/AdvancedSearch';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
 import StatusLine from '../components/StatusLine';
@@ -33,6 +34,8 @@ const TVAutoMatchDialog = lazy(() => import('../components/TVAutoMatchDialog'));
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 const TVChannels: React.FC = () => {
+  const [reordering, setReordering] = useState(false);
+  const reorderMutation = useReorderTVChannels();
   const [autoMatchOpen, setAutoMatchOpen] = useState(false);
   const theme = useTheme();
   const shellLayout = getShellLayout(theme);
@@ -40,8 +43,9 @@ const TVChannels: React.FC = () => {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[1]);
-  const [filters, setFilters] = useState<AdvancedSearchFilters>({});
+  const [filters, setFilters] = useState<TVFilters>({});
   const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [sortModel, setSortModel] = useState<GridSortModel>([]);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [deleteCandidate, setDeleteCandidate] = useState<TVChannel | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -67,7 +71,7 @@ const TVChannels: React.FC = () => {
     isLoading: isCatalogLoading,
     isError: isCatalogError,
     refetch: refetchCatalog,
-  } = useTVChannelCatalog(favoritesOnly ? { favorites: true } : undefined);
+  } = useTVChannelCatalog();
   const deleteMutation = useDeleteTVChannel();
   const createMutation = useCreateTVChannel();
   const updateMutation = useUpdateTVChannel();
@@ -75,35 +79,16 @@ const TVChannels: React.FC = () => {
 
   const channels = useMemo(() => channelCatalog ?? [], [channelCatalog]);
   const filteredChannels = useMemo(() => {
-    return channels.filter((channel) => {
-      const search = filters.search?.toLowerCase().trim();
-      if (search && !channel.name.toLowerCase().includes(search) && !String(channel.channel_number || '').includes(search)) {
-        return false;
-      }
-
-      if (filters.category && channel.category !== filters.category) {
-        return false;
-      }
-
-      if (filters.country && channel.country !== filters.country) {
-        return false;
-      }
-
-      if (filters.language && channel.language !== filters.language) {
-        return false;
-      }
-
-      if (filters.is_active === 'true' && !channel.is_active) {
-        return false;
-      }
-
-      if (filters.is_active === 'false' && channel.is_active) {
-        return false;
-      }
-
-      return true;
+    const result = channels.filter(channel => (!favoritesOnly || channel.is_favorite) && matchesTVFilters(channel, filters));
+    const sort = sortModel[0];
+    if (sort?.sort) result.sort((a, b) => {
+      const value = (c: TVChannel): string | number => sort.field === 'acestream_channels' ? c.acestream_channels.length : (c[sort.field as keyof TVChannel] == null ? '' : typeof c[sort.field as keyof TVChannel] === 'number' ? Number(c[sort.field as keyof TVChannel]) : String(c[sort.field as keyof TVChannel]));
+      const left = value(a), right = value(b);
+      const compared = typeof left === 'number' && typeof right === 'number' ? left - right : String(left).localeCompare(String(right), undefined, { numeric: true });
+      return (sort.sort === 'desc' ? -compared : compared) || a.id - b.id;
     });
-  }, [channels, filters]);
+    return result;
+  }, [channels, filters, favoritesOnly, sortModel]);
 
   const paginatedChannels = useMemo(() => {
     return filteredChannels.slice(skip, skip + pageSize);
@@ -117,33 +102,21 @@ const TVChannels: React.FC = () => {
     }
   }, [filteredChannels.length, page, pageSize]);
 
-  const categories = useMemo(
-    () => Array.from(new Set(channels.map((channel) => channel.category).filter(Boolean) as string[])).sort(),
-    [channels]
-  );
   const totalChannels = filteredChannels.length;
   const hasFilters = favoritesOnly || Object.values(filters).some(Boolean);
   const favoriteCount = channels.filter((channel) => channel.is_favorite).length;
   const withStreamsCount = channels.filter((channel) => (channel.acestream_channels?.length ?? 0) > 0).length;
-  const visibleFilterFields = {
-    search: true,
-    category: true,
-    country: true,
-    language: true,
-    is_active: true,
-    group: false,
-    status: false,
-    sort: false,
-    is_online: false,
-  };
-  const handleFiltersChange = (nextFilters: AdvancedSearchFilters) => {
+  const handleFiltersChange = (nextFilters: TVFilters) => {
     setPage(1);
     setFilters(nextFilters);
+    if (nextFilters.is_favorite !== filters.is_favorite) setFavoritesOnly(false);
+    if (!Object.keys(nextFilters).length) setFavoritesOnly(false);
   };
 
   const handleFavoritesOnlyChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setPage(1);
     setFavoritesOnly(event.target.checked);
+    setFilters(current => ({ ...current, is_favorite: '' }));
   };
 
   const handleToggleFavorite = async (channel: TVChannel) => {
@@ -235,7 +208,7 @@ const TVChannels: React.FC = () => {
       <Box p={3}>
         <Stack spacing={2} alignItems="flex-start">
           <Alert severity="error">We could not load the TV channel inventory. Try refreshing to reconnect.</Alert>
-          <Button variant="outlined" onClick={() => refetchCatalog()}>
+          <Button variant="outlined" disabled={reordering} onClick={() => refetchCatalog()}>
             Retry loading TV channels
           </Button>
         </Stack>
@@ -261,11 +234,12 @@ const TVChannels: React.FC = () => {
         subtitle="The channels you publish. Each one groups its streams and carries the EPG for the playlist."
         primaryActions={
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-            <Button variant="outlined" onClick={() => setAutoMatchOpen(true)}>Auto-match streams</Button>
-            <Button variant="outlined" onClick={() => refetchCatalog()}>
+            <Button variant="outlined" disabled={reordering || channels.length < 2} onClick={() => setReordering(true)}>Reorder channels</Button>
+            <Button variant="outlined" disabled={reordering} onClick={() => setAutoMatchOpen(true)}>Auto-match streams</Button>
+            <Button variant="outlined" disabled={reordering} onClick={() => refetchCatalog()}>
               Refresh
             </Button>
-            <Button variant="contained" color="primary" onClick={handleOpenCreateDialog}>
+            <Button variant="contained" color="primary" disabled={reordering} onClick={handleOpenCreateDialog}>
               Add TV Channel
             </Button>
           </Stack>
@@ -292,7 +266,7 @@ const TVChannels: React.FC = () => {
         <ContentSection
           title="Channels"
           actions={
-            isPhone ? (
+            isPhone && !reordering ? (
               <Button
                 variant="outlined"
                 onClick={() => setFiltersOpen((current) => !current)}
@@ -304,6 +278,11 @@ const TVChannels: React.FC = () => {
             ) : null
           }
         >
+          {reordering ? <TVChannelReorder channels={channels} onCancel={() => setReordering(false)} onSave={async (ids, expected) => {
+            await reorderMutation.mutateAsync({ ids, expected });
+            setSortModel([]); setFilters({}); setFavoritesOnly(false); setPage(1);
+            setReordering(false); setNotice('Channel order and numbers saved.');
+          }} /> : <>
           <Box sx={{ mb: 2 }}>
             <FormControlLabel
               control={<Switch checked={favoritesOnly} onChange={handleFavoritesOnlyChange} name="favorites_only" color="primary" />}
@@ -311,11 +290,11 @@ const TVChannels: React.FC = () => {
             />
             {isPhone ? (
               <Collapse in={showFilters} id="tv-channels-filters-panel" unmountOnExit>
-                <AdvancedSearch filters={filters} onChange={handleFiltersChange} categories={categories} visibleFields={visibleFilterFields} />
+                <TVChannelFilters channels={channels} filters={filters} onChange={handleFiltersChange} />
               </Collapse>
             ) : (
               <Box id="tv-channels-filters-panel">
-                <AdvancedSearch filters={filters} onChange={handleFiltersChange} categories={categories} visibleFields={visibleFilterFields} />
+                <TVChannelFilters channels={channels} filters={filters} onChange={handleFiltersChange} />
               </Box>
             )}
           </Box>
@@ -327,7 +306,8 @@ const TVChannels: React.FC = () => {
             pageSize={pageSize}
             onPageChange={(nextPage) => setPage(nextPage + 1)}
             onPageSizeChange={setPageSize}
-            onSortChange={() => undefined}
+            onSortChange={(model) => { setPage(1); setSortModel(model); }}
+            onNumberChange={async (channel, number) => { await updateMutation.mutateAsync({ id: channel.id, updates: { channel_number: number } }); setNotice(`Updated number for ${channel.name}.`); }}
             onEdit={handleOpenEditDialog}
             onDelete={handleRequestDelete}
             onOpen={(id) => navigate(`/tv-channels/${id}`)}
@@ -344,6 +324,7 @@ const TVChannels: React.FC = () => {
               </Typography>
             </Alert>
           ) : null}
+          </>}
         </ContentSection>
       </Box>
 

@@ -70,12 +70,12 @@ jest.mock('../hooks/useChannels', () => ({
   useDeleteAcestreamChannel: () => mockUseDeleteAcestreamChannel(),
 }));
 jest.mock('../hooks/useTVChannels', () => ({
-  useAllTVChannels: () => mockUseAllTVChannels(),
+  useTVChannelCatalog: () => mockUseAllTVChannels(),
 }));
 jest.mock('../services/channelService', () => ({
   acestreamChannelService: {
     getGroups: (...args: unknown[]) => mockGetGroups(...args),
-    checkAllStatuses: (...args: unknown[]) => mockCheckAllStatuses(...args),
+    runStatusCheckNow: (...args: unknown[]) => mockCheckAllStatuses(...args),
     updateAcestreamChannel: (...args: unknown[]) => mockUpdateAcestreamChannel(...args),
     checkAcestreamChannelStatus: jest.fn(),
     assignToTVChannel: jest.fn(),
@@ -126,7 +126,7 @@ describe('AcestreamChannels page', () => {
       return { data: { items: [alpha], total: 1 }, isLoading: false, refetch, error: null };
     });
     mockUseDeleteAcestreamChannel.mockReturnValue({ mutate: mockDeleteMutate });
-    mockUseAllTVChannels.mockReturnValue({ data: { items: [] } });
+    mockUseAllTVChannels.mockReturnValue({ data: [] });
     mockGetGroups.mockResolvedValue(['Sports', 'News']);
     mockCheckAllStatuses.mockResolvedValue({ message: 'Acestream status check task triggered successfully.' });
     mockUpdateTVChannel.mockResolvedValue(undefined);
@@ -250,7 +250,7 @@ describe('AcestreamChannels page', () => {
     mockCheckAllStatuses.mockRejectedValueOnce(new ApiError({ message: 'Status check already running.', status: 422, kind: 'validation', canRetry: false }));
     renderPage();
 
-    await user().click(screen.getByRole('button', { name: 'Check all statuses' }));
+    await user().click(screen.getByRole('button', { name: 'Run status check now' }));
     await waitFor(() => expect(mockCheckAllStatuses).toHaveBeenCalledTimes(1));
     expect(await screen.findByText('Status check already running.')).toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent('Status check already running.');

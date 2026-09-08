@@ -160,6 +160,10 @@ export const tvChannelService = {
   /**
    * Update a TV channel
    */
+  reorder: async (channelIds: number[], expectedOrder: number[]): Promise<void> => {
+    await apiClient.post(`${BASE_URL}/reorder`, { channel_ids: channelIds, expected_order: expectedOrder });
+  },
+
   update: async (id: number, updates: TVChannelUpdate): Promise<TVChannel> => {
     const response = await apiClient.put(`${BASE_URL}/${id}`, updates);
     return response.data;

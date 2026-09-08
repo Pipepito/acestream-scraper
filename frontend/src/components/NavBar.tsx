@@ -13,7 +13,6 @@ import {
   Toolbar,
   Typography,
   Divider,
-  Chip,
   useMediaQuery,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
@@ -60,9 +59,6 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
   const handleDrawerClose = () => {
     setMobileOpen(false);
   };
-
-  const operations = navItems.filter((item) => item.section === 'Operations');
-  const system = navItems.filter((item) => item.section === 'System');
 
   const renderNavItems = (items: typeof navItems) =>
     items.map((item) => {
@@ -120,37 +116,13 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264 }) => {
         </Typography>
       </Toolbar>
       <Divider sx={{ borderColor: theme.appTokens.shell.navBorder }} />
-      <List sx={{ py: 1 }}>
-        <ListItem>
-          <Chip
-            label="Operations"
-            size="small"
-            variant="outlined"
-            sx={{
-              borderColor: theme.appTokens.surface.border,
-              bgcolor: alpha(theme.appTokens.shell.accent, 0.08),
-              color: theme.appTokens.text.secondary,
-            }}
-          />
-        </ListItem>
-        {renderNavItems(operations)}
-      </List>
-      <Divider sx={{ mt: 1, borderColor: theme.appTokens.shell.navBorder }} />
-      <List sx={{ py: 1, mt: 'auto' }}>
-        <ListItem>
-          <Chip
-            label="System"
-            size="small"
-            variant="outlined"
-            sx={{
-              borderColor: theme.appTokens.surface.border,
-              bgcolor: alpha(theme.appTokens.shell.accent, 0.08),
-              color: theme.appTokens.text.secondary,
-            }}
-          />
-        </ListItem>
-        {renderNavItems(system)}
-      </List>
+      {(['Watch', 'Manage', 'System'] as const).map((section) => <React.Fragment key={section}>
+        <List sx={{ py: 1 }} aria-label={section}>
+          <ListItem><Typography variant="overline" color="text.secondary">{section}</Typography></ListItem>
+          {renderNavItems(navItems.filter((item) => item.section === section))}
+        </List>
+        {section !== 'System' ? <Divider /> : null}
+      </React.Fragment>)}
     </Box>
   );
 

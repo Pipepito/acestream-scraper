@@ -20,3 +20,17 @@ rows, with no next-run time. Bulk actions record an aggregate result. If manual
 runs overlap within one family, the row describes the latest-started run; an older
 completion cannot overwrite it. Scheduled runs and “run now” triggers of the scheduler
 retain their own rows and next-run times.
+
+### Run stream checks now
+
+Acestream Channels uses **Run status check now** to request the existing
+`channel_status` scheduler job through
+`POST /api/v1/background-tasks/channel_status/run`. The job covers all active
+streams, independently of the current page, filters or selection. Already-running
+jobs are not duplicated; an unavailable scheduler returns 503. Progress and results
+remain under the scheduled job in Overview. Individual and playback-time checks
+retain their interactive probe priority and safety guards.
+
+The former `/channels/check_status_all` and `/acestream-channels/check_status_all`
+manual bulk endpoints are removed. Historical `manual_channel_status` records are
+retained in storage but no longer shown in task status responses.

@@ -207,3 +207,39 @@ independent; checker outage must not fail whole-container health. Direct playbac
 uses process-wide source ownership leases across clients; serialize starts with
 final stops, release exactly once, and preserve session ownership across settings
 changes. Acexy owns its sessions. See `docs/ops/stream-check-pid.md`.
+
+## Live TV and settings navigation
+
+Live TV embeds the existing HLS player alongside a scrollable catalogue. Filtering
+does not release playback; changing the channel or Stop watching releases the
+current viewer. Other pages retain the player dialog. Navigation groups Watch,
+Manage and System, with WARP always discoverable. Settings uses deep-linkable
+`?tab=playback|automation|links|access` sections; public address belongs to
+Integrations. PID/AppID belong to Stream links, not Automation.
+
+
+## TV channel inventory and playlist formats
+
+TV Channels combines catalogue-wide filters before sorting and pagination. Number
+and Favorite have dedicated controls in the table and phone cards; number changes
+save on Enter/blur and blank clears the number. Keep remaining row actions intact.
+Playlist shows the selected stream format and expands the shared
+`StreamLinkFormatsSection` inline, preserving playlist options. Settings retains
+its Stream links entry because formats also affect copied links and supported
+remote-player actions. Do not fork the format editor or duplicate its API logic.
+
+TV Channels keeps Search, Category, Status and Favorite filters visible; other
+filters live under Advanced filters with an active count. Reorder channels shows
+the complete catalogue, supports drag handles and keyboard/arrow controls, and
+previews consecutive numbers. Save order uses `POST /api/v1/tv-channels/reorder`
+with the complete desired IDs and original order; the backend commits all numbers
+atomically and rejects stale/incomplete inventories. Cancel leaves stored numbers
+unchanged. Number edits remain available outside reorder mode.
+
+
+Engines are optional. Settings → Automation stores external checker selection via
+`/api/v1/config/check-engine`; disabled dedicated checks use the saved playback
+URL, and with neither URL probes are skipped without changing channel results.
+A configured dedicated checker never falls back on failure. Bundled checker
+configuration remains supervisor-owned and read-only in Settings. New scraper-only
+installs default to an empty playback URL; existing saved endpoints are preserved.

@@ -2,8 +2,7 @@
 API endpoints for channel management
 """
 import logging
-from app.services.manual_job_service import run_manual_job
-from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -24,7 +23,7 @@ from app.schemas.channel import (
     BulkChannelEditRequest,
     TVChannelResponse,
 )
-from app.schemas.channel_status import ChannelStatusResponse, BulkStatusCheckResponse, ChannelStatusSummary, StatusCheckRequest
+from app.schemas.channel_status import ChannelStatusResponse, ChannelStatusSummary
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -92,91 +91,6 @@ async def get_channel_groups(db: Session = Depends(get_db)):
     channels = service.get_all_channels(active_only=False)  # Get all channels to extract groups
     groups = list(set(channel.group for channel in channels if channel.group))
     return sorted(groups)
-
-
-@router.post("/check_status_all", response_model=BulkStatusCheckResponse)
-async def check_all_channels_status(
-    background_tasks: BackgroundTasks,
-    request: Optional[StatusCheckRequest] = None,
-    limit: Optional[int] = None,
-    db: Session = Depends(get_db)
-):
-    """
-    Check the online status of all active channels or specific channels.
-    """
-    service = AcestreamChannelService(db)
-    status_service = ChannelStatusService(db)
-
-    # Get channels to check
-    if request and request.channel_ids:
-        channels = []
-        for channel_id in request.channel_ids:
-            channel = service.get_channel_by_id(channel_id)
-            if channel:
-                channels.append(channel)
-    else:
-        channels = service.get_all_channels(active_only=True)
-
-    if not channels:
-        raise HTTPException(status_code=404, detail="No channels found to check")
-
-    # Apply limit if specified
-    if limit:
-        channels = channels[:limit]
-
-    # Set concurrency
-    concurrency = request.concurrency if request else 3
-
-    # For large numbers of channels, run in background
-    if len(channels) > 20:
-        # Start background task
-        background_tasks.add_task(
-            _background_status_check,
-            db,
-            channels,
-            concurrency
-        )
-        # Return all required fields for BulkStatusCheckResponse (with defaults)
-        return {
-            "message": f"Status check started in the background for {len(channels)} channels. Refresh the list in a few minutes to see the results.",
-            "background": True,
-            "total_channels": len(channels),
-            "total_checked": 0,
-            "online_count": 0,
-            "offline_count": 0,
-            "results": [],
-            "summary": status_service.get_channel_status_summary()
-        }
-    else:
-        # Check immediately for small numbers
-        try:
-            results = await run_manual_job("channel_status", status_service.check_multiple_channels, channels, concurrency)
-        except Exception as exc:
-            logger.error("Bulk status check failed channels=%s error=%s", len(channels), exc)
-            raise APIError(
-                code="CHANNEL_STATUS_CHECK_FAILED",
-                message="Failed to check channel statuses",
-                status_code=500,
-                context={"channels": len(channels), "error": str(exc)},
-            ) from exc
-        summary = status_service.get_channel_status_summary()
-
-        # Skipped probes preserve old state and are not fresh measurements.
-        checked = [r for r in results if r["status"] != "skipped"]
-        online_count = sum(1 for r in checked if r["is_online"])
-        offline_count = sum(1 for r in checked if not r["is_online"])
-        skipped_count = len(results) - len(checked)
-
-        return {
-            "message": f"Checked {len(checked)} channels: {online_count} online, {offline_count} offline, {skipped_count} skipped.",
-            "background": False,
-            "total_channels": len(channels),
-            "total_checked": len(checked),
-            "online_count": online_count,
-            "offline_count": offline_count,
-            "results": results,
-            "summary": summary
-        }
 
 
 @router.post("/bulk_delete", status_code=status.HTTP_204_NO_CONTENT)
@@ -275,7 +189,7 @@ async def check_acestream_channel_status(acestreamchannel_id: str, db: Session =
         raise HTTPException(status_code=404, detail="Channel not found")
 
     status_service = ChannelStatusService(db)
-    result = await run_manual_job("channel_status", status_service.check_channel_status, channel)
+    result = await status_service.check_channel_status(channel)
     return result
 
 
@@ -342,22 +256,3 @@ async def delete_acestream_channel(acestreamchannel_id: str, db: Session = Depen
 
     service.delete_channel(acestreamchannel_id)
     return None
-
-
-async def _background_status_check(
-    db: Session,
-    channels: List[AcestreamChannel],
-    concurrency: int
-):
-    """Background task for checking channel statuses"""
-    try:
-        status_service = ChannelStatusService(db)
-        await run_manual_job("channel_status", status_service.check_multiple_channels, channels, concurrency)
-    except Exception as e:
-        # Log error but do not re-raise from background task context.
-        logger.error(
-            "Background status check failed channels=%s concurrency=%s error=%s",
-            len(channels),
-            concurrency,
-            e,
-        )

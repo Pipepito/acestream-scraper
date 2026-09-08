@@ -60,7 +60,7 @@ describe('ChannelCardList', () => {
     expect(within(card).getByText('No signal verified')).toBeInTheDocument();
     expect(within(card).getByText('Hidden')).toBeInTheDocument();
     expect(within(card).getByText('Checked never')).toBeInTheDocument();
-    expect(within(card).getByText('abc123')).toBeInTheDocument();
+    expect(within(card).getByDisplayValue('abc123')).toBeInTheDocument();
     expect(within(card).getByRole('button', { name: 'play channel Alpha Sports' })).toBeInTheDocument();
 
     fireEvent.click(within(card).getByRole('button', { name: 'More actions for Alpha Sports' }));

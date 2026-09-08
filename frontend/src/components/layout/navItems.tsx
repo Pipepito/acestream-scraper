@@ -13,26 +13,26 @@ export interface NavItem {
   text: string;
   path: string;
   icon: React.ReactElement;
-  section: 'Operations' | 'System';
+  section: 'Watch' | 'Manage' | 'System';
   matchPrefixes?: string[];
 }
 
 export const navItems: NavItem[] = [
-  { text: 'Live TV', path: '/live-tv', icon: <LiveTvRoundedIcon />, section: 'Operations' },
-  { text: 'Overview', path: '/', icon: <DashboardRoundedIcon />, section: 'Operations' },
-  { text: 'Scraper', path: '/scraper', icon: <TravelExploreRoundedIcon />, section: 'Operations' },
-  { text: 'Search', path: '/search', icon: <SearchRoundedIcon />, section: 'Operations' },
-  { text: 'Acestream Channels', path: '/acestream-channels', icon: <LiveTvRoundedIcon />, section: 'Operations' },
-  { text: 'TV Channels', path: '/tv-channels', icon: <LiveTvRoundedIcon />, section: 'Operations', matchPrefixes: ['/tv-channels'] },
-  { text: 'EPG', path: '/epg', icon: <EventNoteRoundedIcon />, section: 'Operations', matchPrefixes: ['/epg/channels'] },
-  { text: 'Playlist', path: '/playlist', icon: <PlaylistPlayRoundedIcon />, section: 'Operations' },
+  { text: 'Live TV', path: '/live-tv', icon: <LiveTvRoundedIcon />, section: 'Watch' },
+  { text: 'Overview', path: '/', icon: <DashboardRoundedIcon />, section: 'System' },
+  { text: 'Scraper', path: '/scraper', icon: <TravelExploreRoundedIcon />, section: 'Manage' },
+  { text: 'Search', path: '/search', icon: <SearchRoundedIcon />, section: 'Manage' },
+  { text: 'Acestream Channels', path: '/acestream-channels', icon: <LiveTvRoundedIcon />, section: 'Manage' },
+  { text: 'TV Channels', path: '/tv-channels', icon: <LiveTvRoundedIcon />, section: 'Manage', matchPrefixes: ['/tv-channels'] },
+  { text: 'EPG', path: '/epg', icon: <EventNoteRoundedIcon />, section: 'Manage', matchPrefixes: ['/epg/channels'] },
+  { text: 'Playlist', path: '/playlist', icon: <PlaylistPlayRoundedIcon />, section: 'Manage' },
   { text: 'Integrations', path: '/integrations', icon: <HubRoundedIcon />, section: 'System' },
+  { text: 'WARP', path: '/warp', icon: <HubRoundedIcon />, section: 'System' },
   { text: 'Settings', path: '/settings', icon: <SettingsRoundedIcon />, section: 'System' },
 ];
 
 /** Routable pages that are reached from within another page rather than the nav. */
 export const hiddenRouteTitles: Array<{ path: string; title: string }> = [
-  { path: '/warp', title: 'WARP' },
 ];
 
 const matchesSegmentPath = (pathname: string, candidatePath: string, allowDescendants = false) => {

@@ -114,16 +114,13 @@ test.describe('integrations', () => {
       test.skip();
       return;
     }
-    if (IN_DOCKER) {
-      testInfo.annotations.push({ type: 'skipped', description: 'the stub engine listens on loopback, which the containerised app cannot reach' });
-      test.skip();
-      return;
-    }
 
     const target = await playbackChannel(api, scenario.integrations.playbackChannelName);
     errors.allowConsole(HLS_PLAYBACK_NOISE);
     const engineUrl = await api.getSetting('ace_engine_url');
-    const stub = await startStubEngine(TS_FIXTURE);
+    const stub = await startStubEngine(TS_FIXTURE, IN_DOCKER
+      ? { bindHost: '0.0.0.0', advertisedHost: HOST_FROM_APP }
+      : undefined);
     try {
       await api.putSetting('ace_engine_url', stub.url);
       const channels = new ChannelsPage(page);
@@ -131,9 +128,10 @@ test.describe('integrations', () => {
       await channels.filterByName(target.name);
       await channels.playChannel(target.name);
 
-      const dialog = page.getByRole('dialog', { name: target.name });
+      // The title resolves to the assigned TV channel after its details load.
+      const dialog = page.getByRole('dialog');
       await expect(dialog).toBeVisible();
-      await expect(dialog.getByRole('status')).toHaveText('Playing', { timeout: scenario.integrations.playbackTimeoutMs });
+      await expect(dialog.getByRole('status').filter({ hasText: /^Playing$/ })).toBeVisible({ timeout: scenario.integrations.playbackTimeoutMs });
 
       // "Playing" is the backend's word for it; readyState is the browser's.
       await expect
@@ -174,7 +172,7 @@ test.describe('integrations', () => {
     await channels.filterByName(target.name);
     await channels.playChannel(target.name);
 
-    const dialog = page.getByRole('dialog', { name: target.name });
+    const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
     // A live channel depends on real peers, so both outcomes are legitimate: what
     // must never happen is a dialog that sits there saying nothing.

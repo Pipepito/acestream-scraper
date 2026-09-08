@@ -52,7 +52,8 @@ class ConfigService:
 
     def set_ace_engine_url(self, url: str) -> bool:
         """Set the Acestream Engine URL"""
-        if not self._validate_url(url):
+        url = url.strip()
+        if url and not self._validate_url(url):
             raise HTTPException(status_code=422, detail="Invalid URL format for ace_engine_url")
         return self.settings_repo.set_setting(
             SettingsRepository.ACE_ENGINE_URL,

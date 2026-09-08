@@ -69,7 +69,8 @@ async def test_no_engine_does_not_probe_or_change_results(db_session, monkeypatc
 def test_no_engine_does_not_launch_job(client, db_session, monkeypatch):
     from app.repositories.settings_repository import SettingsRepository
     from app.services.task_service import task_service
-    from app.tasks.channel_status_task import run_channel_status_task
+    from app.tasks import channel_status_task
+    from app.models.models import AcestreamChannel
     repo = SettingsRepository(db_session)
     repo.set_setting(repo.ACE_ENGINE_URL, '')
     trigger = Mock()
@@ -77,7 +78,20 @@ def test_no_engine_does_not_launch_job(client, db_session, monkeypatch):
     response = client.post('/api/v1/background-tasks/channel_status/run')
     assert response.json()['status'] == 'disabled'
     trigger.assert_not_called()
-    assert run_channel_status_task()['checked'] == 0
+    # Direct jobs create their own session; API dependency overrides do not apply.
+    monkeypatch.setattr(channel_status_task, 'SessionLocal', lambda: db_session)
+    original_query = db_session.query
+
+    def query_without_channels(*entities, **kwargs):
+        assert AcestreamChannel not in entities, 'Disabled checks must not load channels'
+        return original_query(*entities, **kwargs)
+
+    monkeypatch.setattr(db_session, 'query', query_without_channels)
+    result = channel_status_task.run_channel_status_task()
+    assert result == {
+        'checked': 0, 'skipped': 0, 'failed': 0,
+        'message': 'No engine configured; status checks are disabled.',
+    }
 
 
 def test_optional_health_cards_do_not_probe_missing_engines(tmp_path):

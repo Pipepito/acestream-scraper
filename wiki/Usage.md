@@ -14,6 +14,8 @@ Navigation groups **Watch** (Live TV), **Manage** (sources, Search, stream and T
 
 A **stream** is one AceStream content ID. A **TV channel** groups stream IDs for one station, with its channel number, favorite flag and programme guide. Scraping discovers streams; assigning them to TV channels creates the viewing catalogue.
 
+Choose **Wiki** in the top bar for these guides and troubleshooting help. It stays available on phones and with the sidebar collapsed, and opens in a new tab so your current page and playback remain open.
+
 ## Step 1: Check the Overview
 
 The **Overview** page is the first place to check after startup. Its status line shows whether the AceStream engine is reachable, how many streams and TV channels are loaded, and when scraping and EPG refresh last ran.

@@ -3,6 +3,7 @@ import { Link as RouterLink, useLocation } from 'react-router-dom';
 import {
   AppBar,
   Box,
+  Button,
   Drawer,
   IconButton,
   List,
@@ -19,6 +20,7 @@ import { alpha, useTheme } from '@mui/material/styles';
 import MenuIcon from '@mui/icons-material/Menu';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { getNavTitle, isNavItemSelected, navItems } from './layout/navItems';
 import { getShellLayout } from '../styles/layout';
 import { useAppThemeMode } from '../bootstrap/AppBootstrap';
@@ -151,7 +153,21 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264, collapsed = false, o
           ) : null}
           {isDesktop && onToggleCollapsed ? <IconButton color="inherit" aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'} aria-expanded={!collapsed} onClick={onToggleCollapsed} edge="start" sx={{ mr: 2 }}><MenuIcon /></IconButton> : null}
           <Typography noWrap sx={{ minWidth: 0, fontWeight: 600 }}>{getNavTitle(location.pathname)}</Typography>
-          <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+            <Button
+              component="a"
+              href="https://github.com/Pipepito/acestream-scraper/wiki"
+              target="_blank"
+              rel="noopener noreferrer"
+              variant="text"
+              color="inherit"
+              size="small"
+              endIcon={<OpenInNewIcon />}
+              aria-label="Wiki (opens in a new tab)"
+              sx={{ minHeight: 44 }}
+            >
+              Wiki
+            </Button>
             <IconButton
               color="inherit"
               onClick={toggleMode}

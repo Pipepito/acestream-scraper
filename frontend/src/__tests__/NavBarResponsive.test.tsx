@@ -155,35 +155,14 @@ describe('NavBar responsive shell behavior', () => {
     await tab();
     expect(screen.getByRole('button', { name: /switch to dark theme/i })).toHaveFocus();
 
-    await tab();
-    expect(screen.getByRole('link', { name: 'Live TV' })).toHaveFocus();
+    for (const name of [
+      'Live TV', 'Scraper', 'Search', 'Acestream Channels', 'TV Channels',
+      'EPG', 'Playlist', 'Overview', 'Integrations', 'WARP', 'Settings',
+    ]) {
+      await tab();
+      expect(screen.getByRole('link', { name })).toHaveFocus();
+    }
 
-    await tab();
-    expect(screen.getByRole('link', { name: 'Overview' })).toHaveFocus();
-
-    await tab();
-    expect(screen.getByRole('link', { name: 'Scraper' })).toHaveFocus();
-
-    await tab();
-    expect(screen.getByRole('link', { name: 'Search' })).toHaveFocus();
-
-    await tab();
-    expect(screen.getByRole('link', { name: 'Acestream Channels' })).toHaveFocus();
-
-    await tab();
-    expect(screen.getByRole('link', { name: 'TV Channels' })).toHaveFocus();
-
-    await tab();
-    expect(screen.getByRole('link', { name: 'EPG' })).toHaveFocus();
-
-    await tab();
-    expect(screen.getByRole('link', { name: 'Playlist' })).toHaveFocus();
-
-    await tab();
-    expect(screen.getByRole('link', { name: 'Integrations' })).toHaveFocus();
-
-    await tab();
-    expect(screen.getByRole('link', { name: 'Settings' })).toHaveFocus();
   });
 
   it('keeps EPG selected for guide channel detail routes', () => {

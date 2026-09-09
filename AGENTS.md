@@ -178,7 +178,10 @@ Existing shared browser sessions retain their route until teardown. See
 
 All image flavours inherit bounded console capture from `backend/capture_logs.py`
 in the shared image layer. Capture scraper, each service and entrypoint output
-in separate rotating logs. Preserve Docker console output, child PIDs/exit codes,
+in separate rotating logs. Prefix Docker console lines with their service tag;
+keep local capture content unchanged. WARP TRACE/DEBUG/INFO records are console-filtered only;
+retain all levels in `warp.log` and keep issues and lifecycle messages visible.
+Preserve other Docker console output, child PIDs/exit codes,
 process-group cleanup and intentional-stop behavior. The DB-independent
 `GET /api/v1/system/diagnostics` endpoint exports bounded fixed-file tails with
 credential masking and normal API-token enforcement, including during startup

@@ -9,7 +9,16 @@ cached. One export is built at a time; concurrent requests receive 503 with Retr
 Every image flavour and architecture inherits the console collector from the common
 image layer. It records application output, supervisor exit/restart messages, and
 stdout/stderr from the bundled AceStream, Acexy, IPFS, ZeroNet and WARP processes
-when present. Normal Docker console output continues. Process supervision, process
+when present. Each Docker console line starts with its source tag, such as
+`[scraper]`, `[acestream]`, `[acestream-check]`, `[acexy]`, `[warp]` or `[entrypoint]`.
+Multiline details receive a tag on each line; local capture files retain the original
+output with capture timestamps. Docker console output keeps scraper, AceStream and Acexy output in
+full. For WARP, recognized TRACE, DEBUG and INFO records (including continuation
+details) go only to the rotating `warp.log`; warnings, errors, supervisor/setup
+messages and unfamiliar formats remain visible in Docker logs. The local WARP
+capture and diagnostic export retain all levels within the retention limits below.
+This console filter applies to all image flavours and CPU architectures and does
+not change WARP's own logging level or health probes. Process supervision, process
 groups, intentional Stop handling and restart policy are unchanged.
 
 Collection starts with the container entrypoint. It cannot recover output from before

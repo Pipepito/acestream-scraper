@@ -7,11 +7,16 @@ from app.services.diagnostics_service import build_bundle, read_tail, redact, LI
 from capture_logs import capture
 
 
+def tagged(data, name):
+    prefix = f'[{name}] '.encode()
+    return b''.join(prefix + line for line in data.splitlines(keepends=True))
+
+
 def test_capture_rotates_and_preserves_console(tmp_path):
     console = BytesIO()
     data = b'engine started\n' * 100
     capture(BytesIO(data), console, tmp_path, max_bytes=200)
-    assert console.getvalue() == data
+    assert console.getvalue() == tagged(data, 'console')
     assert len(list(tmp_path.iterdir())) == 3
     assert all(p.stat().st_size <= 200 for p in tmp_path.iterdir())
     assert b'engine started' in (tmp_path / 'console.log').read_bytes()
@@ -20,7 +25,67 @@ def test_capture_rotates_and_preserves_console(tmp_path):
 def test_capture_disk_failure_keeps_draining(tmp_path):
     console = BytesIO()
     capture(BytesIO(b'engine exited\n'), console, tmp_path / 'missing')
-    assert console.getvalue() == b'engine exited\n'
+    assert console.getvalue() == b'[console] engine exited\n'
+
+
+def test_console_tags_multiline_and_partial_lines_without_changing_capture(tmp_path):
+    data = b'Traceback:\n  detail\n\n' + b'x' * 20000 + b'\nlast partial line'
+    console = BytesIO()
+    capture(BytesIO(data), console, tmp_path, name='acexy.log')
+    assert console.getvalue() == tagged(data, 'acexy')
+    assert b'[acexy]' not in (tmp_path / 'acexy.log').read_bytes()
+
+
+def test_entrypoint_console_does_not_duplicate_existing_tag(tmp_path):
+    console = BytesIO()
+    capture(BytesIO(b'[entrypoint] Starting\nsetup output\n'), console, tmp_path,
+            name='entrypoint.log')
+    assert console.getvalue() == b'[entrypoint] Starting\n[entrypoint] setup output\n'
+
+
+def test_warp_console_filters_routine_records_but_keeps_full_diagnostics(tmp_path, monkeypatch):
+    timestamp = b'2026-09-09T12:13:29.296Z '
+    quiet = (
+        timestamp + b' INFO handle_update: stats ' + b'x' * 20000 + b'\n'
+        + timestamp + b'DEBUG warp-dns-stats: Queries: 535\n'
+        + b'Per origin:\n  [primary] Queries: 535\n\n'
+        + timestamp + b'\x1b[32m INFO\x1b[0m actor_network_monitor: close\n'
+        + timestamp + b'TRACE routine trace\n'
+    )
+    issues = (
+        timestamp + b' WARN actor_statistics: Skipped uploading stats\n'
+        + b'  warning details\n'
+        + timestamp + b'ERROR tunnel failed ' + b'e' * 10000 + b'\n'
+        + timestamp + b'FATAL daemon failed\n'
+    )
+    lifecycle = b'[entrypoint] WARP exited with status 1\nunknown startup failure\n'
+    data = quiet + issues + quiet + lifecycle
+    console = BytesIO()
+    capture(BytesIO(data), console, tmp_path, name='warp.log')
+    assert console.getvalue() == tagged(issues + lifecycle, 'warp')
+    # Capture adds a timestamp per bounded chunk; all original chunks remain.
+    source = BytesIO(data)
+    saved = (tmp_path / 'warp.log').read_bytes()
+    while chunk := source.readline(8192):
+        assert chunk in saved
+    monkeypatch.setenv('LOG_DIR', str(tmp_path))
+    with ZipFile(BytesIO(build_bundle())) as archive:
+        exported = archive.read('logs/warp.log')
+        assert b'warp-dns-stats: Queries: 535' in exported
+        assert b'  [primary] Queries: 535' in exported
+        assert b'Skipped uploading stats' in exported
+    for name in ('scraper.log', 'acestream.log', 'acestream-check.log', 'acexy.log'):
+        console = BytesIO()
+        capture(BytesIO(data), console, tmp_path, name=name)
+        assert console.getvalue() == tagged(data, name.removesuffix('.log'))
+
+
+def test_warp_filter_disk_failure_still_reports_issues(tmp_path):
+    console = BytesIO()
+    issue = b'2026-09-09T12:13:29.296Z ERROR connection failed\n'
+    capture(BytesIO(b'2026-09-09T12:13:29.296Z INFO stats\n' + issue),
+            console, tmp_path / 'missing', name='warp.log')
+    assert console.getvalue() == tagged(issue, 'warp')
 
 
 def test_export_is_bounded_redacted_and_rejects_symlinks(tmp_path, monkeypatch):
@@ -96,7 +161,7 @@ def test_service_logs_rotate_independently_and_export(tmp_path, monkeypatch):
         data = f'{name} output password=private123\n'.encode() * 20
         console = BytesIO()
         capture(BytesIO(data), console, tmp_path, max_bytes=200, name=f'{name}.log')
-        assert console.getvalue() == data
+        assert console.getvalue() == tagged(data, name)
     with ZipFile(BytesIO(build_bundle())) as archive:
         for name in CAPTURE_NAMES:
             for suffix in ('', '.1', '.2'):

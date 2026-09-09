@@ -227,7 +227,10 @@ Existing shared browser sessions retain their route until teardown. See
 
 Every container flavour captures bounded stdout/stderr in separate scraper,
 service and entrypoint logs in `LOG_DIR` via
-`backend/capture_logs.py`, installed beside the entrypoint. Preserve child PIDs,
+`backend/capture_logs.py`, installed beside the entrypoint. Docker console lines
+have service tags; local capture content stays unchanged. WARP TRACE/DEBUG/INFO
+records are hidden from Docker's console but retained in `warp.log`; issues,
+lifecycle messages and other services' output remain visible. Preserve child PIDs,
 exit codes and supervisor cleanup when modifying capture. The authenticated
 `GET /api/v1/system/diagnostics` ZIP export is DB-independent and available during
 startup failures; Overview exposes the download. Keep file selection fixed, reads

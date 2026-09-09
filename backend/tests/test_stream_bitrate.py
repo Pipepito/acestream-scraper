@@ -107,3 +107,33 @@ def test_signal_and_history_migration_resets_unverified_status(tmp_path):
         assert conn.execute(text('SELECT name, is_online, network_status, bitrate_bps FROM acestream_channels')).one() == ('Existing', None, None, 8000000)
     assert 'scheduled_task_states' in inspect(engine).get_table_names()
     engine.dispose()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('delay,timeout', [(0, 0.05), (5.1, 5.3)])
+async def test_slow_partial_sample_is_preserved_at_deadline(monkeypatch, delay, timeout):
+    import asyncio
+    import json
+    import httpx
+    from unittest.mock import Mock
+
+    class SlowStream(httpx.AsyncByteStream):
+        async def __aiter__(self):
+            await asyncio.sleep(delay)
+            yield b'G' * 188
+            await asyncio.sleep(10)
+
+    monkeypatch.setattr('app.services.stream_bitrate_service.shutil.which', lambda _: '/mock/ffprobe')
+    factory = httpx.AsyncClient
+    monkeypatch.setattr('app.services.stream_bitrate_service.httpx.AsyncClient',
+        lambda **kwargs: factory(transport=httpx.MockTransport(
+            lambda request: httpx.Response(200, stream=SlowStream())), **kwargs))
+    payload = {'streams': [{'index': 0, 'codec_type': 'video', 'codec_name': 'h264'}],
+               'packets': [{'stream_index': 0, 'size': '100'}]}
+    process = Mock(returncode=0)
+    process.communicate = AsyncMock(return_value=(json.dumps(payload).encode(), b''))
+    monkeypatch.setattr('app.services.stream_bitrate_service.asyncio.create_subprocess_exec',
+                        AsyncMock(return_value=process))
+    result = await probe_media('http://engine', 'http://engine/media', timeout=timeout)
+    assert result['signal_verified'] is True
+    process.communicate.assert_awaited_once_with(b'G' * 188)

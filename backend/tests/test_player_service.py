@@ -290,7 +290,7 @@ def test_stop_tears_down_quickly(make_service):
 def test_spawn_argv_contains_required_flags(make_service):
     svc = make_service()
     argv = svc.ffmpeg_argv("http://engine/content/x", Path("/tmp/x"))
-    assert argv[:9] == [str(FAKE_FFMPEG), "-nostdin", "-hide_banner", "-loglevel", "info", "-nostats", "-rw_timeout", "20000000", "-fflags"]
+    assert argv[:9] == [str(FAKE_FFMPEG), "-nostdin", "-hide_banner", "-loglevel", "info", "-nostats", "-rw_timeout", "45000000", "-fflags"]
     assert "-c:a" in argv and argv[argv.index("-c:a") + 1] == "aac"
     assert argv[-1] == "/tmp/x/index.m3u8"
 
@@ -623,4 +623,64 @@ def test_web_player_reads_acexy_and_leaves_shared_session_management_to_proxy(ma
             assert await svc.open_session(IH) is session
         finally:
             await svc.stop()
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize('plex_id', [IH, IH2])
+@pytest.mark.parametrize('use_acexy', [False, True])
+def test_stop_watching_preserves_active_plex_relay(make_service, plex_id, use_acexy):
+    """Exercise viewer leave/reaping while the tuner continues consuming bytes."""
+    from app.services.stream_relay import CHUNK_SIZE, RelayRegistry, relay_engine_stream
+    from app.services.player_service import NO_VIEWERS_SECONDS
+
+    stopped = set()
+    stops = []
+
+    def handler(request):
+        if request.url.path == '/ace/getstream':
+            cid = request.url.params['id']
+            pid = request.url.params['pid']
+            return httpx.Response(200, json={'response': {
+                'playback_url': f'http://engine:6878/content/{cid}',
+                'stat_url': f'http://engine:6878/ace/stat/{cid}/{pid}',
+                'command_url': f'http://engine:6878/ace/cmd/{cid}/{pid}',
+                'is_live': 1,
+            }})
+        if '/ace/cmd/' in request.url.path:
+            cid = request.url.path.split('/')[-2]
+            stopped.add(cid)  # Model native engines: stop affects the entire source.
+            stops.append(cid)
+        return httpx.Response(200)
+
+    class Media(httpx.AsyncByteStream):
+        async def __aiter__(self):
+            while plex_id not in stopped:
+                yield b'G' * CHUNK_SIZE
+                await asyncio.sleep(0)
+
+    def factory(**kwargs):
+        return httpx.AsyncClient(transport=httpx.MockTransport(
+            lambda request: httpx.Response(200, stream=Media())), **kwargs)
+
+    svc = make_service(handler=handler, use_acexy=use_acexy)
+    engine = _engine(handler, use_acexy=use_acexy)
+
+    async def run():
+        relay = relay_engine_stream(engine, plex_id, 'Plex', client_factory=factory,
+                                    registry=RelayRegistry())
+        try:
+            browser = await svc.open_session(IH)
+            assert await anext(relay) == b'G' * CHUNK_SIZE
+            svc.leave(browser.id)
+            svc._clock['now'] += NO_VIEWERS_SECONDS + 1
+            await svc._advance_session(browser, svc._clock['now'])
+            assert svc.get(browser.id) is None
+            assert plex_id not in stopped
+            assert await anext(relay) == b'G' * CHUNK_SIZE
+        finally:
+            await relay.aclose()
+            await svc.stop()
+            engine.close()
+        assert stops.count(plex_id) == (0 if use_acexy else 1)
+
     asyncio.run(run())

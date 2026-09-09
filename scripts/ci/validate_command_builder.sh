@@ -80,6 +80,11 @@ if f"image: {data['image']}:latest" not in compose:
     errors.append(f"docker-compose.yml no longer uses {data['image']}:latest")
 
 # The runtime toggles the page emits must still exist in the entrypoint.
+acexy_timeout = data["acexy"]
+timeout_assignment = '${' + acexy_timeout['noResponseTimeoutEnv'] + ':-' + acexy_timeout['noResponseTimeoutDefault'] + '}'
+if timeout_assignment not in entrypoint:
+    errors.append("Acexy engine-response timeout default differs from entrypoint.sh")
+
 for var in ("ENABLE_ACESTREAM_ENGINE", "ENABLE_ACEXY", "ENABLE_WARP", "ACEXY_HOST", "ACEXY_PORT", "ZERONET_URL", "ENABLE_ZERONET", "ENABLE_IPFS", "IPFS_GATEWAY_URL", "FLASK_PORT", "PUBLIC_BASE_URL", "TUNER_ALLOWED_NETWORKS", "PLAYER_MAX_SESSIONS"):
     if var not in entrypoint:
         errors.append(f"entrypoint.sh no longer references {var}")

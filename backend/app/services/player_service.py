@@ -142,9 +142,12 @@ class PlayerService:
         }
 
     def ffmpeg_argv(self, playback_url: str, directory: Path, audio_index: Optional[int] = None) -> List[str]:
+        # Allow the configured startup budget to cover proxy/engine buffering.
+        # The session reaper still enforces startup and media-stall deadlines.
+        read_timeout_us = int(max(20.0, float(self._settings().PLAYER_START_TIMEOUT_SECONDS)) * 1_000_000)
         return [
             str(self.ffmpeg_path()), "-nostdin", "-hide_banner", "-loglevel", "info", "-nostats",
-            "-rw_timeout", "20000000", "-fflags", "+genpts+discardcorrupt",
+            "-rw_timeout", str(read_timeout_us), "-fflags", "+genpts+discardcorrupt",
             "-i", playback_url, "-map", "0:v:0", "-map", f"0:a:{audio_index}" if audio_index is not None else "0:a:0?", "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-ac", "2",
             "-f", "hls", "-hls_time", "2", "-hls_list_size", "6", "-hls_delete_threshold", "2",
             "-hls_flags", "delete_segments+independent_segments+omit_endlist+temp_file",

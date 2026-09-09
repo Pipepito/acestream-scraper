@@ -27,7 +27,7 @@ PLATFORMS = ["linux/amd64", "linux/arm64", "linux/arm/v7"]
 # PlayerService.ffmpeg_argv.
 PLAYER_COMMAND = [
     "-nostdin", "-hide_banner", "-loglevel", "info", "-nostats",
-    "-rw_timeout", "20000000", "-fflags", "+genpts+discardcorrupt",
+    "-rw_timeout", "45000000", "-fflags", "+genpts+discardcorrupt",
     "-i", "/f/sample.m2ts",
     "-map", "0:v:0", "-map", "0:a:0?",
     "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-ac", "2",

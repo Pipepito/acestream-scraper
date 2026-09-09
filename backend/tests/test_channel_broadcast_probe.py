@@ -67,7 +67,7 @@ async def test_media_packets_confirm_broadcast_and_stop_session(probe, monkeypat
     result = await probe.check_channel_status(AcestreamChannel(id='a' * 40, name='Example'), identifier='infohash', persist=False)
     assert result['is_online'] is True
     assert result['network_status'] == 'found'
-    media_probe.assert_awaited_once_with(engine_url, f'{engine_url}/ace/r/hash/session')
+    media_probe.assert_awaited_once_with(engine_url, f'{engine_url}/ace/r/hash/session', timeout=probe._get_timeout())
     calls = probe._fetch_engine_response.call_args_list
     assert calls[0].args[1]['infohash'] == 'a' * 40
     assert 'method' not in calls[0].args[1]

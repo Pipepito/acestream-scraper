@@ -1,6 +1,7 @@
 """
 API endpoints for channel management
 """
+import asyncio
 import logging
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
@@ -179,7 +180,7 @@ async def get_acestream_channel(acestreamchannel_id: str, db: Session = Depends(
 
 
 @router.post("/{acestreamchannel_id}/check_status", response_model=ChannelStatusResponse)
-async def check_acestream_channel_status(acestreamchannel_id: str, db: Session = Depends(get_db)):
+def check_acestream_channel_status(acestreamchannel_id: str, db: Session = Depends(get_db)):
     """
     Check the online status of a specific Acestream channel via Acestream engine.
     """
@@ -189,7 +190,9 @@ async def check_acestream_channel_status(acestreamchannel_id: str, db: Session =
         raise HTTPException(status_code=404, detail="Channel not found")
 
     status_service = ChannelStatusService(db)
-    result = await status_service.check_channel_status(channel)
+    # FastAPI runs this endpoint in a worker: SQLite lock waits and synchronous
+    # repository calls must not block health, startup diagnostics, or playback.
+    result = asyncio.run(status_service.check_channel_status(channel))
     return result
 
 

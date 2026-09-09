@@ -4,6 +4,10 @@
   "repoUrl": "https://github.com/Pipepito/acestream-scraper",
   "wikiUrl": "https://github.com/Pipepito/acestream-scraper/wiki",
   "webContainerPort": 8000,
+  "acexy": {
+    "noResponseTimeoutEnv": "ACEXY_NO_RESPONSE_TIMEOUT",
+    "noResponseTimeoutDefault": "30s"
+  },
   "flavors": [
     {
       "id": "scraper-acestream-acexy",

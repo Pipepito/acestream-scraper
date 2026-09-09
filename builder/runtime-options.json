@@ -73,7 +73,7 @@
       "engineSupport": "stable",
       "warpAvailable": true,
       "ipfsAvailable": true,
-      "zeronetAvailable": false
+      "zeronetAvailable": true
     },
     {
       "id": "armv7",
@@ -475,7 +475,7 @@
   ],
   "zeronet": {
     "defaultUrl": "http://host.docker.internal:43110",
-    "description": "Scrape zero:// sources. The amd64 images bundle a ZeroNet node (opt-in via ENABLE_ZERONET), or point ZERONET_URL at an external ZeroNet service.",
+    "description": "Scrape zero:// sources. The amd64 and arm64 images bundle a ZeroNet node (opt-in via ENABLE_ZERONET), or point ZERONET_URL at an external ZeroNet service.",
     "embeddedDescription": "Starts the bundled zeronet-conservancy node; zero:// sources are fetched through its UI port (43110). Fresh nodes use public UDP bootstrap trackers, overridable with ZERONET_TRACKERS. Turn off to use an external ZeroNet service instead."
   },
   "ipfs": {
@@ -499,7 +499,7 @@
     "armPageSize": "The Android engine needs a 4 KB kernel page size. On Raspberry Pi 5 (Raspberry Pi OS 64-bit) set kernel=kernel8.img in config.txt — the default kernel uses 16 KB pages and the engine refuses to start.",
     "warpArm": "Cloudflare publishes WARP for amd64 and arm64, but not 32-bit ARM; linux/arm/v7 images ship without it.",
     "ipfsArmv7": "Kubo publishes no 32-bit ARM build, so 32-bit ARM images ship without the embedded IPFS daemon. IPFS sources still work through an external gateway (IPFS_GATEWAY_URL).",
-    "zeronetArm": "The bundled ZeroNet node ships in the amd64 images only. ZeroNet sources still work through an external service (ZERONET_URL).",
+    "zeronetArm": "The bundled ZeroNet node ships in the amd64 and arm64 images; 32-bit ARM has no armv7l wheels for gevent. ZeroNet sources still work through an external service (ZERONET_URL).",
     "warpCaps": "WARP needs the NET_ADMIN and SYS_ADMIN capabilities plus the /dev/net/tun device.",
     "acexyExternalEngine": "Acexy refuses to start against localhost:6878 when the in-container engine is disabled — point it at your external engine's address.",
     "publicBaseUrl": "Jellyfin, Plex and VLC need an address they can reach: set it under Integrations → Public address, or pass PUBLIC_BASE_URL.",

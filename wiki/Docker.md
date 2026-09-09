@@ -114,9 +114,17 @@ experimental.
 
 WARP is installed in every flavor's `linux/amd64` and `linux/arm64` images, but it only starts when `ENABLE_WARP=true` (it needs `--cap-add NET_ADMIN --cap-add SYS_ADMIN` and `--device /dev/net/tun`). The `linux/arm/v7` images ship without the WARP client (Cloudflare publishes no 32-bit ARM build), so `ENABLE_WARP` is unsupported there.
 
-ZeroNet works in two modes. The `linux/amd64` images bundle a [zeronet-conservancy](https://github.com/zeronet-conservancy/zeronet-conservancy) v0.7.10 node — opt-in, nothing runs until `ENABLE_ZERONET=true` (add `ENABLE_TOR=true` for TOR, like the v1 image). The node runs on its own Python 3.11 under `/opt/zeronet` because its dependency set (gevent 23.9.x) predates the app's Python; that dependency set is also why ARM images ship without it — there, and whenever you prefer it, ZeroNet runs as an external sidecar/service and the app reaches it through `ZERONET_URL`.
+ZeroNet works in two modes. The `linux/amd64` and `linux/arm64` images bundle a [zeronet-conservancy](https://github.com/zeronet-conservancy/zeronet-conservancy) node, pinned by commit to a state that carries DHT peer discovery — opt-in, nothing runs until `ENABLE_ZERONET=true` (add `ENABLE_TOR=true` for TOR, like the v1 image). The node runs on its own Python 3.11 under `/opt/zeronet` because its dependency set predates the app's Python; 32-bit ARM images ship without it because gevent publishes no armv7l wheels — there, and whenever you prefer it, ZeroNet runs as an external sidecar/service and the app reaches it through `ZERONET_URL`.
 
-The checked-in compose stack keeps the `zeronet` service behind an optional `zeronet` profile and points the default app config at `http://host.docker.internal:43110`. It uses an amd64-focused sidecar image. On ARM hosts, point `ZERONET_URL` at an external ZeroNet service or swap in a compatible sidecar. With the embedded node enabled, leave `ZERONET_URL` unset — the entrypoint targets the embedded UI port automatically.
+The bundled ZeroNet node keeps its configuration and private state in
+`$ZERONET_DATA_DIR/.node` (normally `/data/zeronet/.node`), alongside existing
+downloaded sites. On upgrade, legacy `sites.json` and `users.json` are copied
+into `.node/private` only when the destination is absent; the original files
+are retained. Mount the entire `/data/zeronet` directory to preserve both
+content and identities across container replacement. Back up that volume before
+upgrading; a rollback uses the retained legacy files, not subsequent v2 state.
+
+The checked-in compose stack keeps the `zeronet` service behind an optional `zeronet` profile and points the default app config at `http://host.docker.internal:43110`. It uses an amd64-focused sidecar image. On 32-bit ARM hosts, point `ZERONET_URL` at an external ZeroNet service or swap in a compatible sidecar. With the embedded node enabled, leave `ZERONET_URL` unset — the entrypoint targets the embedded UI port automatically.
 
 IPFS is bundled, unlike ZeroNet: every flavor ships the [Kubo](https://github.com/ipfs/kubo) IPFS daemon on `linux/amd64` and `linux/arm64`. Kubo publishes no 32-bit ARM build, so `linux/arm/v7` images ship without it (the container exits with a clear error if `ENABLE_IPFS=true` is requested there — same situation as WARP). The daemon is opt-in: nothing IPFS-related runs until `ENABLE_IPFS=true`. `ipfs://` and `ipns://` sources are fetched through `IPFS_GATEWAY_URL`, which defaults to the embedded gateway at `http://127.0.0.1:8081` — the gateway uses `8081` in-container because Acexy already listens on `8080`. You can also scrape IPFS without the embedded daemon: keep `ENABLE_IPFS=false` and point `IPFS_GATEWAY_URL` at an external node, e.g. `http://host.docker.internal:8080` for a Kubo/IPFS Desktop install on the Docker host (this works on every platform, `linux/arm/v7` included).
 
@@ -162,7 +170,7 @@ Important runtime env expectations:
 - `ACESTREAM_HTTP_HOST` and `ACESTREAM_HTTP_PORT` define the in-container AceStream endpoint
 - `ACEXY_HOST` and `ACEXY_PORT` define the engine endpoint Acexy connects to
 - `ZERONET_URL` points the scraper at a ZeroNet node — the embedded one or an external sidecar/service
-- `ENABLE_ZERONET` starts the bundled ZeroNet node only when set to `true` (amd64 images); `ENABLE_TOR` adds TOR for it
+- `ENABLE_ZERONET` starts the bundled ZeroNet node only when set to `true` (amd64 and arm64 images); `ENABLE_TOR` adds TOR for it
 - `ENABLE_IPFS` starts the embedded Kubo IPFS daemon only when set to `true` (amd64/arm64 images)
 - `IPFS_GATEWAY_URL` points the scraper to the IPFS HTTP gateway used for `ipfs://`/`ipns://` sources (defaults to the embedded gateway `http://127.0.0.1:8081`)
 
@@ -234,9 +242,9 @@ by reporting a false app identity. Two related failures can look similar:
 - **A DNS blocklist.** Pi-hole/AdGuard lists that sinkhole `*.acestream.media` or `*.acestream.net` cut the 3.2.x engines off from their licence check, and the failure looks identical. Allow those two domains on the host running the engine before blaming the engine version.
 - **The engine refusing a client address.** `ACESTREAM_BIND_ALL` (default `true`) applies on every platform: the entrypoint appends `--bind-all` to the engine start command so clients that are not on loopback or a private address — Tailscale, IPv6 LANs, unusual Docker networks — are accepted on a published `6878`. Set it to `false` to restore the engine's own filter.
 
-### Run the Bundled ZeroNet Node (amd64)
+### Run the Bundled ZeroNet Node (amd64 / arm64)
 
-ZeroNet is installed in every amd64 flavor but only starts when `ENABLE_ZERONET=true`:
+ZeroNet is installed in every amd64 and arm64 flavor but only starts when `ENABLE_ZERONET=true`:
 
 ```bash
 docker run -d \

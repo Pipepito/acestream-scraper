@@ -3,23 +3,37 @@
 # /opt/zeronet for the container platform being built. Runs inside the
 # Dockerfile's `zeronet-installer` stage.
 #
-# ZeroNet is bundled for linux/amd64 only, like the v1 image (and like the
-# amd64-only cloudflare-warp client): its dependency set needs gevent 23.9.x
-# (see docker/zeronet/requirements.txt), which has no wheels for modern ARM
-# targets worth supporting, and the node has never been validated there. On
-# other platforms this script leaves /opt/zeronet empty except for metadata
+# ZeroNet is bundled for linux/amd64 and linux/arm64. 32-bit ARM is still
+# excluded: gevent publishes no armv7l wheels (checked on PyPI for both the
+# old 23.9.1 and the current pin), so linux/arm/v7 and linux/arm/v6 would have
+# to build gevent, greenlet and coincurve from source inside the image. On
+# those platforms this script leaves /opt/zeronet empty except for metadata
 # and the entrypoint refuses ENABLE_ZERONET=true with a clear error — an
 # external ZeroNet service through ZERONET_URL keeps working everywhere.
 #
-# The stage runs on $BUILDPLATFORM (so ARM image builds skip it natively,
-# without QEMU); the pip wheels it installs are for the interpreter it runs
-# on, so an amd64 payload can only be produced on an amd64 build host — the
-# script fails loudly on a cross-build rather than embedding wrong-arch
-# wheels.
+# WHY arm64 IS IN NOW. It used to be excluded with the same reasoning as
+# armv7 ("gevent 23.9.x has no wheels for modern ARM targets"), but that was
+# only ever true for 32-bit: gevent has published manylinux aarch64 wheels
+# throughout. What actually blocked arm64 was the *ZeroNet* pin, v0.7.10,
+# which deadlocks under gevent >= 24.10 and therefore forced gevent 23.9.1 —
+# and 23.9.1 has no aarch64 wheel for the interpreters this image uses. With
+# the node moved past that (see below), the constraint disappears.
 #
-# The source is pinned by git commit (tag v0.7.10): the clone is checked
-# against ZERONET_COMMIT after checkout, which gives content integrity
-# without relying on byte-stable GitHub archive tarballs.
+# The stage runs on $TARGETPLATFORM, not $BUILDPLATFORM: the pip wheels and
+# the staged CPython prefix are native code, so they have to be produced for
+# the platform they will run on. Cross-building them is what the old
+# `uname -m` guard was defending against; running under emulation removes the
+# hazard instead of detecting it.
+#
+# The source is pinned by COMMIT and fetched by commit, not by tag or branch:
+# `git fetch --depth 1 origin <sha>` is served by GitHub, so the pin cannot
+# drift when a branch moves and there is no need for a tag to exist.
+#
+# /opt/zeronet/app/.git IS KEPT ON PURPOSE. The node reads its own build
+# information through GitPython (src/util/Git.py); with the directory removed
+# it dies at import time with
+#     ImportError: cannot import name 'Build' from 'src'
+# A --depth 1 checkout costs a few MB and is the cheapest way to satisfy it.
 #
 # Output: /opt/zeronet/app (source), /opt/zeronet/python (the stage's whole
 # CPython prefix, site-packages included), /opt/zeronet/bin/zeronet
@@ -28,8 +42,8 @@
 set -euo pipefail
 
 ZERONET_REPO_URL="${ZERONET_REPO_URL:-https://github.com/zeronet-conservancy/zeronet-conservancy}"
-ZERONET_REF="${ZERONET_REF:-v0.7.10}"
-ZERONET_COMMIT="${ZERONET_COMMIT:-18d35d3bed4f0683e99f8af5a86a8d76ed866e1e}"
+ZERONET_REF="${ZERONET_REF:-main}"
+ZERONET_COMMIT="${ZERONET_COMMIT:-81d3ffc6bdfb600e9a1d4a091f1ceb131d92c4f1}"
 TARGET_PLATFORM="${TARGETPLATFORM:-}"
 # Overridable so the contract tests can run the script directly without
 # touching /opt.
@@ -45,10 +59,14 @@ mkdir -p "$ZN_DIR"
 
 case "$TARGET_PLATFORM" in
     linux/amd64)
+        expected_machine=x86_64
         ;;
-    linux/arm64|linux/arm64/v8|linux/arm/v7|linux/arm/v6)
-        log "ZeroNet is bundled for linux/amd64 only; installing nothing for $TARGET_PLATFORM"
-        printf 'zeronet_version=none\nplatform=%s\nreason=bundled for linux/amd64 only\n' \
+    linux/arm64|linux/arm64/v8)
+        expected_machine=aarch64
+        ;;
+    linux/arm/v7|linux/arm/v6)
+        log "ZeroNet is not bundled for $TARGET_PLATFORM (no armv7l wheels for gevent); installing nothing"
+        printf 'zeronet_version=none\nplatform=%s\nreason=no armv7l wheels for gevent\n' \
             "$TARGET_PLATFORM" > "$ZN_DIR/install-metadata.txt"
         exit 0
         ;;
@@ -57,8 +75,11 @@ case "$TARGET_PLATFORM" in
         ;;
 esac
 
-if [ "$(uname -m)" != "x86_64" ]; then
-    fail "the amd64 ZeroNet payload can only be built on an amd64 build host (got $(uname -m)); pip would embed wrong-arch wheels"
+# The stage must run AS the target platform (buildx does this with binfmt).
+# Building the payload anywhere else would embed wrong-arch wheels and a
+# wrong-arch interpreter, and the failure would only show at runtime.
+if [ "$(uname -m)" != "$expected_machine" ]; then
+    fail "the $TARGET_PLATFORM ZeroNet payload must be built on $expected_machine (got $(uname -m)); the zeronet-installer stage needs --platform=\$TARGETPLATFORM"
 fi
 
 [ -f "$REQUIREMENTS" ] || fail "requirements file not found: $REQUIREMENTS"
@@ -66,13 +87,18 @@ fi
 PYTHON_BIN="${ZERONET_PYTHON_BIN:-python3}"
 PYTHON_PREFIX="$("$PYTHON_BIN" -c 'import sys; print(sys.prefix)')"
 
-log "cloning $ZERONET_REPO_URL @ $ZERONET_REF"
-git clone --depth 1 --branch "$ZERONET_REF" "$ZERONET_REPO_URL" "$ZN_DIR/app"
+log "fetching $ZERONET_REPO_URL @ $ZERONET_COMMIT ($ZERONET_REF)"
+mkdir -p "$ZN_DIR/app"
+git -C "$ZN_DIR/app" init -q .
+git -C "$ZN_DIR/app" remote add origin "$ZERONET_REPO_URL"
+git -C "$ZN_DIR/app" fetch -q --depth 1 origin "$ZERONET_COMMIT"
+git -C "$ZN_DIR/app" checkout -q FETCH_HEAD
 actual_commit="$(git -C "$ZN_DIR/app" rev-parse HEAD)"
 if [ "$actual_commit" != "$ZERONET_COMMIT" ]; then
-    fail "ref $ZERONET_REF resolved to $actual_commit, expected pinned commit $ZERONET_COMMIT"
+    fail "fetched $actual_commit, expected pinned commit $ZERONET_COMMIT"
 fi
-rm -rf "$ZN_DIR/app/.git"
+# NO `rm -rf .git` here: src/util/Git.py reads the repository through
+# GitPython at import time and the node will not start without it.
 
 log "installing python dependencies"
 "$PYTHON_BIN" -m pip install --no-cache-dir -r "$REQUIREMENTS"

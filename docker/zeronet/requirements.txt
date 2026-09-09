@@ -1,17 +1,24 @@
-# Python dependencies for the bundled ZeroNet node (zeronet-conservancy
-# v0.7.10). This is upstream's requirements.txt for that tag with one
-# deliberate change:
+# Python dependencies for the bundled ZeroNet node (zeronet-conservancy,
+# pinned by commit in docker/scripts/install-zeronet.sh).
 #
-#   gevent is pinned to 23.9.1. zeronet-conservancy v0.7.10 predates the
-#   gevent >= 24.10 threadpool rework: with modern gevent (verified with
-#   26.8.0) src/Crypt/Crypt.py's import-time ThreadPool deadlocks with
-#   gevent.exceptions.LoopExit before the UI server ever starts. 23.9.1 is
-#   the release contemporary with the tag and boots cleanly.
+# This is upstream's requirements.txt for the pinned commit with one
+# deliberate change: gevent is pinned to an exact version instead of the
+# `>=23.9.0` range, so a build cannot silently resolve to an untested
+# release. 26.8.0 is what the pinned node was verified against.
 #
-# gevent 23.9.x has no Python 3.13 support, which is why the Dockerfile
-# runs ZeroNet on its own interpreter (ZERONET_PYTHON_VERSION).
-setuptools>=65.5.1
-gevent==23.9.1
+# HISTORY, because the previous pin looked load-bearing and no longer is:
+# the tree used to pin zeronet-conservancy v0.7.10, which deadlocks at
+# startup under gevent >= 24.10 (import-time ThreadPool + LoopExit), so
+# gevent was held at 23.9.1. The pinned commit here is past that problem —
+# verified booting under gevent 26.8.0 — and that matters beyond tidiness:
+# gevent 23.9.x publishes no aarch64 wheels for current interpreters, which
+# is the whole reason the bundled node was linux/amd64 only.
+#
+# The DHT dependencies (fastbencode, asyncio-gevent, aio-btdht,
+# aio-krpc-server) are new here: v0.7.10 predates src/DHT entirely, so the
+# old dependency set had no way to express them.
+setuptools>=70.0.0
+gevent==26.8.0
 msgpack>=0.6.0
 base58
 # nobody released a fresh merkletools that doesn't require the dead pysha3;
@@ -28,3 +35,8 @@ rich
 defusedxml>=0.7
 pyaes
 requests
+fastbencode
+asyncio-gevent
+aio-btdht@git+https://github.com/bashkirtsevich-llc/aiobtdht@f99d881e9b992da13519721e251912c32a566cd7
+aio-krpc-server@git+https://github.com/bashkirtsevich-llc/aiokrpc@fe0b18a98d4dc19034f8152afbae78fb600830e2
+GitPython

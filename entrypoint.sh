@@ -322,8 +322,8 @@ ENABLE_ZERONET=$(normalize_bool "${ENABLE_ZERONET:-false}")
 ENABLE_TOR=$(normalize_bool "${ENABLE_TOR:-false}")
 IMAGE_HAS_ACESTREAM=$(normalize_bool "${IMAGE_HAS_ACESTREAM:-false}")
 IMAGE_HAS_ACEXY=$(normalize_bool "${IMAGE_HAS_ACEXY:-false}")
-# The bundled ZeroNet node ships on amd64 images only: detect the installed
-# launcher instead of hard-coding an ENV per platform.
+# The bundled ZeroNet node ships on amd64 and arm64 images: detect the
+# installed launcher instead of hard-coding an ENV per platform.
 ZERONET_BINARY_PATH="${ZERONET_BINARY_PATH:-/opt/zeronet/bin/zeronet}"
 if [ -z "${IMAGE_HAS_ZERONET:-}" ]; then
     if [ -x "$ZERONET_BINARY_PATH" ]; then IMAGE_HAS_ZERONET=true; else IMAGE_HAS_ZERONET=false; fi
@@ -419,7 +419,7 @@ if feature_enabled "$ENABLE_IPFS" && ! image_has_feature "$IMAGE_HAS_IPFS"; then
 fi
 
 if feature_enabled "$ENABLE_ZERONET" && ! image_has_feature "$IMAGE_HAS_ZERONET"; then
-    fail "ZeroNet is enabled but not installed in this image (bundled on linux/amd64 only; point ZERONET_URL at an external node instead)"
+    fail "ZeroNet is enabled but not installed in this image (bundled on linux/amd64 and linux/arm64; point ZERONET_URL at an external node instead)"
 fi
 
 if feature_enabled "$ENABLE_TOR" && ! feature_enabled "$ENABLE_ZERONET"; then
@@ -474,7 +474,7 @@ fi
 
 start_tor() {
     if ! command -v tor >/dev/null 2>&1; then
-        fail "ENABLE_TOR=true but the tor binary is not installed in this image (amd64 images only)"
+        fail "ENABLE_TOR=true but the tor binary is not installed in this image (amd64 and arm64 images only)"
     fi
     local torrc="${TORRC_PATH:-/tmp/acestream-scraper-torrc}"
     local tor_data="${TOR_DATA_DIR:-/var/lib/tor-zeronet}"
@@ -539,6 +539,22 @@ if feature_enabled "$ENABLE_ZERONET"; then
         zeronet_tor_mode="disable"
     fi
     if [ -z "${ZERONET_START_COMMAND:-}" ]; then
+        # The pinned node separates private state from downloaded site content.
+        # Keep both inside the existing volume; preserve legacy files as backups.
+        zeronet_state_dir="$ZERONET_DATA_DIR/.node"
+        mkdir -p "$zeronet_state_dir/private"
+        chmod 700 "$zeronet_state_dir" "$zeronet_state_dir/private"
+        if [ ! -e "$zeronet_state_dir/znc.conf" ]; then
+            (umask 077; printf '# Bundled ZeroNet configuration\n' > "$zeronet_state_dir/znc.conf")
+        fi
+        for state_file in sites.json users.json; do
+            if [ -f "$ZERONET_DATA_DIR/$state_file" ] && [ ! -e "$zeronet_state_dir/private/$state_file" ]; then
+                (umask 077
+                    cp "$ZERONET_DATA_DIR/$state_file" "$zeronet_state_dir/private/.$state_file.tmp"
+                    chmod 600 "$zeronet_state_dir/private/.$state_file.tmp"
+                    mv "$zeronet_state_dir/private/.$state_file.tmp" "$zeronet_state_dir/private/$state_file")
+            fi
+        done
         # --ui_ip 0.0.0.0 so publishing 43110 works; ZeroNet still only
         # accepts requests whose Host header it knows, so set
         # ZERONET_UI_HOST (space-separated hostnames) to reach the UI from
@@ -546,7 +562,7 @@ if feature_enabled "$ENABLE_ZERONET"; then
         #
         # --ui_host and --trackers are greedy nargs options. Put both before
         # ordinary flags so neither can consume the trailing `main` action.
-        ZERONET_START_COMMAND="$ZERONET_BINARY_PATH${ZERONET_UI_HOST:+ --ui_host $ZERONET_UI_HOST}${ZERONET_TRACKERS:+ --trackers $ZERONET_TRACKERS} --ui_ip 0.0.0.0 --ui_port $ZERONET_UI_PORT --fileserver_port $ZERONET_FILESERVER_PORT --data_dir $ZERONET_DATA_DIR --log_dir $LOG_DIR --tor $zeronet_tor_mode${ZERONET_EXTRA_ARGS:+ $ZERONET_EXTRA_ARGS} main"
+        ZERONET_START_COMMAND="$ZERONET_BINARY_PATH${ZERONET_UI_HOST:+ --ui_host $ZERONET_UI_HOST}${ZERONET_TRACKERS:+ --trackers $ZERONET_TRACKERS} --ui_ip 0.0.0.0 --start-dir \"$zeronet_state_dir\" --ui_port $ZERONET_UI_PORT --fileserver_port $ZERONET_FILESERVER_PORT --data_dir \"$ZERONET_DATA_DIR\" --log_dir \"$LOG_DIR\" --tor $zeronet_tor_mode${ZERONET_EXTRA_ARGS:+ $ZERONET_EXTRA_ARGS} main"
     fi
     supervise_service "ZeroNet" "$ZERONET_START_COMMAND" &
     child_pids+=("$!")

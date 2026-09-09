@@ -232,3 +232,44 @@ unconfigured engine as disabled, not unhealthy.
 New scraper-only installs default to no playback endpoint. Bundled enabled engines
 retain their internal endpoint. Existing saved URLs are preserved; clear an old
 localhost URL in Playback if the installation no longer has an engine.
+
+### Slow starts and playback timeouts
+
+The media-sampling phase uses the saved `acestream_check_timeout` (default 10
+seconds, maximum 120), followed by up to five seconds for ffprobe. It keeps partial
+HTTP chunks when sampling expires, so a slow or stalled stream can still have its
+received media inspected. The preceding engine-start and statistics phases have
+separate budgets. Checks require identified A/V packets, not just downloaded bytes.
+Sampling uses HTTP and ffprobe stdin; it needs no shared engine temp-file mount.
+`PLAYER_HLS_DIR` is only for the browser player's output playlists and segments.
+
+Bundled Acexy defaults `ACEXY_NO_RESPONSE_TIMEOUT` to `30s` (upstream defaults to
+`10s`); explicit environment values still win. This is independent of the check
+engine and the saved check timeout. For external Acexy, configure that timeout on
+its host. Browser ffmpeg's socket timeout follows `PLAYER_START_TIMEOUT_SECONDS`
+(default 45 seconds, socket minimum 20); the reaper still enforces startup and
+media-stall limits. Allow time beyond the proxy timeout for HLS segment creation.
+An online check on the dedicated engine does not guarantee that the playback
+engine or Acexy can start the same source later. `REMOTE_PLAYER_UNREACHABLE` from
+`/remote-players/.../status` concerns the selected remote device, not browser HLS.
+
+Manual status checks run their database/network work in a worker so a SQLite lock
+wait does not block the serving event loop. This does not eliminate competing
+writers: collect the diagnostics ZIP and the startup stage when investigating
+`database is locked` errors.
+
+### Correlating browser disconnects with tuner failures
+
+`TV relay source ended` includes `reason` (`read_timeout`, `upstream_eof`,
+`engine_refused`, `engine_unavailable`, or `upstream_error`), `phase` (`starting`
+or `streaming`), and `route` (`direct` or `acexy`). Raw upstream exception text is
+excluded because it can contain credentials. Client cancellation is normal
+cleanup and is not classified as a source failure.
+
+Compare the browser's session DELETE with Acexy's per-source `Client stopped`
+and `Stream done` events: leaving a browser session has a grace period before
+its ffmpeg reader is closed. In Acexy mode that reader disconnect is the
+browser's cleanup; the app sends no engine Stop. A tuner failure preceding that
+upstream disconnect does not establish that browser cleanup stopped the tuner.
+The focused player tests exercise browser leave/reaping while the tuner keeps
+reading, for matching and different source IDs in direct and Acexy routing.

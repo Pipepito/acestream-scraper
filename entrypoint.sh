@@ -426,6 +426,8 @@ if feature_enabled "$ENABLE_TOR" && ! feature_enabled "$ENABLE_ZERONET"; then
     log "ENABLE_TOR=true has no effect without ENABLE_ZERONET=true; skipping TOR"
 fi
 
+export ACEXY_NO_RESPONSE_TIMEOUT="${ACEXY_NO_RESPONSE_TIMEOUT:-30s}"
+
 if feature_enabled "$ENABLE_ACESTREAM_ENGINE"; then
     export ACEXY_HOST="${ACEXY_HOST:-$ACESTREAM_HTTP_HOST}"
     export ACEXY_PORT="${ACEXY_PORT:-$ACESTREAM_HTTP_PORT}"

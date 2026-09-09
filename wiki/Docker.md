@@ -386,3 +386,10 @@ Automation. With neither configured, stream status checks are skipped. An extern
 `ACE_CHECK_ENGINE_URL` is a default that can be overridden in Settings; bundled
 checker configuration remains controlled by the container. See
 [stream-check routing](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/ops/stream-check-pid.md#optional-engines-and-settings).
+
+For slow engine startup through Acexy, bundled images default
+`ACEXY_NO_RESPONSE_TIMEOUT=30s`; an explicit value overrides it. External Acexy
+instances need this configured separately. Keep `PLAYER_START_TIMEOUT_SECONDS`
+(default 45 seconds) long enough for the proxy response and initial HLS segments.
+Stream-status sampling uses the timeout saved in Settings and reads through HTTP,
+so it does not require mounting the engine's temporary files into the scraper.

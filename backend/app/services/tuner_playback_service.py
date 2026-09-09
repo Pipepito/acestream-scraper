@@ -100,9 +100,22 @@ async def relay_ranked_streams(
                     with anyio.fail_after(STALL_SECONDS):
                         chunk = await anext(iterator)
                     yield chunk
-            except (EngineRefusedError, EngineUnavailableError, EngineStreamError, StopAsyncIteration, TimeoutError):
+            except (EngineRefusedError, EngineUnavailableError, EngineStreamError, StopAsyncIteration, TimeoutError) as exc:
                 record_source_failure(content_id)
-                logger.info('TV relay source ended content_id=%s experimental_transcoding=%s', content_id, experimental_transcoding)
+                # Do not include upstream exception text: it can contain URLs
+                # with credentials. Keep EOF distinct from our read deadline.
+                reason = (
+                    'read_timeout' if isinstance(exc, TimeoutError) else
+                    'upstream_eof' if isinstance(exc, StopAsyncIteration) else
+                    'engine_refused' if isinstance(exc, EngineRefusedError) else
+                    'engine_unavailable' if isinstance(exc, EngineUnavailableError) else
+                    'upstream_error'
+                )
+                logger.info(
+                    'TV relay source ended content_id=%s reason=%s phase=%s route=%s experimental_transcoding=%s',
+                    content_id, reason, 'streaming' if first_at is not None else 'starting',
+                    'acexy' if engine.use_acexy else 'direct', experimental_transcoding,
+                )
             finally:
                 with anyio.CancelScope(shield=True):
                     await iterator.aclose()

@@ -374,7 +374,20 @@ def backup_sqlite(database_url: Optional[str] = None, label: str = "pre-upgrade"
     try:
         destination = sqlite3.connect(partial)
         try:
-            source.backup(destination)
+            import time
+
+            last_progress = time.monotonic()
+
+            def check_progress(status, remaining, total):
+                nonlocal last_progress
+                now = time.monotonic()
+                if status in (sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED):
+                    if now - last_progress >= 30.0:
+                        raise TimeoutError("Database backup blocked by another database connection")
+                else:
+                    last_progress = now
+
+            source.backup(destination, pages=256, progress=check_progress, sleep=0.1)
         finally:
             destination.close()
     except BaseException:

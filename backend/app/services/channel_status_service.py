@@ -118,7 +118,7 @@ class ChannelStatusService:
                     if (previous_downloaded is not None and downloaded > previous_downloaded
                             and state.get('status') in ('dl', 'prebuf', 'buf')):
                         playback_url = self._session_url(engine_url, response.get('playback_url'), 'r')
-                        media = None if self._in_use(channel_id) else await probe_media(engine_url, playback_url)
+                        media = None if self._in_use(channel_id) else await probe_media(engine_url, playback_url, timeout=timeout)
                         if media and media.get('signal_verified') is True:
                             return True, 'Media signal verified', media
                         return False, 'ID found, but no media signal verified before timeout', media

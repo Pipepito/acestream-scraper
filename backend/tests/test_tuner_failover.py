@@ -419,3 +419,26 @@ def test_failed_source_cooldown_expires(monkeypatch):
     assert service.prefer_recovered_sources(['one', 'two']) == ['two', 'one']
     now[0] += service.FAILURE_COOLDOWN_SECONDS
     assert service.prefer_recovered_sources(['one', 'two']) == ['one', 'two']
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('failure,reason', [('eof', 'upstream_eof'), ('timeout', 'read_timeout'), ('transport', 'upstream_error')])
+async def test_source_end_logs_safe_reason_and_route(monkeypatch, caplog, failure, reason):
+    import logging
+
+    async def source(*args, **kwargs):
+        yield b'media'
+        if failure == 'timeout':
+            await asyncio.sleep(10)
+        if failure == 'transport':
+            raise EngineStreamError('http://user:secret@engine/private')
+
+    monkeypatch.setattr('app.services.tuner_playback_service.relay_engine_stream', source)
+    monkeypatch.setattr('app.services.tuner_playback_service.STALL_SECONDS', 0.01)
+    registry = RelayRegistry()
+    claim = registry.try_open('channel', 'Plex', 1)
+    with caplog.at_level(logging.INFO, logger='app.services.tuner_playback_service'):
+        iterator = default_relay_ranked_streams(Mock(use_acexy=True), ['channel'], 'Plex', claim, registry=registry)
+        assert [chunk async for chunk in iterator] == [b'media']
+    assert f'reason={reason} phase=streaming route=acexy' in caplog.text
+    assert 'secret' not in caplog.text

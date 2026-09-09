@@ -87,3 +87,9 @@ Filesystem, database initialization, and recovery work run outside the request
 event loop. Shutdown waits for active foreground database work before releasing
 the data lock. Database schema upgrades still belong to Alembic; recovery adds
 no schema revision and never uses `Base.metadata.create_all()`.
+
+Pre-upgrade SQLite backups abort after 30 seconds of continuous busy/locked
+responses instead of retrying indefinitely. Successful copy progress resets this
+lock-wait budget, so large healthy backups may take longer. A failed partial copy
+is removed and startup remains in recovery; the original database is not upgraded.
+Resolve the competing database connection and retry startup to take a fresh backup.

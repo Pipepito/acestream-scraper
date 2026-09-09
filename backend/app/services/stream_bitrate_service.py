@@ -54,7 +54,7 @@ def has_media_packets(payload: dict) -> bool:
     return False
 
 
-async def probe_media(engine_url: str, playback_url: object) -> dict | None:
+async def probe_media(engine_url: str, playback_url: object, *, timeout: float = 10.0) -> dict | None:
     configured = get_settings().FFMPEG_BINARY_PATH
     sibling = Path(configured).with_name("ffprobe") if configured else None
     binary = str(sibling) if sibling and os.access(sibling, os.X_OK) else shutil.which("ffprobe")
@@ -62,12 +62,13 @@ async def probe_media(engine_url: str, playback_url: object) -> dict | None:
         return None
     process = None
     try:
-        async with asyncio.timeout(10):
+        async with asyncio.timeout(timeout + 5.0):
             # Validate every hop before issuing it. ffprobe receives bytes on stdin
             # and cannot fetch URLs or open files embedded in an upstream playlist.
-            async with httpx.AsyncClient(follow_redirects=False, timeout=5) as client:
+            async with httpx.AsyncClient(follow_redirects=False, timeout=httpx.Timeout(timeout, read=None)) as client:
                 url = httpx.URL(playback_url)
                 sample = bytearray()
+                deadline = asyncio.get_running_loop().time() + timeout
                 for _ in range(4):
                     if url.scheme not in ("http", "https") or _host_identity(url.host) != _host_identity(urlsplit(engine_url).hostname):
                         return None
@@ -80,8 +81,11 @@ async def probe_media(engine_url: str, playback_url: object) -> dict | None:
                             continue
                         if response.status_code != 200:
                             return None
-                        with anyio.move_on_after(5):
-                            async for chunk in response.aiter_bytes(64 * 1024):
+                        # Retain partial data on a stalled/slow source. A fixed
+                        # chunk size buffers small arrivals inside httpx, where
+                        # cancellation would discard them before ffprobe sees them.
+                        with anyio.move_on_after(max(0, deadline - asyncio.get_running_loop().time())):
+                            async for chunk in response.aiter_bytes():
                                 sample.extend(chunk[:SAMPLE_BYTES - len(sample)])
                                 if len(sample) >= SAMPLE_BYTES:
                                     break

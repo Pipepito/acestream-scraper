@@ -81,3 +81,24 @@ def test_a_zero_byte_file_left_by_an_older_build_is_not_reused(tmp_path):
     assert taken is not None and taken != str(stale_dir / "scraper.db")
     with sqlite3.connect(taken) as conn:
         assert conn.execute("SELECT COUNT(*) FROM t").fetchone()[0] == 2
+
+
+def test_locked_backup_times_out_and_can_be_retried(tmp_path, monkeypatch):
+    import time
+
+    path = tmp_path / 'scraper.db'
+    url = _database(path)
+    locker = sqlite3.connect(path)
+    locker.execute('BEGIN EXCLUSIVE')
+    ticks = iter([0.0, 31.0])
+    try:
+        # Use a real SQLite lock and advance only the backup's elapsed clock.
+        with monkeypatch.context() as patch:
+            patch.setattr(time, 'monotonic', lambda: next(ticks))
+            with pytest.raises(TimeoutError, match='backup blocked'):
+                backup_sqlite(url)
+        assert not list((tmp_path / 'backups').glob('*/*'))
+    finally:
+        locker.rollback()
+        locker.close()
+    assert backup_sqlite(url) is not None

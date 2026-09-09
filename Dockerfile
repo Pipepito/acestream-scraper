@@ -150,16 +150,24 @@ RUN chmod +x /usr/local/lib/ipfs-install/install-ipfs.sh \
 
 
 # Self-contained ZeroNet node (zeronet-conservancy), bundled for linux/amd64
-# only like the v1 image. The stage runs on $BUILDPLATFORM so ARM image
-# builds skip it natively (empty /opt/zeronet + metadata); install-zeronet.sh
-# refuses cross-builds of the amd64 payload. The whole CPython prefix is
-# staged into /opt/zeronet/python because the runtime image runs the app on a
-# different interpreter version.
-FROM --platform=$BUILDPLATFORM python:${ZERONET_PYTHON_VERSION}-slim AS zeronet-installer
+# and linux/arm64. 32-bit ARM still gets an empty /opt/zeronet + metadata
+# (gevent has no armv7l wheels); see docker/scripts/install-zeronet.sh.
+#
+# The stage runs on $TARGETPLATFORM, not $BUILDPLATFORM: the pip wheels and
+# the staged CPython prefix are native code and have to match the platform
+# they will run on. That means arm64 image builds emulate this stage through
+# binfmt instead of skipping it, which is the cost of having the node there.
+#
+# The whole CPython prefix is staged into /opt/zeronet/python because the
+# runtime image runs the app on a different interpreter version.
+FROM --platform=$TARGETPLATFORM python:${ZERONET_PYTHON_VERSION}-slim AS zeronet-installer
 
 ARG TARGETPLATFORM
-ARG ZERONET_REF=v0.7.10
-ARG ZERONET_COMMIT=18d35d3bed4f0683e99f8af5a86a8d76ed866e1e
+# Pinned by commit and fetched by commit (see install-zeronet.sh): this is the
+# first zeronet-conservancy state that carries src/DHT, so peer discovery
+# actually works. The old v0.7.10 pin predates DHT entirely.
+ARG ZERONET_REF=main
+ARG ZERONET_COMMIT=81d3ffc6bdfb600e9a1d4a091f1ceb131d92c4f1
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates git \
@@ -328,19 +336,21 @@ COPY --from=ipfs-installer /opt/ipfs/ /opt/ipfs/
 RUN mkdir -p /data/ipfs \
     && if [ -x /opt/ipfs/bin/ipfs ]; then ln -sf /opt/ipfs/bin/ipfs /usr/local/bin/ipfs; fi
 
-# Bundled ZeroNet node (linux/amd64 only; /opt/zeronet holds just metadata on
-# ARM — the entrypoint detects the missing launcher and refuses
-# ENABLE_ZERONET=true there). Opt-in at runtime: ENABLE_ZERONET=false by
-# default; the scraper reaches whichever node ZERONET_URL points at either
-# way. tor rides along for the v1 ENABLE_TOR toggle (amd64 only, matching
-# where the bundled node exists).
+# Bundled ZeroNet node (linux/amd64 and linux/arm64; /opt/zeronet holds just
+# metadata on 32-bit ARM — the entrypoint detects the missing launcher and
+# refuses ENABLE_ZERONET=true there). Opt-in at runtime: ENABLE_ZERONET=false
+# by default; the scraper reaches whichever node ZERONET_URL points at either
+# way. tor rides along for the ENABLE_TOR toggle, on the same platforms where
+# the bundled node exists — Debian ships tor for arm64, so the only reason it
+# was amd64-only was that ZeroNet was.
 COPY --from=zeronet-installer /opt/zeronet/ /opt/zeronet/
 RUN mkdir -p /data/zeronet \
-    && if [ "$TARGETARCH" = "amd64" ]; then \
-        apt-get update \
-        && apt-get install -y --no-install-recommends tor \
-        && rm -rf /var/lib/apt/lists/*; \
-    fi
+    && case "$TARGETARCH" in \
+        amd64|arm64) \
+            apt-get update \
+            && apt-get install -y --no-install-recommends tor \
+            && rm -rf /var/lib/apt/lists/* ;; \
+    esac
 
 # Static ffmpeg/ffprobe for the web player (every flavor and platform).
 COPY --from=ffmpeg-builder /out/ /opt/ffmpeg/bin/

@@ -322,8 +322,8 @@ ENABLE_ZERONET=$(normalize_bool "${ENABLE_ZERONET:-false}")
 ENABLE_TOR=$(normalize_bool "${ENABLE_TOR:-false}")
 IMAGE_HAS_ACESTREAM=$(normalize_bool "${IMAGE_HAS_ACESTREAM:-false}")
 IMAGE_HAS_ACEXY=$(normalize_bool "${IMAGE_HAS_ACEXY:-false}")
-# The bundled ZeroNet node ships on amd64 images only: detect the installed
-# launcher instead of hard-coding an ENV per platform.
+# The bundled ZeroNet node ships on amd64 and arm64 images: detect the
+# installed launcher instead of hard-coding an ENV per platform.
 ZERONET_BINARY_PATH="${ZERONET_BINARY_PATH:-/opt/zeronet/bin/zeronet}"
 if [ -z "${IMAGE_HAS_ZERONET:-}" ]; then
     if [ -x "$ZERONET_BINARY_PATH" ]; then IMAGE_HAS_ZERONET=true; else IMAGE_HAS_ZERONET=false; fi
@@ -419,7 +419,7 @@ if feature_enabled "$ENABLE_IPFS" && ! image_has_feature "$IMAGE_HAS_IPFS"; then
 fi
 
 if feature_enabled "$ENABLE_ZERONET" && ! image_has_feature "$IMAGE_HAS_ZERONET"; then
-    fail "ZeroNet is enabled but not installed in this image (bundled on linux/amd64 only; point ZERONET_URL at an external node instead)"
+    fail "ZeroNet is enabled but not installed in this image (bundled on linux/amd64 and linux/arm64; point ZERONET_URL at an external node instead)"
 fi
 
 if feature_enabled "$ENABLE_TOR" && ! feature_enabled "$ENABLE_ZERONET"; then
@@ -474,7 +474,7 @@ fi
 
 start_tor() {
     if ! command -v tor >/dev/null 2>&1; then
-        fail "ENABLE_TOR=true but the tor binary is not installed in this image (amd64 images only)"
+        fail "ENABLE_TOR=true but the tor binary is not installed in this image (amd64 and arm64 images only)"
     fi
     local torrc="${TORRC_PATH:-/tmp/acestream-scraper-torrc}"
     local tor_data="${TOR_DATA_DIR:-/var/lib/tor-zeronet}"

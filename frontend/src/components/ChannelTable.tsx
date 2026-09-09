@@ -91,7 +91,7 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
       {
         field: 'is_online',
         headerName: 'Signal',
-        width: 145,
+        width: 180,
         renderCell: (params: GridRenderCellParams<AcestreamChannel>) => <OnlineChip isOnline={params.row.is_online} />,
       },
       {

@@ -361,7 +361,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
       sortable: false,
       renderCell: (params: GridRenderCellParams<TVChannel>) => renderActions(params.row),
     },
-    { field: 'channel_number', headerName: 'Number', width: 135, renderCell: (params: GridRenderCellParams<TVChannel>) => onNumberChange ? <ChannelNumberField channel={params.row} onSave={onNumberChange} /> : params.row.channel_number ?? '—' },
+    { field: 'channel_number', headerName: 'Number', width: 135, renderCell: (params: GridRenderCellParams<TVChannel>) => onNumberChange ? <ChannelNumberField hideLabel channel={params.row} onSave={onNumberChange} /> : params.row.channel_number ?? '—' },
     { field: 'is_favorite', headerName: 'Favorite', width: 90, renderCell: (params: GridRenderCellParams<TVChannel>) => renderFavorite(params.row) },
     { field: 'category', headerName: 'Category', width: 120 },
     { field: 'language', headerName: 'Language', width: 100 },

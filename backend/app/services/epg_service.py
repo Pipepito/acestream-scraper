@@ -2,6 +2,7 @@
 Service for managing EPG operations
 """
 import html
+from bisect import bisect_left
 import logging
 import re
 import xml.etree.ElementTree as ET
@@ -148,8 +149,8 @@ class EPGService:
                         name=name,
                         icon_url=icon_url,
                         language=language,
-                        created_at=datetime.now(),
-                        updated_at=datetime.now()
+                        created_at=datetime.now(timezone.utc),
+                        updated_at=datetime.now(timezone.utc)
                     )
                     self.db.add(db_channel)
                     channel_mapping[channel_id] = db_channel
@@ -158,7 +159,7 @@ class EPGService:
                     db_channel.name = name
                     db_channel.icon_url = icon_url
                     db_channel.language = language
-                    db_channel.updated_at = datetime.now()
+                    db_channel.updated_at = datetime.now(timezone.utc)
 
             self.db.flush()
             channel_id_map = {xml_id: channel.id for xml_id, channel in channel_mapping.items()}
@@ -175,6 +176,8 @@ class EPGService:
                 for program in existing_programs
             }
 
+            incoming_keys = set()
+            incoming_intervals = {}
             for program_elem in root.findall(".//programme"):
                 channel_id = program_elem.get("channel", "")
                 start_time_str = program_elem.get("start", "")
@@ -193,6 +196,9 @@ class EPGService:
                 except ValueError:
                     continue
 
+                if end_time <= start_time:
+                    continue
+
                 title_elem = program_elem.find("title")
                 title = title_elem.text if title_elem is not None else "Unknown Program"
 
@@ -209,6 +215,8 @@ class EPGService:
                 image_url = icon_elem.get("src") if icon_elem is not None else None
 
                 program_key = (epg_channel_id, start_time, end_time, title)
+                incoming_keys.add(program_key)
+                incoming_intervals.setdefault(epg_channel_id, []).append((start_time, end_time))
                 db_program = existing_program_map.get(program_key)
 
                 if not db_program:
@@ -231,6 +239,30 @@ class EPGService:
                     db_program.description = description
                     db_program.category = category
                     db_program.image_url = image_url
+
+            # Replace superseded listings only where this feed supplies valid coverage.
+            # Preserve gaps, absent channels and other sources; an empty feed deletes nothing.
+            coverage = {}
+            for channel_id, intervals in incoming_intervals.items():
+                merged = []
+                for start, end in sorted(intervals):
+                    if merged and start <= merged[-1][1]:
+                        merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+                    else:
+                        merged.append((start, end))
+                coverage[channel_id] = ([start for start, _ in merged], [end for _, end in merged])
+            for program in existing_programs:
+                key = (program.epg_channel_id, program.start_time, program.end_time, program.title)
+                if key in incoming_keys:
+                    if existing_program_map[key] is not program:
+                        self.db.delete(program)
+                    continue
+                intervals = coverage.get(program.epg_channel_id)
+                if intervals:
+                    starts, ends = intervals
+                    index = bisect_left(starts, program.end_time) - 1
+                    if index >= 0 and ends[index] > program.start_time:
+                        self.db.delete(program)
 
             from app.services.epg_link_service import EPGLinkService
             EPGLinkService(self.db).repair()

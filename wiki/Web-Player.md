@@ -26,7 +26,7 @@ Because the video track is passed through as-is, a browser that cannot decode it
 
 Wherever a channel appears in the app — Acestream Channels, TV Channels (including the channel detail page) and Search — its row actions carry a **Play** button (alongside **Check status**; anything else lives under "More actions" on crowded rows). Press it to open the player dialog: it starts a session, waits for the first HLS segments, and then plays automatically.
 
-While a channel is starting, the dialog shows the engine's peer count and download speed as they become available. Once segments are ready it switches to **Playing**. Closing the dialog (or navigating away) releases the session; if you are the only viewer, the backend stops ffmpeg and the engine stream a few seconds later.
+While a channel is starting, the dialog shows the engine's peer count and download speed as they become available. Once segments are ready it shows **Buffering…** until the browser starts playback, then **Playing**. Pausing shows **Paused**. Temporary status-request failures are displayed and polled again automatically; an expired session or rejected access token requires your attention. Closing the dialog (or navigating away) releases the session; if you are the only viewer, the backend stops ffmpeg and the engine stream a few seconds later.
 
 ## Live TV and choosing a stream
 
@@ -91,7 +91,7 @@ The player explains problems in plain language instead of raw codes:
 | What you see | What it means | What to do |
 |---|---|---|
 | "This server can't prepare streams for the browser. Open the channel in VLC instead." | No ffmpeg is available on the server | Use VLC/Kodi with the stream link, or fix `FFMPEG_BINARY_PATH` |
-| "No one is sharing this channel right now. Try again later or pick another stream." | The engine never produced a usable stream before the start timeout | Try another channel, or retry later |
+| "The stream did not become ready in time. Check the engine or proxy, retry, or pick another stream." | The engine never produced a usable stream before the start timeout | Try another channel, or retry later |
 | "The stream stopped unexpectedly. Try again." | ffmpeg exited mid-stream | Press **Retry** |
 | "The AceStream engine could not start this channel: …" | The engine refused or was unreachable | Check the engine URL under Settings, or that the engine is running |
 | "Your browser can't play this channel's video format (…). Send it to VLC or Kodi instead." | The source video codec (MPEG-2, MPEG-1, VC-1, MPEG-4 v3) is not one browsers decode | Open the stream link in VLC or Kodi |

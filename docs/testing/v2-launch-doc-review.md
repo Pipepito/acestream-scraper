@@ -40,3 +40,27 @@ The full backend/frontend application suites, image builds, ARM hardware playbac
 - At 1440 pixels, the TV Channels Number fields show cramped/clipped floating labels in compact rows; some long signal labels are ellipsized in Acestream Channels. The screenshots preserve the actual UI; these are candidates for a separate UI polish pass.
 - The sampled guide contained overlapping entries for a station. Source data versus mapping/import behavior was not isolated; verify the chosen XMLTV source and station mapping before treating it as an application defect.
 - Repeated playback startup should be exercised with runtime logs before launch. One successful video session is not a stability test, and this review did not verify decoder continuity during relay failover.
+
+
+## Follow-up implementation — 9 September 2026
+
+- TV Channels uses its Number column header as the visible table label, retaining the channel-specific accessible input name; phone fields retain their visible label. Signal chips wrap when necessary and the desktop signal column has room for the longest status.
+- XMLTV import previously only matched exact channel/time/title keys, accumulating old entries when schedules changed. Refresh now removes superseded listings only where valid incoming programmes cover that source/channel. Gaps, other sources and absent channels remain; empty or invalid intervals do not erase listings. Existing duplicate keys within refreshed coverage are consolidated. Overlap present in the incoming provider feed remains visible rather than being silently guessed away.
+- Embedded Alembic startup previously reconfigured root logging and disabled existing application loggers. Startup now preserves logging so playback failures can be diagnosed after migrations.
+- A failed player-status request previously stopped polling indefinitely. Transient failures now keep polling, display an actionable error and recover automatically; missing/unauthorized sessions stop polling. Playing/Buffering/Paused reflect browser media events. Startup-timeout copy no longer assumes that no peers exist.
+
+The earlier captured Acexy log contains an upstream response-header timeout during a failed start. That establishes an upstream failure for that attempt, not a universal cause for every blank player. A new three-attempt browser check could not begin because the test instance refused connections. These code changes have not been deployed there. Repeated live startup and decoder continuity through relay failover remain unverified; deterministic player/relay tests do not establish real-world stream availability.
+
+Validation after the follow-up fixes:
+
+- Full canonical suite with preinstalled dependencies: 1,242 backend tests passed, 3 skipped; 4 documentation contract tests passed; 73 frontend suites / 415 tests passed; OpenAPI/client generation drift checks, frontend lint/typecheck and production build passed.
+- The initial sandboxed run blocked local sockets, process inspection and shell file descriptors; the complete rerun with those permissions passed.
+
+- Full responsive suite: all 60 checks passed across phone/desktop Chromium, small-phone WebKit and tablet Firefox, in both themes. Tests use isolated fixtures, including playback lifecycle, audio choice, routing, startup recovery and the new channel-label checks. Updated stale playback-button selectors and phone scrolling expectations. E2E typecheck passed.
+- Command-builder contract, strict legacy-path check, 153 README/wiki local links/anchors, wiki publish dry run and diff whitespace checks passed.
+
+The following reviewed screenshots show the updated frontend with synthetic example data, not the live instance. The earlier wiki walkthrough screenshots remain the live capture record.
+
+![Number field with a readable column label and keyboard focus](assets/v2-number-field.png)
+
+![Full signal status in the desktop table](assets/v2-signal-label.png)

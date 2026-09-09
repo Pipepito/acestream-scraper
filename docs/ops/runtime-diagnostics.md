@@ -54,3 +54,5 @@ included. The download does not restart services, probe channels or change setti
 
 Player failures log their error category and bounded FFmpeg output before the
 session is removed, so closing a player dialog does not discard the diagnostic cause.
+
+Embedded startup migrations preserve the application logging handlers and levels, so player and service messages continue reaching the scraper log after schema initialization. Standalone Alembic commands configure their own console logging without disabling existing loggers.

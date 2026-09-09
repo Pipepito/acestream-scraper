@@ -46,6 +46,8 @@ For Plex/Jellyfin, refresh the guide/lineup after changing channels or formats. 
 
 In **EPG → Sources**, check the last refresh and error. In **Channels**, confirm the guide contains the station, then verify the TV channel's EPG mapping. Matching names alone do not guarantee the right regional edition. Refreshing XMLTV cannot fix an incorrect station assignment.
 
+Refreshes replace older listings that overlap valid programmes supplied by the same source, including title or timing corrections. Gaps, channels absent from the feed and listings from other sources are preserved; empty feeds do not clear the guide. If programmes still overlap after a successful refresh, check whether the provider includes those overlapping entries in its XMLTV feed.
+
 Guide times use the viewing device's timezone; XMLTV timestamps are normalized by the backend. Check the device clock. Today hides programmes that have ended; future tabs retain their full schedule. No current programme does not mean no broadcast.
 
 Large legacy guide imports continue in resumable batches. Use the import banner or **Settings → Startup diagnostics** for progress. Do not delete migration checkpoints or the archived v1 database while an import is unfinished.

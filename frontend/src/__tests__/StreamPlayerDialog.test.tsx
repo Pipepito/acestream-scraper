@@ -102,10 +102,30 @@ describe('StreamPlayerDialog', () => {
     expect(hlsInstances[0].loadSource).toHaveBeenCalledWith('/api/v1/player/sessions/s1/index.m3u8');
   });
 
+  it('reports actual browser playback and waiting instead of server readiness', async () => {
+    mockStatus.mockReturnValue(readySession);
+    await renderDialog();
+    const video = screen.getByLabelText('Video player for Arena TV');
+    expect(screen.getByRole('status')).toHaveTextContent('Buffering');
+    fireEvent.playing(video);
+    expect(screen.getByRole('status')).toHaveTextContent('Playing');
+    fireEvent.waiting(video);
+    expect(screen.getByRole('status')).toHaveTextContent('Buffering');
+    fireEvent.pause(video);
+    expect(screen.getByRole('status')).toHaveTextContent('Paused');
+  });
+
+  it('surfaces status polling failures with a retry action', async () => {
+    mockStatus.mockReturnValue({ error: { status: 503 } });
+    await renderDialog();
+    expect(screen.getByRole('alert')).toHaveTextContent('Could not check the stream status');
+    expect(screen.getByRole('button', { name: /Retry/i })).toBeEnabled();
+  });
+
   it('explains errors in plain language and offers the stream link', async () => {
     mockStatus.mockReturnValue({ data: { id: 's1', state: 'error', error: 'engine_stalled', error_message: 'no peers', hls_ready: false, stats: null, codecs: {}, playlist_url: '', viewers: 1 } });
     await renderDialog();
-    expect(screen.getByRole('alert')).toHaveTextContent('No one is sharing this channel right now');
+    expect(screen.getByRole('alert')).toHaveTextContent('The stream did not become ready in time');
     expect(screen.getByRole('button', { name: 'Copy stream link' })).toBeInTheDocument();
   });
 

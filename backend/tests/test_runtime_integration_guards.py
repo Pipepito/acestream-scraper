@@ -664,10 +664,12 @@ def _entrypoint_env(tmp_path: Path, **overrides: str) -> dict[str, str]:
 
     assert result.returncode == 0, result.stdout + result.stderr
     reported: dict[str, str] = {}
+    report_prefix = "[scraper] REPORT "
     for line in result.stdout.splitlines():
-        if line.startswith("REPORT "):
-            name, _, value = line[len("REPORT ") :].partition("=")
+        if line.startswith(report_prefix):
+            name, _, value = line[len(report_prefix) :].partition("=")
             reported[name] = value[1:-1]
+    assert set(reported) == {"FFMPEG_BINARY_PATH", "IMAGE_HAS_FFMPEG"}, result.stdout + result.stderr
     return reported
 
 

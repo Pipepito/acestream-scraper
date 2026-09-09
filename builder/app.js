@@ -40,6 +40,7 @@
     engine: true,
     acexy: true,
     warp: false,
+    xdpDns: false,
     zeronet: false,
     zeronetEmbedded: true,
     zeronetUrl: '',
@@ -254,6 +255,7 @@
     const name = safeName(state.containerName.trim()) || 'acestream-scraper';
     lines.push(`  --name ${name} \\`);
     if (state.restart !== 'no') lines.push(`  --restart ${state.restart} \\`);
+    if (state.xdpDns) lines.push(`  --dns=${shellQuote(data.xdpDns.address)} \\`);
     if (d.warpOn) {
       lines.push('  --cap-add NET_ADMIN \\');
       lines.push('  --cap-add SYS_ADMIN \\');
@@ -275,6 +277,11 @@
     const name = safeName(state.containerName.trim()) || 'acestream-scraper';
     const lines = ['services:', `  ${name}:`, `    image: ${image}`, `    container_name: ${name}`];
     if (state.restart !== 'no') lines.push(`    restart: ${state.restart}`);
+
+    if (state.xdpDns) {
+      lines.push('    dns:');
+      lines.push(`      - ${yamlQuote(data.xdpDns.address)}`);
+    }
 
     const ports = portEntries(d);
     if (ports.length) {
@@ -329,6 +336,7 @@
   function collectWarnings(d) {
     const notes = data.notes;
     const out = [];
+    if (state.xdpDns && d.warpOn) out.push(['info', data.xdpDns.warpNote]);
     if (d.checkEngineOn) {
       out.push(['info', 'The bundled checker uses its own state folder and internal ports 6880, 6881, 62063 and 8622. Keep its folder separate from playback. No checker ports need publishing.']);
       if (String(state.runtimeSettings.externalCheckEngine || '').trim()) {
@@ -517,6 +525,8 @@
         'Connects the container through WARP. Adds the required capabilities and TUN device.',
         state.warp, (v) => { state.warp = v; }));
     }
+    list.append(toggleRow('xdp-dns', data.xdpDns.label, data.xdpDns.description,
+      state.xdpDns, (v) => { state.xdpDns = v; }));
     list.append(toggleRow('zeronet', 'Scrape ZeroNet sources',
       d.platform.zeronetAvailable ? data.zeronet.description : data.notes.zeronetArm,
       state.zeronet, (v) => { state.zeronet = v; }));
@@ -786,6 +796,7 @@
 
   function init(json) {
     data = json;
+    state.xdpDns = data.xdpDns.enabledByDefault;
     state.flavor = (data.flavors.find((f) => f.recommended) || data.flavors[0]).id;
     state.zeronetUrl = data.zeronet.defaultUrl;
     state.ipfsGatewayUrl = data.ipfs.defaultGatewayUrl;
@@ -802,6 +813,17 @@
     update();
     $('#app').hidden = false;
   }
+
+  // This deployment-owned file changes only after a successful latest promotion.
+  // Missing metadata (local previews or pre-cutover Pages) keeps the neutral hint.
+  fetch('release-status.json', { cache: 'no-cache' })
+    .then((r) => r.ok ? r.json() : null)
+    .then((release) => {
+      if (release && /^v\d+\.\d+\.\d+$/.test(release.version)) {
+        $('#production-release').textContent = `Production (:latest): ${release.version}. Choose Latest release for production; Develop tracks pre-release changes for testing.`;
+      }
+    })
+    .catch(() => {});
 
   fetch('builder/runtime-options.json', { cache: 'no-cache' })
     .then((r) => { if (!r.ok) throw new Error(r.statusText); return r.json(); })

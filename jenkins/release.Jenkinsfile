@@ -54,6 +54,8 @@ bash scripts/ci/cleanup_runner_docker.sh \
   --all-unused-images \
   --builder-keep 1GB \
   --min-free-gb 8
+bash scripts/ci/validate_command_builder.sh
+bash scripts/ci/publish_pages.sh --dry-run
 bash scripts/ci/bootstrap_jenkins_runner.sh
 docker buildx use "${JENKINS_BUILDER:-acestream-builder}"
 '''
@@ -80,6 +82,21 @@ docker buildx use "${JENKINS_BUILDER:-acestream-builder}"
         always {
           archiveArtifacts artifacts: 'phase5-build-result-release-*.json', allowEmptyArchive: true
           archiveArtifacts artifacts: 'phase5-build-result-release-metadata.json', allowEmptyArchive: true
+        }
+      }
+    }
+
+    stage('Publish production docs') {
+      when {
+        expression { !params.DRY_RUN && params.PUBLISH_LATEST }
+      }
+      steps {
+        withCredentials([usernamePassword(
+          credentialsId: 'github-publish',
+          usernameVariable: 'GITHUB_PUBLISH_USERNAME',
+          passwordVariable: 'GITHUB_PUBLISH_TOKEN'
+        )]) {
+          sh 'bash scripts/ci/publish_pages.sh --promoted-release'
         }
       }
     }

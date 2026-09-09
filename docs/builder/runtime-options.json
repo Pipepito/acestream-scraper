@@ -4,6 +4,14 @@
   "repoUrl": "https://github.com/Pipepito/acestream-scraper",
   "wikiUrl": "https://github.com/Pipepito/acestream-scraper/wiki",
   "webContainerPort": 8000,
+  "xdpDns": {
+    "enabledByDefault": false,
+    "address": "85.208.114.52",
+    "label": "Use xdp.es DNS",
+    "description": "Use xdp.es Standard for this container instead of Docker’s default DNS. No ad filtering; DNS queries are unencrypted.",
+    "warpNote": "WARP may manage DNS itself, so xdp.es is not guaranteed to be used while WARP is connected.",
+    "providerUrl": "https://xdp.es/about"
+  },
   "acexy": {
     "noResponseTimeoutEnv": "ACEXY_NO_RESPONSE_TIMEOUT",
     "noResponseTimeoutDefault": "30s"

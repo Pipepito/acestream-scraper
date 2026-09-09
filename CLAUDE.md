@@ -295,3 +295,9 @@ URL, and with neither URL probes are skipped without changing channel results.
 A configured dedicated checker never falls back on failure. Bundled checker
 configuration remains supervisor-owned and read-only in Settings. New scraper-only
 installs default to an empty playback URL; existing saved endpoints are preserved.
+
+Production Pages publication follows successful, non-dry-run latest promotion in
+`jenkins/release.Jenkinsfile` using `publish_pages.sh --promoted-release` and the
+`github-publish` credential. The publisher verifies promotion metadata and writes
+`release-status.json`; ordinary develop publishes preserve that production
+version. Never update this label on a main merge, canary-only publish or dry run.

@@ -317,3 +317,12 @@ Run `bash scripts/ci/run_jenkins_release.sh --print-publish-plan` (or
 locally to see exactly which tags would be pushed before authorising the
 real run. The flag short-circuits before any docker/buildx work, so it
 is safe to run on a workstation.
+
+### Production documentation after promotion
+
+The release pipeline publishes the command builder and records the production
+version after successful `PUBLISH_LATEST=true` promotion. Check the page's
+**Production (:latest)** label against the promoted version and confirm the
+`Publish production docs` stage succeeded. Version-only canary publishes and dry
+runs leave the label unchanged. The release job needs the `github-publish`
+credential; see `docs/ops/jenkins-ci.md` for failure recovery.

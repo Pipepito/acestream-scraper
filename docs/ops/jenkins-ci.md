@@ -21,6 +21,18 @@ Current job model (adopted 2026-09-04):
 - `acestream-scraper-pr` is a multibranch job loading `jenkins/pr.Jenkinsfile`. It discovers origin and fork PRs, reports `PR Validation`, never binds a credential, and confines contributor code to the trusted PR-runner container.
 - `acestream-scraper-develop` is a Pipeline-from-SCM job loading `jenkins/develop.Jenkinsfile` from `develop`. It runs the full application suite and privileged Docker/runtime smokes, rejects stale revisions, then publishes the floating `develop` channel, wiki, and Pages.
 - `acestream-scraper-release` loads `jenkins/release.Jenkinsfile` from `main` and remains manual-only.
+
+After a successful non-dry-run `PUBLISH_LATEST=true` promotion, the release job
+publishes the command builder from the same `main` checkout using `github-publish`.
+It writes `release-status.json` only after checking the promotion metadata's mode,
+version and commit against `version.txt`, HEAD and `origin/main`. The page displays
+that version as production; it does not claim `latest` and `develop` remain equal.
+Later develop publications preserve this file. Initial version-tag publication,
+dry runs and failed promotions do not update the production label. The release
+job therefore needs access to the existing `github-publish` credential as well as
+`dockerhub-publish`. If Pages publication fails after promotion, the image is
+already promoted: fix the publication error and rerun the promotion job to retry.
+
 - GitHub Actions workflows are retired; Jenkins is the sole CI/CD implementation.
 
 The disposable PR/develop runner includes FFmpeg for generated-video relay failover

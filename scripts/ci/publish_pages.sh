@@ -13,7 +13,7 @@
 # commits on top of it and pushes only when the content changed.
 #
 # Usage:
-#   bash scripts/ci/publish_pages.sh [--dry-run]
+#   bash scripts/ci/publish_pages.sh [--dry-run] [--promoted-release]
 #
 # Exit codes: 0 published or nothing to do; 1 error.
 #
@@ -25,10 +25,12 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 DRY_RUN=0
+PROMOTED_RELEASE=0
 
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN=1 ;;
+    --promoted-release) PROMOTED_RELEASE=1 ;;
     -h|--help) sed -n '2,23p' "${BASH_SOURCE[0]}"; exit 0 ;;
     *) printf 'Unknown argument: %s\n' "$arg" >&2; exit 2 ;;
   esac
@@ -62,6 +64,29 @@ cp "$ROOT/docs/index.html" "$payload/index.html"
 cp -R "$ROOT/docs/builder" "$payload/builder"
 touch "$payload/.nojekyll"
 
+# Only a completed promotion from the checked-out main commit may update the
+# production label. Ordinary develop publishes retain the existing label.
+if [[ "$PROMOTED_RELEASE" -eq 1 ]]; then
+  [[ "$(git -C "$ROOT" rev-parse HEAD)" == "$(git -C "$ROOT" rev-parse refs/remotes/origin/main)" ]] \
+    || fail "production docs require the current origin/main commit"
+  python3 - "$ROOT" "$payload/release-status.json" <<'PYRELEASE'
+import json, re, subprocess, sys
+from pathlib import Path
+root = Path(sys.argv[1])
+metadata = json.loads((root / 'phase5-build-result-release-metadata.json').read_text())
+sha = subprocess.check_output(['git', '-C', str(root), 'rev-parse', 'HEAD'], text=True).strip()
+version = (root / 'version.txt').read_text().strip()
+if (metadata.get('mode') != 'promote-latest' or metadata.get('git_sha') != sha
+        or metadata.get('version') != version
+        or not re.fullmatch(r'v\d+\.\d+\.\d+', version)):
+    raise SystemExit('Production docs require successful promotion metadata for this release commit')
+Path(sys.argv[2]).write_text(json.dumps({
+    'version': version, 'gitSha': sha, 'promotedAt': metadata['generated_at']
+}, indent=2) + '\n')
+PYRELEASE
+fi
+
+
 log "target: $remote_url ($branch)"
 log "source: $source_branch@$source_sha"
 
@@ -88,6 +113,9 @@ export GIT_ASKPASS="$askpass" GIT_TERMINAL_PROMPT=0
 # --- Clone gh-pages (or start it), replace its content, push if changed ---------
 clone="$work/site"
 if git clone -q --depth 1 --branch "$branch" "$remote_url" "$clone" 2>"$work/clone.err"; then
+  if [[ "$PROMOTED_RELEASE" -eq 0 && -f "$clone/release-status.json" ]]; then
+    cp "$clone/release-status.json" "$payload/release-status.json"
+  fi
   find "$clone" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
 else
   if ! grep -qiE "not found in upstream|could not find remote branch" "$work/clone.err"; then

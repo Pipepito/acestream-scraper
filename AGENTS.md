@@ -251,3 +251,9 @@ Bundled ZeroNet supports amd64 and arm64. Keep its downloaded sites and `.node/`
 configuration/private state within `ZERONET_DATA_DIR`. Legacy `sites.json` and
 `users.json` are copied into `.node/private` only when absent; never overwrite
 migrated state or delete the originals during startup.
+
+Production Pages publication follows successful, non-dry-run latest promotion in
+`jenkins/release.Jenkinsfile` using `publish_pages.sh --promoted-release` and the
+`github-publish` credential. The publisher verifies promotion metadata and writes
+`release-status.json`; ordinary develop publishes preserve that production
+version. Never update this label on a main merge, canary-only publish or dry run.

@@ -58,6 +58,17 @@ The checked-in `docker-compose.yml` uses `pipepito/acestream-scraper:latest`. `l
 
 Not sure which tag, ports, folders or options you need? The [Docker command builder](https://pipepito.github.io/acestream-scraper/) asks three questions and produces a ready-to-copy `docker run` command or `docker-compose.yml` for your flavor, platform and features. It lives in this repository as `docs/index.html` + `docs/builder/`; Jenkins publishes it to the `gh-pages` branch (served by GitHub Pages) and mirrors the wiki pages under `wiki/` to the [GitHub wiki](https://github.com/Pipepito/acestream-scraper/wiki) on every validated `develop` build.
 
+After a production release is promoted to `:latest`, the release pipeline updates
+the builder’s production-version label. Later development publishes retain that
+label; `develop` remains the testing channel for subsequent changes.
+
+The builder’s **Use xdp.es DNS** option is off by default. Enabling it adds
+`--dns=85.208.114.52` to Docker commands or a `dns:` entry to Compose, selecting
+[xdp.es Standard](https://xdp.es/about) without ad filtering. This uses ordinary,
+unencrypted DNS. Recreate the container to apply or remove it; WARP may override
+DNS while connected.
+
+
 `latest` and the immutable `vX.Y.Z` tags (plus `vX.Y.Z-<flavor>`) are the releases, cut from `main`. A pre-release channel is published from the `develop` branch as well: `pipepito/acestream-scraper:develop` (the full `scraper-acestream-acexy` payload, mirroring what `latest` means for releases) plus `develop-scraper`, `develop-scraper-acestream`, `develop-scraper-acexy`, and `develop-scraper-acestream-acexy`. The channel tags are moving tags, re-pushed on every validated build of `develop` (the full CI validation runs first, on the same platforms as the release flavors), so they are meant for testing the next release and not for production. To try one, set `image: pipepito/acestream-scraper:develop` in your compose file or `docker pull pipepito/acestream-scraper:develop`.
 
 WARP is installed in every flavor's `linux/amd64` and `linux/arm64` images (`linux/arm/v7` has no upstream package), but it only starts when `ENABLE_WARP=true`. WARP-enabled containers need the runtime capabilities `NET_ADMIN` and `SYS_ADMIN` plus the `/dev/net/tun` device. Set `WARP_ENABLE_NAT=true` to connect automatically at startup, or connect from the WARP page after the service starts.

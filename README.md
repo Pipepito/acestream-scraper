@@ -1,6 +1,6 @@
-# Acestream Scraper v2
+# Acestream Ids Scraper
 
-> **v2 launch documentation** — FastAPI, React, browser Live TV and multi-architecture Docker images. Use `:develop` to test the upcoming release; `:latest` changes only when a release is explicitly promoted.
+> **Release note:** Version 2 updates the codebase while preserving Scraper’s core purpose: discovering AceStream IDs and generating playlists. Use `:develop` to test the upcoming release; `:latest` changes only when a release is explicitly promoted.
 
 Discover AceStream IDs from web pages, playlists, JSON, text, ZeroNet and IPFS; organize them into TV channels with programme guides; watch in the browser or publish playlists to your players.
 
@@ -17,7 +17,7 @@ Engines are optional for scraping and playlist management. Browser playback and 
 ## Choose Your Starting Point
 
 - **Installing with Docker:** use the [interactive Docker command builder](https://pipepito.github.io/acestream-scraper/) to generate the correct image tag, ports, volumes, and environment options for your machine.
-- **Using the application:** follow the [illustrated v2 walkthrough](https://github.com/Pipepito/acestream-scraper/wiki/Usage), from checking services through importing the generated playlist.
+- **Using the application:** follow the [illustrated walkthrough](https://github.com/Pipepito/acestream-scraper/wiki/Usage), from checking services through importing the generated playlist.
 - **Upgrading from v1:** read the [migration guide](wiki/Installation.md#migrating-from-v1) and run the preflight backup before starting v2.
 - **Something is not working:** use [Troubleshooting](wiki/Troubleshooting.md), [FAQ](wiki/FAQ.md), or [collect a diagnostic report](wiki/Bug-Reporting.md).
 - **Developing or operating the service:** use the local-development section below and the [documentation index](#documentation-index).

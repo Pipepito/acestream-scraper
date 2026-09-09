@@ -1,8 +1,8 @@
 # Installation Guide
 
-This guide covers different methods for installing and setting up Acestream Scraper.
+This guide covers different methods for installing and setting up Acestream Ids Scraper.
 
-For the quickest v2 setup, open the [Docker command builder](https://pipepito.github.io/acestream-scraper/). It generates the correct `docker run` command or `docker-compose.yml` for your CPU, image flavor, optional services, ports, and volumes. The [project README](https://github.com/Pipepito/acestream-scraper#readme) provides the short release overview; this page explains each installation path in detail.
+For the quickest setup, open the [Docker command builder](https://pipepito.github.io/acestream-scraper/). It generates the correct `docker run` command or `docker-compose.yml` for your CPU, image flavor, optional services, ports, and volumes. The [project README](https://github.com/Pipepito/acestream-scraper#readme) provides the short release overview; this page explains each installation path in detail.
 
 ## Contents
 - [Docker Compose Method (Recommended)](#docker-compose-method-recommended)
@@ -11,7 +11,7 @@ For the quickest v2 setup, open the [Docker command builder](https://pipepito.gi
 
 ## Docker Compose Method (Recommended)
 
-Docker Compose provides the easiest way to get started with Acestream Scraper.
+Docker Compose provides the easiest way to get started with Acestream Ids Scraper.
 
 ### Prerequisites
 - Docker and Docker Compose installed on your system
@@ -59,7 +59,7 @@ Docker Compose provides the easiest way to get started with Acestream Scraper.
    
    Open your browser and navigate to `http://localhost:8000`
    
-   Follow the [illustrated walkthrough](Usage.md): **Settings → Playback** for the engine, **Automation** for schedules/checks, **Stream links** for player formats, **Integrations → Public address** for client-facing links and **Scraper** for source URLs. There is no v2 setup wizard.
+   Follow the [illustrated walkthrough](Usage.md): **Settings → Playback** for the engine, **Automation** for schedules/checks, **Stream links** for player formats, **Integrations → Public address** for client-facing links and **Scraper** for source URLs. Scraper has no setup wizard.
 
 ## Docker Method
 
@@ -160,7 +160,7 @@ TOR and the rest of the ZeroNet node's settings are configured on that external 
 
 For advanced users who want to run the application directly on their system.
 
-> **Superseded (2026-08-28):** the v1 steps that used to live here — a `venv` at the repository root, `pip install -r requirements.txt`, a `config/config.json` file and `python run_dev.py` / `python wsgi.py` — no longer apply. v2 is a FastAPI backend under `backend/` plus a React web interface under `frontend/`.
+> **Superseded (2026-08-28):** the v1 steps that used to live here — a `venv` at the repository root, `pip install -r requirements.txt`, a `config/config.json` file and `python run_dev.py` / `python wsgi.py` — no longer apply. Since version 2, Scraper uses a FastAPI backend under `backend/` and a React web interface under `frontend/`.
 
 ### Prerequisites
 - Python 3.11 or higher

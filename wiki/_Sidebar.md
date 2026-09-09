@@ -1,4 +1,4 @@
-**Acestream Scraper v2**
+**Acestream Ids Scraper**
 
 - [Home](Home.md)
 - [First-run walkthrough](Usage.md)

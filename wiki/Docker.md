@@ -12,7 +12,7 @@ Docker is a platform that uses containerization technology to package applicatio
 - **Docker Compose**: A tool for defining and running multi-container applications
 - **Volume**: Persistent data storage that exists outside the container lifecycle
 
-### Benefits of Using Docker with Acestream Scraper
+### Benefits of Using Docker with Acestream Ids Scraper
 
 1. **Simplified Installation**: No need to worry about dependencies or system compatibility
 2. **Consistent Environment**: Works the same way on any system that supports Docker
@@ -35,7 +35,7 @@ Docker is a platform that uses containerization technology to package applicatio
 - Easier to maintain complex setups
 - Example: `docker compose up -d`
 
-For Acestream Scraper, Docker Compose is recommended as it makes managing all configuration parameters easier.
+For Acestream Ids Scraper, Docker Compose is recommended as it makes managing all configuration parameters easier.
 
 ## Recommended cache and temporary storage
 
@@ -336,7 +336,7 @@ docker compose up -d
 
 ## Docker Data Persistence
 
-Acestream Scraper uses Docker volumes to persist data:
+Acestream Ids Scraper uses Docker volumes to persist data:
 
 - `/app/config`: Configuration files including database
 - `/var/lib/acestream`: AceStream engine state, disk cache, and logs of the ARM Android engine (only used when `ENABLE_ACESTREAM_ENGINE=true` in an AceStream-enabled flavor)

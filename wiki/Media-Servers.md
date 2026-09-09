@@ -20,7 +20,7 @@ Behind a reverse proxy there is one more rule: `/tuner/` must be excluded from p
 
 ### 1. Create an API key in Jellyfin
 
-**Dashboard › API Keys › +**, name it (for example `AceStream Scraper`) and copy the key. It must be an administrator's key: the app has to write Live TV configuration, which a normal user key cannot do.
+**Dashboard › API Keys › +**, name it (for example `Acestream Ids Scraper`) and copy the key. It must be an administrator's key: the app has to write Live TV configuration, which a normal user key cannot do.
 
 ### 2. Add the server here
 

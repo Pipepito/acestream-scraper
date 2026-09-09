@@ -1,8 +1,8 @@
-# Acestream Scraper
+# Acestream Ids Scraper
 
 ## Project Overview
 
-Acestream Scraper is a Python-based web application that automatically retrieves Acestream channel information from various sources and generates M3U playlists that can be used with any media player supporting the Acestream protocol.
+Acestream Ids Scraper is a Python-based web application that automatically retrieves Acestream channel information from various sources and generates M3U playlists that can be used with any media player supporting the Acestream protocol.
 
 Built on a FastAPI + SQLAlchemy + BeautifulSoup backend with a React + Material UI front end, this application provides a comprehensive solution for managing and accessing Acestream channels through an intuitive web interface.
 
@@ -10,10 +10,10 @@ Built on a FastAPI + SQLAlchemy + BeautifulSoup backend with a React + Material 
 
 1. Open the [Docker command builder](https://pipepito.github.io/acestream-scraper/) to generate the right command or Compose file for your CPU, image flavor, ports, and optional services.
 2. Read the [Installation Guide](Installation.md) and start the container.
-3. Follow the illustrated [v2 Usage Guide](Usage.md) from first launch through playlist import.
+3. Follow the illustrated [Usage Guide](Usage.md) from first launch through playlist import.
 4. Use the [project README](https://github.com/Pipepito/acestream-scraper#readme) for the release overview, supported platforms, development setup, and links to operator documentation.
 
-![Acestream Scraper v2 Overview](usage-01-overview.png)
+![Acestream Ids Scraper Overview](usage-01-overview.png)
 
 ## Help by task
 
@@ -30,7 +30,7 @@ Built on a FastAPI + SQLAlchemy + BeautifulSoup backend with a React + Material 
 
 Engines are optional for scraping and playlist management. A playback endpoint is needed for browser viewing, engine search and server relays. Status checks can use a dedicated engine; a configured checker outage never falls back to playback.
 
-These guides describe the v2 development line. Select the moving **develop** image channel to test the upcoming release; **latest** changes only on explicit release promotion.
+These guides cover Acestream Ids Scraper. Version 2 updates the codebase while preserving its core scraping and playlist functionality. Select the moving **develop** image channel to test the upcoming release; **latest** changes only on explicit release promotion.
 
 ## Key Features
 
@@ -69,7 +69,7 @@ The application follows a service-oriented architecture with:
 ## Wiki Navigation
 
 - [Docker Command Builder](https://pipepito.github.io/acestream-scraper/) - Generate the exact `docker run` command or `docker-compose.yml` for your setup
-- [Project README](https://github.com/Pipepito/acestream-scraper#readme) - v2 overview, quick start, platform support and contributor entry points
+- [Project README](https://github.com/Pipepito/acestream-scraper#readme) - project overview, quick start, platform support and contributor entry points
 - [Installation Guide](Installation.md) - How to install and set up the application
 - [Docker Guide](Docker.md) - Learn about Docker and how it works with this app
 - [Usage Guide](Usage.md) - How to use the application's features

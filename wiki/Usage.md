@@ -1,12 +1,12 @@
-# Using Acestream Scraper v2
+# Using Acestream Ids Scraper
 
-This walkthrough starts with a running container and ends with a playlist you can open in VLC, Kodi, or an IPTV app. Screenshots were refreshed from a running v2 test installation on 8 September 2026. Addresses and source URLs are hidden where needed; your catalogue and enabled services will differ.
+This walkthrough starts with a running container and ends with a playlist you can open in VLC, Kodi, or an IPTV app. Screenshots were refreshed from a running Scraper test installation on 8 September 2026. Addresses and source URLs are hidden where needed; your catalogue and enabled services will differ.
 
 ## Before you begin
 
 Open `http://localhost:8000` (replace `localhost` with the Docker host's address when using another device).
 
-If you have not created the container yet, use the [Docker command builder](https://pipepito.github.io/acestream-scraper/). It asks about your CPU, engine, proxy, and optional services, then produces a ready-to-copy `docker run` command or `docker-compose.yml`. The [project README](https://github.com/Pipepito/acestream-scraper#readme) gives the short v2 overview; the [Installation Guide](Installation.md) and [Docker Guide](Docker.md) contain the full details.
+If you have not created the container yet, use the [Docker command builder](https://pipepito.github.io/acestream-scraper/). It asks about your CPU, engine, proxy, and optional services, then produces a ready-to-copy `docker run` command or `docker-compose.yml`. The [project README](https://github.com/Pipepito/acestream-scraper#readme) gives the short project overview; the [Installation Guide](Installation.md) and [Docker Guide](Docker.md) contain the full details.
 
 ## Find your way around
 

@@ -1,6 +1,6 @@
 # Configuration Reference
 
-This guide provides detailed information about configuring Acestream Scraper.
+This guide provides detailed information about configuring Acestream Ids Scraper.
 
 ## Contents
 - [Application Settings](#application-settings)
@@ -15,7 +15,7 @@ This guide provides detailed information about configuring Acestream Scraper.
 
 ## Application Settings
 
-V2 stores application settings in the database. Container environment variables set runtime defaults; saved engine and public-address settings take precedence. Source URLs belong in **Scraper**, XMLTV feeds in **EPG → Sources**. V2 has no setup wizard and does not read `config/config.json`.
+Scraper stores application settings in the database. Container environment variables set runtime defaults; saved engine and public-address settings take precedence. Source URLs belong in **Scraper**, XMLTV feeds in **EPG → Sources**. Scraper has no setup wizard and does not read `config/config.json`.
 
 | Where | What to configure |
 |---|---|

@@ -80,7 +80,7 @@ schedule is wrong. HLS playback can still trail the broadcast by several seconds
 On phones, Live TV adapts its player and catalogue to the available width. Player dialogs on other pages use a full-screen layout with a scrollable schedule. Scraper sources, EPG sources and scheduled jobs show stacked,
 labelled fields so their controls remain reachable without sideways scrolling.
 
-![Live TV in the current v2 interface](usage-09-live-tv.png)
+![Live TV in Acestream Ids Scraper](usage-09-live-tv.png)
 
 <img src="usage-13-mobile-dark.png" alt="Live TV catalogue on a phone in dark theme" width="390" />
 

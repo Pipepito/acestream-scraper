@@ -45,7 +45,7 @@ Use **Audio track** in the browser player when tracks are detected. Changing aud
 
 ## Where did the old setup wizard go?
 
-V2 uses **Settings → Playback / Automation / Stream links / API access**, **Integrations → Public address**, and **Scraper** for source URLs. Values persist in the database; `config/config.json` is no longer read. See [Configuration](Configuration.md).
+Scraper uses **Settings → Playback / Automation / Stream links / API access**, **Integrations → Public address**, and **Scraper** for source URLs. Values persist in the database; `config/config.json` is no longer read. See [Configuration](Configuration.md).
 
 ## How often does automation run?
 

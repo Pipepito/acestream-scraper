@@ -246,3 +246,8 @@ URL, and with neither URL probes are skipped without changing channel results.
 A configured dedicated checker never falls back on failure. Bundled checker
 configuration remains supervisor-owned and read-only in Settings. New scraper-only
 installs default to an empty playback URL; existing saved endpoints are preserved.
+
+Bundled ZeroNet supports amd64 and arm64. Keep its downloaded sites and `.node/`
+configuration/private state within `ZERONET_DATA_DIR`. Legacy `sites.json` and
+`users.json` are copied into `.node/private` only when absent; never overwrite
+migrated state or delete the originals during startup.

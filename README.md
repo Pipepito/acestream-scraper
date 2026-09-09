@@ -62,7 +62,15 @@ Not sure which tag, ports, folders or options you need? The [Docker command buil
 
 WARP is installed in every flavor's `linux/amd64` and `linux/arm64` images (`linux/arm/v7` has no upstream package), but it only starts when `ENABLE_WARP=true`. WARP-enabled containers need the runtime capabilities `NET_ADMIN` and `SYS_ADMIN` plus the `/dev/net/tun` device. Set `WARP_ENABLE_NAT=true` to connect automatically at startup, or connect from the WARP page after the service starts.
 
-ZeroNet works in two modes. The `linux/amd64` and `linux/arm64` images bundle a ZeroNet node ([zeronet-conservancy](https://github.com/zeronet-conservancy/zeronet-conservancy) (pinned by commit, on its own Python 3.11), pinned to a commit that carries DHT peer discovery) that is opt-in via `ENABLE_ZERONET=true` (plus optional `ENABLE_TOR=true`); its state lives in `/data/zeronet` and its UI/fileserver ports are `43110`/`26552`. Alternatively — and on 32-bit ARM images, which ship without the bundled node because gevent has no armv7l wheels — ZeroNet runs as an external sidecar/service and the app talks to it through `ZERONET_URL`.
+ZeroNet works in two modes. The `linux/amd64` and `linux/arm64` images bundle a ZeroNet node ([zeronet-conservancy](https://github.com/zeronet-conservancy/zeronet-conservancy), pinned by commit with DHT peer discovery, on its own Python 3.11) that is opt-in via `ENABLE_ZERONET=true` (plus optional `ENABLE_TOR=true`); its state lives in `/data/zeronet` and its UI/fileserver ports are `43110`/`26552`. Alternatively — and on 32-bit ARM images, which ship without the bundled node because gevent has no armv7l wheels — ZeroNet runs as an external sidecar/service and the app talks to it through `ZERONET_URL`.
+
+The bundled ZeroNet node keeps its configuration and private state in
+`$ZERONET_DATA_DIR/.node` (normally `/data/zeronet/.node`), alongside existing
+downloaded sites. On upgrade, legacy `sites.json` and `users.json` are copied
+into `.node/private` only when the destination is absent; the original files
+are retained. Mount the entire `/data/zeronet` directory to preserve both
+content and identities across container replacement. Back up that volume before
+upgrading; a rollback uses the retained legacy files, not subsequent v2 state.
 
 The default compose file points `ZERONET_URL` at `http://host.docker.internal:43110`, so the app can start cleanly even when the optional `zeronet` profile is disabled. The checked-in `zeronet` compose service is an amd64-focused sidecar example. On 32-bit ARM hosts, prefer an external ZeroNet endpoint or a compatible replacement sidecar and keep `ZERONET_URL` pointed at it. When you enable the embedded node instead, leave `ZERONET_URL` unset (it then targets the embedded UI port automatically) or set it to `http://127.0.0.1:43110`.
 

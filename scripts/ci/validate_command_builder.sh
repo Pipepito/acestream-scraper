@@ -75,6 +75,16 @@ else:
             f"page={sorted(warp_platforms)} Dockerfile={sorted(docker_warp_platforms)}"
         )
 
+# ZeroNet's installer gate is the source of truth for its supported payloads.
+zeronet_script = (root / "docker/scripts/install-zeronet.sh").read_text(encoding="utf-8")
+zeronet_platforms = {p["id"] for p in data["platforms"] if p.get("zeronetAvailable")}
+installed_zeronet_platforms = set()
+for platform, machine in (("amd64", "x86_64"), ("arm64", "aarch64")):
+    if re.search(rf"linux/{platform}[^)]*\)\s*expected_machine={machine}", zeronet_script):
+        installed_zeronet_platforms.add(platform)
+if zeronet_platforms != installed_zeronet_platforms:
+    errors.append(f"ZeroNet platforms differ from installer: page={sorted(zeronet_platforms)} installer={sorted(installed_zeronet_platforms)}")
+
 # The compose file must still name the image the page generates commands for.
 if f"image: {data['image']}:latest" not in compose:
     errors.append(f"docker-compose.yml no longer uses {data['image']}:latest")

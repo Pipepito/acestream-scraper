@@ -73,7 +73,7 @@
       "engineSupport": "stable",
       "warpAvailable": true,
       "ipfsAvailable": true,
-      "zeronetAvailable": false
+      "zeronetAvailable": true
     },
     {
       "id": "armv7",

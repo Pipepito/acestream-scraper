@@ -9,7 +9,10 @@
       "id": "scraper-acestream-acexy",
       "label": "Full",
       "summary": "Scraper + AceStream engine + Acexy proxy in one container. Pick this if you are not sure.",
-      "features": ["acestream", "acexy"],
+      "features": [
+        "acestream",
+        "acexy"
+      ],
       "releaseTag": "latest",
       "developTag": "develop",
       "versionTagPattern": "vX.Y.Z",
@@ -19,7 +22,9 @@
       "id": "scraper-acestream",
       "label": "Scraper + engine",
       "summary": "Scraper with the AceStream engine, no Acexy proxy.",
-      "features": ["acestream"],
+      "features": [
+        "acestream"
+      ],
       "releaseTag": "scraper-acestream",
       "developTag": "develop-scraper-acestream",
       "versionTagPattern": "vX.Y.Z-scraper-acestream"
@@ -28,7 +33,9 @@
       "id": "scraper-acexy",
       "label": "Scraper + Acexy",
       "summary": "Scraper with the Acexy proxy; the AceStream engine runs somewhere else.",
-      "features": ["acexy"],
+      "features": [
+        "acexy"
+      ],
       "releaseTag": "scraper-acexy",
       "developTag": "develop-scraper-acexy",
       "versionTagPattern": "vX.Y.Z-scraper-acexy"
@@ -79,16 +86,20 @@
     {
       "id": "web",
       "container": 8000,
-      "protocols": ["tcp"],
+      "protocols": [
+        "tcp"
+      ],
       "defaultHost": 8000,
       "hostAddress": "0.0.0.0",
       "label": "Web interface",
-      "description": "The scraper's web UI and API (uvicorn, port set by FLASK_PORT). Published on 0.0.0.0 (IPv4) on purpose: an unaddressed mapping also listens on [::], and Docker then shows every IPv6 client to the app as the bridge gateway \u2014 which defeats the address check that keeps the token-free tuner routes (/tuner/*, used by Jellyfin and Plex) off the wider network."
+      "description": "The scraper's web UI and API (uvicorn, port set by FLASK_PORT). Published on 0.0.0.0 (IPv4) on purpose: an unaddressed mapping also listens on [::], and Docker then shows every IPv6 client to the app as the bridge gateway — which defeats the address check that keeps the token-free tuner routes (/tuner/*, used by Jellyfin and Plex) off the wider network."
     },
     {
       "id": "acexy",
       "container": 8080,
-      "protocols": ["tcp"],
+      "protocols": [
+        "tcp"
+      ],
       "defaultHost": 8080,
       "label": "Acexy proxy",
       "description": "Stream endpoint used by your players: http://<server>:<port>/ace/getstream?id=<channel id>."
@@ -96,7 +107,9 @@
     {
       "id": "engineApi",
       "container": 6878,
-      "protocols": ["tcp"],
+      "protocols": [
+        "tcp"
+      ],
       "defaultHost": 6878,
       "label": "Engine HTTP API",
       "description": "The AceStream engine's HTTP API. Only needed if players or other machines talk to the engine directly.",
@@ -105,7 +118,10 @@
     {
       "id": "p2p",
       "container": 8621,
-      "protocols": ["tcp", "udp"],
+      "protocols": [
+        "tcp",
+        "udp"
+      ],
       "defaultHost": 8621,
       "label": "P2P port",
       "description": "The engine's peer-to-peer port (TCP and UDP). Publishing it improves peer connectivity."
@@ -113,7 +129,10 @@
     {
       "id": "ipfsSwarm",
       "container": 4001,
-      "protocols": ["tcp", "udp"],
+      "protocols": [
+        "tcp",
+        "udp"
+      ],
       "defaultHost": 4001,
       "label": "IPFS swarm",
       "description": "The embedded IPFS node's peer-to-peer port (TCP and UDP/QUIC, IPFS_SWARM_PORT). Publishing it improves peer connectivity."
@@ -121,7 +140,9 @@
     {
       "id": "ipfsGateway",
       "container": 8081,
-      "protocols": ["tcp"],
+      "protocols": [
+        "tcp"
+      ],
       "defaultHost": 8081,
       "label": "IPFS gateway",
       "description": "The embedded node's HTTP gateway (IPFS_GATEWAY_PORT; 8081 in-container because Acexy owns 8080). The scraper reaches it internally — publish it only if you want to browse IPFS content through this node.",
@@ -130,7 +151,9 @@
     {
       "id": "zeronetUi",
       "container": 43110,
-      "protocols": ["tcp"],
+      "protocols": [
+        "tcp"
+      ],
       "defaultHost": 43110,
       "label": "ZeroNet UI",
       "description": "The bundled node's web interface (ZERONET_UI_PORT). The scraper reaches it internally — publish it only to browse ZeroNet yourself, and set ZERONET_UI_HOST so it accepts your hostname.",
@@ -139,7 +162,9 @@
     {
       "id": "zeronetFileserver",
       "container": 26552,
-      "protocols": ["tcp"],
+      "protocols": [
+        "tcp"
+      ],
       "defaultHost": 26552,
       "label": "ZeroNet fileserver",
       "description": "The bundled node's peer/fileserver port (ZERONET_FILESERVER_PORT). Publishing it improves peer connectivity."
@@ -166,6 +191,13 @@
       "target": "/root/.ACEStream/.acestream_cache",
       "label": "Engine disk cache (highly recommended)",
       "description": "Optional amd64 cache folder. Prevents cached streams from filling the container writable layer. Use an Unraid appdata host folder; this mount does not impose a size limit."
+    },
+    {
+      "id": "checkEngineState",
+      "defaultSource": "./acestream_check_state",
+      "target": "/var/lib/acestream-check",
+      "label": "Checking engine state & cache",
+      "description": "Separate state and cache for the bundled checking engine on every platform. Never reuse the playback engine folder. Only included when the separate engine is enabled."
     },
     {
       "id": "playerHls",
@@ -291,6 +323,16 @@
       "appliesWhen": "always"
     },
     {
+      "id": "playbackEngineUrl",
+      "env": "ACE_ENGINE_URL",
+      "group": "integrations",
+      "label": "Playback engine address",
+      "description": "Optional HTTP(S) engine endpoint reachable from this container. A bundled engine is selected automatically; scraper-only installs otherwise have no playback engine. Settings → Playback can override this default. When using external Acexy, also configure this address for direct engine search and checks.",
+      "type": "text",
+      "placeholder": "http://host.docker.internal:6878",
+      "appliesWhen": "always"
+    },
+    {
       "id": "tunerNetworks",
       "env": "TUNER_ALLOWED_NETWORKS",
       "group": "integrations",
@@ -371,10 +413,10 @@
       "env": "ACE_CHECK_ENGINE_URL",
       "group": "integrations",
       "label": "External checking engine address",
-      "description": "Optional dedicated AceStream HTTP endpoint for channel checks. Leave empty to use the bundled checker when enabled, otherwise the saved engine address. An unavailable checker never falls back to playback.",
+      "description": "Optional dedicated HTTP(S) engine for checks. Settings → Automation can override this default. With neither checker nor playback engine configured, checks are skipped; checker failure never falls back to playback.",
       "type": "text",
       "placeholder": "http://checker:6878",
-      "appliesWhen": "always"
+      "appliesWhen": "externalCheckerAvailable"
     },
     {
       "id": "engineBindAll",
@@ -457,7 +499,7 @@
     "warpCaps": "WARP needs the NET_ADMIN and SYS_ADMIN capabilities plus the /dev/net/tun device.",
     "acexyExternalEngine": "Acexy refuses to start against localhost:6878 when the in-container engine is disabled — point it at your external engine's address.",
     "publicBaseUrl": "Jellyfin, Plex and VLC need an address they can reach: set it under Integrations → Public address, or pass PUBLIC_BASE_URL.",
-    "externalEngineSettings": "The playback engine connection (also used for checks unless a dedicated checker is configured) is configured in the web interface under Settings → Acestream Engine URL.",
-    "afterRun": "Then open http://localhost:{webPort} — set the stream base URL and engine URL under Settings, and add source URLs under Scraper."
+    "externalEngineSettings": "Engines are optional for scraping and playlist management. Add a reachable endpoint under Advanced settings → Playback engine address, or later in Settings → Playback. Configure dedicated checks in Settings → Automation.",
+    "afterRun": "Then open http://localhost:{webPort} (use your Docker host address on another device). Check Overview → Services, add sources in Scraper, organize TV Channels and open Live TV or Playlist."
   }
 }

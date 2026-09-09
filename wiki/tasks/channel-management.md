@@ -1,146 +1,30 @@
+# Channel management
 
-## Overview
-This feature creates a "TV Channel" entity that serves as a grouping mechanism for multiple Acestream channels (streams) broadcasting the same TV channel content. This allows users to manage real TV channels independently from the individual Acestream streams.
+**Acestream Channels** is the inventory of discovered stream IDs. **TV Channels** groups those IDs into stations with numbers, favorites and EPG. **Live TV** is the viewing catalogue. See the [illustrated walkthrough](../Usage.md) for the complete import-to-playback workflow.
 
-## Implemented Components
+## Build the inventory
 
-### Data Model
-- Created `TVChannel` model in `app/models/tv_channel.py` with:
-  - Core fields: id, name, description, logo_url, category, country, language, website
-  - EPG-related fields: epg_id, epg_source_id
-  - Meta fields: created_at, updated_at, is_active
-- Added `tv_channel_id` foreign key to `AcestreamChannel` model with a bidirectional relationship
+1. Add enabled source URLs in **Scraper** and run Scrape, or add engine search results in **Search**. An import does not establish online status.
+2. In **Acestream Channels**, check signal and assign streams to TV channels. A TV channel can have several alternatives; a stream has at most one TV-channel assignment.
+3. Add XMLTV sources in **EPG → Sources** and refresh. Review guide channels, create stations from unlinked entries and check matching/rules before accepting bulk changes.
+4. Use **TV Channels → Auto-match streams → Find matches** for a preview across all TV channels. Nothing is selected initially. A country assumption fills missing country information for this analysis only; it neither rewrites metadata nor excludes explicitly foreign stations. Select stations or individual IDs and choose **Assign selected**.
 
-### Database Migration
-- Created migration `20250409_add_tv_channels.py` that:
-  - Creates the `tv_channels` table with all required fields
-  - Adds `tv_channel_id` column to `acestream_channels` table
-  - Sets up the foreign key constraint
-  - Includes safety checks to prevent errors on rerun
+## Numbers, favorites and filters
 
-### Repository Layer
-- Implemented `TVChannelRepository` with:
-  - CRUD operations (create, read, update, delete)
-  - Methods to filter channels by various criteria (category, country, language)
-  - Pagination support for listing operations
-  - Methods to get unique filter values (categories, countries, languages)
-  - Association management between TV channels and Acestream channels
-  - Bulk update functionality for updating multiple channels at once
+Edit **Number** in the table or phone card. Enter or blur saves; blank clears. Toggle the **Favorite** star independently of the channel's other actions.
 
-### API Controller
-- Created `tv_channels_controller.py` with endpoints for:
-  - GET /tv-channels - List all TV channels with filtering and pagination
-  - POST /tv-channels - Create a new TV channel
-  - GET /tv-channels/{id} - Get details of a specific TV channel
-  - PUT /tv-channels/{id} - Update a TV channel
-  - DELETE /tv-channels/{id} - Delete a TV channel
-  - POST /tv-channels/{id}/acestreams - Assign Acestream channels
-  - DELETE /tv-channels/{id}/acestreams/{acestream_id} - Remove assignment
-  - POST /tv-channels/{id}/sync-epg - Synchronize EPG data
-  - GET /tv-channels/unassigned-acestreams - Get acestreams not assigned to any channel
-  - POST /tv-channels/batch-assign - Batch assign acestreams based on patterns
-  - POST /tv-channels/associate-by-epg - Associate acestreams by matching EPG IDs
-  - POST /tv-channels/bulk-update-epg - Update EPG data for all channels
-  - POST /tv-channels/generate-from-acestreams - Generate TV channels from existing acestreams
-  - POST /tv-channels/bulk-update - Update multiple TV channels at once
+Search, Category, Status and Favorites stay visible. **Advanced filters** holds the other filters and displays an active count. Filtering applies across the full catalogue before sorting and pagination. **Reset filters** clears the current selection.
 
-### Service Layer
-- Created `TVChannelService` with business logic for:
-  - Finding best acestream based on online status and metadata quality
-  - EPG data synchronization between TV channels and acestreams
-  - Batch operations for acestream assignments
-  - Smart generation of TV channels from acestreams based on metadata
-  - Grouping algorithms based on name patterns or EPG IDs
+**Reorder channels** shows every channel, regardless of current filters. Drag the handle, use its keyboard interaction, or use arrow buttons to preview consecutive numbers from 1. **Save order** saves the complete order in one operation. **Cancel** leaves numbers unchanged. A concurrent inventory change is rejected instead of silently overwriting it; reload and reorder again.
 
-### Frontend Components
-- Templates:
-  - `tv_channels.html` - Main listing page with filters and actions
-  - `tv_channel_detail.html` - Detailed view with tabs for acestreams, EPG info, and details
-  - Modal partials for adding/editing channels and assigning acestreams
-  - Bulk edit functionality for multiple channels
+## Guide mapping and recovery
 
-- JavaScript:
-  - `tv-channels.js` - Main list page interactions, filtering, pagination, selection
-  - `tv-channel-detail.js` - Detail page with acestream management
+A TV channel carries one EPG identity. Its detail page shows the current/upcoming guide and attached streams. Wrong regional editions or mismatched IDs need a mapping correction, not repeated refreshes. Guide times use the browser's timezone.
 
-### EPG Management Enhancement
-- Created dedicated EPG management page (`epg.html`) separated from configuration
-- Moved EPG functionality from config section to its own tab in the navigation
-- Implemented comprehensive EPG UI with:
-  - Sources management
-  - Channel mapping rules
-  - Auto-mapping functionality
-  - EPG channel browsing
-  - Program schedule viewing
+If an older import left links missing, refresh the EPG source and review matching again. Preserve manually assigned links; do not clear all guide/channel records as a first troubleshooting step. See [EPG troubleshooting](../Troubleshooting.md#programme-guide-is-empty-or-wrong).
 
-### Integration with Existing Features
-- Added namespace registration in `app/api/__init__.py`
-- Added routes in `app/views/main.py` for frontend pages
-- Added TV channel statistics endpoint in `stats_controller.py`
-- Added links to TV channels in the dashboard
-- Enhanced the UI with modern design elements and responsive layouts
+## Publish the catalogue
 
-## Architecture Decisions
+In **Playlist**, choose **TV channel relay (automatic failover)** for one stable station entry with backup sources. It uses `{tv_channel_id}`. The individual **Server relay** format uses `{channel_id}` and plays that one ID. Unassigned streams can be appended last; they retain individual URLs without channel failover.
 
-### Many-to-One Relationship
-- Each Acestream can only belong to one TV channel (to avoid duplicating streams in playlists)
-- A TV channel can have multiple Acestream channels (for reliability and quality options)
-
-### EPG Integration
-- TV channels can have an `epg_id` that links to EPG data
-- When a TV channel has EPG data, it can propagate this to its acestreams
-- Acestreams can be protected from EPG updates with the `epg_update_protected` flag
-- Dedicated EPG management interface for better organization
-
-### Bulk Operations
-- Support for bulk editing multiple channels at once
-- Batch assignment of acestreams based on patterns
-- Bulk EPG data synchronization
-- Smart channel generation from existing acestreams
-
-### UI Enhancements
-- Responsive design for all screen sizes
-- Interactive channel selection with bulk edit capabilities
-- Improved layout for action buttons
-- Tab-based organization of related functions
-- Real-time feedback for user actions
-
-## UI Flow
-1. Main dashboard has a link to TV Channels management
-2. TV Channels page shows all channels with filters and statistics
-3. Detail page for each channel shows:
-   - Associated acestreams and their status
-   - EPG information
-   - Channel metadata and stats
-4. Modal interfaces for:
-   - Creating/editing channels
-   - Assigning acestreams to channels
-   - Bulk editing multiple channels
-
-## Known Limitations & Considerations
-- Creating too many TV channels can slow down the UI
-- EPG synchronization can be resource-intensive
-- Consider performance impacts when batch generating channels from large acestream collections
-- Name-based matching for channel generation is not perfect and may require manual review
-### Recovering EPG links
-
-Deleting a source, refreshing EPG data, or applying channel matching repairs TV
-channels whose EPG link is missing or unavailable. Repair first uses the XMLTV
-channel ID, then an unambiguous normalized channel name (including accented-name
-variants). Valid links stay in place. Existing TV channels retain their favorites,
-channel numbers, and stream assignments. EPG matching reuses an existing TV channel
-and adds accepted streams instead of requiring deletion and recreation.
-
-For channels left unlinked by an earlier source deletion, refresh the remaining
-EPG source to repair them. Ambiguous names need manual selection.
-
-### Playlist formats and external address
-
-Settings → Public address stores the HTTP(S) address other devices use to reach
-the container. Copied playlist links use it. Settings → Stream link formats offers
-editable suggestions for the AceStream app, the server relay, and enabled
-AceStream/Acexy services. Suggestions use the public host and standard sidecar
-ports; adjust those ports to your Docker port mappings before saving. Saved
-formats appear in Playlist → Stream link format. The server relay follows the
-configured playback route and tuner network access rules. Saved formats remain
-editable snapshots when the public address changes.
+The format editor is shared with **Settings → Stream links**. Changing a default affects other consumers of that default. Set **Integrations → Public address** before copying links to other devices. See [relay recovery](../Media-Servers.md#channels-with-several-streams) for default client reconnection and experimental transcoding behavior.

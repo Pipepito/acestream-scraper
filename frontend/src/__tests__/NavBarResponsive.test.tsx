@@ -78,6 +78,7 @@ describe('NavBar responsive shell behavior', () => {
     expect(screen.getByTestId('app-shell-content')).toHaveStyle({ maxWidth: 'none' });
     await userEvent.click(screen.getByRole('button', { name: 'Collapse navigation' }));
     expect(screen.queryByRole('link', { name: 'TV Channels' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Wiki (opens in a new tab)' })).toBeVisible();
     expect(screen.getByRole('main')).toHaveStyle({ width: '100%' });
     await userEvent.click(screen.getByRole('button', { name: 'Expand navigation' }));
     expect(screen.getByRole('link', { name: 'TV Channels' })).toBeVisible();
@@ -97,6 +98,11 @@ describe('NavBar responsive shell behavior', () => {
 
     expect(screen.getByRole('button', { name: 'open drawer' })).toBeVisible();
     expect(screen.getByRole('banner')).toHaveTextContent('Scraper');
+    const wikiLink = screen.getByRole('link', { name: 'Wiki (opens in a new tab)' });
+    expect(wikiLink).toBeVisible();
+    expect(wikiLink).toHaveAttribute('href', 'https://github.com/Pipepito/acestream-scraper/wiki');
+    expect(wikiLink).toHaveAttribute('target', '_blank');
+    expect(wikiLink).toHaveAttribute('rel', 'noopener noreferrer');
     expect(screen.getByRole('button', { name: /switch to dark theme/i })).toBeVisible();
     expect(screen.getByRole('main')).toHaveStyle({
       width: '100%',
@@ -162,6 +168,8 @@ describe('NavBar responsive shell behavior', () => {
       ui: <NavBar />,
     });
 
+    await tab();
+    expect(screen.getByRole('link', { name: 'Wiki (opens in a new tab)' })).toHaveFocus();
     await tab();
     expect(screen.getByRole('button', { name: /switch to dark theme/i })).toHaveFocus();
 

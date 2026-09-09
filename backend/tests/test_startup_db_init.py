@@ -383,3 +383,26 @@ def test_repeated_failed_upgrade_boots_keep_one_pre_upgrade_backup(tmp_path):
         f"backups: {backup_dirs()}\nstdout:\n{second.stdout}\nstderr:\n{second.stderr}"
     )
     assert "Reusing existing pre-upgrade backup" in second.stdout, second.stdout
+
+
+def test_embedded_migrations_preserve_application_logging(tmp_path):
+    result = _run_main_import(
+        database_url=_database_url_for(tmp_path / "logging.db"),
+        legacy_database_url=_database_url_for(tmp_path / "missing.db"),
+        frontend_build_path=tmp_path / "frontend",
+        boot_script=(
+            "import logging, main, time\n"
+            "from fastapi.testclient import TestClient\n"
+            "logger = logging.getLogger('app.services.player_service')\n"
+            "root = logging.getLogger()\n"
+            "handlers, level = list(root.handlers), root.level\n"
+            "with TestClient(main.app):\n"
+            "    while main.startup_service.status == 'starting': time.sleep(0.01)\n"
+            "    assert main.startup_service.status == 'ready'\n"
+            "    assert not logger.disabled\n"
+            "    assert root.handlers == handlers and root.level == level\n"
+            "    logger.warning('PLAYBACK_LOGGING_SURVIVED_MIGRATION')\n"
+        ),
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert 'PLAYBACK_LOGGING_SURVIVED_MIGRATION' in result.stdout + result.stderr

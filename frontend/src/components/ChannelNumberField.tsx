@@ -3,7 +3,7 @@ import { TextField } from '@mui/material';
 import { TVChannel } from '../types/tvChannelTypes';
 import { normalizeApiError } from '../services/apiErrors';
 
-export default function ChannelNumberField({ channel, onSave }: { channel: TVChannel; onSave: (channel: TVChannel, value: number | null) => Promise<void> }) {
+export default function ChannelNumberField({ channel, onSave, hideLabel = false }: { hideLabel?: boolean; channel: TVChannel; onSave: (channel: TVChannel, value: number | null) => Promise<void> }) {
   const [value, setValue] = useState(String(channel.channel_number ?? ''));
   const saving = useRef(false);
   const [pending, setPending] = useState(false);
@@ -19,7 +19,7 @@ export default function ChannelNumberField({ channel, onSave }: { channel: TVCha
     catch (e) { setError(normalizeApiError(e).message); }
     finally { saving.current = false; setPending(false); }
   };
-  return <TextField type="number" size="small" label="Number" value={value} disabled={pending}
+  return <TextField type="number" size="small" label={hideLabel ? undefined : "Number"} value={value} disabled={pending}
     inputProps={{ min: 0, step: 1, 'aria-label': `Channel number for ${channel.name}` }}
     error={Boolean(error)} helperText={error || undefined}
     onChange={e => { setValue(e.target.value); setError(''); }} onBlur={() => void save()}

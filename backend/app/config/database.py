@@ -117,6 +117,8 @@ def _alembic_config():
     backend_dir = Path(__file__).resolve().parents[2]
     migrations_dir = backend_dir / "migrations"
     config = Config(str(migrations_dir / "alembic.ini"))
+    # Embedded upgrades must preserve the application logging configuration.
+    config.attributes["configure_logger"] = False
     # Absolute script_location so Alembic finds env.py regardless of the CWD
     # (uvicorn runs from /app in Docker, tests from the repo root).
     config.set_main_option("script_location", str(migrations_dir))

@@ -5,7 +5,7 @@ export interface OnlineChipProps {
   isOnline: boolean | null | undefined;
 }
 
-/** Fixed-width online/offline/unknown chip so rows line up. */
+/** Keep the full signal status readable, including in narrow cards. */
 const OnlineChip: React.FC<OnlineChipProps> = ({ isOnline }) => {
   const theme = useTheme();
   const tone = isOnline === true ? theme.appTokens.status.success : isOnline === false ? theme.appTokens.status.error : null;
@@ -17,6 +17,9 @@ const OnlineChip: React.FC<OnlineChipProps> = ({ isOnline }) => {
       variant="outlined"
       sx={{
         minWidth: 80,
+        height: 'auto',
+        minHeight: 24,
+        '& .MuiChip-label': { whiteSpace: 'normal', py: 0.25 },
         justifyContent: 'center',
         fontWeight: 600,
         ...(tone ? { borderColor: tone.border, backgroundColor: tone.bg, color: tone.text } : {}),

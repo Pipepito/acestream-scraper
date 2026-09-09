@@ -64,7 +64,7 @@ for (const mode of ['light', 'dark']) {
     await page.getByRole('searchbox', { name: 'Find a channel' }).clear();
     await page.getByRole('button', { name: 'Watch Arena TV' }).click();
     await expect(page.getByRole('region', { name: 'Live TV player', exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Playback options and schedule' }).click();
+    await page.getByRole('button', { name: 'Playback options', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Schedule', exact: true })).toBeVisible();
     await page.getByRole('combobox', { name: /^Stream/ }).click();
     await page.getByRole('option', { name: /Arena backup/ }).click();
@@ -97,7 +97,7 @@ test('direct channel URL, guide error and retry, browser Back', async ({ page })
   await page.goBack();
   await expect(page.getByRole('region', { name: 'Live TV player', exact: true })).toHaveCount(0);
   await page.goto('/live-tv?channel=1');
-  await page.getByRole('button', { name: 'Playback options and schedule' }).click();
+  await page.getByRole('button', { name: 'Playback options', exact: true }).click();
   await expect(page.getByRole('combobox', { name: /^Stream/ })).toBeVisible();
 });
 
@@ -112,7 +112,7 @@ test('audio track selection requests the chosen language', async ({ page }) => {
     }
   });
   await page.goto('/live-tv?channel=1');
-  await page.getByRole('button', { name: 'Playback options and schedule' }).click();
+  await page.getByRole('button', { name: 'Playback options', exact: true }).click();
   await page.getByRole('combobox', { name: 'Audio track' }).click();
   await page.getByRole('option', { name: /Track 2 · eng/ }).click();
   await expect.poll(() => selectedAudio).toEqual([1]);
@@ -155,8 +155,11 @@ for (const mode of ['light', 'dark']) {
   await page.getByRole('searchbox', { name: 'Find a channel' }).fill('No guide');
   await expect(page.getByRole('region', { name: 'Live TV player', exact: true })).toBeVisible();
   const video = page.getByLabel('Video player for Arena TV');
-  await expect(video).toBeInViewport();
+  if (page.viewportSize()!.width < 1200) await page.getByRole('searchbox', { name: 'Find a channel' }).scrollIntoViewIfNeeded();
   await expect(page.getByRole('searchbox', { name: 'Find a channel' })).toBeInViewport();
+  // Phones stack the player above the catalogue; desktop keeps them side by side.
+  if (page.viewportSize()!.width < 1200) await video.scrollIntoViewIfNeeded();
+  await expect(video).toBeInViewport();
   await page.screenshot({ path: test.info().outputPath('watch-and-browse.png') });
   expect(starts).toHaveLength(1);
   expect(leaves).toHaveLength(0);

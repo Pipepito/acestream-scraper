@@ -94,12 +94,15 @@ allowed_types = {"text", "password", "number", "boolean"}
 allowed_conditions = {
     "always",
     "engineOn",
+    "externalCheckerAvailable",
     "zeronetEmbeddedOn",
     "zeronetUiPublished",
     "ipfsEmbeddedOn",
     "warpOn",
 }
 expected_conditions = {
+    "ENABLE_ACESTREAM_CHECK_ENGINE": "engineOn",
+    "ACE_CHECK_ENGINE_URL": "externalCheckerAvailable",
     "ACESTREAM_BIND_ALL": "engineOn",
     "ENABLE_TOR": "zeronetEmbeddedOn",
     "ZERONET_UI_HOST": "zeronetUiPublished",

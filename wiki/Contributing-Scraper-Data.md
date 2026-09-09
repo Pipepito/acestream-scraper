@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Acestream Scraper relies on specialized code to extract channel information from various websites. As websites frequently change their structure, our scrapers sometimes need to be updated or enhanced. Your help in providing relevant information can significantly improve the application without requiring you to share potentially sensitive URLs.
+The Acestream Ids Scraper relies on specialized code to extract channel information from various websites. As websites frequently change their structure, our scrapers sometimes need to be updated or enhanced. Your help in providing relevant information can significantly improve the application without requiring you to share potentially sensitive URLs.
 
 ## How You Can Help
 
@@ -170,4 +170,4 @@ When submitting, please use the title format: "Scraper Data: [Site Pattern]" (wi
 
 ## Thank You!
 
-Your contributions help make Acestream Scraper more effective for everyone. By providing structured data instead of direct URLs, you help us improve the application while maintaining security.
+Your contributions help make Acestream Ids Scraper more effective for everyone. By providing structured data instead of direct URLs, you help us improve the application while maintaining security.

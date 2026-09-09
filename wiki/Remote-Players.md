@@ -133,7 +133,7 @@ Seeking is deliberately absent. These are live streams, and VLC and Kodi disagre
 
 A saved password belongs to one address: **change a player's address or port and the saved password is cleared**, so type it again in the same edit. A player at a new address is a new device, and the app will not send the old one's password to it.
 
-That is a deliberate trade-off for a single-user app with no key management: treat the database file as a secret, keep the app off untrusted networks, and use passwords you do not reuse elsewhere. See [Reverse Proxy / HTTPS](https://github.com/Pipepito/acestream-scraper/blob/main/docs/ops/reverse-proxy.md) if you expose the app beyond a trusted network.
+That is a deliberate trade-off for a single-user app with no key management: treat the database file as a secret, keep the app off untrusted networks, and use passwords you do not reuse elsewhere. See [Reverse Proxy / HTTPS](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/ops/reverse-proxy.md) if you expose the app beyond a trusted network.
 
 ## See also
 
@@ -142,7 +142,7 @@ That is a deliberate trade-off for a single-user app with no key management: tre
 
 ## Playback routing
 
-In **Settings › Engine**, turn **Route playback through Acexy** on or off and
+In **Settings → Playback**, turn **Route playback through Acexy** on or off and
 save the **Acexy URL** reachable from the backend (default
 `http://localhost:8080`). Direct engine mode is the default. Acexy must already
 be running in MPEG-TS mode; this setting does not launch or reconfigure it.

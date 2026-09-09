@@ -37,7 +37,9 @@ export const usePlayerSessionStatus = (id: string | null) =>
     refetchInterval: (query) => {
       const status = query.state.data;
       const error = query.state.error;
-      if (error || !status || status.state === 'error' || status.state === 'stopped') return false;
+      if (error && [401, 403, 404].includes(error.status ?? 0)) return false;
+      if (status?.state === 'error' || status?.state === 'stopped') return false;
+      if (error || !status) return 2_000;
       return status.state === 'ready' ? 10_000 : 2_000;
     },
   });

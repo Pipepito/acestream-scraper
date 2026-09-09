@@ -76,6 +76,7 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
   const [startError, setStartError] = useState<string | null>(null);
   const [hlsCodecError, setHlsCodecError] = useState(false);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
+  const [mediaState, setMediaState] = useState<'buffering' | 'playing' | 'paused'>('buffering');
   // Bounded so a permanently broken stream surfaces instead of retrying forever.
   const recoveries = useRef(0);
   const [copied, setCopied] = useState<'ok' | 'failed' | null>(null);
@@ -102,6 +103,7 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
     setStartError(null);
     setHlsCodecError(false);
     setPlaybackError(null);
+    setMediaState('buffering');
     recoveries.current = 0;
     // Retry is a full restart: drop the old player so the next ready status
     // re-attaches even when the backend hands back the same session.
@@ -226,12 +228,12 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
   };
 
   const gone = Boolean(statusError && statusError.status === 404);
-  const backendProblem = gone ? 'The stream ended.' : status ? describePlayerError(status, hlsCodecError) : null;
+  const backendProblem = gone ? 'The stream ended.' : statusError ? 'Could not check the stream status. Check your connection and access token, then retry.' : status ? describePlayerError(status, hlsCodecError) : null;
   const problem = startError ?? backendProblem ?? playbackError;
   const stats = status?.stats;
   const statusText =
     status?.state === 'ready'
-      ? 'Playing'
+      ? mediaState === 'playing' ? 'Playing' : mediaState === 'paused' ? 'Paused' : 'Buffering…'
       : status?.state === 'starting'
         ? `Starting… ${stats ? `${stats.peers} peers · ${formatBitrate(stats.speed_down * 8000)}` : 'contacting the engine'}`
         : start.isPending
@@ -263,7 +265,8 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
         <Stack spacing={1.5}>
           <Box sx={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', backgroundColor: '#000', borderRadius: 1, overflow: 'hidden' }}>
             {/* eslint-disable-next-line jsx-a11y/media-has-caption -- live AceStream streams carry no caption track */}
-            <video ref={videoRef} controls autoPlay playsInline style={{ width: '100%', height: '100%' }} aria-label={`Video player for ${title}`} />
+            <video ref={videoRef} controls autoPlay playsInline
+              onPlaying={() => setMediaState('playing')} onWaiting={() => setMediaState('buffering')} onPause={() => setMediaState('paused')} style={{ width: '100%', height: '100%' }} aria-label={`Video player for ${title}`} />
           </Box>
           {problem ? (
             <Alert

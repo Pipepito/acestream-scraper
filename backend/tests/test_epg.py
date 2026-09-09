@@ -625,3 +625,30 @@ def test_epg_xml_matches_the_recorded_pre_refactor_export(client, db_session, mo
 
     assert response.status_code == 200
     assert response.text == RECORDED_EXPORT.read_text(encoding="utf-8")
+
+
+def test_refresh_replaces_changed_listings_only_in_valid_feed_coverage(db_session):
+    source = EPGSource(url="https://example.com/revised.xml", name="Revised", enabled=True)
+    other = EPGSource(url="https://example.com/other.xml", name="Other", enabled=True)
+    db_session.add_all([source, other])
+    db_session.commit()
+    service = EPGService(db_session)
+
+    def feed(programs):
+        return ('<tv><channel id="one"><display-name>One</display-name></channel>' + ''.join(
+            f'<programme channel="one" start="20260101{start}0000 +0000" stop="20260101{end}0000 +0000"><title>{title}</title></programme>'
+            for start, end, title in programs) + '</tv>').encode()
+
+    original = feed([('01', '02', 'Old title'), ('03', '04', 'Gap'), ('05', '06', 'Old time'), ('08', '09', 'Future')])
+    service._process_epg_xml(source.id, original)
+    service._process_epg_xml(other.id, original)
+    revised = feed([('01', '02', 'New title'), ('05', '07', 'New time'), ('10', '09', 'Invalid')])
+    service._process_epg_xml(source.id, revised)
+    service._process_epg_xml(source.id, revised)
+    service._process_epg_xml(source.id, b'<tv/>')
+    service._process_epg_xml(source.id, feed([('02', '01', 'Invalid')]))
+    def titles(source_id):
+        return {p.title for p in db_session.query(EPGProgram).join(EPGChannel).filter(EPGChannel.epg_source_id == source_id)}
+    assert titles(source.id) == {'New title', 'Gap', 'New time', 'Future'}
+    assert titles(other.id) == {'Old title', 'Gap', 'Old time', 'Future'}
+    assert db_session.query(EPGProgram).count() == 8

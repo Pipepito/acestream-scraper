@@ -7,7 +7,7 @@ Play a channel straight in your browser — no VLC, no Acestream engine plugin, 
 Every image ships a small, statically-linked ffmpeg (built during the image build, one static binary per platform/flavor — no extra install step). When you press **Play**, the backend asks the AceStream engine for that channel and starts one ffmpeg process for it: the video track is copied through untouched, the audio track is re-encoded to AAC (AceStream channels are often MPEG-2 audio or AC-3, which browsers cannot play), and the result is repackaged as an HLS stream (2-second segments, a 6-segment sliding window) that `hls.js` (or the browser's native HLS support on Safari/iOS) plays back.
 
 Playback can connect directly to the engine (with a unique PID per session) or
-through Acexy. Choose **Route playback through Acexy** under **Settings › Engine**;
+through Acexy. Choose **Route playback through Acexy** under **Settings → Playback**;
 see [Playback routing](Remote-Players.md#playback-routing).
 
 That segmenting and buffering means the player runs roughly 6–10 seconds behind live — expected for HLS, not a fault.
@@ -20,13 +20,13 @@ Because the video track is passed through as-is, a browser that cannot decode it
 
 - **ffmpeg is bundled.** Every flavor and platform (`scraper`, `scraper-acestream`, `scraper-acexy`, `scraper-acestream-acexy`; amd64, arm64, arm/v7) includes it — nothing to enable, nothing to configure to get started.
 - **To use your own ffmpeg build instead**, set `FFMPEG_BINARY_PATH` to its path. Leaving it empty (the default) uses the bundled binary; if that is somehow missing, the app falls back to whatever `ffmpeg` it finds on `PATH`.
-- **ARM engine caveat:** on `linux/arm64`, playback runs through a community-maintained AceStream engine build ([`jopsis/acestream`](https://github.com/jopsis/docker-acestream-aceserve)) that is not premium-gated — the web player is expected to work there but is not yet confirmed against real hardware playback. On `linux/arm/v7`, the official engine AceStream ships is Premium-only for live playback outside their own app, so the web player (and any other playback path) will not work on 32-bit ARM until that changes. See [Docker Guide](Docker.md) for the full ARM engine notes.
+- **ARM engine caveat:** on `linux/arm64`, playback runs through a community-maintained AceStream engine build ([`jopsis/acestream`](https://github.com/jopsis/docker-acestream-aceserve)) that is not premium-gated — the web player is expected to work there but is not yet confirmed against real hardware playback. ARMv7 uses the matching community Android 3.2.17 variant too, but remains experimental until runtime-tested on real ARMv7 hardware; do not treat its build/install checks as playback verification. See [Docker Guide](Docker.md) for the full ARM engine notes.
 
 ## Playing a channel
 
 Wherever a channel appears in the app — Acestream Channels, TV Channels (including the channel detail page) and Search — its row actions carry a **Play** button (alongside **Check status**; anything else lives under "More actions" on crowded rows). Press it to open the player dialog: it starts a session, waits for the first HLS segments, and then plays automatically.
 
-While a channel is starting, the dialog shows the engine's peer count and download speed as they become available. Once segments are ready it switches to **Playing**. Closing the dialog (or navigating away) releases the session; if you are the only viewer, the backend stops ffmpeg and the engine stream a few seconds later.
+While a channel is starting, the dialog shows the engine's peer count and download speed as they become available. Once segments are ready it shows **Buffering…** until the browser starts playback, then **Playing**. Pausing shows **Paused**. Temporary status-request failures are displayed and polled again automatically; an expired session or rejected access token requires your attention. Closing the dialog (or navigating away) releases the session; if you are the only viewer, the backend stops ffmpeg and the engine stream a few seconds later.
 
 ## Live TV and choosing a stream
 
@@ -56,7 +56,7 @@ which have no TV channel assignment. It has its own search and pagination and
 refreshes every 30 seconds. Watch opens the same player, without an invented TV
 schedule. Online is a saved check result, not a guarantee that playback will start.
 
-Press **Watch** to open the player and schedule. The **Stream** selector lists every
+Press **Watch** to open the embedded player and schedule. Filtering the catalogue leaves playback running; **Stop watching**, changing the channel or leaving the page releases that viewer. The **Stream** selector lists every
 attached stream, its last known online status and a short ID. Switching releases
 the previous viewer and starts the selected stream. Copy stream link and Play on
 both follow the selected stream. A channel can be opened directly at
@@ -77,9 +77,12 @@ open. No current programme means the guide has no matching entry; it does not me
 the channel is offline. Correct your device clock and EPG mapping/source if the
 schedule is wrong. HLS playback can still trail the broadcast by several seconds.
 
-On phones, the player fills the screen and its schedule scrolls independently of
-the bottom actions. Scraper sources, EPG sources and scheduled jobs show stacked,
+On phones, Live TV adapts its player and catalogue to the available width. Player dialogs on other pages use a full-screen layout with a scrollable schedule. Scraper sources, EPG sources and scheduled jobs show stacked,
 labelled fields so their controls remain reachable without sideways scrolling.
+
+![Live TV in Acestream Ids Scraper](usage-09-live-tv.png)
+
+<img src="usage-13-mobile-dark.png" alt="Live TV catalogue on a phone in dark theme" width="390" />
 
 ## Status and error messages
 
@@ -88,7 +91,7 @@ The player explains problems in plain language instead of raw codes:
 | What you see | What it means | What to do |
 |---|---|---|
 | "This server can't prepare streams for the browser. Open the channel in VLC instead." | No ffmpeg is available on the server | Use VLC/Kodi with the stream link, or fix `FFMPEG_BINARY_PATH` |
-| "No one is sharing this channel right now. Try again later or pick another stream." | The engine never produced a usable stream before the start timeout | Try another channel, or retry later |
+| "The stream did not become ready in time. Check the engine or proxy, retry, or pick another stream." | The engine never produced a usable stream before the start timeout | Try another channel, or retry later |
 | "The stream stopped unexpectedly. Try again." | ffmpeg exited mid-stream | Press **Retry** |
 | "The AceStream engine could not start this channel: …" | The engine refused or was unreachable | Check the engine URL under Settings, or that the engine is running |
 | "Your browser can't play this channel's video format (…). Send it to VLC or Kodi instead." | The source video codec (MPEG-2, MPEG-1, VC-1, MPEG-4 v3) is not one browsers decode | Open the stream link in VLC or Kodi |
@@ -110,7 +113,7 @@ The web player has three settings, all environment variables (see [Configuration
 - **`PLAYER_HLS_DIR`** (default `/tmp/acestream-player`) — where segments are written. Point it at `/dev/shm/acestream-player` (with a larger `--shm-size`/`shm_size`) to keep them in RAM instead of on disk.
 - **`PLAYER_START_TIMEOUT_SECONDS`** (default `45`) — how long a session may sit in "starting" before it is reported as stalled. Raise it on slow links where a channel takes longer to buffer its first segments.
 
-The [Docker command builder](https://pipepito.github.io/acestream-scraper/) can set `PLAYER_MAX_SESSIONS` for you under Container options; the other two are best set directly as environment variables.
+The [Docker command builder](https://pipepito.github.io/acestream-scraper/) can set `PLAYER_MAX_SESSIONS` for you under Advanced settings → Web player & guide refresh; startup timeout and temporary folder are available there too under Advanced settings → Web player & guide refresh.
 
 ## API token
 

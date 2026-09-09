@@ -64,6 +64,7 @@
     const imageHasEngine = flavor.features.includes('acestream');
     const imageHasAcexy = flavor.features.includes('acexy');
     const engineOn = imageHasEngine && state.engine;
+    const checkEngineOn = engineOn && state.runtimeSettings.dedicatedCheckEngine === true;
     const acexyOn = imageHasAcexy && state.acexy;
     const warpOn = platform.warpAvailable && state.warp;
     const needsExternalEngine = acexyOn && !engineOn;
@@ -84,12 +85,13 @@
       if (v.id === 'config' || v.id === 'playerHls') return true;
       if (v.id === 'engineCache') return engineOn && platform.id === 'amd64';
       if (v.id === 'engineState') return engineOn && platform.id !== 'amd64';
+      if (v.id === 'checkEngineState') return checkEngineOn;
       if (v.id === 'ipfsRepo') return ipfsEmbeddedOn;
       if (v.id === 'zeronetData') return zeronetEmbeddedOn;
       return false;
     });
 
-    return { flavor, platform, imageHasEngine, imageHasAcexy, engineOn, acexyOn, warpOn, needsExternalEngine, ipfsEmbeddedOn, ipfsExternalOn, zeronetEmbeddedOn, zeronetExternalOn, activePorts, activeVolumes };
+    return { flavor, platform, imageHasEngine, imageHasAcexy, engineOn, checkEngineOn, acexyOn, warpOn, needsExternalEngine, ipfsEmbeddedOn, ipfsExternalOn, zeronetEmbeddedOn, zeronetExternalOn, activePorts, activeVolumes };
   }
 
   function valueAtPath(path) {
@@ -99,6 +101,7 @@
   function settingApplies(setting, d) {
     if (setting.appliesWhen === 'always') return true;
     if (setting.appliesWhen === 'engineOn') return d.engineOn;
+    if (setting.appliesWhen === 'externalCheckerAvailable') return !d.checkEngineOn;
     if (setting.appliesWhen === 'zeronetEmbeddedOn') return d.zeronetEmbeddedOn;
     if (setting.appliesWhen === 'zeronetUiPublished') {
       return d.zeronetEmbeddedOn && !!state.ports.zeronetUi?.enabled;
@@ -230,6 +233,8 @@
   }
 
   function usesHostGateway(d) {
+    if (d.needsExternalEngine && state.extEngineHost.trim() === 'host.docker.internal') return true;
+    if (activeRuntimeSettings(d).some((setting) => ['ACE_ENGINE_URL', 'ACE_CHECK_ENGINE_URL'].includes(setting.env) && String(state.runtimeSettings[setting.id] || '').includes('host.docker.internal'))) return true;
     if (d.zeronetExternalOn && (state.zeronetUrl.trim() || data.zeronet.defaultUrl).includes('host.docker.internal')) return true;
     return d.ipfsExternalOn && (state.ipfsGatewayUrl.trim() || data.ipfs.defaultGatewayUrl).includes('host.docker.internal');
   }
@@ -324,6 +329,12 @@
   function collectWarnings(d) {
     const notes = data.notes;
     const out = [];
+    if (d.checkEngineOn) {
+      out.push(['info', 'The bundled checker uses its own state folder and internal ports 6880, 6881, 62063 and 8622. Keep its folder separate from playback. No checker ports need publishing.']);
+      if (String(state.runtimeSettings.externalCheckEngine || '').trim()) {
+        out.push(['info', 'The external checking address is left out while the bundled checker is enabled. Turn off the separate engine to use the external address.']);
+      }
+    }
     if (state.channel === 'develop') out.push(['info', notes.developChannel]);
     if (state.channel === 'version' && !state.version.trim()) {
       out.push(['error', 'Enter the version to pin (for example v2.0.0). Release tags are listed on Docker Hub.']);
@@ -602,6 +613,12 @@
       const input = el('input', { type: 'checkbox', id: inputId, checked: value });
       input.addEventListener('change', () => {
         state.runtimeSettings[setting.id] = input.checked;
+        if (setting.id === 'dedicatedCheckEngine') {
+          const d = derive();
+          renderVolumes(d);
+          renderRuntimeSettings(d);
+          document.getElementById(inputId)?.focus();
+        }
         updateOutput();
       });
       return el('label', { class: 'toggle setting-toggle', for: inputId }, [
@@ -681,7 +698,8 @@
       const acexyPort = validPort(state.ports.acexy.host) || 8080;
       box.append(el('p', { html: `<strong>Players:</strong> point them at <code>http://&lt;server-ip&gt;:${acexyPort}/ace/getstream?id=&lt;channel id&gt;</code> — the playlist in the web interface uses this base URL once you set it under Settings.` }));
     }
-    box.append(el('p', { html: `Full details: <a href="${data.wikiUrl}/Docker">Docker guide</a> · <a href="${data.wikiUrl}/Configuration">Configuration reference</a>.` }));
+    box.append(el('p', { text: 'Starting Acexy does not select it for app playback. Enable Route playback through Acexy in Settings → Playback if you want browser and tuner sessions to use it. For a playlist with backup sources, choose TV channel relay (automatic failover) in Playlist → Manage link formats.' }));
+    box.append(el('p', { html: `Help: <a href="${data.wikiUrl}/Usage">First-run walkthrough</a> · <a href="${data.wikiUrl}/Docker">Docker guide</a> · <a href="${data.wikiUrl}/Configuration">Configuration reference</a> · <a href="${data.wikiUrl}/Troubleshooting">Troubleshooting</a>.` }));
   }
 
   function updateOutput() {

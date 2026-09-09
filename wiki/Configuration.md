@@ -1,6 +1,6 @@
 # Configuration Reference
 
-This guide provides detailed information about configuring Acestream Scraper.
+This guide provides detailed information about configuring Acestream Ids Scraper.
 
 ## Contents
 - [Application Settings](#application-settings)
@@ -15,43 +15,29 @@ This guide provides detailed information about configuring Acestream Scraper.
 
 ## Application Settings
 
-Acestream Scraper is configured from the web interface (**Settings** and **Scraper** pages, stored in the database) and through the environment variables listed below. The v1 setup wizard and `config.json` file are kept in the next two sections for reference only.
+Scraper stores application settings in the database. Container environment variables set runtime defaults; saved engine and public-address settings take precedence. Source URLs belong in **Scraper**, XMLTV feeds in **EPG → Sources**. Scraper has no setup wizard and does not read `config/config.json`.
 
-### Setup Wizard
+| Where | What to configure |
+|---|---|
+| **Settings → Playback** | Optional **Acestream Engine URL**, direct/Acexy routing and backend-facing Acexy URL. Save the engine URL and playback routing separately. |
+| **Settings → Automation** | Dedicated checker selection, scraping interval (1–168 hours), EPG interval (1–168 hours), stream-check interval (1–10080 minutes). Saved intervals apply immediately. |
+| **Settings → Stream links** | Named playlist formats and default, optional PID/AppID compatibility. Shared with **Playlist → Manage link formats**. |
+| **Settings → API access** | The token this browser sends when the server has `API_TOKEN` configured. Stored locally in the browser. |
+| **Integrations → Public address** | The HTTP(S) origin other devices use to reach the scraper, including its published port. |
+| **Integrations** | Remote players, media servers and tuner limits/recovery. |
+| **Overview → Services** | Runtime health, separate playback/checker controls and diagnostic downloads. |
 
-*Superseded (2026-08-28): the v1 first-run wizard no longer exists. In v2 these values are edited from the **Settings** page (base URL, Acestream Engine URL, rescrape interval) and the **Scraper** page (source URLs) and are stored in the database.* The original wizard steps were:
+The Settings tabs use `/settings?tab=playback|automation|links|access`.
 
-1. Configure Base URL format
-2. Set Acestream Engine URL
-3. Add source URLs to scrape
-4. Set rescrape interval
+### Key settings
 
-### Manual Configuration
+- `ace_engine_url`: optional playback engine endpoint. New scraper-only installs leave it empty; existing saved URLs are preserved.
+- `playback-routing`: direct by default; `{use_acexy, acexy_url}` chooses Acexy for new web-player, tuner and remote-player sessions. Starting the Acexy service does not select this route. Health and signal probes remain direct to the selected engine.
+- `check-engine`: `{use_dedicated, url}` selects an external checker. With dedicated checks off, checks use the playback URL; without either URL they are skipped. A bundled checker is container-managed and read-only here. A configured checker's failure never falls back to playback.
+- `base_url`: default stream-link format. Named formats can be selected using `base_url_id`. `{channel_id}` is the AceStream hash; `{tv_channel_id}` is the TV-channel database ID. Use `/tuner/channel/{tv_channel_id}.ts` for one stable station URL with fallback sources, or `/tuner/stream/{channel_id}.ts` for one exact source. `{pid}` supplies a player/session ID where supported; a format without placeholders is a prefix.
+- `rescrape_interval`: default 24 hours; `epg_refresh_interval`: default 6 hours; `channel_status_interval`: default 60 minutes.
 
-*Superseded (2026-08-28): v2 does not read `config/config.json`. Use the web interface or the `/api/v1/config/*` endpoints (`base_url`, `ace_engine_url`, `rescrape_interval`, ...); runtime options such as the database location are environment variables (see below).* The v1 file format, kept for reference:
-
-```json
-{
-    "urls": [
-        "https://example.com/url1",
-        "https://example.com/url2"
-    ],
-    "base_url": "http://localhost:6878/ace/getstream?id=",
-    "ace_engine_url": "http://localhost:6878",
-    "rescrape_interval": 24
-}
-```
-
-### Key Settings
-
-- **urls**: Array of URLs to scrape for Acestream channels
-- **base_url**: Base URL format for playlist generation. You can also store multiple *named* base URLs (Settings → Stream base URLs) with one marked as default; a pattern containing `{channel_id}` (and optionally `{pid}`) is filled in per entry, while a pattern without placeholders is used as a plain prefix. Playlist URLs accept `?base_url_id=<id>` to pick a named entry.
-  - `acestream://` - For players with Acestream protocol support
-  - `http://localhost:6878/ace/getstream?id=` - For local HTTP streaming
-  - `http://server-ip:acexy_port/ace/getstream?id=` - For using built-in Acexy proxy
-- **ace_engine_url**: URL of your Acestream Engine instance
-- **rescrape_interval**: Hours between automatic rescans of URLs
-- **channel_status_interval**: Minutes between automatic online checks; default **60**, range **1–10080**. Change it in **Settings → Automation → Stream check interval (minutes)**. Saving updates the scheduler immediately. The API uses `GET/PUT /api/v1/config/channel_status_interval` with `{"value":"60"}` for updates.
+See the [illustrated walkthrough](Usage.md) and [playback routing guide](Remote-Players.md#playback-routing) for examples.
 
 ## Environment Variables
 
@@ -87,10 +73,13 @@ External players and media servers (VLC, Kodi, Jellyfin, Plex) fetch streams ove
 
 | Variable | Description | Default | Notes |
 |----------|-------------|---------|-------|
-| `ENABLE_ACESTREAM_ENGINE` | Enable built-in Acestream Engine | Matches `ENABLE_ACEXY` | Set to `true` to run Acestream in the container |
+| `ENABLE_ACESTREAM_ENGINE` | Enable built-in Acestream Engine | `false` | Set to `true` to run Acestream in the container |
 | `ACESTREAM_HTTP_PORT` | Port for Acestream engine | `6878` | Internal Acestream Engine HTTP port |
-| `ACESTREAM_HTTP_HOST` | Host for Acestream engine | Uses `ACEXY_HOST` | Address to access Acestream Engine |
+| `ACESTREAM_HTTP_HOST` | Host for Acestream engine | `localhost` | Address to access Acestream Engine |
 | `ACESTREAM_BIND_ALL` | Append `--bind-all` to the engine start command so any client address is accepted on a published `6878` | `true` | The engine otherwise admits only loopback/RFC1918 sources; `false` restores the engine's own filter |
+| `ACE_ENGINE_URL` | Playback-engine default | Empty without bundled playback; `http://localhost:6878` when enabled | Saved Settings → Playback URL takes precedence |
+| `ENABLE_ACESTREAM_CHECK_ENGINE` | Run a second bundled engine for checks | `false` | Requires the playback engine enabled and an engine-containing image; do not also set `ACE_CHECK_ENGINE_URL` |
+| `ACE_CHECK_ENGINE_URL` | External dedicated checker default | Empty | May be overridden in Settings → Automation; configured checker failure never falls back |
 
 ### Acexy Configuration
 
@@ -103,17 +92,11 @@ External players and media servers (VLC, Kodi, Jellyfin, Plex) fetch streams ove
 | `ACEXY_NO_RESPONSE_TIMEOUT` | Timeout for Acestream responses | `15s` | Format: `15s`, `1m`, etc. |
 | `ACEXY_BUFFER_SIZE` | Buffer size for data transfers | `5MiB` | Format: `5MiB`, `10MiB`, etc. |
 
-### Why Both Acexy and Acestream Engine?
+### Why both Acexy and an engine?
 
-Acestream Scraper includes both Acexy and Acestream Engine for improved multi-client handling:
+The engine retrieves P2P media. Acexy is an optional HTTP proxy that shares streams and owns its engine sessions and cleanup. Direct app playback already assigns session IDs and coordinates its own source ownership; you do not need to add PIDs manually for the built-in browser player.
 
-1. **Connection Management**: When multiple clients access the same stream, each needs a unique process ID (PID)
-2. **Automatic PID Handling**: Acexy automatically adds the required `pid=id` parameter to stream requests
-3. **Error Isolation**: With proper PID management, one client disconnecting won't affect others
-4. **Simplified URLs**: End users don't need to worry about adding PID parameters manually
-5. **Performance**: Acexy includes buffering mechanisms to improve streaming performance
-
-Without Acexy, you'd need to manually append `&pid={unique_id}` to each stream URL to properly handle multiple connections. When a stream ends for one client, without this parameter, it might terminate the stream for all users. Acexy transparently manages these connections, making the system more robust for multi-user environments.
+A unique PID alone does **not** prevent the native engine stopping another client of the same source. Use the app's coordinated relay or Acexy routing, and consider a separate checker for checks alongside playback. Direct external clients remain outside the app's registry. See [Playback routing](Remote-Players.md#playback-routing).
 
 ### ZeroNet and Other Settings
 
@@ -199,30 +182,17 @@ services:
 
 ## Channel Status Checking
 
-The application verifies if channels are available:
+Use **Settings → Automation** to select the checker and schedule. The default is one scan every 60 minutes. Manual checks and playback-triggered source refreshes use the same serialized priority queue: TV playback, individual manual checks, then scheduled/bulk work. A running probe finishes cleanup before another starts.
 
-1. Ensure you have Acestream Engine running (built-in if ENABLE_ACESTREAM_ENGINE=true)
-2. Configure `ace_engine_url` to point to your Acestream Engine instance
-3. Use the "Check Status" buttons in the UI to verify channel availability
+An online result requires increasing P2P downloads **and** a bounded media sample with identified audio/video packets. Peer counts and a catalogue's availability flag are insufficient. ID lookup is reported separately: found, explicitly not found, or unknown. Timeouts and engine errors must not be read as permanent ID absence. Saved results describe the last check, not continuous monitoring or browser codec compatibility.
 
-Automatic checks run every 60 minutes by default. Manual checks remain available.
-All status probes share a maximum of two concurrent engine checks, with only one
-probe per source at a time. HDHomeRun and stable TV-channel stream URLs also
-refresh attached active sources quietly when playback is requested. Unknown and
-offline alternatives are checked first; checks less than 30 seconds old are reused.
+Without any engine configured, checks are skipped and previous results remain. A configured dedicated checker that fails never sends checks to playback. This makes a second engine useful when you regularly watch and scan at the same time; it adds memory, cache and bandwidth use.
 
-Each probe sends a unique `pid`. **PID alone does not protect playback on native
-AceStream 3.2.11:** stopping a probe of the same source can stop the viewer too.
-The app therefore skips sources used by its relay or web player, keeps their
-previous status, and checks again before probe cleanup. Players connected directly
-to an external engine are outside the app's playback registry and cannot receive
-this protection. See [the PID investigation](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/ops/stream-check-pid.md).
+Unique PIDs alone do not isolate stopping the same source on native engine 3.2.11. The app protects streams owned by its web player and relay; clients connected directly to the engine are outside that registry. See [checking and playback ownership](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/ops/stream-check-pid.md).
 
-### Status Tracking
+### Status tracking
 
-- The application maintains history of status checks
-- Status is color-coded in the interface (green = online, red = offline)
-- Error messages are displayed when a channel cannot be accessed
+Overview shows the persisted start time, result, next run and state of scheduled jobs. Runs interrupted by a restart are marked interrupted. Stream rows show the saved broadcast/lookup result and last-check information. Imports do not mark newly discovered streams online.
 
 ## Port Mapping
 
@@ -247,6 +217,10 @@ When using Docker, mount these volumes:
 | Container Path | Purpose | Notes |
 |----------------|---------|-------|
 | `/app/config` | Configuration and data | Contains the database (`scraper.db`; a v1 `acestream.db` found here is migrated on first start — channels and settings before the dashboard comes up, EPG programs in the background afterwards; see [Installation](Installation.md#migrating-from-v1)) |
+| `/var/lib/acestream-check` | Dedicated checker state/cache | Use a separate host folder when the bundled checker is enabled |
+| `/tmp/acestream-player` | Rolling browser-player HLS files | Recommended host mount, or configure RAM storage |
+| `/root/.ACEStream/.acestream_cache` | Bundled amd64 playback cache | Recommended host mount; ARM uses its state folder |
+| `/app/logs` | Scraper and per-service logs | Optional mount to retain diagnostics across container replacement; logs contain private operational data |
 | `/var/lib/acestream` | AceStream engine state and cache | Only used when `ENABLE_ACESTREAM_ENGINE=true` (ARM Android engine) |
 | `/data/ipfs` | IPFS repository (identity, config, blockstore) | Only required if `ENABLE_IPFS=true` |
 | `/data/zeronet` | Bundled ZeroNet node's state (sites, keys, content) | Only required if `ENABLE_ZERONET=true` |
@@ -304,7 +278,7 @@ server {
 ## Security Considerations
 
 - Don't publish the AceStream engine API (`6878`), the Acexy proxy (`8080`) or the IPFS RPC API (`5001`) beyond trusted networks — none of them authenticate callers
-- If you expose the web interface beyond your LAN, do it through a reverse proxy with TLS and authentication (see [Reverse Proxy / HTTPS](https://github.com/Pipepito/acestream-scraper/blob/main/docs/ops/reverse-proxy.md))
+- If you expose the web interface beyond your LAN, do it through a reverse proxy with TLS and authentication (see [Reverse Proxy / HTTPS](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/ops/reverse-proxy.md))
 - Consider using a reverse proxy with SSL/TLS for secure access
 - Be aware of copyright and legal considerations when sharing playlists
 
@@ -312,7 +286,7 @@ server {
 
 The container includes comprehensive health checks:
 
-- Main application health check at `/health` endpoint
+- Main application health check at `/api/v1/health` (public, even with an API token)
 - Acexy health check (if enabled)
 - Acestream Engine health check (if enabled)
 - Automatic monitoring of internal services
@@ -320,15 +294,15 @@ The container includes comprehensive health checks:
 
 ### Docker Health Check
 
-The Docker container is configured with a health check that verifies all services are running correctly:
+The Docker container is configured with a health check that checks application readiness and the required enabled services; a checker outage does not fail whole-container health, and an intentional engine Stop is respected:
 
 ```yaml
 healthcheck:
-  test: ["CMD", "/app/healthcheck.sh"]
+  test: ["CMD", "/usr/local/bin/healthcheck.sh"]
   interval: 30s
   timeout: 10s
   retries: 3
   start_period: 60s
 ```
 
-You can check the health status with: `docker inspect --format='{{.State.Health.Status}}' acestream-scraper
+You can check the health status with: `docker inspect --format='{{.State.Health.Status}}' acestream-scraper`

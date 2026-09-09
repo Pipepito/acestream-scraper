@@ -28,7 +28,7 @@ The collector writes separate files under `LOG_DIR` (`/app/logs` by default):
 Only processes launched by this container are captured. Disabled services do not
 create new logs; files from earlier runs remain available for troubleshooting.
 Each file has two rotated copies (`.log.1` and `.log.2`), each bounded to 2 MiB
-(up to 48 MiB for all eight collectors). Rotation is automatic and independent of
+(up to 54 MiB for all nine collectors). Rotation is automatic and independent of
 logrotate; logrotate handles only the additional native service logs.
 Recording failure leaves console output flowing. Files survive application and
 engine restarts; retaining them across container replacement requires mounting
@@ -40,7 +40,7 @@ rotated copies, omitting missing files and rejecting symlinks and non-regular
 files. For upgrade troubleshooting, existing `console.log` and its two rotations
 are still exported, along with native `warp-svc.log`, `debug.log` and `error.log`.
 New runs no longer write combined `console.log` files. The allowlist is bounded
-at 30 files (7.5 MiB of input tails). Rotations provide recent history, not a
+at 33 files (8.25 MiB of input tails). Rotations provide recent history, not a
 guaranteed time window. The manifest records UTC export
 time, architecture, file availability/truncation, supervisor PIDs/start times and
 intentional Stop state. Linux cgroup v2 memory counters are included when readable,
@@ -54,3 +54,5 @@ included. The download does not restart services, probe channels or change setti
 
 Player failures log their error category and bounded FFmpeg output before the
 session is removed, so closing a player dialog does not discard the diagnostic cause.
+
+Embedded startup migrations preserve the application logging handlers and levels, so player and service messages continue reaching the scraper log after schema initialization. Standalone Alembic commands configure their own console logging without disabling existing loggers.

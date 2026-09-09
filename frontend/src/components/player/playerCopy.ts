@@ -29,7 +29,7 @@ export const describePlayerError = (status: PlayerErrorInput, hlsCodecError: boo
     case 'ffmpeg_missing':
       return "This server can't prepare streams for the browser. Open the channel in VLC instead.";
     case 'engine_stalled':
-      return 'No one is sharing this channel right now. Try again later or pick another stream.';
+      return 'The stream did not become ready in time. Check the engine or proxy, retry, or pick another stream.';
     case 'ffmpeg_failed':
       return 'The stream stopped unexpectedly. Try again.';
     case 'engine_refused':

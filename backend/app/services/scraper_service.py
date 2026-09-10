@@ -106,6 +106,7 @@ class ScraperService:
             ], status
 
         except Exception as e:
+            self.db.rollback()
             logger.error(f"Error scraping URL {url}: {str(e)}")
             return [], f"Error: {str(e)}"
 

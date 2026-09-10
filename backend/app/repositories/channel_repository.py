@@ -1,6 +1,7 @@
 """
 Repository for channel data operations
 """
+from app.config.database_retry import retry_database_write
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from typing import Dict, Any, Iterable, List, Optional
@@ -407,6 +408,7 @@ class ChannelRepository:
         ).first()
         return dict(row._mapping) if row else None
 
+    @retry_database_write
     def update_channel_status(self, channel_id: str, is_online: bool, error: str = None, *, bitrate_bps: Optional[int] = None, audio_tracks: Optional[list] = None, network_status: str = "unknown") -> AcestreamChannel:
         """Update the online status of a channel"""
         channel = self.get_channel_by_id(channel_id)

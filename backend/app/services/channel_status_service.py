@@ -12,6 +12,7 @@ from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 
+from app.config.database_retry import run_database_write
 from app.models.models import AcestreamChannel
 from app.repositories.channel_repository import ChannelRepository
 from app.services.stream_bitrate_service import probe_media
@@ -277,7 +278,7 @@ class ChannelStatusService:
         check_time = datetime.now(timezone.utc)
         error = None if online else message
         if persist:
-            self.channel_repository.update_channel_status(channel.id, online, error, bitrate_bps=media.get("bitrate_bps") if media else None,
+            await run_database_write(self.channel_repository.update_channel_status, channel.id, online, error, bitrate_bps=media.get("bitrate_bps") if media else None,
                 audio_tracks=media.get("audio_tracks") if media else None, network_status=network_status)
         return {
             'channel_id': channel.id,

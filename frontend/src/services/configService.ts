@@ -210,3 +210,7 @@ export const configService = {
     return response.data;
   }
 };
+
+export type ScheduleAnchors = import('../types/api-generated').components['schemas']['ScheduleAnchors'];
+export const getScheduleAnchors = async (): Promise<ScheduleAnchors> => (await apiClient.get<ScheduleAnchors>(`${BASE_URL}/schedule-anchors`)).data;
+export const saveScheduleAnchors = async (schedule: ScheduleAnchors): Promise<ScheduleAnchors> => (await apiClient.put<ScheduleAnchors>(`${BASE_URL}/schedule-anchors`, schedule)).data;

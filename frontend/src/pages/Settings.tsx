@@ -1,3 +1,4 @@
+import ScheduleAnchorFields from '../components/ScheduleAnchorFields';
 import StreamLinkFormatsSection from '../components/StreamLinkFormatsSection';
 import CheckEngineFields from '../components/CheckEngineFields';
 import React, { useEffect, useState } from 'react';
@@ -336,6 +337,7 @@ const Settings: React.FC = () => {
             onChange={setChannelStatusInterval}
             onSave={handleChannelStatusSave}
           />
+          <ScheduleAnchorFields />
 
         </Stack>
       </ContentSection>

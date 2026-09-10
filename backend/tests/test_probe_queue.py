@@ -214,6 +214,6 @@ def test_scheduled_task_uses_background_priority_and_counts_skips(alembic_db_ses
     probe = AsyncMock(return_value={'status': 'skipped'})
     monkeypatch.setattr(channel_status_task.ChannelStatusService, 'check_channel_status', probe)
     result = channel_status_task.run_channel_status_task()
-    assert result == {'checked': 0, 'skipped': 1, 'failed': 0}
+    assert result == {'checked': 0, 'skipped': 1, 'failed': 0, 'online': 0, 'offline': 0}
     assert probe.call_args.kwargs['priority'] == ProbePriority.BACKGROUND
     assert probe.call_args.kwargs['scan_started_at'].tzinfo is not None

@@ -40,7 +40,7 @@ def run_channel_status_job(db: Session = Depends(get_db)):
     if outcome == "unavailable":
         raise HTTPException(status_code=503, detail="The stream status job is unavailable. Check the scheduler in Overview.")
     message = (
-        "The stream status job is already running. Follow its progress in Overview."
+        "The stream status job is already running or waiting. Follow its progress in Overview."
         if outcome == "already_running" else
         "Stream status job queued for all active streams. Follow its progress in Overview."
     )

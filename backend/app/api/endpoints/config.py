@@ -19,11 +19,13 @@ from app.schemas.config import (
     PublicBaseUrlUpdate,
     PlaybackRouting,
     RescrapeIntervalUpdate,
+    ScheduleAnchors,
     SettingResponse,
     SettingsResponse,
 )
 from app.services.config_service import ConfigService
 from app.services.dashboard_config_service import DashboardConfigService
+from app.services.schedule_config_service import ScheduleConfigService
 
 from app.schemas.config import CheckEngineConfig, CheckEngineConfigResponse
 from app.services.check_engine_config_service import CheckEngineConfigService
@@ -41,6 +43,19 @@ def _validate_boolean_string(value: str, setting_name: str) -> None:
     valid_values = {"true", "false", "True", "False", "1", "0"}
     if value not in valid_values:
         raise HTTPException(status_code=422, detail=f"Invalid boolean value for {setting_name}")
+
+
+@router.get("/schedule-anchors", response_model=ScheduleAnchors)
+def get_schedule_anchors(db: Session = Depends(get_db)):
+    return ScheduleConfigService(db).get()
+
+
+@router.put("/schedule-anchors", response_model=ScheduleAnchors)
+def update_schedule_anchors(schedule: ScheduleAnchors, db: Session = Depends(get_db)):
+    if not ScheduleConfigService(db).save(schedule):
+        raise HTTPException(status_code=500, detail="Could not save schedule start times")
+    task_service.configure_schedule(schedule)
+    return schedule
 
 
 @router.get("/playback-routing", response_model=PlaybackRouting)

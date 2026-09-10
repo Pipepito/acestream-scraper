@@ -32,3 +32,21 @@ test('keeps manual results separate from scheduled next-run time', () => {
   expect(within(manualRow).getByText('—')).toBeInTheDocument();
   expect(screen.getByText('2 sources refreshed')).toBeInTheDocument();
 });
+
+const statusTask: BackgroundTaskStatus = {
+  task_name: 'channel_status', status: 'idle', last_run: '2026-09-10T07:00:00Z',
+  next_run: '2026-09-10T08:00:00Z', last_error: null,
+  last_result: { checked: 10, online: 7, offline: 3, skipped: 2, failed: 1 },
+};
+
+it('shows actual offline results separately from check errors', () => {
+  render(<ScheduledJobs tasks={[statusTask]} />);
+  expect(screen.getByText('10 checked, 7 online, 3 offline, 2 skipped, 1 error')).toBeInTheDocument();
+});
+
+it('shows a queued run as waiting instead of displaying its previous error', () => {
+  render(<ScheduledJobs tasks={[{ ...statusTask, status: 'waiting', last_error: 'Previous failure' }]} />);
+  expect(screen.getByText('Waiting for another maintenance job')).toBeInTheDocument();
+  expect(screen.getByText('Waiting')).toBeInTheDocument();
+  expect(screen.queryByText('Previous failure')).not.toBeInTheDocument();
+});

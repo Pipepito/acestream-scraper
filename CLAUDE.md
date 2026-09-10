@@ -301,3 +301,11 @@ Production Pages publication follows successful, non-dry-run latest promotion in
 `github-publish` credential. The publisher verifies promotion metadata and writes
 `release-status.json`; ordinary develop publishes preserve that production
 version. Never update this label on a main merge, canary-only publish or dry run.
+
+
+Scheduled maintenance jobs share a FIFO queue; due jobs show Waiting and run-now
+requests do not duplicate running/waiting jobs. Settings → Automation stores
+optional start times/timezone in `schedule_anchors`, preserving existing intervals.
+Stream-check results distinguish online/offline/skipped/errors; never label the
+exception count as offline. See `docs/ops/scheduled-job-history.md` for clock/DST
+semantics, queue scope and database recovery behavior.

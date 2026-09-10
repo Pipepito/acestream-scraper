@@ -9,6 +9,8 @@ const ORDER = ['url_scraping', 'channel_status', 'epg_refresh', 'epg_program_cle
 
 const statusChip = (status: string) => {
   switch (status) {
+    case 'waiting':
+      return <Chip size="small" color="warning" label="Waiting" />;
     case 'running':
       return <Chip size="small" color="info" label="Running" />;
     case 'interrupted':
@@ -60,7 +62,7 @@ const ScheduledJobs: React.FC<ScheduledJobsProps> = ({ tasks }) => {
                 </Tooltip>
               </TableCell>
               <TableCell data-label="Result">
-                {task.last_error ? (
+                {task.status === 'waiting' ? <span>Waiting for another maintenance job</span> : task.last_error ? (
                   <Typography variant="body2" color="error.main">
                     {task.last_error}
                   </Typography>

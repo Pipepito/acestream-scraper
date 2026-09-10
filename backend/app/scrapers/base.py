@@ -441,20 +441,15 @@ class BaseScraper(ABC):
             else:
                 db = next(get_db())
 
-        from app.models.models import ScrapedURL
+        from app.repositories.url_repository import URLRepository
+        from app.config.database_retry import run_database_write
 
         candidate_urls = {url}
         if self.url_obj is not None:
             candidate_urls.add(self.url_obj.original_url)
             candidate_urls.add(self.url_obj.get_normalized_url())
-
-        url_record = db.query(ScrapedURL).filter(ScrapedURL.url.in_(candidate_urls)).order_by(ScrapedURL.id.asc()).first()
-
-        if not url_record:
-            url_record = ScrapedURL(url=url)
-
-        url_record.update_status(status, error)
-        db.add(url_record)
-        db.commit()
-        if owns_session:
-            db.close()
+        try:
+            await run_database_write(URLRepository(db).record_scrape_status, url, candidate_urls, status, error)
+        finally:
+            if owns_session:
+                db.close()

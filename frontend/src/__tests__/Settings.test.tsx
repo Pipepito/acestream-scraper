@@ -20,6 +20,8 @@ jest.mock('../hooks/useConfig');
 jest.mock('../hooks/useBaseUrls');
 jest.mock('../services/configService', () => ({
   configService: { getAppId: jest.fn(), updateAppId: jest.fn() },
+  getScheduleAnchors: jest.fn().mockResolvedValue({ timezone: 'UTC', url_scraping: null, epg_refresh: null, channel_status: null }),
+  saveScheduleAnchors: jest.fn(),
 }));
 
 type MutateOptions = { onSuccess?: () => void; onError?: (error: unknown) => void };

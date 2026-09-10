@@ -141,3 +141,21 @@ class CheckEngineConfig(BaseModel):
 
 class CheckEngineConfigResponse(CheckEngineConfig):
     managed: bool = False
+
+
+class ScheduleAnchors(BaseModel):
+    """Optional clock anchors for the existing repeat intervals."""
+    timezone: str = Field("UTC", description="IANA timezone used to interpret start times")
+    url_scraping: Optional[str] = Field(None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$", description="HH:MM anchor; null retains startup-relative scheduling")
+    epg_refresh: Optional[str] = Field(None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    channel_status: Optional[str] = Field(None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+
+    @field_validator("timezone")
+    @classmethod
+    def valid_timezone(cls, value: str) -> str:
+        from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+        try:
+            ZoneInfo(value)
+        except (ZoneInfoNotFoundError, ValueError) as exc:
+            raise ValueError("Use an IANA timezone such as Europe/Madrid or UTC") from exc
+        return value

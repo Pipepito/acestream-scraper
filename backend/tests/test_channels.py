@@ -331,7 +331,7 @@ def test_scheduled_status_scan_has_no_hundred_channel_limit(db_session, monkeypa
     monkeypatch.setattr(task.ChannelStatusService, 'check_channel_status', check)
     result = task.run_channel_status_task()
     assert check.call_count == 151
-    assert result == {'checked': 0, 'skipped': 151, 'failed': 0}
+    assert result == {'checked': 0, 'skipped': 151, 'failed': 0, 'online': 0, 'offline': 0}
 
 
 def test_retired_manual_status_is_not_exposed(monkeypatch):

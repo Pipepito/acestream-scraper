@@ -35,7 +35,8 @@ describe('job names and results', () => {
   });
   it('summarises last results per job', () => {
     expect(summarizeJobResult('url_scraping', { processed: 2, failures: 0 })).toBe('2 sources, 0 errors');
-    expect(summarizeJobResult('channel_status', { checked: 6, failed: 5 })).toBe('6 checked, 5 offline');
+    expect(summarizeJobResult('channel_status', { checked: 6, failed: 5 })).toBe('6 checked, 0 skipped, 5 errors');
+    expect(summarizeJobResult('channel_status', { checked: 6, online: 2, offline: 4, skipped: 3, failed: 1 })).toBe('6 checked, 2 online, 4 offline, 3 skipped, 1 error');
     expect(summarizeJobResult('epg_refresh', { sources: 1, successful: 1, failed: 0 })).toBe('1 source refreshed');
     expect(summarizeJobResult('epg_refresh', { sources: 2, successful: 1, failed: 1 })).toBe('1 of 2 sources refreshed, 1 failed');
     expect(summarizeJobResult('epg_program_cleanup', { deleted: 312, disabled: false })).toBe('312 programmes removed');

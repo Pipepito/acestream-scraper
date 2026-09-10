@@ -161,7 +161,10 @@ class EPGService:
                     db_channel.language = language
                     db_channel.updated_at = datetime.now(timezone.utc)
 
-            self.db.flush()
+            # Existing channel IDs are already available. Avoid taking SQLite's
+            # writer lock while parsing/diffing a large replacement guide.
+            if channels_found:
+                self.db.flush()
             channel_id_map = {xml_id: channel.id for xml_id, channel in channel_mapping.items()}
 
             existing_programs = (
@@ -615,6 +618,7 @@ class EPGService:
             return result
 
         except Exception as e:
+            self.db.rollback()
             logger.error(f"Error refreshing EPG source {source_id}: {e}")
             duration = (datetime.now() - start_time).total_seconds()
             return {

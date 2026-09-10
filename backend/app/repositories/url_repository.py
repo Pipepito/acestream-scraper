@@ -1,3 +1,4 @@
+from app.config.database_retry import retry_database_write
 from sqlalchemy.orm import Session
 from sqlalchemy.future import select
 from typing import List, Optional
@@ -10,6 +11,15 @@ class URLRepository:
 
     def __init__(self, db: Session):
         self.db = db
+
+    @retry_database_write
+    def record_scrape_status(self, url: str, candidate_urls: set[str], status: str, error: Optional[str] = None) -> None:
+        record = self.db.query(ScrapedURL).filter(ScrapedURL.url.in_(candidate_urls)).order_by(ScrapedURL.id.asc()).first()
+        if record is None:
+            record = ScrapedURL(url=url)
+        record.update_status(status, error)
+        self.db.add(record)
+        self.db.commit()
 
     def get_all(self, skip: int = 0, limit: int = 100) -> List[ScrapedURL]:
         """Get all ScrapedURLs"""

@@ -62,7 +62,15 @@ export const summarizeJobResult = (id: string, result: unknown): string | null =
     case 'channel_status': {
       const checked = field(result, 'checked');
       const failed = field(result, 'failed') ?? 0;
-      return checked === null ? null : `${checked} checked, ${failed} offline`;
+      if (result && typeof result === 'object' && typeof (result as Record<string, unknown>).message === 'string') {
+        return (result as Record<string, string>).message;
+      }
+      if (checked === null) return null;
+      const online = field(result, 'online');
+      const offline = field(result, 'offline');
+      const skipped = field(result, 'skipped') ?? 0;
+      const counts = online !== null && offline !== null ? `, ${online} online, ${offline} offline` : '';
+      return `${checked} checked${counts}, ${skipped} skipped, ${plural(failed, 'error', 'errors')}`;
     }
     case 'epg_refresh': {
       const sources = field(result, 'sources');

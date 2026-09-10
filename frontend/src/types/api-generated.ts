@@ -357,6 +357,12 @@ export interface paths {
      */
     put: operations["update_rescrape_interval_api_v1_config_rescrape_interval_put"];
   };
+  "/api/v1/config/schedule-anchors": {
+    /** Get Schedule Anchors */
+    get: operations["get_schedule_anchors_api_v1_config_schedule_anchors_get"];
+    /** Update Schedule Anchors */
+    put: operations["update_schedule_anchors_api_v1_config_schedule_anchors_put"];
+  };
   "/api/v1/config/{key}": {
     /**
      * Get Config Key
@@ -2580,6 +2586,27 @@ export interface components {
       hosts: components["schemas"]["ScanHitResponse"][];
       /** Scanned */
       scanned: number;
+    };
+    /**
+     * ScheduleAnchors
+     * @description Optional clock anchors for the existing repeat intervals.
+     */
+    ScheduleAnchors: {
+      /** Channel Status */
+      channel_status?: string | null;
+      /** Epg Refresh */
+      epg_refresh?: string | null;
+      /**
+       * Timezone
+       * @description IANA timezone used to interpret start times
+       * @default UTC
+       */
+      timezone?: string;
+      /**
+       * Url Scraping
+       * @description HH:MM anchor; null retains startup-relative scheduling
+       */
+      url_scraping?: string | null;
     };
     /**
      * ScraperRequest
@@ -4820,6 +4847,39 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["ConfigUpdateResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get Schedule Anchors */
+  get_schedule_anchors_api_v1_config_schedule_anchors_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ScheduleAnchors"];
+        };
+      };
+    };
+  };
+  /** Update Schedule Anchors */
+  update_schedule_anchors_api_v1_config_schedule_anchors_put: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ScheduleAnchors"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ScheduleAnchors"];
         };
       };
       /** @description Validation Error */

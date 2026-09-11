@@ -100,6 +100,46 @@ fi
 # NO `rm -rf .git` here: src/util/Git.py reads the repository through
 # GitPython at import time and the node will not start without it.
 
+# Narrow compatibility patch for the pinned upstream Path/str regression (#331).
+# Keep inner_path a string: root accounting and signature checks depend on it.
+# Restore matching-path verification, the root manifest size limit and root
+# dispatch. Included-manifest traversal/signing defects remain upstream (#333).
+# See docs/ops/zeronet-verification.md for scope and regression coverage.
+log "patching ContentManager verification comparisons"
+"$PYTHON_BIN" - "$ZN_DIR/app/src/Content/ContentManager.py" <<'INNER_PATH_PATCH'
+import ast
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+src = path.read_text(encoding="utf-8")
+# Restrict replacements to verifyContent; sign() has similar comparisons.
+tree = ast.parse(src)
+manager = next(node for node in tree.body
+               if isinstance(node, ast.ClassDef) and node.name == "ContentManager")
+method = next(node for node in manager.body
+              if isinstance(node, ast.FunctionDef) and node.name == "verifyContent")
+lines = src.splitlines(keepends=True)
+body = "".join(lines[method.lineno - 1:method.end_lineno])
+replacements = (
+    ("Path(content['inner_path']) != inner_path:",
+     "Path(content['inner_path']) != Path(inner_path):", 1),
+    ("if inner_path == Path('content.json'):",
+     'if inner_path == "content.json":', 2),
+)
+for old, new, expected in replacements:
+    old_count, new_count = body.count(old), body.count(new)
+    if old_count + new_count != expected:
+        sys.exit("inner_path patch: unexpected verifyContent shape in %s "
+                 "(%r: old=%d, patched=%d, expected=%d); recheck upstream pin"
+                 % (path, old, old_count, new_count, expected))
+    body = body.replace(old, new)
+patched = "".join(lines[:method.lineno - 1]) + body + "".join(lines[method.end_lineno:])
+ast.parse(patched)
+if patched != src:
+    path.write_text(patched, encoding="utf-8")
+INNER_PATH_PATCH
+
 log "installing python dependencies"
 "$PYTHON_BIN" -m pip install --no-cache-dir -r "$REQUIREMENTS"
 

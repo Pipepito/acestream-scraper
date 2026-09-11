@@ -62,6 +62,7 @@ if [[ "$PROFILE" == "quick" ]]; then
     backend/tests/contracts/test_integrations_contracts.py \
     backend/tests/contracts/test_urls_contracts.py \
     backend/tests/test_error_contracts.py \
+    backend/tests/test_zeronet_verification.py \
     backend/tests/regression/test_legacy_behavior_parity.py
 else
   # backend/tests/docker builds images with buildx (QEMU for ARM) and boots

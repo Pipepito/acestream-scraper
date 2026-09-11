@@ -100,69 +100,44 @@ fi
 # NO `rm -rf .git` here: src/util/Git.py reads the repository through
 # GitPython at import time and the node will not start without it.
 
-# zeronet-conservancy 81d3ffc6 discards every content.json a peer serves it.
-# ContentManager.verifyContent() compares a Path against the str it was given:
-#
-#     if content.get('inner_path') and Path(content['inner_path']) != inner_path:
-#         raise VerifyError(f"Wrong inner_path: {content['inner_path']}")
-#
-# inner_path arrives as a string -- Worker.py passes task["inner_path"], and
-# the same function compares it against the literal "content.json" a few lines
-# above -- and in Python a Path is never equal to a str, so the condition is
-# True for every site whose content.json declares its own inner_path. That is
-# all of them.
-#
-# Measured with two nodes on the same network at the same time, one patched:
-#
-#     "Wrong inner_path" rejections     970 -> 0
-#     peers that delivered a file         0 -> 3
-#
-# End to end, the patched node downloaded a complete zite from the network for
-# the first time. Without the patch the node connects, does PEX, announces on
-# DHT and throws away everything it is handed, which is indistinguishable from
-# an empty network.
-#
-# Patched here rather than by moving the pin because 81d3ffc6 IS the tip of
-# zeronet-conservancy's main branch: there is nothing newer to pin to.
-#
-# Three more comparisons in the same file have the same Path/str mismatch and
-# are NOT touched here, because only this one was measured:
-#
-#     918  inner_path == Path('content.json')   always False -> the root
-#          content.json size limit never fires
-#     933  inner_path == Path('content.json')   always False -> harmless in
-#          practice: getRules() normalises its argument, so the root takes the
-#          include branch and still passes
-#     781/800 the same, inside sign()
-#
-# If anyone revisits them: do NOT fix this by normalising inner_path to Path
-# at the top of verifyContent (the shape getRules already uses). Line 900 in
-# that same function compares inner_path against the *string* "content.json"
-# and works today; normalising breaks it, and breaks line 722 in sign() too.
-# Correct the comparisons one by one and leave the variable a str.
-#
-# The patch fails loudly when the line is not found, so bumping the pin stops
-# the build instead of silently applying nothing.
-log "patching ContentManager inner_path comparison"
+# Narrow compatibility patch for the pinned upstream Path/str regression (#331).
+# Keep inner_path a string: root accounting and signature checks depend on it.
+# Restore matching-path verification, the root manifest size limit and root
+# dispatch. Included-manifest traversal/signing defects remain upstream (#333).
+# See docs/ops/zeronet-verification.md for scope and regression coverage.
+log "patching ContentManager verification comparisons"
 "$PYTHON_BIN" - "$ZN_DIR/app/src/Content/ContentManager.py" <<'INNER_PATH_PATCH'
+import ast
 import sys
+from pathlib import Path
 
-OLD = ("if content.get('inner_path') and "
-       "Path(content['inner_path']) != inner_path:")
-NEW = ("if content.get('inner_path') and "
-       "Path(content['inner_path']) != Path(inner_path):")
-
-path = sys.argv[1]
-with open(path, encoding="utf-8") as fh:
-    src = fh.read()
-if NEW in src:
-    sys.exit(0)
-if src.count(OLD) != 1:
-    sys.exit("inner_path patch: expected 1 occurrence in %s, found %d; the "
-             "pinned zeronet-conservancy commit has changed and the fix needs "
-             "rechecking" % (path, src.count(OLD)))
-with open(path, "w", encoding="utf-8") as fh:
-    fh.write(src.replace(OLD, NEW, 1))
+path = Path(sys.argv[1])
+src = path.read_text(encoding="utf-8")
+# Restrict replacements to verifyContent; sign() has similar comparisons.
+tree = ast.parse(src)
+manager = next(node for node in tree.body
+               if isinstance(node, ast.ClassDef) and node.name == "ContentManager")
+method = next(node for node in manager.body
+              if isinstance(node, ast.FunctionDef) and node.name == "verifyContent")
+lines = src.splitlines(keepends=True)
+body = "".join(lines[method.lineno - 1:method.end_lineno])
+replacements = (
+    ("Path(content['inner_path']) != inner_path:",
+     "Path(content['inner_path']) != Path(inner_path):", 1),
+    ("if inner_path == Path('content.json'):",
+     'if inner_path == "content.json":', 2),
+)
+for old, new, expected in replacements:
+    old_count, new_count = body.count(old), body.count(new)
+    if old_count + new_count != expected:
+        sys.exit("inner_path patch: unexpected verifyContent shape in %s "
+                 "(%r: old=%d, patched=%d, expected=%d); recheck upstream pin"
+                 % (path, old, old_count, new_count, expected))
+    body = body.replace(old, new)
+patched = "".join(lines[:method.lineno - 1]) + body + "".join(lines[method.end_lineno:])
+ast.parse(patched)
+if patched != src:
+    path.write_text(patched, encoding="utf-8")
 INNER_PATH_PATCH
 
 log "installing python dependencies"

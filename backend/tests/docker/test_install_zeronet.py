@@ -157,6 +157,17 @@ def test_zeronet_installer_stage_produces_working_launcher(tmp_path):
         assert result.returncode == 0, result.stderr
         assert "--ui-port" in result.stdout
 
+        verification = subprocess.run(
+            [
+                "docker", "run", "--rm", "--network", "none",
+                "-v", f"{REPO_ROOT}:/review:ro",
+                "-e", "LD_LIBRARY_PATH=/opt/zeronet/python/lib",
+                tag, "/opt/zeronet/python/bin/python3.11",
+                "/review/backend/tests/docker/zeronet_manifest_smoke.py",
+            ], capture_output=True, text=True, timeout=60,
+        )
+        assert verification.returncode == 0, verification.stdout + verification.stderr
+
         # Run the real entrypoint and node twice against the same mounted volume.
         # A successful HTTP response proves startup got past state initialization.
         state = tmp_path / "state"

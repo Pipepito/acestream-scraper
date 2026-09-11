@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# One reusable probe engine; fixed private state and non-playback ports on all
+# architectures. Do not inherit the playback command or its extra flags.
+set -euo pipefail
+export ACESTREAM_HOME=/var/lib/acestream-check
+export ACESTREAM_BIND_ALL=false
+export ACESTREAM_HTTP_PORT=6880
+export PYTHONPATH=/opt/acestream/python-deps
+mkdir -p "$ACESTREAM_HOME/cache" "$ACESTREAM_HOME/tmp"
+# TEMP is the Android bootstrap's scratch directory; state-dir also isolates
+# the native engine's lock, identity and discovery files without changing HOME.
+export TEMP="$ACESTREAM_HOME/tmp"
+exec /opt/acestream/start-engine --client-console \
+    --state-dir "$ACESTREAM_HOME" --cache-dir "$ACESTREAM_HOME/cache" \
+    --http-port 6880 --https-port 6881 --api-port 62063 --port 8622 \
+    --cache-auto 0 --cache-max-bytes 268435456 \
+    --live-cache-type disk --live-disk-cache-size 67108864 \
+    --disable-sentry --log-stdout --log-max-size 1048576 --log-backup-count 2

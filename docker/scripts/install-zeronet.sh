@@ -1,0 +1,172 @@
+#!/usr/bin/env bash
+# Installs a self-contained ZeroNet node (zeronet-conservancy) into
+# /opt/zeronet for the container platform being built. Runs inside the
+# Dockerfile's `zeronet-installer` stage.
+#
+# ZeroNet is bundled for linux/amd64 and linux/arm64. 32-bit ARM is still
+# excluded: gevent publishes no armv7l wheels (checked on PyPI for both the
+# old 23.9.1 and the current pin), so linux/arm/v7 and linux/arm/v6 would have
+# to build gevent, greenlet and coincurve from source inside the image. On
+# those platforms this script leaves /opt/zeronet empty except for metadata
+# and the entrypoint refuses ENABLE_ZERONET=true with a clear error — an
+# external ZeroNet service through ZERONET_URL keeps working everywhere.
+#
+# WHY arm64 IS IN NOW. It used to be excluded with the same reasoning as
+# armv7 ("gevent 23.9.x has no wheels for modern ARM targets"), but that was
+# only ever true for 32-bit: gevent has published manylinux aarch64 wheels
+# throughout. What actually blocked arm64 was the *ZeroNet* pin, v0.7.10,
+# which deadlocks under gevent >= 24.10 and therefore forced gevent 23.9.1 —
+# and 23.9.1 has no aarch64 wheel for the interpreters this image uses. With
+# the node moved past that (see below), the constraint disappears.
+#
+# The stage runs on $TARGETPLATFORM, not $BUILDPLATFORM: the pip wheels and
+# the staged CPython prefix are native code, so they have to be produced for
+# the platform they will run on. Cross-building them is what the old
+# `uname -m` guard was defending against; running under emulation removes the
+# hazard instead of detecting it.
+#
+# The source is pinned by COMMIT and fetched by commit, not by tag or branch:
+# `git fetch --depth 1 origin <sha>` is served by GitHub, so the pin cannot
+# drift when a branch moves and there is no need for a tag to exist.
+#
+# /opt/zeronet/app/.git IS KEPT ON PURPOSE. The node reads its own build
+# information through GitPython (src/util/Git.py); with the directory removed
+# it dies at import time with
+#     ImportError: cannot import name 'Build' from 'src'
+# A --depth 1 checkout costs a few MB and is the cheapest way to satisfy it.
+#
+# Output: /opt/zeronet/app (source), /opt/zeronet/python (the stage's whole
+# CPython prefix, site-packages included), /opt/zeronet/bin/zeronet
+# (launcher), /opt/zeronet/install-metadata.txt for diagnostics.
+
+set -euo pipefail
+
+ZERONET_REPO_URL="${ZERONET_REPO_URL:-https://github.com/zeronet-conservancy/zeronet-conservancy}"
+ZERONET_REF="${ZERONET_REF:-main}"
+ZERONET_COMMIT="${ZERONET_COMMIT:-81d3ffc6bdfb600e9a1d4a091f1ceb131d92c4f1}"
+TARGET_PLATFORM="${TARGETPLATFORM:-}"
+# Overridable so the contract tests can run the script directly without
+# touching /opt.
+ZN_DIR="${ZERONET_INSTALL_DIR:-/opt/zeronet}"
+REQUIREMENTS="${ZERONET_REQUIREMENTS:-/tmp/zeronet-requirements.txt}"
+
+log() { printf 'install-zeronet: %s\n' "$*"; }
+fail() { printf 'install-zeronet: %s\n' "$*" >&2; exit 1; }
+
+mkdir -p "$ZN_DIR"
+
+[ -n "$TARGET_PLATFORM" ] || fail "TARGETPLATFORM is not set (pass --platform to docker buildx build)"
+
+case "$TARGET_PLATFORM" in
+    linux/amd64)
+        expected_machine=x86_64
+        ;;
+    linux/arm64|linux/arm64/v8)
+        expected_machine=aarch64
+        ;;
+    linux/arm/v7|linux/arm/v6)
+        log "ZeroNet is not bundled for $TARGET_PLATFORM (no armv7l wheels for gevent); installing nothing"
+        printf 'zeronet_version=none\nplatform=%s\nreason=no armv7l wheels for gevent\n' \
+            "$TARGET_PLATFORM" > "$ZN_DIR/install-metadata.txt"
+        exit 0
+        ;;
+    *)
+        fail "unsupported TARGETPLATFORM for ZeroNet: $TARGET_PLATFORM"
+        ;;
+esac
+
+# The stage must run AS the target platform (buildx does this with binfmt).
+# Building the payload anywhere else would embed wrong-arch wheels and a
+# wrong-arch interpreter, and the failure would only show at runtime.
+if [ "$(uname -m)" != "$expected_machine" ]; then
+    fail "the $TARGET_PLATFORM ZeroNet payload must be built on $expected_machine (got $(uname -m)); the zeronet-installer stage needs --platform=\$TARGETPLATFORM"
+fi
+
+[ -f "$REQUIREMENTS" ] || fail "requirements file not found: $REQUIREMENTS"
+
+PYTHON_BIN="${ZERONET_PYTHON_BIN:-python3}"
+PYTHON_PREFIX="$("$PYTHON_BIN" -c 'import sys; print(sys.prefix)')"
+
+log "fetching $ZERONET_REPO_URL @ $ZERONET_COMMIT ($ZERONET_REF)"
+mkdir -p "$ZN_DIR/app"
+git -C "$ZN_DIR/app" init -q .
+git -C "$ZN_DIR/app" remote add origin "$ZERONET_REPO_URL"
+git -C "$ZN_DIR/app" fetch -q --depth 1 origin "$ZERONET_COMMIT"
+git -C "$ZN_DIR/app" checkout -q FETCH_HEAD
+actual_commit="$(git -C "$ZN_DIR/app" rev-parse HEAD)"
+if [ "$actual_commit" != "$ZERONET_COMMIT" ]; then
+    fail "fetched $actual_commit, expected pinned commit $ZERONET_COMMIT"
+fi
+# NO `rm -rf .git` here: src/util/Git.py reads the repository through
+# GitPython at import time and the node will not start without it.
+
+# Narrow compatibility patch for the pinned upstream Path/str regression (#331).
+# Keep inner_path a string: root accounting and signature checks depend on it.
+# Restore matching-path verification, the root manifest size limit and root
+# dispatch. Included-manifest traversal/signing defects remain upstream (#333).
+# See docs/ops/zeronet-verification.md for scope and regression coverage.
+log "patching ContentManager verification comparisons"
+"$PYTHON_BIN" - "$ZN_DIR/app/src/Content/ContentManager.py" <<'INNER_PATH_PATCH'
+import ast
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+src = path.read_text(encoding="utf-8")
+# Restrict replacements to verifyContent; sign() has similar comparisons.
+tree = ast.parse(src)
+manager = next(node for node in tree.body
+               if isinstance(node, ast.ClassDef) and node.name == "ContentManager")
+method = next(node for node in manager.body
+              if isinstance(node, ast.FunctionDef) and node.name == "verifyContent")
+lines = src.splitlines(keepends=True)
+body = "".join(lines[method.lineno - 1:method.end_lineno])
+replacements = (
+    ("Path(content['inner_path']) != inner_path:",
+     "Path(content['inner_path']) != Path(inner_path):", 1),
+    ("if inner_path == Path('content.json'):",
+     'if inner_path == "content.json":', 2),
+)
+for old, new, expected in replacements:
+    old_count, new_count = body.count(old), body.count(new)
+    if old_count + new_count != expected:
+        sys.exit("inner_path patch: unexpected verifyContent shape in %s "
+                 "(%r: old=%d, patched=%d, expected=%d); recheck upstream pin"
+                 % (path, old, old_count, new_count, expected))
+    body = body.replace(old, new)
+patched = "".join(lines[:method.lineno - 1]) + body + "".join(lines[method.end_lineno:])
+ast.parse(patched)
+if patched != src:
+    path.write_text(patched, encoding="utf-8")
+INNER_PATH_PATCH
+
+log "installing python dependencies"
+"$PYTHON_BIN" -m pip install --no-cache-dir -r "$REQUIREMENTS"
+
+# Carry the whole interpreter prefix along: the runtime image runs the app on
+# a different CPython, so ZeroNet brings its own (binary, stdlib, libpython
+# and the site-packages just installed) under /opt/zeronet/python. CPython
+# locates its prefix relative to the executable, so the tree is relocatable;
+# the launcher only needs LD_LIBRARY_PATH for libpython.
+log "staging interpreter prefix from $PYTHON_PREFIX"
+mkdir -p "$ZN_DIR/python"
+cp -a "$PYTHON_PREFIX/bin" "$PYTHON_PREFIX/lib" "$ZN_DIR/python/"
+
+PY_TAG="$(basename "$(ls -d "$ZN_DIR"/python/lib/python3.* | head -n 1)")"
+[ -x "$ZN_DIR/python/bin/$PY_TAG" ] || fail "staged interpreter $PY_TAG is missing its binary"
+
+mkdir -p "$ZN_DIR/bin"
+cat > "$ZN_DIR/bin/zeronet" <<LAUNCHER
+#!/bin/bash
+set -e
+export LD_LIBRARY_PATH="$ZN_DIR/python/lib\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}"
+cd "$ZN_DIR/app"
+exec "$ZN_DIR/python/bin/$PY_TAG" zeronet.py "\$@"
+LAUNCHER
+chmod +x "$ZN_DIR/bin/zeronet"
+
+printf 'zeronet_version=%s\ncommit=%s\nplatform=%s\npython=%s\n' \
+    "$ZERONET_REF" "$ZERONET_COMMIT" "$TARGET_PLATFORM" "$PY_TAG" \
+    > "$ZN_DIR/install-metadata.txt"
+
+log "installed zeronet-conservancy $ZERONET_REF ($ZERONET_COMMIT) with $PY_TAG"

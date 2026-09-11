@@ -1,0 +1,23 @@
+{
+  "baseline_version": "2026-02-27.1",
+  "playlist": {
+    "header": "#EXTM3U",
+    "expected_names": [
+      "Parity Output Alpha",
+      "Parity Output Beta"
+    ],
+    "required_attributes": [
+      "group-title=\"Parity Group\"",
+      "tvg-id=\"parity.output.alpha\""
+    ]
+  },
+  "epg": {
+    "required_root_tag": "tv",
+    "expected_channel_ids": [
+      "parity.output.alpha"
+    ],
+    "expected_program_titles": [
+      "Parity Program"
+    ]
+  }
+}

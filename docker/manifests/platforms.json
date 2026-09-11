@@ -1,0 +1,55 @@
+{
+  "baseline_platforms": [
+    "linux/amd64",
+    "linux/arm/v7",
+    "linux/arm64"
+  ],
+  "tag_aliases": {
+    "latest": "scraper-acestream-acexy",
+    "version": "scraper-acestream-acexy"
+  },
+  "flavors": {
+    "scraper": {
+      "platform_source": "baseline",
+      "platforms": [
+        "linux/amd64",
+        "linux/arm/v7",
+        "linux/arm64"
+      ],
+      "includes": [
+        "app",
+        "warp"
+      ]
+    },
+    "scraper-acestream": {
+      "platform_source": "acestream_supported",
+      "includes": [
+        "app",
+        "warp",
+        "acestream"
+      ]
+    },
+    "scraper-acexy": {
+      "platform_source": "baseline",
+      "platforms": [
+        "linux/amd64",
+        "linux/arm/v7",
+        "linux/arm64"
+      ],
+      "includes": [
+        "app",
+        "warp",
+        "acexy"
+      ]
+    },
+    "scraper-acestream-acexy": {
+      "platform_source": "acestream_supported",
+      "includes": [
+        "app",
+        "warp",
+        "acestream",
+        "acexy"
+      ]
+    }
+  }
+}

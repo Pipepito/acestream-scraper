@@ -1,0 +1,64 @@
+<?xml version="1.1" encoding="UTF-8"?>
+<org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject plugin="workflow-multibranch@841.vec5b_9e1806ec">
+  <actions/>
+  <description>PR validation for acestream-scraper</description>
+  <properties/>
+  <folderViews class="jenkins.branch.MultiBranchProjectViewHolder" plugin="branch-api@2.1280.v0d4e5b_b_460ef">
+    <owner class="org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject" reference="../.."/>
+  </folderViews>
+  <healthMetrics>
+    <com.cloudbees.hudson.plugins.folder.health.WorstChildHealthMetric plugin="cloudbees-folder@6.1100.ve9eed61d16c4">
+      <nonRecursive>false</nonRecursive>
+    </com.cloudbees.hudson.plugins.folder.health.WorstChildHealthMetric>
+  </healthMetrics>
+  <icon class="jenkins.branch.MetadataActionFolderIcon" plugin="branch-api@2.1280.v0d4e5b_b_460ef">
+    <owner class="org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject" reference="../.."/>
+  </icon>
+  <orphanedItemStrategy class="com.cloudbees.hudson.plugins.folder.computed.DefaultOrphanedItemStrategy" plugin="cloudbees-folder@6.1100.ve9eed61d16c4">
+    <pruneDeadBranches>true</pruneDeadBranches>
+    <daysToKeep>1</daysToKeep>
+    <numToKeep>2</numToKeep>
+    <abortBuilds>false</abortBuilds>
+  </orphanedItemStrategy>
+  <triggers>
+    <com.cloudbees.hudson.plugins.folder.computed.PeriodicFolderTrigger plugin="cloudbees-folder@6.1100.ve9eed61d16c4">
+      <spec>H/5 * * * *</spec>
+      <interval>300000</interval>
+    </com.cloudbees.hudson.plugins.folder.computed.PeriodicFolderTrigger>
+  </triggers>
+  <disabled>false</disabled>
+  <sources class="jenkins.branch.MultiBranchProject$BranchSourceList" plugin="branch-api@2.1280.v0d4e5b_b_460ef">
+    <data>
+      <jenkins.branch.BranchSource>
+        <source class="org.jenkinsci.plugins.github_branch_source.GitHubSCMSource" plugin="github-branch-source@1967.1970.vd86979736546">
+          <id>acestream-scraper-pr</id>
+          <apiUri>https://api.github.com</apiUri>
+          <credentialsId>github-builder-app</credentialsId>
+          <repoOwner>Pipepito</repoOwner>
+          <repository>acestream-scraper</repository>
+          <traits>
+            <org.jenkinsci.plugins.github__branch__source.BranchDiscoveryTrait>
+              <strategyId>1</strategyId>
+            </org.jenkinsci.plugins.github__branch__source.BranchDiscoveryTrait>
+            <org.jenkinsci.plugins.github__branch__source.OriginPullRequestDiscoveryTrait>
+              <strategyId>1</strategyId>
+            </org.jenkinsci.plugins.github__branch__source.OriginPullRequestDiscoveryTrait>
+            <org.jenkinsci.plugins.githubScmTraitNotificationContext.NotificationContextTrait plugin="github-scm-trait-notification-context@45.v8ef831829589">
+              <contextLabel>PR Validation</contextLabel>
+              <typeSuffix>false</typeSuffix>
+              <multipleStatuses>false</multipleStatuses>
+            </org.jenkinsci.plugins.githubScmTraitNotificationContext.NotificationContextTrait>
+          </traits>
+        </source>
+        <strategy class="jenkins.branch.DefaultBranchPropertyStrategy">
+          <properties class="empty-list"/>
+        </strategy>
+      </jenkins.branch.BranchSource>
+    </data>
+    <owner class="org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject" reference="../.."/>
+  </sources>
+  <factory class="org.jenkinsci.plugins.workflow.multibranch.WorkflowBranchProjectFactory">
+    <owner class="org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject" reference="../.."/>
+    <scriptPath>Jenkinsfile</scriptPath>
+  </factory>
+</org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject>

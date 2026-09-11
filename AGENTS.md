@@ -1,0 +1,267 @@
+# Codex repository guide
+
+This is the repository-wide instruction file for Codex. More specific guidance is
+layered in `backend/AGENTS.md`, `frontend/AGENTS.md`, and `e2e/AGENTS.md`; Codex
+loads the applicable file when working below those directories.
+
+## Start here
+
+- The active integration branch is `develop`; `main` is the release branch.
+- The current release PR is GitHub PR #162, `develop` -> `main`, titled
+  "Migration to V2, Api and FE." It supersedes #113 after the integration branch
+  was renamed. This is a large v2 cutover, not a routine feature PR.
+- Treat live PR and CI state as volatile. Before reporting it, run
+  `gh pr view 162 --json state,mergeable,mergeStateStatus,statusCheckRollup,updatedAt,url`
+  or inspect the PR in GitHub. On 2026-09-03 at commit `e5bc9e0`, the PR was open,
+  clean/mergeable, and Jenkins PR-162 build #20 / `PR Validation` was successful.
+- `backend/` and `frontend/` are the only canonical application roots. Do not
+  restore the retired root Flask runtime, root `app/`, root `tests/`, `manage.py`,
+  `run_dev.py`, or `wsgi.py`. The root `pyproject.toml` contains legacy package
+  metadata and is not the runtime dependency source.
+- Read `CLAUDE.md` for the most detailed project narrative. Use this file for
+  Codex-specific operating rules and the layered files for implementation details.
+
+## Repository map
+
+- `backend/`: FastAPI, Pydantic v2, SQLAlchemy 2.x, Alembic, APScheduler, pytest.
+- `frontend/`: React 18, TypeScript, Vite, MUI v5, React Query v5, Jest/RTL.
+- `e2e/`: Playwright/Firefox journeys against the built SPA and real sidecars.
+- `Dockerfile`, `docker/`, `entrypoint.sh`: multi-flavor, multi-architecture image.
+- `jenkins/pr.Jenkinsfile`: fork-aware, credential-free multibranch PR validation.
+- `jenkins/develop.Jenkinsfile`: trusted `develop` validation and automatic channel/docs publish.
+- `jenkins/release.Jenkinsfile`: manual release job, allowed from `main` only.
+- `scripts/ci/`: required checks, Docker builds, publishing, and CI helpers.
+- `docs/ops/jenkins-ci.md`: authoritative Jenkins and release runbook.
+- `docs/migration/development-progress.md`: live migration status.
+- `.planning/codebase/`: generated codebase map useful for orientation, not a
+  substitute for checking the implementation.
+
+## Working agreements
+
+- Inspect the working tree first. Preserve user changes and unrelated edits.
+- Prefer existing patterns and the narrowest change that completes the request.
+- Keep the frontend TypeScript-only. Do not add `.js` or `.jsx` application files.
+- Keep API endpoint modules thin; business logic belongs in services and DB-only
+  access belongs in repositories.
+- Use timezone-aware datetimes. Do not introduce `datetime.utcnow()`.
+- Do not use `Base.metadata.create_all()` as a production migration strategy.
+  Schema changes require an Alembic revision and migration-path tests.
+- If an API contract changes, update Pydantic schemas, regenerate
+  `frontend/src/types/api-generated.ts`, update services/tests, and verify drift.
+- If ports, environment options, or image flavors change, update
+  `docs/builder/runtime-options.json` and run the command-builder contract check.
+- Changes to sidecar installation/runtime behavior must consider image flavor,
+  CPU architecture, supervisor behavior, health probes, and Docker documentation.
+- AceStream uses persistent foreground process supervision on every platform:
+  retry all exits indefinitely; only UI Stop pauses recovery until Start/Restart
+  or container restart. Preserve the supervisor command mailbox, process-group
+  cleanup and intentional-stop healthcheck handling. Custom engine commands must
+  stay in the foreground. Other sidecars retain their existing fast-exit budget.
+- ARM64 and ARMv7 AceStream builds use the matching platform variants from the
+  digest-pinned `jopsis/acestream:v3.2.17-fix` OCI image. ARMv7 remains
+  experimental until its engine is runtime-tested on real ARMv7 hardware.
+- User-facing UI copy is plain, concise, and operational. Preserve both themes,
+  responsive behavior, keyboard access, reduced motion, and non-color status cues.
+- Do not commit generated/runtime data such as local SQLite databases, E2E stack
+  state, Playwright reports, logs, caches, or secrets.
+
+## Verification
+
+Choose checks proportionate to the change and report exactly what ran.
+
+Quick cross-stack gate from the repository root:
+
+```bash
+bash scripts/ci/run_v2_test_suite.sh --profile quick
+bash scripts/ci/assert_no_legacy_paths.sh --strict
+```
+
+Useful focused checks:
+
+```bash
+PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/path/to/test_file.py
+cd frontend && npm test -- --runInBand path/to/Test.test.tsx
+cd frontend && npm run typecheck && npm run lint -- --max-warnings=0
+cd frontend && npm run build:backend
+cd e2e && npm run typecheck
+python3 scripts/ci/validate_docker_manifest_metadata.py
+bash scripts/ci/validate_command_builder.sh
+```
+
+Use `bash scripts/ci/run_v2_test_suite.sh --profile full` for broad validation.
+Docker packaging/smoke tests are separate and may require Docker/buildx and much
+more time. Playwright is valuable for user-visible or integration changes, but is
+not part of the required PR gate; see `e2e/AGENTS.md` before running it.
+
+## Branch and release policy
+
+- Feature and hotfix PRs target `develop`.
+- Only `develop` may open a PR into `main`; `jenkins/pr.Jenkinsfile` enforces this.
+- Both protected branches require the `PR Validation` status and disallow direct
+  pushes, force-pushes, and deletion.
+- A validated trusted `develop` job publishes only floating `:develop*` tags.
+  It must never publish `:latest` or version tags.
+- Releases are manual through `acestream-scraper-release` on `main`. Publishing
+  version tags and promoting `:latest` are separate, deliberate phases.
+- Never trigger a release, publish images, promote tags, merge the release PR,
+  change branch protection, or mutate Jenkins configuration unless the user has
+  explicitly authorized that action.
+- Before a release, follow the current checklist in `docs/ops/jenkins-ci.md` and
+  `docs/release/v2-release-readiness.md`; do not rely on an old PR body.
+
+## Jenkins and infrastructure
+
+- Jenkins is the sole repository validation and release system. GitHub Actions
+  application workflows were retired; the remaining Pages workflow is not the
+  application CI gate.
+- The local, git-ignored `infra-details.md` contains the current controller URL,
+  operator identity/token, build-agent address, and job names. See
+  `docs/ops/codex-infrastructure-access.md` before using it.
+- Treat every value in `infra-details.md` as sensitive even if it looks harmless.
+  Never quote the file in output, copy values into tracked docs, logs, commands
+  likely to be recorded, issue/PR text, screenshots, or test fixtures.
+- Infrastructure inspection is read-only by default. Triggering/cancelling jobs,
+  replaying builds, changing Jenkins jobs/credentials/nodes, or publishing artifacts
+  is an external mutation and needs explicit user authorization.
+- PR, trusted `develop`, and release pipelines share the FIFO
+  `acestream-scraper-nuc-docker` lock for their full run. Although `dorat-nuc-ci`
+  has four executors, only one of these Docker/BuildKit workloads may run at once;
+  later builds wait and must not abort or prune resources from the lock holder.
+- The multibranch validation job is `acestream-scraper-pr`; trusted publication
+  uses `acestream-scraper-develop`, and manual releases use
+  `acestream-scraper-release`. All currently launch on `dorat-nuc-ci`, but fork
+  code runs only inside network-disabled containers; it must never receive the
+  Docker socket or a Jenkins credential. Each fork build creates a disposable
+  dependency runner from the trusted target ref, then runs runtime contracts in
+  pinned amd64, arm64, and arm/v7 userlands. Do not execute a fork-controlled
+  Dockerfile or install fork-controlled dependency inputs automatically.
+- When Jenkins and GitHub disagree, distinguish the Jenkins build result from the
+  GitHub commit status and record the commit SHA each result belongs to.
+
+## Code review rules
+
+- Flag any reintroduction of legacy root runtime paths as release-blocking.
+- Flag schema/model drift without an Alembic revision or upgrade-path test.
+- Flag API changes without generated-client and frontend service/test updates.
+- Flag SSRF regressions in scraper/EPG URL handling or accidental weakening of
+  optional API-token enforcement.
+- Flag secrets, local infrastructure coordinates, or credentials in tracked files.
+- Flag release/channel logic that could publish `:latest`, a version tag, or Docker
+  credentials from an unvalidated/non-release context.
+- Flag blocking I/O added to async request paths or unbounded work moved into app
+  startup. The deferred v1 EPG migration must remain resumable and non-blocking.
+- Flag platform assumptions that silently drop amd64, arm64, or arm/v7 behavior.
+
+## Documentation expectations
+
+- Update the nearest durable document when behavior, commands, deployment, or
+  operator procedure changes.
+- Keep `CLAUDE.md` and the applicable `AGENTS.md` aligned when changing a core
+  workflow that both agents need to know.
+- Do not turn dated CI status into timeless documentation. Label snapshots with a
+  date and commit, and include the command/source future agents should recheck.
+
+## Playback routing
+
+`GET/PUT /api/v1/config/playback-routing` persists `use_acexy` and `acexy_url`
+as one JSON setting. Direct mode is the default. Web-player and tuner factories
+use `playback_client_from_settings`; engine health/probes remain direct.
+Acexy mode reads MPEG-TS from `/ace/getstream?id=…` with no PID or engine JSON
+start/stat/stop calls. The session retains its Acexy ownership flag across
+configuration changes so cleanup never stops another proxy client. Remote
+players use the server relay in Acexy mode, bypassing saved custom link formats;
+direct mode honors their formats and adds a unique PID to direct engine links.
+Existing shared browser sessions retain their route until teardown. See
+`wiki/Remote-Players.md#playback-routing` for operator behavior.
+
+## Runtime diagnostics
+
+All image flavours inherit bounded console capture from `backend/capture_logs.py`
+in the shared image layer. Capture scraper, each service and entrypoint output
+in separate rotating logs. Prefix Docker console lines with their service tag;
+keep local capture content unchanged. WARP TRACE/DEBUG/INFO records are console-filtered only;
+retain all levels in `warp.log` and keep issues and lifecycle messages visible.
+Preserve other Docker console output, child PIDs/exit codes,
+process-group cleanup and intentional-stop behavior. The DB-independent
+`GET /api/v1/system/diagnostics` endpoint exports bounded fixed-file tails with
+credential masking and normal API-token enforcement, including during startup
+failure. Overview provides the download. See `docs/ops/runtime-diagnostics.md`.
+
+## Verified signal and scheduled job history
+
+Catalogue imports do not imply online status. Channel probes separate engine ID
+lookup (`network_status`) from media delivery (`is_online`); require identified A/V
+packets before claiming signal. Keep timeout/engine errors distinct from explicit
+ID-not-found responses. See `docs/ops/stream-check-pid.md`.
+
+Scheduled job launch times and outcomes persist in `scheduled_task_states`; restore
+after schema upgrade off the event loop and mark unfinished runs interrupted. Keep
+scalar results valid in the status API. See `docs/ops/scheduled-job-history.md`.
+
+
+## Dedicated checking engine and playback ownership
+
+`ENABLE_ACESTREAM_CHECK_ENGINE=true` opts bundled-engine images into a second
+persistent supervised engine (state `/var/lib/acestream-check`, HTTP 6880,
+legacy API 62063, P2P 8622). Alternatively, `ACE_CHECK_ENGINE_URL` selects an
+external checker. Never fall back to playback when a configured checker fails;
+preserve previous channel results. Keep checker supervision, controls and logs
+independent; checker outage must not fail whole-container health. Direct playback
+uses process-wide source ownership leases across clients; serialize starts with
+final stops, release exactly once, and preserve session ownership across settings
+changes. Acexy owns its sessions. See `docs/ops/stream-check-pid.md`.
+
+## Live TV and settings navigation
+
+Live TV embeds the existing HLS player alongside a scrollable catalogue. Filtering
+does not release playback; changing the channel or Stop watching releases the
+current viewer. Other pages retain the player dialog. Navigation groups Watch,
+Manage and System, with WARP always discoverable. Settings uses deep-linkable
+`?tab=playback|automation|links|access` sections; public address belongs to
+Integrations. PID/AppID belong to Stream links, not Automation.
+
+
+## TV channel inventory and playlist formats
+
+TV Channels combines catalogue-wide filters before sorting and pagination. Number
+and Favorite have dedicated controls in the table and phone cards; number changes
+save on Enter/blur and blank clears the number. Keep remaining row actions intact.
+Playlist shows the selected stream format and expands the shared
+`StreamLinkFormatsSection` inline, preserving playlist options. Settings retains
+its Stream links entry because formats also affect copied links and supported
+remote-player actions. Do not fork the format editor or duplicate its API logic.
+
+TV Channels keeps Search, Category, Status and Favorite filters visible; other
+filters live under Advanced filters with an active count. Reorder channels shows
+the complete catalogue, supports drag handles and keyboard/arrow controls, and
+previews consecutive numbers. Save order uses `POST /api/v1/tv-channels/reorder`
+with the complete desired IDs and original order; the backend commits all numbers
+atomically and rejects stale/incomplete inventories. Cancel leaves stored numbers
+unchanged. Number edits remain available outside reorder mode.
+
+
+Engines are optional. Settings → Automation stores external checker selection via
+`/api/v1/config/check-engine`; disabled dedicated checks use the saved playback
+URL, and with neither URL probes are skipped without changing channel results.
+A configured dedicated checker never falls back on failure. Bundled checker
+configuration remains supervisor-owned and read-only in Settings. New scraper-only
+installs default to an empty playback URL; existing saved endpoints are preserved.
+
+Bundled ZeroNet supports amd64 and arm64. Keep its downloaded sites and `.node/`
+configuration/private state within `ZERONET_DATA_DIR`. Legacy `sites.json` and
+`users.json` are copied into `.node/private` only when absent; never overwrite
+migrated state or delete the originals during startup.
+
+Production Pages publication follows successful, non-dry-run latest promotion in
+`jenkins/release.Jenkinsfile` using `publish_pages.sh --promoted-release` and the
+`github-publish` credential. The publisher verifies promotion metadata and writes
+`release-status.json`; ordinary develop publishes preserve that production
+version. Never update this label on a main merge, canary-only publish or dry run.
+
+
+Scheduled maintenance jobs share a FIFO queue; due jobs show Waiting and run-now
+requests do not duplicate running/waiting jobs. Settings → Automation stores
+optional start times/timezone in `schedule_anchors`, preserving existing intervals.
+Stream-check results distinguish online/offline/skipped/errors; never label the
+exception count as offline. See `docs/ops/scheduled-job-history.md` for clock/DST
+semantics, queue scope and database recovery behavior.

@@ -1,0 +1,171 @@
+from io import BytesIO
+import json
+import os
+from zipfile import ZipFile
+
+from app.services.diagnostics_service import build_bundle, read_tail, redact, LIMIT
+from capture_logs import capture
+
+
+def tagged(data, name):
+    prefix = f'[{name}] '.encode()
+    return b''.join(prefix + line for line in data.splitlines(keepends=True))
+
+
+def test_capture_rotates_and_preserves_console(tmp_path):
+    console = BytesIO()
+    data = b'engine started\n' * 100
+    capture(BytesIO(data), console, tmp_path, max_bytes=200)
+    assert console.getvalue() == tagged(data, 'console')
+    assert len(list(tmp_path.iterdir())) == 3
+    assert all(p.stat().st_size <= 200 for p in tmp_path.iterdir())
+    assert b'engine started' in (tmp_path / 'console.log').read_bytes()
+
+
+def test_capture_disk_failure_keeps_draining(tmp_path):
+    console = BytesIO()
+    capture(BytesIO(b'engine exited\n'), console, tmp_path / 'missing')
+    assert console.getvalue() == b'[console] engine exited\n'
+
+
+def test_console_tags_multiline_and_partial_lines_without_changing_capture(tmp_path):
+    data = b'Traceback:\n  detail\n\n' + b'x' * 20000 + b'\nlast partial line'
+    console = BytesIO()
+    capture(BytesIO(data), console, tmp_path, name='acexy.log')
+    assert console.getvalue() == tagged(data, 'acexy')
+    assert b'[acexy]' not in (tmp_path / 'acexy.log').read_bytes()
+
+
+def test_entrypoint_console_does_not_duplicate_existing_tag(tmp_path):
+    console = BytesIO()
+    capture(BytesIO(b'[entrypoint] Starting\nsetup output\n'), console, tmp_path,
+            name='entrypoint.log')
+    assert console.getvalue() == b'[entrypoint] Starting\n[entrypoint] setup output\n'
+
+
+def test_warp_console_filters_routine_records_but_keeps_full_diagnostics(tmp_path, monkeypatch):
+    timestamp = b'2026-09-09T12:13:29.296Z '
+    quiet = (
+        timestamp + b' INFO handle_update: stats ' + b'x' * 20000 + b'\n'
+        + timestamp + b'DEBUG warp-dns-stats: Queries: 535\n'
+        + b'Per origin:\n  [primary] Queries: 535\n\n'
+        + timestamp + b'\x1b[32m INFO\x1b[0m actor_network_monitor: close\n'
+        + timestamp + b'TRACE routine trace\n'
+    )
+    issues = (
+        timestamp + b' WARN actor_statistics: Skipped uploading stats\n'
+        + b'  warning details\n'
+        + timestamp + b'ERROR tunnel failed ' + b'e' * 10000 + b'\n'
+        + timestamp + b'FATAL daemon failed\n'
+    )
+    lifecycle = b'[entrypoint] WARP exited with status 1\nunknown startup failure\n'
+    data = quiet + issues + quiet + lifecycle
+    console = BytesIO()
+    capture(BytesIO(data), console, tmp_path, name='warp.log')
+    assert console.getvalue() == tagged(issues + lifecycle, 'warp')
+    # Capture adds a timestamp per bounded chunk; all original chunks remain.
+    source = BytesIO(data)
+    saved = (tmp_path / 'warp.log').read_bytes()
+    while chunk := source.readline(8192):
+        assert chunk in saved
+    monkeypatch.setenv('LOG_DIR', str(tmp_path))
+    with ZipFile(BytesIO(build_bundle())) as archive:
+        exported = archive.read('logs/warp.log')
+        assert b'warp-dns-stats: Queries: 535' in exported
+        assert b'  [primary] Queries: 535' in exported
+        assert b'Skipped uploading stats' in exported
+    for name in ('scraper.log', 'acestream.log', 'acestream-check.log', 'acexy.log'):
+        console = BytesIO()
+        capture(BytesIO(data), console, tmp_path, name=name)
+        assert console.getvalue() == tagged(data, name.removesuffix('.log'))
+
+
+def test_warp_filter_disk_failure_still_reports_issues(tmp_path):
+    console = BytesIO()
+    issue = b'2026-09-09T12:13:29.296Z ERROR connection failed\n'
+    capture(BytesIO(b'2026-09-09T12:13:29.296Z INFO stats\n' + issue),
+            console, tmp_path / 'missing', name='warp.log')
+    assert console.getvalue() == tagged(issue, 'warp')
+
+
+def test_export_is_bounded_redacted_and_rejects_symlinks(tmp_path, monkeypatch):
+    monkeypatch.setenv('LOG_DIR', str(tmp_path))
+    monkeypatch.setenv('SUPERVISOR_RUN_DIR', str(tmp_path))
+    monkeypatch.setenv('API_TOKEN', 'configured-private-token')
+    (tmp_path / 'console.log').write_text('x' * LIMIT + '\nAuthorization: Bearer xyz\nhttps://u:pass@private.test/api?token=abc\nconfigured-private-token\nengine exited with status 137\n')
+    secret = tmp_path / 'private.txt'
+    secret.write_text('must not be exported')
+    (tmp_path / 'console.log.1').symlink_to(secret)
+    (tmp_path / 'acestream.pid').write_text('123')
+    with ZipFile(BytesIO(build_bundle())) as archive:
+        assert set(archive.namelist()) == {'manifest.json', 'logs/console.log'}
+        text = archive.read('logs/console.log').decode()
+        assert '137' in text
+        for value in ('xyz', 'private.test', 'configured-private-token', 'must not be exported'):
+            assert value not in text
+        manifest = json.loads(archive.read('manifest.json'))
+        assert manifest['logs']['console.log']['truncated']
+        assert manifest['supervisor']['acestream']['pid'] == 123
+        assert not manifest['logs']['console.log.1']['available']
+
+
+def test_non_regular_files_are_not_read(tmp_path):
+    os.mkfifo(tmp_path / 'console.log')
+    assert read_tail(tmp_path, 'console.log') == (None, False)
+
+
+def test_redact_key_value_and_json_credentials():
+    result = redact('password=secret123 {"api_token": "abc123"} license: value123\nCookie: session=456\n192.168.2.10')
+    for value in ('secret123', 'abc123', 'value123', '456', '192.168.2.10'):
+        assert value not in result
+
+
+def test_empty_flavour_bundle_and_endpoint_auth(client, monkeypatch, tmp_path):
+    monkeypatch.setenv('LOG_DIR', str(tmp_path))
+    monkeypatch.setenv('API_TOKEN', 'private')
+    assert client.get('/api/v1/system/diagnostics').status_code == 401
+    response = client.get('/api/v1/system/diagnostics', headers={'Authorization': 'Bearer private'})
+    assert response.status_code == 200
+    assert response.headers['content-type'] == 'application/zip'
+    assert response.headers['cache-control'] == 'no-store'
+    assert 'attachment' in response.headers['content-disposition']
+    with ZipFile(BytesIO(response.content)) as archive:
+        assert archive.namelist() == ['manifest.json']
+
+
+def test_export_remains_available_during_startup_failure(client, monkeypatch, tmp_path):
+    from app.services.startup_service import startup_service
+    monkeypatch.setenv('LOG_DIR', str(tmp_path))
+    monkeypatch.setattr(startup_service, 'active', True)
+    monkeypatch.setattr(startup_service, 'status', 'failed')
+    assert client.get('/api/v1/system/diagnostics').status_code == 200
+
+
+def test_export_busy_returns_retryable_error(client):
+    from app.services.diagnostics_service import _lock
+    with _lock:
+        response = client.get('/api/v1/system/diagnostics')
+    assert response.status_code == 503
+    assert response.headers['retry-after'] == '2'
+
+
+def test_long_unbroken_log_line_is_safe_to_redact():
+    assert redact('x' * LIMIT) == 'x' * LIMIT
+
+
+def test_service_logs_rotate_independently_and_export(tmp_path, monkeypatch):
+    from app.services.diagnostics_service import CAPTURE_NAMES
+
+    monkeypatch.setenv('LOG_DIR', str(tmp_path))
+    for name in CAPTURE_NAMES:
+        data = f'{name} output password=private123\n'.encode() * 20
+        console = BytesIO()
+        capture(BytesIO(data), console, tmp_path, max_bytes=200, name=f'{name}.log')
+        assert console.getvalue() == tagged(data, name)
+    with ZipFile(BytesIO(build_bundle())) as archive:
+        for name in CAPTURE_NAMES:
+            for suffix in ('', '.1', '.2'):
+                content = archive.read(f'logs/{name}.log{suffix}').decode()
+                assert f'{name} output' in content
+                assert 'private123' not in content
+                assert (tmp_path / f'{name}.log{suffix}').stat().st_size <= 200

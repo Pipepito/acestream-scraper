@@ -2,9 +2,26 @@
 
 ## Overview
 
-The Acestream Scraper relies on specialized code to extract channel information from various websites. As websites frequently change their structure, our scrapers sometimes need to be updated or enhanced. Your help in providing relevant information can significantly improve the application without requiring you to share potentially sensitive URLs.
+The Acestream Ids Scraper relies on specialized code to extract channel information from various websites. As websites frequently change their structure, our scrapers sometimes need to be updated or enhanced. Your help in providing relevant information can significantly improve the application without requiring you to share potentially sensitive URLs.
 
 ## How You Can Help
+
+### Start without developer tools
+
+Add the page URL in Scraper and run it. Normal AceStream links and copy fields
+with matching links or explicit AceStream attributes are detected automatically.
+Names come from labels, nearby text or headings; a missing name keeps the content
+ID so you can rename it later. Duplicate IDs are imported once.
+
+If a page shows only raw content IDs, enable **Harvest bare IDs** in that URL's
+actions menu. This also reads text input values and textareas. Hidden fields,
+password fields and unrelated HTML element IDs are ignored.
+
+If nothing is found, report what you see on the page and the scraper's status.
+A screenshot of the channel area is useful; console commands are optional.
+Pages that require JavaScript or show a browser verification challenge may not
+provide channel data to the HTTP scraper. Extraction options cannot fix a blocked
+fetch. The advanced examples below are for contributors comfortable inspecting HTML.
 
 ### What We Need
 
@@ -119,7 +136,7 @@ The scraper currently handles these common patterns:
 When reporting, please use this format:
 
 ```
-URL TYPE: [Regular HTTP or ZeroNet]
+URL TYPE: [Regular HTTP, ZeroNet or IPFS]
 SITE PATTERN: [Brief description without naming the site]
 HTML STRUCTURE:
 [HTML snippet with sensitive info removed]
@@ -153,4 +170,4 @@ When submitting, please use the title format: "Scraper Data: [Site Pattern]" (wi
 
 ## Thank You!
 
-Your contributions help make Acestream Scraper more effective for everyone. By providing structured data instead of direct URLs, you help us improve the application while maintaining security.
+Your contributions help make Acestream Ids Scraper more effective for everyone. By providing structured data instead of direct URLs, you help us improve the application while maintaining security.

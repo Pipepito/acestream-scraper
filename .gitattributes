@@ -1,0 +1,9 @@
+# Vendored upstream binaries: never diff/merge as text, keep bytes untouched.
+docker/vendor/** binary
+docker/vendor/**/README.md text diff
+docker/vendor/**/SHA256SUMS text diff
+
+# Committed media test fixtures: binary bytes, never text-normalized.
+backend/tests/docker/fixtures/** binary
+backend/tests/docker/fixtures/**/README.md text diff
+backend/tests/docker/fixtures/**/SHA256SUMS text diff

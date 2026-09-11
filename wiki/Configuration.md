@@ -1,6 +1,6 @@
 # Configuration Reference
 
-This guide provides detailed information about configuring Acestream Scraper.
+This guide provides detailed information about configuring Acestream Ids Scraper.
 
 ## Contents
 - [Application Settings](#application-settings)
@@ -15,42 +15,29 @@ This guide provides detailed information about configuring Acestream Scraper.
 
 ## Application Settings
 
-Acestream Scraper can be configured through the setup wizard or directly by editing configuration files.
+Scraper stores application settings in the database. Container environment variables set runtime defaults; saved engine and public-address settings take precedence. Source URLs belong in **Scraper**, XMLTV feeds in **EPG → Sources**. Scraper has no setup wizard and does not read `config/config.json`.
 
-### Setup Wizard
+| Where | What to configure |
+|---|---|
+| **Settings → Playback** | Optional **Acestream Engine URL**, direct/Acexy routing and backend-facing Acexy URL. Save the engine URL and playback routing separately. |
+| **Settings → Automation** | Dedicated checker selection, scraping interval (1–168 hours), EPG interval (1–168 hours), stream-check interval (1–10080 minutes). Saved intervals apply immediately. |
+| **Settings → Stream links** | Named playlist formats and default, optional PID/AppID compatibility. Shared with **Playlist → Manage link formats**. |
+| **Settings → API access** | The token this browser sends when the server has `API_TOKEN` configured. Stored locally in the browser. |
+| **Integrations → Public address** | The HTTP(S) origin other devices use to reach the scraper, including its published port. |
+| **Integrations** | Remote players, media servers and tuner limits/recovery. |
+| **Overview → Services** | Runtime health, separate playback/checker controls and diagnostic downloads. |
 
-When first accessing the application at `http://localhost:8000`, you'll be guided through the setup process if no configuration exists:
+The Settings tabs use `/settings?tab=playback|automation|links|access`.
 
-1. Configure Base URL format
-2. Set Acestream Engine URL
-3. Add source URLs to scrape
-4. Set rescrape interval
+### Key settings
 
-### Manual Configuration
+- `ace_engine_url`: optional playback engine endpoint. New scraper-only installs leave it empty; existing saved URLs are preserved.
+- `playback-routing`: direct by default; `{use_acexy, acexy_url}` chooses Acexy for new web-player, tuner and remote-player sessions. Starting the Acexy service does not select this route. Health and signal probes remain direct to the selected engine.
+- `check-engine`: `{use_dedicated, url}` selects an external checker. With dedicated checks off, checks use the playback URL; without either URL they are skipped. A bundled checker is container-managed and read-only here. A configured checker's failure never falls back to playback.
+- `base_url`: default stream-link format. Named formats can be selected using `base_url_id`. `{channel_id}` is the AceStream hash; `{tv_channel_id}` is the TV-channel database ID. Use `/tuner/channel/{tv_channel_id}.ts` for one stable station URL with fallback sources, or `/tuner/stream/{channel_id}.ts` for one exact source. `{pid}` supplies a player/session ID where supported; a format without placeholders is a prefix.
+- `rescrape_interval`: default 24 hours; `epg_refresh_interval`: default 6 hours; `channel_status_interval`: default 60 minutes.
 
-Create or edit `config/config.json`:
-
-```json
-{
-    "urls": [
-        "https://example.com/url1",
-        "https://example.com/url2"
-    ],
-    "base_url": "http://localhost:6878/ace/getstream?id=",
-    "ace_engine_url": "http://localhost:6878",
-    "rescrape_interval": 24
-}
-```
-
-### Key Settings
-
-- **urls**: Array of URLs to scrape for Acestream channels
-- **base_url**: Base URL format for playlist generation
-  - `acestream://` - For players with Acestream protocol support
-  - `http://localhost:6878/ace/getstream?id=` - For local HTTP streaming
-  - `http://server-ip:acexy_port/ace/getstream?id=` - For using built-in Acexy proxy
-- **ace_engine_url**: URL of your Acestream Engine instance
-- **rescrape_interval**: Hours between automatic rescans of URLs
+See the [illustrated walkthrough](Usage.md) and [playback routing guide](Remote-Players.md#playback-routing) for examples.
 
 ## Environment Variables
 
@@ -58,17 +45,41 @@ Create or edit `config/config.json`:
 
 | Variable | Description | Default | Notes |
 |----------|-------------|---------|-------|
-| `FLASK_PORT` | Port the Flask application runs on | `8000` | Can be changed if port 8000 is in use |
-| `FLASK_ENV` | Flask environment mode | `production` | Use `development` for debugging |
+| `FLASK_PORT` | Port the web app (uvicorn) listens on | `8000` | Name kept from v1 but still the real setting: `entrypoint.sh` passes it to `uvicorn --port` and `healthcheck.sh` probes `http://localhost:${FLASK_PORT}/api/v1/health`. Change it if port 8000 is in use |
+| `FLASK_ENV` | *Superseded (2026-08-28)* — v1 Flask environment mode, not read by the v2 (FastAPI) runtime | – | For local debugging run `uvicorn main:app --reload` from `backend/` instead |
+| `API_TOKEN` | Require a token on API and playlist routes | unset (open) | Sent as `Authorization: Bearer`, `X-Api-Token`, or `?token=` (for IPTV players); `/api/v1/health` stays public |
+| `ALLOW_PRIVATE_SCRAPE_TARGETS` | Allow scrape/EPG URLs on private/LAN addresses | `true` | Set `false` to block loopback/private/link-local targets; the cloud metadata endpoint is always blocked. It does not affect remote players, media servers or player discovery, which are LAN targets by design; the metadata/link-local block still applies to them |
+| `ACESTREAM_STATUS_TIMEOUT` | Timeout (seconds) for the engine status probe | `10` | A timed-out probe retries once with a doubled timeout |
+| `EPG_PROGRAM_RETENTION_HOURS` | How long finished EPG programs are kept | `24` | The hourly `epg_program_cleanup` job deletes programs that ended earlier than this, and a v1→v2 migration skips them (they are useless once aired — the EPG refresh keeps adding upcoming ones). `2` keeps only the last couple of hours; a negative value disables the purge. The XMLTV export's default `days_back=1` needs at least `24` |
+| `SUPERVISED_RESTART_DELAY_SECONDS` | Delay before restarting an exited engine or crashed sidecar | `5` | AceStream retries indefinitely after any exit, including exit 0 (minimum delay 1 second). Overview → Services offers Stop to suspend recovery and Start/Restart to resume it. A container restart also resumes the enabled engine. Custom engine commands must run in the foreground |
+| `SUPERVISED_FAST_EXIT_LIMIT` | Consecutive fast sidecar exits before giving up | `3` | With `SUPERVISED_FAST_EXIT_WINDOW` (default `10`s); a crash loop fails the container. Does not apply to AceStream, which keeps retrying |
+
+### Media Integrations
+
+External players and media servers (VLC, Kodi, Jellyfin, Plex) fetch streams over the network, so the app has to know which origin to advertise and which peers to trust:
+
+| Variable | Description | Default | Notes |
+|----------|-------------|---------|-------|
+| `PUBLIC_BASE_URL` | Origin (`http://host:port`) that Jellyfin/Plex/VLC use to reach this server | *(empty)* | Empty derives it from each request. The same value is editable at runtime as the `public_base_url` setting, which wins over the variable |
+| `FORWARDED_ALLOW_IPS` | Peers whose `X-Forwarded-*` headers the app trusts | `127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16` | Comma-separated addresses/CIDRs, or `*` to trust every peer. uvicorn's own handling is disabled (`--no-proxy-headers`) — the app does it |
+| `TUNER_ALLOWED_NETWORKS` | Networks allowed to use the token-free `/tuner/*` routes | `127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10` | `*` disables the check. Media servers cannot send an `API_TOKEN`, so these routes are gated by address instead. Publish the web port as `-p 0.0.0.0:8000:8000` (never the bare `8000:8000`): an unaddressed mapping also listens on `[::]`, and Docker then presents every IPv6 client to the app as the bridge gateway (`172.17.0.1`), which is inside this default list |
+| `PLAYER_HLS_DIR` | Where the web player writes HLS segments | `/tmp/acestream-player` | `/dev/shm/acestream-player` with a larger `shm_size` keeps them in RAM |
+| `PLAYER_MAX_SESSIONS` | Maximum channels the web player prepares at once | `3` | Each session costs one engine stream and one ffmpeg process |
+| `PLAYER_START_TIMEOUT_SECONDS` | Seconds a web-player session may stay in "starting" before it is reported as stalled | `45` | Raise it on slow links where streams take longer to buffer |
+| `FFMPEG_BINARY_PATH` | ffmpeg used by the web player | *(empty)* | Empty falls back to `ffmpeg` on `PATH`; images that bundle ffmpeg set it to `/opt/ffmpeg/bin/ffmpeg` |
+| `MEDIA_SERVER_MIN_REFRESH_MINUTES` | Minimum minutes between automatic Jellyfin/Plex guide refreshes | `30` | `0` disables the debounce |
 
 ### Acestream Configuration
 
 | Variable | Description | Default | Notes |
 |----------|-------------|---------|-------|
-| `ENABLE_ACESTREAM_ENGINE` | Enable built-in Acestream Engine | Matches `ENABLE_ACEXY` | Set to `true` to run Acestream in the container |
+| `ENABLE_ACESTREAM_ENGINE` | Enable built-in Acestream Engine | `false` | Set to `true` to run Acestream in the container |
 | `ACESTREAM_HTTP_PORT` | Port for Acestream engine | `6878` | Internal Acestream Engine HTTP port |
-| `ACESTREAM_HTTP_HOST` | Host for Acestream engine | Uses `ACEXY_HOST` | Address to access Acestream Engine |
-| `ALLOW_REMOTE_ACCESS` | Allow remote connections to Acestream | `no` | Set to `yes` to allow external connections |
+| `ACESTREAM_HTTP_HOST` | Host for Acestream engine | `localhost` | Address to access Acestream Engine |
+| `ACESTREAM_BIND_ALL` | Append `--bind-all` to the engine start command so any client address is accepted on a published `6878` | `true` | The engine otherwise admits only loopback/RFC1918 sources; `false` restores the engine's own filter |
+| `ACE_ENGINE_URL` | Playback-engine default | Empty without bundled playback; `http://localhost:6878` when enabled | Saved Settings → Playback URL takes precedence |
+| `ENABLE_ACESTREAM_CHECK_ENGINE` | Run a second bundled engine for checks | `false` | Requires the playback engine enabled and an engine-containing image; do not also set `ACE_CHECK_ENGINE_URL` |
+| `ACE_CHECK_ENGINE_URL` | External dedicated checker default | Empty | May be overridden in Settings → Automation; configured checker failure never falls back |
 
 ### Acexy Configuration
 
@@ -81,25 +92,43 @@ Create or edit `config/config.json`:
 | `ACEXY_NO_RESPONSE_TIMEOUT` | Timeout for Acestream responses | `15s` | Format: `15s`, `1m`, etc. |
 | `ACEXY_BUFFER_SIZE` | Buffer size for data transfers | `5MiB` | Format: `5MiB`, `10MiB`, etc. |
 
-### Why Both Acexy and Acestream Engine?
+### Why both Acexy and an engine?
 
-Acestream Scraper includes both Acexy and Acestream Engine for improved multi-client handling:
+The engine retrieves P2P media. Acexy is an optional HTTP proxy that shares streams and owns its engine sessions and cleanup. Direct app playback already assigns session IDs and coordinates its own source ownership; you do not need to add PIDs manually for the built-in browser player.
 
-1. **Connection Management**: When multiple clients access the same stream, each needs a unique process ID (PID)
-2. **Automatic PID Handling**: Acexy automatically adds the required `pid=id` parameter to stream requests
-3. **Error Isolation**: With proper PID management, one client disconnecting won't affect others
-4. **Simplified URLs**: End users don't need to worry about adding PID parameters manually
-5. **Performance**: Acexy includes buffering mechanisms to improve streaming performance
-
-Without Acexy, you'd need to manually append `&pid={unique_id}` to each stream URL to properly handle multiple connections. When a stream ends for one client, without this parameter, it might terminate the stream for all users. Acexy transparently manages these connections, making the system more robust for multi-user environments.
+A unique PID alone does **not** prevent the native engine stopping another client of the same source. Use the app's coordinated relay or Acexy routing, and consider a separate checker for checks alongside playback. Direct external clients remain outside the app's registry. See [Playback routing](Remote-Players.md#playback-routing).
 
 ### ZeroNet and Other Settings
 
+The amd64 images bundle a ZeroNet node (zeronet-conservancy v0.7.10) that is off by default; ARM images ship without it and use an external service instead. In both cases the scraper reaches the node over HTTP via `ZERONET_URL`. The v1 in-container `zeronet.conf` mechanism is gone — the node is configured through these variables:
+
 | Variable | Description | Default | Notes |
 |----------|-------------|---------|-------|
-| `ENABLE_TOR` | Enable TOR for ZeroNet connections | `false` | Set to `true` to use TOR with ZeroNet |
+| `ENABLE_ZERONET` | Start the bundled ZeroNet node | `false` | amd64 images only; fails with a clear error elsewhere |
+| `ENABLE_TOR` | Run TOR for the bundled node | `false` | Only takes effect with `ENABLE_ZERONET=true`; the node auto-detects TOR over the control port |
+| `ZERONET_URL` | Address the scraper fetches `zero://` sources through | `http://host.docker.internal:43110` in the checked-in compose example | With `ENABLE_ZERONET=true` and no explicit value it targets the embedded UI port automatically |
+| `ZERONET_DATA_DIR` | Bundled node's state directory | `/data/zeronet` | Mount a volume there |
+| `ZERONET_UI_PORT` | Bundled node's web UI port | `43110` | |
+| `ZERONET_FILESERVER_PORT` | Bundled node's fileserver/peer port | `26552` | |
+| `ZERONET_UI_HOST` | Extra Host headers the UI accepts | *(none)* | Space-separated hostnames; needed to browse the UI from another machine |
+| `ZERONET_TRACKERS` | Bootstrap trackers for a fresh bundled node | Three public UDP trackers | Space-separated tracker URLs; override when the defaults are unavailable or unsuitable |
+| `ZERONET_EXTRA_ARGS` | Extra zeronet-conservancy CLI flags | *(none)* | Passed through to the node verbatim |
 | `TZ` | Timezone for the container | `Europe/Madrid` | Use any valid TZ identifier |
-| `DOCKER_ENVIRONMENT` | Mark as running in Docker | `true` | Used for internal path configuration |
+
+### IPFS Configuration
+
+The image bundles the [Kubo](https://github.com/ipfs/kubo) IPFS daemon (amd64/arm64 — Kubo has no 32-bit ARM build) so `ipfs://` and `ipns://` sources can be scraped through its HTTP gateway:
+
+| Variable | Description | Default | Notes |
+|----------|-------------|---------|-------|
+| `ENABLE_IPFS` | Start the embedded Kubo daemon | `false` | Opt-in; fails with a clear error on `linux/arm/v7` images |
+| `IPFS_GATEWAY_URL` | Gateway used to fetch `ipfs://`/`ipns://` sources | `http://127.0.0.1:8081` | Point at an external gateway to scrape IPFS without the embedded daemon |
+| `IPFS_PATH` | IPFS repository location | `/data/ipfs` | Mount a volume there when the daemon is enabled |
+| `IPFS_SWARM_PORT` | Swarm (P2P) port | `4001` | TCP and UDP (QUIC) |
+| `IPFS_API_PORT` | RPC API / WebUI port | `5001` | Unauthenticated; binds to the container loopback by default |
+| `IPFS_API_HOST` | RPC API bind address | `127.0.0.1` | Set `0.0.0.0` only if you need the WebUI, and publish it as `127.0.0.1:5001:5001` |
+| `IPFS_GATEWAY_PORT` | HTTP gateway port | `8081` | `8080` is taken by Acexy in-container |
+| `IPFS_PROFILE` | Kubo config profile applied at first init | *(none)* | e.g. `lowpower` for small devices, `server` for datacenter hosts |
 
 ### WARP Configuration
 
@@ -107,18 +136,20 @@ Cloudflare WARP provides enhanced privacy and secure connection options:
 
 | Variable | Description | Default | Notes |
 |----------|-------------|---------|-------|
-| `ENABLE_WARP` | Enable Cloudflare WARP | `false` | Requires `NET_ADMIN` and `SYS_ADMIN` capabilities |
-| `WARP_ENABLE_NAT` | Enable NAT for WARP traffic | `true` | Allows routing traffic through WARP tunnel |
+| `ENABLE_WARP` | Start Cloudflare WARP | `false` | Available on amd64/arm64; requires `NET_ADMIN`, `SYS_ADMIN`, and `/dev/net/tun` |
+| `WARP_ENABLE_NAT` | Connect WARP and enable NAT at startup | `false` | Leave false to connect/disconnect from the WARP page instead |
 | `WARP_LICENSE_KEY` | WARP license key | - | Optional: For WARP+ or Team accounts |
 
 ### Docker Example with WARP Enabled
 
 ```bash
 docker run -d \
-  -p 8000:8000 \
+  -p 0.0.0.0:8000:8000 \
   --cap-add NET_ADMIN \
   --cap-add SYS_ADMIN \
+  --device /dev/net/tun:/dev/net/tun \
   -e ENABLE_WARP=true \
+  -e WARP_ENABLE_NAT=true \
   -v "${PWD}/config:/app/config" \
   --name acestream-scraper \
   pipepito/acestream-scraper:latest
@@ -136,11 +167,14 @@ services:
     cap_add:
       - NET_ADMIN
       - SYS_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
     environment:
       - TZ=Europe/Madrid
       - ENABLE_WARP=true
+      - WARP_ENABLE_NAT=true
     ports:
-      - "8000:8000"
+      - "0.0.0.0:8000:8000"
     volumes:
       - ./data/config:/app/config
     restart: unless-stopped
@@ -148,17 +182,17 @@ services:
 
 ## Channel Status Checking
 
-The application verifies if channels are available:
+Use **Settings → Automation** to select the checker and schedule. The default is one scan every 60 minutes. Manual checks and playback-triggered source refreshes use the same serialized priority queue: TV playback, individual manual checks, then scheduled/bulk work. A running probe finishes cleanup before another starts.
 
-1. Ensure you have Acestream Engine running (built-in if ENABLE_ACESTREAM_ENGINE=true)
-2. Configure `ace_engine_url` to point to your Acestream Engine instance
-3. Use the "Check Status" buttons in the UI to verify channel availability
+An online result requires increasing P2P downloads **and** a bounded media sample with identified audio/video packets. Peer counts and a catalogue's availability flag are insufficient. ID lookup is reported separately: found, explicitly not found, or unknown. Timeouts and engine errors must not be read as permanent ID absence. Saved results describe the last check, not continuous monitoring or browser codec compatibility.
 
-### Status Tracking
+Without any engine configured, checks are skipped and previous results remain. A configured dedicated checker that fails never sends checks to playback. This makes a second engine useful when you regularly watch and scan at the same time; it adds memory, cache and bandwidth use.
 
-- The application maintains history of status checks
-- Status is color-coded in the interface (green = online, red = offline)
-- Error messages are displayed when a channel cannot be accessed
+Unique PIDs alone do not isolate stopping the same source on native engine 3.2.11. The app protects streams owned by its web player and relay; clients connected directly to the engine are outside that registry. See [checking and playback ownership](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/ops/stream-check-pid.md).
+
+### Status tracking
+
+Overview shows the persisted start time, result, next run and state of scheduled jobs. Runs interrupted by a restart are marked interrupted. Stream rows show the saved broadcast/lookup result and last-check information. Imports do not mark newly discovered streams online.
 
 ## Port Mapping
 
@@ -166,13 +200,15 @@ When using Docker, map these ports as needed:
 
 | Port | Service | Notes |
 |------|---------|-------|
-| 8000 | Main web interface | Configurable via `FLASK_PORT` |
+| 8000 | Main web interface | Configurable via `FLASK_PORT`. Publish it as `0.0.0.0:8000:8000`; a bare `8000:8000` also binds `[::]` and makes every IPv6 client look like the Docker bridge gateway, which defeats `TUNER_ALLOWED_NETWORKS` |
 | 8080 | Acexy web interface | Only if Acexy is enabled |
 | 6878 | Acestream HTTP API | Configurable via `ACESTREAM_HTTP_PORT` |
-| 43110 | ZeroNet web interface | Only if ZeroNet is enabled |
-| 43111 | ZeroNet transport port | Only if ZeroNet is enabled |
-| 26552 | Additional ZeroNet peer port | Only if ZeroNet is enabled |
 | 8621 | Acestream P2P port | For Acestream peer connections |
+| 43110 | ZeroNet web interface | Only if `ENABLE_ZERONET=true` (or published by the optional `zeronet` sidecar) |
+| 26552 | ZeroNet fileserver/peer port | Only if `ENABLE_ZERONET=true`; publishing it improves peer connectivity |
+| 4001 | IPFS swarm port (TCP and UDP) | Only if `ENABLE_IPFS=true`; improves peer connectivity |
+| 8081 | IPFS HTTP gateway | Only if `ENABLE_IPFS=true` and you want to browse IPFS through the node |
+| 5001 | IPFS RPC API / WebUI | Unauthenticated — publish only as `127.0.0.1:5001:5001` if needed |
 
 ## Volumes
 
@@ -180,50 +216,47 @@ When using Docker, mount these volumes:
 
 | Container Path | Purpose | Notes |
 |----------------|---------|-------|
-| `/app/config` | Configuration files | Contains config.json and database |
-| `/app/ZeroNet/data` | ZeroNet data directory | Only required if using ZeroNet |
+| `/app/config` | Configuration and data | Contains the database (`scraper.db`; a v1 `acestream.db` found here is migrated on first start — channels and settings before the dashboard comes up, EPG programs in the background afterwards; see [Installation](Installation.md#migrating-from-v1)) |
+| `/var/lib/acestream-check` | Dedicated checker state/cache | Use a separate host folder when the bundled checker is enabled |
+| `/tmp/acestream-player` | Rolling browser-player HLS files | Recommended host mount, or configure RAM storage |
+| `/root/.ACEStream/.acestream_cache` | Bundled amd64 playback cache | Recommended host mount; ARM uses its state folder |
+| `/app/logs` | Scraper and per-service logs | Optional mount to retain diagnostics across container replacement; logs contain private operational data |
+| `/var/lib/acestream` | AceStream engine state and cache | Only used when `ENABLE_ACESTREAM_ENGINE=true` (ARM Android engine) |
+| `/data/ipfs` | IPFS repository (identity, config, blockstore) | Only required if `ENABLE_IPFS=true` |
+| `/data/zeronet` | Bundled ZeroNet node's state (sites, keys, content) | Only required if `ENABLE_ZERONET=true` |
+
+The v1 `/app/ZeroNet/data` path is gone — the bundled node keeps its state under `/data/zeronet` now (and the compose sidecar example keeps its own data in `./zeronet_data`).
 
 Example mount:
 ```bash
-docker run -v "${PWD}/config:/app/config" -v "${PWD}/zeronet_data:/app/ZeroNet/data" ...
+docker run -v "${PWD}/config:/app/config" -v "${PWD}/ipfs_data:/data/ipfs" -v "${PWD}/zeronet_app_data:/data/zeronet" ...
 ```
 
 ## ZeroNet Configuration
 
-The application looks for a `zeronet.conf` file in the `/app/config` directory.
+The v1 `zeronet.conf` file is gone; in v2 you either enable the bundled node or point at an external one:
 
-### Default Configuration
+**Bundled node (amd64 images):**
 
-If no configuration file exists, this default is created:
-```ini
-[global]
-ui_ip = *
-ui_host =
- 0.0.0.0
- localhost
-ui_port = 43110
-```
+1. Set `ENABLE_ZERONET=true` (and optionally `ENABLE_TOR=true`), mount `/data/zeronet`, and publish `43110`/`26552` if you want the UI or better peer connectivity.
+2. Leave `ZERONET_URL` unset — the scraper targets the embedded node automatically.
+3. Tune the node with the `ZERONET_*` variables above (`ZERONET_UI_PORT`, `ZERONET_UI_HOST`, `ZERONET_EXTRA_ARGS`, ...).
 
-### Custom Configuration
+**External service (any platform):**
 
-Create your own `config/zeronet.conf`:
-```ini
-[global]
-ui_ip = *
-ui_host =
- 127.0.0.1
- your.domain.com
- localhost
-ui_port = 43110
-```
+1. Run a ZeroNet service somewhere the container can reach — the checked-in `docker-compose.yml` ships an optional amd64 sidecar (`docker compose --profile zeronet up -d`), or use any existing ZeroNet install.
+2. Point `ZERONET_URL` at it (the compose default is `http://host.docker.internal:43110`). TOR and the node's own settings are configured on that external service.
+
+Either way, add your ZeroNet sources in the Scraper page with the **ZeroNet** URL type (`zero://...` URLs are also auto-detected).
 
 ## Running Behind a Reverse Proxy
 
 The application includes proper headers handling for running behind a reverse proxy:
 
 - Automatic handling of SSL/TLS termination
-- Correct handling of X-Forwarded-Proto and X-Forwarded-Host headers
+- Correct handling of X-Forwarded-Proto, X-Forwarded-Host and X-Forwarded-For headers, honoured only when the proxy's own address is listed in `FORWARDED_ALLOW_IPS` (default: loopback and private ranges)
 - Works with nginx, Apache, Traefik or other reverse proxies
+- Set `PUBLIC_BASE_URL` when the proxy rewrites `Host` or serves the app under a sub-path, so playlist and tuner links stay reachable
 
 ### Nginx Example
 
@@ -244,9 +277,8 @@ server {
 
 ## Security Considerations
 
-- Add your domain(s) to `ui_host` in ZeroNet config for public access
-- Always include `localhost` in `ui_host` for local access
-- Set `ALLOW_REMOTE_ACCESS=no` to restrict Acestream access to localhost only
+- Don't publish the AceStream engine API (`6878`), the Acexy proxy (`8080`) or the IPFS RPC API (`5001`) beyond trusted networks — none of them authenticate callers
+- If you expose the web interface beyond your LAN, do it through a reverse proxy with TLS and authentication (see [Reverse Proxy / HTTPS](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/ops/reverse-proxy.md))
 - Consider using a reverse proxy with SSL/TLS for secure access
 - Be aware of copyright and legal considerations when sharing playlists
 
@@ -254,7 +286,7 @@ server {
 
 The container includes comprehensive health checks:
 
-- Main application health check at `/health` endpoint
+- Main application health check at `/api/v1/health` (public, even with an API token)
 - Acexy health check (if enabled)
 - Acestream Engine health check (if enabled)
 - Automatic monitoring of internal services
@@ -262,15 +294,15 @@ The container includes comprehensive health checks:
 
 ### Docker Health Check
 
-The Docker container is configured with a health check that verifies all services are running correctly:
+The Docker container is configured with a health check that checks application readiness and the required enabled services; a checker outage does not fail whole-container health, and an intentional engine Stop is respected:
 
 ```yaml
 healthcheck:
-  test: ["CMD", "/app/healthcheck.sh"]
+  test: ["CMD", "/usr/local/bin/healthcheck.sh"]
   interval: 30s
   timeout: 10s
   retries: 3
   start_period: 60s
 ```
 
-You can check the health status with: `docker inspect --format='{{.State.Health.Status}}' acestream-scraper
+You can check the health status with: `docker inspect --format='{{.State.Health.Status}}' acestream-scraper`

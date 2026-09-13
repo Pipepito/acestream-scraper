@@ -943,3 +943,15 @@ or aborted attempts cannot archive an older success. Existing archived builds ar
 unchanged and age out under their configured retention policy. Manually requested
 Phase 5 full-profile evidence is separate and remains useful for hardware/runtime
 signoff; do not remove it as part of routine pipeline cleanup.
+
+### Engine lifecycle contract timing
+
+The isolated architecture contract allows 60 seconds for the initial sequence
+of five deliberate engine crashes and six launches. This includes exit polling,
+the configured two-second recovery delay and pre-launch cache cleanup under
+one-CPU ARM emulation. Individual Start/Stop/Restart waits remain 20 seconds;
+the per-platform watchdog remains five minutes. A timeout reports the observed
+launch count. These are test deadlines, not production supervisor settings.
+
+ZeroNet argument contracts wait for a fresh completed-write marker (up to 20
+seconds) instead of stopping the fixture after a fixed one-second sleep.

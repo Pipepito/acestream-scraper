@@ -138,6 +138,7 @@ cat > "$FAKE_BIN/zeronet" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 printf '%s\n' "$@" > "${ZERONET_ARG_LOG:?ZERONET_ARG_LOG is required}"
+touch "$ZERONET_ARG_LOG.ready"
 EOF
 chmod +x "$FAKE_BIN/zeronet"
 
@@ -313,19 +314,31 @@ expect_success \
     "WARP disabled skip path" \
     env PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR" ENABLE_WARP=false bash "$WARP_SETUP_SCRIPT"
 
+# Await the fake service's completed write instead of racing a fixed sleep
+# against sidecar startup under emulation. Each invocation needs a fresh marker.
+cat > "$TMP_DIR/wait-zeronet-args.sh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+deadline=$((SECONDS + 20))
+until [ -f "$ZERONET_ARG_LOG.ready" ]; do
+    [ "$SECONDS" -lt "$deadline" ] || { echo "Timed out waiting for ZeroNet arguments" >&2; exit 1; }
+    sleep 0.1
+done
+EOF
 ZERONET_ARG_LOG="$TMP_DIR/zeronet-args.log"
 expect_success \
     "ZeroNet tracker override does not consume the main action" \
-    env PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR" ENABLE_WARP=false ENABLE_ZERONET=true IMAGE_HAS_ZERONET=true ZERONET_BINARY_PATH="$FAKE_BIN/zeronet" ZERONET_DATA_DIR="$TMP_DIR/zeronet-data" ZERONET_TRACKERS="udp://tracker-one.example:80/announce udp://tracker-two.example:80/announce" ZERONET_ARG_LOG="$ZERONET_ARG_LOG" bash "$ENTRYPOINT_SCRIPT" sleep 1
+    env PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR" ENABLE_WARP=false ENABLE_ZERONET=true IMAGE_HAS_ZERONET=true ZERONET_BINARY_PATH="$FAKE_BIN/zeronet" ZERONET_DATA_DIR="$TMP_DIR/zeronet-data" ZERONET_TRACKERS="udp://tracker-one.example:80/announce udp://tracker-two.example:80/announce" ZERONET_ARG_LOG="$ZERONET_ARG_LOG" bash "$ENTRYPOINT_SCRIPT" bash "$TMP_DIR/wait-zeronet-args.sh"
 zeronet_args=$(tr '\n' ' ' < "$ZERONET_ARG_LOG")
 case "$zeronet_args" in
     *"--trackers udp://tracker-one.example:80/announce udp://tracker-two.example:80/announce --ui_ip 0.0.0.0"*" main ") ;;
     *) fail "ZeroNet arguments did not terminate --trackers before the main action: $zeronet_args" ;;
 esac
 
+rm -f "$ZERONET_ARG_LOG" "$ZERONET_ARG_LOG.ready"
 expect_success \
     "ZeroNet UI hosts do not consume the main action" \
-    env PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR" ENABLE_WARP=false ENABLE_ZERONET=true IMAGE_HAS_ZERONET=true ZERONET_BINARY_PATH="$FAKE_BIN/zeronet" ZERONET_DATA_DIR="$TMP_DIR/zeronet-data" ZERONET_UI_HOST="zeronet:43110 localhost:43110" ZERONET_ARG_LOG="$ZERONET_ARG_LOG" bash "$ENTRYPOINT_SCRIPT" sleep 1
+    env PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR" ENABLE_WARP=false ENABLE_ZERONET=true IMAGE_HAS_ZERONET=true ZERONET_BINARY_PATH="$FAKE_BIN/zeronet" ZERONET_DATA_DIR="$TMP_DIR/zeronet-data" ZERONET_UI_HOST="zeronet:43110 localhost:43110" ZERONET_ARG_LOG="$ZERONET_ARG_LOG" bash "$ENTRYPOINT_SCRIPT" bash "$TMP_DIR/wait-zeronet-args.sh"
 zeronet_args=$(tr '\n' ' ' < "$ZERONET_ARG_LOG")
 case "$zeronet_args" in
     *"--ui_host zeronet:43110 localhost:43110 --trackers "*" --ui_ip 0.0.0.0"*" main ") ;;
@@ -435,17 +448,26 @@ request() {
     printf '%s' "$1" > "$SUPERVISOR_RUN_DIR/request.tmp"
     mv "$SUPERVISOR_RUN_DIR/request.tmp" "$SUPERVISOR_RUN_DIR/acestream.command"
 }
-wait_for() {
-    local attempts=40
+wait_for_seconds() {
+    local timeout="$1"
+    shift
+    local deadline=$((SECONDS + timeout))
     until "$@"; do
-        attempts=$((attempts - 1))
-        [ "$attempts" -gt 0 ] || { echo "Timed out: $*" >&2; exit 1; }
+        if [ "$SECONDS" -ge "$deadline" ]; then
+            echo "Timed out after ${timeout}s: $* (launches: $(wc -l < "$ENGINE_TEST_DIR/launches" 2>/dev/null || echo 0))" >&2
+            exit 1
+        fi
         sleep 0.5
     done
 }
+wait_for() { wait_for_seconds 20 "$@"; }
 launched() { [ -f "$ENGINE_TEST_DIR/launches" ] && [ "$(wc -l < "$ENGINE_TEST_DIR/launches")" -ge "$1" ]; }
 no_pid() { [ ! -f "$SUPERVISOR_RUN_DIR/acestream.pid" ]; }
-wait_for launched 6
+# This wait spans five deliberate crashes, each with exit detection, the 2s
+# restart delay and pre-launch cleanup. One transition's 20s budget is too
+# tight for the full sequence in the one-CPU emulated ARM contract container.
+# Keep individual UI transitions at 20s and the matrix watchdog at 5 minutes.
+wait_for_seconds 60 launched 6
 request stop
 wait_for test -f "$SUPERVISOR_RUN_DIR/acestream.stopped"
 wait_for no_pid

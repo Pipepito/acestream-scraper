@@ -108,6 +108,15 @@ def test_scraper_acestream_starts_real_engine(request: pytest.FixtureRequest, pl
     )
     assert file_check.returncode == 0, "wrapper /opt/acestream/bin/acestreamengine is not executable"
 
+    # Helpers must be installed beside the image entrypoint. Source-tree mounts
+    # can hide packaging omissions, so verify the freshly built image itself.
+    helper_check = subprocess.run(
+        ["docker", "run", "--rm", "--platform", platform, "--entrypoint", "test",
+         tag, "-r", "/usr/local/bin/engine_cache_cleanup.py"],
+        capture_output=True, text=True,
+    )
+    assert helper_check.returncode == 0, "installed engine cache cleanup helper is missing"
+
     expected_version = MANIFEST["platforms"][platform]["engine_version"]
 
     # Start the full container (engine + app via entrypoint.sh)

@@ -357,6 +357,7 @@ COPY --from=ffmpeg-builder /out/ /opt/ffmpeg/bin/
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY backend/capture_logs.py /usr/local/bin/capture_logs.py
+COPY backend/engine_cache_cleanup.py /usr/local/bin/engine_cache_cleanup.py
 COPY warp-setup.sh /usr/local/bin/warp-setup.sh
 COPY healthcheck.sh /usr/local/bin/healthcheck.sh
 

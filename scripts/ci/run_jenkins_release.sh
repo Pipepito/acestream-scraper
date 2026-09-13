@@ -334,7 +334,7 @@ PY2
 fi
 
 assert_version_available
-bash scripts/ci/run_cutover_required_checks.sh --profile full
+bash scripts/ci/run_release_validation.sh
 
 for flavor in "${FLAVORS[@]}"; do
   result_file="$(preflight_result_file_for_flavor "$flavor")"
@@ -373,6 +373,12 @@ PY2
   echo "Dry-run preflight completed."
   exit 0
 fi
+
+# Docker smokes run on the trusted host because they need the Docker socket.
+# Their Python dependencies must also be prepared in a fresh release workspace.
+python3 -m venv --clear backend/venv
+backend/venv/bin/pip install --upgrade pip
+backend/venv/bin/pip install -r backend/requirements.txt
 
 # Real AceStream engine runtime smoke. Mirrors Jenkinsfile's
 # 'Acestream Engine Runtime Smoke' stage so the release path validates that

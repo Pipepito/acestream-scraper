@@ -814,7 +814,7 @@ Release behavior:
 - `FORCE_VERSION_OVERWRITE` defaults to `false`. Phase 1 checks the base version tag and all four versioned flavor tags before preflight, again after registry login, and immediately before assigning tags. If any exists (including a partial release), publication stops unless this option is explicitly enabled. Registry/authentication errors fail closed even with force enabled. The dry run performs the initial read-only lookup without binding Docker Hub credentials; `--print-publish-plan` remains offline. Channel publishes and `:latest` promotion do not apply the version-collision guard.
 - Use force only for deliberate recovery: it can replace all five versioned images, so repeat canary validation afterward. The shared Jenkins lock serializes this project's pipelines; the registry does not offer an atomic check-and-create across tags, so do not publish the same version concurrently outside Jenkins.
 - The version comes from root `version.txt`; Jenkins does not increment it, create a Git tag, or publish GitHub release notes. Tagging and the GitHub release remain the manual step in the runbook below.
-- The job archives only `phase5-build-result-release-metadata.json`: a successful ordinary dry run records `mode: preflight`, commit, version, and checked flavor/platform matrix; publication records commit/version/tags; promotion records its source and target. Intermediate preflight plans remain available to the validators during the run and are removed afterward. A promotion dry run prints its plan to the console and creates no publication metadata.
+- The job archives `.ci-release-artifacts/` application gate reports/logs and `phase5-build-result-release-metadata.json`: a successful ordinary dry run records `mode: preflight`, commit, version, and checked flavor/platform matrix; publication records commit/version/tags; promotion records its source and target. Intermediate preflight plans remain available to the validators during the run and are removed afterward. A promotion dry run prints its plan to the console and creates no publication metadata.
 - Before publishing, the script builds `scraper-acestream` for amd64, runs the engine and Acexy runtime smokes, then runs both ARM installer layout tests. If any fails, no Docker Hub login or push happens. Both ARM variants use the same digest-pinned multi-platform jopsis source image and require Docker Hub access on a cold builder; the amd64 archive remains vendored. The same checks run in the trusted develop job; on the release job they run only on the publish run, not the dry run.
 - The pushed `scraper-acestream`, `scraper-acestream-acexy`, version tags (and, after the phase-2 retag, `latest`) are multi-platform manifests that include `linux/arm64` and `linux/arm/v7`; `verify_multiarch_manifest.sh --image <tag> --flavor <flavor>` checks each remote manifest after the push. The arm64 engine runtime is not exercised by this job (amd64 runner); see `## AceStream Engine Smoke Coverage`.
 - Keep this path manual-only. Jenkins is the sole publisher; the GitHub Actions release workflow has been retired.
@@ -955,3 +955,20 @@ launch count. These are test deadlines, not production supervisor settings.
 
 ZeroNet argument contracts wait for a fresh completed-write marker (up to 20
 seconds) instead of stopping the fixture after a fixed one-second sleep.
+
+### Prepared release validation environment
+
+Phase 1 (including dry runs) calls `run_release_validation.sh`. It builds
+`docker/ci/pr-runner.Dockerfile` from the release checkout and runs the same
+`run_develop_validation.sh` full application gate used by trusted develop. The
+runner supplies pinned Python 3.12/Node 22, Python dependencies on PATH (including
+Alembic), and frontend dependencies before backend tests begin. It runs without
+network access, a Docker socket or registry credentials; the source mount is
+read-only and the working copy is disposable. Compose validation remains on the
+trusted host. Reports and failure logs are archived in `.ci-release-artifacts/`.
+
+Non-dry-run Docker smokes still require the trusted host's Docker daemon; phase 1
+creates a fresh backend virtualenv with requirements before those tests. Channel
+publication and latest promotion retain their existing behavior and do not rerun
+the application gate. Do not replace this with tests in an unprepared release
+workspace or silently skip validation based on an earlier develop result.

@@ -296,3 +296,9 @@ symlinks, open/mapped files, private per-container cache ownership, and fail-clo
 process inspection. Never run this stopped-engine cleanup against a live engine.
 Custom cache paths and external engines are not swept. See
 `wiki/Docker.md#engine-cache-retention`.
+
+Release phase-1 validation (including dry runs) uses the same prepared runner and
+full application gate as develop via `scripts/ci/run_release_validation.sh`. Keep
+Python/Node dependencies ready before backend tests, validation isolated from
+Docker/credentials, and reports in `.ci-release-artifacts/`. Docker smokes run
+later on the trusted host with an explicitly prepared backend virtualenv.

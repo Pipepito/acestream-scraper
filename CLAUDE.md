@@ -329,3 +329,14 @@ are temporary validator inputs; per-platform publication option JSONs are no
 longer generated. Release dry runs retain one explicitly marked preflight summary.
 Clear prior reports before stages, preserve failure diagnostics, and retain manual
 full-profile hardware evidence. See `docs/ops/jenkins-ci.md`.
+
+## Engine cache retention
+
+Bundled playback/checker engines use native 64 MiB RAM live caching; other-content
+disk-cache limits are 512/256 MiB respectively, not total filesystem/RAM quotas.
+The supervisor reclaims default cache files before launch/recovery and after UI
+Stop, only after terminating the prior process group. Preserve identity/state,
+symlinks, open/mapped files, private per-container cache ownership, and fail-closed
+process inspection. Never run this stopped-engine cleanup against a live engine.
+Custom cache paths and external engines are not swept. See
+`wiki/Docker.md#engine-cache-retention`.

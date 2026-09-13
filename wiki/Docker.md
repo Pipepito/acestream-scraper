@@ -81,6 +81,41 @@ Recreating the container discards its old writable layer; a simple restart does
 not reclaim it. Disposable stream cache can be rebuilt. Preserve `/app/config`
 and its existing host mapping when recreating the container.
 
+### Engine cache retention
+
+Bundled playback and checking engines use AceStream's native **memory live cache**
+(`--live-cache-type memory --live-mem-cache-size 67108864`). Channel verification
+must download a short A/V sample, but live probes no longer create disk-backed
+live buffers. This also applies when checks use the bundled playback engine.
+The 64 MiB setting is a live-cache buffer setting, **not a total engine RAM cap**;
+concurrent streams and engine overhead need additional memory.
+
+Disk caching for other content remains enabled with explicit engine limits:
+512 MiB for playback and 256 MiB for the checker (`--cache-auto 0`,
+`--cache-max-bytes`, and `--disk-cache-limit`). These are engine-managed limits,
+not a filesystem quota; do not assume they cover every temporary/HLS file.
+A custom `ACESTREAM_START_COMMAND` replaces the playback defaults, so include
+these flags there if you override it. External engines require configuration
+on their own host; this app cannot clean their storage.
+
+The supervisor removes leftover regular media files from the default cache
+folders **before starting/restarting an engine and after an operator Stop**.
+It first terminates the old engine process group. Cleanup covers
+`/root/.ACEStream/.acestream_cache` on amd64,
+`$ACESTREAM_HOME/.ACEStream/.acestream_cache` on ARM, and
+`/var/lib/acestream-check/cache` for the checker. It preserves directories,
+symlinks, open/mapped files and everything outside those cache folders, including
+engine identity/configuration and the application database. If process inspection
+or filesystem access fails, cleanup is skipped and logged in the engine log.
+Custom cache paths are not swept. Cache mounts must be private to one container;
+process inspection cannot see users of a shared folder in other containers.
+
+To reclaim an existing large cache, deploy the updated image and start the
+container: cleanup runs before the engine starts. On that image, Overview →
+Services → Restart also reclaims the corresponding engine cache, interrupting its
+current streams. A Stop reclaims it and leaves the engine intentionally stopped.
+There is no periodic deletion of files from underneath a running engine.
+
 Optionally map `/app/logs` to retain diagnostics across replacement. Its console
 capture rotates each scraper/service/entrypoint log independently: up to 6 MiB per collector (54 MiB across all nine collectors). Other native service logs have their own retention. Docker's own console log is separate: configure
 rotation, for example `--log-driver=json-file --log-opt max-size=10m
@@ -384,7 +419,7 @@ Overview → Services provides separate checking-engine Start/Stop/Restart contr
 Its crashes recover automatically without restarting playback; its health is shown
 there rather than failing the entire container healthcheck. Diagnostic downloads
 include its own rotating log. The checker adds memory and bandwidth usage (256 MiB
-disk-cache limit, 64 MiB live-cache size; total RAM is not capped by these values).
+disk-cache limit, 64 MiB RAM live cache; total RAM is not capped by these values).
 Checks remain serialized. ARMv7 still requires testing on real hardware.
 See [stream-check isolation](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/ops/stream-check-pid.md) for ownership behavior
 and remaining limitations with players connected directly to an engine.

@@ -399,7 +399,7 @@ ENV IMAGE_HAS_ACESTREAM=true \
     ACESTREAM_BINARY_PATH=/opt/acestream/bin/acestreamengine \
     ACESTREAM_HOME=/var/lib/acestream \
     ACESTREAM_BIND_ALL=true \
-    ACESTREAM_START_COMMAND="env PYTHONPATH=/opt/acestream/python-deps /opt/acestream/start-engine --client-console --http-port 6878"
+    ACESTREAM_START_COMMAND="env PYTHONPATH=/opt/acestream/python-deps /opt/acestream/start-engine --client-console --http-port 6878 --cache-auto 0 --cache-max-bytes 536870912 --disk-cache-limit 536870912 --live-cache-type memory --live-mem-cache-size 67108864"
 
 
 FROM scraper AS scraper-acexy

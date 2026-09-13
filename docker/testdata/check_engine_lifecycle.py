@@ -47,6 +47,15 @@ def main():
     if identity.is_file() and primary_identity.is_file():
         assert identity.read_text() != primary_identity.read_text()
 
+    for engine_pid in (playback, checker):
+        args = (Path('/proc') / str(engine_pid) / 'cmdline').read_bytes().split(b'\0')
+        assert args[args.index(b'--live-cache-type') + 1] == b'memory'
+        assert args[args.index(b'--live-mem-cache-size') + 1] == b'67108864'
+    cache = Path('/var/lib/acestream-check/cache')
+    leftover = cache / 'abandoned-probe.tmp'
+    leftover.write_bytes(b'old media')
+    state_marker = Path('/var/lib/acestream-check/cache-test-state')
+    state_marker.write_text('preserve engine state')
     os.kill(checker, 9)
 
     def recovered():
@@ -55,12 +64,17 @@ def main():
         return pid('acestream-check') not in (None, checker) and ready(6880)
 
     wait_for(recovered, 40)
-    print('Checker crash recovered without restarting playback', flush=True)
+    assert not leftover.exists(), 'Restart retained abandoned cache'
+    assert state_marker.read_text() == 'preserve engine state'
+    print('Checker crash recovered and reclaimed cache without restarting playback', flush=True)
+    leftover.write_bytes(b'finished probe')
     request = RUN / 'request.tmp'
     request.write_text('stop')
     request.replace(RUN / 'acestream-check.command')
     wait_for(lambda: pid('acestream-check') is None, 15)
     assert ready(6878) and pid('acestream') == playback
+    wait_for(lambda: not leftover.exists(), 15)
+    assert state_marker.read_text() == 'preserve engine state'
     assert (RUN / 'acestream-check.stopped').is_file()
     print('Checker Stop leaves playback running', flush=True)
 

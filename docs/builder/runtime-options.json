@@ -202,7 +202,7 @@
       "defaultSource": "./acestream_cache",
       "target": "/root/.ACEStream/.acestream_cache",
       "label": "Engine disk cache (highly recommended)",
-      "description": "Optional amd64 cache folder. Prevents cached streams from filling the container writable layer. Use an Unraid appdata host folder; this mount does not impose a size limit."
+      "description": "Optional amd64 cache folder. Prevents cached streams from filling the container writable layer. Use an Unraid appdata host folder; this mount does not impose a size limit. Bundled live buffers use RAM; leftover default cache files are reclaimed on engine start/restart and Stop."
     },
     {
       "id": "checkEngineState",

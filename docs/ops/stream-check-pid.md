@@ -149,7 +149,7 @@ foreground launcher, independently of `ACESTREAM_START_COMMAND`. Never mount the
 same host directory for playback and checking state. An optional separate mount
 at `/var/lib/acestream-check` keeps its writes outside the writable image layer.
 
-The checker uses a 256 MiB disk-cache limit and 64 MiB live-cache size; these are
+The checker uses a 256 MiB disk-cache limit and a 64 MiB RAM live cache; these are
 engine cache settings, not a cap on total process RSS. Checks still share one
 probe slot and cooldown. Both processes consume host CPU, RAM and bandwidth;
 isolation prevents checker session stops/crashes from controlling playback, but
@@ -273,3 +273,14 @@ browser's cleanup; the app sends no engine Stop. A tuner failure preceding that
 upstream disconnect does not establish that browser cleanup stopped the tuner.
 The focused player tests exercise browser leave/reaping while the tuner keeps
 reading, for matching and different source IDs in direct and Acexy routing.
+
+## Probe cache retention
+
+Both bundled engines default to native RAM live caching, so short channel probes
+do not accumulate live disk buffers even when they share playback. Playback's
+other-content disk-cache limit is 512 MiB; the checker uses 256 MiB. The supervisor
+cleans each engine's default cache before launch/recovery and after UI Stop, with
+the prior process group terminated. It never periodically unlinks active engine
+media. Custom commands and external engines require their own cache settings.
+See [Docker cache retention](../../wiki/Docker.md#engine-cache-retention) for paths,
+RAM implications, limits, and reclaiming existing cache.

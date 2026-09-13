@@ -102,6 +102,13 @@ supervise_engine() {
     rm -f "$state_dir/$slug.pid" "$state_dir/$slug.started" \
         "$state_dir/$slug.command" "$state_dir/$slug.stopped"
 
+    engine_clean_cache() {
+        local script="$(dirname "$CAPTURE_SCRIPT")/engine_cache_cleanup.py"
+        if [ -f "$script" ]; then
+            "${CAPTURE_PYTHON:-python3}" "$script" "$slug" || log "$label cache cleanup failed; continuing"
+        fi
+    }
+
     engine_terminate() {
         if [ -n "$inner_pid" ]; then
             kill -TERM -- "-$inner_pid" 2>/dev/null || kill -TERM "$inner_pid" 2>/dev/null || true
@@ -133,6 +140,7 @@ supervise_engine() {
             stop)
                 touch "$state_dir/$slug.stopped"
                 engine_terminate
+                engine_clean_cache
                 log "$label stopped by operator; waiting for Start"
                 ;;
             start|restart)
@@ -149,6 +157,7 @@ supervise_engine() {
             next_launch=$(($(date +%s) + restart_delay))
         fi
         if [ -z "$inner_pid" ] && [ ! -f "$state_dir/$slug.stopped" ] && [ "$(date +%s)" -ge "$next_launch" ]; then
+            engine_clean_cache
             if command -v setsid >/dev/null 2>&1; then
                 setsid bash -lc "$command" &
             else

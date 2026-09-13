@@ -13,6 +13,6 @@ export TEMP="$ACESTREAM_HOME/tmp"
 exec /opt/acestream/start-engine --client-console \
     --state-dir "$ACESTREAM_HOME" --cache-dir "$ACESTREAM_HOME/cache" \
     --http-port 6880 --https-port 6881 --api-port 62063 --port 8622 \
-    --cache-auto 0 --cache-max-bytes 268435456 \
-    --live-cache-type disk --live-disk-cache-size 67108864 \
+    --cache-auto 0 --cache-max-bytes 268435456 --disk-cache-limit 268435456 \
+    --live-cache-type memory --live-mem-cache-size 67108864 \
     --disable-sentry --log-stdout --log-max-size 1048576 --log-backup-count 2

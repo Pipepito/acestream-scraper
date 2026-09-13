@@ -28,6 +28,7 @@ def release(tmp_path):
     (ci / 'build_multiarch_images.sh').write_text('''
 while [[ $# -gt 0 ]]; do
   if [[ "$1" == --digest-file ]]; then echo repo@sha256:fixture > "$2"; shift; fi
+  if [[ "$1" == --result-file ]]; then echo '{"platforms":["linux/amd64","linux/arm64","linux/arm/v7"]}' > "$2"; shift; fi
   shift
 done
 ''')
@@ -95,6 +96,11 @@ def test_fresh_version_dry_run_checks_all_tags_without_publishing(release):
         assert 'pipepito/acestream-scraper:' + tag in calls
     assert 'login' not in calls
     assert 'create' not in calls
+    metadata = json.loads((release[0] / 'phase5-build-result-release-metadata.json').read_text())
+    assert metadata['mode'] == 'preflight'
+    assert metadata['dry_run'] is True
+    assert len(metadata['flavors']) == 4
+    assert all(len(item['platforms']) == 3 for item in metadata['flavors'])
 
 
 def test_force_allows_existing_version_and_keeps_latest_untouched(release):
@@ -103,6 +109,7 @@ def test_force_allows_existing_version_and_keeps_latest_untouched(release):
     assert 'FORCE_VERSION_OVERWRITE enabled' in result.stdout
     assert 'create' in calls
     assert ':latest' not in calls
+    assert not list(release[0].glob('phase5-build-result-release-*-linux-*.json'))
 
 
 def test_force_does_not_hide_auth_failure(release):

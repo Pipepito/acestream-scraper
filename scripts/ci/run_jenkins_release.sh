@@ -100,19 +100,6 @@ preflight_result_file_for_flavor() {
   esac
 }
 
-publish_result_file_for_flavor() {
-  case "$1" in
-    scraper-acestream-acexy) printf '%s\n' "phase5-build-result-release-full-publish.json" ;;
-    scraper) printf '%s\n' "phase5-build-result-release-scraper-publish.json" ;;
-    scraper-acestream) printf '%s\n' "phase5-build-result-release-scraper-acestream-publish.json" ;;
-    scraper-acexy) printf '%s\n' "phase5-build-result-release-scraper-acexy-publish.json" ;;
-    *)
-      echo "Unsupported flavor: $1"
-      exit 1
-      ;;
-  esac
-}
-
 # The floating :latest tag is never pushed by a build. Phase 1
 # (PUBLISH_LATEST=0, the default) pushes versioned + flavor-channel tags only,
 # so users on :latest are untouched during the canary window. Phase 2
@@ -178,7 +165,7 @@ flavor_platforms_csv() {
   python3 scripts/ci/flavor_platforms.py "$PLATFORM_MANIFEST" "$ACESTREAM_MANIFEST" "$1"
 }
 
-# publish_platform_major <tags_fn> <result_prefix> <dry_run>
+# publish_platform_major <tags_fn> <dry_run>
 #
 # Builds every flavor for one platform before moving to the next platform
 # (platform-major), pushing each image by digest, and prunes the builder's
@@ -188,7 +175,7 @@ flavor_platforms_csv() {
 # platform's worth of layers (flavors share their base stages), which is what
 # lets a four-flavor, three-platform publish fit the runner's 32 GB disk.
 publish_platform_major() {
-  local tags_fn="$1" result_prefix="$2" dry="$3"
+  local tags_fn="$1" dry="$2"
   local digest_dir platform flavor key platforms_csv union flavor_csv tags tag refs
   digest_dir="$(mktemp -d)"
   union="$(python3 - "$PLATFORM_MANIFEST" <<'PY2'
@@ -214,7 +201,6 @@ PY2
         --repo "$IMAGE_REPO"
         --builder "$BUILDER"
         --digest-file "$digest_dir/$key"
-        --result-file "${result_prefix}-${flavor}-$(printf '%s' "$platform" | tr '/' '-').json"
       )
       if [[ "$dry" -eq 1 ]]; then
         build_args+=(--dry-run)
@@ -288,12 +274,12 @@ fi
 # the multi-platform flavors and pushes the floating channel tags.
 if [[ -n "$CHANNEL" ]]; then
   if [[ "$DRY_RUN" -eq 1 ]]; then
-    publish_platform_major channel_tags_for_flavor "phase5-build-result-channel-${CHANNEL}" 1
+    publish_platform_major channel_tags_for_flavor 1
     echo "Dry-run channel publish plan completed."
     exit 0
   fi
   registry_login
-  publish_platform_major channel_tags_for_flavor "phase5-build-result-channel-${CHANNEL}" 0
+  publish_platform_major channel_tags_for_flavor 0
   CHANNEL_TAGS_JSON="$(python3 - "${PUBLISHED_TAGS[@]}" <<'PY2'
 import json, sys
 print(json.dumps(sys.argv[1:]))
@@ -365,6 +351,25 @@ for flavor in "${FLAVORS[@]}"; do
 done
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
+  # Retain one explicit preflight summary, not four intermediate build plans.
+  RELEASE_VERSION="$VERSION" RELEASE_GIT_SHA="$GIT_SHA" RELEASE_BUILDER="$BUILDER" python3 - "${FLAVORS[@]}" <<'PY2'
+import json, os, sys
+from datetime import datetime, timezone
+results = []
+for flavor in sys.argv[1:]:
+    with open(f"phase5-build-result-release-{flavor}.json", encoding="utf-8") as handle:
+        plan = json.load(handle)
+    results.append({"flavor": flavor, "platforms": plan["platforms"]})
+with open("phase5-build-result-release-metadata.json", "w", encoding="utf-8") as handle:
+    json.dump({
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "mode": "preflight", "dry_run": True,
+        "version": os.environ["RELEASE_VERSION"],
+        "git_sha": os.environ["RELEASE_GIT_SHA"],
+        "builder": os.environ["RELEASE_BUILDER"],
+        "flavors": results,
+    }, handle, indent=2)
+PY2
   echo "Dry-run preflight completed."
   exit 0
 fi
@@ -403,7 +408,7 @@ bash scripts/ci/cleanup_runner_docker.sh \
 registry_login
 
 assert_version_available
-publish_platform_major publish_tags_for_flavor "phase5-build-result-release" 0
+publish_platform_major publish_tags_for_flavor 0
 all_tags=("${PUBLISHED_TAGS[@]}")
 
 ALL_TAGS_JSON="$(python3 - "${all_tags[@]}" <<'PY'

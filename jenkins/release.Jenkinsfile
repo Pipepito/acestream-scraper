@@ -25,6 +25,8 @@ pipeline {
     stage('Release') {
       steps {
         checkout scm
+        sh 'rm -f phase5-build-result-release-*.json'
+        script { env.RELEASE_REPORTS_CURRENT = '1' }
         script {
           if (env.BRANCH_NAME && env.BRANCH_NAME != 'main') {
             error("Release pipeline only runs from main; current branch is '${env.BRANCH_NAME}'.")
@@ -84,8 +86,12 @@ docker buildx use "${JENKINS_BUILDER:-acestream-builder}"
       }
       post {
         always {
-          archiveArtifacts artifacts: 'phase5-build-result-release-*.json', allowEmptyArchive: true
-          archiveArtifacts artifacts: 'phase5-build-result-release-metadata.json', allowEmptyArchive: true
+          script {
+            if (env.RELEASE_REPORTS_CURRENT == '1') {
+              archiveArtifacts artifacts: 'phase5-build-result-release-metadata.json', allowEmptyArchive: true
+              sh 'rm -f phase5-build-result-release-scraper*.json'
+            }
+          }
         }
       }
     }

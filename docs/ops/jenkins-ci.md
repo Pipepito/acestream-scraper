@@ -41,7 +41,7 @@ and decoder tests. Tests use synthetic local media and remain network-disabled.
 Develop validation diagnostics:
 
 - Full application validation prints each gate start/result and failed command output, including nested parity test failures. JSON summaries remain machine-readable.
-- Current reports and complete outer gate logs are archived under `.ci-develop-artifacts/` even when the validation container exits nonzero. Root report copies are cleared before validation so an earlier build cannot appear as the current result.
+- Current reports and complete outer gate logs are archived under `.ci-develop-artifacts/` even when the validation container exits nonzero. Legacy root report copies are cleared before validation; current reports are retained only under `.ci-develop-artifacts/` so they are not archived twice.
 - Scraper tests that persist URL status must pass the `db_session` fixture to the scraper. The isolated runner has no writable application database; relying on local data or earlier tests can hide failures.
 
 Security boundary:
@@ -101,7 +101,7 @@ Pipeline enforcement in `jenkins/develop.Jenkinsfile` (trusted job `acestream-sc
 - It then binds `dockerhub-publish` and runs `bash scripts/ci/run_jenkins_release.sh --channel develop`. Missing credentials or push failures fail the build.
   - Channel mode logs into Docker Hub, builds the four flavors multi-platform (`linux/amd64`, `linux/arm64`, `linux/arm/v7`) with `--push`, and verifies every pushed manifest.
   - Tags pushed (floating only): `pipepito/acestream-scraper:develop` (= the full `scraper-acestream-acexy` payload, mirroring what `:latest` means for releases), `:develop-scraper`, `:develop-scraper-acestream`, `:develop-scraper-acexy`, `:develop-scraper-acestream-acexy`. Never a version tag, never `:latest`, no immutable per-commit tags. The channel tags move on every validated `develop` build.
-  - Artifacts: `phase5-build-result-channel-develop-<flavor>.json` per flavor plus `phase5-build-result-channel-develop-metadata.json` (`mode: channel`, channel, version, git sha, builder, tags), archived by the stage as `phase5-build-result-channel-*.json`.
+  - Artifact: `phase5-build-result-channel-develop-metadata.json` (`mode: channel`, channel, version, git SHA, builder, tags). Per-platform build-plan JSONs are no longer generated; build output and manifest verification remain in the console log.
 
 Versioning:
 
@@ -124,7 +124,7 @@ bash scripts/ci/run_jenkins_release.sh --print-publish-plan --channel develop
 bash scripts/ci/run_jenkins_release.sh --dry-run --channel develop
 ```
 
-The first prints the channel tag plan per flavor; the second runs the dry-run build matrix per flavor (`build_multiarch_images.sh --dry-run`) and writes the `phase5-build-result-channel-develop-<flavor>.json` files without logging in or pushing. The existing `--print-publish-plan` / `--dry-run` without `--channel` preview a release the same way.
+The first prints the channel tag plan per flavor; the second runs the dry-run build matrix per flavor (`build_multiarch_images.sh --dry-run`) and prints the matrix without logging in, pushing, or leaving per-platform JSON files. The existing `--print-publish-plan` / `--dry-run` without `--channel` preview a release the same way.
 
 For testers: `docker pull pipepito/acestream-scraper:develop` (or `:develop-<flavor>`) is the pre-release build; Docker Compose users set `image: pipepito/acestream-scraper:develop` in place of `:latest` in `docker-compose.yml`. Expect the tags to move on every validated `develop` build.
 
@@ -814,7 +814,7 @@ Release behavior:
 - `FORCE_VERSION_OVERWRITE` defaults to `false`. Phase 1 checks the base version tag and all four versioned flavor tags before preflight, again after registry login, and immediately before assigning tags. If any exists (including a partial release), publication stops unless this option is explicitly enabled. Registry/authentication errors fail closed even with force enabled. The dry run performs the initial read-only lookup without binding Docker Hub credentials; `--print-publish-plan` remains offline. Channel publishes and `:latest` promotion do not apply the version-collision guard.
 - Use force only for deliberate recovery: it can replace all five versioned images, so repeat canary validation afterward. The shared Jenkins lock serializes this project's pipelines; the registry does not offer an atomic check-and-create across tags, so do not publish the same version concurrently outside Jenkins.
 - The version comes from root `version.txt`; Jenkins does not increment it, create a Git tag, or publish GitHub release notes. Tagging and the GitHub release remain the manual step in the runbook below.
-- The job archives release result JSON files and `phase5-build-result-release-metadata.json`.
+- The job archives only `phase5-build-result-release-metadata.json`: a successful ordinary dry run records `mode: preflight`, commit, version, and checked flavor/platform matrix; publication records commit/version/tags; promotion records its source and target. Intermediate preflight plans remain available to the validators during the run and are removed afterward. A promotion dry run prints its plan to the console and creates no publication metadata.
 - Before publishing, the script builds `scraper-acestream` for amd64, runs the engine and Acexy runtime smokes, then runs both ARM installer layout tests. If any fails, no Docker Hub login or push happens. Both ARM variants use the same digest-pinned multi-platform jopsis source image and require Docker Hub access on a cold builder; the amd64 archive remains vendored. The same checks run in the trusted develop job; on the release job they run only on the publish run, not the dry run.
 - The pushed `scraper-acestream`, `scraper-acestream-acexy`, version tags (and, after the phase-2 retag, `latest`) are multi-platform manifests that include `linux/arm64` and `linux/arm/v7`; `verify_multiarch_manifest.sh --image <tag> --flavor <flavor>` checks each remote manifest after the push. The arm64 engine runtime is not exercised by this job (amd64 runner); see `## AceStream Engine Smoke Coverage`.
 - Keep this path manual-only. Jenkins is the sole publisher; the GitHub Actions release workflow has been retired.
@@ -923,3 +923,23 @@ If Jenkins cutover causes merge or release risk:
 - Release publication:
   Repo-owned: Docker Hub bindings in the trusted develop and manual release pipelines; the PR pipeline has no credential binding or publication path
   User-owned: Docker Hub credential management and manual release approval
+
+## Retained pipeline artifacts
+
+For new builds, retain evidence once rather than archiving every generated JSON:
+
+| Pipeline/stage | Retained artifacts |
+|---|---|
+| PR validation | Console output; the isolated temporary workspace is discarded. |
+| Develop application validation | `.ci-develop-artifacts/` gate summaries, parity details, and complete gate logs, including failures. No duplicate root copies. |
+| Develop architecture plan | `phase5-gate-report-quick.json`, including per-check outcomes and captured output. Per-flavor dry-run plans are temporary validator inputs. |
+| Develop publication | `phase5-build-result-channel-develop-metadata.json`. |
+| Release preflight/publication/promotion | `phase5-build-result-release-metadata.json`, with a mode identifying what actually completed. |
+
+Unused per-platform publication JSONs held build options rather than image digests;
+they are no longer generated. Actual build output and manifest verification stay
+in Jenkins console logs. Current reports are cleared before their stages so failed
+or aborted attempts cannot archive an older success. Existing archived builds are
+unchanged and age out under their configured retention policy. Manually requested
+Phase 5 full-profile evidence is separate and remains useful for hardware/runtime
+signoff; do not remove it as part of routine pipeline cleanup.

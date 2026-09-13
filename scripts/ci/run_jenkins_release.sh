@@ -146,6 +146,23 @@ publish_tags_for_flavor() {
 }
 
 PROMOTE_LATEST="${PUBLISH_LATEST:-0}"
+FORCE_VERSION_OVERWRITE="${FORCE_VERSION_OVERWRITE:-0}"
+if [[ "$FORCE_VERSION_OVERWRITE" != "0" && "$FORCE_VERSION_OVERWRITE" != "1" ]]; then
+  echo "FORCE_VERSION_OVERWRITE must be 0 or 1." >&2
+  exit 1
+fi
+
+assert_version_available() {
+  local flavor
+  local args=("${IMAGE_REPO}:${VERSION}")
+  for flavor in "${FLAVORS[@]}"; do
+    args+=("${IMAGE_REPO}:${VERSION}-${flavor}")
+  done
+  if [[ "$FORCE_VERSION_OVERWRITE" == "1" ]]; then
+    args=(--force "${args[@]}")
+  fi
+  python3 scripts/ci/assert_release_tags_available.py "${args[@]}"
+}
 
 registry_login() {
   : "${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}"
@@ -213,6 +230,10 @@ PY2
       echo "Builder $BUILDER cache after $platform: $(docker buildx du --builder "$BUILDER" 2>/dev/null | grep -E '^Total:' | tr -s '\t ' ' ' || echo unknown)"
     fi
   done
+  # Recheck after the builds, immediately before assigning any release tags.
+  if [[ -z "$CHANNEL" && "$dry" -eq 0 ]]; then
+    assert_version_available
+  fi
   for flavor in "${PUBLISH_FLAVORS[@]}"; do
     IFS=' ' read -r -a tags <<< "$("$tags_fn" "$flavor")"
     if [[ "$dry" -eq 1 ]]; then
@@ -244,7 +265,7 @@ if [[ "$PRINT_PLAN" -eq 1 && -n "$CHANNEL" ]]; then
 fi
 
 if [[ "$PRINT_PLAN" -eq 1 ]]; then
-  echo "Release publish plan (PUBLISH_LATEST=${PROMOTE_LATEST}, VERSION=${VERSION}):"
+  echo "Release publish plan (PUBLISH_LATEST=${PROMOTE_LATEST}, VERSION=${VERSION}, FORCE_VERSION_OVERWRITE=${FORCE_VERSION_OVERWRITE}):"
   if [[ "$PROMOTE_LATEST" == "1" ]]; then
     echo "  promote: ${IMAGE_REPO}:latest <- ${IMAGE_REPO}:${VERSION} (retag of the canary-validated ${LATEST_SOURCE_FLAVOR} manifest; no flavor rebuild)"
   else
@@ -307,7 +328,7 @@ if [[ "$PROMOTE_LATEST" == "1" ]]; then
   fi
   registry_login
   bash scripts/ci/promote_latest.sh --version "$VERSION" --flavor "$LATEST_SOURCE_FLAVOR" --repo "$IMAGE_REPO"
-  RELEASE_VERSION="$VERSION" RELEASE_GIT_SHA="$GIT_SHA" RELEASE_BUILDER="$BUILDER" python3 - "phase5-build-result-release-metadata.json" <<'PY2'
+  RELEASE_IMAGE_REPO="$IMAGE_REPO" RELEASE_VERSION="$VERSION" RELEASE_GIT_SHA="$GIT_SHA" RELEASE_BUILDER="$BUILDER" python3 - "phase5-build-result-release-metadata.json" <<'PY2'
 import json, os, sys
 from datetime import datetime, timezone
 payload = {
@@ -316,8 +337,8 @@ payload = {
     "git_sha": os.environ["RELEASE_GIT_SHA"],
     "builder": os.environ["RELEASE_BUILDER"],
     "mode": "promote-latest",
-    "tags": ["${IMAGE_REPO}:latest"],
-    "source": "${IMAGE_REPO}:" + os.environ["RELEASE_VERSION"],
+    "tags": [os.environ["RELEASE_IMAGE_REPO"] + ":latest"],
+    "source": os.environ["RELEASE_IMAGE_REPO"] + ":" + os.environ["RELEASE_VERSION"],
 }
 with open(sys.argv[1], "w", encoding="utf-8") as handle:
     json.dump(payload, handle, indent=2)
@@ -326,6 +347,7 @@ PY2
   exit 0
 fi
 
+assert_version_available
 bash scripts/ci/run_cutover_required_checks.sh --profile full
 
 for flavor in "${FLAVORS[@]}"; do
@@ -380,6 +402,7 @@ bash scripts/ci/cleanup_runner_docker.sh \
 
 registry_login
 
+assert_version_available
 publish_platform_major publish_tags_for_flavor "phase5-build-result-release" 0
 all_tags=("${PUBLISHED_TAGS[@]}")
 

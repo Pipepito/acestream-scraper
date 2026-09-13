@@ -326,3 +326,12 @@ version after successful `PUBLISH_LATEST=true` promotion. Check the page's
 `Publish production docs` stage succeeded. Version-only canary publishes and dry
 runs leave the label unchanged. The release job needs the `github-publish`
 credential; see `docs/ops/jenkins-ci.md` for failure recovery.
+
+### Existing version protection
+
+Phase 1 and its dry run reject any existing base version or versioned flavor tag.
+Leave `FORCE_VERSION_OVERWRITE=false` for normal releases; explicitly enable it
+only to replace a partial or incorrect release, then repeat canary validation.
+Registry errors block even with force enabled. Promotion uses the existing version
+and is not subject to this guard. See the current manual-job runbook in
+`docs/ops/jenkins-ci.md`.

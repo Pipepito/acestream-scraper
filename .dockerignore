@@ -1,0 +1,33 @@
+.git
+.gitignore
+**/__pycache__/
+**/.pytest_cache/
+**/*.pyc
+.venv/
+venv/
+backend/venv/
+frontend/node_modules/
+frontend/build/
+backend/frontend_build/
+backend/config/
+config/
+zeronet_data/
+node_modules/
+dist/
+build/
+.DS_Store
+
+# Never part of an image; keeps the build context small and secrets out of it.
+backend/logs/
+**/*.log
+.tmp/
+.worktrees/
+.planning/
+infra-details.md
+frontend/dist/
+docs/
+wiki/
+samples/
+
+# Playwright e2e suite
+e2e/

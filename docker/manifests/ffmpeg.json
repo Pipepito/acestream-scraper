@@ -1,0 +1,11 @@
+{
+  "version": "8.1.2",
+  "vendor_dir": "docker/vendor/ffmpeg",
+  "vendored_file": "ffmpeg-8.1.2.tar.xz",
+  "sha256": "464beb5e7bf0c311e68b45ae2f04e9cc2af88851abb4082231742a74d97b524c",
+  "source_url": "https://ffmpeg.org/releases/ffmpeg-8.1.2.tar.xz",
+  "mirror_base_url": "https://github.com/Pipepito/acestream-scraper/releases/download/acestream-binaries-ffmpeg-8.1.2",
+  "mirror_urls": [
+    "https://github.com/Pipepito/acestream-scraper/releases/download/acestream-binaries-ffmpeg-8.1.2/ffmpeg-8.1.2.tar.xz"
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "baseline_version": "2026-02-27.1",
+  "approved_at": "2026-02-27",
+  "required_fields": [
+    "id",
+    "name",
+    "group",
+    "logo",
+    "tvg_id",
+    "tvg_name",
+    "source_url"
+  ],
+  "fuzzy_fields": [
+    "name",
+    "group",
+    "logo",
+    "tvg_name"
+  ],
+  "sources": [
+    {
+      "id": "http_m3u_primary",
+      "url": "https://example.com/baseline/primary.m3u",
+      "url_type": "regular",
+      "source_class": "active",
+      "gate_critical": true,
+      "enabled": true,
+      "env_tags": []
+    },
+    {
+      "id": "zeronet_primary",
+      "url": "http://127.0.0.1:43110/1AceParity/playlist.m3u",
+      "url_type": "zeronet",
+      "source_class": "active",
+      "gate_critical": true,
+      "enabled": true,
+      "env_tags": []
+    },
+    {
+      "id": "regional_auth_sample",
+      "url": "https://region.example.com/private/playlist.m3u",
+      "url_type": "regular",
+      "source_class": "flaky",
+      "gate_critical": false,
+      "enabled": true,
+      "env_tags": [
+        "requires_auth",
+        "region_locked"
+      ]
+    },
+    {
+      "id": "legacy_disabled_sample",
+      "url": "https://legacy.example.com/disabled/list.m3u",
+      "url_type": "regular",
+      "source_class": "legacy",
+      "gate_critical": false,
+      "enabled": false,
+      "env_tags": [
+        "legacy",
+        "disabled_by_default"
+      ]
+    }
+  ]
+}

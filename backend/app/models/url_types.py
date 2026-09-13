@@ -1,0 +1,275 @@
+"""
+URL type models
+"""
+from abc import ABC, abstractmethod
+from urllib.parse import urlparse
+import logging
+from typing import Optional
+
+logger = logging.getLogger(__name__)
+
+
+class BaseURL(ABC):
+    """Base class for all URL types"""
+    
+    def __init__(self, url: str, skip_validation: bool = False):
+        self.original_url = url
+        self.parsed_url = urlparse(url)
+        self.skip_validation = skip_validation
+        if not skip_validation:
+            self._validate()
+    
+    @abstractmethod
+    def _validate(self) -> None:
+        """Validate the URL format"""
+        pass
+    
+    @abstractmethod
+    def get_normalized_url(self) -> str:
+        """Return a normalized version of this URL"""
+        pass
+    
+    @staticmethod
+    @abstractmethod
+    def is_valid_url(url: str) -> bool:
+        """Check if a URL string is valid for this URL type"""
+        pass
+    
+    @property
+    def type_name(self) -> str:
+        """Return the name of this URL type"""
+        return self.__class__.__name__.lower().replace('url', '')
+
+
+class ZeronetURL(BaseURL):
+    """URL type for ZeroNet URLs"""
+    
+    def _validate(self) -> None:
+        """Validate ZeroNet URL format"""
+        if self.skip_validation:
+            # Skip validation if explicitly requested (user selected zeronet type)
+            return
+            
+        if not self.is_valid_url(self.original_url):
+            raise ValueError(f"Invalid ZeroNet URL: {self.original_url}")
+    
+    def get_normalized_url(self) -> str:
+        """Return a normalized ZeroNet URL"""
+        # If validation was skipped, return original URL as is
+        if self.skip_validation:
+            return self.original_url
+            
+        # If it's already a zero:// URL, return as is
+        if self.original_url.startswith('zero://'):
+            return self.original_url
+            
+        # If it's an HTTP URL with 43110 port, convert to zero:// format
+        if ':43110/' in self.original_url:
+            path = self.original_url.split(':43110/', 1)[1]
+            return f"zero://{path}"
+            
+        return self.original_url
+    
+    def get_internal_url(self, host: str = '127.0.0.1') -> str:
+        """Get internal HTTP URL for ZeroNet service"""
+        # If validation was skipped, we don't attempt to transform the URL
+        if self.skip_validation:
+            return self.original_url
+            
+        if self.original_url.startswith('zero://'):
+            return f"http://{host}:43110/{self.original_url[7:]}"
+        elif ':43110/' in self.original_url:
+            # For URLs that already contain a host and port 43110, 
+            # we should preserve the original host
+            parsed = urlparse(self.original_url)
+            original_host = parsed.netloc.split(':')[0]
+            path = self.original_url.split(':43110/', 1)[1]
+            
+            # Only use provided host if it's not the default,
+            # otherwise keep the original host from the URL
+            actual_host = original_host if host == '127.0.0.1' else host
+            return f"http://{actual_host}:43110/{path}"
+        return self.original_url
+    
+    @staticmethod
+    def is_valid_url(url: str) -> bool:
+        """Check if a URL is a valid ZeroNet URL"""
+        return (
+            url.startswith('zero://') or 
+            url.startswith('http://127.0.0.1:43110/') or
+            ':43110/' in url
+        )
+
+
+class IpfsURL(BaseURL):
+    """URL type for IPFS/IPNS URLs, fetched through an IPFS HTTP gateway"""
+
+    GATEWAY_PATH_PREFIXES = ('/ipfs/', '/ipns/')
+
+    @staticmethod
+    def browser_gateway_native_url(url: str) -> Optional[str]:
+        """Browser-only gateways serve a service worker, not the requested file.
+
+        Resolve their explicit IPFS/IPNS address through our configured gateway.
+        Match the exact gateway domain so lookalike hosts remain ordinary HTTP.
+        """
+        parsed = urlparse(url)
+        if parsed.scheme not in ('http', 'https') or parsed.username or parsed.password:
+            return None
+        host = parsed.hostname or ''
+        if host == 'inbrowser.link':
+            for prefix in IpfsURL.GATEWAY_PATH_PREFIXES:
+                if parsed.path.startswith(prefix) and parsed.path[len(prefix):]:
+                    native = f"{prefix.strip('/')}://{parsed.path[len(prefix):]}"
+                    return native + (f'?{parsed.query}' if parsed.query else '')
+        labels = host.split('.')
+        if len(labels) == 4 and labels[1] in ('ipfs', 'ipns') and labels[2:] == ['inbrowser', 'link']:
+            native = f"{labels[1]}://{labels[0]}{parsed.path or '/'}"
+            return native + (f'?{parsed.query}' if parsed.query else '')
+        return None
+
+    def _validate(self) -> None:
+        """Validate IPFS URL format"""
+        if self.skip_validation:
+            # Skip validation if explicitly requested (user selected ipfs type)
+            return
+
+        if not self.is_valid_url(self.original_url):
+            raise ValueError(f"Invalid IPFS URL: {self.original_url}")
+
+    def get_normalized_url(self) -> str:
+        """Return a normalized IPFS URL (ipfs://<cid>/... or ipns://<name>/...)"""
+        browser_url = self.browser_gateway_native_url(self.original_url)
+        if browser_url:
+            return browser_url
+        # If validation was skipped, return original URL as is
+        if self.skip_validation:
+            return self.original_url
+
+        # Native ipfs:// / ipns:// URLs are already canonical
+        if self.original_url.startswith(('ipfs://', 'ipns://')):
+            return self.original_url
+
+        # Gateway-style HTTP URLs (http://host[:port]/ipfs/<cid>/...) are
+        # normalized to the native scheme so the same content pinned through
+        # different gateways maps to one source URL.
+        parsed = urlparse(self.original_url)
+        path = parsed.path or ''
+        for prefix in self.GATEWAY_PATH_PREFIXES:
+            if path.startswith(prefix):
+                scheme = prefix.strip('/')
+                rest = path[len(prefix):]
+                if parsed.query:
+                    rest = f"{rest}?{parsed.query}"
+                return f"{scheme}://{rest}"
+
+        return self.original_url
+
+    @staticmethod
+    def to_gateway_url(url: str, gateway_base: str) -> str:
+        """Map a native ipfs://ipns:// URL onto an HTTP gateway; other URLs
+        (already-HTTP gateway links, plain http) are returned untouched."""
+        base = gateway_base.rstrip('/')
+        url = IpfsURL.browser_gateway_native_url(url) or url
+        if url.startswith('ipfs://'):
+            return f"{base}/ipfs/{url[len('ipfs://'):]}"
+        if url.startswith('ipns://'):
+            return f"{base}/ipns/{url[len('ipns://'):]}"
+        return url
+
+    def get_internal_url(self, gateway_base: str) -> str:
+        """Get the HTTP URL used to fetch this source through the configured
+        IPFS gateway"""
+        # If validation was skipped, we don't attempt to transform the URL
+        if self.skip_validation:
+            return self.to_gateway_url(self.original_url, gateway_base)
+
+        return self.to_gateway_url(self.get_normalized_url(), gateway_base)
+
+    @staticmethod
+    def is_valid_url(url: str) -> bool:
+        """Check if a URL is a valid IPFS URL"""
+        if IpfsURL.browser_gateway_native_url(url):
+            return True
+        if url.startswith('ipfs://') or url.startswith('ipns://'):
+            return len(url.split('://', 1)[1]) > 0
+        parsed = urlparse(url)
+        if parsed.scheme in ('http', 'https') and parsed.netloc:
+            return (parsed.path or '').startswith(IpfsURL.GATEWAY_PATH_PREFIXES)
+        return False
+
+
+class RegularURL(BaseURL):
+    """URL type for regular HTTP/HTTPS URLs"""
+    
+    def _validate(self) -> None:
+        """Validate regular URL format"""
+        if self.skip_validation:
+            # Skip validation if explicitly requested
+            return
+            
+        if not self.is_valid_url(self.original_url):
+            raise ValueError(f"Invalid HTTP/HTTPS URL: {self.original_url}")
+    
+    def get_normalized_url(self) -> str:
+        """Return a normalized HTTP/HTTPS URL"""
+        # Add any normalization logic if needed
+        return self.original_url
+    
+    @staticmethod
+    def is_valid_url(url: str) -> bool:
+        """Check if a URL is a valid HTTP/HTTPS URL"""
+        parsed = urlparse(url)
+        return parsed.scheme in ('http', 'https') and bool(parsed.netloc)
+
+
+def create_url_object(url: str, url_type: str = 'auto') -> BaseURL:
+    """
+    Create a URL object of the appropriate type based on the URL string.
+    
+    Args:
+        url (str): The URL string
+        url_type (str): Optional explicit URL type ('regular', 'zeronet', 'ipfs', 'auto')
+        
+    Returns:
+        BaseURL: A subclass of BaseURL appropriate for the URL type
+        
+    Raises:
+        ValueError: If the URL type is not supported or cannot be determined
+    """
+    if url is None:
+        raise TypeError("URL cannot be None")
+    
+    if not url:
+        raise ValueError("URL cannot be empty")
+    
+    # Handle explicit URL types
+    if url_type == 'regular':
+        # For explicit regular URLs, skip validation to allow non-standard URLs
+        return RegularURL(url, skip_validation=True)
+    elif url_type == 'zeronet':
+        # For explicit ZeroNet URLs, skip validation as user has specified the type
+        return ZeronetURL(url, skip_validation=True)
+    elif url_type == 'ipfs':
+        # For explicit IPFS URLs, skip validation as user has specified the type
+        return IpfsURL(url, skip_validation=True)
+    elif url_type != 'auto':
+        raise ValueError(f"Unsupported URL type: {url_type}")
+    
+    # For auto detection, try to determine the type
+    if url.startswith(('ipfs://', 'ipns://')) or IpfsURL.browser_gateway_native_url(url):
+        # Native addresses and browser-only gateways need the local gateway.
+        # Other HTTP gateways retain their existing direct-fetch behavior.
+        return IpfsURL(url)
+
+    if url.startswith('zero://') or (
+            '43110' in url and (':43110/' in url or '.43110/' in url)):
+        # ZeroNet URL pattern detected
+        return ZeronetURL(url)
+    
+    # Try as regular URL
+    if url.startswith('http://') or url.startswith('https://'):
+        return RegularURL(url)
+    
+    # If we can't determine the type, raise an error
+    raise ValueError(f"Could not determine URL type for: {url}")

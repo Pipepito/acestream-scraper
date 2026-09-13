@@ -1,0 +1,52 @@
+{
+  "version": "3.2.11",
+  "android_version": "3.2.17",
+  "vendor_dir": "docker/vendor/acestream",
+  "mirror_base_url": "https://github.com/Pipepito/acestream-scraper/releases/download/acestream-binaries-3.2.11-3.1.80.0",
+  "platforms": {
+    "linux/amd64": {
+      "engine_version": "3.2.11",
+      "support": "stable",
+      "url": "https://download.acestream.media/linux/acestream_3.2.11_ubuntu_22.04_x86_64_py3.10.tar.gz",
+      "sha256": "9b6bbd76a55e5a434641afae3b9cf8e6154ce1cf392152ec3aed5ac265432b2e",
+      "archive_type": "tar.gz",
+      "vendored_file": "acestream_3.2.11_ubuntu_22.04_x86_64_py3.10.tar.gz",
+      "mirror_urls": [
+        "https://github.com/Pipepito/acestream-scraper/releases/download/acestream-binaries-3.2.11-3.1.80.0/acestream_3.2.11_ubuntu_22.04_x86_64_py3.10.tar.gz"
+      ],
+      "install": {
+        "strip_components": 0,
+        "kind": "executable",
+        "binary_path": "start-engine",
+        "python_version": "3.10",
+        "engine_http_port": 6878
+      }
+    },
+    "linux/arm64": {
+      "engine_version": "3.2.17",
+      "support": "stable",
+      "distribution": "jopsis/acestream v3.2.17-fix",
+      "distribution_url": "https://hub.docker.com/r/jopsis/acestream",
+      "source_url": "https://github.com/jopsis/docker-acestream-aceserve",
+      "image_ref": "jopsis/acestream:v3.2.17-fix",
+      "image_digest": "sha256:506c4215115d8b0ac1e24f4c67c954f0dbf86e4b4ea508582e497d8c920e9933",
+      "install": {
+        "kind": "oci-image",
+        "engine_http_port": 6878
+      }
+    },
+    "linux/arm/v7": {
+      "engine_version": "3.2.17",
+      "support": "experimental",
+      "distribution": "jopsis/acestream v3.2.17-fix",
+      "distribution_url": "https://hub.docker.com/r/jopsis/acestream",
+      "source_url": "https://github.com/jopsis/docker-acestream-aceserve",
+      "image_ref": "jopsis/acestream:v3.2.17-fix",
+      "image_digest": "sha256:506c4215115d8b0ac1e24f4c67c954f0dbf86e4b4ea508582e497d8c920e9933",
+      "install": {
+        "kind": "oci-image",
+        "engine_http_port": 6878
+      }
+    }
+  }
+}

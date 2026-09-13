@@ -7,35 +7,35 @@ workflows — including the former `multiarch-runtime-smoke` job and its
 `phase5-multiarch-full-evidence` artifact that earlier revisions of this
 document referenced — were retired on 2026-08-26.
 
-**PR job (`acestream-scraper-pr`, `Jenkinsfile`)** — every PR runs:
+**PR job (`acestream-scraper-pr`, `jenkins/pr.Jenkinsfile`)** runs the
+credential-free application gate and isolated architecture runtime contracts.
+Its temporary container workspace is discarded; evidence is in the console log.
 
-- `Multi-Arch Quick Profile`: dry-run `build_multiarch_images.sh` +
-  `verify_multiarch_manifest.sh` for all four flavors,
-  `phase5_arch_smoke.sh --dry-run --platforms linux/arm/v7,linux/arm64`, and
-  `scripts/phase_gates/phase5_gate_runner.py --profile quick`; archives
-  `phase5-build-result-quick-*.json` and `phase5-gate-report-quick.json`.
-- `Acestream Engine Runtime Smoke`: builds `scraper-acestream` for the
-  runner's native platform (`--platforms linux/amd64 --load`) and runs
-  `backend/tests/docker/test_acestream_runtime_smoke.py` (parametrized over
-  the manifest platforms the host can execute: `linux/amd64` always,
-  `linux/arm64` only on an arm64 host), `test_acexy_runtime_smoke.py`, and
-  `test_install_acestream.py -k arm_oci_image_install_layout` (QEMU builds of
-  the `linux/arm64` + `linux/arm/v7` installer stage — no engine execution,
-  the Android engine payload cannot run under qemu-user).
+**Trusted develop (`jenkins/develop.Jenkinsfile`)** retains full application gate
+reports and logs once under `.ci-develop-artifacts/`, plus the aggregate
+`phase5-gate-report-quick.json`. The four quick-profile build-plan files are
+internal inputs to manifest validators and are removed after use. Actual amd64
+engine/Acexy runtime smokes and ARM installer-layout checks run before publication.
+Successful channel publication retains
+`phase5-build-result-channel-develop-metadata.json` (commit, channel, version,
+builder, published tags); per-platform option-only JSONs are no longer generated.
 
 **Release pipeline (`acestream-scraper-release`, `jenkins/release.Jenkinsfile`
-→ `scripts/ci/run_jenkins_release.sh`)** — before any tag reaches Docker Hub:
+→ `scripts/ci/run_jenkins_release.sh`)** checks the full cutover profile and
+four-flavor architecture plan before publishing. It then runs the engine/Acexy
+runtime and ARM installer-layout smokes, builds/pushes the platform images,
+assembles tags, and verifies remote manifests. The console retains those details.
+Only `phase5-build-result-release-metadata.json` is archived:
 
-1. `bash scripts/ci/run_cutover_required_checks.sh --profile full`;
-2. dry-run build + `verify_multiarch_manifest.sh` per flavor
-   (`phase5-build-result-release-<flavor>.json`);
-3. the same real engine smoke as the PR job
-   (`test_acestream_runtime_smoke.py` + `arm_oci_image_install_layout`);
-4. multi-platform `--push` per flavor, then `verify_multiarch_manifest.sh
-   --image <tag>` against every published tag;
-5. `phase5-build-result-release-*.json` and
-   `phase5-build-result-release-metadata.json` (version, git SHA, tag list)
-   are archived on the Jenkins build.
+- Ordinary dry run: `mode: preflight`, `dry_run: true`, commit/version/builder,
+  and the validated flavor/platform matrix; this is not build/runtime evidence.
+- Successful phase-1 publish: commit/version/builder and published tags.
+- Successful promotion: `mode: promote-latest`, commit/version, source and target.
+
+Temporary release preflight plan files are deleted after use. The metadata file is
+cleared at the start of a new release run; a failed publish must not be mistaken
+for an earlier successful release. Promotion-only dry runs leave their plan in
+the console and do not create publication metadata.
 
 The heavier Phase 5 **full** profile — real QEMU builds of every flavor for
 every platform plus `phase5_arch_smoke.sh --platforms linux/arm/v7,linux/arm64`

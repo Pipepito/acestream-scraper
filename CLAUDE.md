@@ -309,3 +309,23 @@ optional start times/timezone in `schedule_anchors`, preserving existing interva
 Stream-check results distinguish online/offline/skipped/errors; never label the
 exception count as offline. See `docs/ops/scheduled-job-history.md` for clock/DST
 semantics, queue scope and database recovery behavior.
+
+## Release version protection
+
+The manual release reads `version.txt`. Phase 1 refuses an existing base version
+or versioned flavor image unless `FORCE_VERSION_OVERWRITE=true` is explicitly
+selected in Jenkins (CLI: `FORCE_VERSION_OVERWRITE=1`). Registry lookup failures
+always block. Checks run before preflight, after login, and before tag assignment;
+the FIFO Jenkins lock serializes local publishers, but external publishers must
+not race the same version. Channel tags and canary `:latest` promotion remain
+separate. Both `PUBLISH_LATEST` and the force option reach dry runs. Git tags and
+GitHub release notes remain manual; see `docs/ops/jenkins-ci.md`.
+
+## Pipeline artifact retention
+
+Keep develop gate reports/logs once in `.ci-develop-artifacts/`, the aggregate
+architecture report, and channel/release metadata. Per-flavor dry-run JSON plans
+are temporary validator inputs; per-platform publication option JSONs are no
+longer generated. Release dry runs retain one explicitly marked preflight summary.
+Clear prior reports before stages, preserve failure diagnostics, and retain manual
+full-profile hardware evidence. See `docs/ops/jenkins-ci.md`.

@@ -100,19 +100,6 @@ preflight_result_file_for_flavor() {
   esac
 }
 
-publish_result_file_for_flavor() {
-  case "$1" in
-    scraper-acestream-acexy) printf '%s\n' "phase5-build-result-release-full-publish.json" ;;
-    scraper) printf '%s\n' "phase5-build-result-release-scraper-publish.json" ;;
-    scraper-acestream) printf '%s\n' "phase5-build-result-release-scraper-acestream-publish.json" ;;
-    scraper-acexy) printf '%s\n' "phase5-build-result-release-scraper-acexy-publish.json" ;;
-    *)
-      echo "Unsupported flavor: $1"
-      exit 1
-      ;;
-  esac
-}
-
 # The floating :latest tag is never pushed by a build. Phase 1
 # (PUBLISH_LATEST=0, the default) pushes versioned + flavor-channel tags only,
 # so users on :latest are untouched during the canary window. Phase 2
@@ -146,6 +133,23 @@ publish_tags_for_flavor() {
 }
 
 PROMOTE_LATEST="${PUBLISH_LATEST:-0}"
+FORCE_VERSION_OVERWRITE="${FORCE_VERSION_OVERWRITE:-0}"
+if [[ "$FORCE_VERSION_OVERWRITE" != "0" && "$FORCE_VERSION_OVERWRITE" != "1" ]]; then
+  echo "FORCE_VERSION_OVERWRITE must be 0 or 1." >&2
+  exit 1
+fi
+
+assert_version_available() {
+  local flavor
+  local args=("${IMAGE_REPO}:${VERSION}")
+  for flavor in "${FLAVORS[@]}"; do
+    args+=("${IMAGE_REPO}:${VERSION}-${flavor}")
+  done
+  if [[ "$FORCE_VERSION_OVERWRITE" == "1" ]]; then
+    args=(--force "${args[@]}")
+  fi
+  python3 scripts/ci/assert_release_tags_available.py "${args[@]}"
+}
 
 registry_login() {
   : "${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}"
@@ -161,7 +165,7 @@ flavor_platforms_csv() {
   python3 scripts/ci/flavor_platforms.py "$PLATFORM_MANIFEST" "$ACESTREAM_MANIFEST" "$1"
 }
 
-# publish_platform_major <tags_fn> <result_prefix> <dry_run>
+# publish_platform_major <tags_fn> <dry_run>
 #
 # Builds every flavor for one platform before moving to the next platform
 # (platform-major), pushing each image by digest, and prunes the builder's
@@ -171,7 +175,7 @@ flavor_platforms_csv() {
 # platform's worth of layers (flavors share their base stages), which is what
 # lets a four-flavor, three-platform publish fit the runner's 32 GB disk.
 publish_platform_major() {
-  local tags_fn="$1" result_prefix="$2" dry="$3"
+  local tags_fn="$1" dry="$2"
   local digest_dir platform flavor key platforms_csv union flavor_csv tags tag refs
   digest_dir="$(mktemp -d)"
   union="$(python3 - "$PLATFORM_MANIFEST" <<'PY2'
@@ -197,7 +201,6 @@ PY2
         --repo "$IMAGE_REPO"
         --builder "$BUILDER"
         --digest-file "$digest_dir/$key"
-        --result-file "${result_prefix}-${flavor}-$(printf '%s' "$platform" | tr '/' '-').json"
       )
       if [[ "$dry" -eq 1 ]]; then
         build_args+=(--dry-run)
@@ -213,6 +216,10 @@ PY2
       echo "Builder $BUILDER cache after $platform: $(docker buildx du --builder "$BUILDER" 2>/dev/null | grep -E '^Total:' | tr -s '\t ' ' ' || echo unknown)"
     fi
   done
+  # Recheck after the builds, immediately before assigning any release tags.
+  if [[ -z "$CHANNEL" && "$dry" -eq 0 ]]; then
+    assert_version_available
+  fi
   for flavor in "${PUBLISH_FLAVORS[@]}"; do
     IFS=' ' read -r -a tags <<< "$("$tags_fn" "$flavor")"
     if [[ "$dry" -eq 1 ]]; then
@@ -244,7 +251,7 @@ if [[ "$PRINT_PLAN" -eq 1 && -n "$CHANNEL" ]]; then
 fi
 
 if [[ "$PRINT_PLAN" -eq 1 ]]; then
-  echo "Release publish plan (PUBLISH_LATEST=${PROMOTE_LATEST}, VERSION=${VERSION}):"
+  echo "Release publish plan (PUBLISH_LATEST=${PROMOTE_LATEST}, VERSION=${VERSION}, FORCE_VERSION_OVERWRITE=${FORCE_VERSION_OVERWRITE}):"
   if [[ "$PROMOTE_LATEST" == "1" ]]; then
     echo "  promote: ${IMAGE_REPO}:latest <- ${IMAGE_REPO}:${VERSION} (retag of the canary-validated ${LATEST_SOURCE_FLAVOR} manifest; no flavor rebuild)"
   else
@@ -267,12 +274,12 @@ fi
 # the multi-platform flavors and pushes the floating channel tags.
 if [[ -n "$CHANNEL" ]]; then
   if [[ "$DRY_RUN" -eq 1 ]]; then
-    publish_platform_major channel_tags_for_flavor "phase5-build-result-channel-${CHANNEL}" 1
+    publish_platform_major channel_tags_for_flavor 1
     echo "Dry-run channel publish plan completed."
     exit 0
   fi
   registry_login
-  publish_platform_major channel_tags_for_flavor "phase5-build-result-channel-${CHANNEL}" 0
+  publish_platform_major channel_tags_for_flavor 0
   CHANNEL_TAGS_JSON="$(python3 - "${PUBLISHED_TAGS[@]}" <<'PY2'
 import json, sys
 print(json.dumps(sys.argv[1:]))
@@ -307,7 +314,7 @@ if [[ "$PROMOTE_LATEST" == "1" ]]; then
   fi
   registry_login
   bash scripts/ci/promote_latest.sh --version "$VERSION" --flavor "$LATEST_SOURCE_FLAVOR" --repo "$IMAGE_REPO"
-  RELEASE_VERSION="$VERSION" RELEASE_GIT_SHA="$GIT_SHA" RELEASE_BUILDER="$BUILDER" python3 - "phase5-build-result-release-metadata.json" <<'PY2'
+  RELEASE_IMAGE_REPO="$IMAGE_REPO" RELEASE_VERSION="$VERSION" RELEASE_GIT_SHA="$GIT_SHA" RELEASE_BUILDER="$BUILDER" python3 - "phase5-build-result-release-metadata.json" <<'PY2'
 import json, os, sys
 from datetime import datetime, timezone
 payload = {
@@ -316,8 +323,8 @@ payload = {
     "git_sha": os.environ["RELEASE_GIT_SHA"],
     "builder": os.environ["RELEASE_BUILDER"],
     "mode": "promote-latest",
-    "tags": ["${IMAGE_REPO}:latest"],
-    "source": "${IMAGE_REPO}:" + os.environ["RELEASE_VERSION"],
+    "tags": [os.environ["RELEASE_IMAGE_REPO"] + ":latest"],
+    "source": os.environ["RELEASE_IMAGE_REPO"] + ":" + os.environ["RELEASE_VERSION"],
 }
 with open(sys.argv[1], "w", encoding="utf-8") as handle:
     json.dump(payload, handle, indent=2)
@@ -326,6 +333,7 @@ PY2
   exit 0
 fi
 
+assert_version_available
 bash scripts/ci/run_cutover_required_checks.sh --profile full
 
 for flavor in "${FLAVORS[@]}"; do
@@ -343,6 +351,25 @@ for flavor in "${FLAVORS[@]}"; do
 done
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
+  # Retain one explicit preflight summary, not four intermediate build plans.
+  RELEASE_VERSION="$VERSION" RELEASE_GIT_SHA="$GIT_SHA" RELEASE_BUILDER="$BUILDER" python3 - "${FLAVORS[@]}" <<'PY2'
+import json, os, sys
+from datetime import datetime, timezone
+results = []
+for flavor in sys.argv[1:]:
+    with open(f"phase5-build-result-release-{flavor}.json", encoding="utf-8") as handle:
+        plan = json.load(handle)
+    results.append({"flavor": flavor, "platforms": plan["platforms"]})
+with open("phase5-build-result-release-metadata.json", "w", encoding="utf-8") as handle:
+    json.dump({
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "mode": "preflight", "dry_run": True,
+        "version": os.environ["RELEASE_VERSION"],
+        "git_sha": os.environ["RELEASE_GIT_SHA"],
+        "builder": os.environ["RELEASE_BUILDER"],
+        "flavors": results,
+    }, handle, indent=2)
+PY2
   echo "Dry-run preflight completed."
   exit 0
 fi
@@ -380,7 +407,8 @@ bash scripts/ci/cleanup_runner_docker.sh \
 
 registry_login
 
-publish_platform_major publish_tags_for_flavor "phase5-build-result-release" 0
+assert_version_available
+publish_platform_major publish_tags_for_flavor 0
 all_tags=("${PUBLISHED_TAGS[@]}")
 
 ALL_TAGS_JSON="$(python3 - "${all_tags[@]}" <<'PY'

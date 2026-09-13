@@ -205,6 +205,14 @@ def main() -> int:
         ("release Jenkinsfile exposes PUBLISH_LATEST parameter",
          "name: 'PUBLISH_LATEST'" in release_jenkinsfile
          and "PUBLISH_LATEST=${params.PUBLISH_LATEST ? '1' : '0'}" in release_jenkinsfile),
+        ("release overwrite protection defaults off and parameters reach dry runs",
+         "name: 'FORCE_VERSION_OVERWRITE', defaultValue: false" in release_jenkinsfile
+         and 'FORCE_VERSION_OVERWRITE="${FORCE_VERSION_OVERWRITE:-0}"' in release_sh
+         and "scripts/ci/assert_release_tags_available.py" in release_sh
+         and release_jenkinsfile.index('"PUBLISH_LATEST=${params.PUBLISH_LATEST')
+             < release_jenkinsfile.index('if (params.DRY_RUN)')
+         and release_jenkinsfile.index('"FORCE_VERSION_OVERWRITE=${params.FORCE_VERSION_OVERWRITE')
+             < release_jenkinsfile.index('if (params.DRY_RUN)')),
     ]
 
     failed = []

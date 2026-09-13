@@ -56,9 +56,10 @@ def test_failed_container_preserves_current_artifacts_without_archiving_stale_su
     assert result.returncode == 7
     assert 'Application validation failed (exit 7)' in result.stdout
     assert not (tmp_path / 'phase3-phase1-full.json').exists()
-    current = tmp_path / 'phase3-gate-report-full.json'
+    assert not (tmp_path / 'phase3-gate-report-full.json').exists()
+    current = tmp_path / '.ci-develop-artifacts/phase3-gate-report-full.json'
     if writes_report:
         assert json.loads(current.read_text()) == {'passed': False, 'current': True}
     else:
         assert not current.exists()
-    assert "artifacts: '.ci-develop-artifacts/**," in stage
+    assert "artifacts: '.ci-develop-artifacts/**'" in stage

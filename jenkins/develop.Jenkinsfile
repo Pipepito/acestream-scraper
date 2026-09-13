@@ -106,9 +106,6 @@ docker run --rm \
   bash -c 'cp -R /source/. /workspace/ && CI_OUTPUT_DIR=/artifacts bash scripts/ci/run_develop_validation.sh'
 validation_status=$?
 set -e
-for report in "$artifact_dir"/*.json; do
-  if [[ -f "$report" ]]; then cp "$report" .; fi
-done
 if [[ "$validation_status" -ne 0 ]]; then
   echo "Application validation failed (exit $validation_status); see the gate output and archived .ci-develop-artifacts reports."
   exit "$validation_status"
@@ -118,7 +115,7 @@ docker compose config -q
       }
       post {
         always {
-          archiveArtifacts artifacts: '.ci-develop-artifacts/**, phase3-gate-report-full.json, phase3-phase1-full.json', allowEmptyArchive: true
+          archiveArtifacts artifacts: '.ci-develop-artifacts/**', allowEmptyArchive: true
         }
       }
     }
@@ -127,6 +124,7 @@ docker compose config -q
       steps {
         sh '''#!/usr/bin/env bash
 set -euo pipefail
+rm -f phase5-gate-report-quick.json phase5-build-result-quick-*.json
 backend/venv/bin/python scripts/phase_gates/phase5_gate_runner.py \
   --profile quick \
   --json-output > phase5-gate-report-quick.json
@@ -134,7 +132,8 @@ backend/venv/bin/python scripts/phase_gates/phase5_gate_runner.py \
       }
       post {
         always {
-          archiveArtifacts artifacts: 'phase5-build-result-quick-*.json, phase5-gate-report-quick.json', allowEmptyArchive: true
+          archiveArtifacts artifacts: 'phase5-gate-report-quick.json', allowEmptyArchive: true
+          sh 'rm -f phase5-build-result-quick-*.json'
         }
       }
     }
@@ -196,6 +195,7 @@ fi
       steps {
         sh '''#!/usr/bin/env bash
 set -euo pipefail
+rm -f phase5-build-result-channel-*.json
 bash scripts/ci/cleanup_runner_docker.sh \
   --transient-age-hours 0 \
   --all-unused-images \
@@ -216,7 +216,7 @@ bash scripts/ci/run_jenkins_release.sh --channel develop
       }
       post {
         always {
-          archiveArtifacts artifacts: 'phase5-build-result-channel-*.json', allowEmptyArchive: true
+          archiveArtifacts artifacts: 'phase5-build-result-channel-develop-metadata.json', allowEmptyArchive: true
         }
       }
     }

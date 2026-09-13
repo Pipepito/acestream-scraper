@@ -25,7 +25,7 @@ pipeline {
     stage('Release') {
       steps {
         checkout scm
-        sh 'rm -f phase5-build-result-release-*.json'
+        sh 'rm -f phase5-build-result-release-*.json; rm -rf .ci-release-artifacts'
         script { env.RELEASE_REPORTS_CURRENT = '1' }
         script {
           if (env.BRANCH_NAME && env.BRANCH_NAME != 'main') {
@@ -88,7 +88,7 @@ docker buildx use "${JENKINS_BUILDER:-acestream-builder}"
         always {
           script {
             if (env.RELEASE_REPORTS_CURRENT == '1') {
-              archiveArtifacts artifacts: 'phase5-build-result-release-metadata.json', allowEmptyArchive: true
+              archiveArtifacts artifacts: 'phase5-build-result-release-metadata.json,.ci-release-artifacts/**', allowEmptyArchive: true
               sh 'rm -f phase5-build-result-release-scraper*.json'
             }
           }

@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
-# This image is built only from the trusted develop branch. Pull-request code
+# This image is built from a trusted validation ref (develop or release main).
+# Pull-request code
 # runs inside it without network access, Jenkins credentials, or the Docker
 # socket. Keep both upstream images digest-pinned so rebuilding the sandbox is
 # deliberate and reviewable.

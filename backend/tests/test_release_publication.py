@@ -22,7 +22,7 @@ def release(tmp_path):
         shutil.copy(ROOT / 'scripts/ci' / name, ci)
     shutil.copytree(ROOT / 'docker/manifests', tmp_path / 'docker/manifests')
     (tmp_path / 'version.txt').write_text('v2.0.0\n')
-    for name in ('run_cutover_required_checks.sh', 'verify_multiarch_manifest.sh',
+    for name in ('run_release_validation.sh', 'verify_multiarch_manifest.sh',
                  'cleanup_runner_docker.sh'):
         (ci / name).write_text('echo ' + name + ' >> "$CALL_LOG"\n')
     (ci / 'build_multiarch_images.sh').write_text('''
@@ -55,10 +55,21 @@ if args[:3] == ['buildx', 'imagetools', 'inspect']:
     sys.exit(1)
 ''')
     docker.chmod(0o755)
+    python_bin = bin_dir / 'python3'
+    python_bin.write_text(f'#!{sys.executable}\n' + """
+import os, sys
+if sys.argv[1:3] == ['-m', 'venv']:
+    sys.exit(0)
+os.execv(sys.executable, [sys.executable, *sys.argv[1:]])
+""")
+    python_bin.chmod(0o755)
     pytest_bin = tmp_path / 'backend/venv/bin/pytest'
     pytest_bin.parent.mkdir(parents=True)
     pytest_bin.write_text('#!/bin/sh\nexit 0\n')
     pytest_bin.chmod(0o755)
+    pip_bin = pytest_bin.with_name('pip')
+    pip_bin.write_text('#!/bin/sh\nexit 0\n')
+    pip_bin.chmod(0o755)
     subprocess.run(['git', 'init', '-q', str(tmp_path)], check=True)
     subprocess.run(['git', '-C', str(tmp_path), '-c', 'user.name=Test', '-c',
                     'user.email=test@example.invalid', 'commit', '--allow-empty', '-qm', 'fixture'], check=True)
@@ -84,7 +95,7 @@ def run(release, *args, **overrides):
 def test_collision_or_registry_failure_blocks_before_tests_and_push(release, mode):
     result, calls = run(release, REGISTRY_MODE=mode)
     assert result.returncode != 0
-    assert 'run_cutover' not in calls
+    assert 'run_release_validation' not in calls
     assert 'login' not in calls
     assert 'create' not in calls
 
@@ -94,6 +105,7 @@ def test_fresh_version_dry_run_checks_all_tags_without_publishing(release):
     assert result.returncode == 0, result.stderr
     for tag in VERSION_TAGS:
         assert 'pipepito/acestream-scraper:' + tag in calls
+    assert 'run_release_validation.sh' in calls
     assert 'login' not in calls
     assert 'create' not in calls
     metadata = json.loads((release[0] / 'phase5-build-result-release-metadata.json').read_text())
@@ -128,7 +140,7 @@ def test_collision_appearing_during_build_blocks_all_tag_assignment(release):
 def test_promotion_reuses_existing_version_and_records_real_references(release):
     result, calls = run(release, REGISTRY_MODE='existing', PUBLISH_LATEST='1')
     assert result.returncode == 0, result.stderr
-    assert 'run_cutover' not in calls
+    assert 'run_release_validation' not in calls
     metadata = json.loads((release[0] / 'phase5-build-result-release-metadata.json').read_text())
     assert metadata['source'] == 'pipepito/acestream-scraper:v2.0.0'
     assert metadata['tags'] == ['pipepito/acestream-scraper:latest']
@@ -146,3 +158,35 @@ def test_channel_dry_run_ignores_release_collisions(release):
     result, calls = run(release, '--dry-run', '--channel', 'develop', REGISTRY_MODE='existing')
     assert result.returncode == 0, result.stderr
     assert 'imagetools' not in calls
+
+
+def test_validation_failure_blocks_preflight_and_publication(release):
+    (release[0] / 'scripts/ci/run_release_validation.sh').write_text('exit 17\n')
+    result, calls = run(release)
+    assert result.returncode == 17
+    assert 'login' not in calls
+    assert 'create' not in calls
+    assert not (release[0] / 'phase5-build-result-release-metadata.json').exists()
+
+
+def test_release_runner_builds_dependencies_and_isolates_validation(release):
+    root, env = release
+    shutil.copy(ROOT / 'scripts/ci/run_release_validation.sh', root / 'scripts/ci/run_release_validation.sh')
+    stale = root / '.ci-release-artifacts/stale.json'
+    stale.parent.mkdir()
+    stale.write_text('old result')
+    result = subprocess.run(['bash', 'scripts/ci/run_release_validation.sh'], cwd=root,
+                            env=env, capture_output=True, text=True, timeout=30)
+    assert result.returncode == 0, result.stderr
+    calls = [json.loads(line) for line in (root / 'calls').read_text().splitlines()]
+    assert calls[0][:3] == ['build', '--file', 'docker/ci/pr-runner.Dockerfile']
+    container = calls[1]
+    assert container[:2] == ['run', '--rm']
+    assert container[container.index('--network') + 1] == 'none'
+    assert '--read-only' in container
+    assert container[container.index('--cap-drop') + 1] == 'ALL'
+    assert 'docker.sock' not in ' '.join(container)
+    assert 'DOCKERHUB_TOKEN' not in ' '.join(container)
+    assert 'run_develop_validation.sh' in container[-1]
+    assert calls[2] == ['compose', 'config', '-q']
+    assert not stale.exists()

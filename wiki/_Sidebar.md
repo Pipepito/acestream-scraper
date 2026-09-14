@@ -21,3 +21,8 @@
 - [Report a bug](Bug-Reporting.md)
 - [Requirements](Requirements.md)
 - [Contribute source formats](Contributing-Scraper-Data.md)
+
+**Contribute**
+
+- [Development](Development.md)
+- [Technical documentation](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/README.md)

@@ -22,6 +22,8 @@ bash scripts/ci/assert_no_legacy_paths.sh --strict
 bash -n entrypoint.sh warp-setup.sh healthcheck.sh
 backend/venv/bin/python scripts/ci/validate_dockerfile_contract.py
 bash scripts/ci/validate_runtime_contract.sh
+backend/venv/bin/python scripts/ci/validate_documentation.py
+backend/venv/bin/python scripts/ci/validate_docker_docs_contract.py
 bash scripts/ci/validate_command_builder.sh
 bash scripts/ci/publish_wiki.sh --dry-run
 bash scripts/ci/publish_pages.sh --dry-run

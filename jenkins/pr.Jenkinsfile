@@ -40,7 +40,54 @@ pipeline {
       }
     }
 
+    stage('Select affected work') {
+      steps {
+        script {
+          // Always use the target's selector, even for origin PRs. A proposed
+          // skip-rule change cannot exempt itself from the application gate.
+          def selection = sh(returnStdout: true, script: '''#!/usr/bin/env bash
+set -euo pipefail
+selector="$WORKSPACE@tmp/classify-changes-${BUILD_NUMBER}.py"
+git fetch --no-tags origin "+refs/heads/${CHANGE_TARGET}:refs/remotes/origin/${CHANGE_TARGET}"
+if git show "refs/remotes/origin/${CHANGE_TARGET}:scripts/ci/classify_changes.py" > "$selector" 2>/dev/null; then
+  python3 -I "$selector" --repo "$WORKSPACE" --base "refs/remotes/origin/${CHANGE_TARGET}" --pull-request
+else
+  # First rollout: the target does not have a trusted selector yet.
+  echo 'CI_APPLICATION=true'
+fi
+''').trim()
+          selection.split('\n').each { line ->
+            def pair = line.split('=', 2)
+            env[pair[0]] = pair[1]
+          }
+          echo selection
+          currentBuild.description = env.CI_APPLICATION == 'true' ? 'Full application validation' : 'Documentation checks; application unchanged'
+        }
+      }
+    }
+
+    stage('Documentation-only validation') {
+      when { expression { env.CI_APPLICATION == 'false' } }
+      steps {
+        // Only target-owned validators run on the host. Proposed Markdown,
+        // JSON and JavaScript are read as data (node --check never executes it).
+        sh '''#!/usr/bin/env bash
+set -euo pipefail
+trusted_dir="$(mktemp -d "$WORKSPACE@tmp/docs-checks.XXXXXX")"
+trap 'rm -rf "$trusted_dir"' EXIT
+for validator in validate_documentation.py validate_docker_docs_contract.py validate_command_builder.sh; do
+  git show "refs/remotes/origin/${CHANGE_TARGET}:scripts/ci/$validator" > "$trusted_dir/$validator"
+done
+export DOCS_CHECK_ROOT="$WORKSPACE"
+python3 -I "$trusted_dir/validate_documentation.py" --root "$WORKSPACE"
+python3 -I "$trusted_dir/validate_docker_docs_contract.py"
+bash "$trusted_dir/validate_command_builder.sh"
+'''
+      }
+    }
+
     stage('Build isolated trusted runner') {
+      when { expression { env.CI_APPLICATION != 'false' } }
       steps {
         script {
           def runnerInputsChanged = sh(
@@ -84,6 +131,7 @@ bash "$trusted_builder" \
     }
 
     stage('Credential-free PR validation') {
+      when { expression { env.CI_APPLICATION != 'false' } }
       steps {
         sh '''#!/usr/bin/env bash
 set -euo pipefail
@@ -120,6 +168,7 @@ docker run --rm --init \
     }
 
     stage('Isolated architecture runtime contracts') {
+      when { expression { env.CI_APPLICATION != 'false' } }
       steps {
         sh '''#!/usr/bin/env bash
 set -euo pipefail
@@ -137,12 +186,14 @@ bash "$trusted_arch_runner" \
   post {
     always {
       sh '''#!/usr/bin/env bash
+if [[ "${CI_APPLICATION:-true}" != "false" ]]; then
 docker rm --force "$PR_SANDBOX_NAME" >/dev/null 2>&1 || true
 for platform in linux-amd64 linux-arm64 linux-arm-v7; do
   docker rm --force "${PR_SANDBOX_NAME}-${platform}" >/dev/null 2>&1 || true
 done
 if [[ "${PR_RUNNER_EPHEMERAL:-0}" == "1" ]]; then
   docker image rm --force "$PR_RUNNER_IMAGE" >/dev/null 2>&1 || true
+fi
 fi
 '''
       deleteDir()

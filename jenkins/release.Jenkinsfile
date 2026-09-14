@@ -110,5 +110,18 @@ docker buildx use "${JENKINS_BUILDER:-acestream-builder}"
         }
       }
     }
+
+    stage('Publish production Docker Hub description') {
+      when { expression { !params.DRY_RUN && params.PUBLISH_LATEST } }
+      steps {
+        withCredentials([usernamePassword(
+          credentialsId: 'dockerhub-publish',
+          usernameVariable: 'DOCKERHUB_USERNAME',
+          passwordVariable: 'DOCKERHUB_TOKEN'
+        )]) {
+          sh 'python3 -I scripts/ci/publish_dockerhub_description.py'
+        }
+      }
+    }
   }
 }

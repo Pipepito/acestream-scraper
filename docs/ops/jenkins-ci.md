@@ -19,7 +19,7 @@ Important constraint for this setup:
 Current job model (adopted 2026-09-04):
 
 - `acestream-scraper-pr` is a multibranch job loading `jenkins/pr.Jenkinsfile`. It discovers origin and fork PRs, reports `PR Validation`, never binds a credential, and confines contributor code to the trusted PR-runner container.
-- `acestream-scraper-develop` is a Pipeline-from-SCM job loading `jenkins/develop.Jenkinsfile` from `develop`. It runs the full application suite and privileged Docker/runtime smokes, rejects stale revisions, then publishes the floating `develop` channel, wiki, and Pages.
+- `acestream-scraper-develop` is a Pipeline-from-SCM job loading `jenkins/develop.Jenkinsfile` from `develop`. It selects affected work, rejects stale revisions, and publishes changed documentation payloads. Application/build changes run the full suite and privileged Docker/runtime smokes before publishing the floating `develop` channel.
 - `acestream-scraper-release` loads `jenkins/release.Jenkinsfile` from `main` and remains manual-only.
 
 After a successful non-dry-run `PUBLISH_LATEST=true` promotion, the release job
@@ -47,8 +47,8 @@ Develop validation diagnostics:
 Security boundary:
 
 - Jenkins itself launches on the trusted Docker-capable executor labeled `dorat-nuc-ci`, but fork-controlled files execute only inside disposable restricted containers.
-- The main PR container receives only the checked-out workspace. It receives no Jenkins credential, no Docker socket, no host network, and no inherited Jenkins environment. It runs as the agent's unprivileged uid with all Linux capabilities dropped, `no-new-privileges`, and CPU/memory/PID limits. Forks execute validation orchestrators from the target branch; maintainer-owned origin PRs may exercise their proposed orchestrators. Every PR runs the complete non-Docker backend and frontend suites.
-- Each PR bootstraps a one-use dependency runner. For a fork, Jenkins exports an allowlist of runner inputs from the trusted target ref and builds from that isolated context; the job therefore does not depend on the retained `acestream-scraper-pr-ci:develop` image and contributor files cannot affect the networked dependency build. Fork changes to Python/npm requirements or the runner Dockerfile fail closed and require promotion to a reviewed maintainer branch.
+- The main PR container receives only the checked-out workspace. It receives no Jenkins credential, no Docker socket, no host network, and no inherited Jenkins environment. It runs as the agent's unprivileged uid with all Linux capabilities dropped, `no-new-privileges`, and CPU/memory/PID limits. Forks execute validation orchestrators from the target branch; maintainer-owned origin PRs may exercise their proposed orchestrators. PRs with application/build or unknown changes run the complete non-Docker backend and frontend suites; documentation-only PRs use the trusted read-only checks below.
+- Each PR requiring application validation bootstraps a one-use dependency runner. For a fork, Jenkins exports an allowlist of runner inputs from the trusted target ref and builds from that isolated context; the job therefore does not depend on the retained `acestream-scraper-pr-ci:develop` image and contributor files cannot affect the networked dependency build. Fork changes to Python/npm requirements or the runner Dockerfile fail closed and require promotion to a reviewed maintainer branch.
 - A second stage runs the target branch's trusted runtime validator against the PR's entrypoint, WARP setup, and healthcheck files under pinned `linux/amd64`, `linux/arm64`, and `linux/arm/v7` Python userlands. Each userland is network-disabled, read-only, capability-dropped, resource-limited, and receives neither credentials nor the Docker socket.
 - Privileged Docker builds, engine runtime smokes, Docker Hub credentials, and GitHub publication credentials exist only in the trusted develop/release pipelines.
 - The container boundary reduces host and credential exposure; it does not replace maintainer review. Tests and repository scripts are contributor-controlled inputs.
@@ -76,6 +76,89 @@ Executor model:
 - The trusted develop and release jobs retain direct Docker/Buildx access for runtime smoke and publication.
 - SSH is a documented example agent-launch path, not a pipeline requirement.
 
+## Changes that select CI work
+
+`classify_changes.py` runs before dependency installation or Docker work. PRs use
+the target branch's selector and compare the entire PR with its merge base.
+`develop` compares HEAD with `GIT_PREVIOUS_SUCCESSFUL_COMMIT`, so pending changes
+from failed, interrupted, or unstable runs remain in scope. The baseline comes
+from the [Jenkins Git plugin](https://plugins.jenkins.io/git/#environment-variables).
+Missing history, a non-ancestor develop baseline, or a missing selector during
+initial rollout selects the full gate. Git renames are checked as delete/add;
+symlinks, executable files, and submodules cannot take the documentation shortcut.
+
+| Changed inputs | Validation | Automatic develop publication |
+|---|---|---|
+| Root README, agent guides, PR template; Markdown/images under `docs/` | Documentation checks | None unless a publishable payload also changed |
+| `wiki/` Markdown/images | Documentation checks | Wiki |
+| `docs/index.html`, `docs/.nojekyll`, the three named files and documentation images under `docs/builder/` | Documentation and command-builder contracts, JS syntax | Pages; retains production version label |
+| `docs/dockerhub/README.md` or `short-description.txt` | Documentation checks and Hub size/link checks | Docker Hub description only |
+| Application, dependency, packaging, test, CI or unrecognized files | Existing full application/architecture validation; trusted develop also runs image smokes | Develop images; affected documentation payloads |
+| Selector or Jenkins pipeline definitions | Full validation | All payloads, exercising the wiring |
+
+The builder allowlist is `app.js`, `style.css`, and `runtime-options.json`; adding another executable asset is deliberately a full-gate change until
+the selector and its checks are updated. A mixed docs/application commit retains
+the full gate. A repeat of an already successful commit runs documentation checks
+but publishes nothing. There is no manual skip-tests flag.
+
+Documentation checks verify local user-guide links, unique flattened wiki
+filenames, Docker Hub text, Docker docs contracts, and command-builder/runtime
+consistency. The lightweight PR path extracts **only target-owned validators**
+into a temporary directory, uses isolated Python imports, and treats all PR
+content as data; JavaScript gets `node --check`, never execution. It binds no
+credentials and does not build a runner, install dependencies, run application
+tests, or launch architecture containers. `PR Validation` still reports the
+result. Develop additionally previews wiki and Pages rendering. The full paths
+retain their existing fork isolation and dependency-input restrictions.
+
+The FIFO Docker lock is unchanged, including on documentation-only jobs. Manual
+release invocations always run the existing release validation; path selection
+never skips release checks, version guards, or promotion confirmation.
+
+### Jenkins sandbox failure in change selection
+
+If `Select affected work` fails with `RejectedAccessException` for
+`DefaultGroovyMethods.putAt`, the pipeline is assigning a key with `env[key]`.
+Use explicit `env.CI_APPLICATION`, `env.CI_WIKI`, `env.CI_PAGES`, and
+`env.CI_DOCKERHUB` property assignments in both PR and develop definitions.
+Jenkins permits the environment object's property setter; bracket assignment
+uses a different Groovy method. Fix the repository pipeline rather than approving
+that method globally. Missing selector flags default to full work; only an exact
+`CI_…=false` line disables the corresponding work.
+
+### Docker Hub overview
+
+`docs/dockerhub/short-description.txt` supplies the search summary (up to 100
+characters); `docs/dockerhub/README.md` supplies the overview (up to 25,000).
+Use absolute links because Docker Hub cannot resolve repository-relative paths.
+The root README remains a separate project introduction.
+
+Preview the exact payload without credentials, network requests or image work:
+
+```bash
+python3 scripts/ci/publish_dockerhub_description.py --dry-run
+```
+
+The trusted develop job synchronizes changed Hub text with `dockerhub-publish`.
+The manual release job also synchronizes it after a successful, non-dry-run
+latest promotion. The publisher reads the existing description, PATCHes only
+`description` and `full_description` when needed, and reads it back to verify.
+It does not build, push, retag, create repositories, or change repository policy.
+Authentication follows [Docker's token API](https://docs.docker.com/reference/api/hub/latest/).
+The repository overview endpoint uses a personal access token with permission to
+edit repository metadata; registry image-push permission alone may be insufficient.
+Organization access tokens do not support this legacy repository endpoint; see
+[Docker's token limitations](https://docs.docker.com/security/access-tokens/organization-access-tokens/).
+A 401/403 fails the description stage with a sanitized status; no response body or
+credential is logged. Correct the existing credential's metadata permissions
+before retrying. A description failure after an image publish does not undo images.
+
+For an authorized metadata-only retry, run the publisher with
+`DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` supplied securely in the environment.
+Do not replay image release/promotion just to repair overview text. These changes
+are repository-owned pipeline definitions, not an automatic controller
+reconfiguration or a locally triggered publish.
+
 ## Branching Model And Pre-release Channel
 
 Adopted 2026-08-28. The integration branch `ai-coding-documentation` was renamed to `develop`; the rename auto-closed PR #113, and its successor is the release PR #162 (`develop` -> `main`).
@@ -96,11 +179,11 @@ Pipeline enforcement in `jenkins/pr.Jenkinsfile` (multibranch job `acestream-scr
 
 Pipeline enforcement in `jenkins/develop.Jenkinsfile` (trusted job `acestream-scraper-develop`):
 
-- The job polls `develop`, requires checked-out `HEAD == origin/develop`, builds the trusted PR-runner image, and runs full application validation inside that pinned Python 3.12/Node runner with networking disabled. Compose validation and Docker/runtime smokes remain on the trusted host.
+- The job polls `develop`, requires checked-out `HEAD == origin/develop`, and selects work as described above. When application validation is needed, it builds the trusted PR-runner image and runs full application validation inside that pinned Python 3.12/Node runner with networking disabled. Compose validation and Docker/runtime smokes remain on the trusted host.
 - It repeats the `HEAD == origin/develop` comparison immediately before publication so an older queued build cannot move the channel backwards.
-- It then binds `dockerhub-publish` and runs `bash scripts/ci/run_jenkins_release.sh --channel develop`. Missing credentials or push failures fail the build.
+- For application/build changes it then binds `dockerhub-publish` and runs `bash scripts/ci/run_jenkins_release.sh --channel develop`. Missing credentials or push failures fail the build.
   - Channel mode logs into Docker Hub, builds the four flavors multi-platform (`linux/amd64`, `linux/arm64`, `linux/arm/v7`) with `--push`, and verifies every pushed manifest.
-  - Tags pushed (floating only): `pipepito/acestream-scraper:develop` (= the full `scraper-acestream-acexy` payload, mirroring what `:latest` means for releases), `:develop-scraper`, `:develop-scraper-acestream`, `:develop-scraper-acexy`, `:develop-scraper-acestream-acexy`. Never a version tag, never `:latest`, no immutable per-commit tags. The channel tags move on every validated `develop` build.
+  - Tags pushed (floating only): `pipepito/acestream-scraper:develop` (= the full `scraper-acestream-acexy` payload, mirroring what `:latest` means for releases), `:develop-scraper`, `:develop-scraper-acestream`, `:develop-scraper-acexy`, `:develop-scraper-acestream-acexy`. Never a version tag, never `:latest`, no immutable per-commit tags. The channel tags move on every validated application/build change on `develop`.
   - Artifact: `phase5-build-result-channel-develop-metadata.json` (`mode: channel`, channel, version, git SHA, builder, tags). Per-platform build-plan JSONs are no longer generated; build output and manifest verification remain in the console log.
 
 Versioning:
@@ -126,7 +209,7 @@ bash scripts/ci/run_jenkins_release.sh --dry-run --channel develop
 
 The first prints the channel tag plan per flavor; the second runs the dry-run build matrix per flavor (`build_multiarch_images.sh --dry-run`) and prints the matrix without logging in, pushing, or leaving per-platform JSON files. The existing `--print-publish-plan` / `--dry-run` without `--channel` preview a release the same way.
 
-For testers: `docker pull pipepito/acestream-scraper:develop` (or `:develop-<flavor>`) is the pre-release build; Docker Compose users set `image: pipepito/acestream-scraper:develop` in place of `:latest` in `docker-compose.yml`. Expect the tags to move on every validated `develop` build.
+For testers: `docker pull pipepito/acestream-scraper:develop` (or `:develop-<flavor>`) is the pre-release build; Docker Compose users set `image: pipepito/acestream-scraper:develop` in place of `:latest` in `docker-compose.yml`. Expect the tags to move on every validated application/build change on `develop`.
 
 ## User Action Required
 
@@ -474,7 +557,7 @@ Adopted 2026-08-29. The user-facing documentation is published from the reposito
 
 What is published, and how:
 
-- The Docker command builder is a static page (plain HTML/CSS/JS, no build step) at `docs/index.html` with its script, stylesheet and data under `docs/builder/`. It generates the `docker run` command or `docker-compose.yml` for a chosen flavor, platform and feature set. GitHub Pages serves it at `https://pipepito.github.io/acestream-scraper/` from the `gh-pages` branch ("Deploy from a branch": `gh-pages`, `/` root), which Jenkins pushes on every validated `develop` build via `scripts/ci/publish_pages.sh` — a validated build *is* the deployment (adopted 2026-08-29; supersedes the earlier `main`+`/docs` plan from the same day, which would have waited on a release and exposed all of `docs/` as raw files). The published payload is only `index.html`, `builder/` and `.nojekyll` — the rest of `docs/` (this guide included) stays off the Pages site. The facts the page offers (flavors, platforms, ports, volumes, conditional runtime settings and notes) live in `docs/builder/runtime-options.json`; the option wiring lives in `docs/builder/app.js`. Controls that cannot affect the selected flavor, platform or enabled service are omitted rather than shown disabled.
+- The Docker command builder is a static page (plain HTML/CSS/JS, no build step) at `docs/index.html` with its script, stylesheet and data under `docs/builder/`. It generates the `docker run` command or `docker-compose.yml` for a chosen flavor, platform and feature set. GitHub Pages serves it at `https://pipepito.github.io/acestream-scraper/` from the `gh-pages` branch ("Deploy from a branch": `gh-pages`, `/` root), which Jenkins pushes when the Pages payload changes and documentation checks pass on `develop` via `scripts/ci/publish_pages.sh` — a validated build *is* the deployment (adopted 2026-08-29; supersedes the earlier `main`+`/docs` plan from the same day, which would have waited on a release and exposed all of `docs/` as raw files). The published payload is only `index.html`, `builder/` and `.nojekyll` — the rest of `docs/` (this guide included) stays off the Pages site. The facts the page offers (flavors, platforms, ports, volumes, conditional runtime settings and notes) live in `docs/builder/runtime-options.json`; the option wiring lives in `docs/builder/app.js`. Controls that cannot affect the selected flavor, platform or enabled service are omitted rather than shown disabled.
 - `wiki/` holds the GitHub wiki pages as normal Markdown. Jenkins mirrors them to the wiki repository `https://github.com/Pipepito/acestream-scraper.wiki.git`; the folder is the source of truth, so pages that exist in the wiki but not in `wiki/` are deleted on sync. The pre-2026 wiki (numbered pages such as `2.1-Docker`) is replaced by the folder's page names on the first sync.
 
 Pipeline behaviour (`Jenkinsfile`):
@@ -869,9 +952,9 @@ Fork PRs are discovered, but remain untrusted by construction:
 - GitHub Branch Source trust is **Nobody**, so `jenkins/pr.Jenkinsfile` is always loaded from the PR's target branch for a fork. A fork cannot replace or weaken the container boundary in its PR.
 - The proposed merge revision is mounted read-only, copied into a size-limited tmpfs workspace, and executed on a read-only container filesystem with `--network none`, `--cap-drop ALL`, `no-new-privileges`, an unprivileged uid, and finite CPU, memory, and PID limits.
 - The container never receives a Jenkins credential, the Docker socket, host paths other than its workspace, or Jenkins environment variables.
-- Every PR receives a one-use runner. A fork runner's four-file build context is exported from the target branch, so availability does not depend on a retained local image and fork code cannot affect dependency installation. A fork that changes dependency or runner-image inputs still fails closed and must be moved to a maintainer-owned branch after review.
+- Every PR requiring application validation receives a one-use runner. A fork runner's four-file build context is exported from the target branch, so availability does not depend on a retained local image and fork code cannot affect dependency installation. A fork that changes dependency or runner-image inputs still fails closed and must be moved to a maintainer-owned branch after review.
 - The target branch's trusted runtime validator executes against PR scripts under pinned amd64, arm64, and arm/v7 userlands. Those containers have the same network, capability, privilege, credential, Docker-socket, and resource restrictions as the application gate.
-- PR validation intentionally omits production image builds and engine runtime smokes for forks. The Dockerfile contract and all flavor/platform plans are checked without execution; the trusted develop pipeline reruns the full suite and privileged smokes before any `:develop*` or documentation publication.
+- PR validation intentionally omits production image builds and engine runtime smokes for forks. The Dockerfile contract and all flavor/platform plans are checked without execution; the trusted develop pipeline reruns the full suite and privileged smokes before any `:develop*` image publication. Documentation-only publication follows its own lightweight checks.
 - Maintainer review remains mandatory. CI confinement protects infrastructure; it does not prove that a contribution is benign or correct.
 
 ## GitHub Actions During The Proving Window

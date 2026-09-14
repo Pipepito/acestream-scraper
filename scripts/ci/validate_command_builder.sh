@@ -12,6 +12,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ROOT="${DOCS_CHECK_ROOT:-$ROOT}"
 SITE_DIR="$ROOT/docs"
 
 for arg in "$@"; do
@@ -30,7 +31,7 @@ fail() { printf '[command-builder] ERROR: %s\n' "$*" >&2; exit 1; }
 [[ -f "$SITE_DIR/builder/runtime-options.json" ]] || fail "docs/builder/runtime-options.json is missing"
 [[ -f "$SITE_DIR/.nojekyll" ]] || fail "docs/.nojekyll is missing (GitHub Pages would run Jekyll over docs/)"
 
-python3 - "$ROOT" <<'PY'
+python3 -I - "$ROOT" <<'PY'
 import json, re, sys
 from pathlib import Path
 

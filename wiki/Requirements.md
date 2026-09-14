@@ -23,7 +23,7 @@ Keep enough free space for database upgrades/recovery backups as well as live da
 | Scraper, UI and bundled FFmpeg | Yes | Yes | Yes |
 | Bundled AceStream in engine flavors | Native Linux 3.2.11 | Community Android 3.2.17 | Community Android 3.2.17; experimental |
 | WARP and bundled IPFS | Available, opt-in | Available, opt-in | No upstream packages; external IPFS gateway usable |
-| Bundled ZeroNet | Available, opt-in | Use external node | Use external node |
+| Bundled ZeroNet | Available, opt-in | Available, opt-in | Use external node |
 
 ARM engines require a 4 KB kernel page size. On Raspberry Pi 5 this may require selecting `kernel8.img`. A successful cross-platform image build does not prove playback on real hardware; ARMv7 runtime validation remains outstanding. See [Docker platform notes](Docker.md#playing-streams-on-arm).
 

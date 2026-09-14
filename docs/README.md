@@ -1,6 +1,8 @@
 # Documentation Home
 
-This repository now uses a single root deployment model:
+Technical documentation for contributors and operators. For setup and everyday use, start with the [wiki home](../wiki/Home.md).
+
+The application has two canonical roots:
 
 - `backend/` is the API/runtime source of truth.
 - `frontend/` is the web UI source of truth.
@@ -12,7 +14,7 @@ This repository now uses a single root deployment model:
 - [Configuration](../wiki/Configuration.md), [troubleshooting](../wiki/Troubleshooting.md) and [diagnostic bug reports](../wiki/Bug-Reporting.md).
 - [Docker command builder](https://pipepito.github.io/acestream-scraper/): generated commands with platform-aware services, checker isolation and storage.
 
-The `wiki/` directory is mirrored to the GitHub wiki after a validated `develop` build; edit that source directory for durable user-guide changes.
+The `wiki/` directory is mirrored to the GitHub wiki after its changes pass validation on `develop`; edit that source directory for durable user-guide changes.
 
 ## Key Docs
 
@@ -42,6 +44,8 @@ The `wiki/` directory is mirrored to the GitHub wiki after a validated `develop`
 - `docs/testing/test-ownership-matrix.md`: canonical test locations and the required-check ownership policy.
 
 ## Developer Entry Points
+
+Start with the [development guide](../wiki/Development.md) for local setup and proportionate checks. The [Jenkins scope table](ops/jenkins-ci.md#changes-that-select-ci-work) explains documentation-only validation and publication. Docker Hub text lives in [docs/dockerhub](dockerhub/README.md).
 
 - Backend local run: `cd backend && pip install -r requirements.txt && uvicorn main:app --reload --host 0.0.0.0 --port 8000 --no-proxy-headers`
 - Frontend local run: `cd frontend && npm install && npm start`

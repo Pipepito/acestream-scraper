@@ -1,41 +1,16 @@
 # Docker Guide
 
-## What is Docker?
+Use the [Docker command builder](https://pipepito.github.io/acestream-scraper/) to choose your image, services, ports, and storage. For a first installation or an upgrade, start with [Installation](Installation.md).
 
-Docker is a platform that uses containerization technology to package applications and their dependencies together in isolated containers. These containers are lightweight, portable units that can run consistently across different environments.
+This guide covers the choices behind that setup:
 
-### Key Docker Concepts
+- [Image tags and flavors](#image-tags-and-flavors)
+- [Storage and cache retention](#recommended-cache-and-temporary-storage)
+- [ARM playback](#playing-streams-on-arm)
+- [Runtime settings](Configuration.md#environment-variables)
+- [Platform requirements](Requirements.md)
 
-- **Container**: A lightweight, standalone executable package that includes everything needed to run an application
-- **Image**: A read-only template used to create containers
-- **Dockerfile**: A script with instructions for building a Docker image
-- **Docker Compose**: A tool for defining and running multi-container applications
-- **Volume**: Persistent data storage that exists outside the container lifecycle
-
-### Benefits of Using Docker with Acestream Ids Scraper
-
-1. **Simplified Installation**: No need to worry about dependencies or system compatibility
-2. **Consistent Environment**: Works the same way on any system that supports Docker
-3. **Flavor-Based Packaging**: Pick the image that includes only the optional binaries you need
-4. **Isolation**: Keeps the application and its dependencies contained
-5. **Easy Updates**: Simple command to update to the latest version
-6. **Resource Management**: Controls how much system resources the application can use
-
-## Docker vs. Docker Compose
-
-### Docker
-- Manages individual containers
-- Best for simple deployments
-- Uses CLI commands to configure containers
-- Example: `docker run -p 0.0.0.0:8000:8000 pipepito/acestream-scraper:latest`
-
-### Docker Compose
-- Manages multi-container applications
-- Configuration in a YAML file
-- Easier to maintain complex setups
-- Example: `docker compose up -d`
-
-For Acestream Ids Scraper, Docker Compose is recommended as it makes managing all configuration parameters easier.
+Docker Compose saves your setup in a file so it is easy to update and recreate. Keep `/app/config` on persistent storage to retain your channels, settings, and database backups.
 
 ## Recommended cache and temporary storage
 
@@ -125,11 +100,18 @@ rotation, for example `--log-driver=json-file --log-opt max-size=10m
 
 Docker images are published under `pipepito/acestream-scraper`.
 
-- `latest` as the full `scraper-acestream-acexy` image
-- `scraper` for the base app runtime plus WARP tooling
-- `scraper-acestream` for the base app plus AceStream
-- `scraper-acexy` for the base app plus Acexy
-- `scraper-acestream-acexy` for the full app plus AceStream and Acexy
+`latest` is the full `scraper-acestream-acexy` image. These variants change which playback components are installed:
+
+| Image tag | AceStream included | Acexy included | Use it for |
+|---|---|---|---|
+| `latest` / `scraper-acestream-acexy` | Yes | Yes | The full package |
+| `scraper-acestream` | Yes | No | A bundled engine without Acexy |
+| `scraper-acexy` | No | Yes | A proxy for an external engine |
+| `scraper` | No | No | Scraping/playlists or external playback services |
+
+Every variant includes the web app, FFmpeg and ffprobe. On amd64 and arm64, every variant also includes Cloudflare WARP, IPFS (Kubo), ZeroNet and Tor. Removing the engine or proxy does not remove these shared tools.
+
+With default settings, only the web app starts. FFmpeg/ffprobe are available when needed; AceStream, Acexy, WARP, IPFS, ZeroNet and Tor remain off until enabled. The [command builder](https://pipepito.github.io/acestream-scraper/) sets the appropriate service options. An engine-containing image can also run an optional separate checking engine.
 
 Every flavor is published for `linux/amd64`, `linux/arm64`, and `linux/arm/v7`. The AceStream-enabled flavors (`scraper-acestream`, `scraper-acestream-acexy`, and `latest`) install a different engine per platform:
 
@@ -163,7 +145,7 @@ The bundled node includes a targeted manifest-verification patch. See [verificat
 
 The checked-in compose stack keeps the `zeronet` service behind an optional `zeronet` profile and points the default app config at `http://host.docker.internal:43110`. It uses an amd64-focused sidecar image. On 32-bit ARM hosts, point `ZERONET_URL` at an external ZeroNet service or swap in a compatible sidecar. With the embedded node enabled, leave `ZERONET_URL` unset — the entrypoint targets the embedded UI port automatically.
 
-IPFS is bundled, unlike ZeroNet: every flavor ships the [Kubo](https://github.com/ipfs/kubo) IPFS daemon on `linux/amd64` and `linux/arm64`. Kubo publishes no 32-bit ARM build, so `linux/arm/v7` images ship without it (the container exits with a clear error if `ENABLE_IPFS=true` is requested there — same situation as WARP). The daemon is opt-in: nothing IPFS-related runs until `ENABLE_IPFS=true`. `ipfs://` and `ipns://` sources are fetched through `IPFS_GATEWAY_URL`, which defaults to the embedded gateway at `http://127.0.0.1:8081` — the gateway uses `8081` in-container because Acexy already listens on `8080`. You can also scrape IPFS without the embedded daemon: keep `ENABLE_IPFS=false` and point `IPFS_GATEWAY_URL` at an external node, e.g. `http://host.docker.internal:8080` for a Kubo/IPFS Desktop install on the Docker host (this works on every platform, `linux/arm/v7` included).
+IPFS is also bundled: every flavor ships the [Kubo](https://github.com/ipfs/kubo) IPFS daemon on `linux/amd64` and `linux/arm64`. Kubo publishes no 32-bit ARM build, so `linux/arm/v7` images ship without it (the container exits with a clear error if `ENABLE_IPFS=true` is requested there — same situation as WARP). The daemon is opt-in: nothing IPFS-related runs until `ENABLE_IPFS=true`. `ipfs://` and `ipns://` sources are fetched through `IPFS_GATEWAY_URL`, which defaults to the embedded gateway at `http://127.0.0.1:8081` — the gateway uses `8081` in-container because Acexy already listens on `8080`. You can also scrape IPFS without the embedded daemon: keep `ENABLE_IPFS=false` and point `IPFS_GATEWAY_URL` at an external node, e.g. `http://host.docker.internal:8080` for a Kubo/IPFS Desktop install on the Docker host (this works on every platform, `linux/arm/v7` included).
 
 AceStream platform availability is manifest-driven via `docker/manifests/acestream.json`. Adding a new supported AceStream architecture means updating that manifest. The manifest pins the engine source and support level (`stable` or `experimental`) per platform: conventional archives are checksum-pinned and vendored, while both ARM entries pin the jopsis multi-platform OCI digest.
 
@@ -171,12 +153,12 @@ If you run with `ENABLE_WARP=true`, the container must be started with the runti
 
 ### Pre-release channel (`develop`)
 
-The tags above are release tags: `latest` and the immutable `vX.Y.Z` / `vX.Y.Z-<flavor>` tags are cut from the `main` branch. Next to them, every validated build of the `develop` branch publishes a pre-release channel:
+The tags above are release tags: `latest` and the immutable `vX.Y.Z` / `vX.Y.Z-<flavor>` tags are cut from the `main` branch. Next to them, validated application or build changes on the `develop` branch publish a pre-release channel:
 
 - `develop` as the full `scraper-acestream-acexy` payload (the channel's equivalent of `latest`)
 - `develop-scraper`, `develop-scraper-acestream`, `develop-scraper-acexy`, and `develop-scraper-acestream-acexy` for the individual flavors
 
-Channel tags are moving tags: they are re-pushed for the same platforms as the release flavors each time `develop` passes CI, and there is no per-version or per-commit tag for them. Use them to test what the next release will contain, not for production. To run the pre-release, replace `latest` with `develop` (or `develop-<flavor>`) in the commands below, or set `image: pipepito/acestream-scraper:develop` in `docker-compose.yml`:
+Channel tags are moving tags: they are re-pushed for the same platforms as the release flavors after application or build changes on `develop` pass CI, and there is no per-version or per-commit tag for them. Use them to test what the next release will contain, not for production. To run the pre-release, replace `latest` with `develop` (or `develop-<flavor>`) in the commands below, or set `image: pipepito/acestream-scraper:develop` in `docker-compose.yml`:
 
 ```bash
 docker pull pipepito/acestream-scraper:develop
@@ -299,7 +281,7 @@ docker run -d \
 - The scraper reaches the node automatically (`ZERONET_URL` falls back to the embedded UI port when you don't set it), so `zero://` sources work with no further setup.
 - Ports: `43110` is the ZeroNet web UI, `26552` the fileserver/peer port (`ZERONET_UI_PORT` / `ZERONET_FILESERVER_PORT` to change them). Publishing `43110` is only needed to browse the ZeroNet UI yourself — and ZeroNet only answers Host headers it knows, so add `-e ZERONET_UI_HOST="myserver.lan 192.168.1.10"` to reach it from another machine. The UI has no authentication: publish it on trusted networks only.
 - Add `-e ENABLE_TOR=true` to run TOR alongside; the node auto-detects it over the control port (same contract as v1). `ZERONET_EXTRA_ARGS` passes any extra zeronet-conservancy flags through.
-- ARM images ship without the bundled node (its gevent-era dependency set is amd64-focused); use the external `ZERONET_URL` mode there.
+- 32-bit ARM images ship without the bundled node; use the external `ZERONET_URL` mode there. Both amd64 and arm64 bundle ZeroNet.
 
 ### Run the Embedded IPFS Daemon (amd64 and arm64)
 
@@ -438,3 +420,7 @@ instances need this configured separately. Keep `PLAYER_START_TIMEOUT_SECONDS`
 (default 45 seconds) long enough for the proxy response and initial HLS segments.
 Stream-status sampling uses the timeout saved in Settings and reads through HTTP,
 so it does not require mounting the engine's temporary files into the scraper.
+
+## Optional DNS override
+
+The command builder's **Use xdp.es DNS** option is off by default. Enabling it adds `--dns=85.208.114.52` to Docker commands or a `dns:` entry to Compose. It selects [xdp.es Standard](https://xdp.es/about), without ad filtering, using ordinary unencrypted DNS. Recreate the container to apply or remove it; WARP may override DNS while connected.

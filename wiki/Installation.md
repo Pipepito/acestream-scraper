@@ -47,7 +47,7 @@ Docker Compose provides the easiest way to get started with Acestream Ids Scrape
        restart: unless-stopped
    ```
 
-   ZeroNet moved to opt-in in v2: the amd64 images bundle a node you enable with `ENABLE_ZERONET=true` (state under `/data/zeronet` — the v1 `/app/ZeroNet/data` volume is gone), or you point `ZERONET_URL` at an external service such as the optional `zeronet` sidecar profile in the repository's `docker-compose.yml` (the only mode available on ARM). IPFS scraping is built in as well: flip `ENABLE_IPFS=true` to run the embedded Kubo daemon (see [With the Embedded IPFS Daemon](#with-the-embedded-ipfs-daemon)).
+   ZeroNet moved to opt-in in v2: the amd64 and arm64 images bundle a node you enable with `ENABLE_ZERONET=true` (state under `/data/zeronet` — the v1 `/app/ZeroNet/data` volume is gone), or you point `ZERONET_URL` at an external service such as the optional `zeronet` sidecar profile in the repository's `docker-compose.yml` (the only mode available on 32-bit ARM). IPFS scraping is built in as well: flip `ENABLE_IPFS=true` to run the embedded Kubo daemon (see [With the Embedded IPFS Daemon](#with-the-embedded-ipfs-daemon)).
 
 2. **Start the service:**
 
@@ -122,9 +122,9 @@ docker run -d \
   pipepito/acestream-scraper:latest
 ```
 
-### With the Bundled ZeroNet Node (amd64)
+### With the Bundled ZeroNet Node (amd64 and arm64)
 
-The amd64 images ship a ZeroNet node that only starts when `ENABLE_ZERONET=true`; add `ENABLE_TOR=true` to run TOR alongside it (like v1):
+The amd64 and arm64 images ship a ZeroNet node that only starts when `ENABLE_ZERONET=true`; add `ENABLE_TOR=true` to run TOR alongside it (like v1):
 
 ```bash
 docker run -d \
@@ -142,7 +142,7 @@ The scraper finds the embedded node automatically when `ZERONET_URL` is not set.
 
 ### With an External ZeroNet Service
 
-On ARM images (which ship without the bundled node), or whenever you prefer it, run ZeroNet as its own service — for example the optional `zeronet` profile in the repository's `docker-compose.yml` — and point the scraper at it:
+On 32-bit ARM images (which ship without the bundled node), or whenever you prefer it, run ZeroNet as its own service — for example the optional `zeronet` profile in the repository's `docker-compose.yml` — and point the scraper at it:
 
 ```bash
 docker run -d \

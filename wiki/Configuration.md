@@ -41,6 +41,18 @@ See the [illustrated walkthrough](Usage.md) and [playback routing guide](Remote-
 
 ## Environment Variables
 
+### Database and backend settings
+
+- `DATABASE_URL` (default: `sqlite:///./config/scraper.db`)
+- `LEGACY_DATABASE_URL` (default: `sqlite:///./config/acestream.db`)
+- `EPG_PROGRAM_RETENTION_HOURS` (default: `24`) — EPG programs that ended more than this many hours ago are deleted by the hourly `epg_program_cleanup` job and skipped by the v1→v2 migration; negative keeps everything
+- `ZERONET_URL` (default: `http://host.docker.internal:43110` in the checked-in compose example)
+- `IPFS_GATEWAY_URL` (default: the embedded gateway `http://127.0.0.1:8081`; point it at an external IPFS gateway when `ENABLE_IPFS=false`)
+- `CORS_ORIGINS` (default: `http://localhost:3000`)
+- `FRONTEND_BUILD_PATH` (default: `frontend_build`)
+- `ACE_ENGINE_URL` (empty for new scraper-only installs; `http://localhost:6878` when bundled playback is enabled; saved Settings → Playback URLs take precedence)
+- `ACE_CHECK_ENGINE_URL` (optional external checker default, editable in Settings → Automation; an unavailable dedicated checker never falls back to playback)
+
 ### Core Application
 
 | Variable | Description | Default | Notes |
@@ -100,7 +112,7 @@ A unique PID alone does **not** prevent the native engine stopping another clien
 
 ### ZeroNet and Other Settings
 
-The amd64 images bundle a ZeroNet node (zeronet-conservancy v0.7.10) that is off by default; ARM images ship without it and use an external service instead. In both cases the scraper reaches the node over HTTP via `ZERONET_URL`. The v1 in-container `zeronet.conf` mechanism is gone — the node is configured through these variables:
+The amd64 and arm64 images bundle a ZeroNet node (zeronet-conservancy v0.7.10) that is off by default; 32-bit ARM images use an external service instead. In both cases the scraper reaches the node over HTTP via `ZERONET_URL`. The v1 in-container `zeronet.conf` mechanism is gone — the node is configured through these variables:
 
 | Variable | Description | Default | Notes |
 |----------|-------------|---------|-------|
@@ -306,3 +318,20 @@ healthcheck:
 ```
 
 You can check the health status with: `docker inspect --format='{{.State.Health.Status}}' acestream-scraper`
+
+## Legacy environment aliases
+
+Version 2 accepts these legacy environment aliases for compatibility with existing installations. Use the canonical names for new setups. If both legacy and canonical vars are set with different values, canonical vars win and a warning is emitted at startup.
+
+Legacy aliases currently mapped:
+
+- `SCRAPER_DB_URL` -> `DATABASE_URL`
+- `LEGACY_DB_URL` -> `LEGACY_DATABASE_URL`
+- `ZERONET_BASE_URL` -> `ZERONET_URL`
+- `CORS_ALLOW_ORIGINS` -> `CORS_ORIGINS`
+- `FRONTEND_STATIC_DIR` -> `FRONTEND_BUILD_PATH`
+- `ACESTREAM_ENGINE_URL` -> `ACE_ENGINE_URL`
+
+Disable alias compatibility explicitly with:
+
+- `ENABLE_LEGACY_ENV_ALIASES=false`

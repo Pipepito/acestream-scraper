@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 from pathlib import Path
+import os
 import sys
 
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(os.environ.get("DOCS_CHECK_ROOT", Path(__file__).resolve().parents[2]))
 
 
 def read(rel_path: str) -> str:
@@ -20,12 +21,21 @@ def any_line_contains_all(text: str, *terms: str) -> bool:
 
 
 compose = read("docker-compose.yml")
-readme = read("README.md")
+overview = read("README.md")
+hub = read("docs/dockerhub/README.md")
 docker_guide = read("wiki/Docker.md")
 deployment = read("docs/architecture/deployment.md")
 
 
 checks = [
+    (
+        "project overview links to installation, configuration and development guides",
+        contains_all(overview, "/wiki/Installation", "/wiki/Configuration", "/wiki/Development"),
+    ),
+    (
+        "Docker Hub links to installation and explains image choices",
+        contains_all(hub, "/wiki/Installation", "latest", "scraper-acestream-acexy", "experimental"),
+    ),
     (
         "docker-compose latest image alias",
         "image: pipepito/acestream-scraper:latest" in compose,
@@ -56,14 +66,13 @@ checks = [
     ),
     (
         "docs explain latest full image",
-        contains_all(readme, "latest", "scraper-acestream-acexy")
-        and contains_all(docker_guide, "latest", "scraper-acestream-acexy")
+        contains_all(docker_guide, "latest", "scraper-acestream-acexy")
         and contains_all(deployment, "latest", "scraper-acestream-acexy"),
     ),
     (
         "docs list explicit flavor tags",
         all(
-            tag in readme and tag in docker_guide
+            tag in docker_guide and tag in hub
             for tag in [
                 "`scraper`",
                 "`scraper-acestream`",
@@ -74,32 +83,28 @@ checks = [
     ),
     (
         "docs explain warp install and enable flag",
-        contains_all(readme, "warp", "every flavor", "enable_warp=true")
-        and contains_all(docker_guide, "warp", "every flavor"),
+        contains_all(docker_guide, "warp", "every flavor", "enable_warp=true"),
     ),
     (
         "docs explain zeronet external contract",
-        contains_all(readme, "zeronet", "external sidecar/service")
-        and contains_all(docker_guide, "zeronet", "external sidecar/service")
+        contains_all(docker_guide, "zeronet", "external sidecar/service")
         and contains_all(deployment, "zeronet", "external sidecar/service"),
     ),
     (
         "docs explain zeronet compose limitation",
-        contains_all(readme, "zeronet", "amd64")
-        and contains_all(docker_guide, "zeronet", "amd64")
+        contains_all(docker_guide, "zeronet", "amd64")
         and contains_all(deployment, "zeronet", "amd64"),
     ),
     (
         "docs explain zeronet external default endpoint",
-        contains_all(readme, "host.docker.internal", "43110")
-        and contains_all(docker_guide, "host.docker.internal", "43110")
+        contains_all(docker_guide, "host.docker.internal", "43110")
         and contains_all(deployment, "host.docker.internal", "43110"),
     ),
     (
         "docs avoid stale localhost zeronet default",
         all(
             stale_pattern not in text
-            for text in [readme, docker_guide, deployment]
+            for text in [docker_guide, deployment]
             for stale_pattern in [
                 "`ZERONET_URL` (default: `http://127.0.0.1:43110`)",
                 "`ZERONET_URL` (default: `http://localhost:43110`)",
@@ -108,29 +113,23 @@ checks = [
     ),
     (
         "docs explain runtime env expectations",
-        "ENABLE_ACESTREAM_ENGINE" in readme
-        and "ENABLE_ACEXY" in readme
+        "ENABLE_ACESTREAM_ENGINE" in docker_guide
+        and "ENABLE_ACEXY" in docker_guide
         and "ACESTREAM_HTTP_HOST" in docker_guide
         and "ACEXY_HOST" in docker_guide,
     ),
     (
         "docs explain manifest driven acestream availability",
-        "docker/manifests/acestream.json" in readme
-        and "docker/manifests/acestream.json" in docker_guide
+        "docker/manifests/acestream.json" in docker_guide
         and "docker/manifests/acestream.json" in deployment,
     ),
     (
         "docs explain warp capabilities",
-        "NET_ADMIN" in readme
-        and "SYS_ADMIN" in readme
-        and "/dev/net/tun" in readme
-        and "NET_ADMIN" in docker_guide
-        and "SYS_ADMIN" in docker_guide
-        and "/dev/net/tun" in docker_guide,
+        contains_all(docker_guide, "NET_ADMIN", "SYS_ADMIN", "/dev/net/tun"),
     ),
     (
         "docs explain acestream engine state volume",
-        "/var/lib/acestream" in readme and "/var/lib/acestream" in docker_guide,
+        "/var/lib/acestream" in docker_guide,
     ),
     (
         "docker-compose ipfs toggle and repo volume",
@@ -142,31 +141,27 @@ checks = [
     ),
     (
         "docs explain bundled zeronet contract",
-        contains_all(readme, "zeronet", "enable_zeronet", "/data/zeronet")
-        and contains_all(docker_guide, "zeronet", "enable_zeronet", "/data/zeronet")
+        contains_all(docker_guide, "zeronet", "enable_zeronet", "/data/zeronet")
         and contains_all(deployment, "zeronet", "enable_zeronet", "/data/zeronet"),
     ),
     (
-        "docs explain bundled zeronet amd64-only availability",
-        contains_all(readme, "enable_zeronet", "amd64")
-        and contains_all(docker_guide, "enable_zeronet", "amd64")
+        "docs explain bundled zeronet availability",
+        contains_all(docker_guide, "enable_zeronet", "amd64")
         and contains_all(deployment, "enable_zeronet", "amd64"),
     ),
     (
         "docs explain embedded ipfs contract",
-        contains_all(readme, "ipfs", "enable_ipfs", "/data/ipfs")
-        and contains_all(docker_guide, "ipfs", "enable_ipfs", "/data/ipfs")
+        contains_all(docker_guide, "ipfs", "enable_ipfs", "/data/ipfs")
         and contains_all(deployment, "ipfs", "enable_ipfs", "/data/ipfs"),
     ),
     (
         "docs explain ipfs 32-bit arm limitation and gateway port",
-        contains_all(readme, "kubo", "32-bit", "8081")
-        and contains_all(docker_guide, "kubo", "32-bit", "8081")
+        contains_all(docker_guide, "kubo", "32-bit", "8081")
         and contains_all(deployment, "32-bit", "8081"),
     ),
     (
-        "readme marks arm/v7 acestream engine as experimental",
-        any_line_contains_all(readme, "linux/arm/v7", "experimental"),
+        "Docker guide marks arm/v7 acestream engine as experimental",
+        any_line_contains_all(docker_guide, "linux/arm/v7", "experimental"),
     ),
 ]
 

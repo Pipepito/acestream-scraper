@@ -131,7 +131,7 @@ not part of the required PR gate; see `e2e/AGENTS.md` before running it.
   uses `acestream-scraper-develop`, and manual releases use
   `acestream-scraper-release`. All currently launch on `dorat-nuc-ci`, but fork
   code runs only inside network-disabled containers; it must never receive the
-  Docker socket or a Jenkins credential. Each fork build creates a disposable
+  Docker socket or a Jenkins credential. Each fork build requiring application validation creates a disposable
   dependency runner from the trusted target ref, then runs runtime contracts in
   pinned amd64, arm64, and arm/v7 userlands. Do not execute a fork-controlled
   Dockerfile or install fork-controlled dependency inputs automatically.
@@ -302,3 +302,14 @@ full application gate as develop via `scripts/ci/run_release_validation.sh`. Kee
 Python/Node dependencies ready before backend tests, validation isolated from
 Docker/credentials, and reports in `.ci-release-artifacts/`. Docker smokes run
 later on the trusted host with an explicitly prepared backend virtualenv.
+
+## Documentation and CI scope
+
+Keep README high-level; user/contributor guides live in `wiki/`, and the Docker
+Hub overview source is `docs/dockerhub/`. `classify_changes.py` selects lightweight
+documentation validation for known docs-only changes. PRs use target-owned
+selection/validators; develop compares the last successful build. Missing or
+rewritten baselines, symlinks/mode changes, and unknown paths require the full gate.
+Publish only affected wiki, Pages and Docker Hub text without rebuilding images.
+Keep manual releases fully validated and preserve the FIFO Docker lock and fork
+isolation. See `docs/ops/jenkins-ci.md` for exact paths and retry behavior.

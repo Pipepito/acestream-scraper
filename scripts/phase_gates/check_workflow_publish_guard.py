@@ -113,7 +113,7 @@ def main() -> int:
          and 'git show "${PR_VALIDATION_REF}:scripts/ci/run_pr_validation.sh"' in pr_jenkinsfile
          and "runnerInputsChanged" in pr_jenkinsfile
          and "env.CHANGE_FORK" in pr_jenkinsfile),
-        ("every PR bootstraps a disposable runner from its validation ref",
+        ("application PRs bootstrap a disposable runner from their validation ref",
          "stage('Build isolated trusted runner')" in pr_jenkinsfile
          and 'git show "${PR_VALIDATION_REF}:scripts/ci/build_pr_runner.sh"' in pr_jenkinsfile
          and "env.PR_RUNNER_EPHEMERAL = '1'" in pr_jenkinsfile
@@ -121,6 +121,26 @@ def main() -> int:
          and "backend/requirements.txt" in pr_runner_builder
          and "frontend/package-lock.json" in pr_runner_builder
          and "docker/ci/pr-runner.Dockerfile" in pr_runner_builder),
+        ("PR skip decisions and lightweight checks come from the trusted target",
+         'git show "refs/remotes/origin/${CHANGE_TARGET}:scripts/ci/classify_changes.py"' in pr_jenkinsfile
+         and 'git show "refs/remotes/origin/${CHANGE_TARGET}:scripts/ci/$validator"' in pr_jenkinsfile
+         and '--pull-request' in pr_jenkinsfile
+         and 'python3 -I "$selector"' in pr_jenkinsfile
+         and "echo 'CI_APPLICATION=true'" in pr_jenkinsfile
+         and pr_jenkinsfile.count("when { expression { env.CI_APPLICATION != 'false' } }") == 3),
+        ("develop skips heavy work only using the last successful baseline",
+         'GIT_PREVIOUS_SUCCESSFUL_COMMIT' in develop_jenkinsfile
+         and develop_jenkinsfile.count("when { expression { env.CI_APPLICATION == 'true' } }") == 5
+         and develop_jenkinsfile.index("stage('Select affected work')")
+             < develop_jenkinsfile.index("stage('Bootstrap trusted runner')")),
+        ("documentation payloads publish independently of image changes",
+         all(f"when {{ expression {{ env.CI_{key} == 'true' }} }}" in develop_jenkinsfile
+             for key in ('WIKI', 'PAGES', 'DOCKERHUB'))
+         and 'publish_dockerhub_description.py' in develop_jenkinsfile
+         and 'publish_dockerhub_description.py' not in pr_jenkinsfile),
+        ("manual release validation is never skipped by changed paths",
+         'CI_APPLICATION' not in release_jenkinsfile
+         and 'classify_changes.py' not in release_jenkinsfile),
         ("fork dependency changes fail before networked package installation",
          "env.CHANGE_FORK && runnerInputsChanged" in pr_jenkinsfile
          and "will not install them with network access" in pr_jenkinsfile),

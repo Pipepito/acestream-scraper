@@ -39,7 +39,38 @@ fi
       }
     }
 
+    stage('Select affected work') {
+      steps {
+        script {
+          def selection = sh(returnStdout: true, script: '''#!/usr/bin/env bash
+set -euo pipefail
+python3 -I scripts/ci/classify_changes.py --base "${GIT_PREVIOUS_SUCCESSFUL_COMMIT:-}"
+''').trim()
+          selection.split('\n').each { line ->
+            def pair = line.split('=', 2)
+            env[pair[0]] = pair[1]
+          }
+          echo selection
+          currentBuild.description = env.CI_APPLICATION == 'true' ? 'Full validation and image publish' : 'Documentation checks; no image build'
+        }
+      }
+    }
+
+    stage('Docs checks') {
+      steps {
+        sh '''#!/usr/bin/env bash
+set -euo pipefail
+python3 -I scripts/ci/validate_documentation.py
+python3 -I scripts/ci/validate_docker_docs_contract.py
+bash scripts/ci/validate_command_builder.sh
+bash scripts/ci/publish_wiki.sh --dry-run
+bash scripts/ci/publish_pages.sh --dry-run
+'''
+      }
+    }
+
     stage('Bootstrap trusted runner') {
+      when { expression { env.CI_APPLICATION == 'true' } }
       steps {
         sh '''#!/usr/bin/env bash
 set -euo pipefail
@@ -62,18 +93,8 @@ docker build \
       }
     }
 
-    stage('Docs checks') {
-      steps {
-        sh '''#!/usr/bin/env bash
-set -euo pipefail
-bash scripts/ci/validate_command_builder.sh
-bash scripts/ci/publish_wiki.sh --dry-run
-bash scripts/ci/publish_pages.sh --dry-run
-'''
-      }
-    }
-
     stage('Full application validation') {
+      when { expression { env.CI_APPLICATION == 'true' } }
       steps {
         sh '''#!/usr/bin/env bash
 set -euo pipefail
@@ -121,6 +142,7 @@ docker compose config -q
     }
 
     stage('Publication policy and architecture plan') {
+      when { expression { env.CI_APPLICATION == 'true' } }
       steps {
         sh '''#!/usr/bin/env bash
 set -euo pipefail
@@ -139,6 +161,7 @@ backend/venv/bin/python scripts/phase_gates/phase5_gate_runner.py \
     }
 
     stage('Acestream Engine Runtime Smoke') {
+      when { expression { env.CI_APPLICATION == 'true' } }
       steps {
         sh '''#!/usr/bin/env bash
 set -euo pipefail
@@ -192,6 +215,7 @@ fi
     }
 
     stage('Publish develop channel') {
+      when { expression { env.CI_APPLICATION == 'true' } }
       steps {
         sh '''#!/usr/bin/env bash
 set -euo pipefail
@@ -221,7 +245,21 @@ bash scripts/ci/run_jenkins_release.sh --channel develop
       }
     }
 
+    stage('Publish Docker Hub description') {
+      when { expression { env.CI_DOCKERHUB == 'true' } }
+      steps {
+        withCredentials([usernamePassword(
+          credentialsId: 'dockerhub-publish',
+          usernameVariable: 'DOCKERHUB_USERNAME',
+          passwordVariable: 'DOCKERHUB_TOKEN'
+        )]) {
+          sh 'python3 -I scripts/ci/publish_dockerhub_description.py'
+        }
+      }
+    }
+
     stage('Publish wiki') {
+      when { expression { env.CI_WIKI == 'true' } }
       steps {
         withCredentials([usernamePassword(
           credentialsId: 'github-publish',
@@ -244,6 +282,7 @@ bash scripts/ci/publish_wiki.sh
     }
 
     stage('Publish docs site') {
+      when { expression { env.CI_PAGES == 'true' } }
       steps {
         withCredentials([usernamePassword(
           credentialsId: 'github-publish',

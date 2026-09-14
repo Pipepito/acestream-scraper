@@ -115,6 +115,17 @@ The FIFO Docker lock is unchanged, including on documentation-only jobs. Manual
 release invocations always run the existing release validation; path selection
 never skips release checks, version guards, or promotion confirmation.
 
+### Jenkins sandbox failure in change selection
+
+If `Select affected work` fails with `RejectedAccessException` for
+`DefaultGroovyMethods.putAt`, the pipeline is assigning a key with `env[key]`.
+Use explicit `env.CI_APPLICATION`, `env.CI_WIKI`, `env.CI_PAGES`, and
+`env.CI_DOCKERHUB` property assignments in both PR and develop definitions.
+Jenkins permits the environment object's property setter; bracket assignment
+uses a different Groovy method. Fix the repository pipeline rather than approving
+that method globally. Missing selector flags default to full work; only an exact
+`CI_…=false` line disables the corresponding work.
+
 ### Docker Hub overview
 
 `docs/dockerhub/short-description.txt` supplies the search summary (up to 100

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -128,6 +129,16 @@ def main() -> int:
          and 'python3 -I "$selector"' in pr_jenkinsfile
          and "echo 'CI_APPLICATION=true'" in pr_jenkinsfile
          and pr_jenkinsfile.count("when { expression { env.CI_APPLICATION != 'false' } }") == 3),
+        ("CI selection uses sandbox-safe env properties and defaults to full work",
+         all(
+             not re.search(r"\benv\s*\[", pipeline)
+             and "def selected = selection.readLines()" in pipeline
+             and all(
+                 f"env.CI_{key} = selected.contains('CI_{key}=false') ? 'false' : 'true'" in pipeline
+                 for key in ('APPLICATION', 'WIKI', 'PAGES', 'DOCKERHUB')
+             )
+             for pipeline in (pr_jenkinsfile, develop_jenkinsfile)
+         )),
         ("develop skips heavy work only using the last successful baseline",
          'GIT_PREVIOUS_SUCCESSFUL_COMMIT' in develop_jenkinsfile
          and develop_jenkinsfile.count("when { expression { env.CI_APPLICATION == 'true' } }") == 5

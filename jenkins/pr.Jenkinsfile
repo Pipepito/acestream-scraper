@@ -56,10 +56,14 @@ else
   echo 'CI_APPLICATION=true'
 fi
 ''').trim()
-          selection.split('\n').each { line ->
-            def pair = line.split('=', 2)
-            env[pair[0]] = pair[1]
-          }
+          // env is a Pipeline object, not a Map: bracket assignment invokes
+          // an unapproved Groovy putAt. Use its sandbox-approved properties.
+          // Only an explicit false disables work; missing flags keep full scope.
+          def selected = selection.readLines()
+          env.CI_APPLICATION = selected.contains('CI_APPLICATION=false') ? 'false' : 'true'
+          env.CI_WIKI = selected.contains('CI_WIKI=false') ? 'false' : 'true'
+          env.CI_PAGES = selected.contains('CI_PAGES=false') ? 'false' : 'true'
+          env.CI_DOCKERHUB = selected.contains('CI_DOCKERHUB=false') ? 'false' : 'true'
           echo selection
           currentBuild.description = env.CI_APPLICATION == 'true' ? 'Full application validation' : 'Documentation checks; application unchanged'
         }

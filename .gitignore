@@ -238,3 +238,6 @@ e2e/results/
 e2e/.stack/
 
 .ci-release-artifacts/
+
+# Standalone recipe helper build
+frontend/dist-recipes/

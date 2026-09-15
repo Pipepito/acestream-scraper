@@ -22,6 +22,18 @@ from app.services.system_services_service import (
 
 router = APIRouter(tags=["system"])
 
+from app.schemas.storage import StorageReport
+from app.services.storage_service import storage_report
+
+
+@router.get('/storage', response_model=StorageReport, summary='Container directories and filesystem space')
+def get_storage():
+    try:
+        return storage_report()
+    except RuntimeError:
+        raise HTTPException(503, 'Storage scan is already running. Try again shortly.', headers={'Retry-After': '2'})
+
+
 
 @router.get('/diagnostics', response_class=Response,
             responses={200: {'content': {'application/zip': {'schema': {'type': 'string', 'format': 'binary'}}}}},

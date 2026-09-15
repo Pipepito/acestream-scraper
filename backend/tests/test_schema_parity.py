@@ -107,6 +107,7 @@ def test_acestream_channels_schema_includes_runtime_last_seen(tmp_path):
             'check_error',
             'bitrate_bps',
             'bitrate_checked_at',
+            'stream_stats',
             'audio_tracks',
             'original_url',
             'epg_update_protected',
@@ -146,6 +147,7 @@ def test_scraped_urls_schema_matches_runtime_contract(tmp_path):
             'error',
             'enabled',
             'scrape_bare_ids',
+            'extraction_recipe',
             'added_at',
         }
 

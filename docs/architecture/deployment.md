@@ -115,7 +115,7 @@ The selected image flavor controls which optional binaries are installed. Runtim
 
 WARP is installed in every flavor on `linux/amd64` and `linux/arm64`, but it only starts when `ENABLE_WARP=true`. `linux/arm/v7` has no upstream WARP package. WARP-enabled containers require the runtime capabilities `NET_ADMIN` and `SYS_ADMIN` plus `/dev/net/tun`; `WARP_ENABLE_NAT=true` connects and enables NAT at startup.
 
-Legacy env aliases remain supported for one release window (`v2-cutover-r1`) with canonical-variable precedence and conflict warnings.
+The v2.0 legacy environment alias window has ended in the v2.1 development tree. Use canonical names; see [v2.1 upgrade notes](../release/v2.1-release-notes.md).
 
 ## Multi-Architecture Direction
 

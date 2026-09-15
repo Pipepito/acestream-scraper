@@ -27,14 +27,14 @@ def frozen_epg_clock(monkeypatch) -> None:
     ``generate_epg_xml`` selects programs relative to the current time, so
     without this the recorded document would only match on one day.
     """
-    from app.services import epg_service
+    from app.services import epg_export
 
     class _FrozenDatetime(datetime):
         @classmethod
         def now(cls, tz=None):
             return FROZEN_NOW if tz is not None else FROZEN_NOW.replace(tzinfo=None)
 
-    monkeypatch.setattr(epg_service, "datetime", _FrozenDatetime)
+    monkeypatch.setattr(epg_export, "datetime", _FrozenDatetime)
 
 
 def seed_recorded_guide(session) -> None:

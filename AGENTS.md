@@ -313,3 +313,50 @@ rewritten baselines, symlinks/mode changes, and unknown paths require the full g
 Publish only affected wiki, Pages and Docker Hub text without rebuilding images.
 Keep manual releases fully validated and preserve the FIFO Docker lock and fork
 isolation. See `docs/ops/jenkins-ci.md` for exact paths and retry behavior.
+
+
+## User-defined extraction recipes
+
+Sources may persist a versioned `extraction_recipe`; null retains automatic
+extraction. The installed and Pages helpers share `frontend/src/recipes/` and a
+fixture-tested catalogue. The public helper never connects to an installation.
+Preview/fetch endpoints write no source or channel data; production regex runs in
+a bounded disposable worker. Preserve pairing within records, pinned fetch
+destinations, sandboxed HTML previews and existing channels on recipe errors.
+Build the standalone helper before Pages publication credentials are available.
+See `docs/dev/extraction-recipes.md` and `wiki/Extraction-Recipes.md`.
+
+## v2.1 configuration
+
+v2.1 retains the six deprecated environment names through Settings, including
+`.env` support and value-free warnings in logs/Overview. Nonempty canonical names
+win. Keep repository defaults on resolved Settings and preserve entrypoint alias
+selection before bundled-service defaults. Removal (#155) is deferred by maintainer
+decision. See `docs/release/v2.1-release-notes.md`.
+
+## Source fetches and EPG responsibilities
+
+Use `app/utils/outbound_http.py` for user-supplied source fetches, including nested
+M3U and iframe URLs. It pins validated DNS answers, guards redirects and preserves
+TLS/Host identity without inheriting environment proxies. Keep private-source
+defaults and configured gateway exemptions; metadata addresses are always denied.
+`EPGService` remains the public interface over `epg_sources`, `epg_xmltv`,
+`epg_channels` and `epg_export`; they share its session and method surface.
+
+
+Stream checks store one nullable `stream_stats` observation (peers, engine
+Kbytes/sec download/upload rates and UTC timestamp). Keep it separate from encoded
+media bitrate and verified signal. Replace samples atomically, preserve zero vs
+unknown, and retain original observation times on skips or missing measurements.
+Manual, bulk and scheduled checks share the bounded sampler and existing queue.
+See `wiki/Stream-Statistics.md`.
+
+
+Overview storage uses a DB-independent, authenticated `/api/v1/system/storage`
+report. Discover container mount destinations without exposing mount sources or
+using the Docker socket. Keep scans cached, isolated, bounded, symlink-safe and
+off the event loop; partial/unknown sizes must not be shown as complete or zero.
+Free space belongs to a filesystem, not each directory. See `wiki/Storage.md`.
+Preview upload admission and byte/deadline limits precede JSON parsing. Keep
+32 MiB source support separate from the bounded browser rendering budget; heavy
+sources retain raw/manual-field workflows and installed extraction tests.

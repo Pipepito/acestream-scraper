@@ -48,6 +48,10 @@ export interface PublicUrlResponse {
 const BASE_URL = '/v1/system';
 
 export const systemService = {
+  getStorage: async (): Promise<components['schemas']['StorageReport']> => {
+    const { data } = await apiClient.get<components['schemas']['StorageReport']>(`${BASE_URL}/storage`);
+    return data;
+  },
   downloadDiagnostics: async (): Promise<void> => {
     const { data } = await apiClient.get<Blob>(`${BASE_URL}/diagnostics`, { responseType: 'blob', timeout: 30000 });
     const url = URL.createObjectURL(data);

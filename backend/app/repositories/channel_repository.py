@@ -403,13 +403,13 @@ class ChannelRepository:
         ).scalar()
 
     def get_status_snapshot(self, channel_id: str) -> Optional[dict]:
-        row = self.db.query(AcestreamChannel.is_online, AcestreamChannel.last_checked, AcestreamChannel.network_status).filter(
+        row = self.db.query(AcestreamChannel.is_online, AcestreamChannel.last_checked, AcestreamChannel.network_status, AcestreamChannel.stream_stats).filter(
             AcestreamChannel.id == channel_id,
         ).first()
         return dict(row._mapping) if row else None
 
     @retry_database_write
-    def update_channel_status(self, channel_id: str, is_online: bool, error: str = None, *, bitrate_bps: Optional[int] = None, audio_tracks: Optional[list] = None, network_status: str = "unknown") -> AcestreamChannel:
+    def update_channel_status(self, channel_id: str, is_online: bool, error: str = None, *, bitrate_bps: Optional[int] = None, audio_tracks: Optional[list] = None, network_status: str = "unknown", stream_stats: Optional[dict] = None) -> AcestreamChannel:
         """Update the online status of a channel"""
         channel = self.get_channel_by_id(channel_id)
         if not channel:
@@ -419,6 +419,8 @@ class ChannelRepository:
         channel.network_status = network_status
         channel.last_checked = datetime.now(timezone.utc)
         channel.check_error = error
+        if stream_stats is not None:
+            channel.stream_stats = stream_stats
         if audio_tracks is not None:
             channel.audio_tracks = audio_tracks
         if bitrate_bps is not None:

@@ -4,6 +4,12 @@
 
 The Acestream Ids Scraper relies on specialized code to extract channel information from various websites. As websites frequently change their structure, our scrapers sometimes need to be updated or enhanced. Your help in providing relevant information can significantly improve the application without requiring you to share potentially sensitive URLs.
 
+## Build a reusable recipe
+
+Use the [extraction builder](Extraction-Recipes.md) to select channel fields from
+HTML, text or JSON and test a recipe without changing scraper code. The installed
+helper can fetch and test your source; the Pages helper works from local samples.
+
 ## How You Can Help
 
 ### Start without developer tools

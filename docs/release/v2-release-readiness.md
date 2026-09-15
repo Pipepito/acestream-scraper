@@ -105,7 +105,7 @@ The v2 consolidation is structurally complete: all six phases shipped their plan
 - Phase-3 evidence: `docs/release/phase3-cutover-evidence.md`.
 
 **Outstanding:**
-- `LEGACY_ENV_ALIAS_WINDOW = "v2-cutover-r1"` is metadata only. Nothing schedules removal. Recommend a one-shot cleanup task for the post-v2 release. *(Closed 2026-05-04, H3 — `c592ea6`: `backend/tests/test_settings_env_compat.py` fails CI once `version.txt` reaches v2.1.0 with the shim present. The shim itself is still in place and intentionally transitional.)*
+- `LEGACY_ENV_ALIAS_WINDOW = "v2-cutover-r1"` is metadata only. Nothing schedules removal. Recommend a one-shot cleanup task for the post-v2 release. *(Closed 2026-05-04, H3 — `c592ea6`: `backend/tests/test_settings_env_compat.py` fails CI once `version.txt` reaches v2.1.0 with the shim present. Superseded by the 2026-09-15 maintainer decision: v2.1 retains all six names with deprecation warnings and canonical precedence; retirement is deferred.)*
 - Stray dev scripts at repo root (`check_epg_data.py`, `force_epg_refresh.py`, `test_epg_xml.py`, `test_epg_time.py`, `list.m3u`, `generated_epg.xml`) make the root noisy. Move to `scripts/dev/` or delete. *(Closed 2026-05-04, C2 — moved to `scripts/dev/epg/`.)*
 - `tests/` at repo root still exists with `conftest.py`, `test_config.py`, `test_acexy_api.py`, `test_warp_service.py`, etc. Either canonize into `backend/tests/` or document why a second test root is intentional. *(Closed 2026-05-04 — legacy root `tests/` tree retired in `3251505`.)*
 
@@ -222,7 +222,7 @@ Either flip `multiarch-full`'s gate to also run on PRs touching `Dockerfile`/`do
 
 ### 4. **Post-release cleanup tasks** (don't gate the release on these)
 
-- Split `backend/app/services/epg_service.py` into source/auto-mapping/program-import sub-services. *(Still open — S1.)*
+- Split `backend/app/services/epg_service.py` into source/auto-mapping/program-import sub-services. *(Completed in the v2.1 development tree; focused source, XMLTV, channel/mapping and export modules preserve EPGService.)*
 - Split `frontend/src/pages/EPG.tsx` and `TVChannels.tsx` — extract filter/table subcomponents. *(Done 2026-08-24 — #153, `a911df5`.)*
 - Add a `backend/scripts/export_ts_types.py` codegen pass to keep `frontend/src/services/*.ts` types in sync with `backend/app/schemas/`. Removes a recurring drift class. *(Done 2026-05-04 as H4 — `backend/scripts/dump_openapi.py` + `npm run codegen` + drift gate instead of a bespoke exporter.)*
 - Capture before/after light/dark + mobile/desktop screenshots into `docs/dev/frontend-design-review-evidence.md`. Useful for changelog and future regression baselining. *(Partially done — the file records per-page-group light/dark/reduced-motion/responsive review evidence as test runs and inspections rather than screenshots.)*

@@ -3,6 +3,7 @@ import { Box, Button, Checkbox, Chip, Paper, Stack, Tooltip, Typography, useThem
 import EmptyState from '../state/EmptyState';
 import ChannelRowActions, { type ChannelActionHandlers } from './ChannelRowActions';
 import OnlineChip from './OnlineChip';
+import StreamStatistics from './StreamStatistics';
 import SelectableStreamId from './SelectableStreamId';
 import type { AcestreamChannel } from '../../services/channelService';
 import { formatRelativeTime } from '../../utils/format';
@@ -93,6 +94,8 @@ const ChannelCardList: React.FC<ChannelCardListProps> = ({
                 </Typography>
               </Tooltip>
             </Stack>
+
+            <StreamStatistics channel={channel} />
 
             <Box sx={{ mt: 1 }}>
               <SelectableStreamId id={channel.id} networkStatus={channel.network_status} onCopyId={onCopyId} />

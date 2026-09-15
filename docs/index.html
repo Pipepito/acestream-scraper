@@ -3,16 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Build the exact docker run command or docker-compose.yml for AceStream Scraper: pick an image flavor, your platform and features, and copy the result." />
-  <title>AceStream Scraper — Docker Command Builder</title>
+  <meta name="description" content="Set up AceStream Scraper, build extraction recipes for your sources, and find installation and troubleshooting guides." />
+  <title>AceStream Scraper — User tools and docs</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐳</text></svg>" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="builder/style.css" />
+  <link rel="stylesheet" href="builder/hub.css" />
 </head>
 <body>
-  <a class="skip-link" href="#builder">Skip to the builder</a>
+  <a class="skip-link" href="#tools">Skip to tools</a>
 
   <header class="site-header">
     <div class="wrap header-inner">
@@ -20,7 +21,7 @@
         <span class="brand-mark" aria-hidden="true"></span>
         <div>
           <h1>AceStream Scraper</h1>
-          <p class="tagline">Docker command builder</p>
+          <p class="tagline">Tools and docs for your setup</p>
         </div>
       </div>
       <nav class="header-links" aria-label="Project links">
@@ -29,9 +30,16 @@
         <a href="https://hub.docker.com/r/pipepito/acestream-scraper">Docker Hub</a>
       </nav>
     </div>
+    <nav class="wrap tool-nav" aria-label="User tools">
+      <a href="#docker" data-tool="docker" aria-current="page">Docker setup</a>
+      <a href="#recipes" data-tool="recipes">Extraction builder</a>
+      <a href="#docs" data-tool="docs">Docs</a>
+    </nav>
   </header>
 
-  <main class="wrap" id="builder">
+  <main class="wrap" id="tools" tabindex="-1">
+    <section id="builder" data-tool-panel="docker" aria-labelledby="docker-heading">
+    <h2 class="tool-heading" id="docker-heading">Build your Docker setup</h2>
     <p class="intro">
       Answer three questions and copy a ready-to-run <code>docker run</code> command or
       <code>docker-compose.yml</code>. Each choice narrows the next one, so the page only
@@ -196,6 +204,28 @@
       If this keeps happening, please
       <a href="https://github.com/Pipepito/acestream-scraper/issues">open an issue</a>.
     </p>
+    </section>
+
+    <section data-tool-panel="recipes" aria-labelledby="recipes-heading" hidden>
+      <div class="tool-title-row">
+        <h2 class="tool-heading" id="recipes-heading">Extraction builder</h2>
+        <a href="recipes/" target="_blank" rel="noopener">Open in a separate tab ↗</a>
+      </div>
+      <p class="intro">Teach your scraper to read a new source. Start from a sample or a catalogue template, select the fields, and take the recipe back to your app.</p>
+      <iframe id="recipe-tool" title="Extraction recipe builder" data-src="recipes/?embedded=1" referrerpolicy="no-referrer"></iframe>
+    </section>
+
+    <section data-tool-panel="docs" aria-labelledby="docs-heading" hidden>
+      <h2 class="tool-heading" id="docs-heading">Find your next step</h2>
+      <p class="intro">The guides currently live in the project wiki. Start with the task you need help with.</p>
+      <div class="guide-list">
+        <a href="https://github.com/Pipepito/acestream-scraper/wiki/Installation"><strong>Install and upgrade</strong><span>Choose an image, store your data, and start the app.</span><span aria-hidden="true">↗</span></a>
+        <a href="https://github.com/Pipepito/acestream-scraper/wiki/Usage"><strong>First-run walkthrough</strong><span>Find your way around sources, channels, and playlists.</span><span aria-hidden="true">↗</span></a>
+        <a href="https://github.com/Pipepito/acestream-scraper/wiki/Extraction-Recipes"><strong>Add a source with a recipe</strong><span>Prepare a sample, select fields, and test the result.</span><span aria-hidden="true">↗</span></a>
+        <a href="https://github.com/Pipepito/acestream-scraper/wiki/Troubleshooting"><strong>Troubleshoot your setup</strong><span>Check service health, playback, and scraper errors.</span><span aria-hidden="true">↗</span></a>
+        <a href="https://github.com/Pipepito/acestream-scraper/wiki"><strong>Browse all documentation</strong><span>Configuration, integrations, Docker, and more.</span><span aria-hidden="true">↗</span></a>
+      </div>
+    </section>
   </main>
 
   <footer class="site-footer">
@@ -211,5 +241,6 @@
   </footer>
 
   <script src="builder/app.js"></script>
+  <script src="builder/hub.js"></script>
 </body>
 </html>

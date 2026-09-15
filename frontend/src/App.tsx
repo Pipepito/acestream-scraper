@@ -16,6 +16,7 @@ import Integrations from './pages/Integrations';
 import Settings from './pages/Settings';
 import LiveTV from './pages/LiveTV';
 import NotFound from './pages/NotFound';
+const ExtractionBuilder = React.lazy(() => import('./pages/ExtractionBuilder'));
 
 /** Old URLs keep working: they land on the page that now holds that information. */
 export const LEGACY_REDIRECTS: Array<{ from: string; to: string }> = [
@@ -45,6 +46,7 @@ const App: React.FC = () => {
         <Route path="/tv-channels" element={<TVChannels />} />
         <Route path="/tv-channels/:id" element={<TVChannelDetail />} />
         <Route path="/scraper" element={<Scraper />} />
+        <Route path="/scraper/builder" element={<React.Suspense fallback={<p>Loading extraction builder…</p>}><ExtractionBuilder /></React.Suspense>} />
         <Route path="/epg" element={<EPG />} />
         <Route path="/epg/channels/:id" element={<EPGChannelDetail />} />
         <Route path="/playlist" element={<Playlist />} />

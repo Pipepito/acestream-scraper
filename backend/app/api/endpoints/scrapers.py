@@ -12,6 +12,10 @@ from app.schemas.scraper import ScraperRequest, ScraperResult, URLResponse, URLC
 from app.services.scraper_service import ScraperService
 from app.services.manual_job_service import run_manual_job, scrape_batch
 
+from starlette.concurrency import run_in_threadpool
+from app.schemas.extraction import RecipePreview, RecipePreviewRequest, RecipeSample, RecipeFetchRequest
+from app.services.extraction_service import preview_recipe, fetch_recipe_sample
+
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
@@ -202,3 +206,21 @@ async def scrape_all_urls(
             status="pending"
         ))
     return results
+
+
+@router.post("/recipes/preview", response_model=RecipePreview)
+async def preview_extraction(request: RecipePreviewRequest):
+    """Test a sample in an isolated worker. No source/channel writes."""
+    try:
+        return await run_in_threadpool(preview_recipe, request.recipe, request.sample)
+    except ValueError as exc:
+        raise APIError(code="RECIPE_INVALID", message=str(exc), status_code=422) from exc
+
+
+@router.post("/recipes/sample", response_model=RecipeSample)
+async def fetch_extraction_sample(request: RecipeFetchRequest):
+    """Fetch a bounded source sample using the installed app, without scraping."""
+    try:
+        return RecipeSample(sample=await fetch_recipe_sample(request.url, request.url_type))
+    except ValueError as exc:
+        raise APIError(code="RECIPE_FETCH_FAILED", message=str(exc), status_code=422) from exc

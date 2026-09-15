@@ -396,3 +396,15 @@ Free space belongs to a filesystem, not each directory. See `wiki/Storage.md`.
 Preview upload admission and byte/deadline limits precede JSON parsing. Keep
 32 MiB source support separate from the bounded browser rendering budget; heavy
 sources retain raw/manual-field workflows and installed extraction tests.
+
+## ARM engine startup and DNS ownership
+
+Pinned OCI engine payloads must enter through `aceserve.main()`; direct
+`Core.run()` skips distribution initialization and can return `mod_detected`
+while health checks pass. The preserved `main.py.oci-orig` selects the OCI path;
+legacy APKs retain Core. Keep persistent homes, per-install identity and process
+supervision intact. Playback/checker processes share `/dev/socket/dnsproxyd` via
+`bionic_dns.py`: hold its file lock throughout the listener lifetime, never delete
+the lock file, and let the surviving engine take over after owner exit. Never
+start competing upstream listeners that can unlink each other's socket. See
+`docs/ops/arm64-mod-detected.md` for live-test scope and remaining network limits.

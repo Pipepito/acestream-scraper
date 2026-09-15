@@ -247,7 +247,7 @@ ARM caveats:
 The web player, remote players (VLC/Kodi) and the Jellyfin/Plex tuner all ask the engine to start a stream, so what they can do depends on which engine your platform runs:
 
 - **amd64** runs the native Linux engine 3.2.11 and is unaffected. Everything works as documented.
-- **arm64** runs the `jopsis/acestream:v3.2.17-fix` distribution, which is not premium-gated. The web player, remote players and the tuner should work. What has been checked on real hardware is that the engine starts and answers its API — a live channel has not yet been played end to end on an ARM64 board, so treat playback there as expected rather than proven. If a stream does fail you will see it plainly: the player says "The AceStream engine could not start this channel: …" with the engine's own words after it. Tell us if it works (or does not) on your board.
+- **arm64** runs `jopsis/acestream:v3.2.17-fix`. On 2026-09-15, tests on Apple Silicon verified audio/video delivery after correcting the bundled launcher to use the distribution's `aceserve.main()` entry point. The previous direct `Core.run()` call could return `mod_detected` despite healthy startup checks. The fix retains the pinned engine and persistent device identity. See the [playback investigation](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/ops/arm64-mod-detected.md) for test scope and the separate fresh-ID lookup failures observed in upstream builds. This is not a guarantee for every source or ARM board.
 - **armv7** uses the matching 32-bit variant of
   `jopsis/acestream:v3.2.17-fix`. It builds and installs, but cannot execute
   under QEMU user emulation and has not been runtime-tested on real ARMv7
@@ -255,8 +255,8 @@ The web player, remote players (VLC/Kodi) and the Jellyfin/Plex tuner all ask th
 
 The official Android engines are still known to answer playback outside
 AceStream's own app with "To continue, you need to activate premium"; the
-current ARM images avoid those official builds. Do not work around that check
-by reporting a false app identity. Two related failures can look similar:
+current ARM images use the community distribution described above. Do not work around that check
+by reporting a false app identity. The playback and checking engines share the Android DNS socket through a process lock; a second engine must not remove the active listener. Other failures can look similar:
 
 - **A DNS blocklist.** Pi-hole/AdGuard lists that sinkhole `*.acestream.media` or `*.acestream.net` cut the 3.2.x engines off from their licence check, and the failure looks identical. Allow those two domains on the host running the engine before blaming the engine version.
 - **The engine refusing a client address.** `ACESTREAM_BIND_ALL` (default `true`) applies on every platform: the entrypoint appends `--bind-all` to the engine start command so clients that are not on loopback or a private address — Tailscale, IPv6 LANs, unusual Docker networks — are accepted on a published `6878`. Set it to `false` to restore the engine's own filter.

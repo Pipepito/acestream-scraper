@@ -146,7 +146,7 @@ class TestRedirectGuarding:
             calls.append(url)
             return FakeResponse()
 
-        monkeypatch.setattr(epg_module.requests, "get", fake_get)
+        monkeypatch.setattr("app.services.epg_sources.source_get", fake_get)
 
         service = epg_module.EPGService(db=None)
         source = SimpleNamespace(id=1, url="http://public.example.com/epg.xml")

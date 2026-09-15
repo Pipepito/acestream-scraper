@@ -5,6 +5,7 @@ import re
 
 import logging
 import aiohttp
+from app.utils.outbound_http import source_session
 from typing import List, Tuple, Dict, Any, Set
 from urllib.parse import urljoin, urlparse
 
@@ -56,7 +57,7 @@ class M3UService:
         tv_channel_service=None,
     ) -> List[Tuple[str, str, Dict[str, Any]]]:
         """Fetch and parse channels from a remote M3U URL."""
-        async with aiohttp.ClientSession(headers=self.headers) as session:
+        async with source_session(headers=self.headers) as session:
             async with session.get(m3u_url) as response:
                 response.raise_for_status()
                 content = await response.text()

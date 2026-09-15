@@ -1,8 +1,8 @@
 """The ARM engine docs must keep saying what playback a user can expect.
 
 Both ARM platforms now use the matching variant of the community
-`jopsis/acestream` 3.2.17 distribution. ARM64 API/startup is verified but live
-playback is not; ARMv7 builds and installs but has not run on real hardware.
+`jopsis/acestream` 3.2.17 distribution. ARM64 has bounded live-media evidence
+with the corrected entry point; ARMv7 has not run on real hardware.
 The docs must preserve that distinction and name `ACESTREAM_BIND_ALL`, which
 reaches every platform through the entrypoint.
 """

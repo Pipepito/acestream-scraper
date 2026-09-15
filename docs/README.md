@@ -10,11 +10,12 @@ The application has two canonical roots:
 ## User guides
 
 - [Illustrated v2 walkthrough](../wiki/Usage.md): sources, checks, TV channels, EPG, playlists and Live TV.
+- [Extraction builder guide](../wiki/Extraction-Recipes.md): worked HTML, regex and JSON examples, limits, troubleshooting and saving recipes.
 - [Installation and upgrades](../wiki/Installation.md) and [Docker storage/platforms](../wiki/Docker.md).
 - [Configuration](../wiki/Configuration.md), [troubleshooting](../wiki/Troubleshooting.md) and [diagnostic bug reports](../wiki/Bug-Reporting.md).
 - [Docker command builder](https://pipepito.github.io/acestream-scraper/): generated commands with platform-aware services, checker isolation and storage.
 
-The `wiki/` directory is mirrored to the GitHub wiki after its changes pass validation on `develop`; edit that source directory for durable user-guide changes.
+The manual release job mirrors `wiki/` to the GitHub wiki after successful latest promotion. Edit that source directory for durable user-doc changes. Develop validates documentation without publishing it; Pages serves `main/docs`, and Docker Hub text is published manually.
 
 ## Key Docs
 

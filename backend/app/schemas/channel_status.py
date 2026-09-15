@@ -1,6 +1,7 @@
 """
 Schemas for channel status operations
 """
+from app.schemas.stream_stats import StreamStats
 from datetime import datetime
 from typing import Optional, Literal
 from pydantic import BaseModel, ConfigDict
@@ -15,6 +16,7 @@ class ChannelStatusResponse(BaseModel):
     message: str
     last_checked: datetime
     error: Optional[str] = None
+    stream_stats: Optional[StreamStats] = None
 
     model_config = ConfigDict(from_attributes=True)
 

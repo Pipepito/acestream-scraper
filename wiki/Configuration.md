@@ -321,9 +321,9 @@ You can check the health status with: `docker inspect --format='{{.State.Health.
 
 ## Legacy environment aliases
 
-Version 2 accepts these legacy environment aliases for compatibility with existing installations. Use the canonical names for new setups. If both legacy and canonical vars are set with different values, canonical vars win and a warning is emitted at startup.
+v2.1 keeps legacy names working and shows deprecation warnings in startup logs and Overview → Storage. Nonempty canonical values take precedence when both names are set; otherwise the old values remain effective. Warnings contain variable names only.
 
-Legacy aliases currently mapped:
+Update these names in your Compose file, container settings or `.env` file when convenient:
 
 - `SCRAPER_DB_URL` -> `DATABASE_URL`
 - `LEGACY_DB_URL` -> `LEGACY_DATABASE_URL`
@@ -332,6 +332,4 @@ Legacy aliases currently mapped:
 - `FRONTEND_STATIC_DIR` -> `FRONTEND_BUILD_PATH`
 - `ACESTREAM_ENGINE_URL` -> `ACE_ENGINE_URL`
 
-Disable alias compatibility explicitly with:
-
-- `ENABLE_LEGACY_ENV_ALIASES=false`
+`ENABLE_LEGACY_ENV_ALIASES` is no longer required and does not disable compatibility. See the [v2.1 upgrade notes](../docs/release/v2.1-release-notes.md).

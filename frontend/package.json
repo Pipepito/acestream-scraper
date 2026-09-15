@@ -22,13 +22,14 @@
   },
   "scripts": {
     "start": "vite --host 0.0.0.0 --port 3000",
-    "build": "vite build",
-    "build:backend": "vite build && node scripts/copy-build.js",
+    "build": "vite build && npm run build:recipes",
+    "build:backend": "npm run build && node scripts/copy-build.js",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
     "test": "jest",
     "lint": "eslint 'src/**/*.{ts,tsx}'",
     "typecheck": "tsc --noEmit",
-    "codegen": "openapi-typescript ../backend/openapi.json -o src/types/api-generated.ts"
+    "codegen": "openapi-typescript ../backend/openapi.json -o src/types/api-generated.ts",
+    "build:recipes": "vite build --config vite.recipes.config.ts"
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",

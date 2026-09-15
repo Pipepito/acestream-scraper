@@ -171,7 +171,7 @@ def test_resolver_respects_explicit_environment_overrides(monkeypatch: pytest.Mo
 
 
 def test_android_bootstrap_files_are_shipped():
-    for name in ("start-engine", "main_linux.py", "app_bridge.py", "acestream.conf"):
+    for name in ("start-engine", "main_linux.py", "app_bridge.py", "bionic_dns.py", "acestream.conf"):
         assert (ANDROID_BOOTSTRAP_DIR / name).is_file(), name
     launcher = (ANDROID_BOOTSTRAP_DIR / "start-engine").read_text(encoding="utf-8")
     assert "PAGESIZE" in launcher  # 16 KB-page kernels must fail loudly

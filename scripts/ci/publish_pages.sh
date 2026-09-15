@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
-# Publish the Docker command builder to GitHub Pages.
+# Legacy manual publisher for an explicitly configured alternate Pages branch.
+# Not used by Jenkins: production Pages serves main/docs. Prefer prepare_pages.sh
+# and commit the prepared docs/recipes assets through the normal release PR.
 #
-# The builder is a static page (docs/index.html + docs/builder/, no build
-# step). This script assembles exactly that payload — index.html, builder/,
-# .nojekyll — and pushes it to the gh-pages branch of the repository; GitHub
+# The hub and command builder are static (docs/index.html + docs/builder/).
+# The extraction helper is prebuilt into frontend/dist-recipes/. This script
+# assembles index.html, builder/, recipes/ and .nojekyll, then pushes them
+# to the gh-pages branch of the repository; GitHub
 # Pages is configured once to serve gh-pages / root ("Deploy from a branch"),
 # so a validated Jenkins build is the deployment and no GitHub Actions
 # workflow is authored here. Only the site files are published: the rest of
@@ -63,6 +66,16 @@ mkdir -p "$payload"
 cp "$ROOT/docs/index.html" "$payload/index.html"
 cp -R "$ROOT/docs/builder" "$payload/builder"
 touch "$payload/.nojekyll"
+# The React helper is built before publication credentials are made available.
+if [[ -f "$ROOT/frontend/recipe-helper/index.html" ]]; then
+  if [[ "$DRY_RUN" -eq 0 ]]; then
+    [[ -f "$ROOT/frontend/dist-recipes/index.html" ]] || fail "Build the recipe helper first: npm --prefix frontend run build:recipes"
+    cp -R "$ROOT/frontend/dist-recipes" "$payload/recipes"
+  else
+    log "dry-run: recipes/ will be included from the prepared frontend/dist-recipes build"
+  fi
+fi
+
 
 # Only a completed promotion from the checked-out main commit may update the
 # production label. Ordinary develop publishes retain the existing label.

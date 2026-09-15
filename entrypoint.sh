@@ -378,15 +378,16 @@ export ZERONET_FILESERVER_PORT="${ZERONET_FILESERVER_PORT:-26552}"
 export ZERONET_TRACKERS="${ZERONET_TRACKERS:-udp://tracker.opentrackr.org:1337/announce udp://open.stealth.si:80/announce udp://tracker.torrent.eu.org:451/announce}"
 if feature_enabled "$ENABLE_ZERONET"; then
     # Keep the scraper pointed at the embedded node when the operator hasn't
-    # chosen an explicit external endpoint (the image bakes the 43110
-    # default, so also rewrite that when the UI port moved).
+    # chosen an explicit external endpoint. Also rewrite the conventional
+    # 43110 default when the UI port moved.
+    ZERONET_URL="${ZERONET_URL:-${ZERONET_BASE_URL:-}}"
     case "${ZERONET_URL:-}" in
         ""|http://127.0.0.1:43110)
             ZERONET_URL="http://127.0.0.1:$ZERONET_UI_PORT"
             ;;
     esac
 fi
-export ZERONET_URL="${ZERONET_URL:-http://127.0.0.1:43110}"
+export ZERONET_URL="${ZERONET_URL:-${ZERONET_BASE_URL:-http://127.0.0.1:43110}}"
 export IPFS_SWARM_PORT="${IPFS_SWARM_PORT:-4001}"
 export IPFS_API_PORT="${IPFS_API_PORT:-5001}"
 # 8080 belongs to Acexy in-container, so the embedded gateway defaults to 8081.
@@ -454,9 +455,9 @@ if feature_enabled "$ENABLE_ACEXY" && ! feature_enabled "$ENABLE_ACESTREAM_ENGIN
 fi
 
 if feature_enabled "$ENABLE_ACESTREAM_ENGINE"; then
-    export ACE_ENGINE_URL="${ACE_ENGINE_URL:-http://$ACESTREAM_HTTP_HOST:$ACESTREAM_HTTP_PORT}"
+    export ACE_ENGINE_URL="${ACE_ENGINE_URL:-${ACESTREAM_ENGINE_URL:-http://$ACESTREAM_HTTP_HOST:$ACESTREAM_HTTP_PORT}}"
 else
-    export ACE_ENGINE_URL="${ACE_ENGINE_URL:-}"
+    export ACE_ENGINE_URL="${ACE_ENGINE_URL:-${ACESTREAM_ENGINE_URL:-}}"
 fi
 # Optional checker process: never derive its command from a custom playback
 # command, which may hard-code shared state, ports or background execution.

@@ -184,6 +184,7 @@ Important runtime env expectations:
 
 - `ENABLE_WARP` enables WARP only when set to `true`
 - `WARP_ENABLE_NAT` connects WARP and enables NAT at startup when set to `true` (default `false`; otherwise connect from the WARP page)
+
 - `ENABLE_ACESTREAM_ENGINE` starts the installed AceStream engine only when set to `true`
 - `ENABLE_ACEXY` starts the installed Acexy binary only when set to `true`
 - `ACESTREAM_HTTP_HOST` and `ACESTREAM_HTTP_PORT` define the in-container AceStream endpoint
@@ -192,6 +193,17 @@ Important runtime env expectations:
 - `ENABLE_ZERONET` starts the bundled ZeroNet node only when set to `true` (amd64 and arm64 images); `ENABLE_TOR` adds TOR for it
 - `ENABLE_IPFS` starts the embedded Kubo IPFS daemon only when set to `true` (amd64/arm64 images)
 - `IPFS_GATEWAY_URL` points the scraper to the IPFS HTTP gateway used for `ipfs://`/`ipns://` sources (defaults to the embedded gateway `http://127.0.0.1:8081`)
+
+With automatic connection enabled, startup waits for the tunnel to report
+Connected before launching the engines. If it cannot connect within the startup
+readiness budget, startup fails with a WARP error. The ARM engines follow DNS
+changes when WARP connects or disconnects.
+
+If known-working IDs return `failed to load content` while cached channels still
+play, compare with WARP connected. Fresh ARM64 tests on 2026-09-15 resolved and
+played three IDs through WARP that failed on the direct route. This can indicate
+a network-path problem; increasing playback timeouts alone does not fix it.
+See the [controlled comparison](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/ops/arm64-mod-detected.md#fresh-state-warp-comparison).
 
 The default compose example uses `http://host.docker.internal:43110` so the app can still boot when the optional `zeronet` profile is not enabled.
 
@@ -247,7 +259,7 @@ ARM caveats:
 The web player, remote players (VLC/Kodi) and the Jellyfin/Plex tuner all ask the engine to start a stream, so what they can do depends on which engine your platform runs:
 
 - **amd64** runs the native Linux engine 3.2.11 and is unaffected. Everything works as documented.
-- **arm64** runs the `jopsis/acestream:v3.2.17-fix` distribution, which is not premium-gated. The web player, remote players and the tuner should work. What has been checked on real hardware is that the engine starts and answers its API — a live channel has not yet been played end to end on an ARM64 board, so treat playback there as expected rather than proven. If a stream does fail you will see it plainly: the player says "The AceStream engine could not start this channel: …" with the engine's own words after it. Tell us if it works (or does not) on your board.
+- **arm64** runs `jopsis/acestream:v3.2.17-fix`. On 2026-09-15, tests on Apple Silicon verified audio/video delivery after correcting the bundled launcher to use the distribution's `aceserve.main()` entry point. The previous direct `Core.run()` call could return `mod_detected` despite healthy startup checks. The fix retains the pinned engine and persistent device identity. See the [playback investigation](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/ops/arm64-mod-detected.md) for test scope and the successful fresh-ID comparison with WARP connected. This is not a guarantee for every source or ARM board.
 - **armv7** uses the matching 32-bit variant of
   `jopsis/acestream:v3.2.17-fix`. It builds and installs, but cannot execute
   under QEMU user emulation and has not been runtime-tested on real ARMv7
@@ -255,8 +267,8 @@ The web player, remote players (VLC/Kodi) and the Jellyfin/Plex tuner all ask th
 
 The official Android engines are still known to answer playback outside
 AceStream's own app with "To continue, you need to activate premium"; the
-current ARM images avoid those official builds. Do not work around that check
-by reporting a false app identity. Two related failures can look similar:
+current ARM images use the community distribution described above. Do not work around that check
+by reporting a false app identity. The playback and checking engines share the Android DNS socket through a process lock; a second engine must not remove the active listener. Other failures can look similar:
 
 - **A DNS blocklist.** Pi-hole/AdGuard lists that sinkhole `*.acestream.media` or `*.acestream.net` cut the 3.2.x engines off from their licence check, and the failure looks identical. Allow those two domains on the host running the engine before blaming the engine version.
 - **The engine refusing a client address.** `ACESTREAM_BIND_ALL` (default `true`) applies on every platform: the entrypoint appends `--bind-all` to the engine start command so clients that are not on loopback or a private address — Tailscale, IPv6 LANs, unusual Docker networks — are accepted on a published `6878`. Set it to `false` to restore the engine's own filter.

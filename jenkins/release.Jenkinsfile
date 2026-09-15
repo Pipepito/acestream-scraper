@@ -58,7 +58,7 @@ bash scripts/ci/cleanup_runner_docker.sh \
   --builder-keep 1GB \
   --min-free-gb 8
 bash scripts/ci/validate_command_builder.sh
-bash scripts/ci/publish_pages.sh --dry-run
+bash scripts/ci/publish_wiki.sh --dry-run
 bash scripts/ci/bootstrap_jenkins_runner.sh
 docker buildx use "${JENKINS_BUILDER:-acestream-builder}"
 '''
@@ -96,30 +96,22 @@ docker buildx use "${JENKINS_BUILDER:-acestream-builder}"
       }
     }
 
-    stage('Publish production docs') {
-      when {
-        expression { !params.DRY_RUN && params.PUBLISH_LATEST }
-      }
+    stage('Publish release wiki') {
+      when { expression { !params.DRY_RUN && params.PUBLISH_LATEST } }
       steps {
         withCredentials([usernamePassword(
           credentialsId: 'github-publish',
           usernameVariable: 'GITHUB_PUBLISH_USERNAME',
           passwordVariable: 'GITHUB_PUBLISH_TOKEN'
         )]) {
-          sh 'bash scripts/ci/publish_pages.sh --promoted-release'
-        }
-      }
-    }
-
-    stage('Publish production Docker Hub description') {
-      when { expression { !params.DRY_RUN && params.PUBLISH_LATEST } }
-      steps {
-        withCredentials([usernamePassword(
-          credentialsId: 'dockerhub-publish',
-          usernameVariable: 'DOCKERHUB_USERNAME',
-          passwordVariable: 'DOCKERHUB_TOKEN'
-        )]) {
-          sh 'python3 -I scripts/ci/publish_dockerhub_description.py'
+          script {
+            def wikiStatus = sh(returnStatus: true, script: 'bash scripts/ci/publish_wiki.sh')
+            if (wikiStatus == 3) {
+              unstable('Wiki repository is not initialized. Create its first page in GitHub, then retry wiki publication from this release checkout.')
+            } else if (wikiStatus != 0) {
+              error('Release wiki publication failed. Images are already promoted; retry wiki publication from this release checkout.')
+            }
+          }
         }
       }
     }

@@ -88,3 +88,19 @@ def test_dry_run_never_publishes(pages):
     assert result.returncode == 0, result.stderr
     assert "release-status.json" in result.stdout
     assert not git(remote, "for-each-ref", "refs/heads/gh-pages")
+
+
+def test_recipe_helper_is_required_and_published_when_present(pages):
+    repo, remote, _ = pages
+    (repo / 'frontend/recipe-helper').mkdir(parents=True)
+    (repo / 'frontend/recipe-helper/index.html').write_text('builder source')
+    missing = publish(repo)
+    assert missing.returncode != 0
+    assert 'Build the recipe helper first' in missing.stderr
+    (repo / 'frontend/dist-recipes/assets').mkdir(parents=True)
+    (repo / 'frontend/dist-recipes/index.html').write_text('compiled helper')
+    (repo / 'frontend/dist-recipes/assets/app.js').write_text('compiled script')
+    result = publish(repo)
+    assert result.returncode == 0, result.stderr
+    assert git(remote, 'show', 'gh-pages:recipes/index.html') == 'compiled helper'
+    assert git(remote, 'show', 'gh-pages:recipes/assets/app.js') == 'compiled script'

@@ -39,6 +39,7 @@ class ScraperService:
         """
         logger.info(f"Scraping URL: {url} (type: {url_type})")
 
+        custom_recipe = False
         try:
             scraper = create_scraper_for_url(url, url_type)
             try:
@@ -53,7 +54,20 @@ class ScraperService:
             scraper.tv_channel_service = tv_channel_service
             url_record = self.url_repository.get_by_url(url) or self.url_repository.get_by_url(source_url)
             scraper.scrape_bare_ids = bool(url_record.scrape_bare_ids) if url_record else False
-            raw_channels, status = await scraper.scrape()
+            if url_record and url_record.extraction_recipe:
+                custom_recipe = True
+                from starlette.concurrency import run_in_threadpool
+                from app.schemas.extraction import ExtractionRecipe
+                from app.services.extraction_service import fetch_recipe_sample, preview_recipe
+                recipe = ExtractionRecipe.model_validate(url_record.extraction_recipe)
+                sample = await fetch_recipe_sample(url, url_type)
+                preview = await run_in_threadpool(preview_recipe, recipe, sample)
+                if not preview.channels or preview.invalid_count:
+                    raise ValueError('Recipe returned missing or invalid records; source channels were preserved. Test the recipe before scraping again.')
+                raw_channels = [(item.channel_id, item.name, item.metadata) for item in preview.channels]
+                status = "OK"
+            else:
+                raw_channels, status = await scraper.scrape()
 
             # Auto-create TV channels from EPG and assign tv_channel_id
             m3u_service = M3UService()
@@ -62,7 +76,7 @@ class ScraperService:
             new_channel_ids = {channel_id for channel_id, _, _ in raw_channels}
             source_urls = {url, source_url}
             source_query = self.db.query(AcestreamChannel).filter(AcestreamChannel.source_url.in_(source_urls))
-            if new_channel_ids:
+            if new_channel_ids and not (url_record and url_record.extraction_recipe):
                 source_query = source_query.filter(~AcestreamChannel.id.in_(new_channel_ids))
                 source_query.delete(synchronize_session=False)
 
@@ -89,6 +103,8 @@ class ScraperService:
                 )
                 persisted_channels.append(persisted)
             self.db.commit()
+            if custom_recipe:
+                await scraper.update_url_status(source_url, "OK")
 
             return [
                 ChannelResult(
@@ -107,6 +123,8 @@ class ScraperService:
 
         except Exception as e:
             self.db.rollback()
+            if custom_recipe:
+                await scraper.update_url_status(source_url, "Error: Recipe extraction failed; test the source configuration")
             logger.error(f"Error scraping URL {url}: {str(e)}")
             return [], f"Error: {str(e)}"
 
@@ -161,6 +179,8 @@ class ScraperService:
             url.enabled = url_data.enabled
             url.status = url_data.status
             url.scrape_bare_ids = url_data.scrape_bare_ids
+            if "extraction_recipe" in url_data.model_fields_set:
+                url.extraction_recipe = url_data.extraction_recipe.model_dump() if url_data.extraction_recipe else None
             url = self.url_repository.update(url)
             return URLResponse.model_validate(url)
         # Create new if not exists
@@ -169,7 +189,8 @@ class ScraperService:
             url_type=url_data.url_type,
             enabled=url_data.enabled,
             status=url_data.status,
-            scrape_bare_ids=url_data.scrape_bare_ids
+            scrape_bare_ids=url_data.scrape_bare_ids,
+            extraction_recipe=url_data.extraction_recipe.model_dump() if url_data.extraction_recipe else None
         )
         self.url_repository.add(url)
         self.db.refresh(url)

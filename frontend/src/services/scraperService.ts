@@ -2,6 +2,7 @@
  * Scraper API service
  */
 import apiClient from './apiClient';
+import type { ExtractionRecipe } from '../recipes/types';
 
 /**
  * Scraper URL model interface
@@ -19,6 +20,7 @@ export interface ScrapedURL {
   added_at: string;
   channels_found?: number;
   scrape_bare_ids?: boolean;
+  extraction_recipe?: ExtractionRecipe | null;
 }
 
 /**
@@ -29,6 +31,7 @@ export interface CreateURLDTO {
   url_type: string;
   enabled?: boolean;
   scrape_bare_ids?: boolean;
+  extraction_recipe?: ExtractionRecipe | null;
 }
 
 /**
@@ -39,6 +42,7 @@ export interface UpdateURLDTO {
   url_type?: string;
   enabled?: boolean;
   scrape_bare_ids?: boolean;
+  extraction_recipe?: ExtractionRecipe | null;
 }
 
 /**

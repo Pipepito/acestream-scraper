@@ -56,7 +56,7 @@ python3 scripts/ci/validate_documentation.py
 python3 scripts/ci/validate_docker_docs_contract.py
 bash scripts/ci/validate_command_builder.sh
 bash scripts/ci/publish_wiki.sh --dry-run
-bash scripts/ci/publish_pages.sh --dry-run
+bash scripts/ci/prepare_pages.sh
 python3 scripts/ci/publish_dockerhub_description.py --dry-run
 ```
 
@@ -66,6 +66,6 @@ These previews do not publish. Documentation-only PRs use lightweight checks; ap
 
 Open feature and fix PRs against `develop`. `main` is the release branch. Include what changed and the checks you ran. Read the root and relevant directory's `AGENTS.md` and `CLAUDE.md` for repository conventions.
 
-Edit the user guides in `wiki/`; Jenkins mirrors them to GitHub's wiki. Edit Docker Hub text in `docs/dockerhub/`. Keep the root README focused on what the project does and where to start.
+Edit the user docs in `wiki/`; the manual release job mirrors them to GitHub's wiki after successful latest promotion. GitHub Pages serves `main/docs`; rebuild and commit `docs/recipes/` with `bash scripts/ci/prepare_pages.sh` when the extraction helper changes. Edit Docker Hub text in `docs/dockerhub/` and copy it to Docker Hub manually. Develop validates documentation without publishing it. Keep the root README focused on what the project does and where to start.
 
 See the [technical documentation index](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/README.md), [Jenkins runbook](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/ops/jenkins-ci.md), and [test ownership guide](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/testing/test-ownership-matrix.md) for deeper work.

@@ -3,6 +3,10 @@
 Mirrors the APK's ``main.py`` (RPC host, home dir, ``acestream.conf`` tokens,
 ``--client-console``) without redirecting stdout/stderr into
 ``acestream_std.log``, so ``--log-stdout`` output reaches ``docker logs``.
+OCI distributions must enter through their packaged ``aceserve.main()``;
+calling Core.run directly skips distribution initialization and can reject
+playback with mod_detected even though health/version requests succeed.
+Legacy APK payloads retain their original Core.run entry point.
 Launched by ``start-engine`` with the bionic CPython 3.8 from the payload.
 """
 import os
@@ -42,21 +46,13 @@ def configure_bionic_dns():
     """
     try:
         import dns.resolver
-        from dnsproxyd import dns_daemon
+        from dnsproxyd import dnsproxyd_listener
+        from bionic_dns import container_resolver, start_shared_dns
 
-        nameservers = []
-        with open("/etc/resolv.conf") as handle:
-            for line in handle:
-                fields = line.split()
-                if len(fields) == 2 and fields[0] == "nameserver":
-                    nameservers.append(fields[1])
-        if not nameservers:
-            return
-        resolver = dns.resolver.Resolver(configure=False)
-        resolver.nameservers = nameservers
+        resolver = container_resolver(dns.resolver.Resolver, log)
         dns.resolver.override_system_resolver(resolver)
-        dns_daemon(resolver)
-        log("bionic DNS resolver configured: {}".format(", ".join(nameservers)))
+        start_shared_dns(dnsproxyd_listener, resolver)
+        log("bionic DNS resolver configured")
     except Exception as exc:
         log("bionic DNS resolver unavailable: {}".format(exc))
 
@@ -64,8 +60,6 @@ def configure_bionic_dns():
 try:
     log("linux bootstrap; home {}".format(home_dir))
     configure_bionic_dns()
-    from acestreamengine import Core
-
     conf_file = os.path.join(home_dir, "acestream.conf")
     parsed_params = []
     if os.path.isfile(conf_file):
@@ -81,7 +75,18 @@ try:
     if "--client-console" not in params:
         params.append("--client-console")
     params.extend(parsed_params)
-    Core.run(params)
+    # The installer preserves this file only for the pinned OCI distribution.
+    # Do not fall back to Core if its packaged entry point fails: that can
+    # produce a healthy API with broken playback and hide installation errors.
+    if os.path.isfile(os.path.join(os.path.dirname(__file__), "main.py.oci-orig")):
+        import aceserve
+
+        sys.argv = params
+        aceserve.main()
+    else:
+        from acestreamengine import Core
+
+        Core.run(params)
 except Exception as exc:  # noqa: BLE001 - surface and exit non-zero
     log("Got error on start: {}".format(exc))
     try:

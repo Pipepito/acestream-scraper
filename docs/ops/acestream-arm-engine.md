@@ -20,7 +20,7 @@ Related documents:
 | Platform | Engine | `install.kind` | `support` | Notes |
 |---|---|---|---|---|
 | `linux/amd64` | Native Linux engine 3.2.11 (`acestream_3.2.11_ubuntu_22.04_x86_64_py3.10.tar.gz`) | `executable` | `stable` | Unchanged: upstream tarball on a grafted `python3.10`. |
-| `linux/arm64` | Android engine 3.2.17 from [`jopsis/acestream:v3.2.17-fix`](https://hub.docker.com/r/jopsis/acestream) | `oci-image` | `stable` | Non-premium-gated distribution; immutable OCI digest; API/startup verified on ARM64. |
+| `linux/arm64` | Android engine 3.2.17 from [`jopsis/acestream:v3.2.17-fix`](https://hub.docker.com/r/jopsis/acestream) | `oci-image` | `stable` | Immutable OCI digest; audio/video verified on Apple Silicon with the corrected launcher; see the investigation below. |
 | `linux/arm/v7` | Android engine 3.2.17 from [`jopsis/acestream:v3.2.17-fix`](https://hub.docker.com/r/jopsis/acestream) | `oci-image` | `experimental` | Matching ARMv7 OCI variant; builds and installs; cannot execute under qemu-user; not runtime-tested on hardware yet. |
 
 `support` is the value from `docker/manifests/acestream.json`; the resolved
@@ -57,8 +57,9 @@ the image runs the payload against the accompanying bionic userland:
    `docker/scripts/acestream-android/start-engine`): sets `ANDROID_ROOT=/system`,
    `PYTHONHOME`, `PYTHONPATH`, and `LD_LIBRARY_PATH`, checks the kernel page
    size, seeds `ACESTREAM_HOME/acestream.conf`, and execs the bionic `python`
-   with `main_linux.py`. `main_linux.py` is a Linux copy of the APK bootstrap
-   that keeps `--log-stdout` output on stdout so it reaches `docker logs`.
+   with `main_linux.py`. The Linux bootstrap enters OCI payloads through
+   their packaged `aceserve.main()`; legacy APKs retain `Core.run()`. It keeps
+   `--log-stdout` output on stdout so it reaches `docker logs`.
    `app_bridge.py` replaces the Android RPC client: it answers the engine's
    device questions locally (persistent per-install device id in
    `ACESTREAM_HOME/.device_id`, disk answers from `statvfs`, memory from
@@ -67,6 +68,12 @@ the image runs the payload against the accompanying bionic userland:
 `ACESTREAM_START_COMMAND` is identical on every platform
 (`env PYTHONPATH=/opt/acestream/python-deps /opt/acestream/start-engine --client-console --http-port 6878`):
 on amd64 `start-engine` is upstream's wrapper, on ARM it is the script above.
+The bundled engines share Android's fixed `/dev/socket/dnsproxyd` socket.
+`bionic_dns.py` holds an OS file lock for the listener's lifetime; the other
+engine waits and takes over when the owner exits. The lock file must not be
+unlinked. This prevents a second listener from deleting a live socket, including
+when the playback and checking engines start together.
+
 No chroot, `--privileged`, seccomp profile, or extra capabilities are required
 (verified on arm64).
 
@@ -260,18 +267,21 @@ depends on which engine the platform runs.
 | Platform | Engine | What playback to expect |
 |---|---|---|
 | `linux/amd64` | Native Linux engine 3.2.11 | Unaffected. This is the reference platform for every media feature. |
-| `linux/arm64` | `jopsis/acestream:v3.2.17-fix` (community distribution) | Expected to work. API and startup are verified on ARM64 hardware; live playback is **not** confirmed on hardware yet. |
+| `linux/arm64` | `jopsis/acestream:v3.2.17-fix` (community distribution) | Fresh-ID audio/video verified on Apple Silicon using the corrected entry point and WARP (2026-09-15). See the controlled routing comparison. |
 | `linux/arm/v7` | `jopsis/acestream:v3.2.17-fix` (community distribution) | Builds and installs, but has not been runtime-tested on real ARMv7 hardware; live playback is unconfirmed. |
 
-**ARM64.** The 3.2.17 distribution is not premium-gated, so the web player,
-remote players and the tuner should all work there. What has actually been
-verified is that the engine starts and answers its API; nobody has yet played a
-live channel end to end on an ARM64 board. If a stream does fail, the app says
-so instead of hanging: the web player reports "The AceStream engine could not
-start this channel: …" with the engine's own text appended, the tuner answers
-`502 ENGINE_REFUSED`, and a remote player gets the same message. Reports from
-real hardware are welcome — that is the one thing that would let this row and
-the support level be tightened.
+**ARM64.** A 2026-09-15 reproduction found that the bundled launcher skipped
+the distribution's `aceserve.main()` and called `Core.run()` directly. That
+returned `mod_detected` even though version and health checks passed. The same
+pinned 3.2.17-fix payload delivered verified audio/video when started through its
+packaged entry point, retaining the project's persistent home and device identity.
+No binary, version pin, or reported app identity changed.
+
+See [ARM64 playback investigation](arm64-mod-detected.md) for the version matrix,
+packaging tests and the controlled WARP comparison. Fresh IDs failed on the direct
+route but resolved and delivered media through WARP, including after reconnecting
+the same engine. Network restrictions must be diagnosed separately from the
+launcher regression; WARP remains opt-in.
 
 **ARMv7.** The current image uses the matching 32-bit variant of the same
 `jopsis/acestream:v3.2.17-fix` distribution. It builds and installs, but the
@@ -302,8 +312,9 @@ lifts; on the Android engines the flag is harmless. An explicit
 
 - Engine version skew: ARM64 and ARMv7 run 3.2.17, while amd64 runs 3.2.11;
   `get_version` reports `"platform":"android"` on ARM.
-- Live playback is unconfirmed on ARM64 hardware, and the ARMv7 engine has not
-  been runtime-tested on real 32-bit hardware (see "Playing Streams On ARM").
+- ARM64 live media was verified on Apple Silicon with the corrected launcher;
+  Raspberry Pi coverage, extended stability and fresh-ID availability remain
+  distinct checks. ARMv7 has not been runtime-tested on real 32-bit hardware.
 - No WebRTC transport on ARM: `pywebrtc` needs Android GPU/audio libraries that
   are not shipped. The engine logs a non-fatal error at startup and keeps
   working over the classic transports.
@@ -315,8 +326,8 @@ lifts; on the Android engines the flag is harmless. An explicit
   has never been executed in CI. It needs real ARMv7 (or AArch32-capable)
   hardware.
 - 4 KB kernel pages are required (see the guard above).
-- Performance and streaming stability on real ARM hardware are not validated.
-  Expect the engine to be slower than on amd64.
+- The recorded ARM64 checks do not establish long-term streaming stability or
+  performance on every ARM board.
 - Licensing grey area (see above).
 - Fork PRs are not built by Jenkins at all (see the fork PR policy in
   `docs/ops/jenkins-ci.md`), so they get no engine smoke.
@@ -414,6 +425,8 @@ The full procedure lives in `docs/ops/multiarch-manifest-updates.md` and
 | `AceStream is enabled but not installed in this image flavor` | The container runs `scraper` or `scraper-acexy`; switch to an engine flavor. |
 | `start-engine: bionic runtime missing at /system` | The image was built without an ARM engine payload (for example with `ACESTREAM_SOURCE=fixture`); rebuild in the default auto mode. |
 | `start-engine: kernel page size is 16384 ...` | 16 KB-page kernel; set `kernel=kernel8.img` in `config.txt` (Pi 5) and reboot. |
+| `mod_detected` with a healthy bundled ARM engine | Verify that the OCI launcher calls `aceserve.main()`, not `Core.run()` directly. See [the investigation](arm64-mod-detected.md); do not change app identity to hide the error. |
+| `Address already in use` in `dnsproxyd` with two engines | Update to the shared-listener bootstrap; both engines must coordinate ownership of the fixed Android DNS socket. |
 | Engine never answers on `:6878` | Check `docker logs` and `${ACESTREAM_HOME}/acestream_error.log`; confirm the container architecture with `docker exec <name> uname -m`; on armv7 hardware expect experimental results. |
 | WebRTC error in the engine log | Expected on ARM; non-fatal. |
 | Acexy refuses to start | `ENABLE_ACEXY=true` needs `ENABLE_ACESTREAM_ENGINE=true`, or an external `ACEXY_HOST:ACEXY_PORT` other than `localhost:6878`. |

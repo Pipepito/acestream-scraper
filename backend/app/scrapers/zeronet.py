@@ -3,6 +3,7 @@ ZeroNet scraper implementation
 """
 import logging
 import aiohttp
+from app.utils.outbound_http import source_session
 import asyncio
 import re
 from bs4 import BeautifulSoup
@@ -101,7 +102,7 @@ class ZeronetScraper(BaseScraper):
 
         while retry_count < self.retries:
             try:
-                async with aiohttp.ClientSession(cookie_jar=self.cookie_jar) as session:
+                async with source_session(cookie_jar=self.cookie_jar) as session:
                     # First request to get the content
                     async with session.get(
                         internal_url,

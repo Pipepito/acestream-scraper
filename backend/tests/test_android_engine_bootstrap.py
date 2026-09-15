@@ -5,6 +5,7 @@ entry point. These offline tests verify distribution selection and the existing
 configuration/error contract without requiring proprietary binaries or streams.
 """
 import json
+import importlib.util
 import os
 from pathlib import Path
 import shutil
@@ -17,6 +18,57 @@ import time
 import pytest
 
 BOOTSTRAP = Path(__file__).resolve().parents[2] / "docker/scripts/acestream-android/main_linux.py"
+
+
+@pytest.fixture
+def dns_helper():
+    spec = importlib.util.spec_from_file_location("bionic_dns_test", BOOTSTRAP.with_name("bionic_dns.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class RecordingResolver:
+    def __init__(self, configure):
+        assert configure is False
+        self.nameservers = []
+
+    def resolve(self, *args, **kwargs):
+        return list(self.nameservers), args, kwargs
+
+
+def test_dns_follows_warp_connect_and_disconnect(tmp_path, dns_helper):
+    conf = tmp_path / "resolv.conf"
+    conf.write_text("nameserver 192.0.2.53\n")
+    resolver = dns_helper.container_resolver(RecordingResolver, lambda _: None, str(conf))
+    for servers in (["192.0.2.53"], ["127.0.2.2", "127.0.2.3"], ["2001:db8::53"]):
+        conf.write_text("".join("nameserver {} # resolver\n".format(ip) for ip in servers))
+        result = resolver.resolve("example.test", "AAAA", lifetime=3)
+        assert result == (servers, ("example.test", "AAAA"), {"lifetime": 3})
+
+
+@pytest.mark.parametrize("content", ["", "nameserver invalid\n", "#" * 65537, None])
+def test_dns_preserves_last_servers_during_invalid_rewrite(tmp_path, dns_helper, content):
+    conf = tmp_path / "resolv.conf"
+    conf.write_text("nameserver 192.0.2.53\n")
+    messages = []
+    resolver = dns_helper.container_resolver(RecordingResolver, messages.append, str(conf))
+    if content is None:
+        conf.unlink()
+    else:
+        conf.write_text(content)
+    for _ in range(2):
+        assert resolver.resolve("example.test")[0] == ["192.0.2.53"]
+    assert len([m for m in messages if "unavailable" in m]) == 1
+    conf.write_text("nameserver 127.0.2.2\n")
+    assert resolver.resolve("example.test")[0] == ["127.0.2.2"]
+
+
+def test_dns_requires_valid_initial_configuration(tmp_path, dns_helper):
+    conf = tmp_path / "resolv.conf"
+    conf.write_text("")
+    with pytest.raises(ValueError, match="no nameservers"):
+        dns_helper.container_resolver(RecordingResolver, lambda _: None, str(conf))
 
 
 @pytest.fixture

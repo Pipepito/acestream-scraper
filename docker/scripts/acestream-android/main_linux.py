@@ -47,21 +47,12 @@ def configure_bionic_dns():
     try:
         import dns.resolver
         from dnsproxyd import dnsproxyd_listener
-        from bionic_dns import start_shared_dns
+        from bionic_dns import container_resolver, start_shared_dns
 
-        nameservers = []
-        with open("/etc/resolv.conf") as handle:
-            for line in handle:
-                fields = line.split()
-                if len(fields) == 2 and fields[0] == "nameserver":
-                    nameservers.append(fields[1])
-        if not nameservers:
-            return
-        resolver = dns.resolver.Resolver(configure=False)
-        resolver.nameservers = nameservers
+        resolver = container_resolver(dns.resolver.Resolver, log)
         dns.resolver.override_system_resolver(resolver)
         start_shared_dns(dnsproxyd_listener, resolver)
-        log("bionic DNS resolver configured: {}".format(", ".join(nameservers)))
+        log("bionic DNS resolver configured")
     except Exception as exc:
         log("bionic DNS resolver unavailable: {}".format(exc))
 

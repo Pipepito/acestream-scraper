@@ -374,3 +374,9 @@ supervision intact. Playback/checker processes share `/dev/socket/dnsproxyd` via
 the lock file, and let the surviving engine take over after owner exit. Never
 start competing upstream listeners that can unlink each other's socket. See
 `docs/ops/arm64-mod-detected.md` for live-test scope and remaining network limits.
+
+WARP auto-connect (`WARP_ENABLE_NAT=true`) must wait for JSON status Connected,
+not merely a successful CLI call, before engines start. The ARM resolver follows
+container nameserver changes and retains the last valid configuration during a
+partial rewrite. Keep WARP opt-in; direct-route lookup failures must not trigger
+automatic routing changes. See `docs/ops/arm64-mod-detected.md`.

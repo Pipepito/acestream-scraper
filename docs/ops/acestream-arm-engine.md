@@ -267,7 +267,7 @@ depends on which engine the platform runs.
 | Platform | Engine | What playback to expect |
 |---|---|---|
 | `linux/amd64` | Native Linux engine 3.2.11 | Unaffected. This is the reference platform for every media feature. |
-| `linux/arm64` | `jopsis/acestream:v3.2.17-fix` (community distribution) | Audio/video verified on Apple Silicon using the corrected entry point (2026-09-15); fresh ID lookup later failed in upstream controls too. See the linked evidence. |
+| `linux/arm64` | `jopsis/acestream:v3.2.17-fix` (community distribution) | Fresh-ID audio/video verified on Apple Silicon using the corrected entry point and WARP (2026-09-15). See the controlled routing comparison. |
 | `linux/arm/v7` | `jopsis/acestream:v3.2.17-fix` (community distribution) | Builds and installs, but has not been runtime-tested on real ARMv7 hardware; live playback is unconfirmed. |
 
 **ARM64.** A 2026-09-15 reproduction found that the bundled launcher skipped
@@ -278,10 +278,10 @@ packaged entry point, retaining the project's persistent home and device identit
 No binary, version pin, or reported app identity changed.
 
 See [ARM64 playback investigation](arm64-mod-detected.md) for the version matrix,
-packaging tests and remaining network limits. Later fresh content-ID lookups failed
-in unchanged upstream controls as well; successful cached playback does not prove
-that every new source can currently be resolved. An upstream account or network
-restriction must be diagnosed separately from this launcher regression.
+packaging tests and the controlled WARP comparison. Fresh IDs failed on the direct
+route but resolved and delivered media through WARP, including after reconnecting
+the same engine. Network restrictions must be diagnosed separately from the
+launcher regression; WARP remains opt-in.
 
 **ARMv7.** The current image uses the matching 32-bit variant of the same
 `jopsis/acestream:v3.2.17-fix` distribution. It builds and installs, but the

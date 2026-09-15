@@ -289,6 +289,9 @@ async def correlation_id_middleware(request: Request, call_next):
     response.headers["X-Correlation-ID"] = correlation_id
     return response
 
+from app.middleware.recipe_limits import RecipeRequestLimits
+app.add_middleware(RecipeRequestLimits)
+
 # Add CORS middleware
 from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(

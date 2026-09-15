@@ -1445,6 +1445,29 @@
         "title": "ConfigUpdateResponse",
         "type": "object"
       },
+      "ConfigurationWarning": {
+        "properties": {
+          "legacy": {
+            "title": "Legacy",
+            "type": "string"
+          },
+          "replacement": {
+            "title": "Replacement",
+            "type": "string"
+          },
+          "selected": {
+            "title": "Selected",
+            "type": "string"
+          }
+        },
+        "required": [
+          "legacy",
+          "replacement",
+          "selected"
+        ],
+        "title": "ConfigurationWarning",
+        "type": "object"
+      },
       "DashboardConfigResponse": {
         "description": "Schema for dashboard config response",
         "properties": {
@@ -4823,6 +4846,139 @@
           "message"
         ],
         "title": "StatusResponse",
+        "type": "object"
+      },
+      "StorageDirectory": {
+        "properties": {
+          "directory_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Directory Bytes"
+          },
+          "filesystem_free_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filesystem Free Bytes"
+          },
+          "filesystem_total_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filesystem Total Bytes"
+          },
+          "message": {
+            "default": "",
+            "title": "Message",
+            "type": "string"
+          },
+          "mount_point": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mount Point"
+          },
+          "mounted": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mounted"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "read_only": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Read Only"
+          },
+          "size_complete": {
+            "default": false,
+            "title": "Size Complete",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "title": "StorageDirectory",
+        "type": "object"
+      },
+      "StorageReport": {
+        "properties": {
+          "checked_at": {
+            "format": "date-time",
+            "title": "Checked At",
+            "type": "string"
+          },
+          "configuration_warnings": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ConfigurationWarning"
+            },
+            "title": "Configuration Warnings",
+            "type": "array"
+          },
+          "directories": {
+            "items": {
+              "$ref": "#/components/schemas/StorageDirectory"
+            },
+            "title": "Directories",
+            "type": "array"
+          },
+          "message": {
+            "default": "",
+            "title": "Message",
+            "type": "string"
+          },
+          "mount_detection": {
+            "enum": [
+              "available",
+              "unavailable"
+            ],
+            "title": "Mount Detection",
+            "type": "string"
+          }
+        },
+        "required": [
+          "checked_at",
+          "directories",
+          "mount_detection"
+        ],
+        "title": "StorageReport",
         "type": "object"
       },
       "StreamStats": {
@@ -13507,6 +13663,28 @@
           }
         },
         "summary": "Restart a service supervised by this container",
+        "tags": [
+          "system",
+          "system"
+        ]
+      }
+    },
+    "/api/v1/system/storage": {
+      "get": {
+        "operationId": "get_storage_api_v1_system_storage_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Container directories and filesystem space",
         "tags": [
           "system",
           "system"

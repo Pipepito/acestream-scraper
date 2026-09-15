@@ -1,3 +1,4 @@
+import { renderingLimit } from './renderBudget';
 import React, { useMemo, useRef, useState } from 'react';
 import { Alert, Box, Button, Stack, Typography } from '@mui/material';
 
@@ -5,6 +6,7 @@ interface VisualPickerProps { sample: string; records: string; onPick: (selector
 const tags = new Set('html head body style div span section article main header footer nav aside h1 h2 h3 h4 h5 h6 p a ul ol li table thead tbody tfoot tr td th caption colgroup col label input textarea pre code b strong em i small br hr img dl dt dd figure figcaption'.split(' '));
 const attrs = new Set(['class', 'id', 'title', 'style', 'colspan', 'rowspan', 'width', 'height', 'alt', 'value', 'href', 'data-acestream', 'data-acestream-id']);
 export function previewDocument(sample: string): string {
+  if (renderingLimit(sample)) return '';
   const template = document.createElement('template');
   template.innerHTML = sample;
   template.content.querySelectorAll('*').forEach(element => {
@@ -28,7 +30,8 @@ export default function VisualPicker({ sample, records, onPick, pickingRecord }:
   const selected = useRef<Element | null>(null);
   const [description, setDescription] = useState('');
   const [error, setError] = useState('');
-  const srcDoc = useMemo(() => previewDocument(sample), [sample]);
+  const limit = useMemo(() => renderingLimit(sample), [sample]);
+  const srcDoc = useMemo(() => limit ? '' : previewDocument(sample), [sample, limit]);
   const pick = (element: Element) => {
     if (element.tagName === 'HTML' || element.tagName === 'BODY') return;
     selected.current = element;
@@ -70,6 +73,6 @@ export default function VisualPicker({ sample, records, onPick, pickingRecord }:
     <Typography variant="body2">Click a field to assign it. Choose its parent to select a whole channel row. Original scripts and external assets are disabled.</Typography>
     <Stack direction="row" spacing={1} alignItems="center"><Button size="small" disabled={!description} onClick={() => { if (selected.current?.parentElement) pick(selected.current.parentElement); }}>Select parent</Button><Typography variant="caption">{description}</Typography></Stack>
     {error && <Alert severity="warning">{error}</Alert>}
-    <Box component="iframe" ref={frame} title="Source visual picker" sandbox="allow-same-origin" srcDoc={srcDoc} onLoad={attach} sx={{ width: '100%', height: 380, border: '1px solid', borderColor: 'divider', borderRadius: 1 }} />
+    {limit ? <Alert severity="info">{limit}</Alert> : <Box component="iframe" ref={frame} title="Source visual picker" sandbox="allow-same-origin" srcDoc={srcDoc} onLoad={attach} sx={{ width: '100%', height: 380, border: '1px solid', borderColor: 'divider', borderRadius: 1 }} />}
   </Stack>;
 }

@@ -158,6 +158,8 @@ app's result is authoritative.
 | Area | Current behavior |
 |---|---|
 | Source/sample size | Up to 32 MiB; fetched data is measured after HTTP decompression |
+| Visual/field picker | 2 MiB; HTML also allows up to 20,000 markup delimiters. Use raw selection, manual JSON paths or a smaller example when exceeded. |
+| Preview upload | Decoded sample: 32 MiB. JSON request envelope: 64 MiB + 128 KiB, including escaping; uploads time out after 30 seconds. |
 | Recipe file | Up to 512 KiB; export includes rules only |
 | Output | Up to 1,000 records and 1,000 distinct channel IDs |
 | Matching time | Up to 15 seconds per preview; the Linux worker also has a 10-second CPU limit and 1 GiB memory limit |

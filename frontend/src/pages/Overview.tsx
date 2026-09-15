@@ -8,6 +8,7 @@ import ContentSection from '../components/layout/ContentSection';
 import ServicesPanel from '../components/ServicesPanel';
 import DiagnosticsDownload from '../components/DiagnosticsDownload';
 import StatusLine from '../components/StatusLine';
+import StoragePanel from '../components/overview/StoragePanel';
 import InventoryTotals from '../components/overview/InventoryTotals';
 import ScheduledJobs from '../components/overview/ScheduledJobs';
 import { useSystemServices } from '../hooks/useSystemServices';
@@ -120,6 +121,8 @@ const Overview: React.FC = () => {
         <ServicesPanel pollIntervalMs={REFRESH_MS} />
         <DiagnosticsDownload />
       </ContentSection>
+
+      <StoragePanel />
 
       <ContentSection title="Inventory" description="What is loaded right now.">
         {stats.data ? <InventoryTotals stats={stats.data} tvStats={tvStats.data} /> : null}

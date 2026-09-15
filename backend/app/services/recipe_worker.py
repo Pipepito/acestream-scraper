@@ -71,7 +71,8 @@ def extract(recipe: ExtractionRecipe, sample: str) -> dict:
             reason = 'Expected a 40-character hexadecimal ID or acestream:// link'
         if reason:
             result['invalid_count'] += 1
-            result['issues'].append({'record': index, 'message': reason})
+            if len(result['issues']) < MAX_RECORDS:
+                result['issues'].append({'record': index, 'message': reason})
             continue
         metadata = {}
         for key, target in [('group', 'group_title'), ('logo', 'tvg_logo'), ('epg_id', 'tvg_id')]:
@@ -83,7 +84,8 @@ def extract(recipe: ExtractionRecipe, sample: str) -> dict:
         for channel_id in normalized:
             if channel_id in seen:
                 result['duplicate_count'] += 1
-                result['issues'].append({'record': index, 'message': 'Duplicate ID ignored'})
+                if len(result['issues']) < MAX_RECORDS:
+                    result['issues'].append({'record': index, 'message': 'Duplicate ID ignored'})
             else:
                 seen.add(channel_id)
                 result['channels'].append({'channel_id': channel_id, 'name': names[0], 'metadata': metadata})

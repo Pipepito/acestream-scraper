@@ -321,9 +321,9 @@ You can check the health status with: `docker inspect --format='{{.State.Health.
 
 ## Legacy environment aliases
 
-The v2.0 compatibility window ends in v2.1. Legacy names are no longer read. Before upgrading, rename old variables in your Compose file, container settings and environment files; otherwise the application uses canonical settings or defaults.
+v2.1 keeps legacy names working and shows deprecation warnings in startup logs and Overview → Storage. Nonempty canonical values take precedence when both names are set; otherwise the old values remain effective. Warnings contain variable names only.
 
-Rename these variables before starting v2.1:
+Update these names in your Compose file, container settings or `.env` file when convenient:
 
 - `SCRAPER_DB_URL` -> `DATABASE_URL`
 - `LEGACY_DB_URL` -> `LEGACY_DATABASE_URL`
@@ -332,4 +332,4 @@ Rename these variables before starting v2.1:
 - `FRONTEND_STATIC_DIR` -> `FRONTEND_BUILD_PATH`
 - `ACESTREAM_ENGINE_URL` -> `ACE_ENGINE_URL`
 
-Remove `ENABLE_LEGACY_ENV_ALIASES` as well; that switch no longer exists. See the [v2.1 upgrade notes](../docs/release/v2.1-release-notes.md).
+`ENABLE_LEGACY_ENV_ALIASES` is no longer required and does not disable compatibility. See the [v2.1 upgrade notes](../docs/release/v2.1-release-notes.md).

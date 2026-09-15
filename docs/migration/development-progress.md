@@ -81,3 +81,8 @@
 - Milestone then: post-cutover reconciliation and release-path cleanup; Phase 3 cutover achieved, Phases 4–6 listed as upcoming.
 - Deliverables recorded then: root ownership of `backend/` + `frontend/`, CI/release workflows gated on root-stack checks, legacy-path assertion scripts, one-release env alias mapping, Phase 3 cutover evidence.
 - Transitional work listed then: finish documentation reconciliation, keep the env alias bridge documented as transitional, reconcile release/migration docs to Jenkins-first ownership — all addressed by the 2026-05-04 gap-closure pass and this 2026-08-28 refresh, except the alias bridge retirement.
+
+
+2026-09-15 maintainer update: environment alias retirement (#155) is deferred.
+v2.1 retains the six aliases with name-only warnings and canonical precedence.
+Earlier v2.1 expiry-gate plans above are historical; see `docs/release/v2.1-release-notes.md`.

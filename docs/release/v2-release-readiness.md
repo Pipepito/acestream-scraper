@@ -105,7 +105,7 @@ The v2 consolidation is structurally complete: all six phases shipped their plan
 - Phase-3 evidence: `docs/release/phase3-cutover-evidence.md`.
 
 **Outstanding:**
-- `LEGACY_ENV_ALIAS_WINDOW = "v2-cutover-r1"` is metadata only. Nothing schedules removal. Recommend a one-shot cleanup task for the post-v2 release. *(Closed 2026-05-04, H3 — `c592ea6`: `backend/tests/test_settings_env_compat.py` fails CI once `version.txt` reaches v2.1.0 with the shim present. The shim was subsequently retired in the v2.1 development tree; the test now enforces absence.)*
+- `LEGACY_ENV_ALIAS_WINDOW = "v2-cutover-r1"` is metadata only. Nothing schedules removal. Recommend a one-shot cleanup task for the post-v2 release. *(Closed 2026-05-04, H3 — `c592ea6`: `backend/tests/test_settings_env_compat.py` fails CI once `version.txt` reaches v2.1.0 with the shim present. Superseded by the 2026-09-15 maintainer decision: v2.1 retains all six names with deprecation warnings and canonical precedence; retirement is deferred.)*
 - Stray dev scripts at repo root (`check_epg_data.py`, `force_epg_refresh.py`, `test_epg_xml.py`, `test_epg_time.py`, `list.m3u`, `generated_epg.xml`) make the root noisy. Move to `scripts/dev/` or delete. *(Closed 2026-05-04, C2 — moved to `scripts/dev/epg/`.)*
 - `tests/` at repo root still exists with `conftest.py`, `test_config.py`, `test_acexy_api.py`, `test_warp_service.py`, etc. Either canonize into `backend/tests/` or document why a second test root is intentional. *(Closed 2026-05-04 — legacy root `tests/` tree retired in `3251505`.)*
 

@@ -1,3 +1,4 @@
+import { renderingLimit } from './renderBudget';
 import React, { useMemo } from 'react';
 import { Alert, Button, Stack, Typography } from '@mui/material';
 import { pathValue } from './engine';
@@ -5,6 +6,8 @@ interface Props { sample: string; records: string; pickingRecord: boolean; onPic
 export default function JsonPicker({ sample, records, pickingRecord, onPick }: Props) {
   const data = useMemo(() => {
     try {
+      const limit = renderingLimit(sample);
+      if (limit) return { rows: [], error: 'This JSON sample is too large for the field picker. Enter its paths manually or use a smaller example. Worker extraction tests still accept up to 32 MiB.' };
       const parsed: unknown = JSON.parse(sample);
       const selected = pathValue(parsed, records);
       const root = pickingRecord ? parsed : Array.isArray(selected) ? selected[0] : undefined;

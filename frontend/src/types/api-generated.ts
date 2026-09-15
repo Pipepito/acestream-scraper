@@ -879,6 +879,10 @@ export interface paths {
     /** Restart a service supervised by this container */
     post: operations["restart_service_api_v1_system_services__name__restart_post"];
   };
+  "/api/v1/system/storage": {
+    /** Container directories and filesystem space */
+    get: operations["get_storage_api_v1_system_storage_get"];
+  };
   "/api/v1/tuner/settings": {
     /** Tuner settings */
     get: operations["get_tuner_settings_api_v1_tuner_settings_get"];
@@ -1639,6 +1643,15 @@ export interface components {
       message: string;
       /** Value */
       value: string;
+    };
+    /** ConfigurationWarning */
+    ConfigurationWarning: {
+      /** Legacy */
+      legacy: string;
+      /** Replacement */
+      replacement: string;
+      /** Selected */
+      selected: string;
     };
     /**
      * DashboardConfigResponse
@@ -3072,6 +3085,58 @@ export interface components {
        * @description Status of the component (online, offline, error, etc.)
        */
       status: string;
+    };
+    /** StorageDirectory */
+    StorageDirectory: {
+      /** Directory Bytes */
+      directory_bytes?: number | null;
+      /** Filesystem Free Bytes */
+      filesystem_free_bytes?: number | null;
+      /** Filesystem Total Bytes */
+      filesystem_total_bytes?: number | null;
+      /**
+       * Message
+       * @default
+       */
+      message?: string;
+      /** Mount Point */
+      mount_point?: string | null;
+      /** Mounted */
+      mounted?: boolean | null;
+      /** Path */
+      path: string;
+      /** Read Only */
+      read_only?: boolean | null;
+      /**
+       * Size Complete
+       * @default false
+       */
+      size_complete?: boolean;
+    };
+    /** StorageReport */
+    StorageReport: {
+      /**
+       * Checked At
+       * Format: date-time
+       */
+      checked_at: string;
+      /**
+       * Configuration Warnings
+       * @default []
+       */
+      configuration_warnings?: components["schemas"]["ConfigurationWarning"][];
+      /** Directories */
+      directories: components["schemas"]["StorageDirectory"][];
+      /**
+       * Message
+       * @default
+       */
+      message?: string;
+      /**
+       * Mount Detection
+       * @enum {string}
+       */
+      mount_detection: "available" | "unavailable";
     };
     /** StreamStats */
     StreamStats: {
@@ -7021,6 +7086,17 @@ export interface operations {
       422: {
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Container directories and filesystem space */
+  get_storage_api_v1_system_storage_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["StorageReport"];
         };
       };
     };

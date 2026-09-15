@@ -7,8 +7,9 @@ There are 13 remaining issues: #13, #41, #55, #93, #99, #102, #122,
 
 ## Current work
 
-- #155: implemented locally. Six aliases and the repository fallback are removed;
-  absence tests and the v2.1 upgrade rename table are in place.
+- #155: retirement deferred by maintainer decision. v2.1 retains all six legacy
+  names with deprecation warnings in logs and Overview; canonical values win.
+  This issue is not a v2.1 closure candidate.
 - #149: implemented locally. Shared pinned HTTP clients cover HTTP/IPFS, ZeroNet
   pages and iframe redirects, nested M3U, recipes and EPG; Host/TLS identity is preserved.
 - #153: implemented locally. EPGService is a stable 12-line facade over source,
@@ -27,9 +28,8 @@ There are 13 remaining issues: #13, #41, #55, #93, #99, #102, #122,
 - #158–#160: close only when their remaining child scope is complete; do not count
   them as independent implementation tasks.
 
-Core implementation is not a release or an issue closure. #155/#149/#153 become
-closure candidates after review and merge; #159 and #160 can then be reconciled
-against their now-complete child lists. #158 remains a community roadmap.
+Core implementation is not a release or an issue closure. #149/#153 become
+closure candidates after review and merge; #159 and #160 must be reconciled against their child lists, including deferred #155. #158 remains a community roadmap.
 
 ## Core-pass verification (2026-09-15, uncommitted working tree)
 
@@ -68,6 +68,29 @@ Do not close #93/#102 without a current network/multi-client reproduction.
 - #122's core statistics request is a closure candidate after review/merge;
   historical trends, playlist thresholds and loop detection remain separate scope.
   No GitHub issue mutations, publication, release or Jenkins runs were performed.
+
+## Pre-merge mitigations and storage (2026-09-15)
+
+- Maintainer decision: retain legacy environment names with name-only warnings;
+  canonical settings win. #155 retirement is deferred and is not closed by v2.1.
+- Overview reports container mount destinations, allocated directory sizes and
+  filesystem free space through a bounded, cached, isolated scan. No Docker socket
+  or host mount-source disclosure. Partial and unavailable results are explicit.
+- Preview request admission, authentication, wire-byte limits and temporary spooling
+  precede JSON parsing. Uploads have a 30-second deadline; 32 MiB source support stays.
+  Browser rendering has a separate budget and raw/manual-field fallbacks.
+- Pinned synchronous HTTP retries validated addresses; real HTTPS tests verify SNI,
+  trust and hostname rejection. Startup upgrade/backup/restore preserves prior data.
+- Full backend run: 1,393 passed, 3 skipped, one middleware-order assertion failed.
+  After restoring forwarded-header middleware as outermost, all 19 middleware/upload
+  checks passed. Combined final coverage: 1,394 passed, 3 skipped.
+- Frontend: 78 suites / 437 tests passed; typecheck, zero-warning lint, app/helper
+  builds, documentation, command-builder, Dockerfile/manifest and legacy guards passed.
+- ARM64 all-services image rebuilt, current test container healthy with existing
+  settings/volumes. Live report detected all six data mounts with sizes/free space.
+  Desktop light and phone dark checks passed. Initial browser check used an invalid
+  /overview URL; the corrected / route passed. Installed builder and an 8 MiB source
+  fetch/extraction passed without writing source/channel data.
 
 ## Original assessment (historical)
 

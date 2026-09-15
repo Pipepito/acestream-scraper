@@ -26,3 +26,13 @@ test('standalone never offers a connection to an installed scraper', () => {
   expect(screen.queryByRole('button', { name: 'Save to source' })).not.toBeInTheDocument();
   expect(screen.getByText(/helper never connects/)).toBeInTheDocument();
 });
+
+test('dense HTML falls back to raw source before building the visual document', () => {
+  render(<RecipeBuilder preview={jest.fn()} />);
+  fireEvent.change(screen.getByLabelText('HTML, text or JSON sample'), { target: { value: '<div></div>'.repeat(10001) } });
+  fireEvent.click(screen.getByRole('tab', { name: 'Visual picker' }));
+  expect(screen.getByText(/too much markup for visual rendering/)).toBeInTheDocument();
+  expect(screen.queryByTitle('Source visual picker')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('tab', { name: 'Raw source' }));
+  expect(screen.getByLabelText('HTML, text or JSON sample')).toHaveValue('<div></div>'.repeat(10001));
+});

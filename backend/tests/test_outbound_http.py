@@ -97,3 +97,56 @@ def test_sync_client_rejects_metadata_before_creating_a_pool(monkeypatch, url):
     with pytest.raises(url_guard.BlockedURLError, match='metadata'):
         adapter.get_connection(url)
     adapter.poolmanager.connection_from_host.assert_not_called()
+
+
+def test_connection_falls_back_only_to_validated_addresses(origin, monkeypatch):
+    url, seen = origin
+    monkeypatch.setattr(url_guard, '_resolve_addresses', lambda host: [ipaddress.ip_address('::1'), ipaddress.ip_address('127.0.0.1')])
+    assert source_get(url, timeout=3).content == b'checked origin'
+    assert len(seen) == 1
+
+
+def test_real_https_keeps_certificate_identity_sni_and_rejects_untrusted_cert(tmp_path, monkeypatch):
+    import ssl
+    import subprocess
+    key, cert = tmp_path / 'key.pem', tmp_path / 'cert.pem'
+    subprocess.run(['openssl', 'req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-keyout', str(key),
+                    '-out', str(cert), '-days', '1', '-subj', '/CN=pinned.example',
+                    '-addext', 'subjectAltName=DNS:pinned.example'], check=True, capture_output=True)
+    names, hosts = [], []
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            hosts.append(self.headers['Host'])
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b'tls verified')
+        def log_message(self, *args):
+            pass
+    server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(cert, key)
+    context.set_servername_callback(lambda sock, name, ctx: names.append(name))
+    server.socket = context.wrap_socket(server.socket, server_side=True)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    monkeypatch.setenv('ALLOW_PRIVATE_SCRAPE_TARGETS', 'true')
+    monkeypatch.setattr(url_guard, '_resolve_addresses', lambda host: [ipaddress.ip_address('127.0.0.1')])
+    try:
+        with requests.Session() as session:
+            session.trust_env = False
+            session.mount('https://', PinnedHTTPAdapter())
+            url = f'https://pinned.example:{server.server_port}/'
+            assert session.get(url, verify=str(cert), timeout=3).content == b'tls verified'
+        with pytest.raises(requests.exceptions.SSLError):
+            source_get(url, timeout=3)
+        with requests.Session() as session:
+            session.trust_env = False
+            session.mount('https://', PinnedHTTPAdapter())
+            with pytest.raises(requests.exceptions.SSLError):
+                session.get(url.replace('pinned.example', 'wrong.example'), verify=str(cert), timeout=3)
+        assert names[0] == 'pinned.example'
+        assert hosts == [f'pinned.example:{server.server_port}']
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join()

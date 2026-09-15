@@ -4,6 +4,7 @@
 - [First-run walkthrough](Usage.md)
 - [Install and upgrade](Installation.md)
 - [Docker and storage](Docker.md)
+- [Storage report](Storage.md)
 - [Docker command builder](https://pipepito.github.io/acestream-scraper/)
 
 **Watch and manage**

@@ -328,9 +328,11 @@ See `docs/dev/extraction-recipes.md` and `wiki/Extraction-Recipes.md`.
 
 ## v2.1 configuration
 
-The v2.0 environment alias shim is retired. Read canonical settings only; do not
-restore fallback consumers in repositories. `test_settings_env_compat.py` asserts
-retirement regardless of the version file. See `docs/release/v2.1-release-notes.md`.
+v2.1 retains the six deprecated environment names through Settings, including
+`.env` support and value-free warnings in logs/Overview. Nonempty canonical names
+win. Keep repository defaults on resolved Settings and preserve entrypoint alias
+selection before bundled-service defaults. Removal (#155) is deferred by maintainer
+decision. See `docs/release/v2.1-release-notes.md`.
 
 ## Source fetches and EPG responsibilities
 
@@ -348,3 +350,13 @@ media bitrate and verified signal. Replace samples atomically, preserve zero vs
 unknown, and retain original observation times on skips or missing measurements.
 Manual, bulk and scheduled checks share the bounded sampler and existing queue.
 See `wiki/Stream-Statistics.md`.
+
+
+Overview storage uses a DB-independent, authenticated `/api/v1/system/storage`
+report. Discover container mount destinations without exposing mount sources or
+using the Docker socket. Keep scans cached, isolated, bounded, symlink-safe and
+off the event loop; partial/unknown sizes must not be shown as complete or zero.
+Free space belongs to a filesystem, not each directory. See `wiki/Storage.md`.
+Preview upload admission and byte/deadline limits precede JSON parsing. Keep
+32 MiB source support separate from the bounded browser rendering budget; heavy
+sources retain raw/manual-field workflows and installed extraction tests.

@@ -69,7 +69,7 @@ Branching and release flow (adopted 2026-08-28):
 
 ### Backend startup sequence (`backend/main.py`)
 
-1. `app.config.settings` loads canonical environment names through pydantic-settings. The v2.0 alias window is retired for v2.1; see `docs/release/v2.1-release-notes.md` before upgrading an older deployment.
+1. `app.config.settings` loads canonical environment names through pydantic-settings. v2.1 retains the six legacy names with name-only deprecation warnings; nonempty canonical names win. See `docs/release/v2.1-release-notes.md` before upgrading an older deployment.
 2. `lifespan()` starts a background boot task; `initialize_database()` runs in a worker thread while the SPA and database-independent `/api/v1/startup` endpoints are already available. Normal APIs and health return 503 until boot succeeds. Startup failures keep the diagnostics/recovery screen available instead of terminating the server. A per-database advisory lock allows one app worker. See `docs/ops/startup-recovery.md` for confirmed backup-first recovery, recovery markers, and diagnostic privacy:
    - If a v1 SQLite db exists at `LEGACY_DATABASE_URL` and is not yet marked `.migrated`, `migrate_database.DatabaseMigrator.run_migration()` performs the *foreground* half of the v1→v2 migration in-process: it provisions the v2 schema through Alembic (`app.config.database.provision_schema`), copies the small tables (URLs, sources, TV/EPG/acestream channels, string mappings, settings), records the EPG programs as deferred work in `<acestream.db>.migration.json` (with the v1→v2 `epg_channels` id map) and archives the v1 file as `acestream.db.migrated`. It never copies `epg_programs` — that table can hold millions of rows and used to block startup (dashboard unreachable, container unhealthy).
    - Then it always calls `provision_schema()`: a missing file is provisioned, a db with application tables but no `alembic_version` (what the pre-2026-08-29 migrator's `create_all` left behind) is stamped with the head first, and an existing stamped db is upgraded to head. When the recorded revision differs from the head, startup first copies the SQLite file to `<db dir>/backups/<UTC stamp>-pre-upgrade-<from>-<to>/scraper.db` (sqlite3 online backup) and logs one "Upgrading v2 database schema" line. One copy is kept per `<from>-<to>` pair — an existing copy for the same pair is reused, so a container that Docker restarts against a failing upgrade does not write a new full copy per boot — and nothing under `backups/` is ever pruned automatically. An upgrade failure stops normal startup and leaves the recovery screen available; there is no `create_all` fallback. Startup then runs `backfill_scraped_url_flags()` to repair NULL `scrape_bare_ids` values left by the older migrator.
@@ -385,3 +385,13 @@ media bitrate and verified signal. Replace samples atomically, preserve zero vs
 unknown, and retain original observation times on skips or missing measurements.
 Manual, bulk and scheduled checks share the bounded sampler and existing queue.
 See `wiki/Stream-Statistics.md`.
+
+
+Overview storage uses a DB-independent, authenticated `/api/v1/system/storage`
+report. Discover container mount destinations without exposing mount sources or
+using the Docker socket. Keep scans cached, isolated, bounded, symlink-safe and
+off the event loop; partial/unknown sizes must not be shown as complete or zero.
+Free space belongs to a filesystem, not each directory. See `wiki/Storage.md`.
+Preview upload admission and byte/deadline limits precede JSON parsing. Keep
+32 MiB source support separate from the bounded browser rendering budget; heavy
+sources retain raw/manual-field workflows and installed extraction tests.

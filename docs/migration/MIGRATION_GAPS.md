@@ -43,3 +43,8 @@ Status annotations added 2026-08-28; the original bullets are kept as the record
 
 - Earlier versions of this file mixed historical implementation plans, stale percentage tracking, and pre-repair schema/frontend gap lists.
 - That older material is now collapsed into this short non-authoritative archival context so resumed executors do not mistake closed migration items for current open work.
+
+
+2026-09-15 maintainer update: environment alias retirement (#155) is deferred.
+v2.1 retains the six aliases with name-only warnings and canonical precedence.
+Earlier v2.1 expiry-gate plans above are historical; see `docs/release/v2.1-release-notes.md`.

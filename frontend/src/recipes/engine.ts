@@ -1,3 +1,4 @@
+import { renderingLimit } from './renderBudget';
 import { ExtractionRecipe, FieldName, MAX_RECORDS, MAX_SAMPLE_BYTES, RecipeField, RecipePreview } from './types';
 
 export type PreparedRecord = Partial<Record<FieldName, string[]>>;
@@ -43,6 +44,8 @@ const strings = (value: unknown): string[] => (Array.isArray(value) ? value : [v
 
 export function prepareHtml(recipe: ExtractionRecipe, sample: string): PreparedRecord[] {
   checkSample(sample);
+  const limit = renderingLimit(sample);
+  if (limit) fail(limit);
   // Parse in an inert document. Never insert the original sample into the app DOM.
   const template = document.createElement('template');
   template.innerHTML = sample;
@@ -87,14 +90,14 @@ export function extractPrepared(recipe: ExtractionRecipe, sample: string, html?:
     const names = values.name ?? [], ids = (values.id ?? []).map(value => value.replace(/^acestream:\/\//, '').toLowerCase());
     let reason = names.length !== 1 || names[0].length > 200 ? 'Choose exactly one channel name per record (up to 200 characters)' : !ids.length ? 'No channel ID found' : '';
     if (ids.some(value => !/^[0-9a-f]{40}$/.test(value))) reason = 'Expected a 40-character hexadecimal ID or acestream:// link';
-    if (reason) { result.invalid_count++; result.issues.push({ record: index + 1, message: reason }); return; }
+    if (reason) { result.invalid_count++; if (result.issues.length < MAX_RECORDS) result.issues.push({ record: index + 1, message: reason }); return; }
     const metadata: Record<string, string> = {};
     ([['group', 'group_title'], ['logo', 'tvg_logo'], ['epg_id', 'tvg_id']] as const).forEach(([key, target]) => {
       const value = values[key]?.[0]?.slice(0, 2048);
       if (value && (key !== 'logo' || /^https?:\/\//.test(value))) metadata[target] = value;
     });
     ids.forEach(channel_id => {
-      if (seen.has(channel_id)) { result.duplicate_count++; result.issues.push({ record: index + 1, message: 'Duplicate ID ignored' }); }
+      if (seen.has(channel_id)) { result.duplicate_count++; if (result.issues.length < MAX_RECORDS) result.issues.push({ record: index + 1, message: 'Duplicate ID ignored' }); }
       else { seen.add(channel_id); result.channels.push({ channel_id, name: names[0], metadata }); }
       if (result.channels.length > MAX_RECORDS) fail('More than 1000 channel IDs; narrow the rule');
     });

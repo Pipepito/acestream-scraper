@@ -18,6 +18,7 @@ jest.mock('../hooks/useConfig', () => ({
   useTvChannelStats: (...args: unknown[]) => mockUseTvChannelStats(...args),
 }));
 jest.mock('../hooks/useDashboard', () => ({ useBackgroundTaskStatus: (...args: unknown[]) => mockUseBackgroundTaskStatus(...args) }));
+jest.mock('../components/overview/StoragePanel', () => ({ __esModule: true, default: () => <div>Storage</div> }));
 jest.mock('../components/ServicesPanel', () => ({ __esModule: true, default: () => <div data-testid="services-panel" /> }));
 
 const service = (name: string, state: string, extra: Record<string, unknown> = {}) => ({

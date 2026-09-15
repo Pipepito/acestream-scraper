@@ -59,7 +59,11 @@ two concurrent slots, and on Linux 1 GiB address-space/10-second CPU limits.
 The child receives only the recipe/sample and a minimal environment. No DB or
 network client is imported by the worker. The subprocess is killed and reaped on
 timeout. The standalone uses a terminable Web Worker with a 15-second deadline;
-HTML record materialization occurs in an inert DOM before field matching. Both
+HTML record materialization occurs in an inert DOM before field matching, only
+after a 2 MiB/20,000-markup-delimiter preflight. Larger samples use raw regex,
+manual JSON paths or the installed extractor. Preview request admission (two slots),
+optional token checking, bounded temporary spooling and a 30-second upload deadline
+precede JSON parsing. The envelope cap is 64 MiB + 128 KiB; decoded source remains 32 MiB. Both
 runtimes cap output to 1,000 channel IDs. Python uses ASCII regex character classes
 for browser compatibility. Browser/Python parsing differences remain possible for
 malformed HTML; the installed backend is authoritative, and sample tests are never

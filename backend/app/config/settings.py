@@ -1,16 +1,53 @@
 """Canonical application settings."""
 
 import json
+import logging
 from functools import lru_cache
 from typing import List, Annotated
 
-from pydantic import field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+LEGACY_ENV_NAMES = {
+    "SCRAPER_DB_URL": "DATABASE_URL", "LEGACY_DB_URL": "LEGACY_DATABASE_URL",
+    "ZERONET_BASE_URL": "ZERONET_URL", "CORS_ALLOW_ORIGINS": "CORS_ORIGINS",
+    "FRONTEND_STATIC_DIR": "FRONTEND_BUILD_PATH", "ACESTREAM_ENGINE_URL": "ACE_ENGINE_URL",
+}
 
 class Settings(BaseSettings):
     """Application settings."""
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
+
+    configuration_warnings: list[dict[str, str]] = Field(default_factory=list, exclude=True)
+
+    @classmethod
+    def settings_customise_sources(cls, settings_cls, init_settings, env_settings, dotenv_settings, file_secret_settings):
+        def compatible_environment():
+            data = {**dotenv_settings(), **env_settings()}
+            raw = {**dotenv_settings.env_vars, **env_settings.env_vars}
+            warnings = []
+            for legacy, canonical in LEGACY_ENV_NAMES.items():
+                data.pop(legacy, None)
+                if raw.get(legacy):
+                    selected = canonical if raw.get(canonical) else legacy
+                    if selected == legacy:
+                        data[canonical] = raw[legacy]
+                    warnings.append({"legacy": legacy, "replacement": canonical, "selected": selected})
+            # The retired toggle no longer disables compatibility.
+            data.pop("ENABLE_LEGACY_ENV_ALIASES", None)
+            data["configuration_warnings"] = warnings
+            return data
+        return init_settings, compatible_environment, file_secret_settings
+
+    @model_validator(mode="after")
+    def warn_legacy_names(self):
+        for warning in self.configuration_warnings:
+            logging.getLogger(__name__).warning(
+                "Deprecated environment variable %s: update it to %s. Using %s; values are not logged.",
+                warning["legacy"], warning["replacement"], warning["selected"],
+            )
+        return self
 
     APP_NAME: str = "Acestream Scraper"
     DEBUG: bool = True

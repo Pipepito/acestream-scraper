@@ -1,0 +1,122 @@
+[
+  {
+    "id": "html-channel-cards",
+    "description": "Starter template with synthetic data. Adapt and test it against your own source.",
+    "author": "Acestream Scraper contributors",
+    "recipe": {
+      "schema_version": 1,
+      "name": "HTML channel cards",
+      "version": "1.0.0",
+      "mode": "html",
+      "records": ".channel",
+      "flags": "i",
+      "fields": {
+        "name": {
+          "selector": "h3",
+          "attribute": "",
+          "path": "",
+          "pattern": ""
+        },
+        "id": {
+          "selector": "a",
+          "attribute": "href",
+          "path": "",
+          "pattern": ""
+        }
+      }
+    },
+    "sample": "<section class=\"channel\"><h3>Example News</h3><a href=\"acestream://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\">Watch</a></section>\n<section class=\"channel\"><h3>Example Sports</h3><a href=\"acestream://bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\">Watch</a></section>",
+    "minimum_app_version": "2.1.0",
+    "tested_at": "2026-09-14",
+    "expected": [
+      {
+        "name": "Example News",
+        "channel_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      {
+        "name": "Example Sports",
+        "channel_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    ]
+  },
+  {
+    "id": "json-channel-array",
+    "description": "Starter template with synthetic data. Adapt and test it against your own source.",
+    "author": "Acestream Scraper contributors",
+    "recipe": {
+      "schema_version": 1,
+      "name": "JSON channel array",
+      "version": "1.0.0",
+      "mode": "json",
+      "records": "data.channels",
+      "flags": "i",
+      "fields": {
+        "name": {
+          "selector": "",
+          "attribute": "",
+          "path": "title",
+          "pattern": ""
+        },
+        "id": {
+          "selector": "",
+          "attribute": "",
+          "path": "stream.id",
+          "pattern": ""
+        }
+      }
+    },
+    "sample": "{\n  \"data\": {\n    \"channels\": [\n      {\n        \"title\": \"Example News\",\n        \"stream\": {\n          \"id\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"\n        }\n      },\n      {\n        \"title\": \"Example Sports\",\n        \"stream\": {\n          \"id\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"\n        }\n      }\n    ]\n  }\n}",
+    "minimum_app_version": "2.1.0",
+    "tested_at": "2026-09-14",
+    "expected": [
+      {
+        "name": "Example News",
+        "channel_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      {
+        "name": "Example Sports",
+        "channel_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    ]
+  },
+  {
+    "id": "text-name-id",
+    "description": "Starter template with synthetic data. Adapt and test it against your own source.",
+    "author": "Acestream Scraper contributors",
+    "recipe": {
+      "schema_version": 1,
+      "name": "Text: name and ID",
+      "version": "1.0.0",
+      "mode": "regex",
+      "records": "[^\\r\\n]+",
+      "flags": "i",
+      "fields": {
+        "name": {
+          "selector": "",
+          "attribute": "",
+          "path": "",
+          "pattern": "^([^|]+)\\|"
+        },
+        "id": {
+          "selector": "",
+          "attribute": "",
+          "path": "",
+          "pattern": "([0-9a-fA-F]{40})"
+        }
+      }
+    },
+    "sample": "Example News | aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\nExample Sports | bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "minimum_app_version": "2.1.0",
+    "tested_at": "2026-09-14",
+    "expected": [
+      {
+        "name": "Example News",
+        "channel_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      {
+        "name": "Example Sports",
+        "channel_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    ]
+  }
+]

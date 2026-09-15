@@ -16,6 +16,7 @@ from app.config.database_retry import run_database_write
 from app.models.models import AcestreamChannel
 from app.repositories.channel_repository import ChannelRepository
 from app.services.stream_bitrate_service import probe_media
+from app.services.stream_stats import stream_stats_sample
 from app.services.probe_queue import ProbePriority, probe_queue
 
 logger = logging.getLogger(__name__)
@@ -86,7 +87,7 @@ class ChannelStatusService:
             return None
         return f"{engine_url}{path}"
 
-    async def _verify_broadcast(self, engine_url: str, data: Dict[str, Any], timeout: float, channel_id: str = ""):
+    async def _verify_broadcast(self, engine_url: str, data: Dict[str, Any], timeout: float, channel_id: str = "", *, observation: Optional[dict] = None):
         response = data.get('response')
         if not isinstance(response, dict):
             return False, 'Invalid response format', None
@@ -109,6 +110,11 @@ class ChannelStatusService:
                 state = stats.get('response')
                 if stats.get('error') or not isinstance(state, dict):
                     return False, 'Engine could not read stream statistics', None
+                sample = stream_stats_sample(state)
+                if sample is not None and observation is not None:
+                    # Replace the entire observation; never combine different polls.
+                    observation.clear()
+                    observation.update(sample)
                 if state.get('status') in ('error', 'err', 'idle', 'stopped'):
                     return False, 'Stream is not broadcasting', None
                 downloaded = state.get('downloaded')
@@ -146,7 +152,7 @@ class ChannelStatusService:
     def _skipped_result(channel: AcestreamChannel) -> Dict[str, Any]:
         return {
             'channel_id': channel.id, 'is_online': channel.is_online is True,
-            'network_status': channel.network_status,
+            'network_status': channel.network_status, 'stream_stats': channel.stream_stats,
             'status': 'skipped', 'message': 'Source is in use; keeping its previous status',
             'last_checked': channel.last_checked or datetime.now(timezone.utc), 'error': None,
         }
@@ -160,7 +166,7 @@ class ChannelStatusService:
             return None
         return {
             'channel_id': channel_id, 'is_online': snapshot['is_online'] is True,
-            'network_status': snapshot.get('network_status'),
+            'network_status': snapshot.get('network_status'), 'stream_stats': snapshot.get('stream_stats'),
             'status': 'skipped', 'message': 'Recently checked; using the latest channel status',
             'last_checked': snapshot['last_checked'], 'error': None,
         }
@@ -228,6 +234,7 @@ class ChannelStatusService:
         """Check current data transfer using a bounded probe with a unique PID."""
         online = False
         media = None
+        observation = {}
         engine_url = None
         network_status = 'unknown'
         try:
@@ -263,7 +270,7 @@ class ChannelStatusService:
             elif parse_error or not isinstance(data, dict):
                 message = 'Invalid response format'
             else:
-                online, message, media = await self._verify_broadcast(engine_url, data, timeout, channel.id)
+                online, message, media = await self._verify_broadcast(engine_url, data, timeout, channel.id, observation=observation)
                 if network_status == 'not_found':
                     message = 'Engine reports this content ID was not found'
         except asyncio.TimeoutError:
@@ -279,9 +286,11 @@ class ChannelStatusService:
         error = None if online else message
         if persist:
             await run_database_write(self.channel_repository.update_channel_status, channel.id, online, error, bitrate_bps=media.get("bitrate_bps") if media else None,
-                audio_tracks=media.get("audio_tracks") if media else None, network_status=network_status)
+                audio_tracks=media.get("audio_tracks") if media else None, network_status=network_status,
+                stream_stats=observation or None)
         return {
             'channel_id': channel.id,
+            'stream_stats': observation or channel.stream_stats,
             'network_status': network_status,
             'is_online': online,
             'status': 'online' if online else 'offline',

@@ -10,6 +10,8 @@
 
 - [Live TV and web player](Web-Player.md)
 - [Channel management](tasks/channel-management.md)
+- [Stream statistics](Stream-Statistics.md)
+- [Extraction recipes](Extraction-Recipes.md)
 - [VLC and Kodi](Remote-Players.md)
 - [Jellyfin and Plex](Media-Servers.md)
 - [Configuration](Configuration.md)

@@ -1,86 +1,35 @@
-"""Cutover env compatibility behavior tests."""
+"""Legacy aliases stay retired regardless of the release version."""
+import ast
+from pathlib import Path
+import pytest
+from app.config.settings import Settings
 
-from packaging.version import parse as parse_version
+RETIRED = {
+    "SCRAPER_DB_URL": "DATABASE_URL", "LEGACY_DB_URL": "LEGACY_DATABASE_URL",
+    "ZERONET_BASE_URL": "ZERONET_URL", "CORS_ALLOW_ORIGINS": "CORS_ORIGINS",
+    "FRONTEND_STATIC_DIR": "FRONTEND_BUILD_PATH", "ACESTREAM_ENGINE_URL": "ACE_ENGINE_URL",
+}
 
-from app.config.settings import (
-    LEGACY_ENV_ALIAS_MAP,
-    LEGACY_ENV_ALIAS_WINDOW,
-    apply_legacy_env_aliases,
-)
-from app.config.version import get_app_version_parsed
-
-
-# The ``v2-cutover-r1`` legacy env alias compatibility window covers exactly
-# the v2.0.x release line. Once the project moves to v2.1.0, the alias map
-# and ``apply_legacy_env_aliases`` machinery must be removed.
-LEGACY_ENV_ALIAS_EXPIRY_VERSION = parse_version("2.1.0")
-
-
-def test_legacy_alias_map_contains_expected_cutover_pairs():
-    assert LEGACY_ENV_ALIAS_MAP["SCRAPER_DB_URL"] == "DATABASE_URL"
-    assert LEGACY_ENV_ALIAS_MAP["LEGACY_DB_URL"] == "LEGACY_DATABASE_URL"
-
-
-def test_alias_applies_when_new_var_missing():
-    env = {"SCRAPER_DB_URL": "sqlite:///./config/legacy.db"}
-
-    events = apply_legacy_env_aliases(environ=env)
-
-    assert env["DATABASE_URL"] == "sqlite:///./config/legacy.db"
-    assert len(events) == 1
-    assert events[0]["kind"] == "alias_applied"
-    assert events[0]["legacy_key"] == "SCRAPER_DB_URL"
-    assert events[0]["new_key"] == "DATABASE_URL"
-    assert events[0]["selected"] == "legacy"
-    assert events[0]["window"] == LEGACY_ENV_ALIAS_WINDOW
+@pytest.mark.parametrize("legacy,canonical", RETIRED.items())
+def test_retired_names_cannot_override_defaults_or_canonical_settings(monkeypatch, legacy, canonical):
+    monkeypatch.delenv(canonical, raising=False)
+    monkeypatch.setenv(legacy, "http://retired.invalid")
+    settings = Settings(_env_file=None)
+    assert getattr(settings, canonical) == Settings.model_fields[canonical].default
+    monkeypatch.setenv(canonical, 'https://canonical.example' if canonical != 'CORS_ORIGINS' else '["https://canonical.example"]')
+    assert 'canonical.example' in str(getattr(Settings(_env_file=None), canonical))
 
 
-def test_new_var_wins_on_conflict_and_emits_warning_event():
-    env = {
-        "SCRAPER_DB_URL": "sqlite:///./config/legacy.db",
-        "DATABASE_URL": "sqlite:///./config/new.db",
-    }
-
-    events = apply_legacy_env_aliases(environ=env)
-
-    assert env["DATABASE_URL"] == "sqlite:///./config/new.db"
-    assert len(events) == 1
-    assert events[0]["kind"] == "conflict"
-    assert events[0]["legacy_key"] == "SCRAPER_DB_URL"
-    assert events[0]["new_key"] == "DATABASE_URL"
-    assert events[0]["selected"] == "new"
-    assert events[0]["window"] == LEGACY_ENV_ALIAS_WINDOW
-
-
-def test_compatibility_window_can_be_disabled():
-    env = {"SCRAPER_DB_URL": "sqlite:///./config/legacy.db"}
-
-    events = apply_legacy_env_aliases(environ=env, compat_enabled=False)
-
-    assert "DATABASE_URL" not in env
-    assert events == []
-
-
-def test_legacy_env_aliases_must_be_removed_after_cutover_window():
-    """Force the next release to actively decide about the compat shim.
-
-    The ``v2-cutover-r1`` window is intentionally a *single* release pass
-    (see ``docs/migration/migration-strategy.md``). When ``version.txt``
-    is bumped to v2.1.0 or later, this test fails CI until somebody
-    removes ``LEGACY_ENV_ALIAS_MAP`` and ``apply_legacy_env_aliases``
-    from ``app/config/settings.py`` and drops the ``apply`` call from
-    module load. That keeps a stale compatibility shim from quietly
-    overstaying its window.
-    """
-    current = get_app_version_parsed()
-    if current >= LEGACY_ENV_ALIAS_EXPIRY_VERSION:
-        assert not LEGACY_ENV_ALIAS_MAP, (
-            f"v{current}: legacy env alias compatibility window "
-            f"({LEGACY_ENV_ALIAS_WINDOW!r}) closed at "
-            f"v{LEGACY_ENV_ALIAS_EXPIRY_VERSION}. Remove "
-            "LEGACY_ENV_ALIAS_MAP, apply_legacy_env_aliases, and the "
-            "compat-event log call from app/config/settings.py and main.py."
-        )
+def test_alias_shim_and_runtime_consumers_stay_absent():
+    root = Path(__file__).resolve().parents[1]
+    banned = set(RETIRED) | {"ENABLE_LEGACY_ENV_ALIASES", "LEGACY_ENV_ALIAS_MAP", "apply_legacy_env_aliases", "get_env_compat_events"}
+    for path in [root / 'main.py', *sorted((root / 'app').rglob('*.py'))]:
+        tree = ast.parse(path.read_text())
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                assert node.value not in banned, str(path)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                assert node.name not in banned, str(path)
 
 
 def test_engine_url_default_follows_env(monkeypatch):

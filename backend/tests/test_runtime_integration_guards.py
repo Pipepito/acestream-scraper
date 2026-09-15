@@ -22,8 +22,9 @@ def test_backend_requirements_include_apscheduler():
 def test_build_backend_script_uses_node_copy_script():
     package_json = json.loads((REPO_ROOT / "frontend" / "package.json").read_text())
 
-    assert package_json["scripts"]["build"] == "vite build"
-    assert package_json["scripts"]["build:backend"] == "vite build && node scripts/copy-build.js"
+    assert package_json["scripts"]["build"] == "vite build && npm run build:recipes"
+    assert package_json["scripts"]["build:recipes"] == "vite build --config vite.recipes.config.ts"
+    assert package_json["scripts"]["build:backend"] == "npm run build && node scripts/copy-build.js"
 
 
 def test_frontend_container_builds_from_vite_dist_directory():

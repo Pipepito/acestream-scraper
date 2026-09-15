@@ -317,3 +317,13 @@ curl -s -o /dev/null -w '%{http_code}\n' https://scraper.example.com/tuner/disco
 
 Then open a playlist entry in a player from the network position it will
 really be used from, to confirm the `base_url` target is reachable.
+
+### Source-fetch DNS pinning (v2.1)
+
+Source clients validate redirects and connect to the IP addresses they checked,
+while HTTPS retains the original hostname for SNI and certificate validation.
+This covers scrape pages, embedded iframe sources, linked M3U files, IPFS gateways,
+custom recipes and EPG feeds. Environment HTTP proxies are not inherited by these
+clients. Set `ALLOW_PRIVATE_SCRAPE_TARGETS=false` on exposed installations; the
+default remains `true` for existing LAN users. Configured ZeroNet/IPFS gateway
+hosts remain allowed, but cloud metadata addresses are always denied.

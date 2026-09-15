@@ -285,6 +285,17 @@ bash scripts/ci/publish_wiki.sh
       }
     }
 
+    stage('Build recipe helper') {
+      when { expression { env.CI_PAGES == 'true' } }
+      steps {
+        sh '''#!/usr/bin/env bash
+set -euo pipefail
+npm --prefix frontend ci
+npm --prefix frontend run build:recipes
+'''
+      }
+    }
+
     stage('Publish docs site') {
       when { expression { env.CI_PAGES == 'true' } }
       steps {

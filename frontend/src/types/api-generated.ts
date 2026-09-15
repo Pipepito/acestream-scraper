@@ -709,6 +709,20 @@ export interface paths {
     /** Probe a saved player */
     post: operations["test_saved_player_api_v1_remote_players__player_id__test_post"];
   };
+  "/api/v1/scrapers/recipes/preview": {
+    /**
+     * Preview Extraction
+     * @description Test a sample in an isolated worker. No source/channel writes.
+     */
+    post: operations["preview_extraction_api_v1_scrapers_recipes_preview_post"];
+  };
+  "/api/v1/scrapers/recipes/sample": {
+    /**
+     * Fetch Extraction Sample
+     * @description Fetch a bounded source sample using the installed app, without scraping.
+     */
+    post: operations["fetch_extraction_sample_api_v1_scrapers_recipes_sample_post"];
+  };
   "/api/v1/scrapers/scrape": {
     /**
      * Scrape Url
@@ -1180,6 +1194,7 @@ export interface components {
       network_status?: ("found" | "not_found" | "unknown") | null;
       /** Source Url */
       source_url?: string | null;
+      stream_stats?: components["schemas"]["StreamStats"] | null;
       /** Tv Channel Id */
       tv_channel_id?: number | null;
       /** Tv Channel Is Favorite */
@@ -1539,6 +1554,7 @@ export interface components {
       network_status?: ("found" | "not_found" | "unknown") | null;
       /** Status */
       status: string;
+      stream_stats?: components["schemas"]["StreamStats"] | null;
     };
     /**
      * ChannelStatusSummary
@@ -1930,6 +1946,56 @@ export interface components {
       favorites_only?: boolean;
       /** Search Term */
       search_term?: string | null;
+    };
+    /** ExtractedChannel */
+    ExtractedChannel: {
+      /** Channel Id */
+      channel_id: string;
+      /** Metadata */
+      metadata?: {
+        [key: string]: string;
+      };
+      /** Name */
+      name: string;
+    };
+    /** ExtractionRecipe */
+    ExtractionRecipe: {
+      /** Fields */
+      fields: {
+        [key: string]: components["schemas"]["RecipeField"];
+      };
+      /**
+       * Flags
+       * @default is
+       */
+      flags?: string;
+      /**
+       * Mode
+       * @default html
+       * @enum {string}
+       */
+      mode?: "html" | "regex" | "json";
+      /**
+       * Name
+       * @default My recipe
+       */
+      name?: string;
+      /**
+       * Records
+       * @default
+       */
+      records?: string;
+      /**
+       * Schema Version
+       * @default 1
+       * @constant
+       */
+      schema_version?: 1;
+      /**
+       * Version
+       * @default 1.0.0
+       */
+      version?: string;
     };
     /** HTTPValidationError */
     HTTPValidationError: {
@@ -2341,6 +2407,71 @@ export interface components {
        * @description localhost | docker-internal | unset | proxied
        */
       warnings?: string[];
+    };
+    /** RecipeFetchRequest */
+    RecipeFetchRequest: {
+      /** Url */
+      url: string;
+      /**
+       * Url Type
+       * @default auto
+       * @enum {string}
+       */
+      url_type?: "auto" | "regular" | "zeronet" | "ipfs";
+    };
+    /** RecipeField */
+    RecipeField: {
+      /**
+       * Attribute
+       * @default
+       */
+      attribute?: string;
+      /**
+       * Path
+       * @default
+       */
+      path?: string;
+      /**
+       * Pattern
+       * @default
+       */
+      pattern?: string;
+      /**
+       * Selector
+       * @default
+       */
+      selector?: string;
+    };
+    /** RecipeIssue */
+    RecipeIssue: {
+      /** Message */
+      message: string;
+      /** Record */
+      record: number;
+    };
+    /** RecipePreview */
+    RecipePreview: {
+      /** Channels */
+      channels: components["schemas"]["ExtractedChannel"][];
+      /** Duplicate Count */
+      duplicate_count: number;
+      /** Invalid Count */
+      invalid_count: number;
+      /** Issues */
+      issues: components["schemas"]["RecipeIssue"][];
+      /** Record Count */
+      record_count: number;
+    };
+    /** RecipePreviewRequest */
+    RecipePreviewRequest: {
+      recipe: components["schemas"]["ExtractionRecipe"];
+      /** Sample */
+      sample: string;
+    };
+    /** RecipeSample */
+    RecipeSample: {
+      /** Sample */
+      sample: string;
     };
     /** RemotePlayerCommandRequest */
     RemotePlayerCommandRequest: {
@@ -2942,6 +3073,26 @@ export interface components {
        */
       status: string;
     };
+    /** StreamStats */
+    StreamStats: {
+      /**
+       * Download Speed Kbytes Sec
+       * @description Engine speed_down in Kbytes/sec; not encoded media bitrate
+       */
+      download_speed_kbytes_sec?: number | null;
+      /**
+       * Observed At
+       * Format: date-time
+       */
+      observed_at: string;
+      /** Peers */
+      peers?: number | null;
+      /**
+       * Upload Speed Kbytes Sec
+       * @description Engine speed_up in Kbytes/sec
+       */
+      upload_speed_kbytes_sec?: number | null;
+    };
     /**
      * TVChannelAssociationRequest
      * @description Schema for asociating one acestream channel with a TV channel
@@ -3412,6 +3563,7 @@ export interface components {
        * @default true
        */
       enabled?: boolean;
+      extraction_recipe?: components["schemas"]["ExtractionRecipe"] | null;
       /**
        * Scrape Bare Ids
        * @default false
@@ -3457,6 +3609,7 @@ export interface components {
        * @default 0
        */
       error_count?: number;
+      extraction_recipe?: components["schemas"]["ExtractionRecipe"] | null;
       /** Id */
       id: number;
       /** Last Error */
@@ -3505,6 +3658,7 @@ export interface components {
     URLUpdate: {
       /** Enabled */
       enabled?: boolean | null;
+      extraction_recipe?: components["schemas"]["ExtractionRecipe"] | null;
       /** Scrape Bare Ids */
       scrape_bare_ids?: boolean | null;
       /** Status */
@@ -6277,6 +6431,56 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["RemotePlayerProbeResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Preview Extraction
+   * @description Test a sample in an isolated worker. No source/channel writes.
+   */
+  preview_extraction_api_v1_scrapers_recipes_preview_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RecipePreviewRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["RecipePreview"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Fetch Extraction Sample
+   * @description Fetch a bounded source sample using the installed app, without scraping.
+   */
+  fetch_extraction_sample_api_v1_scrapers_recipes_sample_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RecipeFetchRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["RecipeSample"];
         };
       };
       /** @description Validation Error */

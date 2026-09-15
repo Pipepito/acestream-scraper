@@ -33,7 +33,7 @@ from app.config.database import (
     head_revision,
     provision_schema,
 )
-from app.config.settings import get_env_compat_events, get_settings, settings
+from app.config.settings import get_settings, settings
 from app.middleware.forwarded import ForwardedHeadersMiddleware, parse_trusted
 from app.services.startup_service import startup_service
 from app.repositories.startup_recovery import database_path, legacy_disabled, recover_database
@@ -56,16 +56,6 @@ from app.utils.logging import setup_logging
 # Setup logging before anything else
 setup_logging()
 logging.getLogger().warning("[MAIN] Root logger active at startup")
-
-for event in get_env_compat_events():
-    logging.getLogger("app.config.settings").warning(
-        "env_compat_event kind=%s legacy_key=%s new_key=%s selected=%s window=%s",
-        event.get("kind"),
-        event.get("legacy_key"),
-        event.get("new_key"),
-        event.get("selected"),
-        event.get("window"),
-    )
 
 
 def initialize_database():

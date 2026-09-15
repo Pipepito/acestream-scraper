@@ -13,11 +13,9 @@ Behavior:
   LAN/localhost sources is a first-class use case for self-hosters. Flip it
   to false when exposing the app beyond a trusted network.
 
-Callers follow HTTP redirects manually and re-validate every hop through
-this guard. The check resolves the destination immediately before the
-fetch, but does not pin the resolved IP into the actual connection, so a
-hostile DNS server could still rebind between check and fetch in strict
-deployments; treat strict mode as hardening, not a sandbox.
+Use the guarded HTTP clients in outbound_http.py for actual source fetches.
+They validate redirects and pin the final validated addresses to connections;
+validation alone is not a connection boundary.
 """
 
 import ipaddress
@@ -91,35 +89,22 @@ def validate_outbound_url(url: str) -> None:
     if not host:
         raise BlockedURLError("URL has no host")
 
-    addresses = _resolve_addresses(host)
+    validate_resolved_addresses(host, _resolve_addresses(host))
 
-    addresses = [_canonical_address(address) for address in addresses]
 
-    for address in addresses:
+def validate_resolved_addresses(host, addresses):
+    """Validate the same DNS answers that the connection will use."""
+    if not addresses:
+        raise BlockedURLError('Host resolved to no usable addresses')
+    for original in addresses:
+        address = _canonical_address(original)
         if address in METADATA_ADDRESSES:
-            raise BlockedURLError(
-                f"Refusing to fetch '{url}': resolves to the cloud metadata endpoint"
-            )
-
-    if _allow_private_targets():
-        return
-
-    if host.lower() in _exempt_hosts():
-        return
-
-    for address in addresses:
-        if (
-            address.is_loopback
-            or address.is_private
-            or address.is_link_local
-            or address.is_reserved
-            or address.is_multicast
-            or address.is_unspecified
+            raise BlockedURLError('Refusing to fetch the cloud metadata endpoint')
+        if not (_allow_private_targets() or host.lower() in _exempt_hosts()) and (
+            address.is_loopback or address.is_private or address.is_link_local
+            or address.is_reserved or address.is_multicast or address.is_unspecified
         ):
-            raise BlockedURLError(
-                f"Refusing to fetch '{url}': resolves to non-public address {address} "
-                "(set ALLOW_PRIVATE_SCRAPE_TARGETS=true to permit private targets)"
-            )
+            raise BlockedURLError('Refusing to fetch a non-public address (set ALLOW_PRIVATE_SCRAPE_TARGETS=true to permit private targets)')
 
 
 def _lan_target_reason(address) -> Optional[str]:

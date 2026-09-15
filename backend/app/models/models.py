@@ -68,6 +68,7 @@ class ScrapedURL(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     url = Column(String(2048), unique=True, index=True, nullable=False)
+    extraction_recipe = Column(JSON, nullable=True)
     url_type = Column(String(255), default="regular")  # 'regular', 'zeronet', 'ipfs', etc.
     status = Column(String(255), default="pending")
     last_processed = Column(UtcDateTime(), nullable=True)
@@ -118,6 +119,7 @@ class AcestreamChannel(Base):
     audio_tracks = Column(JSON, nullable=True)
     bitrate_bps = Column(Integer, nullable=True)
     bitrate_checked_at = Column(UtcDateTime(), nullable=True)
+    stream_stats = Column(JSON, nullable=True)
     original_url = Column(String(2048), nullable=True)
     epg_update_protected = Column(Boolean, default=False)
 

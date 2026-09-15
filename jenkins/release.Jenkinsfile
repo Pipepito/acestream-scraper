@@ -96,6 +96,17 @@ docker buildx use "${JENKINS_BUILDER:-acestream-builder}"
       }
     }
 
+    stage('Build recipe helper') {
+      when { expression { !params.DRY_RUN && params.PUBLISH_LATEST } }
+      steps {
+        sh '''#!/usr/bin/env bash
+set -euo pipefail
+npm --prefix frontend ci
+npm --prefix frontend run build:recipes
+'''
+      }
+    }
+
     stage('Publish production docs') {
       when {
         expression { !params.DRY_RUN && params.PUBLISH_LATEST }

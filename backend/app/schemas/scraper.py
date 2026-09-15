@@ -4,6 +4,7 @@ Pydantic schemas for scraper data
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
 from typing import List, Optional, Dict, Any
 from datetime import datetime
+from app.schemas.extraction import ExtractionRecipe
 
 
 class ScraperRequest(BaseModel):
@@ -39,6 +40,7 @@ class URLResponse(BaseModel):
     last_error: Optional[str] = None
     error: Optional[str] = None  # Keep for backward compatibility
     enabled: bool = True
+    extraction_recipe: Optional[ExtractionRecipe] = None
     scrape_bare_ids: bool = False
     added_at: datetime
 
@@ -62,6 +64,7 @@ class URLCreate(BaseModel):
     url_type: str = "regular"
     enabled: bool = True
     status: str = "active"
+    extraction_recipe: Optional[ExtractionRecipe] = None
     scrape_bare_ids: bool = False
 
 
@@ -71,4 +74,5 @@ class URLUpdate(BaseModel):
     url_type: Optional[str] = None
     enabled: Optional[bool] = None
     status: Optional[str] = None
+    extraction_recipe: Optional[ExtractionRecipe] = None
     scrape_bare_ids: Optional[bool] = None

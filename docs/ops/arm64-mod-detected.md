@@ -53,6 +53,22 @@ The corrected bundled engine also completed a 300-second playback run, deliverin
 166,723,584 bytes. Its retained sample contained H.264 video and MP2 audio packets.
 This was a repeat of a successfully resolved ID, not a fresh-ID availability test.
 
+### Browser playback on the Mac
+
+After restarting that engine with the exact committed bootstrap and DNS helper
+(SHA-256 matches verified against the repository), the rebuilt app was configured
+to use it through a local Docker host endpoint. Both app and engine ran on the
+same Mac. The app's player visibly rendered the second test channel at 1920×1080:
+the video element reported `paused=false`, `readyState=4` and 24.826 seconds of
+playback. The app converted E-AC-3 audio to AAC. An actual screenshot of the
+playing football stream was delivered to the maintainer; broadcast imagery is
+not committed to the repository.
+
+The first channel produced HLS but failed in the in-app browser. The second
+channel's successful browser playback does not resolve that separate failure or
+the fresh-ID lookup limitation below. This test used a previously resolved ID;
+it did not replay a saved media recording or use the maintainer's remote engine.
+
 ## Playback/checker DNS collision
 
 Running the playback and checking engines together exposed an independent race:

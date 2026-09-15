@@ -4,7 +4,7 @@ Discover AceStream streams, organize your TV channels, and watch or share them w
 
 Scraper brings sources, programme guides, playlists, and playback together. Import links from web pages, playlists, JSON, text, ZeroNet, or IPFS, then turn them into a catalogue you can browse and maintain.
 
-**[Get started](https://pipepito.github.io/acestream-scraper/)** · [Docker Hub](https://hub.docker.com/r/pipepito/acestream-scraper) · [User guides](https://github.com/Pipepito/acestream-scraper/wiki)
+**[Get started](https://pipepito.github.io/acestream-scraper/)** · [Docker Hub](https://hub.docker.com/r/pipepito/acestream-scraper) · [Docs](https://github.com/Pipepito/acestream-scraper/wiki)
 
 ![Live TV with the channel catalogue and programme guide](wiki/usage-09-live-tv.png)
 
@@ -13,10 +13,12 @@ Scraper brings sources, programme guides, playlists, and playback together. Impo
 ## What you can do
 
 - **Find and organize channels.** Collect AceStream IDs from multiple sources, match them to TV stations, and manage names, numbers, categories, favorites, and channel order.
+- **Build your own source extractor.** Pick fields from an HTML sample, write a regular expression, or map JSON API fields to channel names and AceStream IDs. Start from the recipe catalogue, preview the results, and save the recipe to a source.
 - **See what's on.** Import XMLTV programme guides and browse current and upcoming shows alongside your channels.
 - **Watch in the browser.** Open Live TV, switch between available streams and audio tracks, or keep browsing while a channel plays.
 - **Use the players you already have.** Generate M3U playlists, send channels to VLC or Kodi, or connect your catalogue to Jellyfin and Plex.
 - **Keep your catalogue up to date.** Schedule source and guide refreshes, verify stream signal, and review job history and service health.
+- **Inspect streams and storage.** See the latest measured peers, transfer rates, and media bitrate. Overview reports container data directories and mounts, their usage, and available filesystem space.
 - **Choose your setup.** Use optional bundled services or connect your own AceStream engine, Acexy proxy, ZeroNet node, or IPFS gateway.
 
 An engine is optional for scraping and playlist management. In-app playback needs a configured playback engine; signal checks need a playback or checking engine.
@@ -24,6 +26,12 @@ An engine is optional for scraping and playlist management. In-app playback need
 ## Get started
 
 Use the **[Docker command builder](https://pipepito.github.io/acestream-scraper/)** to generate a command or Compose file for your machine, then follow the **[installation guide](https://github.com/Pipepito/acestream-scraper/wiki/Installation)** and **[first-run walkthrough](https://github.com/Pipepito/acestream-scraper/wiki/Usage)**.
+
+## Extraction builder
+
+Use **Scraper → Extraction builder** inside your installation to fetch a source, test a recipe, and save it. The [user tools page](https://pipepito.github.io/acestream-scraper/) brings **Docker setup**, **Extraction builder**, and **Docs** together. Its standalone builder works with pasted or uploaded HTML, text, or JSON; export the recipe and test it in your own scraper. Your installation does not need to be publicly accessible.
+
+The starter catalogue provides editable examples. Sources without a recipe keep automatic extraction. The HTML preview is a sanitized snapshot: scripts, logins, and live page interactions do not run. Raw text and manual JSON paths are available when visual selection is unsuitable. See [extraction recipes](https://github.com/Pipepito/acestream-scraper/wiki/Extraction-Recipes) for instructions, sample limits, and troubleshooting.
 
 ## What's included in `latest`?
 
@@ -75,13 +83,15 @@ This example has optional services enabled. Your dashboard shows which component
 
 The [illustrated walkthrough](https://github.com/Pipepito/acestream-scraper/wiki/Usage) covers importing sources, adding programme guides, and creating your first playlist.
 
-## Explore the guides
+## Explore the docs
 
-| I want to… | Guide |
+| I want to… | Docs |
 |---|---|
 | Install, update, or migrate from v1 | [Installation and upgrades](https://github.com/Pipepito/acestream-scraper/wiki/Installation) |
 | Choose services, ports, and storage | [Docker](https://github.com/Pipepito/acestream-scraper/wiki/Docker) · [Requirements](https://github.com/Pipepito/acestream-scraper/wiki/Requirements) |
 | Manage channels, guides, and playlists | [Walkthrough](https://github.com/Pipepito/acestream-scraper/wiki/Usage) |
+| Add a custom website or JSON API | [Extraction recipes](https://github.com/Pipepito/acestream-scraper/wiki/Extraction-Recipes) |
+| Understand check results and disk usage | [Stream statistics](https://github.com/Pipepito/acestream-scraper/wiki/Stream-Statistics) · [Storage](https://github.com/Pipepito/acestream-scraper/wiki/Storage) |
 | Watch in the browser | [Live TV and web player](https://github.com/Pipepito/acestream-scraper/wiki/Web-Player) |
 | Use VLC, Kodi, Jellyfin, or Plex | [Remote players](https://github.com/Pipepito/acestream-scraper/wiki/Remote-Players) · [Media servers](https://github.com/Pipepito/acestream-scraper/wiki/Media-Servers) |
 | Configure playback and automation | [Configuration](https://github.com/Pipepito/acestream-scraper/wiki/Configuration) |

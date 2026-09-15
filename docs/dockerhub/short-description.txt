@@ -1,1 +1,1 @@
-Discover AceStream streams, manage TV channels and guides, and watch or share playlists.
+Discover AceStream channels, build custom scrapers, and watch or share your TV catalogue.

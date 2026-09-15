@@ -118,6 +118,7 @@ echo "Running canonical frontend suite ($PROFILE)..."
   fi
 
   npm run build
+  bash ../scripts/ci/prepare_pages.sh --check
 )
 
 echo "Canonical v2 test suite passed for profile=$PROFILE"

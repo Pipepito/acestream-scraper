@@ -81,12 +81,14 @@ only. Do not add `allow-scripts` or fetch remote styles without a new security r
 
 ## Publication
 
-Jenkins builds the helper before entering publication credential scopes. Pages
-publishing copies the prepared directory to `recipes/` and refuses a missing build;
-dry runs report the planned helper without requiring Node dependencies. The existing
-production release-status preservation and promotion guards remain in force.
+GitHub Pages serves the committed `docs/` folder on `main`. Run
+`bash scripts/ci/prepare_pages.sh` after installing frontend dependencies to build
+and replace `docs/recipes/`; commit that generated payload with its source changes.
+Full CI compares it with the fresh frontend build using `prepare_pages.sh --check`.
 Recipe UI, theme, entry/config and frontend dependency changes require application
-validation and Pages publication. No public URL-fetch proxy is provided.
+validation. Jenkins does not publish Pages or write a production version label;
+the tools page keeps its neutral release hint when no promotion metadata exists.
+No public URL-fetch proxy is provided.
 
 Checks:
 

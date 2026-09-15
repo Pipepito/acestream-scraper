@@ -23,12 +23,12 @@ def classify_paths(paths):
         if not is_doc:
             result["APPLICATION"] = True
         result["WIKI"] |= path.startswith("wiki/") or path == "scripts/ci/publish_wiki.sh"
-        result["PAGES"] |= (path in SITE_FILES or path.startswith("docs/builder/")
-                            or path == "scripts/ci/publish_pages.sh"
+        result["PAGES"] |= (path in SITE_FILES or path.startswith(("docs/builder/", "docs/recipes/"))
+                            or path in {"scripts/ci/publish_pages.sh", "scripts/ci/prepare_pages.sh"}
                             or path.startswith(("frontend/src/recipes/", "frontend/recipe-helper/"))
                             or path in {"frontend/vite.recipes.config.ts", "frontend/package.json", "frontend/package-lock.json", "frontend/src/theme.ts"})
         result["DOCKERHUB"] |= path in HUB_FILES or path == "scripts/ci/publish_dockerhub_description.py"
-        # Changes to selection/orchestration must exercise every publication path.
+        # Changes to selection/orchestration must exercise the full validation scope.
         if path.startswith("jenkins/") or path in {"Jenkinsfile", "scripts/ci/classify_changes.py"}:
             result.update(dict.fromkeys(KEYS, True))
     return result

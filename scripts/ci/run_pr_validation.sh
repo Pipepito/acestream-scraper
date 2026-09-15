@@ -26,7 +26,6 @@ backend/venv/bin/python scripts/ci/validate_documentation.py
 backend/venv/bin/python scripts/ci/validate_docker_docs_contract.py
 bash scripts/ci/validate_command_builder.sh
 bash scripts/ci/publish_wiki.sh --dry-run
-bash scripts/ci/publish_pages.sh --dry-run
 
 echo "Running the complete non-Docker backend and frontend suites..."
 CI_USE_PREINSTALLED_DEPS=1 \

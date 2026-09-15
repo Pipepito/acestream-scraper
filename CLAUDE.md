@@ -37,7 +37,7 @@ Cutover / CI:
 - Same target via the cutover wrapper: `bash scripts/ci/run_cutover_required_checks.sh --profile quick`
 - Strict legacy-path guard: `bash scripts/ci/assert_no_legacy_paths.sh --strict`
 - Pre-deploy DB safety check (creates timestamped backup under `config/backups/`): `bash scripts/ops/preflight_v2_deploy.sh`
-- User docs (no GitHub Actions): the Docker command builder is `docs/index.html` + `docs/builder/`; the trusted `jenkins/develop.Jenkinsfile` pipeline pushes that payload (plus `.nojekyll`) to the `gh-pages` branch via `scripts/ci/publish_pages.sh`, and GitHub Pages serves that branch. `bash scripts/ci/validate_command_builder.sh` cross-checks `docs/builder/runtime-options.json` against `entrypoint.sh`/`Dockerfile`/compose and runs credential-free for PRs and again before a `develop` publish. `wiki/` is mirrored by the same trusted pipeline. `bash scripts/ci/publish_wiki.sh --dry-run` previews the flattened, link-rewritten pages. Edit `runtime-options.json` when ports/env/flavors change; `app.js` only when a rule changes.
+- User docs: GitHub Pages serves `main/docs`; Jenkins does not push a Pages branch. Prepare the shared extraction helper with `bash scripts/ci/prepare_pages.sh` and commit `docs/recipes/`. `bash scripts/ci/validate_command_builder.sh` checks runtime options against container defaults. The manual release job mirrors `wiki/` after successful non-dry-run latest promotion; `bash scripts/ci/publish_wiki.sh --dry-run` previews the flattened, link-rewritten pages. Docker Hub overview text in `docs/dockerhub/` is published manually. Edit `runtime-options.json` when ports/env/flavors change; `app.js` only when a rule changes.
 
 Docker:
 
@@ -51,7 +51,7 @@ Branching and release flow (adopted 2026-08-28):
 - `develop` is the permanent pre-release branch; feature PRs target `develop`. `main` is the release branch. Both are protected (PRs only, required status `PR Validation`, no force-push/deletion). PRs into `main` are accepted only from `develop` — `jenkins/pr.Jenkinsfile` fails any other head. Releases are cut with a `develop` -> `main` PR; hotfixes go through `develop` too.
 - Fork PRs use `jenkins/pr.Jenkinsfile` from trusted `develop`. Each build requiring application validation creates a disposable dependency runner from the target ref (so it does not depend on a mutable prebuilt image), then executes contributor-controlled files without network, capabilities, Docker socket, or Jenkins credentials. A second isolated stage runs the trusted entrypoint/runtime contract against the PR files under pinned amd64, arm64, and arm/v7 userlands. Fork-controlled Dockerfiles and dependency inputs are never executed or installed automatically; such changes require a maintainer-owned branch after review. `scripts/ci/run_pr_validation.sh` is the credential-free application gate.
 - PR, trusted `develop`, and release pipelines share the FIFO `acestream-scraper-nuc-docker` lock for their full run. The NUC has four executors but only one safe Docker/BuildKit workload slot; later jobs wait instead of pruning images or caches from an in-flight job, and a newer build of the same PR queues rather than aborting its predecessor. Before each heavy build, project-owned transient images, all unused non-keep images, and builder cache above 1 GB are pruned; the build stops early unless at least 8 GB remains free.
-- Every push to `develop` runs the separate trusted `jenkins/develop.Jenkinsfile` job. It selects work with `scripts/ci/classify_changes.py` against the last successful build. Known documentation-only changes run lightweight checks and publish only affected wiki/Pages/Docker Hub text; application, build, CI and unknown changes rerun the full suite and Docker/runtime smokes. It refuses stale revisions, then for those application/build changes `bash scripts/ci/run_jenkins_release.sh --channel develop` pushes only the floating `:develop*` tags — never `:latest`, a version, or a per-commit tag — and independently publishes changed wiki, Pages and Docker Hub text. Missing publish credentials fail the job. Preview with `--print-publish-plan --channel develop` or `--dry-run --channel develop`; `python3 scripts/phase_gates/check_workflow_publish_guard.py` guards the boundary.
+- Every push to `develop` runs the trusted `jenkins/develop.Jenkinsfile` job. It selects work with `scripts/ci/classify_changes.py` against the last successful build. Known documentation-only changes run lightweight checks without publication. Application, build, CI and unknown changes rerun the full suite and Docker/runtime smokes. It refuses stale revisions, then `bash scripts/ci/run_jenkins_release.sh --channel develop` pushes only floating `:develop*` image tags. It never publishes the wiki, Pages, or Docker Hub descriptions. Preview with `--print-publish-plan --channel develop` or `--dry-run --channel develop`; `python3 scripts/phase_gates/check_workflow_publish_guard.py` guards the boundary.
 - `version.txt` on `develop` carries the next version with a `-dev` suffix (e.g. `v2.1.0-dev`, starting with the cycle after v2.0.0); a PR into `develop` bumps it right before the release PR to the final version. `run_jenkins_release.sh` refuses a release (non-channel) run while `version.txt` contains `-dev`; channel publishes accept it.
 - Releases stay manual: Jenkins job `acestream-scraper-release` (`jenkins/release.Jenkinsfile`, runs from `main`; params `CONFIRM_RELEASE`, `DRY_RUN`, `PUBLISH_LATEST`) pushes `:vX.Y.Z`, `:vX.Y.Z-<flavor>` and the flavor tags; `PUBLISH_LATEST=true` retags the canaried version manifest to `:latest` via `scripts/ci/promote_latest.sh`. Details: `docs/ops/jenkins-ci.md`.
 
@@ -296,11 +296,12 @@ A configured dedicated checker never falls back on failure. Bundled checker
 configuration remains supervisor-owned and read-only in Settings. New scraper-only
 installs default to an empty playback URL; existing saved endpoints are preserved.
 
-Production Pages publication follows successful, non-dry-run latest promotion in
-`jenkins/release.Jenkinsfile` using `publish_pages.sh --promoted-release` and the
-`github-publish` credential. The publisher verifies promotion metadata and writes
-`release-status.json`; ordinary develop publishes preserve that production
-version. Never update this label on a main merge, canary-only publish or dry run.
+GitHub Pages serves `main` at `/docs` (repository settings verified 2026-09-15).
+Jenkins must not publish Pages or Docker Hub descriptions. Prepare the standalone
+helper with `bash scripts/ci/prepare_pages.sh` and commit `docs/recipes/` alongside
+its source changes; full CI checks the built payload for drift. The manual release
+job mirrors `wiki/` only after successful, non-dry-run latest promotion, using
+`github-publish`. Docker Hub text in `docs/dockerhub/` is copied to the page manually.
 
 
 Scheduled maintenance jobs share a FIFO queue; due jobs show Waiting and run-now
@@ -366,7 +367,7 @@ fixture-tested catalogue. The public helper never connects to an installation.
 Preview/fetch endpoints write no source or channel data; production regex runs in
 a bounded disposable worker. Preserve pairing within records, pinned fetch
 destinations, sandboxed HTML previews and existing channels on recipe errors.
-Build the standalone helper before Pages publication credentials are available.
+Prepare and commit the standalone helper under docs/recipes before release.
 See `docs/dev/extraction-recipes.md` and `wiki/Extraction-Recipes.md`.
 
 ## Source fetches and EPG responsibilities

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Publish the user tools hub to GitHub Pages.
+# Legacy manual publisher for an explicitly configured alternate Pages branch.
+# Not used by Jenkins: production Pages serves main/docs. Prefer prepare_pages.sh
+# and commit the prepared docs/recipes assets through the normal release PR.
 #
 # The hub and command builder are static (docs/index.html + docs/builder/).
 # The extraction helper is prebuilt into frontend/dist-recipes/. This script

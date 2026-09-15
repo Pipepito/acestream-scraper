@@ -144,11 +144,15 @@ def main() -> int:
          and develop_jenkinsfile.count("when { expression { env.CI_APPLICATION == 'true' } }") == 5
          and develop_jenkinsfile.index("stage('Select affected work')")
              < develop_jenkinsfile.index("stage('Bootstrap trusted runner')")),
-        ("documentation payloads publish independently of image changes",
-         all(f"when {{ expression {{ env.CI_{key} == 'true' }} }}" in develop_jenkinsfile
-             for key in ('WIKI', 'PAGES', 'DOCKERHUB'))
-         and 'publish_dockerhub_description.py' in develop_jenkinsfile
-         and 'publish_dockerhub_description.py' not in pr_jenkinsfile),
+        ("develop never publishes documentation or binds GitHub publication credentials",
+         "github-publish" not in develop_jenkinsfile
+         and "publish_pages.sh" not in develop_jenkinsfile
+         and "publish_dockerhub_description.py" not in develop_jenkinsfile
+         and re.findall(r"publish_wiki\.sh[^\n]*", develop_jenkinsfile) == ["publish_wiki.sh --dry-run"]),
+        ("Docker Hub descriptions are manual and Pages uses main/docs",
+         all("publish_dockerhub_description.py" not in pipeline
+             and "publish_pages.sh" not in pipeline
+             for pipeline in (pr_jenkinsfile, develop_jenkinsfile, release_jenkinsfile))),
         ("manual release validation is never skipped by changed paths",
          'CI_APPLICATION' not in release_jenkinsfile
          and 'classify_changes.py' not in release_jenkinsfile),
@@ -226,12 +230,13 @@ def main() -> int:
          and "scripts/ci/promote_latest.sh" in release_sh),
         ("release script supports --print-publish-plan preview",
          "--print-publish-plan" in release_sh),
-        ("production docs publish only after non-dry-run latest promotion",
-         "stage('Publish production docs')" in release_jenkinsfile
-         and "!params.DRY_RUN && params.PUBLISH_LATEST" in release_jenkinsfile
-         and "publish_pages.sh --promoted-release" in release_jenkinsfile
+        ("wiki publishes only after non-dry-run latest promotion",
+         "stage('Publish release wiki')" in release_jenkinsfile
+         and "when { expression { !params.DRY_RUN && params.PUBLISH_LATEST } }"
+             in release_jenkinsfile.split("stage('Publish release wiki')", 1)[1]
+         and "script: 'bash scripts/ci/publish_wiki.sh'" in release_jenkinsfile
          and "credentialsId: 'github-publish'" in release_jenkinsfile
-         and release_jenkinsfile.index("stage('Publish production docs')")
+         and release_jenkinsfile.index("stage('Publish release wiki')")
              > release_jenkinsfile.index("sh 'bash scripts/ci/run_jenkins_release.sh'")),
         ("release Jenkinsfile exposes PUBLISH_LATEST parameter",
          "name: 'PUBLISH_LATEST'" in release_jenkinsfile

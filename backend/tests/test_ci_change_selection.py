@@ -45,6 +45,8 @@ def repo(tmp_path):
     ("docs/builder/example.png", {"PAGES"}),
     ("docs/builder/new-script.js", {"APPLICATION", "PAGES"}),
     ("docs/.nojekyll", {"PAGES"}),
+    ("docs/recipes/assets/preview.worker.js", {"APPLICATION", "PAGES"}),
+    ("scripts/ci/prepare_pages.sh", {"APPLICATION", "PAGES"}),
     ("docs/dockerhub/README.md", {"DOCKERHUB"}),
     ("docs/dockerhub/short-description.txt", {"DOCKERHUB"}),
     ("backend/app/main.py", {"APPLICATION"}),

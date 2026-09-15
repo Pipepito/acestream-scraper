@@ -28,7 +28,7 @@ loads the applicable file when working below those directories.
 - `e2e/`: Playwright/Firefox journeys against the built SPA and real sidecars.
 - `Dockerfile`, `docker/`, `entrypoint.sh`: multi-flavor, multi-architecture image.
 - `jenkins/pr.Jenkinsfile`: fork-aware, credential-free multibranch PR validation.
-- `jenkins/develop.Jenkinsfile`: trusted `develop` validation and automatic channel/docs publish.
+- `jenkins/develop.Jenkinsfile`: trusted `develop` validation and automatic channel image publish.
 - `jenkins/release.Jenkinsfile`: manual release job, allowed from `main` only.
 - `scripts/ci/`: required checks, Docker builds, publishing, and CI helpers.
 - `docs/ops/jenkins-ci.md`: authoritative Jenkins and release runbook.
@@ -252,11 +252,12 @@ configuration/private state within `ZERONET_DATA_DIR`. Legacy `sites.json` and
 `users.json` are copied into `.node/private` only when absent; never overwrite
 migrated state or delete the originals during startup.
 
-Production Pages publication follows successful, non-dry-run latest promotion in
-`jenkins/release.Jenkinsfile` using `publish_pages.sh --promoted-release` and the
-`github-publish` credential. The publisher verifies promotion metadata and writes
-`release-status.json`; ordinary develop publishes preserve that production
-version. Never update this label on a main merge, canary-only publish or dry run.
+GitHub Pages serves `main` at `/docs` (repository settings verified 2026-09-15).
+Jenkins must not publish Pages or Docker Hub descriptions. Prepare the standalone
+helper with `bash scripts/ci/prepare_pages.sh` and commit `docs/recipes/` alongside
+its source changes; full CI checks the built payload for drift. The manual release
+job mirrors `wiki/` only after successful, non-dry-run latest promotion, using
+`github-publish`. Docker Hub text in `docs/dockerhub/` is copied to the page manually.
 
 
 Scheduled maintenance jobs share a FIFO queue; due jobs show Waiting and run-now
@@ -310,7 +311,8 @@ Hub overview source is `docs/dockerhub/`. `classify_changes.py` selects lightwei
 documentation validation for known docs-only changes. PRs use target-owned
 selection/validators; develop compares the last successful build. Missing or
 rewritten baselines, symlinks/mode changes, and unknown paths require the full gate.
-Publish only affected wiki, Pages and Docker Hub text without rebuilding images.
+Develop validates documentation without publishing it. Wiki publication belongs
+to release promotion; Pages serves main/docs and Docker Hub text is manual.
 Keep manual releases fully validated and preserve the FIFO Docker lock and fork
 isolation. See `docs/ops/jenkins-ci.md` for exact paths and retry behavior.
 
@@ -323,7 +325,7 @@ fixture-tested catalogue. The public helper never connects to an installation.
 Preview/fetch endpoints write no source or channel data; production regex runs in
 a bounded disposable worker. Preserve pairing within records, pinned fetch
 destinations, sandboxed HTML previews and existing channels on recipe errors.
-Build the standalone helper before Pages publication credentials are available.
+Prepare and commit the standalone helper under docs/recipes before release.
 See `docs/dev/extraction-recipes.md` and `wiki/Extraction-Recipes.md`.
 
 ## v2.1 configuration

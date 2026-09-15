@@ -68,7 +68,6 @@ python3 -I scripts/ci/validate_documentation.py
 python3 -I scripts/ci/validate_docker_docs_contract.py
 bash scripts/ci/validate_command_builder.sh
 bash scripts/ci/publish_wiki.sh --dry-run
-bash scripts/ci/publish_pages.sh --dry-run
 '''
       }
     }
@@ -249,67 +248,5 @@ bash scripts/ci/run_jenkins_release.sh --channel develop
       }
     }
 
-    stage('Publish Docker Hub description') {
-      when { expression { env.CI_DOCKERHUB == 'true' } }
-      steps {
-        withCredentials([usernamePassword(
-          credentialsId: 'dockerhub-publish',
-          usernameVariable: 'DOCKERHUB_USERNAME',
-          passwordVariable: 'DOCKERHUB_TOKEN'
-        )]) {
-          sh 'python3 -I scripts/ci/publish_dockerhub_description.py'
-        }
-      }
-    }
-
-    stage('Publish wiki') {
-      when { expression { env.CI_WIKI == 'true' } }
-      steps {
-        withCredentials([usernamePassword(
-          credentialsId: 'github-publish',
-          usernameVariable: 'GITHUB_PUBLISH_USERNAME',
-          passwordVariable: 'GITHUB_PUBLISH_TOKEN'
-        )]) {
-          script {
-            def wikiStatus = sh(returnStatus: true, script: '''#!/usr/bin/env bash
-set -euo pipefail
-bash scripts/ci/publish_wiki.sh
-''')
-            if (wikiStatus == 3) {
-              unstable('Wiki repository is not initialized; create its first page and rebuild.')
-            } else if (wikiStatus != 0) {
-              error("publish_wiki.sh failed with exit status ${wikiStatus}")
-            }
-          }
-        }
-      }
-    }
-
-    stage('Build recipe helper') {
-      when { expression { env.CI_PAGES == 'true' } }
-      steps {
-        sh '''#!/usr/bin/env bash
-set -euo pipefail
-npm --prefix frontend ci
-npm --prefix frontend run build:recipes
-'''
-      }
-    }
-
-    stage('Publish docs site') {
-      when { expression { env.CI_PAGES == 'true' } }
-      steps {
-        withCredentials([usernamePassword(
-          credentialsId: 'github-publish',
-          usernameVariable: 'GITHUB_PUBLISH_USERNAME',
-          passwordVariable: 'GITHUB_PUBLISH_TOKEN'
-        )]) {
-          sh '''#!/usr/bin/env bash
-set -euo pipefail
-bash scripts/ci/publish_pages.sh
-'''
-        }
-      }
-    }
   }
 }

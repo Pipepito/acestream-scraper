@@ -15,7 +15,7 @@ The application has two canonical roots:
 - [Configuration](../wiki/Configuration.md), [troubleshooting](../wiki/Troubleshooting.md) and [diagnostic bug reports](../wiki/Bug-Reporting.md).
 - [Docker command builder](https://pipepito.github.io/acestream-scraper/): generated commands with platform-aware services, checker isolation and storage.
 
-The `wiki/` directory is mirrored to the GitHub wiki after its changes pass validation on `develop`; edit that source directory for durable user-guide changes.
+The manual release job mirrors `wiki/` to the GitHub wiki after successful latest promotion. Edit that source directory for durable user-doc changes. Develop validates documentation without publishing it; Pages serves `main/docs`, and Docker Hub text is published manually.
 
 ## Key Docs
 

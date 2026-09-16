@@ -167,6 +167,12 @@ Pipeline enforcement in `jenkins/pr.Jenkinsfile` (multibranch job `acestream-scr
 - `Credential-free PR validation` runs the complete backend/frontend suites plus generated API, runtime, Dockerfile-contract, docs, and four-flavor architecture-plan checks inside the restricted container. It never publishes and cannot access the Docker daemon.
 - `Isolated architecture runtime contracts` executes the trusted runtime validator against PR runtime scripts in real amd64, arm64, and arm/v7 userlands through binfmt/QEMU. This tests shell/runtime behavior across CPUs without building or executing a contributor-controlled Dockerfile.
 
+The runtime contract uses a simulated WARP CLI; it never opens a Cloudflare tunnel.
+Keep the fixture compatible with both text and `--json status`, including a zero
+exit code while Connecting or Disconnected. It checks that NAT starts only after
+Connected and that a tunnel which never connects fails startup. The restricted
+test PATH includes `/usr/local/bin` for Python in the official runner images.
+
 Pipeline enforcement in `jenkins/develop.Jenkinsfile` (trusted job `acestream-scraper-develop`):
 
 - The job polls `develop`, requires checked-out `HEAD == origin/develop`, and selects work as described above. When application validation is needed, it builds the trusted PR-runner image and runs full application validation inside that pinned Python 3.12/Node runner with networking disabled. Compose validation and Docker/runtime smokes remain on the trusted host.

@@ -2,6 +2,7 @@
 HTTP scraper implementation
 """
 import aiohttp
+from app.utils.outbound_http import source_session
 import certifi
 import logging
 import ssl
@@ -40,8 +41,7 @@ class HTTPScraper(BaseScraper):
 
         try:
             ssl_context = ssl.create_default_context(cafile=certifi.where())
-            connector = aiohttp.TCPConnector(ssl=ssl_context)
-            async with aiohttp.ClientSession(connector=connector) as session:
+            async with source_session(ssl=ssl_context) as session:
                 # Redirects are followed manually so every hop goes through
                 # the outbound URL guard — a public host 302ing to a private
                 # or metadata address must not slip past the initial check.

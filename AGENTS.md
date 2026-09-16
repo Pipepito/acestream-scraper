@@ -28,7 +28,7 @@ loads the applicable file when working below those directories.
 - `e2e/`: Playwright/Firefox journeys against the built SPA and real sidecars.
 - `Dockerfile`, `docker/`, `entrypoint.sh`: multi-flavor, multi-architecture image.
 - `jenkins/pr.Jenkinsfile`: fork-aware, credential-free multibranch PR validation.
-- `jenkins/develop.Jenkinsfile`: trusted `develop` validation and automatic channel/docs publish.
+- `jenkins/develop.Jenkinsfile`: trusted `develop` validation and automatic channel image publish.
 - `jenkins/release.Jenkinsfile`: manual release job, allowed from `main` only.
 - `scripts/ci/`: required checks, Docker builds, publishing, and CI helpers.
 - `docs/ops/jenkins-ci.md`: authoritative Jenkins and release runbook.
@@ -252,11 +252,12 @@ configuration/private state within `ZERONET_DATA_DIR`. Legacy `sites.json` and
 `users.json` are copied into `.node/private` only when absent; never overwrite
 migrated state or delete the originals during startup.
 
-Production Pages publication follows successful, non-dry-run latest promotion in
-`jenkins/release.Jenkinsfile` using `publish_pages.sh --promoted-release` and the
-`github-publish` credential. The publisher verifies promotion metadata and writes
-`release-status.json`; ordinary develop publishes preserve that production
-version. Never update this label on a main merge, canary-only publish or dry run.
+GitHub Pages serves `main` at `/docs` (repository settings verified 2026-09-15).
+Jenkins must not publish Pages or Docker Hub descriptions. Prepare the standalone
+helper with `bash scripts/ci/prepare_pages.sh` and commit `docs/recipes/` alongside
+its source changes; full CI checks the built payload for drift. The manual release
+job mirrors `wiki/` only after successful, non-dry-run latest promotion, using
+`github-publish`. Docker Hub text in `docs/dockerhub/` is copied to the page manually.
 
 
 Scheduled maintenance jobs share a FIFO queue; due jobs show Waiting and run-now
@@ -310,6 +311,72 @@ Hub overview source is `docs/dockerhub/`. `classify_changes.py` selects lightwei
 documentation validation for known docs-only changes. PRs use target-owned
 selection/validators; develop compares the last successful build. Missing or
 rewritten baselines, symlinks/mode changes, and unknown paths require the full gate.
-Publish only affected wiki, Pages and Docker Hub text without rebuilding images.
+Develop validates documentation without publishing it. Wiki publication belongs
+to release promotion; Pages serves main/docs and Docker Hub text is manual.
 Keep manual releases fully validated and preserve the FIFO Docker lock and fork
 isolation. See `docs/ops/jenkins-ci.md` for exact paths and retry behavior.
+
+
+## User-defined extraction recipes
+
+Sources may persist a versioned `extraction_recipe`; null retains automatic
+extraction. The installed and Pages helpers share `frontend/src/recipes/` and a
+fixture-tested catalogue. The public helper never connects to an installation.
+Preview/fetch endpoints write no source or channel data; production regex runs in
+a bounded disposable worker. Preserve pairing within records, pinned fetch
+destinations, sandboxed HTML previews and existing channels on recipe errors.
+Prepare and commit the standalone helper under docs/recipes before release.
+See `docs/dev/extraction-recipes.md` and `wiki/Extraction-Recipes.md`.
+
+## v2.1 configuration
+
+v2.1 retains the six deprecated environment names through Settings, including
+`.env` support and value-free warnings in logs/Overview. Nonempty canonical names
+win. Keep repository defaults on resolved Settings and preserve entrypoint alias
+selection before bundled-service defaults. Removal (#155) is deferred by maintainer
+decision. See `docs/release/v2.1-release-notes.md`.
+
+## Source fetches and EPG responsibilities
+
+Use `app/utils/outbound_http.py` for user-supplied source fetches, including nested
+M3U and iframe URLs. It pins validated DNS answers, guards redirects and preserves
+TLS/Host identity without inheriting environment proxies. Keep private-source
+defaults and configured gateway exemptions; metadata addresses are always denied.
+`EPGService` remains the public interface over `epg_sources`, `epg_xmltv`,
+`epg_channels` and `epg_export`; they share its session and method surface.
+
+
+Stream checks store one nullable `stream_stats` observation (peers, engine
+Kbytes/sec download/upload rates and UTC timestamp). Keep it separate from encoded
+media bitrate and verified signal. Replace samples atomically, preserve zero vs
+unknown, and retain original observation times on skips or missing measurements.
+Manual, bulk and scheduled checks share the bounded sampler and existing queue.
+See `wiki/Stream-Statistics.md`.
+
+
+Overview storage uses a DB-independent, authenticated `/api/v1/system/storage`
+report. Discover container mount destinations without exposing mount sources or
+using the Docker socket. Keep scans cached, isolated, bounded, symlink-safe and
+off the event loop; partial/unknown sizes must not be shown as complete or zero.
+Free space belongs to a filesystem, not each directory. See `wiki/Storage.md`.
+Preview upload admission and byte/deadline limits precede JSON parsing. Keep
+32 MiB source support separate from the bounded browser rendering budget; heavy
+sources retain raw/manual-field workflows and installed extraction tests.
+
+## ARM engine startup and DNS ownership
+
+Pinned OCI engine payloads must enter through `aceserve.main()`; direct
+`Core.run()` skips distribution initialization and can return `mod_detected`
+while health checks pass. The preserved `main.py.oci-orig` selects the OCI path;
+legacy APKs retain Core. Keep persistent homes, per-install identity and process
+supervision intact. Playback/checker processes share `/dev/socket/dnsproxyd` via
+`bionic_dns.py`: hold its file lock throughout the listener lifetime, never delete
+the lock file, and let the surviving engine take over after owner exit. Never
+start competing upstream listeners that can unlink each other's socket. See
+`docs/ops/arm64-mod-detected.md` for live-test scope and remaining network limits.
+
+WARP auto-connect (`WARP_ENABLE_NAT=true`) must wait for JSON status Connected,
+not merely a successful CLI call, before engines start. The ARM resolver follows
+container nameserver changes and retains the last valid configuration during a
+partial rewrite. Keep WARP opt-in; direct-route lookup failures must not trigger
+automatic routing changes. See `docs/ops/arm64-mod-detected.md`.

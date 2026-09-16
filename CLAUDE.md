@@ -37,7 +37,7 @@ Cutover / CI:
 - Same target via the cutover wrapper: `bash scripts/ci/run_cutover_required_checks.sh --profile quick`
 - Strict legacy-path guard: `bash scripts/ci/assert_no_legacy_paths.sh --strict`
 - Pre-deploy DB safety check (creates timestamped backup under `config/backups/`): `bash scripts/ops/preflight_v2_deploy.sh`
-- User docs (no GitHub Actions): the Docker command builder is `docs/index.html` + `docs/builder/`; the trusted `jenkins/develop.Jenkinsfile` pipeline pushes that payload (plus `.nojekyll`) to the `gh-pages` branch via `scripts/ci/publish_pages.sh`, and GitHub Pages serves that branch. `bash scripts/ci/validate_command_builder.sh` cross-checks `docs/builder/runtime-options.json` against `entrypoint.sh`/`Dockerfile`/compose and runs credential-free for PRs and again before a `develop` publish. `wiki/` is mirrored by the same trusted pipeline. `bash scripts/ci/publish_wiki.sh --dry-run` previews the flattened, link-rewritten pages. Edit `runtime-options.json` when ports/env/flavors change; `app.js` only when a rule changes.
+- User docs: GitHub Pages serves `main/docs`; Jenkins does not push a Pages branch. Prepare the shared extraction helper with `bash scripts/ci/prepare_pages.sh` and commit `docs/recipes/`. `bash scripts/ci/validate_command_builder.sh` checks runtime options against container defaults. The manual release job mirrors `wiki/` after successful non-dry-run latest promotion; `bash scripts/ci/publish_wiki.sh --dry-run` previews the flattened, link-rewritten pages. Docker Hub overview text in `docs/dockerhub/` is published manually. Edit `runtime-options.json` when ports/env/flavors change; `app.js` only when a rule changes.
 
 Docker:
 
@@ -51,7 +51,7 @@ Branching and release flow (adopted 2026-08-28):
 - `develop` is the permanent pre-release branch; feature PRs target `develop`. `main` is the release branch. Both are protected (PRs only, required status `PR Validation`, no force-push/deletion). PRs into `main` are accepted only from `develop` — `jenkins/pr.Jenkinsfile` fails any other head. Releases are cut with a `develop` -> `main` PR; hotfixes go through `develop` too.
 - Fork PRs use `jenkins/pr.Jenkinsfile` from trusted `develop`. Each build requiring application validation creates a disposable dependency runner from the target ref (so it does not depend on a mutable prebuilt image), then executes contributor-controlled files without network, capabilities, Docker socket, or Jenkins credentials. A second isolated stage runs the trusted entrypoint/runtime contract against the PR files under pinned amd64, arm64, and arm/v7 userlands. Fork-controlled Dockerfiles and dependency inputs are never executed or installed automatically; such changes require a maintainer-owned branch after review. `scripts/ci/run_pr_validation.sh` is the credential-free application gate.
 - PR, trusted `develop`, and release pipelines share the FIFO `acestream-scraper-nuc-docker` lock for their full run. The NUC has four executors but only one safe Docker/BuildKit workload slot; later jobs wait instead of pruning images or caches from an in-flight job, and a newer build of the same PR queues rather than aborting its predecessor. Before each heavy build, project-owned transient images, all unused non-keep images, and builder cache above 1 GB are pruned; the build stops early unless at least 8 GB remains free.
-- Every push to `develop` runs the separate trusted `jenkins/develop.Jenkinsfile` job. It selects work with `scripts/ci/classify_changes.py` against the last successful build. Known documentation-only changes run lightweight checks and publish only affected wiki/Pages/Docker Hub text; application, build, CI and unknown changes rerun the full suite and Docker/runtime smokes. It refuses stale revisions, then for those application/build changes `bash scripts/ci/run_jenkins_release.sh --channel develop` pushes only the floating `:develop*` tags — never `:latest`, a version, or a per-commit tag — and independently publishes changed wiki, Pages and Docker Hub text. Missing publish credentials fail the job. Preview with `--print-publish-plan --channel develop` or `--dry-run --channel develop`; `python3 scripts/phase_gates/check_workflow_publish_guard.py` guards the boundary.
+- Every push to `develop` runs the trusted `jenkins/develop.Jenkinsfile` job. It selects work with `scripts/ci/classify_changes.py` against the last successful build. Known documentation-only changes run lightweight checks without publication. Application, build, CI and unknown changes rerun the full suite and Docker/runtime smokes. It refuses stale revisions, then `bash scripts/ci/run_jenkins_release.sh --channel develop` pushes only floating `:develop*` image tags. It never publishes the wiki, Pages, or Docker Hub descriptions. Preview with `--print-publish-plan --channel develop` or `--dry-run --channel develop`; `python3 scripts/phase_gates/check_workflow_publish_guard.py` guards the boundary.
 - `version.txt` on `develop` carries the next version with a `-dev` suffix (e.g. `v2.1.0-dev`, starting with the cycle after v2.0.0); a PR into `develop` bumps it right before the release PR to the final version. `run_jenkins_release.sh` refuses a release (non-channel) run while `version.txt` contains `-dev`; channel publishes accept it.
 - Releases stay manual: Jenkins job `acestream-scraper-release` (`jenkins/release.Jenkinsfile`, runs from `main`; params `CONFIRM_RELEASE`, `DRY_RUN`, `PUBLISH_LATEST`) pushes `:vX.Y.Z`, `:vX.Y.Z-<flavor>` and the flavor tags; `PUBLISH_LATEST=true` retags the canaried version manifest to `:latest` via `scripts/ci/promote_latest.sh`. Details: `docs/ops/jenkins-ci.md`.
 
@@ -69,7 +69,7 @@ Branching and release flow (adopted 2026-08-28):
 
 ### Backend startup sequence (`backend/main.py`)
 
-1. `app.config.settings` loads `Settings` (pydantic-settings) and on import calls `apply_legacy_env_aliases()` to map one-release-window legacy env names to canonical ones (e.g., `SCRAPER_DB_URL` → `DATABASE_URL`, `ACESTREAM_ENGINE_URL` → `ACE_ENGINE_URL`); canonical wins on conflict, both-set conflicts log a warning. Disable with `ENABLE_LEGACY_ENV_ALIASES=false`.
+1. `app.config.settings` loads canonical environment names through pydantic-settings. v2.1 retains the six legacy names with name-only deprecation warnings; nonempty canonical names win. See `docs/release/v2.1-release-notes.md` before upgrading an older deployment.
 2. `lifespan()` starts a background boot task; `initialize_database()` runs in a worker thread while the SPA and database-independent `/api/v1/startup` endpoints are already available. Normal APIs and health return 503 until boot succeeds. Startup failures keep the diagnostics/recovery screen available instead of terminating the server. A per-database advisory lock allows one app worker. See `docs/ops/startup-recovery.md` for confirmed backup-first recovery, recovery markers, and diagnostic privacy:
    - If a v1 SQLite db exists at `LEGACY_DATABASE_URL` and is not yet marked `.migrated`, `migrate_database.DatabaseMigrator.run_migration()` performs the *foreground* half of the v1→v2 migration in-process: it provisions the v2 schema through Alembic (`app.config.database.provision_schema`), copies the small tables (URLs, sources, TV/EPG/acestream channels, string mappings, settings), records the EPG programs as deferred work in `<acestream.db>.migration.json` (with the v1→v2 `epg_channels` id map) and archives the v1 file as `acestream.db.migrated`. It never copies `epg_programs` — that table can hold millions of rows and used to block startup (dashboard unreachable, container unhealthy).
    - Then it always calls `provision_schema()`: a missing file is provisioned, a db with application tables but no `alembic_version` (what the pre-2026-08-29 migrator's `create_all` left behind) is stamped with the head first, and an existing stamped db is upgraded to head. When the recorded revision differs from the head, startup first copies the SQLite file to `<db dir>/backups/<UTC stamp>-pre-upgrade-<from>-<to>/scraper.db` (sqlite3 online backup) and logs one "Upgrading v2 database schema" line. One copy is kept per `<from>-<to>` pair — an existing copy for the same pair is reused, so a container that Docker restarts against a failing upgrade does not write a new full copy per boot — and nothing under `backups/` is ever pruned automatically. An upgrade failure stops normal startup and leaves the recovery screen available; there is no `create_all` fallback. Startup then runs `backfill_scraped_url_flags()` to repair NULL `scrape_bare_ids` values left by the older migrator.
@@ -296,11 +296,12 @@ A configured dedicated checker never falls back on failure. Bundled checker
 configuration remains supervisor-owned and read-only in Settings. New scraper-only
 installs default to an empty playback URL; existing saved endpoints are preserved.
 
-Production Pages publication follows successful, non-dry-run latest promotion in
-`jenkins/release.Jenkinsfile` using `publish_pages.sh --promoted-release` and the
-`github-publish` credential. The publisher verifies promotion metadata and writes
-`release-status.json`; ordinary develop publishes preserve that production
-version. Never update this label on a main merge, canary-only publish or dry run.
+GitHub Pages serves `main` at `/docs` (repository settings verified 2026-09-15).
+Jenkins must not publish Pages or Docker Hub descriptions. Prepare the standalone
+helper with `bash scripts/ci/prepare_pages.sh` and commit `docs/recipes/` alongside
+its source changes; full CI checks the built payload for drift. The manual release
+job mirrors `wiki/` only after successful, non-dry-run latest promotion, using
+`github-publish`. Docker Hub text in `docs/dockerhub/` is copied to the page manually.
 
 
 Scheduled maintenance jobs share a FIFO queue; due jobs show Waiting and run-now
@@ -356,3 +357,60 @@ come from the trusted target ref. Missing baselines and unknown paths keep full
 validation; develop uses the last successful commit, never just HEAD's parent.
 Manual releases always keep their full gate. See `docs/ops/jenkins-ci.md` for the
 path table, fork boundary, metadata publishing and credential requirements.
+
+
+## User-defined extraction recipes
+
+Sources may persist a versioned `extraction_recipe`; null retains automatic
+extraction. The installed and Pages helpers share `frontend/src/recipes/` and a
+fixture-tested catalogue. The public helper never connects to an installation.
+Preview/fetch endpoints write no source or channel data; production regex runs in
+a bounded disposable worker. Preserve pairing within records, pinned fetch
+destinations, sandboxed HTML previews and existing channels on recipe errors.
+Prepare and commit the standalone helper under docs/recipes before release.
+See `docs/dev/extraction-recipes.md` and `wiki/Extraction-Recipes.md`.
+
+## Source fetches and EPG responsibilities
+
+Use `app/utils/outbound_http.py` for user-supplied source fetches, including nested
+M3U and iframe URLs. It pins validated DNS answers, guards redirects and preserves
+TLS/Host identity without inheriting environment proxies. Keep private-source
+defaults and configured gateway exemptions; metadata addresses are always denied.
+`EPGService` remains the public interface over `epg_sources`, `epg_xmltv`,
+`epg_channels` and `epg_export`; they share its session and method surface.
+
+
+Stream checks store one nullable `stream_stats` observation (peers, engine
+Kbytes/sec download/upload rates and UTC timestamp). Keep it separate from encoded
+media bitrate and verified signal. Replace samples atomically, preserve zero vs
+unknown, and retain original observation times on skips or missing measurements.
+Manual, bulk and scheduled checks share the bounded sampler and existing queue.
+See `wiki/Stream-Statistics.md`.
+
+
+Overview storage uses a DB-independent, authenticated `/api/v1/system/storage`
+report. Discover container mount destinations without exposing mount sources or
+using the Docker socket. Keep scans cached, isolated, bounded, symlink-safe and
+off the event loop; partial/unknown sizes must not be shown as complete or zero.
+Free space belongs to a filesystem, not each directory. See `wiki/Storage.md`.
+Preview upload admission and byte/deadline limits precede JSON parsing. Keep
+32 MiB source support separate from the bounded browser rendering budget; heavy
+sources retain raw/manual-field workflows and installed extraction tests.
+
+## ARM engine startup and DNS ownership
+
+Pinned OCI engine payloads must enter through `aceserve.main()`; direct
+`Core.run()` skips distribution initialization and can return `mod_detected`
+while health checks pass. The preserved `main.py.oci-orig` selects the OCI path;
+legacy APKs retain Core. Keep persistent homes, per-install identity and process
+supervision intact. Playback/checker processes share `/dev/socket/dnsproxyd` via
+`bionic_dns.py`: hold its file lock throughout the listener lifetime, never delete
+the lock file, and let the surviving engine take over after owner exit. Never
+start competing upstream listeners that can unlink each other's socket. See
+`docs/ops/arm64-mod-detected.md` for live-test scope and remaining network limits.
+
+WARP auto-connect (`WARP_ENABLE_NAT=true`) must wait for JSON status Connected,
+not merely a successful CLI call, before engines start. The ARM resolver follows
+container nameserver changes and retains the last valid configuration during a
+partial rewrite. Keep WARP opt-in; direct-route lookup failures must not trigger
+automatic routing changes. See `docs/ops/arm64-mod-detected.md`.

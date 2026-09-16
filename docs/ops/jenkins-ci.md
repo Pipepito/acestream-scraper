@@ -19,19 +19,19 @@ Important constraint for this setup:
 Current job model (adopted 2026-09-04):
 
 - `acestream-scraper-pr` is a multibranch job loading `jenkins/pr.Jenkinsfile`. It discovers origin and fork PRs, reports `PR Validation`, never binds a credential, and confines contributor code to the trusted PR-runner container.
-- `acestream-scraper-develop` is a Pipeline-from-SCM job loading `jenkins/develop.Jenkinsfile` from `develop`. It selects affected work, rejects stale revisions, and publishes changed documentation payloads. Application/build changes run the full suite and privileged Docker/runtime smokes before publishing the floating `develop` channel.
+- `acestream-scraper-develop` is a Pipeline-from-SCM job loading `jenkins/develop.Jenkinsfile` from `develop`. It selects affected work, rejects stale revisions, and validates documentation without publishing it. Application/build changes run the full suite and privileged Docker/runtime smokes before publishing the floating `develop` channel.
 - `acestream-scraper-release` loads `jenkins/release.Jenkinsfile` from `main` and remains manual-only.
 
 After a successful non-dry-run `PUBLISH_LATEST=true` promotion, the release job
-publishes the command builder from the same `main` checkout using `github-publish`.
-It writes `release-status.json` only after checking the promotion metadata's mode,
-version and commit against `version.txt`, HEAD and `origin/main`. The page displays
-that version as production; it does not claim `latest` and `develop` remain equal.
-Later develop publications preserve this file. Initial version-tag publication,
-dry runs and failed promotions do not update the production label. The release
-job therefore needs access to the existing `github-publish` credential as well as
-`dockerhub-publish`. If Pages publication fails after promotion, the image is
-already promoted: fix the publication error and rerun the promotion job to retry.
+mirrors `wiki/` from the same `main` checkout using `github-publish`. Canary-only
+publication, dry runs, failed promotions and develop builds do not update the wiki.
+If wiki publication fails, images are already promoted: retry only
+`bash scripts/ci/publish_wiki.sh` from that release checkout with authorized
+publication credentials. Do not republish images to repair documentation.
+
+GitHub Pages serves `main` at `/docs`; Jenkins does not deploy a separate branch.
+Docker Hub descriptions are updated manually from `docs/dockerhub/`. Neither
+pipeline binds credentials for description editing or updates the Hub overview.
 
 - GitHub Actions workflows are retired; Jenkins is the sole CI/CD implementation.
 
@@ -89,12 +89,12 @@ symlinks, executable files, and submodules cannot take the documentation shortcu
 
 | Changed inputs | Validation | Automatic develop publication |
 |---|---|---|
-| Root README, agent guides, PR template; Markdown/images under `docs/` | Documentation checks | None unless a publishable payload also changed |
-| `wiki/` Markdown/images | Documentation checks | Wiki |
-| `docs/index.html`, `docs/.nojekyll`, the three named files and documentation images under `docs/builder/` | Documentation and command-builder contracts, JS syntax | Pages; retains production version label |
-| `docs/dockerhub/README.md` or `short-description.txt` | Documentation checks and Hub size/link checks | Docker Hub description only |
-| Application, dependency, packaging, test, CI or unrecognized files | Existing full application/architecture validation; trusted develop also runs image smokes | Develop images; affected documentation payloads |
-| Selector or Jenkins pipeline definitions | Full validation | All payloads, exercising the wiring |
+| Root README, agent guides, PR template; Markdown/images under `docs/` | Documentation checks | None |
+| `wiki/` Markdown/images | Documentation checks | None; wiki waits for release promotion |
+| `docs/index.html`, `docs/.nojekyll`, the three named files and documentation images under `docs/builder/` | Documentation and command-builder contracts, JS syntax | None; Pages serves main/docs |
+| `docs/dockerhub/README.md` or `short-description.txt` | Documentation checks and Hub size/link checks | None; manual description update |
+| Application, dependency, packaging, test, CI or unrecognized files | Existing full application/architecture validation; trusted develop also runs image smokes | Develop images only |
+| Selector or Jenkins pipeline definitions | Full validation | Develop images only |
 
 The builder allowlist is `app.js`, `style.css`, and `runtime-options.json`; adding another executable asset is deliberately a full-gate change until
 the selector and its checks are updated. A mixed docs/application commit retains
@@ -108,7 +108,7 @@ into a temporary directory, uses isolated Python imports, and treats all PR
 content as data; JavaScript gets `node --check`, never execution. It binds no
 credentials and does not build a runner, install dependencies, run application
 tests, or launch architecture containers. `PR Validation` still reports the
-result. Develop additionally previews wiki and Pages rendering. The full paths
+result. Develop additionally previews wiki rendering. The full paths
 retain their existing fork isolation and dependency-input restrictions.
 
 The FIFO Docker lock is unchanged, including on documentation-only jobs. Manual
@@ -139,25 +139,15 @@ Preview the exact payload without credentials, network requests or image work:
 python3 scripts/ci/publish_dockerhub_description.py --dry-run
 ```
 
-The trusted develop job synchronizes changed Hub text with `dockerhub-publish`.
-The manual release job also synchronizes it after a successful, non-dry-run
-latest promotion. The publisher reads the existing description, PATCHes only
-`description` and `full_description` when needed, and reads it back to verify.
-It does not build, push, retag, create repositories, or change repository policy.
-Authentication follows [Docker's token API](https://docs.docker.com/reference/api/hub/latest/).
-The repository overview endpoint uses a personal access token with permission to
-edit repository metadata; registry image-push permission alone may be insufficient.
-Organization access tokens do not support this legacy repository endpoint; see
-[Docker's token limitations](https://docs.docker.com/security/access-tokens/organization-access-tokens/).
-A 401/403 fails the description stage with a sanitized status; no response body or
-credential is logged. Correct the existing credential's metadata permissions
-before retrying. A description failure after an image publish does not undo images.
+Publication is manual. Copy `docs/dockerhub/README.md` into the Docker Hub
+repository overview and `short-description.txt` into its short description when
+the release is ready. Develop and release Jenkins jobs never update this text;
+`dockerhub-publish` remains required only for image operations.
 
-For an authorized metadata-only retry, run the publisher with
-`DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` supplied securely in the environment.
-Do not replay image release/promotion just to repair overview text. These changes
-are repository-owned pipeline definitions, not an automatic controller
-reconfiguration or a locally triggered publish.
+The optional `publish_dockerhub_description.py` helper remains available for an
+explicitly authorized manual metadata update, with credentials supplied securely
+in the environment. Its dry run only previews the payload. Do not replay an image
+release or promotion to update overview text.
 
 ## Branching Model And Pre-release Channel
 
@@ -176,6 +166,12 @@ Pipeline enforcement in `jenkins/pr.Jenkinsfile` (multibranch job `acestream-scr
 - `Branch Policy` stage: runs when `env.CHANGE_TARGET == 'main'` and fails the build when `env.CHANGE_BRANCH != 'develop'` (`Pull requests into main must come from develop ...`). Feature PRs into `develop` skip it.
 - `Credential-free PR validation` runs the complete backend/frontend suites plus generated API, runtime, Dockerfile-contract, docs, and four-flavor architecture-plan checks inside the restricted container. It never publishes and cannot access the Docker daemon.
 - `Isolated architecture runtime contracts` executes the trusted runtime validator against PR runtime scripts in real amd64, arm64, and arm/v7 userlands through binfmt/QEMU. This tests shell/runtime behavior across CPUs without building or executing a contributor-controlled Dockerfile.
+
+The runtime contract uses a simulated WARP CLI; it never opens a Cloudflare tunnel.
+Keep the fixture compatible with both text and `--json status`, including a zero
+exit code while Connecting or Disconnected. It checks that NAT starts only after
+Connected and that a tunnel which never connects fails startup. The restricted
+test PATH includes `/usr/local/bin` for Python in the official runner images.
 
 Pipeline enforcement in `jenkins/develop.Jenkinsfile` (trusted job `acestream-scraper-develop`):
 
@@ -557,28 +553,24 @@ Adopted 2026-08-29. The user-facing documentation is published from the reposito
 
 What is published, and how:
 
-- The Docker command builder is a static page (plain HTML/CSS/JS, no build step) at `docs/index.html` with its script, stylesheet and data under `docs/builder/`. It generates the `docker run` command or `docker-compose.yml` for a chosen flavor, platform and feature set. GitHub Pages serves it at `https://pipepito.github.io/acestream-scraper/` from the `gh-pages` branch ("Deploy from a branch": `gh-pages`, `/` root), which Jenkins pushes when the Pages payload changes and documentation checks pass on `develop` via `scripts/ci/publish_pages.sh` — a validated build *is* the deployment (adopted 2026-08-29; supersedes the earlier `main`+`/docs` plan from the same day, which would have waited on a release and exposed all of `docs/` as raw files). The published payload is only `index.html`, `builder/` and `.nojekyll` — the rest of `docs/` (this guide included) stays off the Pages site. The facts the page offers (flavors, platforms, ports, volumes, conditional runtime settings and notes) live in `docs/builder/runtime-options.json`; the option wiring lives in `docs/builder/app.js`. Controls that cannot affect the selected flavor, platform or enabled service are omitted rather than shown disabled.
-- `wiki/` holds the GitHub wiki pages as normal Markdown. Jenkins mirrors them to the wiki repository `https://github.com/Pipepito/acestream-scraper.wiki.git`; the folder is the source of truth, so pages that exist in the wiki but not in `wiki/` are deleted on sync. The pre-2026 wiki (numbered pages such as `2.1-Docker`) is replaced by the folder's page names on the first sync.
+- The user tools hub is `docs/index.html`, with Docker setup under `docs/builder/` and the compiled extraction helper under `docs/recipes/`. GitHub Pages serves `main` at `/docs` (verified through the repository Pages API on 2026-09-15). Changes become visible when merged to `main`; Jenkins does not deploy Pages or change its settings.
+- The helper shares the installed app's recipe code. Run `npm --prefix frontend ci` when dependencies need installing, then `bash scripts/ci/prepare_pages.sh`. Commit the generated `docs/recipes/` payload with its source changes. The full application suite rebuilds and compares it; missing or stale assets fail validation. No publication credentials are involved.
+- `wiki/` is the source of truth for GitHub's separate wiki repository. The manual release job mirrors it only after a successful, non-dry-run `PUBLISH_LATEST=true` promotion. Synchronization flattens page names, rewrites relative Markdown links, and removes pages absent from `wiki/`. An unchanged wiki creates no commit.
+- Develop runs documentation and command-builder checks plus `publish_wiki.sh --dry-run`, but publishes only eligible develop images. It does not bind `github-publish`.
+- The release wiki stage binds `github-publish` as `GITHUB_PUBLISH_USERNAME`/`GITHUB_PUBLISH_TOKEN`, using `GIT_ASKPASS` so credentials never enter URLs or Git configuration. Publication errors fail that stage; an uninitialized wiki (exit 3) makes the build unstable with an operator instruction. Images are already promoted; retry the wiki script from the same release checkout after correcting the problem.
+- Docker Hub descriptions are manual; copy the checked text from `docs/dockerhub/` to the page. Image publication is unchanged.
 
-Pipeline behaviour (`Jenkinsfile`):
+Operator setup and local checks:
 
-- `Docs checks` stage, every build: `bash scripts/ci/validate_command_builder.sh` checks that the JSON parses, the flavor ids equal the Dockerfile targets, the ports and env toggles the page emits still exist in `entrypoint.sh`/`Dockerfile`/`docker-compose.yml`, `docs/.nojekyll` exists and `node --check` passes on the script; `bash scripts/ci/publish_wiki.sh --dry-run` renders `wiki/**` into the flat page set the wiki needs (no folders), rewriting relative `.md` links to wiki page names (`[FAQ](FAQ.md)` -> `[FAQ](FAQ)`, `Docker.md#anchor` -> `Docker#anchor`) and failing on duplicate page names; `bash scripts/ci/publish_pages.sh --dry-run` assembles and lists the Pages payload.
-- `Publish wiki` stage, after every validation stage has passed in the trusted develop job: `bash scripts/ci/publish_wiki.sh` clones the wiki repository, replaces its content with the rendered pages and pushes only when something changed. Docs go live from validated `develop`; PR jobs and `main` never publish them.
-- `Publish docs site` stage, same gating: `bash scripts/ci/publish_pages.sh` assembles the builder payload (`docs/index.html`, `docs/builder/`, `.nojekyll`), clones `gh-pages` (creating the branch on the first publish), replaces its content and pushes only when something changed.
-- Credential (both publish stages): `github-publish` (see `## Jenkins Credential IDs`), bound as `GITHUB_PUBLISH_USERNAME`/`GITHUB_PUBLISH_TOKEN` and passed to git through `GIT_ASKPASS`, so the token never lands in a URL, a log line or a `.git/config`.
-- Outcomes: missing credentials and publication errors fail the trusted develop build; an uninitialized wiki repository (`publish_wiki.sh` exit status 3) remains `UNSTABLE` with an operator instruction.
+1. Preserve GitHub Pages Settings → Pages → Deploy from a branch → `main` → `/docs`. GitHub's managed Pages deployment performs the hosting; no repository workflow or Jenkins Pages publisher is needed. All tracked files under `docs/` are public, so keep private operator data out of that tree.
+2. Enable Wikis and save a first wiki page once if GitHub has not created the wiki repository. Give the release job access to `github-publish`.
+3. Run `python3 scripts/ci/validate_documentation.py`, `bash scripts/ci/validate_command_builder.sh`, and `bash scripts/ci/publish_wiki.sh --dry-run` without credentials.
+4. Preview with `python3 -m http.server 8765 --directory docs` and open `http://127.0.0.1:8765/`. Use HTTP because the tools fetch their data and load the helper worker.
 
-One-time operator setup:
-
-1. GitHub Pages: repository Settings -> Pages -> Build and deployment -> Source `Deploy from a branch`, Branch `gh-pages`, folder `/ (root)` (or `gh api -X POST repos/Pipepito/acestream-scraper/pages -f build_type=legacy -f 'source[branch]=gh-pages' -f 'source[path]=/'`). The branch only appears after the first `Publish docs site` run, so do this after the first publishing build — or create an empty `gh-pages` branch first. GitHub Pages is free for public repositories. Note that "deploy from a branch" is executed by GitHub's own managed `pages build and deployment` run, which shows up in the repository's Actions tab; nothing about it is authored or maintained here, but disabling Actions for the repository entirely would stop it.
-2. Wiki: repository Settings -> General -> Features -> Wikis enabled, and at least one page saved once in the Wiki tab (GitHub creates `<repo>.wiki.git` on the first save; verified present on 2026-08-29).
-3. Jenkins credential `github-publish` in the same store as `dockerhub-publish` (verified 2026-08-29: the system store, `Manage Jenkins -> Credentials -> System -> Global`), kind *Username with password*.
-4. Nothing else. Both documentation publish stages run only in the trusted develop job; the PR multibranch job never publishes.
-
-Local preview and checks:
-
-- `bash scripts/ci/validate_command_builder.sh`, `bash scripts/ci/publish_wiki.sh --dry-run` (lists the rendered pages and sample rewritten links) and `bash scripts/ci/publish_pages.sh --dry-run` (lists the Pages payload). All run without credentials.
-- Open the page locally with any static server, e.g. `python3 -m http.server 8765 --directory docs` then `http://127.0.0.1:8765/` (the page fetches `builder/runtime-options.json`, so `file://` will not work).
+`scripts/ci/publish_pages.sh` is a retained manual utility for alternate branch
+hosting, not the production deployment path. Neither Jenkins pipeline calls it.
+Production Pages does not infer a promoted image version from a main merge; without
+`release-status.json`, the command builder uses its existing neutral release hint.
 
 ## Multi-platform Publishes Are Platform-major And Push By Digest
 
@@ -827,7 +819,7 @@ Create these Jenkins credentials with these exact ids so the checked-in pipeline
 - `github-app-acestream-scraper` (the live controller currently uses `github-builder-app`): GitHub App credential used for repository discovery and commit/check reporting. Keep it at the `Acestream-Scraper` folder rather than system-global.
 - `acestream-build-agent-ssh`: SSH private key credential for the dedicated build VM agent if you use the SSH-launch model
 - `dockerhub-publish`: username/password credential used only by `jenkins/develop.Jenkinsfile` and `jenkins/release.Jenkinsfile`. Store it inside the trusted publication subfolder.
-- `github-publish`: username/password credential used only by the trusted develop job for the wiki and `gh-pages`. Store it beside `dockerhub-publish`.
+- `github-publish`: username/password credential used only by the manual release job for wiki publication after latest promotion. Develop and PR jobs do not bind it.
 
 Changing these ids would require repository changes, so treat them as part of the CI/CD contract.
 
@@ -867,8 +859,8 @@ Create a Pipeline-from-SCM job inside the trusted publication subfolder. Point i
 - It polls SCM every five minutes, verifies the checkout is the current `origin/develop`, and refreshes the trusted PR-runner image.
 - It runs full application checks offline in the pinned runner, followed by trusted-host Compose validation, dry-run architecture/publication policy, and the amd64/Acexy/ARM installer smokes.
 - It checks `origin/develop` again immediately before publication.
-- Only then does it bind `dockerhub-publish` and `github-publish`, push the floating `:develop*` tags, and update the wiki and Pages.
-- Missing credentials and publication failures fail the build. The wiki's one-time uninitialized state remains `UNSTABLE` with an operator message.
+- Only then does it bind `dockerhub-publish` and push the floating `:develop*` image tags. It never publishes wiki, Pages, or Docker Hub overview text.
+- Missing image credentials and image publication failures fail the build. Documentation-only builds do not bind publication credentials.
 
 ## Manual Release Job
 

@@ -4,6 +4,7 @@ import { Alert, Box, Chip, Snackbar, Tooltip, Typography } from '@mui/material';
 import EmptyState from './state/EmptyState';
 import ChannelRowActions, { type ChannelActionHandlers } from './channels/ChannelRowActions';
 import OnlineChip from './channels/OnlineChip';
+import StreamStatistics from './channels/StreamStatistics';
 import SelectableStreamId from './channels/SelectableStreamId';
 import { AcestreamChannel, acestreamChannelService } from '../services/channelService';
 import { shouldDisableGridVirtualization } from '../config/runtime';
@@ -93,6 +94,13 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
         headerName: 'Signal',
         width: 180,
         renderCell: (params: GridRenderCellParams<AcestreamChannel>) => <OnlineChip isOnline={params.row.is_online} />,
+      },
+      {
+        field: 'stream_stats',
+        headerName: 'Stream statistics',
+        width: 280,
+        sortable: false,
+        renderCell: (params: GridRenderCellParams<AcestreamChannel>) => <StreamStatistics channel={params.row} />,
       },
       {
         field: 'last_checked',

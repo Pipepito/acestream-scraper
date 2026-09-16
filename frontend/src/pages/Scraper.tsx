@@ -1,4 +1,4 @@
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { responsiveTableSx } from '../styles/responsiveTable';
 import React, { useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -91,6 +91,7 @@ const initialFormData: URLFormData = {
 
 const Scraper: React.FC = () => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { confirm, dialog: confirmDialog } = useConfirm();
   const [openDialog, setOpenDialog] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
@@ -336,7 +337,7 @@ const Scraper: React.FC = () => {
             </Button>
           </Stack>
         }
-        overflowActions={[{ label: 'Refresh', icon: <RefreshIcon fontSize="small" />, onClick: () => void refetch(), disabled: isLoading }]}
+        overflowActions={[{ label: 'Extraction builder', onClick: () => navigate('/scraper/builder') }, { label: 'Refresh', icon: <RefreshIcon fontSize="small" />, onClick: () => void refetch(), disabled: isLoading }]}
       />
 
       <StatusLine
@@ -369,7 +370,7 @@ const Scraper: React.FC = () => {
                 urls.map((url) => (
                   <TableRow key={url.id} hover>
                     <TableCell data-label="URL" sx={{ wordBreak: 'break-all' }}>{url.url}</TableCell>
-                    <TableCell data-label="Type" sx={{ whiteSpace: 'nowrap' }}>{URL_TYPE_LABELS[url.url_type] ?? url.url_type}</TableCell>
+                    <TableCell data-label="Type" sx={{ whiteSpace: 'nowrap' }}>{URL_TYPE_LABELS[url.url_type] ?? url.url_type}{url.extraction_recipe && <Chip size="small" label="Custom recipe" sx={{ ml: 1 }} />}</TableCell>
                     <TableCell data-label="Enabled">
                       <Switch
                         size="small"
@@ -402,7 +403,8 @@ const Scraper: React.FC = () => {
                           label={`More actions for ${url.url}`}
                           actions={[
                             { label: 'Edit', onClick: () => handleOpenDialog(true, url) },
-                            { label: 'Harvest bare IDs', checked: Boolean(url.scrape_bare_ids), onClick: () => handleToggleBareIds(url, !url.scrape_bare_ids), disabled: bareIdsUpdatingId === url.id },
+                            { label: 'Configure extraction', onClick: () => navigate(`/scraper/builder?source=${url.id}`) },
+                            { label: 'Harvest bare IDs', checked: Boolean(url.scrape_bare_ids), onClick: () => handleToggleBareIds(url, !url.scrape_bare_ids), disabled: bareIdsUpdatingId === url.id || Boolean(url.extraction_recipe) },
                             { label: 'Delete', danger: true, onClick: () => handleDelete(url.id) },
                           ]}
                         />

@@ -283,6 +283,16 @@
             ],
             "title": "Source Url"
           },
+          "stream_stats": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StreamStats"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "tv_channel_id": {
             "anyOf": [
               {
@@ -1252,6 +1262,16 @@
           "status": {
             "title": "Status",
             "type": "string"
+          },
+          "stream_stats": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StreamStats"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -1423,6 +1443,29 @@
           "value"
         ],
         "title": "ConfigUpdateResponse",
+        "type": "object"
+      },
+      "ConfigurationWarning": {
+        "properties": {
+          "legacy": {
+            "title": "Legacy",
+            "type": "string"
+          },
+          "replacement": {
+            "title": "Replacement",
+            "type": "string"
+          },
+          "selected": {
+            "title": "Selected",
+            "type": "string"
+          }
+        },
+        "required": [
+          "legacy",
+          "replacement",
+          "selected"
+        ],
+        "title": "ConfigurationWarning",
         "type": "object"
       },
       "DashboardConfigResponse": {
@@ -2173,6 +2216,89 @@
           }
         },
         "title": "EPGXmlGenerationRequest",
+        "type": "object"
+      },
+      "ExtractedChannel": {
+        "properties": {
+          "channel_id": {
+            "title": "Channel Id",
+            "type": "string"
+          },
+          "metadata": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Metadata",
+            "type": "object"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id",
+          "name"
+        ],
+        "title": "ExtractedChannel",
+        "type": "object"
+      },
+      "ExtractionRecipe": {
+        "additionalProperties": false,
+        "properties": {
+          "fields": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/RecipeField"
+            },
+            "title": "Fields",
+            "type": "object"
+          },
+          "flags": {
+            "default": "is",
+            "pattern": "^[ims]{0,3}$",
+            "title": "Flags",
+            "type": "string"
+          },
+          "mode": {
+            "default": "html",
+            "enum": [
+              "html",
+              "regex",
+              "json"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "name": {
+            "default": "My recipe",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "records": {
+            "default": "",
+            "maxLength": 1024,
+            "title": "Records",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": 1,
+            "default": 1,
+            "title": "Schema Version",
+            "type": "integer"
+          },
+          "version": {
+            "default": "1.0.0",
+            "pattern": "^\\d+\\.\\d+\\.\\d+$",
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fields"
+        ],
+        "title": "ExtractionRecipe",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -3174,6 +3300,151 @@
           "source"
         ],
         "title": "PublicUrlResponse",
+        "type": "object"
+      },
+      "RecipeFetchRequest": {
+        "properties": {
+          "url": {
+            "maxLength": 2048,
+            "minLength": 1,
+            "title": "Url",
+            "type": "string"
+          },
+          "url_type": {
+            "default": "auto",
+            "enum": [
+              "auto",
+              "regular",
+              "zeronet",
+              "ipfs"
+            ],
+            "title": "Url Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "RecipeFetchRequest",
+        "type": "object"
+      },
+      "RecipeField": {
+        "additionalProperties": false,
+        "properties": {
+          "attribute": {
+            "default": "",
+            "maxLength": 80,
+            "title": "Attribute",
+            "type": "string"
+          },
+          "path": {
+            "default": "",
+            "maxLength": 256,
+            "title": "Path",
+            "type": "string"
+          },
+          "pattern": {
+            "default": "",
+            "maxLength": 1024,
+            "title": "Pattern",
+            "type": "string"
+          },
+          "selector": {
+            "default": "",
+            "maxLength": 256,
+            "title": "Selector",
+            "type": "string"
+          }
+        },
+        "title": "RecipeField",
+        "type": "object"
+      },
+      "RecipeIssue": {
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "record": {
+            "title": "Record",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "record",
+          "message"
+        ],
+        "title": "RecipeIssue",
+        "type": "object"
+      },
+      "RecipePreview": {
+        "properties": {
+          "channels": {
+            "items": {
+              "$ref": "#/components/schemas/ExtractedChannel"
+            },
+            "title": "Channels",
+            "type": "array"
+          },
+          "duplicate_count": {
+            "title": "Duplicate Count",
+            "type": "integer"
+          },
+          "invalid_count": {
+            "title": "Invalid Count",
+            "type": "integer"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/RecipeIssue"
+            },
+            "title": "Issues",
+            "type": "array"
+          },
+          "record_count": {
+            "title": "Record Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "channels",
+          "record_count",
+          "invalid_count",
+          "duplicate_count",
+          "issues"
+        ],
+        "title": "RecipePreview",
+        "type": "object"
+      },
+      "RecipePreviewRequest": {
+        "properties": {
+          "recipe": {
+            "$ref": "#/components/schemas/ExtractionRecipe"
+          },
+          "sample": {
+            "maxLength": 33554432,
+            "title": "Sample",
+            "type": "string"
+          }
+        },
+        "required": [
+          "recipe",
+          "sample"
+        ],
+        "title": "RecipePreviewRequest",
+        "type": "object"
+      },
+      "RecipeSample": {
+        "properties": {
+          "sample": {
+            "title": "Sample",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sample"
+        ],
+        "title": "RecipeSample",
         "type": "object"
       },
       "RemotePlayerCommandRequest": {
@@ -4577,6 +4848,194 @@
         "title": "StatusResponse",
         "type": "object"
       },
+      "StorageDirectory": {
+        "properties": {
+          "directory_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Directory Bytes"
+          },
+          "filesystem_free_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filesystem Free Bytes"
+          },
+          "filesystem_total_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filesystem Total Bytes"
+          },
+          "message": {
+            "default": "",
+            "title": "Message",
+            "type": "string"
+          },
+          "mount_point": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mount Point"
+          },
+          "mounted": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mounted"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "read_only": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Read Only"
+          },
+          "size_complete": {
+            "default": false,
+            "title": "Size Complete",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "title": "StorageDirectory",
+        "type": "object"
+      },
+      "StorageReport": {
+        "properties": {
+          "checked_at": {
+            "format": "date-time",
+            "title": "Checked At",
+            "type": "string"
+          },
+          "configuration_warnings": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ConfigurationWarning"
+            },
+            "title": "Configuration Warnings",
+            "type": "array"
+          },
+          "directories": {
+            "items": {
+              "$ref": "#/components/schemas/StorageDirectory"
+            },
+            "title": "Directories",
+            "type": "array"
+          },
+          "message": {
+            "default": "",
+            "title": "Message",
+            "type": "string"
+          },
+          "mount_detection": {
+            "enum": [
+              "available",
+              "unavailable"
+            ],
+            "title": "Mount Detection",
+            "type": "string"
+          }
+        },
+        "required": [
+          "checked_at",
+          "directories",
+          "mount_detection"
+        ],
+        "title": "StorageReport",
+        "type": "object"
+      },
+      "StreamStats": {
+        "properties": {
+          "download_speed_kbytes_sec": {
+            "anyOf": [
+              {
+                "maximum": 1000000000000.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Engine speed_down in Kbytes/sec; not encoded media bitrate",
+            "title": "Download Speed Kbytes Sec"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "peers": {
+            "anyOf": [
+              {
+                "maximum": 2147483647.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Peers"
+          },
+          "upload_speed_kbytes_sec": {
+            "anyOf": [
+              {
+                "maximum": 1000000000000.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Engine speed_up in Kbytes/sec",
+            "title": "Upload Speed Kbytes Sec"
+          }
+        },
+        "required": [
+          "observed_at"
+        ],
+        "title": "StreamStats",
+        "type": "object"
+      },
       "TVChannelAssociationRequest": {
         "description": "Schema for asociating one acestream channel with a TV channel",
         "properties": {
@@ -5962,6 +6421,16 @@
             "title": "Enabled",
             "type": "boolean"
           },
+          "extraction_recipe": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtractionRecipe"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "scrape_bare_ids": {
             "default": false,
             "title": "Scrape Bare Ids",
@@ -6021,6 +6490,16 @@
             "default": 0,
             "title": "Error Count",
             "type": "integer"
+          },
+          "extraction_recipe": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtractionRecipe"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "id": {
             "title": "Id",
@@ -6167,6 +6646,16 @@
               }
             ],
             "title": "Enabled"
+          },
+          "extraction_recipe": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtractionRecipe"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "scrape_bare_ids": {
             "anyOf": [
@@ -12100,6 +12589,90 @@
         ]
       }
     },
+    "/api/v1/scrapers/recipes/preview": {
+      "post": {
+        "description": "Test a sample in an isolated worker. No source/channel writes.",
+        "operationId": "preview_extraction_api_v1_scrapers_recipes_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecipePreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecipePreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Extraction",
+        "tags": [
+          "scrapers"
+        ]
+      }
+    },
+    "/api/v1/scrapers/recipes/sample": {
+      "post": {
+        "description": "Fetch a bounded source sample using the installed app, without scraping.",
+        "operationId": "fetch_extraction_sample_api_v1_scrapers_recipes_sample_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecipeFetchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecipeSample"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Fetch Extraction Sample",
+        "tags": [
+          "scrapers"
+        ]
+      }
+    },
     "/api/v1/scrapers/scrape": {
       "post": {
         "description": "Scrape a URL for Acestream channels.\n\nRequest body:\n- url: The URL to scrape\n- url_type: (Optional) URL type ('auto', 'regular', 'zeronet', 'ipfs')\n- run_async: (Optional) Run scraping in background",
@@ -13090,6 +13663,28 @@
           }
         },
         "summary": "Restart a service supervised by this container",
+        "tags": [
+          "system",
+          "system"
+        ]
+      }
+    },
+    "/api/v1/system/storage": {
+      "get": {
+        "operationId": "get_storage_api_v1_system_storage_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Container directories and filesystem space",
         "tags": [
           "system",
           "system"

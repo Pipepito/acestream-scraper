@@ -221,13 +221,19 @@ set -euo pipefail
 
 command_log=${FAKE_WARP_CLI_LOG:?FAKE_WARP_CLI_LOG is required}
 ready_file=${FAKE_WARP_READY_FILE:?FAKE_WARP_READY_FILE is required}
+connected_file="$ready_file.connected"
+connecting_file="$ready_file.connecting"
+polled_file="$ready_file.polled"
 printf '%s\n' "$*" >> "$command_log"
 
 args=()
+json_output=false
 for arg in "$@"; do
-    if [ "$arg" != "--accept-tos" ]; then
-        args+=("$arg")
-    fi
+    case "$arg" in
+        --accept-tos) ;;
+        --json) json_output=true ;;
+        *) args+=("$arg") ;;
+    esac
 done
 
 subcommand=${args[0]:-}
@@ -242,25 +248,39 @@ case "$subcommand" in
         exit 0
         ;;
     connect)
-        if [ "${FAKE_WARP_RESET_READY_ON_CONNECT:-false}" = "true" ]; then
-            rm -f "$ready_file"
-        fi
-        (
-            sleep "${FAKE_WARP_CONNECT_DELAY:-0.2}"
-            touch "$ready_file"
-        ) &
+        rm -f "$connected_file" "$polled_file"
+        touch "$connecting_file"
         exit 0
         ;;
     status)
-        if [ -f "$ready_file" ]; then
-            printf 'Connected\n'
-            exit 0
+        if [ ! -f "$ready_file" ]; then
+            printf 'Daemon not ready\n' >&2
+            exit 1
         fi
-        printf 'Not ready\n' >&2
-        exit 1
+        state=Disconnected
+        if [ -f "$connected_file" ]; then
+            state=Connected
+        elif [ -f "$connecting_file" ]; then
+            # Deterministic polls rather than timing races under emulation.
+            # The real CLI exits zero even while the tunnel is Connecting.
+            state=Connecting
+            if [ -f "$polled_file" ] && [ "${FAKE_WARP_STAY_CONNECTING:-false}" != true ]; then
+                state=Connected
+                touch "$connected_file"
+            fi
+            touch "$polled_file"
+        fi
+        printf 'status-result=%s\n' "$state" >> "$command_log"
+        if [ "$json_output" = true ]; then
+            printf '{"status":"%s"}\n' "$state"
+        else
+            printf 'Status update: %s\n' "$state"
+        fi
+        exit 0
         ;;
     *)
-        exit 0
+        printf 'Unsupported fake warp-cli command: %s\n' "$subcommand" >&2
+        exit 2
         ;;
 esac
 EOF
@@ -269,6 +289,10 @@ chmod +x "$FAKE_BIN/warp-cli"
 cat > "$FAKE_BIN/nft" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
+if [ ! -f "${FAKE_WARP_READY_FILE:?}.connected" ]; then
+    printf 'NAT attempted before tunnel connected\n' >> "${FAKE_NFT_LOG:?}"
+    exit 1
+fi
 printf '%s\n' "$*" >> "${FAKE_NFT_LOG:?FAKE_NFT_LOG is required}"
 exit 0
 EOF
@@ -280,7 +304,9 @@ for required_script in "$ENTRYPOINT_SCRIPT" "$WARP_SETUP_SCRIPT" "$HEALTHCHECK_S
     fi
 done
 
-BASE_PATH="$FAKE_BIN:/usr/bin:/bin:/usr/sbin:/sbin"
+# Official Python runner images install python3 under /usr/local/bin.
+# Keep host/user PATH entries excluded while retaining that trusted runtime.
+BASE_PATH="$FAKE_BIN:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 VALIDATION_LOG_DIR="$TMP_DIR/logs"
 mkdir -p "$VALIDATION_LOG_DIR"
 
@@ -357,7 +383,7 @@ assert_file_contains "$FAKE_DBUS_LOG" "--fork"
 assert_file_contains "$FAKE_WARP_CLI_LOG" "debug qlog disable"
 assert_file_not_contains "$FAKE_WARP_CLI_LOG" "debug qlog enable"
 assert_file_not_contains "$FAKE_WARP_CLI_LOG" "mode warp+doh"
-assert_file_not_contains "$FAKE_WARP_CLI_LOG" "connect"
+assert_file_not_contains "$FAKE_WARP_CLI_LOG" "--accept-tos connect"
 assert_file_not_contains "$FAKE_NFT_LOG" "add table ip nat"
 
 : > "$FAKE_DBUS_LOG"
@@ -367,10 +393,21 @@ assert_file_not_contains "$FAKE_NFT_LOG" "add table ip nat"
 rm -f "$FAKE_WARP_READY_FILE"
 expect_success \
     "WARP NAT path waits for post-connect readiness" \
-    env PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR" ENABLE_WARP=true WARP_SLEEP=0 DEBUG_ENABLE_QLOG=false WARP_ENABLE_NAT=true FAKE_WARP_RESET_READY_ON_CONNECT=true FAKE_WARP_CONNECT_DELAY=0.2 FAKE_DBUS_LOG="$FAKE_DBUS_LOG" FAKE_WARP_SVC_LOG="$FAKE_WARP_SVC_LOG" FAKE_WARP_CLI_LOG="$FAKE_WARP_CLI_LOG" FAKE_NFT_LOG="$FAKE_NFT_LOG" FAKE_WARP_READY_FILE="$FAKE_WARP_READY_FILE" bash "$WARP_SETUP_SCRIPT"
+    env PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR" ENABLE_WARP=true WARP_SLEEP=0 DEBUG_ENABLE_QLOG=false WARP_ENABLE_NAT=true FAKE_DBUS_LOG="$FAKE_DBUS_LOG" FAKE_WARP_SVC_LOG="$FAKE_WARP_SVC_LOG" FAKE_WARP_CLI_LOG="$FAKE_WARP_CLI_LOG" FAKE_NFT_LOG="$FAKE_NFT_LOG" FAKE_WARP_READY_FILE="$FAKE_WARP_READY_FILE" bash "$WARP_SETUP_SCRIPT"
 assert_file_contains "$FAKE_WARP_CLI_LOG" "mode warp+doh"
-assert_file_contains "$FAKE_WARP_CLI_LOG" "connect"
+assert_file_contains "$FAKE_WARP_CLI_LOG" "--accept-tos connect"
+assert_file_contains "$FAKE_WARP_CLI_LOG" "--json status"
+assert_file_contains "$FAKE_WARP_CLI_LOG" "status-result=Connecting"
+assert_file_contains "$FAKE_WARP_CLI_LOG" "status-result=Connected"
 assert_file_contains "$FAKE_NFT_LOG" "add table ip nat"
+assert_file_not_contains "$FAKE_NFT_LOG" "NAT attempted before tunnel connected"
+
+: > "$FAKE_NFT_LOG"
+expect_failure_contains \
+    "WARP responsive daemon without a connected tunnel blocks NAT" \
+    "WARP NAT connect did not become ready" \
+    env PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR" ENABLE_WARP=true WARP_ENABLE_NAT=true FAKE_WARP_STAY_CONNECTING=true WARP_READY_ATTEMPTS=2 WARP_READY_INTERVAL=0.01 FAKE_WARP_CLI_LOG="$FAKE_WARP_CLI_LOG" FAKE_NFT_LOG="$FAKE_NFT_LOG" FAKE_WARP_READY_FILE="$FAKE_WARP_READY_FILE" bash "$WARP_SETUP_SCRIPT" configure
+[ ! -s "$FAKE_NFT_LOG" ] || fail "WARP configured NAT without a connected tunnel"
 
 : > "$TMP_DIR/health-disabled.log"
 expect_success \

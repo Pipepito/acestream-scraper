@@ -31,8 +31,11 @@ class SettingsRepository:
     DEFAULT_BASE_URL = 'acestream://'
     DEFAULT_PLAYBACK_ROUTING = '{"use_acexy":false,"acexy_url":"http://localhost:8080"}'
     # A container that runs no engine of its own points at an external one through ACE_ENGINE_URL
-    # (legacy alias ACESTREAM_ENGINE_URL); the Settings page can still override it per database.
-    DEFAULT_ACE_ENGINE_URL = os.environ.get('ACE_ENGINE_URL') or os.environ.get('ACESTREAM_ENGINE_URL') or ''
+    # The Settings page can still override it per database.
+    @property
+    def DEFAULT_ACE_ENGINE_URL(self):
+        from app.config.settings import get_settings
+        return get_settings().ACE_ENGINE_URL
     DEFAULT_RESCRAPE_INTERVAL = '24'
     DEFAULT_ADDPID = 'false'
     DEFAULT_EPG_REFRESH_INTERVAL = '6'

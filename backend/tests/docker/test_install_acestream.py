@@ -232,7 +232,7 @@ def test_arm_oci_image_install_layout(
     assert "engine_source=oci:jopsis/acestream:v3.2.17-fix@sha256:" in metadata
 
     ace = set(_list_dir_in_image(tag, "/opt/acestream", platform))
-    assert {"main.py.oci-orig", "main_linux.py", "app_bridge.py", "app_bridge.py.oci-orig",
+    assert {"main.py.oci-orig", "main_linux.py", "bionic_dns.py", "app_bridge.py", "app_bridge.py.oci-orig",
             "engine_version.json", "modules.zip", "python", "lib", "start-engine"} <= ace
     assert "install_id" not in ace
     assert "engine_runtime.json" not in ace

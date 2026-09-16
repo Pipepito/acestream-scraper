@@ -406,3 +406,32 @@ def test_embedded_migrations_preserve_application_logging(tmp_path):
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert 'PLAYBACK_LOGGING_SURVIVED_MIGRATION' in result.stdout + result.stderr
+
+
+def test_v21_upgrade_backup_and_restore_preserves_configured_database(tmp_path):
+    import sqlite3
+    import shutil
+    from migration_test_utils import upgrade_to_revision
+    db = tmp_path / 'configured' / 'existing.db'
+    db.parent.mkdir()
+    upgrade_to_revision(db, '20260907_1500')
+    with sqlite3.connect(db) as conn:
+        conn.execute("INSERT INTO settings (key,value) VALUES ('operator-marker','retained')")
+        conn.execute("INSERT INTO scraped_urls (url,enabled) VALUES ('https://example.com/channels',1)")
+        conn.execute("INSERT INTO acestream_channels (id,name) VALUES ('existing','Existing source')")
+    result = _run_main_import(_database_url_for(db), tmp_path / 'frontend', _database_url_for(tmp_path / 'none.db'))
+    assert result.returncode == 0, result.stderr
+    assert 'STARTUP ready' in result.stdout
+    with sqlite3.connect(db) as conn:
+        assert conn.execute("SELECT value FROM settings WHERE key='operator-marker'").fetchone() == ('retained',)
+        assert conn.execute('SELECT name,stream_stats FROM acestream_channels').fetchone() == ('Existing source', None)
+        assert conn.execute('SELECT extraction_recipe FROM scraped_urls').fetchone() == (None,)
+    backups = list((db.parent / 'backups').glob('*/existing.db'))
+    assert len(backups) == 1
+    restored = tmp_path / 'restored.db'
+    shutil.copy2(backups[0], restored)
+    with sqlite3.connect(restored) as conn:
+        assert conn.execute('PRAGMA integrity_check').fetchone() == ('ok',)
+        assert conn.execute('SELECT version_num FROM alembic_version').fetchone() == ('20260907_1500',)
+        assert conn.execute("SELECT value FROM settings WHERE key='operator-marker'").fetchone() == ('retained',)
+        assert conn.execute('SELECT name FROM acestream_channels').fetchone() == ('Existing source',)

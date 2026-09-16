@@ -12,10 +12,21 @@ wait_for_warp_ready() {
     local description=$1
     local attempts=${2:-30}
     local interval=${3:-1}
+    local required_state=${4:-daemon}
     local attempt=1
+    local status_json
 
     while [ "$attempt" -le "$attempts" ]; do
-        if warp-cli --accept-tos status >> "$WARP_LOG" 2>&1; then
+        # A successful status command only proves that warp-svc answers. It
+        # also exits zero while Connecting or Disconnected. When auto-connect
+        # was requested, do not launch engines until the tunnel is connected.
+        if [ "$required_state" = connected ]; then
+            if status_json=$(warp-cli --accept-tos --json status 2>> "$WARP_LOG") &&
+                printf '%s\n' "$status_json" | python3 -c 'import json, sys; sys.exit(0 if json.load(sys.stdin).get("status") == "Connected" else 1)' 2>> "$WARP_LOG"; then
+                log "$description ready"
+                return 0
+            fi
+        elif warp-cli --accept-tos status >> "$WARP_LOG" 2>&1; then
             log "$description ready"
             return 0
         fi
@@ -129,7 +140,7 @@ if [ "$WARP_ENABLE_NAT" = "true" ]; then
     log "Configuring WARP NAT"
     warp-cli --accept-tos mode warp+doh >> "$WARP_LOG" 2>&1
     warp-cli --accept-tos connect >> "$WARP_LOG" 2>&1
-    wait_for_warp_ready "WARP NAT connect" "${WARP_READY_ATTEMPTS:-30}" "${WARP_READY_INTERVAL:-1}"
+    wait_for_warp_ready "WARP NAT connect" "${WARP_READY_ATTEMPTS:-30}" "${WARP_READY_INTERVAL:-1}" connected
     run_privileged nft add table ip nat >> "$WARP_LOG" 2>&1 || true
     run_privileged nft add chain ip nat WARP_NAT '{ type nat hook postrouting priority 100 ; }' >> "$WARP_LOG" 2>&1 || true
     run_privileged nft add rule ip nat WARP_NAT oifname CloudflareWARP masquerade >> "$WARP_LOG" 2>&1 || true

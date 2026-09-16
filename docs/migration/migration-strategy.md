@@ -21,11 +21,7 @@ Complete a strict big-bang cutover to a single root stack while preserving scrap
 
 ## Configuration Compatibility Policy
 
-A one-release env alias window is allowed for cutover safety.
-
-- Legacy aliases are auto-mapped to canonical vars.
-- Canonical vars win conflicts.
-- Conflicts emit warnings.
-- Alias mapping can be disabled via `ENABLE_LEGACY_ENV_ALIASES=false`.
-
-This compatibility window is temporary and must not become permanent baseline behavior.
+The v2.0 release line provided a one-release alias window. Starting with v2.1,
+only canonical names are read; the alias map and its enable switch are removed.
+The regression gate asserts their absence independently of `version.txt`.
+See [v2.1 upgrade notes](../release/v2.1-release-notes.md) for the rename table.

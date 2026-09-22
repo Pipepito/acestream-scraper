@@ -34,6 +34,7 @@ class PlaylistService:
         base_url_id: Optional[int] = None,
         format: Optional[str] = None,
         include_unassigned: Optional[bool] = None,
+        epg_url: Optional[str] = None,
     ) -> str:
         """
         Generate an M3U playlist with the specified filters
@@ -72,7 +73,7 @@ class PlaylistService:
                 unassigned = [c for c in channels if c.tv_channel_id is None
                               and (not search or search.casefold() in (c.name or '').casefold())]
                 entries.extend(self._unassigned_entries(unassigned, tv_channels, base_url, False, 1, name_counts))
-            return "#EXTM3U\n" + "\n".join(entries) + "\n"
+            return self._m3u_header(epg_url) + "\n" + "\n".join(entries) + "\n"
 
         if include_unassigned is False:
             channels = [c for c in channels if c.tv_channel_id is not None]
@@ -83,7 +84,8 @@ class PlaylistService:
             channels,
             base_url=base_url,
             format=format,
-            addpid=addpid_enabled
+            addpid=addpid_enabled,
+            epg_url=epg_url,
         )
         return m3u_content
 
@@ -93,7 +95,8 @@ class PlaylistService:
         favorites_only: bool = False,
         base_url: Optional[str] = None,
         base_url_id: Optional[int] = None,
-        format: Optional[str] = None
+        format: Optional[str] = None,
+        epg_url: Optional[str] = None,
     ) -> str:
         """
         Generate a curated M3U playlist of TV channels with their assigned
@@ -106,7 +109,7 @@ class PlaylistService:
         )
         base_url, addpid = self._resolve_output_settings(base_url, base_url_id)
 
-        lines: List[str] = ["#EXTM3U"]
+        lines: List[str] = [self._m3u_header(epg_url)]
         pid_counter = 1
         name_counts: Dict[str, int] = {}
         entry_lines, pid_counter, _ = self._tv_channel_entries(
@@ -121,7 +124,8 @@ class PlaylistService:
         include_unassigned: bool = True,
         base_url: Optional[str] = None,
         base_url_id: Optional[int] = None,
-        format: Optional[str] = None
+        format: Optional[str] = None,
+        epg_url: Optional[str] = None,
     ) -> str:
         """
         Generate an M3U playlist of numbered TV channels followed by
@@ -130,7 +134,7 @@ class PlaylistService:
         tv_channels = self.channel_repository.get_playlist_tv_channels(search=search)
         base_url, addpid = self._resolve_output_settings(base_url, base_url_id)
 
-        lines: List[str] = ["#EXTM3U"]
+        lines: List[str] = [self._m3u_header(epg_url)]
         pid_counter = 1
         name_counts: Dict[str, int] = {}
         entry_lines, pid_counter, processed_ids = self._tv_channel_entries(
@@ -269,6 +273,17 @@ class PlaylistService:
         return candidate
 
     @staticmethod
+    def _m3u_header(epg_url: Optional[str] = None) -> str:
+        """The #EXTM3U line, carrying url-tvg when the caller knows the guide.
+
+        Without url-tvg a player has the channel ids but nowhere to fetch the
+        guide from, so the EPG never shows up however well the ids match.
+        """
+        if not epg_url:
+            return "#EXTM3U"
+        return f'#EXTM3U url-tvg="{PlaylistService._attr(epg_url)}"'
+
+    @staticmethod
     def _attr(value) -> str:
         """Sanitize a value for use inside a double-quoted EXTINF attribute.
 
@@ -360,7 +375,7 @@ class PlaylistService:
         """
         return self.channel_repository.get_unique_groups()
 
-    def _generate_m3u_content(self, channels: List[AcestreamChannel], base_url: Optional[str] = None, format: Optional[str] = None, addpid: bool = False) -> str:
+    def _generate_m3u_content(self, channels: List[AcestreamChannel], base_url: Optional[str] = None, format: Optional[str] = None, addpid: bool = False, epg_url: Optional[str] = None) -> str:
         """
         Convert channels to M3U format, supporting custom base_url and format
 
@@ -373,7 +388,7 @@ class PlaylistService:
             M3U formatted string
         """
         # M3U header
-        header = "#EXTM3U\n"
+        header = self._m3u_header(epg_url) + "\n"
 
         # Generate each channel entry
         entries = []

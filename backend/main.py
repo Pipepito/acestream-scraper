@@ -19,6 +19,7 @@ from app.api.api import api_router
 from app.api.auth import require_api_token
 from app.api.endpoints import tuner as tuner_endpoints
 from app.api.endpoints.playlists import (
+    epg_url_for,
     get_all_streams_playlist,
     get_m3u_playlist,
     get_tv_channels_playlist,
@@ -334,6 +335,7 @@ for dirname in static_dirs:
 # Public playlist route for user-friendly URLs (no /api prefix)
 @app.get("/playlists/m3u", response_class=PlainTextResponse, dependencies=[Depends(require_api_token)])
 async def public_m3u_playlist(
+    request: Request,
     search: Optional[str] = None,
     group: Optional[str] = None,
     only_online: bool = True,
@@ -365,7 +367,8 @@ async def public_m3u_playlist(
             exclude_groups=exclude_groups_list,
             base_url=base_url,
             base_url_id=base_url_id,
-            format=format
+            format=format,
+            epg_url=epg_url_for(request, db),
         )
         headers = {"Content-Disposition": "attachment; filename=playlist.m3u"}
         return PlainTextResponse(m3u_content, headers=headers)
@@ -381,6 +384,7 @@ async def public_m3u_playlist(
 # fallback would answer with index.html and HTTP 200, silently breaking them.
 @app.get("/playlist.m3u", response_class=PlainTextResponse, dependencies=[Depends(require_api_token)])
 async def legacy_m3u_playlist(
+    request: Request,
     search: Optional[str] = None,
     group: Optional[str] = None,
     only_online: bool = True,
@@ -397,6 +401,7 @@ async def legacy_m3u_playlist(
     Legacy v1 playlist URL. Behaves identically to /playlists/m3u.
     """
     return await public_m3u_playlist(
+        request=request,
         search=search,
         group=group,
         only_online=only_online,
@@ -414,6 +419,7 @@ async def legacy_m3u_playlist(
 # the canonical v2 routes live under /api/v1/playlists/*.
 @app.get("/api/playlists/m3u", response_class=PlainTextResponse, dependencies=[Depends(require_api_token)])
 async def legacy_api_m3u_playlist(
+    request: Request,
     search: Optional[str] = None,
     group: Optional[str] = None,
     only_online: bool = True,
@@ -431,6 +437,7 @@ async def legacy_api_m3u_playlist(
     (API error contract, unlike the player-facing /playlists/m3u route).
     """
     return await get_m3u_playlist(
+        request=request,
         search=search,
         group=group,
         only_online=only_online,
@@ -446,6 +453,7 @@ async def legacy_api_m3u_playlist(
 
 @app.get("/api/playlists/tv-channels/m3u", response_class=PlainTextResponse, dependencies=[Depends(require_api_token)])
 async def legacy_tv_channels_playlist(
+    request: Request,
     search: Optional[str] = None,
     favorites_only: bool = False,
     base_url: Optional[str] = Query(None),
@@ -459,6 +467,7 @@ async def legacy_tv_channels_playlist(
     /api/v1/playlists/tv-channels/m3u.
     """
     return await get_tv_channels_playlist(
+        request=request,
         search=search,
         favorites_only=favorites_only,
         base_url=base_url,
@@ -470,6 +479,7 @@ async def legacy_tv_channels_playlist(
 
 @app.get("/api/playlists/all-streams/m3u", response_class=PlainTextResponse, dependencies=[Depends(require_api_token)])
 async def legacy_all_streams_playlist(
+    request: Request,
     search: Optional[str] = None,
     include_unassigned: bool = True,
     base_url: Optional[str] = Query(None),
@@ -483,6 +493,7 @@ async def legacy_all_streams_playlist(
     /api/v1/playlists/all-streams/m3u.
     """
     return await get_all_streams_playlist(
+        request=request,
         search=search,
         include_unassigned=include_unassigned,
         base_url=base_url,

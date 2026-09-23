@@ -414,3 +414,15 @@ not merely a successful CLI call, before engines start. The ARM resolver follows
 container nameserver changes and retains the last valid configuration during a
 partial rewrite. Keep WARP opt-in; direct-route lookup failures must not trigger
 automatic routing changes. See `docs/ops/arm64-mod-detected.md`.
+
+## Reviewed guide setup
+
+EPG Matching defaults to a read-only preview with explicit row selection. Apply
+rechecks the complete source scope and rejects changed `expected_previews` before
+writing. Preserve assignments and source-qualified guide identity; ambiguous
+matches are never chosen by row ID. Settings → Automation stores opt-in
+`epg_matching` (off by default); successful scrapes/EPG refreshes apply only
+unambiguous exact matches off the event loop after ingestion commits. Keep its
+last result visible and failures independent of ingestion. Playlists and XMLTV
+share collision-safe IDs and validated token propagation for guide discovery.
+See `docs/ops/guide-matching.md`.

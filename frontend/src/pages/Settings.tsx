@@ -1,3 +1,4 @@
+import GuideMatchingFields from '../components/GuideMatchingFields';
 import ScheduleAnchorFields from '../components/ScheduleAnchorFields';
 import StreamLinkFormatsSection from '../components/StreamLinkFormatsSection';
 import CheckEngineFields from '../components/CheckEngineFields';
@@ -300,6 +301,7 @@ const Settings: React.FC = () => {
       </Box>
       <Box {...panelProps('automation')}>
 
+      {section === 'automation' ? <ContentSection title="Guide matching"><GuideMatchingFields /></ContentSection> : null}
       <ContentSection title="Stream status checks"><CheckEngineFields /></ContentSection>
 
       <ContentSection title="Automation" description="Background jobs run on these schedules. Changes apply right away.">

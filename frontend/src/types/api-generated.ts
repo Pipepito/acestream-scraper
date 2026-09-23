@@ -315,6 +315,16 @@ export interface paths {
     /** Update Dashboard Config */
     put: operations["update_dashboard_config_api_v1_config_dashboard_put"];
   };
+  "/api/v1/config/epg-matching": {
+    /** Get Epg Matching */
+    get: operations["get_epg_matching_api_v1_config_epg_matching_get"];
+    /** Update Epg Matching */
+    put: operations["update_epg_matching_api_v1_config_epg_matching_put"];
+  };
+  "/api/v1/config/epg-matching/last-run": {
+    /** Epg Matching Last Run */
+    get: operations["epg_matching_last_run_api_v1_config_epg_matching_last_run_get"];
+  };
   "/api/v1/config/epg_refresh_interval": {
     /**
      * Get Epg Refresh Interval
@@ -624,6 +634,10 @@ export interface paths {
      * @description Get list of all available channel groups
      */
     get: operations["get_channel_groups_api_v1_playlists_groups_get"];
+  };
+  "/api/v1/playlists/guide-coverage": {
+    /** Guide Coverage */
+    get: operations["guide_coverage_api_v1_playlists_guide_coverage_get"];
   };
   "/api/v1/playlists/m3u": {
     /**
@@ -1767,10 +1781,25 @@ export interface components {
     };
     /** EPGMatchRowResponse */
     EPGMatchRowResponse: {
+      /**
+       * Ambiguous Count
+       * @default 0
+       */
+      ambiguous_count?: number;
+      /**
+       * Automation Safe
+       * @default false
+       */
+      automation_safe?: boolean;
       /** Best Match Confidence */
       best_match_confidence?: string | null;
       /** Best Match Type */
       best_match_type?: string | null;
+      /**
+       * Can Apply
+       * @default false
+       */
+      can_apply?: boolean;
       /** Candidate Count */
       candidate_count: number;
       /** Candidates */
@@ -1799,6 +1828,45 @@ export interface components {
       has_duplicate_existing_conflict?: boolean;
       /** Is Creatable */
       is_creatable: boolean;
+      /**
+       * Review Token
+       * @default
+       */
+      review_token?: string;
+    };
+    /** EPGMatchingConfig */
+    EPGMatchingConfig: {
+      /**
+       * Enabled
+       * @description Automatically apply unambiguous exact guide matches after successful scraping or EPG refresh
+       * @default false
+       */
+      enabled?: boolean;
+    };
+    /** EPGMatchingRun */
+    EPGMatchingRun: {
+      /**
+       * Assigned
+       * @default 0
+       */
+      assigned?: number;
+      /**
+       * Created
+       * @default 0
+       */
+      created?: number;
+      /** Finished At */
+      finished_at?: string | null;
+      /**
+       * Review Needed
+       * @default 0
+       */
+      review_needed?: number;
+      /**
+       * Status
+       * @default never
+       */
+      status?: string;
     };
     /**
      * EPGProgramResponse
@@ -2387,6 +2455,15 @@ export interface components {
       speed_up: number;
       /** Status */
       status: string;
+    };
+    /** PlaylistGuideCoverage */
+    PlaylistGuideCoverage: {
+      /** Guide Channels */
+      guide_channels: number;
+      /** Linked Streams */
+      linked_streams: number;
+      /** Streams */
+      streams: number;
     };
     /**
      * PublicBaseUrlUpdate
@@ -3286,6 +3363,12 @@ export interface components {
     TVChannelCreateFromEPGAnalysisRequest: {
       /** Epg Channel Ids */
       epg_channel_ids: number[];
+      /** Expected Previews */
+      expected_previews?: {
+        [key: string]: string;
+      } | null;
+      /** Source Id */
+      source_id?: number | null;
       /**
        * Strictness
        * @enum {string}
@@ -4926,6 +5009,50 @@ export interface operations {
       };
     };
   };
+  /** Get Epg Matching */
+  get_epg_matching_api_v1_config_epg_matching_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EPGMatchingConfig"];
+        };
+      };
+    };
+  };
+  /** Update Epg Matching */
+  update_epg_matching_api_v1_config_epg_matching_put: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EPGMatchingConfig"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EPGMatchingConfig"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Epg Matching Last Run */
+  epg_matching_last_run_api_v1_config_epg_matching_last_run_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EPGMatchingRun"];
+        };
+      };
+    };
+  };
   /**
    * Get Epg Refresh Interval
    * @description Get the interval between automatic EPG refreshes in hours.
@@ -6110,6 +6237,17 @@ export interface operations {
       200: {
         content: {
           "application/json": string[];
+        };
+      };
+    };
+  };
+  /** Guide Coverage */
+  guide_coverage_api_v1_playlists_guide_coverage_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlaylistGuideCoverage"];
         };
       };
     };

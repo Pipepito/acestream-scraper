@@ -221,6 +221,10 @@ class EPGMatchRowResponse(BaseModel):
     best_match_type: Optional[str] = None
     best_match_confidence: Optional[str] = None
     is_creatable: bool
+    can_apply: bool = False
+    automation_safe: bool = False
+    ambiguous_count: int = 0
+    review_token: str = ""
 
 
 class EPGMatchAnalysisSummaryResponse(BaseModel):
@@ -248,7 +252,9 @@ class TVChannelCreateFromEPGAnalysisRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     strictness: MatchStrictness
-    epg_channel_ids: List[int] = Field(..., min_length=1)
+    epg_channel_ids: List[int] = Field(..., min_length=1, max_length=1000)
+    source_id: Optional[int] = None
+    expected_previews: Optional[Dict[int, str]] = None
 
 
 class TVChannelCreateFromEPGAnalysisResponse(BaseModel):
@@ -302,3 +308,9 @@ class TVChannelReorderRequest(BaseModel):
         if any(value <= 0 for value in values) or len(values) != len(set(values)):
             raise ValueError("Channel IDs must be positive and unique")
         return values
+
+
+class PlaylistGuideCoverage(BaseModel):
+    streams: int
+    linked_streams: int
+    guide_channels: int

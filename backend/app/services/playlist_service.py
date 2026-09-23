@@ -22,6 +22,17 @@ class PlaylistService:
         self.db = db
         self.channel_repository = ChannelRepository(db)
 
+    def guide_coverage(self):
+        from app.repositories.epg_match_repository import EPGMatchRepository
+        return EPGMatchRepository(self.db).coverage()
+
+    @property
+    def epg_ids(self):
+        from app.services.epg_identity_service import EPGIdentityService
+        if not hasattr(self, "_epg_ids"):
+            self._epg_ids = EPGIdentityService(self.db)
+        return self._epg_ids
+
     async def generate_playlist(
         self,
         search: Optional[str] = None,
@@ -164,8 +175,9 @@ class PlaylistService:
             name = self._dedupe_name(self._attr(channel.name or f"Stream {channel.id[:8]}"), name_counts)
             attrs = [f'tvg-chno="{number}"', f'tvg-name="{name}"']
             number += 1
-            if channel.tvg_id:
-                attrs.append(f'tvg-id="{self._attr(channel.tvg_id)}"')
+            epg_id = self.epg_ids.resolve(None, channel.tvg_id)
+            if epg_id:
+                attrs.append(f'tvg-id="{self._attr(epg_id)}"')
             if channel.logo:
                 attrs.append(f'tvg-logo="{self._attr(channel.logo)}"')
             attrs.append(f'group-title="{self._attr(channel.group or "Unassigned Streams")}"')
@@ -223,10 +235,9 @@ class PlaylistService:
                         attrs.append(f'tvg-chno="{tv_channel.channel_number}"')
                 # All streams of a channel share the channel's EPG listing, so
                 # tvg-id stays un-suffixed and keeps matching the EPG XML ids.
-                if tv_channel.epg_id:
-                    attrs.append(f'tvg-id="{self._attr(tv_channel.epg_id)}"')
-                elif stream.tvg_id:
-                    attrs.append(f'tvg-id="{self._attr(stream.tvg_id)}"')
+                epg_id = self.epg_ids.resolve(tv_channel.epg_source_id, tv_channel.epg_id) if tv_channel.epg_id else self.epg_ids.resolve(None, stream.tvg_id)
+                if epg_id:
+                    attrs.append(f'tvg-id="{self._attr(epg_id)}"')
                 attrs.append(f'tvg-name="{display_name}"')
                 if tv_channel.logo_url:
                     attrs.append(f'tvg-logo="{self._attr(tv_channel.logo_url)}"')
@@ -413,9 +424,11 @@ class PlaylistService:
                 attrs.append(f'tvg-logo="{logo}"')
 
             # Add channel name and ID if available
-            tvg_id = getattr(channel, 'tvg_id', '')
+            tv = channel.tv_channel
+            tvg_id = (self.epg_ids.resolve(tv.epg_source_id, tv.epg_id) if tv and tv.epg_id
+                      else self.epg_ids.resolve(None, channel.tvg_id))
             if tvg_id:
-                attrs.append(f'tvg-id="{tvg_id}"')
+                attrs.append(f'tvg-id="{self._attr(tvg_id)}"')
 
             # Generate entry
             entry = f'#EXTINF:-1 {" ".join(attrs)}, {channel.name}\n'

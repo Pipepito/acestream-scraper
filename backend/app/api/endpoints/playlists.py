@@ -7,14 +7,16 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from app.config.database import get_db
+from app.api.auth import authenticated_player_url
 from app.repositories.settings_repository import SettingsRepository
 from app.services.playlist_service import PlaylistService
+from app.schemas.channel import PlaylistGuideCoverage
 from app.services.public_url_service import resolve_public_base_url
 from app.services.task_service import task_service
 
 router = APIRouter()
 
-M3U_DOWNLOAD_HEADERS = {"Content-Disposition": "attachment; filename=playlist.m3u"}
+M3U_DOWNLOAD_HEADERS = {"Content-Disposition": "attachment; filename=playlist.m3u", "Cache-Control": "private, no-store"}
 
 #: Canonical XMLTV route; the m3u points players at it through url-tvg.
 EPG_XML_PATH = "/api/v1/epg/xml"
@@ -29,7 +31,7 @@ def epg_url_for(request: Request, db: Session) -> str:
     happens to be bound to.
     """
     public = resolve_public_base_url(request, SettingsRepository(db)).url
-    return f"{public}{EPG_XML_PATH}"
+    return authenticated_player_url(request, f"{public}{EPG_XML_PATH}")
 
 
 def trigger_url_scrape_refresh() -> None:
@@ -49,6 +51,11 @@ def trigger_url_scrape_refresh() -> None:
         logging.getLogger("app.api.playlists").warning(
             "playlist refresh trigger failed error=%s", exc
         )
+
+
+@router.get("/guide-coverage", response_model=PlaylistGuideCoverage)
+def guide_coverage(db: Session = Depends(get_db)):
+    return PlaylistService(db).guide_coverage()
 
 
 @router.get("/m3u", response_class=PlainTextResponse)
@@ -101,9 +108,7 @@ async def get_m3u_playlist(
             epg_url=epg_url_for(request, db),
         )
 
-        headers = {
-            "Content-Disposition": "attachment; filename=playlist.m3u"
-        }
+        headers = M3U_DOWNLOAD_HEADERS
         # Return the M3U content with proper headers
         return PlainTextResponse(m3u_content, headers=headers)
     except LookupError as e:

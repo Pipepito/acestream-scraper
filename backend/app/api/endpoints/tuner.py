@@ -172,7 +172,7 @@ def playlist_m3u(request: Request, db: Session = Depends(get_db)) -> PlainTextRe
 
 @hdhr_router.get("/epg.xml", include_in_schema=False)
 def epg_xml(db: Session = Depends(get_db)) -> Response:
-    """XMLTV keyed by the upstream EPG ids, restricted to the lineup: the guide
+    """XMLTV keyed by source-qualified EPG identities, restricted to the lineup: the guide
     that goes with playlist.m3u, whose tvg-ids are those same ids."""
     ids = [entry.tv_channel_id for entry in TunerService(db).build_lineup().entries]
     return Response(content=EPGService(db).generate_epg_xml(tv_channel_ids=ids), media_type="application/xml",

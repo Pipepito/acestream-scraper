@@ -262,16 +262,18 @@ class TunerService:
         lines.append('</tv>')
         return '\n'.join(lines)
 
-    @staticmethod
-    def build_playlist_m3u(lineup: Lineup, public_base_url: str) -> str:
-        """M3U for Jellyfin's M3U tuner: tvg-id keeps the upstream EPG id, and
+    def build_playlist_m3u(self, lineup: Lineup, public_base_url: str) -> str:
+        """M3U for Jellyfin's M3U tuner: tvg-id shares the XMLTV identity, and
         every stream URL points at the relay rather than at the engine."""
+        from app.services.epg_identity_service import EPGIdentityService
+        identities = EPGIdentityService(self.db)
         base = public_base_url.rstrip('/')
-        lines = ["#EXTM3U"]
+        lines = [f'#EXTM3U url-tvg="{m3u_attr(base)}/tuner/epg.xml"']
         for entry in lineup.entries:
             attrs = []
-            if entry.epg_id:
-                attrs.append(f'tvg-id="{m3u_attr(entry.epg_id)}"')
+            epg_id = identities.resolve(entry.epg_source_id, entry.epg_id)
+            if epg_id:
+                attrs.append(f'tvg-id="{m3u_attr(epg_id)}"')
             attrs.append(f'tvg-chno="{entry.guide_number}"')
             attrs.append(f'tvg-name="{m3u_attr(entry.guide_name)}"')
             if entry.logo_url:

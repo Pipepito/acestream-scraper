@@ -370,7 +370,7 @@ async def public_m3u_playlist(
             format=format,
             epg_url=epg_url_for(request, db),
         )
-        headers = {"Content-Disposition": "attachment; filename=playlist.m3u"}
+        headers = {"Content-Disposition": "attachment; filename=playlist.m3u", "Cache-Control": "private, no-store"}
         return PlainTextResponse(m3u_content, headers=headers)
     except LookupError as e:
         # Client error (unknown base_url_id): keep the error-playlist body

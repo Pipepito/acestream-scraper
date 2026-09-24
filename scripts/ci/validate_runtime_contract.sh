@@ -316,6 +316,47 @@ FAKE_WARP_CLI_LOG="$TMP_DIR/warp-cli.log"
 FAKE_NFT_LOG="$TMP_DIR/nft.log"
 FAKE_WARP_READY_FILE="$TMP_DIR/warp-ready"
 
+# Capture the actual argv produced by the entrypoint without starting the app.
+cat > "$FAKE_BIN/uvicorn" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$@" > "${APP_ARG_LOG:?APP_ARG_LOG is required}"
+EOF
+chmod +x "$FAKE_BIN/uvicorn"
+
+APP_TEST_ENV=(env -u FLASK_PORT PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR"
+    LOGROTATE_DIR="$TMP_DIR/app-logrotate" SUPERVISOR_RUN_DIR="$TMP_DIR/app-run"
+    ENABLE_WARP=false ENABLE_ACESTREAM_ENGINE=false ENABLE_ACESTREAM_CHECK_ENGINE=false
+    ENABLE_ACEXY=false ENABLE_ZERONET=false ENABLE_IPFS=false ENABLE_TOR=false
+    APP_ARG_LOG="$TMP_DIR/app-args")
+
+for port_setting in unset empty custom; do
+    app_env=("${APP_TEST_ENV[@]}")
+    expected_port=8000
+    case "$port_setting" in
+        empty) app_env+=(FLASK_PORT=) ;;
+        custom) app_env+=(FLASK_PORT=8002); expected_port=8002 ;;
+    esac
+    expect_success "Default app command with $port_setting FLASK_PORT" \
+        "${app_env[@]}" bash "$ENTRYPOINT_SCRIPT"
+    printf '%s\n' main:app --host 0.0.0.0 --port "$expected_port" \
+        --no-proxy-headers --timeout-graceful-shutdown 3 > "$TMP_DIR/expected-app-args"
+    cmp -s "$TMP_DIR/expected-app-args" "$TMP_DIR/app-args" \
+        || fail "Default app argv did not honor $port_setting FLASK_PORT"
+    expect_success "App healthcheck with $port_setting FLASK_PORT" \
+        "${app_env[@]}" CURL_LOG_FILE="$TMP_DIR/app-health-$port_setting" \
+        bash "$HEALTHCHECK_SCRIPT"
+    assert_log_contains "$TMP_DIR/app-health-$port_setting" "http://localhost:$expected_port/api/v1/health"
+done
+
+expect_success "Explicit app command preserves its arguments" \
+    "${APP_TEST_ENV[@]}" FLASK_PORT=8002 bash "$ENTRYPOINT_SCRIPT" \
+    uvicorn custom:app --host 127.0.0.1 --port 9000 --root-path '/custom path'
+printf '%s\n' custom:app --host 127.0.0.1 --port 9000 --root-path '/custom path' \
+    > "$TMP_DIR/expected-app-args"
+cmp -s "$TMP_DIR/expected-app-args" "$TMP_DIR/app-args" \
+    || fail "Explicit app command arguments were changed"
+
 expect_failure_contains \
     "AceStream-missing flavor guard" \
     "AceStream is enabled but not installed in this image flavor" \

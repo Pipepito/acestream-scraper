@@ -57,7 +57,7 @@ See the [illustrated walkthrough](Usage.md) and [playback routing guide](Remote-
 
 | Variable | Description | Default | Notes |
 |----------|-------------|---------|-------|
-| `FLASK_PORT` | Port the web app (uvicorn) listens on | `8000` | Name kept from v1 but still the real setting: `entrypoint.sh` passes it to `uvicorn --port` and `healthcheck.sh` probes `http://localhost:${FLASK_PORT}/api/v1/health`. Change it if port 8000 is in use |
+| `FLASK_PORT` | Port the web app (uvicorn) listens on | `8000` | Name kept from v1 but still the real setting: the default container command uses it for `uvicorn --port` and `healthcheck.sh` probes `http://localhost:${FLASK_PORT}/api/v1/health`. A custom Compose `command:` or `docker run` command is used unchanged; keep its bind port consistent with this value |
 | `FLASK_ENV` | *Superseded (2026-08-28)* — v1 Flask environment mode, not read by the v2 (FastAPI) runtime | – | For local debugging run `uvicorn main:app --reload` from `backend/` instead |
 | `API_TOKEN` | Require a token on API and playlist routes | unset (open) | Sent as `Authorization: Bearer`, `X-Api-Token`, or `?token=` (for IPTV players); `/api/v1/health` stays public |
 | `ALLOW_PRIVATE_SCRAPE_TARGETS` | Allow scrape/EPG URLs on private/LAN addresses | `true` | Set `false` to block loopback/private/link-local targets; the cloud metadata endpoint is always blocked. It does not affect remote players, media servers or player discovery, which are LAN targets by design; the metadata/link-local block still applies to them |
@@ -221,6 +221,22 @@ When using Docker, map these ports as needed:
 | 4001 | IPFS swarm port (TCP and UDP) | Only if `ENABLE_IPFS=true`; improves peer connectivity |
 | 8081 | IPFS HTTP gateway | Only if `ENABLE_IPFS=true` and you want to browse IPFS through the node |
 | 5001 | IPFS RPC API / WebUI | Unauthenticated — publish only as `127.0.0.1:5001:5001` if needed |
+
+To change the container's listening port, set `FLASK_PORT` and map that same
+container port. For example:
+
+```yaml
+environment:
+  FLASK_PORT: "8002"
+ports:
+  - "0.0.0.0:8002:8002"
+```
+
+No `command:` override is needed. With host networking or a shared network
+namespace (such as `network_mode: service:gluetun`), choose a free port in that
+namespace; publish it on the container that owns the namespace when needed.
+If only the host port conflicts under ordinary bridge networking, keep
+`FLASK_PORT=8000` and use `0.0.0.0:8002:8000` instead.
 
 ## Volumes
 

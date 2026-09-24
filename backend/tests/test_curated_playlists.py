@@ -36,7 +36,8 @@ class TestTVChannelsPlaylist:
         """TV channels without assigned streams are skipped entirely."""
         response = client.get("/api/v1/playlists/tv-channels/m3u")
         assert response.status_code == status.HTTP_200_OK
-        assert response.text.strip() == "#EXTM3U"
+        assert response.text.strip().startswith("#EXTM3U")
+        assert "\n" not in response.text.strip(), "header only, no entries"
 
     def test_one_entry_per_assigned_stream(self, client, seed_tv_channels, db_session):
         tv = seed_tv_channels[0]

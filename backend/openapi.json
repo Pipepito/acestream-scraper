@@ -1754,6 +1754,16 @@
       },
       "EPGMatchRowResponse": {
         "properties": {
+          "ambiguous_count": {
+            "default": 0,
+            "title": "Ambiguous Count",
+            "type": "integer"
+          },
+          "automation_safe": {
+            "default": false,
+            "title": "Automation Safe",
+            "type": "boolean"
+          },
           "best_match_confidence": {
             "anyOf": [
               {
@@ -1775,6 +1785,11 @@
               }
             ],
             "title": "Best Match Type"
+          },
+          "can_apply": {
+            "default": false,
+            "title": "Can Apply",
+            "type": "boolean"
           },
           "candidate_count": {
             "title": "Candidate Count",
@@ -1838,6 +1853,11 @@
           "is_creatable": {
             "title": "Is Creatable",
             "type": "boolean"
+          },
+          "review_token": {
+            "default": "",
+            "title": "Review Token",
+            "type": "string"
           }
         },
         "required": [
@@ -1850,6 +1870,56 @@
           "is_creatable"
         ],
         "title": "EPGMatchRowResponse",
+        "type": "object"
+      },
+      "EPGMatchingConfig": {
+        "properties": {
+          "enabled": {
+            "default": false,
+            "description": "Automatically apply unambiguous exact guide matches after successful scraping or EPG refresh",
+            "title": "Enabled",
+            "type": "boolean"
+          }
+        },
+        "title": "EPGMatchingConfig",
+        "type": "object"
+      },
+      "EPGMatchingRun": {
+        "properties": {
+          "assigned": {
+            "default": 0,
+            "title": "Assigned",
+            "type": "integer"
+          },
+          "created": {
+            "default": 0,
+            "title": "Created",
+            "type": "integer"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "review_needed": {
+            "default": 0,
+            "title": "Review Needed",
+            "type": "integer"
+          },
+          "status": {
+            "default": "never",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "EPGMatchingRun",
         "type": "object"
       },
       "EPGProgramResponse": {
@@ -3254,6 +3324,29 @@
           "speed_up"
         ],
         "title": "PlayerStats",
+        "type": "object"
+      },
+      "PlaylistGuideCoverage": {
+        "properties": {
+          "guide_channels": {
+            "title": "Guide Channels",
+            "type": "integer"
+          },
+          "linked_streams": {
+            "title": "Linked Streams",
+            "type": "integer"
+          },
+          "streams": {
+            "title": "Streams",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "streams",
+          "linked_streams",
+          "guide_channels"
+        ],
+        "title": "PlaylistGuideCoverage",
         "type": "object"
       },
       "PublicBaseUrlUpdate": {
@@ -5385,9 +5478,35 @@
             "items": {
               "type": "integer"
             },
+            "maxItems": 1000,
             "minItems": 1,
             "title": "Epg Channel Ids",
             "type": "array"
+          },
+          "expected_previews": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Previews"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
           },
           "strictness": {
             "enum": [
@@ -9324,6 +9443,90 @@
         ]
       }
     },
+    "/api/v1/config/epg-matching": {
+      "get": {
+        "operationId": "get_epg_matching_api_v1_config_epg_matching_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EPGMatchingConfig"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Epg Matching",
+        "tags": [
+          "config",
+          "config"
+        ]
+      },
+      "put": {
+        "operationId": "update_epg_matching_api_v1_config_epg_matching_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EPGMatchingConfig"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EPGMatchingConfig"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Epg Matching",
+        "tags": [
+          "config",
+          "config"
+        ]
+      }
+    },
+    "/api/v1/config/epg-matching/last-run": {
+      "get": {
+        "operationId": "epg_matching_last_run_api_v1_config_epg_matching_last_run_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EPGMatchingRun"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Epg Matching Last Run",
+        "tags": [
+          "config",
+          "config"
+        ]
+      }
+    },
     "/api/v1/config/epg_refresh_interval": {
       "get": {
         "description": "Get the interval between automatic EPG refreshes in hours.",
@@ -11550,6 +11753,27 @@
           }
         },
         "summary": "Get Channel Groups",
+        "tags": [
+          "playlists"
+        ]
+      }
+    },
+    "/api/v1/playlists/guide-coverage": {
+      "get": {
+        "operationId": "guide_coverage_api_v1_playlists_guide_coverage_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaylistGuideCoverage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Guide Coverage",
         "tags": [
           "playlists"
         ]

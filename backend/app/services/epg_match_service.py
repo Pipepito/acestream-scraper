@@ -3,14 +3,19 @@
 from __future__ import annotations
 
 import re
+import hashlib
+import json
 import unicodedata
 from dataclasses import dataclass
 from difflib import SequenceMatcher
+from functools import lru_cache
 from typing import Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
-from app.models.models import AcestreamChannel, EPGChannel, TVChannel
+from app.models.models import AcestreamChannel, EPGChannel
+from app.repositories.epg_match_repository import EPGMatchRepository
+from app.services.tv_matching_service import normalize_name as station_name, name_score
 
 
 MAX_ANALYSIS_COMPARISONS = 50_000_000
@@ -49,21 +54,11 @@ class EPGMatchService:
         source_id: Optional[int] = None,
         epg_channel_ids: Optional[List[int]] = None,
     ) -> Dict[str, object]:
+        self._station = lru_cache(maxsize=20000)(station_name)
+        self._normalized = lru_cache(maxsize=20000)(self.normalize_name)
         threshold = STRICTNESS_THRESHOLDS[strictness]
-        epg_query = self.db.query(EPGChannel)
-        if source_id is not None:
-            epg_query = epg_query.filter(EPGChannel.epg_source_id == source_id)
-        if epg_channel_ids is not None:
-            if not epg_channel_ids:
-                epg_channels = []
-            else:
-                epg_query = epg_query.filter(EPGChannel.id.in_(epg_channel_ids))
-        if epg_channel_ids is None or epg_channel_ids:
-            epg_channels = epg_query.order_by(EPGChannel.name.asc(), EPGChannel.id.asc()).all()
-        acestream_channels = self.db.query(AcestreamChannel).order_by(AcestreamChannel.name.asc(), AcestreamChannel.id.asc()).all()
-
-        self._ensure_budget(len(epg_channels), len(acestream_channels))
-
+        epg_channels, acestream_channels, self.tv_channels = EPGMatchRepository(self.db).inventory(
+            source_id, MAX_ANALYSIS_COMPARISONS)
         existing_channels = self._load_existing_tv_channels(epg_channels)
         row_state = []
         candidate_claims: Dict[str, List[Dict[str, object]]] = {}
@@ -72,7 +67,7 @@ class EPGMatchService:
             matches = self._match_candidates(epg_channel, acestream_channels, threshold)
             row = {
                 "epg_channel": epg_channel,
-                "existing_tv_channel_ids": existing_channels.get(epg_channel.channel_xml_id, []),
+                "existing_tv_channel_ids": existing_channels.get(epg_channel.id, []),
                 "candidates": matches,
             }
             row_state.append(row)
@@ -104,7 +99,27 @@ class EPGMatchService:
             existing_tv_channel_ids = row["existing_tv_channel_ids"]
             existing_tv_channel_id = existing_tv_channel_ids[0] if len(existing_tv_channel_ids) == 1 else None
             has_duplicate_existing_conflict = len(existing_tv_channel_ids) > 1
+            ambiguous = sum(1 for candidate in row["candidates"]
+                            if candidate.acestream_channel.id not in winning_candidate_ids)
             is_creatable = bool(accepted_candidates) and not existing_tv_channel_ids
+            existing_tv = next((tv for tv in self.tv_channels if tv.id == existing_tv_channel_id), None)
+            can_apply = bool(accepted_candidates) and (is_creatable or (
+                existing_tv is not None and existing_tv.is_active and
+                existing_tv.epg_source_id in (None, epg_channel.epg_source_id) and
+                existing_tv.epg_id == epg_channel.channel_xml_id))
+            existing_identity_safe = existing_tv is None or (
+                existing_tv.epg_source_id is not None and
+                name_score(self._station(epg_channel.name), self._station(existing_tv.name, existing_tv.country)) is not None)
+            safe = can_apply and existing_identity_safe and all(
+                self._safe_candidate(epg_channel, candidate.acestream_channel)
+                for candidate in accepted_candidates)
+            fingerprint = hashlib.sha256(json.dumps({
+                'guide': [epg_channel.id, epg_channel.epg_source_id, epg_channel.channel_xml_id, epg_channel.name],
+                'candidates': [self._serialize_candidate(c) for c in accepted_candidates],
+                'existing': [[tv.id, tv.name, tv.epg_source_id, tv.epg_id, tv.is_active]
+                             for tv in self.tv_channels if tv.id in existing_tv_channel_ids],
+                'strictness': strictness, 'source_id': source_id,
+            }, sort_keys=True).encode()).hexdigest()
             if accepted_candidates:
                 matched_epg_channels += 1
                 matched_acestream_channels += len(accepted_candidates)
@@ -128,6 +143,10 @@ class EPGMatchService:
                     "best_match_type": best_candidate.match_stage if best_candidate else None,
                     "best_match_confidence": self._confidence_for_candidate(best_candidate),
                     "is_creatable": is_creatable,
+                    "can_apply": can_apply,
+                    "automation_safe": safe,
+                    "ambiguous_count": ambiguous,
+                    "review_token": fingerprint,
                 }
             )
 
@@ -139,28 +158,30 @@ class EPGMatchService:
                 "creatable_rows": creatable_rows,
                 "skipped_existing_tv_channels": skipped_existing_tv_channels,
             },
-            "rows": rows,
+            "rows": [row for row in rows if epg_channel_ids is None or row["epg_channel_id"] in epg_channel_ids],
         }
 
-    def _ensure_budget(self, epg_count: int, acestream_count: int) -> None:
-        if epg_count * acestream_count > MAX_ANALYSIS_COMPARISONS:
-            raise ValueError(
-                f"Estimated analysis workload exceeds budget ({epg_count} x {acestream_count} comparisons)."
-            )
+    def _load_existing_tv_channels(self, epg_channels: List[EPGChannel]) -> Dict[int, List[int]]:
+        # Source-qualified identities; also surface same-name/manual channels
+        # as conflicts, instead of replacing their guide or creating duplicates.
+        return {channel.id: sorted(tv.id for tv in self.tv_channels if
+            (tv.epg_id == channel.channel_xml_id and tv.epg_source_id in (None, channel.epg_source_id))
+            or self._existing_name_conflict(tv, channel))
+            for channel in epg_channels}
 
-    def _load_existing_tv_channels(self, epg_channels: List[EPGChannel]) -> Dict[str, List[int]]:
-        xml_ids = [channel.channel_xml_id for channel in epg_channels]
-        if not xml_ids:
-            return {}
-        existing = self.db.query(TVChannel).filter(TVChannel.epg_id.in_(xml_ids)).all()
-        existing_by_epg_id: Dict[str, List[int]] = {}
-        for channel in existing:
-            if not channel.epg_id:
-                continue
-            existing_by_epg_id.setdefault(channel.epg_id, []).append(channel.id)
-        for channel_ids in existing_by_epg_id.values():
-            channel_ids.sort()
-        return existing_by_epg_id
+    def _existing_name_conflict(self, tv, guide):
+        left, right = self._station(tv.name, tv.country), self._station(guide.name)
+        if tv.name.casefold() == guide.name.casefold():
+            return True
+        if left.country and right.country and left.country != right.country:
+            return False
+        return bool(left.text) and left.text == right.text
+
+    def _safe_candidate(self, epg_channel, stream):
+        target = self._station(epg_channel.name)
+        names = [self._station(value) for value in (stream.name, stream.tvg_name) if value]
+        return (bool(names) and all(name_score(target, name) is not None for name in names)
+                and (not stream.tvg_id or stream.tvg_id == epg_channel.channel_xml_id))
 
     def _match_candidates(
         self,
@@ -169,7 +190,7 @@ class EPGMatchService:
         threshold: float,
     ) -> List[CandidateMatch]:
         matches: List[CandidateMatch] = []
-        normalized_epg_name = self.normalize_name(epg_channel.name)
+        normalized_epg_name = self._normalized(epg_channel.name)
 
         for acestream_channel in acestream_channels:
             match = self._score_candidate(epg_channel, normalized_epg_name, acestream_channel, threshold)
@@ -185,11 +206,18 @@ class EPGMatchService:
         acestream_channel: AcestreamChannel,
         threshold: float,
     ) -> Optional[CandidateMatch]:
+        target = self._station(epg_channel.name)
+        variants = [self._station(value) for value in (acestream_channel.name, acestream_channel.tvg_name) if value]
+        # A missing edition on one side is not evidence for the other edition.
+        if target.country_conflict or any(name.country_conflict or name.country != target.country for name in variants):
+            return None
+        if acestream_channel.tvg_id and acestream_channel.tvg_id != epg_channel.channel_xml_id:
+            return None
         if epg_channel.channel_xml_id and acestream_channel.tvg_id == epg_channel.channel_xml_id:
             return CandidateMatch(acestream_channel=acestream_channel, score=1.0, match_stage="xml_id_exact")
 
         candidate_names = [name for name in [acestream_channel.name, acestream_channel.tvg_name] if name]
-        normalized_names = [self.normalize_name(name) for name in candidate_names]
+        normalized_names = [self._normalized(name) for name in candidate_names]
 
         if normalized_epg_name and any(name == normalized_epg_name for name in normalized_names if name):
             return CandidateMatch(acestream_channel=acestream_channel, score=1.0, match_stage="name_exact")
@@ -210,8 +238,12 @@ class EPGMatchService:
     def _resolve_candidate_uniqueness(self, candidate_claims: Dict[str, List[Dict[str, object]]]) -> Dict[str, int]:
         winners: Dict[str, int] = {}
         for candidate_id, claims in candidate_claims.items():
-            winning_claim = sorted(claims, key=self._candidate_claim_sort_key)[0]
-            winners[candidate_id] = winning_claim["epg_channel"].id
+            ranked = sorted(claims, key=self._candidate_claim_sort_key)
+            if len(ranked) > 1:
+                first, second = ranked[0]['candidate'], ranked[1]['candidate']
+                if (first.match_stage, first.score) == (second.match_stage, second.score):
+                    continue  # Never break an identity tie by database ID/name.
+            winners[candidate_id] = ranked[0]["epg_channel"].id
         return winners
 
     @staticmethod

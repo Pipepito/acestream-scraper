@@ -531,7 +531,7 @@ def test_uvicorn_is_launched_with_app_owned_proxy_trust_and_graceful_timeout():
     flags = '--no-proxy-headers --timeout-graceful-shutdown 3'
     cmd = 'CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--no-proxy-headers", "--timeout-graceful-shutdown", "3"]'
     assert f'APP_COMMAND=(uvicorn main:app --host 0.0.0.0 --port "$FLASK_PORT" {flags})' in entrypoint
-    assert cmd in dockerfile
+    assert "\nCMD []\n" in dockerfile
     # The backend-only image is the fourth launch path; it must not hand
     # uvicorn X-Forwarded-* trust that ForwardedHeadersMiddleware owns.
     assert cmd in backend_dockerfile

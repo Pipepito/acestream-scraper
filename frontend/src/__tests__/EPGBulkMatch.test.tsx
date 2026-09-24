@@ -264,7 +264,7 @@ describe('EPG bulk match workflow', () => {
   it('shows strictness controls, disables create before analysis, and sends source-filtered analyze requests', async () => {
     renderPage();
 
-    expect(screen.getByRole('button', { name: /create matched tv channels/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /apply reviewed matches/i })).toBeDisabled();
 
     fireEvent.mouseDown(screen.getByRole('combobox', { name: /match strictness/i }));
     expect(screen.getByRole('option', { name: 'Loose' })).toBeInTheDocument();
@@ -286,7 +286,7 @@ describe('EPG bulk match workflow', () => {
     expect(screen.getByText(/2 creatable/i)).toBeInTheDocument();
   });
 
-  it('renders result states, confidence text, default creatable selection, and filter views', async () => {
+  it('renders result states, confidence text, explicit reviewed selection, and filter views', async () => {
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: /analyze matches/i }));
 
@@ -296,11 +296,11 @@ describe('EPG bulk match workflow', () => {
     expect(screen.getByText('High')).toBeInTheDocument();
     expect(screen.getByText('Name similarity')).toBeInTheDocument();
     expect(screen.getByText('Medium')).toBeInTheDocument();
-    expect(screen.getByText('Already exists')).toBeInTheDocument();
+    expect(screen.getByText('Existing channel preserved')).toBeInTheDocument();
     expect(screen.getByText('Unmatched')).toBeInTheDocument();
 
-    expect(screen.getByLabelText('select match row Alpha Arena')).toBeChecked();
-    expect(screen.getByLabelText('select match row Loose Fuzz Sports')).toBeChecked();
+    expect(screen.getByLabelText('select match row Alpha Arena')).not.toBeChecked();
+    expect(screen.getByLabelText('select match row Loose Fuzz Sports')).not.toBeChecked();
     expect(screen.getByLabelText('select match row Existing Sports')).not.toBeChecked();
     expect(screen.getByLabelText('select match row Existing Sports')).toBeDisabled();
 
@@ -325,7 +325,7 @@ describe('EPG bulk match workflow', () => {
     expect(screen.getByText(/0 matched/i)).toBeInTheDocument();
     expect(screen.getByText(/0 creatable/i)).toBeInTheDocument();
     expect(screen.getByText(/no matches met the current strictness/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /create matched tv channels/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /apply reviewed matches/i })).toBeDisabled();
   });
 
   it('allows row deselection and creates only selected creatable rows', async () => {
@@ -335,15 +335,42 @@ describe('EPG bulk match workflow', () => {
     await screen.findByText('Alpha Arena');
 
     fireEvent.click(screen.getByLabelText('select match row Alpha Arena'));
+    fireEvent.click(screen.getByLabelText('select match row Alpha Arena'));
     expect(screen.getByLabelText('select match row Alpha Arena')).not.toBeChecked();
-    expect(screen.getByLabelText('select match row Loose Fuzz Sports')).toBeChecked();
+    expect(screen.getByLabelText('select match row Loose Fuzz Sports')).not.toBeChecked();
 
-    fireEvent.click(screen.getByRole('button', { name: /create matched tv channels/i }));
+    fireEvent.click(screen.getByLabelText('select match row Loose Fuzz Sports'));
+    fireEvent.click(screen.getByRole('button', { name: /apply reviewed matches/i }));
 
     await waitFor(() => {
-      expect(mockCreateFromEPGAnalysis).toHaveBeenCalledWith({ strictness: 'balanced', epg_channel_ids: [104] });
+      expect(mockCreateFromEPGAnalysis).toHaveBeenCalledWith({ strictness: 'strict', epg_channel_ids: [104], source_id: undefined, expected_previews: { 104: '' } });
     });
 
-    expect(screen.getByText(/created 1 tv channels, skipped 1, associated 2 acestream channels/i)).toBeInTheDocument();
+    expect(screen.getByText(/created 1 tv channels, assigned 2 streams, skipped 1/i)).toBeInTheDocument();
   });
+  it('clears the reviewed preview when strictness changes', async () => {
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /analyze matches/i }));
+    await screen.findByText('Alpha Arena');
+    fireEvent.click(screen.getByLabelText('select match row Alpha Arena'));
+    expect(screen.getByRole('button', { name: /apply reviewed matches/i })).toBeEnabled();
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: /match strictness/i }));
+    fireEvent.click(screen.getByRole('option', { name: 'Loose' }));
+    expect(screen.queryByLabelText('select match row Alpha Arena')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /apply reviewed matches/i })).toBeDisabled();
+    expect(mockCreateFromEPGAnalysis).not.toHaveBeenCalled();
+  });
+
+  it('discards a stale apply preview and asks for a new analysis', async () => {
+    mockCreateFromEPGAnalysis.mockRejectedValueOnce(new Error('Matches changed'));
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /analyze matches/i }));
+    await screen.findByText('Alpha Arena');
+    fireEvent.click(screen.getByLabelText('select match row Alpha Arena'));
+    fireEvent.click(screen.getByRole('button', { name: /apply reviewed matches/i }));
+    await screen.findByText(/catalogue may have changed/);
+    expect(screen.queryByLabelText('select match row Alpha Arena')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /apply reviewed matches/i })).toBeDisabled();
+  });
+
 });

@@ -93,3 +93,51 @@ def test_the_repository_never_clears_a_known_kind(db_session):
 
     repo.update_channel_status('b' * 40, True, None, id_kind='infohash')
     assert repo.get_channel_by_id('b' * 40).id_kind == 'infohash'
+
+
+@pytest.mark.parametrize('id_kind', [None, 'id', 'infohash'])
+def test_channel_api_exposes_confirmed_kind(client, db_session, id_kind):
+    channel = AcestreamChannel(id='c' * 40, name='Example', id_kind=id_kind)
+    db_session.add(channel)
+    db_session.commit()
+
+    response = client.get(f'/api/v1/channels/{channel.id}')
+    assert response.status_code == 200
+    assert response.json()['id_kind'] == id_kind
+
+
+def test_id_kind_migration_preserves_existing_channels(tmp_path):
+    from sqlalchemy import create_engine, inspect, text
+    from migration_test_utils import (
+        database_url_for, downgrade_to_revision, upgrade_to_revision,
+    )
+
+    db_path = tmp_path / 'id-kind-upgrade.db'
+    upgrade_to_revision(db_path, '20260915_1200')
+    engine = create_engine(database_url_for(db_path))
+    try:
+        with engine.begin() as connection:
+            connection.execute(text(
+                "INSERT INTO acestream_channels (id, name) VALUES ('existing', 'Example')"
+            ))
+
+        upgrade_to_revision(db_path, '20260928_1200')
+        with engine.begin() as connection:
+            row = connection.execute(text(
+                "SELECT name, id_kind FROM acestream_channels WHERE id = 'existing'"
+            )).one()
+            assert tuple(row) == ('Example', None)
+            connection.execute(text(
+                "UPDATE acestream_channels SET id_kind = 'infohash' WHERE id = 'existing'"
+            ))
+
+        downgrade_to_revision(db_path, '20260915_1200')
+        assert 'id_kind' not in {
+            column['name'] for column in inspect(engine).get_columns('acestream_channels')
+        }
+        with engine.connect() as connection:
+            assert connection.execute(text(
+                "SELECT name FROM acestream_channels WHERE id = 'existing'"
+            )).scalar_one() == 'Example'
+    finally:
+        engine.dispose()

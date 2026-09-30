@@ -1190,6 +1190,11 @@ export interface components {
        * @description Acestream channel ID (required, GUID string)
        */
       id: string;
+      /**
+       * Id Kind
+       * @description Which getstream parameter the engine accepted for this id; null means it has not been confirmed yet
+       */
+      id_kind?: ("id" | "infohash") | null;
       /** Is Active */
       is_active: boolean;
       /** Is Online */

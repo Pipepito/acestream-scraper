@@ -1,10 +1,6 @@
 pipeline {
   agent { label 'dorat-nuc-ci' }
 
-  environment {
-    PR_RUNNER_REPOSITORY = 'acestream-scraper-pr-ci'
-  }
-
   options {
     lock(resource: 'acestream-scraper-nuc-docker', reason: 'Exclusive Docker and BuildKit access on dorat-nuc-ci')
     skipDefaultCheckout(true)
@@ -103,7 +99,8 @@ git diff --quiet "refs/remotes/origin/${CHANGE_TARGET}"...HEAD -- \
   frontend/package-lock.json \
   docker/ci/pr-runner.Dockerfile \
   scripts/ci/build_pr_runner.sh \
-  scripts/ci/cleanup_runner_docker.sh
+  scripts/ci/cleanup_runner_docker.sh \
+  scripts/ci/docker_lifecycle.py
 '''
           ) != 0
 
@@ -111,16 +108,8 @@ git diff --quiet "refs/remotes/origin/${CHANGE_TARGET}"...HEAD -- \
             error('This fork changes dependency or runner-image inputs. Those inputs can execute code during installation, so an automatic fork build will not install them with network access. Move the reviewed commit to a maintainer-owned branch to validate the dependency change.')
           }
 
-          // Every PR gets a disposable runner. For forks the build context is
-          // exported from the trusted target ref, never from contributor files.
-          // This removes the mutable :develop image as an availability and
-          // freshness dependency without allowing a fork to install packages.
-          def runnerSha = sh(
-            returnStdout: true,
-            script: 'git rev-parse "$PR_VALIDATION_REF"'
-          ).trim()
-          env.PR_RUNNER_IMAGE = "${env.PR_RUNNER_REPOSITORY}:pr-${env.BUILD_NUMBER}-${env.EXECUTOR_NUMBER}-${runnerSha.take(12)}"
-          env.PR_RUNNER_EPHEMERAL = '1'
+          // The trusted ref selects dependency inputs. Matching inputs share
+          // a verified cached image; every validation still gets a fresh container.
           sh '''#!/usr/bin/env bash
 set -euo pipefail
 trusted_builder="$WORKSPACE@tmp/build-pr-runner-${BUILD_NUMBER}.sh"
@@ -128,8 +117,9 @@ git show "${PR_VALIDATION_REF}:scripts/ci/build_pr_runner.sh" > "$trusted_builde
 bash "$trusted_builder" \
   --source "$WORKSPACE" \
   --ref "$PR_VALIDATION_REF" \
-  --tag "$PR_RUNNER_IMAGE"
+  --image-file "$WORKSPACE@tmp/runner-image-${BUILD_NUMBER}"
 '''
+          env.PR_RUNNER_IMAGE = readFile("${env.WORKSPACE}@tmp/runner-image-${env.BUILD_NUMBER}").trim()
         }
       }
     }
@@ -195,9 +185,6 @@ docker rm --force "$PR_SANDBOX_NAME" >/dev/null 2>&1 || true
 for platform in linux-amd64 linux-arm64 linux-arm-v7; do
   docker rm --force "${PR_SANDBOX_NAME}-${platform}" >/dev/null 2>&1 || true
 done
-if [[ "${PR_RUNNER_EPHEMERAL:-0}" == "1" ]]; then
-  docker image rm --force "$PR_RUNNER_IMAGE" >/dev/null 2>&1 || true
-fi
 fi
 '''
       deleteDir()

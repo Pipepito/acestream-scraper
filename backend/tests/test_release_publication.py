@@ -18,7 +18,7 @@ def release(tmp_path):
     ci = tmp_path / 'scripts/ci'
     ci.mkdir(parents=True)
     for name in ('run_jenkins_release.sh', 'assert_release_tags_available.py',
-                 'flavor_platforms.py', 'promote_latest.sh'):
+                 'flavor_platforms.py', 'promote_latest.sh', 'docker_lifecycle.py'):
         shutil.copy(ROOT / 'scripts/ci' / name, ci)
     shutil.copytree(ROOT / 'docker/manifests', tmp_path / 'docker/manifests')
     (tmp_path / 'version.txt').write_text('v2.0.0\n')
@@ -40,6 +40,8 @@ import json, os, sys
 from pathlib import Path
 args = sys.argv[1:]
 with open(os.environ['CALL_LOG'], 'a') as f: f.write(json.dumps(args) + '\\n')
+if args == ['buildx', 'prune', '--help']:
+    print('--max-used-space')
 if args[:3] == ['buildx', 'imagetools', 'inspect']:
     tag = args[3]
     countfile = Path(os.environ['CALL_LOG'] + '.count')
@@ -172,6 +174,9 @@ def test_validation_failure_blocks_preflight_and_publication(release):
 def test_release_runner_builds_dependencies_and_isolates_validation(release):
     root, env = release
     shutil.copy(ROOT / 'scripts/ci/run_release_validation.sh', root / 'scripts/ci/run_release_validation.sh')
+    (root / 'scripts/ci/build_pr_runner.sh').write_text(
+        'while [ "$1" != "--image-file" ]; do shift; done\n'
+        'echo acestream-scraper-pr-ci:deps-fixture > "$2"\n')
     stale = root / '.ci-release-artifacts/stale.json'
     stale.parent.mkdir()
     stale.write_text('old result')
@@ -179,8 +184,8 @@ def test_release_runner_builds_dependencies_and_isolates_validation(release):
                             env=env, capture_output=True, text=True, timeout=30)
     assert result.returncode == 0, result.stderr
     calls = [json.loads(line) for line in (root / 'calls').read_text().splitlines()]
-    assert calls[0][:3] == ['build', '--file', 'docker/ci/pr-runner.Dockerfile']
-    container = calls[1]
+    container = calls[0]
+    assert 'acestream-scraper-pr-ci:deps-fixture' in container
     assert container[:2] == ['run', '--rm']
     assert container[container.index('--network') + 1] == 'none'
     assert '--read-only' in container
@@ -188,5 +193,5 @@ def test_release_runner_builds_dependencies_and_isolates_validation(release):
     assert 'docker.sock' not in ' '.join(container)
     assert 'DOCKERHUB_TOKEN' not in ' '.join(container)
     assert 'run_develop_validation.sh' in container[-1]
-    assert calls[2] == ['compose', 'config', '-q']
+    assert calls[1] == ['compose', 'config', '-q']
     assert not stale.exists()

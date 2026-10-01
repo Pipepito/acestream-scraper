@@ -208,12 +208,9 @@ PY2
       "${build_args[@]}"
     done
     if [[ "$dry" -eq 1 ]]; then
-      echo "[DRY RUN] docker buildx prune --builder $BUILDER -f --max-used-space $PUBLISH_CACHE_CAP"
+      echo "[DRY RUN] docker buildx prune --builder $BUILDER -af --max-used-space $PUBLISH_CACHE_CAP"
     else
-      docker buildx prune --builder "$BUILDER" -f --max-used-space "$PUBLISH_CACHE_CAP" >/dev/null 2>&1 \
-        || docker buildx prune --builder "$BUILDER" -f --keep-storage "$PUBLISH_CACHE_CAP" >/dev/null 2>&1 \
-        || true
-      echo "Builder $BUILDER cache after $platform: $(docker buildx du --builder "$BUILDER" 2>/dev/null | grep -E '^Total:' | tr -s '\t ' ' ' || echo unknown)"
+      python3 scripts/ci/docker_lifecycle.py prune --builder "$BUILDER" --cap "$PUBLISH_CACHE_CAP"
     fi
   done
   # Recheck after the builds, immediately before assigning any release tags.
@@ -404,12 +401,7 @@ PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_acexy_ru
 PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_install_acestream.py -v -k "arm_oci_image_install_layout"
 # The ~2 GB smoke image is not needed for the publish step; reclaim the
 # runner's disk before the multi-platform builds (see cleanup_runner_docker.sh).
-docker image rm -f acestream-scraper:release-smoke >/dev/null 2>&1 || true
-bash scripts/ci/cleanup_runner_docker.sh \
-  --transient-age-hours 0 \
-  --all-unused-images \
-  --builder-keep 1GB \
-  --min-free-gb 8
+bash scripts/ci/cleanup_runner_docker.sh --min-free-gb 8
 
 registry_login
 

@@ -131,9 +131,11 @@ not part of the required PR gate; see `e2e/AGENTS.md` before running it.
   uses `acestream-scraper-develop`, and manual releases use
   `acestream-scraper-release`. All currently launch on `dorat-nuc-ci`, but fork
   code runs only inside network-disabled containers; it must never receive the
-  Docker socket or a Jenkins credential. Each fork build requiring application validation creates a disposable
-  dependency runner from the trusted target ref, then runs runtime contracts in
-  pinned amd64, arm64, and arm/v7 userlands. Do not execute a fork-controlled
+  Docker socket or a Jenkins credential. Each fork build requiring application
+  validation resolves a dependency-keyed runner from trusted target-ref inputs,
+  reusing only a verified matching image and running contributor code in a fresh
+  disposable container. Runtime contracts run in pinned amd64, arm64, and arm/v7
+  userlands. Do not execute a fork-controlled
   Dockerfile or install fork-controlled dependency inputs automatically.
 - When Jenkins and GitHub disagree, distinguish the Jenkins build result from the
   GitHub commit status and record the commit SHA each result belongs to.
@@ -392,3 +394,13 @@ unambiguous exact matches off the event loop after ingestion commits. Keep its
 last result visible and failures independent of ingestion. Playlists and XMLTV
 share collision-safe IDs and validated token propagation for guide discovery.
 See `docs/ops/guide-matching.md`.
+
+## CI runner reuse and retention
+
+PR, develop and release share `build_pr_runner.sh` and `docker_lifecycle.py`.
+Runner identity includes committed dependency inputs, the pinned Dockerfile and
+platform; never select a mutable legacy runner tag or execute fork policy on the
+host. Keep the FIFO lock for the full run. Cleanup retains recent runners/warm
+cache, escalates under disk pressure, protects explicit keeps and all container
+references, and reports failures. Do not restore blanket unused-image pruning or
+permanent keep labels. See `docs/ops/jenkins-ci.md` for retention and rollout.

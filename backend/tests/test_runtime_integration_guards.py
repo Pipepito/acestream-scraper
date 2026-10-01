@@ -469,7 +469,7 @@ def test_build_script_push_by_digest_single_platform():
     out = result.stdout
     assert "push-by-digest=true" in out and "name=example.com/app" in out
     assert "Pushed linux/arm/v7 as example.com/app@" in out
-    assert "docker buildx prune --builder acestream-builder -f --max-used-space 2GB" in out
+    assert "docker buildx prune --builder acestream-builder -af --max-used-space 2GB" in out
     assert "imagetools" not in out and "--tag" not in out
 
     bad = subprocess.run(

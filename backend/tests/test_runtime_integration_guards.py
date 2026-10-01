@@ -469,7 +469,7 @@ def test_build_script_push_by_digest_single_platform():
     out = result.stdout
     assert "push-by-digest=true" in out and "name=example.com/app" in out
     assert "Pushed linux/arm/v7 as example.com/app@" in out
-    assert "docker buildx prune --builder acestream-builder -f --max-used-space 2GB" in out
+    assert "docker buildx prune --builder acestream-builder -af --max-used-space 2GB" in out
     assert "imagetools" not in out and "--tag" not in out
 
     bad = subprocess.run(
@@ -482,7 +482,7 @@ def test_build_script_push_by_digest_single_platform():
 
 def test_run_jenkins_release_channel_dry_run_is_platform_major(tmp_path):
     # Every flavor is built for one platform before the next platform, each
-    # pushed by digest, the builder cache is pruned between platforms, and the
+    # pushed by digest, pressure-aware cleanup checks run between platforms, and the
     # tags are assembled per flavor at the end.
     env = os.environ.copy()
     env.pop("PUBLISH_LATEST", None)
@@ -493,6 +493,7 @@ def test_run_jenkins_release_channel_dry_run_is_platform_major(tmp_path):
     _write_executable(fake_bin / "docker", "#!/usr/bin/env bash\nexit 0\n")
     env["PATH"] = f"{fake_bin}:{env['PATH']}"
     env["JENKINS_BUILDER"] = "default"
+    env["PUBLISH_CACHE_CAP"] = "8GB"
     result = subprocess.run(
         ["/bin/bash", str(REPO_ROOT / "scripts/ci/run_jenkins_release.sh"), "--dry-run", "--channel", "develop"],
         cwd=REPO_ROOT, check=False, capture_output=True, text=True, env=env,
@@ -503,7 +504,8 @@ def test_run_jenkins_release_channel_dry_run_is_platform_major(tmp_path):
     assert len(builds) == 12, builds  # 4 flavors x 3 platforms
     # platform-major: the first four builds are all for the first platform
     assert {line.split()[1] for line in builds[:4]} == {"linux/amd64"}
-    assert out.count("docker buildx prune --builder default") == 3
+    assert out.count("cleanup_runner_docker.sh --builder-keep 8GB --min-free-gb 8") == 3
+    assert "docker buildx prune" not in out
     assert out.count("imagetools create") == 4
     assert "--tag pipepito/acestream-scraper:develop " in out
     assert "pipepito/acestream-scraper:latest" not in out

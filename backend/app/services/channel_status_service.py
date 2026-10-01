@@ -284,12 +284,18 @@ class ChannelStatusService:
             return self._engine_unavailable_result(channel)
         check_time = datetime.now(timezone.utc)
         error = None if online else message
+        # The engine recognising the key is what tells the two kinds apart: a
+        # content id asked for as an infohash (or the other way round) comes
+        # back as "not found", not as a wrong-key error. Recorded only on a
+        # positive lookup, so a network hiccup never rewrites it.
+        id_kind = identifier if network_status == 'found' else None
         if persist:
             await run_database_write(self.channel_repository.update_channel_status, channel.id, online, error, bitrate_bps=media.get("bitrate_bps") if media else None,
                 audio_tracks=media.get("audio_tracks") if media else None, network_status=network_status,
-                stream_stats=observation or None)
+                stream_stats=observation or None, id_kind=id_kind)
         return {
             'channel_id': channel.id,
+            'id_kind': id_kind or channel.id_kind,
             'stream_stats': observation or channel.stream_stats,
             'network_status': network_status,
             'is_online': online,

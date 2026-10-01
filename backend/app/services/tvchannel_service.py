@@ -1,5 +1,8 @@
 """Service for TVChannel operations"""
 import re
+from threading import RLock
+from functools import wraps
+
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -9,6 +12,21 @@ from app.repositories.channel_repository import ChannelRepository
 from app.models.models import AcestreamChannel, EPGChannel, TVChannel
 from app.services.epg_match_service import EPGMatchService
 from app.services.epg_link_service import EPGLinkService
+
+_MATCH_APPLY_LOCK = RLock()
+
+
+def serialized_matching(method):
+    @wraps(method)
+    def wrapped(*args, **kwargs):
+        with _MATCH_APPLY_LOCK:
+            return method(*args, **kwargs)
+    return wrapped
+
+
+class StaleEPGPreview(ValueError):
+    pass
+
 
 class TVChannelService:
     def reorder_channels(self, channel_ids: List[int], expected_order: List[int]) -> None:
@@ -111,13 +129,23 @@ class TVChannelService:
             "items": created_channels,
         }
 
-    def create_tv_channels_from_epg_analysis(self, strictness: str, epg_channel_ids: List[int]) -> Dict[str, Any]:
+    @serialized_matching
+    def create_tv_channels_from_epg_analysis(self, strictness: str, epg_channel_ids: List[int],
+                                            source_id=None, expected_previews=None, automatic=False) -> Dict[str, Any]:
         selected_ids = sorted(set(epg_channel_ids))
         analysis = EPGMatchService(self.repository.db).analyze_matches(
             strictness=strictness,
             epg_channel_ids=selected_ids,
+            source_id=source_id,
         )
         selected_rows = analysis["rows"]
+        if expected_previews is not None and (
+            set(expected_previews) != set(selected_ids) or
+            {row['epg_channel_id']: row['review_token'] for row in selected_rows} != expected_previews
+        ):
+            raise StaleEPGPreview('Matches changed. Analyze again before applying.')
+        if automatic:
+            selected_rows = [row for row in selected_rows if row['automation_safe']]
 
         if not selected_rows:
             raise ValueError("No accepted matches found for selected EPG rows.")
@@ -126,8 +154,6 @@ class TVChannelService:
         if not accepted_rows:
             raise ValueError("No accepted matches found for selected EPG rows.")
 
-        links = EPGLinkService(self.repository.db)
-        links.repair()
         epg_channels = {
             channel.id: channel
             for channel in self.repository.get_epg_channels_by_ids([row["epg_channel_id"] for row in selected_rows])
@@ -154,8 +180,7 @@ class TVChannelService:
                 )
                 continue
 
-            existing_channels = links.existing(epg_channel)
-            if len(existing_channels) > 1:
+            if row['has_duplicate_existing_conflict']:
                 skipped_count += 1
                 row_outcomes.append(
                     {
@@ -167,10 +192,17 @@ class TVChannelService:
                 )
                 continue
 
-            if len(existing_channels) == 1:
-                existing = existing_channels[0]
+            if row['existing_tv_channel_id'] is not None:
+                existing = self.repository.get_tv_channel_by_id(row['existing_tv_channel_id'])
+                if not row['can_apply']:
+                    skipped_count += 1
+                    row_outcomes.append({'epg_channel_id': epg_channel.id, 'status': 'manual_conflict',
+                                         'reason': 'Existing channel settings were preserved.', 'associated_count': 0})
+                    continue
                 try:
                     with self.repository.db.begin_nested():
+                        if existing.epg_source_id is None:
+                            existing.epg_source_id = epg_channel.epg_source_id
                         count = self.repository.assign_acestreams_to_tv_channel(
                             [candidate["acestream_channel_id"] for candidate in row["candidates"]], existing.id)
                 except Exception:
@@ -188,7 +220,7 @@ class TVChannelService:
                         "epg_channel_id": epg_channel.id,
                         "status": "skipped_existing",
                         "reason": "Reused the existing TV channel and updated its stream matches.",
-                        "tv_channel_id": existing_channels[0].id,
+                        "tv_channel_id": existing.id,
                         "associated_count": count,
                     }
                 )

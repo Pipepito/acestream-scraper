@@ -18,6 +18,8 @@ from app.schemas.config import (
     DashboardConfigUpdate,
     PublicBaseUrlUpdate,
     PlaybackRouting,
+    EPGMatchingConfig,
+    EPGMatchingRun,
     RescrapeIntervalUpdate,
     ScheduleAnchors,
     SettingResponse,
@@ -25,6 +27,7 @@ from app.schemas.config import (
 )
 from app.services.config_service import ConfigService
 from app.services.dashboard_config_service import DashboardConfigService
+from app.services.epg_matching_automation import EPGMatchingAutomation
 from app.services.schedule_config_service import ScheduleConfigService
 
 from app.schemas.config import CheckEngineConfig, CheckEngineConfigResponse
@@ -43,6 +46,23 @@ def _validate_boolean_string(value: str, setting_name: str) -> None:
     valid_values = {"true", "false", "True", "False", "1", "0"}
     if value not in valid_values:
         raise HTTPException(status_code=422, detail=f"Invalid boolean value for {setting_name}")
+
+
+@router.get("/epg-matching", response_model=EPGMatchingConfig)
+def get_epg_matching(db: Session = Depends(get_db)):
+    return EPGMatchingAutomation(db).get()
+
+
+@router.put("/epg-matching", response_model=EPGMatchingConfig)
+def update_epg_matching(config: EPGMatchingConfig, db: Session = Depends(get_db)):
+    if not EPGMatchingAutomation(db).save(config):
+        raise HTTPException(status_code=500, detail="Could not save guide matching settings")
+    return config
+
+
+@router.get("/epg-matching/last-run", response_model=EPGMatchingRun)
+def epg_matching_last_run(db: Session = Depends(get_db)):
+    return EPGMatchingAutomation(db).last_run()
 
 
 @router.get("/schedule-anchors", response_model=ScheduleAnchors)

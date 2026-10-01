@@ -13,48 +13,10 @@ export interface CreateTVChannelsFromEPGResult {
 
 export type EPGMatchStrictness = 'loose' | 'balanced' | 'strict';
 
-export interface EPGMatchCandidate {
-  acestream_channel_id: string;
-  name: string;
-  tvg_id?: string | null;
-  tvg_name?: string | null;
-  score: number;
-  match_stage: string;
-}
-
-export interface EPGMatchAnalysisRow {
-  epg_channel_id: number;
-  epg_channel_xml_id: string;
-  epg_channel_name: string;
-  epg_source_id: number;
-  epg_source_name?: string | null;
-  existing_tv_channel_id?: number | null;
-  existing_tv_channel_count: number;
-  has_duplicate_existing_conflict: boolean;
-  candidate_count: number;
-  candidates: EPGMatchCandidate[];
-  best_match_type?: string | null;
-  best_match_confidence?: string | null;
-  is_creatable: boolean;
-}
-
-export interface EPGMatchAnalysisSummary {
-  epg_channels_analyzed: number;
-  matched_epg_channels: number;
-  matched_acestream_channels: number;
-  creatable_rows: number;
-  skipped_existing_tv_channels: number;
-}
-
-export interface EPGMatchAnalysisResponse {
-  summary: EPGMatchAnalysisSummary;
-  rows: EPGMatchAnalysisRow[];
-}
-
-export interface CreateFromEPGAnalysisRequest {
-  strictness: EPGMatchStrictness;
-  epg_channel_ids: number[];
-}
+export type EPGMatchCandidate = components['schemas']['EPGMatchCandidateResponse'];
+export type EPGMatchAnalysisRow = components['schemas']['EPGMatchRowResponse'];
+export type EPGMatchAnalysisResponse = components['schemas']['EPGMatchAnalysisResponse'];
+export type CreateFromEPGAnalysisRequest = components['schemas']['TVChannelCreateFromEPGAnalysisRequest'];
 
 export interface CreateFromEPGAnalysisResult {
   created_count: number;

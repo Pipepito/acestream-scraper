@@ -104,7 +104,7 @@
       "defaultHost": 8000,
       "hostAddress": "0.0.0.0",
       "label": "Web interface",
-      "description": "The scraper's web UI and API (uvicorn, port set by FLASK_PORT). Published on 0.0.0.0 (IPv4) on purpose: an unaddressed mapping also listens on [::], and Docker then shows every IPv6 client to the app as the bridge gateway — which defeats the address check that keeps the token-free tuner routes (/tuner/*, used by Jellyfin and Plex) off the wider network."
+      "description": "The scraper's web UI and API (the default container command and healthcheck use FLASK_PORT; custom commands must bind to the same port). Published on 0.0.0.0 (IPv4) on purpose: an unaddressed mapping also listens on [::], and Docker then shows every IPv6 client to the app as the bridge gateway — which defeats the address check that keeps the token-free tuner routes (/tuner/*, used by Jellyfin and Plex) off the wider network."
     },
     {
       "id": "acexy",

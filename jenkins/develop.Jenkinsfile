@@ -3,7 +3,6 @@ pipeline {
 
   environment {
     JENKINS_ENABLE_WARP = '1'
-    PR_RUNNER_IMAGE = 'acestream-scraper-pr-ci:develop'
   }
 
   triggers {
@@ -77,22 +76,16 @@ bash scripts/ci/publish_wiki.sh --dry-run
       steps {
         sh '''#!/usr/bin/env bash
 set -euo pipefail
-bash scripts/ci/cleanup_runner_docker.sh \
-  --transient-age-hours 0 \
-  --all-unused-images \
-  --builder-keep 1GB \
-  --min-free-gb 8
 bash scripts/ci/bootstrap_jenkins_runner.sh
+bash scripts/ci/build_pr_runner.sh --source "$WORKSPACE" --ref HEAD \
+  --image-file "$WORKSPACE@tmp/runner-image-${BUILD_NUMBER}"
 python3 -m venv --clear backend/venv
 backend/venv/bin/pip install --upgrade pip
 backend/venv/bin/pip install -r backend/requirements.txt
 npm --prefix frontend ci
 docker buildx use "${JENKINS_BUILDER:-acestream-builder}"
-docker build \
-  --file docker/ci/pr-runner.Dockerfile \
-  --tag "$PR_RUNNER_IMAGE" \
-  .
 '''
+        script { env.PR_RUNNER_IMAGE = readFile("${env.WORKSPACE}@tmp/runner-image-${env.BUILD_NUMBER}").trim() }
       }
     }
 
@@ -168,18 +161,14 @@ backend/venv/bin/python scripts/phase_gates/phase5_gate_runner.py \
       steps {
         sh '''#!/usr/bin/env bash
 set -euo pipefail
-bash scripts/ci/cleanup_runner_docker.sh \
-  --transient-age-hours 0 \
-  --all-unused-images \
-  --builder-keep 1GB \
-  --min-free-gb 8
+bash scripts/ci/cleanup_runner_docker.sh --min-free-gb 8
 export BUILDX_BUILDER=default
 if ! bash scripts/ci/build_multiarch_images.sh \
   --flavor scraper-acestream \
   --platforms linux/amd64 \
   --network host; then
-  echo "Smoke image build failed; pruning builder cache and retrying once"
-  docker builder prune -af || true
+  echo "Smoke image build failed; checking disk pressure before retrying once"
+  bash scripts/ci/cleanup_runner_docker.sh --min-free-gb 8
   bash scripts/ci/build_multiarch_images.sh \
     --flavor scraper-acestream \
     --platforms linux/amd64 \
@@ -197,7 +186,8 @@ PYTHONPATH=backend backend/venv/bin/pytest -q \
       post {
         always {
           sh '''#!/usr/bin/env bash
-docker image prune -f >/dev/null 2>&1 || true
+set -euo pipefail
+bash scripts/ci/cleanup_runner_docker.sh --min-free-gb 8
 docker system df || true
 '''
         }
@@ -223,11 +213,7 @@ fi
         sh '''#!/usr/bin/env bash
 set -euo pipefail
 rm -f phase5-build-result-channel-*.json
-bash scripts/ci/cleanup_runner_docker.sh \
-  --transient-age-hours 0 \
-  --all-unused-images \
-  --builder-keep 1GB \
-  --min-free-gb 8
+bash scripts/ci/cleanup_runner_docker.sh --min-free-gb 8
 '''
         withCredentials([usernamePassword(
           credentialsId: 'dockerhub-publish',

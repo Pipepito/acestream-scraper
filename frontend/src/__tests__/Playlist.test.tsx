@@ -1,4 +1,6 @@
 import React from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+jest.mock('../services/guideSetupService', () => ({ guideSetupService: { coverage: jest.fn().mockResolvedValue({ streams: 48, linked_streams: 12, guide_channels: 24 }) } }));
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ThemeProvider } from '@mui/material/styles';
 import Playlist from '../pages/Playlist';
@@ -19,7 +21,7 @@ describe('Playlist page', () => {
     render(
       <ThemeProvider theme={createAppTheme('light')}>
         <TestMemoryRouter>
-          <Playlist />
+          <QueryClientProvider client={new QueryClient()}><Playlist /></QueryClientProvider>
         </TestMemoryRouter>
       </ThemeProvider>
     );

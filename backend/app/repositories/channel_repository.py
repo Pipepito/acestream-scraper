@@ -409,7 +409,8 @@ class ChannelRepository:
         return dict(row._mapping) if row else None
 
     @retry_database_write
-    def update_channel_status(self, channel_id: str, is_online: bool, error: str = None, *, bitrate_bps: Optional[int] = None, audio_tracks: Optional[list] = None, network_status: str = "unknown", stream_stats: Optional[dict] = None) -> AcestreamChannel:
+    def update_channel_status(self, channel_id: str, is_online: bool, error: str = None, *, bitrate_bps: Optional[int] = None, audio_tracks: Optional[list] = None, network_status: str = "unknown", stream_stats: Optional[dict] = None,
+                              id_kind: Optional[str] = None) -> AcestreamChannel:
         """Update the online status of a channel"""
         channel = self.get_channel_by_id(channel_id)
         if not channel:
@@ -426,6 +427,10 @@ class ChannelRepository:
         if bitrate_bps is not None:
             channel.bitrate_bps = bitrate_bps
             channel.bitrate_checked_at = channel.last_checked
+        # Only ever widen what we know: a probe that did not identify the id
+        # must not erase a kind that an earlier probe confirmed.
+        if id_kind is not None:
+            channel.id_kind = id_kind
         self.db.commit()
         self.db.refresh(channel)
         return channel

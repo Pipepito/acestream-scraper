@@ -145,8 +145,7 @@ def test_pressure_reclaims_unused_runner_but_preserves_selected_alias(host, monk
     selected, unused = cached('a'), cached('b')
     selected['RepoTags'].append('selected:alias')
     host.images = [selected, unused, image('unrelated:latest')]
-    checks = iter([False, False, False, True])
-    monkeypatch.setattr(lifecycle, 'free_space', lambda *args: next(checks))
+    monkeypatch.setattr(lifecycle, 'free_space', lambda *args, **kwargs: unused not in host.images)
     lifecycle.cleanup(options(keep=['selected:alias']))
     assert {im['Id'] for im in host.images} == {selected['Id'], 'sha256:unrelated:latest'}
     prunes = [c for c in host.calls if c[:2] == ('buildx', 'prune') and '--help' not in c]
@@ -155,7 +154,7 @@ def test_pressure_reclaims_unused_runner_but_preserves_selected_alias(host, monk
 
 def test_insufficient_space_reports_failure_without_deleting_unrelated_data(host, monkeypatch, capsys):
     host.images = [image('unrelated:latest')]
-    monkeypatch.setattr(lifecycle, 'free_space', lambda *args: False)
+    monkeypatch.setattr(lifecycle, 'free_space', lambda *args, **kwargs: False)
     with pytest.raises(RuntimeError, match='cannot meet'):
         lifecycle.cleanup(options())
     assert len(host.images) == 1
@@ -346,8 +345,7 @@ def test_failed_identity_does_not_leave_previous_output_reference(host, context)
 
 def test_pressure_can_be_resolved_without_evicting_any_runner(host, monkeypatch):
     host.images = [cached('a'), cached('b')]
-    checks = iter([False, True])
-    monkeypatch.setattr(lifecycle, 'free_space', lambda *args: next(checks))
+    monkeypatch.setattr(lifecycle, 'free_space', lambda *args, **kwargs: any('--min-free-space' in c for c in host.calls))
     lifecycle.cleanup(options())
     assert len(host.images) == 2
     pressure = [c for c in host.calls if '--min-free-space' in c]
@@ -359,8 +357,7 @@ def test_pressure_stops_after_oldest_runner_frees_enough_space(host, monkeypatch
     older, newer = cached('a'), cached('b')
     host.images = [older, newer]
     monkeypatch.setattr(lifecycle, 'read_usage', lambda: {older['Id']: NOW-10, newer['Id']: NOW})
-    checks = iter([False, False, False, True])
-    monkeypatch.setattr(lifecycle, 'free_space', lambda *args: next(checks))
+    monkeypatch.setattr(lifecycle, 'free_space', lambda *args, **kwargs: older not in host.images)
     lifecycle.cleanup(options())
     assert host.images == [newer]
 
@@ -382,3 +379,35 @@ def test_abandoned_pr_images_are_reclaimed_but_running_pr_images_are_protected(h
     assert abandoned not in host.images
     assert active in host.images
     assert len(host.images) == 3
+
+
+def test_pressure_reclaims_old_shared_cache_before_evicting_runners(host, monkeypatch):
+    host.images = [cached('a')]
+    cold = ('buildx', 'prune', '--builder', 'default', '-af', '--filter', 'until=24h')
+    monkeypatch.setattr(lifecycle, 'free_space', lambda *args, **kwargs: cold in host.calls)
+    lifecycle.cleanup(options())
+    assert host.images == [cached('a')]
+    assert not any('--min-free-space' in c or c[:2] == ('image', 'rm') for c in host.calls)
+
+
+def test_emergency_prune_does_not_reserve_space_that_blocks_reclamation(host):
+    lifecycle.prune('default', '1GB', minimum_free=8)
+    command = next(c for c in host.calls if '--min-free-space' in c)
+    assert command[command.index('--reserved-space')+1] == '0'
+
+
+def test_free_space_waits_for_async_disk_reclamation(host, monkeypatch):
+    available = iter([6, 7, 9])
+    monkeypatch.setattr(lifecycle.os, 'statvfs', lambda path: SimpleNamespace(f_bavail=next(available), f_frsize=1024**3))
+    sleeps = []
+    monkeypatch.setattr(lifecycle.time, 'sleep', sleeps.append)
+    assert lifecycle.free_space(['/'], 8, settle=True)
+    assert sleeps == [1, 1]
+
+
+def test_free_space_reclamation_wait_is_bounded(host, monkeypatch):
+    monkeypatch.setattr(lifecycle.os, 'statvfs', lambda path: SimpleNamespace(f_bavail=7, f_frsize=1024**3))
+    sleeps = []
+    monkeypatch.setattr(lifecycle.time, 'sleep', sleeps.append)
+    assert not lifecycle.free_space(['/'], 8, settle=True)
+    assert sleeps == [1] * 10

@@ -207,6 +207,22 @@
             "title": "Id",
             "type": "string"
           },
+          "id_kind": {
+            "anyOf": [
+              {
+                "enum": [
+                  "id",
+                  "infohash"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Which getstream parameter the engine accepted for this id; null means it has not been confirmed yet",
+            "title": "Id Kind"
+          },
           "is_active": {
             "title": "Is Active",
             "type": "boolean"

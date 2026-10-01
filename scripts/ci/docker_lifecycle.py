@@ -128,10 +128,12 @@ def prune(builder, cap, cold_hours=0, dry=False, minimum_free=0):
         common += ['--filter', f'until={cold_hours}h']
     help_text = docker('buildx', 'prune', '--help')
     option = '--max-used-space' if '--max-used-space' in help_text else '--keep-storage'
-    if minimum_free and '--min-free-space' in help_text:
+    if cap is None:
+        command = common
+    elif minimum_free and '--min-free-space' in help_text:
         command = [*common, '--min-free-space', str(minimum_free * 1024**3)]
         if '--reserved-space' in help_text:
-            command += ['--reserved-space', '1GB']
+            command += ['--reserved-space', '0']
     else:
         command = [*common, option, cap]
     print(('Plan: ' if dry else 'Pruning: ') + 'docker ' + ' '.join(command), flush=True)
@@ -140,14 +142,21 @@ def prune(builder, cap, cold_hours=0, dry=False, minimum_free=0):
     print(docker('buildx', 'du', '--builder', builder), end='', flush=True)
 
 
-def free_space(paths, minimum):
-    okay = True
-    for path in paths:
-        stats = os.statvfs(path)
-        free = stats.f_bavail * stats.f_frsize
-        print(f'Free space on {path}: {free / 1024**3:.2f} GiB (need {minimum} GiB)', flush=True)
-        okay &= free >= minimum * 1024**3
-    return okay
+def free_space(paths, minimum, settle=False):
+    # Containerd/overlayfs reclamation continues after prune/rmi returns. Allow
+    # up to ten seconds before deleting another useful cache or failing a job.
+    for attempt in range(11 if settle else 1):
+        okay = True
+        for path in paths:
+            stats = os.statvfs(path)
+            free = stats.f_bavail * stats.f_frsize
+            print(f'Free space on {path}: {free / 1024**3:.2f} GiB (need {minimum} GiB)', flush=True)
+            okay &= free >= minimum * 1024**3
+        if okay:
+            return True
+        if settle and attempt < 10:
+            time.sleep(1)
+    return False
 
 
 def cleanup(args):
@@ -190,20 +199,27 @@ def cleanup(args):
     for builder in builders:
         prune(builder, args.builder_keep, cold_hours=24, dry=args.dry_run)
     if args.dry_run:
-        print('Under disk pressure: reclaim recent build cache first, then evict unused CI '
+        print('Under disk pressure: reclaim old cache without size limits, then recent cache, then evict unused CI '
               'runners least-recently-used first, stopping once space is sufficient. '
               'Keep explicit images and container references; never remove volumes.')
         return
-    if free_space(paths, args.min_free_gb):
+    if free_space(paths, args.min_free_gb, settle=True):
         return
-    print('Disk pressure: reclaiming recent build cache before reusable runners', flush=True)
+    print('Disk pressure: reclaiming old cache, then recent cache before reusable runners', flush=True)
 
     def reclaim_cache():
+        # Size-based GC can report no work despite many shared cache records.
+        # Under real disk pressure, first remove unused OLD records without a
+        # size reservation; keep recent layers and reusable runners intact.
         for builder in builders:
-            # Modern Buildx targets only the required headroom. Older versions
-            # fall back to a bounded 1GB cache, with the chosen policy logged.
+            prune(builder, None, cold_hours=24)
+            if free_space(paths, args.min_free_gb, settle=True):
+                return True
+        for builder in builders:
+            # Target required headroom with no reservation that could prevent
+            # reclamation. Older Buildx falls back to a bounded 1GB cache.
             prune(builder, '1GB', minimum_free=args.min_free_gb)
-            if free_space(paths, args.min_free_gb):
+            if free_space(paths, args.min_free_gb, settle=True):
                 return True
         return False
 
@@ -214,7 +230,7 @@ def cleanup(args):
                         transient_age=args.transient_age_hours)
     for im in sorted(candidates, key=lambda im: usage.get(im['Id'], created(im))):
         remove([im], 'disk pressure: least recently used runner')
-        if free_space(paths, args.min_free_gb) or reclaim_cache():
+        if free_space(paths, args.min_free_gb, settle=True) or reclaim_cache():
             return
     print(docker('system', 'df', '-v'), flush=True)
     raise RuntimeError('Cleanup cannot meet the free-space minimum without removing protected '

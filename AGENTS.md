@@ -416,3 +416,8 @@ maintainer-owned branch before host builds. Develop validates, builds, tests and
 publishes only floating develop tags; manual main releases retain version checks
 and separate latest promotion. Preserve the shared full-run FIFO lock. Buildx
 cleanup must enumerate `.Builder.Name`, deduplicated, never child-node `.Name`.
+
+BuildKit numeric GC limits are bytes: convert the operator MiB settings before
+writing `reservedSpace`/`maxUsedSpace`. Under pressure, reclaim unused old cache
+without a size floor before recent cache or runners, and allow bounded time for
+asynchronous Docker disk reclamation. Never reduce the required free-space gate.

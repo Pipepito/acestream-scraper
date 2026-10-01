@@ -316,7 +316,13 @@ def test_bootstrap_jenkins_runner_bootstraps_default_builder_after_binfmt(tmp_pa
     assert "--buildkitd-config" in creates[0]
     buildkitd = Path(env["BOOTSTRAP_TEST_STATE_DIR"]) / "buildkitd.toml"
     assert buildkitd.is_file()
-    assert "gc = true" in buildkitd.read_text() and "max-parallelism" in buildkitd.read_text()
+    import tomllib
+    worker = tomllib.loads(buildkitd.read_text())["worker"]["oci"]
+    assert worker["gc"] is True
+    assert worker["reservedSpace"] == 4000 * 1024 * 1024
+    assert worker["maxUsedSpace"] == 8000 * 1024 * 1024
+    assert worker["minFreeSpace"] == 8 * 1024**3
+    assert worker["max-parallelism"] == 2
     assert "buildx inspect --bootstrap acestream-builder" in docker_calls
     assert docker_calls.index("run --privileged --rm tonistiigi/binfmt --install all") < docker_calls.index(
         "buildx inspect --bootstrap acestream-builder"

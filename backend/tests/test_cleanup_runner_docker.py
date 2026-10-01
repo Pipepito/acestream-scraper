@@ -55,7 +55,10 @@ class Docker:
         if args[:2] == ('container', 'inspect'):
             return json.dumps([{'Image': im} for im in self.in_use])
         if args[:2] == ('buildx', 'ls'):
-            return 'default\nacestream-builder\n'
+            if args[-1] == '{{.Builder.Name}}':
+                return 'default\nacestream-builder\ndefault\n'
+            # Real Buildx .Name includes both builder instances and child nodes.
+            return 'acestream-builder\nacestream-builder0\ndefault\ndefault\n'
         if args[:3] == ('buildx', 'prune', '--help'):
             return '--max-used-space --min-free-space --reserved-space' if self.modern else '--keep-storage'
         if args[:2] == ('buildx', 'prune'):
@@ -360,3 +363,22 @@ def test_pressure_stops_after_oldest_runner_frees_enough_space(host, monkeypatch
     monkeypatch.setattr(lifecycle, 'free_space', lambda *args: next(checks))
     lifecycle.cleanup(options())
     assert host.images == [newer]
+
+
+def test_cleanup_prunes_builder_instances_never_their_child_nodes(host):
+    lifecycle.cleanup(options())
+    prunes = [c for c in host.calls if c[:2] == ('buildx', 'prune') and '--builder' in c]
+    assert {c[c.index('--builder') + 1] for c in prunes} == {'default', 'acestream-builder'}
+    assert len(prunes) == 2
+    assert ('buildx', 'ls', '--format', '{{.Builder.Name}}') in host.calls
+
+
+def test_abandoned_pr_images_are_reclaimed_but_running_pr_images_are_protected(host):
+    abandoned = image('acestream-scraper-pr-build:pr-42-1-linux-amd64-scraper')
+    active = image('acestream-scraper-pr-build:pr-43-1-linux-arm64-scraper')
+    host.images = [abandoned, active, cached('a'), image('unrelated:latest')]
+    host.in_use = {active['Id']}
+    lifecycle.cleanup(options())
+    assert abandoned not in host.images
+    assert active in host.images
+    assert len(host.images) == 3

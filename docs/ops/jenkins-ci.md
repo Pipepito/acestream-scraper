@@ -18,7 +18,7 @@ Important constraint for this setup:
 
 Current job model (adopted 2026-09-04):
 
-- `acestream-scraper-pr` is a multibranch job loading `jenkins/pr.Jenkinsfile`. It discovers origin and fork PRs, reports `PR Validation`, never binds a credential, and confines contributor code to the trusted PR-runner container.
+- `acestream-scraper-pr` is a multibranch job loading `jenkins/pr.Jenkinsfile`. It discovers origin and fork PRs, reports `PR Validation`, never binds a credential, and confines fork code to restricted containers. Ordinary branch builds skip validation/publication even if branch discovery is accidentally enabled. Maintainer-owned PRs additionally build every supported production flavor/platform and delete each temporary image immediately.
 - `acestream-scraper-develop` is a Pipeline-from-SCM job loading `jenkins/develop.Jenkinsfile` from `develop`. It selects affected work, rejects stale revisions, and validates documentation without publishing it. Application/build changes run the full suite and privileged Docker/runtime smokes before publishing the floating `develop` channel.
 - `acestream-scraper-release` loads `jenkins/release.Jenkinsfile` from `main` and remains manual-only.
 
@@ -50,7 +50,7 @@ Security boundary:
 - The main PR container receives only the checked-out workspace. It receives no Jenkins credential, no Docker socket, no host network, and no inherited Jenkins environment. It runs as the agent's unprivileged uid with all Linux capabilities dropped, `no-new-privileges`, and CPU/memory/PID limits. Forks execute validation orchestrators from the target branch; maintainer-owned origin PRs may exercise their proposed orchestrators. PRs with application/build or unknown changes run the complete non-Docker backend and frontend suites; documentation-only PRs use the trusted read-only checks below.
 - PR, develop and release application validation use a dependency-keyed runner through `build_pr_runner.sh`. For a fork, Jenkins exports an allowlist of runner inputs and lifecycle code from the trusted target ref, then reuses a verified matching runner or builds from that isolated context; the job never selects the old mutable `:develop` or `:release` runner tags and contributor files cannot affect the networked dependency build. Fork changes to Python/npm requirements or the runner Dockerfile fail closed and require promotion to a reviewed maintainer branch.
 - A second stage runs the target branch's trusted runtime validator against the PR's entrypoint, WARP setup, and healthcheck files under pinned `linux/amd64`, `linux/arm64`, and `linux/arm/v7` Python userlands. Each userland is network-disabled, read-only, capability-dropped, resource-limited, and receives neither credentials nor the Docker socket.
-- Privileged Docker builds, engine runtime smokes, Docker Hub credentials, and GitHub publication credentials exist only in the trusted develop/release pipelines.
+- Maintainer-owned PRs may execute production Docker builds on the host, with an empty Docker authentication config and no publication. Fork Dockerfiles are never executed on the shared daemon; promote reviewed changes to a maintainer-owned branch for this check. Engine runtime smokes and registry/publication credentials remain in the trusted develop/release pipelines.
 - The container boundary reduces host and credential exposure; it does not replace maintainer review. Tests and repository scripts are contributor-controlled inputs.
 
 Current ownership stance:
@@ -72,7 +72,7 @@ Networking model:
 
 Executor model:
 
-- The three pipelines currently launch on `dorat-nuc-ci`; the PR pipeline uses its Docker daemon only to start the hardened container and never mounts that daemon into the container.
+- The three pipelines currently launch on `dorat-nuc-ci`; the PR pipeline starts hardened validation containers and builds production images only for maintainer-owned PRs. It never mounts the daemon into a validation container.
 - The trusted develop and release jobs retain direct Docker/Buildx access for runtime smoke and publication.
 - SSH is a documented example agent-launch path, not a pipeline requirement.
 
@@ -542,11 +542,12 @@ What the pipelines do about it:
 - `build_pr_runner.sh` resolves the selected Git ref once and exports the four runner inputs plus the trusted lifecycle helper. The image tag is `acestream-scraper-pr-ci:deps-<sha256>`, keyed by the complete contents and paths of the Dockerfile, Python requirements, npm manifest/lockfile and daemon OS/architecture. Application-only commits reuse it; dependency, pinned base or platform changes select another image. Reuse verifies the input label, runner role and actual platform. A conflicting cache identity fails closed. Missing images build normally; failed builds cannot supply a runner reference. Fresh validation containers remain network-disabled, without credentials or the Docker socket. To deliberately refresh floating upstream packages, change the runner Dockerfile (an explicit refresh comment suffices), creating a new key.
 - PR, develop and release use this same runner preparation path. Successful PR finalizers remove containers, not the shared image. The old permanently-kept `:develop`, `:release`, `:pr-*` and dangling runner images are retired when unused. Nothing relies on these mutable legacy tags.
 - Under the full-run FIFO Docker lock, `cleanup_runner_docker.sh` calls `docker_lifecycle.py`. Normal retention keeps up to two dependency runners used within seven days, including explicit keeps, and removes obsolete project CI images. Runner use is recorded atomically in `$HOME/.cache/acestream-ci/runner-usage.json` (`CI_DOCKER_STATE_DIR` overrides the directory); missing usage falls back to creation time. Lost metadata affects eviction priority only, never reuse identity.
+- BuildKit enumeration uses `docker buildx ls --format '{{.Builder.Name}}'` and deduplicates the results. `.Name` includes node names such as `acestream-builder0`, which are not valid builder instances and must never be passed to `--builder`.
 - Normal BuildKit cleanup targets caches unused for 24 hours with an 8 GB target per builder, preserving warm layers for the next stage. This is a reclamation target, not a quota: recent/in-use/shared layers may remain above it. When workspace or Docker free space is below 8 GiB, cleanup first prunes recent cache to the required free-space target (older Buildx falls back to a 1 GB cache target). Only if that is insufficient does it evict other unused CI runners in least-recently-used order, rechecking space and reclaiming newly unreferenced cache after each removal. It stops as soon as both filesystems meet the minimum. It fails with detailed Docker usage if the minimum still cannot be met. The current requested runner and every container-referenced image (including stopped containers) stay protected through all tiers. `--keep` protects the whole image across aliases.
 - Cleanup does not globally prune unused images or delete volumes, workspaces, unrelated images, or container-referenced images. It rechecks container references before each non-forced removal. Docker inspection/deletion/prune errors are visible and fail the operation; capability detection selects the supported Buildx cache-size option without hiding real failures. `--dry-run` prints normal deletion/prune plans and describes pressure escalation without making changes. The default cleanup arguments are sufficient; `--all-unused-images` is intentionally no longer supported.
 - `scripts/ci/bootstrap_jenkins_runner.sh` creates `acestream-builder` with a `buildkitd.toml` that enables BuildKit garbage collection (`gckeepstorage`, 4 GB) and caps parallel build steps (`max-parallelism = 2`), so the cache is bounded *during* a multi-platform publish, not only between builds; when that config changes the bootstrap recreates the builder.
 - Multi-platform pushes build one platform at a time (next section), which also bounds the cache growth per step.
-- The PR smoke stage exports no image (cache-only warm-up); the pytest builds and removes its own run-scoped image; develop's smoke finalizer applies the shared retention policy.
+- Maintainer PR builds use `validate_pr_images.sh`: one platform/flavor at a time, `--load` to a unique `acestream-scraper-pr-build:` tag, inspection, then immediate non-forced removal. Failure cleanup removes partial exports too; the shared retention policy recognizes abandoned PR tags after interrupted jobs. PR builds reuse the same `JENKINS_BUILDER` (default `acestream-builder`) and Buildx instance metadata as publication, with a separate empty Docker authentication config. Dependency runners and warm layers remain reusable. Develop/release smoke tests remove their own run-scoped images and apply the shared retention policy.
 - `scripts/ci/run_jenkins_release.sh` runs the same cleanup after its engine smoke, before the multi-platform publish builds.
 
 For manual investigation, inspect `docker system df -v`, image labels/container references and `docker buildx du --builder <name>`. Preview `bash scripts/ci/cleanup_runner_docker.sh --dry-run` first. Any live reclaim must hold the same FIFO lock and preserve images needed by the current run; do not run blanket image/volume pruning or remove builders to bypass retention. Workspaces and unrelated retained data require a separate operator decision if managed reclamation is insufficient.
@@ -582,10 +583,10 @@ A publish (the `develop` channel and the release phase 1) no longer runs one thr
 
 1. iterates **platforms first, flavors second** — all four flavors are built for `linux/amd64`, then for `linux/arm/v7`, then for `linux/arm64` — so flavors reuse each other's cached base stages and the peak cache is one platform's worth of layers;
 2. builds each (flavor, platform) with `scripts/ci/build_multiarch_images.sh --push-by-digest --repo <repo> --digest-file …` (image pushed by digest, no temporary tags);
-3. prunes the builder's BuildKit cache down to `PUBLISH_CACHE_CAP` (default `2GB`) after each platform;
+3. applies shared pressure-aware cleanup after each platform (`PUBLISH_CACHE_CAP`, default `8GB`, is the target for cache unused for 24 hours); warm layers survive when both filesystems have at least 8 GiB free;
 4. assembles every flavor's tags with `docker buildx imagetools create` from its per-platform digests and verifies each remote manifest with `verify_multiarch_manifest.sh --image`.
 
-`--dry-run` prints the 12 per-platform builds, the prunes and the four `imagetools create` calls. The plain `build_multiarch_images.sh --push` with several platforms does the same sequencing for a single flavor (and `--prune-builder-after <cap>` prunes after each platform); single-platform `--load`/`--push` and cache-only builds are unchanged. Push-by-digest needs a docker-container (or remote) builder — Jenkins' `acestream-builder` — not the plain docker driver.
+`--dry-run` prints the 12 per-platform builds, the cleanup checks and the four `imagetools create` calls. The plain `build_multiarch_images.sh --push` with several platforms does the same sequencing for a single flavor (and `--prune-builder-after <cap>` prunes after each platform); single-platform `--load`/`--push` and cache-only builds are unchanged. Push-by-digest needs a docker-container (or remote) builder — Jenkins' `acestream-builder` — not the plain docker driver.
 
 The Dockerfile also cuts what a foreign platform has to build: the frontend bundle and the Acexy Go binary are built on the build host (`FROM --platform=$BUILDPLATFORM`; Go cross-compiles with `GOARCH`/`GOARM`) and copied into every target platform, so QEMU only runs the Python stages.
 
@@ -840,7 +841,7 @@ Recommended configuration:
 1. New Item -> Multibranch Pipeline.
 2. Add the repository using the GitHub App credential `github-app-acestream-scraper`.
 3. Set the script path to `jenkins/pr.Jenkinsfile`.
-4. Disable ordinary branch discovery; this job is for PR revisions only.
+4. Disable ordinary branch discovery; this job is for PR revisions only. The Jenkinsfile also skips ordinary branch runs as a defense against configuration drift.
 5. Discover origin PR merge revisions.
 6. Discover fork PR merge revisions and set trust to **Nobody**. Jenkins then loads the Jenkinsfile from the target branch while checking out the proposed merge revision.
 7. Keep the notification context exactly `PR Validation`.
@@ -854,7 +855,7 @@ Expected behavior:
 - A fork that changes dependency manifests or the runner Dockerfile fails closed. After review, move the commit to a maintainer-owned branch; origin PRs may build their own proposed dependency runner.
 - The container executes `scripts/ci/run_pr_validation.sh` as read from the validation ref. The architecture stage likewise extracts its driver and runtime validator from that ref, then executes the PR runtime files in three constrained CPU userlands.
 - `Branch Policy` (since 2026-08-28): a PR into `main` fails unless its head is `develop`.
-- The PR gate statically verifies the production Dockerfile, dry-runs every flavor/platform build plan, and executes runtime scripts across three architectures. Actual production Dockerfile builds, engine smokes, and every publish remain absent because giving arbitrary fork build instructions networked Docker/BuildKit execution would cross the trust boundary.
+- Every application PR statically verifies the production Dockerfile, dry-runs flavor/platform plans, and executes runtime scripts across three architectures. Maintainer-owned PRs also run `validate_pr_images.sh` for all supported combinations (currently four flavors × three platforms), under the same full-run FIFO lock. Each image is loaded and inspected, then deleted before the next build; build failures also run cleanup. This stage uses an empty Docker authentication config and never publishes. Forks report the build boundary explicitly: actual Dockerfile execution requires promotion of the reviewed commit to a maintainer-owned branch. Engine runtime smokes remain in develop/release.
 
 ## Trusted Develop Job
 

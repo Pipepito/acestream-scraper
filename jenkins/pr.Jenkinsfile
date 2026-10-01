@@ -6,42 +6,45 @@ pipeline {
     skipDefaultCheckout(true)
     disableConcurrentBuilds()
     buildDiscarder(logRotator(numToKeepStr: '20'))
-    timeout(time: 45, unit: 'MINUTES')
+    timeout(time: 4, unit: 'HOURS')
     timestamps()
   }
 
   stages {
-    stage('Checkout') {
-      steps {
-        checkout scm
-        script {
-          currentBuild.displayName = "#${env.BUILD_NUMBER} ${env.BRANCH_NAME ?: 'pull-request'}"
-          env.PR_SANDBOX_NAME = "acestream-${env.JOB_BASE_NAME}-${env.BUILD_NUMBER}"
-            .replaceAll('[^A-Za-z0-9_.-]', '-')
-          env.PR_VALIDATION_REF = env.CHANGE_FORK \
-            ? "refs/remotes/origin/${env.CHANGE_TARGET}" \
-            : 'HEAD'
-        }
-      }
-    }
-
-    stage('Branch Policy') {
-      when { expression { env.CHANGE_TARGET == 'main' } }
-      steps {
-        script {
-          if (env.CHANGE_BRANCH != 'develop') {
-            error("Pull requests into main must come from develop (this one comes from '${env.CHANGE_BRANCH}'). Target develop instead; releases are cut with a develop -> main PR.")
+    stage('Pull request validation') {
+      when { changeRequest() }
+      stages {
+        stage('Checkout') {
+          steps {
+            checkout scm
+            script {
+              currentBuild.displayName = "#${env.BUILD_NUMBER} ${env.BRANCH_NAME ?: 'pull-request'}"
+              env.PR_SANDBOX_NAME = "acestream-${env.JOB_BASE_NAME}-${env.BUILD_NUMBER}"
+                .replaceAll('[^A-Za-z0-9_.-]', '-')
+              env.PR_VALIDATION_REF = env.CHANGE_FORK \
+                ? "refs/remotes/origin/${env.CHANGE_TARGET}" \
+                : 'HEAD'
+            }
           }
         }
-      }
-    }
 
-    stage('Select affected work') {
-      steps {
-        script {
-          // Always use the target's selector, even for origin PRs. A proposed
-          // skip-rule change cannot exempt itself from the application gate.
-          def selection = sh(returnStdout: true, script: '''#!/usr/bin/env bash
+        stage('Branch Policy') {
+          when { expression { env.CHANGE_TARGET == 'main' } }
+          steps {
+            script {
+              if (env.CHANGE_BRANCH != 'develop') {
+                error("Pull requests into main must come from develop (this one comes from '${env.CHANGE_BRANCH}'). Target develop instead; releases are cut with a develop -> main PR.")
+              }
+            }
+          }
+        }
+
+        stage('Select affected work') {
+          steps {
+            script {
+              // Always use the target's selector, even for origin PRs. A proposed
+              // skip-rule change cannot exempt itself from the application gate.
+              def selection = sh(returnStdout: true, script: '''#!/usr/bin/env bash
 set -euo pipefail
 selector="$WORKSPACE@tmp/classify-changes-${BUILD_NUMBER}.py"
 git fetch --no-tags origin "+refs/heads/${CHANGE_TARGET}:refs/remotes/origin/${CHANGE_TARGET}"
@@ -52,26 +55,26 @@ else
   echo 'CI_APPLICATION=true'
 fi
 ''').trim()
-          // env is a Pipeline object, not a Map: bracket assignment invokes
-          // an unapproved Groovy putAt. Use its sandbox-approved properties.
-          // Only an explicit false disables work; missing flags keep full scope.
-          def selected = selection.readLines()
-          env.CI_APPLICATION = selected.contains('CI_APPLICATION=false') ? 'false' : 'true'
-          env.CI_WIKI = selected.contains('CI_WIKI=false') ? 'false' : 'true'
-          env.CI_PAGES = selected.contains('CI_PAGES=false') ? 'false' : 'true'
-          env.CI_DOCKERHUB = selected.contains('CI_DOCKERHUB=false') ? 'false' : 'true'
-          echo selection
-          currentBuild.description = env.CI_APPLICATION == 'true' ? 'Full application validation' : 'Documentation checks; application unchanged'
+              // env is a Pipeline object, not a Map: bracket assignment invokes
+              // an unapproved Groovy putAt. Use its sandbox-approved properties.
+              // Only an explicit false disables work; missing flags keep full scope.
+              def selected = selection.readLines()
+              env.CI_APPLICATION = selected.contains('CI_APPLICATION=false') ? 'false' : 'true'
+              env.CI_WIKI = selected.contains('CI_WIKI=false') ? 'false' : 'true'
+              env.CI_PAGES = selected.contains('CI_PAGES=false') ? 'false' : 'true'
+              env.CI_DOCKERHUB = selected.contains('CI_DOCKERHUB=false') ? 'false' : 'true'
+              echo selection
+              currentBuild.description = env.CI_APPLICATION == 'true' ? 'Full application validation' : 'Documentation checks; application unchanged'
+            }
+          }
         }
-      }
-    }
 
-    stage('Documentation-only validation') {
-      when { expression { env.CI_APPLICATION == 'false' } }
-      steps {
-        // Only target-owned validators run on the host. Proposed Markdown,
-        // JSON and JavaScript are read as data (node --check never executes it).
-        sh '''#!/usr/bin/env bash
+        stage('Documentation-only validation') {
+          when { expression { env.CI_APPLICATION == 'false' } }
+          steps {
+            // Only target-owned validators run on the host. Proposed Markdown,
+            // JSON and JavaScript are read as data (node --check never executes it).
+            sh '''#!/usr/bin/env bash
 set -euo pipefail
 trusted_dir="$(mktemp -d "$WORKSPACE@tmp/docs-checks.XXXXXX")"
 trap 'rm -rf "$trusted_dir"' EXIT
@@ -83,16 +86,16 @@ python3 -I "$trusted_dir/validate_documentation.py" --root "$WORKSPACE"
 python3 -I "$trusted_dir/validate_docker_docs_contract.py"
 bash "$trusted_dir/validate_command_builder.sh"
 '''
-      }
-    }
+          }
+        }
 
-    stage('Build isolated trusted runner') {
-      when { expression { env.CI_APPLICATION != 'false' } }
-      steps {
-        script {
-          def runnerInputsChanged = sh(
-            returnStatus: true,
-            script: '''#!/usr/bin/env bash
+        stage('Build isolated trusted runner') {
+          when { expression { env.CI_APPLICATION != 'false' } }
+          steps {
+            script {
+              def runnerInputsChanged = sh(
+                returnStatus: true,
+                script: '''#!/usr/bin/env bash
 git diff --quiet "refs/remotes/origin/${CHANGE_TARGET}"...HEAD -- \
   backend/requirements.txt \
   frontend/package.json \
@@ -102,15 +105,15 @@ git diff --quiet "refs/remotes/origin/${CHANGE_TARGET}"...HEAD -- \
   scripts/ci/cleanup_runner_docker.sh \
   scripts/ci/docker_lifecycle.py
 '''
-          ) != 0
+              ) != 0
 
-          if (env.CHANGE_FORK && runnerInputsChanged) {
-            error('This fork changes dependency or runner-image inputs. Those inputs can execute code during installation, so an automatic fork build will not install them with network access. Move the reviewed commit to a maintainer-owned branch to validate the dependency change.')
-          }
+              if (env.CHANGE_FORK && runnerInputsChanged) {
+                error('This fork changes dependency or runner-image inputs. Those inputs can execute code during installation, so an automatic fork build will not install them with network access. Move the reviewed commit to a maintainer-owned branch to validate the dependency change.')
+              }
 
-          // The trusted ref selects dependency inputs. Matching inputs share
-          // a verified cached image; every validation still gets a fresh container.
-          sh '''#!/usr/bin/env bash
+              // The trusted ref selects dependency inputs. Matching inputs share
+              // a verified cached image; every validation still gets a fresh container.
+              sh '''#!/usr/bin/env bash
 set -euo pipefail
 trusted_builder="$WORKSPACE@tmp/build-pr-runner-${BUILD_NUMBER}.sh"
 git show "${PR_VALIDATION_REF}:scripts/ci/build_pr_runner.sh" > "$trusted_builder"
@@ -119,15 +122,15 @@ bash "$trusted_builder" \
   --ref "$PR_VALIDATION_REF" \
   --image-file "$WORKSPACE@tmp/runner-image-${BUILD_NUMBER}"
 '''
-          env.PR_RUNNER_IMAGE = readFile("${env.WORKSPACE}@tmp/runner-image-${env.BUILD_NUMBER}").trim()
+              env.PR_RUNNER_IMAGE = readFile("${env.WORKSPACE}@tmp/runner-image-${env.BUILD_NUMBER}").trim()
+            }
+          }
         }
-      }
-    }
 
-    stage('Credential-free PR validation') {
-      when { expression { env.CI_APPLICATION != 'false' } }
-      steps {
-        sh '''#!/usr/bin/env bash
+        stage('Credential-free PR validation') {
+          when { expression { env.CI_APPLICATION != 'false' } }
+          steps {
+            sh '''#!/usr/bin/env bash
 set -euo pipefail
 
 host_uid="$(id -u)"
@@ -158,13 +161,13 @@ docker run --rm --init \
   "$PR_RUNNER_IMAGE" \
   bash -c 'cp -R /source/. /workspace/ && trusted_script=/workspace/scripts/ci/.jenkins-trusted-pr-validation.sh && rm -f "$trusted_script" && git show "${PR_VALIDATION_REF}:scripts/ci/run_pr_validation.sh" > "$trusted_script" && bash "$trusted_script"'
 '''
-      }
-    }
+          }
+        }
 
-    stage('Isolated architecture runtime contracts') {
-      when { expression { env.CI_APPLICATION != 'false' } }
-      steps {
-        sh '''#!/usr/bin/env bash
+        stage('Isolated architecture runtime contracts') {
+          when { expression { env.CI_APPLICATION != 'false' } }
+          steps {
+            sh '''#!/usr/bin/env bash
 set -euo pipefail
 trusted_arch_runner="$WORKSPACE@tmp/run-pr-arch-contracts-${BUILD_NUMBER}.sh"
 git show "${PR_VALIDATION_REF}:scripts/ci/run_pr_arch_contracts.sh" > "$trusted_arch_runner"
@@ -173,6 +176,33 @@ bash "$trusted_arch_runner" \
   --validation-ref "$PR_VALIDATION_REF" \
   --name-prefix "$PR_SANDBOX_NAME"
 '''
+          }
+        }
+
+        stage('Build PR image matrix') {
+          when { expression { env.CI_APPLICATION != 'false' && !env.CHANGE_FORK } }
+          steps {
+            sh '''#!/usr/bin/env bash
+set -euo pipefail
+bash scripts/ci/bootstrap_jenkins_runner.sh
+bash scripts/ci/validate_pr_images.sh --name "$PR_SANDBOX_NAME"
+'''
+          }
+        }
+
+        stage('Fork image build boundary') {
+          when { expression { env.CI_APPLICATION != 'false' && env.CHANGE_FORK } }
+          steps {
+            echo 'Fork application and architecture contracts passed in isolation. Host image builds require promotion of the reviewed commit to a maintainer-owned branch; fork Dockerfiles are not executed on the shared daemon.'
+          }
+        }
+      }
+    }
+    stage('Ordinary branch skipped') {
+      when { not { changeRequest() } }
+      steps {
+        echo 'This job validates pull requests only. Branch publication belongs to the develop and release jobs.'
+        script { currentBuild.description = 'Skipped: ordinary branch in PR-only job' }
       }
     }
   }
@@ -180,7 +210,7 @@ bash "$trusted_arch_runner" \
   post {
     always {
       sh '''#!/usr/bin/env bash
-if [[ "${CI_APPLICATION:-true}" != "false" ]]; then
+if [[ -n "${CHANGE_ID:-}" && "${CI_APPLICATION:-true}" != "false" ]]; then
 docker rm --force "$PR_SANDBOX_NAME" >/dev/null 2>&1 || true
 for platform in linux-amd64 linux-arm64 linux-arm-v7; do
   docker rm --force "${PR_SANDBOX_NAME}-${platform}" >/dev/null 2>&1 || true

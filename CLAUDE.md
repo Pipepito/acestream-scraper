@@ -436,3 +436,15 @@ host. Keep the FIFO lock for the full run. Cleanup retains recent runners/warm
 cache, escalates under disk pressure, protects explicit keeps and all container
 references, and reports failures. Do not restore blanket unused-image pruning or
 permanent keep labels. See `docs/ops/jenkins-ci.md` for retention and rollout.
+
+
+## Pipeline responsibilities
+
+The multibranch PR job skips ordinary branches. Application PRs run isolated
+checks and architecture contracts; maintainer-owned PRs also build every supported
+flavor/platform with `validate_pr_images.sh`, remove each temporary image, and
+never publish. Fork Dockerfiles still require review and promotion to a
+maintainer-owned branch before host builds. Develop validates, builds, tests and
+publishes only floating develop tags; manual main releases retain version checks
+and separate latest promotion. Preserve the shared full-run FIFO lock. Buildx
+cleanup must enumerate `.Builder.Name`, deduplicated, never child-node `.Name`.

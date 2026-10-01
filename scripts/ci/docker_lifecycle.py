@@ -22,7 +22,7 @@ RUNNER_REPO = 'acestream-scraper-pr-ci'
 INPUTS = ('backend/requirements.txt', 'frontend/package.json',
           'frontend/package-lock.json', 'docker/ci/pr-runner.Dockerfile')
 TRANSIENT = re.compile(r'^(acestream-scraper:(smoke-|release-smoke$)|'
-                       r'acestream-scraper-smoke:|acestream-installer-test:|acestream-scraper-task3:)')
+                       r'acestream-scraper-pr-build:|acestream-scraper-smoke:|acestream-installer-test:|acestream-scraper-task3:)')
 
 
 def docker(*args, capture=True):
@@ -160,7 +160,9 @@ def cleanup(args):
             keep.extend(im['Id'] for im in records('image', [ref]))
     usage = read_usage()
     now = time.time()
-    builders = docker('buildx', 'ls', '--format', '{{.Name}}').split()
+    # .Name includes child nodes (e.g. builder0), which cannot be pruned as
+    # builder instances. Select the documented parent Builder object instead.
+    builders = docker('buildx', 'ls', '--format', '{{.Builder.Name}}').split()
     builders = sorted(set(name.rstrip('*') for name in builders))
     if not builders:
         raise RuntimeError('No builders could be inspected; refusing incomplete cleanup')

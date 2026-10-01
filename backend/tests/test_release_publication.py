@@ -195,3 +195,22 @@ def test_release_runner_builds_dependencies_and_isolates_validation(release):
     assert 'run_develop_validation.sh' in container[-1]
     assert calls[1] == ['compose', 'config', '-q']
     assert not stale.exists()
+
+
+@pytest.mark.parametrize('channel', [[], ['--channel', 'develop']])
+def test_publication_uses_shared_pressure_cleanup_between_platforms(release, channel):
+    cleanup = release[0] / 'scripts/ci/cleanup_runner_docker.sh'
+    cleanup.write_text('printf "cleanup %s\\n" "$*" >> "$CALL_LOG"\n')
+    result, calls = run(release, *channel)
+    assert result.returncode == 0, result.stderr
+    assert calls.count('cleanup --builder-keep 8GB --min-free-gb 8') == 3
+    assert '["buildx", "prune"' not in calls
+    assert 'create' in calls
+
+
+def test_pressure_cleanup_failure_blocks_publication_tag_assignment(release):
+    cleanup = release[0] / 'scripts/ci/cleanup_runner_docker.sh'
+    cleanup.write_text('if [[ "$1" == --builder-keep ]]; then exit 29; fi\n')
+    result, calls = run(release)
+    assert result.returncode == 29
+    assert 'create' not in calls

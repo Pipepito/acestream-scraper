@@ -95,6 +95,16 @@ def main() -> int:
          and "--min-free-gb 8" in develop_jenkinsfile
          and "--min-free-gb 8" in release_sh
          and "--all-unused-images" not in develop_jenkinsfile + release_jenkinsfile + release_sh),
+        ("PR job ignores ordinary branches and builds maintainer image matrices without publication",
+         "stage('Pull request validation')" in pr_jenkinsfile
+         and "when { changeRequest() }" in pr_jenkinsfile
+         and "stage('Ordinary branch skipped')" in pr_jenkinsfile
+         and "stage('Build PR image matrix')" in pr_jenkinsfile
+         and "env.CI_APPLICATION != 'false' && !env.CHANGE_FORK" in pr_jenkinsfile
+         and "validate_pr_images.sh" in pr_jenkinsfile
+         and "docker image rm" in read("scripts/ci/validate_pr_images.sh")
+         and "--load" in read("scripts/ci/validate_pr_images.sh")
+         and "--push" not in read("scripts/ci/validate_pr_images.sh")),
         ("PR architecture plan exercises all flavors",
          all(token in phase5_config for token in FLAVOR_TOKENS)),
         ("PR pipeline has no publication or credential binding",
@@ -216,10 +226,11 @@ def main() -> int:
          promote_plan.count("pipepito/acestream-scraper:latest") == 1
          and f"<- pipepito/acestream-scraper:{version}" in promote_plan
          and "no flavor rebuild" in promote_plan),
-        ("release script pushes by digest, platform-major, with cache pruning",
+        ("release script pushes by digest, platform-major, with pressure-aware cleanup",
          "--push-by-digest" in release_sh
          and "publish_platform_major" in release_sh
-         and "docker buildx prune --builder" in release_sh),
+         and 'cleanup_runner_docker.sh --builder-keep "$PUBLISH_CACHE_CAP" --min-free-gb 8' in release_sh
+         and "docker_lifecycle.py prune" not in release_sh),
         ("release script targets pipepito Docker Hub repo by default",
          'IMAGE_REPO="${RELEASE_IMAGE_REPO:-pipepito/acestream-scraper}"' in release_sh
          and "pipepito/acestream-scraper-v2" not in release_sh),

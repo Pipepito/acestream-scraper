@@ -453,3 +453,10 @@ BuildKit numeric GC limits are bytes: convert the operator MiB settings before
 writing `reservedSpace`/`maxUsedSpace`. Under pressure, reclaim unused old cache
 without a size floor before recent cache or runners, and allow bounded time for
 asynchronous Docker disk reclamation. Never reduce the required free-space gate.
+
+Guide matching treats an imported stream ID as authoritative only if it resolves
+in any imported guide, including disabled or out-of-scope sources. Unknown IDs
+fall through to names without being overwritten; apply revalidates the complete
+ID inventory. Keep indexed ID candidates, bounded name comparisons, ambiguity,
+country/edition and assignment guards. Reviewed matching strips publisher text
+after `-->`; automation still requires conservative agreement of every name.

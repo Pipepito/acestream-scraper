@@ -435,7 +435,7 @@
       "env": "ACESTREAM_BIND_ALL",
       "group": "engine",
       "label": "Accept engine clients from any address",
-      "description": "Leave on for Tailscale, IPv6 LANs and unusual Docker networks. Only publish the unauthenticated engine API on trusted networks.",
+      "description": "On by default. Allows remote, VPN and Docker clients through the engine address filter. Publishing the engine port allows remote clients; 0.0.0.0:6878:6878 explicitly maps all IPv4 interfaces. ACESTREAM_HTTP_HOST is the internal connection address, not a listening restriction. Only publish the unauthenticated engine API on trusted networks.",
       "type": "boolean",
       "default": true,
       "appliesWhen": "engineOn"

@@ -57,14 +57,24 @@ class EPGMatchService:
         self._station = lru_cache(maxsize=20000)(station_name)
         self._normalized = lru_cache(maxsize=20000)(self.normalize_name)
         threshold = STRICTNESS_THRESHOLDS[strictness]
-        epg_channels, acestream_channels, self.tv_channels = EPGMatchRepository(self.db).inventory(
+        repository = EPGMatchRepository(self.db)
+        epg_channels, acestream_channels, self.tv_channels = repository.inventory(
             source_id, MAX_ANALYSIS_COMPARISONS)
+        self._imported_guide_ids = repository.imported_guide_ids()
+        identified_streams: Dict[str, List[AcestreamChannel]] = {}
+        name_streams = []
+        for stream in acestream_channels:
+            if stream.tvg_id in self._imported_guide_ids:
+                identified_streams.setdefault(stream.tvg_id, []).append(stream)
+            else:
+                name_streams.append(stream)
         existing_channels = self._load_existing_tv_channels(epg_channels)
         row_state = []
         candidate_claims: Dict[str, List[Dict[str, object]]] = {}
 
         for epg_channel in epg_channels:
-            matches = self._match_candidates(epg_channel, acestream_channels, threshold)
+            matches = self._match_candidates(
+                epg_channel, name_streams + identified_streams.get(epg_channel.channel_xml_id, []), threshold)
             row = {
                 "epg_channel": epg_channel,
                 "existing_tv_channel_ids": existing_channels.get(epg_channel.id, []),
@@ -181,7 +191,8 @@ class EPGMatchService:
         target = self._station(epg_channel.name)
         names = [self._station(value) for value in (stream.name, stream.tvg_name) if value]
         return (bool(names) and all(name_score(target, name) is not None for name in names)
-                and (not stream.tvg_id or stream.tvg_id == epg_channel.channel_xml_id))
+                and (stream.tvg_id not in self._imported_guide_ids
+                     or stream.tvg_id == epg_channel.channel_xml_id))
 
     def _match_candidates(
         self,
@@ -206,12 +217,16 @@ class EPGMatchService:
         acestream_channel: AcestreamChannel,
         threshold: float,
     ) -> Optional[CandidateMatch]:
+        # Imported IDs constrain identity only when they resolve somewhere in
+        # the complete guide inventory. Publisher labels may otherwise fall
+        # through to reviewed name matching without changing the stored ID.
+        if (acestream_channel.tvg_id in self._imported_guide_ids
+                and acestream_channel.tvg_id != epg_channel.channel_xml_id):
+            return None
         target = self._station(epg_channel.name)
         variants = [self._station(value) for value in (acestream_channel.name, acestream_channel.tvg_name) if value]
         # A missing edition on one side is not evidence for the other edition.
         if target.country_conflict or any(name.country_conflict or name.country != target.country for name in variants):
-            return None
-        if acestream_channel.tvg_id and acestream_channel.tvg_id != epg_channel.channel_xml_id:
             return None
         if epg_channel.channel_xml_id and acestream_channel.tvg_id == epg_channel.channel_xml_id:
             return CandidateMatch(acestream_channel=acestream_channel, score=1.0, match_stage="xml_id_exact")
@@ -229,7 +244,12 @@ class EPGMatchService:
         for normalized_name in normalized_names:
             if not normalized_name:
                 continue
-            best_score = max(best_score, SequenceMatcher(None, normalized_epg_name, normalized_name).ratio())
+            matcher = SequenceMatcher(None, normalized_epg_name, normalized_name)
+            # Both bounds are at least ratio(); skip expensive comparisons
+            # that cannot meet this threshold without changing any scores.
+            if matcher.real_quick_ratio() < threshold or matcher.quick_ratio() < threshold:
+                continue
+            best_score = max(best_score, matcher.ratio())
 
         if best_score >= threshold:
             return CandidateMatch(acestream_channel=acestream_channel, score=best_score, match_stage="name_similarity")
@@ -291,7 +311,9 @@ class EPGMatchService:
     def normalize_name(value: Optional[str]) -> str:
         if not value:
             return ""
-        normalized = value.lower()
+        # Publishers append distribution labels after an arrow. These are
+        # provenance, not station names (also stripped by station_name).
+        normalized = value.lower().split('-->', 1)[0]
         normalized = unicodedata.normalize("NFKD", normalized)
         normalized = "".join(char for char in normalized if not unicodedata.combining(char))
         normalized = QUALITY_PATTERN.sub(" ", normalized)

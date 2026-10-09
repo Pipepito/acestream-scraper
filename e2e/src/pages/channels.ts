@@ -16,7 +16,9 @@ export class ChannelsPage extends AppShell {
   }
 
   row(name: string): Locator {
-    return this.grid().getByRole('row').filter({ hasText: name });
+    return this.grid().getByRole('row').filter({
+      has: this.page.getByRole('button', { name: `More actions for ${name}`, exact: true }),
+    });
   }
 
   summary(): Locator {

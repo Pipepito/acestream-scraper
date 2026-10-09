@@ -105,6 +105,23 @@ class ChannelRepository:
         if search:
             query = query.filter(AcestreamChannel.name.ilike(f"%{search}%"))
         return query.order_by(AcestreamChannel.group, AcestreamChannel.name).all()
+    def get_import_assignment_exclusions(self, acestream_ids: Iterable[str]) -> set[str]:
+        """Preserve existing owners and explicit opt-outs during catalogue ingestion."""
+        ids = list(set(acestream_ids))
+        excluded = set()
+        for offset in range(0, len(ids), 500):
+            excluded.update(
+                channel_id for (channel_id,) in self.db.query(AcestreamChannel.id).filter(
+                    AcestreamChannel.id.in_(ids[offset:offset + 500]),
+                    or_(
+                        AcestreamChannel.tv_channel_id.is_not(None),
+                        AcestreamChannel.is_active.is_(False),
+                        AcestreamChannel.epg_update_protected.is_(True),
+                    ),
+                )
+            )
+        return excluded
+
     def assign_acestreams_to_tv_channel(self, acestream_ids: list, tv_channel_id: int) -> int:
         """Assign multiple acestream channels to a TV channel by setting their tv_channel_id."""
         if not acestream_ids:

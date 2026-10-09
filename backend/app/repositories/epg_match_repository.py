@@ -20,6 +20,12 @@ class EPGMatchRepository:
             AcestreamChannel.epg_update_protected.is_not(True),
         )
 
+    def imported_guide_ids(self):
+        # Identity constraints span every imported source, including disabled
+        # sources and sources outside the user's current preview filter.
+        return {xml_id for (xml_id,) in self.db.query(EPGChannel.channel_xml_id).distinct()
+                if xml_id}
+
     def inventory(self, source_id, budget):
         guides, streams = self.guide_query(source_id), self.stream_query()
         if guides.count() * streams.count() > budget:

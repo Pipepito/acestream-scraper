@@ -18,7 +18,7 @@
 
 set -euo pipefail
 
-KUBO_VERSION="${KUBO_VERSION:-v0.43.0}"
+KUBO_VERSION="${KUBO_VERSION:-v0.43.1}"
 KUBO_BASE_URL="${KUBO_BASE_URL:-https://github.com/ipfs/kubo/releases/download}"
 TARGET_PLATFORM="${TARGETPLATFORM:-}"
 # IPFS_INSTALL_DIR is overridable so the contract tests can run the script
@@ -39,11 +39,11 @@ mkdir -p "$IPFS_DIR" "$IPFS_BIN_DIR" "$SRC_DIR"
 case "$TARGET_PLATFORM" in
     linux/amd64)
         KUBO_ASSET="linux-amd64"
-        KUBO_SHA512="6af21cd24a307d94326807b3d3827064c74fb7122f83b6940af250e6ae40da250e0ec0e1f3551256b78cd204623ed56c32ce735bbe28bdcc787b36943c52458a"
+        KUBO_SHA512="ff53b2428794fc8cca39505d28c15b4cceaef4b90a09284f291f611fcdc8c06399690575fc89cbd4d85ef71f3652581296c6f2e710386f887c8edf36b6e89d71"
         ;;
     linux/arm64|linux/arm64/v8)
         KUBO_ASSET="linux-arm64"
-        KUBO_SHA512="aae6c766ec2436f27bbd2d6ab5f8de7d2ced4dc83abc5b54b17bd58a80c28f1ea2e38840305e22f08bd01c55cf8263745675da1bbda2ac0bcde268e9e61e3818"
+        KUBO_SHA512="70f082584651ef78fb5b07448be53bb0adf141aadcb7eea15ffa59bd9ca78fed46781c2cf5915b3528c591052f97486067fedb0a7a1415abd5bfd44942921501"
         ;;
     linux/arm/v7|linux/arm/v6)
         log "Kubo publishes no 32-bit ARM build; installing nothing for $TARGET_PLATFORM"

@@ -134,7 +134,9 @@ def test_automation_preserves_uncertain_or_manual_inventory(db_session, inventor
     if change == 'fuzzy': stream.name = 'ES: News Ones'
     if change == 'protected': stream.epg_update_protected = True
     if change == 'inactive': stream.is_active = False
-    if change == 'conflicting_id': stream.tvg_id = 'different.id'
+    if change == 'conflicting_id':
+        stream.tvg_id = 'different.id'
+        db_session.add(EPGChannel(name='Different station', channel_xml_id='different.id', epg_source_id=source.id))
     if change == 'disabled_source': source.enabled = False
     if change in ('assigned', 'existing_manual'):
         tv = TVChannel(name='ES: News One' if change == 'existing_manual' else 'Manual', epg_id='manual.id')
@@ -256,3 +258,115 @@ def test_existing_other_country_does_not_block_a_distinct_station(db_session, in
     result = automation.run()
     assert result.created == result.assigned == 1
     assert db_session.query(TVChannel).count() == 2
+
+
+@pytest.mark.parametrize('strictness', ['strict', 'balanced', 'loose'])
+def test_unresolved_imported_id_falls_back_to_name(client, db_session, inventory, strictness):
+    source, epg, stream = inventory
+    stream.tvg_id = 'Publisher station label'
+    db_session.commit()
+    preview = client.post('/api/v1/tv-channels/analyze-epg-matches', json={
+        'strictness': strictness, 'source_id': source.id}).json()
+    assert preview['summary']['matched_acestream_channels'] == 1
+    row = preview['rows'][0]
+    assert row['best_match_type'] == 'name_exact'
+    assert row['automation_safe']
+    assert stream.tvg_id == 'Publisher station label'
+    assert stream.tv_channel_id is None
+
+
+@pytest.mark.parametrize('enabled', [True, False])
+def test_resolvable_id_in_another_source_blocks_name_fallback(db_session, inventory, enabled):
+    source, epg, stream = inventory
+    other = EPGSource(name='Other guide', url='https://example.com/other', enabled=enabled)
+    db_session.add(other); db_session.flush()
+    db_session.add(EPGChannel(name='Other station', channel_xml_id='other.station', epg_source_id=other.id))
+    stream.tvg_id = 'other.station'
+    db_session.commit()
+    for strictness in ['strict', 'balanced', 'loose']:
+        preview = EPGMatchService(db_session).analyze_matches(strictness, source_id=source.id)
+        assert preview['summary']['matched_acestream_channels'] == 0
+
+
+def test_newly_resolved_id_invalidates_review(db_session, inventory):
+    source, epg, stream = inventory
+    stream.tvg_id = 'publisher.id'
+    db_session.commit()
+    row = analyze(db_session)[0]
+    assert row['can_apply']
+    db_session.add(EPGChannel(name='Other station', channel_xml_id='publisher.id', epg_source_id=source.id))
+    db_session.commit()
+    with pytest.raises(StaleEPGPreview):
+        apply(db_session, row)
+    assert stream.tv_channel_id is None
+    assert db_session.query(TVChannel).count() == 0
+
+
+def test_unknown_id_preserves_ambiguity_and_source_review(db_session, inventory):
+    source, epg, stream = inventory
+    stream.tvg_id = 'publisher.id'
+    other = EPGSource(name='Other guide', url='https://example.com/other', enabled=True)
+    db_session.add(other); db_session.flush()
+    db_session.add(EPGChannel(name=epg.name, channel_xml_id='other.id', epg_source_id=other.id))
+    db_session.commit()
+    preview = EPGMatchService(db_session).analyze_matches('loose')
+    assert preview['summary']['matched_acestream_channels'] == 0
+    assert all(row['ambiguous_count'] == 1 for row in preview['rows'])
+    preview = EPGMatchService(db_session).analyze_matches('strict', source_id=source.id)
+    assert preview['summary']['matched_acestream_channels'] == 1
+
+
+def test_automation_matches_unknown_ids_without_rewriting_them(db_session, inventory):
+    _, _, stream = inventory
+    stream.tvg_id = 'publisher.id'
+    db_session.commit()
+    automation = EPGMatchingAutomation(db_session)
+    automation.save(EPGMatchingConfig(enabled=True))
+    result = automation.run()
+    assert result.created == result.assigned == 1
+    assert stream.tvg_id == 'publisher.id'
+    assert stream.tv_channel_id is not None
+    assert automation.run().assigned == 0
+
+
+def test_resolved_ids_only_score_their_guide(db_session, inventory, monkeypatch):
+    source, epg, stream = inventory
+    stream.tvg_id = epg.channel_xml_id
+    db_session.add_all([EPGChannel(name=f'Other {i}', channel_xml_id=f'other.{i}', epg_source_id=source.id)
+                        for i in range(20)])
+    db_session.commit()
+    service = EPGMatchService(db_session)
+    score = service._score_candidate
+    calls = []
+    def counted(guide, *args):
+        calls.append(guide.id)
+        return score(guide, *args)
+    monkeypatch.setattr(service, '_score_candidate', counted)
+    assert service.analyze_matches('loose')['summary']['matched_acestream_channels'] == 1
+    assert calls == [epg.id]
+
+
+def test_publisher_suffix_is_not_part_of_reviewed_station_name(db_session, inventory):
+    _, _, stream = inventory
+    stream.name = 'ES: News One (FHD) (N-294) --> New Loop signed'
+    stream.tvg_id = 'publisher.id'
+    db_session.commit()
+    row = analyze(db_session)[0]
+    assert row['best_match_type'] == 'name_exact'
+    # The bracketed publisher tag is not stripped by conservative automation.
+    assert not row['automation_safe']
+
+
+@pytest.mark.parametrize('change', ['country', 'protected', 'assigned', 'inactive'])
+def test_unknown_id_does_not_bypass_existing_protections(db_session, inventory, change):
+    _, _, stream = inventory
+    stream.tvg_id = 'publisher.id'
+    if change == 'country': stream.name = 'UK: News One'
+    if change == 'protected': stream.epg_update_protected = True
+    if change == 'inactive': stream.is_active = False
+    if change == 'assigned':
+        tv = TVChannel(name='Manual station')
+        db_session.add(tv); db_session.flush()
+        stream.tv_channel_id = tv.id
+    db_session.commit()
+    assert EPGMatchService(db_session).analyze_matches('loose')['summary']['matched_acestream_channels'] == 0

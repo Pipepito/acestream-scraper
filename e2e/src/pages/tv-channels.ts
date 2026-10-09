@@ -112,7 +112,7 @@ export class TVChannelDetailPage extends AppShell {
     await expect(dialog).toBeVisible();
     await dialog.getByRole('textbox', { name: 'Search by name, group, or ID' }).fill(search);
     for (const name of names) {
-      await dialog.getByRole('checkbox', { name: `Select acestream ${name}` }).check();
+      await dialog.getByRole('checkbox', { name: `Select acestream ${name}`, exact: true }).check();
     }
     await dialog.getByRole('button', { name: 'Assign Selected' }).click();
     await expect(dialog).toBeHidden();

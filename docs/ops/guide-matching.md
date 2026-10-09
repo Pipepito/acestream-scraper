@@ -80,3 +80,27 @@ advertises `/tuner/epg.xml` and retains the tuner network policy.
 Playlist coverage is catalogue-wide, independent of export filters. A linked
 source/channel is not proof that the source currently has programmes. Coverage
 errors remain unavailable, never a zero count.
+
+## Imported IDs that do not resolve
+
+A stream's imported `tvg_id` constrains matching when it exists in **any imported
+EPG source**, including disabled sources and sources outside the preview filter.
+A publisher label that resolves nowhere falls through to name matching at every
+strictness level. The original stream ID remains stored; applying a reviewed match
+selects the TV channel's source-qualified guide identity for exports. Importing a
+new guide can make a previously unknown ID authoritative, so apply rechecks this
+inventory too and rejects a stale preview.
+
+Quality/bracket tags and publisher signatures after `-->` are ignored in reviewed
+name comparisons. Country/edition checks, ambiguity and assignment protection
+still apply. Automation retains its stricter requirement that all supplied names
+agree after conservative normalization; a reviewed suggestion need not be safe
+for automation. Summary stream counts count unique accepted streams, not every
+candidate comparison. Resolvable IDs use an indexed lookup; name similarity uses
+upper bounds to avoid comparisons that cannot reach the selected threshold.
+
+M3U ingestion also preserves existing TV-channel ownership, protected streams and
+disabled streams when associating imported IDs. Re-scraping a source must not fail
+because a matching stream already belongs to a manually chosen channel. Eligible
+new streams can still join the imported guide channel; explicit assignment keeps
+its conflict checks.

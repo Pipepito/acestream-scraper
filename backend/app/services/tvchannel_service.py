@@ -313,7 +313,12 @@ class TVChannelService:
 
     def auto_associate_acestreams(self, tv_channel: TVChannel) -> int:
         candidates = self._find_matching_acestreams(tv_channel)
-        candidate_ids = [candidate.id for candidate in candidates if candidate.tv_channel_id != tv_channel.id]
+        candidate_ids = [
+            candidate.id for candidate in candidates
+            if candidate.tv_channel_id is None
+            and candidate.is_active
+            and not candidate.epg_update_protected
+        ]
         if not candidate_ids:
             return 0
         return self.repository.assign_acestreams_to_tv_channel(candidate_ids, tv_channel.id)

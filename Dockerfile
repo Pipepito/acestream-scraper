@@ -137,7 +137,7 @@ FROM python:${ACESTREAM_ENGINE_PYTHON_VERSION}-slim AS engine-python
 FROM --platform=$BUILDPLATFORM debian:bookworm-slim AS ipfs-installer
 
 ARG TARGETPLATFORM
-ARG KUBO_VERSION=v0.43.0
+ARG KUBO_VERSION=v0.43.1
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl tar \

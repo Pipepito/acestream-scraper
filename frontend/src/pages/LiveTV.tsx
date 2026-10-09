@@ -45,7 +45,7 @@ const LiveTV: React.FC = () => {
   const isWatching = Boolean(playingStream || (selectedId && selected.data?.acestream_channels.length));
   useEffect(() => {
     if (isWatching) viewingArea.current?.scrollIntoView?.({ block: 'start' });
-  }, [isWatching]);
+  }, [isWatching, canResizePlayer]);
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const close = () => { const next = new URLSearchParams(params); next.delete('channel'); setParams(next, { replace: true }); };
 

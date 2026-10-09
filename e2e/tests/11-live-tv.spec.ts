@@ -43,6 +43,7 @@ test('video keeps advancing while browsing and switches channels inline', async 
     await expect.poll(() => leaves.length).toBe(1);
     await expect.poll(() => video.evaluate(v => (v as HTMLVideoElement).currentTime), { timeout: 60_000 }).toBeGreaterThan(1);
     await page.setViewportSize({ width: 390, height: 844 });
+    await page.screenshot({ path: testInfo.outputPath('live-mobile-before-assertions.png'), fullPage: true });
     await expect(video).toBeInViewport();
     await expect(page.getByRole('searchbox', { name: 'Find a channel' })).toBeInViewport();
     await page.screenshot({ path: testInfo.outputPath('live-video-and-catalogue.png'), fullPage: true });

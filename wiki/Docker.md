@@ -254,6 +254,12 @@ ARM caveats:
 - **Performance and streaming stability** on real ARM hardware are not yet validated; report results if you try it.
 - Repackaging the official APK payload is a grey area under the AceStream user agreement, as with every community ARM image. Enable the engine at your own discretion.
 
+The Docker command generator shows engine access guidance when port 6878 is
+published. `ACESTREAM_HTTP_HOST=localhost` is an internal connection destination,
+not a restriction on accepted clients. Keep it for the bundled engine;
+`ACESTREAM_BIND_ALL=true` already accepts remote clients. Use a published host
+address of `0.0.0.0` when all IPv4 host interfaces should be reachable.
+
 #### Playing streams on ARM
 
 The web player, remote players (VLC/Kodi) and the Jellyfin/Plex tuner all ask the engine to start a stream, so what they can do depends on which engine your platform runs:
@@ -316,6 +322,10 @@ docker run -d \
 - Ports: `4001` tcp/udp is the swarm port (publishing it improves peer connectivity), `8081` is the HTTP gateway (only needed outside the container if you want to browse IPFS content through the node). The RPC API on `5001` has **no authentication** and full control of the node; it binds to the container loopback by default. If you need the WebUI, set `-e IPFS_API_HOST=0.0.0.0` and publish it only on the host loopback: `-p 127.0.0.1:5001:5001`.
 - Port overrides: `IPFS_SWARM_PORT` (default `4001`), `IPFS_API_PORT` (default `5001`), `IPFS_GATEWAY_PORT` (default `8081`; `8080` is taken by Acexy in-container). The entrypoint re-applies these to the IPFS config on every boot.
 - Once running, add sources as `ipfs://<cid>/path/list.m3u` (or `ipns://<name>/...`) in the Scraper page — they are fetched through the embedded gateway. A bare `ipfs://<cid>` whose content is an M3U playlist also works; the scraper detects the playlist by content.
+
+Bundled Kubo is pinned to v0.43.1 with separate SHA-512 checksums for amd64 and
+arm64. Upstream provides no ARMv7 binary; that platform still needs an external
+IPFS gateway. Existing persistent IPFS repositories are retained on upgrade.
 
 ### View Running Containers
 ```bash

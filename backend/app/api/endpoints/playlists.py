@@ -1,18 +1,37 @@
 """
 API endpoints for playlist management and generation
 """
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from fastapi.responses import PlainTextResponse, JSONResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from app.config.database import get_db
+from app.api.auth import authenticated_player_url
+from app.repositories.settings_repository import SettingsRepository
 from app.services.playlist_service import PlaylistService
+from app.schemas.channel import PlaylistGuideCoverage
+from app.services.public_url_service import resolve_public_base_url
 from app.services.task_service import task_service
 
 router = APIRouter()
 
-M3U_DOWNLOAD_HEADERS = {"Content-Disposition": "attachment; filename=playlist.m3u"}
+M3U_DOWNLOAD_HEADERS = {"Content-Disposition": "attachment; filename=playlist.m3u", "Cache-Control": "private, no-store"}
+
+#: Canonical XMLTV route; the m3u points players at it through url-tvg.
+EPG_XML_PATH = "/api/v1/epg/xml"
+
+
+def epg_url_for(request: Request, db: Session) -> str:
+    """Where a player should fetch the guide, for the playlist's url-tvg.
+
+    Resolved like every other externally visible URL in the app (spec 4.3, the
+    same helper the tuner uses), so it honours the configured public base URL
+    and a reverse proxy's forwarded headers rather than whatever host the app
+    happens to be bound to.
+    """
+    public = resolve_public_base_url(request, SettingsRepository(db)).url
+    return authenticated_player_url(request, f"{public}{EPG_XML_PATH}")
 
 
 def trigger_url_scrape_refresh() -> None:
@@ -34,8 +53,14 @@ def trigger_url_scrape_refresh() -> None:
         )
 
 
+@router.get("/guide-coverage", response_model=PlaylistGuideCoverage)
+def guide_coverage(db: Session = Depends(get_db)):
+    return PlaylistService(db).guide_coverage()
+
+
 @router.get("/m3u", response_class=PlainTextResponse)
 async def get_m3u_playlist(
+    request: Request,
     search: Optional[str] = None,
     group: Optional[str] = None,
     only_online: bool = True,
@@ -79,12 +104,11 @@ async def get_m3u_playlist(
             exclude_groups=exclude_groups_list,
             base_url=base_url,
             base_url_id=base_url_id,
-            format=format
+            format=format,
+            epg_url=epg_url_for(request, db),
         )
 
-        headers = {
-            "Content-Disposition": "attachment; filename=playlist.m3u"
-        }
+        headers = M3U_DOWNLOAD_HEADERS
         # Return the M3U content with proper headers
         return PlainTextResponse(m3u_content, headers=headers)
     except LookupError as e:
@@ -98,6 +122,7 @@ async def get_m3u_playlist(
 
 @router.get("/playlists/m3u", response_class=PlainTextResponse)
 async def get_m3u_playlist_compat(
+    request: Request,
     search: Optional[str] = None,
     group: Optional[str] = None,
     only_online: bool = True,
@@ -118,6 +143,7 @@ async def get_m3u_playlist_compat(
     /m3u endpoint.
     """
     return await get_m3u_playlist(
+        request=request,
         search=search,
         group=group,
         only_online=only_online,
@@ -135,6 +161,7 @@ async def get_m3u_playlist_compat(
 
 @router.get("/tv-channels/m3u", response_class=PlainTextResponse)
 async def get_tv_channels_playlist(
+    request: Request,
     search: Optional[str] = None,
     favorites_only: bool = False,
     base_url: Optional[str] = Query(None),
@@ -161,7 +188,8 @@ async def get_tv_channels_playlist(
             favorites_only=favorites_only,
             base_url=base_url,
             base_url_id=base_url_id,
-            format=format
+            format=format,
+            epg_url=epg_url_for(request, db),
         )
         return PlainTextResponse(m3u_content, headers=M3U_DOWNLOAD_HEADERS)
     except LookupError as e:
@@ -175,6 +203,7 @@ async def get_tv_channels_playlist(
 
 @router.get("/all-streams/m3u", response_class=PlainTextResponse)
 async def get_all_streams_playlist(
+    request: Request,
     search: Optional[str] = None,
     include_unassigned: bool = True,
     base_url: Optional[str] = Query(None),
@@ -201,7 +230,8 @@ async def get_all_streams_playlist(
             include_unassigned=include_unassigned,
             base_url=base_url,
             base_url_id=base_url_id,
-            format=format
+            format=format,
+            epg_url=epg_url_for(request, db),
         )
         return PlainTextResponse(m3u_content, headers=M3U_DOWNLOAD_HEADERS)
     except LookupError as e:

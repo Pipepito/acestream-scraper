@@ -48,8 +48,10 @@ class EPGExportOperations:
         )
         epg_lookup = self.epg_channel_lookup(sorted_channels)
 
+        from app.services.epg_identity_service import EPGIdentityService
+        identities = EPGIdentityService(self.db)
         channel_epg_mappings = []
-        name_counts = {}
+        emitted = set()
 
         for tv_channel in sorted_channels:
             if not tv_channel.epg_id:
@@ -58,15 +60,11 @@ class EPGExportOperations:
             if epg_channel is None:
                 continue
 
-            base_name = tv_channel.name
-            if base_name in name_counts:
-                name_counts[base_name] += 1
-                display_name = f"{base_name} {name_counts[base_name]}"
-                epg_id = f"{tv_channel.epg_id}.{name_counts[base_name]}"
-            else:
-                name_counts[base_name] = 1
-                display_name = base_name
-                epg_id = tv_channel.epg_id
+            epg_id = identities.resolve(tv_channel.epg_source_id, tv_channel.epg_id)
+            if epg_id in emitted:
+                continue
+            emitted.add(epg_id)
+            display_name = tv_channel.name
 
             channel_epg_mappings.append({
                 'epg_id': epg_id,

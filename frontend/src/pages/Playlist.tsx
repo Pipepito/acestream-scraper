@@ -1,3 +1,4 @@
+import GuideCoverage from '../components/GuideCoverage';
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
@@ -118,6 +119,7 @@ const Playlist: React.FC = () => {
     <Box>
       <PageHeader title="Playlist" subtitle="One M3U link with your channels. Import it in your player and it stays up to date." />
 
+      <ContentSection title="Programme guide"><GuideCoverage /></ContentSection>
       <ContentSection title="Your playlist">
         <Grid container spacing={3}>
           <Grid item xs={12} md={7}>

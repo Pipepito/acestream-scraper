@@ -19,6 +19,7 @@ unchanged.
 
 import os
 import secrets
+from urllib.parse import urlencode
 
 from fastapi import HTTPException, Request, status
 
@@ -60,3 +61,15 @@ async def require_api_token(request: Request) -> None:
         detail="Invalid or missing API token",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+
+def authenticated_player_url(request: Request, url: str) -> str:
+    """Carry an already validated credential into a player-followed URL.
+
+    Never disclose the server's configured secret to an unauthenticated caller.
+    The destination must be an application URL resolved by the caller.
+    """
+    expected, presented = _configured_token(), _presented_token(request)
+    if expected and presented and secrets.compare_digest(expected.encode(), presented.encode()):
+        return url + ('&' if '?' in url else '?') + urlencode({'token': presented})
+    return url

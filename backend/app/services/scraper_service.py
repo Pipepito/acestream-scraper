@@ -105,6 +105,11 @@ class ScraperService:
             self.db.commit()
             if custom_recipe:
                 await scraper.update_url_status(source_url, "OK")
+            if not status.lower().startswith('error'):
+                from starlette.concurrency import run_in_threadpool
+                from app.services.epg_matching_automation import EPGMatchingAutomation
+                await run_in_threadpool(EPGMatchingAutomation(self.db).run)
+
 
             return [
                 ChannelResult(

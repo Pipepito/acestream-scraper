@@ -417,13 +417,10 @@ prune_builder_after() {
   [[ -n "$PRUNE_AFTER" ]] || return 0
   local builder="${BUILDER:-default}"
   if [[ "$DRY_RUN" -eq 1 ]]; then
-    echo "[DRY RUN] docker buildx prune --builder $builder -f --max-used-space $PRUNE_AFTER"
+    echo "[DRY RUN] docker buildx prune --builder $builder -af --max-used-space $PRUNE_AFTER"
     return 0
   fi
-  docker buildx prune --builder "$builder" -f --max-used-space "$PRUNE_AFTER" >/dev/null 2>&1 \
-    || docker buildx prune --builder "$builder" -f --keep-storage "$PRUNE_AFTER" >/dev/null 2>&1 \
-    || true
-  echo "Builder $builder cache after prune: $(docker buildx du --builder "$builder" 2>/dev/null | grep -E '^Total:' | tr -s '\t ' ' ' || echo unknown)"
+  python3 "$(dirname "$0")/docker_lifecycle.py" prune --builder "$builder" --cap "$PRUNE_AFTER"
 }
 
 if [[ "$PUSH_BY_DIGEST" -eq 1 ]]; then

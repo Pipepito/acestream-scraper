@@ -22,6 +22,17 @@ class PlaylistService:
         self.db = db
         self.channel_repository = ChannelRepository(db)
 
+    def guide_coverage(self):
+        from app.repositories.epg_match_repository import EPGMatchRepository
+        return EPGMatchRepository(self.db).coverage()
+
+    @property
+    def epg_ids(self):
+        from app.services.epg_identity_service import EPGIdentityService
+        if not hasattr(self, "_epg_ids"):
+            self._epg_ids = EPGIdentityService(self.db)
+        return self._epg_ids
+
     async def generate_playlist(
         self,
         search: Optional[str] = None,
@@ -34,6 +45,7 @@ class PlaylistService:
         base_url_id: Optional[int] = None,
         format: Optional[str] = None,
         include_unassigned: Optional[bool] = None,
+        epg_url: Optional[str] = None,
     ) -> str:
         """
         Generate an M3U playlist with the specified filters
@@ -72,7 +84,7 @@ class PlaylistService:
                 unassigned = [c for c in channels if c.tv_channel_id is None
                               and (not search or search.casefold() in (c.name or '').casefold())]
                 entries.extend(self._unassigned_entries(unassigned, tv_channels, base_url, False, 1, name_counts))
-            return "#EXTM3U\n" + "\n".join(entries) + "\n"
+            return self._m3u_header(epg_url) + "\n" + "\n".join(entries) + "\n"
 
         if include_unassigned is False:
             channels = [c for c in channels if c.tv_channel_id is not None]
@@ -83,7 +95,8 @@ class PlaylistService:
             channels,
             base_url=base_url,
             format=format,
-            addpid=addpid_enabled
+            addpid=addpid_enabled,
+            epg_url=epg_url,
         )
         return m3u_content
 
@@ -93,7 +106,8 @@ class PlaylistService:
         favorites_only: bool = False,
         base_url: Optional[str] = None,
         base_url_id: Optional[int] = None,
-        format: Optional[str] = None
+        format: Optional[str] = None,
+        epg_url: Optional[str] = None,
     ) -> str:
         """
         Generate a curated M3U playlist of TV channels with their assigned
@@ -106,7 +120,7 @@ class PlaylistService:
         )
         base_url, addpid = self._resolve_output_settings(base_url, base_url_id)
 
-        lines: List[str] = ["#EXTM3U"]
+        lines: List[str] = [self._m3u_header(epg_url)]
         pid_counter = 1
         name_counts: Dict[str, int] = {}
         entry_lines, pid_counter, _ = self._tv_channel_entries(
@@ -121,7 +135,8 @@ class PlaylistService:
         include_unassigned: bool = True,
         base_url: Optional[str] = None,
         base_url_id: Optional[int] = None,
-        format: Optional[str] = None
+        format: Optional[str] = None,
+        epg_url: Optional[str] = None,
     ) -> str:
         """
         Generate an M3U playlist of numbered TV channels followed by
@@ -130,7 +145,7 @@ class PlaylistService:
         tv_channels = self.channel_repository.get_playlist_tv_channels(search=search)
         base_url, addpid = self._resolve_output_settings(base_url, base_url_id)
 
-        lines: List[str] = ["#EXTM3U"]
+        lines: List[str] = [self._m3u_header(epg_url)]
         pid_counter = 1
         name_counts: Dict[str, int] = {}
         entry_lines, pid_counter, processed_ids = self._tv_channel_entries(
@@ -160,8 +175,9 @@ class PlaylistService:
             name = self._dedupe_name(self._attr(channel.name or f"Stream {channel.id[:8]}"), name_counts)
             attrs = [f'tvg-chno="{number}"', f'tvg-name="{name}"']
             number += 1
-            if channel.tvg_id:
-                attrs.append(f'tvg-id="{self._attr(channel.tvg_id)}"')
+            epg_id = self.epg_ids.resolve(None, channel.tvg_id)
+            if epg_id:
+                attrs.append(f'tvg-id="{self._attr(epg_id)}"')
             if channel.logo:
                 attrs.append(f'tvg-logo="{self._attr(channel.logo)}"')
             attrs.append(f'group-title="{self._attr(channel.group or "Unassigned Streams")}"')
@@ -219,10 +235,9 @@ class PlaylistService:
                         attrs.append(f'tvg-chno="{tv_channel.channel_number}"')
                 # All streams of a channel share the channel's EPG listing, so
                 # tvg-id stays un-suffixed and keeps matching the EPG XML ids.
-                if tv_channel.epg_id:
-                    attrs.append(f'tvg-id="{self._attr(tv_channel.epg_id)}"')
-                elif stream.tvg_id:
-                    attrs.append(f'tvg-id="{self._attr(stream.tvg_id)}"')
+                epg_id = self.epg_ids.resolve(tv_channel.epg_source_id, tv_channel.epg_id) if tv_channel.epg_id else self.epg_ids.resolve(None, stream.tvg_id)
+                if epg_id:
+                    attrs.append(f'tvg-id="{self._attr(epg_id)}"')
                 attrs.append(f'tvg-name="{display_name}"')
                 if tv_channel.logo_url:
                     attrs.append(f'tvg-logo="{self._attr(tv_channel.logo_url)}"')
@@ -267,6 +282,17 @@ class PlaylistService:
             candidate = f"{name} ({count})"
         name_counts[candidate] = 1
         return candidate
+
+    @staticmethod
+    def _m3u_header(epg_url: Optional[str] = None) -> str:
+        """The #EXTM3U line, carrying url-tvg when the caller knows the guide.
+
+        Without url-tvg a player has the channel ids but nowhere to fetch the
+        guide from, so the EPG never shows up however well the ids match.
+        """
+        if not epg_url:
+            return "#EXTM3U"
+        return f'#EXTM3U url-tvg="{PlaylistService._attr(epg_url)}"'
 
     @staticmethod
     def _attr(value) -> str:
@@ -360,7 +386,7 @@ class PlaylistService:
         """
         return self.channel_repository.get_unique_groups()
 
-    def _generate_m3u_content(self, channels: List[AcestreamChannel], base_url: Optional[str] = None, format: Optional[str] = None, addpid: bool = False) -> str:
+    def _generate_m3u_content(self, channels: List[AcestreamChannel], base_url: Optional[str] = None, format: Optional[str] = None, addpid: bool = False, epg_url: Optional[str] = None) -> str:
         """
         Convert channels to M3U format, supporting custom base_url and format
 
@@ -373,7 +399,7 @@ class PlaylistService:
             M3U formatted string
         """
         # M3U header
-        header = "#EXTM3U\n"
+        header = self._m3u_header(epg_url) + "\n"
 
         # Generate each channel entry
         entries = []
@@ -398,9 +424,11 @@ class PlaylistService:
                 attrs.append(f'tvg-logo="{logo}"')
 
             # Add channel name and ID if available
-            tvg_id = getattr(channel, 'tvg_id', '')
+            tv = channel.tv_channel
+            tvg_id = (self.epg_ids.resolve(tv.epg_source_id, tv.epg_id) if tv and tv.epg_id
+                      else self.epg_ids.resolve(None, channel.tvg_id))
             if tvg_id:
-                attrs.append(f'tvg-id="{tvg_id}"')
+                attrs.append(f'tvg-id="{self._attr(tvg_id)}"')
 
             # Generate entry
             entry = f'#EXTINF:-1 {" ".join(attrs)}, {channel.name}\n'

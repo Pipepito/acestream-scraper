@@ -131,9 +131,11 @@ not part of the required PR gate; see `e2e/AGENTS.md` before running it.
   uses `acestream-scraper-develop`, and manual releases use
   `acestream-scraper-release`. All currently launch on `dorat-nuc-ci`, but fork
   code runs only inside network-disabled containers; it must never receive the
-  Docker socket or a Jenkins credential. Each fork build requiring application validation creates a disposable
-  dependency runner from the trusted target ref, then runs runtime contracts in
-  pinned amd64, arm64, and arm/v7 userlands. Do not execute a fork-controlled
+  Docker socket or a Jenkins credential. Each fork build requiring application
+  validation resolves a dependency-keyed runner from trusted target-ref inputs,
+  reusing only a verified matching image and running contributor code in a fresh
+  disposable container. Runtime contracts run in pinned amd64, arm64, and arm/v7
+  userlands. Do not execute a fork-controlled
   Dockerfile or install fork-controlled dependency inputs automatically.
 - When Jenkins and GitHub disagree, distinguish the Jenkins build result from the
   GitHub commit status and record the commit SHA each result belongs to.
@@ -380,3 +382,49 @@ not merely a successful CLI call, before engines start. The ARM resolver follows
 container nameserver changes and retains the last valid configuration during a
 partial rewrite. Keep WARP opt-in; direct-route lookup failures must not trigger
 automatic routing changes. See `docs/ops/arm64-mod-detected.md`.
+
+## Reviewed guide setup
+
+EPG Matching defaults to a read-only preview with explicit row selection. Apply
+rechecks the complete source scope and rejects changed `expected_previews` before
+writing. Preserve assignments and source-qualified guide identity; ambiguous
+matches are never chosen by row ID. Settings → Automation stores opt-in
+`epg_matching` (off by default); successful scrapes/EPG refreshes apply only
+unambiguous exact matches off the event loop after ingestion commits. Keep its
+last result visible and failures independent of ingestion. Playlists and XMLTV
+share collision-safe IDs and validated token propagation for guide discovery.
+See `docs/ops/guide-matching.md`.
+
+## CI runner reuse and retention
+
+PR, develop and release share `build_pr_runner.sh` and `docker_lifecycle.py`.
+Runner identity includes committed dependency inputs, the pinned Dockerfile and
+platform; never select a mutable legacy runner tag or execute fork policy on the
+host. Keep the FIFO lock for the full run. Cleanup retains recent runners/warm
+cache, escalates under disk pressure, protects explicit keeps and all container
+references, and reports failures. Do not restore blanket unused-image pruning or
+permanent keep labels. See `docs/ops/jenkins-ci.md` for retention and rollout.
+
+
+## Pipeline responsibilities
+
+The multibranch PR job skips ordinary branches. Application PRs run isolated
+checks and architecture contracts; maintainer-owned PRs also build every supported
+flavor/platform with `validate_pr_images.sh`, remove each temporary image, and
+never publish. Fork Dockerfiles still require review and promotion to a
+maintainer-owned branch before host builds. Develop validates, builds, tests and
+publishes only floating develop tags; manual main releases retain version checks
+and separate latest promotion. Preserve the shared full-run FIFO lock. Buildx
+cleanup must enumerate `.Builder.Name`, deduplicated, never child-node `.Name`.
+
+BuildKit numeric GC limits are bytes: convert the operator MiB settings before
+writing `reservedSpace`/`maxUsedSpace`. Under pressure, reclaim unused old cache
+without a size floor before recent cache or runners, and allow bounded time for
+asynchronous Docker disk reclamation. Never reduce the required free-space gate.
+
+Guide matching treats an imported stream ID as authoritative only if it resolves
+in any imported guide, including disabled or out-of-scope sources. Unknown IDs
+fall through to names without being overwritten; apply revalidates the complete
+ID inventory. Keep indexed ID candidates, bounded name comparisons, ambiguity,
+country/edition and assignment guards. Reviewed matching strips publisher text
+after `-->`; automation still requires conservative agreement of every name.

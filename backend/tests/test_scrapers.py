@@ -513,6 +513,62 @@ acestream://{channel_id}
         ).one()
         assert persisted.tv_channel_id == tv_channels[0].id
 
+    @pytest.mark.parametrize("existing_target", [False, True])
+    def test_rescrape_preserves_owned_and_protected_streams(self, db_session, monkeypatch, existing_target):
+        source_url = "https://example.com/owned_streams.m3u"
+        guide = EPGSource(url="https://example.com/guide.xml", name="Guide")
+        owner = TVChannel(name="My chosen channel", channel_number=37, is_favorite=True)
+        db_session.add_all([guide, owner])
+        db_session.flush()
+        db_session.add(EPGChannel(epg_source_id=guide.id, channel_xml_id="guide-id", name="Guide Channel"))
+        if existing_target:
+            db_session.add(TVChannel(name="Guide Channel", epg_id="guide-id", epg_source_id=guide.id))
+        ids = [str(i) * 40 for i in range(1, 6)]
+        for channel_id, extra in zip(ids[:4], [
+            {"tv_channel_id": owner.id},
+            {"epg_update_protected": True},
+            {"is_active": False},
+            {},
+        ]):
+            db_session.add(AcestreamChannel(
+                id=channel_id, name="Guide Channel", tvg_id="guide-id", source_url=source_url,
+                **extra,
+            ))
+        db_session.commit()
+        content = "#EXTM3U\n" + "".join(
+            f'#EXTINF:-1 tvg-id="guide-id",Guide Channel\nacestream://{channel_id}\n'
+            for channel_id in ids
+        )
+
+        class FakeScraper:
+            def __init__(self):
+                from app.models.url_types import RegularURL
+                self.url_obj = RegularURL(source_url)
+                self.db = self.epg_service = self.tv_channel_service = None
+
+            async def scrape(self):
+                return M3UService().extract_channels_from_content(
+                    content, db=self.db, epg_service=self.epg_service,
+                    tv_channel_service=self.tv_channel_service,
+                ), "OK"
+
+        monkeypatch.setattr("app.services.scraper_service.create_scraper_for_url", lambda *_: FakeScraper())
+        service = ScraperService(db_session)
+        for _ in range(2):
+            channels, result = asyncio.run(service.scrape_url(source_url, "regular"))
+            assert result == "OK"
+            assert len(channels) == 5
+            db_session.expire_all()
+            target = db_session.query(TVChannel).filter_by(epg_id="guide-id").one()
+            assert db_session.get(AcestreamChannel, ids[0]).tv_channel_id == owner.id
+            assert db_session.get(AcestreamChannel, ids[1]).tv_channel_id is None
+            assert db_session.get(AcestreamChannel, ids[2]).tv_channel_id is None
+            assert db_session.get(AcestreamChannel, ids[3]).tv_channel_id == target.id
+            assert db_session.get(AcestreamChannel, ids[4]).tv_channel_id == target.id
+            assert owner.name == "My chosen channel"
+            assert owner.channel_number == 37
+            assert owner.is_favorite is True
+
     def test_scrape_service_clears_stale_metadata_on_rescrape(self, db_session, monkeypatch):
         source_url = "https://example.com/stale_metadata.m3u"
         existing = AcestreamChannel(

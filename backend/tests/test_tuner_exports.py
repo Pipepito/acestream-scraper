@@ -36,7 +36,7 @@ def test_playlist_m3u_uses_relay_urls_and_tvg_attributes(db_session):
     svc = TunerService(db_session)
     m3u = svc.build_playlist_m3u(svc.build_lineup(), "http://scraper.lan:8000")
     lines = m3u.strip().split("\n")
-    assert lines[0] == "#EXTM3U"
+    assert lines[0] == '#EXTM3U url-tvg="http://scraper.lan:8000/tuner/epg.xml"'
     assert lines[1] == '#EXTINF:-1 tvg-id="DAZN LaLiga HD" tvg-chno="12" tvg-name="DAZN 1" tvg-logo="http://logo" group-title="Sports",DAZN 1'
     assert lines[2] == f"http://scraper.lan:8000/tuner/channel/{tv.id}.ts"
 

@@ -52,6 +52,7 @@ class PlaylistService:
         format: Optional[str] = None,
         include_unassigned: Optional[bool] = None,
         epg_url: Optional[str] = None,
+        per_source: bool = False,
     ) -> str:
         """
         Generate an M3U playlist with the specified filters
@@ -85,7 +86,7 @@ class PlaylistService:
             tv_channels = [tv for tv in self.channel_repository.get_playlist_tv_channels(search=search, favorites_only=favorites_only)
                            if tv.id in tv_ids]
             name_counts = {}
-            entries, _, _ = self._tv_channel_entries(tv_channels, base_url, False, 1, name_counts)
+            entries, _, _ = self._tv_channel_entries(tv_channels, base_url, False, 1, name_counts, per_source=per_source)
             if include_unassigned:
                 unassigned = [c for c in channels if c.tv_channel_id is None
                               and (not search or search.casefold() in (c.name or '').casefold())]
@@ -165,13 +166,52 @@ class PlaylistService:
 
         return "\n".join(lines) + "\n"
 
+    @staticmethod
+    def _raw_relay_base(base_url: str) -> str:
+        """The relay route for one stream, next to a TV-channel relay format."""
+        parts = urlsplit(base_url)
+        # Preserve a reverse-proxy prefix for the built-in tuner route.
+        prefix = parts.path.split('/tuner/channel/', 1)[0] if '/tuner/channel/' in parts.path else ''
+        return urlunsplit((parts.scheme, parts.netloc, prefix + '/tuner/stream/{channel_id}.ts', parts.query, ''))
+
+    def _source_entries(self, tv_channel, streams, base_url, name_counts):
+        """One entry per source of a relayed TV channel, right after it, to
+        switch by hand when the automatic choice fails.
+
+        Named as the source publishes itself plus the start of the acestream
+        id, numbered N.1, N.2... so they sort under the channel, and sharing
+        its guide. Each goes through the raw relay, without failover: the
+        point is to pick this one.
+        """
+        stream_base = self._raw_relay_base(base_url)
+        width = len(str(len(streams)))
+        # Same id as the channel entry, whose stream is the first source.
+        epg_id = (self.epg_ids.resolve(tv_channel.epg_source_id, tv_channel.epg_id) if tv_channel.epg_id
+                  else self.epg_ids.resolve(None, streams[0].tvg_id))
+        lines = []
+        for index, stream in enumerate(streams, start=1):
+            label = (stream.name or "").strip() or tv_channel.name
+            label = f"{label} [{stream.id[:8]}]"
+            name = self._dedupe_name(self._attr(label), name_counts)
+            attrs = []
+            if tv_channel.channel_number is not None:
+                attrs.append(f'tvg-chno="{tv_channel.channel_number}.{index:0{width}d}"')
+            if epg_id:
+                attrs.append(f'tvg-id="{self._attr(epg_id)}"')
+            attrs.append(f'tvg-name="{name}"')
+            logo = tv_channel.logo_url or stream.logo
+            if logo:
+                attrs.append(f'tvg-logo="{self._attr(logo)}"')
+            if tv_channel.category:
+                attrs.append(f'group-title="{self._attr(tv_channel.category)}"')
+            lines.append(f'#EXTINF:-1 {" ".join(attrs)},{name}')
+            lines.extend(self._link_lines(self._stream_link(stream_base, stream.id)))
+        return lines
+
     def _unassigned_entries(self, channels, tv_channels, base_url, addpid, pid_counter, name_counts):
         """Append standalone streams after TV numbers, using raw relay IDs when needed."""
         if "{tv_channel_id}" in base_url:
-            parts = urlsplit(base_url)
-            # Preserve a reverse-proxy prefix for the built-in tuner route.
-            prefix = parts.path.split('/tuner/channel/', 1)[0] if '/tuner/channel/' in parts.path else ''
-            base_url = urlunsplit((parts.scheme, parts.netloc, prefix + '/tuner/stream/{channel_id}.ts', parts.query, ''))
+            base_url = self._raw_relay_base(base_url)
             addpid = False
         number = max([8999] + [tv.channel_number for tv in tv_channels if tv.channel_number is not None]) + 1
         lines = []
@@ -200,9 +240,12 @@ class PlaylistService:
         addpid: bool,
         pid_counter: int,
         name_counts: Dict[str, int],
+        per_source: bool = False,
     ):
         """Build EXTINF/link line pairs for TV channels with their assigned
-        streams. Returns (lines, next_pid_counter, processed_acestream_ids)."""
+        streams. Returns (lines, next_pid_counter, processed_acestream_ids).
+
+        per_source adds each source under its relayed channel."""
         lines: List[str] = []
         processed_ids = set()
 
@@ -212,6 +255,7 @@ class PlaylistService:
                 continue
             streams = sort_streams_curated(streams)
             stable = "{tv_channel_id}" in base_url
+            sources = streams if stable and per_source else []
             if stable:
                 processed_ids.update(stream.id for stream in streams)
                 streams = streams[:1]
@@ -257,6 +301,8 @@ class PlaylistService:
                 lines.extend(self._link_lines(self._stream_link(base_url, stream.id, pid_counter if addpid else None, tv_channel_id=tv_channel.id)))
                 if addpid:
                     pid_counter += 1
+            if sources:
+                lines.extend(self._source_entries(tv_channel, sources, base_url, name_counts))
 
         return lines, pid_counter, processed_ids
 

@@ -285,3 +285,34 @@ def test_relay_links_tell_kodi_they_are_mpeg_ts(client, seed_tv_channels, db_ses
     assert links and all(relay[i - 1] == '#KODIPROP:mimetype=video/mp2t' for i in links)
     own = client.get(path, params={'base_url': 'acestream://{channel_id}', 'only_online': 'false'}).text
     assert '#KODIPROP' not in own
+
+
+@pytest.mark.parametrize('path', ['/playlists/m3u', '/playlist.m3u', '/api/playlists/m3u', '/api/v1/playlists/m3u', '/api/v1/playlists/playlists/m3u'])
+def test_per_source_lists_each_source_under_its_relayed_channel(client, seed_tv_channels, db_session, path):
+    """Under each relayed channel, one entry per source, to switch by hand
+    when the automatic choice fails: named as the playlist publishes it plus
+    the start of the acestream id, numbered N.1, N.2..., with the channel's
+    guide and group, opening that source alone through the raw relay."""
+    tv, other = seed_tv_channels[0], seed_tv_channels[1]
+    first = _make_stream(db_session, 'Channel 1080p --> SOURCE', tv_channel_id=tv.id)
+    second = _make_stream(db_session, 'Channel 720p', tv_channel_id=tv.id)
+    _make_stream(db_session, 'Other source', tv_channel_id=other.id)
+    params = {'base_url': 'http://scraper.test/tuner/channel/{tv_channel_id}.ts', 'only_online': 'false',
+              'include_unassigned': 'false', 'per_source': 'true'}
+    lines = client.get(path, params=params).text.splitlines()
+    links = [line for line in lines if line and not line.startswith('#')]
+    start = links.index(f'http://scraper.test/tuner/channel/{tv.id}.ts')
+    assert set(links[start + 1:start + 3]) == {f'http://scraper.test/tuner/stream/{first.id}.ts',
+                                               f'http://scraper.test/tuner/stream/{second.id}.ts'}
+    assert links.count(f'http://scraper.test/tuner/channel/{other.id}.ts') == 1
+    at = lines.index(f'http://scraper.test/tuner/stream/{first.id}.ts')
+    assert lines[at - 1] == '#KODIPROP:mimetype=video/mp2t'
+    extinf = lines[at - 2]
+    assert extinf.endswith(f',Channel 1080p --> SOURCE [{first.id[:8]}]')
+    assert f'tvg-chno="{tv.channel_number}.' in extinf
+    assert f'tvg-id="{tv.epg_id}"' in extinf
+    assert f'group-title="{tv.category}"' in extinf
+    # Off by default, and meaningless for a format that already lists sources.
+    assert first.id not in client.get(path, params={**params, 'per_source': 'false'}).text
+    own = client.get(path, params={**params, 'base_url': 'acestream://{channel_id}'}).text
+    assert own.count(f'acestream://{first.id}') == 1

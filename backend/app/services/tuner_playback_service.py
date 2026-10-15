@@ -17,7 +17,12 @@ from app.services.tuner_remux import remux_source
 
 STARTUP_BUDGET_SECONDS = 45.0
 ATTEMPT_SECONDS = 15.0
-STALL_SECONDS = 15.0
+# A healthy source can be silent for over 16 s: the engine hands over whole
+# pieces (~1.5 MB), so a low-bitrate source arrives in bursts. Measured on a
+# live engine: a source at 97 kB/s had 19 gaps of 12 s or more in 5 minutes,
+# the longest 16.4 s, and a 15 s stall timeout cut it; a source at 458 kB/s
+# was never silent for more than 4.6 s. 25 s is above the longest gap seen.
+STALL_SECONDS = 25.0
 HEALTHY_SECONDS = 30.0
 logger = logging.getLogger(__name__)
 
@@ -90,18 +95,28 @@ async def relay_ranked_streams(
                 client_factory=client_factory, claim=claim, release_claim=False)
             iterator = remux_source(raw, version=version, offset=time.monotonic() - started) if experimental_transcoding else raw
             version += 1
-            first_at = None
+            first_at = last_at = None
+            healthy = False
             try:
                 with anyio.fail_after(min(ATTEMPT_SECONDS, max(.001, deadline - time.monotonic()))):
                     first = await anext(iterator)
-                first_at = time.monotonic()
+                first_at = last_at = time.monotonic()
                 yield first
                 while True:
                     with anyio.fail_after(STALL_SECONDS):
                         chunk = await anext(iterator)
+                    last_at = time.monotonic()
                     yield chunk
             except (EngineRefusedError, EngineUnavailableError, EngineStreamError, StopAsyncIteration, TimeoutError) as exc:
                 record_source_failure(content_id)
+                # A source lived until its end of stream, but only until its
+                # last chunk when it stalled: the stall wait itself lasts
+                # STALL_SECONDS, and counting it made a source that sent one
+                # chunk and stalled look healthy, so with recovery enabled two
+                # such sources took turns forever.
+                if first_at is not None:
+                    ended_at = last_at if isinstance(exc, TimeoutError) else time.monotonic()
+                    healthy = ended_at - first_at >= HEALTHY_SECONDS
                 # Do not include upstream exception text: it can contain URLs
                 # with credentials. Keep EOF distinct from our read deadline.
                 reason = (
@@ -119,7 +134,7 @@ async def relay_ranked_streams(
             finally:
                 with anyio.CancelScope(shield=True):
                     await iterator.aclose()
-            if first_at is not None and time.monotonic() - first_at >= HEALTHY_SECONDS:
+            if healthy:
                 attempted = {content_id}
                 deadline = time.monotonic() + STARTUP_BUDGET_SECONDS
             if on_source_failure is not None:

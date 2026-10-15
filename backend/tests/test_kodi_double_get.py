@@ -97,3 +97,58 @@ async def test_the_second_get_keeps_its_session_and_every_session_is_stopped(eng
     # ...and both sessions are stopped once it is gone.
     assert {pid for _, _, pid in stops} == {pid for _, _, pid in starts}, events
     assert second > 1_000_000              # the second GET played
+
+
+# --- an engine session that is empty at once ---------------------------------
+
+def _empty_then(monkeypatch, outcomes, delay=0):
+    calls = []
+
+    async def relay(_engine, content_id, _label, **kwargs):
+        calls.append(content_id)
+        outcome = outcomes[min(len(calls), len(outcomes)) - 1]
+        await asyncio.sleep(delay)
+        if outcome == 'empty':
+            return
+        yield b'video'
+    monkeypatch.setattr(playback, 'relay_engine_stream', relay)
+    monkeypatch.setattr(playback, 'ATTEMPT_SECONDS', 1)
+    monkeypatch.setattr(playback, 'STARTUP_BUDGET_SECONDS', 2)
+    return calls
+
+
+@pytest.mark.asyncio
+async def test_a_session_empty_at_start_is_retried_once(monkeypatch):
+    """Seen with Kodi (intermittent): the engine answered 200 and closed at
+    once for the second GET's session; with one source the channel failed."""
+    from unittest.mock import Mock
+    calls = _empty_then(monkeypatch, ['empty', 'video'])
+    registry = RelayRegistry()
+    claim = registry.try_open(CID, 'kodi', 1)
+    first = await anext(playback.relay_ranked_streams(Mock(), [CID], 'kodi', claim, registry=registry))
+    assert first == b'video' and calls == [CID, CID]
+
+
+@pytest.mark.asyncio
+async def test_only_once(monkeypatch):
+    from unittest.mock import Mock
+    from app.services.stream_relay import EngineStreamError
+    calls = _empty_then(monkeypatch, ['empty'])
+    registry = RelayRegistry()
+    claim = registry.try_open(CID, 'kodi', 1)
+    with pytest.raises(EngineStreamError):
+        await anext(playback.relay_ranked_streams(Mock(), [CID], 'kodi', claim, registry=registry))
+    assert calls == [CID, CID]
+
+
+@pytest.mark.asyncio
+async def test_a_source_that_takes_long_to_end_is_not_retried(monkeypatch):
+    from unittest.mock import Mock
+    from app.services.stream_relay import EngineStreamError
+    monkeypatch.setattr(playback, 'EMPTY_START_RETRY_SECONDS', 0.05)
+    calls = _empty_then(monkeypatch, ['empty', 'video'], delay=0.1)
+    registry = RelayRegistry()
+    claim = registry.try_open(CID, 'kodi', 1)
+    with pytest.raises(EngineStreamError):
+        await anext(playback.relay_ranked_streams(Mock(), [CID], 'kodi', claim, registry=registry))
+    assert calls == [CID]

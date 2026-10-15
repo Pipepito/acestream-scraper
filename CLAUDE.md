@@ -181,6 +181,10 @@ raw sources. Decoder recovery remains experimental and client-dependent. Stall d
 recovery is bounded to 45 seconds, and 30 seconds of delivery resets failure history.
 FFmpeg is required only for experimental transcoding; default relays preserve source bytes.
 HDHomeRun and tuner M3U use stable TV-channel URLs; raw content-ID URLs stay compatible.
+When the client leaves (the server cancels the response; the cancellation reaches the
+engine reader first), the final engine stop is deferred `STOP_LINGER_SECONDS` (5) so
+Kodi's second GET finds the source running; a start within it parks the old session,
+stopped with the source's final stop. The relay's own start/stall deadlines stop at once.
 `stream_bitrate_service.probe_media` samples at most 2 MiB within 10 seconds during
 successful broadcast checks, feeds ffprobe through stdin with only the pipe protocol,
 and stores bitrate/timestamp and audio tracks through the channel repository. Missing

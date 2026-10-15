@@ -6,6 +6,7 @@ engine URL is the DB setting ``ace_engine_url`` read at call time.
 from __future__ import annotations
 
 import logging
+from threading import Timer
 import uuid
 from dataclasses import dataclass, field
 from types import TracebackType
@@ -153,8 +154,20 @@ class EngineClient:
             return EngineSession(content_id, "", url, "", "", True, managed_by_acexy=True)
         source = source_ownership(self.engine_url, content_id)
         with source.lock:
+            # A stop deferred by the TV relay is cancelled: the engine is
+            # still running this source. Its session is parked and stopped
+            # with the source's final stop.
+            deferred, source.pending_stop = source.pending_stop, None
+            if deferred is not None:
+                deferred.cancel()
+                source.parked.append(deferred.args[1])
             lease = PlaybackLease(source)
-            session = self._start_direct(content_id, pid or new_pid(), lease)
+            try:
+                session = self._start_direct(content_id, pid or new_pid(), lease)
+            except BaseException:
+                if not source.leases:
+                    _stop_parked(source)
+                raise
             source.leases.add(lease)
             return session
 
@@ -176,7 +189,14 @@ class EngineClient:
         except (KeyError, TypeError, ValueError) as exc:
             raise EngineUnavailableError(f"Engine start response is incomplete: {body}") from exc
 
-    def stop(self, session: EngineSession) -> None:
+    def stop(self, session: EngineSession, *, linger_seconds: float = 0) -> None:
+        """Release the session; the engine stops with the last lease.
+
+        ``linger_seconds`` defers that final stop: Kodi opens a channel with
+        two GETs and closes the first, and stopping in between made the
+        second start cold (measured: 1.8 s on an amd64 bench, 3.2 s on an ARM box).
+        A start of the same source within the delay cancels the stop.
+        """
         if session.managed_by_acexy:
             return
         if session.lease is None:
@@ -184,22 +204,30 @@ class EngineClient:
             self._stop_direct(session)
             return
         lease = session.lease
-        with lease.source.lock:
+        source = lease.source
+        with source.lock:
             if lease.released:
                 return
             lease.released = True
-            lease.source.leases.discard(lease)
-            if not lease.source.leases:
+            source.leases.discard(lease)
+            if source.leases:
+                # Another client still plays this source: its session stays
+                # until then, and is stopped with the source's final stop.
+                # Dropped here, it was never stopped at all (Kodi's two GETs
+                # overlapping).
+                source.parked.append(session)
+                return
+            if linger_seconds <= 0:
                 self._stop_direct(session)
+                _stop_parked(source)
+                return
+            timer = Timer(linger_seconds, _deferred_stop, args=(source, session))
+            timer.daemon = True
+            source.pending_stop = timer
+            timer.start()
 
     def _stop_direct(self, session: EngineSession) -> None:
-        # Merge rather than replace: the engine may hand back a command_url
-        # that already carries a token or session id in its query.
-        url = httpx.URL(session.command_url).copy_merge_params({"method": "stop"})
-        try:
-            self._client.get(url, timeout=STAT_TIMEOUT)
-        except httpx.HTTPError as exc:
-            logger.warning("Engine stop for %s failed: %s", session.content_id, exc)
+        _send_stop(self._client, session)
 
     def stat(self, session: EngineSession) -> Optional[EngineStats]:
         if session.managed_by_acexy:
@@ -211,3 +239,35 @@ class EngineClient:
             speed_down=int(body.get("speed_down") or 0),
             speed_up=int(body.get("speed_up") or 0),
         )
+
+
+def _deferred_stop(source, session: EngineSession) -> None:
+    """The final stop a TV relay deferred, unless the source was started again."""
+    with source.lock:
+        if source.pending_stop is None or source.leases:
+            return
+        source.pending_stop = None
+        _stop_now(session)
+        _stop_parked(source)
+
+
+def _stop_parked(source) -> None:
+    parked, source.parked = source.parked, []
+    for session in parked:
+        _stop_now(session)
+
+
+def _stop_now(session: EngineSession) -> None:
+    # The client that started the session may be closed by now.
+    with httpx.Client(timeout=STAT_TIMEOUT) as client:
+        _send_stop(client, session)
+
+
+def _send_stop(client: httpx.Client, session: EngineSession) -> None:
+    # Merge rather than replace: the engine may hand back a command_url
+    # that already carries a token or session id in its query.
+    url = httpx.URL(session.command_url).copy_merge_params({"method": "stop"})
+    try:
+        client.get(url, timeout=STAT_TIMEOUT)
+    except httpx.HTTPError as exc:
+        logger.warning("Engine stop for %s failed: %s", session.content_id, exc)

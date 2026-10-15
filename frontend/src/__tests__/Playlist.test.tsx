@@ -98,6 +98,21 @@ describe('Playlist page', () => {
     expect(screen.getByText(/One entry per TV channel/)).toBeVisible();
   });
 
+  it('lists each source only for relay formats', () => {
+    renderPage();
+    const option = screen.getByRole('checkbox', { name: 'List each source under its channel' });
+    expect(option).toBeDisabled();
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Stream link format' }));
+    fireEvent.click(screen.getByRole('option', { name: 'TV channel relay (automatic failover)' }));
+    expect(new URL(urlField().value).searchParams.has('per_source')).toBe(false);
+    fireEvent.click(option);
+    expect(new URL(urlField().value).searchParams.get('per_source')).toBe('true');
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Stream link format' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Local HLS' }));
+    expect(option).toBeDisabled();
+    expect(new URL(urlField().value).searchParams.has('per_source')).toBe(false);
+  });
+
   it('appends base_url_id when a named link format is selected', () => {
     renderPage();
     expect(screen.getByRole('combobox', { name: 'Stream link format' })).toHaveTextContent('Default');

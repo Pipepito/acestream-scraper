@@ -269,3 +269,19 @@ def test_unassigned_option_in_compatibility_urls(client, db_session, path):
         response = client.get(path, params={'include_unassigned': include})
         assert response.status_code == 200
         assert (loose.id in response.text) == (include == 'true')
+
+
+@pytest.mark.parametrize('path', ['/api/v1/playlists/m3u', '/api/v1/playlists/tv-channels/m3u', '/api/v1/playlists/all-streams/m3u'])
+def test_relay_links_tell_kodi_they_are_mpeg_ts(client, seed_tv_channels, db_session, path):
+    """Without the line Kodi probes the type in its interface thread: through
+    the relay a dead acestream left the remote unresponsive for 13 s, 0 s with
+    it. A user's own link format may be anything, so it is left alone."""
+    tv = seed_tv_channels[0]
+    _make_stream(db_session, 'A', tv_channel_id=tv.id, is_online=True)
+    _make_stream(db_session, 'Loose', is_online=True)
+    relay = client.get(path, params={'base_url': 'http://scraper.test/tuner/channel/{tv_channel_id}.ts',
+                                     'only_online': 'false', 'include_unassigned': 'true'}).text.splitlines()
+    links = [i for i, line in enumerate(relay) if '/tuner/' in line and not line.startswith('#')]
+    assert links and all(relay[i - 1] == '#KODIPROP:mimetype=video/mp2t' for i in links)
+    own = client.get(path, params={'base_url': 'acestream://{channel_id}', 'only_online': 'false'}).text
+    assert '#KODIPROP' not in own

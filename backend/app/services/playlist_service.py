@@ -14,6 +14,12 @@ from app.services.stream_ranking import score_acestream, sort_streams_curated
 from app.utils.m3u import m3u_attr
 
 
+# Kodi's IPTV Simple finds out a link's type by opening it in its interface
+# thread before playing it. The tuner relay always answers MPEG-TS, so the
+# playlist says so and Kodi skips that probe.
+RELAY_MIMETYPE_PROP = '#KODIPROP:mimetype=video/mp2t'
+
+
 class PlaylistService:
     """Service for generating M3U playlists"""
 
@@ -181,7 +187,8 @@ class PlaylistService:
             if channel.logo:
                 attrs.append(f'tvg-logo="{self._attr(channel.logo)}"')
             attrs.append(f'group-title="{self._attr(channel.group or "Unassigned Streams")}"')
-            lines.extend([f'#EXTINF:-1 {" ".join(attrs)},{name}', self._stream_link(base_url, channel.id, pid_counter if addpid else None)])
+            lines.append(f'#EXTINF:-1 {" ".join(attrs)},{name}')
+            lines.extend(self._link_lines(self._stream_link(base_url, channel.id, pid_counter if addpid else None)))
             if addpid:
                 pid_counter += 1
         return lines
@@ -247,7 +254,7 @@ class PlaylistService:
                     attrs.append(f'group-title="{self._attr(tv_channel.category)}"')
 
                 lines.append(f'#EXTINF:-1 {" ".join(attrs)},{display_name}')
-                lines.append(self._stream_link(base_url, stream.id, pid_counter if addpid else None, tv_channel_id=tv_channel.id))
+                lines.extend(self._link_lines(self._stream_link(base_url, stream.id, pid_counter if addpid else None, tv_channel_id=tv_channel.id)))
                 if addpid:
                     pid_counter += 1
 
@@ -302,6 +309,21 @@ class PlaylistService:
         playlists and the tuner playlist quote attributes identically.
         """
         return m3u_attr(value)
+
+    @staticmethod
+    def _link_lines(link: str) -> List[str]:
+        """The lines that open a stream: its link, preceded by the mimetype
+        when it goes through the tuner relay.
+
+        Without it Kodi probes the link in its interface thread before
+        playing it: through the relay that left the remote unresponsive for
+        13 s on a dead channel and 4 s on a live one, 0 s with the line, and
+        the live one showed video at 5.5 s instead of 8.5 s. Other link
+        formats are the user's and may be anything, so they are left alone.
+        """
+        if '/tuner/channel/' in link or '/tuner/stream/' in link:
+            return [RELAY_MIMETYPE_PROP, link]
+        return [link]
 
     @staticmethod
     def _stream_link(base_url: str, channel_id: str, pid: Optional[int] = None, *, tv_channel_id: Optional[int] = None) -> str:
@@ -434,7 +456,7 @@ class PlaylistService:
             entry = f'#EXTINF:-1 {" ".join(attrs)}, {channel.name}\n'
 
             link = self._stream_link(base_url, channel.id, pid_counter if addpid else None)
-            entry += link + '\n'
+            entry += '\n'.join(self._link_lines(link)) + '\n'
 
             entries.append(entry)
             if addpid:

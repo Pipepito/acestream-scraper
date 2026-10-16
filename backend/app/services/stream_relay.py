@@ -177,6 +177,7 @@ async def relay_engine_stream(
     registry: Optional[RelayRegistry] = None,
     claim: Optional[RelayInfo] = None,
     release_claim: bool = True,
+    stop_linger: Optional[Callable[[], float]] = None,
 ) -> AsyncIterator[bytes]:
     """Yield MPEG-TS bytes for ``content_id``.
 
@@ -194,11 +195,18 @@ async def relay_engine_stream(
     across attempts and must close the claim itself. Without a claim the relay
     registers itself, likewise before the start, so a
     relay is on the books for as long as it holds an engine session.
+
+    ``stop_linger``, asked when the relay is cancelled or closed -- the
+    client left, or the caller's own deadline fired -- defers the engine's
+    final stop by that many seconds (see EngineClient.stop). Any other end
+    stops at once. The cancellation reaches this reader first, before the
+    caller's handlers run, so the caller answers through the callable.
     """
     registry = registry or relay_registry
     factory = client_factory or _default_client_factory
     info = claim if claim is not None else registry.open(content_id, client_label)
     session: Optional[EngineSession] = None
+    cancelled = False
     try:
         session = await run_in_threadpool(engine.start, content_id)
         engine_host = _host_identity(urlsplit(engine.engine_url).hostname)
@@ -216,9 +224,16 @@ async def relay_engine_stream(
             # Connect refused, read timeout, too many redirects, an unusable
             # playback_url: the route needs EngineStreamError to answer 502.
             raise EngineStreamError(f"Engine stream failed: {exc}") from exc
+    except (GeneratorExit, anyio.get_cancelled_exc_class()):
+        cancelled = True
+        raise
     finally:
         if release_claim:
             registry.close(info.id)
         if session is not None:
+            linger = stop_linger() if cancelled and stop_linger is not None else 0
             with anyio.CancelScope(shield=True):
-                await run_in_threadpool(engine.stop, session)
+                if linger > 0:
+                    await run_in_threadpool(lambda: engine.stop(session, linger_seconds=linger))
+                else:
+                    await run_in_threadpool(engine.stop, session)

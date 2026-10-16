@@ -88,12 +88,23 @@ def main() -> int:
              for pipeline in (pr_jenkinsfile, develop_jenkinsfile, release_jenkinsfile)
          )
          and "abortPrevious: true" not in pr_jenkinsfile),
-        ("NUC builds aggressively reclaim Docker space before building",
-         "--all-unused-images" in pr_runner_builder
-         and "--min-free-gb 8" in pr_runner_builder
-         and develop_jenkinsfile.count("--all-unused-images") >= 3
-         and "--all-unused-images" in release_jenkinsfile
-         and "--all-unused-images" in release_sh),
+        ("all pipelines share dependency-keyed runners and pressure-aware cleanup",
+         "scripts/ci/docker_lifecycle.py" in pr_runner_builder
+         and "build_pr_runner.sh" in develop_jenkinsfile
+         and "build_pr_runner.sh" in read("scripts/ci/run_release_validation.sh")
+         and "--min-free-gb 8" in develop_jenkinsfile
+         and "--min-free-gb 8" in release_sh
+         and "--all-unused-images" not in develop_jenkinsfile + release_jenkinsfile + release_sh),
+        ("PR job ignores ordinary branches and builds maintainer image matrices without publication",
+         "stage('Pull request validation')" in pr_jenkinsfile
+         and "when { changeRequest() }" in pr_jenkinsfile
+         and "stage('Ordinary branch skipped')" in pr_jenkinsfile
+         and "stage('Build PR image matrix')" in pr_jenkinsfile
+         and "env.CI_APPLICATION != 'false' && !env.CHANGE_FORK" in pr_jenkinsfile
+         and "validate_pr_images.sh" in pr_jenkinsfile
+         and "docker image rm" in read("scripts/ci/validate_pr_images.sh")
+         and "--load" in read("scripts/ci/validate_pr_images.sh")
+         and "--push" not in read("scripts/ci/validate_pr_images.sh")),
         ("PR architecture plan exercises all flavors",
          all(token in phase5_config for token in FLAVOR_TOKENS)),
         ("PR pipeline has no publication or credential binding",
@@ -114,10 +125,12 @@ def main() -> int:
          and 'git show "${PR_VALIDATION_REF}:scripts/ci/run_pr_validation.sh"' in pr_jenkinsfile
          and "runnerInputsChanged" in pr_jenkinsfile
          and "env.CHANGE_FORK" in pr_jenkinsfile),
-        ("application PRs bootstrap a disposable runner from their validation ref",
+        ("application PRs reuse only runners selected from their trusted validation ref",
          "stage('Build isolated trusted runner')" in pr_jenkinsfile
          and 'git show "${PR_VALIDATION_REF}:scripts/ci/build_pr_runner.sh"' in pr_jenkinsfile
-         and "env.PR_RUNNER_EPHEMERAL = '1'" in pr_jenkinsfile
+         and "PR_RUNNER_EPHEMERAL" not in pr_jenkinsfile
+         and "scripts/ci/docker_lifecycle.py" in pr_jenkinsfile
+         and "--image-file" in pr_jenkinsfile
          and 'git -C "$SOURCE" archive "$REF"' in pr_runner_builder
          and "backend/requirements.txt" in pr_runner_builder
          and "frontend/package-lock.json" in pr_runner_builder
@@ -188,9 +201,10 @@ def main() -> int:
          "stage('Publish develop channel')" in develop_jenkinsfile
          and "credentialsId: 'dockerhub-publish'" in develop_jenkinsfile
          and "run_jenkins_release.sh --channel develop" in develop_jenkinsfile),
-        ("develop pipeline builds the trusted fork runner",
-         "docker/ci/pr-runner.Dockerfile" in develop_jenkinsfile
-         and "acestream-scraper-pr-ci:develop" in develop_jenkinsfile),
+        ("develop resolves the shared runner from committed inputs",
+         'build_pr_runner.sh --source "$WORKSPACE" --ref HEAD' in develop_jenkinsfile
+         and 'env.PR_RUNNER_IMAGE = readFile(' in develop_jenkinsfile
+         and "acestream-scraper-pr-ci:develop" not in develop_jenkinsfile),
         ("develop tests use the pinned runner without network or dependency installs",
          "--network none" in develop_jenkinsfile
          and "scripts/ci/run_develop_validation.sh" in develop_jenkinsfile
@@ -212,10 +226,11 @@ def main() -> int:
          promote_plan.count("pipepito/acestream-scraper:latest") == 1
          and f"<- pipepito/acestream-scraper:{version}" in promote_plan
          and "no flavor rebuild" in promote_plan),
-        ("release script pushes by digest, platform-major, with cache pruning",
+        ("release script pushes by digest, platform-major, with pressure-aware cleanup",
          "--push-by-digest" in release_sh
          and "publish_platform_major" in release_sh
-         and "docker buildx prune --builder" in release_sh),
+         and 'cleanup_runner_docker.sh --builder-keep "$PUBLISH_CACHE_CAP" --min-free-gb 8' in release_sh
+         and "docker_lifecycle.py prune" not in release_sh),
         ("release script targets pipepito Docker Hub repo by default",
          'IMAGE_REPO="${RELEASE_IMAGE_REPO:-pipepito/acestream-scraper}"' in release_sh
          and "pipepito/acestream-scraper-v2" not in release_sh),

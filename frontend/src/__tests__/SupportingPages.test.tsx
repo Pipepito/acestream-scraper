@@ -1,4 +1,6 @@
 import React from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+jest.mock('../services/guideSetupService', () => ({ guideSetupService: { coverage: jest.fn().mockResolvedValue({ streams: 0, linked_streams: 0, guide_channels: 0 }) } }));
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ThemeProvider } from '@mui/material/styles';
 import * as routerDom from 'react-router-dom';
@@ -84,7 +86,7 @@ jest.mock('../services/configService', () => ({
 const renderPage = (ui: React.ReactElement) =>
   render(
     <ThemeProvider theme={createAppTheme('light')}>
-      <TestMemoryRouter>{ui}</TestMemoryRouter>
+      <TestMemoryRouter><QueryClientProvider client={new QueryClient()}>{ui}</QueryClientProvider></TestMemoryRouter>
     </ThemeProvider>
   );
 

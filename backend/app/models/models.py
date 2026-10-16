@@ -114,6 +114,11 @@ class AcestreamChannel(Base):
     is_active = Column(Boolean, default=True)
     is_online = Column(Boolean, nullable=True)
     network_status = Column(String(16), nullable=True)
+    # Which parameter the engine accepts for this id: 'id' (transport
+    # file content id) or 'infohash'. Both are 40 hex digits and cannot
+    # be told apart by looking at them, so this is only ever written
+    # after the engine has confirmed it. NULL means "not probed yet".
+    id_kind = Column(String(16), nullable=True)
     last_checked = Column(UtcDateTime(), nullable=True)
     check_error = Column(Text, nullable=True)
     audio_tracks = Column(JSON, nullable=True)

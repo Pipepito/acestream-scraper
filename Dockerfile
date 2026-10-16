@@ -137,7 +137,7 @@ FROM python:${ACESTREAM_ENGINE_PYTHON_VERSION}-slim AS engine-python
 FROM --platform=$BUILDPLATFORM debian:bookworm-slim AS ipfs-installer
 
 ARG TARGETPLATFORM
-ARG KUBO_VERSION=v0.43.0
+ARG KUBO_VERSION=v0.43.1
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl tar \
@@ -362,7 +362,9 @@ COPY healthcheck.sh /usr/local/bin/healthcheck.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/warp-setup.sh /usr/local/bin/healthcheck.sh
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/entrypoint.sh"]
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--no-proxy-headers", "--timeout-graceful-shutdown", "3"]
+# Let entrypoint.sh build the default app command from FLASK_PORT.
+# Explicit docker run / Compose commands still pass through unchanged.
+CMD []
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 CMD ["/usr/local/bin/healthcheck.sh"]
 

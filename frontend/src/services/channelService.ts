@@ -21,6 +21,7 @@ export interface AcestreamChannel {
   tvg_name?: string;
   m3u_source?: string;
   original_url?: string;
+  id_kind?: components['schemas']['AcestreamChannelResponse']['id_kind'];
   network_status?: components['schemas']['AcestreamChannelResponse']['network_status'];
   is_online: boolean | null;
   last_checked?: string;

@@ -136,6 +136,10 @@ class EPGSourceOperations:
 
             self.db.commit()
 
+            if result["success"]:
+                from app.services.epg_matching_automation import EPGMatchingAutomation
+                EPGMatchingAutomation(self.db).run()
+
             # Calculate duration
             duration = (datetime.now() - start_time).total_seconds()
             result["duration_seconds"] = duration

@@ -49,8 +49,8 @@ Docker:
 Branching and release flow (adopted 2026-08-28):
 
 - `develop` is the permanent pre-release branch; feature PRs target `develop`. `main` is the release branch. Both are protected (PRs only, required status `PR Validation`, no force-push/deletion). PRs into `main` are accepted only from `develop` — `jenkins/pr.Jenkinsfile` fails any other head. Releases are cut with a `develop` -> `main` PR; hotfixes go through `develop` too.
-- Fork PRs use `jenkins/pr.Jenkinsfile` from trusted `develop`. Each build requiring application validation creates a disposable dependency runner from the target ref (so it does not depend on a mutable prebuilt image), then executes contributor-controlled files without network, capabilities, Docker socket, or Jenkins credentials. A second isolated stage runs the trusted entrypoint/runtime contract against the PR files under pinned amd64, arm64, and arm/v7 userlands. Fork-controlled Dockerfiles and dependency inputs are never executed or installed automatically; such changes require a maintainer-owned branch after review. `scripts/ci/run_pr_validation.sh` is the credential-free application gate.
-- PR, trusted `develop`, and release pipelines share the FIFO `acestream-scraper-nuc-docker` lock for their full run. The NUC has four executors but only one safe Docker/BuildKit workload slot; later jobs wait instead of pruning images or caches from an in-flight job, and a newer build of the same PR queues rather than aborting its predecessor. Before each heavy build, project-owned transient images, all unused non-keep images, and builder cache above 1 GB are pruned; the build stops early unless at least 8 GB remains free.
+- Fork PRs use `jenkins/pr.Jenkinsfile` from trusted `develop`. PR, develop and release application validation share a dependency-keyed runner selected from committed trusted inputs (verified input/platform labels; build on cache miss), with a fresh disposable validation container each time. Contributor-controlled files execute without network, capabilities, Docker socket, or Jenkins credentials. A second isolated stage runs the trusted entrypoint/runtime contract against the PR files under pinned amd64, arm64, and arm/v7 userlands. Fork-controlled Dockerfiles and dependency inputs are never executed or installed automatically; such changes require a maintainer-owned branch after review. `scripts/ci/run_pr_validation.sh` is the credential-free application gate.
+- PR, trusted `develop`, and release pipelines share the FIFO `acestream-scraper-nuc-docker` lock for their full run. The NUC has four executors but only one safe Docker/BuildKit workload slot; later jobs wait instead of pruning images or caches from an in-flight job, and a newer build of the same PR queues rather than aborting its predecessor. Shared cleanup retains two recently used dependency runners and warm build cache; below 8 GiB free it escalates to evict unneeded CI runners and recent cache. Current-job keeps, container images, unrelated images and volumes remain protected; reclamation failures are visible.
 - Every push to `develop` runs the trusted `jenkins/develop.Jenkinsfile` job. It selects work with `scripts/ci/classify_changes.py` against the last successful build. Known documentation-only changes run lightweight checks without publication. Application, build, CI and unknown changes rerun the full suite and Docker/runtime smokes. It refuses stale revisions, then `bash scripts/ci/run_jenkins_release.sh --channel develop` pushes only floating `:develop*` image tags. It never publishes the wiki, Pages, or Docker Hub descriptions. Preview with `--print-publish-plan --channel develop` or `--dry-run --channel develop`; `python3 scripts/phase_gates/check_workflow_publish_guard.py` guards the boundary.
 - `version.txt` on `develop` carries the next version with a `-dev` suffix (e.g. `v2.1.0-dev`, starting with the cycle after v2.0.0); a PR into `develop` bumps it right before the release PR to the final version. `run_jenkins_release.sh` refuses a release (non-channel) run while `version.txt` contains `-dev`; channel publishes accept it.
 - Releases stay manual: Jenkins job `acestream-scraper-release` (`jenkins/release.Jenkinsfile`, runs from `main`; params `CONFIRM_RELEASE`, `DRY_RUN`, `PUBLISH_LATEST`) pushes `:vX.Y.Z`, `:vX.Y.Z-<flavor>` and the flavor tags; `PUBLISH_LATEST=true` retags the canaried version manifest to `:latest` via `scripts/ci/promote_latest.sh`. Details: `docs/ops/jenkins-ci.md`.
@@ -414,3 +414,49 @@ not merely a successful CLI call, before engines start. The ARM resolver follows
 container nameserver changes and retains the last valid configuration during a
 partial rewrite. Keep WARP opt-in; direct-route lookup failures must not trigger
 automatic routing changes. See `docs/ops/arm64-mod-detected.md`.
+
+## Reviewed guide setup
+
+EPG Matching defaults to a read-only preview with explicit row selection. Apply
+rechecks the complete source scope and rejects changed `expected_previews` before
+writing. Preserve assignments and source-qualified guide identity; ambiguous
+matches are never chosen by row ID. Settings → Automation stores opt-in
+`epg_matching` (off by default); successful scrapes/EPG refreshes apply only
+unambiguous exact matches off the event loop after ingestion commits. Keep its
+last result visible and failures independent of ingestion. Playlists and XMLTV
+share collision-safe IDs and validated token propagation for guide discovery.
+See `docs/ops/guide-matching.md`.
+
+## CI runner reuse and retention
+
+PR, develop and release share `build_pr_runner.sh` and `docker_lifecycle.py`.
+Runner identity includes committed dependency inputs, the pinned Dockerfile and
+platform; never select a mutable legacy runner tag or execute fork policy on the
+host. Keep the FIFO lock for the full run. Cleanup retains recent runners/warm
+cache, escalates under disk pressure, protects explicit keeps and all container
+references, and reports failures. Do not restore blanket unused-image pruning or
+permanent keep labels. See `docs/ops/jenkins-ci.md` for retention and rollout.
+
+
+## Pipeline responsibilities
+
+The multibranch PR job skips ordinary branches. Application PRs run isolated
+checks and architecture contracts; maintainer-owned PRs also build every supported
+flavor/platform with `validate_pr_images.sh`, remove each temporary image, and
+never publish. Fork Dockerfiles still require review and promotion to a
+maintainer-owned branch before host builds. Develop validates, builds, tests and
+publishes only floating develop tags; manual main releases retain version checks
+and separate latest promotion. Preserve the shared full-run FIFO lock. Buildx
+cleanup must enumerate `.Builder.Name`, deduplicated, never child-node `.Name`.
+
+BuildKit numeric GC limits are bytes: convert the operator MiB settings before
+writing `reservedSpace`/`maxUsedSpace`. Under pressure, reclaim unused old cache
+without a size floor before recent cache or runners, and allow bounded time for
+asynchronous Docker disk reclamation. Never reduce the required free-space gate.
+
+Guide matching treats an imported stream ID as authoritative only if it resolves
+in any imported guide, including disabled or out-of-scope sources. Unknown IDs
+fall through to names without being overwritten; apply revalidates the complete
+ID inventory. Keep indexed ID candidates, bounded name comparisons, ambiguity,
+country/edition and assignment guards. Reviewed matching strips publisher text
+after `-->`; automation still requires conservative agreement of every name.

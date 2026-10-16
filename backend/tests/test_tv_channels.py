@@ -527,9 +527,10 @@ class TestTVChannelEPGMatchAnalysis:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["summary"]["epg_channels_analyzed"] == 6
-        assert data["summary"]["matched_epg_channels"] >= 5
-        assert data["summary"]["matched_acestream_channels"] >= 5
-        assert data["summary"]["creatable_rows"] >= 5
+        assert data["summary"]["matched_epg_channels"] == 4
+        assert any(row["ambiguous_count"] for row in data["rows"])
+        assert data["summary"]["matched_acestream_channels"] == 5
+        assert data["summary"]["creatable_rows"] == 4
         assert len(data["rows"]) == 6
 
     def test_analyze_epg_matches_applies_strictness_thresholds(self, client, seeded_match_data):
@@ -698,21 +699,14 @@ class TestTVChannelCreateFromEPGAnalysis:
         associated_ids = [row["id"] for row in associated.json()]
         assert associated_ids == ["shared-candidate"]
 
-    def test_create_from_epg_analysis_limits_uniqueness_to_selected_rows(self, client, seeded_conflict_data):
+    def test_create_from_epg_analysis_preserves_full_inventory_uniqueness(self, client, seeded_conflict_data):
         response = client.post(
             "/api/v1/tv-channels/create-from-epg-analysis",
             json={"strictness": "balanced", "epg_channel_ids": [seeded_conflict_data["loser"].id]},
         )
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["created_count"] == 1
-        assert data["failure_count"] == 0
-        assert data["row_outcomes"][0]["status"] == "created"
-
-        associated = client.get(f"/api/v1/tv-channels/{data['row_outcomes'][0]['tv_channel_id']}/acestreams")
-        assert associated.status_code == status.HTTP_200_OK
-        assert [row["id"] for row in associated.json()] == ["shared-candidate"]
+        # Selecting the loser must not invent an assignment absent from preview.
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert "no accepted matches" in response.json()["detail"].lower()
 
     def test_create_from_epg_analysis_does_not_steal_existing_acestream_associations(self, client, seeded_match_data, db_session):
         protected_channel = TVChannel(name="Protected Existing", epg_id="protected-existing")
@@ -729,11 +723,7 @@ class TestTVChannelCreateFromEPGAnalysis:
             json={"strictness": "balanced", "epg_channel_ids": [epg_channel.id]},
         )
 
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["created_count"] == 0
-        assert data["failure_count"] == 1
-        assert data["row_outcomes"][0]["status"] == "failed"
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
         db_session.refresh(protected_acestream)
         assert protected_acestream.tv_channel_id == protected_channel.id

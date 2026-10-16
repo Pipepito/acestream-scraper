@@ -39,7 +39,7 @@ IMAGE_REPO="${RELEASE_IMAGE_REPO:-pipepito/acestream-scraper}"
 REGISTRY_LOGIN_SERVER="${RELEASE_LOGIN_SERVER:-}"
 # BuildKit cache cap applied between platforms of a publish (the runner has
 # a 32 GB disk shared with other jobs).
-PUBLISH_CACHE_CAP="${PUBLISH_CACHE_CAP:-2GB}"
+PUBLISH_CACHE_CAP="${PUBLISH_CACHE_CAP:-8GB}"
 PLATFORM_MANIFEST="docker/manifests/platforms.json"
 ACESTREAM_MANIFEST="docker/manifests/acestream.json"
 
@@ -168,12 +168,12 @@ flavor_platforms_csv() {
 # publish_platform_major <tags_fn> <dry_run>
 #
 # Builds every flavor for one platform before moving to the next platform
-# (platform-major), pushing each image by digest, and prunes the builder's
-# BuildKit cache between platforms; then assembles every flavor's tags with
+# (platform-major), pushing each image by digest, and checks Docker headroom
+# between platforms; then assembles every flavor's tags with
 # `docker buildx imagetools create` from its per-platform digests and verifies
-# the remote manifests. Platform-major order keeps the peak cache to one
-# platform's worth of layers (flavors share their base stages), which is what
-# lets a four-flavor, three-platform publish fit the runner's 32 GB disk.
+# the remote manifests. Platform-major order reuses shared flavor stages.
+# Pressure-aware cleanup retains warm layers when space permits and reclaims
+# recent cache only when the next platform lacks the required headroom.
 publish_platform_major() {
   local tags_fn="$1" dry="$2"
   local digest_dir platform flavor key platforms_csv union flavor_csv tags tag refs
@@ -208,12 +208,9 @@ PY2
       "${build_args[@]}"
     done
     if [[ "$dry" -eq 1 ]]; then
-      echo "[DRY RUN] docker buildx prune --builder $BUILDER -f --max-used-space $PUBLISH_CACHE_CAP"
+      echo "[DRY RUN] bash scripts/ci/cleanup_runner_docker.sh --builder-keep $PUBLISH_CACHE_CAP --min-free-gb 8"
     else
-      docker buildx prune --builder "$BUILDER" -f --max-used-space "$PUBLISH_CACHE_CAP" >/dev/null 2>&1 \
-        || docker buildx prune --builder "$BUILDER" -f --keep-storage "$PUBLISH_CACHE_CAP" >/dev/null 2>&1 \
-        || true
-      echo "Builder $BUILDER cache after $platform: $(docker buildx du --builder "$BUILDER" 2>/dev/null | grep -E '^Total:' | tr -s '\t ' ' ' || echo unknown)"
+      bash scripts/ci/cleanup_runner_docker.sh --builder-keep "$PUBLISH_CACHE_CAP" --min-free-gb 8
     fi
   done
   # Recheck after the builds, immediately before assigning any release tags.
@@ -404,12 +401,7 @@ PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_acexy_ru
 PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker/test_install_acestream.py -v -k "arm_oci_image_install_layout"
 # The ~2 GB smoke image is not needed for the publish step; reclaim the
 # runner's disk before the multi-platform builds (see cleanup_runner_docker.sh).
-docker image rm -f acestream-scraper:release-smoke >/dev/null 2>&1 || true
-bash scripts/ci/cleanup_runner_docker.sh \
-  --transient-age-hours 0 \
-  --all-unused-images \
-  --builder-keep 1GB \
-  --min-free-gb 8
+bash scripts/ci/cleanup_runner_docker.sh --min-free-gb 8
 
 registry_login
 

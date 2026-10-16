@@ -17,6 +17,7 @@ jest.mock('../hooks/useSystemServices', () => ({
 }));
 jest.mock('../hooks/useTuner', () => ({ useTunerStatus: () => ({ data: undefined }) }));
 jest.mock('../hooks/useConfig');
+jest.mock('../services/guideSetupService', () => ({ guideSetupService: { config: jest.fn().mockResolvedValue({ enabled: false }), lastRun: jest.fn().mockResolvedValue({ status: 'never' }) } }));
 jest.mock('../hooks/useBaseUrls');
 jest.mock('../services/configService', () => ({
   configService: { getAppId: jest.fn(), updateAppId: jest.fn() },

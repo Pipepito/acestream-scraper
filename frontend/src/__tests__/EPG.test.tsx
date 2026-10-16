@@ -211,7 +211,7 @@ describe('EPG page', () => {
     renderPage('/epg?tab=matching');
     expect(screen.getByRole('combobox', { name: 'Match Strictness' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Analyze Matches' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Create Matched TV Channels' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Apply reviewed matches' })).toBeDisabled();
     expect(screen.queryByRole('table', { name: 'Guide channels' })).not.toBeInTheDocument();
   });
 });

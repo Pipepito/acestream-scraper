@@ -103,6 +103,7 @@ def test_acestream_channels_schema_includes_runtime_last_seen(tmp_path):
             'is_active',
             'is_online',
             'network_status',
+            'id_kind',
             'last_checked',
             'check_error',
             'bitrate_bps',
@@ -113,6 +114,9 @@ def test_acestream_channels_schema_includes_runtime_last_seen(tmp_path):
             'epg_update_protected',
             'tv_channel_id',
         }
+
+        assert columns['id_kind']['nullable'] is True
+        assert _sqlite_type_name(columns['id_kind']) == 'VARCHAR(16)'
 
         channel_id = columns['id']
         channel_id_type = _sqlite_type_name(channel_id)

@@ -172,8 +172,13 @@ class M3UService:
             List of (acestream_id, name, metadata) with tv_channel_id assigned where applicable
         """
         # Build tvg_id -> [channel indices] mapping
+        excluded = tv_channel_service.repository.get_import_assignment_exclusions(
+            channel_id for channel_id, _name, _meta in parsed_channels
+        )
         tvg_id_map = {}
         for idx, (_ace_id, _name, meta) in enumerate(parsed_channels):
+            if _ace_id in excluded:
+                continue
             tvg_id = meta.get('tvg_id')
             if tvg_id:
                 tvg_id_map.setdefault(tvg_id, []).append(idx)

@@ -105,6 +105,23 @@ class ChannelRepository:
         if search:
             query = query.filter(AcestreamChannel.name.ilike(f"%{search}%"))
         return query.order_by(AcestreamChannel.group, AcestreamChannel.name).all()
+    def get_import_assignment_exclusions(self, acestream_ids: Iterable[str]) -> set[str]:
+        """Preserve existing owners and explicit opt-outs during catalogue ingestion."""
+        ids = list(set(acestream_ids))
+        excluded = set()
+        for offset in range(0, len(ids), 500):
+            excluded.update(
+                channel_id for (channel_id,) in self.db.query(AcestreamChannel.id).filter(
+                    AcestreamChannel.id.in_(ids[offset:offset + 500]),
+                    or_(
+                        AcestreamChannel.tv_channel_id.is_not(None),
+                        AcestreamChannel.is_active.is_(False),
+                        AcestreamChannel.epg_update_protected.is_(True),
+                    ),
+                )
+            )
+        return excluded
+
     def assign_acestreams_to_tv_channel(self, acestream_ids: list, tv_channel_id: int) -> int:
         """Assign multiple acestream channels to a TV channel by setting their tv_channel_id."""
         if not acestream_ids:
@@ -409,7 +426,8 @@ class ChannelRepository:
         return dict(row._mapping) if row else None
 
     @retry_database_write
-    def update_channel_status(self, channel_id: str, is_online: bool, error: str = None, *, bitrate_bps: Optional[int] = None, audio_tracks: Optional[list] = None, network_status: str = "unknown", stream_stats: Optional[dict] = None) -> AcestreamChannel:
+    def update_channel_status(self, channel_id: str, is_online: bool, error: str = None, *, bitrate_bps: Optional[int] = None, audio_tracks: Optional[list] = None, network_status: str = "unknown", stream_stats: Optional[dict] = None,
+                              id_kind: Optional[str] = None) -> AcestreamChannel:
         """Update the online status of a channel"""
         channel = self.get_channel_by_id(channel_id)
         if not channel:
@@ -426,6 +444,10 @@ class ChannelRepository:
         if bitrate_bps is not None:
             channel.bitrate_bps = bitrate_bps
             channel.bitrate_checked_at = channel.last_checked
+        # Only ever widen what we know: a probe that did not identify the id
+        # must not erase a kind that an earlier probe confirmed.
+        if id_kind is not None:
+            channel.id_kind = id_kind
         self.db.commit()
         self.db.refresh(channel)
         return channel

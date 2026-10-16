@@ -60,10 +60,12 @@ const Playlist: React.FC = () => {
   const relayPattern = buildPublicUrl('/tuner/channel/{tv_channel_id}.ts', publicUrl?.url).replace('%7Btv_channel_id%7D', '{tv_channel_id}');
   const selectedFormat = selectedBaseUrlId === 'tv-relay' ? { name: 'TV channel relay (automatic failover)', pattern: relayPattern } : namedBaseUrls.find(entry => selectedBaseUrlId === '' ? entry.is_default : entry.id === selectedBaseUrlId);
 
+  const isRelay = Boolean(selectedFormat?.pattern?.includes('{tv_channel_id}'));
   const effectiveFilters: PlaylistFilters = {
     ...filters,
     search: search || undefined,
     include_unassigned: !filters.favorites_only && filters.include_unassigned,
+    per_source: isRelay && filters.per_source ? true : undefined,
     base_url_id: typeof selectedBaseUrlId === 'number' ? selectedBaseUrlId : undefined,
     base_url: selectedBaseUrlId === 'tv-relay' ? relayPattern : undefined,
   };
@@ -145,6 +147,13 @@ const Playlist: React.FC = () => {
                   label="Include unassigned streams at the end"
                 />
                 <FormHelperText sx={{ mt: -0.5, ml: 4 }}>{filters.favorites_only ? 'Unassigned streams have no favorite TV channel.' : 'Streams without a TV channel appear last. In relay playlists they use individual stream URLs, without channel failover.'}</FormHelperText>
+              </Box>
+              <Box>
+                <FormControlLabel
+                  control={<Checkbox checked={filters.per_source ?? false} disabled={!isRelay} onChange={(e) => setFilters((prev) => ({ ...prev, per_source: e.target.checked }))} />}
+                  label="List each source under its channel"
+                />
+                <FormHelperText sx={{ mt: -0.5, ml: 4 }}>{isRelay ? 'To switch source by hand. Each one opens alone, without failover.' : 'Only for TV channel relay formats.'}</FormHelperText>
               </Box>
               <FormControl fullWidth size="small">
                 <InputLabel id="stream-base-url-label" shrink>Stream link format</InputLabel>

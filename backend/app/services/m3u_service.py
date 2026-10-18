@@ -183,32 +183,55 @@ class M3UService:
             if tvg_id:
                 tvg_id_map.setdefault(tvg_id, []).append(idx)
 
-        # For each tvg_id, check if TV channel exists, else try EPG
+        # For each tvg_id, check if TV channel exists, else try EPG.
+        # A conflict on one hash or one tvg_id must not abort the rest of
+        # the playlist: skip those hashes and keep associating the others.
         for tvg_id, indices in tvg_id_map.items():
-            # Check if TV channel exists
-            tv_channel = tv_channel_service.get_tv_channel_by_epg_id(tvg_id)
-            if tv_channel:
-                # Assign tv_channel_id to all matching streams
-                ace_ids = [parsed_channels[idx][0] for idx in indices]
-                tv_channel_service.repository.assign_acestreams_to_tv_channel(ace_ids, tv_channel.id)
-                for idx in indices:
-                    parsed_channels[idx][2]['tv_channel_id'] = tv_channel.id
-                continue
-            # Check EPG for channel across all sources
-            epg_channel = epg_service.find_channel_by_xml_id_across_sources(tvg_id)
-            if epg_channel:
-                tv_channel_data = {
-                    'name': epg_channel.name,
-                    'logo_url': getattr(epg_channel, 'icon_url', None),
-                    'category': getattr(epg_channel, 'group', None),
-                    'language': getattr(epg_channel, 'language', None),
-                    'epg_id': epg_channel.channel_xml_id,
-                    'epg_source_id': epg_channel.epg_source_id,
-                    'is_active': True
-                }
-                new_tv_channel = tv_channel_service.create_tv_channel(**tv_channel_data)
-                ace_ids = [parsed_channels[idx][0] for idx in indices]
-                tv_channel_service.repository.assign_acestreams_to_tv_channel(ace_ids, new_tv_channel.id)
-                for idx in indices:
-                    parsed_channels[idx][2]['tv_channel_id'] = new_tv_channel.id
+            try:
+                tv_channel = tv_channel_service.get_tv_channel_by_epg_id(tvg_id)
+                if tv_channel:
+                    self._assign_parsed_streams(
+                        tv_channel_service, parsed_channels, indices, tv_channel.id
+                    )
+                    continue
+                epg_channel = epg_service.find_channel_by_xml_id_across_sources(tvg_id)
+                if epg_channel:
+                    tv_channel_data = {
+                        'name': epg_channel.name,
+                        'logo_url': getattr(epg_channel, 'icon_url', None),
+                        'category': getattr(epg_channel, 'group', None),
+                        'language': getattr(epg_channel, 'language', None),
+                        'epg_id': epg_channel.channel_xml_id,
+                        'epg_source_id': epg_channel.epg_source_id,
+                        'is_active': True
+                    }
+                    new_tv_channel = tv_channel_service.create_tv_channel(**tv_channel_data)
+                    self._assign_parsed_streams(
+                        tv_channel_service, parsed_channels, indices, new_tv_channel.id
+                    )
+            except Exception as exc:
+                logger.warning(
+                    "Skipping TV association for tvg_id %s; remaining playlist channels continue: %s",
+                    tvg_id,
+                    exc,
+                )
+                db.rollback()
         return parsed_channels
+
+    def _assign_parsed_streams(self, tv_channel_service, parsed_channels, indices, tv_channel_id):
+        """Assign playlist hashes to a TV channel, skipping ones owned elsewhere."""
+        ace_ids = [parsed_channels[idx][0] for idx in indices]
+        repo = tv_channel_service.repository
+        conflicting = set(repo.acestreams_owned_by_other_tv_channel(ace_ids, tv_channel_id))
+        if conflicting:
+            logger.warning(
+                "Skipping %s Acestream hash(es) already associated with another TV channel: %s",
+                len(conflicting),
+                ", ".join(sorted(conflicting)),
+            )
+        assignable = [ace_id for ace_id in ace_ids if ace_id not in conflicting]
+        if assignable:
+            repo.assign_acestreams_to_tv_channel(assignable, tv_channel_id)
+        for idx in indices:
+            if parsed_channels[idx][0] not in conflicting:
+                parsed_channels[idx][2]['tv_channel_id'] = tv_channel_id

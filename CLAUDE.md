@@ -185,6 +185,11 @@ When the client leaves (the server cancels the response; the cancellation reache
 engine reader first), the final engine stop is deferred `STOP_LINGER_SECONDS` (5) so
 Kodi's second GET finds the source running; a start within it parks the old session,
 stopped with the source's final stop. The relay's own start/stall deadlines stop at once.
+Cancelled callbacks must still own the pending session before issuing a stop.
+Tuner settings expose 5–180 seconds per source and total startup (defaults 15/45),
+applied to new connections. The separate engine JSON start HTTP timeout is unchanged.
+Playlist's optional `per_source` entries retain filtering, guide identity and
+reverse-proxy prefixes; see `wiki/Media-Servers.md` for Kodi numbering and media hints.
 `stream_bitrate_service.probe_media` samples at most 2 MiB within 10 seconds during
 successful broadcast checks, feeds ffprobe through stdin with only the pipe protocol,
 and stores bitrate/timestamp and audio tracks through the channel repository. Missing

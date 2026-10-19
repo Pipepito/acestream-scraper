@@ -165,6 +165,14 @@ not part of the required PR gate; see `e2e/AGENTS.md` before running it.
 
 ## Playback routing
 
+TV relay startup limits are saved tuner settings (15 seconds per source and
+45 seconds total by default; each accepts 5–180). Stall detection is 25 seconds.
+Only client disconnects defer the final direct-engine stop by five seconds;
+deadline failures stop immediately. Cancelled timer callbacks must verify they
+still own the pending session before stopping anything. Retained sessions stop
+exactly once when the final lease is released. Optional `per_source` playlists
+retain filters, guide IDs and reverse-proxy prefixes. See `wiki/Media-Servers.md`.
+
 `GET/PUT /api/v1/config/playback-routing` persists `use_acexy` and `acexy_url`
 as one JSON setting. Direct mode is the default. Web-player and tuner factories
 use `playback_client_from_settings`; engine health/probes remain direct.

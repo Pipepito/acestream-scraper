@@ -256,6 +256,7 @@ interface NumberRange {
 /** The ranges `TunerSettingsUpdate` accepts; anything else comes back as a bare 422. */
 const TUNER_COUNT_RANGE: NumberRange = { min: 1, max: 16 };
 const MAX_CHANNELS_RANGE: NumberRange = { min: 1, max: 1000 };
+const START_SECONDS_RANGE: NumberRange = { min: 5, max: 180 };
 
 /** The two numbers stay text while editing so a cleared field stays cleared instead of turning into 0. */
 interface TunerFormState {
@@ -264,6 +265,8 @@ interface TunerFormState {
   max_channels: string;
   only_online: boolean;
   experimental_transcoding: boolean;
+  source_start_seconds: string;
+  startup_budget_seconds: string;
 }
 
 const rangeError = (value: string, { min, max }: NumberRange): string | null => {
@@ -278,6 +281,8 @@ const toForm = (settings: TunerSettings): TunerFormState => ({
   max_channels: String(settings.max_channels),
   only_online: settings.only_online,
   experimental_transcoding: settings.experimental_transcoding ?? false,
+  source_start_seconds: String(settings.source_start_seconds ?? 15),
+  startup_budget_seconds: String(settings.startup_budget_seconds ?? 45),
 });
 
 /** Friendly name, stream cap and lineup size the tuner reports to Jellyfin and Plex. */
@@ -292,7 +297,9 @@ const TunerSettingsBlock: React.FC<{ notify: MediaServerNotify }> = ({ notify })
 
   const countError = form ? rangeError(form.tuner_count, TUNER_COUNT_RANGE) : null;
   const channelsError = form ? rangeError(form.max_channels, MAX_CHANNELS_RANGE) : null;
-  const canSave = form !== null && countError === null && channelsError === null;
+  const sourceStartError = form ? rangeError(form.source_start_seconds, START_SECONDS_RANGE) : null;
+  const budgetError = form ? rangeError(form.startup_budget_seconds, START_SECONDS_RANGE) : null;
+  const canSave = form !== null && countError === null && channelsError === null && sourceStartError === null && budgetError === null;
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -304,6 +311,8 @@ const TunerSettingsBlock: React.FC<{ notify: MediaServerNotify }> = ({ notify })
         max_channels: Number(form.max_channels),
         only_online: form.only_online,
         experimental_transcoding: form.experimental_transcoding,
+        source_start_seconds: Number(form.source_start_seconds),
+        startup_budget_seconds: Number(form.startup_budget_seconds),
       });
       notify('Tuner settings saved.', 'success');
     } catch (err) {
@@ -350,6 +359,30 @@ const TunerSettingsBlock: React.FC<{ notify: MediaServerNotify }> = ({ notify })
               inputProps={{ 'aria-label': 'Most channels to publish', min: MAX_CHANNELS_RANGE.min, max: MAX_CHANNELS_RANGE.max, step: 1 }}
               error={channelsError !== null}
               helperText={channelsError ?? 'Plex stops saving channel maps at roughly 450-480 channels.'}
+              fullWidth
+            />
+          </Stack>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <TextField
+              size="small"
+              type="number"
+              label="Seconds per source"
+              value={form?.source_start_seconds ?? ''}
+              onChange={(event) => setForm((prev) => (prev ? { ...prev, source_start_seconds: event.target.value } : prev))}
+              inputProps={{ 'aria-label': 'Seconds per source', min: START_SECONDS_RANGE.min, max: START_SECONDS_RANGE.max, step: 1 }}
+              error={sourceStartError !== null}
+              helperText={sourceStartError ?? 'Time a source gets to start before the next one is tried. A cold engine can take 20 s.'}
+              fullWidth
+            />
+            <TextField
+              size="small"
+              type="number"
+              label="Seconds to start a channel"
+              value={form?.startup_budget_seconds ?? ''}
+              onChange={(event) => setForm((prev) => (prev ? { ...prev, startup_budget_seconds: event.target.value } : prev))}
+              inputProps={{ 'aria-label': 'Seconds to start a channel', min: START_SECONDS_RANGE.min, max: START_SECONDS_RANGE.max, step: 1 }}
+              error={budgetError !== null}
+              helperText={budgetError ?? 'Total for all its sources. Keep it under the player timeout: Kodi gives up after about 30 s.'}
               fullWidth
             />
           </Stack>

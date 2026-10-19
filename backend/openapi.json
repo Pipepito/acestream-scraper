@@ -7300,6 +7300,16 @@
           },
           {
             "in": "query",
+            "name": "per_source",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Per Source",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
             "name": "include_groups",
             "required": false,
             "schema": {
@@ -11899,6 +11909,18 @@
             }
           },
           {
+            "description": "TV relay formats: list each source under its channel, to switch by hand.",
+            "in": "query",
+            "name": "per_source",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "TV relay formats: list each source under its channel, to switch by hand.",
+              "title": "Per Source",
+              "type": "boolean"
+            }
+          },
+          {
             "in": "query",
             "name": "favorites_only",
             "required": false,
@@ -12090,6 +12112,18 @@
               ],
               "description": "Append unassigned streams at the end; defaults off for TV relay formats, on for stream formats.",
               "title": "Include Unassigned"
+            }
+          },
+          {
+            "description": "TV relay formats: list each source under its channel, to switch by hand.",
+            "in": "query",
+            "name": "per_source",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "TV relay formats: list each source under its channel, to switch by hand.",
+              "title": "Per Source",
+              "type": "boolean"
             }
           },
           {
@@ -15174,6 +15208,16 @@
           },
           {
             "in": "query",
+            "name": "per_source",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Per Source",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
             "name": "include_groups",
             "required": false,
             "schema": {
@@ -15349,6 +15393,16 @@
                 }
               ],
               "title": "Include Unassigned"
+            }
+          },
+          {
+            "in": "query",
+            "name": "per_source",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Per Source",
+              "type": "boolean"
             }
           },
           {

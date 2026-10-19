@@ -313,6 +313,9 @@ class TVChannelService:
 
     def auto_associate_acestreams(self, tv_channel: TVChannel) -> int:
         candidates = self._find_matching_acestreams(tv_channel)
+        # Only unassigned streams. Hashes already owned by another TV channel
+        # must not be stolen, and including them used to abort TV-channel
+        # creation (and the rest of a scrape) with "already associated".
         candidate_ids = [
             candidate.id for candidate in candidates
             if candidate.tv_channel_id is None

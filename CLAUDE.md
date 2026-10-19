@@ -177,10 +177,19 @@ reconnections prefer alternatives over sources that failed in the last 60 second
 source passes through `tuner_remux.remux_source` only when experimental transcoding
 is explicitly enabled (off by default; otherwise clients reconnect after failure) with FFmpeg table versions and
 discontinuity signalling, MPEG-2 video and AAC audio normalization; never concatenate
-raw sources. Decoder recovery remains experimental and client-dependent. Stall detection is 15 seconds,
+raw sources. Decoder recovery remains experimental and client-dependent. Stall detection is 25 seconds (a healthy low-bitrate source is silent up to ~16 s between engine pieces),
 recovery is bounded to 45 seconds, and 30 seconds of delivery resets failure history.
 FFmpeg is required only for experimental transcoding; default relays preserve source bytes.
 HDHomeRun and tuner M3U use stable TV-channel URLs; raw content-ID URLs stay compatible.
+When the client leaves (the server cancels the response; the cancellation reaches the
+engine reader first), the final engine stop is deferred `STOP_LINGER_SECONDS` (5) so
+Kodi's second GET finds the source running; a start within it parks the old session,
+stopped with the source's final stop. The relay's own start/stall deadlines stop at once.
+Cancelled callbacks must still own the pending session before issuing a stop.
+Tuner settings expose 5–180 seconds per source and total startup (defaults 15/45),
+applied to new connections. The separate engine JSON start HTTP timeout is unchanged.
+Playlist's optional `per_source` entries retain filtering, guide identity and
+reverse-proxy prefixes; see `wiki/Media-Servers.md` for Kodi numbering and media hints.
 `stream_bitrate_service.probe_media` samples at most 2 MiB within 10 seconds during
 successful broadcast checks, feeds ffprobe through stdin with only the pipe protocol,
 and stores bitrate/timestamp and audio tracks through the channel repository. Missing

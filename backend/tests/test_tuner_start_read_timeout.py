@@ -45,7 +45,7 @@ class ColdEngine:
         return EngineSession(content_id=content_id, pid='p', playback_url=url, stat_url=url,
                              command_url=url, is_live=True)
 
-    def stop(self, session):
+    def stop(self, session, *, linger_seconds=0):
         pass
 
     def close(self):

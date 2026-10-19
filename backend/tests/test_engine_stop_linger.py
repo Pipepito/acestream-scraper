@@ -96,6 +96,31 @@ def test_a_failed_restart_leaves_no_session_running(engine):
     assert [kind for kind, _ in log] == ["start", "start", "stop"]
 
 
+def test_cancelled_timer_cannot_consume_a_newer_pending_stop(engine, monkeypatch):
+    """A cancelled timer may already be waiting for the source lock."""
+    timers = []
+
+    def timer_factory(delay, callback, args):
+        timer = Mock(args=args, function=callback)
+        timers.append(timer)
+        return timer
+
+    monkeypatch.setattr(engine_module, "Timer", timer_factory)
+    client, _log, _stopped, _handler = engine
+    first = client.start(CID)
+    client.stop(first, linger_seconds=5)
+    second = client.start(CID)
+    client.stop(second, linger_seconds=5)
+
+    # Simulate the first timer entering its callback after cancellation and
+    # after the replacement session has also been released.
+    timers[0].function(*timers[0].args)
+    assert stops == []
+    assert second.lease.source.pending_stop is timers[1]
+    timers[1].function(*timers[1].args)
+    assert stops == [second.command_url, first.command_url]
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("ending", ["client_cancels", "client_closes", "source_stalls"])
 async def test_the_relay_lingers_only_when_the_client_leaves(monkeypatch, ending):

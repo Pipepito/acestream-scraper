@@ -166,7 +166,7 @@ class EngineClient:
                 session = self._start_direct(content_id, pid or new_pid(), lease)
             except BaseException:
                 if not source.leases:
-                    _stop_parked(source)
+                    _stop_parked(source, self._client)
                 raise
             source.leases.add(lease)
             return session
@@ -219,7 +219,7 @@ class EngineClient:
                 return
             if linger_seconds <= 0:
                 self._stop_direct(session)
-                _stop_parked(source)
+                _stop_parked(source, self._client)
                 return
             timer = Timer(linger_seconds, _deferred_stop, args=(source, session))
             timer.daemon = True
@@ -244,17 +244,23 @@ class EngineClient:
 def _deferred_stop(source, session: EngineSession) -> None:
     """The final stop a TV relay deferred, unless the source was started again."""
     with source.lock:
-        if source.pending_stop is None or source.leases:
+        # Timer.cancel() cannot recall a callback already waiting on this lock.
+        # It must still own the pending session, not a replacement's timer.
+        if (source.pending_stop is None or source.leases
+                or source.pending_stop.args[1] is not session):
             return
         source.pending_stop = None
         _stop_now(session)
         _stop_parked(source)
 
 
-def _stop_parked(source) -> None:
+def _stop_parked(source, client: Optional[httpx.Client] = None) -> None:
     parked, source.parked = source.parked, []
     for session in parked:
-        _stop_now(session)
+        if client is None:
+            _stop_now(session)
+        else:
+            _send_stop(client, session)
 
 
 def _stop_now(session: EngineSession) -> None:

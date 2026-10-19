@@ -219,9 +219,12 @@ def test_shared_source_stop_waits_for_last_owner_across_clients():
     assert len(calls) == 2  # no stop while another viewer owns the source
     second.stop(b)
     assert calls[-1].url.params['method'] == 'stop'
+    assert {request.url.path for request in calls[2:]} == {
+        httpx.URL(a.command_url).path, httpx.URL(b.command_url).path,
+    }
     first.stop(a)
     second.stop(b)
-    assert len(calls) == 3  # duplicate cleanup cannot stop a later session
+    assert len(calls) == 4  # both sessions stop once; duplicate cleanup is inert
 
 
 def test_ownership_is_separate_for_each_engine_and_source():
@@ -265,7 +268,7 @@ def test_start_in_flight_prevents_old_viewer_cleanup():
             stopping.result(timeout=3)
         assert len(calls) == 2
         second.stop(b)
-        assert len(calls) == 3
+        assert len(calls) == 4
     finally:
         release.set()
 

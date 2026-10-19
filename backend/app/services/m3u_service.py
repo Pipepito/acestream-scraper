@@ -183,18 +183,16 @@ class M3UService:
             if tvg_id:
                 tvg_id_map.setdefault(tvg_id, []).append(idx)
 
-        # For each tvg_id, check if TV channel exists, else try EPG
+        # For each tvg_id, check if TV channel exists, else try EPG.
+        # Ownership conflicts are expected and filtered below. Unexpected errors
+        # must reach the scrape transaction so existing source data is preserved.
         for tvg_id, indices in tvg_id_map.items():
-            # Check if TV channel exists
             tv_channel = tv_channel_service.get_tv_channel_by_epg_id(tvg_id)
             if tv_channel:
-                # Assign tv_channel_id to all matching streams
-                ace_ids = [parsed_channels[idx][0] for idx in indices]
-                tv_channel_service.repository.assign_acestreams_to_tv_channel(ace_ids, tv_channel.id)
-                for idx in indices:
-                    parsed_channels[idx][2]['tv_channel_id'] = tv_channel.id
+                self._assign_parsed_streams(
+                    tv_channel_service, parsed_channels, indices, tv_channel.id
+                )
                 continue
-            # Check EPG for channel across all sources
             epg_channel = epg_service.find_channel_by_xml_id_across_sources(tvg_id)
             if epg_channel:
                 tv_channel_data = {
@@ -207,8 +205,25 @@ class M3UService:
                     'is_active': True
                 }
                 new_tv_channel = tv_channel_service.create_tv_channel(**tv_channel_data)
-                ace_ids = [parsed_channels[idx][0] for idx in indices]
-                tv_channel_service.repository.assign_acestreams_to_tv_channel(ace_ids, new_tv_channel.id)
-                for idx in indices:
-                    parsed_channels[idx][2]['tv_channel_id'] = new_tv_channel.id
+                self._assign_parsed_streams(
+                    tv_channel_service, parsed_channels, indices, new_tv_channel.id
+                )
         return parsed_channels
+
+    def _assign_parsed_streams(self, tv_channel_service, parsed_channels, indices, tv_channel_id):
+        """Assign playlist hashes to a TV channel, skipping ones owned elsewhere."""
+        ace_ids = [parsed_channels[idx][0] for idx in indices]
+        repo = tv_channel_service.repository
+        conflicting = set(repo.acestreams_owned_by_other_tv_channel(ace_ids, tv_channel_id))
+        if conflicting:
+            logger.warning(
+                "Skipping %s Acestream hash(es) already associated with another TV channel: %s",
+                len(conflicting),
+                ", ".join(sorted(conflicting)),
+            )
+        assignable = [ace_id for ace_id in ace_ids if ace_id not in conflicting]
+        if assignable:
+            repo.assign_acestreams_to_tv_channel(assignable, tv_channel_id)
+        for idx in indices:
+            if parsed_channels[idx][0] not in conflicting:
+                parsed_channels[idx][2]['tv_channel_id'] = tv_channel_id

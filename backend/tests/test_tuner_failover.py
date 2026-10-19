@@ -335,11 +335,13 @@ async def test_long_lived_source_gets_new_recovery_budget(monkeypatch):
         yield cid.encode()
         if cid == 'one':
             await asyncio.sleep(.03)
+            yield b'one-still-delivering'
     monkeypatch.setattr('app.services.tuner_playback_service.relay_engine_stream', relay)
     registry = RelayRegistry()
     claim = registry.try_open('one', 'viewer', 1)
     iterator = relay_ranked_streams(Mock(), ['one', 'two'], 'viewer', claim, registry=registry)
     assert await anext(iterator) == b'one'
+    assert await anext(iterator) == b'one-still-delivering'
     assert await anext(iterator) == b'two'
     await iterator.aclose()
 

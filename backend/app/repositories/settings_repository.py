@@ -27,6 +27,8 @@ class SettingsRepository:
     TUNER_MAX_CHANNELS = 'tuner_max_channels'
     TUNER_ONLY_ONLINE = 'tuner_only_online'
     TUNER_EXPERIMENTAL_TRANSCODING = 'tuner_experimental_transcoding'
+    TUNER_SOURCE_START_SECONDS = 'tuner_source_start_seconds'
+    TUNER_STARTUP_BUDGET_SECONDS = 'tuner_startup_budget_seconds'
 
     # Constants for default values
     DEFAULT_BASE_URL = 'acestream://'
@@ -49,6 +51,9 @@ class SettingsRepository:
     DEFAULT_TUNER_COUNT = '4'
     DEFAULT_TUNER_MAX_CHANNELS = '450'
     DEFAULT_TUNER_ONLY_ONLINE = 'false'
+    # The relay's previous constants: a slow P2P host can raise them (#226).
+    DEFAULT_TUNER_SOURCE_START_SECONDS = '15'
+    DEFAULT_TUNER_STARTUP_BUDGET_SECONDS = '45'
 
     # Keys whose stored empty value means "not configured" rather than
     # "deliberately blank". Their DEFAULT_<KEY> comes from the environment, and

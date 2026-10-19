@@ -3673,6 +3673,18 @@ export interface components {
       max_channels: number;
       /** Only Online */
       only_online: boolean;
+      /**
+       * Source Start Seconds
+       * @description Seconds a source gets to deliver its first byte before the next is tried
+       * @default 15
+       */
+      source_start_seconds?: number;
+      /**
+       * Startup Budget Seconds
+       * @description Seconds for the whole start across sources; keep it under the player's own timeout (Kodi gives up after about 30)
+       * @default 45
+       */
+      startup_budget_seconds?: number;
       /** Tuner Count */
       tuner_count: number;
     };
@@ -3686,6 +3698,10 @@ export interface components {
       max_channels?: number | null;
       /** Only Online */
       only_online?: boolean | null;
+      /** Source Start Seconds */
+      source_start_seconds?: number | null;
+      /** Startup Budget Seconds */
+      startup_budget_seconds?: number | null;
       /** Tuner Count */
       tuner_count?: number | null;
     };
@@ -4004,6 +4020,7 @@ export interface operations {
         group?: string | null;
         only_online?: boolean;
         include_unassigned?: boolean | null;
+        per_source?: boolean;
         include_groups?: string | null;
         exclude_groups?: string | null;
         base_url?: string | null;
@@ -6362,6 +6379,8 @@ export interface operations {
         only_online?: boolean;
         /** @description Append unassigned streams at the end; defaults off for TV relay formats, on for stream formats. */
         include_unassigned?: boolean | null;
+        /** @description TV relay formats: list each source under its channel, to switch by hand. */
+        per_source?: boolean;
         favorites_only?: boolean;
         include_groups?: string | null;
         exclude_groups?: string | null;
@@ -6401,6 +6420,8 @@ export interface operations {
         only_online?: boolean;
         /** @description Append unassigned streams at the end; defaults off for TV relay formats, on for stream formats. */
         include_unassigned?: boolean | null;
+        /** @description TV relay formats: list each source under its channel, to switch by hand. */
+        per_source?: boolean;
         favorites_only?: boolean;
         include_groups?: string | null;
         exclude_groups?: string | null;
@@ -7997,6 +8018,7 @@ export interface operations {
         group?: string | null;
         only_online?: boolean;
         include_unassigned?: boolean | null;
+        per_source?: boolean;
         include_groups?: string | null;
         exclude_groups?: string | null;
         base_url?: string | null;
@@ -8031,6 +8053,7 @@ export interface operations {
         group?: string | null;
         only_online?: boolean;
         include_unassigned?: boolean | null;
+        per_source?: boolean;
         include_groups?: string | null;
         exclude_groups?: string | null;
         base_url?: string | null;

@@ -100,6 +100,8 @@ refreshes; Live TV can work before that association is found.
 - **Tuner name** — what Jellyfin and Plex show for this tuner. Default "AceStream Scraper".
 - **Streams at once** — how many channels may be streamed through the tuner at the same time (default 4). It is the number the tuner advertises to Jellyfin and Plex, and the one it actually enforces: a request beyond it is refused with "All 4 tuner slots are in use". Each concurrent stream is a real AceStream stream on your engine and real upload bandwidth, so keep this near what your connection can actually carry.
 - **Publish only channels that are online** — off by default. With it off, a channel whose streams are all currently offline is still listed, so tuning it fails with a clear error instead of the channel vanishing from your TV app. Turn it on if you would rather see a shorter, verified list.
+- **Seconds per source** — time allowed for a source to begin delivering media (default 15, range 5–180 seconds).
+- **Seconds to start a channel** — total startup budget across sources (default 45, range 5–180 seconds). The remaining total budget limits each attempt. These settings apply to new TV-channel relay connections; the separate engine JSON start request retains its existing 15-second HTTP timeout. A player's own timeout can end an attempt sooner.
 
 The addresses to paste into Plex, and the warnings about refused clients or channels left out, are shown where they matter: on the Plex card and in the **Public address** block above.
 
@@ -159,13 +161,15 @@ inactive, and malformed source IDs are excluded. If the TV channel is disabled o
 has no eligible sources, playback returns `503 NO_ONLINE_STREAMS`.
 
 Refused, empty, timed-out, or otherwise failed starts advance to the next source.
-Each source is tried once, with a 15-second attempt deadline and a 45-second overall
-startup budget. In-flight blocking engine calls and cleanup may finish after that
+Each source is tried once, with a configurable attempt deadline and overall
+startup budget (15 and 45 seconds by default). If the last available source ends
+empty within three seconds, it is retried once within the same budget.
+In-flight blocking engine calls and cleanup may finish after that
 deadline before returning. One tuner slot stays reserved across all attempts.
 If none starts, the response is `502 CHANNEL_STREAM_FAILED`.
 
 By default the relay copies the original media without FFmpeg or encoding. If a
-source ends, errors or stalls for 15 seconds after playback starts, the response
+source ends, errors or stalls for 25 seconds after playback starts, the response
 ends. The client must reconnect to the **same stable TV channel URL**. Recently
 failed sources are deprioritized for 60 seconds, so working alternatives are tried
 first. This failure memory is process-local and bounded; it does not overwrite
@@ -180,15 +184,31 @@ at 25 fps and audio to stereo AAC, using two video encoder threads. This is CPU
 intensive, can overload small servers, increase bandwidth and reduce quality. Use
 at your own risk; uninterrupted playback in Plex/Jellyfin is not guaranteed.
 Attempts use fresh transport tables, discontinuities and timestamp offsets.
-Programme positions are not synchronized. Every source is tried once per 45-second
-recovery window; 30 seconds of delivery resets the budget. Exhaustion ends the
+Programme positions are not synchronized. Every source is tried once per configured
+recovery window; 30 seconds of delivery resets the budget. Quiet time after the
+last chunk does not count, including before EOF or a transport error. Exhaustion ends the
 response. Disconnecting cancels recovery and cleans up the process/source session.
+
+When the last TV-relay viewer disconnects, direct-engine cleanup waits five seconds.
+This lets Kodi's second GET reuse the warm source. Reconnecting cancels the pending
+stop; all retained sessions are stopped when the final viewer leaves. Source
+failures and relay deadlines still stop immediately. Acexy owns its own sessions.
 
 On **Playlist**, choose **TV channel relay (automatic failover)** or save a format
 such as `http://scraper:8000/tuner/channel/{tv_channel_id}.ts`. This generates one
 entry per TV channel, preserving its number and EPG ID, and can append unassigned
 streams when **Include unassigned streams at the end** is selected; those use individual URLs without failover. `{channel_id}` remains the hash of a specific AceStream source; use
 `/tuner/stream/{channel_id}.ts` when deliberately pinning that source.
+
+**List each source under its channel** adds optional individual source entries
+below each TV-channel entry (`per_source=true`). They share the channel's guide
+and category, show the source name and a short hash, and use numbers such as
+`12.1` and `12.2`. Each opens that exact source without automatic failover. Existing
+filters still apply. The option is off by default and applies only to TV-channel
+relay formats. In Kodi, enable **PVR & Live TV → Use channel numbers from backend**
+to retain the subchannel numbering; otherwise Kodi assigns sequential numbers.
+HTTP MPEG-TS relay entries include a Kodi media-type hint so Kodi can avoid probing
+their type before playback. Custom HLS and AceStream formats retain their own type.
 
 Successful channel status checks also take a bounded media sample (at most 2 MiB
 and 10 seconds including analysis) to estimate encoded bitrate and discover audio
@@ -206,7 +226,7 @@ relay session.
 A GET of `/tuner/channel/{tv_channel_id}.ts` (HDHomeRun, tuner M3U, or a player
 opening a stable channel URL) queues a quiet refresh of that channel's active
 sources. Already-online sources start immediately. Newly verified alternatives
-can join recovery within its 45-second budget, including when
+can join recovery within its configured startup budget, including when
 all sources were previously offline. The app checks one channel at a time,
 coalesces concurrent requests for that channel, and bounds the queue to 32 channels.
 A full queue leaves playback using the currently known sources.

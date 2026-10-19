@@ -103,7 +103,10 @@ class ChannelRepository:
         """Get acestream channels not assigned to any TV channel."""
         query = self.db.query(AcestreamChannel).filter(AcestreamChannel.tv_channel_id.is_(None))
         if search:
-            query = query.filter(AcestreamChannel.name.ilike(f"%{search}%"))
+            query = query.filter(
+                AcestreamChannel.name.ilike(f"%{search}%") |
+                AcestreamChannel.id.ilike(f"%{search}%")
+            )
         return query.order_by(AcestreamChannel.group, AcestreamChannel.name).all()
     def get_import_assignment_exclusions(self, acestream_ids: Iterable[str]) -> set[str]:
         """Preserve existing owners and explicit opt-outs during catalogue ingestion."""
@@ -211,7 +214,10 @@ class ChannelRepository:
             query = query.filter(AcestreamChannel.is_active == True)
 
         if search:
-            query = query.filter(AcestreamChannel.name.ilike(f"%{search}%"))
+            query = query.filter(
+                AcestreamChannel.name.ilike(f"%{search}%") |
+                AcestreamChannel.id.ilike(f"%{search}%")
+            )
 
         return query.offset(skip).limit(limit).all()
 
@@ -243,7 +249,10 @@ class ChannelRepository:
 
         # Apply filters
         if search:
-            query = query.filter(AcestreamChannel.name.ilike(f"%{search}%"))
+            query = query.filter(
+                AcestreamChannel.name.ilike(f"%{search}%") |
+                AcestreamChannel.id.ilike(f"%{search}%")
+            )
 
         if group:
             query = query.filter(AcestreamChannel.group == group)
@@ -588,7 +597,10 @@ class ChannelRepository:
         if active_only:
             query = query.filter(AcestreamChannel.is_active == True)
         if search:
-            query = query.filter(AcestreamChannel.name.ilike(f"%{search}%"))
+            query = query.filter(
+                AcestreamChannel.name.ilike(f"%{search}%") |
+                AcestreamChannel.id.ilike(f"%{search}%")
+            )
         if group:
             query = query.filter(AcestreamChannel.group == group)
         if is_active is not None:
@@ -618,7 +630,10 @@ class ChannelRepository:
         if active_only:
             query = query.filter(AcestreamChannel.is_active == True)
         if search:
-            query = query.filter(AcestreamChannel.name.ilike(f"%{search}%"))
+            query = query.filter(
+                AcestreamChannel.name.ilike(f"%{search}%") |
+                AcestreamChannel.id.ilike(f"%{search}%")
+            )
         if group:
             query = query.filter(AcestreamChannel.group == group)
         if is_active is not None:

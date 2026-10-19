@@ -109,14 +109,11 @@ async def relay_ranked_streams(
                     yield chunk
             except (EngineRefusedError, EngineUnavailableError, EngineStreamError, StopAsyncIteration, TimeoutError) as exc:
                 record_source_failure(content_id)
-                # A source lived until its end of stream, but only until its
-                # last chunk when it stalled: the stall wait itself lasts
-                # STALL_SECONDS, and counting it made a source that sent one
-                # chunk and stalled look healthy, so with recovery enabled two
-                # such sources took turns forever.
+                # Count delivery only through the last chunk, regardless of
+                # how the source ends. Silence before EOF/transport failure
+                # must not renew the budget any more than a stall wait does.
                 if first_at is not None:
-                    ended_at = last_at if isinstance(exc, TimeoutError) else time.monotonic()
-                    healthy = ended_at - first_at >= HEALTHY_SECONDS
+                    healthy = last_at - first_at >= HEALTHY_SECONDS
                 # Do not include upstream exception text: it can contain URLs
                 # with credentials. Keep EOF distinct from our read deadline.
                 reason = (

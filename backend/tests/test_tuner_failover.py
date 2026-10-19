@@ -253,6 +253,7 @@ def test_channel_get_starts_quiet_refresh_and_recovers_offline_source(alembic_cl
     from app.config.database import SessionLocal
     from app.models.models import AcestreamChannel, TVChannel
     from app.services.tuner_network import get_tuner_gate
+    from app.services.stream_relay import relay_registry
     from app.config.settings import get_settings
     monkeypatch.setenv('TUNER_ALLOWED_NETWORKS', '*')
     get_settings.cache_clear()
@@ -278,11 +279,16 @@ def test_channel_get_starts_quiet_refresh_and_recovers_offline_source(alembic_cl
         async def relay(_engine, content_id, *args, **kwargs):
             assert content_id == cid
             yield b'recovered video'
-        async def ranked(*args, candidate_provider, **kwargs):
-            candidates, _ = await candidate_provider()
-            assert candidates == [cid]
-            yield b'recovered video'
-            engine.close()
+        async def ranked(_engine, _ids, _label, claim, *, candidate_provider, **kwargs):
+            # Releases its tuner slot like the real relay's finally: a claim
+            # left open is «someone watching» for every later test.
+            try:
+                candidates, _ = await candidate_provider()
+                assert candidates == [cid]
+                yield b'recovered video'
+                engine.close()
+            finally:
+                relay_registry.close(claim.id)
         monkeypatch.setattr(tuner, 'relay_ranked_streams', ranked)
         url = f'/tuner/channel/{tv.id}.ts'
         assert alembic_client.head(url).status_code == 200
@@ -329,11 +335,13 @@ async def test_long_lived_source_gets_new_recovery_budget(monkeypatch):
         yield cid.encode()
         if cid == 'one':
             await asyncio.sleep(.03)
+            yield b'one-still-delivering'
     monkeypatch.setattr('app.services.tuner_playback_service.relay_engine_stream', relay)
     registry = RelayRegistry()
     claim = registry.try_open('one', 'viewer', 1)
     iterator = relay_ranked_streams(Mock(), ['one', 'two'], 'viewer', claim, registry=registry)
     assert await anext(iterator) == b'one'
+    assert await anext(iterator) == b'one-still-delivering'
     assert await anext(iterator) == b'two'
     await iterator.aclose()
 

@@ -175,7 +175,8 @@ def tuner_gate(monkeypatch):
 def test_tuner_settings_response_contract(client):
     response = client.get("/api/v1/tuner/settings")
     assert response.status_code == 200
-    assert set(response.json()) == {"friendly_name", "tuner_count", "max_channels", "only_online", "experimental_transcoding"}
+    assert set(response.json()) == {"friendly_name", "tuner_count", "max_channels", "only_online", "experimental_transcoding",
+                                    "source_start_seconds", "startup_budget_seconds"}
 
 
 def test_tuner_status_response_contract(client, tuner_gate):

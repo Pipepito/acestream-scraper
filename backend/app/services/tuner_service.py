@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 MIN_TUNER_COUNT, MAX_TUNER_COUNT = 1, 16
 MIN_MAX_CHANNELS, MAX_MAX_CHANNELS = 1, 1000
+MIN_START_SECONDS, MAX_START_SECONDS = 5, 180
 
 
 class TunerDeviceIdError(RuntimeError):
@@ -68,6 +69,10 @@ class TunerSettings:
     max_channels: int
     only_online: bool
     experimental_transcoding: bool = False
+    # Seconds a source gets to deliver its first byte, and for the whole start
+    # across sources: a cold P2P start can take longer than the defaults.
+    source_start_seconds: int = 15
+    startup_budget_seconds: int = 45
 
 
 @dataclass
@@ -112,10 +117,13 @@ class TunerService:
             tuner_count=int(repo.get_setting(SettingsRepository.TUNER_COUNT) or SettingsRepository.DEFAULT_TUNER_COUNT),
             max_channels=int(repo.get_setting(SettingsRepository.TUNER_MAX_CHANNELS) or SettingsRepository.DEFAULT_TUNER_MAX_CHANNELS),
             only_online=str(repo.get_setting(SettingsRepository.TUNER_ONLY_ONLINE) or "false").lower() in ("true", "1"),
+            source_start_seconds=int(repo.get_setting(SettingsRepository.TUNER_SOURCE_START_SECONDS) or SettingsRepository.DEFAULT_TUNER_SOURCE_START_SECONDS),
+            startup_budget_seconds=int(repo.get_setting(SettingsRepository.TUNER_STARTUP_BUDGET_SECONDS) or SettingsRepository.DEFAULT_TUNER_STARTUP_BUDGET_SECONDS),
         )
 
     def update_settings(self, *, friendly_name: Optional[str] = None, tuner_count: Optional[int] = None,
-                        max_channels: Optional[int] = None, only_online: Optional[bool] = None, experimental_transcoding: Optional[bool] = None) -> TunerSettings:
+                        max_channels: Optional[int] = None, only_online: Optional[bool] = None, experimental_transcoding: Optional[bool] = None,
+                        source_start_seconds: Optional[int] = None, startup_budget_seconds: Optional[int] = None) -> TunerSettings:
         repo = self.settings_repo
         if friendly_name is not None:
             repo.set_setting(SettingsRepository.TUNER_FRIENDLY_NAME, friendly_name.strip() or SettingsRepository.DEFAULT_TUNER_FRIENDLY_NAME, "Tuner name shown in Jellyfin/Plex")
@@ -127,6 +135,10 @@ class TunerService:
             repo.set_setting(SettingsRepository.TUNER_EXPERIMENTAL_TRANSCODING, "true" if experimental_transcoding else "false", "Experimental CPU-intensive TV relay recovery")
         if only_online is not None:
             repo.set_setting(SettingsRepository.TUNER_ONLY_ONLINE, "true" if only_online else "false", "Hide channels whose streams are all offline")
+        if source_start_seconds is not None:
+            repo.set_setting(SettingsRepository.TUNER_SOURCE_START_SECONDS, str(max(MIN_START_SECONDS, min(MAX_START_SECONDS, int(source_start_seconds)))), "Seconds a source gets to deliver its first byte")
+        if startup_budget_seconds is not None:
+            repo.set_setting(SettingsRepository.TUNER_STARTUP_BUDGET_SECONDS, str(max(MIN_START_SECONDS, min(MAX_START_SECONDS, int(startup_budget_seconds)))), "Seconds for the whole start across sources")
         return self.settings()
 
     def device_id(self) -> str:

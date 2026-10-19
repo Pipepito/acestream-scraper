@@ -12,6 +12,8 @@ class TunerSettingsResponse(BaseModel):
     max_channels: int
     only_online: bool
     experimental_transcoding: bool = Field(False, description="Experimental CPU-intensive transcoding for midstream recovery; default recovery requires client reconnection")
+    source_start_seconds: int = Field(15, description="Seconds a source gets to deliver its first byte before the next is tried")
+    startup_budget_seconds: int = Field(45, description="Seconds for the whole start across sources; keep it under the player's own timeout (Kodi gives up after about 30)")
 
 
 class TunerSettingsUpdate(BaseModel):
@@ -20,6 +22,8 @@ class TunerSettingsUpdate(BaseModel):
     max_channels: Optional[int] = Field(None, ge=1, le=1000)
     only_online: Optional[bool] = None
     experimental_transcoding: Optional[bool] = None
+    source_start_seconds: Optional[int] = Field(None, ge=5, le=180)
+    startup_budget_seconds: Optional[int] = Field(None, ge=5, le=180)
 
 
 class TunerRenumbered(BaseModel):

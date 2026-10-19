@@ -177,6 +177,7 @@ async def relay_engine_stream(
     registry: Optional[RelayRegistry] = None,
     claim: Optional[RelayInfo] = None,
     release_claim: bool = True,
+    read_seconds: Optional[float] = None,
 ) -> AsyncIterator[bytes]:
     """Yield MPEG-TS bytes for ``content_id``.
 
@@ -194,6 +195,10 @@ async def relay_engine_stream(
     across attempts and must close the claim itself. Without a claim the relay
     registers itself, likewise before the start, so a
     relay is on the books for as long as it holds an engine session.
+
+    ``read_seconds`` lets a caller that waits longer than RELAY_TIMEOUT's read
+    for the first byte keep the connection that long: without it, a source the
+    tuner gives 60 s would still be cut by httpx at 30 s of silence.
     """
     registry = registry or relay_registry
     factory = client_factory or _default_client_factory
@@ -203,7 +208,10 @@ async def relay_engine_stream(
         session = await run_in_threadpool(engine.start, content_id)
         engine_host = _host_identity(urlsplit(engine.engine_url).hostname)
         try:
-            async with factory(follow_redirects=True, max_redirects=3, timeout=RELAY_TIMEOUT) as client:
+            timeout = RELAY_TIMEOUT if read_seconds is None else httpx.Timeout(
+                connect=RELAY_TIMEOUT.connect, read=max(RELAY_TIMEOUT.read, read_seconds),
+                write=RELAY_TIMEOUT.write, pool=RELAY_TIMEOUT.pool)
+            async with factory(follow_redirects=True, max_redirects=3, timeout=timeout) as client:
                 async with client.stream("GET", session.playback_url) as response:
                     if _host_identity(response.url.host) != engine_host:
                         raise EngineStreamError(f"Engine stream left the engine host: {response.url.host}")

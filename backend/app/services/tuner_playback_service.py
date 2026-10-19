@@ -53,6 +53,8 @@ async def relay_ranked_streams(
     candidate_provider: Callable[[], Awaitable[tuple[list[str], bool]]] | None = None,
     experimental_transcoding: bool = False,
     on_source_failure: Callable[[str], Awaitable[None]] | None = None,
+    attempt_seconds: float | None = None,
+    startup_budget_seconds: float | None = None,
 ) -> AsyncIterator[bytes]:
     """Retry startup failures; midstream transcoding recovery is explicit opt-in.
 
@@ -60,8 +62,11 @@ async def relay_ranked_streams(
     delivers for 30 seconds resets the failure history, so flapping sources do
     not hold a slot forever. Cancellation never starts another source.
     """
+    # The tuner settings when the route passes them; the module defaults otherwise.
+    attempt_seconds = ATTEMPT_SECONDS if attempt_seconds is None else attempt_seconds
+    startup_budget_seconds = STARTUP_BUDGET_SECONDS if startup_budget_seconds is None else startup_budget_seconds
     started = time.monotonic()
-    deadline = started + STARTUP_BUDGET_SECONDS
+    deadline = started + startup_budget_seconds
     attempted: set[str] = set()
     candidates = prefer_recovered_sources(content_ids)
     version = 0
@@ -87,12 +92,12 @@ async def relay_ranked_streams(
             attempted.add(content_id)
             registry.select_stream(claim.id, content_id)
             raw = relay_engine_stream(engine, content_id, client_label, registry=registry,
-                client_factory=client_factory, claim=claim, release_claim=False)
+                client_factory=client_factory, claim=claim, release_claim=False, read_seconds=attempt_seconds)
             iterator = remux_source(raw, version=version, offset=time.monotonic() - started) if experimental_transcoding else raw
             version += 1
             first_at = None
             try:
-                with anyio.fail_after(min(ATTEMPT_SECONDS, max(.001, deadline - time.monotonic()))):
+                with anyio.fail_after(min(attempt_seconds, max(.001, deadline - time.monotonic()))):
                     first = await anext(iterator)
                 first_at = time.monotonic()
                 yield first
@@ -121,7 +126,7 @@ async def relay_ranked_streams(
                     await iterator.aclose()
             if first_at is not None and time.monotonic() - first_at >= HEALTHY_SECONDS:
                 attempted = {content_id}
-                deadline = time.monotonic() + STARTUP_BUDGET_SECONDS
+                deadline = time.monotonic() + startup_budget_seconds
             if on_source_failure is not None:
                 await on_source_failure(content_id)
             if first_at is not None and not experimental_transcoding:

@@ -304,16 +304,19 @@ async def tuner_channel(tv_channel_id: int, request: Request):
     iterator = None
     engine = None
     try:
-        def read_recovery_mode():
+        def read_relay_settings():
             with SessionLocal() as db:
-                return TunerService(db).settings().experimental_transcoding
-        experimental_transcoding = await run_in_threadpool(read_recovery_mode)
+                return TunerService(db).settings()
+        relay_settings = await run_in_threadpool(read_relay_settings)
+        experimental_transcoding = relay_settings.experimental_transcoding
         if experimental_transcoding:
             await run_in_threadpool(ffmpeg_binary)
         engine = await run_in_threadpool(_engine)
         iterator = relay_ranked_streams(engine, candidates, label, claim, client_factory=_relay_client_factory,
                                       candidate_provider=refreshed_candidates, on_source_failure=refresh_failed_source,
-                                      experimental_transcoding=experimental_transcoding)
+                                      experimental_transcoding=experimental_transcoding,
+                                      attempt_seconds=relay_settings.source_start_seconds,
+                                      startup_budget_seconds=relay_settings.startup_budget_seconds)
         first = await anext(iterator)
     except BaseException as exc:
         monitor.cancel()

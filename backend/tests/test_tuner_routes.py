@@ -57,7 +57,8 @@ def test_settings_and_status_are_token_gated_and_reflect_the_gate(client, db_ses
     assert body["client_allowed"] is True and body["client_source"] == "direct" and body["allowed_networks"] == ["*"]
     assert isinstance(body["ffmpeg_available"], bool)
     updated = client.put("/api/v1/tuner/settings", json={"friendly_name": "Lounge", "tuner_count": 2, "max_channels": 100, "only_online": True}).json()
-    assert updated == {"friendly_name": "Lounge", "tuner_count": 2, "max_channels": 100, "only_online": True, "experimental_transcoding": False}
+    assert updated == {"friendly_name": "Lounge", "tuner_count": 2, "max_channels": 100, "only_online": True, "experimental_transcoding": False,
+                       "source_start_seconds": 15, "startup_budget_seconds": 45}
     assert client.get("/tuner/discover.json").json()["FriendlyName"] == "Lounge"
     assert client.put("/api/v1/tuner/settings", json={"max_channels": 0}).status_code == 422
 

@@ -177,7 +177,7 @@ reconnections prefer alternatives over sources that failed in the last 60 second
 source passes through `tuner_remux.remux_source` only when experimental transcoding
 is explicitly enabled (off by default; otherwise clients reconnect after failure) with FFmpeg table versions and
 discontinuity signalling, MPEG-2 video and AAC audio normalization; never concatenate
-raw sources. Decoder recovery remains experimental and client-dependent. Stall detection is 15 seconds,
+raw sources. Decoder recovery remains experimental and client-dependent. Stall detection is 25 seconds (a healthy low-bitrate source is silent up to ~16 s between engine pieces),
 recovery is bounded to 45 seconds, and 30 seconds of delivery resets failure history.
 FFmpeg is required only for experimental transcoding; default relays preserve source bytes.
 HDHomeRun and tuner M3U use stable TV-channel URLs; raw content-ID URLs stay compatible.

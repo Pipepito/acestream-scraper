@@ -19,6 +19,22 @@ def test_custom_formats_do_not_get_a_false_mpeg_ts_hint(link):
     assert PlaylistService._link_lines(link) == [link]
 
 
+def test_per_source_respects_stream_filters_and_proxy_prefix(client, seed_tv_channels, db_session):
+    tv = seed_tv_channels[0]
+    included = _make_stream(db_session, 'Included', tv_channel_id=tv.id, group='Sports')
+    offline = _make_stream(db_session, 'Offline', tv_channel_id=tv.id, group='Sports', is_online=False)
+    excluded = _make_stream(db_session, 'Excluded', tv_channel_id=tv.id, group='News')
+    response = client.get('/api/v1/playlists/m3u', params={
+        'base_url': 'https://scraper.test/prefix/tuner/channel/{tv_channel_id}.ts?token=example',
+        'per_source': 'true', 'only_online': 'true', 'include_groups': 'Sports',
+    })
+    assert response.status_code == 200
+    assert f'https://scraper.test/prefix/tuner/channel/{tv.id}.ts?token=example' in response.text
+    assert f'https://scraper.test/prefix/tuner/stream/{included.id}.ts?token=example' in response.text
+    assert offline.id not in response.text
+    assert excluded.id not in response.text
+
+
 def _make_stream(db_session, name, tv_channel_id=None, is_online=True,
                  logo=None, tvg_id=None, tvg_name=None, group=None):
     from app.models.models import AcestreamChannel

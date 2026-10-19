@@ -86,7 +86,10 @@ class PlaylistService:
             tv_channels = [tv for tv in self.channel_repository.get_playlist_tv_channels(search=search, favorites_only=favorites_only)
                            if tv.id in tv_ids]
             name_counts = {}
-            entries, _, _ = self._tv_channel_entries(tv_channels, base_url, False, 1, name_counts, per_source=per_source)
+            entries, _, _ = self._tv_channel_entries(
+                tv_channels, base_url, False, 1, name_counts, per_source=per_source,
+                source_ids={channel.id for channel in channels},
+            )
             if include_unassigned:
                 unassigned = [c for c in channels if c.tv_channel_id is None
                               and (not search or search.casefold() in (c.name or '').casefold())]
@@ -174,7 +177,7 @@ class PlaylistService:
         prefix = parts.path.split('/tuner/channel/', 1)[0] if '/tuner/channel/' in parts.path else ''
         return urlunsplit((parts.scheme, parts.netloc, prefix + '/tuner/stream/{channel_id}.ts', parts.query, ''))
 
-    def _source_entries(self, tv_channel, streams, base_url, name_counts):
+    def _source_entries(self, tv_channel, streams, base_url, name_counts, epg_id):
         """One entry per source of a relayed TV channel, right after it, to
         switch by hand when the automatic choice fails.
 
@@ -185,9 +188,8 @@ class PlaylistService:
         """
         stream_base = self._raw_relay_base(base_url)
         width = len(str(len(streams)))
-        # Same id as the channel entry, whose stream is the first source.
-        epg_id = (self.epg_ids.resolve(tv_channel.epg_source_id, tv_channel.epg_id) if tv_channel.epg_id
-                  else self.epg_ids.resolve(None, streams[0].tvg_id))
+        # Use the parent entry's resolved guide even when its preferred stream
+        # is excluded from the optional source list by a stream-level filter.
         lines = []
         for index, stream in enumerate(streams, start=1):
             label = (stream.name or "").strip() or tv_channel.name
@@ -241,6 +243,7 @@ class PlaylistService:
         pid_counter: int,
         name_counts: Dict[str, int],
         per_source: bool = False,
+        source_ids: Optional[set[str]] = None,
     ):
         """Build EXTINF/link line pairs for TV channels with their assigned
         streams. Returns (lines, next_pid_counter, processed_acestream_ids).
@@ -255,7 +258,8 @@ class PlaylistService:
                 continue
             streams = sort_streams_curated(streams)
             stable = "{tv_channel_id}" in base_url
-            sources = streams if stable and per_source else []
+            sources = [stream for stream in streams
+                       if source_ids is None or stream.id in source_ids] if stable and per_source else []
             if stable:
                 processed_ids.update(stream.id for stream in streams)
                 streams = streams[:1]
@@ -302,7 +306,7 @@ class PlaylistService:
                 if addpid:
                     pid_counter += 1
             if sources:
-                lines.extend(self._source_entries(tv_channel, sources, base_url, name_counts))
+                lines.extend(self._source_entries(tv_channel, sources, base_url, name_counts, epg_id))
 
         return lines, pid_counter, processed_ids
 

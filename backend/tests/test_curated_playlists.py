@@ -8,6 +8,17 @@ import pytest
 from fastapi import status
 
 
+@pytest.mark.parametrize('link', [
+    'https://player.test/live.m3u8?next=/tuner/channel/1.ts',
+    'https://player.test/tuner/stream/channel.m3u8',
+    'acestream://channel?label=/tuner/stream/channel.ts',
+])
+def test_custom_formats_do_not_get_a_false_mpeg_ts_hint(link):
+    from app.services.playlist_service import PlaylistService
+
+    assert PlaylistService._link_lines(link) == [link]
+
+
 def _make_stream(db_session, name, tv_channel_id=None, is_online=True,
                  logo=None, tvg_id=None, tvg_name=None, group=None):
     from app.models.models import AcestreamChannel

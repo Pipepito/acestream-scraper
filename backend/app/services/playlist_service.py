@@ -321,7 +321,12 @@ class PlaylistService:
         the live one showed video at 5.5 s instead of 8.5 s. Other link
         formats are the user's and may be anything, so they are left alone.
         """
-        if '/tuner/channel/' in link or '/tuner/stream/' in link:
+        try:
+            parts = urlsplit(link)
+        except ValueError:
+            return [link]
+        if (parts.scheme in ('http', 'https') and parts.netloc
+                and re.search(r'/tuner/(?:channel|stream)/[^/]+\.ts$', parts.path)):
             return [RELAY_MIMETYPE_PROP, link]
         return [link]
 

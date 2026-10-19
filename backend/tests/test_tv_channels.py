@@ -888,6 +888,8 @@ class TestAssignAcestreamsToTVChannel:
             repo.assign_acestreams_to_tv_channel([taken.id], other.id)
 
         assert taken.id in str(excinfo.value)
+        assert repo.acestreams_owned_by_other_tv_channel([taken.id], other.id) == [taken.id]
+        assert repo.acestreams_owned_by_other_tv_channel([taken.id], owner.id) == []
 
 
 def test_acestream_channels_returned_in_curated_order(client, db_session):

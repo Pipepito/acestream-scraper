@@ -122,6 +122,27 @@ class ChannelRepository:
             )
         return excluded
 
+    def acestreams_owned_by_other_tv_channel(
+        self, acestream_ids: list, tv_channel_id: int
+    ) -> List[str]:
+        """Return hashes that already belong to a different TV channel.
+
+        IDs that are not in the database yet, or that already belong to
+        ``tv_channel_id``, are not conflicts.
+        """
+        if not acestream_ids:
+            return []
+        existing = (
+            self.db.query(AcestreamChannel.id, AcestreamChannel.tv_channel_id)
+            .filter(AcestreamChannel.id.in_(acestream_ids))
+            .all()
+        )
+        return sorted(
+            row.id
+            for row in existing
+            if row.tv_channel_id is not None and row.tv_channel_id != tv_channel_id
+        )
+
     def assign_acestreams_to_tv_channel(self, acestream_ids: list, tv_channel_id: int) -> int:
         """Assign multiple acestream channels to a TV channel by setting their tv_channel_id."""
         if not acestream_ids:
@@ -136,16 +157,7 @@ class ChannelRepository:
         #     scrape with the misleading "already associated" message.
         #   - IDs already assigned to this same TV channel, which made
         #     re-assignment non-idempotent.
-        existing = (
-            self.db.query(AcestreamChannel.id, AcestreamChannel.tv_channel_id)
-            .filter(AcestreamChannel.id.in_(acestream_ids))
-            .all()
-        )
-        conflicting = sorted(
-            row.id
-            for row in existing
-            if row.tv_channel_id is not None and row.tv_channel_id != tv_channel_id
-        )
+        conflicting = self.acestreams_owned_by_other_tv_channel(acestream_ids, tv_channel_id)
         if conflicting:
             raise ValueError(
                 "One or more accepted Acestream channels are already associated "

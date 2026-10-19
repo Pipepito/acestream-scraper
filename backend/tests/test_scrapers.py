@@ -17,6 +17,35 @@ from app.services.m3u_service import M3UService
 from app.services.scraper_service import ScraperService
 
 
+def test_tv_association_database_failure_preserves_previous_source_channels(db_session, monkeypatch):
+    from app.models.url_types import RegularURL
+    from app.services.tvchannel_service import TVChannelService
+    from sqlalchemy.exc import OperationalError
+
+    url = 'https://example.com/association-failure.m3u'
+    previous_id, incoming_id = 'a' * 40, 'b' * 40
+    db_session.add(AcestreamChannel(id=previous_id, name='Previous', source_url=url))
+    db_session.commit()
+
+    class Scraper:
+        url_obj = RegularURL(url)
+
+        async def scrape(self):
+            return [(incoming_id, 'Incoming', {'tvg_id': 'guide.example'})], 'OK'
+
+    def unavailable(*args):
+        raise OperationalError('SELECT TV channel', {}, RuntimeError('database unavailable'))
+
+    monkeypatch.setattr('app.services.scraper_service.create_scraper_for_url', lambda *args: Scraper())
+    monkeypatch.setattr(TVChannelService, 'get_tv_channel_by_epg_id', unavailable)
+    channels, result = asyncio.run(ScraperService(db_session).scrape_url(url, 'regular'))
+
+    assert result.startswith('Error:')
+    assert channels == []
+    assert db_session.get(AcestreamChannel, previous_id) is not None
+    assert db_session.get(AcestreamChannel, incoming_id) is None
+
+
 class TestScraperEndpoints:
     """Test scraper operations."""
 

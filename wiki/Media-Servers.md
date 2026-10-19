@@ -225,3 +225,7 @@ the same relay server and have no channel failover; their numbers start at 9000
 (or above the highest included TV number). Search, group and online filters still
 apply. Favorites-only excludes unassigned streams. The playlist URL carries
 `include_unassigned=true|false`; the all-streams endpoint includes them by default.
+
+Relay reads tolerate gaps up to 25 seconds. Recovery counts healthy delivery only
+through the last received chunk; silence before a stall, EOF or transport failure
+does not renew the recovery budget.

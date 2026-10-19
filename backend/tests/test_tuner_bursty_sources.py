@@ -63,3 +63,40 @@ async def test_two_stalling_sources_do_not_take_turns_forever(monkeypatch):
                                                           registry=registry, experimental_transcoding=True):
                 pass
     assert calls == ['one', 'two']
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('ending', ['eof', 'transport'])
+async def test_silence_before_eof_or_transport_failure_does_not_reset_budget(monkeypatch, ending):
+    """Neither quiet gap reaches the stall limit, but silence is not delivery."""
+    from types import SimpleNamespace
+
+    calls = []
+    clock = [0.0]
+    monkeypatch.setattr(playback, 'time', SimpleNamespace(monotonic=lambda: clock[0]))
+
+    async def short_source(_engine, content_id, _label, **kwargs):
+        calls.append(content_id)
+        assert len(calls) <= 2, 'quiet time incorrectly renewed the recovery budget'
+        yield b'first'
+        clock[0] += 10
+        yield b'last'
+        clock[0] += 24
+        if ending == 'transport':
+            raise EngineStreamError('connection lost')
+
+    monkeypatch.setattr(playback, 'relay_engine_stream', short_source)
+    monkeypatch.setattr(playback, 'remux_source', lambda raw, **kwargs: raw)
+    monkeypatch.setattr(playback, 'STALL_SECONDS', 25)
+    monkeypatch.setattr(playback, 'HEALTHY_SECONDS', 30)
+    monkeypatch.setattr(playback, 'STARTUP_BUDGET_SECONDS', 45)
+    registry = RelayRegistry()
+    claim = registry.try_open('one', 'viewer', 1)
+    with pytest.raises(EngineStreamError):
+        async with asyncio.timeout(1):
+            async for _ in playback.relay_ranked_streams(
+                Mock(), ['one', 'two'], 'viewer', claim,
+                registry=registry, experimental_transcoding=True,
+            ):
+                pass
+    assert calls == ['one', 'two']

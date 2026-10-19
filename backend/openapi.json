@@ -3090,6 +3090,19 @@
         "title": "MigrationProgress",
         "type": "object"
       },
+      "NotificationWebhookUpdate": {
+        "description": "Schema for updating the notification webhook (#41).",
+        "properties": {
+          "value": {
+            "default": "",
+            "description": "http(s) URL that receives a JSON POST per notification; empty turns notifications off",
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "title": "NotificationWebhookUpdate",
+        "type": "object"
+      },
       "PlaybackRouting": {
         "properties": {
           "acexy_url": {
@@ -9601,6 +9614,93 @@
           }
         },
         "summary": "Update Epg Refresh Interval",
+        "tags": [
+          "config",
+          "config"
+        ]
+      }
+    },
+    "/api/v1/config/notification_webhook_url": {
+      "get": {
+        "description": "Get the webhook that receives task notifications (empty = off), as\nscheme and host only: webhooks keep their secret in the query or path.",
+        "operationId": "get_notification_webhook_url_api_v1_config_notification_webhook_url_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Notification Webhook Url",
+        "tags": [
+          "config",
+          "config"
+        ]
+      },
+      "put": {
+        "description": "Set the webhook that receives task notifications; empty turns them off (#41).",
+        "operationId": "update_notification_webhook_url_api_v1_config_notification_webhook_url_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotificationWebhookUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigUpdateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Notification Webhook Url",
+        "tags": [
+          "config",
+          "config"
+        ]
+      }
+    },
+    "/api/v1/config/notification_webhook_url/test": {
+      "post": {
+        "description": "Send a test notification to the saved webhook.",
+        "operationId": "test_notification_webhook_api_v1_config_notification_webhook_url_test_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigUpdateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Test Notification Webhook",
         "tags": [
           "config",
           "config"

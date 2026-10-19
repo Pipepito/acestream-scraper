@@ -8,6 +8,7 @@ from app.config.database import get_db
 from app.services.task_service import task_service
 from app.repositories.settings_repository import SettingsRepository
 from app.schemas.config import (
+    NotificationWebhookUpdate,
     AceEngineUrlUpdate,
     AddPidUpdate,
     AppIdUpdate,
@@ -250,6 +251,36 @@ def update_public_base_url(
     return {"message": "Setting updated successfully", "value": config_service.get_public_base_url()}
 
 
+@router.get("/notification_webhook_url", response_model=SettingResponse)
+def get_notification_webhook_url(config_service: ConfigService = Depends(get_config_service)):
+    """Get the webhook that receives task notifications (empty = off), as
+    scheme and host only: webhooks keep their secret in the query or path."""
+    return {"key": "notification_webhook_url", "value": config_service.get_masked_notification_webhook_url()}
+
+
+@router.put("/notification_webhook_url", response_model=ConfigUpdateResponse)
+def update_notification_webhook_url(
+    update: NotificationWebhookUpdate,
+    config_service: ConfigService = Depends(get_config_service),
+):
+    """Set the webhook that receives task notifications; empty turns them off (#41)."""
+    success = config_service.set_notification_webhook_url(update.value)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to update notification_webhook_url")
+    return {"message": "Setting updated successfully", "value": config_service.get_masked_notification_webhook_url()}
+
+
+@router.post("/notification_webhook_url/test", response_model=ConfigUpdateResponse)
+def test_notification_webhook():
+    """Send a test notification to the saved webhook."""
+    from app.services import notification_service
+    if not notification_service.webhook_url():
+        raise HTTPException(status_code=422, detail="No notification webhook is set")
+    if not notification_service.notify("test", "Acestream Scraper", "Test notification"):
+        raise HTTPException(status_code=502, detail="The webhook did not accept the notification")
+    return {"message": "Test notification sent", "value": "ok"}
+
+
 @router.get("/all", response_model=SettingsResponse)
 def get_all_settings(config_service: ConfigService = Depends(get_config_service)):
     """Get all settings."""
@@ -315,6 +346,8 @@ def get_config_key(key: str, config_service: ConfigService = Depends(get_config_
         value = config_service.get_addpid()
     elif key == "public_base_url":
         value = config_service.get_public_base_url()
+    elif key == "notification_webhook_url":
+        value = config_service.get_masked_notification_webhook_url()
     else:
         raise HTTPException(status_code=404, detail=f"Unknown config key: {key}")
     return {"key": key, "value": value}

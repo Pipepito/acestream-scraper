@@ -1,5 +1,6 @@
 from typing import Dict, Any, Optional
 import logging
+from urllib.parse import urlsplit, urlunsplit
 import httpx
 from fastapi import HTTPException
 import re
@@ -7,6 +8,9 @@ import re
 from app.repositories.settings_repository import SettingsRepository
 from app.schemas.config import PlaybackRouting
 from app.services.public_url_service import InvalidPublicBaseUrl, normalize_public_base_url
+
+# How a hidden secret reads in the API.
+MASK = "•••"
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +89,49 @@ class ConfigService:
             SettingsRepository.PUBLIC_BASE_URL,
             normalized,
             "Externally reachable origin for tuners and players",
+        )
+
+    def get_notification_webhook_url(self) -> str:
+        """Where task notifications are POSTed; empty means notifications are off (#41)"""
+        return self.settings_repo.get_setting(SettingsRepository.NOTIFICATION_WEBHOOK_URL) or ""
+
+    @staticmethod
+    def mask_webhook_url(url: str) -> str:
+        """The webhook as the API shows it: scheme and host only, the rest
+        hidden. Webhooks keep their secret in the query (Gotify's token) or in
+        the path (a Home Assistant webhook id, a Telegram bot token), and
+        secrets are never returned by the API. The host is enough to tell
+        which one is set."""
+        if not url:
+            return ""
+        parts = urlsplit(url)
+        host = parts.hostname or ""
+        if ":" in host:
+            host = "[" + host + "]"
+        if parts.port:
+            host += ":%d" % parts.port
+        hidden = parts.path not in ("", "/") or parts.query or parts.fragment or parts.username
+        return "%s://%s%s" % (parts.scheme, host, "/" + MASK if hidden else "")
+
+    def get_masked_notification_webhook_url(self) -> str:
+        return self.mask_webhook_url(self.get_notification_webhook_url())
+
+    def set_notification_webhook_url(self, value: str) -> bool:
+        """Set (or, with an empty value, clear) the notification webhook.
+
+        Saving back what the API showed -- the masked URL -- keeps the stored
+        one: the secret never makes the round trip."""
+        value = (value or "").strip()
+        if value and value == self.get_masked_notification_webhook_url():
+            return True
+        if MASK in value:
+            raise HTTPException(status_code=422, detail="Paste the whole webhook URL; the masked one cannot be saved")
+        if value and not value.lower().startswith(("http://", "https://")):
+            raise HTTPException(status_code=422, detail="The webhook must be an http(s) URL")
+        return self.settings_repo.set_setting(
+            SettingsRepository.NOTIFICATION_WEBHOOK_URL,
+            value,
+            "Webhook that receives task notifications (empty = off)",
         )
 
     def get_rescrape_interval(self) -> int:
@@ -168,6 +215,9 @@ class ConfigService:
                 settings[key] = default
             else:
                 settings[key] = str(settings[key])
+        if settings.get(SettingsRepository.NOTIFICATION_WEBHOOK_URL):
+            settings[SettingsRepository.NOTIFICATION_WEBHOOK_URL] = self.mask_webhook_url(
+                str(settings[SettingsRepository.NOTIFICATION_WEBHOOK_URL]))
         return settings
 
     def check_acestream_status(self) -> Dict[str, Any]:

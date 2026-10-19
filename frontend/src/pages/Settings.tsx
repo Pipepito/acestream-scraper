@@ -2,6 +2,7 @@ import GuideMatchingFields from '../components/GuideMatchingFields';
 import ScheduleAnchorFields from '../components/ScheduleAnchorFields';
 import StreamLinkFormatsSection from '../components/StreamLinkFormatsSection';
 import CheckEngineFields from '../components/CheckEngineFields';
+import NotificationsSection from '../components/NotificationsSection';
 import React, { useEffect, useState } from 'react';
 import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import PlaybackRoutingFields from '../components/player/PlaybackRoutingFields';
@@ -343,6 +344,7 @@ const Settings: React.FC = () => {
 
         </Stack>
       </ContentSection>
+      <NotificationsSection notify={notify} />
 
       </Box>
       <Box {...panelProps('links')}>

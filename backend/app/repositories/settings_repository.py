@@ -15,6 +15,7 @@ class SettingsRepository:
     ACE_ENGINE_URL = 'ace_engine_url'
     PLAYBACK_ROUTING = 'playback_routing'
     RESCRAPE_INTERVAL = 'rescrape_interval'
+    NOTIFICATION_WEBHOOK_URL = 'notification_webhook_url'
     ADDPID = 'addpid'
     EPG_REFRESH_INTERVAL = 'epg_refresh_interval'
     CHANNEL_STATUS_INTERVAL = 'channel_status_interval'

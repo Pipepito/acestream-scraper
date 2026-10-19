@@ -634,12 +634,14 @@ def test_stop_watching_preserves_active_plex_relay(make_service, plex_id, use_ac
     from app.services.player_service import NO_VIEWERS_SECONDS
 
     stopped = set()
+    starts = []
     stops = []
 
     def handler(request):
         if request.url.path == '/ace/getstream':
             cid = request.url.params['id']
             pid = request.url.params['pid']
+            starts.append((cid, pid))
             return httpx.Response(200, json={'response': {
                 'playback_url': f'http://engine:6878/content/{cid}',
                 'stat_url': f'http://engine:6878/ace/stat/{cid}/{pid}',
@@ -649,7 +651,7 @@ def test_stop_watching_preserves_active_plex_relay(make_service, plex_id, use_ac
         if '/ace/cmd/' in request.url.path:
             cid = request.url.path.split('/')[-2]
             stopped.add(cid)  # Model native engines: stop affects the entire source.
-            stops.append(cid)
+            stops.append((cid, request.url.path.split('/')[-1]))
         return httpx.Response(200)
 
     class Media(httpx.AsyncByteStream):
@@ -681,6 +683,11 @@ def test_stop_watching_preserves_active_plex_relay(make_service, plex_id, use_ac
             await relay.aclose()
             await svc.stop()
             engine.close()
-        assert stops.count(plex_id) == (0 if use_acexy else 1)
+        # Browser and Plex may have distinct engine sessions for the same
+        # source. Neither stops while Plex plays, and both stop exactly once
+        # after the final viewer leaves. Acexy sends no JSON start/stop calls.
+        assert sorted(stops) == sorted(starts)
+        assert len(stops) == len(set(stops))
+        assert len(starts) == (0 if use_acexy else 2)
 
     asyncio.run(run())

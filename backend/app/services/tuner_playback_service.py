@@ -24,6 +24,18 @@ ATTEMPT_SECONDS = 15.0
 # was never silent for more than 4.6 s. 25 s is above the longest gap seen.
 STALL_SECONDS = 25.0
 HEALTHY_SECONDS = 30.0
+# Kodi opens a channel with two GETs and closes the first one; the engine
+# session outlives a closed client this long, so the second GET finds the
+# source still running instead of starting it cold (measured: 1.8 s more on
+# an amd64 bench, 3.2 s on an ARM box).
+STOP_LINGER_SECONDS = 5.0
+# An engine session that ends with no byte at all this soon is retried once
+# before the source counts as failed. Seen with Kodi (intermittent): its
+# second GET joined a source whose first reader had just left, the engine
+# answered 200 and closed at once, and with a single source the channel
+# failed. Only when no other candidate is left: otherwise the next source
+# goes first.
+EMPTY_START_RETRY_SECONDS = 3.0
 logger = logging.getLogger(__name__)
 
 # Short, bounded process-local memory prevents reconnects picking a known failure
@@ -68,8 +80,16 @@ async def relay_ranked_streams(
     started = time.monotonic()
     deadline = started + STARTUP_BUDGET_SECONDS
     attempted: set[str] = set()
+    retried_empty: set[str] = set()
     candidates = prefer_recovered_sources(content_ids)
     version = 0
+    # The relay's own deadline (start or stall) of the read in progress.
+    # When it fires, the engine reader is cancelled just like when the
+    # client leaves; only this tells the two apart.
+    timer: list = [None]
+
+    def stop_linger() -> float:
+        return 0 if timer[0] is not None and timer[0].cancel_called else STOP_LINGER_SECONDS
     try:
         while time.monotonic() < deadline:
             candidates = prefer_recovered_sources(candidates)
@@ -92,22 +112,35 @@ async def relay_ranked_streams(
             attempted.add(content_id)
             registry.select_stream(claim.id, content_id)
             raw = relay_engine_stream(engine, content_id, client_label, registry=registry,
-                client_factory=client_factory, claim=claim, release_claim=False)
+                client_factory=client_factory, claim=claim, release_claim=False,
+                stop_linger=stop_linger)
             iterator = remux_source(raw, version=version, offset=time.monotonic() - started) if experimental_transcoding else raw
             version += 1
             first_at = last_at = None
             healthy = False
+            attempt_started = time.monotonic()
             try:
-                with anyio.fail_after(min(ATTEMPT_SECONDS, max(.001, deadline - time.monotonic()))):
+                with anyio.fail_after(min(ATTEMPT_SECONDS, max(.001, deadline - time.monotonic()))) as timer[0]:
                     first = await anext(iterator)
                 first_at = last_at = time.monotonic()
                 yield first
                 while True:
-                    with anyio.fail_after(STALL_SECONDS):
+                    with anyio.fail_after(STALL_SECONDS) as timer[0]:
                         chunk = await anext(iterator)
                     last_at = time.monotonic()
                     yield chunk
             except (EngineRefusedError, EngineUnavailableError, EngineStreamError, StopAsyncIteration, TimeoutError) as exc:
+                empty_start = (isinstance(exc, StopAsyncIteration) and first_at is None
+                               and content_id not in retried_empty
+                               and time.monotonic() - attempt_started < EMPTY_START_RETRY_SECONDS
+                               and not [cid for cid in candidates if cid not in attempted])
+                if empty_start:
+                    # Empty at once and nothing else left to try: the same
+                    # source again, not as a failure.
+                    retried_empty.add(content_id)
+                    attempted.discard(content_id)
+                    logger.info('TV relay source %s ended empty at start; retrying it once', content_id)
+                    continue
                 record_source_failure(content_id)
                 # Count delivery only through the last chunk, regardless of
                 # how the source ends. Silence before EOF/transport failure

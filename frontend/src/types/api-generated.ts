@@ -337,6 +337,26 @@ export interface paths {
      */
     put: operations["update_epg_refresh_interval_api_v1_config_epg_refresh_interval_put"];
   };
+  "/api/v1/config/notification_webhook_url": {
+    /**
+     * Get Notification Webhook Url
+     * @description Get the webhook that receives task notifications (empty = off), as
+     * scheme and host only: webhooks keep their secret in the query or path.
+     */
+    get: operations["get_notification_webhook_url_api_v1_config_notification_webhook_url_get"];
+    /**
+     * Update Notification Webhook Url
+     * @description Set the webhook that receives task notifications; empty turns them off (#41).
+     */
+    put: operations["update_notification_webhook_url_api_v1_config_notification_webhook_url_put"];
+  };
+  "/api/v1/config/notification_webhook_url/test": {
+    /**
+     * Test Notification Webhook
+     * @description Send a test notification to the saved webhook.
+     */
+    post: operations["test_notification_webhook_api_v1_config_notification_webhook_url_test_post"];
+  };
   "/api/v1/config/playback-routing": {
     /** Get Playback Routing */
     get: operations["get_playback_routing_api_v1_config_playback_routing_get"];
@@ -2367,6 +2387,18 @@ export interface components {
        * @default 0
        */
       total?: number;
+    };
+    /**
+     * NotificationWebhookUpdate
+     * @description Schema for updating the notification webhook (#41).
+     */
+    NotificationWebhookUpdate: {
+      /**
+       * Value
+       * @description http(s) URL that receives a JSON POST per notification; empty turns notifications off
+       * @default
+       */
+      value?: string;
     };
     /** PlaybackRouting */
     PlaybackRouting: {
@@ -5110,6 +5142,60 @@ export interface operations {
       422: {
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Get Notification Webhook Url
+   * @description Get the webhook that receives task notifications (empty = off), as
+   * scheme and host only: webhooks keep their secret in the query or path.
+   */
+  get_notification_webhook_url_api_v1_config_notification_webhook_url_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["SettingResponse"];
+        };
+      };
+    };
+  };
+  /**
+   * Update Notification Webhook Url
+   * @description Set the webhook that receives task notifications; empty turns them off (#41).
+   */
+  update_notification_webhook_url_api_v1_config_notification_webhook_url_put: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["NotificationWebhookUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ConfigUpdateResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Test Notification Webhook
+   * @description Send a test notification to the saved webhook.
+   */
+  test_notification_webhook_api_v1_config_notification_webhook_url_test_post: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ConfigUpdateResponse"];
         };
       };
     };

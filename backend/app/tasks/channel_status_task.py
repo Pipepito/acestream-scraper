@@ -2,6 +2,7 @@
 Periodic task for updating channel statuses.
 """
 from app.config.database import SessionLocal
+from app.services import notification_service
 from app.services.channel_status_service import ChannelStatusService
 from app.models.models import AcestreamChannel
 import logging
@@ -68,9 +69,11 @@ def run_channel_status_task():
 
         result = asyncio.run(check_all())
         logger.info("Channel status task completed result=%s", result)
+        notification_service.channel_status_completed(result)
         return result
     except Exception as exc:
         logger.exception("Channel status task failed error=%s", exc)
+        notification_service.task_failed('channel_status', exc)
         raise
     finally:
         db.close()

@@ -85,6 +85,21 @@ export const configService = {
     await apiClient.put(`${BASE_URL}/public_base_url`, { value });
   },
 
+  /** Webhook that receives task notifications (empty string = off). */
+  getNotificationWebhookUrl: async (): Promise<string> => {
+    const response = await apiClient.get<Setting>(`${BASE_URL}/notification_webhook_url`);
+    return response.data.value;
+  },
+
+  updateNotificationWebhookUrl: async (value: string): Promise<void> => {
+    await apiClient.put(`${BASE_URL}/notification_webhook_url`, { value });
+  },
+
+  /** Send a test notification to the saved webhook. */
+  testNotificationWebhook: async (): Promise<void> => {
+    await apiClient.post(`${BASE_URL}/notification_webhook_url/test`);
+  },
+
   /**
    * Get the Acestream Engine URL
    */

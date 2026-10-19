@@ -62,6 +62,11 @@ class PublicBaseUrlUpdate(BaseModel):
     value: str = Field("", description="http(s)://host[:port]; empty clears the override")
 
 
+class NotificationWebhookUpdate(BaseModel):
+    """Schema for updating the notification webhook (#41)."""
+    value: str = Field("", description="http(s) URL that receives a JSON POST per notification; empty turns notifications off")
+
+
 class DashboardConfigUpdate(BaseModel):
     """Schema for dashboard config updates"""
     retention_days: Optional[int] = None

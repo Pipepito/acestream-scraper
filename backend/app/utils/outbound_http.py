@@ -122,3 +122,12 @@ def source_get(url, *, timeout=60, allow_redirects=False):
         session.mount('https://', PinnedHTTPAdapter())
         # Content is materialized before the session is closed (stream=False).
         return session.get(url, timeout=timeout, allow_redirects=False)
+
+
+def source_post_json(url, payload, *, timeout=10):
+    """POST JSON to one validated, pinned address. Redirects are not followed."""
+    with requests.Session() as session:
+        session.trust_env = False
+        session.mount('http://', PinnedHTTPAdapter())
+        session.mount('https://', PinnedHTTPAdapter())
+        return session.post(url, json=payload, timeout=timeout, allow_redirects=False)

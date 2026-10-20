@@ -6,6 +6,7 @@ import { startStubEngine } from '../src/stub-engine';
 
 // Keep real HTTP, the built app, its scheduler and its player. Only engine
 // responses are deterministic: no peer availability is needed to prove a pause.
+// Run before catalogue ingestion so the complete pass covers only these seeds.
 test('a scheduled check waits for watching to stop even with a dedicated checker', async ({ page, api }) => {
   test.setTimeout(240_000);
   const engineUrl = await api.getSetting('ace_engine_url');

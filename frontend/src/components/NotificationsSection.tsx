@@ -52,7 +52,7 @@ const NotificationsSection: React.FC<NotificationsSectionProps> = ({ notify }) =
   return (
     <ContentSection
       title="Notifications"
-      description="A JSON POST when a source scrape or a stream check finishes or fails. A Gotify /message?token= URL works as it is."
+      description="A JSON POST after scheduled runs, manual scrapes, and individual channel checks. Skipped checks send nothing. A Gotify /message?token= URL works as it is."
     >
       <Stack spacing={2}>
         {isError ? <Alert severity="error">Could not load the notification webhook. Reload to try again.</Alert> : null}

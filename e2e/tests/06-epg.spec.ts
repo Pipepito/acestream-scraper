@@ -51,6 +51,7 @@ test.describe('EPG', () => {
     await watcher;
     const seconds = Math.round((Date.now() - started) / 1000);
     testInfo.annotations.push({ type: 'epg-refresh', description: `${src.name}: ${seconds}s, error_count=${refreshed.error_count}, last_error=${refreshed.last_error}, slowest /health ${slowestHealthMs} ms, health failures ${healthFailures}` });
+    expect(healthFailures, 'health requests must remain responsive throughout guide refresh').toBe(0);
     expect(refreshed.last_error).toBeNull();
     expect(refreshed.error_count).toBe(0);
 

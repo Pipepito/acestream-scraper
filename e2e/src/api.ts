@@ -123,7 +123,9 @@ export class Api {
 
   /* health / config */
   health(): Promise<HealthResponse> {
-    return this.request.get(this.url('/api/v1/health')).then((r) => json<HealthResponse>(r, 'GET /health'));
+    // Five-second monitoring can reuse a socket as Uvicorn expires it. Retry
+    // one ECONNRESET on this read; HTTP errors and repeated resets still fail.
+    return this.request.get(this.url('/api/v1/health'), { maxRetries: 1 }).then((r) => json<HealthResponse>(r, 'GET /health'));
   }
   async getSetting(key: string): Promise<string> {
     const body = await this.request.get(this.url(`/api/v1/config/${key}`)).then((r) => json<{ key: string; value: string }>(r, `GET /config/${key}`));

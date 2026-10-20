@@ -72,12 +72,16 @@ class ZeronetURL(BaseURL):
     
     def get_internal_url(self, host: str = '127.0.0.1') -> str:
         """Get internal HTTP URL for ZeroNet service"""
+        # zero:// always maps to the node: nothing can fetch that scheme as is,
+        # and a source saved as type "zeronet" (skip_validation) used to keep
+        # it and be refused by the outbound guard.
+        if self.original_url.startswith('zero://'):
+            return f"http://{host}:43110/{self.original_url[7:]}"
+
         # If validation was skipped, we don't attempt to transform the URL
         if self.skip_validation:
             return self.original_url
-            
-        if self.original_url.startswith('zero://'):
-            return f"http://{host}:43110/{self.original_url[7:]}"
+
         elif ':43110/' in self.original_url:
             # For URLs that already contain a host and port 43110, 
             # we should preserve the original host

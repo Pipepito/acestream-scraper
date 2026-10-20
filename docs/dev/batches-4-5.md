@@ -57,3 +57,9 @@ model or refactor, report the evidence and split that work for planning.
 TS concatenation needs explicit continuity/discontinuity design. #99 VOD, #55
 sports aggregation, #13 installers and #216 AI extraction exceed these bounded
 batches. #155 alias removal remains deferred by maintainer decision.
+
+New proposals #233–#235 arrived after the initial triage: HTML guide converters,
+HTTP/HLS channel storage, and regional live providers. They require separate
+scope decisions (time/identity semantics, schema/protocol contracts, and provider
+maintenance/authentication respectively). #235 depends on #234. They are not
+silently added to batches 1–5 or accepted for this release.

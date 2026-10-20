@@ -190,3 +190,69 @@ async def test_manifest_endpoint_can_handoff_endless_direct_media_after_a_prefix
     assert response.status_code == 302 and response.headers['location'] == url + '/endless'
     await asyncio.wait_for(state['disconnected'].wait(), 2)
     assert state['bytes_sent'] < 1024 * 1024
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('kind', ['encrypted', 'fragmented', 'byte_ranges'])
+async def test_rewritten_manifest_plays_real_media(tmp_path, kind):
+    """Let FFmpeg consume the rewritten manifest, keys, maps and byte ranges."""
+    import os
+    import shutil
+    import subprocess
+    ffmpeg = os.environ.get('FFMPEG_TEST_TOOL_PATH') or shutil.which('ffmpeg')
+    assert ffmpeg, 'The full validation environment must provide FFmpeg'
+    options = []
+    if kind == 'encrypted':
+        key = tmp_path / 'fixture.key'
+        key.write_bytes(bytes(range(16)))
+        info = tmp_path / 'key-info'
+        info.write_text('fixture.key\n' + str(key) + '\n')
+        options = ['-hls_key_info_file', str(info)]
+    elif kind == 'fragmented':
+        options = ['-hls_segment_type', 'fmp4']
+    else:
+        options = ['-hls_flags', 'single_file']
+    subprocess.run([ffmpeg, '-v', 'error', '-stream_loop', '-1', '-i', str(Path(__file__).parent / 'docker/fixtures/sample-h264-ac3.m2ts'),
+                    '-map', '0:v:0', '-c', 'copy', '-t', '6', '-f', 'hls', '-hls_time', '1',
+                    '-hls_list_size', '0', *options, str(tmp_path / 'list.m3u8')], check=True, timeout=20)
+    # Exercise live-window pruning as well as relative URI resolution.
+    manifest = (tmp_path / 'list.m3u8').read_text().replace('#EXT-X-ENDLIST\n', '')
+    origin = ''
+    asked = []
+    async def serve(request):
+        name = request.match_info['name']
+        asked.append(name)
+        if name == 'served.m3u8':
+            # Seal the finite fixture after live-window rewriting so demuxer
+            # probing can reach EOF instead of waiting for nonexistent new segments.
+            rewritten = hls_manifest.serve(manifest, origin + '/list.m3u8', lambda url: url, window=2)
+            return web.Response(text=rewritten + '#EXT-X-ENDLIST\n',
+                                content_type='application/vnd.apple.mpegurl')
+        return web.FileResponse(tmp_path / name)
+    application = web.Application()
+    application.router.add_get('/{name}', serve)
+    runner = web.AppRunner(application)
+    await runner.setup()
+    site = web.TCPSite(runner, '127.0.0.1', 0)
+    await site.start()
+    origin = f'http://127.0.0.1:{site._server.sockets[0].getsockname()[1]}'
+    process = None
+    try:
+        process = await asyncio.create_subprocess_exec(ffmpeg, '-v', 'error', '-nostdin',
+            '-allowed_extensions', 'ALL', '-i', origin + '/served.m3u8',
+            '-map', '0:v:0', '-t', '0.5', '-c', 'copy', '-f', 'null', '-',
+            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+        stdout, stderr = await asyncio.wait_for(process.communicate(), 15)
+        assert process.returncode == 0, stderr.decode()
+        assert 'served.m3u8' in asked
+        if kind == 'encrypted':
+            assert 'fixture.key' in asked
+        elif kind == 'fragmented':
+            assert 'init.mp4' in asked
+        else:
+            assert 'list.ts' in asked
+    finally:
+        if process is not None and process.returncode is None:
+            process.kill()
+            await process.wait()
+        await runner.cleanup()

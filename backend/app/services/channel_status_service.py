@@ -202,6 +202,18 @@ class ChannelStatusService:
             probe_queue.cancel(ticket)
             probe_queue.release(ticket, probed=probed, engine_unavailable=self.engine_unavailable)
 
+    async def check_channel_status_manually(self, channel: AcestreamChannel) -> Dict[str, Any]:
+        """Notify only an explicit user check, after the probe releases its lease."""
+        from app.services import notification_service
+
+        try:
+            result = await self.check_channel_status(channel)
+        except Exception as exc:
+            await asyncio.to_thread(notification_service.channel_check_failed, channel.id, exc)
+            raise
+        await asyncio.to_thread(notification_service.channel_check_completed, result)
+        return result
+
     async def _engine_ready(self, engine_url: str) -> bool:
         try:
             status, data, error = await self._fetch_engine_response(

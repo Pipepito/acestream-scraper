@@ -192,7 +192,7 @@ def check_acestream_channel_status(acestreamchannel_id: str, db: Session = Depen
     status_service = ChannelStatusService(db)
     # FastAPI runs this endpoint in a worker: SQLite lock waits and synchronous
     # repository calls must not block health, startup diagnostics, or playback.
-    result = asyncio.run(status_service.check_channel_status(channel))
+    result = asyncio.run(status_service.check_channel_status_manually(channel))
     return result
 
 

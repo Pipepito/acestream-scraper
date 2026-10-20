@@ -71,3 +71,24 @@ def channel_status_completed(result: dict) -> bool:
 def task_failed(task: str, exc: BaseException) -> bool:
     return notify("%s.failed" % task, "Task failed: %s" % task, type(exc).__name__,
                   {"task": task, "error": type(exc).__name__})
+
+
+def channel_check_completed(result: dict) -> bool:
+    """Notify an explicit single-channel check, never a playback/background probe."""
+    if result["status"] == "skipped":
+        return False
+    # Probe messages/errors may contain upstream details; publish only fixed
+    # status fields, never source URLs, names, or the raw engine response.
+    data = {
+        "channel_id": result["channel_id"],
+        "status": result["status"],
+        "is_online": result["is_online"],
+        "network_status": result.get("network_status", "unknown"),
+    }
+    return notify("channel_check.completed", "Channel check finished",
+                  "Channel is %s" % result["status"], data)
+
+
+def channel_check_failed(channel_id: str, exc: BaseException) -> bool:
+    return notify("channel_check.failed", "Channel check failed", type(exc).__name__,
+                  {"channel_id": channel_id, "error": type(exc).__name__})

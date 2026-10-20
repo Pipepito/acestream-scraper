@@ -88,6 +88,17 @@ def main() -> int:
              for pipeline in (pr_jenkinsfile, develop_jenkinsfile, release_jenkinsfile)
          )
          and "abortPrevious: true" not in pr_jenkinsfile),
+        ("Docker lock precedes executor allocation in every pipeline",
+         all(
+             re.search(r"pipeline\s*\{\s*agent none", pipeline)
+             and re.search(
+                 r"stage\('Serialized Docker work'\)\s*\{\s*"
+                 r"//[^\n]*\n\s*options\s*\{\s*"
+                 r"lock\(resource: 'acestream-scraper-nuc-docker'[^\n]*\n"
+                 r"\s*\}\s*agent\s*\{ label 'dorat-nuc-ci' \}", pipeline
+             )
+             for pipeline in (pr_jenkinsfile, develop_jenkinsfile, release_jenkinsfile)
+         )),
         ("all pipelines share dependency-keyed runners and pressure-aware cleanup",
          "scripts/ci/docker_lifecycle.py" in pr_runner_builder
          and "build_pr_runner.sh" in develop_jenkinsfile

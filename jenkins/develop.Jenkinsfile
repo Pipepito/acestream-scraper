@@ -1,5 +1,5 @@
 pipeline {
-  agent { label 'dorat-nuc-ci' }
+  agent none
 
   environment {
     JENKINS_ENABLE_WARP = '1'
@@ -10,7 +10,6 @@ pipeline {
   }
 
   options {
-    lock(resource: 'acestream-scraper-nuc-docker', reason: 'Exclusive Docker and BuildKit access on dorat-nuc-ci')
     disableConcurrentBuilds()
     buildDiscarder(logRotator(numToKeepStr: '20'))
     timeout(time: 4, unit: 'HOURS')
@@ -18,13 +17,20 @@ pipeline {
   }
 
   stages {
-    stage('Checkout / Trusted Branch Guard') {
-      steps {
-        checkout scm
-        script {
-          currentBuild.displayName = "#${env.BUILD_NUMBER} develop"
-        }
-        sh '''#!/usr/bin/env bash
+    stage('Serialized Docker work') {
+      // Stage options acquire the FIFO lock before allocating an executor.
+      options {
+        lock(resource: 'acestream-scraper-nuc-docker', reason: 'Exclusive Docker and BuildKit access on dorat-nuc-ci')
+      }
+      agent { label 'dorat-nuc-ci' }
+      stages {
+        stage('Checkout / Trusted Branch Guard') {
+          steps {
+            checkout scm
+            script {
+              currentBuild.displayName = "#${env.BUILD_NUMBER} develop"
+            }
+            sh '''#!/usr/bin/env bash
 set -euo pipefail
 git fetch --no-tags origin develop
 head_sha="$(git rev-parse HEAD)"
@@ -35,46 +41,46 @@ if [[ "$head_sha" != "$develop_sha" ]]; then
   exit 1
 fi
 '''
-      }
-    }
+          }
+        }
 
-    stage('Select affected work') {
-      steps {
-        script {
-          def selection = sh(returnStdout: true, script: '''#!/usr/bin/env bash
+        stage('Select affected work') {
+          steps {
+            script {
+              def selection = sh(returnStdout: true, script: '''#!/usr/bin/env bash
 set -euo pipefail
 python3 -I scripts/ci/classify_changes.py --base "${GIT_PREVIOUS_SUCCESSFUL_COMMIT:-}"
 ''').trim()
-          // env is a Pipeline object, not a Map: bracket assignment invokes
-          // an unapproved Groovy putAt. Use its sandbox-approved properties.
-          // Only an explicit false disables work; missing flags keep full scope.
-          def selected = selection.readLines()
-          env.CI_APPLICATION = selected.contains('CI_APPLICATION=false') ? 'false' : 'true'
-          env.CI_WIKI = selected.contains('CI_WIKI=false') ? 'false' : 'true'
-          env.CI_PAGES = selected.contains('CI_PAGES=false') ? 'false' : 'true'
-          env.CI_DOCKERHUB = selected.contains('CI_DOCKERHUB=false') ? 'false' : 'true'
-          echo selection
-          currentBuild.description = env.CI_APPLICATION == 'true' ? 'Full validation and image publish' : 'Documentation checks; no image build'
+              // env is a Pipeline object, not a Map: bracket assignment invokes
+              // an unapproved Groovy putAt. Use its sandbox-approved properties.
+              // Only an explicit false disables work; missing flags keep full scope.
+              def selected = selection.readLines()
+              env.CI_APPLICATION = selected.contains('CI_APPLICATION=false') ? 'false' : 'true'
+              env.CI_WIKI = selected.contains('CI_WIKI=false') ? 'false' : 'true'
+              env.CI_PAGES = selected.contains('CI_PAGES=false') ? 'false' : 'true'
+              env.CI_DOCKERHUB = selected.contains('CI_DOCKERHUB=false') ? 'false' : 'true'
+              echo selection
+              currentBuild.description = env.CI_APPLICATION == 'true' ? 'Full validation and image publish' : 'Documentation checks; no image build'
+            }
+          }
         }
-      }
-    }
 
-    stage('Docs checks') {
-      steps {
-        sh '''#!/usr/bin/env bash
+        stage('Docs checks') {
+          steps {
+            sh '''#!/usr/bin/env bash
 set -euo pipefail
 python3 -I scripts/ci/validate_documentation.py
 python3 -I scripts/ci/validate_docker_docs_contract.py
 bash scripts/ci/validate_command_builder.sh
 bash scripts/ci/publish_wiki.sh --dry-run
 '''
-      }
-    }
+          }
+        }
 
-    stage('Bootstrap trusted runner') {
-      when { expression { env.CI_APPLICATION == 'true' } }
-      steps {
-        sh '''#!/usr/bin/env bash
+        stage('Bootstrap trusted runner') {
+          when { expression { env.CI_APPLICATION == 'true' } }
+          steps {
+            sh '''#!/usr/bin/env bash
 set -euo pipefail
 bash scripts/ci/bootstrap_jenkins_runner.sh
 bash scripts/ci/build_pr_runner.sh --source "$WORKSPACE" --ref HEAD \
@@ -85,14 +91,14 @@ backend/venv/bin/pip install -r backend/requirements.txt
 npm --prefix frontend ci
 docker buildx use "${JENKINS_BUILDER:-acestream-builder}"
 '''
-        script { env.PR_RUNNER_IMAGE = readFile("${env.WORKSPACE}@tmp/runner-image-${env.BUILD_NUMBER}").trim() }
-      }
-    }
+            script { env.PR_RUNNER_IMAGE = readFile("${env.WORKSPACE}@tmp/runner-image-${env.BUILD_NUMBER}").trim() }
+          }
+        }
 
-    stage('Full application validation') {
-      when { expression { env.CI_APPLICATION == 'true' } }
-      steps {
-        sh '''#!/usr/bin/env bash
+        stage('Full application validation') {
+          when { expression { env.CI_APPLICATION == 'true' } }
+          steps {
+            sh '''#!/usr/bin/env bash
 set -euo pipefail
 artifact_dir="$WORKSPACE/.ci-develop-artifacts"
 rm -rf "$artifact_dir"
@@ -129,37 +135,37 @@ if [[ "$validation_status" -ne 0 ]]; then
 fi
 docker compose config -q
 '''
-      }
-      post {
-        always {
-          archiveArtifacts artifacts: '.ci-develop-artifacts/**', allowEmptyArchive: true
+          }
+          post {
+            always {
+              archiveArtifacts artifacts: '.ci-develop-artifacts/**', allowEmptyArchive: true
+            }
+          }
         }
-      }
-    }
 
-    stage('Publication policy and architecture plan') {
-      when { expression { env.CI_APPLICATION == 'true' } }
-      steps {
-        sh '''#!/usr/bin/env bash
+        stage('Publication policy and architecture plan') {
+          when { expression { env.CI_APPLICATION == 'true' } }
+          steps {
+            sh '''#!/usr/bin/env bash
 set -euo pipefail
 rm -f phase5-gate-report-quick.json phase5-build-result-quick-*.json
 backend/venv/bin/python scripts/phase_gates/phase5_gate_runner.py \
   --profile quick \
   --json-output > phase5-gate-report-quick.json
 '''
-      }
-      post {
-        always {
-          archiveArtifacts artifacts: 'phase5-gate-report-quick.json', allowEmptyArchive: true
-          sh 'rm -f phase5-build-result-quick-*.json'
+          }
+          post {
+            always {
+              archiveArtifacts artifacts: 'phase5-gate-report-quick.json', allowEmptyArchive: true
+              sh 'rm -f phase5-build-result-quick-*.json'
+            }
+          }
         }
-      }
-    }
 
-    stage('Acestream Engine Runtime Smoke') {
-      when { expression { env.CI_APPLICATION == 'true' } }
-      steps {
-        sh '''#!/usr/bin/env bash
+        stage('Acestream Engine Runtime Smoke') {
+          when { expression { env.CI_APPLICATION == 'true' } }
+          steps {
+            sh '''#!/usr/bin/env bash
 set -euo pipefail
 bash scripts/ci/cleanup_runner_docker.sh --min-free-gb 8
 export BUILDX_BUILDER=default
@@ -182,21 +188,21 @@ PYTHONPATH=backend backend/venv/bin/pytest -q \
   backend/tests/docker/test_install_acestream.py -v \
   -k "arm_oci_image_install_layout"
 '''
-      }
-      post {
-        always {
-          sh '''#!/usr/bin/env bash
+          }
+          post {
+            always {
+              sh '''#!/usr/bin/env bash
 set -euo pipefail
 bash scripts/ci/cleanup_runner_docker.sh --min-free-gb 8
 docker system df || true
 '''
+            }
+          }
         }
-      }
-    }
 
-    stage('Current develop guard') {
-      steps {
-        sh '''#!/usr/bin/env bash
+        stage('Current develop guard') {
+          steps {
+            sh '''#!/usr/bin/env bash
 set -euo pipefail
 git fetch --no-tags origin develop
 if [[ "$(git rev-parse HEAD)" != "$(git rev-parse origin/develop)" ]]; then
@@ -204,35 +210,37 @@ if [[ "$(git rev-parse HEAD)" != "$(git rev-parse origin/develop)" ]]; then
   exit 1
 fi
 '''
-      }
-    }
+          }
+        }
 
-    stage('Publish develop channel') {
-      when { expression { env.CI_APPLICATION == 'true' } }
-      steps {
-        sh '''#!/usr/bin/env bash
+        stage('Publish develop channel') {
+          when { expression { env.CI_APPLICATION == 'true' } }
+          steps {
+            sh '''#!/usr/bin/env bash
 set -euo pipefail
 rm -f phase5-build-result-channel-*.json
 bash scripts/ci/cleanup_runner_docker.sh --min-free-gb 8
 '''
-        withCredentials([usernamePassword(
-          credentialsId: 'dockerhub-publish',
-          usernameVariable: 'DOCKERHUB_USERNAME',
-          passwordVariable: 'DOCKERHUB_TOKEN'
-        )]) {
-          sh '''#!/usr/bin/env bash
+            withCredentials([usernamePassword(
+              credentialsId: 'dockerhub-publish',
+              usernameVariable: 'DOCKERHUB_USERNAME',
+              passwordVariable: 'DOCKERHUB_TOKEN'
+            )]) {
+              sh '''#!/usr/bin/env bash
 set -euo pipefail
 bash scripts/ci/run_jenkins_release.sh --print-publish-plan --channel develop
 bash scripts/ci/run_jenkins_release.sh --channel develop
 '''
+            }
+          }
+          post {
+            always {
+              archiveArtifacts artifacts: 'phase5-build-result-channel-develop-metadata.json', allowEmptyArchive: true
+            }
+          }
         }
-      }
-      post {
-        always {
-          archiveArtifacts artifacts: 'phase5-build-result-channel-develop-metadata.json', allowEmptyArchive: true
-        }
+
       }
     }
-
   }
 }

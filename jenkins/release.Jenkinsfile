@@ -1,5 +1,5 @@
 pipeline {
-  agent { label 'dorat-nuc-ci' }
+  agent none
 
   environment {
     // WARP is opt-in in bootstrap_jenkins_runner.sh (the engine archives are
@@ -8,7 +8,6 @@ pipeline {
   }
 
   options {
-    lock(resource: 'acestream-scraper-nuc-docker', reason: 'Exclusive Docker and BuildKit access on dorat-nuc-ci')
     disableConcurrentBuilds()
     buildDiscarder(logRotator(numToKeepStr: '20'))
     timestamps()
@@ -22,23 +21,30 @@ pipeline {
   }
 
   stages {
-    stage('Release') {
-      steps {
-        checkout scm
-        sh 'rm -f phase5-build-result-release-*.json; rm -rf .ci-release-artifacts'
-        script { env.RELEASE_REPORTS_CURRENT = '1' }
-        script {
-          if (env.BRANCH_NAME && env.BRANCH_NAME != 'main') {
-            error("Release pipeline only runs from main; current branch is '${env.BRANCH_NAME}'.")
-          }
+    stage('Serialized Docker work') {
+      // Stage options acquire the FIFO lock before allocating an executor.
+      options {
+        lock(resource: 'acestream-scraper-nuc-docker', reason: 'Exclusive Docker and BuildKit access on dorat-nuc-ci')
+      }
+      agent { label 'dorat-nuc-ci' }
+      stages {
+        stage('Release') {
+          steps {
+            checkout scm
+            sh 'rm -f phase5-build-result-release-*.json; rm -rf .ci-release-artifacts'
+            script { env.RELEASE_REPORTS_CURRENT = '1' }
+            script {
+              if (env.BRANCH_NAME && env.BRANCH_NAME != 'main') {
+                error("Release pipeline only runs from main; current branch is '${env.BRANCH_NAME}'.")
+              }
 
-          if (!params.CONFIRM_RELEASE) {
-            error('CONFIRM_RELEASE must be enabled to run the release pipeline.')
-          }
+              if (!params.CONFIRM_RELEASE) {
+                error('CONFIRM_RELEASE must be enabled to run the release pipeline.')
+              }
 
-          currentBuild.displayName = "#${env.BUILD_NUMBER} release ${params.DRY_RUN ? 'dry-run' : 'publish'}"
-        }
-        sh '''#!/usr/bin/env bash
+              currentBuild.displayName = "#${env.BUILD_NUMBER} release ${params.DRY_RUN ? 'dry-run' : 'publish'}"
+            }
+            sh '''#!/usr/bin/env bash
 set -euo pipefail
 git fetch --no-tags origin main
 head_sha="$(git rev-parse HEAD)"
@@ -57,54 +63,56 @@ bash scripts/ci/publish_wiki.sh --dry-run
 bash scripts/ci/bootstrap_jenkins_runner.sh
 docker buildx use "${JENKINS_BUILDER:-acestream-builder}"
 '''
-        script {
-          withEnv([
-            "PUBLISH_LATEST=${params.PUBLISH_LATEST ? '1' : '0'}",
-            "FORCE_VERSION_OVERWRITE=${params.FORCE_VERSION_OVERWRITE ? '1' : '0'}"
-          ]) {
-            if (params.DRY_RUN) {
-              sh 'bash scripts/ci/run_jenkins_release.sh --dry-run'
-            } else {
-              withCredentials([
-                usernamePassword(
-                  credentialsId: 'dockerhub-publish',
-                  usernameVariable: 'DOCKERHUB_USERNAME',
-                  passwordVariable: 'DOCKERHUB_TOKEN'
-                )
+            script {
+              withEnv([
+                "PUBLISH_LATEST=${params.PUBLISH_LATEST ? '1' : '0'}",
+                "FORCE_VERSION_OVERWRITE=${params.FORCE_VERSION_OVERWRITE ? '1' : '0'}"
               ]) {
-                sh 'bash scripts/ci/run_jenkins_release.sh --print-publish-plan'
-                sh 'bash scripts/ci/run_jenkins_release.sh'
+                if (params.DRY_RUN) {
+                  sh 'bash scripts/ci/run_jenkins_release.sh --dry-run'
+                } else {
+                  withCredentials([
+                    usernamePassword(
+                      credentialsId: 'dockerhub-publish',
+                      usernameVariable: 'DOCKERHUB_USERNAME',
+                      passwordVariable: 'DOCKERHUB_TOKEN'
+                    )
+                  ]) {
+                    sh 'bash scripts/ci/run_jenkins_release.sh --print-publish-plan'
+                    sh 'bash scripts/ci/run_jenkins_release.sh'
+                  }
+                }
+              }
+            }
+          }
+          post {
+            always {
+              script {
+                if (env.RELEASE_REPORTS_CURRENT == '1') {
+                  archiveArtifacts artifacts: 'phase5-build-result-release-metadata.json,.ci-release-artifacts/**', allowEmptyArchive: true
+                  sh 'rm -f phase5-build-result-release-scraper*.json'
+                }
               }
             }
           }
         }
-      }
-      post {
-        always {
-          script {
-            if (env.RELEASE_REPORTS_CURRENT == '1') {
-              archiveArtifacts artifacts: 'phase5-build-result-release-metadata.json,.ci-release-artifacts/**', allowEmptyArchive: true
-              sh 'rm -f phase5-build-result-release-scraper*.json'
-            }
-          }
-        }
-      }
-    }
 
-    stage('Publish release wiki') {
-      when { expression { !params.DRY_RUN && params.PUBLISH_LATEST } }
-      steps {
-        withCredentials([usernamePassword(
-          credentialsId: 'github-publish',
-          usernameVariable: 'GITHUB_PUBLISH_USERNAME',
-          passwordVariable: 'GITHUB_PUBLISH_TOKEN'
-        )]) {
-          script {
-            def wikiStatus = sh(returnStatus: true, script: 'bash scripts/ci/publish_wiki.sh')
-            if (wikiStatus == 3) {
-              unstable('Wiki repository is not initialized. Create its first page in GitHub, then retry wiki publication from this release checkout.')
-            } else if (wikiStatus != 0) {
-              error('Release wiki publication failed. Images are already promoted; retry wiki publication from this release checkout.')
+        stage('Publish release wiki') {
+          when { expression { !params.DRY_RUN && params.PUBLISH_LATEST } }
+          steps {
+            withCredentials([usernamePassword(
+              credentialsId: 'github-publish',
+              usernameVariable: 'GITHUB_PUBLISH_USERNAME',
+              passwordVariable: 'GITHUB_PUBLISH_TOKEN'
+            )]) {
+              script {
+                def wikiStatus = sh(returnStatus: true, script: 'bash scripts/ci/publish_wiki.sh')
+                if (wikiStatus == 3) {
+                  unstable('Wiki repository is not initialized. Create its first page in GitHub, then retry wiki publication from this release checkout.')
+                } else if (wikiStatus != 0) {
+                  error('Release wiki publication failed. Images are already promoted; retry wiki publication from this release checkout.')
+                }
+              }
             }
           }
         }

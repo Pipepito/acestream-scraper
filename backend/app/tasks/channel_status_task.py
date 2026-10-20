@@ -3,7 +3,7 @@ Periodic task for updating channel statuses.
 """
 from app.config.database import SessionLocal
 from app.services import notification_service
-from app.services.channel_status_service import ChannelStatusService
+from app.services.channel_status_service import ChannelStatusService, channels_in_check_order
 from app.models.models import AcestreamChannel
 import logging
 import asyncio
@@ -17,14 +17,16 @@ def run_channel_status_task():
     logger = logging.getLogger("channel_status_task")
     try:
         service = ChannelStatusService(db)
-        query = db.query(AcestreamChannel.id).filter(AcestreamChannel.is_active == True)
+        channels = channels_in_check_order(db)
         if not service._get_engine_url():
-            # HTTP streams are checked over HTTP, without an engine: only
-            # AceStream checks need one.
-            query = query.filter(AcestreamChannel.stream_url.isnot(None))
-        channels = [row[0] for row in query.all()]
-        if not channels and not service._get_engine_url():
-            return {"checked": 0, "skipped": 0, "failed": 0, "message": "No engine configured; status checks are disabled."}
+            # Keep age/favorite ordering while checking only engine-free sources.
+            http_ids = {row[0] for row in db.query(AcestreamChannel.id).filter(
+                AcestreamChannel.is_active == True,
+                AcestreamChannel.stream_url.isnot(None),
+            ).all()}
+            channels = [channel_id for channel_id in channels if channel_id in http_ids]
+            if not channels:
+                return {"checked": 0, "skipped": 0, "failed": 0, "message": "No engine configured; status checks are disabled."}
         db.rollback()
         logger.info(f"Starting channel status update for {len(channels)} channels.")
 

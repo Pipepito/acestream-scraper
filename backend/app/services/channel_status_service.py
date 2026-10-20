@@ -23,6 +23,33 @@ logger = logging.getLogger(__name__)
 
 
 
+def channels_in_check_order(db: Session, *, now: Optional[datetime] = None) -> List[str]:
+    """Age work by the saved check interval so repeated short passes progress.
+
+    Never-checked streams come first. Checked streams are grouped by how many
+    complete check intervals old their observation is, oldest group first.
+    Favorites and assigned channels win within a group; last check and ID give
+    stable tie breaks. A just-checked favorite moves out of the overdue groups.
+    """
+    from app.services.config_service import ConfigService
+    from app.repositories.settings_repository import SettingsRepository
+    now = now or datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    interval = ConfigService(SettingsRepository(db)).get_channel_status_interval() * 60
+    rows = ChannelRepository(db).get_status_check_inventory()
+
+    def priority(row):
+        checked = row.last_checked
+        if checked is not None and checked.tzinfo is None:
+            checked = checked.replace(tzinfo=timezone.utc)
+        age_group = max(0, int((now - checked).total_seconds() // interval)) if checked else 0
+        return (checked is not None, -age_group, not row.is_favorite,
+                row.tv_channel_id is None, checked or datetime.min.replace(tzinfo=timezone.utc), row.id)
+
+    return [row.id for row in sorted(rows, key=priority)]
+
+
 class ChannelStatusService:
     """Service for checking Acestream channel status via engine API"""
 

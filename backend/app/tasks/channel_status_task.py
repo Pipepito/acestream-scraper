@@ -17,9 +17,14 @@ def run_channel_status_task():
     logger = logging.getLogger("channel_status_task")
     try:
         service = ChannelStatusService(db)
+        query = db.query(AcestreamChannel.id).filter(AcestreamChannel.is_active == True)
         if not service._get_engine_url():
+            # HTTP streams are checked over HTTP, without an engine: only
+            # AceStream checks need one.
+            query = query.filter(AcestreamChannel.stream_url.isnot(None))
+        channels = [row[0] for row in query.all()]
+        if not channels and not service._get_engine_url():
             return {"checked": 0, "skipped": 0, "failed": 0, "message": "No engine configured; status checks are disabled."}
-        channels = [row[0] for row in db.query(AcestreamChannel.id).filter(AcestreamChannel.is_active == True).all()]
         db.rollback()
         logger.info(f"Starting channel status update for {len(channels)} channels.")
 

@@ -2,7 +2,7 @@
 Repository for channel data operations
 """
 from app.config.database_retry import retry_database_write
-from sqlalchemy import or_
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 from typing import Dict, Any, Iterable, List, Optional
 from datetime import datetime, timezone
@@ -258,7 +258,16 @@ class ChannelRepository:
             query = query.filter(AcestreamChannel.group == group)
 
         if only_online:
-            query = query.filter(AcestreamChannel.is_online == True)
+            # An HTTP stream not checked yet is unknown, and without this the
+            # default playlist (only_online=true) had NO HTTP channel at all
+            # until the next status pass. Unknown HTTP streams are published:
+            # a dead one fails in Kodi within seconds and leaves the remote
+            # responsive, which is not true of an acestream id waiting on the
+            # engine. Checked-dead ones are left out.
+            query = query.filter(or_(
+                AcestreamChannel.is_online == True,
+                and_(AcestreamChannel.stream_url.isnot(None), AcestreamChannel.is_online.is_(None)),
+            ))
 
         if include_groups and len(include_groups) > 0:
             query = query.filter(AcestreamChannel.group.in_(include_groups))
@@ -314,6 +323,8 @@ class ChannelRepository:
                                tvg_name: Optional[str] = None,
                                tv_channel_id: Optional[int] = None,
                                is_online: Optional[bool] = None,
+                               stream_url: Optional[str] = None,
+                               stream_headers: Optional[dict] = None,
                                commit: bool = True) -> AcestreamChannel:
         """Create a new channel or update existing one. Always update tvg_id and tvg_name if present (even if empty string)."""
         channel = self.get_channel_by_id(channel_id)
@@ -330,13 +341,23 @@ class ChannelRepository:
                 tv_channel_id=tv_channel_id,
                 last_seen=datetime.now(timezone.utc),
                 is_active=True,
-                is_online=is_online
+                is_online=is_online,
+                stream_url=stream_url or None,
+                stream_headers=stream_headers or None
             )
             self.db.add(channel)
         else:
             # Update existing channel
             channel.name = name
             channel.last_seen = datetime.now(timezone.utc)
+            # Only ever set it, never clear it: a later scrape that does not
+            # carry the URL must not turn a working IPTV stream into an id
+            # the engine will be asked about.
+            if stream_url:
+                channel.stream_url = stream_url
+                # The list is the authority on its own headers: if it stops
+                # publishing them, stop sending them.
+                channel.stream_headers = stream_headers or None
             # is_active is the user's "show in playlist" choice; a scrape never overrides it.
             if source_url is not None:
                 channel.source_url = source_url

@@ -175,6 +175,13 @@ class ChannelStatusService:
         self, channel: AcestreamChannel, *, identifier: str = 'id', persist: bool = True,
         priority: ProbePriority = ProbePriority.MANUAL, scan_started_at: Optional[datetime] = None,
     ) -> Dict[str, Any]:
+        if getattr(channel, 'stream_url', None):
+            # An IPTV stream addressed by URL, not an acestream id: never asked
+            # of the engine, which cannot resolve `url:<sha1>` and would mark
+            # the whole IPTV half of the catalogue dead. It is checked over
+            # HTTP instead -- playlist, variant, first KB of a segment -- with
+            # no engine session, so it neither waits for nor needs one.
+            return await self._check_http_stream(channel, persist=persist)
         if not self._get_engine_url():
             result = self._skipped_result(channel)
             result['message'] = 'No engine configured; stream status checks are disabled.'
@@ -213,6 +220,24 @@ class ChannelStatusService:
             raise
         await asyncio.to_thread(notification_service.channel_check_completed, result)
         return result
+
+    async def _check_http_stream(self, channel: AcestreamChannel, *, persist: bool = True) -> Dict[str, Any]:
+        from app.services import http_stream_check
+        online, error = await asyncio.to_thread(
+            http_stream_check.check, channel.stream_url, getattr(channel, 'stream_headers', None))
+        if persist:
+            await run_database_write(self.channel_repository.update_channel_status, channel.id, online, error)
+        return {
+            'channel_id': channel.id,
+            'id_kind': channel.id_kind,
+            'stream_stats': channel.stream_stats,
+            'network_status': 'unknown',
+            'is_online': online,
+            'status': 'online' if online else 'offline',
+            'message': 'Stream answered over HTTP' if online else error,
+            'last_checked': datetime.now(timezone.utc),
+            'error': error,
+        }
 
     async def _engine_ready(self, engine_url: str) -> bool:
         try:

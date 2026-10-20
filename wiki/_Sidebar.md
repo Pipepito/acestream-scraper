@@ -13,6 +13,7 @@
 - [Channel management](tasks/channel-management.md)
 - [Stream statistics](Stream-Statistics.md)
 - [Extraction recipes](Extraction-Recipes.md)
+- [HTTP streams and broadcasters](HTTP-Streams.md)
 - [VLC and Kodi](Remote-Players.md)
 - [Jellyfin and Plex](Media-Servers.md)
 - [Configuration](Configuration.md)

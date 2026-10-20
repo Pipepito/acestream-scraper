@@ -3,7 +3,7 @@ Periodic task for updating channel statuses.
 """
 from app.config.database import SessionLocal
 from app.services import notification_service
-from app.services.channel_status_service import ChannelStatusService
+from app.services.channel_status_service import ChannelStatusService, channels_in_check_order
 from app.models.models import AcestreamChannel
 import logging
 import asyncio
@@ -19,7 +19,7 @@ def run_channel_status_task():
         service = ChannelStatusService(db)
         if not service._get_engine_url():
             return {"checked": 0, "skipped": 0, "failed": 0, "message": "No engine configured; status checks are disabled."}
-        channels = [row[0] for row in db.query(AcestreamChannel.id).filter(AcestreamChannel.is_active == True).all()]
+        channels = channels_in_check_order(db)
         db.rollback()
         logger.info(f"Starting channel status update for {len(channels)} channels.")
 

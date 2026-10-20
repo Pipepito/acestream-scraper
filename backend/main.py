@@ -35,6 +35,7 @@ from app.config.database import (
     provision_schema,
 )
 from app.config.settings import get_settings, settings
+from app.config.version import get_app_version
 from app.middleware.forwarded import ForwardedHeadersMiddleware, parse_trusted
 from app.services.startup_service import startup_service
 from app.repositories.startup_recovery import database_path, legacy_disabled, recover_database
@@ -257,7 +258,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Acestream Scraper API",
     description="API for scraping and managing Acestream channels",
-    version="2.0.0",
+    version=get_app_version(),
     lifespan=lifespan,
 )
 

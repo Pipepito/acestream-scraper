@@ -322,6 +322,7 @@ RUN apt-get update \
 
 COPY --from=python-deps /install /usr/local
 COPY backend/ /app/
+COPY version.txt /app/version.txt
 RUN mkdir -p /app/frontend_build /app/logs /opt/acestream/bin /opt/acexy/bin
 COPY --from=frontend-builder /build/frontend/dist/ /app/frontend_build/
 

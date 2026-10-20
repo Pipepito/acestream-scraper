@@ -109,13 +109,14 @@ class Lineup:
 FRESH_CHECK_HOURS = 6
 
 
-def _checked_since(stream, since) -> bool:
+def _checked_since(stream, since, until) -> bool:
     checked = getattr(stream, "last_checked", None)
     if checked is None:
         return False
     if checked.tzinfo is None:
         checked = checked.replace(tzinfo=timezone.utc)
-    return checked >= since
+    # A clock correction must not make an observation fresh indefinitely.
+    return since <= checked <= until
 
 
 class TunerService:
@@ -184,8 +185,9 @@ class TunerService:
         # stale source that fails uses up its whole start time before the
         # next one is tried, so it goes after every fresh one. It is not
         # dropped: only tried later.
-        fresh_since = datetime.now(timezone.utc) - timedelta(hours=FRESH_CHECK_HOURS)
-        valid.sort(key=lambda stream: (not _checked_since(stream, fresh_since), -(stream.bitrate_bps or 0), stream.id))
+        now = datetime.now(timezone.utc)
+        fresh_since = now - timedelta(hours=FRESH_CHECK_HOURS)
+        valid.sort(key=lambda stream: (not _checked_since(stream, fresh_since, now), -(stream.bitrate_bps or 0), stream.id))
         return list(dict.fromkeys(stream.id.lower() for stream in valid))
 
     def relay_stream_ids(self, tv_channel_id: int) -> List[str]:
@@ -200,12 +202,13 @@ class TunerService:
         verdict from a status check still counts.
         """
         streams = ChannelRepository(self.db).get_tuner_streams(tv_channel_id)
-        fresh_since = datetime.now(timezone.utc) - timedelta(hours=FRESH_CHECK_HOURS)
+        now = datetime.now(timezone.utc)
+        fresh_since = now - timedelta(hours=FRESH_CHECK_HOURS)
         ranked = []
         for stream in streams:
             if not re.fullmatch(r"[0-9a-fA-F]{40}", stream.id):
                 continue
-            fresh = _checked_since(stream, fresh_since)
+            fresh = _checked_since(stream, fresh_since, now)
             if stream.is_online:
                 bucket = 0 if fresh else 1
             elif stream.is_online is False and fresh:

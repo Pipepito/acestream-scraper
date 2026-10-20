@@ -108,7 +108,7 @@ not part of the required PR gate; see `e2e/AGENTS.md` before running it.
   change branch protection, or mutate Jenkins configuration unless the user has
   explicitly authorized that action.
 - Before a release, follow the current checklist in `docs/ops/jenkins-ci.md` and
-  `docs/release/v2-release-readiness.md`; do not rely on an old PR body.
+  `docs/release/v2.2-release-readiness.md`; do not rely on an old PR body.
 
 ## Jenkins and infrastructure
 

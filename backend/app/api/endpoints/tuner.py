@@ -262,7 +262,9 @@ async def tuner_stream(content_id: str, request: Request):
 def _channel_candidates(tv_channel_id: int, *, include_offline: bool = False) -> List[str]:
     db = SessionLocal()
     try:
-        return prefer_recovered_sources(TunerService(db).stream_ids(tv_channel_id, online_only=not include_offline))
+        service = TunerService(db)
+        ids = service.stream_ids(tv_channel_id) if include_offline else service.relay_stream_ids(tv_channel_id)
+        return prefer_recovered_sources(ids)
     finally:
         db.close()
 

@@ -7,6 +7,7 @@ import logging
 import re
 import secrets
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Set
 
 from sqlalchemy import func
@@ -103,6 +104,20 @@ class Lineup:
     overflow: int = 0
 
 
+# A check older than this ranks a source after every fresher one when the
+# relay picks what to try first. The status check runs hourly by default.
+FRESH_CHECK_HOURS = 6
+
+
+def _checked_since(stream, since) -> bool:
+    checked = getattr(stream, "last_checked", None)
+    if checked is None:
+        return False
+    if checked.tzinfo is None:
+        checked = checked.replace(tzinfo=timezone.utc)
+    return checked >= since
+
+
 class TunerService:
     def __init__(self, db: Session):
         self.db = db
@@ -164,8 +179,41 @@ class TunerService:
     def stream_ids(self, tv_channel_id: int, *, online_only: bool = False) -> List[str]:
         streams = ChannelRepository(self.db).get_tuner_streams(tv_channel_id, online_only=online_only)
         valid = [stream for stream in streams if re.fullmatch(r"[0-9a-fA-F]{40}", stream.id)]
-        valid.sort(key=lambda stream: (-(stream.bitrate_bps or 0), stream.id))
+        # Recently checked first, then by bitrate. A box that is only on now
+        # and then keeps "online" from a session hours or days ago, and a
+        # stale source that fails uses up its whole start time before the
+        # next one is tried, so it goes after every fresh one. It is not
+        # dropped: only tried later.
+        fresh_since = datetime.now(timezone.utc) - timedelta(hours=FRESH_CHECK_HOURS)
+        valid.sort(key=lambda stream: (not _checked_since(stream, fresh_since), -(stream.bitrate_bps or 0), stream.id))
         return list(dict.fromkeys(stream.id.lower() for stream in valid))
+
+    def relay_stream_ids(self, tv_channel_id: int) -> List[str]:
+        """What the TV relay tries, in order: online and checked recently;
+        online from an old check; then never checked, or offline from an old
+        check. Only a source found offline recently is left out.
+
+        When a box that is only on now and then is switched on for a match,
+        every status is hours or days old, and the source that is live tonight may be the one the
+        last check, last week, found offline. Leaving it out made the
+        channel fail with a live source assigned to it. A recent offline
+        verdict from a status check still counts.
+        """
+        streams = ChannelRepository(self.db).get_tuner_streams(tv_channel_id)
+        fresh_since = datetime.now(timezone.utc) - timedelta(hours=FRESH_CHECK_HOURS)
+        ranked = []
+        for stream in streams:
+            if not re.fullmatch(r"[0-9a-fA-F]{40}", stream.id):
+                continue
+            fresh = _checked_since(stream, fresh_since)
+            if stream.is_online:
+                bucket = 0 if fresh else 1
+            elif stream.is_online is False and fresh:
+                continue
+            else:
+                bucket = 2
+            ranked.append((bucket, -(stream.bitrate_bps or 0), stream.id.lower()))
+        return list(dict.fromkeys(cid for _, _, cid in sorted(ranked)))
 
     # --- lineup -------------------------------------------------------------
     def build_lineup(self) -> Lineup:

@@ -222,7 +222,9 @@ export class Api {
     return (await this.listEpgSources()).find((s) => s.url === url);
   }
   getEpgSource(id: number): Promise<EpgSource> {
-    return this.request.get(this.url(`/api/v1/epg/sources/${id}`)).then((r) => json<EpgSource>(r, `GET /epg/sources/${id}`));
+    // The five-second poll can reuse a socket exactly as Uvicorn expires it.
+    // Retry one ECONNRESET on this read only; HTTP failures still fail the test.
+    return this.request.get(this.url(`/api/v1/epg/sources/${id}`), { maxRetries: 1 }).then((r) => json<EpgSource>(r, `GET /epg/sources/${id}`));
   }
   createEpgSource(body: { url: string; name: string; enabled?: boolean }): Promise<EpgSource> {
     return this.request.post(this.url('/api/v1/epg/sources'), { data: body }).then((r) => json<EpgSource>(r, 'POST /epg/sources'));

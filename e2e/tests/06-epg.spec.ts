@@ -34,7 +34,8 @@ test.describe('EPG', () => {
     const done = api.waitForEpgRefresh(created!.id, null, src.refreshTimeoutMs);
     const watcher = (async () => {
       let finished = false;
-      void done.finally(() => { finished = true; });
+      // Observe both outcomes without creating an unhandled rejected promise.
+      void done.then(() => { finished = true; }, () => { finished = true; });
       while (!finished) {
         const t0 = Date.now();
         try {

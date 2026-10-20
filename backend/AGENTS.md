@@ -79,8 +79,11 @@ PYTHONPATH=backend alembic -c backend/migrations/alembic.ini upgrade head
 
 ## Tuner and player media selection
 
-- Stable tuner channel URLs resolve online, active sources by measured bitrate
-  (unknown last). Startup retries retain one tuner slot and close every failed
+- Stable tuner channel URLs rank active, valid sources by freshness: recent online,
+  stale online, then unknown/stale offline. Recent offline is excluded; future
+  timestamps are stale. Freshness is six hours; bitrate breaks ties within each
+  group. Recent playback failures still deprioritize sources. Startup retries
+  retain one tuner slot and close every failed
   engine session. Default midstream failures end the response for client reconnect;
   deprioritize recently failed sources. Only explicit experimental transcoding
   enables recovery within the connection through FFmpeg with new table

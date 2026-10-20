@@ -36,8 +36,11 @@ Unused sidecar directories may be missing when a service is disabled.
 ## Refresh and bounds
 
 The report is cached for one minute. Refresh retrieves the current cached result
-or starts a new scan after expiry. Scanning runs in a separate process with an
-8-second deadline, at most 64 paths, a shared 4-second directory-scan budget,
+or starts a new scan after expiry. Concurrent requests for the first report
+share the running scan, waiting at most nine seconds; existing cached data is
+returned immediately during a refresh. A stuck scan beyond that wait returns a
+retryable 503 instead of starting another worker. Scanning runs in a separate
+process with an 8-second deadline, at most 64 paths, a shared 4-second directory-scan budget,
 1 second per directory, 100,000 entries per directory and depth 64. Disk activity
 can change sizes while a scan is running. Nested configured paths can overlap;
 the app deliberately does not sum directory sizes.

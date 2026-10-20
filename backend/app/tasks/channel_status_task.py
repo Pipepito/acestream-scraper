@@ -39,7 +39,7 @@ async def wait_while_watching(logger, max_seconds: float) -> tuple[float, bool]:
         if loop.time() - started >= max_seconds:
             logger.info("Channel status pass stopped after %.0f s paused; the next one resumes", max_seconds)
             return loop.time() - started, True
-        await asyncio.sleep(VIEWING_POLL_SECONDS)
+        await asyncio.sleep(min(VIEWING_POLL_SECONDS, max(0.0, max_seconds - (loop.time() - started))))
         reason = viewing.watching()
     waited = loop.time() - started
     logger.info("Channel status pass resumed after %.0f s paused", waited)
@@ -97,14 +97,17 @@ def run_channel_status_task():
             offline = 0
             paused = 0.0
             max_pause = VIEWING_MAX_PAUSE_SECONDS
+            stop_reason = None
             for channel_id in channels:
                 if task_service.shutdown_event.is_set():
+                    stop_reason = "shutdown"
                     break
                 # Between sources, never in the middle of one: a probe that
                 # started finishes and cleans up as before.
                 waited, gave_up = await wait_while_watching(logger, max_pause - paused)
                 paused += waited
                 if gave_up or task_service.shutdown_event.is_set():
+                    stop_reason = "shutdown" if task_service.shutdown_event.is_set() else "viewing"
                     break
                 try:
                     channel = db.get(AcestreamChannel, channel_id)
@@ -132,13 +135,16 @@ def run_channel_status_task():
                         "processed": checked + skipped + failed, "total": len(channels),
                         "percent": round(100 * (checked + skipped + failed) / len(channels), 1),
                     })
-            return {
+            result = {
                 "online": online,
                 "offline": offline,
                 "checked": checked,
                 "skipped": skipped,
                 "failed": failed,
             }
+            if stop_reason is not None:
+                result.update(deferred=len(channels) - checked - skipped - failed, stop_reason=stop_reason)
+            return result
 
         result = asyncio.run(check_all())
         logger.info("Channel status task completed result=%s", result)

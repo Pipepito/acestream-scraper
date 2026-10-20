@@ -437,3 +437,10 @@ fall through to names without being overwritten; apply revalidates the complete
 ID inventory. Keep indexed ID candidates, bounded name comparisons, ambiguity,
 country/edition and assignment guards. Reviewed matching strips publisher text
 after `-->`; automation still requires conservative agreement of every name.
+
+
+Catalogue status passes wait between probes for app-owned relay/web playback,
+with a cumulative ten-minute pause budget and no DB transaction while waiting.
+Budget expiry or shutdown reports deferred work and a stop reason, releases the
+FIFO, and preserves truthful Overview/webhook summaries. Direct external-engine
+players are outside this registry-based guard.

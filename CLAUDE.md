@@ -469,3 +469,10 @@ fall through to names without being overwritten; apply revalidates the complete
 ID inventory. Keep indexed ID candidates, bounded name comparisons, ambiguity,
 country/edition and assignment guards. Reviewed matching strips publisher text
 after `-->`; automation still requires conservative agreement of every name.
+
+
+Catalogue status checks wait between probes while app-owned relay/web sessions
+are active. Pause time is cumulative and capped at ten minutes before releasing
+the maintenance queue. Partial results report deferred work and viewing/shutdown
+reasons through history, Overview and webhooks. External direct-engine players
+are not detectable through these application registries.

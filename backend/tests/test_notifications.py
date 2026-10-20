@@ -127,3 +127,15 @@ def test_saving_the_masked_value_keeps_the_real_url(client, db_session):
 
 def test_the_test_button_needs_a_webhook(client):
     assert client.post('/api/v1/config/notification_webhook_url/test').status_code == 422
+
+
+@pytest.mark.parametrize("reason,text", [("viewing", "playback active"), ("shutdown", "application stopping")])
+def test_incomplete_channel_pass_reports_deferred_work(webhook, reason, text):
+    received, _ = webhook
+    result = {"checked": 1, "online": 1, "offline": 0, "failed": 0, "skipped": 0,
+              "deferred": 2, "stop_reason": reason}
+    assert notification_service.channel_status_completed(result)
+    sent = received[0]["json"]
+    assert sent["title"] == "Channel check incomplete"
+    assert sent["message"] == f"1 checked: 1 online, 0 offline, 0 failed; 2 deferred ({text})"
+    assert sent["data"] == result

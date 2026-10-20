@@ -4,12 +4,44 @@ Periodic task for updating channel statuses.
 from app.config.database import SessionLocal
 from app.services import notification_service
 from app.services.channel_status_service import ChannelStatusService
-from app.models.models import AcestreamChannel
+from app.models.models import AcestreamChannel, TVChannel
+from sqlalchemy import case
 import logging
 import asyncio
 from datetime import datetime, timezone
 from app.services.probe_queue import ProbePriority
 from app.services.task_service import task_service
+
+
+def channels_in_check_order(db):
+    """Active stream ids in the order a status pass should check them.
+
+    The pass used to walk the table in insertion order and rebuild that list
+    from row 1 on every start. A machine that is on for an hour or two never
+    finished a pass (about 3 h for 1,000 sources), so it kept checking the
+    same first rows and never reached the last ones: on a real box 58% were
+    checked and the tail never was.
+
+    Now:
+      1. never checked            -- the tail that was never reached
+      2. streams of favourite TV channels -- the ones the viewer cares about
+      3. streams of any other TV channel -- what the playlist can open; on
+         one box (0 favourites) they were mixed with 935 loose streams
+      4. the rest, least recently checked first
+
+    Ordering by `last_checked` makes a restarted pass resume by itself: what
+    was just checked moves to the end. No cursor to store.
+    """
+    never = case((AcestreamChannel.last_checked.is_(None), 0), else_=1)
+    favourite = case((TVChannel.is_favorite.is_(True), 0), else_=1)
+    assigned = case((AcestreamChannel.tv_channel_id.is_(None), 1), else_=0)
+    rows = (db.query(AcestreamChannel.id)
+            .outerjoin(TVChannel, AcestreamChannel.tv_channel_id == TVChannel.id)
+            .filter(AcestreamChannel.is_active == True)  # noqa: E712
+            .order_by(never, favourite, assigned, AcestreamChannel.last_checked.asc(),
+                      AcestreamChannel.id.asc())
+            .all())
+    return [row[0] for row in rows]
 
 
 def run_channel_status_task():
@@ -19,7 +51,7 @@ def run_channel_status_task():
         service = ChannelStatusService(db)
         if not service._get_engine_url():
             return {"checked": 0, "skipped": 0, "failed": 0, "message": "No engine configured; status checks are disabled."}
-        channels = [row[0] for row in db.query(AcestreamChannel.id).filter(AcestreamChannel.is_active == True).all()]
+        channels = channels_in_check_order(db)
         db.rollback()
         logger.info(f"Starting channel status update for {len(channels)} channels.")
 

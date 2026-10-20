@@ -342,6 +342,7 @@ export interface paths {
      * Get Notification Webhook Url
      * @description Get the webhook that receives task notifications (empty = off), as
      * scheme and host only: webhooks keep their secret in the query or path.
+     * An invalid previously saved URL returns only '•••' so it can be replaced or cleared.
      */
     get: operations["get_notification_webhook_url_api_v1_config_notification_webhook_url_get"];
     /**
@@ -2395,7 +2396,7 @@ export interface components {
     NotificationWebhookUpdate: {
       /**
        * Value
-       * @description http(s) URL that receives a JSON POST per notification; empty turns notifications off
+       * @description HTTP(S) webhook URL with a valid host and port, without whitespace or fragments; empty turns notifications off
        * @default
        */
       value?: string;
@@ -5150,6 +5151,7 @@ export interface operations {
    * Get Notification Webhook Url
    * @description Get the webhook that receives task notifications (empty = off), as
    * scheme and host only: webhooks keep their secret in the query or path.
+   * An invalid previously saved URL returns only '•••' so it can be replaced or cleared.
    */
   get_notification_webhook_url_api_v1_config_notification_webhook_url_get: {
     responses: {

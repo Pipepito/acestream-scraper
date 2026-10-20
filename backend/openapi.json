@@ -3095,7 +3095,7 @@
         "properties": {
           "value": {
             "default": "",
-            "description": "http(s) URL that receives a JSON POST per notification; empty turns notifications off",
+            "description": "HTTP(S) webhook URL with a valid host and port, without whitespace or fragments; empty turns notifications off",
             "title": "Value",
             "type": "string"
           }
@@ -9670,7 +9670,7 @@
     },
     "/api/v1/config/notification_webhook_url": {
       "get": {
-        "description": "Get the webhook that receives task notifications (empty = off), as\nscheme and host only: webhooks keep their secret in the query or path.",
+        "description": "Get the webhook that receives task notifications (empty = off), as\nscheme and host only: webhooks keep their secret in the query or path.\nAn invalid previously saved URL returns only '\u2022\u2022\u2022' so it can be replaced or cleared.",
         "operationId": "get_notification_webhook_url_api_v1_config_notification_webhook_url_get",
         "responses": {
           "200": {

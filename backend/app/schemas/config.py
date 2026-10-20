@@ -64,7 +64,7 @@ class PublicBaseUrlUpdate(BaseModel):
 
 class NotificationWebhookUpdate(BaseModel):
     """Schema for updating the notification webhook (#41)."""
-    value: str = Field("", description="http(s) URL that receives a JSON POST per notification; empty turns notifications off")
+    value: str = Field("", description="HTTP(S) webhook URL with a valid host and port, without whitespace or fragments; empty turns notifications off")
 
 
 class DashboardConfigUpdate(BaseModel):

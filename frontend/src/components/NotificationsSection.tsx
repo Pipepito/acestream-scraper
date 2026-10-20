@@ -20,6 +20,7 @@ const NotificationsSection: React.FC<NotificationsSectionProps> = ({ notify }) =
   });
   const [value, setValue] = useState('');
   const [busy, setBusy] = useState(false);
+  const invalidSavedUrl = saved === '•••';
 
   useEffect(() => setValue(saved), [saved]);
 
@@ -56,6 +57,9 @@ const NotificationsSection: React.FC<NotificationsSectionProps> = ({ notify }) =
     >
       <Stack spacing={2}>
         {isError ? <Alert severity="error">Could not load the notification webhook. Reload to try again.</Alert> : null}
+        {invalidSavedUrl ? (
+          <Alert severity="warning">The saved webhook URL is invalid. Replace it or clear the field to turn notifications off.</Alert>
+        ) : null}
         <Stack
           component="form"
           direction={{ xs: 'column', sm: 'row' }}
@@ -77,7 +81,7 @@ const NotificationsSection: React.FC<NotificationsSectionProps> = ({ notify }) =
           <Button type="submit" variant="contained" disabled={busy || value.trim() === saved}>
             Save
           </Button>
-          <Button variant="outlined" disabled={busy || !saved || value.trim() !== saved} onClick={() => void test()}>
+          <Button variant="outlined" disabled={busy || !saved || invalidSavedUrl || value.trim() !== saved} onClick={() => void test()}>
             Send test
           </Button>
         </Stack>

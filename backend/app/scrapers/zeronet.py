@@ -270,27 +270,40 @@ class ZeronetScraper(BaseScraper):
         return ""  # Empty content if all attempts fail
 
     async def scrape(self, url: str = None):
-        """Override: If M3U, delegate parsing to M3UService; else fallback to base."""
+        """Override: M3U files go to M3UService and bare JSON files to
+        channels_from_json; everything else falls back to the base scraper.
+        Both early paths record the source's status like the base does (they
+        used to leave it at "active" with no processing time)."""
         url_to_scrape = url if url else self.url_obj.get_normalized_url()
-        is_m3u_file = url_to_scrape.lower().endswith(('.m3u', '.m3u8'))
-        if is_m3u_file:
-            content = await self.fetch_content(url_to_scrape)
-            # Delegate all parsing to M3UService for consistency and logging
-            channels = self.m3u_service.extract_channels_from_content(
-                content,
-                db=getattr(self, 'db', None),
-                epg_service=getattr(self, 'epg_service', None),
-                tv_channel_service=getattr(self, 'tv_channel_service', None)
-            )
-            status = f"Extracted {len(channels)} channels from direct M3U file"
-            return channels, status
+        path = urlparse(url_to_scrape).path.lower()
+        if path.endswith(('.m3u', '.m3u8')):
+            try:
+                content = await self.fetch_content(url_to_scrape)
+                # Delegate all parsing to M3UService for consistency and logging
+                channels = self.m3u_service.extract_channels_from_content(
+                    content,
+                    db=getattr(self, 'db', None),
+                    epg_service=getattr(self, 'epg_service', None),
+                    tv_channel_service=getattr(self, 'tv_channel_service', None)
+                )
+                status = "OK"
+            except Exception as e:
+                channels, status = [], f"Error: {str(e)}"
+            await self.update_url_status(url_to_scrape, status)
+            return channels, status if status != "OK" else f"Extracted {len(channels)} channels from direct M3U file"
         # A bare JSON file (a site's links.json): the HTML extractors only read
         # `const linksData` inside a <script>, so it used to give 0 channels
         # with status OK.
-        if urlparse(url_to_scrape).path.lower().endswith('.json'):
-            content = await self.fetch_content(url_to_scrape)
+        if path.endswith('.json'):
+            try:
+                content = await self.fetch_content(url_to_scrape)
+            except Exception as e:
+                status = f"Error: {str(e)}"
+                await self.update_url_status(url_to_scrape, status)
+                return [], status
             channels = self.channels_from_json(content)
             if channels:
+                await self.update_url_status(url_to_scrape, "OK")
                 return channels, f"Extracted {len(channels)} channels from JSON file"
         # Fallback to base scraper for non-M3U
         return await super().scrape(url)

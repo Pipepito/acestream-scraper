@@ -92,6 +92,7 @@ def test_zero_url_is_fetched_from_the_configured_node_not_the_site(monkeypatch):
         async def __aexit__(self, *a):
             return False
 
+    recorded = _record_status(monkeypatch)
     monkeypatch.setattr(zeronet_module, "source_session", lambda **kw: FakeSession())
     monkeypatch.setattr(zeronet_module, "validate_outbound_url", lambda url: None)
     url = f"zero://{SITE}/links.json"
@@ -103,6 +104,7 @@ def test_zero_url_is_fetched_from_the_configured_node_not_the_site(monkeypatch):
     channels, status = asyncio.run(run())
     assert requested == [f"http://127.0.0.1:43110/{SITE}/links.json"]
     assert [c[0] for c in channels] == [ID_A, ID_B]
+    assert recorded == [(url, "OK")]
 
 
 def test_node_without_the_site_gets_it_added_and_the_file_read(monkeypatch):
@@ -140,8 +142,10 @@ def test_node_without_the_site_gets_it_added_and_the_file_read(monkeypatch):
         finally:
             await runner.cleanup()
 
+    recorded = _record_status(monkeypatch)
     monkeypatch.setattr(zeronet_module.asyncio, "sleep", _no_sleep)
     channels, status = asyncio.run(scenario())
+    assert [s for _, s in recorded] == ["OK"]
     assert [c[0] for c in channels] == [ID_A, ID_B]
     assert state["requests"] == [f"/{SITE}/links.json", f"/{SITE}/", f"/{SITE}/links.json"]
 
@@ -151,3 +155,36 @@ _real_sleep = asyncio.sleep
 
 async def _no_sleep(seconds, *a, **k):
     await _real_sleep(0)
+
+
+def _record_status(monkeypatch):
+    """The JSON and M3U paths return early; they must still record the source's
+    status (they used to leave it at "active" with no processing time)."""
+    recorded = []
+
+    async def record(self, url, status, error=None):
+        recorded.append((url, status))
+    monkeypatch.setattr(ZeronetScraper, "update_url_status", record)
+    return recorded
+
+
+def test_m3u_path_records_ok_and_errors(monkeypatch):
+    recorded = _record_status(monkeypatch)
+    m3u = f"#EXTM3U\n#EXTINF:-1,La1\nacestream://{ID_A}\n"
+    url = f"zero://{SITE}/lista.m3u"
+
+    async def run(fail):
+        scraper = create_scraper_for_url(url, "zeronet")
+
+        async def fetch(u):
+            if fail:
+                raise ValueError("node down")
+            return m3u
+        scraper.fetch_content = fetch
+        return await scraper.scrape(url)
+
+    channels, _ = asyncio.run(run(False))
+    assert [c[0] for c in channels] == [ID_A]
+    channels, status = asyncio.run(run(True))
+    assert channels == [] and status == "Error: node down"
+    assert recorded == [(url, "OK"), (url, "Error: node down")]

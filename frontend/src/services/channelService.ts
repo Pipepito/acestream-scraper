@@ -162,7 +162,7 @@ const acestreamChannelService = {
       delete params.is_active;
       delete params.active_only;
     }
-    const { data } = await apiClient.get('/v1/acestream-channels', { params });
+    const { data } = await apiClient.get('/v1/acestream-channels/', { params });
     return data;
   },
 
@@ -178,7 +178,7 @@ const acestreamChannelService = {
    * Create a new channel
    */
   createAcestreamChannel: async (channelData: CreateAcestreamChannelDTO): Promise<AcestreamChannel> => {
-    const { data } = await apiClient.post('/v1/acestream-channels', channelData);
+    const { data } = await apiClient.post('/v1/acestream-channels/', channelData);
     return data;
   },
 

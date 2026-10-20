@@ -35,6 +35,7 @@ npx playwright test tests/03-scraper.spec.ts
 E2E_STRICT=1 npm test
 npm run test:docker
 npm run test:docker-off
+npx playwright test --config playwright.monitor.config.ts
 ```
 
 Later numbered journeys can depend on state created by earlier journeys. For a

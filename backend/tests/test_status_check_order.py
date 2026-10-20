@@ -8,9 +8,13 @@ the last ones. On a real box 58% were checked and the tail never was.
 from datetime import datetime, timedelta, timezone
 
 from app.models.models import AcestreamChannel, TVChannel
-from app.tasks.channel_status_task import channels_in_check_order
+from app.tasks.channel_status_task import channels_in_check_order as ordered_ids
 
 T0 = datetime(2026, 10, 14, 8, 0, tzinfo=timezone.utc)
+
+
+def channels_in_check_order(db, *, now=T0):
+    return ordered_ids(db, now=now)
 
 
 def _stream(db, cid, last_checked=None, tv=None, active=True):
@@ -38,7 +42,7 @@ def test_never_checked_goes_first_even_when_inserted_last(db_session):
 def test_then_favourites(db_session):
     fav = _tv(db_session, "M+ Liga de Campeones", True)
     other = _tv(db_session, "Other", False)
-    _stream(db_session, "of_other", T0 - timedelta(days=3), tv=other)
+    _stream(db_session, "of_other", T0 - timedelta(minutes=5), tv=other)
     _stream(db_session, "of_favourite", T0, tv=fav)
     db_session.commit()
     assert channels_in_check_order(db_session) == ["of_favourite", "of_other"]
@@ -93,7 +97,7 @@ def test_streams_of_a_tv_channel_before_loose_ones(db_session):
     """With no favourites (one box had 0), the 613 streams of TV channels were
     mixed with 935 loose ones that the relay playlist cannot open."""
     other = _tv(db_session, "La 1", False)
-    _stream(db_session, "old_loose", T0 - timedelta(days=5))
+    _stream(db_session, "old_loose", T0 - timedelta(minutes=5))
     _stream(db_session, "recent_of_channel", T0, tv=other)
     db_session.commit()
     assert channels_in_check_order(db_session) == ["recent_of_channel", "old_loose"]
@@ -102,7 +106,46 @@ def test_streams_of_a_tv_channel_before_loose_ones(db_session):
 def test_a_favourite_still_goes_before_another_channel(db_session):
     fav = _tv(db_session, "Favourite", True)
     other = _tv(db_session, "Other", False)
-    _stream(db_session, "old_of_other", T0 - timedelta(days=5), tv=other)
+    _stream(db_session, "old_of_other", T0 - timedelta(minutes=5), tv=other)
     _stream(db_session, "recent_of_favourite", T0, tv=fav)
     db_session.commit()
     assert channels_in_check_order(db_session) == ["recent_of_favourite", "old_of_other"]
+
+
+def test_repeated_short_passes_reach_old_loose_streams(db_session):
+    """An hourly restart cannot repeatedly check favorites and starve the tail."""
+    favorite = _tv(db_session, "Favorite", True)
+    for number in range(3):
+        _stream(db_session, f"favorite-{number}", T0 - timedelta(hours=2), tv=favorite)
+    for number in range(3):
+        _stream(db_session, f"loose-{number}", T0 - timedelta(hours=2))
+    db_session.commit()
+    seen = set()
+    for run in range(6):
+        now = T0 + timedelta(hours=run)
+        selected = channels_in_check_order(db_session, now=now)[0]
+        seen.add(selected)
+        db_session.get(AcestreamChannel, selected).last_checked = now
+        db_session.commit()
+    assert seen == {f"{kind}-{n}" for kind in ("favorite", "loose") for n in range(3)}
+
+
+def test_older_age_group_precedes_favorite_and_uses_saved_interval(db_session):
+    from app.services.config_service import ConfigService
+    from app.repositories.settings_repository import SettingsRepository
+    favorite = _tv(db_session, "Favorite", True)
+    _stream(db_session, "favorite", T0, tv=favorite)
+    _stream(db_session, "overdue", T0 - timedelta(minutes=90))
+    db_session.commit()
+    assert channels_in_check_order(db_session) == ["overdue", "favorite"]
+    ConfigService(SettingsRepository(db_session)).set_channel_status_interval(120)
+    assert channels_in_check_order(db_session) == ["favorite", "overdue"]
+
+
+def test_age_boundary_and_stable_id_ties(db_session):
+    favorite = _tv(db_session, "Favorite", True)
+    _stream(db_session, "favorite", T0, tv=favorite)
+    _stream(db_session, "b", T0 - timedelta(hours=1))
+    _stream(db_session, "a", T0 - timedelta(hours=1))
+    db_session.commit()
+    assert channels_in_check_order(db_session) == ["a", "b", "favorite"]

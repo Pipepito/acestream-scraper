@@ -6,6 +6,14 @@ IPNS-hosted channel lists, the public EPG feed, and the engine's search API.
 Every test records browser console errors, page errors, failed `/api` responses and
 new `ERROR`/`Traceback` lines from the backend log, and attaches them to the report.
 
+For Docker targets, stream `/app/logs/scraper.log` from the container to a local
+file and set `E2E_BACKEND_LOG` to that file when running with `E2E_STRICT=1`.
+`acestream.log` also contains engine output and is not the scraper console.
+Inspect sidecar logs separately alongside the runtime/health assertions.
+Tests that deliberately provoke failures can declare an exact, test-scoped
+`errors.allowBackend(...)` pattern, just as they use `allowApi`. The original
+backend lines remain attached in `allBackendErrors`; unrelated errors still fail.
+
 ## Layout
 
 ```
@@ -15,7 +23,7 @@ e2e/
   src/
     scenario/            zod schema + loader (E2E_SCENARIO=<name|path>, E2E_TARGET=local|docker)
     api.ts               typed helper over /api/v1 for seeding, polling background jobs, cross-checks
-    error-monitor.ts     per-test console/network/backend-log watchdog (E2E_STRICT=1 fails on any error)
+    error-monitor.ts     per-test console/network/backend-log watchdog (E2E_STRICT=1 fails on unexpected errors)
     fixtures.ts          `test`/`expect` with scenario, api, app and errors fixtures
     pages/               page objects (roles/labels, no CSS selectors)
   tests/                 journeys, run in file order: stack → navigation → settings → scraper →

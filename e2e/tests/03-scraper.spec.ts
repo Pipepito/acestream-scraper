@@ -91,8 +91,11 @@ test.describe('scraper', () => {
     await expect.poll(async () => (await api.findUrl(url))?.scrape_bare_ids, { timeout: 15_000 }).toBe(false);
   });
 
-  test('a URL that cannot be fetched shows the failure in its row and in the summary', async ({ page, api }, testInfo) => {
+  test('a URL that cannot be fetched shows the failure in its row and in the summary', async ({ page, api, errors }, testInfo) => {
     const badUrl = 'http://127.0.0.1:9/e2e-unreachable';
+    // This test intentionally fails a fetch; retain the log as evidence while
+    // allowing only that source's expected failure, not other backend errors.
+    errors.allowBackend(/app\.scrapers\.base - ERROR - Error scraping http:\/\/127\.0\.0\.1:9\/e2e-unreachable after \d+ attempts:/);
     const existing = await api.findUrl(badUrl);
     if (existing) await api.deleteUrl(existing.id);
     const scraper = new ScraperPage(page);

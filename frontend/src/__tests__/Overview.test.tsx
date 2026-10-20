@@ -126,6 +126,21 @@ describe('Overview', () => {
     expect(within(screen.getByRole('status', { name: 'Overview summary' })).getByText('not reachable')).toBeInTheDocument();
   });
 
+  it.each(['', 'http://external-engine:6878'])(
+    'uses the saved playback URL (%s) even while the bundled engine runs',
+    (aceEngineUrl) => {
+      mockUseHealth.mockReturnValue(query({
+        status: 'healthy', acestream: { status: aceEngineUrl ? 'error' : 'unknown' },
+        settings: { ace_engine_url: aceEngineUrl },
+      }));
+      renderPage();
+      const label = aceEngineUrl ? 'not reachable' : 'not configured';
+      expect(within(screen.getByRole('status', { name: 'Overview summary' })).getByText(label))
+        .toHaveAttribute('data-tone', aceEngineUrl ? 'error' : 'default');
+      expect(screen.getByText(aceEngineUrl ? 'ATTENTION' : 'HEALTHY')).toBeInTheDocument();
+    },
+  );
+
   it('flags attention when an enabled service is down and says which', () => {
     mockUseHealth.mockReturnValue(query({ status: 'degraded', acestream: { status: 'error', message: 'Connection refused' }, settings: {}, version: '2.1.0' }));
     mockUseSystemServices.mockReturnValue(query({ supervised: true, checked_at: '', services: [service('acestream', 'stopped', { label: 'AceStream engine', message: 'Enabled but not running.' })] }));

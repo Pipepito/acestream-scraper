@@ -34,6 +34,7 @@ export class ErrorMonitor {
   readonly backendErrors: string[] = [];
   private readonly extraAllowedApi: RegExp[] = [];
   private readonly extraAllowedConsole: RegExp[] = [];
+  private readonly extraAllowedBackend: RegExp[] = [];
   private snapshots: Snapshot[] = [];
 
   constructor(private readonly page: Page, private readonly policy: ErrorPolicy) {}
@@ -80,6 +81,10 @@ export class ErrorMonitor {
   allowConsole(pattern: RegExp): void {
     this.extraAllowedConsole.push(pattern);
   }
+  /** A specific backend error deliberately provoked by this test only. */
+  allowBackend(pattern: RegExp): void {
+    this.extraAllowedBackend.push(pattern);
+  }
 
   private collectBackendErrors(): void {
     for (const snap of this.snapshots) {
@@ -110,21 +115,23 @@ export class ErrorMonitor {
     this.collectBackendErrors();
     const api = this.unexpectedApi();
     const consoleMsgs = this.unexpectedConsole();
+    const backend = this.backendErrors.filter((line) => !this.extraAllowedBackend.some((pattern) => pattern.test(line)));
     const report = {
       apiFailures: api,
       consoleErrors: consoleMsgs,
-      backendErrors: this.backendErrors,
+      backendErrors: backend,
+      allBackendErrors: this.backendErrors,
       allApiFailures: this.apiFailures,
     };
-    const total = api.length + consoleMsgs.length + this.backendErrors.length;
-    if (total > 0 || this.apiFailures.length > 0) {
+    const total = api.length + consoleMsgs.length + backend.length;
+    if (total > 0 || this.apiFailures.length > 0 || this.backendErrors.length > 0) {
       await testInfo.attach('error-monitor.json', { body: JSON.stringify(report, null, 2), contentType: 'application/json' });
     }
     if (total > 0) {
       const summary = [
         ...api.map((f) => `API ${f.status} ${f.method} ${f.url.replace(/^https?:\/\/[^/]+/, '')} ${f.body.replace(/\s+/g, ' ').slice(0, 160)}`),
         ...consoleMsgs.map((m) => `CONSOLE ${m.replace(/\s+/g, ' ').slice(0, 200)}`),
-        ...this.backendErrors.map((m) => `BACKEND ${m.replace(/\s+/g, ' ').slice(0, 200)}`),
+        ...backend.map((m) => `BACKEND ${m.replace(/\s+/g, ' ').slice(0, 200)}`),
       ].join('\n');
       testInfo.annotations.push({ type: 'errors-observed', description: summary });
       process.stdout.write(`\n[error-monitor] ${testInfo.title}\n${summary}\n`);

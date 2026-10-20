@@ -37,7 +37,10 @@ const Overview: React.FC = () => {
   const engineOnline = engineProbe ? engineProbe.status === 'online' : Boolean(engine?.running);
   const engineExternal = engineOnline && Boolean(engine) && !engine?.running;
   const engineStopped = Boolean(engine?.stopped_by_user) && !engineOnline;
-  const engineConfigured = Boolean(engine?.endpoint || engine?.enabled);
+  const configuredEngineUrl = health.data?.settings?.ace_engine_url;
+  const engineConfigured = typeof configuredEngineUrl === 'string'
+    ? Boolean(configuredEngineUrl.trim())
+    : Boolean(engine?.endpoint || engine?.enabled);
   const needsAttention = attention.length > 0 || (engineConfigured && !engineOnline && !engineStopped);
 
   const lastScrape = tasks.data?.find((t) => t.task_name === 'url_scraping')?.last_run ?? null;

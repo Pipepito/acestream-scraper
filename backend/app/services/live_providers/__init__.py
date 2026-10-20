@@ -62,5 +62,28 @@ def resolve(stream_url: str) -> Optional[str]:
     try:
         return provider.resolve(stream_url[len(provider.SCHEME):]) or None
     except Exception as error:
-        base.log.warning('%s: could not resolve %s (%s)', provider.__name__.rsplit('.', 1)[-1], stream_url, error)
+        base.log.warning('%s: resolution failed (%s)', provider.__name__.rsplit('.', 1)[-1], type(error).__name__)
         return None
+
+
+async def resolve_async(stream_url: str, *, timeout: float = 15):
+    """Keep existing provider adapters off-loop with one bounded/cancellable budget."""
+    import asyncio
+    import anyio
+    import time
+    from threading import Event
+
+    cancelled = Event()
+    deadline = time.monotonic() + timeout
+
+    def run():
+        token = base.resolution_limits.set((deadline, cancelled))
+        try:
+            return resolve(stream_url)
+        finally:
+            base.resolution_limits.reset(token)
+
+    try:
+        return await asyncio.wait_for(anyio.to_thread.run_sync(run, abandon_on_cancel=True), timeout)
+    finally:
+        cancelled.set()

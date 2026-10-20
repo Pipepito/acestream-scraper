@@ -106,9 +106,9 @@ def test_media_sequence_is_recomputed():
     assert '#EXT-X-MEDIA-SEQUENCE:1045' in out.splitlines()
 
 
-def test_no_endlist_slips_through():
-    """It would turn the live stream into a video that ends, frozen."""
-    assert '#EXT-X-ENDLIST' not in prune(_chunklist(20) + '\n#EXT-X-ENDLIST', ORIGIN, window=5)
+def test_completed_playlist_keeps_endlist():
+    """A genuinely completed stream must retain its ending."""
+    assert '#EXT-X-ENDLIST' in prune(_chunklist(20) + '\n#EXT-X-ENDLIST', ORIGIN, window=5)
 
 
 def test_signature_rejects_any_other_url():
@@ -218,10 +218,13 @@ class FakeResponse:
 def lan(monkeypatch):
     from app.config.settings import get_settings
     from app.services.tuner_network import get_tuner_gate
-    monkeypatch.setenv("TUNER_ALLOWED_NETWORKS", "*")
-    get_settings.cache_clear(); get_tuner_gate.cache_clear()
-    yield
-    get_settings.cache_clear(); get_tuner_gate.cache_clear()
+    try:
+        with monkeypatch.context() as scoped:
+            scoped.setenv("TUNER_ALLOWED_NETWORKS", "*")
+            get_settings.cache_clear(); get_tuner_gate.cache_clear()
+            yield
+    finally:
+        get_settings.cache_clear(); get_tuner_gate.cache_clear()
 
 
 @pytest.fixture
@@ -230,7 +233,7 @@ def origin(monkeypatch):
     from app.api.endpoints import live
     table, asked = {}, []
 
-    def fake_get(url, timeout=None, headers=None):
+    async def fake_get(url, timeout=None, headers=None, **kwargs):
         asked.append((url, dict(headers or {})))
         if url not in table:
             raise AssertionError(f'unexpected fetch: {url}')
@@ -335,7 +338,15 @@ def test_hung_origin_is_also_time_limited(lan, client, db_session, monkeypatch):
     from app.api.endpoints import live
     stream = _add(db_session)
     monkeypatch.setattr(live, 'OPEN_BUDGET_SECONDS', 0.3)
-    monkeypatch.setattr(live, 'source_get', lambda url, timeout=None, headers=None: clock.sleep(2) or FakeResponse(body=b'#EXTM3U\n'))
+    import asyncio
+    cancelled = []
+    async def hang(*args, **kwargs):
+        try:
+            await asyncio.sleep(2)
+        finally:
+            cancelled.append(True)
+    monkeypatch.setattr(live, 'source_get', hang)
     started = clock.monotonic()
     assert client.get(f'/live/{stream.id}').status_code == 502
     assert clock.monotonic() - started < 1.5
+    assert cancelled == [True]

@@ -28,7 +28,7 @@ from app.config.database import get_db
 from app.models.models import AcestreamChannel
 from app.services import hls_manifest, live_providers
 from app.services.tuner_network import require_tuner_network
-from app.utils.outbound_http import source_get
+from app.utils.bounded_source import source_get
 
 live_router = APIRouter(prefix="/live", dependencies=[Depends(require_tuner_network)], tags=["live"])
 
@@ -54,24 +54,25 @@ MAX_MANIFEST_BYTES = 4 * 1024 * 1024
 MAX_REDIRECTS = 5
 
 
-def _resolve_once(stream_url: str):
+async def _resolve_once(stream_url: str):
     now = time.monotonic()
     for key in [k for k, (at, _) in _recent.items() if now - at > REUSE_SECONDS]:
         del _recent[key]
     if stream_url in _recent:
         return _recent[stream_url][1]
-    link = live_providers.resolve(stream_url)
+    link = await live_providers.resolve_async(stream_url, timeout=OPEN_BUDGET_SECONDS)
     if link:
         _recent[stream_url] = (now, link)
     return link
 
 
-def _fetch_manifest(url: str, headers: dict, limit: int = MAX_MANIFEST_BYTES):
+async def _fetch_manifest(url: str, headers: dict, limit: int = MAX_MANIFEST_BYTES):
     """(final URL, body, content type), following redirects through the
     guarded client: every hop's address is checked, these URLs come from
     third-party playlists."""
+    deadline = time.monotonic() + OPEN_BUDGET_SECONDS
     for _ in range(MAX_REDIRECTS + 1):
-        response = source_get(url, timeout=20, headers=headers)
+        response = await source_get(url, timeout=deadline - time.monotonic(), headers=headers, max_bytes=limit, media_limit=512)
         if response.status_code in (301, 302, 303, 307, 308) and response.headers.get('Location'):
             url = urljoin(url, response.headers['Location'])
             continue
@@ -82,11 +83,11 @@ def _fetch_manifest(url: str, headers: dict, limit: int = MAX_MANIFEST_BYTES):
     raise ValueError('too many redirects')
 
 
-def _serve_manifest(stream_id: str, url: str, headers: dict):
+async def _serve_manifest(stream_id: str, url: str, headers: dict, root_path: str = ""):
     try:
-        final_url, body, content_type = _fetch_manifest(url, headers)
-    except Exception as error:
-        return JSONResponse({"detail": f"The origin did not return the manifest: {error}"}, status_code=502)
+        final_url, body, content_type = await _fetch_manifest(url, headers)
+    except Exception:
+        return JSONResponse({"detail": "The origin did not return a valid manifest"}, status_code=502)
     text = body.decode('utf-8', 'replace')
     if '#EXTM3U' not in text[:512]:
         # Not a manifest -- an origin that answers with the video itself.
@@ -94,10 +95,13 @@ def _serve_manifest(stream_id: str, url: str, headers: dict):
         return RedirectResponse(final_url, status_code=302)
 
     def link(absolute_url: str) -> str:
-        return (f"/live/{quote(stream_id, safe='')}?u={quote(absolute_url, safe='')}"
+        return (f"{root_path}/live/{quote(stream_id, safe='')}?u={quote(absolute_url, safe='')}"
                 f"&s={hls_manifest.sign(absolute_url)}")
 
-    served = hls_manifest.serve(text, final_url, link)
+    try:
+        served = hls_manifest.serve(text, final_url, link)
+    except ValueError:
+        return JSONResponse({"detail": "The origin returned an unsupported manifest"}, status_code=502)
     # A plain body, so a Content-Length and never chunked: served this way
     # ffmpeg reads it whole.
     return Response(content=served.encode('utf-8'), media_type=HLS_TYPE)
@@ -105,13 +109,13 @@ def _serve_manifest(stream_id: str, url: str, headers: dict):
 
 @live_router.api_route("/{stream_id}", methods=["GET", "HEAD"], include_in_schema=False)
 async def open_live_stream(stream_id: str, request: Request, db: Session = Depends(get_db)):
-    stream = db.get(AcestreamChannel, stream_id)
-    stream_url = getattr(stream, "stream_url", None)
-    stream_headers = dict(getattr(stream, "stream_headers", None) or {})
-    # Released now, not after the response: resolving takes up to three
-    # requests to the broadcaster and must not hold a pooled connection
-    # meanwhile (see tuner._engine).
-    db.close()
+    def load_stream():
+        try:
+            stream = db.get(AcestreamChannel, stream_id)
+            return getattr(stream, "stream_url", None), dict(getattr(stream, "stream_headers", None) or {})
+        finally:
+            db.close()
+    stream_url, stream_headers = await run_in_threadpool(load_stream)
     # Errors are answered as JSON here: a 404 raised as an exception would
     # reach the SPA fallback and come back as index.html with HTTP 200.
     if hls_manifest.needs_manifest(stream_url, stream_headers):
@@ -125,7 +129,7 @@ async def open_live_stream(stream_id: str, request: Request, db: Session = Depen
                 return JSONResponse({"detail": "Unsigned manifest URL"}, status_code=403)
         try:
             return await asyncio.wait_for(
-                run_in_threadpool(_serve_manifest, stream_id, nested or stream_url, stream_headers),
+                _serve_manifest(stream_id, nested or stream_url, stream_headers, request.scope.get("root_path", "").rstrip("/")),
                 OPEN_BUDGET_SECONDS)
         except asyncio.TimeoutError:
             return JSONResponse({"detail": "The origin did not answer in time"}, status_code=502)
@@ -140,9 +144,9 @@ async def open_live_stream(stream_id: str, request: Request, db: Session = Depen
     # Resolving makes one to three requests to the broadcaster; never on the
     # event loop.
     try:
-        # The resolving thread may outlive the answer; its link is still
-        # kept for REUSE_SECONDS, so a retry right after can use it.
-        link = await asyncio.wait_for(run_in_threadpool(_resolve_once, stream_url), OPEN_BUDGET_SECONDS)
+        # Cancellation propagates to the provider HTTP worker. Only completed
+        # resolutions enter the short-lived cache.
+        link = await asyncio.wait_for(_resolve_once(stream_url), OPEN_BUDGET_SECONDS)
     except asyncio.TimeoutError:
         link = None
     if not link:

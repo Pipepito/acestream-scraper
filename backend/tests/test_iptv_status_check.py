@@ -7,6 +7,9 @@ They used to be skipped, so they stayed unknown forever; now they are
 checked the way a player opens them: playlist, variant, a segment.
 """
 from unittest.mock import AsyncMock, MagicMock
+from pathlib import Path
+
+MEDIA = (Path(__file__).parent / "docker/fixtures/sample-h264-ac3.m2ts").read_bytes()
 
 import pytest
 
@@ -45,7 +48,7 @@ def _iptv(**kw):
 
 @pytest.mark.asyncio
 async def test_engine_is_not_asked(probe, monkeypatch):
-    monkeypatch.setattr(http_stream_check, 'check', lambda url, headers: (True, None))
+    monkeypatch.setattr(http_stream_check, 'check', AsyncMock(return_value=(True, None)))
     await probe.check_channel_status(_iptv(is_online=True))
     probe._fetch_engine_response.assert_not_awaited()
 
@@ -53,7 +56,7 @@ async def test_engine_is_not_asked(probe, monkeypatch):
 @pytest.mark.asyncio
 async def test_checked_over_http_with_its_headers_and_saved(probe, monkeypatch):
     asked = []
-    monkeypatch.setattr(http_stream_check, 'check', lambda url, headers: asked.append((url, headers)) or (False, 'HTTP 404 from the playlist'))
+    monkeypatch.setattr(http_stream_check, 'check', AsyncMock(side_effect=lambda url, headers: asked.append((url, headers)) or (False, 'HTTP 404 from the playlist')))
     result = await probe.check_channel_status(_iptv(is_online=True))
     assert asked == [('https://cdn.example.com/la1/master.m3u8', {'Referer': 'https://rtve.es/'})]
     assert result['is_online'] is False and result['status'] == 'offline'
@@ -66,14 +69,14 @@ async def test_checked_over_http_with_its_headers_and_saved(probe, monkeypatch):
 async def test_no_engine_needed(probe, monkeypatch):
     """An install without engine (such as a test container) still checks them."""
     probe._get_engine_url = lambda: None
-    monkeypatch.setattr(http_stream_check, 'check', lambda url, headers: (True, None))
+    monkeypatch.setattr(http_stream_check, 'check', AsyncMock(return_value=(True, None)))
     result = await probe.check_channel_status(_iptv())
     assert result['status'] == 'online'
 
 
 @pytest.mark.asyncio
 async def test_nothing_written_without_persist(probe, monkeypatch):
-    monkeypatch.setattr(http_stream_check, 'check', lambda url, headers: (True, None))
+    monkeypatch.setattr(http_stream_check, 'check', AsyncMock(return_value=(True, None)))
     await probe.check_channel_status(_iptv(), persist=False)
     assert not probe.channel_repository.method_calls
 
@@ -92,6 +95,7 @@ class FakeResponse:
         self.status_code = status
         self.content = body
         self.headers = headers or {}
+        self.truncated = False
 
 
 MASTER = b'#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\nhd/chunklist.m3u8\n#EXT-X-STREAM-INF:BANDWIDTH=2\nsd/chunklist.m3u8\n'
@@ -102,7 +106,7 @@ CHUNKLIST = b'#EXTM3U\n#EXT-X-MEDIA-SEQUENCE:7\n#EXTINF:4,\nseg_7.ts\n#EXTINF:4,
 def origin(monkeypatch):
     table, asked = {}, []
 
-    def fake_get(url, timeout=None, headers=None):
+    async def fake_get(url, timeout=None, headers=None, **kwargs):
         asked.append((url, dict(headers or {})))
         if url not in table:
             return FakeResponse(404)
@@ -111,86 +115,96 @@ def origin(monkeypatch):
     return table, asked
 
 
-def test_alive_via_master_variant_and_segment(origin):
+@pytest.mark.asyncio
+async def test_alive_via_master_variant_and_segment(origin):
     table, asked = origin
     table['https://cdn/la1/master.m3u8'] = FakeResponse(body=MASTER)
     table['https://cdn/la1/hd/chunklist.m3u8'] = FakeResponse(body=CHUNKLIST)
-    table['https://cdn/la1/hd/seg_8.ts'] = FakeResponse(206, b'\x47' * 1024)
-    assert http_stream_check.check('https://cdn/la1/master.m3u8', {'Referer': 'r'}) == (True, None)
+    table['https://cdn/la1/hd/seg_8.ts'] = FakeResponse(206, MEDIA)
+    assert await http_stream_check.check('https://cdn/la1/master.m3u8', {'Referer': 'r'}) == (True, None)
     urls = [u for u, _ in asked]
     # The NEWEST segment: on a live list the oldest may already be gone.
     assert urls == ['https://cdn/la1/master.m3u8', 'https://cdn/la1/hd/chunklist.m3u8', 'https://cdn/la1/hd/seg_8.ts']
     assert all(h['Referer'] == 'r' for _, h in asked)
     # Only the first KB: the video is not downloaded.
-    assert asked[-1][1]['Range'] == 'bytes=0-1023'
+    assert asked[-1][1]['Range'] == f'bytes=0-{http_stream_check.SAMPLE_BYTES - 1}'
 
 
-def test_unreachable_segment_means_dead(origin):
+@pytest.mark.asyncio
+async def test_unreachable_segment_means_dead(origin):
     table, _ = origin
     table['https://cdn/x.m3u8'] = FakeResponse(body=CHUNKLIST)
-    alive, why = http_stream_check.check('https://cdn/x.m3u8')
+    alive, why = await http_stream_check.check('https://cdn/x.m3u8')
     assert alive is False and 'segment' in why
 
 
-def test_403_is_dead_and_says_where(origin):
+@pytest.mark.asyncio
+async def test_403_is_dead_and_says_where(origin):
     table, _ = origin
     table['https://cdn/x.m3u8'] = FakeResponse(403)
-    assert http_stream_check.check('https://cdn/x.m3u8') == (False, 'HTTP 403 from the playlist')
+    assert await http_stream_check.check('https://cdn/x.m3u8') == (False, 'HTTP 403 from the playlist')
 
 
-def test_playlist_without_segments_is_dead(origin):
+@pytest.mark.asyncio
+async def test_playlist_without_segments_is_dead(origin):
     table, _ = origin
     table['https://cdn/x.m3u8'] = FakeResponse(body=b'#EXTM3U\n#EXT-X-VERSION:3\n')
-    assert http_stream_check.check('https://cdn/x.m3u8') == (False, 'Playlist without segments')
+    assert await http_stream_check.check('https://cdn/x.m3u8') == (False, 'Playlist without segments')
 
 
-def test_redirects_followed_and_relative_urls_resolve_against_final(origin):
+@pytest.mark.asyncio
+async def test_redirects_followed_and_relative_urls_resolve_against_final(origin):
     table, _ = origin
     table['https://a/x.m3u8'] = FakeResponse(302, headers={'Location': 'https://b/live/x.m3u8'})
     table['https://b/live/x.m3u8'] = FakeResponse(body=CHUNKLIST)
-    table['https://b/live/seg_8.ts'] = FakeResponse(200, b'\x47')
-    assert http_stream_check.check('https://a/x.m3u8') == (True, None)
+    table['https://b/live/seg_8.ts'] = FakeResponse(200, MEDIA)
+    assert await http_stream_check.check('https://a/x.m3u8') == (True, None)
 
 
-def test_origin_serving_video_directly_is_alive(origin):
+@pytest.mark.asyncio
+async def test_origin_serving_video_directly_is_alive(origin):
     table, _ = origin
-    table['https://cdn/stream.ts'] = FakeResponse(body=b'\x47' * 188)
-    assert http_stream_check.check('https://cdn/stream.ts') == (True, None)
+    table['https://cdn/stream.ts'] = FakeResponse(body=MEDIA)
+    assert await http_stream_check.check('https://cdn/stream.ts') == (True, None)
 
 
-def test_network_failure_does_not_crash(monkeypatch):
-    def boom(url, timeout=None, headers=None):
+@pytest.mark.asyncio
+async def test_network_failure_does_not_crash(monkeypatch):
+    async def boom(url, timeout=None, headers=None, **kwargs):
         raise ConnectionError('refused')
     monkeypatch.setattr(http_stream_check, 'source_get', boom)
-    alive, why = http_stream_check.check('https://cdn/x.m3u8')
-    assert alive is False and 'refused' in why
+    alive, why = await http_stream_check.check('https://cdn/x.m3u8')
+    assert alive is None and 'ConnectionError' in why
 
 
-def test_broadcaster_stream_is_only_resolved(origin, monkeypatch):
-    """A login and an ad-stitching request per check would be too much for
-    Mediaset; a signed link is what breaks when they change their API."""
-    _table, asked = origin
+@pytest.mark.asyncio
+async def test_broadcaster_resolution_still_requires_media(origin, monkeypatch):
+    table, asked = origin
+    table['https://dai/master.m3u8'] = FakeResponse(body=CHUNKLIST)
+    table['https://dai/seg_8.ts'] = FakeResponse(body=MEDIA)
     monkeypatch.setattr(live_providers, 'resolve', lambda url: 'https://dai/master.m3u8')
-    assert http_stream_check.check('mediaset://T5') == (True, None)
+    assert await http_stream_check.check('mediaset://T5') == (True, None)
+    assert len(asked) == 2
     monkeypatch.setattr(live_providers, 'resolve', lambda url: None)
-    assert http_stream_check.check('mediaset://T5') == (False, 'The broadcaster did not return a live link')
-    assert asked == []
+    assert await http_stream_check.check('mediaset://T5') == (None, 'The broadcaster did not return a live link')
 
 
-def test_empty_segment_is_not_alive(origin):
+@pytest.mark.asyncio
+async def test_empty_segment_is_not_alive(origin):
     table, _ = origin
     table['https://cdn/x.m3u8'] = FakeResponse(body=CHUNKLIST)
     table['https://cdn/seg_8.ts'] = FakeResponse(200, b'')
-    assert http_stream_check.check('https://cdn/x.m3u8') == (False, 'Empty segment')
+    assert await http_stream_check.check('https://cdn/x.m3u8') == (False, 'Empty segment')
 
 
-def test_relative_variant_resolves_against_master_redirect_target(origin):
+@pytest.mark.asyncio
+async def test_relative_variant_resolves_against_master_redirect_target(origin):
     table, asked = origin
     table['https://a/master.m3u8'] = FakeResponse(302, headers={'Location': 'https://b/live/master.m3u8'})
     table['https://b/live/master.m3u8'] = FakeResponse(body=MASTER)
     table['https://b/live/hd/chunklist.m3u8'] = FakeResponse(body=CHUNKLIST)
-    table['https://b/live/hd/seg_8.ts'] = FakeResponse(200, b'\x47')
-    assert http_stream_check.check('https://a/master.m3u8') == (True, None)
+    table['https://b/live/hd/seg_8.ts'] = FakeResponse(200, MEDIA)
+    assert await http_stream_check.check('https://a/master.m3u8') == (True, None)
 
 
 # --- the scheduled pass without an engine ------------------------------------
@@ -265,3 +279,16 @@ def test_run_now_without_an_engine_runs_when_there_are_http_streams(client, db_s
     queued = client.post('/api/v1/background-tasks/channel_status/run').json()
     assert disabled['status'] == 'disabled'
     assert queued['status'] == 'triggered'
+
+
+@pytest.mark.asyncio
+async def test_inconclusive_check_preserves_observation(probe, monkeypatch):
+    from datetime import datetime, timezone
+    checked = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    channel = _iptv(is_online=True, last_checked=checked, stream_stats={'peers': 3})
+    monkeypatch.setattr(http_stream_check, 'check', AsyncMock(return_value=(None, 'Encrypted media is not verified')))
+    probe._recent_result = lambda *args: None
+    result = await probe.check_channel_status(channel)
+    assert result['status'] == 'skipped' and result['is_online'] is True
+    assert result['last_checked'] == checked and result['stream_stats'] == {'peers': 3}
+    probe.channel_repository.update_channel_status.assert_not_called()

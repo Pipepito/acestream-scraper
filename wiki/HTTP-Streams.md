@@ -9,7 +9,8 @@ When a scraped M3U has an `http://` or `https://` entry that is not an AceStream
 - **Its id** is `url:` followed by a hash of the URL. Scraping again updates the same stream instead of adding a copy.
 - **In generated playlists** it appears with its own URL, whatever link format you chose: link formats only apply to AceStream ids. In a relay format (`/tuner/channel/...`), a TV channel whose first source is an HTTP stream is also handed that URL; the TV relay only opens AceStream sources.
 - **Headers.** If the playlist publishes `#EXTVLCOPT:http-referrer`, `http-user-agent` or `http-origin` for an entry, they are kept and written in the `url|Referer=...` form that Kodi sends with every request. Some CDNs answer 403 without them.
-- **Status checks** read the playlist, its first variant and the first KB of the newest segment, with the stream's headers. They never open an engine session.
+- **Status checks** follow bounded manifests and sample up to 2 MiB of media, including initialization data when needed. They require identified audio/video packets before marking a stream online and never open an engine session. HTML pages and arbitrary bytes do not prove signal. Transport failures, unsupported encryption and unavailable media verification preserve the previous observation and report the check as skipped.
+- **Read limits.** Manifest reads are capped at 4 MiB during transfer. Sampling stops at its cap even if an origin ignores Range. Reads and broadcaster resolution have elapsed-time deadlines and close their transfers on cancellation. HTTP checks share the existing priority probe queue.
 - **"Online only" playlists** include HTTP streams that have not been checked yet. Streams a check found dead are left out.
 
 Other schemes (`rtmp://`, relative paths) are still dropped.
@@ -33,4 +34,6 @@ None of them needs an account. Their links carry tokens that expire, so they are
 
 `/live/` needs no API token, because a player following a playlist link cannot send one. Like the tuner routes, it only answers clients allowed by `TUNER_ALLOWED_NETWORKS`.
 
-These integrations depend on each broadcaster's website and can break when it changes.
+Broadcaster checks resolve a fresh link and then verify its media; resolving a URL alone does not set online status. These integrations depend on each broadcaster's website and can break when it changes.
+
+Manifest rewriting resolves key and initialization URIs against the origin and preserves byte-range offsets, media sequence and discontinuity state. Completed, low-latency/delta, multiple-key-format and encrypted-initialization playlists keep their complete tag ordering rather than being trimmed. The URI and byte-range rules follow [RFC 8216](https://www.rfc-editor.org/rfc/rfc8216.html). Unsupported forms fail clearly; the server never sends upstream playlists to ffprobe or gives it network access.

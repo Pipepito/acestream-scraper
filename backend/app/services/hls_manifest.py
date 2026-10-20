@@ -83,72 +83,89 @@ def rewrite_master(text: str, origin: str, link) -> str:
     return '\n'.join(out) + '\n'
 
 
-def prune(text: str, origin: str, window: int = WINDOW) -> str:
-    """The chunklist with its last `window` segments, absolute to the CDN.
+def absolute_attributes(line: str, origin: str) -> str:
+    return _URI.sub(lambda match: match.group(1) + urljoin(origin, match.group(2)) + match.group(3), line)
 
-    `#EXT-X-MEDIA-SEQUENCE` is recomputed: otherwise the player is told the
-    first segment it gets is number 0 when it is 2,632, and at the next
-    reload it believes the broadcast started over.
 
-    `#EXT-X-KEY` and `#EXT-X-MAP` hold from where they appear until the next
-    one, so they are re-emitted before the first kept segment. Cutting
-    without that left the first segments of the window under a key that was
-    no longer in the list: an encrypted channel played 2 of 4 times from
-    the origin and 0 of 4 through us, with every tag present but in the
-    wrong ORDER.
+def media_entries(text: str, origin: str):
+    """Retain each segment's tags and make implicit byte offsets explicit.
+
+    This is also the sampling inventory. Never hand an upstream playlist to
+    ffprobe: URLs, keys and init data are fetched only through the guarded client.
     """
-    lines = text.splitlines()
-    header, entries = [], []
+    header, entries, pending = [], [], []
     key = init_map = None
-    loose = []          # #EXT-X-DISCONTINUITY belongs to ITS segment
-    i, sequence = 0, 0
-    while i < len(lines):
-        line = lines[i]
-        if line.startswith('#EXT-X-MEDIA-SEQUENCE'):
-            try:
-                sequence = int(line.split(':', 1)[1])
-            except (IndexError, ValueError):
-                sequence = 0
-        elif line.startswith('#EXTINF'):
-            j = i + 1
-            while j < len(lines) and (not lines[j].strip() or lines[j].startswith('#')):
-                j += 1
-            if j < len(lines):
-                entries.append({'inf': line, 'segment': lines[j], 'key': key,
-                                'map': init_map, 'loose': loose})
-                loose = []
-                i = j + 1
-                continue
-        elif line.startswith('#EXT-X-KEY'):
-            key = line
-        elif line.startswith('#EXT-X-MAP'):
-            init_map = line
-        elif line.startswith('#EXT-X-ENDLIST'):
-            pass
-        elif line == '#EXT-X-DISCONTINUITY' or line.startswith('#EXT-X-DISCONTINUITY:'):
-            loose.append(line)
-        elif line.startswith('#EXTM3U') or line.startswith('#EXT-X-'):
-            header.append(line)
-        i += 1
+    sequence = discontinuities = 0
+    previous_url, previous_end = None, None
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        if line.startswith('#EXT-X-MEDIA-SEQUENCE:'):
+            sequence = int(line.split(':', 1)[1])
+        elif line.startswith('#EXT-X-DISCONTINUITY-SEQUENCE:'):
+            discontinuities = int(line.split(':', 1)[1])
+        elif line.startswith('#EXT-X-KEY:'):
+            key = absolute_attributes(line, origin)
+        elif line.startswith('#EXT-X-MAP:'):
+            init_map = absolute_attributes(line, origin)
+        elif line.startswith(('#EXTINF:', '#EXT-X-BYTERANGE:', '#EXT-X-PROGRAM-DATE-TIME:', '#EXT-X-GAP')) or line == '#EXT-X-DISCONTINUITY':
+            pending.append(line)
+        elif line.startswith('#'):
+            header.append(absolute_attributes(line, origin))
+        else:
+            url = urljoin(origin, line)
+            byte_range = None
+            tags = []
+            for tag in pending:
+                if tag.startswith('#EXT-X-BYTERANGE:'):
+                    value = tag.split(':', 1)[1].split('@')
+                    size = int(value[0])
+                    offset = int(value[1]) if len(value) == 2 else previous_end if url == previous_url else None
+                    if size <= 0 or offset is None or offset < 0:
+                        raise ValueError('Invalid implicit HLS byte range')
+                    byte_range = (offset, size)
+                    tag = f'#EXT-X-BYTERANGE:{size}@{offset}'
+                tags.append(tag)
+            if not any(tag.startswith('#EXTINF:') for tag in tags):
+                raise ValueError('Missing HLS segment duration')
+            entries.append({'segment': url, 'tags': tags, 'key': key, 'map': init_map,
+                            'range': byte_range, 'sequence': sequence + len(entries),
+                            'discontinuities': discontinuities})
+            discontinuities += tags.count('#EXT-X-DISCONTINUITY')
+            previous_url = url
+            previous_end = byte_range[0] + byte_range[1] if byte_range else None
+            pending = []
+    return header, entries
 
+
+def prune(text: str, origin: str, window: int = WINDOW) -> str:
+    """Keep a live window without changing segment/key/map/range semantics."""
+    # Low-latency/delta playlists need their complete tag relationships. Keep
+    # them and completed playlists intact, resolving all references to the CDN.
+    if (any(tag in text for tag in ('#EXT-X-PART:', '#EXT-X-SKIP:', '#EXT-X-ENDLIST', 'KEYFORMAT='))
+            or ('#EXT-X-MAP:' in text and '#EXT-X-KEY:' in text)
+            or re.search(r'#EXT-X-MAP:[^\n]*BYTERANGE=', text)):
+        return '\n'.join(absolute_attributes(line, origin) if line.startswith('#') or not line.strip()
+                         else urljoin(origin, line.strip()) for line in text.splitlines()) + '\n'
+    header, entries = media_entries(text, origin)
     if not entries:
-        return text if text.endswith('\n') else text + '\n'
+        return '\n'.join(absolute_attributes(line, origin) for line in text.splitlines()) + '\n'
     kept = entries[-window:] if window > 0 else entries
-    out = ['#EXTM3U'] + [h for h in header if not h.startswith('#EXTM3U')]
-    out.append('#EXT-X-MEDIA-SEQUENCE:%d' % (sequence + len(entries) - len(kept)))
-    # Re-emitted only when they CHANGE: a key repeated on every segment is
-    # legal but makes the player fetch it once per segment.
+    out = ['#EXTM3U'] + [line for line in header if not line.startswith('#EXTM3U')]
+    out.append(f"#EXT-X-MEDIA-SEQUENCE:{kept[0]['sequence']}")
+    if kept[0]['discontinuities'] or '#EXT-X-DISCONTINUITY-SEQUENCE:' in text:
+        out.append(f"#EXT-X-DISCONTINUITY-SEQUENCE:{kept[0]['discontinuities']}")
     key_out = map_out = None
     for entry in kept:
-        if entry['map'] and entry['map'] != map_out:
-            out.append(entry['map'])
-            map_out = entry['map']
         if entry['key'] and entry['key'] != key_out:
             out.append(entry['key'])
             key_out = entry['key']
-        out.extend(entry['loose'])
-        out.append(entry['inf'])
-        out.append(urljoin(origin, entry['segment'].strip()))
+        if entry['map'] and entry['map'] != map_out:
+            out.append(entry['map'])
+            map_out = entry['map']
+        out.extend(entry['tags'])
+        out.append(entry['segment'])
     return '\n'.join(out) + '\n'
 
 

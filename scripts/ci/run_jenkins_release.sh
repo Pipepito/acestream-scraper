@@ -20,7 +20,7 @@ while [[ $# -gt 0 ]]; do
     --channel)
       # Pre-release channel publish (the `develop` branch): push floating
       # channel tags only — never a version tag, never :latest. Validation
-      # already ran in the branch's PR pipeline before this is invoked.
+      # already ran in the trusted develop pipeline before this is invoked.
       CHANNEL="${2:-}"
       shift 2
       ;;
@@ -48,9 +48,8 @@ if [[ -n "$CHANNEL" ]] && ! [[ "$CHANNEL" =~ ^[a-z][a-z0-9-]{0,30}$ ]]; then
   exit 1
 fi
 if [[ -z "$CHANNEL" && "$VERSION" == *-dev* ]]; then
-  # develop carries the next version as vX.Y.Z-dev; the bump to vX.Y.Z lands
-  # on develop (via PR) right before the develop -> main release PR, so a
-  # release run must never see a -dev version.
+  # version.txt normally carries the selected plain release version.
+  # Keep this defensive guard against accidentally publishing a -dev value.
   echo "Refusing to release a development version (version.txt = $VERSION). Land the version bump on develop (via PR) before the develop -> main release PR." >&2
   exit 1
 fi

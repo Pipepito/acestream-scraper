@@ -222,6 +222,14 @@ async def lifespan(app: FastAPI):
             task_service.add_interval_task(run_channel_cleanup_task, seconds=86400, job_id="channel_cleanup")  # daily
             task_service.add_interval_task(run_channel_status_task, seconds=status_minutes * 60, job_id="channel_status")
             task_service.add_interval_task(run_media_server_sync_task, seconds=600, job_id="media_server_sync")  # every 10 min
+            # A machine that is only on for a few hours never reaches a 6 h or
+            # 24 h interval counted from startup. See catch_up_missed_runs.
+            # Not at once: the first minutes after power-on are when channels
+            # are opened, and the guide refresh holds SQLite's write lock.
+            task_service.catch_up_missed_runs(start_after_seconds=300)
+            # channel_status opens the engine, so not at startup: a quarter of
+            # an hour later, and only if it is still overdue then.
+            task_service.catch_up_later("channel_status", delay_seconds=900)
             await player_service.start()
             await asyncio.to_thread(_schedule_deferred_migration)
             reaper = asyncio.create_task(reap_relays_forever())

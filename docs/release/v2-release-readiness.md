@@ -1,5 +1,10 @@
 # v2 Release Readiness — Gap Report
 
+> Historical v2.0 audit. Its old release blockers, CI topology and alias-removal
+> deadline are not current instructions. For v2.2.0 use
+> [release readiness](v2.2-release-readiness.md) and the
+> [current Jenkins runbook](../ops/jenkins-ci.md).
+
 **Date:** 2026-05-03 (audit), 2026-05-04 (closure pass)
 **Source planning:** `.planning/PROJECT.md`, `.planning/ROADMAP.md`, `.planning/REQUIREMENTS.md`, `.planning/STATE.md` (claimed 100% complete on 2026-02-27).
 **Reality check:** Audited all six phase folders, all summaries, all open debug investigations, and verified claimed deliverables against the current branch.

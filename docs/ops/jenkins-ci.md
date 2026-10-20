@@ -184,17 +184,17 @@ Pipeline enforcement in `jenkins/develop.Jenkinsfile` (trusted job `acestream-sc
 
 Versioning:
 
-- `version.txt` on `develop` carries the next version with a `-dev` suffix (for example `v2.1.0-dev`) once `v2.0.0` ships; a PR into `develop` bumps it to the final version right before the `develop` -> `main` release PR (the release PR's head is `develop`, so the bump cannot live in the release PR itself). As of 2026-08-28 `version.txt` reads `v2.0.0` (PR #162 is the v2.0.0 release PR), so the suffix convention starts with the next cycle.
+- `version.txt` records the selected release version without a `-dev` suffix: `v2.2.0` for the current cycle. Update it through a feature PR into `develop` when selecting the next release. The version value does not change channel tag names: development images use only floating `develop*` tags; versioned tags and `latest` remain exclusive to the manual release from `main`.
 - Guard: `scripts/ci/run_jenkins_release.sh` refuses a release run (no `--channel`) while `version.txt` contains `-dev`: `Refusing to release a development version (version.txt = ...). Land the version bump on develop (via PR) before the develop -> main release PR.` The channel publish accepts a `-dev` version.
 - `scripts/phase_gates/check_workflow_publish_guard.py` enforces the PR sandbox, credential separation, exact-develop guard, channel tags, release tags, and `:latest` promotion boundary.
 
 How a release is cut:
 
 1. Merge feature PRs into `develop` only after `PR Validation` and maintainer review. The separate trusted develop job reruns the full/privileged gates and refreshes `:develop*` only when they pass.
-2. Land the `version.txt` bump (`vX.Y.Z-dev` -> `vX.Y.Z`) on `develop` through its own PR, then open (or let Jenkins rebuild) the `develop` -> `main` release PR from `vX.Y.Z-dev` to `vX.Y.Z`. `Branch Policy` passes because the head is `develop`; the PR's builds keep publishing the channel.
+2. Land the selected `version.txt` value (`vX.Y.Z`) on `develop` through its own PR, then open or refresh the `develop` -> `main` release PR. PR jobs validate without publication; only the trusted develop job publishes the floating channel tags.
 3. Merge the release PR. Nothing is published automatically on merge.
 4. Run the manual `acestream-scraper-release` job from `main` (`CONFIRM_RELEASE`, `DRY_RUN`, `PUBLISH_LATEST`): phase 1 pushes `:vX.Y.Z` plus the flavor tags; after canary validation, `PUBLISH_LATEST=true` retags the canaried version manifest to `:latest` (`scripts/ci/promote_latest.sh`). See `## Manual Release Job` and `## v2.0.0 Release Runbook`.
-5. Back on `develop` (through a PR), bump `version.txt` to the next `-dev` version.
+5. When the next release version is selected, update `version.txt` on `develop` through a PR. Keep the plain release version; do not append `-dev`.
 
 Operator preview commands (from any checkout, no credentials needed):
 

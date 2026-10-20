@@ -11,6 +11,39 @@ import asyncio
 from datetime import datetime, timezone
 from app.services.probe_queue import ProbePriority
 from app.services.task_service import task_service
+from app.services import viewing
+
+# How often a paused pass looks again whether someone is still watching.
+VIEWING_POLL_SECONDS = 5.0
+# How long a pass waits in all before it ends. Scheduled jobs share one FIFO
+# queue: a paused pass holds the guide refresh and the scraping behind it, so
+# it lets them through after this and the next pass tries again.
+VIEWING_MAX_PAUSE_SECONDS = 600.0
+
+
+async def wait_while_watching(logger, max_seconds: float) -> tuple[float, bool]:
+    """Hold the pass while someone watches. Returns (seconds waited, gave up).
+
+    It gives up after ``max_seconds`` (VIEWING_MAX_PAUSE_SECONDS in all) so a
+    long match does not hold the maintenance queue -- guide refresh and
+    scraping wait behind this job. The next pass resumes where this stopped,
+    because the check order is least recently checked first.
+    """
+    reason = viewing.watching()
+    if reason is None:
+        return 0.0, False
+    logger.info("Channel status pass paused: someone is watching (%s)", reason)
+    loop = asyncio.get_running_loop()
+    started = loop.time()
+    while reason is not None and not task_service.shutdown_event.is_set():
+        if loop.time() - started >= max_seconds:
+            logger.info("Channel status pass stopped after %.0f s paused; the next one resumes", max_seconds)
+            return loop.time() - started, True
+        await asyncio.sleep(VIEWING_POLL_SECONDS)
+        reason = viewing.watching()
+    waited = loop.time() - started
+    logger.info("Channel status pass resumed after %.0f s paused", waited)
+    return waited, False
 
 
 def channels_in_check_order(db):
@@ -62,8 +95,16 @@ def run_channel_status_task():
             failed = 0
             online = 0
             offline = 0
+            paused = 0.0
+            max_pause = VIEWING_MAX_PAUSE_SECONDS
             for channel_id in channels:
                 if task_service.shutdown_event.is_set():
+                    break
+                # Between sources, never in the middle of one: a probe that
+                # started finishes and cleans up as before.
+                waited, gave_up = await wait_while_watching(logger, max_pause - paused)
+                paused += waited
+                if gave_up or task_service.shutdown_event.is_set():
                     break
                 try:
                     channel = db.get(AcestreamChannel, channel_id)

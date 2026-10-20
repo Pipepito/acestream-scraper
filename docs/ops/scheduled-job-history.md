@@ -76,6 +76,26 @@ inventing an offline count. Progress shows how much of the active inventory has
 been processed.
 
 
+## Stream checks while watching
+
+Scheduled and run-now catalogue status passes wait between sources while an
+application TV relay or starting/ready web-player session is active. A probe
+already in progress finishes and cleans up normally. Waiting holds no database
+transaction and has a cumulative ten-minute budget per pass; then the pass ends
+and releases the maintenance FIFO so guide refresh and scraping can continue.
+Shutdown also stops waiting before another probe starts.
+
+Incomplete runs retain their checked/online/offline/skipped/error counts and add
+`deferred` plus `stop_reason` (`viewing` or `shutdown`) to the saved result.
+Overview and webhook notifications distinguish this from a complete pass. The
+existing `channel_status.completed` webhook event remains compatible; its title
+and message explicitly say incomplete when work remains.
+
+This guard observes application-owned sessions, including routed remote-player
+playback. It cannot discover arbitrary players connected directly to an external
+engine. A dedicated checker still waits because playback and checking can share
+CPU/network capacity. Its failure never falls back to the playback engine.
+
 ## Fair ordering of interrupted stream checks
 
 A status pass considers active streams only. Never-checked streams come first.

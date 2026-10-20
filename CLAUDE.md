@@ -480,6 +480,12 @@ fifteen minutes. Explicit clock anchors and queued/running jobs are respected.
 Failed/interrupted launches still count toward the normal interval. Cleanup is
 not accelerated. See `docs/ops/scheduled-job-history.md`.
 
+Catalogue status checks wait between probes while app-owned relay/web sessions
+are active. Pause time is cumulative and capped at ten minutes before releasing
+the maintenance queue. Partial results report deferred work and viewing/shutdown
+reasons through history, Overview and webhooks. External direct-engine players
+are not detectable through these application registries.
+
 Stream-check ordering gives never-checked streams priority, then oldest age
 groups measured in saved check intervals. Favorites and TV assignments win
 within an age group; they must not starve older loose streams across interrupted

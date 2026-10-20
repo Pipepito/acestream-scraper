@@ -70,7 +70,11 @@ export const summarizeJobResult = (id: string, result: unknown): string | null =
       const offline = field(result, 'offline');
       const skipped = field(result, 'skipped') ?? 0;
       const counts = online !== null && offline !== null ? `, ${online} online, ${offline} offline` : '';
-      return `${checked} checked${counts}, ${skipped} skipped, ${plural(failed, 'error', 'errors')}`;
+      const deferred = field(result, 'deferred') ?? 0;
+      const reason = result && typeof result === 'object' && (result as Record<string, unknown>).stop_reason === 'viewing'
+        ? 'playback active' : 'application stopping';
+      const incomplete = deferred > 0 ? `, ${deferred} deferred (${reason})` : '';
+      return `${checked} checked${counts}, ${skipped} skipped, ${plural(failed, 'error', 'errors')}${incomplete}`;
     }
     case 'epg_refresh': {
       const sources = field(result, 'sources');

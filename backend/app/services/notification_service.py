@@ -61,11 +61,15 @@ def scraping_completed(result: dict) -> bool:
 def channel_status_completed(result: dict) -> bool:
     if result.get("message"):
         return False          # nothing was checked (no engine configured)
-    return notify("channel_status.completed", "Channel check finished",
-                  "%s checked: %s online, %s offline, %s failed" % (
-                      result.get("checked", 0), result.get("online", 0),
-                      result.get("offline", 0), result.get("failed", 0)),
-                  result)
+    message = "%s checked: %s online, %s offline, %s failed" % (
+        result.get("checked", 0), result.get("online", 0),
+        result.get("offline", 0), result.get("failed", 0))
+    title = "Channel check finished"
+    if result.get("deferred", 0):
+        reason = "playback active" if result.get("stop_reason") == "viewing" else "application stopping"
+        title = "Channel check incomplete"
+        message += "; %s deferred (%s)" % (result["deferred"], reason)
+    return notify("channel_status.completed", title, message, result)
 
 
 def task_failed(task: str, exc: BaseException) -> bool:

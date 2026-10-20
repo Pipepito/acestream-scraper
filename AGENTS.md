@@ -445,6 +445,12 @@ Stream checks re-evaluate eligibility after fifteen minutes. Preserve explicit
 clock anchors, FIFO/run-now deduplication and launch-based retry semantics; never
 bring destructive cleanup forward. See `docs/ops/scheduled-job-history.md`.
 
+Catalogue status passes wait between probes for app-owned relay/web playback,
+with a cumulative ten-minute pause budget and no DB transaction while waiting.
+Budget expiry or shutdown reports deferred work and a stop reason, releases the
+FIFO, and preserves truthful Overview/webhook summaries. Direct external-engine
+players are outside this registry-based guard.
+
 Stream-check ordering gives never-checked streams priority, then oldest age
 groups measured in saved check intervals. Favorites and TV assignments win
 within an age group; they must not starve older loose streams across interrupted

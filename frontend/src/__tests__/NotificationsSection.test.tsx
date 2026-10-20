@@ -69,3 +69,23 @@ it('turns notifications off with an empty value', async () => {
   await waitFor(() => expect(service.updateNotificationWebhookUrl).toHaveBeenCalledWith(''));
   expect(notify).toHaveBeenCalledWith('Notifications turned off.', 'success');
 });
+
+it.each(['', 'https://gotify.test/message?token=new'])(
+  'lets the user recover an invalid saved webhook with %s',
+  async (replacement) => {
+    service.getNotificationWebhookUrl.mockResolvedValue('•••');
+    const user = userEvent.setup();
+    const notify = jest.fn();
+    renderSection(notify);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('The saved webhook URL is invalid');
+    expect(screen.getByRole('button', { name: 'Send test' })).toBeDisabled();
+    const field = screen.getByRole('textbox', { name: 'Webhook URL' });
+    await waitFor(() => expect(field).toHaveValue('•••'));
+    await user.clear(field);
+    if (replacement) await user.type(field, replacement);
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(service.updateNotificationWebhookUrl).toHaveBeenCalledWith(replacement));
+    expect(service.testNotificationWebhook).not.toHaveBeenCalled();
+  },
+);

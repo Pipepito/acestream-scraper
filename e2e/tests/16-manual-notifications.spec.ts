@@ -57,7 +57,11 @@ test('manual UI actions deliver one webhook each through the built backend', asy
     await channels.open();
     await channels.filterByName(name);
     await channels.checkStatus(name);
-    await expect.poll(() => events.map((event) => event.event)).toEqual([
+    // Earlier journeys start a real catalogue scan. A manual check has priority
+    // but still waits for its current probe and cooldown to release the queue.
+    await expect.poll(() => events.map((event) => event.event), {
+      timeout: 90_000, message: 'queued manual check finishes and delivers its webhook',
+    }).toEqual([
       'test', 'url_scraping.completed', 'channel_check.completed',
     ]);
     expect(events[2].data).toEqual({

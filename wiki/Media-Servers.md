@@ -245,3 +245,19 @@ the same relay server and have no channel failover; their numbers start at 9000
 (or above the highest included TV number). Search, group and online filters still
 apply. Favorites-only excludes unassigned streams. The playlist URL carries
 `include_unassigned=true|false`; the all-streams endpoint includes them by default.
+
+
+### Source freshness during TV startup
+
+The TV relay tries recently verified online sources first, then older online
+sources, then unknown or older offline sources. Within each group, higher known
+bitrate comes first. A recent explicit offline result excludes that source until
+it becomes stale or a new probe changes its status. Fresh means a check in the
+last six hours, including the six-hour boundary; missing or future timestamps
+are not fresh. Inactive sources/channels remain excluded.
+
+Recent playback failures still deprioritize a source independently of stored
+check freshness. Existing startup limits, background alternative checks and
+viewer ownership remain in effect. HEAD requests do not start playback or probes.
+This ranking improves startup selection; it does not enable raw mid-stream
+source concatenation or change the direct engine's JSON-start timeout.

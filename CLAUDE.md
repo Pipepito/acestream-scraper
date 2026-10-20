@@ -476,3 +476,9 @@ are active. Pause time is cumulative and capped at ten minutes before releasing
 the maintenance queue. Partial results report deferred work and viewing/shutdown
 reasons through history, Overview and webhooks. External direct-engine players
 are not detectable through these application registries.
+
+Stream-check ordering gives never-checked streams priority, then oldest age
+groups measured in saved check intervals. Favorites and TV assignments win
+within an age group; they must not starve older loose streams across interrupted
+passes. Keep the inventory query in ChannelRepository and ordering in the status
+service. See `docs/ops/scheduled-job-history.md`.

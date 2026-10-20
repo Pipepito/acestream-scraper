@@ -3,9 +3,8 @@ Periodic task for updating channel statuses.
 """
 from app.config.database import SessionLocal
 from app.services import notification_service
-from app.services.channel_status_service import ChannelStatusService
-from app.models.models import AcestreamChannel, TVChannel
-from sqlalchemy import case
+from app.services.channel_status_service import ChannelStatusService, channels_in_check_order
+from app.models.models import AcestreamChannel
 import logging
 import asyncio
 from datetime import datetime, timezone
@@ -26,8 +25,8 @@ async def wait_while_watching(logger, max_seconds: float) -> tuple[float, bool]:
 
     It gives up after ``max_seconds`` (VIEWING_MAX_PAUSE_SECONDS in all) so a
     long match does not hold the maintenance queue -- guide refresh and
-    scraping wait behind this job. The next pass resumes where this stopped,
-    because the check order is least recently checked first.
+    scraping wait behind this job. The next pass prioritizes older unchecked
+    work using the saved interval and age groups.
     """
     reason = viewing.watching()
     if reason is None:
@@ -39,42 +38,12 @@ async def wait_while_watching(logger, max_seconds: float) -> tuple[float, bool]:
         if loop.time() - started >= max_seconds:
             logger.info("Channel status pass stopped after %.0f s paused; the next one resumes", max_seconds)
             return loop.time() - started, True
-        await asyncio.sleep(min(VIEWING_POLL_SECONDS, max(0.0, max_seconds - (loop.time() - started))))
+        remaining = max(0.0, max_seconds - (loop.time() - started))
+        await asyncio.sleep(min(VIEWING_POLL_SECONDS, remaining))
         reason = viewing.watching()
     waited = loop.time() - started
     logger.info("Channel status pass resumed after %.0f s paused", waited)
     return waited, False
-
-
-def channels_in_check_order(db):
-    """Active stream ids in the order a status pass should check them.
-
-    The pass used to walk the table in insertion order and rebuild that list
-    from row 1 on every start. A machine that is on for an hour or two never
-    finished a pass (about 3 h for 1,000 sources), so it kept checking the
-    same first rows and never reached the last ones: on a real box 58% were
-    checked and the tail never was.
-
-    Now:
-      1. never checked            -- the tail that was never reached
-      2. streams of favourite TV channels -- the ones the viewer cares about
-      3. streams of any other TV channel -- what the playlist can open; on
-         one box (0 favourites) they were mixed with 935 loose streams
-      4. the rest, least recently checked first
-
-    Ordering by `last_checked` makes a restarted pass resume by itself: what
-    was just checked moves to the end. No cursor to store.
-    """
-    never = case((AcestreamChannel.last_checked.is_(None), 0), else_=1)
-    favourite = case((TVChannel.is_favorite.is_(True), 0), else_=1)
-    assigned = case((AcestreamChannel.tv_channel_id.is_(None), 1), else_=0)
-    rows = (db.query(AcestreamChannel.id)
-            .outerjoin(TVChannel, AcestreamChannel.tv_channel_id == TVChannel.id)
-            .filter(AcestreamChannel.is_active == True)  # noqa: E712
-            .order_by(never, favourite, assigned, AcestreamChannel.last_checked.asc(),
-                      AcestreamChannel.id.asc())
-            .all())
-    return [row[0] for row in rows]
 
 
 def run_channel_status_task():

@@ -437,3 +437,10 @@ fall through to names without being overwritten; apply revalidates the complete
 ID inventory. Keep indexed ID candidates, bounded name comparisons, ambiguity,
 country/edition and assignment guards. Reviewed matching strips publisher text
 after `-->`; automation still requires conservative agreement of every name.
+
+
+Startup catch-up restores persisted launch history before scheduling overdue
+interval guide/scrape work after a five-minute grace, staggered five minutes.
+Stream checks re-evaluate eligibility after fifteen minutes. Preserve explicit
+clock anchors, FIFO/run-now deduplication and launch-based retry semantics; never
+bring destructive cleanup forward. See `docs/ops/scheduled-job-history.md`.

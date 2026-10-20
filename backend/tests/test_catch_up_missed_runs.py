@@ -135,3 +135,96 @@ def test_at_power_on_the_guide_waits_as_asked(service):
     assert service.catch_up_missed_runs(now=NOW, start_after_seconds=300) == ["epg_refresh", "url_scraping"]
     assert _next_run(service, "epg_refresh") == NOW + timedelta(seconds=300)
     assert _next_run(service, "url_scraping") == NOW + timedelta(seconds=600)
+
+
+@pytest.mark.parametrize("status,age,expected", [
+    ("idle", 9 * H, True),
+    ("error", 9 * H, True),
+    ("running", 9 * H, True),
+    ("idle", H, False),
+    ("error", H, False),
+    ("running", H, False),
+])
+def test_catch_up_uses_persisted_launch_history_after_restart(
+    alembic_backend_runtime, status, age, expected
+):
+    from app.repositories.task_state_repository import TaskStateRepository
+    store = TaskStateRepository()
+    store.save({"task_name": "epg_refresh", "status": status,
+                "last_run": NOW - timedelta(seconds=age),
+                "last_error": None, "last_result": None})
+    restored = TaskService(state_store=store)
+    restored.restore_states()
+    restored.scheduler.start(paused=True)
+    try:
+        restored.add_interval_task(_noop, seconds=6 * H, job_id="epg_refresh")
+        assert bool(restored.catch_up_missed_runs(now=NOW)) is expected
+        if status == "running":
+            assert restored.get_task_state("epg_refresh")["status"] == "interrupted"
+    finally:
+        restored.shutdown()
+
+
+def test_settings_changed_during_delay_are_rechecked(service):
+    _register(service, "channel_status", H, None)
+    service.catch_up_later("channel_status", now=NOW)
+    service.configure_schedule(ScheduleAnchors(timezone="Europe/Madrid", channel_status="04:00"))
+    before = _next_run(service, "channel_status")
+    assert service.run_if_overdue("channel_status", now=NOW + timedelta(minutes=15)) == "not_needed"
+    assert _next_run(service, "channel_status") == before
+
+
+@pytest.mark.parametrize("status", ["running", "waiting"])
+def test_due_catch_up_does_not_duplicate_active_or_queued_run(service, status):
+    _register(service, "channel_status", H, NOW - timedelta(hours=2))
+    service._task_states["channel_status"]["status"] = status
+    before = _next_run(service, "channel_status")
+    assert service.run_if_overdue("channel_status", now=NOW) == "already_running"
+    assert _next_run(service, "channel_status") == before
+
+
+def test_removed_job_makes_delayed_callback_harmless(service):
+    _register(service, "channel_status", H, None)
+    service.catch_up_later("channel_status", now=NOW)
+    service.remove_task("channel_status")
+    assert service.run_if_overdue("channel_status", now=NOW) == "not_needed"
+    assert not service.catch_up_later("missing", now=NOW)
+
+
+def test_changed_interval_is_used_by_delayed_callback(service):
+    _register(service, "channel_status", H, NOW - timedelta(hours=2))
+    service.catch_up_later("channel_status", now=NOW)
+    service.reschedule_task("channel_status", 6 * H)
+    assert service.run_if_overdue("channel_status", now=NOW) == "not_needed"
+
+
+def test_repeated_setup_keeps_only_one_delayed_callback(service):
+    _register(service, "channel_status", H, None)
+    service.catch_up_later("channel_status", now=NOW)
+    service.catch_up_later("channel_status", now=NOW + timedelta(seconds=1))
+    helpers = [j for j in service.scheduler.get_jobs() if j.id == "channel_status_catch_up"]
+    assert len(helpers) == 1
+    assert helpers[0].next_run_time == NOW + timedelta(seconds=901)
+
+
+def test_shutdown_discards_pending_catch_up_callbacks():
+    service = TaskService()
+    service.scheduler.start(paused=True)
+    _register(service, "channel_status", H, None)
+    service.catch_up_later("channel_status", now=NOW)
+    service.shutdown()
+    assert service.run_if_overdue("channel_status", now=NOW) == "not_needed"
+    assert service.scheduler.get_jobs() == []
+
+
+def test_manual_run_replaces_pending_guide_catch_up(service):
+    from threading import Event
+    ran = Event()
+    calls = []
+    service.add_interval_task(lambda: (calls.append(1), ran.set()), seconds=6 * H, job_id="epg_refresh")
+    service.catch_up_missed_runs(start_after_seconds=300)
+    assert service.run_task_now("epg_refresh") == "triggered"
+    service.scheduler.resume()
+    assert ran.wait(3)
+    assert calls == [1]
+    assert service.scheduler.get_job("epg_refresh").next_run_time > datetime.now(timezone.utc) + timedelta(hours=5)

@@ -153,13 +153,18 @@ export class Api {
   async triggerScrape(id: number): Promise<void> {
     await json(await this.request.post(this.url(`/api/v1/scrapers/urls/${id}/scrape`)), `POST /scrapers/urls/${id}/scrape`);
   }
-  /** Wait until the URL's `last_processed` moves past `since` (scrape ran, OK or Error). */
-  waitForScrape(url: string, since: string | null, timeoutMs: number): Promise<UrlResponse> {
-    return pollUntil(
-      async () => (await this.findUrl(url)) as UrlResponse,
-      (u) => Boolean(u && u.last_processed && u.last_processed !== since),
+  /** Fetch status precedes ingestion; wait for the manual job before reading counts. */
+  async waitForScrape(url: string, since: string | null, timeoutMs: number): Promise<UrlResponse> {
+    await pollUntil(
+      async () => ({
+        source: await this.findUrl(url),
+        job: (await this.backgroundTasks()).find((task) => task.task_name === 'manual_url_scraping'),
+      }),
+      ({ source, job }) => Boolean(source?.last_processed && source.last_processed !== since
+        && job && job.status !== 'running' && job.status !== 'waiting'),
       { timeoutMs, intervalMs: 3_000, label: `scrape of ${url}` },
     );
+    return (await this.findUrl(url))!;
   }
 
   /* acestream channels */

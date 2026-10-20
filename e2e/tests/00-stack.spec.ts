@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { test, expect } from '../src/fixtures';
 import { httpOk } from '../src/stack';
 
@@ -5,6 +7,7 @@ test.describe('stack readiness', () => {
   test('app, engine, Acexy and IPFS gateway answer', async ({ api, scenario }, testInfo) => {
     const health = await api.health();
     expect(health.status).toBe('healthy');
+    expect(health.version).toBe(readFileSync(path.resolve(__dirname, '../../version.txt'), 'utf8').trim());
     expect(health.acestream.status, `engine seen by the app: ${health.acestream.message}`).toBe('online');
 
     const engineVersion = await fetch(`${scenario.stack.engineUrl}/webui/api/service?method=get_version`).then((r) => r.json() as Promise<{ result?: { version?: string; platform?: string } }>);

@@ -3,6 +3,7 @@ WARP service for interacting with Cloudflare WARP client
 """
 import subprocess
 import logging
+import os
 from enum import Enum
 from typing import Dict, Optional, Tuple, List, Any
 import httpx
@@ -61,7 +62,15 @@ class WarpService:
             stdout, stderr = process.communicate()
 
             if process.returncode != 0:
-                self.logger.error(f"Command failed: {stderr.strip()}")
+                disabled_status_probe = (
+                    args == ["status"]
+                    and os.environ.get("ENABLE_WARP", "").strip().lower() in {"false", "0", "no", "off"}
+                    and "unable to connect to the cloudflarewarp daemon" in stderr.lower()
+                )
+                if disabled_status_probe:
+                    self.logger.debug("WARP daemon is disabled; status probe reports not running")
+                else:
+                    self.logger.error(f"Command failed: {stderr.strip()}")
             else:
                 self.logger.debug(f"Command output: {stdout.strip()}")
 

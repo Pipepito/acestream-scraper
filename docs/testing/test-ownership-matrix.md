@@ -39,3 +39,20 @@ Full profile:
 ```bash
 bash scripts/ci/run_v2_test_suite.sh --profile full
 ```
+
+### Tests inside a built application image
+
+Use a disposable container with the same committed source snapshot and the
+image's installed Python dependencies. The backend suite also tests repository
+tooling, so prepare Git, Node and the frontend build helper's `fs-extra` dependency
+in that disposable test environment and run as
+an unprivileged user (the sudo-denial bootstrap test requires that context).
+Do not install these test tools into a published application image.
+
+For real-media remux tests, keep `FFMPEG_BINARY_PATH` pointed at the shipped
+`/opt/ffmpeg/bin/ffmpeg`. Its deliberately small build has no lavfi input,
+libx264 encoder or framemd5 output. Set `FFMPEG_TEST_TOOL_PATH` to a separate full
+FFmpeg used only to generate and inspect test media, for example
+`/usr/bin/ffmpeg` installed in the disposable container. The application's
+remux subprocess still runs the production binary. Without that override,
+tests use the same full local FFmpeg for both roles.

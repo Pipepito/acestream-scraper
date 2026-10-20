@@ -1,10 +1,44 @@
 # Development Progress
 
-## Status Snapshot
+## Status snapshot — 2026-10-20
 
-- **Date:** 2026-08-28 (previous snapshot of 2026-04-24 kept below as superseded)
-- **Current Milestone:** v2.0.0 release preparation — PR #162 (`develop` → `main`)
-- **Current Phase:** Phases 1–6 complete; remaining work is release-job operator setup, ARM engine hardware validation, and documentation reconciliation
+- Preparing **v2.2.0**, with `develop` integrating into `main` through PR #207.
+- Reviewed baseline: `develop` at `e4e5639`, `main` at `7fe2a4c`. These are dated
+  source snapshots, not a claim about current branch heads or CI status.
+- Guide setup, notifications, playback fixes and container fixes are already on
+  develop. Separate follow-up PRs cover webhook validation, manual notification
+  completion, and release/issue reconciliation. See
+  [v2.2 notes](../release/v2.2-release-notes.md) and
+  [readiness](../release/v2.2-release-readiness.md).
+- Alias retirement #155 remains deferred by maintainer decision. The aliases
+  continue to work with value-free warnings; no v2.1 expiry gate is required.
+- EPG service splitting #153 is complete; #140 ARM engine support, #122 stream
+  statistics and #62 named bases have shipped. ARMv7 runtime validation still
+  requires actual hardware.
+- [Batches 4–5](../dev/batches-4-5.md) are scoped follow-up work, not implemented
+  or release blockers.
+
+## Current CI and release responsibilities
+
+Feature PRs target develop. PR validation is credential-free; maintainer-owned
+application PRs additionally build supported flavor/platform combinations without
+publication. Fork Dockerfiles still need maintainer review before host execution.
+The trusted develop job publishes only floating `develop*` tags after application
+validation; known docs-only changes use the lightweight gate without publication.
+Only the manual main release publishes version tags and promotes latest. Wiki
+publication follows successful latest promotion; Pages serves committed main/docs;
+Docker Hub text is copied manually. All Docker pipelines share the FIFO lock.
+
+`version.txt` is the selected plain release version, currently `v2.2.0`.
+No development version suffix is needed. Check live PR state with
+`gh pr view 207 --json state,mergeable,mergeStateStatus,statusCheckRollup,updatedAt,url`.
+See [Jenkins operations](../ops/jenkins-ci.md) for authoritative procedures.
+
+## Historical migration record
+
+The following phase and August/September snapshots record the v2 cutover. Old
+CI topology, version deadlines, credential-setup tasks and release PR numbers are
+historical evidence, superseded by the current status and runbook above.
 
 ## Completed Phases
 
@@ -21,7 +55,7 @@
 - [x] 03-02: Legacy retirement guardrails + env compatibility bridge delivered; documentation reconciliation remains in progress
 - [x] 03-03: Branch cutover checklist and final verification
 
-## CI And Release Path (current)
+## CI and release snapshot (historical, August–September 2026)
 
 - Jenkins is the only CI. The GitHub Actions workflows were retired on 2026-08-26 (`e5657b9`); `.github/workflows/` no longer exists. Operator guide: `docs/ops/jenkins-ci.md`.
 - PR validation: multibranch job `acestream-scraper-pr` loads `jenkins/pr.Jenkinsfile`, reports the required `PR Validation` context, and discovers origin and fork PR merge revisions. Fork Jenkinsfiles are trusted from the target branch; every fork job bootstraps a disposable dependency runner from that target ref, so it does not rely on a retained local image. Contributor files execute without credentials, network, capabilities, or the Docker socket; entrypoint/runtime contracts additionally run in isolated amd64, arm64, and arm/v7 userlands. Fork-controlled Dockerfiles and dependency installers remain review-gated; privileged production-image builds and engine smokes stay in the trusted develop job.
@@ -42,7 +76,7 @@
 - Jenkins hygiene: the PR smoke stage only warms the build cache (cache-only output, no exported smoke image; the pytest builds and removes its own run-scoped image), `scripts/ci/cleanup_runner_docker.sh` at bootstrap and before the publish builds, smoke-image build retry after a builder-cache prune.
 - Feature batch of 2026-08-24: optional API token (#148), outbound SSRF guard (#149), bare content-ID scraping (#81), named base URLs (#62), curated playlists + legacy player routes, reverse-proxy guide (#150), warp-cli legacy fallback and configurable status-check timeouts, process supervision (#119).
 
-## Remaining Work Before The v2.0.0 Tag
+## Historical v2.0.0 preparation checklist
 
 1. Operator: create the Docker Hub credential `dockerhub-publish` in Jenkins — scope it to the `Acestream-Scraper` folder so both the multibranch job (which publishes the `develop` pre-release channel) and the release job can bind it — and re-point the `acestream-scraper-release` job's branch specifier to `*/main` (`docs/ops/jenkins-ci.md`, "Manual Release Job"). Neither is done yet; until the credential exists, `develop` builds finish UNSTABLE at the `Publish develop channel` stage.
 2. Merge PR #162, then run `acestream-scraper-release` with `DRY_RUN=true`, then publish with `PUBLISH_LATEST=false` and canary the version tag.
@@ -61,7 +95,7 @@
   - legacy reference guard
 - Phase 3 cutover should no longer be described as pending in this repository unless newer evidence contradicts the checked-in signoff artifact.
 
-## Post-v2 Follow-ups
+## Historical post-v2 follow-ups
 
 - Split `backend/app/services/epg_service.py` (~790 LOC) into sub-services — deferred (item S1 in `docs/release/v2-release-readiness.md`).
 - Remove the legacy env alias shim in v2.1.0.

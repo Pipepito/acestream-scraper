@@ -7,13 +7,14 @@ loads the applicable file when working below those directories.
 ## Start here
 
 - The active integration branch is `develop`; `main` is the release branch.
-- The current release PR is GitHub PR #162, `develop` -> `main`, titled
-  "Migration to V2, Api and FE." It supersedes #113 after the integration branch
-  was renamed. This is a large v2 cutover, not a routine feature PR.
+- The current release PR is GitHub PR #207, `develop` -> `main`, preparing
+  v2.2.0. PR #162 is historical and has already merged.
 - Treat live PR and CI state as volatile. Before reporting it, run
-  `gh pr view 162 --json state,mergeable,mergeStateStatus,statusCheckRollup,updatedAt,url`
-  or inspect the PR in GitHub. On 2026-09-03 at commit `e5bc9e0`, the PR was open,
-  clean/mergeable, and Jenkins PR-162 build #20 / `PR Validation` was successful.
+  `gh pr view 207 --json state,mergeable,mergeStateStatus,statusCheckRollup,updatedAt,url`
+  or inspect the PR in GitHub. Local validation is not proof of current CI status.
+- `version.txt` records the selected release version (`v2.2.0` for this cycle),
+  without a `-dev` suffix. Development images use only floating `develop*` tags;
+  versioned tags and `latest` belong exclusively to the manual release from main.
 - `backend/` and `frontend/` are the only canonical application roots. Do not
   restore the retired root Flask runtime, root `app/`, root `tests/`, `manage.py`,
   `run_dev.py`, or `wsgi.py`. The root `pyproject.toml` contains legacy package
@@ -107,7 +108,7 @@ not part of the required PR gate; see `e2e/AGENTS.md` before running it.
   change branch protection, or mutate Jenkins configuration unless the user has
   explicitly authorized that action.
 - Before a release, follow the current checklist in `docs/ops/jenkins-ci.md` and
-  `docs/release/v2-release-readiness.md`; do not rely on an old PR body.
+  `docs/release/v2.2-release-readiness.md`; do not rely on an old PR body.
 
 ## Jenkins and infrastructure
 

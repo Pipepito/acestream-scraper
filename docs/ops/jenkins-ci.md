@@ -151,7 +151,7 @@ release or promotion to update overview text.
 
 ## Branching Model And Pre-release Channel
 
-Adopted 2026-08-28. The integration branch `ai-coding-documentation` was renamed to `develop`; the rename auto-closed PR #113, and its successor is the release PR #162 (`develop` -> `main`).
+Adopted 2026-08-28. The integration branch `ai-coding-documentation` was renamed to `develop`; the rename auto-closed PR #113, and its successor was release PR #162 (`develop` -> `main`, now merged). The current v2.2.0 release PR is #207.
 
 Branch roles:
 
@@ -184,17 +184,17 @@ Pipeline enforcement in `jenkins/develop.Jenkinsfile` (trusted job `acestream-sc
 
 Versioning:
 
-- `version.txt` on `develop` carries the next version with a `-dev` suffix (for example `v2.1.0-dev`) once `v2.0.0` ships; a PR into `develop` bumps it to the final version right before the `develop` -> `main` release PR (the release PR's head is `develop`, so the bump cannot live in the release PR itself). As of 2026-08-28 `version.txt` reads `v2.0.0` (PR #162 is the v2.0.0 release PR), so the suffix convention starts with the next cycle.
+- `version.txt` records the selected release version without a `-dev` suffix: `v2.2.0` for the current cycle. Update it through a feature PR into `develop` when selecting the next release. The version value does not change channel tag names: development images use only floating `develop*` tags; versioned tags and `latest` remain exclusive to the manual release from `main`.
 - Guard: `scripts/ci/run_jenkins_release.sh` refuses a release run (no `--channel`) while `version.txt` contains `-dev`: `Refusing to release a development version (version.txt = ...). Land the version bump on develop (via PR) before the develop -> main release PR.` The channel publish accepts a `-dev` version.
 - `scripts/phase_gates/check_workflow_publish_guard.py` enforces the PR sandbox, credential separation, exact-develop guard, channel tags, release tags, and `:latest` promotion boundary.
 
 How a release is cut:
 
 1. Merge feature PRs into `develop` only after `PR Validation` and maintainer review. The separate trusted develop job reruns the full/privileged gates and refreshes `:develop*` only when they pass.
-2. Land the `version.txt` bump (`vX.Y.Z-dev` -> `vX.Y.Z`) on `develop` through its own PR, then open (or let Jenkins rebuild) the `develop` -> `main` release PR from `vX.Y.Z-dev` to `vX.Y.Z`. `Branch Policy` passes because the head is `develop`; the PR's builds keep publishing the channel.
+2. Land the selected `version.txt` value (`vX.Y.Z`) on `develop` through its own PR, then open or refresh the `develop` -> `main` release PR. PR jobs validate without publication; only the trusted develop job publishes the floating channel tags.
 3. Merge the release PR. Nothing is published automatically on merge.
-4. Run the manual `acestream-scraper-release` job from `main` (`CONFIRM_RELEASE`, `DRY_RUN`, `PUBLISH_LATEST`): phase 1 pushes `:vX.Y.Z` plus the flavor tags; after canary validation, `PUBLISH_LATEST=true` retags the canaried version manifest to `:latest` (`scripts/ci/promote_latest.sh`). See `## Manual Release Job` and `## v2.0.0 Release Runbook`.
-5. Back on `develop` (through a PR), bump `version.txt` to the next `-dev` version.
+4. Run the manual `acestream-scraper-release` job from `main` (`CONFIRM_RELEASE`, `DRY_RUN`, `PUBLISH_LATEST`): phase 1 pushes `:vX.Y.Z` plus the flavor tags; after canary validation, `PUBLISH_LATEST=true` retags the canaried version manifest to `:latest` (`scripts/ci/promote_latest.sh`). See `## Manual Release Job` and `## Release runbook`.
+5. When the next release version is selected, update `version.txt` on `develop` through a PR. Keep the plain release version; do not append `-dev`.
 
 Operator preview commands (from any checkout, no credentials needed):
 
@@ -517,7 +517,7 @@ You are ready to rely on Jenkins for the next phase when all of these are true:
 - [ ] Connect it to this GitHub repository using `github-app-acestream-scraper`.
       If the live controller is already using `github-builder-app`, keep the working live credential id until you explicitly normalize it.
 - [ ] Set script path to `Jenkinsfile`.
-- [ ] Enable branch discovery with the strategy `Exclude branches that are also filed as PRs` (set on the live controller 2026-08-28). A branch with an open PR then builds once, as its PR job (for the pre-rename `ai-coding-documentation` that was `PR-113`; superseded 2026-08-28: the rename to `develop` closed #113, the release PR is now #162, `develop` -> `main`, so `develop` builds as `PR-162` while it is open), instead of once per branch and once per PR; this is also what makes the zero-age image sweep in `Checkout / Bootstrap` safe (see `## Runner Disk Hygiene
+- [ ] Configure multibranch discovery for origin/fork PRs. Ordinary branches are skipped by the current PR pipeline. Development publication belongs to the separate trusted develop job; do not infer image cleanup safety from whether a branch also has an open PR. See `## Runner Disk Hygiene` for the shared FIFO lock and retention policy.
 
 `dorat-nuc-ci` has a **32 GB root disk** (16 GB RAM) shared with other jobs, so
 disk is the runner's scarcest resource: on 2026-08-28 it hit 100 % twice
@@ -899,30 +899,42 @@ Release behavior:
 - The pushed `scraper-acestream`, `scraper-acestream-acexy`, version tags (and, after the phase-2 retag, `latest`) are multi-platform manifests that include `linux/arm64` and `linux/arm/v7`; `verify_multiarch_manifest.sh --image <tag> --flavor <flavor>` checks each remote manifest after the push. The arm64 engine runtime is not exercised by this job (amd64 runner); see `## AceStream Engine Smoke Coverage`.
 - Keep this path manual-only. Jenkins is the sole publisher; the GitHub Actions release workflow has been retired.
 
-## v2.0.0 Release Runbook
+## Release runbook
 
-Sequence for shipping the v2 codebase from `develop` to Docker Hub through the release PR #162 (`develop` -> `main`; PR #113 from the pre-rename branch `ai-coding-documentation` was auto-closed by the rename on 2026-08-28). Under the branching model in `## Branching Model And Pre-release Channel` this is the template for every later release as well. Status 2026-08-28: no `v2.0.0` git tag or GitHub release exists yet; steps 1-2 are in progress.
+Current target: v2.2.0 through PR #207 (`develop` -> `main`). Confirm the live
+heads, required checks and version before executing this sequence. Publication,
+merges and promotion require explicit maintainer authorization.
 
-One-off prerequisites (operator, outside the repo): the Jenkins credential `dockerhub-publish` exists inside the trusted publication subfolder, and the `acestream-scraper-release` job's branch specifier points at `*/main` (the job refuses any other branch and requires `HEAD == origin/main`).
+Prerequisites: the trusted publication job has its configured registry credential,
+runs from `main`, and enforces `HEAD == origin/main`. Follow the version-overwrite
+protection and registry lookup rules above; do not bypass an existing version.
 
-1. Confirm `version.txt` reads the intended release tag (currently `v2.0.0`; from the next cycle on, a PR into `develop` bumps it right before the release PR from `vX.Y.Z-dev`, otherwise `scripts/ci/run_jenkins_release.sh` refuses the release in step 5).
-2. Use the `develop` -> `main` release PR (#162; the `Branch Policy` stage rejects any PR into `main` whose head is not `develop`). Wait for `acestream-scraper-pr` (GitHub status `PR Validation`) to go green and confirm the latest `acestream-scraper-develop` build for the same `develop` SHA passed its full suite, Docker/runtime smokes, and channel publication.
-3. Merge the PR to `main`. No automatic Docker Hub publish happens — Jenkins requires a manual trigger.
-4. In Jenkins, build `acestream-scraper-release` with parameters `CONFIRM_RELEASE=true`, `DRY_RUN=true`, `PUBLISH_LATEST=false`. This runs the full cutover suite and the multi-arch dry-run preflight without binding Docker Hub credentials. The release job's engine smoke does not run on a dry run (`scripts/ci/run_jenkins_release.sh --dry-run` exits after the preflight); it runs on the publish run in step 5 and already ran in the trusted develop job. Verify it goes green.
-5. Publish phase 1: re-run `acestream-scraper-release` with `CONFIRM_RELEASE=true`, `DRY_RUN=false`, `PUBLISH_LATEST=false`. The pipeline reruns the full cutover suite, the dry-run preflight, the AceStream engine smoke + Acexy smoke + ARM installer layout (see `## AceStream Engine Smoke Coverage`), reclaims runner disk, then logs into Docker Hub and pushes `:v2.0.0`, the four flavor tags (`scraper`, `scraper-acestream`, `scraper-acexy`, `scraper-acestream-acexy`) and their `v2.0.0-<flavor>` variants as multi-platform manifests (`linux/amd64`, `linux/arm64`, `linux/arm/v7`). `:latest` is not touched.
-6. Verify the published tags on Docker Hub: `pipepito/acestream-scraper:v2.0.0`, the four flavor tags and their version-prefixed variants. Each should list all three platforms (`docker buildx imagetools inspect <tag>`). `:latest` still points at the previous release at this point.
-7. Canary: smoke-test `:v2.0.0` on a fresh amd64 host: `docker pull pipepito/acestream-scraper:v2.0.0 && docker run --rm -p 0.0.0.0:8000:8000 -p 6878:6878 -e ENABLE_ACESTREAM_ENGINE=true pipepito/acestream-scraper:v2.0.0` and confirm the FastAPI app and engine respond. Repeat on an arm64 host (Raspberry Pi 4/5 64-bit, 4 KB-page kernel) to confirm the Android engine answers `curl "http://localhost:6878/webui/api/service?method=get_version"` with `"platform":"android"`; CI does not cover that path. See `docs/ops/acestream-arm-engine.md`. If the canary fails, fix forward on `main` and restart from step 2; `:latest` never moved.
-8. Tag the release and publish the GitHub release (maintainer, from a workstation). Tag the exact `main` commit the release job built (the job requires `HEAD == origin/main`, so it is `origin/main` at the time of step 5) and use `docs/release/v2-release-notes.md` as the release body:
-
-   ```bash
-   git fetch origin main
-   git tag -a v2.0.0 -m "v2.0.0" origin/main
-   git push origin v2.0.0
-   gh release create v2.0.0 --verify-tag --title "v2.0.0" --notes-file docs/release/v2-release-notes.md
-   ```
-
-9. Publish phase 2 (promote `:latest`): re-run `acestream-scraper-release` with `CONFIRM_RELEASE=true`, `DRY_RUN=false`, `PUBLISH_LATEST=true`. Nothing is rebuilt: `scripts/ci/promote_latest.sh` retags `pipepito/acestream-scraper:${VERSION}` to `:latest` (same digest as the canary) and verifies the platforms. Confirm `docker buildx imagetools inspect pipepito/acestream-scraper:latest` lists all three platforms and that `docker pull pipepito/acestream-scraper:latest` on the amd64 canary host now runs the v2 app.
-10. Start the next cycle on `develop`: through a PR into `develop`, set `version.txt` to the next version with the `-dev` suffix (for example `v2.1.0-dev`). Until a PR into `develop` bumps it back to a final version ahead of the next release PR, `:develop` keeps publishing and the release script refuses to publish a release.
+1. Land `version.txt` with the selected plain release version through a PR into
+   develop. No `-dev` suffix is required; development images use floating tags.
+2. Review the develop-to-main release PR and wait for its current `PR Validation`.
+   Confirm trusted develop validation for the relevant code and image changes;
+   distinguish a lightweight docs-only run from full application/image evidence.
+3. Merge the release PR. This does not publish Docker Hub images automatically.
+4. Run the manual main release with `CONFIRM_RELEASE=true`, `DRY_RUN=true`,
+   `PUBLISH_LATEST=false`. It prepares the trusted runner, runs the full application
+   gate and multi-architecture preflight. A dry run is not a runtime canary.
+5. Publish phase 1 with `DRY_RUN=false`, `PUBLISH_LATEST=false`. The release path
+   reruns its required validation and Docker runtime smokes, then publishes the
+   version and flavor tags. It must not move latest.
+6. Verify the version/flavor manifest platforms and record the exact main SHA,
+   version and image digests. Runtime-test the version on amd64 and arm64; retain
+   the documented ARMv7 experimental limitation unless hardware evidence exists.
+7. Canary the published version. On failure, fix through a new PR into develop
+   and the release PR into main, then choose an unused release version. Do not
+   directly push main or silently overwrite the already-published version.
+8. Manually create the Git tag and GitHub release for the exact published main
+   commit, using the reviewed `docs/release/v2.2-release-notes.md`. Do not assume
+   that a later `origin/main` still points to that commit.
+9. Separately promote the canaried version with `PUBLISH_LATEST=true` and verify
+   latest has the same manifest digest and platforms. Wiki publication follows
+   successful non-dry-run latest promotion.
+10. When selecting the following release, update the plain `version.txt` through
+    a PR into develop. Development image tag names remain unchanged.
 
 ## Branch Protection Cutover
 

@@ -19,7 +19,7 @@ async function fixtures(page: Page) {
     if (path === '/startup') data = { status: 'ready', phase: 'Ready to use', events: [], recovery_token: 'test' };
     else if (path === '/tv-channels') data = { items: channels, total: channels.length };
     else if (/^\/tv-channels\/\d+$/.test(path)) data = channels.find((item) => item.id === Number(path.split('/').pop()));
-    else if (path === '/acestream-channels') {
+    else if (path === '/acestream-channels/') {
       expect(new URL(request.url()).searchParams.get('assigned')).toBe('false');
       expect(new URL(request.url()).searchParams.get('is_online')).toBe('true');
       data = { items: [orphan], total: 1 };

@@ -7,6 +7,7 @@ from pydantic import AnyHttpUrl, TypeAdapter
 import re
 
 from app.repositories.settings_repository import SettingsRepository
+from app.config.version import get_app_version
 from app.schemas.config import PlaybackRouting
 from app.services.public_url_service import InvalidPublicBaseUrl, normalize_public_base_url
 
@@ -320,7 +321,7 @@ class ConfigService:
             "acestream": acestream_status,
             "database": database_status,
             "settings": settings,
-            "version": "2.0.0",
+            "version": get_app_version(),
             "uptime": "unknown",
             "memory": {},
             "cpu": {},

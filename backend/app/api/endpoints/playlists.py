@@ -34,6 +34,13 @@ def epg_url_for(request: Request, db: Session) -> str:
     return authenticated_player_url(request, f"{public}{EPG_XML_PATH}")
 
 
+def playlist_service_for(request: Request, db: Session) -> PlaylistService:
+    """A playlist service that knows the public address, which a
+    broadcaster's live channel links to (/live/...)."""
+    public = resolve_public_base_url(request, SettingsRepository(db)).url
+    return PlaylistService(db, live_base_url=public)
+
+
 def trigger_url_scrape_refresh() -> None:
     """Kick off the URL-scraping background task for playlist refresh=true.
 
@@ -88,7 +95,7 @@ async def get_m3u_playlist(
     if refresh:
         trigger_url_scrape_refresh()
 
-    playlist_service = PlaylistService(db)
+    playlist_service = playlist_service_for(request, db)
 
     try:
         # Parse comma-separated strings into lists
@@ -185,7 +192,7 @@ async def get_tv_channels_playlist(
     if refresh:
         trigger_url_scrape_refresh()
 
-    playlist_service = PlaylistService(db)
+    playlist_service = playlist_service_for(request, db)
     try:
         m3u_content = await playlist_service.generate_tv_channels_playlist(
             search=search,
@@ -227,7 +234,7 @@ async def get_all_streams_playlist(
     if refresh:
         trigger_url_scrape_refresh()
 
-    playlist_service = PlaylistService(db)
+    playlist_service = playlist_service_for(request, db)
     try:
         m3u_content = await playlist_service.generate_all_streams_playlist(
             search=search,

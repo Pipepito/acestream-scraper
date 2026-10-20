@@ -202,7 +202,8 @@ class ChannelStatusService:
         self, channel: AcestreamChannel, *, identifier: str = 'id', persist: bool = True,
         priority: ProbePriority = ProbePriority.MANUAL, scan_started_at: Optional[datetime] = None,
     ) -> Dict[str, Any]:
-        if not self._get_engine_url():
+        is_http = bool(getattr(channel, 'stream_url', None))
+        if not is_http and not self._get_engine_url():
             result = self._skipped_result(channel)
             result['message'] = 'No engine configured; stream status checks are disabled.'
             return result
@@ -224,6 +225,8 @@ class ChannelStatusService:
                     return recent
             self.engine_unavailable = False
             probed = True
+            if is_http:
+                return await self._check_http_stream(channel, persist=persist)
             return await self._check_channel_status(channel, identifier=identifier, persist=persist)
         finally:
             probe_queue.cancel(ticket)
@@ -240,6 +243,27 @@ class ChannelStatusService:
             raise
         await asyncio.to_thread(notification_service.channel_check_completed, result)
         return result
+
+    async def _check_http_stream(self, channel: AcestreamChannel, *, persist: bool = True) -> Dict[str, Any]:
+        from app.services import http_stream_check
+        online, error = await http_stream_check.check(channel.stream_url, getattr(channel, 'stream_headers', None))
+        if online is None:
+            result = self._skipped_result(channel)
+            result.update(message=error, error=error)
+            return result
+        if persist:
+            await run_database_write(self.channel_repository.update_channel_status, channel.id, online, error)
+        return {
+            'channel_id': channel.id,
+            'id_kind': channel.id_kind,
+            'stream_stats': channel.stream_stats,
+            'network_status': 'unknown',
+            'is_online': online,
+            'status': 'online' if online else 'offline',
+            'message': 'Audio/video packets verified over HTTP' if online else error,
+            'last_checked': datetime.now(timezone.utc),
+            'error': error,
+        }
 
     async def _engine_ready(self, engine_url: str) -> bool:
         try:

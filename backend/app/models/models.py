@@ -126,6 +126,20 @@ class AcestreamChannel(Base):
     bitrate_checked_at = Column(UtcDateTime(), nullable=True)
     stream_stats = Column(JSON, nullable=True)
     original_url = Column(String(2048), nullable=True)
+    # The direct URL when this stream is not an acestream id at all: an
+    # HLS/IPTV playlist served over HTTP. NULL for acestream streams, which
+    # are addressed by `id` through the engine.
+    #
+    # Why a column and not a convention on `id`: the id stays opaque and
+    # stable, and every existing check that asks the engine about a 40 hex
+    # id keeps working untouched -- a stream with `stream_url` set simply
+    # has an id that no engine pattern matches.
+    stream_url = Column(String(2048), nullable=True)
+    # HTTP headers the source playlist publishes for `stream_url`
+    # (User-Agent, Referer, Origin). Some CDNs answer 403 without them.
+    # none_as_null: without it None is stored as the JSON text 'null', which
+    # SQL counts as NOT NULL.
+    stream_headers = Column(JSON(none_as_null=True), nullable=True)
     epg_update_protected = Column(Boolean, default=False)
 
     # Relationship with TVChannel

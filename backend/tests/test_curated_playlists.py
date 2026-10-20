@@ -16,7 +16,11 @@ from fastapi import status
 def test_custom_formats_do_not_get_a_false_mpeg_ts_hint(link):
     from app.services.playlist_service import PlaylistService
 
-    assert PlaylistService._link_lines(link) == [link]
+    # _link_lines also marks /live/ links, so it needs the service's
+    # live_base_url: an instance without one.
+    service = PlaylistService.__new__(PlaylistService)
+    service.live_base_url = None
+    assert service._link_lines(link) == [link]
 
 
 def test_per_source_respects_stream_filters_and_proxy_prefix(client, seed_tv_channels, db_session):

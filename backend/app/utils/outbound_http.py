@@ -112,8 +112,12 @@ class PinnedHTTPAdapter(HTTPAdapter):
         request.headers.update(others)
 
 
-def source_get(url, *, timeout=60, allow_redirects=False):
-    """Fetch one hop synchronously. Callers must validate/follow redirects."""
+def source_get(url, *, timeout=60, allow_redirects=False, headers=None):
+    """Fetch one hop synchronously. Callers must validate/follow redirects.
+
+    `headers` are sent as given: some CDNs answer 403 without the Referer
+    or User-Agent their playlist publishes.
+    """
     if allow_redirects:
         raise ValueError('Source redirects must be handled explicitly')
     with requests.Session() as session:
@@ -121,7 +125,7 @@ def source_get(url, *, timeout=60, allow_redirects=False):
         session.mount('http://', PinnedHTTPAdapter())
         session.mount('https://', PinnedHTTPAdapter())
         # Content is materialized before the session is closed (stream=False).
-        return session.get(url, timeout=timeout, allow_redirects=False)
+        return session.get(url, timeout=timeout, allow_redirects=False, headers=headers)
 
 
 def source_post_json(url, payload, *, timeout=10):

@@ -545,11 +545,13 @@ wait_for_seconds() {
 wait_for() { wait_for_seconds 20 "$@"; }
 launched() { [ -f "$ENGINE_TEST_DIR/launches" ] && [ "$(wc -l < "$ENGINE_TEST_DIR/launches")" -ge "$1" ]; }
 no_pid() { [ ! -f "$SUPERVISOR_RUN_DIR/acestream.pid" ]; }
-# This wait spans five deliberate crashes, each with exit detection, the 2s
-# restart delay and pre-launch cleanup. One transition's 20s budget is too
-# tight for the full sequence in the one-CPU emulated ARM contract container.
-# Keep individual UI transitions at 20s and the matrix watchdog at 5 minutes.
-wait_for_seconds 60 launched 6
+# Observe every deliberate crash/recovery with the same bounded budget as a
+# UI transition. A single 60s deadline for all five recoveries races healthy
+# progress in the one-CPU emulated ARM container (including pre-launch cleanup).
+# Each transition still has 20s; the matrix watchdog still caps the whole run.
+for expected_launch in 1 2 3 4 5 6; do
+    wait_for launched "$expected_launch"
+done
 request stop
 wait_for test -f "$SUPERVISOR_RUN_DIR/acestream.stopped"
 wait_for no_pid

@@ -169,8 +169,11 @@ The current product already points toward a structured operational dashboard: Ma
 
 ### Tuner automatic failover and media metadata
 
-`services/tuner_playback_service.py` tries online, active, valid sources returned by
-`TunerService.online_stream_ids()` in descending `bitrate_bps` order (unknown last).
+`services/tuner_playback_service.py` tries active, valid sources returned by
+`TunerService.relay_stream_ids()`: recent online, stale online, then unknown/stale
+offline, with bitrate ordering within each group. Recent explicit offline results
+are excluded. Freshness covers the last six hours; future timestamps are stale.
+Recent relay failures still deprioritize a source.
 One reserved relay claim survives failed attempts; startup has per-attempt and total
 deadlines. By default failures after playback starts end the response; client
 reconnections prefer alternatives over sources that failed in the last 60 seconds. Each
@@ -476,3 +479,9 @@ start after five minutes, staggered five minutes; stream checks re-evaluate afte
 fifteen minutes. Explicit clock anchors and queued/running jobs are respected.
 Failed/interrupted launches still count toward the normal interval. Cleanup is
 not accelerated. See `docs/ops/scheduled-job-history.md`.
+
+Stream-check ordering gives never-checked streams priority, then oldest age
+groups measured in saved check intervals. Favorites and TV assignments win
+within an age group; they must not starve older loose streams across interrupted
+passes. Keep the inventory query in ChannelRepository and ordering in the status
+service. See `docs/ops/scheduled-job-history.md`.

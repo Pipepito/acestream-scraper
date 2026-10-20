@@ -96,3 +96,18 @@ Changing a schedule replaces its pending timing. Restart discards in-memory
 callbacks and reconstructs eligibility from persisted history. Individual manual
 source operations retain their separate history and do not count as a complete
 catalogue-wide scheduled pass.
+
+## Fair ordering of interrupted stream checks
+
+A status pass considers active streams only. Never-checked streams come first.
+Previously checked streams are grouped by complete saved check intervals since
+their last observation, oldest group first. Favorites, then streams assigned to
+TV channels, take priority within each age group; older observations and stable
+IDs break remaining ties. With a one-hour interval, a three-hour-old loose stream
+precedes a recently checked favorite. Within the same age group, the favorite
+still goes first.
+
+A completed check moves the stream into a newer group, allowing repeated short
+passes to reach older lower-priority streams. No separate cursor is stored and
+ordering does not modify observations. This uses the configured stream-check
+interval, not a hard-coded freshness window.

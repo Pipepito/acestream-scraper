@@ -444,3 +444,9 @@ interval guide/scrape work after a five-minute grace, staggered five minutes.
 Stream checks re-evaluate eligibility after fifteen minutes. Preserve explicit
 clock anchors, FIFO/run-now deduplication and launch-based retry semantics; never
 bring destructive cleanup forward. See `docs/ops/scheduled-job-history.md`.
+
+Stream-check ordering gives never-checked streams priority, then oldest age
+groups measured in saved check intervals. Favorites and TV assignments win
+within an age group; they must not starve older loose streams across interrupted
+passes. Keep the inventory query in ChannelRepository and ordering in the status
+service. See `docs/ops/scheduled-job-history.md`.

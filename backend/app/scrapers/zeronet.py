@@ -8,7 +8,7 @@ import asyncio
 import json
 import re
 from bs4 import BeautifulSoup
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 
 from app.models.url_types import ZeronetURL
 from app.scrapers.base import BaseScraper
@@ -82,12 +82,18 @@ class ZeronetScraper(BaseScraper):
     # /data/zeronet is a volume, so after every redeploy each source hit it.
     ADD_SITE_MARKER = 'name="add_nonce"'
 
-    @staticmethod
-    def site_root(internal_url: str) -> str:
+    def site_root(self, internal_url: str) -> str:
         """http://host:43110/<site>/... -> http://host:43110/<site>/"""
         parsed = urlparse(internal_url)
-        site = parsed.path.lstrip('/').split('/', 1)[0]
-        return f"{parsed.scheme}://{parsed.netloc}/{site}/"
+        gateway = urlparse(self.zeronet_url or 'http://127.0.0.1:43110')
+        prefix = gateway.path.rstrip('/') if (parsed.scheme, parsed.netloc) == (gateway.scheme, gateway.netloc) else ''
+        path = parsed.path
+        if prefix and path.startswith(prefix + '/'):
+            path = path[len(prefix):]
+        else:
+            prefix = ''
+        site = path.lstrip('/').split('/', 1)[0]
+        return f"{parsed.scheme}://{parsed.netloc}{prefix}/{site}/"
 
     async def add_site(self, session, internal_url: str) -> None:
         """Ask the node to add the site: requesting its root page adds it and
@@ -97,6 +103,7 @@ class ZeronetScraper(BaseScraper):
         logger.info(f"ZeroNet node does not hold this site yet; adding it via {root}")
         try:
             async with session.get(root, headers=self.headers, timeout=self.timeout) as response:
+                response.raise_for_status()
                 await response.read()
         except aiohttp.ClientError as e:
             logger.warning(f"Could not add ZeroNet site {root}: {e}")
@@ -143,7 +150,8 @@ class ZeronetScraper(BaseScraper):
             zeronet_host = parsed_url.netloc.split(':')[0] if parsed_url.netloc else '127.0.0.1'
 
         # Get the internal HTTP URL for ZeroNet service
-        internal_url = self.url_obj.get_internal_url(zeronet_host)
+        internal_url = self.url_obj.get_internal_url(
+            zeronet_host, gateway_url=self.zeronet_url or 'http://127.0.0.1:43110')
 
         # SSRF guard: zeronet-type URLs pass through get_internal_url
         # verbatim when they aren't real zero.net addresses, so they must not
@@ -179,7 +187,7 @@ class ZeronetScraper(BaseScraper):
                             if retry_count < self.retries:
                                 await asyncio.sleep(2 ** retry_count)
                                 continue
-                            raise ValueError("ZeroNet site was added to the node but did not "
+                            raise ValueError("ZeroNet site is not ready and did not "
                                              "download in time; it will be read on the next scrape")
 
                         # If it's an M3U file, just return the content without further processing
@@ -206,8 +214,7 @@ class ZeronetScraper(BaseScraper):
 
                             # Handle relative URLs
                             if iframe_url.startswith('/'):
-                                base_url = f"http://{zeronet_host}:43110"
-                                iframe_url = base_url + iframe_url
+                                iframe_url = urljoin(internal_url, iframe_url)
 
                             try:
                                 validate_outbound_url(iframe_url)

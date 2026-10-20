@@ -63,7 +63,11 @@ def test_channels_from_json_without_links_is_empty(content):
     assert ZeronetScraper.channels_from_json(content) == []
 
 
-def test_zero_url_is_fetched_from_the_configured_node_not_the_site(monkeypatch):
+@pytest.mark.parametrize("gateway", [
+    "http://127.0.0.1:43110", "http://node.example:43210",
+    "https://node.example:9443/zeronet", "http://[::1]:43210/node/",
+])
+def test_zero_url_is_fetched_from_the_configured_node_not_the_site(monkeypatch, gateway):
     requested = []
 
     class FakeResponse:
@@ -99,15 +103,16 @@ def test_zero_url_is_fetched_from_the_configured_node_not_the_site(monkeypatch):
 
     async def run():
         scraper = create_scraper_for_url(url, "zeronet")
-        scraper.zeronet_url = "http://127.0.0.1:43110"
+        scraper.zeronet_url = gateway
         return await scraper.scrape(url)
     channels, status = asyncio.run(run())
-    assert requested == [f"http://127.0.0.1:43110/{SITE}/links.json"]
+    assert requested == [f"{gateway.rstrip('/')}/{SITE}/links.json"]
     assert [c[0] for c in channels] == [ID_A, ID_B]
     assert recorded == [(url, "OK")]
 
 
-def test_node_without_the_site_gets_it_added_and_the_file_read(monkeypatch):
+@pytest.mark.parametrize("prefix", ["", "/zeronet"])
+def test_node_without_the_site_gets_it_added_and_the_file_read(monkeypatch, prefix):
     """A fake node that behaves like the real one: the file gives the Add new
     site form until the site's root page has been requested."""
     state = {"added": False, "requests": []}
@@ -125,17 +130,18 @@ def test_node_without_the_site_gets_it_added_and_the_file_read(monkeypatch):
 
     async def scenario():
         app = web.Application()
-        app.router.add_get(f"/{SITE}/", root)
-        app.router.add_get(f"/{SITE}/links.json", links)
+        app.router.add_get(f"{prefix}/{SITE}/", root)
+        app.router.add_get(f"{prefix}/{SITE}/links.json", links)
         runner = web.AppRunner(app)
         await runner.setup()
         site = web.TCPSite(runner, "127.0.0.1", 0)
         await site.start()
         port = site._server.sockets[0].getsockname()[1]
-        node = f"http://127.0.0.1:{port}"
+        node = f"http://127.0.0.1:{port}{prefix}"
         monkeypatch.setenv("ZERONET_URL", node)  # the guard exempts the node's host
-        url = f"{node}/{SITE}/links.json"
+        url = f"zero://{SITE}/links.json"
         scraper = create_scraper_for_url(url, "zeronet")
+        scraper.zeronet_url = node
         scraper.retries = 3
         try:
             return await scraper.scrape(url)
@@ -147,7 +153,7 @@ def test_node_without_the_site_gets_it_added_and_the_file_read(monkeypatch):
     channels, status = asyncio.run(scenario())
     assert [s for _, s in recorded] == ["OK"]
     assert [c[0] for c in channels] == [ID_A, ID_B]
-    assert state["requests"] == [f"/{SITE}/links.json", f"/{SITE}/", f"/{SITE}/links.json"]
+    assert state["requests"] == [f"{prefix}/{SITE}/links.json", f"{prefix}/{SITE}/", f"{prefix}/{SITE}/links.json"]
 
 
 _real_sleep = asyncio.sleep
@@ -188,3 +194,32 @@ def test_m3u_path_records_ok_and_errors(monkeypatch):
     channels, status = asyncio.run(run(True))
     assert channels == [] and status == "Error: node down"
     assert recorded == [(url, "OK"), (url, "Error: node down")]
+
+
+def test_site_that_never_becomes_ready_has_bounded_retries_and_error_status(monkeypatch):
+    requested = []
+    class Response:
+        headers = {'Content-Type': 'text/html'}
+        def raise_for_status(self): pass
+        async def text(self): return ADD_PAGE
+        async def read(self): return ADD_PAGE.encode()
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): pass
+    class Session:
+        def get(self, url, **kwargs): requested.append(url); return Response()
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): pass
+    recorded = _record_status(monkeypatch)
+    monkeypatch.setattr(zeronet_module, 'source_session', lambda **kwargs: Session())
+    monkeypatch.setattr(zeronet_module, 'validate_outbound_url', lambda url: None)
+    monkeypatch.setattr(zeronet_module.asyncio, 'sleep', _no_sleep)
+    async def run():
+        scraper = create_scraper_for_url(f'zero://{SITE}/links.json', 'zeronet')
+        scraper.zeronet_url = 'https://gateway.example:9443/prefix'
+        scraper.retries = 3
+        return await scraper.scrape()
+    channels, status = asyncio.run(run())
+    assert channels == [] and status.startswith('Error: ZeroNet site is not ready')
+    assert len(requested) == 6
+    assert all(url.startswith('https://gateway.example:9443/prefix/' + SITE + '/') for url in requested)
+    assert recorded == [(f'zero://{SITE}/links.json', status)]

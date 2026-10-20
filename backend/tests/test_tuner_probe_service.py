@@ -71,27 +71,38 @@ def test_refresh_checks_an_http_source_in_the_relay_order(alembic_db_session, mo
     assert [call.args[0].id for call in probe.call_args_list] == ['a' * 40, http_id]
 
 
-def test_refresh_checks_at_most_three_and_leaves_recent_ones_alone(alembic_db_session, monkeypatch):
-    """A 120 s view of a channel with 39 sources used to check them all."""
+def test_refresh_looks_at_the_next_three_only_and_then_rests(alembic_db_session, monkeypatch):
+    """A 120 s view of a channel with 39 sources used to check them all. Now
+    the first pass checks the stale ones among the next three, and once
+    they are fresh a pass checks nothing instead of walking down the list."""
     rows = [('a', True, True, 5)]                                   # checked 5 min ago: left alone
-    rows += [(k, True, True, 30) for k in 'bcdefgh']                # online, checked 30 min ago
+    rows += [(k, True, True, 30) for k in 'bcdefgh']                # checked 30 min ago
     tv = _sources(alembic_db_session, rows)
+    checked = []
+
+    async def check(self, channel, priority):
+        checked.append(channel.id[0])
+        channel.last_checked = datetime.now(timezone.utc)
+        alembic_db_session.merge(channel)
+        alembic_db_session.commit()
+        return {'status': 'online'}
+    monkeypatch.setattr(module.ChannelStatusService, 'check_channel_status', check)
+    module.refresh_channel(tv.id, Event())
+    assert checked == ['b', 'c']
+    module.refresh_channel(tv.id, Event())
+    assert checked == ['b', 'c']
+
+
+def test_the_source_playing_is_not_in_the_window(alembic_db_session, monkeypatch):
+    from types import SimpleNamespace
+    from app.services import stream_relay
+    tv = _sources(alembic_db_session, [(k, True, True, 30) for k in 'abcde'])
+    monkeypatch.setattr(stream_relay.relay_registry, 'active',
+                        lambda: [SimpleNamespace(content_id='a' * 40)])
     probe = AsyncMock(return_value={'status': 'online'})
     monkeypatch.setattr(module.ChannelStatusService, 'check_channel_status', probe)
     module.refresh_channel(tv.id, Event())
-    checked = [call.args[0].id[0] for call in probe.call_args_list]
-    assert len(checked) == module.PLAYBACK_REFRESH_LIMIT
-    assert 'a' not in checked
-
-
-def test_a_skipped_source_does_not_use_up_the_limit(alembic_db_session, monkeypatch):
-    """The source playing is owned by the relay; the status service skips it."""
-    tv = _sources(alembic_db_session, [(k, True, True, 30) for k in 'abcde'])
-    results = iter([{'status': 'skipped'}] + [{'status': 'online'}] * 10)
-    probe = AsyncMock(side_effect=lambda *a, **k: next(results))
-    monkeypatch.setattr(module.ChannelStatusService, 'check_channel_status', probe)
-    module.refresh_channel(tv.id, Event())
-    assert probe.call_count == module.PLAYBACK_REFRESH_LIMIT + 1
+    assert [call.args[0].id[0] for call in probe.call_args_list] == ['b', 'c', 'd']
 
 
 def test_refresh_stops_when_asked(alembic_db_session, monkeypatch):

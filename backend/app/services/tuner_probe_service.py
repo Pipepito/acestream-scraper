@@ -28,25 +28,29 @@ PLAYBACK_REFRESH_MIN_AGE_SECONDS = 600
 
 
 def refresh_channel(tv_channel_id: int, stopping: Event) -> None:
-    """Check up to PLAYBACK_REFRESH_LIMIT of the channel's sources, in the
-    relay's order, skipping those checked in the last
-    PLAYBACK_REFRESH_MIN_AGE_SECONDS. `stopping` ends it early (the viewer
-    left, or the application stops). The source playing is owned by the relay
-    and the status service skips it, so it does not count."""
+    """Look at the first PLAYBACK_REFRESH_LIMIT sources the relay would try
+    after the one playing (HTTP ones too), and check those not checked in
+    the last PLAYBACK_REFRESH_MIN_AGE_SECONDS. Once they are fresh a pass checks
+    nothing; it does not walk further down the list. The source playing is
+    owned by the relay (the status service skips it) and is not counted.
+    `stopping` ends it early (the viewer left, or the application stops)."""
     from app.services.tuner_service import TunerService
+    from app.services.stream_relay import relay_registry
 
     # This whole operation runs in a worker: never share the request's DB session
     # or perform synchronous SQL on the serving event loop.
     with SessionLocal() as db:
         by_id = {channel.id: channel for channel in ChannelRepository(db).get_tuner_streams(tv_channel_id)}
-        ordered = [by_id[i] for i in TunerService(db).relay_stream_ids(tv_channel_id) if i in by_id]
+        playing = {info.content_id for info in relay_registry.active()}
+        window = [by_id[i] for i in TunerService(db).relay_stream_ids(tv_channel_id)
+                  if i in by_id and i not in playing]
+        window = window[:PLAYBACK_REFRESH_LIMIT]
         service = ChannelStatusService(db)
 
         async def check() -> None:
-            done = 0
             now = datetime.now(timezone.utc)
-            for channel in ordered:
-                if done >= PLAYBACK_REFRESH_LIMIT or stopping.is_set():
+            for channel in window:
+                if stopping.is_set():
                     break
                 if not supported_tuner_stream(channel):
                     continue
@@ -55,10 +59,7 @@ def refresh_channel(tv_channel_id: int, stopping: Event) -> None:
                     checked = checked.replace(tzinfo=timezone.utc) if checked.tzinfo is None else checked
                     if (now - checked).total_seconds() < PLAYBACK_REFRESH_MIN_AGE_SECONDS:
                         continue
-                result = await service.check_channel_status(channel, priority=ProbePriority.PLAYBACK)
-                skipped = isinstance(result, dict) and result.get("status") == "skipped"
-                if not skipped:
-                    done += 1
+                await service.check_channel_status(channel, priority=ProbePriority.PLAYBACK)
         asyncio.run(check())
 
 

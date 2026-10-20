@@ -49,8 +49,7 @@ async def fetch_recipe_sample(url: str, url_type: str = 'auto') -> str:
         if isinstance(url_object, IpfsURL):
             current = IpfsURL.to_gateway_url(url, settings.IPFS_GATEWAY_URL)
         elif isinstance(url_object, ZeronetURL):
-            current = (settings.ZERONET_URL.rstrip('/') + '/' + current[7:]
-                       if current.startswith('zero://') else url_object.get_internal_url())
+            current = url_object.get_internal_url(gateway_url=settings.ZERONET_URL)
         async with source_session(timeout=aiohttp.ClientTimeout(total=20)) as session:
             for _ in range(6):
                 parts = urlsplit(current)

@@ -439,6 +439,12 @@ country/edition and assignment guards. Reviewed matching strips publisher text
 after `-->`; automation still requires conservative agreement of every name.
 
 
+Startup catch-up restores persisted launch history before scheduling overdue
+interval guide/scrape work after a five-minute grace, staggered five minutes.
+Stream checks re-evaluate eligibility after fifteen minutes. Preserve explicit
+clock anchors, FIFO/run-now deduplication and launch-based retry semantics; never
+bring destructive cleanup forward. See `docs/ops/scheduled-job-history.md`.
+
 Catalogue status passes wait between probes for app-owned relay/web playback,
 with a cumulative ten-minute pause budget and no DB transaction while waiting.
 Budget expiry or shutdown reports deferred work and a stop reason, releases the

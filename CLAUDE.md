@@ -474,6 +474,12 @@ country/edition and assignment guards. Reviewed matching strips publisher text
 after `-->`; automation still requires conservative agreement of every name.
 
 
+Startup catch-up uses restored launch history: overdue interval guide/scrape jobs
+start after five minutes, staggered five minutes; stream checks re-evaluate after
+fifteen minutes. Explicit clock anchors and queued/running jobs are respected.
+Failed/interrupted launches still count toward the normal interval. Cleanup is
+not accelerated. See `docs/ops/scheduled-job-history.md`.
+
 Catalogue status checks wait between probes while app-owned relay/web sessions
 are active. Pause time is cumulative and capped at ten minutes before releasing
 the maintenance queue. Partial results report deferred work and viewing/shutdown

@@ -76,6 +76,27 @@ inventing an offline count. Progress shows how much of the active inventory has
 been processed.
 
 
+## Startup catch-up
+
+After history is restored, interval-based guide refresh and URL scraping can run
+earlier than their normal first interval when the saved last launch is overdue
+or absent. The first eligible job waits five minutes after startup; when both
+are due, guide refresh comes first and scraping follows five minutes later.
+Cleanup jobs are not brought forward. Explicit start-time anchors remain in
+control and are never overridden by catch-up.
+
+Stream checks are reconsidered fifteen minutes after startup. The callback
+rechecks the current interval, last launch, configured start time and job
+availability before requesting a run. Running or queued work is not duplicated.
+A saved last launch, including a failed or interrupted run, still counts toward
+the normal interval; this is catch-up of missed launches, not an immediate retry
+policy for failures. Run now remains available to request an earlier attempt.
+
+Changing a schedule replaces its pending timing. Restart discards in-memory
+callbacks and reconstructs eligibility from persisted history. Individual manual
+source operations retain their separate history and do not count as a complete
+catalogue-wide scheduled pass.
+
 ## Stream checks while watching
 
 Scheduled and run-now catalogue status passes wait between sources while an

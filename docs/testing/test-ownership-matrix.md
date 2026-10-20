@@ -44,7 +44,8 @@ bash scripts/ci/run_v2_test_suite.sh --profile full
 
 Use a disposable container with the same committed source snapshot and the
 image's installed Python dependencies. The backend suite also tests repository
-tooling, so prepare Git and Node in that disposable test environment and run as
+tooling, so prepare Git, Node and the frontend build helper's `fs-extra` dependency
+in that disposable test environment and run as
 an unprivileged user (the sudo-denial bootstrap test requires that context).
 Do not install these test tools into a published application image.
 

@@ -531,7 +531,12 @@ workspace including the ones of dead branch/PR jobs.
 
 The NUC exposes four Jenkins executors, but the PR, trusted `develop`, and
 release Jenkinsfiles all acquire the FIFO `acestream-scraper-nuc-docker`
-Lockable Resource for their complete run. This is intentional: those pipelines
+Lockable Resource for their complete run. The root uses `agent none`; an enclosing
+stage acquires the lock in `options` before requesting its agent. Its nested stages
+and workspace cleanup share that agent and retain the lock until cleanup finishes.
+Waiting for the lock therefore occupies no executor. Existing builds keep their
+loaded pipeline and finish normally; the new ordering applies to subsequent runs.
+This is intentional: those pipelines
 share one Docker daemon and BuildKit cache, and a cleanup or builder reset from
 one must never invalidate another pipeline between dependent stages. Waiting
 builds remain queued on the lock; newer runs of the same PR also queue instead

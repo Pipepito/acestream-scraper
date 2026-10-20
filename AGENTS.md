@@ -125,7 +125,7 @@ not part of the required PR gate; see `e2e/AGENTS.md` before running it.
   replaying builds, changing Jenkins jobs/credentials/nodes, or publishing artifacts
   is an external mutation and needs explicit user authorization.
 - PR, trusted `develop`, and release pipelines share the FIFO
-  `acestream-scraper-nuc-docker` lock for their full run. Although `dorat-nuc-ci`
+  `acestream-scraper-nuc-docker` lock for their full run. Acquire it in the enclosing stage options before allocating an agent, and keep workspace cleanup inside that stage. Although `dorat-nuc-ci`
   has four executors, only one of these Docker/BuildKit workloads may run at once;
   later builds wait and must not abort or prune resources from the lock holder.
 - The multibranch validation job is `acestream-scraper-pr`; trusted publication

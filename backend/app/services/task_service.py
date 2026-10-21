@@ -271,6 +271,107 @@ class TaskService:
         with self._state_lock:
             state["progress"] = dict(progress) if progress is not None else None
 
+    # Jobs that only download files and are safe to run as soon as the
+    # application starts. A WHITELIST on purpose:
+    #   channel_status       opens engine sessions; on a small box that is
+    #                        already loading its catalogue it chokes it
+    #   epg_program_cleanup  is the one that EMPTIES the guide; running it
+    #                        early would make the problem worse
+    #   channel_cleanup      deletes; let it keep its own time
+    # Guide first: an empty guide is what the viewer sees.
+    CATCH_UP_JOBS = ("epg_refresh", "url_scraping")
+
+    def catch_up_missed_runs(self, job_ids=CATCH_UP_JOBS, stagger_seconds: int = 300,
+                             now: Optional[datetime] = None, start_after_seconds: int = 0) -> list:
+        """Run now the jobs whose last run is older than their interval.
+
+        Interval jobs live in memory and are re-created on every start, so
+        their first run lands one whole interval after startup. A machine
+        that is only switched on for a few hours never reaches it: on a real
+        box `epg_refresh` (6 h) had never run, while `epg_program_cleanup`
+        (1 h) kept deleting expired programmes -- the guide emptied itself.
+        `last_run` is persisted and restored, so we can tell.
+
+        A job with a user-set start time is left alone: whoever asked for
+        04:00 wants 04:00. Jobs are staggered so a small box does not fetch
+        playlists and guides at once.
+
+        ``start_after_seconds`` holds the first one back: right after power-on
+        is when someone opens a channel, and the guide refresh writes thousands
+        of rows -- on a small ARM box (2026-10-18) two channel opens at 2 min
+        failed with `database is locked` while it ran.
+
+        Returns the job ids that were brought forward.
+        """
+        now = now or datetime.now(timezone.utc)
+        brought = []
+        for job_id in job_ids:
+            overdue, last, interval = self._overdue(job_id, now)
+            if not overdue:
+                continue
+            when = now + timedelta(seconds=start_after_seconds + stagger_seconds * len(brought))
+            self.scheduler.modify_job(job_id, next_run_time=when)
+            self.logger.info(
+                "Catching up task '%s' (last run %s, interval %ss): runs at %s",
+                job_id, last or "never", interval, when.isoformat())
+            brought.append(job_id)
+        return brought
+
+    def _overdue(self, job_id: str, now: datetime):
+        """(overdue, last_run, interval) for a registered interval job.
+
+        Never overdue when the user set a start time for it or it is not
+        registered: whoever asked for 04:00 wants 04:00.
+        """
+        if self._schedule_anchors.get(job_id):
+            return False, None, None
+        interval = self._interval_seconds.get(job_id)
+        if not interval or self.scheduler.get_job(job_id) is None:
+            return False, None, interval
+        last = (self.get_task_state(job_id) or {}).get("last_run")
+        if isinstance(last, str):
+            try:
+                last = datetime.fromisoformat(last)
+            except ValueError:
+                last = None
+        if last is not None and last.tzinfo is None:
+            last = last.replace(tzinfo=timezone.utc)
+        if last is not None and (now - last).total_seconds() < interval:
+            return False, last, interval
+        return True, last, interval
+
+    def catch_up_later(self, job_id: str, delay_seconds: int = 900,
+                       now: Optional[datetime] = None) -> bool:
+        """Look again ``delay_seconds`` after startup and run ``job_id`` then
+        if it is still overdue.
+
+        For ``channel_status``, which CATCH_UP_JOBS leaves out: it opens the
+        engine, and at startup the box is loading its catalogue and the
+        viewer is opening a channel. Without it the first pass came one whole
+        interval after startup, and every restart pushed it back again. The
+        decision is taken when it fires, not now: if a pass ran meanwhile
+        (by hand, or a quick restart) nothing is duplicated.
+
+        Returns whether the check was scheduled.
+        """
+        if self._schedule_anchors.get(job_id) or self.scheduler.get_job(job_id) is None:
+            return False
+        when = (now or datetime.now(timezone.utc)) + timedelta(seconds=delay_seconds)
+        self.scheduler.add_job(
+            self.run_if_overdue, trigger=DateTrigger(run_date=when), args=[job_id],
+            id=f"{job_id}_catch_up", replace_existing=True, misfire_grace_time=None)
+        self.logger.info("Task '%s' is checked for catch-up at %s", job_id, when.isoformat())
+        return True
+
+    def run_if_overdue(self, job_id: str, now: Optional[datetime] = None) -> str:
+        """Run ``job_id`` now if its last run is older than its interval."""
+        overdue, last, interval = self._overdue(job_id, now or datetime.now(timezone.utc))
+        if not overdue:
+            self.logger.info("Catch-up of '%s' not needed (last run %s)", job_id, last)
+            return "not_needed"
+        self.logger.info("Catching up task '%s' (last run %s, interval %ss)", job_id, last or "never", interval)
+        return self.run_task_now(job_id)
+
     def run_task_now(self, job_id: str) -> str:
         """Trigger a scheduled job to run immediately, outside its interval.
 

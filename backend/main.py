@@ -18,11 +18,13 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.api.api import api_router
 from app.api.auth import require_api_token
 from app.api.endpoints import tuner as tuner_endpoints
+from app.api.endpoints.live import live_router
 from app.api.endpoints.playlists import (
     epg_url_for,
     get_all_streams_playlist,
     get_m3u_playlist,
     get_tv_channels_playlist,
+    playlist_service_for,
     trigger_url_scrape_refresh,
 )
 from app.api.error_handlers import register_error_handlers
@@ -223,6 +225,14 @@ async def lifespan(app: FastAPI):
             task_service.add_interval_task(run_channel_cleanup_task, seconds=86400, job_id="channel_cleanup")  # daily
             task_service.add_interval_task(run_channel_status_task, seconds=status_minutes * 60, job_id="channel_status")
             task_service.add_interval_task(run_media_server_sync_task, seconds=600, job_id="media_server_sync")  # every 10 min
+            # A machine that is only on for a few hours never reaches a 6 h or
+            # 24 h interval counted from startup. See catch_up_missed_runs.
+            # Not at once: the first minutes after power-on are when channels
+            # are opened, and the guide refresh holds SQLite's write lock.
+            task_service.catch_up_missed_runs(start_after_seconds=300)
+            # channel_status opens the engine, so not at startup: a quarter of
+            # an hour later, and only if it is still overdue then.
+            task_service.catch_up_later("channel_status", delay_seconds=900)
             await player_service.start()
             await asyncio.to_thread(_schedule_deferred_migration)
             reaper = asyncio.create_task(reap_relays_forever())
@@ -317,6 +327,9 @@ app.include_router(api_router, prefix="/api/v1", dependencies=[Depends(require_a
 # HDHomeRun-style tuner routes: token-free by design (tuner clients cannot send
 # credentials), gated by TUNER_ALLOWED_NETWORKS inside the router (spec 4.4).
 app.include_router(tuner_endpoints.hdhr_router)
+# Broadcasters' live channels, resolved when opened: token-free and
+# network-gated for the same reason as the tuner.
+app.include_router(live_router)
 register_error_handlers(app)
 
 # Static files serving
@@ -356,7 +369,7 @@ async def public_m3u_playlist(
     if refresh:
         trigger_url_scrape_refresh()
 
-    playlist_service = PlaylistService(db)
+    playlist_service = playlist_service_for(request, db)
     try:
         include_groups_list = include_groups.split(",") if include_groups else None
         exclude_groups_list = exclude_groups.split(",") if exclude_groups else None
@@ -544,7 +557,7 @@ async def legacy_epg_xml(
 async def spa_server(request: Request, exc: StarletteHTTPException):
     """Serve SPA for all non-API routes."""
     # Only handle 404s for non-API routes (client-side routing)
-    if exc.status_code == 404 and not request.url.path.startswith(("/api", "/tuner")):
+    if exc.status_code == 404 and not request.url.path.startswith(("/api", "/tuner", "/live/")):
         return FileResponse(os.path.join(frontend_dir, "index.html"))
     # For API routes or other status codes, return the exception as an HTTP
     # response, preserving headers such as WWW-Authenticate on 401s.

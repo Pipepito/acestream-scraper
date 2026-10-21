@@ -125,7 +125,7 @@ not part of the required PR gate; see `e2e/AGENTS.md` before running it.
   replaying builds, changing Jenkins jobs/credentials/nodes, or publishing artifacts
   is an external mutation and needs explicit user authorization.
 - PR, trusted `develop`, and release pipelines share the FIFO
-  `acestream-scraper-nuc-docker` lock for their full run. Although `dorat-nuc-ci`
+  `acestream-scraper-nuc-docker` lock for their full run. Acquire it in the enclosing stage options before allocating an agent, and keep workspace cleanup inside that stage. Although `dorat-nuc-ci`
   has four executors, only one of these Docker/BuildKit workloads may run at once;
   later builds wait and must not abort or prune resources from the lock holder.
 - The multibranch validation job is `acestream-scraper-pr`; trusted publication
@@ -437,3 +437,22 @@ fall through to names without being overwritten; apply revalidates the complete
 ID inventory. Keep indexed ID candidates, bounded name comparisons, ambiguity,
 country/edition and assignment guards. Reviewed matching strips publisher text
 after `-->`; automation still requires conservative agreement of every name.
+
+
+Startup catch-up restores persisted launch history before scheduling overdue
+interval guide/scrape work after a five-minute grace, staggered five minutes.
+Stream checks re-evaluate eligibility after fifteen minutes. Preserve explicit
+clock anchors, FIFO/run-now deduplication and launch-based retry semantics; never
+bring destructive cleanup forward. See `docs/ops/scheduled-job-history.md`.
+
+Catalogue status passes wait between probes for app-owned relay/web playback,
+with a cumulative ten-minute pause budget and no DB transaction while waiting.
+Budget expiry or shutdown reports deferred work and a stop reason, releases the
+FIFO, and preserves truthful Overview/webhook summaries. Direct external-engine
+players are outside this registry-based guard.
+
+Stream-check ordering gives never-checked streams priority, then oldest age
+groups measured in saved check intervals. Favorites and TV assignments win
+within an age group; they must not starve older loose streams across interrupted
+passes. Keep the inventory query in ChannelRepository and ordering in the status
+service. See `docs/ops/scheduled-job-history.md`.

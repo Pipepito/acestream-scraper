@@ -2,7 +2,7 @@
 Service for managing and generating M3U playlists
 """
 import re
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import quote, urlsplit, urlunsplit
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -14,18 +14,21 @@ from app.services.stream_ranking import score_acestream, sort_streams_curated
 from app.utils.m3u import m3u_attr
 
 
-# Kodi's IPTV Simple finds out a link's type by opening it in its interface
-# thread before playing it. The tuner relay always answers MPEG-TS, so the
-# playlist says so and Kodi skips that probe.
+LIVE_MIMETYPE_PROP = '#KODIPROP:mimetype=application/vnd.apple.mpegurl'
 RELAY_MIMETYPE_PROP = '#KODIPROP:mimetype=video/mp2t'
 
 
 class PlaylistService:
     """Service for generating M3U playlists"""
 
-    def __init__(self, db: Session):
-        """Initialize with database session"""
+    def __init__(self, db: Session, live_base_url: Optional[str] = None):
+        """Initialize with database session.
+
+        live_base_url is the server's public address, where players open a
+        broadcaster's live channel (/live/...).
+        """
         self.db = db
+        self.live_base_url = live_base_url
         self.channel_repository = ChannelRepository(db)
 
     def guide_coverage(self):
@@ -183,8 +186,8 @@ class PlaylistService:
 
         Named as the source publishes itself plus the start of the acestream
         id, numbered N.1, N.2... so they sort under the channel, and sharing
-        its guide. Each goes through the raw relay, without failover: the
-        point is to pick this one.
+        its guide. Acestream sources go through the raw relay (no failover:
+        the point is to pick this one); the rest open as in any stream list.
         """
         stream_base = self._raw_relay_base(base_url)
         width = len(str(len(streams)))
@@ -193,7 +196,8 @@ class PlaylistService:
         lines = []
         for index, stream in enumerate(streams, start=1):
             label = (stream.name or "").strip() or tv_channel.name
-            label = f"{label} [{stream.id[:8]}]"
+            if not getattr(stream, 'stream_url', None):
+                label = f"{label} [{stream.id[:8]}]"
             name = self._dedupe_name(self._attr(label), name_counts)
             attrs = []
             if tv_channel.channel_number is not None:
@@ -207,7 +211,7 @@ class PlaylistService:
             if tv_channel.category:
                 attrs.append(f'group-title="{self._attr(tv_channel.category)}"')
             lines.append(f'#EXTINF:-1 {" ".join(attrs)},{name}')
-            lines.extend(self._link_lines(self._stream_link(stream_base, stream.id)))
+            lines.extend(self._link_lines(self._stream_link(stream_base, stream.id, stream_url=getattr(stream, 'stream_url', None), stream_headers=getattr(stream, 'stream_headers', None), live_base_url=self.live_base_url)))
         return lines
 
     def _unassigned_entries(self, channels, tv_channels, base_url, addpid, pid_counter, name_counts):
@@ -230,7 +234,7 @@ class PlaylistService:
                 attrs.append(f'tvg-logo="{self._attr(channel.logo)}"')
             attrs.append(f'group-title="{self._attr(channel.group or "Unassigned Streams")}"')
             lines.append(f'#EXTINF:-1 {" ".join(attrs)},{name}')
-            lines.extend(self._link_lines(self._stream_link(base_url, channel.id, pid_counter if addpid else None)))
+            lines.extend(self._link_lines(self._stream_link(base_url, channel.id, pid_counter if addpid else None, stream_url=getattr(channel, 'stream_url', None), stream_headers=getattr(channel, 'stream_headers', None), live_base_url=self.live_base_url)))
             if addpid:
                 pid_counter += 1
         return lines
@@ -302,7 +306,10 @@ class PlaylistService:
                     attrs.append(f'group-title="{self._attr(tv_channel.category)}"')
 
                 lines.append(f'#EXTINF:-1 {" ".join(attrs)},{display_name}')
-                lines.extend(self._link_lines(self._stream_link(base_url, stream.id, pid_counter if addpid else None, tv_channel_id=tv_channel.id)))
+                # A stream with its own URL is handed out as that URL even in
+                # a relay format: the TV relay only opens acestreams.
+                link = self._stream_link(base_url, stream.id, pid_counter if addpid else None, tv_channel_id=tv_channel.id, stream_url=getattr(stream, 'stream_url', None), stream_headers=getattr(stream, 'stream_headers', None), live_base_url=self.live_base_url)
+                lines.extend(self._link_lines(link))
                 if addpid:
                     pid_counter += 1
             if sources:
@@ -360,17 +367,27 @@ class PlaylistService:
         """
         return m3u_attr(value)
 
-    @staticmethod
-    def _link_lines(link: str) -> List[str]:
+    def _link_lines(self, link: str) -> List[str]:
         """The lines that open a stream: its link, preceded by the mimetype
-        when it goes through the tuner relay.
+        when it goes through /live/ or the tuner relay.
 
-        Without it Kodi probes the link in its interface thread before
-        playing it: through the relay that left the remote unresponsive for
-        13 s on a dead channel and 4 s on a live one, 0 s with the line, and
-        the live one showed video at 5.5 s instead of 8.5 s. Other link
-        formats are the user's and may be anything, so they are left alone.
+        Without it IPTV Simple finds out the type by opening the link in
+        Kodi's INTERFACE thread, twice. Against a broadcaster that does not
+        answer, that left the remote dead for 16 s even with the 8 s budget
+        on /live/; with the mimetype, 0 s (measured with a provider that never
+        answers). Everything behind /live/ is HLS. Direct links to
+        other CDNs may be MPEG-TS or anything else, so they are left alone.
         """
+        from app.services import live_providers
+        if self.live_base_url and link.startswith(f"{self.live_base_url.rstrip('/')}{live_providers.LIVE_PATH}"):
+            return [LIVE_MIMETYPE_PROP, link]
+        # The tuner relay always answers MPEG-TS, and opening an acestream
+        # through it is when Kodi waits longest: a dead channel left the
+        # remote dead for 13 s while it probed the type, 0 s with this line;
+        # a live one showed video at 5.5 s instead of 8.5 s. Other link
+        # formats are the user's and may be anything.
+        # Only real HTTP relay paths (upstream 84ce59a): a user's link that
+        # merely contains the words must not get the hint.
         try:
             parts = urlsplit(link)
         except ValueError:
@@ -381,14 +398,34 @@ class PlaylistService:
         return [link]
 
     @staticmethod
-    def _stream_link(base_url: str, channel_id: str, pid: Optional[int] = None, *, tv_channel_id: Optional[int] = None) -> str:
+    def _stream_link(base_url: str, channel_id: str, pid: Optional[int] = None, *, tv_channel_id: Optional[int] = None, stream_url: Optional[str] = None, stream_headers: Optional[dict] = None, live_base_url: Optional[str] = None) -> str:
         """Build a stream link from a base-URL pattern (#62).
 
         A pattern containing {channel_id} is rendered by substitution
         (with {pid} filled from the per-entry counter, or stripped when
         pids are disabled); a pattern without placeholders is a plain
         prefix, matching the legacy base_url behavior.
+
+        A stream that carries its own `stream_url` -- an IPTV entry that is
+        not an acestream id -- is emitted as that URL, untouched. Every base
+        URL pattern assumes an engine that resolves an acestream id; applied
+        here it would produce `...getstream?id=url:<sha1>`, which no engine
+        can play.
         """
+        if stream_url:
+            from app.services import live_providers
+            from app.services.hls_manifest import needs_manifest
+            if live_base_url and needs_manifest(stream_url, stream_headers):
+                # Its manifests are served by us, whole: ffmpeg reads them
+                # cut short from the CDN. Segments still go straight to it.
+                stream_url = f"{live_base_url.rstrip('/')}{live_providers.LIVE_PATH}{quote(str(channel_id), safe='')}"
+            elif live_providers.for_stream_url(stream_url) is not None:
+                # Its link expires: point the player at the route that signs
+                # a new one when the channel is opened.
+                if not live_base_url:
+                    raise ValueError("A live channel needs the server's public address")
+                stream_url = f"{live_base_url.rstrip('/')}{live_providers.LIVE_PATH}{quote(str(channel_id), safe='')}"
+            return PlaylistService._with_headers(stream_url, stream_headers)
         if "{tv_channel_id}" in base_url:
             if tv_channel_id is None:
                 raise ValueError("This relay format requires a TV channel assignment")
@@ -414,6 +451,24 @@ class PlaylistService:
         if pid is not None:
             link += f"&pid={pid}"
         return link
+
+    # Kodi reads `url|Name=value&Name=value` and sends those headers itself,
+    # to the playlist AND to every segment it fetches from the CDN. The values
+    # must be percent-encoded: unescaped, Kodi cuts each one at its first
+    # space, and a 120-character User-Agent arrives as `Mozilla/5.0`.
+    _HEADER_ORDER = ("User-Agent", "Referer", "Origin")
+
+    @staticmethod
+    def _with_headers(url: str, headers: Optional[dict]) -> str:
+        if not headers:
+            return url
+        from urllib.parse import quote
+        parts = [f"{name}={quote(str(headers[name]), safe='')}"
+                 for name in PlaylistService._HEADER_ORDER if headers.get(name)]
+        if not parts:
+            return url
+        # A list may already carry some headers after its own `|`.
+        return url + ("&" if "|" in url else "|") + "&".join(parts)
 
     @staticmethod
     def _strip_pid_placeholder(link: str) -> str:
@@ -510,8 +565,8 @@ class PlaylistService:
             # Generate entry
             entry = f'#EXTINF:-1 {" ".join(attrs)}, {channel.name}\n'
 
-            link = self._stream_link(base_url, channel.id, pid_counter if addpid else None)
-            entry += '\n'.join(self._link_lines(link)) + '\n'
+            link = self._stream_link(base_url, channel.id, pid_counter if addpid else None, stream_url=getattr(channel, 'stream_url', None), stream_headers=getattr(channel, 'stream_headers', None), live_base_url=self.live_base_url)
+            entry += ''.join(line + '\n' for line in self._link_lines(link))
 
             entries.append(entry)
             if addpid:

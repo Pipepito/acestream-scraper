@@ -50,7 +50,7 @@ Branching and release flow (adopted 2026-08-28):
 
 - `develop` is the permanent pre-release branch; feature PRs target `develop`. `main` is the release branch. Both are protected (PRs only, required status `PR Validation`, no force-push/deletion). PRs into `main` are accepted only from `develop` — `jenkins/pr.Jenkinsfile` fails any other head. Releases are cut with a `develop` -> `main` PR; hotfixes go through `develop` too.
 - Fork PRs use `jenkins/pr.Jenkinsfile` from trusted `develop`. PR, develop and release application validation share a dependency-keyed runner selected from committed trusted inputs (verified input/platform labels; build on cache miss), with a fresh disposable validation container each time. Contributor-controlled files execute without network, capabilities, Docker socket, or Jenkins credentials. A second isolated stage runs the trusted entrypoint/runtime contract against the PR files under pinned amd64, arm64, and arm/v7 userlands. Fork-controlled Dockerfiles and dependency inputs are never executed or installed automatically; such changes require a maintainer-owned branch after review. `scripts/ci/run_pr_validation.sh` is the credential-free application gate.
-- PR, trusted `develop`, and release pipelines share the FIFO `acestream-scraper-nuc-docker` lock for their full run. The NUC has four executors but only one safe Docker/BuildKit workload slot; later jobs wait instead of pruning images or caches from an in-flight job, and a newer build of the same PR queues rather than aborting its predecessor. Shared cleanup retains two recently used dependency runners and warm build cache; below 8 GiB free it escalates to evict unneeded CI runners and recent cache. Current-job keeps, container images, unrelated images and volumes remain protected; reclamation failures are visible.
+- PR, trusted `develop`, and release pipelines share the FIFO `acestream-scraper-nuc-docker` lock for their full run. Acquire it in the enclosing stage options before allocating an agent, and keep workspace cleanup inside that stage. The NUC has four executors but only one safe Docker/BuildKit workload slot; later jobs wait instead of pruning images or caches from an in-flight job, and a newer build of the same PR queues rather than aborting its predecessor. Shared cleanup retains two recently used dependency runners and warm build cache; below 8 GiB free it escalates to evict unneeded CI runners and recent cache. Current-job keeps, container images, unrelated images and volumes remain protected; reclamation failures are visible.
 - Every push to `develop` runs the trusted `jenkins/develop.Jenkinsfile` job. It selects work with `scripts/ci/classify_changes.py` against the last successful build. Known documentation-only changes run lightweight checks without publication. Application, build, CI and unknown changes rerun the full suite and Docker/runtime smokes. It refuses stale revisions, then `bash scripts/ci/run_jenkins_release.sh --channel develop` pushes only floating `:develop*` image tags. It never publishes the wiki, Pages, or Docker Hub descriptions. Preview with `--print-publish-plan --channel develop` or `--dry-run --channel develop`; `python3 scripts/phase_gates/check_workflow_publish_guard.py` guards the boundary.
 - `version.txt` records the selected release version without a `-dev` suffix (`v2.2.0` for this cycle). Update it through a PR into `develop` when choosing the next release. Development publication uses only floating `develop*` tags; versioned tags and `latest` remain exclusive to manual release from `main`. The existing rejection of accidental `-dev` versions in release mode remains a defensive guard.
 - Releases stay manual: Jenkins job `acestream-scraper-release` (`jenkins/release.Jenkinsfile`, runs from `main`; params `CONFIRM_RELEASE`, `DRY_RUN`, `PUBLISH_LATEST`) pushes `:vX.Y.Z`, `:vX.Y.Z-<flavor>` and the flavor tags; `PUBLISH_LATEST=true` retags the canaried version manifest to `:latest` via `scripts/ci/promote_latest.sh`. Details: `docs/ops/jenkins-ci.md`.
@@ -169,8 +169,11 @@ The current product already points toward a structured operational dashboard: Ma
 
 ### Tuner automatic failover and media metadata
 
-`services/tuner_playback_service.py` tries online, active, valid sources returned by
-`TunerService.online_stream_ids()` in descending `bitrate_bps` order (unknown last).
+`services/tuner_playback_service.py` tries active, valid sources returned by
+`TunerService.relay_stream_ids()`: recent online, stale online, then unknown/stale
+offline, with bitrate ordering within each group. Recent explicit offline results
+are excluded. Freshness covers the last six hours; future timestamps are stale.
+Recent relay failures still deprioritize a source.
 One reserved relay claim survives failed attempts; startup has per-attempt and total
 deadlines. By default failures after playback starts end the response; client
 reconnections prefer alternatives over sources that failed in the last 60 seconds. Each
@@ -469,3 +472,22 @@ fall through to names without being overwritten; apply revalidates the complete
 ID inventory. Keep indexed ID candidates, bounded name comparisons, ambiguity,
 country/edition and assignment guards. Reviewed matching strips publisher text
 after `-->`; automation still requires conservative agreement of every name.
+
+
+Startup catch-up uses restored launch history: overdue interval guide/scrape jobs
+start after five minutes, staggered five minutes; stream checks re-evaluate after
+fifteen minutes. Explicit clock anchors and queued/running jobs are respected.
+Failed/interrupted launches still count toward the normal interval. Cleanup is
+not accelerated. See `docs/ops/scheduled-job-history.md`.
+
+Catalogue status checks wait between probes while app-owned relay/web sessions
+are active. Pause time is cumulative and capped at ten minutes before releasing
+the maintenance queue. Partial results report deferred work and viewing/shutdown
+reasons through history, Overview and webhooks. External direct-engine players
+are not detectable through these application registries.
+
+Stream-check ordering gives never-checked streams priority, then oldest age
+groups measured in saved check intervals. Favorites and TV assignments win
+within an age group; they must not starve older loose streams across interrupted
+passes. Keep the inventory query in ChannelRepository and ordering in the status
+service. See `docs/ops/scheduled-job-history.md`.

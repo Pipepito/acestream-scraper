@@ -1,6 +1,7 @@
 """
 M3U service for handling M3U files and extracting channel information.
 """
+import hashlib
 import re
 
 import logging
@@ -67,6 +68,34 @@ class M3UService:
             epg_service=epg_service,
             tv_channel_service=tv_channel_service,
         )
+
+    _VLCOPT = re.compile(r'^#EXTVLCOPT:\s*http-(referrer|user-agent|origin)\s*=\s*(.+)$', re.I)
+    _HEADER_NAMES = {'referrer': 'Referer', 'user-agent': 'User-Agent', 'origin': 'Origin'}
+
+    @staticmethod
+    def _looks_like_stream(line: str) -> bool:
+        """A playable URL that is not an acestream id.
+
+        Only http(s): other schemes in these playlists are either acestream
+        -- already handled above -- or things no player can open, and letting
+        them through would turn junk lines into channels.
+        """
+        low = line.strip().lower()
+        if low.startswith('http://') or low.startswith('https://'):
+            return True
+        # A broadcaster's channel (`mediaset://T5`): resolved when opened,
+        # see app.services.live_providers.
+        from app.services.live_providers import for_stream_url
+        return for_stream_url(line.strip()) is not None
+
+    @staticmethod
+    def _stream_id(url: str) -> str:
+        """A stable id for a stream addressed by URL.
+
+        `url:` prefixed so it can never be mistaken for a content id or an
+        infohash, which are bare 40 hex digits.
+        """
+        return 'url:' + hashlib.sha1(url.strip().encode('utf-8')).hexdigest()
 
     async def find_m3u_links(self, content: str, base_url: str) -> List[str]:
         """Find M3U links in HTML content."""
@@ -137,6 +166,16 @@ class M3UService:
                 ):
                     channel_info['tvg_logo'] = current_group_metadata['group_logo']
                 continue
+            # Headers the playlist publishes for THIS entry, between #EXTINF
+            # and its URL. Measured on a public TDT list: 30 of 576 entries
+            # carry http-referrer, and their domains were exactly the ones
+            # answering 403 -- the "blocked" channels were only missing the
+            # header the list itself was publishing.
+            vlcopt = self._VLCOPT.match(line)
+            if vlcopt:
+                channel_info.setdefault('stream_headers', {})[
+                    self._HEADER_NAMES[vlcopt.group(1).lower()]] = vlcopt.group(2).strip()
+                continue
             # Skip other comment lines
             if line.startswith('#'):
                 continue
@@ -148,9 +187,32 @@ class M3UService:
                 channel_id = acestream_match.group(1)
             elif getstream_match:
                 channel_id = getstream_match.group(1)
+            stream_url = None
+            if not channel_id and self._looks_like_stream(line):
+                # NOT AN ACESTREAM ID, AND IT IS STILL A CHANNEL.
+                #
+                # Until now any line without an acestream id was dropped in
+                # silence, so importing an ordinary IPTV playlist produced
+                # zero channels and said nothing about it. Measured on a real
+                # box: 592 of 1.599 sources (37%) are plain HTTP, reaching 458
+                # of 802 channels -- more than half the grid.
+                #
+                # The id is derived from the URL so a re-scrape updates the
+                # same row instead of duplicating it, and it is deliberately
+                # NOT 40 hex: every engine path keyed on that shape keeps
+                # ignoring these, which is what we want until the status
+                # check learns about them.
+                stream_url = line
+                channel_id = self._stream_id(line)
             if channel_id:
                 name = channel_info.get('name', f"Channel {channel_id}")
                 metadata = {k: v for k, v in channel_info.items() if k != 'name'}
+                if stream_url:
+                    metadata['stream_url'] = stream_url
+                else:
+                    # Headers only mean something to an HTTP request; an
+                    # acestream id goes through the engine.
+                    metadata.pop('stream_headers', None)
                 channels.append((channel_id, name, metadata))
                 channel_info = {}
         logger.info(f"Extracted {len(channels)} channels from M3U content")

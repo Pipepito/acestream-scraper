@@ -5,21 +5,27 @@ engine URL is the DB setting ``ace_engine_url`` read at call time.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
+import time
 from threading import Timer
 import uuid
 from dataclasses import dataclass, field
 from types import TracebackType
-from typing import Optional
+from typing import Callable, Optional, TypeVar
 from urllib.parse import urlsplit
 
+import anyio
 import httpx
+from fastapi.concurrency import run_in_threadpool
 
 from app.repositories.settings_repository import SettingsRepository
 from app.schemas.config import PlaybackRouting
 from app.services.playback_ownership import PlaybackLease, source_ownership
 
 logger = logging.getLogger(__name__)
+
+_Result = TypeVar("_Result")
 
 START_TIMEOUT = httpx.Timeout(15.0, connect=5.0)
 STAT_TIMEOUT = httpx.Timeout(5.0, connect=3.0)
@@ -146,14 +152,17 @@ class EngineClient:
             raise EngineUnavailableError("Engine response has no 'response' object")
         return body
 
-    def start(self, content_id: str, pid: Optional[str] = None) -> EngineSession:
+    def start(self, content_id: str, pid: Optional[str] = None, *, startup_deadline: Optional[float] = None) -> EngineSession:
         if self.use_acexy:
             # Acexy owns multiplexing and engine sessions. Reading/closing this
             # stream is its lifecycle; never send JSON/start/stop or a PID.
             url = str(httpx.URL(f"{self.engine_url}/ace/getstream", params={"id": content_id}))
             return EngineSession(content_id, "", url, "", "", True, managed_by_acexy=True)
         source = source_ownership(self.engine_url, content_id)
-        with source.lock:
+        remaining = _remaining_start_seconds(startup_deadline)
+        if not source.lock.acquire(timeout=remaining):
+            raise EngineUnavailableError("Engine startup deadline expired waiting for the source")
+        try:
             # A stop deferred by the TV relay is cancelled: the engine is
             # still running this source. Its session is parked and stopped
             # with the source's final stop.
@@ -163,18 +172,27 @@ class EngineClient:
                 source.parked.append(deferred.args[1])
             lease = PlaybackLease(source)
             try:
-                session = self._start_direct(content_id, pid or new_pid(), lease)
+                session = self._start_direct(content_id, pid or new_pid(), lease, startup_deadline)
             except BaseException:
                 if not source.leases:
                     _stop_parked(source, self._client)
                 raise
             source.leases.add(lease)
+            if startup_deadline is not None and time.monotonic() >= startup_deadline:
+                # HTTP phase timeouts can finish just after the overall budget.
+                # Own and release the handle before reporting the expired start.
+                self.stop(session)
+                raise EngineUnavailableError("Engine startup deadline expired")
             return session
+        finally:
+            source.lock.release()
 
-    def _start_direct(self, content_id: str, pid: str, lease: PlaybackLease) -> EngineSession:
+    def _start_direct(self, content_id: str, pid: str, lease: PlaybackLease, startup_deadline: Optional[float]) -> EngineSession:
+        remaining = _remaining_start_seconds(startup_deadline)
         body = self._get_json(
             f"{self.engine_url}/ace/getstream",
             params={"id": content_id, "pid": pid, "format": "json"},
+            timeout=httpx.Timeout(remaining, connect=min(START_TIMEOUT.connect, remaining)),
         )
         try:
             return EngineSession(
@@ -239,6 +257,53 @@ class EngineClient:
             speed_down=int(body.get("speed_down") or 0),
             speed_up=int(body.get("speed_up") or 0),
         )
+
+
+def _remaining_start_seconds(deadline: Optional[float]) -> float:
+    if deadline is None:
+        return START_TIMEOUT.read
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        raise EngineUnavailableError("Engine startup deadline expired")
+    return remaining
+
+
+async def start_engine_session(
+    start: Callable[[], EngineSession], stop: Callable[[EngineSession], None],
+) -> EngineSession:
+    """Keep ownership of a blocking start even if its consumer is cancelled.
+
+    A worker cannot be interrupted safely. Wait for its bounded request and
+    release any late session before the caller closes its client/relay slot.
+    Both callbacks run off the event loop; stop uses the original session lease.
+    """
+    async def finish(task: asyncio.Task[_Result]) -> _Result:
+        # A native asyncio cancellation can arrive again during shielded
+        # cleanup (disconnect followed by shutdown). Keep the worker owned.
+        while not task.done():
+            try:
+                await asyncio.shield(task)
+            except asyncio.CancelledError:
+                continue
+        return task.result()
+
+    worker = asyncio.create_task(run_in_threadpool(start))
+    try:
+        return await asyncio.shield(worker)
+    except asyncio.CancelledError:
+        with anyio.CancelScope(shield=True):
+            try:
+                session = await finish(worker)
+            except Exception:
+                pass  # Preserve the caller's cancellation if startup also failed.
+            else:
+                cleanup = asyncio.create_task(run_in_threadpool(stop, session))
+                try:
+                    await finish(cleanup)
+                except Exception:
+                    # Never convert a disconnect into a retryable start failure.
+                    logger.warning("Engine session cleanup failed after cancelled startup")
+        raise
 
 
 def _deferred_stop(source, session: EngineSession) -> None:

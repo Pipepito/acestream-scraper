@@ -42,6 +42,9 @@ def player(client, tmp_path, monkeypatch):
     ``stop()`` — must share one loop, exactly as they do under uvicorn.
     """
     import app.api.endpoints.player as endpoint
+    # Endpoint contracts need stable media, not the fake's 50 ms rotation race.
+    # Deletion during transfer is exercised deterministically below.
+    monkeypatch.setenv("FAKE_FFMPEG_MODE", "static_playlist")
     svc = PlayerService(settings_getter=lambda: _Settings(tmp_path / "hls"), engine_factory=_engine, ffmpeg_path=str(FAKE_FFMPEG))
     monkeypatch.setattr(endpoint, "player_service", svc)
     with anyio.from_thread.start_blocking_portal(**client.async_backend) as portal:
@@ -155,14 +158,7 @@ def _wait_ready_with_token(client, session_id, token=TOKEN, tries=60):
 
 
 def test_segment_missing_is_404_and_served_response_carries_its_own_stat(client, player):
-    """A vanished segment is a 404, and a served one is not re-stat'ed at send time.
-
-    ffmpeg deletes old segments while it runs (``-hls_flags delete_segments``) and
-    teardown removes the whole directory, so a segment can disappear between the
-    handler and the response body being written. ``FileResponse`` without
-    ``stat_result`` stats again inside ``__call__`` and raises ``RuntimeError`` when
-    the file has gone — a 500 where the contract says 404.
-    """
+    """Missing/non-file paths are 404; valid segments retain their stat headers."""
     import app.api.endpoints.player as endpoint
 
     created = client.post("/api/v1/player/sessions", json={"content_id": IH}).json()
@@ -178,8 +174,8 @@ def test_segment_missing_is_404_and_served_response_carries_its_own_stat(client,
     (player.get(created["id"]).dir / "seg99998.ts").mkdir()
     assert client.get(f"/api/v1/player/sessions/{created['id']}/seg99998.ts").status_code == 404
 
-    # The served response carries the stat the handler took, so Starlette skips its
-    # own send-time stat and cannot raise RuntimeError if the file is deleted next.
+    # File metadata stays consistent with the handler's check. The separate
+    # rotation tests exercise deletion before open and during delivery.
     response = client.portal.call(endpoint.segment, created["id"], newest)
     assert response.stat_result is not None
     assert response.headers["content-length"] == str(response.stat_result.st_size)
@@ -230,3 +226,94 @@ def test_audio_track_request_validation_and_status(client, player):
     assert response.status_code == 200
     assert response.json()['audio_index'] == 1
     assert isinstance(response.json()['audio_tracks'], list)
+
+
+@pytest.mark.parametrize('when', ['before_send', 'after_headers', 'cancel_during_body'])
+@pytest.mark.parametrize('byte_range', [None, 'bytes=7-31', 'bytes=0-3,20-23'])
+def test_segment_rotation_during_response(client, player, when, byte_range, monkeypatch):
+    """Force deletion at both sides of the response's file-open boundary."""
+    import asyncio
+    import builtins
+    from starlette.exceptions import HTTPException
+    import app.api.endpoints.player as endpoint
+
+    created = client.post('/api/v1/player/sessions', json={'content_id': IH}).json()
+    path = player.get(created['id']).dir / 'seg99997.ts'
+    content = bytes(range(256)) * 1024  # More than one response chunk.
+    path.write_bytes(content)
+    response = client.portal.call(endpoint.segment, created['id'], path.name)
+    opened = []
+    original_open = builtins.open
+
+    def record_open(file, *args, **kwargs):
+        handle = original_open(file, *args, **kwargs)
+        if file == path:
+            opened.append(handle)
+        return handle
+
+    monkeypatch.setattr(builtins, 'open', record_open)
+    messages = []
+
+    async def deliver():
+        async def send(message):
+            messages.append(message)
+            if message['type'] == 'http.response.start' and when != 'before_send':
+                path.unlink()
+            if message['type'] == 'http.response.body' and when == 'cancel_during_body':
+                raise asyncio.CancelledError
+
+        async def receive():
+            raise AssertionError('ASGI 2.4 should not poll disconnects')
+
+        if when == 'before_send':
+            path.unlink()
+        scope = {'type': 'http', 'method': 'GET', 'asgi': {'spec_version': '2.4'},
+                 'headers': [(b'range', byte_range.encode())] if byte_range else [],
+                 'extensions': {'http.response.pathsend': {}}}
+        if when == 'cancel_during_body':
+            with pytest.raises(asyncio.CancelledError):
+                await response(scope, receive, send)
+        else:
+            await response(scope, receive, send)
+
+    if when == 'before_send':
+        with pytest.raises(HTTPException) as error:
+            client.portal.call(deliver)
+        assert error.value.status_code == 404
+        assert messages == []  # Never send a successful status before opening.
+    elif when == 'cancel_during_body':
+        client.portal.call(deliver)
+        assert opened and all(handle.closed for handle in opened)
+    else:
+        client.portal.call(deliver)
+        assert messages[0]['status'] == (206 if byte_range else 200)
+        assert all(message['type'] != 'http.response.pathsend' for message in messages)
+        body = b''.join(message.get('body', b'') for message in messages)
+        headers = dict(messages[0]['headers'])
+        assert len(body) == int(headers[b'content-length'])
+        if byte_range is None:
+            assert body == content
+        elif byte_range == 'bytes=7-31':
+            assert body == content[7:32]
+        else:
+            assert content[:4] in body and content[20:24] in body
+        assert opened and all(handle.closed for handle in opened)
+
+
+def test_segment_removed_before_open_returns_http_404(client, player, monkeypatch):
+    from starlette.responses import FileResponse
+
+    created = client.post('/api/v1/player/sessions', json={'content_id': IH}).json()
+    path = player.get(created['id']).dir / 'seg99996.ts'
+    path.write_bytes(b'G' * 188)
+    original_call = FileResponse.__call__
+
+    async def remove_before_send(response, scope, receive, send):
+        if response.path == path:
+            path.unlink()
+        await original_call(response, scope, receive, send)
+
+    monkeypatch.setattr(FileResponse, '__call__', remove_before_send)
+    response = client.get(f"/api/v1/player/sessions/{created['id']}/{path.name}")
+    assert response.status_code == 404
+    assert response.json() == {'detail': 'Segment not ready'}

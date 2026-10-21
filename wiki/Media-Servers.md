@@ -101,7 +101,7 @@ refreshes; Live TV can work before that association is found.
 - **Streams at once** — how many channels may be streamed through the tuner at the same time (default 4). It is the number the tuner advertises to Jellyfin and Plex, and the one it actually enforces: a request beyond it is refused with "All 4 tuner slots are in use". Each concurrent stream is a real AceStream stream on your engine and real upload bandwidth, so keep this near what your connection can actually carry.
 - **Publish only channels that are online** — off by default. With it off, a channel whose streams are all currently offline is still listed, so tuning it fails with a clear error instead of the channel vanishing from your TV app. Turn it on if you would rather see a shorter, verified list.
 - **Seconds per source** — time allowed for a source to begin delivering media (default 15, range 5–180 seconds).
-- **Seconds to start a channel** — total startup budget across sources (default 45, range 5–180 seconds). The remaining total budget limits each attempt. These settings apply to new TV-channel relay connections; the separate engine JSON start request retains its existing 15-second HTTP timeout. A player's own timeout can end an attempt sooner.
+- **Seconds to start a channel** — total startup budget across sources (default 45, range 5–180 seconds). The remaining total budget limits each attempt. These settings apply to new TV-channel relay connections. In direct-engine mode, the JSON start request and the first media byte share the same attempt budget; there is no separate 15-second JSON cap. Waiting for a shared source also consumes that budget. Individual `/tuner/stream/` URLs use the smaller saved source/total limit for JSON startup. A player's own timeout can end an attempt sooner.
 
 The addresses to paste into Plex, and the warnings about refused clients or channels left out, are shown where they matter: on the Plex card and in the **Public address** block above.
 
@@ -260,4 +260,4 @@ Recent playback failures still deprioritize a source independently of stored
 check freshness. Existing startup limits, background alternative checks and
 viewer ownership remain in effect. HEAD requests do not start playback or probes.
 This ranking improves startup selection; it does not enable raw mid-stream
-source concatenation or change the direct engine's JSON-start timeout.
+source concatenation. Direct-engine JSON startup follows the configured startup budgets above.

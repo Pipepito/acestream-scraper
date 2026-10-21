@@ -128,8 +128,8 @@ not part of the required PR gate; see `e2e/AGENTS.md` before running it.
 ## Jenkins and infrastructure
 
 - Jenkins is the sole repository validation and release system. GitHub Actions
-  application workflows were retired; the remaining Pages workflow is not the
-  application CI gate.
+  application workflows were retired. The PR-assignment workflow only changes
+  metadata; GitHub-managed Pages hosting is not the application CI gate.
 - The local, git-ignored `infra-details.md` contains the current controller URL,
   operator identity/token, build-agent address, and job names. See
   `docs/ops/codex-infrastructure-access.md` before using it.
@@ -472,7 +472,6 @@ within an age group; they must not starve older loose streams across interrupted
 passes. Keep the inventory query in ChannelRepository and ordering in the status
 service. See `docs/ops/scheduled-job-history.md`.
 
-
 Direct-engine JSON startup shares the caller's existing budget: TV relays pass
 one deadline capped by per-source and remaining total limits; browser sessions
 use their remaining `PLAYER_START_TIMEOUT_SECONDS`. Charge worker/source-lock
@@ -480,3 +479,14 @@ waiting to that deadline. Preserve source leases and collect late start replies
 on cancellation before releasing clients/slots; disconnect linger remains
 separate from immediate deadline cleanup. See `wiki/Media-Servers.md` and
 `wiki/Web-Player.md`.
+
+## Repository contribution governance
+
+`.github/rulesets/` records intended live GitHub rules; merging JSON does not apply
+it. Baseline main/develop rules require PRs, resolved conversations and the
+Jenkins-bound `PR Validation`, without bypass. A separate one-approval rule allows
+admin PR-only bypass for maintainer-authored work; it cannot bypass baseline CI.
+Version tags are immutable. `.github/workflows/assign-pull-requests.yml` assigns
+other authors' PRs to Pipepito using metadata only: never check out or execute
+contributor code in `pull_request_target`. Issue forms and assignment activate
+after reaching default branch main. See `docs/ops/repository-governance.md`.

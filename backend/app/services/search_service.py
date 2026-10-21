@@ -319,7 +319,7 @@ class SearchService:
                 })
             except Exception as e:
                 failed_channels.append({
-                    "data": channel_data.dict() if hasattr(channel_data, 'dict') else vars(channel_data),
+                    "data": channel_data.model_dump() if hasattr(channel_data, 'model_dump') else vars(channel_data),
                     "error": str(e)
                 })
                 results.append({

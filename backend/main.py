@@ -59,7 +59,6 @@ from app.utils.logging import setup_logging
 
 # Setup logging before anything else
 setup_logging()
-logging.getLogger().warning("[MAIN] Root logger active at startup")
 
 
 def initialize_database():

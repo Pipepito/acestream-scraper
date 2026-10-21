@@ -58,8 +58,26 @@ TS concatenation needs explicit continuity/discontinuity design. #99 VOD, #55
 sports aggregation, #13 installers and #216 AI extraction exceed these bounded
 batches. #155 alias removal remains deferred by maintainer decision.
 
-New proposals #233–#235 arrived after the initial triage: HTML guide converters,
-HTTP/HLS channel storage, and regional live providers. They require separate
-scope decisions (time/identity semantics, schema/protocol contracts, and provider
-maintenance/authentication respectively). #235 depends on #234. They are not
-silently added to batches 1–5 or accepted for this release.
+Status update, 2026-10-21 at develop `e7e554e`: #234 HTTP/HLS streams and
+#235 regional live providers were accepted, reviewed and merged through #241
+for v2.2.0. They are no longer unimplemented proposals. Their mixed-protocol
+TV-relay failover extension remains separate. #233 HTML guide conversion still
+needs its own timezone, identity, ambiguity and maintenance contract.
+
+## Recommended next v2.2.0 work
+
+1. Finish warning cleanup and validate the current integrated release first.
+2. #226: reproduce a direct-engine JSON-start call exceeding 15 seconds before
+   deciding a bounded setting/caller-deadline fix. Preserve cancellation and
+   final lease cleanup; the tuner video-read limits are already configurable.
+3. #93: implement and verify the existing bounded known-network routing recipe
+   above, with reconnect/restart evidence. It is the smallest prepared follow-up.
+4. #217: validate external outpace compatibility as scoped above after playback
+   behavior settles. Recheck the upstream release; the issue now also reports
+   v0.4.0 evidence, not just the original v0.2.0 proposal.
+
+#102 needs upstream Acexy race evidence. #233 HTML guides and #246 Gluetun port
+forwarding are subsequent scope/design decisions, not silently committed to
+v2.2.0. #246 needs a supported Gluetun/provider contract, port ownership and
+restart/failure behavior. This order is a recommendation, not acceptance of
+those features or a promise to hold the release for them.

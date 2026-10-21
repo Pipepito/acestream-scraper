@@ -142,6 +142,17 @@ The `frontend-builder`, `acexy-builder` and `ffmpeg-builder` stages run on `$BUI
 
 ### Engineering norms (project-specific)
 
+- Run routine project-local tests and dependency setup in `backend/venv` or
+  project `node_modules` without separate conversational confirmation. Prefer
+  cached dependencies on unreliable connections. Mandatory sandbox controls
+  still apply; global installs and releases are outside this authorization.
+- Keep validation warning-free: backend pytest fails on warnings, including
+  dependency deprecations and SQLAlchemy warnings. Fix APIs, dependencies and
+  resource lifecycles instead of adding global ignores or silencing console
+  output. Assert deliberately exercised warnings locally with `pytest.warns`
+  and a specific category/message. Preserve intentional operator notices such
+  as legacy environment-alias warnings. Dependency changes require a full gate
+  against current resolved CI-compatible versions, not only an older cache.
 - TypeScript-only frontend: no `.js`/`.jsx` files; all components typed via named interfaces, no `any`. See `docs/dev/typescript-standards.md`.
 - Backend uses Python 3.11+, pydantic v2, SQLAlchemy 2.x; type hints required; every endpoint round-trips through Pydantic DTOs and surfaces in `/openapi.json`.
 - `docs/migration/development-progress.md` is the live status doc; `docs/migration/migration-strategy.md` and `docs/migration/development-phases.md` define cutover rules.

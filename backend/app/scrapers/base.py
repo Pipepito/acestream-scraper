@@ -92,7 +92,7 @@ class BaseScraper(ABC):
                         return channels
 
         # Fallback to regular linksData extraction only if listaplana.txt didn't yield results
-        script_tag = soup.find('script', text=re.compile(r'const linksData'))
+        script_tag = soup.find('script', string=re.compile(r'const linksData'))
         if script_tag:
             script_content = script_tag.string
             json_str = re.search(r'const linksData = (\{.*?\});', script_content, re.DOTALL)

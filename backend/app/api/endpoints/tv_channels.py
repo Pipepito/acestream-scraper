@@ -123,7 +123,7 @@ def analyze_epg_matches(request: EPGMatchAnalysisRequest, db: Session = Depends(
     try:
         return service.analyze_matches(strictness=request.strictness, source_id=request.source_id)
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
 
 
 @router.post("/reorder", response_model=MessageResponse)
@@ -175,7 +175,7 @@ def create_tv_channels_from_epg_analysis(
     except StaleEPGPreview as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
 
 
 @router.post("/", response_model=TVChannelResponse, status_code=status.HTTP_201_CREATED)
@@ -185,7 +185,7 @@ async def create_tv_channel(tv_channel: TVChannelCreate, db: Session = Depends(g
     """
     if not tv_channel.name:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Name cannot be empty"
         )
 
@@ -229,7 +229,7 @@ async def update_tv_channel(
 
     updated_channel = service.update_tv_channel(
         tv_channel_id=tv_channel_id,
-        updates=tv_channel_update.dict(exclude_unset=True)
+        updates=tv_channel_update.model_dump(exclude_unset=True)
     )
     return updated_channel
 

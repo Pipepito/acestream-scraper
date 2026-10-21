@@ -46,7 +46,7 @@ class EPGSourceOperations:
         if not db_source:
             return None
 
-        update_data = source_data.dict(exclude_unset=True)
+        update_data = source_data.model_dump(exclude_unset=True)
         for key, value in update_data.items():
             setattr(db_source, key, value)
 

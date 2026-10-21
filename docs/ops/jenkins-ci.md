@@ -7,7 +7,7 @@ This document is the primary operator guide for Jenkins CI/CD in this repository
 Current rollout state:
 
 - Jenkins is the canonical path for pull request validation and release publication in this repository.
-- (Superseded 2026-08-26, e5657b9) GitHub Actions remain available during the current proving window as fallback/reference workflows while operators build confidence in Jenkins hardening. Current state: the last workflows (`.github/workflows/pull_request.yml`, `.github/workflows/release.yml`) were deleted in e5657b9 and `.github/workflows/` no longer exists; Jenkins is the sole validation and release path. Older "proving window" statements below are kept as the historical record and annotated as superseded.
+- (Superseded 2026-08-26, e5657b9) GitHub Actions remain available during the current proving window as fallback/reference workflows while operators build confidence in Jenkins hardening. Current state: the last workflows (`.github/workflows/pull_request.yml`, `.github/workflows/release.yml`) were deleted in e5657b9 and the application workflows no longer exist; Jenkins is the sole validation and release path. Older "proving window" statements below are kept as the historical record and annotated as superseded.
 - Jenkins assets in this repository are ready to be wired into your homelab controller and agent.
 
 Important constraint for this setup:
@@ -33,7 +33,7 @@ GitHub Pages serves `main` at `/docs`; Jenkins does not deploy a separate branch
 Docker Hub descriptions are updated manually from `docs/dockerhub/`. Neither
 pipeline binds credentials for description editing or updates the Hub overview.
 
-- GitHub Actions workflows are retired; Jenkins is the sole CI/CD implementation.
+- GitHub Actions application workflows are retired; Jenkins is the sole CI/CD implementation. The metadata-only PR assignment workflow is documented in [repository governance](repository-governance.md).
 
 The shared dependency runner includes FFmpeg for generated-video relay failover
 and decoder tests. Tests use synthetic local media and remain network-disabled.
@@ -973,9 +973,9 @@ Fork PRs are discovered, but remain untrusted by construction:
 
 ## GitHub Actions During The Proving Window
 
-Superseded 2026-08-26 (e5657b9). Jenkins is the canonical and only CI and release path; `.github/workflows/` no longer exists in the repository. (Historical: during the proving window, two GitHub Actions workflows remained as parity validators.)
+Superseded 2026-08-26 (e5657b9). Jenkins is the canonical and only CI and release path; the application workflows no longer exist in the repository. (Historical: during the proving window, two GitHub Actions workflows remained as parity validators.)
 
-- All GitHub Actions workflows are retired; every gate (tests, four-flavor dry-run multi-arch builds, AceStream engine runtime smoke, cutover required checks, phase gates) runs on the Jenkins pipelines above.
+- All GitHub Actions application workflows are retired; every gate (tests, four-flavor dry-run multi-arch builds, AceStream engine runtime smoke, cutover required checks, phase gates) runs on the Jenkins pipelines above.
 
 The phase-specific GA scaffolding workflows (`phase1-safety-gates.yml`, `cutover-validation.yml`, `multiarch-validation.yml`) were removed once their gate runners were absorbed into the canonical PR + release pipelines. The last two workflows (`pull_request.yml`, the parity PR validator, and `release.yml`, the manual-only release validator) were deleted in e5657b9 on 2026-08-26.
 

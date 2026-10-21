@@ -347,3 +347,36 @@ def test_per_source_lists_each_source_under_its_relayed_channel(client, seed_tv_
     assert first.id not in client.get(path, params={**params, 'per_source': 'false'}).text
     own = client.get(path, params={**params, 'base_url': 'acestream://{channel_id}'}).text
     assert own.count(f'acestream://{first.id}') == 1
+
+
+@pytest.mark.parametrize('path', ['/playlists/m3u', '/api/v1/playlists/m3u'])
+def test_relay_channel_goes_through_the_relay_even_when_an_http_source_ranks_first(client, seed_tv_channels, db_session, path):
+    """The relay opens HTTP sources too (app.services.tuner_http_source, #264). Before, a channel whose
+    first source had a stream_url was handed that source's /live/ link:
+    Antena 3, laSexta, Neox, Nova and Mega skipped the relay and its
+    fallback to their acestreams. Its per-source entry still opens /live/."""
+    from app.models.models import AcestreamChannel
+    tv = seed_tv_channels[0]
+    ace = _make_stream(db_session, 'Acestream', tv_channel_id=tv.id, is_online=False)
+    web = AcestreamChannel(id='url:' + 'b' * 40, name='Oficial', is_active=True, is_online=True,
+                           source_url='http://lista.example/y', stream_url='https://cdn.example.com/canal/master.m3u8',
+                           tv_channel_id=tv.id)
+    db_session.add(web)
+    db_session.commit()
+    params = {'base_url': 'http://scraper.test/tuner/channel/{tv_channel_id}.ts', 'only_online': 'false',
+              'include_unassigned': 'false'}
+    plain = client.get(path, params=params).text.splitlines()
+    links = [line for line in plain if line and not line.startswith('#')]
+    assert links == [f'http://scraper.test/tuner/channel/{tv.id}.ts']
+    # The relay answers MPEG-TS: the HLS mimetype of /live/ would make Kodi
+    # read the .ts as a playlist and fail.
+    at = plain.index(links[0])
+    assert plain[at - 1] == '#KODIPROP:mimetype=video/mp2t'
+    assert 'application/vnd.apple.mpegurl' not in '\n'.join(plain)
+    # Outside the relay, a link format still hands out the source's own URL.
+    own = client.get(path, params={**params, 'base_url': 'acestream://{channel_id}'}).text
+    assert 'https://cdn.example.com/canal/master.m3u8' in own or '/live/url%3A' + 'b' * 40 in own
+    lines = client.get(path, params={**params, 'per_source': 'true'}).text.splitlines()
+    assert f'http://scraper.test/tuner/channel/{tv.id}.ts' in lines
+    assert 'https://cdn.example.com/canal/master.m3u8' in lines or any('/live/url%3A' + 'b' * 40 in l for l in lines)
+    assert f'http://scraper.test/tuner/stream/{ace.id}.ts' in lines

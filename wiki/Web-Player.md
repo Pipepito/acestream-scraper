@@ -12,6 +12,11 @@ see [Playback routing](Remote-Players.md#playback-routing).
 
 That segmenting and buffering means the player runs roughly 6–10 seconds behind live — expected for HLS, not a fault.
 
+Old HLS segments are removed as playback advances. A request for a segment that
+has already disappeared returns 404 before delivery starts; deletion during an
+active transfer does not interrupt that transfer. Segment delivery keeps bounded
+reads and byte-range support.
+
 One ffmpeg process is shared per channel and selected audio track: if two browser tabs (or two people) play the same channel with the same audio selection, they join the same session instead of doubling the transcode cost. A session is torn down automatically a few seconds after its last viewer leaves, or after it sits idle, so it does not keep using engine and CPU resources in the background.
 
 Because the video track is passed through as-is, a browser that cannot decode it natively (MPEG-2, MPEG-1, VC-1, MPEG-4 v3) still cannot play the channel — the player tells you so and points you at VLC or Kodi instead of pretending it will work.

@@ -35,6 +35,7 @@ npx playwright test tests/03-scraper.spec.ts
 E2E_STRICT=1 npm test
 npm run test:docker
 npm run test:docker-off
+npx playwright test --config playwright.monitor.config.ts
 ```
 
 Later numbered journeys can depend on state created by earlier journeys. For a
@@ -53,3 +54,5 @@ state it needs.
   reports or media unless a documentation task explicitly requires curated proof.
 - Do not aim tests at production or shared infrastructure. The suite may create,
   edit, scrape, and delete application data.
+
+The typed API helper retries at most one connection reset for GET requests. Keep HTTP error responses, repeated resets and all write failures visible; never replay mutations to make a test pass. The transport regressions use a real socket-closing server.

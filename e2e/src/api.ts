@@ -121,24 +121,30 @@ export class Api {
     return `${this.baseURL}${path}`;
   }
 
+  private get(url: string, options?: Parameters<APIRequestContext['get']>[1]): Promise<APIResponse> {
+    // Polling can reuse a socket just as the server expires keep-alive. Retry
+    // one ECONNRESET only; Playwright does not retry HTTP error responses.
+    return this.request.get(url, { maxRetries: 1, ...options });
+  }
+
   /* health / config */
   health(): Promise<HealthResponse> {
-    return this.request.get(this.url('/api/v1/health')).then((r) => json<HealthResponse>(r, 'GET /health'));
+    return this.get(this.url('/api/v1/health')).then((r) => json<HealthResponse>(r, 'GET /health'));
   }
   async getSetting(key: string): Promise<string> {
-    const body = await this.request.get(this.url(`/api/v1/config/${key}`)).then((r) => json<{ key: string; value: string }>(r, `GET /config/${key}`));
+    const body = await this.get(this.url(`/api/v1/config/${key}`)).then((r) => json<{ key: string; value: string }>(r, `GET /config/${key}`));
     return body.value;
   }
   async putSetting(key: string, value: string): Promise<void> {
     await json(await this.request.put(this.url(`/api/v1/config/${key}`), { data: { value } }), `PUT /config/${key}`);
   }
   backgroundTasks(): Promise<BackgroundTask[]> {
-    return this.request.get(this.url('/api/v1/background-tasks/status')).then((r) => json<BackgroundTask[]>(r, 'GET /background-tasks/status'));
+    return this.get(this.url('/api/v1/background-tasks/status')).then((r) => json<BackgroundTask[]>(r, 'GET /background-tasks/status'));
   }
 
   /* scraper urls */
   listUrls(): Promise<UrlResponse[]> {
-    return this.request.get(this.url('/api/v1/scrapers/urls?limit=500')).then((r) => json<UrlResponse[]>(r, 'GET /scrapers/urls'));
+    return this.get(this.url('/api/v1/scrapers/urls?limit=500')).then((r) => json<UrlResponse[]>(r, 'GET /scrapers/urls'));
   }
   async findUrl(url: string): Promise<UrlResponse | undefined> {
     return (await this.listUrls()).find((u) => u.url === url);
@@ -170,10 +176,10 @@ export class Api {
   /* acestream channels */
   listChannels(params: Record<string, string | number | boolean> = {}): Promise<Paged<AcestreamChannel>> {
     const qs = new URLSearchParams({ page: '1', page_size: '100', ...Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])) });
-    return this.request.get(this.url(`/api/v1/acestream-channels/?${qs}`)).then((r) => json<Paged<AcestreamChannel>>(r, 'GET /acestream-channels'));
+    return this.get(this.url(`/api/v1/acestream-channels/?${qs}`)).then((r) => json<Paged<AcestreamChannel>>(r, 'GET /acestream-channels'));
   }
   async getChannel(id: string): Promise<AcestreamChannel | undefined> {
-    const res = await this.request.get(this.url(`/api/v1/acestream-channels/${id}`));
+    const res = await this.get(this.url(`/api/v1/acestream-channels/${id}`));
     if (res.status() === 404) return undefined;
     return json<AcestreamChannel>(res, `GET /acestream-channels/${id}`);
   }
@@ -188,20 +194,20 @@ export class Api {
   /* search (engine) */
   search(query: string, perPage = 10): Promise<SearchResponse> {
     const qs = new URLSearchParams({ query, page: '1', per_page: String(perPage) });
-    return this.request.get(this.url(`/api/v1/search?${qs}`)).then((r) => json<SearchResponse>(r, 'GET /search'));
+    return this.get(this.url(`/api/v1/search?${qs}`)).then((r) => json<SearchResponse>(r, 'GET /search'));
   }
 
   /* tv channels */
   listTvChannels(search?: string): Promise<Paged<TvChannel>> {
     const qs = new URLSearchParams({ skip: '0', limit: '500' });
     if (search) qs.set('search', search);
-    return this.request.get(this.url(`/api/v1/tv-channels/?${qs}`)).then((r) => json<Paged<TvChannel>>(r, 'GET /tv-channels'));
+    return this.get(this.url(`/api/v1/tv-channels/?${qs}`)).then((r) => json<Paged<TvChannel>>(r, 'GET /tv-channels'));
   }
   async findTvChannel(name: string): Promise<TvChannel | undefined> {
     return (await this.listTvChannels(name)).items.find((t) => t.name === name);
   }
   getTvChannel(id: number): Promise<TvChannel> {
-    return this.request.get(this.url(`/api/v1/tv-channels/${id}`)).then((r) => json<TvChannel>(r, `GET /tv-channels/${id}`));
+    return this.get(this.url(`/api/v1/tv-channels/${id}`)).then((r) => json<TvChannel>(r, `GET /tv-channels/${id}`));
   }
   createTvChannel(body: { name: string; category?: string; epg_id?: string; epg_source_id?: number }): Promise<TvChannel> {
     return this.request.post(this.url('/api/v1/tv-channels/'), { data: body }).then((r) => json<TvChannel>(r, 'POST /tv-channels'));
@@ -216,15 +222,13 @@ export class Api {
 
   /* epg */
   listEpgSources(): Promise<EpgSource[]> {
-    return this.request.get(this.url('/api/v1/epg/sources?limit=100')).then((r) => json<EpgSource[]>(r, 'GET /epg/sources'));
+    return this.get(this.url('/api/v1/epg/sources?limit=100')).then((r) => json<EpgSource[]>(r, 'GET /epg/sources'));
   }
   async findEpgSource(url: string): Promise<EpgSource | undefined> {
     return (await this.listEpgSources()).find((s) => s.url === url);
   }
   getEpgSource(id: number): Promise<EpgSource> {
-    // The five-second poll can reuse a socket exactly as Uvicorn expires it.
-    // Retry one ECONNRESET on this read only; HTTP failures still fail the test.
-    return this.request.get(this.url(`/api/v1/epg/sources/${id}`), { maxRetries: 1 }).then((r) => json<EpgSource>(r, `GET /epg/sources/${id}`));
+    return this.get(this.url(`/api/v1/epg/sources/${id}`)).then((r) => json<EpgSource>(r, `GET /epg/sources/${id}`));
   }
   createEpgSource(body: { url: string; name: string; enabled?: boolean }): Promise<EpgSource> {
     return this.request.post(this.url('/api/v1/epg/sources'), { data: body }).then((r) => json<EpgSource>(r, 'POST /epg/sources'));
@@ -247,16 +251,16 @@ export class Api {
   listEpgChannels(sourceId?: number, limit = 100, skip = 0): Promise<Paged<EpgChannel>> {
     const qs = new URLSearchParams({ limit: String(limit), skip: String(skip) });
     if (sourceId !== undefined) qs.set('source_id', String(sourceId));
-    return this.request.get(this.url(`/api/v1/epg/channels?${qs}`)).then((r) => json<Paged<EpgChannel>>(r, 'GET /epg/channels'));
+    return this.get(this.url(`/api/v1/epg/channels?${qs}`)).then((r) => json<Paged<EpgChannel>>(r, 'GET /epg/channels'));
   }
   async resolveEpgChannel(sourceId: number, xmlId: string): Promise<EpgChannel | undefined> {
     const qs = new URLSearchParams({ source_id: String(sourceId), channel_xml_id: xmlId });
-    const res = await this.request.get(this.url(`/api/v1/epg/channels/resolve?${qs}`));
+    const res = await this.get(this.url(`/api/v1/epg/channels/resolve?${qs}`));
     if (res.status() === 404) return undefined;
     return json<EpgChannel>(res, 'GET /epg/channels/resolve');
   }
   epgPrograms(channelId: number, limit = 100): Promise<EpgProgram[]> {
-    return this.request.get(this.url(`/api/v1/epg/channels/${channelId}/programs?limit=${limit}`)).then((r) => json<EpgProgram[]>(r, 'GET /epg/channels/{id}/programs'));
+    return this.get(this.url(`/api/v1/epg/channels/${channelId}/programs?limit=${limit}`)).then((r) => json<EpgProgram[]>(r, 'GET /epg/channels/{id}/programs'));
   }
   async mapEpgChannel(epgChannelId: number, tvChannelId: number): Promise<void> {
     const res = await this.request.post(this.url('/api/v1/epg/channels/map'), { data: { epg_channel_id: epgChannelId, tv_channel_id: tvChannelId } });
@@ -264,7 +268,7 @@ export class Api {
   }
   epgXml(params: Record<string, string> = {}): Promise<string> {
     const qs = new URLSearchParams(params);
-    return this.request.get(this.url(`/api/v1/epg/xml?${qs}`)).then(async (r) => {
+    return this.get(this.url(`/api/v1/epg/xml?${qs}`)).then(async (r) => {
       if (!r.ok()) throw new Error(`GET /epg/xml -> ${r.status()}`);
       return r.text();
     });
@@ -272,7 +276,7 @@ export class Api {
 
   /* base urls + playlists */
   listBaseUrls(): Promise<BaseUrl[]> {
-    return this.request.get(this.url('/api/v1/base-urls')).then((r) => json<BaseUrl[]>(r, 'GET /base-urls'));
+    return this.get(this.url('/api/v1/base-urls')).then((r) => json<BaseUrl[]>(r, 'GET /base-urls'));
   }
   async deleteBaseUrl(id: number): Promise<void> {
     const res = await this.request.delete(this.url(`/api/v1/base-urls/${id}`));
@@ -280,10 +284,12 @@ export class Api {
   }
   async playlist(path = '/api/v1/playlists/m3u', params: Record<string, string> = {}): Promise<{ status: number; body: string; contentType: string }> {
     const qs = new URLSearchParams(params);
-    const res = await this.request.get(this.url(`${path}${qs.size ? `?${qs}` : ''}`));
+    const res = await this.get(this.url(`${path}${qs.size ? `?${qs}` : ''}`));
     return { status: res.status(), body: await res.text(), contentType: res.headers()['content-type'] ?? '' };
   }
   async raw(method: 'get' | 'post' | 'put' | 'patch' | 'delete', path: string, data?: unknown): Promise<APIResponse> {
-    return this.request[method](this.url(path), data === undefined ? undefined : { data });
+    const options = data === undefined ? undefined : { data };
+    if (method === 'get') return this.get(this.url(path), options);
+    return this.request[method](this.url(path), options);
   }
 }

@@ -29,6 +29,7 @@ expect_failure_contains() {
     set -e
 
     if [ "$status" -eq 0 ]; then
+        printf '%s\n' "$output" >&2
         fail "$description unexpectedly succeeded"
     fi
 
@@ -482,10 +483,13 @@ expect_failure_contains \
     "In-container AceStream engine not accessible" \
     env PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR" CURL_LOG_FILE="$TMP_DIR/health-engine-only.log" CURL_FAIL_MATCH="engine.local:7000" FLASK_PORT=8000 ENABLE_ACEXY=false ENABLE_ACESTREAM_ENGINE=true ACESTREAM_HTTP_HOST=engine.local ACESTREAM_HTTP_PORT=7000 bash "$HEALTHCHECK_SCRIPT"
 
+# Keep the dummy app alive until the supervisor observes the failed launcher.
+# A two-second successful app can finish first under ARM emulation, turning
+# this into a race between app completion and the intended failure assertion.
 expect_failure_contains \
     "Entrypoint surfaces failed auxiliary launcher" \
     "Acexy startup command exited with status 7" \
-    env PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR" LOGROTATE_DIR="$TMP_DIR/logrotate-fail" ENABLE_WARP=false IMAGE_HAS_ACESTREAM=false IMAGE_HAS_ACEXY=true ENABLE_ACESTREAM_ENGINE=false ENABLE_ACEXY=true ACEXY_HOST=engine.example ACEXY_PORT=9999 ACEXY_START_COMMAND='exit 7' bash "$ENTRYPOINT_SCRIPT" bash -lc 'sleep 2'
+    env PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR" LOGROTATE_DIR="$TMP_DIR/logrotate-fail" ENABLE_WARP=false IMAGE_HAS_ACESTREAM=false IMAGE_HAS_ACEXY=true ENABLE_ACESTREAM_ENGINE=false ENABLE_ACEXY=true ACEXY_HOST=engine.example ACEXY_PORT=9999 ACEXY_START_COMMAND='exit 7' bash "$ENTRYPOINT_SCRIPT" bash -lc 'sleep 60'
 
 APP_DONE_FILE="$TMP_DIR/app-done"
 rm -f "$APP_DONE_FILE"
@@ -541,11 +545,13 @@ wait_for_seconds() {
 wait_for() { wait_for_seconds 20 "$@"; }
 launched() { [ -f "$ENGINE_TEST_DIR/launches" ] && [ "$(wc -l < "$ENGINE_TEST_DIR/launches")" -ge "$1" ]; }
 no_pid() { [ ! -f "$SUPERVISOR_RUN_DIR/acestream.pid" ]; }
-# This wait spans five deliberate crashes, each with exit detection, the 2s
-# restart delay and pre-launch cleanup. One transition's 20s budget is too
-# tight for the full sequence in the one-CPU emulated ARM contract container.
-# Keep individual UI transitions at 20s and the matrix watchdog at 5 minutes.
-wait_for_seconds 60 launched 6
+# Observe every deliberate crash/recovery with the same bounded budget as a
+# UI transition. A single 60s deadline for all five recoveries races healthy
+# progress in the one-CPU emulated ARM container (including pre-launch cleanup).
+# Each transition still has 20s; the matrix watchdog still caps the whole run.
+for expected_launch in 1 2 3 4 5 6; do
+    wait_for launched "$expected_launch"
+done
 request stop
 wait_for test -f "$SUPERVISOR_RUN_DIR/acestream.stopped"
 wait_for no_pid

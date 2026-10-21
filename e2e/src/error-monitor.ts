@@ -31,6 +31,7 @@ export class ErrorMonitor {
   readonly consoleErrors: string[] = [];
   readonly pageErrors: string[] = [];
   readonly apiFailures: ApiFailure[] = [];
+  readonly cancelledReads: ApiFailure[] = [];
   readonly backendErrors: string[] = [];
   private readonly extraAllowedApi: RegExp[] = [];
   private readonly extraAllowedConsole: RegExp[] = [];
@@ -69,7 +70,16 @@ export class ErrorMonitor {
     });
     this.page.on('requestfailed', (req) => {
       if (req.url().includes('/api/')) {
-        this.apiFailures.push({ method: req.method(), url: req.url(), status: 0, body: req.failure()?.errorText ?? 'request failed' });
+        const failure = { method: req.method(), url: req.url(), status: 0, body: req.failure()?.errorText ?? 'request failed' };
+        // Navigation and player teardown cancel in-flight reads. Keep these in
+        // the evidence, but distinguish explicit browser cancellation from an
+        // HTTP error, a transport failure, or an interrupted mutation.
+        if (['GET', 'HEAD'].includes(failure.method)
+          && ['NS_BINDING_ABORTED', 'net::ERR_ABORTED', 'cancelled'].includes(failure.body)) {
+          this.cancelledReads.push(failure);
+        } else {
+          this.apiFailures.push(failure);
+        }
       }
     });
   }
@@ -122,9 +132,10 @@ export class ErrorMonitor {
       backendErrors: backend,
       allBackendErrors: this.backendErrors,
       allApiFailures: this.apiFailures,
+      cancelledReads: this.cancelledReads,
     };
     const total = api.length + consoleMsgs.length + backend.length;
-    if (total > 0 || this.apiFailures.length > 0 || this.backendErrors.length > 0) {
+    if (total > 0 || this.apiFailures.length > 0 || this.backendErrors.length > 0 || this.cancelledReads.length > 0) {
       await testInfo.attach('error-monitor.json', { body: JSON.stringify(report, null, 2), contentType: 'application/json' });
     }
     if (total > 0) {

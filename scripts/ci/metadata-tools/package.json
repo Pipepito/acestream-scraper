@@ -1,0 +1,8 @@
+{
+  "name": "acestream-repository-metadata-checks",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "js-yaml": "4.1.1"
+  }
+}

@@ -15,14 +15,17 @@ Changes to live protection require explicit maintainer authorization.
 | Ruleset | Targets | Requirements |
 | --- | --- | --- |
 | Protected integration and release branches | `main`, `develop` | PR required, review conversations resolved, Jenkins `PR Validation` successful; no deletion or force pushes; no bypass actors |
-| Pull request review | `main`, `develop` | One approval, dismissed when reviewable commits change; repository admins may bypass this rule through a PR |
+| Pull request review | `main`, `develop` | One approval, dismissed when reviewable commits change; `Pipepito` is automatically exempt from this review-only ruleset |
 | Immutable version tags | `v*` tags | Existing tags cannot be updated or deleted; new tag creation remains manual and permitted |
 
-The review exception allows the sole maintainer to merge their own PRs, since
-authors cannot approve their own work. Use it for maintainer-authored PRs; review
-collaborator contributions normally. The exception is scoped to the review
-ruleset: Jenkins and the baseline PR/conversation rules still apply to admins.
-It does not grant direct push permission. The baseline preserves the existing
+The review exception uses the `User` actor for `Pipepito` (ID `1348529`) with
+`bypass_mode: exempt`. GitHub does not evaluate this review-only ruleset for that
+account, so no approval or manual bypass is needed when Pipepito merges. This is
+an exemption for the merging user, not the PR author: Pipepito can also merge
+collaborator PRs without approval. Collaborators remain subject to the review
+requirement when they merge. This tradeoff was explicitly selected by the owner.
+Jenkins and baseline PR/conversation rules still apply to everyone through the
+separate ruleset with no exemptions. Direct pushes remain blocked. The baseline preserves the existing
 non-strict status policy (no new requirement to update branches after every merge).
 
 `PR Validation` is bound to GitHub App ID `3430282`, matching the classic branch
@@ -72,3 +75,18 @@ preview all four forms without submitting a test issue.
 GitHub documentation: [rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets),
 [issue form syntax](https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-issue-forms),
 and [workflow events](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#pull_request_target).
+
+## Lightweight validation
+
+Jenkins classifies issue-form YAML, ruleset JSON and the exact assignment workflow
+as contribution metadata. It checks their structure and the workflow's trusted
+behavior contract without building application images. Other workflows and
+validator/pipeline changes retain full checks. Run locally with:
+
+```bash
+bash scripts/ci/validate_repository_metadata.sh "$PWD"
+```
+
+The validator installs only integrity-locked parser dependencies in a temporary
+directory with install scripts disabled. PRs use target-owned policy; this CI
+change itself must pass the old full gate before future PRs can use the shortcut.

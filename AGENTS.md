@@ -485,8 +485,17 @@ separate from immediate deadline cleanup. See `wiki/Media-Servers.md` and
 `.github/rulesets/` records intended live GitHub rules; merging JSON does not apply
 it. Baseline main/develop rules require PRs, resolved conversations and the
 Jenkins-bound `PR Validation`, without bypass. A separate one-approval rule allows
-admin PR-only bypass for maintainer-authored work; it cannot bypass baseline CI.
+automatic exemption for Pipepito as the merging user (not by PR author); it
+cannot bypass baseline CI. Collaborators still need approval when merging.
 Version tags are immutable. `.github/workflows/assign-pull-requests.yml` assigns
 other authors' PRs to Pipepito using metadata only: never check out or execute
 contributor code in `pull_request_target`. Issue forms and assignment activate
 after reaching default branch main. See `docs/ops/repository-governance.md`.
+
+Contribution-only CI recognizes direct issue-form YAML, ruleset JSON, and the
+named assignment workflow. A target-owned metadata validator and integrity-locked
+YAML parser read them as data; assignment behavior must match the trusted contract.
+No application/image work runs for this scope. Unknown workflows, app/dependency
+changes, metadata-validator changes and mode/symlink changes keep the full gate.
+PR selectors cannot exempt their own changes; the policy must reach the target
+branch first. See `docs/ops/jenkins-ci.md`.

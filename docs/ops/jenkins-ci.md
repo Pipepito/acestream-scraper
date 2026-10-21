@@ -93,6 +93,7 @@ symlinks, executable files, and submodules cannot take the documentation shortcu
 | `wiki/` Markdown/images | Documentation checks | None; wiki waits for release promotion |
 | `docs/index.html`, `docs/.nojekyll`, the three named files and documentation images under `docs/builder/` | Documentation and command-builder contracts, JS syntax | None; Pages serves main/docs |
 | `docs/dockerhub/README.md` or `short-description.txt` | Documentation checks and Hub size/link checks | None; manual description update |
+| Direct `.github/ISSUE_TEMPLATE/*.yml` / `*.yaml`, `.github/rulesets/*.json`, and `.github/workflows/assign-pull-requests.yml` | Documentation plus bounded YAML/JSON checks and exact assignment-workflow policy | None |
 | Application, dependency, packaging, test, CI or unrecognized files | Existing full application/architecture validation; trusted develop also runs image smokes | Develop images only |
 | Selector or Jenkins pipeline definitions | Full validation | Develop images only |
 
@@ -106,9 +107,21 @@ filenames, Docker Hub text, Docker docs contracts, and command-builder/runtime
 consistency. The lightweight PR path extracts **only target-owned validators**
 into a temporary directory, uses isolated Python imports, and treats all PR
 content as data; JavaScript gets `node --check`, never execution. It binds no
-credentials and does not build a runner, install dependencies, run application
-tests, or launch architecture containers. `PR Validation` still reports the
-result. Develop additionally previews wiki rendering. The full paths
+credentials and does not build a runner, install application dependencies, run
+application tests, or launch architecture containers. `PR Validation` still reports
+the result. When `CI_METADATA=true`, a separate metadata stage copies the trusted
+validator, its exact workflow contract, and its parser lockfile into a temporary
+directory. It installs only the two integrity-locked YAML parser packages with
+`npm ci --ignore-scripts --prefer-offline`; it never loads the PR's package files,
+npm configuration, or executable code. Files are bounded to 256 KiB, YAML aliases
+and custom tags are rejected, and symlinks/executable metadata are refused.
+Only the named assignment workflow qualifies; its parsed contents must match the
+trusted contract exactly. Unknown workflows and changes to the validator,
+contract or dependency lock select full validation. Metadata checks run on both
+full and lightweight paths when selected. Missing flags default to validation.
+Policy changes cannot skip their own PR checks: PR selection comes from the target
+branch, so the first rollout still uses the existing full gate. Fork policy and
+parser inputs are always target-owned; full maintainer PRs may test proposed policy. Develop additionally previews wiki rendering. The full paths
 retain their existing fork isolation and dependency-input restrictions.
 
 The FIFO Docker lock is unchanged, including on documentation-only jobs. Manual

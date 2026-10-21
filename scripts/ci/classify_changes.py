@@ -6,12 +6,23 @@ from pathlib import Path, PurePosixPath
 import subprocess
 
 
-KEYS = ("APPLICATION", "WIKI", "PAGES", "DOCKERHUB")
+KEYS = ("APPLICATION", "WIKI", "PAGES", "DOCKERHUB", "METADATA")
 TEXT_ROOTS = {"README.md", "AGENTS.md", "CLAUDE.md", "LICENSE", ".github/PULL_REQUEST_TEMPLATE.md"}
 DOC_SUFFIXES = {".md", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp"}
 SITE_FILES = {"docs/index.html", "docs/.nojekyll", "docs/builder/app.js",
               "docs/builder/style.css", "docs/builder/runtime-options.json"}
 HUB_FILES = {"docs/dockerhub/README.md", "docs/dockerhub/short-description.txt"}
+
+
+def is_repository_metadata(path):
+    p = PurePosixPath(path)
+    # Only direct children of these data directories qualify. New workflows and
+    # nested/executable files retain the full gate. The assignment workflow has
+    # an exact trusted behavior contract in metadata-tools/assignment-workflow.json.
+    return (p.parent == PurePosixPath(".github/ISSUE_TEMPLATE")
+            and p.suffix in {".yml", ".yaml"}
+            or p.parent == PurePosixPath(".github/rulesets") and p.suffix == ".json"
+            or path == ".github/workflows/assign-pull-requests.yml")
 
 
 def classify_paths(paths):
@@ -20,7 +31,9 @@ def classify_paths(paths):
         p = PurePosixPath(path)
         is_doc = (path in TEXT_ROOTS or path in SITE_FILES or path in HUB_FILES
                   or (p.parts[0] in {"docs", "wiki"} and p.suffix.lower() in DOC_SUFFIXES))
-        if not is_doc:
+        is_metadata = is_repository_metadata(path)
+        result["METADATA"] |= is_metadata
+        if not is_doc and not is_metadata:
             result["APPLICATION"] = True
         result["WIKI"] |= path.startswith("wiki/") or path == "scripts/ci/publish_wiki.sh"
         result["PAGES"] |= (path in SITE_FILES or path.startswith(("docs/builder/", "docs/recipes/"))
@@ -29,7 +42,9 @@ def classify_paths(paths):
                             or path in {"frontend/vite.recipes.config.ts", "frontend/package.json", "frontend/package-lock.json", "frontend/src/theme.ts"})
         result["DOCKERHUB"] |= path in HUB_FILES or path == "scripts/ci/publish_dockerhub_description.py"
         # Changes to selection/orchestration must exercise the full validation scope.
-        if path.startswith("jenkins/") or path in {"Jenkinsfile", "scripts/ci/classify_changes.py"}:
+        if (path.startswith(("jenkins/", "scripts/ci/metadata-tools/"))
+                or path in {"Jenkinsfile", "scripts/ci/classify_changes.py",
+                            "scripts/ci/validate_repository_metadata.sh"}):
             result.update(dict.fromkeys(KEYS, True))
     return result
 

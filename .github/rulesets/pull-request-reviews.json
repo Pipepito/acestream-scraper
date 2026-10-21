@@ -4,9 +4,9 @@
   "enforcement": "active",
   "bypass_actors": [
     {
-      "actor_id": 5,
-      "actor_type": "RepositoryRole",
-      "bypass_mode": "pull_request"
+      "actor_id": 1348529,
+      "actor_type": "User",
+      "bypass_mode": "exempt"
     }
   ],
   "conditions": {

@@ -502,3 +502,14 @@ groups measured in saved check intervals. Favorites and TV assignments win
 within an age group; they must not starve older loose streams across interrupted
 passes. Keep the inventory query in ChannelRepository and ordering in the status
 service. See `docs/ops/scheduled-job-history.md`.
+
+## Repository contribution governance
+
+`.github/rulesets/` records intended live GitHub rules; merging JSON does not apply
+it. Baseline main/develop rules require PRs, resolved conversations and the
+Jenkins-bound `PR Validation`, without bypass. A separate one-approval rule allows
+admin PR-only bypass for maintainer-authored work; it cannot bypass baseline CI.
+Version tags are immutable. `.github/workflows/assign-pull-requests.yml` assigns
+other authors' PRs to Pipepito using metadata only: never check out or execute
+contributor code in `pull_request_target`. Issue forms and assignment activate
+after reaching default branch main. See `docs/ops/repository-governance.md`.

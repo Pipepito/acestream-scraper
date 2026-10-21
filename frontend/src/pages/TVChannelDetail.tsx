@@ -46,6 +46,7 @@ import { normalizeApiError } from '../services/apiErrors';
 import { AcestreamChannel } from '../types/channelTypes';
 import { useAcestreamChannels } from '../hooks/useChannels';
 import { useResolveEPGChannel } from '../hooks/useEPG';
+import { channelNumberPayload } from '../utils/channelNumber';
 import {
   useAssociateAcestream,
   useReorderTVChannelAcestreams,
@@ -179,7 +180,7 @@ const TVChannelDetail: React.FC = () => {
       language: channel.language || '',
       website: channel.website || '',
       epg_id: channel.epg_id || '',
-      channel_number: channel.channel_number || '',
+      channel_number: channel.channel_number ?? '',
       is_active: channel.is_active,
       is_favorite: channel.is_favorite,
     });
@@ -205,7 +206,7 @@ const TVChannelDetail: React.FC = () => {
           language: editFormData.language,
           website: editFormData.website,
           epg_id: editFormData.epg_id,
-          channel_number: editFormData.channel_number ? Number(editFormData.channel_number) : undefined,
+          channel_number: channelNumberPayload(editFormData.channel_number),
           is_active: editFormData.is_active,
           is_favorite: editFormData.is_favorite,
         },

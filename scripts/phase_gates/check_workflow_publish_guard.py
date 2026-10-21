@@ -159,10 +159,18 @@ def main() -> int:
              and "def selected = selection.readLines()" in pipeline
              and all(
                  f"env.CI_{key} = selected.contains('CI_{key}=false') ? 'false' : 'true'" in pipeline
-                 for key in ('APPLICATION', 'WIKI', 'PAGES', 'DOCKERHUB')
+                 for key in ('APPLICATION', 'WIKI', 'PAGES', 'DOCKERHUB', 'METADATA')
              )
              for pipeline in (pr_jenkinsfile, develop_jenkinsfile)
          )),
+        ("metadata validation keeps trusted policy separate from repository input",
+         'metadata_ref="$PR_VALIDATION_REF"' in pr_jenkinsfile
+         and 'metadata_ref="refs/remotes/origin/${CHANGE_TARGET}"' in pr_jenkinsfile
+         and 'git show "$metadata_ref:scripts/ci/metadata-tools/$file"' in pr_jenkinsfile
+         and 'bash "$trusted_dir/validate_repository_metadata.sh" "$WORKSPACE"' in pr_jenkinsfile
+         and 'validate_repository_metadata.sh "$WORKSPACE"' in develop_jenkinsfile
+         and 'npm ci --ignore-scripts --no-audit --no-fund --prefer-offline'
+             in read("scripts/ci/validate_repository_metadata.sh")),
         ("develop skips heavy work only using the last successful baseline",
          'GIT_PREVIOUS_SUCCESSFUL_COMMIT' in develop_jenkinsfile
          and develop_jenkinsfile.count("when { expression { env.CI_APPLICATION == 'true' } }") == 5

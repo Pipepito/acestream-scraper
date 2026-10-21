@@ -69,9 +69,33 @@ fi
                   env.CI_WIKI = selected.contains('CI_WIKI=false') ? 'false' : 'true'
                   env.CI_PAGES = selected.contains('CI_PAGES=false') ? 'false' : 'true'
                   env.CI_DOCKERHUB = selected.contains('CI_DOCKERHUB=false') ? 'false' : 'true'
+                  env.CI_METADATA = selected.contains('CI_METADATA=false') ? 'false' : 'true'
                   echo selection
-                  currentBuild.description = env.CI_APPLICATION == 'true' ? 'Full application validation' : 'Documentation checks; application unchanged'
+                  currentBuild.description = env.CI_APPLICATION == 'true' ? 'Full application validation' : 'Documentation/metadata checks; application unchanged'
                 }
+              }
+            }
+
+            stage('Repository metadata validation') {
+              when { expression { env.CI_METADATA != 'false' } }
+              steps {
+                // Lightweight PRs use the target's policy. Full origin PRs may
+                // validate proposed policy; fork inputs always remain target-owned.
+                sh '''#!/usr/bin/env bash
+set -euo pipefail
+trusted_dir="$(mktemp -d "$WORKSPACE@tmp/metadata-checks.XXXXXX")"
+trap 'rm -rf "$trusted_dir"' EXIT
+metadata_ref="$PR_VALIDATION_REF"
+if [[ "$CI_APPLICATION" == 'false' ]]; then
+  metadata_ref="refs/remotes/origin/${CHANGE_TARGET}"
+fi
+mkdir -p "$trusted_dir/metadata-tools"
+git show "$metadata_ref:scripts/ci/validate_repository_metadata.sh" > "$trusted_dir/validate_repository_metadata.sh"
+for file in package.json package-lock.json validate.cjs test.cjs assignment-workflow.json; do
+  git show "$metadata_ref:scripts/ci/metadata-tools/$file" > "$trusted_dir/metadata-tools/$file"
+done
+bash "$trusted_dir/validate_repository_metadata.sh" "$WORKSPACE"
+'''
               }
             }
 

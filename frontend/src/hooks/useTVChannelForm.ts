@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TVChannel, TVChannelCreate, TVChannelUpdate } from '../types/tvChannelTypes';
 import { channelNumberPayload } from '../utils/channelNumber';
+import { guideSourcePayload } from '../components/GuideSourceField';
 
 export type TVChannelFormErrors = {
   name?: string;
@@ -56,6 +57,7 @@ export const useTVChannelForm = () => {
       is_favorite: channel.is_favorite,
       epg_id: channel.epg_id || '',
       channel_number: channel.channel_number,
+      epg_source_id: channel.epg_source_id ?? null,
     });
     setOpenEditDialog(true);
   };
@@ -79,6 +81,7 @@ export const useTVChannelForm = () => {
     language: sanitizeTextInput(formData.language),
     epg_id: 'epg_id' in formData ? sanitizeTextInput(formData.epg_id) : undefined,
     channel_number: channelNumberPayload(formData.channel_number),
+    ...('epg_source_id' in formData ? { epg_source_id: guideSourcePayload(formData.epg_source_id) } : {}),
   });
 
   const validateForm = (): TVChannelCreate | TVChannelUpdate | null => {

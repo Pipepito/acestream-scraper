@@ -9,6 +9,7 @@ const channel = {
   is_active: true,
   is_favorite: false,
   epg_id: 'Example.xx',
+  epg_source_id: 4,
   channel_number: 7,
   created_at: '2026-10-14T00:00:00Z',
   updated_at: '2026-10-14T00:00:00Z',
@@ -32,5 +33,32 @@ describe('channel number in the edit form', () => {
 
   it('keeps 0 as a number', () => {
     expect(submit('0')).toHaveProperty('channel_number', 0);
+  });
+});
+
+describe('guide source in the edit form', () => {
+  const submit = (value: string | number | null) => {
+    const { result } = renderHook(() => useTVChannelForm());
+    act(() => result.current.handleOpenEditDialog(channel));
+    if (value !== null) {
+      act(() => result.current.handleFormChange({ target: { name: 'epg_source_id', value, type: 'text', checked: false } } as unknown as React.ChangeEvent<HTMLInputElement>));
+    }
+    let payload: ReturnType<typeof result.current.validateForm> = null;
+    act(() => {
+      payload = result.current.validateForm();
+    });
+    return payload;
+  };
+
+  it('keeps the loaded source', () => {
+    expect(submit(null)).toHaveProperty('epg_source_id', 4);
+  });
+
+  it('sends the chosen source as a number', () => {
+    expect(submit(9)).toHaveProperty('epg_source_id', 9);
+  });
+
+  it('sends null when set to Not set', () => {
+    expect(submit('')).toHaveProperty('epg_source_id', null);
   });
 });

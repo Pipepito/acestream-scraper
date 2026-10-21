@@ -30,7 +30,8 @@ export interface TVChannelUpdate {
   is_active?: boolean;
   is_favorite?: boolean;
   channel_number?: number | null;
-  epg_source_id?: number;
+  /** null removes the source; the EPG ID is looked up in this guide. */
+  epg_source_id?: number | null;
 }
 
 export interface TVChannel extends TVChannelBase {

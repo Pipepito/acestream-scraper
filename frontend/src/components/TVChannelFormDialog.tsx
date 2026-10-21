@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import { TVChannelCreate, TVChannelUpdate } from '../types/tvChannelTypes';
 import { TVChannelFormErrors } from '../hooks/useTVChannelForm';
+import GuideSourceField from './GuideSourceField';
 
 interface TVChannelFormDialogProps {
   mode: 'create' | 'edit';
@@ -82,6 +83,7 @@ const TVChannelFormDialog: React.FC<TVChannelFormDialogProps> = ({
             <TextField name="category" label="Category" fullWidth value={formData.category || ''} onChange={onChange} />
             <TextField name="country" label="Country" fullWidth value={formData.country || ''} onChange={onChange} />
             <TextField name="language" label="Language" fullWidth value={formData.language || ''} onChange={onChange} />
+            {mode === 'edit' ? <GuideSourceField value={'epg_source_id' in formData ? formData.epg_source_id : undefined} onChange={onChange} /> : null}
             {mode === 'edit' ? <TextField name="epg_id" label="EPG ID" fullWidth value={formData.epg_id || ''} onChange={onChange} /> : null}
             <TextField name="channel_number" label="Channel Number" type="number" fullWidth value={formData.channel_number ?? ''} onChange={onChange} />
           </Stack>

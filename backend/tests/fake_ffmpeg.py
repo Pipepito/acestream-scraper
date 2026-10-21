@@ -2,7 +2,7 @@
 """Stand-in for ffmpeg in player tests. Reads the output playlist path from
 the last argv entry, prints a codec dump like ffmpeg does, then writes HLS
 segments until it is terminated. Behaviour switches via env FAKE_FFMPEG_MODE:
-  normal (default) | never_ready | exit_early | flood_stderr
+  normal (default) | static_playlist | never_ready | exit_early | flood_stderr
 """
 import os
 import signal
@@ -43,7 +43,7 @@ while running:
     if mode == "flood_stderr" and seq < 400:
         sys.stderr.write("\r" + ("frame=%d fps=25 q=-1.0 size=1024kB time=00:00:01.00 bitrate=8192kbits/s speed=1x" % seq) * 4)
         sys.stderr.flush()
-    if mode != "never_ready":
+    if mode != "never_ready" and not (mode == "static_playlist" and seq >= 2):
         seg = directory / f"seg{seq:05d}.ts"
         seg.write_bytes(b"\x47" + b"\x00" * 187)
         keep = list(range(max(0, seq - 5), seq + 1))

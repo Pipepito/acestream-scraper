@@ -59,9 +59,17 @@ python3 -I scripts/ci/classify_changes.py --base "${GIT_PREVIOUS_SUCCESSFUL_COMM
               env.CI_WIKI = selected.contains('CI_WIKI=false') ? 'false' : 'true'
               env.CI_PAGES = selected.contains('CI_PAGES=false') ? 'false' : 'true'
               env.CI_DOCKERHUB = selected.contains('CI_DOCKERHUB=false') ? 'false' : 'true'
+              env.CI_METADATA = selected.contains('CI_METADATA=false') ? 'false' : 'true'
               echo selection
-              currentBuild.description = env.CI_APPLICATION == 'true' ? 'Full validation and image publish' : 'Documentation checks; no image build'
+              currentBuild.description = env.CI_APPLICATION == 'true' ? 'Full validation and image publish' : 'Documentation/metadata checks; no image build'
             }
+          }
+        }
+
+        stage('Repository metadata validation') {
+          when { expression { env.CI_METADATA != 'false' } }
+          steps {
+            sh 'bash scripts/ci/validate_repository_metadata.sh "$WORKSPACE"'
           }
         }
 

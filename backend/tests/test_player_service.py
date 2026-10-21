@@ -691,3 +691,68 @@ def test_stop_watching_preserves_active_plex_relay(make_service, plex_id, use_ac
         assert len(starts) == (0 if use_acexy else 2)
 
     asyncio.run(run())
+
+
+def test_engine_json_start_uses_remaining_player_budget(make_service):
+    seen = []
+
+    def handler(request):
+        if request.url.path == '/ace/getstream':
+            seen.append(request.extensions['timeout'])
+            return httpx.Response(200, json=_STREAM_OK)
+        return httpx.Response(200, json=_STAT_OK)
+
+    svc = make_service(handler=handler, start_timeout=60)
+    original_launch = svc._launch
+
+    async def delayed_launch(session):
+        svc._clock['now'] += 10
+        await original_launch(session)
+
+    svc._launch = delayed_launch
+
+    async def run():
+        try:
+            session = await svc.open_session(IH)
+            assert session.process is not None
+            assert 49 <= seen[0]['read'] <= 50
+            assert seen[0]['connect'] == 5
+        finally:
+            await svc.stop()
+
+    asyncio.run(run())
+
+
+def test_cancelled_player_start_reaps_late_engine_and_frees_slot(make_service):
+    gate, entered = threading.Event(), threading.Event()
+    stops = []
+
+    def handler(request):
+        if request.url.path == '/ace/getstream':
+            entered.set()
+            gate.wait(2)
+            return httpx.Response(200, json=_STREAM_OK)
+        if request.url.path.startswith('/ace/cmd/'):
+            stops.append(request.url)
+        return httpx.Response(200, json=_STAT_OK)
+
+    svc = make_service(handler=handler)
+
+    async def run():
+        opening = asyncio.create_task(svc.open_session(IH))
+        try:
+            assert await _wait(entered.is_set)
+            session = next(iter(svc.sessions.values()))
+            opening.cancel()
+            gate.set()
+            with pytest.raises(asyncio.CancelledError):
+                await opening
+            assert len(stops) == 1
+            assert not svc.sessions
+            assert session.process is None
+            assert not session.dir.exists()
+        finally:
+            gate.set()
+            await svc.stop()
+
+    asyncio.run(run())

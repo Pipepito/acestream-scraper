@@ -64,7 +64,7 @@ These previews do not publish. Documentation-only PRs use lightweight checks; ap
 
 ## Send a contribution
 
-Open feature and fix PRs against `develop`. `main` is the release branch. Include what changed and the checks you ran. Read the root and relevant directory's `AGENTS.md` and `CLAUDE.md` for repository conventions.
+Open feature and fix PRs against `develop`. `main` is the release branch. Include what changed and the checks you ran. PRs require Jenkins validation and resolved review conversations. Collaborators need one approval when merging. Pipepito is automatically exempt from the review-only rule, including when merging another author's PR; Jenkins and resolved conversations remain mandatory. PRs from other authors are assigned to `Pipepito` once the assignment workflow reaches `main`. Read the root and relevant directory's `AGENTS.md` and `CLAUDE.md` for repository conventions.
 
 Edit the user docs in `wiki/`; the manual release job mirrors them to GitHub's wiki after successful latest promotion. GitHub Pages serves `main/docs`; rebuild and commit `docs/recipes/` with `bash scripts/ci/prepare_pages.sh` when the extraction helper changes. Edit Docker Hub text in `docs/dockerhub/` and copy it to Docker Hub manually. Develop validates documentation without publishing it. Keep the root README focused on what the project does and where to start.
 

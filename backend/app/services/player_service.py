@@ -30,6 +30,7 @@ from app.services.engine_client import (
     EngineStats,
     EngineUnavailableError,
     playback_client_from_settings,
+    start_engine_session,
 )
 
 logger = logging.getLogger(__name__)
@@ -291,9 +292,17 @@ class PlayerService:
             await self._fail(session, "ffmpeg_missing", "ffmpeg is not installed on this server")
             return
         try:
-            engine_session = await run_in_threadpool(
-                self._engine_call, lambda engine: engine.start(session.content_id)
+            remaining = session.created_at + float(self._settings().PLAYER_START_TIMEOUT_SECONDS) - self._now()
+            deadline = time.monotonic() + remaining
+            engine_session = await start_engine_session(
+                lambda: self._engine_call(lambda engine: engine.start(session.content_id, startup_deadline=deadline)),
+                lambda opened: self._engine_call(lambda engine: engine.stop(opened)),
             )
+        except asyncio.CancelledError:
+            # start_engine_session has released any late engine handle. Retire
+            # the unreturned player session too, so cancellation frees its slot.
+            await self._teardown(session, immediate=True)
+            raise
         except EngineRefusedError as exc:
             await self._fail(session, "engine_refused", str(exc))
             return

@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
@@ -27,6 +28,7 @@ from app.schemas.player import (
 from app.services.player_service import PlayerLimitReached, PlayerSession, player_service
 from app.services.stream_relay import relay_registry
 from app.services.tuner_probe_service import tuner_probe_service
+from app.utils.hls_response import HLSFileResponse
 
 router = APIRouter(tags=["player"])
 _SEGMENT = re.compile(r"^seg\d{5}\.ts$")
@@ -175,15 +177,13 @@ async def segment(session_id: str, segment: str) -> FileResponse:
     player_service.touch(session_id)
     path = session.dir / segment
     try:
-        # Stat once and hand the result to FileResponse. Segment deletion is
-        # routine here (ffmpeg's delete_segments, teardown's rmtree); without
-        # stat_result Starlette re-stats at send time and raises RuntimeError,
-        # which would surface as a 500 instead of this 404.
-        file_stat = path.stat()
+        # Validate off the event loop. HLSFileResponse also handles deletion
+        # between this stat and opening the file, before sending any headers.
+        file_stat = await run_in_threadpool(path.stat)
     except OSError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Segment not ready") from None
     if not stat_module.S_ISREG(file_stat.st_mode):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Segment not ready")
-    return FileResponse(
+    return HLSFileResponse(
         path, media_type="video/mp2t", headers={"Cache-Control": "no-store"}, stat_result=file_stat
     )

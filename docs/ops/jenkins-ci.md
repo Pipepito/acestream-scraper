@@ -7,7 +7,7 @@ This document is the primary operator guide for Jenkins CI/CD in this repository
 Current rollout state:
 
 - Jenkins is the canonical path for pull request validation and release publication in this repository.
-- (Superseded 2026-08-26, e5657b9) GitHub Actions remain available during the current proving window as fallback/reference workflows while operators build confidence in Jenkins hardening. Current state: the last workflows (`.github/workflows/pull_request.yml`, `.github/workflows/release.yml`) were deleted in e5657b9 and `.github/workflows/` no longer exists; Jenkins is the sole validation and release path. Older "proving window" statements below are kept as the historical record and annotated as superseded.
+- (Superseded 2026-08-26, e5657b9) GitHub Actions remain available during the current proving window as fallback/reference workflows while operators build confidence in Jenkins hardening. Current state: the last workflows (`.github/workflows/pull_request.yml`, `.github/workflows/release.yml`) were deleted in e5657b9 and the application workflows no longer exist; Jenkins is the sole validation and release path. Older "proving window" statements below are kept as the historical record and annotated as superseded.
 - Jenkins assets in this repository are ready to be wired into your homelab controller and agent.
 
 Important constraint for this setup:
@@ -33,7 +33,7 @@ GitHub Pages serves `main` at `/docs`; Jenkins does not deploy a separate branch
 Docker Hub descriptions are updated manually from `docs/dockerhub/`. Neither
 pipeline binds credentials for description editing or updates the Hub overview.
 
-- GitHub Actions workflows are retired; Jenkins is the sole CI/CD implementation.
+- GitHub Actions application workflows are retired; Jenkins is the sole CI/CD implementation. The metadata-only PR assignment workflow is documented in [repository governance](repository-governance.md).
 
 The shared dependency runner includes FFmpeg for generated-video relay failover
 and decoder tests. Tests use synthetic local media and remain network-disabled.
@@ -93,6 +93,7 @@ symlinks, executable files, and submodules cannot take the documentation shortcu
 | `wiki/` Markdown/images | Documentation checks | None; wiki waits for release promotion |
 | `docs/index.html`, `docs/.nojekyll`, the three named files and documentation images under `docs/builder/` | Documentation and command-builder contracts, JS syntax | None; Pages serves main/docs |
 | `docs/dockerhub/README.md` or `short-description.txt` | Documentation checks and Hub size/link checks | None; manual description update |
+| Direct `.github/ISSUE_TEMPLATE/*.yml` / `*.yaml`, `.github/rulesets/*.json`, and `.github/workflows/assign-pull-requests.yml` | Documentation plus bounded YAML/JSON checks and exact assignment-workflow policy | None |
 | Application, dependency, packaging, test, CI or unrecognized files | Existing full application/architecture validation; trusted develop also runs image smokes | Develop images only |
 | Selector or Jenkins pipeline definitions | Full validation | Develop images only |
 
@@ -106,9 +107,21 @@ filenames, Docker Hub text, Docker docs contracts, and command-builder/runtime
 consistency. The lightweight PR path extracts **only target-owned validators**
 into a temporary directory, uses isolated Python imports, and treats all PR
 content as data; JavaScript gets `node --check`, never execution. It binds no
-credentials and does not build a runner, install dependencies, run application
-tests, or launch architecture containers. `PR Validation` still reports the
-result. Develop additionally previews wiki rendering. The full paths
+credentials and does not build a runner, install application dependencies, run
+application tests, or launch architecture containers. `PR Validation` still reports
+the result. When `CI_METADATA=true`, a separate metadata stage copies the trusted
+validator, its exact workflow contract, and its parser lockfile into a temporary
+directory. It installs only the two integrity-locked YAML parser packages with
+`npm ci --ignore-scripts --prefer-offline`; it never loads the PR's package files,
+npm configuration, or executable code. Files are bounded to 256 KiB, YAML aliases
+and custom tags are rejected, and symlinks/executable metadata are refused.
+Only the named assignment workflow qualifies; its parsed contents must match the
+trusted contract exactly. Unknown workflows and changes to the validator,
+contract or dependency lock select full validation. Metadata checks run on both
+full and lightweight paths when selected. Missing flags default to validation.
+Policy changes cannot skip their own PR checks: PR selection comes from the target
+branch, so the first rollout still uses the existing full gate. Fork policy and
+parser inputs are always target-owned; full maintainer PRs may test proposed policy. Develop additionally previews wiki rendering. The full paths
 retain their existing fork isolation and dependency-input restrictions.
 
 The FIFO Docker lock is unchanged, including on documentation-only jobs. Manual
@@ -973,9 +986,9 @@ Fork PRs are discovered, but remain untrusted by construction:
 
 ## GitHub Actions During The Proving Window
 
-Superseded 2026-08-26 (e5657b9). Jenkins is the canonical and only CI and release path; `.github/workflows/` no longer exists in the repository. (Historical: during the proving window, two GitHub Actions workflows remained as parity validators.)
+Superseded 2026-08-26 (e5657b9). Jenkins is the canonical and only CI and release path; the application workflows no longer exist in the repository. (Historical: during the proving window, two GitHub Actions workflows remained as parity validators.)
 
-- All GitHub Actions workflows are retired; every gate (tests, four-flavor dry-run multi-arch builds, AceStream engine runtime smoke, cutover required checks, phase gates) runs on the Jenkins pipelines above.
+- All GitHub Actions application workflows are retired; every gate (tests, four-flavor dry-run multi-arch builds, AceStream engine runtime smoke, cutover required checks, phase gates) runs on the Jenkins pipelines above.
 
 The phase-specific GA scaffolding workflows (`phase1-safety-gates.yml`, `cutover-validation.yml`, `multiarch-validation.yml`) were removed once their gate runners were absorbed into the canonical PR + release pipelines. The last two workflows (`pull_request.yml`, the parity PR validator, and `release.yml`, the manual-only release validator) were deleted in e5657b9 on 2026-08-26.
 

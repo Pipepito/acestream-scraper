@@ -502,3 +502,12 @@ groups measured in saved check intervals. Favorites and TV assignments win
 within an age group; they must not starve older loose streams across interrupted
 passes. Keep the inventory query in ChannelRepository and ordering in the status
 service. See `docs/ops/scheduled-job-history.md`.
+
+
+Direct-engine JSON startup shares the caller's existing budget: TV relays pass
+one deadline capped by per-source and remaining total limits; browser sessions
+use their remaining `PLAYER_START_TIMEOUT_SECONDS`. Charge worker/source-lock
+waiting to that deadline. Preserve source leases and collect late start replies
+on cancellation before releasing clients/slots; disconnect linger remains
+separate from immediate deadline cleanup. See `wiki/Media-Servers.md` and
+`wiki/Web-Player.md`.

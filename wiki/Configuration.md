@@ -79,7 +79,7 @@ External players and media servers (VLC, Kodi, Jellyfin, Plex) fetch streams ove
 | `TUNER_ALLOWED_NETWORKS` | Networks allowed to use the token-free `/tuner/*` routes | `127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10` | `*` disables the check. Media servers cannot send an `API_TOKEN`, so these routes are gated by address instead. Publish the web port as `-p 0.0.0.0:8000:8000` (never the bare `8000:8000`): an unaddressed mapping also listens on `[::]`, and Docker then presents every IPv6 client to the app as the bridge gateway (`172.17.0.1`), which is inside this default list |
 | `PLAYER_HLS_DIR` | Where the web player writes HLS segments | `/tmp/acestream-player` | `/dev/shm/acestream-player` with a larger `shm_size` keeps them in RAM |
 | `PLAYER_MAX_SESSIONS` | Maximum channels the web player prepares at once | `3` | Each session costs one engine stream and one ffmpeg process |
-| `PLAYER_START_TIMEOUT_SECONDS` | Seconds a web-player session may stay in "starting" before it is reported as stalled | `45` | Raise it on slow links where streams take longer to buffer |
+| `PLAYER_START_TIMEOUT_SECONDS` | Seconds for direct-engine JSON startup and initial web-player buffering before the session is reported as stalled | `45` | Raise it on slow links where streams take longer to buffer |
 | `FFMPEG_BINARY_PATH` | ffmpeg used by the web player | *(empty)* | Empty falls back to `ffmpeg` on `PATH`; images that bundle ffmpeg set it to `/opt/ffmpeg/bin/ffmpeg` |
 | `MEDIA_SERVER_MIN_REFRESH_MINUTES` | Minimum minutes between automatic Jellyfin/Plex guide refreshes | `30` | `0` disables the debounce |
 

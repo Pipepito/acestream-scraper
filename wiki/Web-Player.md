@@ -111,7 +111,7 @@ The web player has three settings, all environment variables (see [Configuration
 
 - **`PLAYER_MAX_SESSIONS`** (default `3`) — how many *distinct* channels the player prepares at once. Each one costs one engine stream and one ffmpeg process; raise it if you regularly want more channels playing side by side.
 - **`PLAYER_HLS_DIR`** (default `/tmp/acestream-player`) — where segments are written. Point it at `/dev/shm/acestream-player` (with a larger `--shm-size`/`shm_size`) to keep them in RAM instead of on disk.
-- **`PLAYER_START_TIMEOUT_SECONDS`** (default `45`) — how long a session may sit in "starting" before it is reported as stalled. Raise it on slow links where a channel takes longer to buffer its first segments.
+- **`PLAYER_START_TIMEOUT_SECONDS`** (default `45`) — how long a session may sit in "starting" before it is reported as stalled. Raise it on slow links where a channel takes longer to buffer its first segments. Direct-engine JSON startup uses the remaining session budget too; time spent starting the engine does not grant a fresh HLS-buffering budget. Cancelling a pending start releases a late engine session and frees the player slot.
 
 The [Docker command builder](https://pipepito.github.io/acestream-scraper/) can set `PLAYER_MAX_SESSIONS` for you under Advanced settings → Web player & guide refresh; startup timeout and temporary folder are available there too under Advanced settings → Web player & guide refresh.
 

@@ -381,7 +381,7 @@
       "env": "PLAYER_START_TIMEOUT_SECONDS",
       "group": "player",
       "label": "Player startup timeout",
-      "description": "Seconds a browser-player session may remain in starting state before it is reported as stalled.",
+      "description": "Seconds for direct-engine JSON startup and initial browser-player buffering before the session is reported as stalled.",
       "type": "number",
       "placeholderFrom": "player.startTimeoutSecondsDefault",
       "min": 1,

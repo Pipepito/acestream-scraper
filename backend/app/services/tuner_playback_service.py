@@ -116,16 +116,18 @@ async def relay_ranked_streams(
             content_id = pending[0]
             attempted.add(content_id)
             registry.select_stream(claim.id, content_id)
+            attempt_deadline = min(deadline, time.monotonic() + attempt_seconds)
             raw = relay_engine_stream(engine, content_id, client_label, registry=registry,
                 client_factory=client_factory, claim=claim, release_claim=False,
-                stop_linger=stop_linger, read_seconds=attempt_seconds)
+                stop_linger=stop_linger, read_seconds=attempt_seconds,
+                startup_deadline=attempt_deadline)
             iterator = remux_source(raw, version=version, offset=time.monotonic() - started) if experimental_transcoding else raw
             version += 1
             first_at = last_at = None
             healthy = False
             attempt_started = time.monotonic()
             try:
-                with anyio.fail_after(min(attempt_seconds, max(.001, deadline - time.monotonic()))) as timer[0]:
+                with anyio.fail_after(max(0, attempt_deadline - time.monotonic())) as timer[0]:
                     first = await anext(iterator)
                 first_at = last_at = time.monotonic()
                 yield first

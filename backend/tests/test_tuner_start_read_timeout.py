@@ -40,7 +40,7 @@ class ColdEngine:
     def __init__(self, port):
         self.engine_url = 'http://127.0.0.1:%d' % port
 
-    def start(self, content_id):
+    def start(self, content_id, *, startup_deadline=None):
         url = '%s/ace/r/%s' % (self.engine_url, content_id)
         return EngineSession(content_id=content_id, pid='p', playback_url=url, stat_url=url,
                              command_url=url, is_live=True)

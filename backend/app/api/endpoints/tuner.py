@@ -8,6 +8,7 @@ API token protects like every other ``/api/v1`` route.
 from __future__ import annotations
 
 import asyncio
+import time
 
 import html
 import re
@@ -30,7 +31,7 @@ from app.services.player_service import player_service
 from app.services.public_url_service import resolve_public_base_url
 from app.services.stream_relay import RELAY_HEADERS, ClosingStreamingResponse, EngineStreamError, relay_engine_stream, relay_registry
 from app.services.tuner_network import get_tuner_gate, require_tuner_network
-from app.services.tuner_service import TunerService
+from app.services.tuner_service import TunerService, TunerSettings
 from app.services.tuner_playback_service import relay_ranked_streams, prefer_recovered_sources
 from app.services.tuner_remux import ffmpeg_binary
 from app.services.tuner_probe_service import tuner_probe_service
@@ -54,6 +55,11 @@ def _engine() -> EngineClient:
         return playback_client_from_settings(SettingsRepository(db))
     finally:
         db.close()
+
+
+def _relay_settings() -> TunerSettings:
+    with SessionLocal() as db:
+        return TunerService(db).settings()
 
 
 def _tuner_count() -> int:
@@ -218,11 +224,14 @@ async def tuner_stream(content_id: str, request: Request):
         )
     try:
         # The settings read is a blocking DB call: keep it off the event loop.
+        relay_settings = await run_in_threadpool(_relay_settings)
+        deadline = time.monotonic() + min(relay_settings.source_start_seconds, relay_settings.startup_budget_seconds)
         try:
             engine = await run_in_threadpool(_engine)
         except EngineUnavailableError as exc:
             raise APIError(code="ENGINE_UNAVAILABLE", message=str(exc), status_code=502, context={"content_id": content_id}) from exc
-        iterator = relay_engine_stream(engine, content_id, f"tuner:{peer}", client_factory=_relay_client_factory, claim=claim)
+        iterator = relay_engine_stream(engine, content_id, f"tuner:{peer}", client_factory=_relay_client_factory, claim=claim,
+            startup_deadline=deadline, read_seconds=relay_settings.source_start_seconds)
         # The first chunk is pulled here so an engine failure becomes a 502 body
         # instead of a truncated 200 stream. Every path that does not hand the
         # iterator to a response closes the engine's connection pool itself.
@@ -240,6 +249,9 @@ async def tuner_stream(content_id: str, request: Request):
         except StopAsyncIteration:
             engine.close()
             return Response(status_code=200, headers=RELAY_HEADERS)
+        except BaseException:
+            engine.close()
+            raise
     except BaseException:
         # Nothing is streaming, so the slot has to go back now -- including on
         # a cancelled request, which no generator is left to finalise. Closing
@@ -306,10 +318,7 @@ async def tuner_channel(tv_channel_id: int, request: Request):
     iterator = None
     engine = None
     try:
-        def read_relay_settings():
-            with SessionLocal() as db:
-                return TunerService(db).settings()
-        relay_settings = await run_in_threadpool(read_relay_settings)
+        relay_settings = await run_in_threadpool(_relay_settings)
         experimental_transcoding = relay_settings.experimental_transcoding
         if experimental_transcoding:
             await run_in_threadpool(ffmpeg_binary)

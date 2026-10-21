@@ -2824,7 +2824,7 @@
                 "type": "null"
               }
             ],
-            "description": "Setting value; channel_status_interval uses whole minutes (1\u201310080, default 60)",
+            "description": "Setting value; channel_status_interval uses whole minutes (1\u201310080, default 60); acestream_check_timeout whole seconds (5\u2013120, default 10)",
             "title": "Value"
           }
         },

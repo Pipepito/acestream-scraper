@@ -57,6 +57,10 @@ PYTHONPATH=backend alembic -c backend/migrations/alembic.ini upgrade head
 
 ## Tests
 
+- `backend/pytest.ini` turns warnings into errors. Use supported library APIs and
+  keep the TestClient's `httpx2` dependency installed alongside application
+  `httpx`. Deliberate warning cases use a local category/message `pytest.warns`
+  assertion; never blanket-ignore deprecations, SQLAlchemy or resource warnings.
 - Most tests use `backend_runtime`, `client`, and `db_session`, which bind a temp
   SQLite database and create schema quickly.
 - Migration-sensitive behavior uses `alembic_backend_runtime`, `alembic_client`,

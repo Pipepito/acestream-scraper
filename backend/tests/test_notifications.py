@@ -24,11 +24,16 @@ def webhook(monkeypatch):
             self.end_headers()
 
     server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
-    threading.Thread(target=server.serve_forever, daemon=True).start()
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
     url = 'http://127.0.0.1:%d/message?token=x' % server.server_address[1]
     monkeypatch.setattr(notification_service, 'webhook_url', lambda: url)
-    yield received, status
-    server.shutdown()
+    try:
+        yield received, status
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
 
 
 def test_a_finished_scrape_is_posted_as_json(webhook):

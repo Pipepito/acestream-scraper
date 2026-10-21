@@ -70,6 +70,21 @@ loads the applicable file when working below those directories.
 
 Choose checks proportionate to the change and report exactly what ran.
 
+- Routine project-local tests and dependency setup in `backend/venv` or the
+  project's `node_modules` are authorized without separate conversational
+  confirmation. Prefer cached dependencies on unreliable connections. Respect
+  mandatory sandbox controls; this does not authorize global installs or releases.
+- Keep validation warning-free. Backend pytest treats warnings as errors,
+  including dependency deprecations and SQLAlchemy warnings. Fix the deprecated
+  API, dependency or resource lifecycle; do not add global warning ignores,
+  disable warnings, or suppress console output to make checks pass.
+- Tests deliberately exercising a warning must assert its category and message
+  locally with `pytest.warns`. Intentional operator compatibility notices (such
+  as the retained legacy environment aliases) remain visible.
+- When changing dependencies, verify the resolved versions used in CI, run the
+  full gate and retain the warning summary. A cached older local environment is
+  not evidence that current CI dependencies are warning-free.
+
 Quick cross-stack gate from the repository root:
 
 ```bash

@@ -53,12 +53,12 @@ class TestSearchEndpoints:
     def test_search_channels_with_invalid_page(self, client, mock_search_service):
         """Test searching with invalid page parameter."""
         response = client.get("/api/v1/search?q=test&page=0")
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_search_channels_with_invalid_per_page(self, client, mock_search_service):
         """Test searching with invalid per_page parameter."""
         response = client.get("/api/v1/search?q=test&per_page=0")
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_search_channels_with_large_per_page(self, client, mock_search_service):
         """Test searching with large per_page parameter."""
@@ -94,7 +94,7 @@ class TestSearchAddEndpoints:
         """Test adding a channel with invalid data."""
         invalid_data = {"name": ""}  # Missing required fields
         response = client.post("/api/v1/search/add", json=invalid_data)
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_add_channel_from_search_missing_id(self, client, mock_search_service):
         """Test adding a channel without ID."""

@@ -80,7 +80,7 @@ class TestTVChannelEndpoints:
         """Test creating a TV channel with invalid data."""
         invalid_data = {"name": ""}  # Missing required fields
         response = client.post("/api/v1/tv-channels/", json=invalid_data)
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_update_tv_channel(self, client, seed_tv_channels):
         """Test updating an existing TV channel."""
@@ -599,7 +599,7 @@ class TestTVChannelEPGMatchAnalysis:
 
         response = client.post("/api/v1/tv-channels/analyze-epg-matches", json={"strictness": "balanced"})
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
         assert "budget" in response.json()["detail"].lower()
 
     def test_analyze_epg_matches_marks_duplicate_existing_conflicts_as_not_creatable(self, client, seeded_match_data, db_session):
@@ -653,7 +653,7 @@ class TestTVChannelCreateFromEPGAnalysis:
             json={"strictness": "strict", "epg_channel_ids": [epg_channel.id]},
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
         assert "no accepted matches" in response.json()["detail"].lower()
 
     def test_create_from_epg_analysis_reports_row_level_partial_success(self, client, seeded_match_data, db_session):
@@ -705,7 +705,7 @@ class TestTVChannelCreateFromEPGAnalysis:
             json={"strictness": "balanced", "epg_channel_ids": [seeded_conflict_data["loser"].id]},
         )
         # Selecting the loser must not invent an assignment absent from preview.
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
         assert "no accepted matches" in response.json()["detail"].lower()
 
     def test_create_from_epg_analysis_does_not_steal_existing_acestream_associations(self, client, seeded_match_data, db_session):
@@ -723,7 +723,7 @@ class TestTVChannelCreateFromEPGAnalysis:
             json={"strictness": "balanced", "epg_channel_ids": [epg_channel.id]},
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
         db_session.refresh(protected_acestream)
         assert protected_acestream.tv_channel_id == protected_channel.id
@@ -807,7 +807,7 @@ class TestTVChannelCreateFromEPGAnalysis:
             json={"strictness": "invalid", "epg_channel_ids": [seeded_match_data["epg_channels"]["xml_exact"].id]},
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_create_from_epg_analysis_rejects_empty_epg_channel_ids(self, client):
         response = client.post(
@@ -815,7 +815,7 @@ class TestTVChannelCreateFromEPGAnalysis:
             json={"strictness": "balanced", "epg_channel_ids": []},
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_create_from_epg_analysis_rejects_when_revalidation_yields_no_matches(self, client, seeded_unmatched_data):
         unmatched_channel_id = seeded_unmatched_data["epg_channels"][0].id
@@ -824,7 +824,7 @@ class TestTVChannelCreateFromEPGAnalysis:
             json={"strictness": "balanced", "epg_channel_ids": [unmatched_channel_id]},
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
         assert "no accepted matches" in response.json()["detail"].lower()
 
 

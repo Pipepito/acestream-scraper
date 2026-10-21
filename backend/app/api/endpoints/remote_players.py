@@ -93,7 +93,7 @@ def _validated_host(service: RemotePlayerService, host: str) -> str:
         raise APIError(
             code="REMOTE_PLAYER_HOST_FORBIDDEN",
             message=str(exc),
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             context={"host": host},
         ) from exc
 
@@ -290,7 +290,7 @@ async def scan(payload: ScanRequest):
         network, ports = validate_scan_request(payload.cidr, payload.ports)
     except ScanValidationError as exc:
         raise APIError(
-            code=exc.code, message=str(exc), status_code=status.HTTP_422_UNPROCESSABLE_ENTITY
+            code=exc.code, message=str(exc), status_code=status.HTTP_422_UNPROCESSABLE_CONTENT
         ) from exc
     outcome = await scan_network(network, ports, timeout_ms=payload.timeout_ms, client_factory=_client_factory)
     return ScanResultResponse(

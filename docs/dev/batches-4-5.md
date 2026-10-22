@@ -64,20 +64,14 @@ for v2.2.0. They are no longer unimplemented proposals. Their mixed-protocol
 TV-relay failover extension remains separate. #233 HTML guide conversion still
 needs its own timezone, identity, ambiguity and maintenance contract.
 
-## Recommended next v2.2.0 work
+## Scope update — 2026-10-22
 
-1. Finish warning cleanup and validate the current integrated release first.
-2. #226: reproduce a direct-engine JSON-start call exceeding 15 seconds before
-   deciding a bounded setting/caller-deadline fix. Preserve cancellation and
-   final lease cleanup; the tuner video-read limits are already configurable.
-3. #93: implement and verify the existing bounded known-network routing recipe
-   above, with reconnect/restart evidence. It is the smallest prepared follow-up.
-4. #217: validate external outpace compatibility as scoped above after playback
-   behavior settles. Recheck the upstream release; the issue now also reports
-   v0.4.0 evidence, not just the original v0.2.0 proposal.
+At develop `b8b06f7`, warning cleanup #247 and direct-engine deadline handling
+#248 are merged. #226 now awaits main integration. WARP host exclusions #251
+are also merged; #93 stays partial pending topology-specific verification.
+External outpace compatibility (#217) still needs batch 5 above.
 
-#102 needs upstream Acexy race evidence. #233 HTML guides and #246 Gluetun port
-forwarding are subsequent scope/design decisions, not silently committed to
-v2.2.0. #246 needs a supported Gluetun/provider contract, port ownership and
-restart/failure behavior. This order is a recommendation, not acceptance of
-those features or a promise to hold the release for them.
+The maintainer accepted #246 Gluetun forwarding and an in-app changelog for
+v2.2.0. See [the implementation plan and issue audit](gluetun-changelog-v2.2.md)
+for port ownership, failure behavior and review/validation scope. This acceptance
+does not imply other unresolved proposals are included.

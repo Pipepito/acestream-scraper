@@ -530,3 +530,14 @@ No application/image work runs for this scope. Unknown workflows, app/dependency
 changes, metadata-validator changes and mode/symlink changes keep the full gate.
 PR selectors cannot exempt their own changes; the policy must reach the target
 branch first. See `docs/ops/jenkins-ci.md`.
+
+## Gluetun forwarding and changelog
+
+`ACESTREAM_GLUETUN_PORT_FILE` opts the bundled playback engine into shared-file
+P2P port synchronization. Only its supervisor applies validated, debounced port
+changes, preserving UI Stop and process-group cleanup. The checker keeps port
+8622; custom commands/external engines are not managed. See `wiki/Gluetun.md`.
+The `/changelog` page bundles version history; reading/dismissing its notice is
+per browser. Update `frontend/src/data/changelog.ts` alongside `version.txt`;
+never imply development notes establish stable publication. See
+`docs/dev/gluetun-changelog-v2.2.md`.

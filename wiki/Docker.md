@@ -452,3 +452,10 @@ so it does not require mounting the engine's temporary files into the scraper.
 ## Optional DNS override
 
 The command builder's **Use xdp.es DNS** option is off by default. Enabling it adds `--dns=85.208.114.52` to Docker commands or a `dns:` entry to Compose. It selects [xdp.es Standard](https://xdp.es/about), without ad filtering, using ordinary unencrypted DNS. Recreate the container to apply or remove it; WARP may override DNS while connected.
+
+## Gluetun forwarded P2P ports
+
+For a bundled playback engine sharing Gluetun’s network namespace, opt into
+forwarded-port synchronization with `ACESTREAM_GLUETUN_PORT_FILE`. See
+[Gluetun setup](Gluetun.md) for the shared read-only directory, port ownership,
+restart behavior and provider requirements.

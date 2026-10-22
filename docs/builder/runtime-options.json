@@ -479,6 +479,16 @@
       "type": "password",
       "placeholder": "Optional",
       "appliesWhen": "warpOn"
+    },
+    {
+      "id": "gluetunPortFile",
+      "env": "ACESTREAM_GLUETUN_PORT_FILE",
+      "group": "engine",
+      "label": "Gluetun forwarded-port file",
+      "description": "Optional shared file inside this container. Requires Gluetun shared networking and a read-only directory mount configured separately; see wiki/Gluetun. Port changes restart playback. The checker keeps its own port.",
+      "type": "text",
+      "placeholder": "/gluetun/forwarded_port",
+      "appliesWhen": "engineOn"
     }
   ],
   "zeronet": {

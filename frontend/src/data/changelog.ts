@@ -1,0 +1,61 @@
+export interface ReleaseNotes {
+  version: string;
+  summary: string;
+  sections: Array<{ title: string; items: string[] }>;
+}
+
+/** Newest first. Bundled notes describe this build, not registry publication. */
+export const releases: ReleaseNotes[] = [
+  {
+    version: 'v2.2.0',
+    summary: 'More stream sources, easier guide setup and more reliable playback.',
+    sections: [
+      { title: 'Added', items: [
+        'Import HTTP and HLS playlist streams, including playback headers. Add official live channels from Atresmedia, Mediaset, Telemadrid and 7 TV La Rioja by adding their websites as sources.',
+        'Discover XMLTV guides from playlists, preview guide matches before applying them, and optionally automate unambiguous matches.',
+        'Send optional webhook or Gotify notifications when scrapes and channel checks finish.',
+        'Sync the bundled playback engine’s P2P port with a shared Gluetun forwarded-port file. Port changes restart playback; the dedicated checker keeps its own port.',
+        'Read version history here and dismiss the update notice independently in each browser.',
+      ] },
+      { title: 'Improved', items: [
+        'Configure tuner startup budgets for slow sources. Direct-engine startup now respects the remaining player or tuner budget, including time spent waiting for an engine slot.',
+        'Resume overdue scheduled work after startup, prioritize older and unchecked streams fairly, and pause catalogue checks during app-owned playback.',
+        'Preserve imported catalogues on assignment conflicts, search by stream ID, and import ZeroNet links while keeping custom gateway prefixes.',
+        'Keep selected hosts outside WARP with explicit host exclusions. Unknown public-client routing still needs separate configuration.',
+      ] },
+      { title: 'Fixed', items: [
+        'Respect the configured application port in containers, update bundled Kubo to 0.43.1, and report optional service states more accurately.',
+        'Improve session cleanup, disconnect handling and HLS segment handling during playback.',
+      ] },
+      { title: 'Before upgrading', items: [
+        'Back up persistent configuration and the database. Startup applies schema migrations using the existing backup and recovery process.',
+        'Legacy environment aliases remain supported. ARMv7 engine runtime remains experimental. Mixed HTTP/AceStream tuner failover is not included.',
+      ] },
+    ],
+  },
+  {
+    version: 'v2.1.0',
+    summary: 'ARM playback, WARP startup and source extraction improvements.',
+    sections: [
+      { title: 'Highlights', items: [
+        'Start the bundled ARM engine through its distribution entry point to fix mod_detected playback failures.',
+        'Coordinate playback and checking engine DNS ownership, follow resolver changes and wait for WARP to connect before starting engines when auto-connect is enabled.',
+        'Build source extraction recipes from HTML selectors, record-scoped regular expressions or JSON fields.',
+        'Keep six deprecated environment aliases compatible with saved deployments and .env files.',
+      ] },
+    ],
+  },
+  {
+    version: 'v2.0.0',
+    summary: 'A rebuilt application for managing sources, channels, guides and playback.',
+    sections: [
+      { title: 'Highlights', items: [
+        'Move to the FastAPI backend and React interface with light and dark themes.',
+        'Manage TV channels, XMLTV guides, playlists and media-server integrations in one application.',
+        'Migrate existing installations with database upgrades and startup recovery tools.',
+      ] },
+    ],
+  },
+];
+
+export const currentRelease = releases[0];

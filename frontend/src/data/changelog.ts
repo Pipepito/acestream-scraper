@@ -8,6 +8,7 @@ export const releases: ReleaseNotes[] = [
       {
         "title": "Added",
         "items": [
+          "Browse sporting events, review manual/JSON schedules, follow events and choose compatible broadcasts. Schedules stay separate from permanent TV channels; integrated W3U, Telegram and website collectors are still planned.",
           "Import HTTP and HLS playlist streams, including playback headers. Add official live channels from Atresmedia, Mediaset, Telemadrid and 7 TV La Rioja by adding their websites as sources.",
           "Discover XMLTV guides from playlists, preview guide matches before applying them, and optionally automate unambiguous matches.",
           "Send optional webhook or Gotify notifications when scrapes and channel checks finish.",
@@ -35,7 +36,7 @@ export const releases: ReleaseNotes[] = [
       {
         "title": "Before upgrading",
         "items": [
-          "Back up persistent configuration and the database. Startup applies schema migrations using the existing backup and recovery process, including channel ID kind (20260928_1200) and HTTP stream URL/headers (20261021_1200).",
+          "Back up persistent configuration and the database. Startup applies schema migrations using the existing backup and recovery process, including channel ID kind (20260928_1200) and HTTP stream URL/headers (20261021_1200), and sporting events (20261023_1200).",
           "Legacy environment aliases remain supported. ARMv7 engine runtime remains experimental. Mixed HTTP/AceStream tuner failover is not included."
         ]
       }

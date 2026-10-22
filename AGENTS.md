@@ -539,3 +539,17 @@ The isolated CI runner builds the same minimal FFmpeg from the runtime manifest
 and build script; include both in trusted exports, cache keys and fork guards.
 Keep Debian FFmpeg only as `FFMPEG_TEST_TOOL_PATH` for synthetic media fixtures.
 See `docs/ops/jenkins-ci.md#ffmpeg-in-the-isolated-validation-runner`.
+
+
+## Sporting events foundation
+
+`/events` stores schedules separately from channels. Use versioned `EventImport`
+observations, stable source/external IDs, read-only previews and explicit selected
+rows. Refresh preserves manual corrections and missing broadcasts; cross-source
+association is explicit. Require source timezones, reject ambiguous/nonexistent
+local times without an offset, and never infer live state or media signal from
+clock/import. Event-only HTTP media uses the shared guarded player without TV
+assignments or playlist export. Following is installation-wide; archive is
+reversible and retention currently indefinite. W3U/Telegram collectors, scheduled
+refresh/retention, artwork and guide overlays remain separate integration work.
+See `docs/dev/sporting-events.md` and `wiki/Sports-Events.md`.

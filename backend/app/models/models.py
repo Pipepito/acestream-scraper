@@ -3,7 +3,7 @@ SQLAlchemy models for the application
 """
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Index, Integer, String, Text, false
+from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint, false
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from sqlalchemy.types import TypeDecorator
@@ -380,3 +380,33 @@ class ScheduledTaskState(Base):
     status = Column(String(32), nullable=False)
     last_error = Column(Text, nullable=True)
     last_result = Column(JSON, nullable=True)
+
+
+class SportingEvent(Base):
+    __tablename__ = 'sporting_events'
+    owner_id = Column(String(32), nullable=False)
+    id = Column(String(32), primary_key=True)
+    revision = Column(Integer, nullable=False, default=1)
+    fields = Column(JSON, nullable=False)
+    correction = Column(JSON, nullable=True)
+    followed = Column(Boolean, nullable=False, default=False)
+    archived = Column(Boolean, nullable=False, default=False)
+
+
+class EventObservationRecord(Base):
+    __tablename__ = 'event_observations'
+    __table_args__ = (UniqueConstraint('source_id', 'external_id', name='uq_event_observation_identity'),)
+    id = Column(String(32), primary_key=True)
+    event_id = Column(String(32), ForeignKey('sporting_events.id', ondelete='CASCADE'), nullable=False, index=True)
+    source_id = Column(String(160), nullable=False)
+    external_id = Column(String(200), nullable=False)
+    payload = Column(JSON, nullable=False)
+    updated_at = Column(UtcDateTime(), nullable=False, default=_utcnow)
+
+
+class EventMedia(Base):
+    __tablename__ = 'event_media'
+    content_id = Column(String(44), primary_key=True)
+    observation_id = Column(String(32), ForeignKey('event_observations.id', ondelete='CASCADE'), nullable=False, index=True)
+    url = Column(Text, nullable=False)
+    headers = Column(JSON, nullable=False)

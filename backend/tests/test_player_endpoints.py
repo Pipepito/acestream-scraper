@@ -376,3 +376,53 @@ def test_subtitle_playlists_and_vtt_preserve_authentication(client, player, monk
     assert client.get(root + '/anything.vtt', headers=headers).status_code == 404
     assert client.post('/api/v1/player/sessions', json={'content_id': IH, 'subtitle_index': -1}, headers=headers).status_code == 422
     assert client.post('/api/v1/player/sessions', json={'content_id': IH, 'subtitle_index': 64}, headers=headers).status_code == 422
+
+
+def test_event_refresh_and_alternate_playback_preserve_other_viewers(client, player, db_session, monkeypatch):
+    """Event-only HTTP sources share the player lifecycle without channel insertion."""
+    from sqlalchemy.orm import sessionmaker
+    from app.models.models import AcestreamChannel, TVChannel
+    from app.api.endpoints.player import tuner_probe_service
+    from app.services.player_http_source import stored_http_source
+    monkeypatch.setattr('app.config.database.SessionLocal', sessionmaker(bind=db_session.get_bind()))
+    settings = player._settings()
+    settings.PLAYER_MAX_SESSIONS = 3
+    monkeypatch.setattr(player, '_settings', lambda: settings)
+
+    def no_engine(*args, **kwargs):
+        raise AssertionError('Event HTTP playback must not touch AceStream')
+    monkeypatch.setattr(player, '_engine_factory', no_engine)
+    monkeypatch.setattr(tuner_probe_service, 'start_for_stream', no_engine)
+    payload = {'observations': [{'source_id': 'test', 'source_name': 'Guide', 'external_id': 'match',
+        'title': 'Match', 'timezone': 'UTC', 'broadcasts': [
+            {'id': 'es', 'label': 'Spanish', 'url': 'https://media.example/live.m3u8?token=first'},
+            {'id': 'en', 'label': 'English', 'url': 'https://media.example/alternate.m3u8'}]}]}
+
+    def import_event():
+        preview = client.post('/api/v1/events/preview', json=payload)
+        assert preview.status_code == 200
+        result = client.post('/api/v1/events/apply', json={'token': preview.json()['token'],
+            'selected_ids': [preview.json()['events'][0]['id']]})
+        assert result.status_code == 200
+        return result.json()[0]
+
+    event = import_event()
+    original_id = event['broadcasts'][0]['content_id']
+    original = client.post('/api/v1/player/sessions', json={'content_id': original_id}).json()
+    joined = client.post('/api/v1/player/sessions', json={'content_id': original_id}).json()
+    assert joined['id'] == original['id'] and joined['viewers'] == 2
+    assert original['error'] is None
+    alternate = client.post('/api/v1/player/sessions', json={'content_id': event['broadcasts'][1]['content_id']}).json()
+    assert alternate['error'] is None and alternate['id'] != original['id']
+    client.delete('/api/v1/player/sessions/' + original['id'])
+    assert client.get('/api/v1/player/sessions/' + original['id']).json()['viewers'] == 1
+    payload['observations'][0]['broadcasts'][0]['url'] = 'https://media.example/live.m3u8?token=rotated'
+    refreshed = import_event()
+    assert refreshed['id'] == event['id']
+    assert refreshed['broadcasts'][0]['content_id'] != original_id
+    assert stored_http_source(original_id) is None
+    retained = player.get(original['id'])
+    assert retained.viewers == 1 and retained.http_source.url.endswith('token=first')
+    assert db_session.query(AcestreamChannel).count() == db_session.query(TVChannel).count() == 0
+    client.delete('/api/v1/player/sessions/' + alternate['id'])
+    assert retained.viewers == 1

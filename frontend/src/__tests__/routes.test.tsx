@@ -33,7 +33,8 @@ describe('routes', () => {
   });
 
   it('exposes destinations whose labels are the page titles', () => {
-    expect(navItems.map((item) => item.text)).toEqual(['Live TV', 'Overview', 'Scraper', 'Search', 'Acestream Channels', 'TV Channels', 'EPG', 'Playlist', 'Integrations', 'WARP', 'Settings', 'Changelog']);
+    expect(navItems.map((item) => item.text)).toEqual(['Live TV', 'Events', 'Overview', 'Scraper', 'Search', 'Acestream Channels', 'TV Channels', 'EPG', 'Playlist', 'Integrations', 'WARP', 'Settings', 'Changelog']);
+    expect(getNavTitle('/events')).toBe('Events');
     expect(getNavTitle('/changelog')).toBe('Changelog');
     expect(getNavTitle('/epg/channels/12')).toBe('EPG');
     expect(getNavTitle('/integrations')).toBe('Integrations');

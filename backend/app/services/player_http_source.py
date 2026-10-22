@@ -56,7 +56,9 @@ def stored_http_source(content_id: str) -> HTTPStreamSource | None:
     with SessionLocal() as db:
         channel = ChannelRepository(db).get_channel_by_id(content_id)
         if channel is None or not channel.stream_url:
-            return None
+            from app.repositories.event_repository import EventRepository
+            media = EventRepository(db).media(content_id)
+            return HTTPStreamSource(media.url, dict(media.headers)) if media else None
         return HTTPStreamSource(channel.stream_url, dict(channel.stream_headers or {}))
 
 

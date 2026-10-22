@@ -556,6 +556,24 @@ export interface paths {
      */
     post: operations["generate_epg_xml_api_v1_epg_xml_post"];
   };
+  "/api/v1/events": {
+    /** List Events */
+    get: operations["list_events_api_v1_events_get"];
+  };
+  "/api/v1/events/apply": {
+    /** Apply Events */
+    post: operations["apply_events_api_v1_events_apply_post"];
+  };
+  "/api/v1/events/preview": {
+    /** Preview Events */
+    post: operations["preview_events_api_v1_events_preview_post"];
+  };
+  "/api/v1/events/{event_id}": {
+    /** Get Event */
+    get: operations["get_event_api_v1_events__event_id__get"];
+    /** Update Event */
+    patch: operations["update_event_api_v1_events__event_id__patch"];
+  };
   "/api/v1/health": {
     /**
      * Check Health
@@ -1539,6 +1557,36 @@ export interface components {
       /** Acestreamchannel Ids */
       acestreamchannel_ids: string[];
     };
+    /** BroadcastView */
+    BroadcastView: {
+      /** Checked At */
+      checked_at?: string | null;
+      /**
+       * Compatibility
+       * @enum {string}
+       */
+      compatibility: "playable" | "unresolved" | "unsupported" | "unavailable";
+      /** Content Id */
+      content_id: string | null;
+      /** Country */
+      country: string;
+      /** Id */
+      id: string;
+      /** Is Online */
+      is_online?: boolean | null;
+      /** Label */
+      label: string;
+      /** Language */
+      language: string;
+      /** Origin */
+      origin: string;
+      /** Quality */
+      quality: string;
+      /** Reason */
+      reason: string;
+      /** Source Name */
+      source_name: string;
+    };
     /**
      * BulkChannelActivateRequest
      * @description Schema for bulk channel activation/deactivation
@@ -2066,6 +2114,212 @@ export interface components {
       /** Search Term */
       search_term?: string | null;
     };
+    /** EventApply */
+    EventApply: {
+      /** Selected Ids */
+      selected_ids: string[];
+      /** Token */
+      token: string;
+    };
+    /** EventBroadcast */
+    EventBroadcast: {
+      /** Channel Id */
+      channel_id?: string | null;
+      /**
+       * Country
+       * @default
+       */
+      country?: string;
+      /** Headers */
+      headers?: {
+        [key: string]: string;
+      };
+      /** Id */
+      id: string;
+      /** Label */
+      label: string;
+      /**
+       * Language
+       * @default
+       */
+      language?: string;
+      /**
+       * Quality
+       * @default
+       */
+      quality?: string;
+      /** Url */
+      url?: string | null;
+    };
+    /** EventFields */
+    EventFields: {
+      /**
+       * Competition
+       * @default
+       */
+      competition?: string;
+      /** Ends At */
+      ends_at?: string | null;
+      /** Participants */
+      participants?: string[];
+      /**
+       * Sport
+       * @default
+       */
+      sport?: string;
+      /** Starts At */
+      starts_at?: string | null;
+      /**
+       * State
+       * @default unknown
+       * @enum {string}
+       */
+      state?: "unknown" | "scheduled" | "live" | "finished" | "postponed" | "cancelled";
+      /**
+       * Time Notes
+       * @default
+       */
+      time_notes?: string;
+      /** Timezone */
+      timezone: string;
+      /** Title */
+      title: string;
+    };
+    /** EventImport */
+    EventImport: {
+      /** Observations */
+      observations: components["schemas"]["EventObservation"][];
+      /**
+       * Version
+       * @default 1
+       * @constant
+       */
+      version?: 1;
+    };
+    /** EventList */
+    EventList: {
+      /** Events */
+      events: components["schemas"]["EventView"][];
+      /** Total */
+      total: number;
+    };
+    /** EventObservation */
+    EventObservation: {
+      /** Broadcasts */
+      broadcasts?: components["schemas"]["EventBroadcast"][];
+      /**
+       * Competition
+       * @default
+       */
+      competition?: string;
+      /** Ends At */
+      ends_at?: string | null;
+      /** Event Id */
+      event_id?: string | null;
+      /** External Id */
+      external_id: string;
+      /** Participants */
+      participants?: string[];
+      /** Source Id */
+      source_id: string;
+      /**
+       * Source Kind
+       * @default manual
+       * @enum {string}
+       */
+      source_kind?: "guide" | "w3u" | "telegram" | "manual";
+      /** Source Name */
+      source_name: string;
+      /**
+       * Sport
+       * @default
+       */
+      sport?: string;
+      /** Starts At */
+      starts_at?: string | null;
+      /**
+       * State
+       * @default unknown
+       * @enum {string}
+       */
+      state?: "unknown" | "scheduled" | "live" | "finished" | "postponed" | "cancelled";
+      /**
+       * Time Notes
+       * @default
+       */
+      time_notes?: string;
+      /** Timezone */
+      timezone: string;
+      /** Title */
+      title: string;
+    };
+    /** EventPreview */
+    EventPreview: {
+      /** Events */
+      events: components["schemas"]["EventView"][];
+      /** Token */
+      token: string;
+      /** Warnings */
+      warnings: string[];
+    };
+    /** EventUpdate */
+    EventUpdate: {
+      /** Archived */
+      archived?: boolean | null;
+      correction?: components["schemas"]["EventFields"] | null;
+      /** Followed */
+      followed?: boolean | null;
+      /** Revision */
+      revision: number;
+    };
+    /** EventView */
+    EventView: {
+      /** Archived */
+      archived: boolean;
+      /** Broadcasts */
+      broadcasts: components["schemas"]["BroadcastView"][];
+      /**
+       * Competition
+       * @default
+       */
+      competition?: string;
+      /** Corrected */
+      corrected: boolean;
+      /** Ends At */
+      ends_at?: string | null;
+      /** Followed */
+      followed: boolean;
+      /** Id */
+      id: string;
+      /** Participants */
+      participants?: string[];
+      /** Provenance */
+      provenance: components["schemas"]["ProvenanceView"][];
+      /** Revision */
+      revision: number;
+      /**
+       * Sport
+       * @default
+       */
+      sport?: string;
+      /** Starts At */
+      starts_at?: string | null;
+      /**
+       * State
+       * @default unknown
+       * @enum {string}
+       */
+      state?: "unknown" | "scheduled" | "live" | "finished" | "postponed" | "cancelled";
+      /**
+       * Time Notes
+       * @default
+       */
+      time_notes?: string;
+      /** Timezone */
+      timezone: string;
+      /** Title */
+      title: string;
+    };
     /** ExtractedChannel */
     ExtractedChannel: {
       /** Channel Id */
@@ -2523,6 +2777,22 @@ export interface components {
       linked_streams: number;
       /** Streams */
       streams: number;
+    };
+    /** ProvenanceView */
+    ProvenanceView: {
+      /** External Id */
+      external_id: string;
+      /** Source Id */
+      source_id: string;
+      /** Source Kind */
+      source_kind: string;
+      /** Source Name */
+      source_name: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
     };
     /**
      * PublicBaseUrlUpdate
@@ -5980,6 +6250,131 @@ export interface operations {
       200: {
         content: {
           "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** List Events */
+  list_events_api_v1_events_get: {
+    parameters: {
+      query?: {
+        search?: string;
+        sport?: string;
+        competition?: string;
+        source?: string;
+        day?: string | null;
+        zone?: string;
+        upcoming?: boolean;
+        followed?: boolean;
+        archived?: boolean;
+        offset?: number;
+        limit?: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventList"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Apply Events */
+  apply_events_api_v1_events_apply_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EventApply"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventView"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Preview Events */
+  preview_events_api_v1_events_preview_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EventImport"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventPreview"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get Event */
+  get_event_api_v1_events__event_id__get: {
+    parameters: {
+      path: {
+        event_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Update Event */
+  update_event_api_v1_events__event_id__patch: {
+    parameters: {
+      path: {
+        event_id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EventUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventView"];
         };
       };
       /** @description Validation Error */

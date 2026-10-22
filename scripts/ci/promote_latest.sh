@@ -10,7 +10,7 @@
 #
 # Steps: (1) the source manifest <repo>:<version> must exist in the registry
 # (docker buildx imagetools inspect); (2) docker buildx imagetools create
-# -t <repo>:latest <repo>:<version>; (3) verify_multiarch_manifest.sh checks
+# -t <repo>:latest <repo>@<digest>; (3) verify_multiarch_manifest.sh checks
 # :latest carries every platform the flavor requires.
 set -euo pipefail
 
@@ -48,11 +48,12 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
   exit 0
 fi
 
+rm -f "$ROOT_DIR/phase5-build-result-release-metadata.json"
 if ! docker buildx imagetools inspect "$SOURCE" >/dev/null 2>&1; then
   echo "promote_latest: $SOURCE is not in the registry. Run the phase-1 publish (PUBLISH_LATEST=0) for this version first." >&2
   exit 1
 fi
 
-docker buildx imagetools create -t "$TARGET" "$SOURCE"
-bash "$ROOT_DIR/scripts/ci/verify_multiarch_manifest.sh" --image "$TARGET" --flavor "$FLAVOR"
+cd "$ROOT_DIR"
+python3 scripts/ci/release_notes.py promote --version "$VERSION" --repo "$REPO" --flavor "$FLAVOR"
 echo "promote_latest: $TARGET now points at $SOURCE"

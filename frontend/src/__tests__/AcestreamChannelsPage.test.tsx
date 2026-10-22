@@ -1,6 +1,6 @@
 import React from 'react';
 import { ThemeProvider } from '@mui/material/styles';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AcestreamChannels from '../pages/AcestreamChannels';
 import { createAppTheme } from '../theme';
@@ -204,7 +204,7 @@ describe('AcestreamChannels page', () => {
     await user().click(within(dialog).getByRole('button', { name: 'Delete' }));
     await waitFor(() => expect(mockDeleteMutate).toHaveBeenCalledWith('ace-100', expect.any(Object)));
 
-    callbacks?.onError?.(new ApiError({ message: 'Channel is still in use.', status: 400, kind: 'validation', canRetry: false }));
+    act(() => callbacks?.onError?.(new ApiError({ message: 'Channel is still in use.', status: 400, kind: 'validation', canRetry: false })));
     expect(await screen.findByText('Failed to delete channel: Channel is still in use.')).toBeInTheDocument();
     expect(screen.getAllByText('Failed to delete channel: Channel is still in use.')).toHaveLength(1);
   });

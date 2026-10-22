@@ -918,6 +918,10 @@ export interface paths {
     /** Container directories and filesystem space */
     get: operations["get_storage_api_v1_system_storage_get"];
   };
+  "/api/v1/system/updates": {
+    /** Check for a newer published stable release */
+    get: operations["get_updates_api_v1_system_updates_get"];
+  };
   "/api/v1/tuner/settings": {
     /** Tuner settings */
     get: operations["get_tuner_settings_api_v1_tuner_settings_get"];
@@ -3869,6 +3873,30 @@ export interface components {
       url?: string | null;
       /** Url Type */
       url_type?: string | null;
+    };
+    /** UpdateStatus */
+    UpdateStatus: {
+      /** Current Version */
+      current_version: string;
+      /**
+       * Deployment
+       * @enum {string}
+       */
+      deployment: "docker" | "native";
+      /** Latest Version */
+      latest_version?: string | null;
+      /** Release Url */
+      release_url?: string | null;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "checked" | "unavailable";
+      /**
+       * Update Available
+       * @default false
+       */
+      update_available?: boolean;
     };
     /** ValidationError */
     ValidationError: {
@@ -7349,6 +7377,17 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["StorageReport"];
+        };
+      };
+    };
+  };
+  /** Check for a newer published stable release */
+  get_updates_api_v1_system_updates_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["UpdateStatus"];
         };
       };
     };

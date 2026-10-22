@@ -6891,6 +6891,64 @@
         "title": "URLUpdate",
         "type": "object"
       },
+      "UpdateStatus": {
+        "properties": {
+          "current_version": {
+            "title": "Current Version",
+            "type": "string"
+          },
+          "deployment": {
+            "enum": [
+              "docker",
+              "native"
+            ],
+            "title": "Deployment",
+            "type": "string"
+          },
+          "latest_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Version"
+          },
+          "release_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Release Url"
+          },
+          "status": {
+            "enum": [
+              "checked",
+              "unavailable"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "update_available": {
+            "default": false,
+            "title": "Update Available",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "current_version",
+          "deployment",
+          "status"
+        ],
+        "title": "UpdateStatus",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -14097,6 +14155,28 @@
           }
         },
         "summary": "Container directories and filesystem space",
+        "tags": [
+          "system",
+          "system"
+        ]
+      }
+    },
+    "/api/v1/system/updates": {
+      "get": {
+        "operationId": "get_updates_api_v1_system_updates_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Check for a newer published stable release",
         "tags": [
           "system",
           "system"

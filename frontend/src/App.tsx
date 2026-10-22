@@ -16,6 +16,9 @@ import Integrations from './pages/Integrations';
 import Settings from './pages/Settings';
 import LiveTV from './pages/LiveTV';
 import NotFound from './pages/NotFound';
+import UpdateAvailableNotice from './components/UpdateAvailableNotice';
+import WhatsNewNotice from './components/WhatsNewNotice';
+const Changelog = React.lazy(() => import('./pages/Changelog'));
 const ExtractionBuilder = React.lazy(() => import('./pages/ExtractionBuilder'));
 
 /** Old URLs keep working: they land on the page that now holds that information. */
@@ -39,6 +42,8 @@ const App: React.FC = () => {
   return (
     <AppShell>
       <ApiTokenNotice />
+      <UpdateAvailableNotice />
+      <WhatsNewNotice />
       <Routes>
         <Route path="/" element={<Overview />} />
         <Route path="/acestream-channels" element={<AcestreamChannels />} />
@@ -54,6 +59,7 @@ const App: React.FC = () => {
         <Route path="/search" element={<Search />} />
         <Route path="/integrations" element={<Integrations />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/changelog" element={<React.Suspense fallback={<p role="status">Loading changelog…</p>}><Changelog /></React.Suspense>} />
         {LEGACY_REDIRECTS.map((redirect) => (
           <Route key={redirect.from} path={redirect.from} element={<RedirectTo to={redirect.to} />} />
         ))}

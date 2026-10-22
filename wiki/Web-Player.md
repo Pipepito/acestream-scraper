@@ -4,7 +4,23 @@ Play a channel straight in your browser — no VLC, no Acestream engine plugin, 
 
 ## What it does
 
-Every image ships a small, statically-linked ffmpeg (built during the image build, one static binary per platform/flavor — no extra install step). When you press **Play**, the backend asks the AceStream engine for that channel and starts one ffmpeg process for it: the video track is copied through untouched, the audio track is re-encoded to AAC (AceStream channels are often MPEG-2 audio or AC-3, which browsers cannot play), and the result is repackaged as an HLS stream (2-second segments, a 6-segment sliding window) that `hls.js` (or the browser's native HLS support on Safari/iOS) plays back.
+Every image ships a small, statically-linked ffmpeg (built during the image build, one static binary per platform/flavor — no extra install step). When you press **Play** on an AceStream source, the backend asks the engine for that channel and starts one ffmpeg process for it: the video track is copied through untouched, the audio track is re-encoded to AAC (AceStream channels are often MPEG-2 audio or AC-3, which browsers cannot play), and the result is repackaged as an HLS stream (2-second segments, a 6-segment sliding window) that `hls.js` (or the browser's native HLS support on Safari/iOS) plays back.
+
+Imported HTTP/HLS streams, including Atresmedia, also play in the browser without
+an AceStream engine. Add `https://www.atresplayer.com` as a scraper source, scrape
+it, then select the imported stream (its ID starts with `url:`) in **Live TV** or
+the channel's player. The server resolves a fresh broadcaster link at playback
+start, fetches the media with the imported headers, and uses the same video-copy,
+AAC-audio pipeline. Broadcaster availability and regional restrictions still apply.
+
+HTTP manifests, segments, encryption keys and initialization data pass through
+the guarded source client. Its private-source policy, metadata-address blocking,
+DNS pinning and TLS checks apply to every request and redirect. The temporary
+loopback proxy is private to the shared browser session and closes with it.
+Unencrypted and AES-128 HLS, fragmented MP4 HLS and direct MPEG-TS are supported;
+DRM and HLS variable substitution are not supported. Engine-only **Copy stream
+link** and **Play on** controls are hidden for HTTP streams in the browser player;
+use the generated playlist for external players.
 
 Playback can connect directly to the engine (with a unique PID per session) or
 through Acexy. Choose **Route playback through Acexy** under **Settings → Playback**;
@@ -31,7 +47,7 @@ Because the video track is passed through as-is, a browser that cannot decode it
 
 Wherever a channel appears in the app — Acestream Channels, TV Channels (including the channel detail page) and Search — its row actions carry a **Play** button (alongside **Check status**; anything else lives under "More actions" on crowded rows). Press it to open the player dialog: it starts a session, waits for the first HLS segments, and then plays automatically.
 
-While a channel is starting, the dialog shows the engine's peer count and download speed as they become available. Once segments are ready it shows **Buffering…** until the browser starts playback, then **Playing**. Pausing shows **Paused**. Temporary status-request failures are displayed and polled again automatically; an expired session or rejected access token requires your attention. Closing the dialog (or navigating away) releases the session; if you are the only viewer, the backend stops ffmpeg and the engine stream a few seconds later.
+While an AceStream channel is starting, the dialog shows the engine's peer count and download speed as they become available. Once segments are ready it shows **Buffering…** until the browser starts playback, then **Playing**. Pausing shows **Paused**. Temporary status-request failures are displayed and polled again automatically; an expired session or rejected access token requires your attention. Closing the dialog (or navigating away) releases the session; if you are the only viewer, the backend stops ffmpeg and the engine stream a few seconds later.
 
 ## Live TV and choosing a stream
 
@@ -63,7 +79,7 @@ schedule. Online is a saved check result, not a guarantee that playback will sta
 
 Press **Watch** to open the embedded player and schedule. Filtering the catalogue leaves playback running; **Stop watching**, changing the channel or leaving the page releases that viewer. The **Stream** selector lists every
 attached stream, its last known online status and a short ID. Switching releases
-the previous viewer and starts the selected stream. Copy stream link and Play on
+the previous viewer and starts the selected stream. For AceStream sources, Copy stream link and Play on
 both follow the selected stream. A channel can be opened directly at
 `/live-tv?channel=123` (replace 123 with its TV channel ID).
 
@@ -97,6 +113,7 @@ The player explains problems in plain language instead of raw codes:
 |---|---|---|
 | "This server can't prepare streams for the browser. Open the channel in VLC instead." | No ffmpeg is available on the server | Use VLC/Kodi with the stream link, or fix `FFMPEG_BINARY_PATH` |
 | "The stream did not become ready in time. Check the engine or proxy, retry, or pick another stream." | The engine never produced a usable stream before the start timeout | Try another channel, or retry later |
+| "The HTTP stream could not be opened. Retry or choose another stream." | The imported HTTP source is missing, unavailable or did not become ready in time | Retry or select another stream; check the broadcaster and the server’s network access |
 | "The stream stopped unexpectedly. Try again." | ffmpeg exited mid-stream | Press **Retry** |
 | "The AceStream engine could not start this channel: …" | The engine refused or was unreachable | Check the engine URL under Settings, or that the engine is running |
 | "Your browser can't play this channel's video format (…). Send it to VLC or Kodi instead." | The source video codec (MPEG-2, MPEG-1, VC-1, MPEG-4 v3) is not one browsers decode | Open the stream link in VLC or Kodi |

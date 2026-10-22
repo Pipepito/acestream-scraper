@@ -131,7 +131,7 @@ async def create_session(payload: PlayerSessionCreate) -> PlayerSessionStatus:
             status_code=status.HTTP_409_CONFLICT,
             context={"limit": exc.limit, "active": exc.active},
         ) from exc
-    if session.state in ('starting', 'ready'):
+    if session.state in ('starting', 'ready') and not session.content_id.startswith('url:'):
         await tuner_probe_service.start_for_stream(session.content_id)
     return _status(session)
 

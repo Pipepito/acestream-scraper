@@ -8,12 +8,12 @@ from pydantic import BaseModel, Field
 from app.schemas.media import AudioTrack
 
 PlayerStateValue = Literal["starting", "ready", "error", "stopped"]
-PlayerErrorValue = Literal["engine_unavailable", "engine_refused", "engine_stalled", "ffmpeg_missing", "ffmpeg_failed"]
+PlayerErrorValue = Literal["engine_unavailable", "engine_refused", "engine_stalled", "ffmpeg_missing", "ffmpeg_failed", "source_unavailable"]
 
 
 class PlayerSessionCreate(BaseModel):
     audio_index: Optional[int] = Field(None, ge=0, le=63, description="Audio track to play; null uses the first available audio track")
-    content_id: str = Field(..., pattern=r"^[0-9a-fA-F]{40}$", description="AceStream content id (40 hex)")
+    content_id: str = Field(..., pattern=r"^(?:url:)?[0-9a-fA-F]{40}$", description="AceStream content ID (40 hex) or imported HTTP stream ID (url: followed by 40 hex)")
 
 
 class PlayerCodecs(BaseModel):

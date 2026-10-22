@@ -211,7 +211,8 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
     startPlayback(video);
   }, [status]);
 
-  const streamLink = contentId ? buildPublicUrl(`/tuner/stream/${contentId}.ts`, publicUrl?.url) : '';
+  const isHttpStream = contentId?.startsWith('url:') ?? false;
+  const streamLink = contentId && !isHttpStream ? buildPublicUrl(`/tuner/stream/${contentId}.ts`, publicUrl?.url) : '';
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(streamLink);
@@ -235,7 +236,7 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
     status?.state === 'ready'
       ? mediaState === 'playing' ? 'Playing' : mediaState === 'paused' ? 'Paused' : 'Buffering…'
       : status?.state === 'starting'
-        ? `Starting… ${stats ? `${stats.peers} peers · ${formatBitrate(stats.speed_down * 8000)}` : 'contacting the engine'}`
+        ? `Starting… ${stats ? `${stats.peers} peers · ${formatBitrate(stats.speed_down * 8000)}` : isHttpStream ? 'opening the HTTP stream' : 'contacting the engine'}`
         : start.isPending
           ? 'Starting…'
           : '';
@@ -291,9 +292,9 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
       </DialogContent>
       <DialogActions sx={{ flexWrap: 'wrap', gap: 1, px: 2, pb: 'max(16px, env(safe-area-inset-bottom))' }}>
         {extraActions}
-        <Button onClick={handleCopy} disabled={!streamLink}>
+        {!isHttpStream ? <Button onClick={handleCopy} disabled={!streamLink}>
           Copy stream link
-        </Button>
+        </Button> : null}
         <Button variant="contained" onClick={handleClose}>
           {inline ? 'Stop watching' : 'Close'}
         </Button>

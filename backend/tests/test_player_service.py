@@ -756,3 +756,42 @@ def test_cancelled_player_start_reaps_late_engine_and_frees_slot(make_service):
             await svc.stop()
 
     asyncio.run(run())
+
+
+def test_http_startup_timeout_releases_proxy_and_process(make_service, monkeypatch):
+    from app.services import player_http_source
+    monkeypatch.setattr(player_http_source, 'stored_http_source', lambda _: player_http_source.HTTPStreamSource(
+        'https://media.example/live.m3u8?private=secret', {}))
+    svc = make_service(mode='never_ready', start_timeout=5)
+    async def run():
+        try:
+            session = await svc.open_session('url:' + 'a' * 40)
+            source, process = session.http_source, session.process
+            svc._clock['now'] += 6
+            await svc.tick()
+            assert session.error == 'source_unavailable'
+            assert 'secret' not in session.error_message
+            assert source._runner is None and not source._tasks
+            assert process.returncode is not None
+            assert session.engine_session is None
+        finally:
+            await svc.stop()
+    asyncio.run(run())
+
+
+def test_cancelled_http_resolution_frees_session_slot(make_service, monkeypatch):
+    from app.services.player_http_source import PlayerHTTPSource
+    svc = make_service()
+    async def run():
+        entered = asyncio.Event()
+        async def opening(*args, **kwargs):
+            entered.set()
+            await asyncio.Future()
+        monkeypatch.setattr(PlayerHTTPSource, 'open', opening)
+        task = asyncio.create_task(svc.open_session('url:' + 'a' * 40))
+        await entered.wait()
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        assert not svc.sessions
+    asyncio.run(run())

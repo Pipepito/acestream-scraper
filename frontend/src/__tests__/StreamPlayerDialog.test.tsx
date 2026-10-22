@@ -102,6 +102,21 @@ describe('StreamPlayerDialog', () => {
     expect(hlsInstances[0].loadSource).toHaveBeenCalledWith('/api/v1/player/sessions/s1/index.m3u8');
   });
 
+  it('opens imported HTTP streams with HTTP status copy and no engine-only link', async () => {
+    mockStatus.mockReturnValue({ data: { ...readySession.data, state: 'starting', hls_ready: false } });
+    await renderDialog({ contentId: 'url:' + 'a'.repeat(40), title: 'laSexta' });
+    expect(mockStart).toHaveBeenCalledWith('url:' + 'a'.repeat(40));
+    expect(screen.getByRole('status')).toHaveTextContent('opening the HTTP stream');
+    expect(screen.queryByRole('button', { name: 'Copy stream link' })).not.toBeInTheDocument();
+  });
+
+  it('explains HTTP source failures without suggesting engine settings', async () => {
+    mockStatus.mockReturnValue({ data: { ...readySession.data, state: 'error', error: 'source_unavailable' } });
+    await renderDialog({ contentId: 'url:' + 'a'.repeat(40) });
+    expect(screen.getByRole('alert')).toHaveTextContent('The HTTP stream could not be opened');
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+  });
+
   it('reports actual browser playback and waiting instead of server readiness', async () => {
     mockStatus.mockReturnValue(readySession);
     await renderDialog();

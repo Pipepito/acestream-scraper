@@ -517,3 +517,13 @@ Published stable update checks use the cached, authenticated system API; failure
 remain quiet and the changelog stays offline. Announce each newer version once
 per browser, with manual Docker/native instructions; never auto-update. Release
 notes and promotion provenance are documented in `docs/ops/release-notes.md`.
+
+
+Browser playback accepts imported `url:` IDs as well as AceStream IDs. Resolve
+stored broadcaster links at session start; HTTP input uses a session-owned
+loopback proxy over `outbound_http.source_session`. Rewrite every HLS resource,
+including keys/maps/audio; never hand upstream manifests or URLs directly to
+FFmpeg. Preserve source headers, redirect/SSRF guards, bounded manifests and
+resource inventories, shared audio selection, startup budgets and cancellation
+cleanup. HTTP sessions must not start/probe/stop AceStream or expose signed URLs.
+See `wiki/Web-Player.md`.

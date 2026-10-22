@@ -1,6 +1,6 @@
 /**
- * Web player sessions (/api/v1/player). The backend turns one AceStream
- * channel into an HLS playlist the browser can play; this module is the
+ * Web player sessions (/api/v1/player). The backend turns an AceStream or HTTP
+ * source into an HLS playlist the browser can play; this module is the
  * thin transport layer for that lifecycle.
  */
 import apiClient from './apiClient';
@@ -14,7 +14,8 @@ export type PlayerError =
   | 'engine_refused'
   | 'engine_stalled'
   | 'ffmpeg_missing'
-  | 'ffmpeg_failed';
+  | 'ffmpeg_failed'
+  | 'source_unavailable';
 
 export interface PlayerCodecs {
   video?: string | null;

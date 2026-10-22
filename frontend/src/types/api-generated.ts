@@ -2447,7 +2447,7 @@ export interface components {
       audio_index?: number | null;
       /**
        * Content Id
-       * @description AceStream content id (40 hex)
+       * @description AceStream content ID (40 hex) or imported HTTP stream ID (url: followed by 40 hex)
        */
       content_id: string;
     };
@@ -2466,7 +2466,7 @@ export interface components {
       /** Content Id */
       content_id: string;
       /** Error */
-      error?: ("engine_unavailable" | "engine_refused" | "engine_stalled" | "ffmpeg_missing" | "ffmpeg_failed") | null;
+      error?: ("engine_unavailable" | "engine_refused" | "engine_stalled" | "ffmpeg_missing" | "ffmpeg_failed" | "source_unavailable") | null;
       /**
        * Error Message
        * @default

@@ -376,3 +376,30 @@ def test_subtitle_playlists_and_vtt_preserve_authentication(client, player, monk
     assert client.get(root + '/anything.vtt', headers=headers).status_code == 404
     assert client.post('/api/v1/player/sessions', json={'content_id': IH, 'subtitle_index': -1}, headers=headers).status_code == 422
     assert client.post('/api/v1/player/sessions', json={'content_id': IH, 'subtitle_index': 64}, headers=headers).status_code == 422
+
+
+def test_w3u_http_import_uses_existing_player_and_releases_viewer(client, player, db_session, monkeypatch):
+    import json
+    from sqlalchemy.orm import sessionmaker
+    from app.api.endpoints.player import tuner_probe_service
+    monkeypatch.setattr('app.config.database.SessionLocal', sessionmaker(bind=db_session.get_bind()))
+    def no_engine(*args, **kwargs):
+        raise AssertionError('W3U HTTP playback must remain engine-independent')
+    monkeypatch.setattr(player, '_engine_factory', no_engine)
+    monkeypatch.setattr(tuner_probe_service, 'start_for_stream', no_engine)
+    preview = client.post('/api/v1/catalogues/preview', json={'sample': json.dumps({
+        'stations': [{'name': 'Synthetic HLS', 'url': 'https://media.example/live.m3u8', 'userAgent': 'Fixture'}]})})
+    assert preview.status_code == 200
+    imported = client.post('/api/v1/catalogues', json={'preview_token': preview.json()['preview_token'],
+        'name': 'Player fixture', 'selected_branches': ['root']})
+    assert imported.status_code == 200
+    stream_id = imported.json()['entries'][1]['channel_id']
+    response = client.post('/api/v1/player/sessions', json={'content_id': stream_id})
+    assert response.status_code == 200
+    session_id = response.json()['id']
+    ready = _wait_ready(client, session_id)
+    assert client.get(ready['playlist_url']).status_code == 200
+    assert player.get(session_id).http_source is not None
+    stopped = client.delete(f'/api/v1/player/sessions/{session_id}')
+    assert stopped.status_code in (200, 204)
+    assert client.get(f'/api/v1/player/sessions/{session_id}').json()['viewers'] == 0

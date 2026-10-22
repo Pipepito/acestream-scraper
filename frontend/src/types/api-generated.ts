@@ -158,6 +158,22 @@ export interface paths {
     /** Update Base Url */
     patch: operations["update_base_url_api_v1_base_urls__base_url_id__patch"];
   };
+  "/api/v1/catalogues": {
+    /** List Catalogues */
+    get: operations["list_catalogues_api_v1_catalogues_get"];
+    /** Save Catalogue */
+    post: operations["save_catalogue_api_v1_catalogues_post"];
+  };
+  "/api/v1/catalogues/preview": {
+    /** Preview Catalogue */
+    post: operations["preview_catalogue_api_v1_catalogues_preview_post"];
+  };
+  "/api/v1/catalogues/{catalogue_id}": {
+    /** Get Catalogue */
+    get: operations["get_catalogue_api_v1_catalogues__catalogue_id__get"];
+    /** Delete Catalogue */
+    delete: operations["delete_catalogue_api_v1_catalogues__catalogue_id__delete"];
+  };
   "/api/v1/channels/": {
     /**
      * Get Acestream Channels
@@ -1560,6 +1576,199 @@ export interface components {
       /** Acestreamchannel Ids */
       acestreamchannel_ids: string[];
       fields: components["schemas"]["AcestreamChannelUpdate"];
+    };
+    /** CatalogueCounts */
+    CatalogueCounts: {
+      /**
+       * Accepted
+       * @default 0
+       */
+      accepted?: number;
+      /**
+       * Bytes Read
+       * @description Traversal byte budget used, including cached input and failed-read reservations
+       * @default 0
+       */
+      bytes_read?: number;
+      /**
+       * Cached Documents
+       * @default 0
+       */
+      cached_documents?: number;
+      /**
+       * Duplicates
+       * @default 0
+       */
+      duplicates?: number;
+      /**
+       * Failed Fetches
+       * @default 0
+       */
+      failed_fetches?: number;
+      /**
+       * Invalid
+       * @default 0
+       */
+      invalid?: number;
+      /**
+       * Requests
+       * @default 0
+       */
+      requests?: number;
+      /**
+       * Unsupported
+       * @default 0
+       */
+      unsupported?: number;
+    };
+    /** CatalogueEntry */
+    CatalogueEntry: {
+      /** Channel Id */
+      channel_id?: string | null;
+      /**
+       * Description
+       * @default
+       */
+      description?: string;
+      /**
+       * Duplicate
+       * @default false
+       */
+      duplicate?: boolean;
+      /** Guide Id */
+      guide_id?: string | null;
+      /** Header Names */
+      header_names?: string[];
+      /** Id */
+      id: string;
+      /** Image */
+      image?: string | null;
+      /**
+       * Imported
+       * @default false
+       */
+      imported?: boolean;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "folder" | "acestream" | "hls" | "mpegts" | "resolver" | "vod" | "unsupported" | "invalid";
+      /** Name */
+      name: string;
+      /** Number */
+      number?: number | null;
+      /**
+       * Origin
+       * @default
+       */
+      origin?: string;
+      /** Parent Id */
+      parent_id?: string | null;
+      /**
+       * Reason
+       * @default
+       */
+      reason?: string;
+      /**
+       * Retained
+       * @default false
+       */
+      retained?: boolean;
+    };
+    /** CataloguePreviewRequest */
+    CataloguePreviewRequest: {
+      /** Catalogue Id */
+      catalogue_id?: number | null;
+      /** Sample */
+      sample?: string | null;
+      /** Url */
+      url?: string | null;
+    };
+    /** CatalogueSaveRequest */
+    CatalogueSaveRequest: {
+      /**
+       * Mode
+       * @default compatible
+       * @enum {string}
+       */
+      mode?: "compatible" | "acestream";
+      /** Name */
+      name: string;
+      /** Preview Token */
+      preview_token: string;
+      /**
+       * Refresh Enabled
+       * @default false
+       */
+      refresh_enabled?: boolean;
+      /** Selected Branches */
+      selected_branches: string[];
+    };
+    /** CatalogueSummary */
+    CatalogueSummary: {
+      /** Id */
+      id: number;
+      /** Name */
+      name: string;
+      /** Origin */
+      origin: string;
+      /** Partial */
+      partial: boolean;
+      /** Refresh Enabled */
+      refresh_enabled: boolean;
+      /** Revision */
+      revision: number;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+    };
+    /** CatalogueView */
+    CatalogueView: {
+      /**
+       * Can Refresh
+       * @default false
+       */
+      can_refresh?: boolean;
+      counts: components["schemas"]["CatalogueCounts"];
+      /** Entries */
+      entries: components["schemas"]["CatalogueEntry"][];
+      /** Id */
+      id?: number | null;
+      /**
+       * Mode
+       * @default compatible
+       * @enum {string}
+       */
+      mode?: "compatible" | "acestream";
+      /** Name */
+      name: string;
+      /** Origin */
+      origin: string;
+      /**
+       * Partial
+       * @default false
+       */
+      partial?: boolean;
+      /** Preview Token */
+      preview_token?: string | null;
+      /**
+       * Refresh Enabled
+       * @default false
+       */
+      refresh_enabled?: boolean;
+      /**
+       * Revision
+       * @default 0
+       */
+      revision?: number;
+      /** Selected Branches */
+      selected_branches?: string[];
+      /** Updated At */
+      updated_at?: string | null;
+      /** Warnings */
+      warnings?: string[];
     };
     /**
      * ChannelResult
@@ -4585,6 +4794,103 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["BaseUrlResponse"];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** List Catalogues */
+  list_catalogues_api_v1_catalogues_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["CatalogueSummary"][];
+        };
+      };
+    };
+  };
+  /** Save Catalogue */
+  save_catalogue_api_v1_catalogues_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CatalogueSaveRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["CatalogueView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Preview Catalogue */
+  preview_catalogue_api_v1_catalogues_preview_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CataloguePreviewRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["CatalogueView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get Catalogue */
+  get_catalogue_api_v1_catalogues__catalogue_id__get: {
+    parameters: {
+      path: {
+        catalogue_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["CatalogueView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Delete Catalogue */
+  delete_catalogue_api_v1_catalogues__catalogue_id__delete: {
+    parameters: {
+      path: {
+        catalogue_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        content: never;
       };
       /** @description Validation Error */
       422: {

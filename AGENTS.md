@@ -539,3 +539,16 @@ The isolated CI runner builds the same minimal FFmpeg from the runtime manifest
 and build script; include both in trusted exports, cache keys and fork guards.
 Keep Debian FFmpeg only as `FFMPEG_TEST_TOOL_PATH` for synthetic media fixtures.
 See `docs/ops/jenkins-ci.md#ffmpeg-in-the-isolated-validation-runner`.
+
+
+## W3U catalogues
+
+`/catalogues` keeps W3U hierarchy separate from TV assignments. Preview is read-only;
+opaque expiring tokens and catalogue revisions protect save. Traverse only bounded
+structured child documents through `outbound_http.source_session`; never execute
+publisher scripts or treat arbitrary page/image URLs as media. Imports reuse the
+channel repository and shared player. Preserve existing channel metadata and all
+channels on partial refresh, deselection and catalogue removal. Scheduled refresh
+is opt-in within the existing scrape queue. Public DTOs expose source hosts and
+header names only. See `wiki/W3U-Catalogues.md` and `docs/dev/w3u-catalogues.md`;
+event/VOD and unsupported host-resolver work remain tracked separately.

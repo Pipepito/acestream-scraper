@@ -16,9 +16,10 @@ class RecipeRequestLimits:
         self.app = app
 
     async def __call__(self, scope, receive, send):
-        if scope['type'] != 'http' or scope.get('path', '').rstrip('/') != '/api/v1/scrapers/recipes/preview':
+        if scope['type'] != 'http' or scope.get('path', '').rstrip('/') not in ('/api/v1/scrapers/recipes/preview', '/api/v1/catalogues/preview'):
             await self.app(scope, receive, send)
             return
+        body_limit = 8 * 1024 * 1024 + 4096 if scope['path'].rstrip('/') == '/api/v1/catalogues/preview' else MAX_PREVIEW_BODY_BYTES
         async def error(status, message, headers=None):
             await JSONResponse({'detail': message}, status_code=status, headers=headers)(scope, receive, send)
         try:
@@ -42,7 +43,7 @@ class RecipeRequestLimits:
                 except ValueError:
                     await error(400, 'Invalid Content-Length')
                     return
-                if size < 0 or size > MAX_PREVIEW_BODY_BYTES:
+                if size < 0 or size > body_limit:
                     await error(413, 'Preview request is too large; reduce JSON escaping or use a smaller sample')
                     return
             total = 0
@@ -60,7 +61,7 @@ class RecipeRequestLimits:
                         return
                     chunk = message.get('body', b'')
                     total += len(chunk)
-                    if total > MAX_PREVIEW_BODY_BYTES:
+                    if total > body_limit:
                         await error(413, 'Preview request is too large; reduce JSON escaping or use a smaller sample')
                         return
                     await asyncio.to_thread(body.write, chunk)

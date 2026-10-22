@@ -105,7 +105,7 @@ The fixtures never reload modules: `_bind_runtime_to(database_url)` re-points th
 ### Frontend
 
 - Routing is declared in `src/App.tsx` and wrapped in `components/layout/AppShell`. Pages under `src/pages/` are the route-level views; reusable components live under `src/components/`.
-- Navigation (since the 2026-09-02 UI overhaul) has nine destinations declared in `components/layout/navItems.tsx`: Overview `/`, Scraper, Search, Acestream Channels, TV Channels, EPG, Playlist, Integrations, Settings. A nav label is always the page's `<h1>`. WARP (`/warp`) is reachable from the Overview services panel only (`hiddenRouteTitles`). Old routes redirect through `LEGACY_REDIRECTS` in `App.tsx` (`/dashboard`, `/health`, `/stats` → `/`; `/channels` → `/tv-channels`; `/search-new` → `/search`; `/epg/mappings` → `/epg?tab=rules`). The EPG page is five tabs bound to `?tab=` (`sources` default, `channels`, `matching`, `rules`, `export`). The Integrations page (`pages/Integrations.tsx`, `/integrations`) is a stack of `ContentSection`s from `components/integrations/` — public address, web player, remote players, media servers (with the tuner settings accordion) — each reporting into one page-level snackbar via a `notify(message, severity)` prop; a section added later appends to that stack rather than restructuring the page. Every card follows the same rule: two visible actions, everything else (Edit, Test connection, Delete) in a `RowActionsMenu` labelled "More actions for <name>", with `useConfirm()` on Delete and on Jellyfin Disconnect only.
+- Navigation groups Watch (Live TV, Catalogues), Manage (Scraper, Search, Acestream Channels, TV Channels, EPG, Playlist) and System (Overview, Integrations, WARP, Settings, Changelog), declared in `components/layout/navItems.tsx`. Labels match page headings. WARP remains directly discoverable. Old routes redirect through `LEGACY_REDIRECTS` in `App.tsx` (`/dashboard`, `/health`, `/stats` → `/`; `/channels` → `/tv-channels`; `/search-new` → `/search`; `/epg/mappings` → `/epg?tab=rules`). The EPG page is five tabs bound to `?tab=` (`sources` default, `channels`, `matching`, `rules`, `export`). The Integrations page (`pages/Integrations.tsx`, `/integrations`) is a stack of `ContentSection`s from `components/integrations/` — public address, web player, remote players, media servers (with the tuner settings accordion) — each reporting into one page-level snackbar via a `notify(message, severity)` prop; a section added later appends to that stack rather than restructuring the page. Every card follows the same rule: two visible actions, everything else (Edit, Test connection, Delete) in a `RowActionsMenu` labelled "More actions for <name>", with `useConfirm()` on Delete and on Jellyfin Disconnect only.
 - Page skeleton: `PageHeader` (title, optional one-line subtitle, `actions`, `overflowActions` that collapse into a "More actions" menu on phones) → `StatusLine` (`role="status"`, measured facts only) → `ContentSection`s. Shared primitives: `components/StatusLine.tsx`, `components/ConfirmDialog.tsx` (`useConfirm()` replaces `window.confirm`), `components/RowActionsMenu.tsx` (row "More actions for X" menus), `components/epg/ScheduleView.tsx` (Now/Next + day tabs), `utils/format.ts` (`formatRelativeTime`, `formatBitrate`, `summarizeJobResult`). No hero blocks, no explanatory paragraphs: copy uses plain words, relative times ("12 min ago") and real units (Mbps/kbps).
 - API access goes through `src/services/*.ts`, all built on `apiClient.ts` (axios). `@tanstack/react-query` v5 is the data layer (see `frontend/package.json`).
 - Vite config (`frontend/vite.config.ts`) hand-tunes `manualChunks` for MUI / data-grid / data-vendor / TVChannels page splits. Preserve the chunking rules unless deliberately retuning bundle size.
@@ -570,3 +570,16 @@ The isolated CI runner builds the same minimal FFmpeg from the runtime manifest
 and build script; include both in trusted exports, cache keys and fork guards.
 Keep Debian FFmpeg only as `FFMPEG_TEST_TOOL_PATH` for synthetic media fixtures.
 See `docs/ops/jenkins-ci.md#ffmpeg-in-the-isolated-validation-runner`.
+
+
+## W3U catalogues
+
+`/catalogues` keeps W3U hierarchy separate from TV assignments. Preview is read-only;
+opaque expiring tokens and catalogue revisions protect save. Traverse only bounded
+structured child documents through `outbound_http.source_session`; never execute
+publisher scripts or treat arbitrary page/image URLs as media. Imports reuse the
+channel repository and shared player. Preserve existing channel metadata and all
+channels on partial refresh, deselection and catalogue removal. Scheduled refresh
+is opt-in within the existing scrape queue. Public DTOs expose source hosts and
+header names only. See `wiki/W3U-Catalogues.md` and `docs/dev/w3u-catalogues.md`;
+event/VOD and unsupported host-resolver work remain tracked separately.

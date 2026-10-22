@@ -43,6 +43,12 @@ def run_url_scraping_task():
             }
 
         result = asyncio.run(scrape_all())
+        from app.services.catalogue_service import CatalogueService
+        catalogues = CatalogueService(db).refresh_enabled()
+        if catalogues['catalogues']:
+            result.update(catalogues)
+            result['processed'] += catalogues['catalogues']
+            result['failures'] += catalogues['catalogue_failures']
         logger.info("URL scraping task completed result=%s", result)
         notification_service.scraping_completed(result)
         return result

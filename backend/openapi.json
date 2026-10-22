@@ -1180,6 +1180,416 @@
         "title": "BulkChannelEditRequest",
         "type": "object"
       },
+      "CatalogueCounts": {
+        "properties": {
+          "accepted": {
+            "default": 0,
+            "title": "Accepted",
+            "type": "integer"
+          },
+          "bytes_read": {
+            "default": 0,
+            "description": "Traversal byte budget used, including cached input and failed-read reservations",
+            "title": "Bytes Read",
+            "type": "integer"
+          },
+          "cached_documents": {
+            "default": 0,
+            "title": "Cached Documents",
+            "type": "integer"
+          },
+          "duplicates": {
+            "default": 0,
+            "title": "Duplicates",
+            "type": "integer"
+          },
+          "failed_fetches": {
+            "default": 0,
+            "title": "Failed Fetches",
+            "type": "integer"
+          },
+          "invalid": {
+            "default": 0,
+            "title": "Invalid",
+            "type": "integer"
+          },
+          "requests": {
+            "default": 0,
+            "title": "Requests",
+            "type": "integer"
+          },
+          "unsupported": {
+            "default": 0,
+            "title": "Unsupported",
+            "type": "integer"
+          }
+        },
+        "title": "CatalogueCounts",
+        "type": "object"
+      },
+      "CatalogueEntry": {
+        "properties": {
+          "channel_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel Id"
+          },
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "duplicate": {
+            "default": false,
+            "title": "Duplicate",
+            "type": "boolean"
+          },
+          "guide_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Guide Id"
+          },
+          "header_names": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Header Names",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image"
+          },
+          "imported": {
+            "default": false,
+            "title": "Imported",
+            "type": "boolean"
+          },
+          "kind": {
+            "enum": [
+              "folder",
+              "acestream",
+              "hls",
+              "mpegts",
+              "resolver",
+              "vod",
+              "unsupported",
+              "invalid"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Number"
+          },
+          "origin": {
+            "default": "",
+            "title": "Origin",
+            "type": "string"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "reason": {
+            "default": "",
+            "title": "Reason",
+            "type": "string"
+          },
+          "retained": {
+            "default": false,
+            "title": "Retained",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind"
+        ],
+        "title": "CatalogueEntry",
+        "type": "object"
+      },
+      "CataloguePreviewRequest": {
+        "properties": {
+          "catalogue_id": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Catalogue Id"
+          },
+          "sample": {
+            "anyOf": [
+              {
+                "maxLength": 4194304,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sample"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "maxLength": 2048,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "title": "CataloguePreviewRequest",
+        "type": "object"
+      },
+      "CatalogueSaveRequest": {
+        "properties": {
+          "mode": {
+            "default": "compatible",
+            "enum": [
+              "compatible",
+              "acestream"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "preview_token": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Preview Token",
+            "type": "string"
+          },
+          "refresh_enabled": {
+            "default": false,
+            "title": "Refresh Enabled",
+            "type": "boolean"
+          },
+          "selected_branches": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10000,
+            "title": "Selected Branches",
+            "type": "array"
+          }
+        },
+        "required": [
+          "preview_token",
+          "name",
+          "selected_branches"
+        ],
+        "title": "CatalogueSaveRequest",
+        "type": "object"
+      },
+      "CatalogueSummary": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "origin": {
+            "title": "Origin",
+            "type": "string"
+          },
+          "partial": {
+            "title": "Partial",
+            "type": "boolean"
+          },
+          "refresh_enabled": {
+            "title": "Refresh Enabled",
+            "type": "boolean"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "revision",
+          "origin",
+          "partial",
+          "refresh_enabled",
+          "updated_at"
+        ],
+        "title": "CatalogueSummary",
+        "type": "object"
+      },
+      "CatalogueView": {
+        "properties": {
+          "can_refresh": {
+            "default": false,
+            "title": "Can Refresh",
+            "type": "boolean"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/CatalogueCounts"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/CatalogueEntry"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "mode": {
+            "default": "compatible",
+            "enum": [
+              "compatible",
+              "acestream"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "origin": {
+            "title": "Origin",
+            "type": "string"
+          },
+          "partial": {
+            "default": false,
+            "title": "Partial",
+            "type": "boolean"
+          },
+          "preview_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preview Token"
+          },
+          "refresh_enabled": {
+            "default": false,
+            "title": "Refresh Enabled",
+            "type": "boolean"
+          },
+          "revision": {
+            "default": 0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "selected_branches": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Selected Branches",
+            "type": "array"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "origin",
+          "entries",
+          "counts"
+        ],
+        "title": "CatalogueView",
+        "type": "object"
+      },
       "ChannelResult": {
         "description": "Schema for channel result from scraping",
         "properties": {
@@ -8658,6 +9068,186 @@
         "summary": "Update Base Url",
         "tags": [
           "base-urls"
+        ]
+      }
+    },
+    "/api/v1/catalogues": {
+      "get": {
+        "operationId": "list_catalogues_api_v1_catalogues_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CatalogueSummary"
+                  },
+                  "title": "Response List Catalogues Api V1 Catalogues Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Catalogues",
+        "tags": [
+          "catalogues"
+        ]
+      },
+      "post": {
+        "operationId": "save_catalogue_api_v1_catalogues_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CatalogueSaveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogueView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Catalogue",
+        "tags": [
+          "catalogues"
+        ]
+      }
+    },
+    "/api/v1/catalogues/preview": {
+      "post": {
+        "operationId": "preview_catalogue_api_v1_catalogues_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CataloguePreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogueView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Catalogue",
+        "tags": [
+          "catalogues"
+        ]
+      }
+    },
+    "/api/v1/catalogues/{catalogue_id}": {
+      "delete": {
+        "operationId": "delete_catalogue_api_v1_catalogues__catalogue_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "catalogue_id",
+            "required": true,
+            "schema": {
+              "title": "Catalogue Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Catalogue",
+        "tags": [
+          "catalogues"
+        ]
+      },
+      "get": {
+        "operationId": "get_catalogue_api_v1_catalogues__catalogue_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "catalogue_id",
+            "required": true,
+            "schema": {
+              "title": "Catalogue Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogueView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Catalogue",
+        "tags": [
+          "catalogues"
         ]
       }
     },

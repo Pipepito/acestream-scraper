@@ -18,6 +18,7 @@ import LiveTV from './pages/LiveTV';
 import NotFound from './pages/NotFound';
 import UpdateAvailableNotice from './components/UpdateAvailableNotice';
 import WhatsNewNotice from './components/WhatsNewNotice';
+const Catalogues = React.lazy(() => import('./pages/Catalogues'));
 const Changelog = React.lazy(() => import('./pages/Changelog'));
 const ExtractionBuilder = React.lazy(() => import('./pages/ExtractionBuilder'));
 
@@ -47,6 +48,7 @@ const App: React.FC = () => {
       <Routes>
         <Route path="/" element={<Overview />} />
         <Route path="/acestream-channels" element={<AcestreamChannels />} />
+        <Route path="/catalogues" element={<React.Suspense fallback={<p role="status">Loading catalogues…</p>}><Catalogues /></React.Suspense>} />
         <Route path="/live-tv" element={<LiveTV />} />
         <Route path="/tv-channels" element={<TVChannels />} />
         <Route path="/tv-channels/:id" element={<TVChannelDetail />} />

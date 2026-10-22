@@ -380,3 +380,17 @@ class ScheduledTaskState(Base):
     status = Column(String(32), nullable=False)
     last_error = Column(Text, nullable=True)
     last_result = Column(JSON, nullable=True)
+
+
+class W3UCatalogue(Base):
+    """Source-scoped hierarchy and private refresh inputs, never a TV assignment."""
+    __tablename__ = 'w3u_catalogues'
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    source_url = Column(String(2048), nullable=True)
+    revision = Column(Integer, nullable=False, default=1)
+    snapshot = Column(JSON, nullable=False)
+    selected_branches = Column(JSON, nullable=False)
+    mode = Column(String(16), nullable=False, default='compatible')
+    refresh_enabled = Column(Boolean, nullable=False, default=False)
+    updated_at = Column(UtcDateTime(), nullable=False, default=_utcnow)

@@ -31,6 +31,14 @@ class PlaylistService:
         self.live_base_url = live_base_url
         self.channel_repository = ChannelRepository(db)
 
+    @staticmethod
+    def _exportable(stream):
+        # W3U-owned HTTP inputs can carry private signed URLs and Referer
+        # values. Until external playback has a credential-preserving relay,
+        # these are browser-only; never put those inputs in M3U exports.
+        return not (getattr(stream, 'stream_url', None)
+                    and str(getattr(stream, 'source_url', '') or '').startswith('catalogue:'))
+
     def guide_coverage(self):
         from app.repositories.epg_match_repository import EPGMatchRepository
         return EPGMatchRepository(self.db).coverage()
@@ -195,6 +203,8 @@ class PlaylistService:
         # is excluded from the optional source list by a stream-level filter.
         lines = []
         for index, stream in enumerate(streams, start=1):
+            if not self._exportable(stream):
+                continue
             label = (stream.name or "").strip() or tv_channel.name
             if not getattr(stream, 'stream_url', None):
                 label = f"{label} [{stream.id[:8]}]"
@@ -222,7 +232,7 @@ class PlaylistService:
         number = max([8999] + [tv.channel_number for tv in tv_channels if tv.channel_number is not None]) + 1
         lines = []
         for channel in channels:
-            if not channel.id:
+            if not channel.id or not self._exportable(channel):
                 continue
             name = self._dedupe_name(self._attr(channel.name or f"Stream {channel.id[:8]}"), name_counts)
             attrs = [f'tvg-chno="{number}"', f'tvg-name="{name}"']
@@ -257,7 +267,7 @@ class PlaylistService:
         processed_ids = set()
 
         for tv_channel in tv_channels:
-            streams = [s for s in tv_channel.acestream_channels if s.id]
+            streams = [s for s in tv_channel.acestream_channels if s.id and self._exportable(s)]
             if not streams:
                 continue
             streams = sort_streams_curated(streams)
@@ -539,7 +549,7 @@ class PlaylistService:
 
         for channel in channels:
             # Skip invalid channels
-            if not channel.id or not channel.name:
+            if not channel.id or not channel.name or not self._exportable(channel):
                 continue
 
             # Build channel attributes

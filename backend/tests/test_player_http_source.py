@@ -5,6 +5,7 @@ import os
 import shutil
 import subprocess
 from types import SimpleNamespace
+from urllib.parse import urlsplit
 
 import aiohttp
 from aiohttp import web
@@ -147,6 +148,62 @@ def test_oversized_manifest_and_slow_origin_are_bounded(monkeypatch):
                         async with client.get(source.link(base + '/' + path)) as response:
                             assert response.status == 502
             finally:
+                await source.close()
+    asyncio.run(run())
+
+
+def test_proxy_records_bounded_status_details_without_signed_urls():
+    async def run():
+        async def handler(request):
+            return web.Response(status=492, text='private upstream response')
+        async with origin(handler) as base:
+            source = PlayerHTTPSource(base + '/live.m3u8?signature=private', {})
+            await source.start()
+            try:
+                async with aiohttp.ClientSession() as client:
+                    for _ in range(10):
+                        async with client.get(source.playback_url) as response:
+                            assert response.status == 502
+                            assert await response.text() == 'HTTP media unavailable'
+                assert list(source.failures) == ['m3u8: HTTP 492'] * 8
+            finally:
+                await source.close()
+    asyncio.run(run())
+
+
+def test_interrupted_media_closes_connection_without_injecting_http_error():
+    async def run():
+        disconnect = asyncio.Event()
+        async def handler(request):
+            response = web.StreamResponse(headers={'Content-Length': '4096'})
+            await response.prepare(request)
+            await response.write(b'x' * 600)
+            await disconnect.wait()
+            request.transport.close()
+            return response
+        async with origin(handler) as base:
+            source = PlayerHTTPSource(base + '/segment.ts', {})
+            await source.start()
+            writer = None
+            try:
+                target = urlsplit(source.playback_url)
+                reader, writer = await asyncio.open_connection(target.hostname, target.port)
+                writer.write(f'GET {target.path} HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n'.encode())
+                await writer.drain()
+                async with asyncio.timeout(3):
+                    headers = await reader.readuntil(b'\r\n\r\n')
+                    assert b'200 OK' in headers and b'Content-Length: 4096' in headers
+                    assert await reader.readexactly(600) == b'x' * 600
+                    disconnect.set()
+                    # After headers are committed only media may follow, even
+                    # when the upstream truncates its advertised body.
+                    assert await reader.read() == b''
+                assert list(source.failures) == ['ts: ClientPayloadError']
+            finally:
+                disconnect.set()
+                if writer is not None:
+                    writer.close()
+                    await writer.wait_closed()
                 await source.close()
     asyncio.run(run())
 

@@ -23,6 +23,7 @@ from fastapi.concurrency import run_in_threadpool
 
 from app.config.settings import get_settings
 from app.schemas.media import AudioTrack, SubtitleTrack
+from app.services.diagnostics_service import redact
 from app.services.player_http_source import PlayerHTTPSource
 from app.services.engine_client import (
     EngineClient,
@@ -429,20 +430,30 @@ class PlayerService:
         input_streams = True
         audio_stream_ids: set[int] = set()
         subtitle_stream_ids: set[int] = set()
+        truncated_line = False
         try:
             while True:
                 try:
-                    raw = await stream.readline()
-                except (asyncio.LimitOverrunError, ValueError):
-                    # A progress line without a newline overran the buffer.
-                    raw = await stream.read(4096)
+                    raw = await stream.readuntil(b'\n')
+                except asyncio.LimitOverrunError as exc:
+                    # Consume only the known oversized portion, leaving its
+                    # delimiter to readuntil. Discard the remainder as well:
+                    # a partial URL/credential cannot be reliably masked.
+                    await stream.readexactly(exc.consumed)
+                    truncated_line = True
+                    continue
+                except asyncio.IncompleteReadError as exc:
+                    raw = exc.partial
                 if not raw:
                     break
+                if truncated_line:
+                    truncated_line = False
+                    continue
                 line = raw.decode("utf-8", "replace").replace("\r", "\n").strip()
                 if not line:
                     continue
-                if not session.content_id.startswith("url:"):
-                    session.stderr_tail.append(line[-300:])
+                # Mask before truncating, including the opaque loopback URL.
+                session.stderr_tail.append(redact(line.replace(str(session.dir), '[player-output]'))[-300:])
                 if line.startswith(("Stream mapping:", "Output #")):
                     input_streams = False
                 audio = re.search(r"Stream #0:(\d+)(?:\[[^]]*\])?(?:\(([^)]*)\))?: Audio: ([A-Za-z0-9_]+)(.*)", line)
@@ -468,6 +479,11 @@ class PlayerService:
             with contextlib.suppress(Exception):
                 await proc.wait()
             if session.state != "stopped":
+                if session.content_id.startswith("url:") and session.error is None:
+                    failures = session.http_source.failures if session.http_source is not None else ()
+                    logger.warning('HTTP player session %s: ffmpeg exited with %s; upstream: %s; stderr: %s',
+                                   session.id, proc.returncode, ' | '.join(failures) or 'no recorded failures',
+                                   ' | '.join(session.stderr_tail))
                 await self._fail(
                     session,
                     "ffmpeg_failed",

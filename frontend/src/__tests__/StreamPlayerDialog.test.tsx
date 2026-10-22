@@ -1,4 +1,5 @@
 import React from 'react';
+import Hls from 'hls.js';
 import { ThemeProvider } from '@mui/material/styles';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import StreamPlayerDialog from '../components/player/StreamPlayerDialog';
@@ -190,6 +191,47 @@ describe('StreamPlayerDialog', () => {
     const handler = call?.[1] as (event: string, payload: Record<string, unknown>) => void;
     act(() => { handler('hlsError', data); });
   };
+
+  it.each(['error', 'stopped', 'gone'])('stops fetching stale HLS after the session is %s', async (state) => {
+    const view = await renderPlaying();
+    const terminal = state === 'gone' ? { error: { status: 404 } } : {
+      data: { ...readySession.data, state, error: state === 'error' ? 'ffmpeg_failed' : null },
+    };
+    mockStatus.mockReturnValue(terminal);
+    const dialog = () => <ThemeProvider theme={createAppTheme('light')}>
+      <StreamPlayerDialog open contentId={'a'.repeat(40)} title="Arena TV" onClose={jest.fn()} />
+    </ThemeProvider>;
+    view.rerender(dialog());
+    expect(hlsInstances[0].destroy).toHaveBeenCalledTimes(1);
+    expect(HTMLMediaElement.prototype.pause).toHaveBeenCalled();
+    expect(screen.getByLabelText('Video player for Arena TV')).not.toHaveAttribute('src');
+    // The old playlist still exists on disk, but must never be reattached.
+    mockStatus.mockReturnValue({ ...terminal, data: terminal.data && { ...terminal.data } });
+    view.rerender(dialog());
+    expect(hlsInstances).toHaveLength(1);
+  });
+
+  it('also detaches native HLS when the backend fails', async () => {
+    const supported = jest.spyOn(Hls, 'isSupported').mockReturnValue(false);
+    try {
+      mockStatus.mockReturnValue({ data: { ...readySession.data, state: 'starting', hls_ready: false } });
+      const view = await renderDialog();
+      const dialog = () => <ThemeProvider theme={createAppTheme('light')}>
+        <StreamPlayerDialog open contentId={'a'.repeat(40)} title="Arena TV" onClose={jest.fn()} />
+      </ThemeProvider>;
+      mockStatus.mockReturnValue(readySession);
+      view.rerender(dialog());
+      const video = screen.getByLabelText('Video player for Arena TV');
+      expect(video).toHaveAttribute('src', '/p');
+      mockStatus.mockReturnValue({ data: { ...readySession.data, state: 'error', error: 'ffmpeg_failed' } });
+      view.rerender(dialog());
+      expect(video).not.toHaveAttribute('src');
+      expect(HTMLMediaElement.prototype.load).toHaveBeenCalled();
+      expect(hlsInstances).toHaveLength(0);
+    } finally {
+      supported.mockRestore();
+    }
+  });
 
   it('recovers from fatal hls.js network and media errors instead of freezing', async () => {
     await renderPlaying();

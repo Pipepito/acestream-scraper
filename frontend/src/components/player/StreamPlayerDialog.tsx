@@ -166,6 +166,17 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
 
   useEffect(() => {
     const video = videoRef.current;
+    if (status?.state === 'error' || status?.state === 'stopped' || statusError?.status === 404) {
+      hlsRef.current?.destroy();
+      hlsRef.current = null;
+      attachedUrl.current = null;
+      if (video) {
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+      }
+      return;
+    }
     if (!video || !status || !status.hls_ready || attachedUrl.current === status.playlist_url) return;
     attachedUrl.current = status.playlist_url;
     hlsRef.current?.destroy();
@@ -215,7 +226,7 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
       video.src = withToken(status.playlist_url);
     }
     startPlayback(video);
-  }, [status]);
+  }, [status, statusError]);
 
   const isHttpStream = contentId?.startsWith('url:') ?? false;
   const streamLink = contentId && !isHttpStream ? buildPublicUrl(`/tuner/stream/${contentId}.ts`, publicUrl?.url) : '';

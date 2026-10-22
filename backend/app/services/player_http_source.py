@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 import re
 import secrets
-from collections import OrderedDict
+from collections import OrderedDict, deque
 from dataclasses import dataclass
 from urllib.parse import urljoin, urlsplit
 
@@ -40,6 +40,12 @@ _TAGS = frozenset(('EXTM3U EXTINF EXT-X-VERSION EXT-X-TARGETDURATION '
 class HTTPStreamSource:
     url: str
     headers: dict[str, str]
+
+
+class HTTPMediaStatusError(ValueError):
+    def __init__(self, status: int):
+        super().__init__(f'Upstream HTTP {status}')
+        self.status = status
 
 
 def stored_http_source(content_id: str) -> HTTPStreamSource | None:
@@ -78,6 +84,9 @@ class PlayerHTTPSource:
         self._ids: dict[str, str] = {}
         self._runner: web.AppRunner | None = None
         self._tasks: set[asyncio.Task] = set()
+        # Only status/type and our own resource suffix; never source URLs,
+        # response bodies, headers or exception messages.
+        self.failures: deque[str] = deque(maxlen=8)
         self._base = ''
         self._secret = secrets.token_hex(24)
 
@@ -169,8 +178,11 @@ class PlayerHTTPSource:
         if not secrets.compare_digest(request.match_info['secret'], self._secret):
             raise web.HTTPNotFound()
         url = self._resources.get(request.match_info['resource'])
-        if url is None or len(self._tasks) >= 8:
+        if url is None:
             raise web.HTTPNotFound()
+        if len(self._tasks) >= 8:
+            self.failures.append('request capacity exceeded')
+            raise web.HTTPServiceUnavailable()
         task = asyncio.current_task()
         self._tasks.add(task)
         try:
@@ -181,11 +193,17 @@ class PlayerHTTPSource:
             # FFmpeg abandons prefetched/unused rendition segments normally.
             # The upstream context has closed; this is a client disconnect.
             return web.Response(status=499)
-        except Exception:
+        except Exception as exc:
             # Upstream URLs may be signed. Never log or return exception text.
+            self._record_failure(request, exc)
             return web.Response(status=502, text='HTTP media unavailable')
         finally:
             self._tasks.discard(task)
+
+    def _record_failure(self, request: web.Request, exc: Exception) -> None:
+        kind = request.match_info['resource'].rsplit('.', 1)[-1]
+        reason = f'HTTP {exc.status}' if isinstance(exc, HTTPMediaStatusError) else type(exc).__name__
+        self.failures.append(f'{kind}: {reason}')
 
     async def _fetch(self, request: web.Request, url: str) -> web.StreamResponse:
         headers = dict(self.headers, **{"Accept-Encoding": "identity"})
@@ -209,7 +227,7 @@ class PlayerHTTPSource:
                             url = target
                             continue
                         if upstream.status not in (200, 206):
-                            raise ValueError('HTTP media unavailable')
+                            raise HTTPMediaStatusError(upstream.status)
                         # readexactly is necessary: a TCP chunk may be only one byte.
                         try:
                             prefix = await upstream.content.readexactly(512)
@@ -240,10 +258,25 @@ class PlayerHTTPSource:
                         })
                         response.content_type = 'application/octet-stream'
                         await response.prepare(request)
-                        await response.write(prefix)
-                        async for chunk in upstream.content.iter_chunked(65536):
-                            await response.write(chunk)
-                        await response.write_eof()
+                        try:
+                            await response.write(prefix)
+                            while True:
+                                try:
+                                    chunk = await upstream.content.read(65536)
+                                except Exception as exc:
+                                    self._record_failure(request, exc)
+                                    raise
+                                if not chunk:
+                                    break
+                                await response.write(chunk)
+                            await response.write_eof()
+                        except Exception:
+                            # Headers/media have already been sent. A second
+                            # HTTP response would corrupt FFmpeg's media input.
+                            # Downstream disconnects are not upstream failures.
+                            response.force_close()
+                            if request.transport is not None:
+                                request.transport.close()
                         return response
             raise ValueError('Too many redirects')
 

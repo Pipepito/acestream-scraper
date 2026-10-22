@@ -127,6 +127,14 @@ The player explains problems in plain language instead of raw codes:
 
 Errors that are not a dead end (everything except "ffmpeg is missing") offer a **Retry** button in the dialog.
 
+When a server session fails or ends, the browser stops fetching its old playlist.
+For HTTP playback failures, the scraper log records the session ID, FFmpeg exit
+code, a bounded sanitized stderr tail and recent upstream HTTP status/transport
+errors. Signed URLs and credentials are masked; the browser keeps the concise
+error message. Download **Overview → Diagnostics** after a failure to include
+these details. A truncated upstream media transfer closes the connection rather
+than inserting an HTTP error response into the video bytes.
+
 ## VLC, Kodi and other players
 
 The dialog's **Copy stream link** button copies a direct MPEG-TS link to the channel (the same route Jellyfin and Plex tuners use) that plays in VLC, Kodi, or any player that opens network streams — no browser, no transcoding, and no `?token=` needed on that particular link: it works from the address it can reach precisely because it is gated by network address (`TUNER_ALLOWED_NETWORKS`), not by the API token, since tuner-style clients cannot send one.

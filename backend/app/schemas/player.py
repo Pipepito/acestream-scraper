@@ -5,15 +5,16 @@ from datetime import datetime
 from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field
-from app.schemas.media import AudioTrack
+from app.schemas.media import AudioTrack, SubtitleTrack
 
 PlayerStateValue = Literal["starting", "ready", "error", "stopped"]
-PlayerErrorValue = Literal["engine_unavailable", "engine_refused", "engine_stalled", "ffmpeg_missing", "ffmpeg_failed"]
+PlayerErrorValue = Literal["engine_unavailable", "engine_refused", "engine_stalled", "ffmpeg_missing", "ffmpeg_failed", "source_unavailable"]
 
 
 class PlayerSessionCreate(BaseModel):
+    subtitle_index: Optional[int] = Field(None, ge=0, le=63, description="Subtitle track to play; null disables subtitles")
     audio_index: Optional[int] = Field(None, ge=0, le=63, description="Audio track to play; null uses the first available audio track")
-    content_id: str = Field(..., pattern=r"^[0-9a-fA-F]{40}$", description="AceStream content id (40 hex)")
+    content_id: str = Field(..., pattern=r"^(?:url:)?[0-9a-fA-F]{40}$", description="AceStream content ID (40 hex) or imported HTTP stream ID (url: followed by 40 hex)")
 
 
 class PlayerCodecs(BaseModel):
@@ -29,6 +30,8 @@ class PlayerStats(BaseModel):
 
 
 class PlayerSessionStatus(BaseModel):
+    subtitle_index: Optional[int] = None
+    subtitle_tracks: List[SubtitleTrack] = Field(default_factory=list)
     audio_index: Optional[int] = None
     audio_tracks: List[AudioTrack] = Field(default_factory=list)
     id: str

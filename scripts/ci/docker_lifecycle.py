@@ -20,7 +20,8 @@ from datetime import datetime
 PREFIX = 'org.acestream-scraper.ci.'
 RUNNER_REPO = 'acestream-scraper-pr-ci'
 INPUTS = ('backend/requirements.txt', 'frontend/package.json',
-          'frontend/package-lock.json', 'docker/ci/pr-runner.Dockerfile')
+          'frontend/package-lock.json', 'docker/manifests/ffmpeg.json',
+          'docker/scripts/build-ffmpeg.sh', 'docker/ci/pr-runner.Dockerfile')
 TRANSIENT = re.compile(r'^(acestream-scraper:(smoke-|release-smoke$)|'
                        r'acestream-scraper-pr-build:|acestream-scraper-smoke:|acestream-installer-test:|acestream-scraper-task3:)')
 

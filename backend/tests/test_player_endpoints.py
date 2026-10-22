@@ -317,3 +317,62 @@ def test_segment_removed_before_open_returns_http_404(client, player, monkeypatc
     response = client.get(f"/api/v1/player/sessions/{created['id']}/{path.name}")
     assert response.status_code == 404
     assert response.json() == {'detail': 'Segment not ready'}
+
+
+def test_imported_http_stream_plays_without_engine_or_probe(client, player, db_session, monkeypatch):
+    from app.models.models import AcestreamChannel
+    from app.api.endpoints.player import tuner_probe_service
+
+    from sqlalchemy.orm import sessionmaker
+    monkeypatch.setattr('app.config.database.SessionLocal', sessionmaker(bind=db_session.get_bind()))
+    stream_id = 'url:' + 'b' * 40
+    db_session.add(AcestreamChannel(id=stream_id, name='laSexta', stream_url='https://media.example/live.m3u8'))
+    db_session.commit()
+    def no_engine(*args, **kwargs):
+        raise AssertionError('HTTP streams must not start or probe AceStream')
+    monkeypatch.setattr(player, '_engine_factory', no_engine)
+    monkeypatch.setattr(tuner_probe_service, 'start_for_stream', no_engine)
+    monkeypatch.setenv('API_TOKEN', TOKEN)
+    assert client.post('/api/v1/player/sessions', json={'content_id': stream_id}).status_code == 401
+    response = client.post('/api/v1/player/sessions', json={'content_id': stream_id}, headers={'X-Api-Token': TOKEN})
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body['content_id'] == stream_id and body['error'] is None and body['stats'] is None
+    ready = _wait_ready_with_token(client, body['id'])
+    assert client.get(ready['playlist_url'], params={'token': TOKEN}).status_code == 200
+    assert player.get(body['id']).http_source is not None
+
+
+def test_unknown_http_id_fails_cleanly_without_engine(client, player, db_session, monkeypatch):
+    from sqlalchemy.orm import sessionmaker
+    monkeypatch.setattr('app.config.database.SessionLocal', sessionmaker(bind=db_session.get_bind()))
+    def no_engine():
+        raise AssertionError('Missing HTTP sources must not fall back to AceStream')
+    monkeypatch.setattr(player, '_engine_factory', no_engine)
+    response = client.post('/api/v1/player/sessions', json={'content_id': 'url:' + 'c' * 40})
+    assert response.status_code == 200
+    assert response.json()['error'] == 'source_unavailable'
+    assert client.post('/api/v1/player/sessions', json={'content_id': 'https://media.example/live.m3u8'}).status_code == 422
+
+
+def test_subtitle_playlists_and_vtt_preserve_authentication(client, player, monkeypatch):
+    monkeypatch.setenv('API_TOKEN', 'a b&c')
+    headers = {'X-Api-Token': 'a b&c'}
+    created = client.post('/api/v1/player/sessions', json={'content_id': IH, 'subtitle_index': 0}, headers=headers).json()
+    assert created['subtitle_index'] == 0
+    session = player.get(created['id'])
+    (session.dir / 'index_vtt.m3u8').write_text('#EXTM3U\n#EXTINF:2,\nindex0.vtt\n')
+    (session.dir / 'index0.vtt').write_text('WEBVTT\n\n00:00:00.000 --> 00:00:02.000\nCaption\n')
+    root = f"/api/v1/player/sessions/{session.id}"
+    master = client.get(root + '/index.m3u8', params={'token': 'a b&c'})
+    assert 'URI="subtitles.m3u8?token=a+b%26c"' in master.text
+    assert 'video.m3u8?token=a+b%26c' in master.text
+    subs = client.get(root + '/subtitles.m3u8', params={'token': 'a b&c'})
+    assert 'index0.vtt?token=a+b%26c' in subs.text
+    assert client.get(root + '/subtitles.m3u8').status_code == 401
+    assert client.get(root + '/index0.vtt').status_code == 401
+    caption = client.get(root + '/index0.vtt', headers=headers)
+    assert caption.headers['content-type'].startswith('text/vtt') and 'Caption' in caption.text
+    assert client.get(root + '/anything.vtt', headers=headers).status_code == 404
+    assert client.post('/api/v1/player/sessions', json={'content_id': IH, 'subtitle_index': -1}, headers=headers).status_code == 422
+    assert client.post('/api/v1/player/sessions', json={'content_id': IH, 'subtitle_index': 64}, headers=headers).status_code == 422

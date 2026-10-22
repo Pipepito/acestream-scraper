@@ -131,6 +131,8 @@ git diff --quiet "refs/remotes/origin/${CHANGE_TARGET}"...HEAD -- \
   frontend/package.json \
   frontend/package-lock.json \
   docker/ci/pr-runner.Dockerfile \
+  docker/manifests/ffmpeg.json \
+  docker/scripts/build-ffmpeg.sh \
   scripts/ci/build_pr_runner.sh \
   scripts/ci/cleanup_runner_docker.sh \
   scripts/ci/docker_lifecycle.py

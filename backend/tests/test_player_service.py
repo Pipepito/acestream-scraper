@@ -756,3 +756,64 @@ def test_cancelled_player_start_reaps_late_engine_and_frees_slot(make_service):
             await svc.stop()
 
     asyncio.run(run())
+
+
+def test_http_startup_timeout_releases_proxy_and_process(make_service, monkeypatch):
+    from app.services import player_http_source
+    monkeypatch.setattr(player_http_source, 'stored_http_source', lambda _: player_http_source.HTTPStreamSource(
+        'https://media.example/live.m3u8?private=secret', {}))
+    svc = make_service(mode='never_ready', start_timeout=5)
+    async def run():
+        try:
+            session = await svc.open_session('url:' + 'a' * 40)
+            source, process = session.http_source, session.process
+            svc._clock['now'] += 6
+            await svc.tick()
+            assert session.error == 'source_unavailable'
+            assert 'secret' not in session.error_message
+            assert source._runner is None and not source._tasks
+            assert process.returncode is not None
+            assert session.engine_session is None
+        finally:
+            await svc.stop()
+    asyncio.run(run())
+
+
+def test_cancelled_http_resolution_frees_session_slot(make_service, monkeypatch):
+    from app.services.player_http_source import PlayerHTTPSource
+    svc = make_service()
+    async def run():
+        entered = asyncio.Event()
+        async def opening(*args, **kwargs):
+            entered.set()
+            await asyncio.Future()
+        monkeypatch.setattr(PlayerHTTPSource, 'open', opening)
+        task = asyncio.create_task(svc.open_session('url:' + 'a' * 40))
+        await entered.wait()
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        assert not svc.sessions
+    asyncio.run(run())
+
+
+def test_subtitle_selection_preserves_other_viewers_and_discovers_supported_tracks(make_service, monkeypatch):
+    monkeypatch.setenv('FAKE_FFMPEG_SUBTITLES', '1')
+    svc = make_service()
+    async def run():
+        try:
+            plain = await svc.open_session(IH)
+            selected = await svc.open_session(IH, subtitle_index=0)
+            joined = await svc.open_session(IH, subtitle_index=0)
+            assert joined is selected and selected is not plain
+            assert plain.viewers == 1 and selected.viewers == 2
+            assert await _wait(lambda: len(selected.subtitle_tracks) == 2)
+            assert [(t.index, t.language, t.supported) for t in selected.subtitle_tracks] == [(0, 'es', True), (1, 'eng', False)]
+            argv = svc.ffmpeg_argv('http://engine/media', Path('/tmp/hls'), audio_index=1, subtitle_index=0)
+            assert '0:a:1' in argv and '0:s:0' in argv
+            assert argv[argv.index('-c:s') + 1] == 'webvtt'
+            svc.leave(selected.id)
+            assert plain.viewers == selected.viewers == 1
+        finally:
+            await svc.stop()
+    asyncio.run(run())

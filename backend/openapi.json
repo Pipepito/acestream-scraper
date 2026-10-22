@@ -3200,10 +3200,24 @@
             "title": "Audio Index"
           },
           "content_id": {
-            "description": "AceStream content id (40 hex)",
-            "pattern": "^[0-9a-fA-F]{40}$",
+            "description": "AceStream content ID (40 hex) or imported HTTP stream ID (url: followed by 40 hex)",
+            "pattern": "^(?:url:)?[0-9a-fA-F]{40}$",
             "title": "Content Id",
             "type": "string"
+          },
+          "subtitle_index": {
+            "anyOf": [
+              {
+                "maximum": 63.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Subtitle track to play; null disables subtitles",
+            "title": "Subtitle Index"
           }
         },
         "required": [
@@ -3263,7 +3277,8 @@
                   "engine_refused",
                   "engine_stalled",
                   "ffmpeg_missing",
-                  "ffmpeg_failed"
+                  "ffmpeg_failed",
+                  "source_unavailable"
                 ],
                 "type": "string"
               },
@@ -3309,6 +3324,24 @@
                 "type": "null"
               }
             ]
+          },
+          "subtitle_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtitle Index"
+          },
+          "subtitle_tracks": {
+            "items": {
+              "$ref": "#/components/schemas/SubtitleTrack"
+            },
+            "title": "Subtitle Tracks",
+            "type": "array"
           },
           "viewers": {
             "title": "Viewers",
@@ -5156,6 +5189,48 @@
           "observed_at"
         ],
         "title": "StreamStats",
+        "type": "object"
+      },
+      "SubtitleTrack": {
+        "properties": {
+          "codec": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Codec"
+          },
+          "index": {
+            "description": "Zero-based subtitle track index (ffmpeg 0:s:index)",
+            "minimum": 0.0,
+            "title": "Index",
+            "type": "integer"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "supported": {
+            "default": true,
+            "title": "Supported",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "index"
+        ],
+        "title": "SubtitleTrack",
         "type": "object"
       },
       "TVChannelAssociationRequest": {
@@ -11762,6 +11837,78 @@
           }
         },
         "summary": "HLS playlist",
+        "tags": [
+          "player",
+          "player"
+        ]
+      }
+    },
+    "/api/v1/player/sessions/{session_id}/subtitles.m3u8": {
+      "get": {
+        "operationId": "subtitle_playlist_api_v1_player_sessions__session_id__subtitles_m3u8_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Subtitle HLS playlist",
+        "tags": [
+          "player",
+          "player"
+        ]
+      }
+    },
+    "/api/v1/player/sessions/{session_id}/video.m3u8": {
+      "get": {
+        "operationId": "video_playlist_api_v1_player_sessions__session_id__video_m3u8_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Video HLS playlist",
         "tags": [
           "player",
           "player"

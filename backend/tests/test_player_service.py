@@ -758,6 +758,28 @@ def test_cancelled_player_start_reaps_late_engine_and_frees_slot(make_service):
     asyncio.run(run())
 
 
+def test_http_failure_logs_masked_exit_details_without_exposing_them_in_api(make_service, monkeypatch, caplog):
+    from app.services import player_http_source
+    monkeypatch.setattr(player_http_source, 'stored_http_source', lambda _: player_http_source.HTTPStreamSource(
+        'https://media.example/live.m3u8?private=secret', {}))
+    monkeypatch.setenv('FAKE_FFMPEG_PRIVATE_ERROR', '1')
+    svc = make_service(mode='exit_early')
+    async def run():
+        try:
+            session = await svc.open_session('url:' + 'a' * 40)
+            assert await _wait(lambda: session.state == 'error')
+            assert 'ffmpeg exited with 1' in caplog.text
+            assert 'HTTP error 503' in caplog.text
+            assert 'Connection refused' in caplog.text
+            for private in ('signed-value', 'partial-signature', 'private-header', 'cdn.example', str(session.dir)):
+                assert private not in caplog.text
+                assert private not in ' '.join(session.stderr_tail)
+            assert session.error_message == 'The HTTP stream ended or returned unsupported media'
+        finally:
+            await svc.stop()
+    asyncio.run(run())
+
+
 def test_http_startup_timeout_releases_proxy_and_process(make_service, monkeypatch):
     from app.services import player_http_source
     monkeypatch.setattr(player_http_source, 'stored_http_source', lambda _: player_http_source.HTTPStreamSource(

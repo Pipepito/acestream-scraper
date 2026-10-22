@@ -29,6 +29,12 @@ if os.environ.get("FAKE_FFMPEG_MULTI_AUDIO") == "1":
 sys.stderr.flush()
 
 if mode == "exit_early":
+    if os.environ.get('FAKE_FFMPEG_PRIVATE_ERROR'):
+        # A line exceeding the pipe reader's limit must be discarded whole.
+        sys.stderr.write('https://cdn.example/' + 'x' * 70000 + '?private=partial-signature\n')
+        sys.stderr.write("HTTP error 503 from https://cdn.example/" + 'x' * 400 + "?private=signed-value\n")
+        sys.stderr.write("Authorization: Bearer private-header\n")
+        sys.stderr.write("Output failed: " + str(playlist) + "\n")
     sys.stderr.write("Error opening input: Connection refused\n")
     sys.exit(1)
 

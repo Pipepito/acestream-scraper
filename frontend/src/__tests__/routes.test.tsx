@@ -12,6 +12,7 @@ jest.mock('@mui/material', () => {
   const actual = jest.requireActual('@mui/material');
   return { ...actual, useMediaQuery: jest.fn() };
 });
+jest.mock('../components/UpdateAvailableNotice', () => ({ __esModule: true, default: () => null }));
 jest.mock('../pages/Overview', () => ({ __esModule: true, default: () => <h1>Overview</h1> }));
 jest.mock('../pages/TVChannels', () => ({ __esModule: true, default: () => <h1>TV Channels</h1> }));
 jest.mock('../pages/Search', () => ({ __esModule: true, default: () => <h1>Search</h1> }));

@@ -97,6 +97,19 @@ docker buildx use "${JENKINS_BUILDER:-acestream-builder}"
           }
         }
 
+        stage('Publish GitHub release') {
+          when { expression { !params.DRY_RUN && params.PUBLISH_LATEST } }
+          steps {
+            withCredentials([usernamePassword(
+              credentialsId: 'github-publish',
+              usernameVariable: 'GITHUB_PUBLISH_USERNAME',
+              passwordVariable: 'GITHUB_PUBLISH_TOKEN'
+            )]) {
+              sh 'python3 scripts/ci/publish_github_release.py'
+            }
+          }
+        }
+
         stage('Publish release wiki') {
           when { expression { !params.DRY_RUN && params.PUBLISH_LATEST } }
           steps {

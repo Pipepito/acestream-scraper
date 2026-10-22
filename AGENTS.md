@@ -301,8 +301,9 @@ selected in Jenkins (CLI: `FORCE_VERSION_OVERWRITE=1`). Registry lookup failures
 always block. Checks run before preflight, after login, and before tag assignment;
 the FIFO Jenkins lock serializes local publishers, but external publishers must
 not race the same version. Channel tags and canary `:latest` promotion remain
-separate. Both `PUBLISH_LATEST` and the force option reach dry runs. Git tags and
-GitHub release notes remain manual; see `docs/ops/jenkins-ci.md`.
+separate. Both `PUBLISH_LATEST` and the force option reach dry runs. After successful non-dry-run latest promotion, Jenkins publishes the Git tag
+and GitHub release from the promoted image’s commit and canonical Markdown.
+Never overwrite mismatched tags/releases. See `docs/ops/jenkins-ci.md`.
 
 ## Pipeline artifact retention
 
@@ -507,6 +508,12 @@ P2P port synchronization. Only its supervisor applies validated, debounced port
 changes, preserving UI Stop and process-group cleanup. The checker keeps port
 8622; custom commands/external engines are not managed. See `wiki/Gluetun.md`.
 The `/changelog` page bundles version history; reading/dismissing its notice is
-per browser. Update `frontend/src/data/changelog.ts` alongside `version.txt`;
-never imply development notes establish stable publication. See
+per browser. Edit `frontend/changelog/vX.Y.Z.md` alongside `version.txt` and run
+`cd frontend && npm run changelog`; never hand-edit the generated data.
+Never imply development notes establish stable publication. See
 `docs/dev/gluetun-changelog-v2.2.md`.
+
+Published stable update checks use the cached, authenticated system API; failures
+remain quiet and the changelog stays offline. Announce each newer version once
+per browser, with manual Docker/native instructions; never auto-update. Release
+notes and promotion provenance are documented in `docs/ops/release-notes.md`.

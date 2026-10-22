@@ -131,7 +131,7 @@ def test_changelog_tracks_selected_release():
     root = Path(__file__).resolve().parents[2]
     import re
     notes = (root / 'frontend/src/data/changelog.ts').read_text()
-    versions = re.findall(r"version: '(v\d+\.\d+\.\d+)'", notes)
+    versions = re.findall(r'"version": "(v\d+\.\d+\.\d+)"', notes)
     assert versions[0] == (root / 'version.txt').read_text().strip()
     assert len(versions) == len(set(versions))
 

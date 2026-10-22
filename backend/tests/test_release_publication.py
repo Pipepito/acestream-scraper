@@ -18,10 +18,12 @@ def release(tmp_path):
     ci = tmp_path / 'scripts/ci'
     ci.mkdir(parents=True)
     for name in ('run_jenkins_release.sh', 'assert_release_tags_available.py',
-                 'flavor_platforms.py', 'promote_latest.sh', 'docker_lifecycle.py'):
+                 'flavor_platforms.py', 'promote_latest.sh', 'docker_lifecycle.py', 'release_notes.py'):
         shutil.copy(ROOT / 'scripts/ci' / name, ci)
     shutil.copytree(ROOT / 'docker/manifests', tmp_path / 'docker/manifests')
     (tmp_path / 'version.txt').write_text('v2.0.0\n')
+    (tmp_path / 'frontend/changelog').mkdir(parents=True)
+    shutil.copy(ROOT / 'frontend/changelog/v2.0.0.md', tmp_path / 'frontend/changelog')
     for name in ('run_release_validation.sh', 'verify_multiarch_manifest.sh',
                  'cleanup_runner_docker.sh'):
         (ci / name).write_text('echo ' + name + ' >> "$CALL_LOG"\n')
@@ -36,7 +38,7 @@ done
     bin_dir.mkdir()
     docker = bin_dir / 'docker'
     docker.write_text(f'#!{sys.executable}\n' + '''
-import json, os, sys
+import json, os, sys, subprocess, hashlib
 from pathlib import Path
 args = sys.argv[1:]
 with open(os.environ['CALL_LOG'], 'a') as f: f.write(json.dumps(args) + '\\n')
@@ -51,6 +53,13 @@ if args[:3] == ['buildx', 'imagetools', 'inspect']:
     if mode == 'error':
         print('ERROR: failed to authorize: 401 Unauthorized', file=sys.stderr)
         sys.exit(1)
+    if mode == 'existing' and ('--format' in args or '--raw' in args):
+        print(json.dumps({'digest': 'sha256:' + 'a' * 64, 'annotations': {
+            'org.opencontainers.image.version': 'v2.0.0',
+            'org.opencontainers.image.revision': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+            'io.acestream-scraper.release-notes-sha256': hashlib.sha256(Path('frontend/changelog/v2.0.0.md').read_bytes()).hexdigest(),
+        }}))
+        sys.exit(0)
     if mode == 'existing' or (mode == 'partial' and tag.endswith('-scraper-acexy')) or (mode == 'late' and count > 10):
         sys.exit(0)
     print('ERROR: docker.io/' + tag + ': not found', file=sys.stderr)
@@ -73,6 +82,7 @@ os.execv(sys.executable, [sys.executable, *sys.argv[1:]])
     pip_bin.write_text('#!/bin/sh\nexit 0\n')
     pip_bin.chmod(0o755)
     subprocess.run(['git', 'init', '-q', str(tmp_path)], check=True)
+    subprocess.run(['git', '-C', str(tmp_path), 'add', 'version.txt', 'frontend/changelog'], check=True)
     subprocess.run(['git', '-C', str(tmp_path), '-c', 'user.name=Test', '-c',
                     'user.email=test@example.invalid', 'commit', '--allow-empty', '-qm', 'fixture'], check=True)
     env = {**os.environ, 'PATH': str(bin_dir) + os.pathsep + os.environ['PATH'],
@@ -111,6 +121,7 @@ def test_fresh_version_dry_run_checks_all_tags_without_publishing(release):
     assert 'login' not in calls
     assert 'create' not in calls
     metadata = json.loads((release[0] / 'phase5-build-result-release-metadata.json').read_text())
+    assert (release[0] / '.ci-release-artifacts/release-notes.md').read_bytes() == (release[0] / 'frontend/changelog/v2.0.0.md').read_bytes()
     assert metadata['mode'] == 'preflight'
     assert metadata['dry_run'] is True
     assert len(metadata['flavors']) == 4
@@ -123,6 +134,9 @@ def test_force_allows_existing_version_and_keeps_latest_untouched(release):
     assert 'FORCE_VERSION_OVERWRITE enabled' in result.stdout
     assert 'create' in calls
     assert ':latest' not in calls
+    assert 'index:org.opencontainers.image.revision=' in calls
+    assert 'index:org.opencontainers.image.version=v2.0.0' in calls
+    assert 'index:io.acestream-scraper.release-notes-sha256=' in calls
     assert not list(release[0].glob('phase5-build-result-release-*-linux-*.json'))
 
 

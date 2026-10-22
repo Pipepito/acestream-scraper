@@ -9,7 +9,7 @@ export default function WhatsNewNotice() {
   const { pathname } = useLocation();
   if (!unread || pathname === '/changelog') return null;
   return (
-    <Alert severity="info" onClose={markChangelogRead} closeText="Dismiss update notice" sx={{ mb: 2 }}>
+    <Alert severity="info" onClose={markChangelogRead} closeText="Dismiss changelog notice" sx={{ mb: 2 }}>
       <Link component={RouterLink} to="/changelog" color="inherit" onClick={markChangelogRead}>
         What’s new in {currentRelease.version}
       </Link>

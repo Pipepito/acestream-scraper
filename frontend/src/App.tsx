@@ -16,6 +16,7 @@ import Integrations from './pages/Integrations';
 import Settings from './pages/Settings';
 import LiveTV from './pages/LiveTV';
 import NotFound from './pages/NotFound';
+import UpdateAvailableNotice from './components/UpdateAvailableNotice';
 import WhatsNewNotice from './components/WhatsNewNotice';
 const Changelog = React.lazy(() => import('./pages/Changelog'));
 const ExtractionBuilder = React.lazy(() => import('./pages/ExtractionBuilder'));
@@ -41,6 +42,7 @@ const App: React.FC = () => {
   return (
     <AppShell>
       <ApiTokenNotice />
+      <UpdateAvailableNotice />
       <WhatsNewNotice />
       <Routes>
         <Route path="/" element={<Overview />} />

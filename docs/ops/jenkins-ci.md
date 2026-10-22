@@ -911,7 +911,7 @@ Release behavior:
 - `PUBLISH_LATEST` (default `false`, since 2026-08-26, 5ffed1d) controls the floating `:latest` tag. The Jenkinsfile exports it as `PUBLISH_LATEST=1`/`0`. With `0` (phase 1) the build pushes `:${VERSION}`, `:<flavor>` and `:${VERSION}-<flavor>` tags and never touches `:latest`. With `1` (phase 2) the script skips every build and test and runs `scripts/ci/promote_latest.sh`, which retags the canary-validated `pipepito/acestream-scraper:${VERSION}` manifest (the `scraper-acestream-acexy` payload) to `:latest` and verifies its platforms; `DRY_RUN=true` with `PUBLISH_LATEST=true` only prints that promotion plan. Only the full payload flavor can ever become `:latest`.
 - `FORCE_VERSION_OVERWRITE` defaults to `false`. Phase 1 checks the base version tag and all four versioned flavor tags before preflight, again after registry login, and immediately before assigning tags. If any exists (including a partial release), publication stops unless this option is explicitly enabled. Registry/authentication errors fail closed even with force enabled. The dry run performs the initial read-only lookup without binding Docker Hub credentials; `--print-publish-plan` remains offline. Channel publishes and `:latest` promotion do not apply the version-collision guard.
 - Use force only for deliberate recovery: it can replace all five versioned images, so repeat canary validation afterward. The shared Jenkins lock serializes this project's pipelines; the registry does not offer an atomic check-and-create across tags, so do not publish the same version concurrently outside Jenkins.
-- The version comes from root `version.txt`; Jenkins does not increment it, create a Git tag, or publish GitHub release notes. Tagging and the GitHub release remain the manual step in the runbook below.
+- The version comes from root `version.txt`; Jenkins does not increment it. After successful non-dry-run latest promotion it creates the immutable Git tag and publishes canonical Markdown notes to GitHub. See [release notes and retry procedure](release-notes.md).
 - The job archives `.ci-release-artifacts/` application gate reports/logs and `phase5-build-result-release-metadata.json`: a successful ordinary dry run records `mode: preflight`, commit, version, and checked flavor/platform matrix; publication records commit/version/tags; promotion records its source and target. Intermediate preflight plans remain available to the validators during the run and are removed afterward. A promotion dry run prints its plan to the console and creates no publication metadata.
 - Before publishing, the script builds `scraper-acestream` for amd64, runs the engine and Acexy runtime smokes, then runs both ARM installer layout tests. If any fails, no Docker Hub login or push happens. Both ARM variants use the same digest-pinned multi-platform jopsis source image and require Docker Hub access on a cold builder; the amd64 archive remains vendored. The same checks run in the trusted develop job; on the release job they run only on the publish run, not the dry run.
 - The pushed `scraper-acestream`, `scraper-acestream-acexy`, version tags (and, after the phase-2 retag, `latest`) are multi-platform manifests that include `linux/arm64` and `linux/arm/v7`; `verify_multiarch_manifest.sh --image <tag> --flavor <flavor>` checks each remote manifest after the push. The arm64 engine runtime is not exercised by this job (amd64 runner); see `## AceStream Engine Smoke Coverage`.
@@ -945,12 +945,13 @@ protection and registry lookup rules above; do not bypass an existing version.
 7. Canary the published version. On failure, fix through a new PR into develop
    and the release PR into main, then choose an unused release version. Do not
    directly push main or silently overwrite the already-published version.
-8. Manually create the Git tag and GitHub release for the exact published main
-   commit, using the reviewed `docs/release/v2.2-release-notes.md`. Do not assume
-   that a later `origin/main` still points to that commit.
-9. Separately promote the canaried version with `PUBLISH_LATEST=true` and verify
-   latest has the same manifest digest and platforms. Wiki publication follows
-   successful non-dry-run latest promotion.
+8. Separately promote the canaried version with `PUBLISH_LATEST=true` and verify
+   latest has the same manifest digest and platforms. GitHub release and wiki
+   publication follow successful non-dry-run latest promotion.
+9. Verify the GitHub release stage published the exact promoted commit and
+   canonical `frontend/changelog/vX.Y.Z.md` notes. On failure, retry only the
+   publication helper using archived promotion evidence; see
+   [release notes](release-notes.md). Never rebuild merely to publish notes.
 10. When selecting the following release, update the plain `version.txt` through
     a PR into develop. Development image tag names remain unchanged.
 

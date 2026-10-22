@@ -37,7 +37,7 @@ it.each(['light', 'dark'] as const)('opens readable version history and acknowle
 
 it('dismisses persistently without navigating away', async () => {
   const view = renderPage();
-  await userEvent.setup().click(screen.getByRole('button', { name: 'Dismiss update notice' }));
+  await userEvent.setup().click(screen.getByRole('button', { name: 'Dismiss changelog notice' }));
   expect(screen.getByText('Overview')).toBeVisible();
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   view.unmount();
@@ -63,6 +63,6 @@ it('responds to another tab acknowledging the current version', () => {
 it('dismisses when browser storage writes are unavailable', async () => {
   jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked'); });
   renderPage();
-  await userEvent.setup().click(screen.getByRole('button', { name: 'Dismiss update notice' }));
+  await userEvent.setup().click(screen.getByRole('button', { name: 'Dismiss changelog notice' }));
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 });

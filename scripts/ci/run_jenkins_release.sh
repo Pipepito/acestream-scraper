@@ -224,6 +224,11 @@ PY2
       refs="$(cat "$digest_dir/$flavor".* 2>/dev/null | tr '\n' ' ')"
       [[ -n "$refs" ]] || { echo "No digests collected for flavor $flavor" >&2; exit 1; }
       imagetools_cmd=(docker buildx imagetools create)
+      if [[ -z "$CHANNEL" ]]; then
+        imagetools_cmd+=(--annotation "index:org.opencontainers.image.revision=$GIT_SHA"
+          --annotation "index:org.opencontainers.image.version=$VERSION"
+          --annotation "index:io.acestream-scraper.release-notes-sha256=$NOTES_SHA256")
+      fi
       for tag in "${tags[@]}"; do
         imagetools_cmd+=(--tag "$tag")
       done
@@ -310,27 +315,13 @@ if [[ "$PROMOTE_LATEST" == "1" ]]; then
   fi
   registry_login
   bash scripts/ci/promote_latest.sh --version "$VERSION" --flavor "$LATEST_SOURCE_FLAVOR" --repo "$IMAGE_REPO"
-  RELEASE_IMAGE_REPO="$IMAGE_REPO" RELEASE_VERSION="$VERSION" RELEASE_GIT_SHA="$GIT_SHA" RELEASE_BUILDER="$BUILDER" python3 - "phase5-build-result-release-metadata.json" <<'PY2'
-import json, os, sys
-from datetime import datetime, timezone
-payload = {
-    "generated_at": datetime.now(timezone.utc).isoformat(),
-    "version": os.environ["RELEASE_VERSION"],
-    "git_sha": os.environ["RELEASE_GIT_SHA"],
-    "builder": os.environ["RELEASE_BUILDER"],
-    "mode": "promote-latest",
-    "tags": [os.environ["RELEASE_IMAGE_REPO"] + ":latest"],
-    "source": os.environ["RELEASE_IMAGE_REPO"] + ":" + os.environ["RELEASE_VERSION"],
-}
-with open(sys.argv[1], "w", encoding="utf-8") as handle:
-    json.dump(payload, handle, indent=2)
-PY2
   echo "Release promotion completed."
   exit 0
 fi
 
 assert_version_available
 bash scripts/ci/run_release_validation.sh
+NOTES_SHA256=$(python3 scripts/ci/release_notes.py prepare --version "$VERSION" --sha "$GIT_SHA")
 
 for flavor in "${FLAVORS[@]}"; do
   result_file="$(preflight_result_file_for_flavor "$flavor")"

@@ -32,6 +32,7 @@ COPY frontend/package*.json ./
 RUN npm install
 
 COPY frontend/ ./
+COPY version.txt /build/version.txt
 RUN npm run build
 
 

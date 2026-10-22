@@ -1,7 +1,8 @@
 # v2.2 Gluetun sync and in-app changelog
 
 Plan accepted 2026-10-22; baseline develop `b8b06f7`. Feature branch:
-`codex/v22-gluetun-changelog`. Release publication remains manual.
+`codex/v22-gluetun-changelog`, PR #254. Releases remain operator-triggered;
+GitHub notes publish automatically only after successful latest promotion.
 
 ## Implementation scope
 
@@ -14,7 +15,9 @@ Plan accepted 2026-10-22; baseline develop `b8b06f7`. Feature branch:
    Keep Gluetun networking/provider configuration operator-owned. Document
    read-only directory mounting, networking, restart impact and failure behavior.
 3. Add bundled `/changelog` version history and a dismissible per-browser update
-   notice. Preserve navigation, themes, small screens and offline readability.
+   notice. Use canonical Markdown for the bundled history and post-promotion
+   GitHub notes. Add a separate once-per-version published-update notice with
+   manual Docker/native instructions. Preserve themes and small screens.
 4. Audit all open issues against current develop, reconcile metadata and #207,
    and distinguish implemented work from partial or unverified proposals.
 5. Validate parser and supervisor behavior, launch arguments, frontend interaction,
@@ -22,17 +25,16 @@ Plan accepted 2026-10-22; baseline develop `b8b06f7`. Feature branch:
 
 ## Release history maintenance
 
-Edit `frontend/src/data/changelog.ts` when selecting a release in `version.txt`.
-Keep newest first; its version must match `version.txt` (covered by a contract
-check). Describe user-facing changes and upgrade actions; do not invent release
-dates or equate a development build with stable publication. Keep older entries
-available. The UI labels the newest entry as included in the build, not published.
+Edit the version Markdown in `frontend/changelog/` and run
+`cd frontend && npm run changelog`. The committed TypeScript is generated;
+builds reject drift. See [release notes](../ops/release-notes.md) for the complete
+single-source and publication contract.
 
-The notice appears on the first visit to a build with an unseen version,
-including a fresh installation. Reading the changelog or dismissing the notice
-stores the version locally in that browser. Storage denial falls back to the
-current page session. No API, account data or GitHub connectivity is required.
-New commits within the same selected version do not re-notify users.
+The installed-build notice is acknowledged by reading or dismissing it.
+A separate published-update notice checks stable GitHub releases through the
+cached backend endpoint and announces each newer version once per browser.
+It gives manual Docker/native update instructions and never installs updates.
+Offline failures do not affect the bundled changelog.
 
 ## Open-issue audit
 
@@ -64,7 +66,7 @@ Warning cleanup #247, startup deadlines #248, repository governance #250/#252
 and WARP exclusions #251 have merged; release notes must no longer call them
 pending. Local checks on this feature branch do not prove CI on the release head.
 
-## Local validation — 2026-10-22
+## Initial local validation — 2026-10-22, commit 6f6cb6b
 
 Baseline develop `b8b06f7`, feature branch `codex/v22-gluetun-changelog`.
 
@@ -102,5 +104,45 @@ suppression was added. Logs/screenshots remain untracked.
 
 This does not establish live provider forwarding, actual engine reachability on
 the assigned public port, new multiarchitecture image builds, or physical ARMv7
-runtime. The full backend application suite was not rerun locally. Jenkins must
-validate the feature and final combined release commits before integration.
+runtime. This initial pass did not rerun the full backend suite; see the
+follow-up validation below. Jenkins must validate the final feature/release
+commits before integration.
+
+## Markdown/publication follow-up — 2026-10-22, after 6f6cb6b
+
+PR #254 now uses canonical Markdown, generated offline history, OCI-bound notes
+provenance and post-promotion GitHub publication. The separate published-update
+notice uses a cached authenticated endpoint and manual Docker/native instructions.
+No release, image publication, merge or Jenkins configuration change was made.
+
+Validation on the follow-up working tree:
+
+- Quick cross-stack gate passed: four documentation contracts, 87 backend
+  contracts, 11 selected frontend tests, generated-client drift, lint, types,
+  production build and Pages helper drift. Existing Vite size advisories remain.
+- Full frontend: 83 suites / 468 tests passed. Final changelog/update UI focus:
+  11 tests passed after the dismissal-label clarification.
+- Full backend initially exposed absent host FFmpeg tools. With temporary
+  production-style binaries built from the vendored source, 2,020 tests passed;
+  two remux fixture tests required additional test-only lavfi/libx264/framemd5
+  features. All three remux tests then passed using a cached imageio-ffmpeg 0.6.0
+  test binary via FFMPEG_TEST_TOOL_PATH. The 36 HTTP/media checks also passed.
+  These tools were prepared under /tmp; application/system dependencies did not
+  change. This is full-suite coverage plus focused reruns, not a claim that the
+  single full-gate invocation completed successfully.
+- Final update-discovery, Markdown drift, release provenance/publication and
+  promotion tests: 51 passed. Docker/GitHub mutations use fakes. Cases include
+  offline/rate-limit responses, token enforcement, historical v2.1 tags, numeric
+  comparisons, mismatched notes/tags, partial publication retries and dry runs.
+- Browser checks: 16 passed across all four viewport/browser projects, covering
+  both themes, Docker/native notices, once-per-version reload behavior and offline
+  history. Small-phone notification screenshot inspected; no horizontal overflow.
+- E2E types, documentation, Dockerfile/manifest/docs, command-builder, strict
+  legacy paths, Bash syntax and diff checks passed. No React/pytest warnings were
+  suppressed. A read-only live discovery returned published v2.1 and correctly
+  reported no newer release for installed v2.2.0.
+
+Live GitHub publication remains unexercised because no release is authorized.
+The existing github-publish credential must allow repository Contents writes and
+version-tag creation when the release is eventually run. See
+[release notes operations](../ops/release-notes.md) for exact retry instructions.

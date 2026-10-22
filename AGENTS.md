@@ -534,3 +534,8 @@ Text subtitles use the same FFmpeg HLS clock as video. Normalize bounded HLS
 WebVTT timestamp maps in the guarded input proxy; preserve `.vtt`/`.webvtt`
 extensions and authenticate subtitle playlists/segments, including query-token
 propagation for native HLS. Bitmap subtitle conversion is unsupported.
+
+The isolated CI runner builds the same minimal FFmpeg from the runtime manifest
+and build script; include both in trusted exports, cache keys and fork guards.
+Keep Debian FFmpeg only as `FFMPEG_TEST_TOOL_PATH` for synthetic media fixtures.
+See `docs/ops/jenkins-ci.md#ffmpeg-in-the-isolated-validation-runner`.

@@ -291,6 +291,8 @@ def test_runner_builder_exports_only_committed_trusted_inputs(tmp_path):
 import sys
 root = Path(__file__).resolve().parents[2]
 assert (root / 'backend/requirements.txt').read_text() == 'trusted'
+assert (root / 'docker/manifests/ffmpeg.json').read_text() == 'trusted'
+assert (root / 'docker/scripts/build-ffmpeg.sh').read_text() == 'trusted'
 assert not (root / 'application.py').exists()
 assert not (root / 'secrets.txt').exists()
 Path(sys.argv[sys.argv.index('--image-file') + 1]).write_text('trusted-runner')
@@ -300,6 +302,8 @@ Path(sys.argv[sys.argv.index('--image-file') + 1]).write_text('trusted-runner')
         'commit', '-qm', 'trusted inputs')
     trusted = git('rev-parse', 'HEAD')
     (repo / 'backend/requirements.txt').write_text('untrusted')
+    (repo / 'docker/manifests/ffmpeg.json').write_text('untrusted')
+    (repo / 'docker/scripts/build-ffmpeg.sh').write_text('untrusted')
     policy.write_text("raise RuntimeError('fork policy executed')")
     (repo / 'application.py').write_text('unrelated source')
     (repo / 'secrets.txt').write_text('must not enter build context')

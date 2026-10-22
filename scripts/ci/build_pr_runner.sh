@@ -30,10 +30,13 @@ git -C "$SOURCE" archive "$REF" -- \
   frontend/package.json \
   frontend/package-lock.json \
   docker/ci/pr-runner.Dockerfile \
+  docker/manifests/ffmpeg.json \
+  docker/scripts/build-ffmpeg.sh \
   scripts/ci/docker_lifecycle.py \
   | tar -x -C "$CONTEXT"
 for required in backend/requirements.txt frontend/package.json frontend/package-lock.json \
-  docker/ci/pr-runner.Dockerfile scripts/ci/docker_lifecycle.py; do
+  docker/ci/pr-runner.Dockerfile docker/manifests/ffmpeg.json \
+  docker/scripts/build-ffmpeg.sh scripts/ci/docker_lifecycle.py; do
   if [[ ! -f "$CONTEXT/$required" || -L "$CONTEXT/$required" ]]; then
     echo "Trusted runner input is missing or not a regular file: $required" >&2
     exit 1

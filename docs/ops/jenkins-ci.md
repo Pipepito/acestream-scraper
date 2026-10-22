@@ -869,8 +869,8 @@ Expected behavior:
 
 - Jenkins launches on `dorat-nuc-ci`, but contributor code runs only in the restricted PR container.
 - The job never calls `withCredentials`, never mounts `/var/run/docker.sock`, and never gives the container network access.
-- The job exports only dependency manifests, the runner Dockerfile and lifecycle helper from `PR_VALIDATION_REF`, then resolves a dependency-keyed runner. Unchanged dependency inputs reuse the verified local image; missing images are built from the exported context. For a fork that ref is the trusted target branch; a fork cannot alter the network-enabled build context or replace the top-level validation orchestrator.
-- A fork that changes dependency manifests or the runner Dockerfile fails closed. After review, move the commit to a maintainer-owned branch; origin PRs may build their own proposed dependency runner.
+- The job exports only dependency manifests, the runner Dockerfile, the FFmpeg manifest/build script and lifecycle helper from `PR_VALIDATION_REF`, then resolves a dependency-keyed runner. Unchanged dependency inputs reuse the verified local image; missing images are built from the exported context. For a fork that ref is the trusted target branch; a fork cannot alter the network-enabled build context or replace the top-level validation orchestrator.
+- A fork that changes dependency manifests, the runner Dockerfile or the FFmpeg manifest/build script fails closed. After review, move the commit to a maintainer-owned branch; origin PRs may build their own proposed dependency runner.
 - The container executes `scripts/ci/run_pr_validation.sh` as read from the validation ref. The architecture stage likewise extracts its driver and runtime validator from that ref, then executes the PR runtime files in three constrained CPU userlands.
 - `Branch Policy` (since 2026-08-28): a PR into `main` fails unless its head is `develop`.
 - Every application PR statically verifies the production Dockerfile, dry-runs flavor/platform plans, and executes runtime scripts across three architectures. Maintainer-owned PRs also run `validate_pr_images.sh` for all supported combinations (currently four flavors × three platforms), under the same full-run FIFO lock. Each image is loaded and inspected, then deleted before the next build; build failures also run cleanup. This stage uses an empty Docker authentication config and never publishes. Forks report the build boundary explicitly: actual Dockerfile execution requires promotion of the reviewed commit to a maintainer-owned branch. Engine runtime smokes remain in develop/release.
@@ -1093,3 +1093,19 @@ rejects these host-executed inputs. Review and merge the maintainer CI change in
 `develop`, then rerun affected PR validation. Releases adopt it when the change
 reaches `main` through the normal release branch flow. No live cleanup, Jenkins
 configuration edit, release publish or build trigger is part of code validation.
+
+
+### FFmpeg in the isolated validation runner
+
+The runner compiles the application's minimal FFmpeg using
+`docker/manifests/ffmpeg.json` and `docker/scripts/build-ffmpeg.sh`. The manifest
+pins and verifies the source archive's SHA-256. These inputs join the runner's
+cache key, trusted-ref export and fork-change guard; changing codecs or the
+version cannot reuse an older runner. Downloads/builds happen only while preparing
+the trusted image, before contributor code runs in the network-disabled sandbox.
+
+`/usr/local/bin/ffmpeg` and `ffprobe` are the production binaries under test.
+Debian's `/usr/bin/ffmpeg` remains available through `FFMPEG_TEST_TOOL_PATH` only
+for generating/inspecting test fixtures that need lavfi, libx264 or framemd5.
+Do not replace the production binary with the distro tool or skip HLS subtitle
+integration on old FFmpeg: separate subtitle rendition ingestion requires 8.1+.

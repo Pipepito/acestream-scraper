@@ -18,7 +18,11 @@ the guarded source client. Its private-source policy, metadata-address blocking,
 DNS pinning and TLS checks apply to every request and redirect. The temporary
 loopback proxy is private to the shared browser session and closes with it.
 Unencrypted and AES-128 HLS, fragmented MP4 HLS and direct MPEG-TS are supported;
-DRM and HLS variable substitution are not supported. Engine-only **Copy stream
+DRM and HLS variable substitution are not supported. Select available audio and
+text subtitle tracks in the player. Subtitles default to Off; changing either
+track restarts only your viewer. Other viewers retain their choices. Text
+subtitles are converted to WebVTT alongside the video/audio so they share the
+playback timeline. Bitmap subtitles remain unsupported. Engine-only **Copy stream
 link** and **Play on** controls are hidden for HTTP streams in the browser player;
 use the generated playlist for external players.
 
@@ -33,7 +37,7 @@ has already disappeared returns 404 before delivery starts; deletion during an
 active transfer does not interrupt that transfer. Segment delivery keeps bounded
 reads and byte-range support.
 
-One ffmpeg process is shared per channel and selected audio track: if two browser tabs (or two people) play the same channel with the same audio selection, they join the same session instead of doubling the transcode cost. A session is torn down automatically a few seconds after its last viewer leaves, or after it sits idle, so it does not keep using engine and CPU resources in the background.
+One ffmpeg process is shared per channel and selected audio/subtitle tracks: if two browser tabs (or two people) play the same channel with the same audio and subtitle selections, they join the same session instead of doubling the transcode cost. A session is torn down automatically a few seconds after its last viewer leaves, or after it sits idle, so it does not keep using engine and CPU resources in the background.
 
 Because the video track is passed through as-is, a browser that cannot decode it natively (MPEG-2, MPEG-1, VC-1, MPEG-4 v3) still cannot play the channel — the player tells you so and points you at VLC or Kodi instead of pretending it will work.
 
@@ -160,7 +164,7 @@ is currently receiving video. The documented [engine status API](https://docs.ac
 does not provide an engine-wide playback total.
 
 
-## Choosing audio
+## Choosing audio and subtitles
 
 The player discovers input audio tracks as ffmpeg opens the stream. **Audio track**
 shows the track number, language, codec and channel layout when the source provides
@@ -168,7 +172,7 @@ them. Choose a track to restart your browser playback with that audio; other
 viewers keep their own selection. The first audio track is the default. A source
 without detectable audio metadata has no selector.
 
-Different audio selections use separate HLS/ffmpeg sessions and count against the
+Different audio or subtitle selections use separate HLS/ffmpeg sessions and count against the
 player session limit. The previous session closes after its normal grace period;
 at capacity, close another player or wait for that cleanup before retrying.
 Selected audio is converted to stereo AAC. Copied raw stream links and remote
@@ -178,3 +182,12 @@ forcing the browser's selection on that player.
 The channel stream picker also displays saved bitrate and audio-track counts when
 available from status checks. The tuner alone uses bitrate order; the web player's
 existing manual stream selection remains available.
+
+**Subtitles** lists detected text tracks and includes **Off** (the default).
+WebVTT, SubRip, ASS and MP4 text subtitles are converted to WebVTT; bitmap
+subtitles are listed as unsupported. HLS WebVTT timestamp maps are translated
+to the media clock before remuxing. A broadcaster may advertise a subtitle track
+without sending captions during every programme or advertisement. Changing
+subtitles restarts only your viewer and preserves your audio choice. Native
+installations need FFmpeg 8.1 or newer for HLS subtitle renditions, with WebVTT
+demuxing, decoding and encoding enabled. Docker images include this build.

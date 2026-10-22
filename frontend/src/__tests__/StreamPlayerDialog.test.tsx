@@ -5,6 +5,13 @@ import StreamPlayerDialog from '../components/player/StreamPlayerDialog';
 import { describePlayerError } from '../components/player/playerCopy';
 import { createAppTheme } from '../theme';
 
+// jsdom has no decoder; model the lifecycle operations the player calls.
+beforeAll(() => {
+  jest.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined);
+  jest.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => undefined);
+});
+afterAll(() => jest.restoreAllMocks());
+
 const mockStart = jest.fn();
 const mockStatus = jest.fn();
 const mockPublicUrl = jest.fn();
@@ -24,7 +31,7 @@ const hlsInstances: MockHlsInstance[] = [];
 jest.mock('hls.js', () => {
   class MockHls {
     static isSupported = () => true;
-    static Events = { ERROR: 'hlsError' };
+    static Events = { ERROR: 'hlsError', SUBTITLE_TRACKS_UPDATED: 'subtitleTracksUpdated' };
     static ErrorTypes = { NETWORK_ERROR: 'networkError', MEDIA_ERROR: 'mediaError', OTHER_ERROR: 'otherError' };
     static ErrorDetails = {
       BUFFER_INCOMPATIBLE_CODECS_ERROR: 'bufferIncompatibleCodecsError',
@@ -267,4 +274,29 @@ it('offers discovered audio languages and restarts only this viewer with the sel
   expect(mockStart).toHaveBeenLastCalledWith({ contentId: 'a'.repeat(40), audioIndex: 1 });
   expect(mockLeave).toHaveBeenCalledWith('s1');
   expect(screen.getByText(/Other viewers keep their selected track/)).toBeInTheDocument();
+});
+
+
+test('selects subtitles independently and preserves the selected audio track', async () => {
+  jest.clearAllMocks();
+  mockPublicUrl.mockReturnValue({ data: { url: 'http://scraper.lan:8000' } });
+  mockStart.mockResolvedValue({ id: 'subs-session' });
+  mockStatus.mockReturnValue({ data: { ...readySession.data,
+    audio_tracks: [{ index: 0, language: 'es', codec: 'aac' }, { index: 1, language: 'en', codec: 'aac' }],
+    subtitle_tracks: [{ index: 0, language: 'es', codec: 'webvtt', supported: true },
+      { index: 1, language: 'en', codec: 'dvb_subtitle', supported: false }] } });
+  await renderDialog();
+  fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Audio track' }));
+  fireEvent.click(screen.getByRole('option', { name: /Track 2.*en.*AAC/ }));
+  await act(async () => { await Promise.resolve(); });
+  fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Subtitles' }));
+  expect(screen.getByRole('option', { name: /not supported in the browser/ })).toHaveAttribute('aria-disabled', 'true');
+  fireEvent.click(screen.getByRole('option', { name: /Track 1.*es.*WEBVTT/ }));
+  await act(async () => { await Promise.resolve(); });
+  expect(mockStart).toHaveBeenLastCalledWith({ contentId: 'a'.repeat(40), audioIndex: 1, subtitleIndex: 0 });
+  expect(mockLeave).toHaveBeenCalledWith('subs-session');
+  fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Subtitles' }));
+  fireEvent.click(screen.getByRole('option', { name: 'Off' }));
+  await act(async () => { await Promise.resolve(); });
+  expect(mockStart).toHaveBeenLastCalledWith({ contentId: 'a'.repeat(40), audioIndex: 1 });
 });

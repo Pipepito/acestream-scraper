@@ -22,7 +22,7 @@ from typing import Any, Callable, Deque, Dict, List, Literal, Optional, TypeVar
 from fastapi.concurrency import run_in_threadpool
 
 from app.config.settings import get_settings
-from app.schemas.media import AudioTrack
+from app.schemas.media import AudioTrack, SubtitleTrack
 from app.services.player_http_source import PlayerHTTPSource
 from app.services.engine_client import (
     EngineClient,
@@ -67,6 +67,8 @@ class PlayerSession:
     created_at: float
     last_access: float
     audio_index: Optional[int] = None
+    subtitle_index: Optional[int] = None
+    subtitle_tracks: List[SubtitleTrack] = field(default_factory=list)
     audio_tracks: List[AudioTrack] = field(default_factory=list)
     state: PlayerState = "starting"
     error: Optional[PlayerError] = None
@@ -144,11 +146,11 @@ class PlayerService:
             "hls_dir": str(self.hls_dir()),
         }
 
-    def ffmpeg_argv(self, playback_url: str, directory: Path, audio_index: Optional[int] = None) -> List[str]:
+    def ffmpeg_argv(self, playback_url: str, directory: Path, audio_index: Optional[int] = None, subtitle_index: Optional[int] = None) -> List[str]:
         # Allow the configured startup budget to cover proxy/engine buffering.
         # The session reaper still enforces startup and media-stall deadlines.
         read_timeout_us = int(max(20.0, float(self._settings().PLAYER_START_TIMEOUT_SECONDS)) * 1_000_000)
-        return [
+        argv = [
             str(self.ffmpeg_path()), "-nostdin", "-hide_banner", "-loglevel", "info", "-nostats",
             "-rw_timeout", str(read_timeout_us), "-fflags", "+genpts+discardcorrupt",
             "-i", playback_url, "-map", "0:v:0", "-map", f"0:a:{audio_index}" if audio_index is not None else "0:a:0?", "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-ac", "2",
@@ -157,6 +159,11 @@ class PlayerService:
             "-hls_segment_type", "mpegts", "-hls_segment_filename", str(directory / "seg%05d.ts"),
             str(directory / "index.m3u8"),
         ]
+
+        if subtitle_index is not None:
+            position = argv.index("-f")
+            argv[position:position] = ["-map", f"0:s:{subtitle_index}", "-c:s", "webvtt"]
+        return argv
 
     # --- lifecycle -----------------------------------------------------------
     async def start(self) -> None:
@@ -250,10 +257,10 @@ class PlayerService:
             return False
         return sum(1 for line in lines if line.strip().endswith(".ts")) >= 2
 
-    async def open_session(self, content_id: str, audio_index: Optional[int] = None) -> PlayerSession:
+    async def open_session(self, content_id: str, audio_index: Optional[int] = None, subtitle_index: Optional[int] = None) -> PlayerSession:
         async with self._lock:
             for existing in self.sessions.values():
-                if existing.content_id == content_id and (existing.audio_index or 0) == (audio_index or 0) and existing.state in ("starting", "ready"):
+                if existing.content_id == content_id and (existing.audio_index or 0) == (audio_index or 0) and existing.subtitle_index == subtitle_index and existing.state in ("starting", "ready"):
                     existing.viewers += 1
                     existing.viewers_zero_since = None
                     existing.last_access = self._now()
@@ -274,6 +281,7 @@ class PlayerService:
                 id=session_id,
                 content_id=content_id,
                 audio_index=audio_index,
+                subtitle_index=subtitle_index,
                 dir=self.hls_dir() / session_id,
                 created_at=now,
                 last_access=now,
@@ -336,13 +344,13 @@ class PlayerService:
             session.engine_session = engine_session
             playback_url = engine_session.playback_url
         session.dir.mkdir(parents=True, exist_ok=True)
-        argv = self.ffmpeg_argv(playback_url, session.dir, session.audio_index)
+        argv = self.ffmpeg_argv(playback_url, session.dir, session.audio_index, session.subtitle_index)
         if session.http_source is not None:
             # Inputs cannot open local files, concat lists or arbitrary protocols.
             # HTTPS and all HLS child fetches are handled by the guarded proxy.
             position = argv.index("-i")
             argv[position:position] = ["-protocol_whitelist", "http,tcp,crypto",
-                                       "-format_whitelist", "hls,mpegts,mov,aac,mp3", "-http_proxy", ""]
+                                       "-format_whitelist", "hls,mpegts,mov,aac,mp3,webvtt", "-http_proxy", ""]
         process: Optional[asyncio.subprocess.Process] = None
         try:
             spawn = asyncio.create_task(asyncio.create_subprocess_exec(
@@ -420,6 +428,7 @@ class PlayerService:
         stream = proc.stderr
         input_streams = True
         audio_stream_ids: set[int] = set()
+        subtitle_stream_ids: set[int] = set()
         try:
             while True:
                 try:
@@ -442,6 +451,12 @@ class PlayerService:
                     layout = re.search(r", (mono|stereo|[0-9]+\.[0-9]+)(?:[ ,]|$)", audio.group(4))
                     session.audio_tracks.append(AudioTrack(index=len(session.audio_tracks),
                         language=audio.group(2), codec=audio.group(3), channel_layout=layout.group(1) if layout else None))
+                subtitle = re.search(r"Stream #0:(\d+)(?:\[[^]]*\])?(?:\(([^)]*)\))?: Subtitle: ([A-Za-z0-9_]+)", line)
+                if input_streams and subtitle and int(subtitle[1]) not in subtitle_stream_ids:
+                    subtitle_stream_ids.add(int(subtitle[1]))
+                    session.subtitle_tracks.append(SubtitleTrack(index=len(session.subtitle_tracks),
+                        language=subtitle[2], codec=subtitle[3],
+                        supported=subtitle[3] in {"webvtt", "subrip", "ass", "mov_text"}))
                 match = _STREAM_LINE.search(line)
                 if match and input_streams:
                     kind, codec = match.group(1).lower(), match.group(2).lower()

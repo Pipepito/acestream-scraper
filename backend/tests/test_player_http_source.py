@@ -151,7 +151,7 @@ def test_oversized_manifest_and_slow_origin_are_bounded(monkeypatch):
     asyncio.run(run())
 
 
-@pytest.mark.parametrize("media_format", ["hls", "encrypted", "fmp4", "mpegts"])
+@pytest.mark.parametrize("media_format", ["hls", "encrypted", "fmp4", "mpegts", "subtitles"])
 def test_real_ffmpeg_reads_guarded_hls_without_engine(tmp_path, monkeypatch, media_format):
     ffmpeg = shutil.which('ffmpeg')
     fixture_tool = os.environ.get('FFMPEG_TEST_TOOL_PATH') or ffmpeg
@@ -174,6 +174,16 @@ def test_real_ffmpeg_reads_guarded_hls_without_engine(tmp_path, monkeypatch, med
                     '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=48000',
                     '-t', '12', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-g', '50',
                     '-c:a', 'aac', *options, str(target)], check=True, capture_output=True, timeout=30)
+    if media_format == 'subtitles':
+        # Broadcaster masters advertise separate WebVTT renditions. Exercise
+        # their discovery, guarded fetching and conversion with real media.
+        (media_dir / 'subtitles.m3u8').write_text('#EXTM3U\n#EXT-X-TARGETDURATION:12\n'
+            '#EXTINF:12,\nsubtitles.webvtt\n#EXT-X-ENDLIST\n')
+        (media_dir / 'subtitles.webvtt').write_text('WEBVTT\nX-TIMESTAMP-MAP=MPEGTS:270000,LOCAL:00:00:00.000\n\n00:00:00.000 --> 00:00:05.000\nCaption\n')
+        target = media_dir / 'master.m3u8'
+        target.write_text('#EXTM3U\n#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="Spanish",'
+            'LANGUAGE="es",URI="subtitles.m3u8"\n'
+            '#EXT-X-STREAM-INF:BANDWIDTH=1000000,SUBTITLES="subs"\nindex.m3u8\n')
     settings = SimpleNamespace(PLAYER_HLS_DIR=str(tmp_path / 'output'), PLAYER_MAX_SESSIONS=2,
                                PLAYER_START_TIMEOUT_SECONDS=15, FFMPEG_BINARY_PATH='')
     def no_engine():
@@ -190,8 +200,8 @@ def test_real_ffmpeg_reads_guarded_hls_without_engine(tmp_path, monkeypatch, med
             monkeypatch.setattr(http_source, 'stored_http_source', lambda _: HTTPStreamSource(
                 base + '/' + target.name, {'Referer': 'https://broadcaster.example/'}))
             try:
-                session = await svc.open_session(HTTP_ID)
-                shared = await svc.open_session(HTTP_ID)
+                session = await svc.open_session(HTTP_ID, subtitle_index=0 if media_format == 'subtitles' else None)
+                shared = await svc.open_session(HTTP_ID, subtitle_index=0 if media_format == 'subtitles' else None)
                 assert session is shared and session.viewers == 2
                 for _ in range(150):
                     if svc.hls_ready(session):
@@ -201,6 +211,14 @@ def test_real_ffmpeg_reads_guarded_hls_without_engine(tmp_path, monkeypatch, med
                 assert session.engine_session is None and session.stats is None
                 assert session.codecs['video'] == 'h264'
                 assert 'token=' not in session.error_message
+                if media_format == 'subtitles':
+                    assert session.subtitle_tracks and session.subtitle_tracks[0].codec == 'webvtt'
+                    assert (session.dir / 'index_vtt.m3u8').exists()
+                    for _ in range(60):
+                        if any('Caption' in path.read_text() for path in session.dir.glob('index*.vtt')):
+                            break
+                        await asyncio.sleep(0.05)
+                    assert any('Caption' in path.read_text() for path in session.dir.glob('index*.vtt')), {path.name: path.read_text() for path in session.dir.glob('index*.vtt')}
                 source = session.http_source
             finally:
                 await svc.stop()
@@ -234,6 +252,38 @@ def test_closing_source_cancels_an_active_media_download():
                         await source.close()
                         await asyncio.wait_for(disconnected.wait(), 2)
                         assert not source._tasks and source._runner is None
+            finally:
+                await source.close()
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize('attributes', [
+    'SUBTITLES="subs",BANDWIDTH=1000,AUDIO="audio"',
+    'BANDWIDTH=1000,SUBTITLES="subs",AUDIO="audio"',
+    'BANDWIDTH=1000,AUDIO="audio",SUBTITLES="subs"',
+])
+def test_master_preserves_guarded_subtitles_and_audio(attributes):
+    source = PlayerHTTPSource('https://origin.example/master.m3u8', {})
+    text = source.rewrite('#EXTM3U\n'
+        '#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",URI="captions.m3u8"\n'
+        '#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",URI="audio.m3u8"\n'
+        f'#EXT-X-STREAM-INF:{attributes}\nvideo.m3u8\n', source.url)
+    assert '#EXT-X-STREAM-INF:' + attributes in text
+    assert set(source._resources.values()) == {'https://origin.example/captions.m3u8', 'https://origin.example/audio.m3u8', 'https://origin.example/video.m3u8'}
+
+
+def test_oversized_subtitle_segment_is_bounded(monkeypatch):
+    monkeypatch.setattr(http_source, 'MAX_SUBTITLE_BYTES', 1024)
+    async def run():
+        async def handler(request):
+            return web.Response(body=b'WEBVTT\n\n' + b'x' * 2048)
+        async with origin(handler) as base:
+            source = PlayerHTTPSource(base + '/captions.webvtt', {})
+            await source.start()
+            try:
+                async with aiohttp.ClientSession() as client:
+                    async with client.get(source.playback_url) as response:
+                        assert response.status == 502
             finally:
                 await source.close()
     asyncio.run(run())

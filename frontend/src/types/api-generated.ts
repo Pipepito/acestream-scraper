@@ -622,6 +622,14 @@ export interface paths {
     /** HLS playlist */
     get: operations["playlist_api_v1_player_sessions__session_id__index_m3u8_get"];
   };
+  "/api/v1/player/sessions/{session_id}/subtitles.m3u8": {
+    /** Subtitle HLS playlist */
+    get: operations["subtitle_playlist_api_v1_player_sessions__session_id__subtitles_m3u8_get"];
+  };
+  "/api/v1/player/sessions/{session_id}/video.m3u8": {
+    /** Video HLS playlist */
+    get: operations["video_playlist_api_v1_player_sessions__session_id__video_m3u8_get"];
+  };
   "/api/v1/player/sessions/{session_id}/{segment}": {
     /** HLS segment */
     get: operations["segment_api_v1_player_sessions__session_id___segment__get"];
@@ -2450,6 +2458,11 @@ export interface components {
        * @description AceStream content ID (40 hex) or imported HTTP stream ID (url: followed by 40 hex)
        */
       content_id: string;
+      /**
+       * Subtitle Index
+       * @description Subtitle track to play; null disables subtitles
+       */
+      subtitle_index?: number | null;
     };
     /** PlayerSessionListResponse */
     PlayerSessionListResponse: {
@@ -2484,6 +2497,10 @@ export interface components {
        */
       state: "starting" | "ready" | "error" | "stopped";
       stats?: components["schemas"]["PlayerStats"] | null;
+      /** Subtitle Index */
+      subtitle_index?: number | null;
+      /** Subtitle Tracks */
+      subtitle_tracks?: components["schemas"]["SubtitleTrack"][];
       /** Viewers */
       viewers: number;
     };
@@ -3276,6 +3293,23 @@ export interface components {
        * @description Engine speed_up in Kbytes/sec
        */
       upload_speed_kbytes_sec?: number | null;
+    };
+    /** SubtitleTrack */
+    SubtitleTrack: {
+      /** Codec */
+      codec?: string | null;
+      /**
+       * Index
+       * @description Zero-based subtitle track index (ffmpeg 0:s:index)
+       */
+      index: number;
+      /** Language */
+      language?: string | null;
+      /**
+       * Supported
+       * @default true
+       */
+      supported?: boolean;
     };
     /**
      * TVChannelAssociationRequest
@@ -6273,6 +6307,46 @@ export interface operations {
   };
   /** HLS playlist */
   playlist_api_v1_player_sessions__session_id__index_m3u8_get: {
+    parameters: {
+      path: {
+        session_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Subtitle HLS playlist */
+  subtitle_playlist_api_v1_player_sessions__session_id__subtitles_m3u8_get: {
+    parameters: {
+      path: {
+        session_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Video HLS playlist */
+  video_playlist_api_v1_player_sessions__session_id__video_m3u8_get: {
     parameters: {
       path: {
         session_id: string;

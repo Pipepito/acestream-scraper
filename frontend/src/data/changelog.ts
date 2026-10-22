@@ -27,7 +27,7 @@ export const releases: ReleaseNotes[] = [
       {
         "title": "Fixed",
         "items": [
-          "Play imported HTTP/HLS and broadcaster streams in the browser without an AceStream engine, including freshly resolved Atresmedia links.",
+          "Play imported HTTP/HLS and broadcaster streams in the browser without an AceStream engine, including freshly resolved Atresmedia links. Select audio and text subtitle tracks in the player.",
           "Respect the configured application port in containers, update bundled Kubo to 0.43.1, and report optional service states more accurately.",
           "Improve session cleanup, disconnect handling and HLS segment handling during playback."
         ]

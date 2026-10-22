@@ -18,9 +18,11 @@ from aiohttp import web
 from fastapi.concurrency import run_in_threadpool
 
 from app.services import hls_manifest, live_providers
+from app.services.player_subtitles import media_clock_webvtt
 from app.utils.outbound_http import source_session
 
 MAX_MANIFEST_BYTES = 4 * 1024 * 1024
+MAX_SUBTITLE_BYTES = 512 * 1024
 MAX_RESOURCES = 4096
 MAX_REDIRECTS = 5
 READ_TIMEOUT = 20
@@ -119,7 +121,7 @@ class PlayerHTTPSource:
             self._resources.move_to_end(ident)
         else:
             extension = urlsplit(url).path.rsplit('.', 1)[-1].lower()
-            if extension in ('m3u8', 'ts', 'm4s', 'mp4', 'aac', 'mp3', 'key'):
+            if extension in ('m3u8', 'ts', 'm4s', 'mp4', 'aac', 'mp3', 'key', 'vtt', 'webvtt'):
                 suffix = '.' + extension
             ident = secrets.token_hex(16) + suffix
             self._resources[ident] = url
@@ -173,8 +175,12 @@ class PlayerHTTPSource:
         self._tasks.add(task)
         try:
             return await self._fetch(request, url)
-        except (asyncio.CancelledError, ConnectionResetError):
+        except asyncio.CancelledError:
             raise
+        except ConnectionResetError:
+            # FFmpeg abandons prefetched/unused rendition segments normally.
+            # The upstream context has closed; this is a client disconnect.
+            return web.Response(status=499)
         except Exception:
             # Upstream URLs may be signed. Never log or return exception text.
             return web.Response(status=502, text='HTTP media unavailable')
@@ -217,6 +223,14 @@ class PlayerHTTPSource:
                                     raise ValueError('HLS manifest too large')
                             text = bytes(body).decode('utf-8-sig').lstrip()
                             return web.Response(text=self.rewrite(text, url), content_type='application/vnd.apple.mpegurl')
+                        if prefix.lstrip(b'\xef\xbb\xbf').startswith(b'WEBVTT'):
+                            body = bytearray(prefix)
+                            async for chunk in upstream.content.iter_chunked(65536):
+                                body.extend(chunk)
+                                if len(body) > MAX_SUBTITLE_BYTES:
+                                    raise ValueError('Subtitle segment too large')
+                            return web.Response(text=media_clock_webvtt(bytes(body).decode('utf-8-sig')),
+                                                content_type='text/vtt')
                         budget.reschedule(None)
                         # Stream media with backpressure; never buffer a whole live
                         # transport stream or segment. Range metadata is preserved.

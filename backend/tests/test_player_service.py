@@ -795,3 +795,25 @@ def test_cancelled_http_resolution_frees_session_slot(make_service, monkeypatch)
             await task
         assert not svc.sessions
     asyncio.run(run())
+
+
+def test_subtitle_selection_preserves_other_viewers_and_discovers_supported_tracks(make_service, monkeypatch):
+    monkeypatch.setenv('FAKE_FFMPEG_SUBTITLES', '1')
+    svc = make_service()
+    async def run():
+        try:
+            plain = await svc.open_session(IH)
+            selected = await svc.open_session(IH, subtitle_index=0)
+            joined = await svc.open_session(IH, subtitle_index=0)
+            assert joined is selected and selected is not plain
+            assert plain.viewers == 1 and selected.viewers == 2
+            assert await _wait(lambda: len(selected.subtitle_tracks) == 2)
+            assert [(t.index, t.language, t.supported) for t in selected.subtitle_tracks] == [(0, 'es', True), (1, 'eng', False)]
+            argv = svc.ffmpeg_argv('http://engine/media', Path('/tmp/hls'), audio_index=1, subtitle_index=0)
+            assert '0:a:1' in argv and '0:s:0' in argv
+            assert argv[argv.index('-c:s') + 1] == 'webvtt'
+            svc.leave(selected.id)
+            assert plain.viewers == selected.viewers == 1
+        finally:
+            await svc.stop()
+    asyncio.run(run())

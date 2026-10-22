@@ -353,3 +353,26 @@ def test_unknown_http_id_fails_cleanly_without_engine(client, player, db_session
     assert response.status_code == 200
     assert response.json()['error'] == 'source_unavailable'
     assert client.post('/api/v1/player/sessions', json={'content_id': 'https://media.example/live.m3u8'}).status_code == 422
+
+
+def test_subtitle_playlists_and_vtt_preserve_authentication(client, player, monkeypatch):
+    monkeypatch.setenv('API_TOKEN', 'a b&c')
+    headers = {'X-Api-Token': 'a b&c'}
+    created = client.post('/api/v1/player/sessions', json={'content_id': IH, 'subtitle_index': 0}, headers=headers).json()
+    assert created['subtitle_index'] == 0
+    session = player.get(created['id'])
+    (session.dir / 'index_vtt.m3u8').write_text('#EXTM3U\n#EXTINF:2,\nindex0.vtt\n')
+    (session.dir / 'index0.vtt').write_text('WEBVTT\n\n00:00:00.000 --> 00:00:02.000\nCaption\n')
+    root = f"/api/v1/player/sessions/{session.id}"
+    master = client.get(root + '/index.m3u8', params={'token': 'a b&c'})
+    assert 'URI="subtitles.m3u8?token=a+b%26c"' in master.text
+    assert 'video.m3u8?token=a+b%26c' in master.text
+    subs = client.get(root + '/subtitles.m3u8', params={'token': 'a b&c'})
+    assert 'index0.vtt?token=a+b%26c' in subs.text
+    assert client.get(root + '/subtitles.m3u8').status_code == 401
+    assert client.get(root + '/index0.vtt').status_code == 401
+    caption = client.get(root + '/index0.vtt', headers=headers)
+    assert caption.headers['content-type'].startswith('text/vtt') and 'Caption' in caption.text
+    assert client.get(root + '/anything.vtt', headers=headers).status_code == 404
+    assert client.post('/api/v1/player/sessions', json={'content_id': IH, 'subtitle_index': -1}, headers=headers).status_code == 422
+    assert client.post('/api/v1/player/sessions', json={'content_id': IH, 'subtitle_index': 64}, headers=headers).status_code == 422

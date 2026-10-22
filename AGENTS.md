@@ -522,8 +522,15 @@ notes and promotion provenance are documented in `docs/ops/release-notes.md`.
 Browser playback accepts imported `url:` IDs as well as AceStream IDs. Resolve
 stored broadcaster links at session start; HTTP input uses a session-owned
 loopback proxy over `outbound_http.source_session`. Rewrite every HLS resource,
-including keys/maps/audio; never hand upstream manifests or URLs directly to
+including keys/maps/audio/subtitles; never hand upstream manifests or URLs directly to
 FFmpeg. Preserve source headers, redirect/SSRF guards, bounded manifests and
-resource inventories, shared audio selection, startup budgets and cancellation
+resource inventories, shared audio/subtitle selection, startup budgets and cancellation
 cleanup. HTTP sessions must not start/probe/stop AceStream or expose signed URLs.
 See `wiki/Web-Player.md`.
+
+Browser subtitle selection defaults to Off. Share sessions only for identical
+channel/audio/subtitle choices; changing either track releases only that viewer.
+Text subtitles use the same FFmpeg HLS clock as video. Normalize bounded HLS
+WebVTT timestamp maps in the guarded input proxy; preserve `.vtt`/`.webvtt`
+extensions and authenticate subtitle playlists/segments, including query-token
+propagation for native HLS. Bitmap subtitle conversion is unsupported.

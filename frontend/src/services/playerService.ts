@@ -32,6 +32,8 @@ export interface PlayerStats {
 }
 
 export interface PlayerSessionStatus {
+  subtitle_index?: components['schemas']['PlayerSessionStatus']['subtitle_index'];
+  subtitle_tracks?: components['schemas']['PlayerSessionStatus']['subtitle_tracks'];
   audio_index?: components['schemas']['PlayerSessionStatus']['audio_index'];
   audio_tracks?: components['schemas']['PlayerSessionStatus']['audio_tracks'];
   id: string;
@@ -75,8 +77,8 @@ export const playerService = {
     const { data } = await apiClient.get<PlayerCapabilities>(`${BASE_URL}/capabilities`);
     return data;
   },
-  startSession: async (contentId: string, audioIndex?: number): Promise<PlayerSessionStatus> => {
-    const { data } = await apiClient.post<PlayerSessionStatus>(`${BASE_URL}/sessions`, { content_id: contentId, ...(audioIndex !== undefined ? { audio_index: audioIndex } : {}) });
+  startSession: async (contentId: string, audioIndex?: number, subtitleIndex?: number): Promise<PlayerSessionStatus> => {
+    const { data } = await apiClient.post<PlayerSessionStatus>(`${BASE_URL}/sessions`, { content_id: contentId, ...(audioIndex !== undefined ? { audio_index: audioIndex } : {}), ...(subtitleIndex !== undefined ? { subtitle_index: subtitleIndex } : {}) });
     return data;
   },
   /** Browser sessions and tuner/remote-player relays in one list (Integrations page). */

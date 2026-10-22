@@ -17,6 +17,7 @@ from app.services.stream_relay import EngineStreamError, RelayInfo, RelayRegistr
 from app.services.tuner_remux import remux_source, compatible_audio_source
 from app.services.tuner_http_source import relay_http_stream
 from app.utils.stream_kind import stream_kind
+from app.services.ts_clock import watch_clock
 
 STARTUP_BUDGET_SECONDS = 45.0
 ATTEMPT_SECONDS = 15.0
@@ -307,6 +308,9 @@ async def relay_ranked_streams(
                             await upstream.aclose()
 
                 raw = source()
+                # Log the source's own clock jumps (a viewer saw sources jump back
+                # mid-match with no relay switch, and nothing showed it): read-only.
+                raw = watch_clock(raw, content_id)
                 if experimental_transcoding:
                     iterator = remux_source(raw, version=version, offset=time.monotonic() - started,
                         plex_compatible_audio=plex_compatible_audio)

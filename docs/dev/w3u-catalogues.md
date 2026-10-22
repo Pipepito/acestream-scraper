@@ -49,7 +49,15 @@ candidates for those adapters without fetching arbitrary pages as media.
 
 ## Handoff: sporting events and VOD
 
-Continue from this branch/draft PR while it remains unmerged. Read the latest
+Sporting events (#55) is being tackled in a separate session and is expected to
+merge into `develop` before this W3U work can be completed. Use this draft PR as
+implementation context for that work; the events implementation belongs on its
+own branch/PR. Keep this PR draft, then bring in the merged events changes and
+integrate W3U event observations with the resulting model and ingestion contract.
+Do not create a competing event model here. VOD (#99) remains separate planned
+work; its merge order has not been decided.
+
+Read the latest
 requirements in [sporting events (#55)](https://github.com/Pipepito/acestream-scraper/issues/55)
 and [Scrape lists movies on Acestream (#99)](https://github.com/Pipepito/acestream-scraper/issues/99),
 the applicable layered `AGENTS.md` files, and the operator contract above before
@@ -66,8 +74,10 @@ extending the implementation. Neither feature is implemented by this foundation.
   imported as channels even under a sports/movie folder; an AceStream ID is
   recognized before record type. Folder names alone must not decide semantics.
   Simply admitting VOD entries into the compatible-live set would mix inventories.
-- Give events and VOD their own models and Alembic revisions after
-  `20261022_1200`; preserve existing catalogue snapshots and imported channel state.
+- Give events and VOD their own models and Alembic revisions based on their
+  implementation branches. This W3U branch currently ends at `20261022_1200`;
+  reconcile migration heads and verify upgrade paths when integrating the events
+  PR. Preserve existing catalogue snapshots and imported channel state.
   Keep preview/revision checks, private headers, bounded guarded traversal,
   partial-refresh retention and manual overrides intact.
 - For events, begin with reviewed ingestion and fixtures for UTC/timezone/DST,

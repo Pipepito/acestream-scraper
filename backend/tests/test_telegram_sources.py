@@ -268,18 +268,28 @@ def test_migration_upgrade_downgrade_preserves_existing_streams(tmp_path):
     from migration_test_utils import upgrade_to_revision, upgrade_to_head, downgrade_to_revision, database_url_for
     from sqlalchemy import create_engine, text, inspect
     path = tmp_path / 'migration.db'
-    upgrade_to_revision(path, '20261021_1200')
+    upgrade_to_revision(path, '20261023_1400')
     engine = create_engine(database_url_for(path))
-    with engine.begin() as connection:
-        connection.execute(text("INSERT INTO acestream_channels (id, name) VALUES (:id, 'Manual')"), {'id': IDS[0]})
-    upgrade_to_head(path)
-    assert 'telegram_sources' in inspect(engine).get_table_names()
-    with engine.connect() as connection:
-        assert connection.execute(text('SELECT name FROM acestream_channels')).scalar() == 'Manual'
-    downgrade_to_revision(path, '20261021_1200')
-    assert 'telegram_sources' not in inspect(engine).get_table_names()
-    upgrade_to_head(path)
-    engine.dispose()
+    try:
+        with engine.begin() as connection:
+            connection.execute(text("INSERT INTO acestream_channels (id, name) VALUES (:id, 'Manual')"), {'id': IDS[0]})
+            connection.execute(text("INSERT INTO w3u_catalogues (name, revision, snapshot, selected_branches, mode, refresh_enabled, updated_at) VALUES ('Saved catalogue', 3, '{}', '[]', 'compatible', 0, '2026-10-23')"))
+            connection.execute(text("INSERT INTO sporting_events (id, owner_id, revision, fields, followed, archived) VALUES ('match', 'source', 2, '{}', 1, 0)"))
+        upgrade_to_head(path)
+        assert {'telegram_sources', 'telegram_observations'} <= set(inspect(engine).get_table_names())
+        with engine.connect() as connection:
+            assert connection.execute(text('SELECT version_num FROM alembic_version')).scalar() == '20261023_1500'
+        downgrade_to_revision(path, '20261023_1400')
+        assert not {'telegram_sources', 'telegram_observations'} & set(inspect(engine).get_table_names())
+        with engine.connect() as connection:
+            assert connection.execute(text('SELECT name FROM acestream_channels')).scalar() == 'Manual'
+            assert connection.execute(text('SELECT name, revision FROM w3u_catalogues')).one() == ('Saved catalogue', 3)
+            assert connection.execute(text('SELECT id, followed FROM sporting_events')).one() == ('match', 1)
+            assert connection.execute(text('SELECT version_num FROM alembic_version')).scalar() == '20261023_1400'
+        upgrade_to_head(path)
+        assert {'telegram_sources', 'telegram_observations'} <= set(inspect(engine).get_table_names())
+    finally:
+        engine.dispose()
 
 
 def test_private_routes_never_echo_secrets_and_preview_never_writes(alembic_backend_runtime, private_settings, monkeypatch):

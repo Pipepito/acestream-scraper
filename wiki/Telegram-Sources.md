@@ -151,6 +151,18 @@ one application worker as required by the existing database lock. On restore, us
 the matching database and encrypted session/key; a different account's sources
 are never automatically attached to the new connection.
 
+## Database upgrades
+
+Telegram revision `20261023_1500` follows the combined catalogue/events revision
+`20261023_1400`. Normal startup upgrades existing installations; Telegram rollback
+to that predecessor removes only Telegram tables and preserves channels,
+catalogues and events. Imported streams remain in the catalogue.
+
+The unmerged Telegram prototype used `20261022_1200`, which belongs to W3U
+catalogues in develop. Databases created with that prototype are not normal
+upgrade inputs: do not reuse its ambiguous stamp or blindly restamp it. Use a
+fresh test database, or restore the pre-prototype backup before upgrading.
+
 ## Validation
 
 Automated tests use fake transports and synthetic messages. They cover the six

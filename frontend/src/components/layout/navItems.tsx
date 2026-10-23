@@ -20,6 +20,10 @@ export interface NavItem {
 
 export const navItems: NavItem[] = [
   { text: 'Live TV', path: '/live-tv', icon: <LiveTvRoundedIcon />, section: 'Watch' },
+  { text: 'Catalogues', path: '/catalogues', icon: <PlaylistPlayRoundedIcon />, section: 'Watch' },
+
+
+  { text: 'Events', path: '/events', icon: <EventNoteRoundedIcon />, section: 'Watch' },
   { text: 'Overview', path: '/', icon: <DashboardRoundedIcon />, section: 'System' },
   { text: 'Scraper', path: '/scraper', icon: <TravelExploreRoundedIcon />, section: 'Manage' },
   { text: 'Search', path: '/search', icon: <SearchRoundedIcon />, section: 'Manage' },

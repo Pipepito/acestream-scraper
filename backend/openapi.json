@@ -1137,6 +1137,106 @@
         "title": "Body_bulk_delete_acestream_channels_api_v1_channels_bulk_delete_post",
         "type": "object"
       },
+      "BroadcastView": {
+        "additionalProperties": false,
+        "properties": {
+          "checked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked At"
+          },
+          "compatibility": {
+            "enum": [
+              "playable",
+              "unresolved",
+              "unsupported",
+              "unavailable"
+            ],
+            "title": "Compatibility",
+            "type": "string"
+          },
+          "content_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Id"
+          },
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "is_online": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Online"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "manually_mapped": {
+            "default": false,
+            "title": "Manually Mapped",
+            "type": "boolean"
+          },
+          "origin": {
+            "title": "Origin",
+            "type": "string"
+          },
+          "quality": {
+            "title": "Quality",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "source_name": {
+            "title": "Source Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "language",
+          "quality",
+          "country",
+          "source_name",
+          "origin",
+          "content_id",
+          "compatibility",
+          "reason"
+        ],
+        "title": "BroadcastView",
+        "type": "object"
+      },
       "BulkChannelActivateRequest": {
         "description": "Schema for bulk channel activation/deactivation",
         "properties": {
@@ -1178,6 +1278,545 @@
           "fields"
         ],
         "title": "BulkChannelEditRequest",
+        "type": "object"
+      },
+      "CatalogueCounts": {
+        "properties": {
+          "accepted": {
+            "default": 0,
+            "title": "Accepted",
+            "type": "integer"
+          },
+          "bytes_read": {
+            "default": 0,
+            "description": "Traversal byte budget used, including cached input and failed-read reservations",
+            "title": "Bytes Read",
+            "type": "integer"
+          },
+          "cached_documents": {
+            "default": 0,
+            "title": "Cached Documents",
+            "type": "integer"
+          },
+          "duplicates": {
+            "default": 0,
+            "title": "Duplicates",
+            "type": "integer"
+          },
+          "failed_fetches": {
+            "default": 0,
+            "title": "Failed Fetches",
+            "type": "integer"
+          },
+          "invalid": {
+            "default": 0,
+            "title": "Invalid",
+            "type": "integer"
+          },
+          "requests": {
+            "default": 0,
+            "title": "Requests",
+            "type": "integer"
+          },
+          "unsupported": {
+            "default": 0,
+            "title": "Unsupported",
+            "type": "integer"
+          }
+        },
+        "title": "CatalogueCounts",
+        "type": "object"
+      },
+      "CatalogueEntry": {
+        "properties": {
+          "channel_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel Id"
+          },
+          "content_type": {
+            "default": "unknown",
+            "enum": [
+              "live",
+              "event",
+              "vod",
+              "unknown"
+            ],
+            "title": "Content Type",
+            "type": "string"
+          },
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "duplicate": {
+            "default": false,
+            "title": "Duplicate",
+            "type": "boolean"
+          },
+          "guide_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Guide Id"
+          },
+          "header_names": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Header Names",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image"
+          },
+          "imported": {
+            "default": false,
+            "title": "Imported",
+            "type": "boolean"
+          },
+          "kind": {
+            "enum": [
+              "folder",
+              "acestream",
+              "hls",
+              "mpegts",
+              "resolver",
+              "vod",
+              "unsupported",
+              "invalid"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Number"
+          },
+          "origin": {
+            "default": "",
+            "title": "Origin",
+            "type": "string"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "reason": {
+            "default": "",
+            "title": "Reason",
+            "type": "string"
+          },
+          "retained": {
+            "default": false,
+            "title": "Retained",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind"
+        ],
+        "title": "CatalogueEntry",
+        "type": "object"
+      },
+      "CatalogueEventPreviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "competition": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Competition",
+            "type": "string"
+          },
+          "ends_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ends At"
+          },
+          "entry_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Entry Ids",
+            "type": "array"
+          },
+          "event_id": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{32}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Id"
+          },
+          "participants": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Participants",
+            "type": "array"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "sport": {
+            "default": "",
+            "maxLength": 100,
+            "title": "Sport",
+            "type": "string"
+          },
+          "starts_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starts At"
+          },
+          "state": {
+            "default": "unknown",
+            "enum": [
+              "unknown",
+              "scheduled",
+              "live",
+              "finished",
+              "postponed",
+              "cancelled"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "time_notes": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Time Notes",
+            "type": "string"
+          },
+          "timezone": {
+            "maxLength": 100,
+            "title": "Timezone",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "timezone",
+          "revision",
+          "entry_ids"
+        ],
+        "title": "CatalogueEventPreviewRequest",
+        "type": "object"
+      },
+      "CataloguePreviewRequest": {
+        "properties": {
+          "catalogue_id": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Catalogue Id"
+          },
+          "sample": {
+            "anyOf": [
+              {
+                "maxLength": 4194304,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sample"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "maxLength": 2048,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "title": "CataloguePreviewRequest",
+        "type": "object"
+      },
+      "CatalogueSaveRequest": {
+        "properties": {
+          "confirm_live": {
+            "default": false,
+            "title": "Confirm Live",
+            "type": "boolean"
+          },
+          "mode": {
+            "default": "compatible",
+            "enum": [
+              "compatible",
+              "acestream"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "preview_token": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Preview Token",
+            "type": "string"
+          },
+          "refresh_enabled": {
+            "default": false,
+            "title": "Refresh Enabled",
+            "type": "boolean"
+          },
+          "selected_branches": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10000,
+            "title": "Selected Branches",
+            "type": "array"
+          }
+        },
+        "required": [
+          "preview_token",
+          "name",
+          "selected_branches"
+        ],
+        "title": "CatalogueSaveRequest",
+        "type": "object"
+      },
+      "CatalogueSummary": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "origin": {
+            "title": "Origin",
+            "type": "string"
+          },
+          "partial": {
+            "title": "Partial",
+            "type": "boolean"
+          },
+          "refresh_enabled": {
+            "title": "Refresh Enabled",
+            "type": "boolean"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "revision",
+          "origin",
+          "partial",
+          "refresh_enabled",
+          "updated_at"
+        ],
+        "title": "CatalogueSummary",
+        "type": "object"
+      },
+      "CatalogueView": {
+        "properties": {
+          "can_refresh": {
+            "default": false,
+            "title": "Can Refresh",
+            "type": "boolean"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/CatalogueCounts"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/CatalogueEntry"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "mode": {
+            "default": "compatible",
+            "enum": [
+              "compatible",
+              "acestream"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "origin": {
+            "title": "Origin",
+            "type": "string"
+          },
+          "partial": {
+            "default": false,
+            "title": "Partial",
+            "type": "boolean"
+          },
+          "preview_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preview Token"
+          },
+          "refresh_enabled": {
+            "default": false,
+            "title": "Refresh Enabled",
+            "type": "boolean"
+          },
+          "revision": {
+            "default": 0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "selected_branches": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Selected Branches",
+            "type": "array"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "origin",
+          "entries",
+          "counts"
+        ],
+        "title": "CatalogueView",
         "type": "object"
       },
       "ChannelResult": {
@@ -2304,6 +2943,868 @@
         "title": "EPGXmlGenerationRequest",
         "type": "object"
       },
+      "EventApply": {
+        "additionalProperties": false,
+        "properties": {
+          "refresh_source": {
+            "default": false,
+            "title": "Refresh Source",
+            "type": "boolean"
+          },
+          "selected_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 500,
+            "minItems": 1,
+            "title": "Selected Ids",
+            "type": "array"
+          },
+          "token": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "selected_ids"
+        ],
+        "title": "EventApply",
+        "type": "object"
+      },
+      "EventBroadcast": {
+        "additionalProperties": false,
+        "properties": {
+          "channel_id": {
+            "anyOf": [
+              {
+                "pattern": "^(?:url:)?[0-9a-fA-F]{40}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel Id"
+          },
+          "country": {
+            "default": "",
+            "maxLength": 80,
+            "title": "Country",
+            "type": "string"
+          },
+          "headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "maxProperties": 3,
+            "title": "Headers",
+            "type": "object"
+          },
+          "id": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "language": {
+            "default": "",
+            "maxLength": 80,
+            "title": "Language",
+            "type": "string"
+          },
+          "quality": {
+            "default": "",
+            "maxLength": 80,
+            "title": "Quality",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": [
+          "id",
+          "label"
+        ],
+        "title": "EventBroadcast",
+        "type": "object"
+      },
+      "EventBroadcastMapping": {
+        "additionalProperties": false,
+        "properties": {
+          "broadcast_id": {
+            "maxLength": 193,
+            "minLength": 1,
+            "title": "Broadcast Id",
+            "type": "string"
+          },
+          "channel_id": {
+            "anyOf": [
+              {
+                "pattern": "^(?:url:)?[0-9a-fA-F]{40}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel Id"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "revision",
+          "broadcast_id"
+        ],
+        "title": "EventBroadcastMapping",
+        "type": "object"
+      },
+      "EventFields": {
+        "additionalProperties": false,
+        "properties": {
+          "competition": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Competition",
+            "type": "string"
+          },
+          "ends_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ends At"
+          },
+          "participants": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Participants",
+            "type": "array"
+          },
+          "sport": {
+            "default": "",
+            "maxLength": 100,
+            "title": "Sport",
+            "type": "string"
+          },
+          "starts_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starts At"
+          },
+          "state": {
+            "default": "unknown",
+            "enum": [
+              "unknown",
+              "scheduled",
+              "live",
+              "finished",
+              "postponed",
+              "cancelled"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "time_notes": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Time Notes",
+            "type": "string"
+          },
+          "timezone": {
+            "maxLength": 100,
+            "title": "Timezone",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "timezone"
+        ],
+        "title": "EventFields",
+        "type": "object"
+      },
+      "EventImport": {
+        "additionalProperties": false,
+        "properties": {
+          "observations": {
+            "items": {
+              "$ref": "#/components/schemas/EventObservation"
+            },
+            "maxItems": 500,
+            "minItems": 1,
+            "title": "Observations",
+            "type": "array"
+          },
+          "version": {
+            "const": 1,
+            "default": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "observations"
+        ],
+        "title": "EventImport",
+        "type": "object"
+      },
+      "EventList": {
+        "additionalProperties": false,
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/EventView"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "events",
+          "total"
+        ],
+        "title": "EventList",
+        "type": "object"
+      },
+      "EventObservation": {
+        "additionalProperties": false,
+        "properties": {
+          "artwork_url": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artwork Url"
+          },
+          "broadcasts": {
+            "items": {
+              "$ref": "#/components/schemas/EventBroadcast"
+            },
+            "maxItems": 50,
+            "title": "Broadcasts",
+            "type": "array"
+          },
+          "competition": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Competition",
+            "type": "string"
+          },
+          "ends_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ends At"
+          },
+          "event_id": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{32}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Id"
+          },
+          "external_id": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "External Id",
+            "type": "string"
+          },
+          "participants": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Participants",
+            "type": "array"
+          },
+          "source_id": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "^[\\w.:-]+$",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_kind": {
+            "default": "manual",
+            "enum": [
+              "guide",
+              "w3u",
+              "telegram",
+              "manual"
+            ],
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "source_name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Source Name",
+            "type": "string"
+          },
+          "sport": {
+            "default": "",
+            "maxLength": 100,
+            "title": "Sport",
+            "type": "string"
+          },
+          "starts_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starts At"
+          },
+          "state": {
+            "default": "unknown",
+            "enum": [
+              "unknown",
+              "scheduled",
+              "live",
+              "finished",
+              "postponed",
+              "cancelled"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "time_notes": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Time Notes",
+            "type": "string"
+          },
+          "timezone": {
+            "maxLength": 100,
+            "title": "Timezone",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "timezone",
+          "source_id",
+          "source_name",
+          "external_id"
+        ],
+        "title": "EventObservation",
+        "type": "object"
+      },
+      "EventPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/EventView"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "token": {
+            "title": "Token",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "token",
+          "events",
+          "warnings"
+        ],
+        "title": "EventPreview",
+        "type": "object"
+      },
+      "EventRefreshQueued": {
+        "additionalProperties": false,
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "triggered",
+              "already_running"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "message"
+        ],
+        "title": "EventRefreshQueued",
+        "type": "object"
+      },
+      "EventRefreshResult": {
+        "additionalProperties": false,
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "pending": {
+            "default": 0,
+            "title": "Pending",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "updated",
+              "error",
+              "unchanged"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "updated": {
+            "default": 0,
+            "title": "Updated",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status",
+          "message"
+        ],
+        "title": "EventRefreshResult",
+        "type": "object"
+      },
+      "EventRetention": {
+        "additionalProperties": false,
+        "properties": {
+          "archived_days": {
+            "default": 0,
+            "maximum": 3650.0,
+            "minimum": 0.0,
+            "title": "Archived Days",
+            "type": "integer"
+          },
+          "ended_days": {
+            "default": 0,
+            "maximum": 3650.0,
+            "minimum": 0.0,
+            "title": "Ended Days",
+            "type": "integer"
+          }
+        },
+        "title": "EventRetention",
+        "type": "object"
+      },
+      "EventSourcePreviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "event_import",
+            "enum": [
+              "event_import",
+              "schema_org"
+            ],
+            "title": "Format",
+            "type": "string"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{32}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          },
+          "timezone": {
+            "default": "UTC",
+            "maxLength": 100,
+            "title": "Timezone",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "title": "EventSourcePreviewRequest",
+        "type": "object"
+      },
+      "EventSourceUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "revision",
+          "enabled"
+        ],
+        "title": "EventSourceUpdate",
+        "type": "object"
+      },
+      "EventSourceView": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "format": {
+            "default": "event_import",
+            "enum": [
+              "event_import",
+              "schema_org"
+            ],
+            "title": "Format",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "last_attempt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Attempt"
+          },
+          "last_result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EventRefreshResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_success": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Success"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "origin": {
+            "title": "Origin",
+            "type": "string"
+          },
+          "reviewed": {
+            "title": "Reviewed",
+            "type": "integer"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "timezone": {
+            "default": "UTC",
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "revision",
+          "name",
+          "origin",
+          "enabled",
+          "reviewed",
+          "last_attempt",
+          "last_success",
+          "last_result"
+        ],
+        "title": "EventSourceView",
+        "type": "object"
+      },
+      "EventUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "archived": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived"
+          },
+          "correction": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EventFields"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "followed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Followed"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "revision"
+        ],
+        "title": "EventUpdate",
+        "type": "object"
+      },
+      "EventView": {
+        "additionalProperties": false,
+        "properties": {
+          "archived": {
+            "title": "Archived",
+            "type": "boolean"
+          },
+          "broadcasts": {
+            "items": {
+              "$ref": "#/components/schemas/BroadcastView"
+            },
+            "title": "Broadcasts",
+            "type": "array"
+          },
+          "competition": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Competition",
+            "type": "string"
+          },
+          "corrected": {
+            "title": "Corrected",
+            "type": "boolean"
+          },
+          "ends_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ends At"
+          },
+          "followed": {
+            "title": "Followed",
+            "type": "boolean"
+          },
+          "has_artwork": {
+            "default": false,
+            "title": "Has Artwork",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "participants": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Participants",
+            "type": "array"
+          },
+          "provenance": {
+            "items": {
+              "$ref": "#/components/schemas/ProvenanceView"
+            },
+            "title": "Provenance",
+            "type": "array"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "sport": {
+            "default": "",
+            "maxLength": 100,
+            "title": "Sport",
+            "type": "string"
+          },
+          "starts_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starts At"
+          },
+          "state": {
+            "default": "unknown",
+            "enum": [
+              "unknown",
+              "scheduled",
+              "live",
+              "finished",
+              "postponed",
+              "cancelled"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "time_notes": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Time Notes",
+            "type": "string"
+          },
+          "timezone": {
+            "maxLength": 100,
+            "title": "Timezone",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "timezone",
+          "id",
+          "revision",
+          "corrected",
+          "followed",
+          "archived",
+          "broadcasts",
+          "provenance"
+        ],
+        "title": "EventView",
+        "type": "object"
+      },
       "ExtractedChannel": {
         "properties": {
           "channel_id": {
@@ -3409,6 +4910,41 @@
           "guide_channels"
         ],
         "title": "PlaylistGuideCoverage",
+        "type": "object"
+      },
+      "ProvenanceView": {
+        "additionalProperties": false,
+        "properties": {
+          "external_id": {
+            "title": "External Id",
+            "type": "string"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_kind": {
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "source_name": {
+            "title": "Source Name",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id",
+          "source_name",
+          "source_kind",
+          "external_id",
+          "updated_at"
+        ],
+        "title": "ProvenanceView",
         "type": "object"
       },
       "PublicBaseUrlUpdate": {
@@ -9244,6 +10780,238 @@
         ]
       }
     },
+    "/api/v1/catalogues": {
+      "get": {
+        "operationId": "list_catalogues_api_v1_catalogues_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CatalogueSummary"
+                  },
+                  "title": "Response List Catalogues Api V1 Catalogues Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Catalogues",
+        "tags": [
+          "catalogues"
+        ]
+      },
+      "post": {
+        "operationId": "save_catalogue_api_v1_catalogues_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CatalogueSaveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogueView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Catalogue",
+        "tags": [
+          "catalogues"
+        ]
+      }
+    },
+    "/api/v1/catalogues/preview": {
+      "post": {
+        "operationId": "preview_catalogue_api_v1_catalogues_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CataloguePreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogueView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Catalogue",
+        "tags": [
+          "catalogues"
+        ]
+      }
+    },
+    "/api/v1/catalogues/{catalogue_id}": {
+      "delete": {
+        "operationId": "delete_catalogue_api_v1_catalogues__catalogue_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "catalogue_id",
+            "required": true,
+            "schema": {
+              "title": "Catalogue Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Catalogue",
+        "tags": [
+          "catalogues"
+        ]
+      },
+      "get": {
+        "operationId": "get_catalogue_api_v1_catalogues__catalogue_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "catalogue_id",
+            "required": true,
+            "schema": {
+              "title": "Catalogue Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogueView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Catalogue",
+        "tags": [
+          "catalogues"
+        ]
+      }
+    },
+    "/api/v1/catalogues/{catalogue_id}/events/preview": {
+      "post": {
+        "operationId": "preview_event_api_v1_catalogues__catalogue_id__events_preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "catalogue_id",
+            "required": true,
+            "schema": {
+              "title": "Catalogue Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CatalogueEventPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Event",
+        "tags": [
+          "catalogues"
+        ]
+      }
+    },
     "/api/v1/channels/": {
       "get": {
         "description": "Get all channels with optional filtering.\nSupports both skip/limit and page/page_size parameters.\nSet assigned=false to list only streams not linked to a TV channel.\nReturns paginated items and total count.",
@@ -11792,6 +13560,633 @@
         "summary": "Generate Epg Xml",
         "tags": [
           "epg"
+        ]
+      }
+    },
+    "/api/v1/events": {
+      "get": {
+        "operationId": "list_events_api_v1_events_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 200,
+              "title": "Search",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sport",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 100,
+              "title": "Sport",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "competition",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 200,
+              "title": "Competition",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 200,
+              "title": "Source",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "day",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Day"
+            }
+          },
+          {
+            "in": "query",
+            "name": "zone",
+            "required": false,
+            "schema": {
+              "default": "UTC",
+              "maxLength": 100,
+              "title": "Zone",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "upcoming",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Upcoming",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "followed",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Followed",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "archived",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Archived",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Events",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/apply": {
+      "post": {
+        "operationId": "apply_events_api_v1_events_apply_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventApply"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EventView"
+                  },
+                  "title": "Response Apply Events Api V1 Events Apply Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Apply Events",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/preview": {
+      "post": {
+        "operationId": "preview_events_api_v1_events_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventImport"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Events",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/retention": {
+      "get": {
+        "operationId": "event_retention_api_v1_events_retention_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventRetention"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Event Retention",
+        "tags": [
+          "events"
+        ]
+      },
+      "patch": {
+        "operationId": "save_event_retention_api_v1_events_retention_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventRetention"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventRetention"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Event Retention",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/sources": {
+      "get": {
+        "operationId": "event_sources_api_v1_events_sources_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EventSourceView"
+                  },
+                  "title": "Response Event Sources Api V1 Events Sources Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Event Sources",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/sources/preview": {
+      "post": {
+        "operationId": "preview_event_source_api_v1_events_sources_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventSourcePreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Event Source",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/sources/refresh": {
+      "post": {
+        "operationId": "queue_event_refresh_api_v1_events_sources_refresh_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventRefreshQueued"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Queue Event Refresh",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/sources/{source_id}": {
+      "patch": {
+        "operationId": "update_event_source_api_v1_events_sources__source_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "title": "Source Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventSourceUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventSourceView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Event Source",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/{event_id}": {
+      "get": {
+        "operationId": "get_event_api_v1_events__event_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_id",
+            "required": true,
+            "schema": {
+              "title": "Event Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Event",
+        "tags": [
+          "events"
+        ]
+      },
+      "patch": {
+        "operationId": "update_event_api_v1_events__event_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_id",
+            "required": true,
+            "schema": {
+              "title": "Event Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Event",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/{event_id}/artwork": {
+      "get": {
+        "operationId": "event_artwork_api_v1_events__event_id__artwork_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_id",
+            "required": true,
+            "schema": {
+              "title": "Event Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/jpeg": {},
+              "image/png": {},
+              "image/webp": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Event Artwork",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/{event_id}/broadcast": {
+      "patch": {
+        "operationId": "map_event_broadcast_api_v1_events__event_id__broadcast_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_id",
+            "required": true,
+            "schema": {
+              "title": "Event Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventBroadcastMapping"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Map Event Broadcast",
+        "tags": [
+          "events"
         ]
       }
     },

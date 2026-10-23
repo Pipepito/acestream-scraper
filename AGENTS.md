@@ -541,6 +541,50 @@ Keep Debian FFmpeg only as `FFMPEG_TEST_TOOL_PATH` for synthetic media fixtures.
 See `docs/ops/jenkins-ci.md#ffmpeg-in-the-isolated-validation-runner`.
 
 
+## W3U catalogues
+
+`/catalogues` keeps W3U hierarchy separate from TV assignments. Preview is read-only;
+opaque expiring tokens and catalogue revisions protect save. Traverse only bounded
+structured child documents through `outbound_http.source_session`; never execute
+publisher scripts or treat arbitrary page/image URLs as media. Imports reuse the
+channel repository and shared player. Preserve existing channel metadata and all
+channels on partial refresh, deselection and catalogue removal. Scheduled refresh
+is opt-in within the existing scrape queue. Public DTOs expose source hosts and
+header names only. See `wiki/W3U-Catalogues.md` and `docs/dev/w3u-catalogues.md`;
+W3U event imports use the shared reviewed EventImport contract; VOD and unsupported host resolvers remain separate.
+
+
+## Sporting events foundation
+
+`/events` stores schedules separately from channels. Use versioned `EventImport`
+observations, stable source/external IDs, read-only previews and explicit selected
+rows. Refresh preserves manual corrections and missing broadcasts; cross-source
+association is explicit. Require source timezones, reject ambiguous/nonexistent
+local times without an offset, and never infer live state or media signal from
+clock/import. Event-only HTTP media uses the shared guarded player without TV
+assignments or playlist export. Following is installation-wide; archive is
+reversible until opt-in retention deletes eligible rows. W3U entries have an explicit reviewed event bridge; Telegram transport remains separate; no guide overlay is offered here.
+See `docs/dev/sporting-events.md` and `wiki/Sports-Events.md`.
+
+
+Sporting-event URL sources accept reviewed version-1 schedules or bounded
+SportsEvent JSON/HTML JSON-LD with stable IDs and explicit timezone/date rules.
+Only approved, still-present event identities refresh through `url_scraping`'s
+FIFO/catch-up; new rows require review. Retention defaults off and runs during
+existing daily cleanup, protects followed events and never deletes permanent
+channels. Preserve source revisions, manual broadcaster mappings, archive clocks
+and private guarded artwork fetching. See `docs/dev/sporting-events.md`.
+
+
+Combined catalogues/events use migration revision `20261023_1400`, preserving both
+prior histories. Catalogue live imports require explicit confirmation; refresh
+imports only previously reviewed entry identities. Explicit event/VOD types cannot
+become permanent channels. Catalogue event preview reuses private snapshot inputs;
+apply reserves both catalogue revision and source UUID. Never infer times from
+folder names or automatically refresh W3U event schedules. See
+`docs/dev/w3u-catalogues.md#combined-catalogue-and-event-integration`.
+
+
 ## Telegram account sources
 
 Telegram uses one encrypted user-account session outside the DB/config/log tree,
@@ -552,3 +596,7 @@ message observations commit with imports; never call URL snapshot deletion from
 a message consumer. Preserve stable sender IDs, membership checks, bounded queues,
 flood waits, session lease and retained-revision reconciliation. New sources default
 to new messages only; pause retains progress. See `wiki/Telegram-Sources.md`.
+
+Telegram migration `20261023_1500` follows catalogue/event revision `20261023_1400`.
+Keep the W3U `20261022_1200` identity unchanged; Telegram must not reuse it.
+See `wiki/Telegram-Sources.md#database-upgrades`.

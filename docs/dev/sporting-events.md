@@ -1,19 +1,19 @@
 # Sporting events: shared ingestion and browsing
 
-Development implementation for #55, based on `develop`. This is the first delivery
-of the event model, reviewed ingestion and existing-player experience, not a claim
-that all issue acceptance criteria or live source integrations are complete.
+Development implementation for #55, based on `develop`. The event model, reviewed ingestion, guide adapters, maintenance and player reuse
+are implemented here. W3U/Telegram transport integration remains in #257/#258;
+this is not live-source certification or a claim of arbitrary website support.
 
 ## Research and dependency boundaries
 
-Issue #55 and both comments were read on 2026-10-22. The original request links a
+Issue #55 and both comments were reread on 2026-10-23. The original request links a
 ZeroNet page. A contributor reports that the page wraps futbolenlatv.es through a
 CORS proxy and owns no event data; the original public gateway is reportedly dead.
 These are contributor observations, **not a new live-source verification**. No
 public gateway, CORS proxy, scraped website markup or schedule endpoint is embedded
 as a runtime dependency.
 
-PR #259 was open/draft at inspection (head `9177487a3cfd51322d3e74166aa416dcc04eaf63`),
+PR #259 was still open/draft on 2026-10-23 at inspection (head `9177487a3cfd51322d3e74166aa416dcc04eaf63`),
 with no discussion comments returned. Its handoff explicitly expects this event
 model to land first. Recheck live state with `gh pr view 259` rather than treating
 this snapshot as current CI/review status. This branch does not merge or modify
@@ -63,7 +63,10 @@ new concurrent previews cannot replace each other's source identity. `PATCH
 /{event_id}` uses the same revision check for corrections/following/archive state.
 
 Migration `20261023_1200` follows `20261021_1200` and adds `sporting_events`,
-`event_observations`, and `event_media`. PR #259 currently has a sibling migration
+`event_observations`, and `event_media`. Revision `20261023_1300` adds private
+schedule sources, archive clocks and per-broadcast manual mappings. Existing
+archives start their retention clock at upgrade, not at an inferred historical date.
+PR #259 currently has a sibling migration
 `20261022_1200`: when integrating there, reconcile Alembic heads and exercise both
 prior-head upgrade paths. Do not edit already deployed revision history or drop
 catalogue snapshots to resolve the branch. A local database stamped by the W3U
@@ -107,25 +110,71 @@ labelled as such. `is_online` and its timestamp come only from existing channel
 checks; event-only sources remain unverified. Neither parsing nor opening the
 schedule starts an engine or performs a probe.
 
-## Retention and remaining work
+## Guide sources, refresh and retention
 
-Current retention is indefinite. Archive hides an event from ordinary browsing
-and is reversible; it does not delete media or shared channels. Following is
-installation-wide, with no notification or reminder promise. No automatic cleanup,
-catch-up job or independent scheduler is introduced in this delivery.
+`event_guide_adapter.py` reads a bounded schema.org SportsEvent subset from JSON or
+HTML JSON-LD, without scripts or remote context loading. Exact property names,
+stable publisher IDs and explicit timestamps are required. Relative/date-only
+values and DST ambiguity reject the source. BroadcastEvent joins use indexed
+publisher identity; `isLiveBroadcast`, offers and website URLs do not imply signal
+or playable media. Tests use `fixtures/events/structured-guide.html`, not scraped
+production markup. Semantics follow [SportsEvent](https://schema.org/SportsEvent)
+and [BroadcastEvent](https://schema.org/BroadcastEvent).
 
-Before closing #55, complete and validate:
+`POST /events/sources/preview` fetches either normalized EventImport or this
+structured subset. `EventSourcePreviewRequest` carries the format/timezone for a
+new URL or an opaque saved source ID. It uses `outbound_http.source_session`, which
+pins DNS and validates redirects without environment proxies. Limit: 2 MiB / 15s,
+5 redirects, 64 JSON-LD blocks, depth 32, 20,000 JSON nodes and 500 observations.
+Errors expose neither private inputs nor response bodies.
 
-1. W3U classification/adaptation in #259 **before** live-channel insertion. Reuse
-   traversal provenance; do not infer event semantics from folder names alone.
-2. Telegram and HTML/JSON source-specific adapters using this observation contract,
-   including persistent reviewed associations and documented source date rules.
-   The generic JSON upload is not a general website or raw W3U parser.
-3. Opt-in refresh inside the existing FIFO queue and configurable archive/ended
-   retention with recovery tests. No earlier destructive maintenance.
-4. Richer broadcaster mapping/review, artwork and unsupported host resolvers.
-5. Explicit previewable guide overlays/export, if offered, with preservation tests;
-   no existing programmes or assignments are modified by this implementation.
-6. Advanced fallback only with per-viewer ownership tests and truthful client limits.
+Preview contexts keep the URL private. Applying explicitly selected rows stores
+source approvals and event updates in one transaction, including a source revision
+check. Scheduled refresh can update only approved identities still present in the
+database; it cannot create new events. User corrections/mappings, following and
+archive state survive. A changed source invalidates in-flight work. Source failures
+retain data and last-success timestamps; pending counts expose new reviewable IDs.
+There are at most 20 sources and 2,000 approvals per source, pruned by retention.
+
+Refresh runs inside `url_scraping`, using its existing FIFO, deduplication, anchors
+and startup catch-up. `POST /events/sources/refresh` requests that same scheduled job through
+`run_task_now`, preserving running/waiting deduplication; it also scrapes channel
+sources. There is no competing event job. A pass
+limits fetch time to 120s, checks shutdown between sources and prioritizes oldest
+attempts. DB transactions end before network I/O. Results appear in source status,
+Overview history and scraping notifications, independently of channel results.
+
+Retention is one validated setting, disabled by default, edited at
+`GET/PATCH /events/retention`. It runs in existing daily `channel_cleanup`, with no
+startup catch-up. Ended deletion requires finished/cancelled **and** a known end;
+archived deletion uses `archived_at`. Followed rows are protected. Conditional
+revision reservation prevents a concurrent follow/correction being deleted. Remove
+event media/observations and approvals transactionally, never AcestreamChannel or
+TVChannel rows. A retained active player already owns its source copy. Deleted
+events require fresh explicit approval before reimport.
+
+`PATCH /events/{id}/broadcast` stores a source-qualified broadcast mapping to an
+explicit active stream. No broadcaster-name auto-selection is implemented. Mapping
+survives feed updates and can be cleared to reveal the source again. API projections
+resolve mapping signal in bulk and make disabled/missing mappings unavailable.
+
+Optional artwork stays private in observations. `GET /events/{id}/artwork` uses the
+same guarded fetch boundary with 2 admitted requests, 10s, 512 KiB and bounded raster
+dimensions (4096 per axis, 4 million pixels). It rejects HTML/SVG and animated WebP,
+returns typed bytes with nosniff/no-store, and never changes playback. The UI loads
+artwork only on request via the authenticated API and revokes its blob URL on unmount.
+
+## Dependency handoff
+
+Before completing #259, integrate the shared `EventImport` observations before
+live-channel insertion, add explicit/reviewed content classification, reconcile
+Alembic heads and validate upgrades from both prior heads. Do not infer event
+semantics solely from folder names. #258 supplies Telegram transport/extraction;
+its records enter the same preview/apply contract. The regression suite exercises
+both source kinds sharing one explicitly associated event without creating TV rows.
+
+Broader host resolvers and automatic fallback remain in their linked work. Guide
+overlays/export are not offered: no XMLTV programs, assignments, IDs, playlists or
+tokens are changed. Any future overlay needs its own preview and preservation tests.
 
 See [Sports events](../../wiki/Sports-Events.md) for the operator workflow.

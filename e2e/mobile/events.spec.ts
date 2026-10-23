@@ -18,9 +18,18 @@ for (const mode of ['light', 'dark']) {
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
     page.on('response', response => { if (response.url().includes('/api/') && response.status() >= 400) errors.push(`${response.status()} ${response.url()}`); });
     let applied = 0;
+    let mapped = false;
+    let retained = false;
     await page.route('**/api/**', async route => {
       const path = new URL(route.request().url()).pathname;
       let json: unknown = { status: 'ready', phase: 'Ready to use', events: [] };
+      if (path === '/api/v1/events/sources') json = [];
+      if (path === '/api/v1/events/retention') {
+        json = { ended_days: 0, archived_days: 0 };
+        if (route.request().method() === 'PATCH') { retained = true; json = route.request().postDataJSON(); }
+      }
+      if (path === '/api/v1/acestream-channels/') json = { items: [{ id: 'b'.repeat(40), name: 'DAZN Spain', group: 'Spain', is_active: true }], total: 1 };
+      if (path === `/api/v1/events/${fixture.id}/broadcast`) { mapped = true; json = fixture; }
       if (path === '/api/v1/events') json = { events: [fixture], total: 1 };
       if (path === `/api/v1/events/${fixture.id}`) json = fixture;
       if (path === '/api/v1/events/preview') json = { token: 'preview', events: [fixture], warnings: ['Import is not proof of live play or media signal.'] };
@@ -42,6 +51,12 @@ for (const mode of ['light', 'dark']) {
     await expect(page.getByRole('dialog', { name: 'Event details' })).toBeInViewport();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: test.info().outputPath(`event-details-${mode}.png`), fullPage: false, animations: 'disabled' });
+    await page.getByRole('button', { name: 'Map DAZN to a stream' }).click();
+    await expect(page.getByRole('button', { name: 'Save broadcast mapping' })).toBeDisabled();
+    await page.getByRole('combobox', { name: 'Find stream for DAZN' }).click();
+    await page.getByRole('option', { name: 'DAZN Spain · Spain · bbbbbbbb' }).click();
+    await page.getByRole('button', { name: 'Save broadcast mapping' }).click();
+    await expect.poll(() => mapped).toBe(true);
     await page.getByRole('button', { name: 'Close event details' }).click();
     await expect(page.getByRole('button', { name: 'Add events', exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Today', exact: true }).click();
@@ -57,6 +72,12 @@ for (const mode of ['light', 'dark']) {
     await page.getByRole('button', { name: 'Save selected (1)', exact: true }).click();
     await expect(page.getByRole('region', { name: 'Add events' })).toHaveCount(0);
     expect(applied).toBe(1);
+    await page.getByRole('button', { name: 'Sources & retention', exact: true }).click();
+    await page.getByLabel('Keep ended events (days)').fill('7');
+    await page.getByRole('button', { name: 'Save retention' }).click();
+    await expect.poll(() => retained).toBe(true);
+    await expect(page.getByText('Retention saved. Changes take effect during daily maintenance.')).toBeVisible();
+    await page.screenshot({ path: test.info().outputPath(`event-sources-${mode}.png`), fullPage: true, animations: 'disabled' });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     expect(errors).toEqual([]);
   });

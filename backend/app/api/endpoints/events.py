@@ -2,6 +2,7 @@
 from datetime import date
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.routing import APIRoute
 from sqlalchemy.orm import Session
@@ -9,6 +10,8 @@ from pydantic import ValidationError
 from app.config.database import get_db
 from app.schemas.events import EventImport, EventPreview, EventApply, EventView, EventList, EventUpdate
 from app.services.event_service import EventService
+from app.services.event_source_service import EventSourceService
+from app.schemas.events import EventSourcePreviewRequest, EventSourceView, EventSourceUpdate, EventRetention, EventBroadcastMapping, EventRefreshQueued
 
 
 class PrivateEventRoute(APIRoute):
@@ -70,6 +73,36 @@ def apply_events(request: EventApply, svc: EventService = Depends(service)):
     return invoke(svc.apply, request)
 
 
+@router.get('/sources', response_model=list[EventSourceView])
+def event_sources(db: Session = Depends(get_db)):
+    return invoke(EventSourceService(db).list)
+
+
+@router.post('/sources/preview', response_model=EventPreview)
+def preview_event_source(request: EventSourcePreviewRequest, db: Session = Depends(get_db)):
+    return invoke(EventSourceService(db).preview, request)
+
+
+@router.post('/sources/refresh', response_model=EventRefreshQueued)
+def queue_event_refresh():
+    return invoke(EventSourceService.queue_refresh)
+
+
+@router.patch('/sources/{source_id}', response_model=EventSourceView)
+def update_event_source(source_id: str, request: EventSourceUpdate, db: Session = Depends(get_db)):
+    return invoke(EventSourceService(db).update, source_id, request)
+
+
+@router.get('/retention', response_model=EventRetention)
+def event_retention(db: Session = Depends(get_db)):
+    return invoke(EventSourceService(db).retention)
+
+
+@router.patch('/retention', response_model=EventRetention)
+def save_event_retention(request: EventRetention, db: Session = Depends(get_db)):
+    return invoke(EventSourceService(db).save_retention, request)
+
+
 @router.get('/{event_id}', response_model=EventView)
 def get_event(event_id: str, svc: EventService = Depends(service)):
     return invoke(svc.get, event_id)
@@ -78,3 +111,15 @@ def get_event(event_id: str, svc: EventService = Depends(service)):
 @router.patch('/{event_id}', response_model=EventView)
 def update_event(event_id: str, request: EventUpdate, svc: EventService = Depends(service)):
     return invoke(svc.update, event_id, request)
+
+
+@router.patch('/{event_id}/broadcast', response_model=EventView)
+def map_event_broadcast(event_id: str, request: EventBroadcastMapping, svc: EventService = Depends(service)):
+    return invoke(svc.map_broadcast, event_id, request)
+
+
+@router.get('/{event_id}/artwork', response_class=Response,
+            responses={200: {'content': {'image/png': {}, 'image/jpeg': {}, 'image/webp': {}}}})
+def event_artwork(event_id: str, svc: EventService = Depends(service)):
+    data, media_type = invoke(svc.artwork, event_id)
+    return Response(data, media_type=media_type, headers={'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff'})

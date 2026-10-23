@@ -5,9 +5,11 @@ import { ThemeProvider } from '@mui/material/styles';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createAppTheme } from '../theme';
 import Events from '../pages/Events';
+import channelService from '../services/channelService';
 import { eventService, type SportingEvent } from '../services/eventService';
 
-jest.mock('../services/eventService', () => ({ eventService: { list: jest.fn(), get: jest.fn(), preview: jest.fn(), apply: jest.fn(), update: jest.fn() } }));
+jest.mock('../services/eventService', () => ({ eventService: { list: jest.fn(), get: jest.fn(), preview: jest.fn(), apply: jest.fn(), update: jest.fn(), sources: jest.fn(), previewSource: jest.fn(), updateSource: jest.fn(), retention: jest.fn(), saveRetention: jest.fn(), mapBroadcast: jest.fn(), artwork: jest.fn(), refreshSources: jest.fn() } }));
+jest.mock('../services/channelService', () => ({ __esModule: true, default: { getAcestreamChannels: jest.fn() } }));
 jest.mock('../components/player/StreamPlayerDialog', () => ({ __esModule: true, default: ({ open, contentId, onClose }: { open: boolean; contentId: string; onClose: () => void }) => {
   const { Dialog } = jest.requireActual<typeof import('@mui/material')>('@mui/material');
   return <Dialog open={open} PaperProps={{ 'aria-label': 'Event player' }}>{contentId}<button onClick={onClose}>Stop playback</button></Dialog>;
@@ -29,6 +31,11 @@ function renderPage(mode: 'light' | 'dark' = 'light') {
 }
 beforeEach(() => {
   jest.clearAllMocks();
+  service.sources.mockResolvedValue([]);
+  service.retention.mockResolvedValue({ ended_days: 0, archived_days: 0 });
+  service.saveRetention.mockResolvedValue({ ended_days: 7, archived_days: 30 });
+  service.mapBroadcast.mockResolvedValue(event);
+  service.previewSource.mockResolvedValue({ token: 'source-review', events: [event], warnings: [] });
   service.list.mockResolvedValue({ events: [event], total: 1 });
   service.get.mockResolvedValue(event);
   service.update.mockResolvedValue({ ...event, followed: true, revision: 2 });
@@ -91,4 +98,53 @@ it('keeps save errors visible inside event details', async () => {
   await user.click(await screen.findByRole('button', { name: 'Follow event' }));
   expect(await screen.findByRole('alert')).toBeVisible();
   expect(screen.getByRole('button', { name: 'Follow event' })).toBeEnabled();
+});
+
+
+it('reviews a URL before enabling scheduled refresh and saves explicit retention', async () => {
+  const user = userEvent.setup();
+  renderPage();
+  await user.click(screen.getByRole('button', { name: 'Sources & retention' }));
+  expect(await screen.findByText(/No saved schedule URLs/)).toBeVisible();
+  await user.clear(screen.getByLabelText('Keep ended events (days)'));
+  await user.type(screen.getByLabelText('Keep ended events (days)'), '7');
+  await user.click(screen.getByRole('button', { name: 'Save retention' }));
+  await waitFor(() => expect(service.saveRetention).toHaveBeenCalledWith({ ended_days: 7, archived_days: 0 }));
+  await user.click(screen.getByRole('button', { name: 'Add events', exact: true }));
+  await user.click(screen.getByLabelText('Add from'));
+  await user.click(screen.getByRole('option', { name: 'Load schedule URL' }));
+  await user.type(screen.getByLabelText('Schedule URL'), 'https://guide.example/events.json');
+  await user.click(screen.getByRole('button', { name: 'Preview events' }));
+  expect(await screen.findByRole('button', { name: 'Save selected (0)' })).toBeDisabled();
+  expect(service.apply).not.toHaveBeenCalled();
+  await user.click(screen.getByRole('checkbox', { name: /Refresh selected events automatically/ }));
+  await user.click(screen.getByRole('checkbox', { name: 'North United vs South City · scheduled' }));
+  await user.click(screen.getByRole('button', { name: 'Save selected (1)' }));
+  await waitFor(() => expect(service.apply).toHaveBeenCalledWith('source-review', [event.id], true));
+});
+
+it('requires selecting an exact stream to map an unresolved broadcaster', async () => {
+  jest.mocked(channelService.getAcestreamChannels).mockResolvedValue({ total: 1, items: [{ id: 'b'.repeat(40), name: 'DAZN Spain', group: 'Spain', last_seen: '', status: '', is_online: null, epg_update_protected: false }] });
+  const user = userEvent.setup();
+  renderPage();
+  await user.click(await screen.findByRole('button', { name: 'View broadcasts for North United vs South City' }));
+  await user.click(screen.getByRole('button', { name: 'Map DAZN to a stream' }));
+  expect(screen.getByRole('button', { name: 'Save broadcast mapping' })).toBeDisabled();
+  await user.click(screen.getByRole('combobox', { name: 'Find stream for DAZN' }));
+  await user.click(await screen.findByRole('option', { name: 'DAZN Spain · Spain · bbbbbbbb' }));
+  await user.click(screen.getByRole('button', { name: 'Save broadcast mapping' }));
+  await waitFor(() => expect(service.mapBroadcast).toHaveBeenCalledWith(event.id, 1, 'unknown', 'b'.repeat(40)));
+});
+
+
+it('loads artwork only on request and keeps broadcasts usable after an image failure', async () => {
+  service.get.mockResolvedValue({ ...event, has_artwork: true });
+  service.artwork.mockRejectedValue(new Error('missing image'));
+  const user = userEvent.setup();
+  renderPage();
+  await user.click(await screen.findByRole('button', { name: 'View broadcasts for North United vs South City' }));
+  expect(service.artwork).not.toHaveBeenCalled();
+  await user.click(screen.getByRole('button', { name: 'Load event artwork' }));
+  expect(await screen.findByText(/Artwork is unavailable/)).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Play Sports One' })).toBeEnabled();
 });

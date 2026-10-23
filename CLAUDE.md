@@ -584,3 +584,12 @@ assignments or playlist export. Following is installation-wide; archive is
 reversible and retention currently indefinite. W3U/Telegram collectors, scheduled
 refresh/retention, artwork and guide overlays remain separate integration work.
 See `docs/dev/sporting-events.md` and `wiki/Sports-Events.md`.
+
+
+Sporting-event URL sources accept reviewed version-1 schedules or bounded
+SportsEvent JSON/HTML JSON-LD with stable IDs and explicit timezone/date rules.
+Only approved, still-present event identities refresh through `url_scraping`'s
+FIFO/catch-up; new rows require review. Retention defaults off and runs during
+existing daily cleanup, protects followed events and never deletes permanent
+channels. Preserve source revisions, manual broadcaster mappings, archive clocks
+and private guarded artwork fetching. See `docs/dev/sporting-events.md`.

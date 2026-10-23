@@ -43,6 +43,9 @@ def run_url_scraping_task():
             }
 
         result = asyncio.run(scrape_all())
+        from app.services.event_source_service import EventSourceService
+        from app.services.task_service import task_service
+        result['events'] = EventSourceService(db).refresh_all(shutdown=task_service.shutdown_event)
         logger.info("URL scraping task completed result=%s", result)
         notification_service.scraping_completed(result)
         return result

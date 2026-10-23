@@ -568,11 +568,41 @@ export interface paths {
     /** Preview Events */
     post: operations["preview_events_api_v1_events_preview_post"];
   };
+  "/api/v1/events/retention": {
+    /** Event Retention */
+    get: operations["event_retention_api_v1_events_retention_get"];
+    /** Save Event Retention */
+    patch: operations["save_event_retention_api_v1_events_retention_patch"];
+  };
+  "/api/v1/events/sources": {
+    /** Event Sources */
+    get: operations["event_sources_api_v1_events_sources_get"];
+  };
+  "/api/v1/events/sources/preview": {
+    /** Preview Event Source */
+    post: operations["preview_event_source_api_v1_events_sources_preview_post"];
+  };
+  "/api/v1/events/sources/refresh": {
+    /** Queue Event Refresh */
+    post: operations["queue_event_refresh_api_v1_events_sources_refresh_post"];
+  };
+  "/api/v1/events/sources/{source_id}": {
+    /** Update Event Source */
+    patch: operations["update_event_source_api_v1_events_sources__source_id__patch"];
+  };
   "/api/v1/events/{event_id}": {
     /** Get Event */
     get: operations["get_event_api_v1_events__event_id__get"];
     /** Update Event */
     patch: operations["update_event_api_v1_events__event_id__patch"];
+  };
+  "/api/v1/events/{event_id}/artwork": {
+    /** Event Artwork */
+    get: operations["event_artwork_api_v1_events__event_id__artwork_get"];
+  };
+  "/api/v1/events/{event_id}/broadcast": {
+    /** Map Event Broadcast */
+    patch: operations["map_event_broadcast_api_v1_events__event_id__broadcast_patch"];
   };
   "/api/v1/health": {
     /**
@@ -1578,6 +1608,11 @@ export interface components {
       label: string;
       /** Language */
       language: string;
+      /**
+       * Manually Mapped
+       * @default false
+       */
+      manually_mapped?: boolean;
       /** Origin */
       origin: string;
       /** Quality */
@@ -2116,6 +2151,11 @@ export interface components {
     };
     /** EventApply */
     EventApply: {
+      /**
+       * Refresh Source
+       * @default false
+       */
+      refresh_source?: boolean;
       /** Selected Ids */
       selected_ids: string[];
       /** Token */
@@ -2150,6 +2190,15 @@ export interface components {
       quality?: string;
       /** Url */
       url?: string | null;
+    };
+    /** EventBroadcastMapping */
+    EventBroadcastMapping: {
+      /** Broadcast Id */
+      broadcast_id: string;
+      /** Channel Id */
+      channel_id?: string | null;
+      /** Revision */
+      revision: number;
     };
     /** EventFields */
     EventFields: {
@@ -2205,6 +2254,8 @@ export interface components {
     };
     /** EventObservation */
     EventObservation: {
+      /** Artwork Url */
+      artwork_url?: string | null;
       /** Broadcasts */
       broadcasts?: components["schemas"]["EventBroadcast"][];
       /**
@@ -2262,6 +2313,105 @@ export interface components {
       /** Warnings */
       warnings: string[];
     };
+    /** EventRefreshQueued */
+    EventRefreshQueued: {
+      /** Message */
+      message: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "triggered" | "already_running";
+    };
+    /** EventRefreshResult */
+    EventRefreshResult: {
+      /** Message */
+      message: string;
+      /**
+       * Pending
+       * @default 0
+       */
+      pending?: number;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "updated" | "error" | "unchanged";
+      /**
+       * Updated
+       * @default 0
+       */
+      updated?: number;
+    };
+    /** EventRetention */
+    EventRetention: {
+      /**
+       * Archived Days
+       * @default 0
+       */
+      archived_days?: number;
+      /**
+       * Ended Days
+       * @default 0
+       */
+      ended_days?: number;
+    };
+    /** EventSourcePreviewRequest */
+    EventSourcePreviewRequest: {
+      /**
+       * Format
+       * @default event_import
+       * @enum {string}
+       */
+      format?: "event_import" | "schema_org";
+      /** Source Id */
+      source_id?: string | null;
+      /**
+       * Timezone
+       * @default UTC
+       */
+      timezone?: string;
+      /** Url */
+      url?: string | null;
+    };
+    /** EventSourceUpdate */
+    EventSourceUpdate: {
+      /** Enabled */
+      enabled: boolean;
+      /** Revision */
+      revision: number;
+    };
+    /** EventSourceView */
+    EventSourceView: {
+      /** Enabled */
+      enabled: boolean;
+      /**
+       * Format
+       * @default event_import
+       * @enum {string}
+       */
+      format?: "event_import" | "schema_org";
+      /** Id */
+      id: string;
+      /** Last Attempt */
+      last_attempt: string | null;
+      last_result: components["schemas"]["EventRefreshResult"] | null;
+      /** Last Success */
+      last_success: string | null;
+      /** Name */
+      name: string;
+      /** Origin */
+      origin: string;
+      /** Reviewed */
+      reviewed: number;
+      /** Revision */
+      revision: number;
+      /**
+       * Timezone
+       * @default UTC
+       */
+      timezone?: string;
+    };
     /** EventUpdate */
     EventUpdate: {
       /** Archived */
@@ -2289,6 +2439,11 @@ export interface components {
       ends_at?: string | null;
       /** Followed */
       followed: boolean;
+      /**
+       * Has Artwork
+       * @default false
+       */
+      has_artwork?: boolean;
       /** Id */
       id: string;
       /** Participants */
@@ -6336,6 +6491,110 @@ export interface operations {
       };
     };
   };
+  /** Event Retention */
+  event_retention_api_v1_events_retention_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventRetention"];
+        };
+      };
+    };
+  };
+  /** Save Event Retention */
+  save_event_retention_api_v1_events_retention_patch: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EventRetention"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventRetention"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Event Sources */
+  event_sources_api_v1_events_sources_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventSourceView"][];
+        };
+      };
+    };
+  };
+  /** Preview Event Source */
+  preview_event_source_api_v1_events_sources_preview_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EventSourcePreviewRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventPreview"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Queue Event Refresh */
+  queue_event_refresh_api_v1_events_sources_refresh_post: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventRefreshQueued"];
+        };
+      };
+    };
+  };
+  /** Update Event Source */
+  update_event_source_api_v1_events_sources__source_id__patch: {
+    parameters: {
+      path: {
+        source_id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EventSourceUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventSourceView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   /** Get Event */
   get_event_api_v1_events__event_id__get: {
     parameters: {
@@ -6368,6 +6627,57 @@ export interface operations {
     requestBody: {
       content: {
         "application/json": components["schemas"]["EventUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Event Artwork */
+  event_artwork_api_v1_events__event_id__artwork_get: {
+    parameters: {
+      path: {
+        event_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "image/jpeg": unknown;
+          "image/png": unknown;
+          "image/webp": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Map Event Broadcast */
+  map_event_broadcast_api_v1_events__event_id__broadcast_patch: {
+    parameters: {
+      path: {
+        event_id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EventBroadcastMapping"];
       };
     };
     responses: {

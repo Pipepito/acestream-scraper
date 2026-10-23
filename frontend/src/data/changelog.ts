@@ -8,7 +8,7 @@ export const releases: ReleaseNotes[] = [
       {
         "title": "Added",
         "items": [
-          "Browse sporting events, review manual/JSON schedules, follow events and choose compatible broadcasts. Schedules stay separate from permanent TV channels; integrated W3U, Telegram and website collectors are still planned.",
+          "Browse sporting events, review manual/JSON schedules or structured sports guides, follow events and choose compatible broadcasts. Map broadcasters explicitly, load optional artwork, refresh reviewed schedule URLs and configure separate event retention. Schedules stay separate from permanent TV channels; W3U and Telegram collector integration remains separate work.",
           "Import HTTP and HLS playlist streams, including playback headers. Add official live channels from Atresmedia, Mediaset, Telemadrid and 7 TV La Rioja by adding their websites as sources.",
           "Discover XMLTV guides from playlists, preview guide matches before applying them, and optionally automate unambiguous matches.",
           "Send optional webhook or Gotify notifications when scrapes and channel checks finish.",

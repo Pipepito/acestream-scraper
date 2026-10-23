@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Alert, Button, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import { type SportingEvent, type EventFields, type EventUpdate } from '../../services/eventService';
+import EventArtwork from './EventArtwork';
+import EventBroadcastMapper from './EventBroadcastMapper';
 import ContentSection from '../layout/ContentSection';
 import { formatRelativeTime } from '../../utils/format';
 
@@ -26,6 +28,7 @@ export default function EventDetails({ event, zone, busy, onUpdate, onPlay }: Pr
         <Stack direction="row" gap={1}><Button variant="contained" disabled={busy || !fields.title.trim()} onClick={() => onUpdate({ revision: event.revision, correction: fields })}>Save correction</Button>
           {event.corrected ? <Button disabled={busy} onClick={() => onUpdate({ revision: event.revision, correction: null })}>Use source schedule</Button> : null}</Stack>
       </Stack> : null}
+      {event.has_artwork ? <EventArtwork event={event} /> : null}
       <Typography>{event.starts_at ? new Date(event.starts_at).toLocaleString(undefined, { timeZone: zone }) : 'Start time unknown'} · {event.state}{event.corrected ? ' · Manually corrected' : ''}</Typography>
       {event.time_notes ? <Typography variant="body2">{event.time_notes}</Typography> : null}
       {event.state === 'postponed' ? <Alert severity="info">Postponed. Check the revised start time before watching.</Alert> : null}
@@ -38,6 +41,7 @@ export default function EventDetails({ event, zone, busy, onUpdate, onPlay }: Pr
           <Typography variant="body2">{[broadcast.language, broadcast.quality, broadcast.country].filter(Boolean).join(' · ') || 'Language and quality not supplied'}</Typography>
           <Typography variant="body2">{broadcast.is_online === true ? 'Signal verified' : broadcast.is_online === false ? 'No signal verified' : 'Signal not checked'}{broadcast.checked_at ? ` · ${formatRelativeTime(broadcast.checked_at)}` : ''}</Typography>
           <Typography variant="body2" color="text.secondary">{broadcast.reason} · {broadcast.source_name}{broadcast.origin ? ` · ${broadcast.origin}` : ''}</Typography>
+          <EventBroadcastMapper event={event} broadcast={broadcast} />
         </Stack>
         {broadcast.content_id && broadcast.compatibility === 'playable' ? <Button variant="outlined" onClick={() => onPlay(broadcast.content_id!, broadcast.label)}>Play {broadcast.label}</Button> : <Typography variant="body2">{broadcast.compatibility}</Typography>}
       </Stack>)}

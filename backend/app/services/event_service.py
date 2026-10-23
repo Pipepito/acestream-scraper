@@ -45,8 +45,8 @@ class EventService:
     def __init__(self, db):
         self.repo = EventRepository(db)
 
-    def _channels(self, observations):
-        ids = set()
+    def _channels(self, observations, events=()):
+        ids = {cid for event in events for cid in (event.broadcast_mappings or {}).values()}
         for row in observations:
             for broadcast in row.payload['broadcasts']:
                 if broadcast.get('channel_id'):
@@ -56,7 +56,7 @@ class EventService:
         return self.repo.channels(ids)
 
     def _view(self, event, observations, channels=None):
-        channels = self._channels(observations) if channels is None else channels
+        channels = self._channels(observations, [event]) if channels is None else channels
         broadcasts = []
         provenance = []
         for row in observations:
@@ -64,6 +64,9 @@ class EventService:
             provenance.append(ProvenanceView(source_id=obs.source_id, source_name=obs.source_name,
                 source_kind=obs.source_kind, external_id=obs.external_id, updated_at=row.updated_at))
             for b in obs.broadcasts:
+                mapping = (event.broadcast_mappings or {}).get(f'{row.id}:{b.id}')
+                if mapping:
+                    b = b.model_copy(update={'channel_id': mapping, 'url': None})
                 cid = None
                 compatibility = 'unresolved'
                 reason = 'No stream mapped. Broadcaster names are not matched automatically.'
@@ -83,13 +86,13 @@ class EventService:
                         cid, compatibility, reason = media_id(row.id, b), 'playable', 'Guarded HTTP playback'
                     else:
                         compatibility, reason = 'unsupported', 'Website or unsupported media; a compatible resolver is required'
-                broadcasts.append(BroadcastView(id=f'{row.id}:{b.id}', label=b.label, language=b.language,
+                broadcasts.append(BroadcastView(manually_mapped=bool(mapping), id=f'{row.id}:{b.id}', label=b.label, language=b.language,
                     quality=b.quality, country=b.country, source_name=obs.source_name,
                     origin=urlsplit(b.url).hostname or '' if b.url else '', content_id=cid,
                     compatibility=compatibility, reason=reason,
                     is_online=channel.is_online if channel else None,
                     checked_at=channel.last_checked if channel else None))
-        return EventView(**(event.correction or event.fields), id=event.id, revision=event.revision,
+        return EventView(has_artwork=any(o.payload.get('artwork_url') for o in observations), **(event.correction or event.fields), id=event.id, revision=event.revision,
             corrected=bool(event.correction), followed=event.followed, archived=event.archived,
             broadcasts=broadcasts, provenance=provenance)
 
@@ -125,11 +128,11 @@ class EventService:
             selected.append((start, row))
         selected.sort(key=lambda item: (item[0] is None, item[0] or datetime.max.replace(tzinfo=timezone.utc), item[1].id))
         page = selected[offset:offset + limit]
-        channels = self._channels([obs for _, row in page for obs in grouped.get(row.id, [])])
+        channels = self._channels([obs for _, row in page for obs in grouped.get(row.id, [])], [row for _, row in page])
         return EventList(total=len(selected), events=[self._view(row, grouped.get(row.id, []), channels)
             for _, row in page])
 
-    def preview(self, request: EventImport):
+    def preview(self, request: EventImport, *, context=None, background=False):
         rows = {r.id: r for r in self.repo.inventory()}
         observations = {r.id: r for r in self.repo.observations()}
         revisions = {key: row.revision for key, row in rows.items()}
@@ -146,7 +149,7 @@ class EventService:
             if eid not in proposed:
                 row = rows.get(eid)
                 proposed[eid] = SportingEvent(id=eid, owner_id=row.owner_id if row else key, revision=row.revision if row else 0,
-                    fields=dict(row.fields) if row else fields(obs), correction=row.correction if row else None,
+                    broadcast_mappings=row.broadcast_mappings if row else None, fields=dict(row.fields) if row else fields(obs), correction=row.correction if row else None,
                     followed=row.followed if row else False, archived=row.archived if row else False)
             # The first source owns schedule fields; linked observations contribute
             # broadcasts and provenance without silently overruling its schedule.
@@ -165,13 +168,13 @@ class EventService:
                 source_id=obs.source_id, external_id=obs.external_id,
                 payload=obs.model_dump(mode='json'), updated_at=now)
         validate_inventory(len(set(rows) | set(proposed)), observations)
-        channels = self._channels(observations.values())
+        channels = self._channels(observations.values(), proposed.values())
         views = [self._view(e, [o for o in observations.values() if o.event_id == e.id], channels) for e in proposed.values()]
         token = secrets.token_urlsafe(32)
         with _LOCK:
-            while len(_PREVIEWS) >= 4:
+            while not background and len(_PREVIEWS) >= 4:
                 _PREVIEWS.popitem(last=False)
-            _PREVIEWS[token] = (time.monotonic() + 900, proposed, observations, revisions)
+            _PREVIEWS[token] = (time.monotonic() + 900, proposed, observations, revisions, context)
         return EventPreview(token=token, events=views, warnings=[
             'Import is not proof of live play or media signal.',
             'Missing events and broadcasts are retained. Existing manual corrections are preserved.'])
@@ -181,7 +184,7 @@ class EventService:
             preview = _PREVIEWS.get(request.token)
             if not preview or preview[0] <= time.monotonic():
                 raise ValueError('Preview expired; preview the schedule again')
-            _, proposed, observations, revisions = preview
+            _, proposed, observations, revisions, context = preview
             selected = set(request.selected_ids)
             if not selected or not selected <= proposed.keys():
                 raise ValueError('Select events from this preview')
@@ -219,6 +222,9 @@ class EventService:
                             if not self.repo.media(cid):
                                 self.repo.add(EventMedia(content_id=cid, observation_id=key, url=b.url, headers=b.headers))
                     self.repo.retain_media(key, retained_media)
+                if context:
+                    from app.services.event_source_service import save_reviewed_source
+                    save_reviewed_source(self.repo.db, context, selected, observations, request.refresh_source)
                 self.repo.commit()
             except Exception:
                 self.repo.rollback()
@@ -233,6 +239,10 @@ class EventService:
         for key in ('followed', 'archived'):
             if getattr(request, key) is not None:
                 values[key] = getattr(request, key)
+        if request.archived is not None:
+            row = self.repo.get(event_id)
+            if row and request.archived != row.archived:
+                values['archived_at'] = datetime.now(timezone.utc) if request.archived else None
         try:
             self.repo.reserve_revision(event_id, request.revision, **values)
             self.repo.commit()
@@ -240,3 +250,38 @@ class EventService:
             self.repo.rollback()
             raise
         return self.get(event_id)
+
+
+    def map_broadcast(self, event_id, request):
+        event = self.repo.get(event_id)
+        if event is None:
+            raise LookupError('Event not found')
+        broadcasts = {f'{row.id}:{b["id"]}' for row in self.repo.observations(event_id) for b in row.payload['broadcasts']}
+        if request.broadcast_id not in broadcasts:
+            raise ValueError('Broadcast changed; reload the event')
+        mappings = dict(event.broadcast_mappings or {})
+        if request.channel_id:
+            channel = self.repo.channel(request.channel_id.lower())
+            if not channel or not channel.is_active:
+                raise ValueError('Choose an existing active stream')
+            mappings[request.broadcast_id] = channel.id
+        else:
+            mappings.pop(request.broadcast_id, None)
+        try:
+            self.repo.reserve_revision(event_id, request.revision, broadcast_mappings=mappings)
+            self.repo.commit()
+        except Exception:
+            self.repo.rollback()
+            raise
+        return self.get(event_id)
+
+
+    def artwork(self, event_id):
+        if not self.repo.get(event_id):
+            raise LookupError('Event not found')
+        url = next((row.payload.get('artwork_url') for row in self.repo.observations(event_id) if row.payload.get('artwork_url')), None)
+        if not url:
+            raise LookupError('No artwork supplied')
+        self.repo.rollback()
+        from app.services.event_artwork import fetch_artwork
+        return fetch_artwork(url)

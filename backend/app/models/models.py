@@ -384,6 +384,8 @@ class ScheduledTaskState(Base):
 
 class SportingEvent(Base):
     __tablename__ = 'sporting_events'
+    archived_at = Column(UtcDateTime(), nullable=True)
+    broadcast_mappings = Column(JSON, nullable=True)
     owner_id = Column(String(32), nullable=False)
     id = Column(String(32), primary_key=True)
     revision = Column(Integer, nullable=False, default=1)
@@ -410,3 +412,18 @@ class EventMedia(Base):
     observation_id = Column(String(32), ForeignKey('event_observations.id', ondelete='CASCADE'), nullable=False, index=True)
     url = Column(Text, nullable=False)
     headers = Column(JSON, nullable=False)
+
+
+class EventScheduleSource(Base):
+    __tablename__ = 'event_schedule_sources'
+    adapter = Column(JSON, nullable=True)
+    id = Column(String(32), primary_key=True)
+    source_identity = Column(String(160), nullable=False, unique=True)
+    name = Column(String(200), nullable=False)
+    url = Column(Text, nullable=False)
+    revision = Column(Integer, nullable=False, default=1)
+    enabled = Column(Boolean, nullable=False, default=False)
+    reviewed_ids = Column(JSON, nullable=False)
+    last_attempt = Column(UtcDateTime(), nullable=True)
+    last_success = Column(UtcDateTime(), nullable=True)
+    last_result = Column(JSON, nullable=True)

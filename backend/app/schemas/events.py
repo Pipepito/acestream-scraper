@@ -105,6 +105,17 @@ class EventBroadcast(StrictModel):
 
 
 class EventObservation(EventFields):
+    artwork_url: str | None = Field(default=None, max_length=4096)
+
+    @field_validator('artwork_url')
+    @classmethod
+    def artwork_http_url(cls, value):
+        if value:
+            p = urlsplit(value)
+            if p.scheme not in ('http', 'https') or not p.hostname or p.username or p.password or any(ord(c) < 32 for c in value):
+                raise ValueError('Artwork needs an HTTP(S) URL without embedded credentials')
+        return value
+
     source_id: str = Field(min_length=1, max_length=160, pattern=r'^[\w.:-]+$')
     source_name: str = Field(min_length=1, max_length=200)
     source_kind: Literal['guide', 'w3u', 'telegram', 'manual'] = 'manual'
@@ -132,6 +143,7 @@ class EventImport(StrictModel):
 
 
 class BroadcastView(StrictModel):
+    manually_mapped: bool = False
     id: str
     label: str
     language: str
@@ -155,6 +167,7 @@ class ProvenanceView(StrictModel):
 
 
 class EventView(EventFields):
+    has_artwork: bool = False
     id: str
     revision: int
     corrected: bool
@@ -178,6 +191,7 @@ class EventPreview(StrictModel):
 class EventApply(StrictModel):
     token: str = Field(min_length=1, max_length=128)
     selected_ids: list[str] = Field(min_length=1, max_length=500)
+    refresh_source: bool = False
 
 
 class EventUpdate(StrictModel):
@@ -185,3 +199,68 @@ class EventUpdate(StrictModel):
     correction: EventFields | None = None
     followed: bool | None = None
     archived: bool | None = None
+
+
+class EventSourcePreviewRequest(StrictModel):
+    format: Literal['event_import', 'schema_org'] = 'event_import'
+    timezone: str = Field(default='UTC', max_length=100)
+
+    @field_validator('timezone')
+    @classmethod
+    def valid_zone(cls, value):
+        return EventFields.valid_zone(value)
+
+    url: str | None = Field(default=None, max_length=4096)
+    source_id: str | None = Field(default=None, pattern=r'^[0-9a-f]{32}$')
+
+    @model_validator(mode='after')
+    def one_source(self):
+        if bool(self.url) == bool(self.source_id):
+            raise ValueError('Choose a schedule URL or a saved source')
+        if self.url:
+            parsed = urlsplit(self.url)
+            if parsed.scheme not in ('http', 'https') or not parsed.hostname or parsed.username or parsed.password or any(ord(c) < 32 for c in self.url):
+                raise ValueError('Use an HTTP(S) schedule URL without embedded credentials')
+        return self
+
+
+class EventSourceUpdate(StrictModel):
+    revision: int = Field(ge=1)
+    enabled: bool
+
+
+class EventRefreshResult(StrictModel):
+    updated: int = 0
+    pending: int = 0
+    status: Literal['updated', 'error', 'unchanged']
+    message: str
+
+
+class EventSourceView(StrictModel):
+    format: Literal['event_import', 'schema_org'] = 'event_import'
+    timezone: str = 'UTC'
+    id: str
+    revision: int
+    name: str
+    origin: str
+    enabled: bool
+    reviewed: int
+    last_attempt: datetime | None
+    last_success: datetime | None
+    last_result: EventRefreshResult | None
+
+
+class EventRetention(StrictModel):
+    ended_days: int = Field(default=0, ge=0, le=3650)
+    archived_days: int = Field(default=0, ge=0, le=3650)
+
+
+class EventBroadcastMapping(StrictModel):
+    revision: int = Field(ge=1)
+    broadcast_id: str = Field(min_length=1, max_length=193)
+    channel_id: str | None = Field(default=None, pattern=r'^(?:url:)?[0-9a-fA-F]{40}$')
+
+
+class EventRefreshQueued(StrictModel):
+    status: Literal['triggered', 'already_running']
+    message: str

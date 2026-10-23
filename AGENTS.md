@@ -1,5 +1,19 @@
 # Codex repository guide
 
+## Private infrastructure authority
+
+Jenkins pipelines and trusted host tooling live in the private
+`Pipepito/acestream-scraper-infra` repository. There are no active pipeline sources
+in this application repository. Jenkins deploys an owner-reviewed infrastructure
+commit as fixed definitions and a checksum-verified tool bundle. Public files,
+including any reintroduced Jenkinsfile, cannot select host policy. App tests,
+local development commands, dependency manifests and runtime Dockerfiles remain
+public. Do not restore retired Jenkins orchestration here. Use
+`docs/ops/jenkins-ci.md` for the public CI contract and the private repository for
+pipeline changes, policy tests, deployment and release commands. Named runner and publishing helpers below belong to that private repository.
+Their public equivalents, where retained for local use, never select host policy.
+
+
 This is the repository-wide instruction file for Codex. More specific guidance is
 layered in `backend/AGENTS.md`, `frontend/AGENTS.md`, and `e2e/AGENTS.md`; Codex
 loads the applicable file when working below those directories.
@@ -28,10 +42,10 @@ loads the applicable file when working below those directories.
 - `frontend/`: React 18, TypeScript, Vite, MUI v5, React Query v5, Jest/RTL.
 - `e2e/`: Playwright/Firefox journeys against the built SPA and real sidecars.
 - `Dockerfile`, `docker/`, `entrypoint.sh`: multi-flavor, multi-architecture image.
-- `jenkins/pr.Jenkinsfile`: administrator-managed isolated PR validation.
-- `jenkins/pr-privileged.Jenkinsfile`: fixed owner-approved revision/image validation.
-- `jenkins/develop.Jenkinsfile`: trusted `develop` validation and automatic channel image publish.
-- `jenkins/release.Jenkinsfile`: manual release job, allowed from `main` only.
+- the private PR pipeline: administrator-managed isolated PR validation.
+- the private owner-approval pipeline: fixed owner-approved revision/image validation.
+- the private develop pipeline: trusted `develop` validation and automatic channel image publish.
+- the private release pipeline: manual release job, allowed from `main` only.
 - `scripts/ci/`: required checks, Docker builds, publishing, and CI helpers.
 - `docs/ops/jenkins-ci.md`: authoritative Jenkins and release runbook.
 - `docs/migration/development-progress.md`: live migration status.
@@ -113,7 +127,7 @@ not part of the required PR gate; see `e2e/AGENTS.md` before running it.
 ## Branch and release policy
 
 - Feature and hotfix PRs target `develop`.
-- Only `develop` may open a PR into `main`; `jenkins/pr.Jenkinsfile` enforces this.
+- Only `develop` may open a PR into `main`; the private PR pipeline enforces this.
 - Both protected branches require the `PR Validation` status and disallow direct
   pushes, force-pushes, and deletion.
 - A validated trusted `develop` job publishes only floating `:develop*` tags.
@@ -333,7 +347,7 @@ later on the trusted host with an explicitly prepared backend virtualenv.
 
 Keep README high-level; user/contributor guides live in `wiki/`, and the Docker
 Hub overview source is `docs/dockerhub/`. `classify_changes.py` selects lightweight
-documentation validation for known docs-only changes. PRs use target-owned
+documentation validation for known docs-only changes. PRs use private-policy
 selection/validators; develop compares the last successful build. Missing or
 rewritten baselines, symlinks/mode changes, and unknown paths require the full gate.
 Develop validates documentation without publishing it. Wiki publication belongs
@@ -495,7 +509,7 @@ contributor code in `pull_request_target`. Issue forms and assignment activate
 after reaching default branch main. See `docs/ops/repository-governance.md`.
 
 Contribution-only CI recognizes direct issue-form YAML, ruleset JSON, and the
-named assignment workflow. A target-owned metadata validator and integrity-locked
+named assignment workflow. A private-policy metadata validator and integrity-locked
 YAML parser read them as data; assignment behavior must match the trusted contract.
 No application/image work runs for this scope. Unknown workflows, app/dependency
 changes, metadata-validator changes and mode/symlink changes keep the full gate.

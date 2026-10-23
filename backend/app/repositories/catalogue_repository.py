@@ -40,3 +40,13 @@ class CatalogueRepository:
         self.db.delete(row)
         self.db.commit()
         return True
+
+
+    def reserve_event_revision(self, catalogue_id, expected_revision, source_id):
+        changed = self.db.execute(update(W3UCatalogue).where(
+            W3UCatalogue.id == catalogue_id, W3UCatalogue.revision == expected_revision,
+            W3UCatalogue.snapshot['_event_source_id'].as_string() == source_id
+        ).values(revision=expected_revision + 1))
+        if changed.rowcount != 1:
+            raise ValueError('Catalogue changed or was removed. Preview the event again.')
+        self.db.expire_all()

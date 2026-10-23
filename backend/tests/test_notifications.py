@@ -84,13 +84,13 @@ def test_without_a_webhook_nothing_is_sent(monkeypatch):
     assert notification_service.notify('x', 't', 'm') is False and calls == []
 
 
-def test_the_scraping_task_notifies_when_it_ends(monkeypatch):
+def test_the_scraping_task_notifies_when_it_ends(monkeypatch, alembic_backend_runtime):
     from app.tasks import url_scraping_task
     sent = []
     monkeypatch.setattr(url_scraping_task.notification_service, 'scraping_completed', lambda result: sent.append(result))
     monkeypatch.setattr(url_scraping_task.ScraperService, 'get_enabled_urls', lambda self: [])
     url_scraping_task.run_url_scraping_task()
-    assert sent == [{'processed': 0, 'failures': 0}]
+    assert sent == [{'processed': 0, 'failures': 0, 'events': {'updated': 0, 'pending': 0, 'failures': 0, 'deferred': 0}}]
 
 
 def test_the_api_saves_clears_and_rejects_the_webhook(client):

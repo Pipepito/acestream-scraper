@@ -103,6 +103,8 @@ class CatalogueService:
                 else:
                     snapshot['entries'] = [dict(entry, retained=True) for entry in old['entries']]
                     snapshot['warnings'].append('Partial result exceeds the retained-entry budget; previous inventory preserved')
+            snapshot['_event_source_id'] = old.get('_event_source_id') or secrets.token_hex(16) if old else secrets.token_hex(16)
+            snapshot['_reviewed_live_ids'] = old.get('_reviewed_live_ids', [e['id'] for e in old['entries'] if e.get('imported')]) if old else []
             # Persist unique final documents only, avoiding redirect-alias amplification.
             snapshot['documents'] = {value['url']: value for value in snapshot['documents'].values()}
             token = remember(dict(snapshot=snapshot, source_url=source_url,
@@ -145,12 +147,15 @@ class CatalogueService:
                 snapshot=copy.deepcopy(snapshot), selected_branches=list(dict.fromkeys(request.selected_branches)),
                 mode=request.mode, refresh_enabled=request.refresh_enabled and bool(preview['source_url']),
                 updated_at=datetime.now(timezone.utc)))
+            reviewed = set(snapshot.get('_reviewed_live_ids', []))
             channels = ChannelRepository(self.db)
             imported = set()
             for entry in entries:
                 channel_id = entry.get('channel_id')
                 entry['imported'] = False
                 if (not channel_id or entry['kind'] not in COMPATIBLE or not included(entry)
+                        or entry.get('content_type') in ('event', 'vod')
+                        or (not request.confirm_live and entry['id'] not in reviewed)
                         or (request.mode == 'acestream' and entry['kind'] != 'acestream')):
                     continue
                 if channel_id not in imported:
@@ -173,6 +178,8 @@ class CatalogueService:
                             is_online=None, commit=False)
                     imported.add(channel_id)
                 entry['imported'] = True
+                reviewed.add(entry['id'])
+            snapshot['_reviewed_live_ids'] = sorted(reviewed)
             # SQLAlchemy JSON mutations must be assigned as a fresh value.
             row.snapshot = copy.deepcopy(snapshot)
             self.db.commit()
@@ -200,3 +207,38 @@ class CatalogueService:
                 self.db.rollback()
                 result['catalogue_failures'] += 1
         return result
+
+
+    def preview_event(self, catalogue_id, request):
+        from app.schemas.events import EventFields, EventImport, EventObservation, EventBroadcast
+        from app.services.event_service import EventService
+        row = self.repository.get(catalogue_id)
+        if row is None:
+            raise LookupError('Catalogue not found')
+        if row.revision != request.revision:
+            raise ValueError('Catalogue changed; reload it before reviewing events')
+        if not row.snapshot.get('_event_source_id'):
+            raise ValueError('Review and save this catalogue once before adding events')
+        entries = {entry['id']: entry for entry in row.snapshot['entries']}
+        selected = [entries.get(key) for key in dict.fromkeys(request.entry_ids)]
+        if any(not entry or entry['kind'] not in COMPATIBLE or entry.get('content_type') == 'vod' for entry in selected):
+            raise ValueError('Choose compatible event broadcasts; VOD and unsupported sources cannot be imported as events')
+        broadcasts = []
+        publisher_ids = [e.get('_publisher_id') for e in entries.values() if e.get('_publisher_id')]
+        if any(e.get('_publisher_id') and publisher_ids.count(e['_publisher_id']) != 1 for e in selected):
+            raise ValueError('Publisher IDs are not unique in this catalogue; correct the source before importing events')
+        for entry in selected:
+            cid = entry.get('channel_id')
+            url = entry.get('_stream_url') or ('acestream://' + cid if cid and not cid.startswith('url:') else None)
+            # Resolver web pages are not direct event media; retain an explicit
+            # unresolved broadcast for mapping, rather than bypassing the player.
+            if entry['kind'] == 'resolver':
+                url = None
+            broadcasts.append(EventBroadcast(id=entry.get('_publisher_id', entry['id']),
+                label=entry['name'][:200], url=url, headers=entry.get('_headers', {}) if url else {}))
+        data = {key: getattr(request, key) for key in EventFields.model_fields}
+        observation = EventObservation(**data, source_id=f"w3u:{row.snapshot['_event_source_id']}", source_name=row.name[:200],
+            source_kind='w3u', external_id=selected[0].get('_publisher_id', selected[0]['id']),
+            event_id=request.event_id, broadcasts=broadcasts)
+        return EventService(self.db).preview(EventImport(observations=[observation]),
+            context={'kind': 'catalogue', 'id': row.id, 'revision': row.revision, 'source_id': row.snapshot['_event_source_id']})

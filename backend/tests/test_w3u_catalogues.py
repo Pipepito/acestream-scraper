@@ -126,7 +126,7 @@ def test_reviewed_import_no_tv_rows_and_public_masking(db_session):
     assert not db_session.query(AcestreamChannel).count()
     assert not db_session.query(W3UCatalogue).count()
     folder = next(e.id for e in preview.entries if e.name == 'Ace')
-    saved = svc.save(CatalogueSaveRequest(preview_token=preview.preview_token, name='Mine', selected_branches=[folder]))
+    saved = svc.save(CatalogueSaveRequest(confirm_live=True, preview_token=preview.preview_token, name='Mine', selected_branches=[folder]))
     assert db_session.query(AcestreamChannel).count() == 1
     assert not db_session.query(TVChannel).count()
     channel = db_session.get(AcestreamChannel, A)
@@ -138,7 +138,7 @@ def test_reviewed_import_no_tv_rows_and_public_masking(db_session):
     channel.name = 'Manual name'
     channel.is_active = False
     db_session.commit()
-    svc.save(CatalogueSaveRequest(preview_token=second.preview_token, name='Mine', selected_branches=['root']))
+    svc.save(CatalogueSaveRequest(confirm_live=True, preview_token=second.preview_token, name='Mine', selected_branches=['root']))
     assert db_session.get(AcestreamChannel, A).name == 'Manual name'
     assert db_session.get(AcestreamChannel, A).is_active is False
     assert db_session.query(AcestreamChannel).count() == 2
@@ -150,12 +150,12 @@ def test_stale_preview_rejected_atomically(db_session):
     from app.services.catalogue_service import CatalogueService
     svc = CatalogueService(db_session)
     preview = svc.preview(CataloguePreviewRequest(sample=json.dumps({'stations': [station()]})))
-    saved = svc.save(CatalogueSaveRequest(preview_token=preview.preview_token, name='Mine', selected_branches=[]))
+    saved = svc.save(CatalogueSaveRequest(confirm_live=True, preview_token=preview.preview_token, name='Mine', selected_branches=[]))
     p1 = svc.preview(CataloguePreviewRequest(catalogue_id=saved.id))
     p2 = svc.preview(CataloguePreviewRequest(catalogue_id=saved.id))
-    svc.save(CatalogueSaveRequest(preview_token=p1.preview_token, name='Changed', selected_branches=[]))
+    svc.save(CatalogueSaveRequest(confirm_live=True, preview_token=p1.preview_token, name='Changed', selected_branches=[]))
     with pytest.raises(ValueError, match='changed'):
-        svc.save(CatalogueSaveRequest(preview_token=p2.preview_token, name='Old', selected_branches=['root']))
+        svc.save(CatalogueSaveRequest(confirm_live=True, preview_token=p2.preview_token, name='Old', selected_branches=['root']))
     assert svc.get(saved.id).name == 'Changed'
 
 
@@ -171,7 +171,7 @@ def test_partial_refresh_retains_old_inventory(monkeypatch, db_session):
         return SourceResponse(200, json.dumps({'stations': [station()]}).encode(), {})
     monkeypatch.setattr('app.services.w3u_parser.source_get', get)
     p = svc.preview(CataloguePreviewRequest(url='https://example.test/root'))
-    saved = svc.save(CatalogueSaveRequest(preview_token=p.preview_token, name='Remote', selected_branches=['root'], refresh_enabled=True))
+    saved = svc.save(CatalogueSaveRequest(confirm_live=True, preview_token=p.preview_token, name='Remote', selected_branches=['root'], refresh_enabled=True))
     failing = True
     refreshed = svc.refresh(saved.id)
     assert refreshed.partial
@@ -282,6 +282,8 @@ def test_bad_url_port_never_leaks_input(client):
 
 def test_scheduled_catalogue_results_are_in_totals_and_notification(db_session, monkeypatch):
     from app.tasks import url_scraping_task
+    from sqlalchemy.orm import sessionmaker
+    monkeypatch.setattr(url_scraping_task, 'SessionLocal', sessionmaker(bind=db_session.get_bind()))
     from app.services import notification_service
     monkeypatch.setattr(url_scraping_task.ScraperService, 'get_enabled_urls', lambda self: [])
     monkeypatch.setattr('app.services.catalogue_service.CatalogueService.refresh_enabled',
@@ -301,7 +303,7 @@ def test_w3u_export_never_publishes_private_http_inputs(client, db_session, rout
     preview = svc.preview(CataloguePreviewRequest(sample=json.dumps({'stations': [
         station(), station(name='HTTP private', url='https://cdn.test/live.m3u8?token=PRIVATE',
                            referer='https://page.test/?key=SECRET')]})))
-    saved = svc.save(CatalogueSaveRequest(preview_token=preview.preview_token, name='Private', selected_branches=['root']))
+    saved = svc.save(CatalogueSaveRequest(confirm_live=True, preview_token=preview.preview_token, name='Private', selected_branches=['root']))
     if 'tv-channels' in route:
         tv = TVChannel(name='Assigned', is_active=True)
         db_session.add(tv)

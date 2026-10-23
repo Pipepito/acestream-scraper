@@ -39,67 +39,50 @@ release playback; closing the shared player does.
 
 ## Compatibility work still owned by the umbrella issue
 
-The operator matrix is intentionally conservative. Event presentation (#55),
-VOD state and episode navigation (#99), Telegram ingestion (#258), host-specific
+The operator matrix is intentionally conservative. VOD state and episode navigation (#99), Telegram ingestion (#258), host-specific
 website adapters, isolated opt-in browser discovery, DASH/DRM capability design
 and broader codec evidence remain separate work. Publisher flags are not proof
 that a host resolver exists. This implementation should not close #257 as full
 Wiseplay parity. The catalogue's retained unsupported entries provide fixture
 candidates for those adapters without fetching arbitrary pages as media.
 
-## Handoff: sporting events and VOD
+## Combined catalogue and event integration
 
-Sporting events (#55) is being tackled in a separate session and is expected to
-merge into `develop` before this W3U work can be completed. Use this draft PR as
-implementation context for that work; the events implementation belongs on its
-own branch/PR. Keep this PR draft, then bring in the merged events changes and
-integrate W3U event observations with the resulting model and ingestion contract.
-Do not create a competing event model here. VOD (#99) remains separate planned
-work; its merge order has not been decided.
+PR #259 now includes the sporting-event implementation formerly in #260. Migration
+`20261023_1400` joins both original histories without rewriting either revision;
+upgrade tests retain channels, catalogue snapshots and followed events from each head.
 
-Read the latest
-requirements in [sporting events (#55)](https://github.com/Pipepito/acestream-scraper/issues/55)
-and [Scrape lists movies on Acestream (#99)](https://github.com/Pipepito/acestream-scraper/issues/99),
-the applicable layered `AGENTS.md` files, and the operator contract above before
-extending the implementation. Neither feature is implemented by this foundation.
+Content classification precedes channel insertion. Explicit movie/series/episode/VOD
+records (including inherited folder types) cannot become live channels, even with
+an AceStream ID. Explicit event records are also excluded. Folder names do not
+classify content. Saving defaults to catalogue-only; `confirm_live` explicitly
+approves compatible entries in the selected folders. Refresh reuses reviewed entry
+identities and leaves new unknown entries for review. Existing channels are preserved.
 
-- Start at `backend/app/services/w3u_parser.py`, `catalogue_service.py`,
-  `backend/app/schemas/catalogue.py` and `frontend/src/pages/Catalogues.tsx`.
-  Current public entries are catalogue records, not event/movie/episode DTOs.
-  Private cached source documents retain richer publisher data, but that is not
-  yet a normalized semantic ingestion contract. Introduce shared observations
-  with provenance so new importers can reuse traversal without duplicating fetches.
-- Add explicit or reviewed content classification before live-channel persistence.
-  Today, compatible AceStream IDs and supported direct HTTP streams can be
-  imported as channels even under a sports/movie folder; an AceStream ID is
-  recognized before record type. Folder names alone must not decide semantics.
-  Simply admitting VOD entries into the compatible-live set would mix inventories.
-- Give events and VOD their own models and Alembic revisions based on their
-  implementation branches. This W3U branch currently ends at `20261022_1200`;
-  reconcile migration heads and verify upgrade paths when integrating the events
-  PR. Preserve existing catalogue snapshots and imported channel state.
-  Keep preview/revision checks, private headers, bounded guarded traversal,
-  partial-refresh retention and manual overrides intact.
-- For events, begin with reviewed ingestion and fixtures for UTC/timezone/DST,
-  postponements, uncertain times, multiple broadcasts and unresolved broadcasters.
-  Model event-to-broadcast relationships separately from TV numbering and guide
-  assignments, then add browsing/source choice through existing playback ownership.
-- For VOD, begin with movies/series/seasons/episodes and media variants, preserving
-  incomplete metadata and distinguishing remakes or alternate cuts. Decide the
-  scope of watchlist/progress state explicitly. The current sliding HLS player
-  does not establish full VOD seeking: duration, forward/backward seeking,
-  pause/idle ownership, resume after restart and completion need a tested playback
-  design before exposing those controls.
-- Keep W3U-owned HTTP inputs private and browser-only until an explicit safe
-  export/external-player contract exists. Preserve subtitle-Off defaults,
-  per-viewer track selection, cancellation budgets and shared-session ownership.
-  Unsupported websites, DRM and DASH must remain explicit rather than being
-  treated as playable because a publisher labels them as an event or movie.
+A saved entry's **Add as event** action calls
+`POST /catalogues/{id}/events/preview` with catalogue revision, entry IDs and reviewed
+`EventFields`. The server builds the shared `EventImport` observation from private
+snapshot media and headers; no duplicate fetch or parallel event model is involved.
+The shared Events review requires explicit selection before apply. A source-qualified
+UUID survives catalogue refresh; deletion/recreation cannot reuse its event identity.
+Publisher IDs are hashed and must be unique in the catalogue. Without a publisher
+ID, the entry identity depends on its folder/media and changes when those change.
+Repeated review of the same identity updates its event and retains manual corrections.
+The API can group up to 50 explicitly selected broadcast entries; the UI starts with
+one entry. Explicit `event_id` associations use the existing event ingestion contract.
 
-Add migration-path, generated-client, ingestion and UI coverage for each new
-contract, plus synthetic-media playback tests for VOD seek/resume. Telegram
-transport (#258), host resolvers and guide overlays remain separate follow-ups;
-do not close #257, #55 or #99 merely for landing this catalogue foundation.
+Apply atomically reserves the catalogue revision and source UUID along with event
+writes. Concurrent catalogue refresh/removal/recreation invalidates the preview.
+Event imports create no permanent channels or TV assignments. Known broadcaster
+resolver entries stay unresolved until explicitly mapped to an existing channel;
+they are never passed to FFmpeg as direct media.
+
+W3U event schedule metadata is **reviewed manually** in this first bridge. Dates,
+timezones and live state are not inferred from titles or folders. Refreshing a
+catalogue does not automatically refresh event observations: review the saved entry
+again to update it. Structured guide URL sources retain their separate opt-in
+reviewed automatic refresh. VOD (#99), Telegram ingestion (#258), broader resolvers
+and full Wiseplay parity remain follow-ups; keep #257 open.
 
 ## Verification
 

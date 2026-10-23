@@ -100,7 +100,23 @@ def headers_for(record, inherited):
     return headers
 
 
+def content_type(record):
+    kind = str(record.get('type', '')).casefold()
+    if kind in ('movie', 'series', 'episode', 'vod'):
+        return 'vod'
+    if kind in ('event', 'sportsevent', 'sports_event'):
+        return 'event'
+    if kind in ('live', 'channel', 'tv'):
+        return 'live'
+    return 'unknown'
+
+
 def classify(value, record, base):
+    if record.get('drm') or record.get('license') or record.get('licenseUrl'):
+        return 'unsupported', None, None, 'DRM playback is not supported'
+    if content_type(record) == 'vod':
+        return 'vod', None, None, 'VOD retained separately; playback and progress tracking follow issue #99'
+
     if not isinstance(value, str) or not value.strip():
         return 'invalid', None, None, 'Missing stream URL'
     value = value.strip()
@@ -238,7 +254,7 @@ class W3UTraversal:
         node_id = digest(f'{key}:{count}')
         number = record.get('number')
         return dict(id=node_id, parent_id=parent, name=safe_text(record.get('name')) or 'Unnamed entry',
-                    kind=kind, reason='', description=safe_text(record.get('info') or record.get('description'), 2000),
+                    kind=kind, content_type=content_type(record), reason='', description=safe_text(record.get('info') or record.get('description'), 2000),
                     image=safe_image(record.get('image'), base),
                     guide_id=safe_text(record.get('epgId')) or None,
                     number=number if type(number) is int and 0 < number < 100000 else None,
@@ -266,11 +282,11 @@ class W3UTraversal:
         self.entries.append(root)
         # Breadth-first navigation gives shallow sections a chance before a
         # large linked archive consumes the budget. Never recurse in Python.
-        stack = deque([(data, 'root', base, 0, frozenset({base}), {})])
+        stack = deque([(data, 'root', base, 0, frozenset({base}), {}, content_type(data))])
         try:
             while stack:
                 self.budget()
-                record, parent, base, depth, ancestors, inherited = stack.popleft()
+                record, parent, base, depth, ancestors, inherited, inherited_type = stack.popleft()
                 if depth > self.limits.depth:
                     self.partial = True
                     self.warnings.append('Maximum folder depth reached')
@@ -296,6 +312,9 @@ class W3UTraversal:
                             self.entries.append(entry)
                             self.counts['invalid'] += 1
                             continue
+                        child = dict(child)
+                        if content_type(child) == 'unknown' and inherited_type != 'unknown':
+                            child['type'] = inherited_type
                         value = child.get('url', '')
                         has_children = 'groups' in child or 'stations' in child
                         linked = folder or child.get('import') is True or (
@@ -304,7 +323,7 @@ class W3UTraversal:
                             entry = self.node(child, parent, base, 'folder', str(value) or safe_text(child.get('name')))
                             self.entries.append(entry)
                             if has_children:
-                                children.append((child, entry['id'], base, depth + 1, ancestors, headers))
+                                children.append((child, entry['id'], base, depth + 1, ancestors, headers, content_type(child)))
                             elif value:
                                 try:
                                     target = http_url(value, base)
@@ -316,7 +335,7 @@ class W3UTraversal:
                                         entry['reason'] = 'Cycle/update reference skipped'
                                         continue
                                     children.append((document, entry['id'], final_url, depth + 1,
-                                                     ancestors | {target, final_url}, headers_for(child, headers)))
+                                                     ancestors | {target, final_url}, headers_for(child, headers), content_type(child)))
                                 except FetchLimit as exc:
                                     entry['reason'] = str(exc)
                                     self.partial = True
@@ -333,6 +352,9 @@ class W3UTraversal:
                         kind, channel_id, stream_url, reason = classify(value, child, base)
                         entry = self.node(child, parent, base, kind, channel_id or str(value) or safe_text(child.get('name')))
                         entry.update(channel_id=channel_id, reason=reason)
+                        publisher_id = child.get('id')
+                        if isinstance(publisher_id, (str, int)) and not isinstance(publisher_id, bool):
+                            entry['_publisher_id'] = digest(str(publisher_id))
                         try:
                             media_headers = headers_for(child, headers)
                         except ValueError:

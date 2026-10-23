@@ -49,6 +49,7 @@ it.each(['light', 'dark'] as const)('reviews branches and imports through the AP
   expect(mocked.save).not.toHaveBeenCalled();
   await user.click(screen.getByRole('checkbox', { name: 'All folders' }));
   await user.click(screen.getByRole('checkbox', { name: 'Include Live channels' }));
+  await user.click(screen.getByRole('checkbox', { name: 'Import selected compatible entries as permanent live channels' }));
   await user.click(screen.getByRole('button', { name: 'Save catalogue and import' }));
   expect(await screen.findByRole('button', { name: 'Preview refresh' })).toBeVisible();
   expect(mocked.save).toHaveBeenCalledWith(expect.objectContaining({ preview_token: 'preview-token', selected_branches: ['live'], mode: 'compatible' }), expect.anything());
@@ -95,4 +96,28 @@ it('requires a concrete removal confirmation', async () => {
   expect(within(dialog).getByText(/Imported channels and manual assignments are kept/)).toBeVisible();
   await user.click(within(dialog).getByRole('button', { name: 'Remove catalogue' }));
   expect(mocked.remove).toHaveBeenCalledWith(1, expect.anything());
+});
+
+it('saves without silently classifying unknown streams as live', async () => {
+  renderPage();
+  const user = userEvent.setup();
+  await user.click(screen.getByRole('button', { name: 'Add catalogue' }));
+  await user.type(screen.getByRole('textbox', { name: 'Catalogue URL' }), 'https://example.test/list');
+  await user.click(screen.getByRole('button', { name: 'Preview URL' }));
+  await user.click(await screen.findByRole('button', { name: 'Save catalogue', exact: true }));
+  expect(mocked.save).toHaveBeenCalledWith(expect.objectContaining({ confirm_live: false }), expect.anything());
+});
+
+it('previews a catalogue broadcast through the shared event review without exposing its URL', async () => {
+  mocked.previewEvent.mockResolvedValue({ token: 'event-preview', events: [], warnings: [] });
+  renderPage('/catalogues?catalogue=1');
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole('button', { name: /Live channels Folder/ }));
+  await user.click(screen.getAllByRole('button', { name: /Alpha HD/ })[0]);
+  await user.click(screen.getByRole('button', { name: 'Add as event' }));
+  expect(screen.getByRole('textbox', { name: 'Event title' })).toHaveValue('Alpha HD');
+  expect(screen.queryByRole('textbox', { name: 'Stream URL' })).not.toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Preview events' }));
+  expect(mocked.previewEvent).toHaveBeenCalledWith(1, expect.objectContaining({ entry_ids: ['a'], title: 'Alpha HD', starts_at: null }));
+  expect(await screen.findByText(/Review the schedule, then select/)).toBeVisible();
 });

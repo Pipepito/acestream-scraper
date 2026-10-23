@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import {
   Alert, Avatar, Box, Breadcrumbs, Button, Checkbox, Chip, FormControlLabel,
   List, ListItem, ListItemButton, ListItemText, MenuItem, Pagination, Stack,
@@ -13,6 +13,7 @@ import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
 import StatusLine from '../components/StatusLine';
 import ChannelPlayerDialog from '../components/player/ChannelPlayerDialog';
+import EventImportPanel from '../components/events/EventImportPanel';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { catalogueService, type CatalogueEntry, type CataloguePreviewRequest, type CatalogueView } from '../services/catalogueService';
 import { getErrorMessage } from '../utils/errorUtils';
@@ -47,6 +48,8 @@ const Catalogues: React.FC = () => {
   const [url, setUrl] = useState('');
   const [name, setName] = useState('');
   const [branches, setBranches] = useState<string[]>(['root']);
+  const [confirmLive, setConfirmLive] = useState(false);
+  const [eventEntry, setEventEntry] = useState<CatalogueEntry | null>(null);
   const [mode, setMode] = useState<'compatible' | 'acestream'>('compatible');
   const [refreshEnabled, setRefreshEnabled] = useState(false);
   const [search, setSearch] = useState('');
@@ -72,11 +75,11 @@ const Catalogues: React.FC = () => {
     setParams({ ...(catalogueId ? { catalogue: String(catalogueId) } : {}), folder: id });
     setPage(1); setDetails(null);
   };
-  const resetBrowse = () => { setSearch(''); setKind('all'); setHistoryFilter('all'); setPage(1); setDetails(null); };
+  const resetBrowse = () => { setEventEntry(null); setSearch(''); setKind('all'); setHistoryFilter('all'); setPage(1); setDetails(null); };
   const prepare = useMutation({ mutationFn: catalogueService.preview, onSuccess: (result) => {
     setPreview(result); setName(result.name); setBranches(result.selected_branches ?? ['root']);
     setMode(result.mode ?? 'compatible'); setRefreshEnabled(result.refresh_enabled ?? false);
-    setAdding(false); setUrl(''); resetBrowse();
+    setAdding(false); setUrl(''); setConfirmLive(false); setEventEntry(null); resetBrowse();
     setParams(result.id ? { catalogue: String(result.id) } : {});
   } });
   const save = useMutation({ mutationFn: catalogueService.save, onSuccess: (result) => {
@@ -173,9 +176,11 @@ const Catalogues: React.FC = () => {
           </TextField>
           <FormControlLabel control={<Checkbox checked={branches.includes('root')} onChange={(_, checked) => setBranches(checked ? ['root'] : [])} />} label="All folders" />
           <Typography variant="body2">Clear All folders to select individual folders below. Selecting a folder includes its descendants. Unsupported items remain browsable; no TV assignments are created.</Typography>
+          <FormControlLabel control={<Checkbox checked={confirmLive} onChange={(_, checked) => setConfirmLive(checked)} />} label="Import selected compatible entries as permanent live channels" />
+          <Typography variant="body2">Check this only after reviewing the selected folders. Event and VOD records are excluded. Unchecked saves the catalogue and keeps previously reviewed imports. New streams need review after refresh.</Typography>
           <FormControlLabel control={<Switch checked={refreshEnabled} disabled={!view.can_refresh} onChange={(_, checked) => setRefreshEnabled(checked)} />} label="Refresh with scheduled scraping" />
           <Stack direction="row" spacing={1}>
-            <Button variant="contained" disabled={pending || !name.trim()} onClick={() => save.mutate({ preview_token: preview.preview_token!, name, selected_branches: branches, mode, refresh_enabled: refreshEnabled })}>Save catalogue and import</Button>
+            <Button variant="contained" disabled={pending || !name.trim()} onClick={() => save.mutate({ preview_token: preview.preview_token!, name, selected_branches: branches, mode, refresh_enabled: refreshEnabled, confirm_live: confirmLive })}>{confirmLive ? 'Save catalogue and import' : 'Save catalogue'}</Button>
             <Button disabled={pending} onClick={() => { setPreview(null); resetBrowse(); }}>Discard preview</Button>
           </Stack>
         </Stack> : null}
@@ -205,7 +210,7 @@ const Catalogues: React.FC = () => {
               {showArtwork && entry.image ? <Avatar src={entry.image} alt="" imgProps={{ loading: 'lazy', referrerPolicy: 'no-referrer' }} variant="rounded" /> : entry.kind === 'folder' ? <FolderOutlined /> : null}
               <Box sx={{ minWidth: 0, flex: 1, overflowWrap: 'anywhere' }}>
                 <Typography fontWeight={600}>{entry.name}</Typography>
-                <Typography variant="body2" color="text.secondary">{kindLabels[entry.kind]}{entry.number ? ` · #${entry.number}` : ''} · {entry.origin}</Typography>
+                <Typography variant="body2" color="text.secondary">{kindLabels[entry.kind]}{entry.content_type === 'event' ? ' · Event' : ''}{entry.number ? ` · #${entry.number}` : ''} · {entry.origin}</Typography>
                 {entry.reason ? <Typography variant="caption" color="text.secondary">{entry.reason}</Typography> : null}
                 <Stack direction="row" spacing={0.5} sx={{ mt: 0.5 }}>
                   {entry.duplicate ? <Chip size="small" label="Duplicate source" /> : null}{entry.retained ? <Chip size="small" label="Retained" /> : null}
@@ -226,15 +231,19 @@ const Catalogues: React.FC = () => {
           {detail.header_names?.length ? <Typography variant="body2">Source headers: {detail.header_names.join(', ')}. Values are private.</Typography> : null}
           <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
             {detail.imported && detail.channel_id && !preview ? <Button variant="contained" onClick={() => setPlaying(detail)}>Play source</Button> : null}
+            {!preview && view.id && ['acestream', 'hls', 'mpegts', 'resolver'].includes(detail.kind) && detail.content_type !== 'vod' ? <Button variant="outlined" onClick={() => setEventEntry(detail)}>Add as event</Button> : null}
             {!preview ? <Button startIcon={history.favorites.includes(itemKey(detail)) ? <StarRounded /> : <StarOutlineRounded />} onClick={() => favorite(detail)}>{history.favorites.includes(itemKey(detail)) ? 'Remove favorite' : 'Add favorite'}</Button> : null}
           </Stack>
-          {!detail.imported && detail.channel_id ? <Typography variant="body2">Import this folder to enable playback.</Typography> : null}
+          {!detail.imported && detail.channel_id ? <Typography variant="body2">Review this source as a live channel, or add it as an event to choose a broadcast in Events.</Typography> : null}
           {variants.length ? <Box><Typography variant="subtitle2">Other entries with this title in the same folder</Typography>
             {variants.map((entry) => <Button key={entry.id} onClick={() => inspect(entry)}>{kindLabels[entry.kind]} · {entry.origin} · {entry.channel_id?.slice(-8) ?? 'unavailable'}</Button>)}
           </Box> : null}
         </Stack>
       </ContentSection></Box> : null}
     </> : null}
+    {eventEntry && view?.id && !preview ? <EventImportPanel key={`${view.id}:${eventEntry.id}`} zone={Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'}
+      catalogue={{ id: view.id, revision: view.revision ?? 1, entryIds: [eventEntry.id], title: eventEntry.name }} onClose={() => setEventEntry(null)} /> : null}
+    <Button component={RouterLink} to="/events">Open Events</Button>
     <ChannelPlayerDialog open={Boolean(playing)} contentId={playing?.channel_id ?? null} title={playing?.name ?? ''} onClose={() => setPlaying(null)} />
     <ConfirmDialog open={confirmRemove} title="Remove catalogue?" confirmLabel="Remove catalogue" danger busy={remove.isPending} body="Remove this catalogue and its refresh settings. Imported channels and manual assignments are kept; manage them in Acestream Channels." onConfirm={() => { if (view?.id) remove.mutate(view.id); }} onClose={() => setConfirmRemove(false)} />
   </Box>;

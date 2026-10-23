@@ -21,6 +21,7 @@ class CatalogueEntry(BaseModel):
     parent_id: str | None = None
     name: str
     kind: Literal['folder', 'acestream', 'hls', 'mpegts', 'resolver', 'vod', 'unsupported', 'invalid']
+    content_type: Literal['live', 'event', 'vod', 'unknown'] = 'unknown'
     reason: str = ''
     description: str = ''
     image: str | None = None
@@ -63,6 +64,7 @@ class CatalogueView(BaseModel):
 
 
 class CatalogueSaveRequest(BaseModel):
+    confirm_live: bool = False
     preview_token: str = Field(min_length=1, max_length=100)
     name: str = Field(min_length=1, max_length=255)
     selected_branches: list[str] = Field(max_length=10000)
@@ -78,3 +80,12 @@ class CatalogueSummary(BaseModel):
     partial: bool
     refresh_enabled: bool
     updated_at: datetime
+
+
+from app.schemas.events import EventFields
+
+
+class CatalogueEventPreviewRequest(EventFields):
+    revision: int = Field(ge=1)
+    entry_ids: list[str] = Field(min_length=1, max_length=50)
+    event_id: str | None = Field(default=None, pattern=r'^[0-9a-f]{32}$')

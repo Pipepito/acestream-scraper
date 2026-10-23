@@ -21,10 +21,13 @@ for (const theme of ['light', 'dark']) {
       counts: { accepted: 1, duplicates: 0, invalid: 0, unsupported: 1, failed_fetches: 0 },
       selected_branches: ['root'], mode: 'compatible', can_refresh: true, preview_token: 'test-preview' };
     const saved = { ...preview, id: 1, revision: 1, preview_token: null, entries: entries.map(entry => ({ ...entry, imported: entry.kind === 'acestream' })) };
+    const event = { id: 'e'.repeat(32), revision: 1, title: 'Reviewed match', timezone: 'UTC', state: 'unknown', sport: '', competition: '', participants: [], corrected: false, followed: false, archived: false, broadcasts: [], provenance: [] };
+    const eventWrites: unknown[] = [];
     let imported = false;
     await page.route('**/api/**', route => route.fulfill({ json: { status: 'ready', phase: 'Ready to use', events: [] } }));
     await page.route('**/api/v1/catalogues**', async route => {
       const path = new URL(route.request().url()).pathname;
+      if (path.endsWith('/events/preview')) return route.fulfill({ json: { token: 'event-review', events: [event], warnings: [] } });
       if (path.endsWith('/preview')) return route.fulfill({ json: preview });
       if (path.endsWith('/1')) return route.fulfill({ json: saved });
       if (route.request().method() === 'POST') {
@@ -32,6 +35,10 @@ for (const theme of ['light', 'dark']) {
         return route.fulfill({ json: saved });
       }
       return route.fulfill({ json: imported ? [{ id: 1, name: saved.name, origin: saved.origin, revision: 1, partial: false, refresh_enabled: false, updated_at: '2026-10-22T12:00:00Z' }] : [] });
+    });
+    await page.route('**/api/v1/events/apply', async route => {
+      eventWrites.push(route.request().postDataJSON());
+      return route.fulfill({ json: [event] });
     });
     await page.goto('/catalogues');
     await expect(page.getByRole('heading', { name: 'Catalogues', exact: true })).toBeVisible();
@@ -42,6 +49,7 @@ for (const theme of ['light', 'dark']) {
     expect(writes).toHaveLength(0);
     await page.getByLabel('All folders', { exact: true }).uncheck();
     await page.getByLabel('Include Live channels', { exact: true }).check();
+    await page.getByLabel('Import selected compatible entries as permanent live channels').check();
     await page.getByRole('button', { name: 'Save catalogue and import' }).click();
     await expect(page.getByRole('button', { name: 'Remove catalogue', exact: true })).toBeVisible();
     expect(writes[0].selected_branches).toEqual(['live']);
@@ -50,6 +58,14 @@ for (const theme of ['light', 'dark']) {
     await expect(page.getByRole('button', { name: 'Play source' })).toBeVisible();
     await page.getByRole('button', { name: 'Add favorite' }).click();
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem('acestream.catalogue-history.v1') ?? '{}').favorites)).toEqual(['1:ace']);
+    await page.getByRole('button', { name: 'Add as event', exact: true }).click();
+    await page.getByLabel('Event title', { exact: true }).fill('Reviewed match');
+    await page.getByRole('button', { name: 'Preview events', exact: true }).click();
+    expect(eventWrites).toHaveLength(0);
+    await page.getByRole('checkbox', { name: 'Reviewed match · unknown' }).check();
+    await page.getByRole('button', { name: 'Save selected (1)' }).click();
+    await expect(page.getByRole('heading', { name: 'Add events', exact: true })).toHaveCount(0);
+    expect(eventWrites).toEqual([{ token: 'event-review', selected_ids: [event.id], refresh_source: false }]);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({ path: test.info().outputPath(`catalogue-${theme}.png`), fullPage: true });

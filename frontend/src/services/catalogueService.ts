@@ -14,5 +14,7 @@ export const catalogueService = {
     (await apiClient.post('/v1/catalogues/preview', request, { timeout: 60000 })).data,
   save: async (request: CatalogueSaveRequest): Promise<CatalogueView> =>
     (await apiClient.post('/v1/catalogues', request)).data,
+  previewEvent: async (id: number, request: components['schemas']['CatalogueEventPreviewRequest']): Promise<components['schemas']['EventPreview']> =>
+    (await apiClient.post(`/v1/catalogues/${id}/events/preview`, request)).data,
   remove: async (id: number): Promise<void> => { await apiClient.delete(`/v1/catalogues/${id}`); },
 };

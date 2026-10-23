@@ -105,7 +105,7 @@ The fixtures never reload modules: `_bind_runtime_to(database_url)` re-points th
 ### Frontend
 
 - Routing is declared in `src/App.tsx` and wrapped in `components/layout/AppShell`. Pages under `src/pages/` are the route-level views; reusable components live under `src/components/`.
-- Navigation groups Watch (Live TV, Catalogues), Manage (Scraper, Search, Acestream Channels, TV Channels, EPG, Playlist) and System (Overview, Integrations, WARP, Settings, Changelog), declared in `components/layout/navItems.tsx`. Labels match page headings. WARP remains directly discoverable. Old routes redirect through `LEGACY_REDIRECTS` in `App.tsx` (`/dashboard`, `/health`, `/stats` → `/`; `/channels` → `/tv-channels`; `/search-new` → `/search`; `/epg/mappings` → `/epg?tab=rules`). The EPG page is five tabs bound to `?tab=` (`sources` default, `channels`, `matching`, `rules`, `export`). The Integrations page (`pages/Integrations.tsx`, `/integrations`) is a stack of `ContentSection`s from `components/integrations/` — public address, web player, remote players, media servers (with the tuner settings accordion) — each reporting into one page-level snackbar via a `notify(message, severity)` prop; a section added later appends to that stack rather than restructuring the page. Every card follows the same rule: two visible actions, everything else (Edit, Test connection, Delete) in a `RowActionsMenu` labelled "More actions for <name>", with `useConfirm()` on Delete and on Jellyfin Disconnect only.
+- Navigation groups Watch (Live TV, Catalogues, Events), Manage (Scraper, Search, Acestream Channels, TV Channels, EPG, Playlist) and System (Overview, Integrations, WARP, Settings, Changelog), declared in `components/layout/navItems.tsx`. Labels match page headings. WARP remains directly discoverable. Old routes redirect through `LEGACY_REDIRECTS` in `App.tsx` (`/dashboard`, `/health`, `/stats` → `/`; `/channels` → `/tv-channels`; `/search-new` → `/search`; `/epg/mappings` → `/epg?tab=rules`). The EPG page is five tabs bound to `?tab=` (`sources` default, `channels`, `matching`, `rules`, `export`). The Integrations page (`pages/Integrations.tsx`, `/integrations`) is a stack of `ContentSection`s from `components/integrations/` — public address, web player, remote players, media servers (with the tuner settings accordion) — each reporting into one page-level snackbar via a `notify(message, severity)` prop; a section added later appends to that stack rather than restructuring the page. Every card follows the same rule: two visible actions, everything else (Edit, Test connection, Delete) in a `RowActionsMenu` labelled "More actions for <name>", with `useConfirm()` on Delete and on Jellyfin Disconnect only.
 - Page skeleton: `PageHeader` (title, optional one-line subtitle, `actions`, `overflowActions` that collapse into a "More actions" menu on phones) → `StatusLine` (`role="status"`, measured facts only) → `ContentSection`s. Shared primitives: `components/StatusLine.tsx`, `components/ConfirmDialog.tsx` (`useConfirm()` replaces `window.confirm`), `components/RowActionsMenu.tsx` (row "More actions for X" menus), `components/epg/ScheduleView.tsx` (Now/Next + day tabs), `utils/format.ts` (`formatRelativeTime`, `formatBitrate`, `summarizeJobResult`). No hero blocks, no explanatory paragraphs: copy uses plain words, relative times ("12 min ago") and real units (Mbps/kbps).
 - API access goes through `src/services/*.ts`, all built on `apiClient.ts` (axios). `@tanstack/react-query` v5 is the data layer (see `frontend/package.json`).
 - Vite config (`frontend/vite.config.ts`) hand-tunes `manualChunks` for MUI / data-grid / data-vendor / TVChannels page splits. Preserve the chunking rules unless deliberately retuning bundle size.
@@ -582,4 +582,35 @@ channel repository and shared player. Preserve existing channel metadata and all
 channels on partial refresh, deselection and catalogue removal. Scheduled refresh
 is opt-in within the existing scrape queue. Public DTOs expose source hosts and
 header names only. See `wiki/W3U-Catalogues.md` and `docs/dev/w3u-catalogues.md`;
-event/VOD and unsupported host-resolver work remain tracked separately.
+W3U event imports use the shared reviewed EventImport contract; VOD and unsupported host resolvers remain separate.
+
+
+## Sporting events foundation
+
+`/events` stores schedules separately from channels. Use versioned `EventImport`
+observations, stable source/external IDs, read-only previews and explicit selected
+rows. Refresh preserves manual corrections and missing broadcasts; cross-source
+association is explicit. Require source timezones, reject ambiguous/nonexistent
+local times without an offset, and never infer live state or media signal from
+clock/import. Event-only HTTP media uses the shared guarded player without TV
+assignments or playlist export. Following is installation-wide; archive is
+reversible until opt-in retention deletes eligible rows. W3U entries have an explicit reviewed event bridge; Telegram transport remains separate; no guide overlay is offered here.
+See `docs/dev/sporting-events.md` and `wiki/Sports-Events.md`.
+
+
+Sporting-event URL sources accept reviewed version-1 schedules or bounded
+SportsEvent JSON/HTML JSON-LD with stable IDs and explicit timezone/date rules.
+Only approved, still-present event identities refresh through `url_scraping`'s
+FIFO/catch-up; new rows require review. Retention defaults off and runs during
+existing daily cleanup, protects followed events and never deletes permanent
+channels. Preserve source revisions, manual broadcaster mappings, archive clocks
+and private guarded artwork fetching. See `docs/dev/sporting-events.md`.
+
+
+Combined catalogues/events use migration head `20261023_1400`, preserving both
+prior histories. Catalogue live imports require explicit confirmation; refresh
+imports only previously reviewed entry identities. Explicit event/VOD types cannot
+become permanent channels. Catalogue event preview reuses private snapshot inputs;
+apply reserves both catalogue revision and source UUID. Never infer times from
+folder names or automatically refresh W3U event schedules. See
+`docs/dev/w3u-catalogues.md#combined-catalogue-and-event-integration`.

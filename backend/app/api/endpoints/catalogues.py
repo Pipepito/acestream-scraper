@@ -1,6 +1,7 @@
 """W3U preview/import endpoints. Blocking work stays in FastAPI's worker pool."""
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from pydantic import ValidationError
 from fastapi.routing import APIRoute
 from fastapi.exceptions import RequestValidationError
 from app.config.database import get_db
@@ -32,6 +33,8 @@ def invoke(call, *args):
         return call(*args)
     except LookupError as exc:
         raise HTTPException(404, str(exc)) from exc
+    except ValidationError:
+        raise HTTPException(422, 'Catalogue data cannot form a valid event; check the source metadata.') from None
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
     except Exception:
@@ -62,3 +65,12 @@ def get_catalogue(catalogue_id: int, svc: CatalogueService = Depends(service)):
 def delete_catalogue(catalogue_id: int, svc: CatalogueService = Depends(service)):
     if not svc.repository.delete(catalogue_id):
         raise HTTPException(404, 'Catalogue not found')
+
+
+from app.schemas.catalogue import CatalogueEventPreviewRequest
+from app.schemas.events import EventPreview
+
+
+@router.post('/{catalogue_id}/events/preview', response_model=EventPreview)
+def preview_event(catalogue_id: int, request: CatalogueEventPreviewRequest, svc: CatalogueService = Depends(service)):
+    return invoke(svc.preview_event, catalogue_id, request)

@@ -551,4 +551,35 @@ channel repository and shared player. Preserve existing channel metadata and all
 channels on partial refresh, deselection and catalogue removal. Scheduled refresh
 is opt-in within the existing scrape queue. Public DTOs expose source hosts and
 header names only. See `wiki/W3U-Catalogues.md` and `docs/dev/w3u-catalogues.md`;
-event/VOD and unsupported host-resolver work remain tracked separately.
+W3U event imports use the shared reviewed EventImport contract; VOD and unsupported host resolvers remain separate.
+
+
+## Sporting events foundation
+
+`/events` stores schedules separately from channels. Use versioned `EventImport`
+observations, stable source/external IDs, read-only previews and explicit selected
+rows. Refresh preserves manual corrections and missing broadcasts; cross-source
+association is explicit. Require source timezones, reject ambiguous/nonexistent
+local times without an offset, and never infer live state or media signal from
+clock/import. Event-only HTTP media uses the shared guarded player without TV
+assignments or playlist export. Following is installation-wide; archive is
+reversible until opt-in retention deletes eligible rows. W3U entries have an explicit reviewed event bridge; Telegram transport remains separate; no guide overlay is offered here.
+See `docs/dev/sporting-events.md` and `wiki/Sports-Events.md`.
+
+
+Sporting-event URL sources accept reviewed version-1 schedules or bounded
+SportsEvent JSON/HTML JSON-LD with stable IDs and explicit timezone/date rules.
+Only approved, still-present event identities refresh through `url_scraping`'s
+FIFO/catch-up; new rows require review. Retention defaults off and runs during
+existing daily cleanup, protects followed events and never deletes permanent
+channels. Preserve source revisions, manual broadcaster mappings, archive clocks
+and private guarded artwork fetching. See `docs/dev/sporting-events.md`.
+
+
+Combined catalogues/events use migration head `20261023_1400`, preserving both
+prior histories. Catalogue live imports require explicit confirmation; refresh
+imports only previously reviewed entry identities. Explicit event/VOD types cannot
+become permanent channels. Catalogue event preview reuses private snapshot inputs;
+apply reserves both catalogue revision and source UUID. Never infer times from
+folder names or automatically refresh W3U event schedules. See
+`docs/dev/w3u-catalogues.md#combined-catalogue-and-event-integration`.

@@ -16,7 +16,10 @@ browser without a referrer. Images are never treated as media or child documents
 
 **All folders** selects the complete tree. Clear it to select individual folders;
 a selected folder includes all its descendants. Choose **Compatible live streams**
-or **AceStream only**, then **Save catalogue and import**. Unsupported entries stay
+or **AceStream only**. Check **Import selected compatible entries as permanent live
+channels** only after reviewing their content, then **Save catalogue and import**.
+Leave it unchecked to **Save catalogue** without new channel imports. Explicit
+event and VOD records cannot become permanent channels. Unsupported entries stay
 in the saved tree but cannot play. Preview tokens expire after 15 minutes or when
 superseded by four newer previews. Restarting the server also expires them; preview
 again if necessary. A changed/deleted catalogue rejects an old preview.
@@ -46,7 +49,7 @@ maintenance queue. It is off by default. Catalogue refresh runs after ordinary
 sources in that scheduled job. Scraper's manual “scrape all” is still for ordinary
 scraper URLs; use Preview refresh for a catalogue.
 
-Each refresh keeps the selected branch identities and stream-type filter. Folder
+Each refresh keeps the selected branch identities, reviewed live entries and stream-type filter. New entries require review before channel insertion. Folder
 identity uses its parent and link (or name for inline folders); a moved/renamed
 folder may need a new selection. A refresh that removes a selected folder fails
 rather than silently broadening the import.
@@ -82,7 +85,7 @@ existing streams already imported by another source.
 | Website, PHP, `isHost`, `embed`, extensionless unknown media | Unsupported pending an explicit, tested resolver; never execute publisher scripts |
 | DASH `.mpd`, DRM fields, other schemes | Unsupported; no DRM bypass |
 | Movie files and explicit movie/series/VOD entries | Retained as unavailable VOD; playback/progress/episodes belong to #99 |
-| Sports events | Preserve supplied tree/text; dedicated event modeling and presentation belong to #55 |
+| Sports events | Save the catalogue, then use **Add as event** in a compatible entry’s details |
 | Publisher subtitles / player-specific options | Not applied; use the existing player's discovered audio/subtitle choices |
 
 Source video normally passes through without transcoding. Browser codec limits,
@@ -109,3 +112,20 @@ partial refresh counts alongside ordinary source results.
 
 See [HTTP streams](HTTP-Streams.md), [Web player](Web-Player.md), and
 [Extraction recipes](Extraction-Recipes.md) for the shared import/playback paths.
+
+
+## Add a catalogue broadcast to Events
+
+Save the catalogue first; live-channel import is optional. Open a compatible
+entry's details and choose **Add as event**. Review the title, sport, competition,
+source timezone and start time. Leave the time blank when unknown. Preview, select
+the event explicitly, then save it. **Open Events** takes you to its broadcasts.
+Private media URLs and headers stay on the server, and no TV channel is created.
+Movie/VOD and unsupported entries cannot use this action. Existing broadcaster
+resolver entries need an explicit mapping to an existing stream in Events.
+
+Refresh the catalogue and review the entry again to update an event. W3U event
+updates are manual; the catalogue's scheduled-refresh switch does not change event
+schedules. Stable unique publisher IDs preserve event identity across signed URL
+changes. Without one, changing the folder or media creates a different identity:
+review it carefully. Catalogue removal keeps existing events and channels.

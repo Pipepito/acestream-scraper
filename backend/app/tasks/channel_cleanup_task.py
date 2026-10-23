@@ -42,6 +42,8 @@ def run_channel_cleanup_task():
     try:
         days = int(get_settings().CHANNEL_CLEANUP_DAYS)
         result = cleanup_hidden_channels(db, days=days)
+        from app.services.event_source_service import EventSourceService
+        result['events'] = EventSourceService(db).cleanup()
         logger.info("Channel cleanup task completed: %s stale hidden channels deleted (older than %s days).", result["deleted"], days)
         return result
     except Exception as e:

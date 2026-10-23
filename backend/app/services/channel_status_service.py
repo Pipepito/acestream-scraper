@@ -211,13 +211,13 @@ class ChannelStatusService:
         since = submitted if priority == ProbePriority.MANUAL else submitted - timedelta(seconds=30)
         if priority == ProbePriority.BACKGROUND and scan_started_at is not None:
             since = min(since, scan_started_at)
-        if self._in_use(channel.id):
+        if not is_http and self._in_use(channel.id):
             return self._skipped_result(channel)
         ticket = probe_queue.enqueue(priority)
         probed = False
         try:
             await probe_queue.acquire(ticket)
-            if self._in_use(channel.id):
+            if not is_http and self._in_use(channel.id):
                 return self._skipped_result(channel)
             if persist and identifier == 'id':
                 recent = await asyncio.to_thread(self._recent_result, channel.id, since)

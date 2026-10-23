@@ -75,6 +75,23 @@ async def test_no_engine_needed(probe, monkeypatch):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize('verified', [True, False, None])
+async def test_http_viewing_does_not_prevent_verified_status_refresh(probe, monkeypatch, verified):
+    # An HTTP probe cannot stop another engine viewer, so tuner ownership must
+    # not leave a newly imported broadcaster permanently unknown while playing.
+    probe._get_engine_url = lambda: None
+    probe._in_use = lambda _: True
+    probe._recent_result = lambda *args: None
+    monkeypatch.setattr(http_stream_check, 'check', AsyncMock(return_value=(verified, None)))
+    await probe.check_channel_status(_iptv())
+    probe._fetch_engine_response.assert_not_awaited()
+    if verified is None:
+        probe.channel_repository.update_channel_status.assert_not_called()
+    else:
+        probe.channel_repository.update_channel_status.assert_called_once_with('url:' + 'a' * 40, verified, None)
+
+
+@pytest.mark.asyncio
 async def test_nothing_written_without_persist(probe, monkeypatch):
     monkeypatch.setattr(http_stream_check, 'check', AsyncMock(return_value=(True, None)))
     await probe.check_channel_status(_iptv(), persist=False)

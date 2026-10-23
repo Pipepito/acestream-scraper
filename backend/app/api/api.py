@@ -40,3 +40,7 @@ api_router.include_router(catalogues.router, prefix='/catalogues', tags=['catalo
 
 from app.api.endpoints import events
 api_router.include_router(events.router, prefix='/events', tags=['events'])
+
+
+from app.api.endpoints import telegram
+api_router.include_router(telegram.router, prefix="/telegram", tags=["telegram"])

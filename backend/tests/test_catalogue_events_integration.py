@@ -85,7 +85,7 @@ def test_catalogue_event_requires_timezone_and_rejects_vod(client):
     assert event_preview(client, vod).status_code == 422
 
 
-@pytest.mark.parametrize('revision', ['20261021_1200', '20261022_1200', '20261023_1200', '20261023_1300'])
+@pytest.mark.parametrize('revision', ['20261021_1200', '20261022_1200', '20261023_1200', '20261023_1300', '20261023_1400'])
 def test_merge_migration_preserves_both_histories(tmp_path, revision):
     path = tmp_path / f'{revision}.db'
     upgrade_to_revision(path, revision)
@@ -100,9 +100,9 @@ def test_merge_migration_preserves_both_histories(tmp_path, revision):
                 conn.execute(text("INSERT INTO sporting_events (id, owner_id, revision, fields, followed, archived) VALUES ('fixture', 'source', 2, '{}', 1, 0)"))
         upgrade_to_head(path)
         upgrade_to_head(path)
-        assert {'w3u_catalogues', 'sporting_events', 'event_schedule_sources'} <= set(inspect(engine).get_table_names())
+        assert {'w3u_catalogues', 'sporting_events', 'event_schedule_sources', 'telegram_sources', 'telegram_observations'} <= set(inspect(engine).get_table_names())
         with engine.connect() as conn:
-            assert conn.execute(text('SELECT version_num FROM alembic_version')).scalars().all() == ['20261023_1400']
+            assert conn.execute(text('SELECT version_num FROM alembic_version')).scalars().all() == ['20261023_1500']
             assert conn.execute(text('SELECT name FROM acestream_channels')).scalar() == 'Manual'
             if 'w3u_catalogues' in tables:
                 assert conn.execute(text('SELECT revision FROM w3u_catalogues')).scalar() == 3

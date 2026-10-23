@@ -5,6 +5,8 @@ import Integrations from '../pages/Integrations';
 import { createAppTheme } from '../theme';
 import { TestMemoryRouter } from '../testUtils/router';
 
+jest.mock('../components/integrations/TelegramSection', () => function MockTelegramSection() { return <div>Telegram sources</div>; });
+
 const mockPublicUrl = jest.fn();
 const mockUpdatePublicBaseUrl = jest.fn();
 const mockCapabilities = jest.fn();

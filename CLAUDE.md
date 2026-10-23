@@ -624,7 +624,7 @@ channels. Preserve source revisions, manual broadcaster mappings, archive clocks
 and private guarded artwork fetching. See `docs/dev/sporting-events.md`.
 
 
-Combined catalogues/events use migration head `20261023_1400`, preserving both
+Combined catalogues/events use migration revision `20261023_1400`, preserving both
 prior histories. Catalogue live imports require explicit confirmation; refresh
 imports only previously reviewed entry identities. Explicit event/VOD types cannot
 become permanent channels. Catalogue event preview reuses private snapshot inputs;
@@ -640,3 +640,19 @@ HTTP requests into a node/agent context or bind their token in shell code. Older
 targets missing metadata validation or the reusable FFmpeg runner use the fixed
 administrator-pinned policy bundle, with dependency comparisons against the
 selected runner ref. See `docs/ops/jenkins-collaborator-safety.md`.
+
+## Telegram account sources
+
+Telegram uses one encrypted user-account session outside the DB/config/log tree,
+with an independently mounted Fernet key and mandatory `TELEGRAM_ADMIN_TOKEN`.
+All Telegram endpoints require this header credential and HTTPS or localhost;
+never return/log API hashes, session strings, codes or passwords. Keep transports
+separate from the bounded recipe worker and additive ingestion. Source cursor and
+message observations commit with imports; never call URL snapshot deletion from
+a message consumer. Preserve stable sender IDs, membership checks, bounded queues,
+flood waits, session lease and retained-revision reconciliation. New sources default
+to new messages only; pause retains progress. See `wiki/Telegram-Sources.md`.
+
+Telegram migration `20261023_1500` follows catalogue/event revision `20261023_1400`.
+Keep the W3U `20261022_1200` identity unchanged; Telegram must not reuse it.
+See `wiki/Telegram-Sources.md#database-upgrades`.

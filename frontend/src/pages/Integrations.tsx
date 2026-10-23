@@ -5,6 +5,7 @@ import StatusLine from '../components/StatusLine';
 import PublicAddressSection from '../components/integrations/PublicAddressSection';
 import WebPlayerSection from '../components/integrations/WebPlayerSection';
 import RemotePlayersSection from '../components/integrations/RemotePlayersSection';
+import TelegramSection from '../components/integrations/TelegramSection';
 import MediaServersSection from '../components/integrations/MediaServersSection';
 import type { PlayerNotify } from '../components/player/playerCopy';
 import { usePublicUrl } from '../hooks/useSystemServices';
@@ -46,6 +47,7 @@ const Integrations: React.FC = () => {
       <WebPlayerSection />
       <RemotePlayersSection notify={notify} />
       <MediaServersSection notify={notify} />
+      <TelegramSection />
       <Snackbar
         open={feedback !== null}
         autoHideDuration={5000}

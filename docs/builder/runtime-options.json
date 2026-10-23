@@ -489,6 +489,34 @@
       "type": "text",
       "placeholder": "/gluetun/forwarded_port",
       "appliesWhen": "engineOn"
+    },
+    {
+      "id": "telegramAdminToken",
+      "env": "TELEGRAM_ADMIN_TOKEN",
+      "group": "integrations",
+      "label": "Telegram admin token",
+      "description": "Separate private admin credential, at least 32 characters. Telegram also needs the separately mounted encryption key and private session volume described in the Telegram Sources guide.",
+      "type": "password",
+      "appliesWhen": "always"
+    },
+    {
+      "id": "telegramKeyFile",
+      "env": "TELEGRAM_KEY_FILE",
+      "group": "integrations",
+      "label": "Telegram encryption key file",
+      "description": "Absolute path to a separately mounted private Fernet key, for example /run/secrets/telegram.key. Mount it read-only and outside config, logs and the session volume.",
+      "type": "text",
+      "appliesWhen": "always"
+    },
+    {
+      "id": "telegramSessionDir",
+      "env": "TELEGRAM_SESSION_DIR",
+      "group": "integrations",
+      "label": "Telegram private session directory",
+      "description": "Separately mounted persistent directory with mode 0700. Do not include it in ordinary backups.",
+      "type": "text",
+      "placeholder": "/var/lib/acestream-telegram",
+      "appliesWhen": "always"
     }
   ],
   "zeronet": {

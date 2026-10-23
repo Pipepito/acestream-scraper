@@ -102,8 +102,15 @@ if __name__ == '__main__':
             resource.setrlimit(resource.RLIMIT_AS, (1024 * 1024 * 1024, 1024 * 1024 * 1024))
             resource.setrlimit(resource.RLIMIT_CPU, (10, 10))
         data = json.loads(sys.stdin.read(MAX_SAMPLE_BYTES * 8))
-        recipe = ExtractionRecipe.model_validate(data['recipe'])
-        print(json.dumps(extract(recipe, data['sample'])))
+        if 'telegram' in data:
+            from app.services.telegram.extraction import Message, worker_extract
+            from app.schemas.telegram import TelegramSourceConfig
+            payload = data['telegram']
+            output = worker_extract(TelegramSourceConfig.model_validate(payload['source']), Message(**payload['message']))
+        else:
+            recipe = ExtractionRecipe.model_validate(data['recipe'])
+            output = extract(recipe, data['sample'])
+        print(json.dumps(output))
     except Exception:
         # Never echo source HTML, regex values or credentials in errors.
         print(json.dumps({'error': 'Invalid recipe or sample. Check selectors, JSON paths, regex and input limits.'}))

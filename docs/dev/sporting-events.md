@@ -1,7 +1,7 @@
 # Sporting events: shared ingestion and browsing
 
 Development implementation for #55, based on `develop`. The event model, reviewed ingestion, guide adapters, maintenance and player reuse
-are implemented here. W3U/Telegram transport integration remains in #257/#258;
+are implemented here, together with reviewed W3U event imports. Automatic W3U schedule extraction and Telegram ingestion remain in #257/#258;
 this is not live-source certification or a claim of arbitrary website support.
 
 ## Research and dependency boundaries
@@ -13,12 +13,11 @@ These are contributor observations, **not a new live-source verification**. No
 public gateway, CORS proxy, scraped website markup or schedule endpoint is embedded
 as a runtime dependency.
 
-PR #259 was still open/draft on 2026-10-23 at inspection (head `9177487a3cfd51322d3e74166aa416dcc04eaf63`),
-with no discussion comments returned. Its handoff explicitly expects this event
-model to land first. Recheck live state with `gh pr view 259` rather than treating
-this snapshot as current CI/review status. This branch does not merge or modify
-that PR. #258 owns Telegram transport/extraction; #233 owns non-XMLTV guide sources
-and overlays; #216 owns optional interpretation; #224 owns broader fallback.
+PR #259's handoff calls for sharing this event model and reviewing content before
+live-channel import. The implementations are now reconciled in that PR; #260 is
+superseded. Recheck current CI/review status with `gh pr view 259`. #258 owns
+Telegram transport/extraction; #233 owns non-XMLTV guide sources and overlays;
+#216 owns optional interpretation; #224 owns broader fallback.
 
 ## Contract
 
@@ -66,12 +65,9 @@ Migration `20261023_1200` follows `20261021_1200` and adds `sporting_events`,
 `event_observations`, and `event_media`. Revision `20261023_1300` adds private
 schedule sources, archive clocks and per-broadcast manual mappings. Existing
 archives start their retention clock at upgrade, not at an inferred historical date.
-PR #259 currently has a sibling migration
-`20261022_1200`: when integrating there, reconcile Alembic heads and exercise both
-prior-head upgrade paths. Do not edit already deployed revision history or drop
-catalogue snapshots to resolve the branch. A local database stamped by the W3U
-branch cannot run directly on this sibling branch; use an isolated development
-database until both migration histories have been integrated.
+Merge revision `20261023_1400` joins the event history with catalogue revision
+`20261022_1200`. Upgrade-path tests preserve both prior heads and shared channel
+rows. Keep the original deployed revisions intact.
 
 HTTP inputs live only in private `event_media`, with source-qualified opaque
 `url:` IDs. Rotating a URL/header changes that ID, preventing new viewers joining

@@ -68,6 +68,13 @@ const Catalogues: React.FC = () => {
   const itemKey = (entry: CatalogueEntry) => `${view?.id ?? 'preview'}:${entry.id}`;
   const detail = details ? byId.get(details) : undefined;
   const detailsRef = useRef<HTMLDivElement>(null);
+  const eventRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (eventEntry) {
+      eventRef.current?.focus();
+      eventRef.current?.scrollIntoView?.({ block: 'start' });
+    }
+  }, [eventEntry]);
   useEffect(() => { if (details) detailsRef.current?.focus(); }, [details]);
   const busy = saved.isFetching;
 
@@ -241,8 +248,8 @@ const Catalogues: React.FC = () => {
         </Stack>
       </ContentSection></Box> : null}
     </> : null}
-    {eventEntry && view?.id && !preview ? <EventImportPanel key={`${view.id}:${eventEntry.id}`} zone={Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'}
-      catalogue={{ id: view.id, revision: view.revision ?? 1, entryIds: [eventEntry.id], title: eventEntry.name }} onClose={() => setEventEntry(null)} /> : null}
+    {eventEntry && view?.id && !preview ? <Box ref={eventRef} tabIndex={-1} sx={{ scrollMarginTop: 80 }}><EventImportPanel key={`${view.id}:${eventEntry.id}`} zone={Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'}
+      catalogue={{ id: view.id, revision: view.revision ?? 1, entryIds: [eventEntry.id], title: eventEntry.name }} onClose={() => setEventEntry(null)} /></Box> : null}
     <Button component={RouterLink} to="/events">Open Events</Button>
     <ChannelPlayerDialog open={Boolean(playing)} contentId={playing?.channel_id ?? null} title={playing?.name ?? ''} onClose={() => setPlaying(null)} />
     <ConfirmDialog open={confirmRemove} title="Remove catalogue?" confirmLabel="Remove catalogue" danger busy={remove.isPending} body="Remove this catalogue and its refresh settings. Imported channels and manual assignments are kept; manage them in Acestream Channels." onConfirm={() => { if (view?.id) remove.mutate(view.id); }} onClose={() => setConfirmRemove(false)} />

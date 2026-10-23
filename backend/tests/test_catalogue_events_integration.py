@@ -120,3 +120,31 @@ def test_removed_catalogue_id_reuse_cannot_apply_stale_event_preview(client):
     assert replacement['id'] == saved['id'] and replacement['revision'] == saved['revision']
     assert apply(client, preview).status_code == 409
     assert client.get('/api/v1/events').json()['total'] == 0
+
+
+def test_reviewed_w3u_update_keeps_event_identity_and_manual_state(client, db_session, monkeypatch):
+    from app.services.catalogue_service import CatalogueService
+    from app.utils.bounded_source import SourceResponse
+    from app.models.models import AcestreamChannel, EventMedia
+    signed = 'first'
+    async def fetch(*args, **kwargs):
+        return SourceResponse(200, json.dumps({'stations': [{'id': 'stable-match', 'type': 'event',
+            'name': 'Publisher title', 'url': f'https://media.test/live.m3u8?token={signed}'}]}).encode(), {})
+    monkeypatch.setattr('app.services.w3u_parser.source_get', fetch)
+    raw = client.post('/api/v1/catalogues/preview', json={'url': 'https://example.test/list'}).json()
+    saved = client.post('/api/v1/catalogues', json={'preview_token': raw['preview_token'], 'name': 'Remote',
+        'selected_branches': ['root'], 'confirm_live': True}).json()
+    event = apply(client, event_preview(client, saved)).json()[0]
+    old_content = event['broadcasts'][0]['content_id']
+    client.patch('/api/v1/events/' + event['id'], json={'revision': event['revision'], 'followed': True,
+        'correction': {'title': 'Manual title', 'timezone': 'UTC', 'state': 'postponed'}})
+    signed = 'rotated'
+    current = CatalogueService(db_session).refresh(saved['id']).model_dump(mode='json')
+    # Catalogue refresh alone must not change the reviewed event's observation.
+    assert client.get('/api/v1/events/' + event['id']).json()['broadcasts'][0]['content_id'] == old_content
+    updated = apply(client, event_preview(client, current)).json()[0]
+    assert updated['id'] == event['id'] and updated['title'] == 'Manual title'
+    assert updated['followed'] and updated['state'] == 'postponed'
+    assert updated['broadcasts'][0]['content_id'] != old_content
+    assert db_session.get(EventMedia, old_content) is None
+    assert db_session.query(AcestreamChannel).count() == 0

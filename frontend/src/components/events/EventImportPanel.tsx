@@ -97,9 +97,9 @@ export default function EventImportPanel({ zone, onClose, source, catalogue }: P
           </TextField>
           {format === 'schema_org' ? <TextField label="Source timezone" value={sourceZone} onChange={(e) => setSourceZone(e.target.value)} helperText="IANA timezone used by this guide for times without an offset. Check the source; do not assume your display timezone." /> : null}
         </> : null}
-        <Typography variant="body2">Structured guides need SportsEvent records with stable IDs and explicit dates. Pages without this metadata, raw W3U lists and Telegram messages need their own adapters. Preview fetches the guide without saving it.</Typography>
+        <Typography variant="body2">Structured guides need SportsEvent records with stable IDs and explicit dates. Pages without this metadata and Telegram messages need adapters. Open raw W3U lists in Catalogues and use Add as event. Preview fetches the guide without saving it.</Typography>
       </> : <>
-        <Typography variant="body2">Use the version 1 event schedule format documented in the Sports events guide. Raw W3U lists and Telegram messages need their own adapters.</Typography>
+        <Typography variant="body2">Use the version 1 event schedule format documented in the Sports events guide. Open raw W3U lists in Catalogues and use Add as event. Telegram messages need an adapter.</Typography>
         <Button component="label" variant="outlined">Choose schedule file<input type="file" accept=".json,application/json" hidden onChange={(e) => {
           const file = e.target.files?.[0];
           if (!file) return;

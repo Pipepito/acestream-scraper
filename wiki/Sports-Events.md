@@ -147,8 +147,8 @@ stored there.
 
 Limits: 2 MiB per JSON upload, 500 observations per import, 2,000 stored events,
 4,000 observations, 10,000 broadcasts and 16 MiB observation data. A reached limit
-preserves the existing inventory. W3U/Telegram transport integration belongs to
-#257/#258; their normalized observations share this event model. Arbitrary website
+preserves the existing inventory. Reviewed W3U imports share this event model;
+automatic W3U schedule extraction and Telegram transport remain in #257/#258. Arbitrary website
 resolvers, automatic playback fallback and guide overlays are not offered here.
 
 

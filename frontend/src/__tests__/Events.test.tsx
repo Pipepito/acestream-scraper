@@ -110,7 +110,7 @@ it('reviews a URL before enabling scheduled refresh and saves explicit retention
   await user.type(screen.getByLabelText('Keep ended events (days)'), '7');
   await user.click(screen.getByRole('button', { name: 'Save retention' }));
   await waitFor(() => expect(service.saveRetention).toHaveBeenCalledWith({ ended_days: 7, archived_days: 0 }));
-  await user.click(screen.getByRole('button', { name: 'Add events', exact: true }));
+  await user.click(screen.getByRole('button', { name: 'Add events' }));
   await user.click(screen.getByLabelText('Add from'));
   await user.click(screen.getByRole('option', { name: 'Load schedule URL' }));
   await user.type(screen.getByLabelText('Schedule URL'), 'https://guide.example/events.json');
@@ -159,12 +159,12 @@ it('reports raster decode failures and releases the artwork blob on close', asyn
     service.get.mockResolvedValue({ ...event, has_artwork: true });
     service.artwork.mockResolvedValue(new Blob(['invalid image'], { type: 'image/png' }));
     const user = userEvent.setup();
-    const rendered = renderPage();
+    const { unmount } = renderPage();
     await user.click(await screen.findByRole('button', { name: 'View broadcasts for North United vs South City' }));
     await user.click(screen.getByRole('button', { name: 'Load event artwork' }));
     fireEvent.error(await screen.findByRole('img', { name: `Artwork for ${event.title}` }));
     expect(screen.getByText(/Artwork is unavailable/)).toBeVisible();
-    rendered.unmount();
+    unmount();
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:event-artwork');
   } finally {
     URL.createObjectURL = originalCreate;

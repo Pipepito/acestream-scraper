@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from '@mui/material/styles';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -147,4 +147,27 @@ it('loads artwork only on request and keeps broadcasts usable after an image fai
   await user.click(screen.getByRole('button', { name: 'Load event artwork' }));
   expect(await screen.findByText(/Artwork is unavailable/)).toBeVisible();
   expect(screen.getByRole('button', { name: 'Play Sports One' })).toBeEnabled();
+});
+
+
+it('reports raster decode failures and releases the artwork blob on close', async () => {
+  const originalCreate = URL.createObjectURL;
+  const originalRevoke = URL.revokeObjectURL;
+  URL.createObjectURL = jest.fn(() => 'blob:event-artwork');
+  URL.revokeObjectURL = jest.fn();
+  try {
+    service.get.mockResolvedValue({ ...event, has_artwork: true });
+    service.artwork.mockResolvedValue(new Blob(['invalid image'], { type: 'image/png' }));
+    const user = userEvent.setup();
+    const rendered = renderPage();
+    await user.click(await screen.findByRole('button', { name: 'View broadcasts for North United vs South City' }));
+    await user.click(screen.getByRole('button', { name: 'Load event artwork' }));
+    fireEvent.error(await screen.findByRole('img', { name: `Artwork for ${event.title}` }));
+    expect(screen.getByText(/Artwork is unavailable/)).toBeVisible();
+    rendered.unmount();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:event-artwork');
+  } finally {
+    URL.createObjectURL = originalCreate;
+    URL.revokeObjectURL = originalRevoke;
+  }
 });

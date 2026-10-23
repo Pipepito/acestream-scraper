@@ -581,8 +581,8 @@ association is explicit. Require source timezones, reject ambiguous/nonexistent
 local times without an offset, and never infer live state or media signal from
 clock/import. Event-only HTTP media uses the shared guarded player without TV
 assignments or playlist export. Following is installation-wide; archive is
-reversible and retention currently indefinite. W3U/Telegram collectors, scheduled
-refresh/retention, artwork and guide overlays remain separate integration work.
+reversible until opt-in retention deletes eligible rows. W3U/Telegram transport
+integration remains in its linked issues; no guide overlay is offered here.
 See `docs/dev/sporting-events.md` and `wiki/Sports-Events.md`.
 
 

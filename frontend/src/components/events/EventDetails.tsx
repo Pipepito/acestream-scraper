@@ -43,7 +43,7 @@ export default function EventDetails({ event, zone, busy, onUpdate, onPlay }: Pr
           <Typography variant="body2" color="text.secondary">{broadcast.reason} · {broadcast.source_name}{broadcast.origin ? ` · ${broadcast.origin}` : ''}</Typography>
           <EventBroadcastMapper event={event} broadcast={broadcast} />
         </Stack>
-        {broadcast.content_id && broadcast.compatibility === 'playable' ? <Button variant="outlined" onClick={() => onPlay(broadcast.content_id!, broadcast.label)}>Play {broadcast.label}</Button> : <Typography variant="body2">{broadcast.compatibility}</Typography>}
+        {broadcast.content_id && broadcast.compatibility === 'playable' ? <Button variant="outlined" sx={{ alignSelf: { xs: 'flex-start', sm: 'center' }, flexShrink: 0 }} onClick={() => onPlay(broadcast.content_id!, broadcast.label)}>Play {broadcast.label}</Button> : <Typography variant="body2">{broadcast.compatibility}</Typography>}
       </Stack>)}
       <Typography variant="subtitle2">Sources</Typography>
       {event.provenance.map((source) => <Typography key={`${source.source_id}:${source.external_id}`} variant="body2" color="text.secondary">{source.source_name} · {source.source_kind} · Updated {formatRelativeTime(source.updated_at)}</Typography>)}

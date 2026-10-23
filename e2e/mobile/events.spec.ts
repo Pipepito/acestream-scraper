@@ -77,6 +77,7 @@ for (const mode of ['light', 'dark']) {
     await page.getByRole('button', { name: 'Save retention' }).click();
     await expect.poll(() => retained).toBe(true);
     await expect(page.getByText('Retention saved. Changes take effect during daily maintenance.')).toBeVisible();
+    await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({ path: test.info().outputPath(`event-sources-${mode}.png`), fullPage: true, animations: 'disabled' });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     expect(errors).toEqual([]);

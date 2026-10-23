@@ -17,7 +17,7 @@ export default function EventBroadcastMapper({ event, broadcast }: Props) {
   const save = useMutation({ mutationFn: (channelId: string | null) => eventService.mapBroadcast(event.id, event.revision, broadcast.id, channelId),
     onSuccess: () => { setOpen(false); void cache.invalidateQueries({ queryKey: ['events'] }); } });
   return <Stack spacing={1}>
-    <Button size="small" onClick={() => setOpen(!open)} aria-expanded={open}>{open ? `Cancel mapping ${broadcast.label}` : `Map ${broadcast.label} to a stream`}</Button>
+    <Button size="small" sx={{ alignSelf: 'flex-start', textAlign: 'left' }} onClick={() => setOpen(!open)} aria-expanded={open}>{open ? `Cancel mapping ${broadcast.label}` : `Map ${broadcast.label} to a stream`}</Button>
     {open ? <>
       <Typography variant="body2">Choose the exact country or edition. This mapping is saved for this broadcast and survives schedule refresh. No channel is created or renamed.</Typography>
       <Autocomplete options={channels.data?.items ?? []} value={selected} inputValue={search}

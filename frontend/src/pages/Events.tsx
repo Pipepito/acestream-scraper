@@ -47,10 +47,10 @@ export default function Events() {
   const total = list.data?.total ?? 0;
   const resetFilters = () => { setSearch(''); setSport(''); setCompetition(''); setSource(''); setFollowed(false); setOffset(0); setTab('all'); };
   return <Box>
-    <PageHeader title="Events" subtitle="Schedules, broadcasts and your followed events." actions={<Stack direction="row" gap={1} flexWrap="wrap"><Button onClick={() => setManaging(!managing)} aria-expanded={managing}>Sources & retention</Button><Button variant="contained" onClick={() => { setReviewSource(undefined); setAdding(true); }}>Add events</Button></Stack>} />
+    <PageHeader title="Events" subtitle="Schedules, broadcasts and your followed events." actions={<Stack direction="row" gap={1} flexWrap="wrap"><Button onClick={() => setManaging(!managing)} aria-expanded={managing}>Sources & retention</Button><Button variant="contained" onClick={() => { setReviewSource(undefined); setManaging(false); setAdding(true); }}>Add events</Button></Stack>} />
     <StatusLine items={[{ label: 'Events', value: list.isPending ? 'Loading…' : list.isError ? 'Unavailable' : total }, { label: 'Times', value: zone }]} />
     {message && !selected ? <Alert severity={update.isError ? 'error' : 'success'} onClose={() => setMessage('')} sx={{ mb: 2 }}>{message}</Alert> : null}
-    {managing ? <EventSourcesPanel onReview={(source) => { setReviewSource(source); setAdding(true); }} /> : null}
+    {managing ? <EventSourcesPanel onReview={(source) => { setReviewSource(source); setManaging(false); setAdding(true); }} /> : null}
     {adding ? <EventImportPanel key={reviewSource?.id ?? 'new'} source={reviewSource} zone={zone} onClose={() => { setAdding(false); setReviewSource(undefined); }} /> : null}
     <ContentSection title="Schedule">
       <Tabs value={tab} onChange={(_, value: string) => { setTab(value); setOffset(0); }} variant="scrollable" scrollButtons="auto" aria-label="Event dates">

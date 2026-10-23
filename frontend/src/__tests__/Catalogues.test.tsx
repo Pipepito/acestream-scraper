@@ -104,7 +104,7 @@ it('saves without silently classifying unknown streams as live', async () => {
   await user.click(screen.getByRole('button', { name: 'Add catalogue' }));
   await user.type(screen.getByRole('textbox', { name: 'Catalogue URL' }), 'https://example.test/list');
   await user.click(screen.getByRole('button', { name: 'Preview URL' }));
-  await user.click(await screen.findByRole('button', { name: 'Save catalogue', exact: true }));
+  await user.click(await screen.findByRole('button', { name: 'Save catalogue' }));
   expect(mocked.save).toHaveBeenCalledWith(expect.objectContaining({ confirm_live: false }), expect.anything());
 });
 

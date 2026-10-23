@@ -59,7 +59,7 @@ for (const theme of ['light', 'dark']) {
     await page.getByRole('button', { name: 'Add favorite' }).click();
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem('acestream.catalogue-history.v1') ?? '{}').favorites)).toEqual(['1:ace']);
     await page.getByRole('button', { name: 'Add as event', exact: true }).click();
-    await page.getByLabel('Event title', { exact: true }).fill('Reviewed match');
+    await page.getByRole('textbox', { name: 'Event title', exact: true }).fill('Reviewed match');
     await page.getByRole('button', { name: 'Preview events', exact: true }).click();
     expect(eventWrites).toHaveLength(0);
     await page.getByRole('checkbox', { name: 'Reviewed match · unknown' }).check();

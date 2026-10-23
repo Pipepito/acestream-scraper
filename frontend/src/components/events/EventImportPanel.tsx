@@ -72,16 +72,16 @@ export default function EventImportPanel({ zone, onClose, source, catalogue }: P
         <Button disabled={busy} onClick={onClose}>Cancel</Button>
       </Stack>
     </Stack> : <Stack spacing={2}>
-      <TextField select label="Add from" value={mode} onChange={(e) => setMode(e.target.value)} disabled={busy || Boolean(source) || Boolean(catalogue)}>
+      {!catalogue ? <TextField select label="Add from" value={mode} onChange={(e) => setMode(e.target.value)} disabled={busy || Boolean(source) || Boolean(catalogue)}>
         <MenuItem value="manual">Create an event</MenuItem><MenuItem value="json">Import event schedule JSON</MenuItem><MenuItem value="url">Load schedule URL</MenuItem>
-      </TextField>
+      </TextField> : null}
       {mode === 'manual' ? <>
         <TextField required label="Event title" value={title} onChange={(e) => setTitle(e.target.value)} inputProps={{ maxLength: 300 }} />
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <TextField fullWidth label="Sport" value={sport} onChange={(e) => setSport(e.target.value)} />
           <TextField fullWidth label="Competition" value={competition} onChange={(e) => setCompetition(e.target.value)} />
         </Stack>
-        <TextField label="Scheduled start" type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} InputLabelProps={{ shrink: true }} helperText={`${catalogue ? sourceZone : zone}. Leave blank if unknown. Repeated DST times require an explicit offset in JSON.`} />
+        <TextField label="Scheduled start" type={catalogue ? 'text' : 'datetime-local'} value={start} onChange={(e) => setStart(e.target.value)} InputLabelProps={{ shrink: true }} helperText={catalogue ? `${sourceZone}. Enter date and time, e.g. 2026-10-25T02:30:00+02:00. Include an offset for repeated DST times; leave blank if unknown.` : `${zone}. Leave blank if unknown. Repeated DST times require an explicit offset in JSON.`} />
         {catalogue ? <>
           <TextField label="Source timezone" value={sourceZone} onChange={(e) => setSourceZone(e.target.value)} helperText="Use the publisher’s IANA timezone. Start time is not inferred from the title." />
           <Typography variant="body2">The selected catalogue source becomes an event broadcast. Its private URL and headers stay on the server. Refresh the catalogue and review this entry again to update it; scheduled catalogue refresh does not change events.</Typography>

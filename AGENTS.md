@@ -539,3 +539,16 @@ The isolated CI runner builds the same minimal FFmpeg from the runtime manifest
 and build script; include both in trusted exports, cache keys and fork guards.
 Keep Debian FFmpeg only as `FFMPEG_TEST_TOOL_PATH` for synthetic media fixtures.
 See `docs/ops/jenkins-ci.md#ffmpeg-in-the-isolated-validation-runner`.
+
+
+## Telegram account sources
+
+Telegram uses one encrypted user-account session outside the DB/config/log tree,
+with an independently mounted Fernet key and mandatory `TELEGRAM_ADMIN_TOKEN`.
+All Telegram endpoints require this header credential and HTTPS or localhost;
+never return/log API hashes, session strings, codes or passwords. Keep transports
+separate from the bounded recipe worker and additive ingestion. Source cursor and
+message observations commit with imports; never call URL snapshot deletion from
+a message consumer. Preserve stable sender IDs, membership checks, bounded queues,
+flood waits, session lease and retained-revision reconciliation. New sources default
+to new messages only; pause retains progress. See `wiki/Telegram-Sources.md`.

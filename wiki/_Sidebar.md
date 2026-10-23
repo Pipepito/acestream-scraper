@@ -14,6 +14,7 @@
 - [Live TV and web player](Web-Player.md)
 - [Channel management](tasks/channel-management.md)
 - [Stream statistics](Stream-Statistics.md)
+- [Telegram sources](Telegram-Sources.md)
 - [Extraction recipes](Extraction-Recipes.md)
 - [HTTP streams and broadcasters](HTTP-Streams.md)
 - [VLC and Kodi](Remote-Players.md)

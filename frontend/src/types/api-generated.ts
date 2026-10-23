@@ -930,6 +930,70 @@ export interface paths {
     /** Check for a newer published stable release */
     get: operations["get_updates_api_v1_system_updates_get"];
   };
+  "/api/v1/telegram/account": {
+    /** Logout */
+    delete: operations["logout_api_v1_telegram_account_delete"];
+  };
+  "/api/v1/telegram/chats": {
+    /** Chats */
+    get: operations["chats_api_v1_telegram_chats_get"];
+  };
+  "/api/v1/telegram/chats/{chat_id}/topics": {
+    /** Topics */
+    get: operations["topics_api_v1_telegram_chats__chat_id__topics_get"];
+  };
+  "/api/v1/telegram/code": {
+    /** Code */
+    post: operations["code_api_v1_telegram_code_post"];
+  };
+  "/api/v1/telegram/disconnect": {
+    /** Disconnect */
+    post: operations["disconnect_api_v1_telegram_disconnect_post"];
+  };
+  "/api/v1/telegram/login": {
+    /** Login */
+    post: operations["login_api_v1_telegram_login_post"];
+  };
+  "/api/v1/telegram/password": {
+    /** Password */
+    post: operations["password_api_v1_telegram_password_post"];
+  };
+  "/api/v1/telegram/preset": {
+    /** Preset */
+    get: operations["preset_api_v1_telegram_preset_get"];
+  };
+  "/api/v1/telegram/preview": {
+    /** Preview */
+    post: operations["preview_api_v1_telegram_preview_post"];
+  };
+  "/api/v1/telegram/reconnect": {
+    /** Reconnect */
+    post: operations["reconnect_api_v1_telegram_reconnect_post"];
+  };
+  "/api/v1/telegram/resolve": {
+    /** Resolve */
+    post: operations["resolve_api_v1_telegram_resolve_post"];
+  };
+  "/api/v1/telegram/sources": {
+    /** Sources */
+    get: operations["sources_api_v1_telegram_sources_get"];
+    /** Create Source */
+    post: operations["create_source_api_v1_telegram_sources_post"];
+  };
+  "/api/v1/telegram/sources/{source_id}": {
+    /** Update Source */
+    put: operations["update_source_api_v1_telegram_sources__source_id__put"];
+    /** Delete Source */
+    delete: operations["delete_source_api_v1_telegram_sources__source_id__delete"];
+  };
+  "/api/v1/telegram/sources/{source_id}/scan": {
+    /** Scan */
+    post: operations["scan_api_v1_telegram_sources__source_id__scan_post"];
+  };
+  "/api/v1/telegram/status": {
+    /** Status */
+    get: operations["status_api_v1_telegram_status_get"];
+  };
   "/api/v1/tuner/settings": {
     /** Tuner settings */
     get: operations["get_tuner_settings_api_v1_tuner_settings_get"];
@@ -3668,6 +3732,274 @@ export interface components {
       unassigned_streams: number;
       /** Unmatched Streams */
       unmatched_streams: number;
+    };
+    /** TelegramCode */
+    TelegramCode: {
+      /**
+       * Code
+       * Format: password
+       */
+      code: string;
+    };
+    /** TelegramLogin */
+    TelegramLogin: {
+      /**
+       * Api Hash
+       * Format: password
+       */
+      api_hash: string;
+      /** Api Id */
+      api_id: number;
+      /**
+       * Phone
+       * Format: password
+       */
+      phone: string;
+    };
+    /** TelegramPassword */
+    TelegramPassword: {
+      /**
+       * Password
+       * Format: password
+       */
+      password: string;
+    };
+    /** TelegramPeer */
+    TelegramPeer: {
+      /** Id */
+      id: string;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "user" | "chat" | "channel" | "topic";
+      /** Label */
+      label: string;
+    };
+    /** TelegramPreview */
+    TelegramPreview: {
+      /** Chat Id */
+      chat_id: string;
+      /** Messages */
+      messages: components["schemas"]["TelegramPreviewMessage"][];
+    };
+    /** TelegramPreviewMessage */
+    TelegramPreviewMessage: {
+      /** Message Id */
+      message_id: number;
+      /** Outcome */
+      outcome: string;
+      result: components["schemas"]["RecipePreview"];
+      /** Sender Id */
+      sender_id?: string | null;
+    };
+    /** TelegramPreviewRequest */
+    TelegramPreviewRequest: {
+      /**
+       * Limit
+       * @default 10
+       */
+      limit?: number;
+      source: components["schemas"]["TelegramSourceConfig"];
+    };
+    /** TelegramResolve */
+    TelegramResolve: {
+      /** Username */
+      username: string;
+    };
+    /** TelegramSource */
+    TelegramSource: {
+      /**
+       * Bare Ids
+       * @default true
+       */
+      bare_ids?: boolean;
+      /** Chat Id */
+      chat_id: string;
+      /** Chat Label */
+      chat_label: string;
+      /** Cursor */
+      cursor: number;
+      /**
+       * Enabled
+       * @default true
+       */
+      enabled?: boolean;
+      /**
+       * Exclude
+       * @default
+       */
+      exclude?: string;
+      /**
+       * Filter Mode
+       * @default keyword
+       * @enum {string}
+       */
+      filter_mode?: "keyword" | "regex";
+      /** Id */
+      id: number;
+      /** Imported Count */
+      imported_count: number;
+      /**
+       * Include
+       * @default
+       */
+      include?: string;
+      /**
+       * Include Forwards
+       * @default true
+       */
+      include_forwards?: boolean;
+      /** Last Success */
+      last_success?: string | null;
+      /** Message */
+      message: string;
+      /** Name */
+      name: string;
+      recipe?: components["schemas"]["ExtractionRecipe"] | null;
+      /** Sender Ids */
+      sender_ids?: string[];
+      /** Sender Labels */
+      sender_labels?: {
+        [key: string]: string;
+      };
+      /**
+       * Sender Rule
+       * @default posting
+       * @enum {string}
+       */
+      sender_rule?: "posting" | "original";
+      /** State */
+      state: string;
+      /** Topic Id */
+      topic_id?: number | null;
+    };
+    /** TelegramSourceConfig */
+    TelegramSourceConfig: {
+      /**
+       * Bare Ids
+       * @default true
+       */
+      bare_ids?: boolean;
+      /** Chat Id */
+      chat_id: string;
+      /**
+       * Enabled
+       * @default true
+       */
+      enabled?: boolean;
+      /**
+       * Exclude
+       * @default
+       */
+      exclude?: string;
+      /**
+       * Filter Mode
+       * @default keyword
+       * @enum {string}
+       */
+      filter_mode?: "keyword" | "regex";
+      /**
+       * Include
+       * @default
+       */
+      include?: string;
+      /**
+       * Include Forwards
+       * @default true
+       */
+      include_forwards?: boolean;
+      /** Name */
+      name: string;
+      recipe?: components["schemas"]["ExtractionRecipe"] | null;
+      /** Sender Ids */
+      sender_ids?: string[];
+      /**
+       * Sender Rule
+       * @default posting
+       * @enum {string}
+       */
+      sender_rule?: "posting" | "original";
+      /** Topic Id */
+      topic_id?: number | null;
+    };
+    /** TelegramSourceCreate */
+    TelegramSourceCreate: {
+      /**
+       * Bare Ids
+       * @default true
+       */
+      bare_ids?: boolean;
+      /** Chat Id */
+      chat_id: string;
+      /**
+       * Enabled
+       * @default true
+       */
+      enabled?: boolean;
+      /**
+       * Exclude
+       * @default
+       */
+      exclude?: string;
+      /**
+       * Filter Mode
+       * @default keyword
+       * @enum {string}
+       */
+      filter_mode?: "keyword" | "regex";
+      /**
+       * History Count
+       * @default 0
+       */
+      history_count?: number;
+      /** History Since */
+      history_since?: string | null;
+      /**
+       * Include
+       * @default
+       */
+      include?: string;
+      /**
+       * Include Forwards
+       * @default true
+       */
+      include_forwards?: boolean;
+      /** Name */
+      name: string;
+      recipe?: components["schemas"]["ExtractionRecipe"] | null;
+      /** Sender Ids */
+      sender_ids?: string[];
+      /**
+       * Sender Rule
+       * @default posting
+       * @enum {string}
+       */
+      sender_rule?: "posting" | "original";
+      /** Topic Id */
+      topic_id?: number | null;
+    };
+    /** TelegramStatus */
+    TelegramStatus: {
+      /**
+       * Account Label
+       * @default
+       */
+      account_label?: string;
+      /**
+       * Message
+       * @default
+       */
+      message?: string;
+      /**
+       * Queue Size
+       * @default 0
+       */
+      queue_size?: number;
+      /** Retry At */
+      retry_at?: string | null;
+      /** State */
+      state: string;
     };
     /** TunerAccessResponse */
     TunerAccessResponse: {
@@ -7462,6 +7794,312 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["UpdateStatus"];
+        };
+      };
+    };
+  };
+  /** Logout */
+  logout_api_v1_telegram_account_delete: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TelegramStatus"];
+        };
+      };
+    };
+  };
+  /** Chats */
+  chats_api_v1_telegram_chats_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TelegramPeer"][];
+        };
+      };
+    };
+  };
+  /** Topics */
+  topics_api_v1_telegram_chats__chat_id__topics_get: {
+    parameters: {
+      path: {
+        chat_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TelegramPeer"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Code */
+  code_api_v1_telegram_code_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TelegramCode"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TelegramStatus"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Disconnect */
+  disconnect_api_v1_telegram_disconnect_post: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TelegramStatus"];
+        };
+      };
+    };
+  };
+  /** Login */
+  login_api_v1_telegram_login_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TelegramLogin"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TelegramStatus"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Password */
+  password_api_v1_telegram_password_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TelegramPassword"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TelegramStatus"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Preset */
+  preset_api_v1_telegram_preset_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ExtractionRecipe"];
+        };
+      };
+    };
+  };
+  /** Preview */
+  preview_api_v1_telegram_preview_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TelegramPreviewRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TelegramPreview"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Reconnect */
+  reconnect_api_v1_telegram_reconnect_post: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TelegramStatus"];
+        };
+      };
+    };
+  };
+  /** Resolve */
+  resolve_api_v1_telegram_resolve_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TelegramResolve"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TelegramPeer"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Sources */
+  sources_api_v1_telegram_sources_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TelegramSource"][];
+        };
+      };
+    };
+  };
+  /** Create Source */
+  create_source_api_v1_telegram_sources_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TelegramSourceCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TelegramSource"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Update Source */
+  update_source_api_v1_telegram_sources__source_id__put: {
+    parameters: {
+      path: {
+        source_id: number;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TelegramSourceConfig"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TelegramSource"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Delete Source */
+  delete_source_api_v1_telegram_sources__source_id__delete: {
+    parameters: {
+      path: {
+        source_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": {
+            [key: string]: boolean;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Scan */
+  scan_api_v1_telegram_sources__source_id__scan_post: {
+    parameters: {
+      path: {
+        source_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": {
+            [key: string]: boolean;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Status */
+  status_api_v1_telegram_status_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TelegramStatus"];
         };
       };
     };

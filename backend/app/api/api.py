@@ -33,3 +33,6 @@ api_router.include_router(tuner.router, prefix="/tuner", tags=["tuner"])
 
 from app.api.endpoints import startup
 api_router.include_router(startup.router, prefix="/startup")
+
+from app.api.endpoints import telegram
+api_router.include_router(telegram.router, prefix="/telegram", tags=["telegram"])

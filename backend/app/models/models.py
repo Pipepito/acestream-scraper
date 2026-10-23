@@ -380,3 +380,27 @@ class ScheduledTaskState(Base):
     status = Column(String(32), nullable=False)
     last_error = Column(Text, nullable=True)
     last_result = Column(JSON, nullable=True)
+
+class TelegramSourceRow(Base):
+    __tablename__ = 'telegram_sources'
+    id = Column(Integer, primary_key=True)
+    account_id = Column(String(32), nullable=False)
+    config = Column(JSON, nullable=False)
+    chat_label = Column(String(255), nullable=False)
+    sender_labels = Column(JSON, nullable=False)
+    cursor = Column(Integer, nullable=False, default=0)
+    state = Column(String(32), nullable=False, default='waiting')
+    last_success = Column(UtcDateTime(), nullable=True)
+    imported_count = Column(Integer, nullable=False, default=0)
+    message = Column(String(255), nullable=False, default='')
+    generation = Column(Integer, nullable=False, default=0)
+
+
+class TelegramObservation(Base):
+    __tablename__ = 'telegram_observations'
+    __table_args__ = (Index('ix_telegram_observation_time', 'source_id', 'observed_at'),)
+    source_id = Column(Integer, ForeignKey('telegram_sources.id', ondelete='CASCADE'), primary_key=True)
+    message_id = Column(Integer, primary_key=True)
+    revision = Column(String(64), nullable=False)
+    channel_ids = Column(JSON, nullable=False)
+    observed_at = Column(UtcDateTime(), nullable=False)

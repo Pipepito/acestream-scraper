@@ -6318,6 +6318,589 @@
         "title": "TVMatchPreview",
         "type": "object"
       },
+      "TelegramCode": {
+        "properties": {
+          "code": {
+            "format": "password",
+            "maxLength": 16,
+            "minLength": 1,
+            "title": "Code",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "TelegramCode",
+        "type": "object"
+      },
+      "TelegramLogin": {
+        "additionalProperties": false,
+        "properties": {
+          "api_hash": {
+            "format": "password",
+            "maxLength": 32,
+            "minLength": 32,
+            "title": "Api Hash",
+            "type": "string",
+            "writeOnly": true
+          },
+          "api_id": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 2147483647.0,
+            "title": "Api Id",
+            "type": "integer"
+          },
+          "phone": {
+            "format": "password",
+            "maxLength": 32,
+            "minLength": 5,
+            "title": "Phone",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "api_id",
+          "api_hash",
+          "phone"
+        ],
+        "title": "TelegramLogin",
+        "type": "object"
+      },
+      "TelegramPassword": {
+        "properties": {
+          "password": {
+            "format": "password",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Password",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "title": "TelegramPassword",
+        "type": "object"
+      },
+      "TelegramPeer": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "user",
+              "chat",
+              "channel",
+              "topic"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "kind"
+        ],
+        "title": "TelegramPeer",
+        "type": "object"
+      },
+      "TelegramPreview": {
+        "properties": {
+          "chat_id": {
+            "title": "Chat Id",
+            "type": "string"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/TelegramPreviewMessage"
+            },
+            "title": "Messages",
+            "type": "array"
+          }
+        },
+        "required": [
+          "chat_id",
+          "messages"
+        ],
+        "title": "TelegramPreview",
+        "type": "object"
+      },
+      "TelegramPreviewMessage": {
+        "properties": {
+          "message_id": {
+            "title": "Message Id",
+            "type": "integer"
+          },
+          "outcome": {
+            "title": "Outcome",
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/RecipePreview"
+          },
+          "sender_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sender Id"
+          }
+        },
+        "required": [
+          "message_id",
+          "outcome",
+          "result"
+        ],
+        "title": "TelegramPreviewMessage",
+        "type": "object"
+      },
+      "TelegramPreviewRequest": {
+        "properties": {
+          "limit": {
+            "default": 10,
+            "maximum": 30.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "source": {
+            "$ref": "#/components/schemas/TelegramSourceConfig"
+          }
+        },
+        "required": [
+          "source"
+        ],
+        "title": "TelegramPreviewRequest",
+        "type": "object"
+      },
+      "TelegramResolve": {
+        "properties": {
+          "username": {
+            "pattern": "^@?[A-Za-z][A-Za-z0-9_]{3,31}$",
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username"
+        ],
+        "title": "TelegramResolve",
+        "type": "object"
+      },
+      "TelegramSource": {
+        "additionalProperties": false,
+        "properties": {
+          "bare_ids": {
+            "default": true,
+            "title": "Bare Ids",
+            "type": "boolean"
+          },
+          "chat_id": {
+            "pattern": "^-?[1-9][0-9]{0,18}$",
+            "title": "Chat Id",
+            "type": "string"
+          },
+          "chat_label": {
+            "title": "Chat Label",
+            "type": "string"
+          },
+          "cursor": {
+            "title": "Cursor",
+            "type": "integer"
+          },
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "exclude": {
+            "default": "",
+            "maxLength": 512,
+            "title": "Exclude",
+            "type": "string"
+          },
+          "filter_mode": {
+            "default": "keyword",
+            "enum": [
+              "keyword",
+              "regex"
+            ],
+            "title": "Filter Mode",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "imported_count": {
+            "title": "Imported Count",
+            "type": "integer"
+          },
+          "include": {
+            "default": "",
+            "maxLength": 512,
+            "title": "Include",
+            "type": "string"
+          },
+          "include_forwards": {
+            "default": true,
+            "title": "Include Forwards",
+            "type": "boolean"
+          },
+          "last_success": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Success"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "recipe": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtractionRecipe"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sender_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Sender Ids",
+            "type": "array"
+          },
+          "sender_labels": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Sender Labels",
+            "type": "object"
+          },
+          "sender_rule": {
+            "default": "posting",
+            "enum": [
+              "posting",
+              "original"
+            ],
+            "title": "Sender Rule",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "topic_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic Id"
+          }
+        },
+        "required": [
+          "name",
+          "chat_id",
+          "id",
+          "chat_label",
+          "cursor",
+          "state",
+          "imported_count",
+          "message"
+        ],
+        "title": "TelegramSource",
+        "type": "object"
+      },
+      "TelegramSourceConfig": {
+        "additionalProperties": false,
+        "properties": {
+          "bare_ids": {
+            "default": true,
+            "title": "Bare Ids",
+            "type": "boolean"
+          },
+          "chat_id": {
+            "pattern": "^-?[1-9][0-9]{0,18}$",
+            "title": "Chat Id",
+            "type": "string"
+          },
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "exclude": {
+            "default": "",
+            "maxLength": 512,
+            "title": "Exclude",
+            "type": "string"
+          },
+          "filter_mode": {
+            "default": "keyword",
+            "enum": [
+              "keyword",
+              "regex"
+            ],
+            "title": "Filter Mode",
+            "type": "string"
+          },
+          "include": {
+            "default": "",
+            "maxLength": 512,
+            "title": "Include",
+            "type": "string"
+          },
+          "include_forwards": {
+            "default": true,
+            "title": "Include Forwards",
+            "type": "boolean"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "recipe": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtractionRecipe"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sender_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Sender Ids",
+            "type": "array"
+          },
+          "sender_rule": {
+            "default": "posting",
+            "enum": [
+              "posting",
+              "original"
+            ],
+            "title": "Sender Rule",
+            "type": "string"
+          },
+          "topic_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic Id"
+          }
+        },
+        "required": [
+          "name",
+          "chat_id"
+        ],
+        "title": "TelegramSourceConfig",
+        "type": "object"
+      },
+      "TelegramSourceCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "bare_ids": {
+            "default": true,
+            "title": "Bare Ids",
+            "type": "boolean"
+          },
+          "chat_id": {
+            "pattern": "^-?[1-9][0-9]{0,18}$",
+            "title": "Chat Id",
+            "type": "string"
+          },
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "exclude": {
+            "default": "",
+            "maxLength": 512,
+            "title": "Exclude",
+            "type": "string"
+          },
+          "filter_mode": {
+            "default": "keyword",
+            "enum": [
+              "keyword",
+              "regex"
+            ],
+            "title": "Filter Mode",
+            "type": "string"
+          },
+          "history_count": {
+            "default": 0,
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "History Count",
+            "type": "integer"
+          },
+          "history_since": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "History Since"
+          },
+          "include": {
+            "default": "",
+            "maxLength": 512,
+            "title": "Include",
+            "type": "string"
+          },
+          "include_forwards": {
+            "default": true,
+            "title": "Include Forwards",
+            "type": "boolean"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "recipe": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtractionRecipe"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sender_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Sender Ids",
+            "type": "array"
+          },
+          "sender_rule": {
+            "default": "posting",
+            "enum": [
+              "posting",
+              "original"
+            ],
+            "title": "Sender Rule",
+            "type": "string"
+          },
+          "topic_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic Id"
+          }
+        },
+        "required": [
+          "name",
+          "chat_id"
+        ],
+        "title": "TelegramSourceCreate",
+        "type": "object"
+      },
+      "TelegramStatus": {
+        "properties": {
+          "account_label": {
+            "default": "",
+            "title": "Account Label",
+            "type": "string"
+          },
+          "message": {
+            "default": "",
+            "title": "Message",
+            "type": "string"
+          },
+          "queue_size": {
+            "default": 0,
+            "title": "Queue Size",
+            "type": "integer"
+          },
+          "retry_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retry At"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "TelegramStatus",
+        "type": "object"
+      },
       "TunerAccessResponse": {
         "properties": {
           "addresses": {
@@ -14327,6 +14910,593 @@
         "tags": [
           "system",
           "system"
+        ]
+      }
+    },
+    "/api/v1/telegram/account": {
+      "delete": {
+        "operationId": "logout_api_v1_telegram_account_delete",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Logout",
+        "tags": [
+          "telegram"
+        ]
+      }
+    },
+    "/api/v1/telegram/chats": {
+      "get": {
+        "operationId": "chats_api_v1_telegram_chats_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TelegramPeer"
+                  },
+                  "title": "Response Chats Api V1 Telegram Chats Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Chats",
+        "tags": [
+          "telegram"
+        ]
+      }
+    },
+    "/api/v1/telegram/chats/{chat_id}/topics": {
+      "get": {
+        "operationId": "topics_api_v1_telegram_chats__chat_id__topics_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chat_id",
+            "required": true,
+            "schema": {
+              "title": "Chat Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TelegramPeer"
+                  },
+                  "title": "Response Topics Api V1 Telegram Chats  Chat Id  Topics Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Topics",
+        "tags": [
+          "telegram"
+        ]
+      }
+    },
+    "/api/v1/telegram/code": {
+      "post": {
+        "operationId": "code_api_v1_telegram_code_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramCode"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Code",
+        "tags": [
+          "telegram"
+        ]
+      }
+    },
+    "/api/v1/telegram/disconnect": {
+      "post": {
+        "operationId": "disconnect_api_v1_telegram_disconnect_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Disconnect",
+        "tags": [
+          "telegram"
+        ]
+      }
+    },
+    "/api/v1/telegram/login": {
+      "post": {
+        "operationId": "login_api_v1_telegram_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramLogin"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Login",
+        "tags": [
+          "telegram"
+        ]
+      }
+    },
+    "/api/v1/telegram/password": {
+      "post": {
+        "operationId": "password_api_v1_telegram_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramPassword"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Password",
+        "tags": [
+          "telegram"
+        ]
+      }
+    },
+    "/api/v1/telegram/preset": {
+      "get": {
+        "operationId": "preset_api_v1_telegram_preset_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractionRecipe"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Preset",
+        "tags": [
+          "telegram"
+        ]
+      }
+    },
+    "/api/v1/telegram/preview": {
+      "post": {
+        "operationId": "preview_api_v1_telegram_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview",
+        "tags": [
+          "telegram"
+        ]
+      }
+    },
+    "/api/v1/telegram/reconnect": {
+      "post": {
+        "operationId": "reconnect_api_v1_telegram_reconnect_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Reconnect",
+        "tags": [
+          "telegram"
+        ]
+      }
+    },
+    "/api/v1/telegram/resolve": {
+      "post": {
+        "operationId": "resolve_api_v1_telegram_resolve_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramResolve"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramPeer"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resolve",
+        "tags": [
+          "telegram"
+        ]
+      }
+    },
+    "/api/v1/telegram/sources": {
+      "get": {
+        "operationId": "sources_api_v1_telegram_sources_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TelegramSource"
+                  },
+                  "title": "Response Sources Api V1 Telegram Sources Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Sources",
+        "tags": [
+          "telegram"
+        ]
+      },
+      "post": {
+        "operationId": "create_source_api_v1_telegram_sources_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramSourceCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramSource"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Source",
+        "tags": [
+          "telegram"
+        ]
+      }
+    },
+    "/api/v1/telegram/sources/{source_id}": {
+      "delete": {
+        "operationId": "delete_source_api_v1_telegram_sources__source_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "title": "Source Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "title": "Response Delete Source Api V1 Telegram Sources  Source Id  Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Source",
+        "tags": [
+          "telegram"
+        ]
+      },
+      "put": {
+        "operationId": "update_source_api_v1_telegram_sources__source_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "title": "Source Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramSourceConfig"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramSource"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Source",
+        "tags": [
+          "telegram"
+        ]
+      }
+    },
+    "/api/v1/telegram/sources/{source_id}/scan": {
+      "post": {
+        "operationId": "scan_api_v1_telegram_sources__source_id__scan_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "title": "Source Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "title": "Response Scan Api V1 Telegram Sources  Source Id  Scan Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Scan",
+        "tags": [
+          "telegram"
+        ]
+      }
+    },
+    "/api/v1/telegram/status": {
+      "get": {
+        "operationId": "status_api_v1_telegram_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Status",
+        "tags": [
+          "telegram"
         ]
       }
     },

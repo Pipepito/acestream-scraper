@@ -176,6 +176,8 @@ async def lifespan(app: FastAPI):
     data_lock = None
     services_started = False
 
+    from app.services.telegram.manager import manager as telegram_manager
+
     async def stop_services():
         nonlocal reaper, services_started
         if reaper is not None:
@@ -183,6 +185,7 @@ async def lifespan(app: FastAPI):
             with suppress(asyncio.CancelledError):
                 await reaper
             reaper = None
+        await telegram_manager.stop()
         await tuner_probe_service.stop()
         if services_started:
             try:
@@ -233,6 +236,7 @@ async def lifespan(app: FastAPI):
             # an hour later, and only if it is still overdue then.
             task_service.catch_up_later("channel_status", delay_seconds=900)
             await player_service.start()
+            await telegram_manager.start()
             await asyncio.to_thread(_schedule_deferred_migration)
             reaper = asyncio.create_task(reap_relays_forever())
             startup_service.record('Ready to use')

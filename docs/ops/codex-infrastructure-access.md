@@ -62,19 +62,12 @@ gh pr view 162 --json headRefOid,state,mergeable,mergeStateStatus,statusCheckRol
 Always record the commit SHA. A green historical build is not evidence for a newer
 head, and a GitHub Pages check is not the Jenkins `PR Validation` gate.
 
-## Repository-owned previews
+## Infrastructure-owned previews
 
-These commands inspect release behavior without publishing:
-
-```bash
-bash scripts/ci/run_jenkins_release.sh --print-publish-plan --channel develop
-bash scripts/ci/run_jenkins_release.sh --dry-run --channel develop
-bash scripts/ci/run_jenkins_release.sh --print-publish-plan
-```
-
-The channel variants describe floating `:develop*` tags. The non-channel plan is
-for the manual release path. Review `docs/ops/jenkins-ci.md` and
-`docs/release/v2-release-readiness.md` before drawing release conclusions.
+Release/promotion preview commands now live in the private infrastructure
+repository. Follow its README with an explicit application checkout; do not restore
+host publishing commands to the public repository. Public application checks remain
+listed in [jenkins-ci.md](jenkins-ci.md).
 
 ## Incident hygiene
 

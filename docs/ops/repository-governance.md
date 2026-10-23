@@ -90,3 +90,13 @@ bash scripts/ci/validate_repository_metadata.sh "$PWD"
 The validator installs only integrity-locked parser dependencies in a temporary
 directory with install scripts disabled. PRs use target-owned policy; this CI
 change itself must pass the old full gate before future PRs can use the shortcut.
+
+## Collaborator access and publication control
+
+The new `maintainer-merges.json` adds a separate update restriction to `main` and
+`develop`, with only Pipepito exempt. It reserves merging into auto-published
+integration/release branches to the owner while preserving the existing no-bypass
+PR/CI baseline. This file is intended policy, **not a report of live activation**.
+Apply it during the [Jenkins collaborator rollout](jenkins-collaborator-safety.md)
+and inspect live rules before inviting repository writers. Collaborators still
+push feature branches and open PRs; internal branches receive no extra CI trust.

@@ -1,5 +1,19 @@
 # CLAUDE.md
 
+## Private infrastructure authority
+
+Jenkins pipelines and trusted host tooling live in the private
+`Pipepito/acestream-scraper-infra` repository. There are no active pipeline sources
+in this application repository. Jenkins deploys an owner-reviewed infrastructure
+commit as fixed definitions and a checksum-verified tool bundle. Public files,
+including any reintroduced Jenkinsfile, cannot select host policy. App tests,
+local development commands, dependency manifests and runtime Dockerfiles remain
+public. Do not restore retired Jenkins orchestration here. Use
+`docs/ops/jenkins-ci.md` for the public CI contract and the private repository for
+pipeline changes, policy tests, deployment and release commands. Named runner and publishing helpers below belong to that private repository.
+Their public equivalents, where retained for local use, never select host policy.
+
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Common Commands
@@ -37,7 +51,7 @@ Cutover / CI:
 - Same target via the cutover wrapper: `bash scripts/ci/run_cutover_required_checks.sh --profile quick`
 - Strict legacy-path guard: `bash scripts/ci/assert_no_legacy_paths.sh --strict`
 - Pre-deploy DB safety check (creates timestamped backup under `config/backups/`): `bash scripts/ops/preflight_v2_deploy.sh`
-- User docs: GitHub Pages serves `main/docs`; Jenkins does not push a Pages branch. Prepare the shared extraction helper with `bash scripts/ci/prepare_pages.sh` and commit `docs/recipes/`. `bash scripts/ci/validate_command_builder.sh` checks runtime options against container defaults. The manual release job mirrors `wiki/` after successful non-dry-run latest promotion; `bash scripts/ci/publish_wiki.sh --dry-run` previews the flattened, link-rewritten pages. Docker Hub overview text in `docs/dockerhub/` is published manually. Edit `runtime-options.json` when ports/env/flavors change; `app.js` only when a rule changes.
+- User docs: GitHub Pages serves `main/docs`; Jenkins does not push a Pages branch. Prepare the shared extraction helper with `bash scripts/ci/prepare_pages.sh` and commit `docs/recipes/`. `bash scripts/ci/validate_command_builder.sh` checks runtime options against container defaults. The manual release job mirrors `wiki/` after successful non-dry-run latest promotion; the private infrastructure repository owns wiki preview and publication tooling. Docker Hub overview text in `docs/dockerhub/` is published manually. Edit `runtime-options.json` when ports/env/flavors change; `app.js` only when a rule changes.
 
 Docker:
 
@@ -48,12 +62,12 @@ Docker:
 
 Branching and release flow (adopted 2026-08-28):
 
-- `develop` is the permanent pre-release branch; feature PRs target `develop`. `main` is the release branch. Both are protected (PRs only, required status `PR Validation`, no force-push/deletion). PRs into `main` are accepted only from `develop` — `jenkins/pr.Jenkinsfile` fails any other head. Releases are cut with a `develop` -> `main` PR; hotfixes go through `develop` too.
-- Fork PRs use `jenkins/pr.Jenkinsfile` from trusted `develop`. PR, develop and release application validation share a dependency-keyed runner selected from committed trusted inputs (verified input/platform labels; build on cache miss), with a fresh disposable validation container each time. Contributor-controlled files execute without network, capabilities, Docker socket, or Jenkins credentials. A second isolated stage runs the trusted entrypoint/runtime contract against the PR files under pinned amd64, arm64, and arm/v7 userlands. Fork-controlled Dockerfiles and dependency inputs are never executed or installed automatically; such changes require a maintainer-owned branch after review. `scripts/ci/run_pr_validation.sh` is the credential-free application gate.
-- PR, trusted `develop`, and release pipelines share the FIFO `acestream-scraper-nuc-docker` lock for their full run. Acquire it in the enclosing stage options before allocating an agent, and keep workspace cleanup inside that stage. The NUC has four executors but only one safe Docker/BuildKit workload slot; later jobs wait instead of pruning images or caches from an in-flight job, and a newer build of the same PR queues rather than aborting its predecessor. Shared cleanup retains two recently used dependency runners and warm build cache; below 8 GiB free it escalates to evict unneeded CI runners and recent cache. Current-job keeps, container images, unrelated images and volumes remain protected; reclamation failures are visible.
-- Every push to `develop` runs the trusted `jenkins/develop.Jenkinsfile` job. It selects work with `scripts/ci/classify_changes.py` against the last successful build. Known documentation-only changes run lightweight checks without publication. Application, build, CI and unknown changes rerun the full suite and Docker/runtime smokes. It refuses stale revisions, then `bash scripts/ci/run_jenkins_release.sh --channel develop` pushes only floating `:develop*` image tags. It never publishes the wiki, Pages, or Docker Hub descriptions. Preview with `--print-publish-plan --channel develop` or `--dry-run --channel develop`; `python3 scripts/phase_gates/check_workflow_publish_guard.py` guards the boundary.
+- `develop` is the permanent pre-release branch; feature PRs target `develop`. `main` is the release branch. Both are protected (PRs only, required status `PR Validation`, no force-push/deletion). PRs into `main` are accepted only from `develop` — the private PR pipeline fails any other head. Releases are cut with a `develop` -> `main` PR; hotfixes go through `develop` too.
+- All PRs use the administrator-managed private PR pipeline and pinned private infrastructure helpers. Application/runtime checks run in restricted containers. Proposed dependencies and production image builds require the fixed private owner-approval pipeline, approved by the owner for an exact head/base/target. `PR Validation` waits for its result. See `docs/ops/jenkins-collaborator-safety.md`; editing repository files alone does not activate this boundary.
+- PR, trusted `develop`, and release pipelines share the FIFO `acestream-scraper-nuc-docker` lock for their full run. Acquire it in the enclosing stage options before allocating an agent, and keep workspace cleanup inside that stage. The NUC has four executors but only one safe Docker/BuildKit workload slot; later jobs wait instead of pruning images or caches from an in-flight job, and new revisions never abort the lock holder. Approval waits hold no executor or Docker lock; each automatic/approved workload retains the lock through cleanup. Shared cleanup retains two recently used dependency runners and warm build cache; below 8 GiB free it escalates to evict unneeded CI runners and recent cache. Current-job keeps, container images, unrelated images and volumes remain protected; reclamation failures are visible.
+- Every push to `develop` runs the private develop pipeline. Its private selector compares the last successful build; known documentation-only changes do not publish images. Application changes run the full suite and Docker/runtime smokes. Only the current protected develop revision can publish floating `develop*` tags. Publication previews and policy tests live in the private infrastructure repository; public application checks remain available here.
 - `version.txt` records the selected release version without a `-dev` suffix (`v2.2.0` for this cycle). Update it through a PR into `develop` when choosing the next release. Development publication uses only floating `develop*` tags; versioned tags and `latest` remain exclusive to manual release from `main`. The existing rejection of accidental `-dev` versions in release mode remains a defensive guard.
-- Releases stay manual: Jenkins job `acestream-scraper-release` (`jenkins/release.Jenkinsfile`, runs from `main`; params `CONFIRM_RELEASE`, `DRY_RUN`, `PUBLISH_LATEST`) pushes `:vX.Y.Z`, `:vX.Y.Z-<flavor>` and the flavor tags; `PUBLISH_LATEST=true` retags the canaried version manifest to `:latest` via `scripts/ci/promote_latest.sh`. Details: `docs/ops/jenkins-ci.md`.
+- Releases stay manual: Jenkins job `acestream-scraper-release` (the private release pipeline, runs from `main`; params `CONFIRM_RELEASE`, `DRY_RUN`, `PUBLISH_LATEST`) pushes `:vX.Y.Z`, `:vX.Y.Z-<flavor>` and the flavor tags; `PUBLISH_LATEST=true` retags the canaried version manifest to `:latest` via the private promotion helper. Details: `docs/ops/jenkins-ci.md`.
 
 ## Frontend viewing and mobile checks
 
@@ -136,7 +150,7 @@ Two interpreters are pinned by `Dockerfile` build args: `ARG APP_PYTHON_VERSION=
 
 The amd64 engine archive is vendored under `docker/vendor/acestream/`; legacy ARM APKs and bionic `.deb`s remain under `docker/vendor/` for reproducibility (each directory has `SHA256SUMS`, with matching GitHub Release assets on the `acestream-binaries-<versions>` tag). Current ARM builds instead copy the matching platform from the digest-pinned jopsis OCI image and therefore require Docker Hub access on a cold builder. `docker/scripts/install-acestream.sh` resolves conventional archives as vendored copy → upstream URL → `mirror_urls`, sha256-verified. The `acestream-installer` stage takes `ARG TARGETPLATFORM` and `ARG ACESTREAM_SOURCE=auto` (`auto` = resolve from the manifest via `docker/scripts/acestream_manifest.py`, the shared resolver also used by `scripts/ci/derive_acestream_build_args.py`; explicit `--build-arg ACESTREAM_*` values override; `fixture` = contract-test fixture). `docker/vendor` is bind-mounted into that stage, not copied into a layer. `scripts/ci/build_multiarch_images.sh` no longer injects global `ACESTREAM_*` build-args (they would pin one engine for every platform of a multi-platform build). Bumping the pins: `docker/vendor/acestream/README.md`. The Acexy source is vendored the same way under `docker/vendor/acexy/` (`docker/manifests/acexy.json` `vendored_file`/`sha256`); the `acexy-builder` stage prefers that archive over `git clone` because the Jenkins runner's WARP egress gets refused by GitHub for anonymous clones.
 
-The `frontend-builder`, `acexy-builder` and `ffmpeg-builder` stages run on `$BUILDPLATFORM` (static assets are platform-independent; Go cross-compiles via `TARGETARCH`/`TARGETVARIANT`; `ffmpeg-builder` cross-compiles a minimal static ffmpeg/ffprobe with Debian's cross toolchains, `docker/scripts/build-ffmpeg.sh` against the vendored source under `docker/vendor/ffmpeg/` sha256-checked against `docker/manifests/ffmpeg.json`), so multi-platform builds only emulate the Python stages. Every flavor and platform copies the built binaries to `/opt/ffmpeg/bin/` (`FFMPEG_BINARY_PATH`), powering the web player (see the player domain above); `IMAGE_HAS_FFMPEG` is set by `entrypoint.sh` from whether that path is executable. Publishes are platform-major and push by digest (`scripts/ci/run_jenkins_release.sh`, `build_multiarch_images.sh --push-by-digest`); see `docs/ops/jenkins-ci.md`.
+The `frontend-builder`, `acexy-builder` and `ffmpeg-builder` stages run on `$BUILDPLATFORM` (static assets are platform-independent; Go cross-compiles via `TARGETARCH`/`TARGETVARIANT`; `ffmpeg-builder` cross-compiles a minimal static ffmpeg/ffprobe with Debian's cross toolchains, `docker/scripts/build-ffmpeg.sh` against the vendored source under `docker/vendor/ffmpeg/` sha256-checked against `docker/manifests/ffmpeg.json`), so multi-platform builds only emulate the Python stages. Every flavor and platform copies the built binaries to `/opt/ffmpeg/bin/` (`FFMPEG_BINARY_PATH`), powering the web player (see the player domain above); `IMAGE_HAS_FFMPEG` is set by `entrypoint.sh` from whether that path is executable. Publishes are platform-major and push by digest through the private release orchestrator and its reviewed image builder; see `docs/ops/jenkins-ci.md`.
 
 `entrypoint.sh` enforces the install/runtime split: which binaries are installed is set by the chosen flavor (`IMAGE_HAS_ACESTREAM`, `IMAGE_HAS_ACEXY`); whether they actually start is controlled by `ENABLE_ACESTREAM_ENGINE`, `ENABLE_ACEXY`, `ENABLE_WARP`, `ENABLE_IPFS`, `ENABLE_ZERONET` (+`ENABLE_TOR`). Every amd64 and arm64 image also bundles a ZeroNet node (`docker/scripts/install-zeronet.sh`: zeronet-conservancy pinned by commit with DHT, on its own Python 3.11 and gevent 26.8.0). `IMAGE_HAS_ZERONET` is derived from the launcher's presence at runtime; state lives at `/data/zeronet`, with configuration and private state under `.node/`. The entrypoint copies legacy `sites.json` and `users.json` into `.node/private` only when absent, preserving the originals. UI uses `43110`, fileserver `26552`, and `ENABLE_ZERONET=true` defaults `ZERONET_URL` to the embedded node. Every flavor bundles the Kubo IPFS daemon on amd64/arm64 (`docker/scripts/install-ipfs.sh`, sha512-pinned per arch; Kubo has no 32-bit ARM build, so arm/v7 ships without it and `IMAGE_HAS_IPFS` is derived from the binary's presence at runtime). `ipfs://`/`ipns://` sources are fetched through `IPFS_GATEWAY_URL` (default `http://127.0.0.1:8081` — the embedded gateway binds 8081 because Acexy owns 8080 in-container); the repo lives at `/data/ipfs` (`IPFS_PATH`). WARP requires `NET_ADMIN` + `SYS_ADMIN` capabilities and `/dev/net/tun` (amd64 and arm64 images). Acexy refuses to target `localhost:6878` if the in-container engine is disabled. On ARM images the engine is launched through `/opt/acestream/start-engine` (`docker/scripts/acestream-android/start-engine`), which requires a 4 KB-page kernel (`getconf PAGESIZE` must be 4096; Raspberry Pi 5 needs `kernel=kernel8.img` in `config.txt`) and keeps state/cache/logs under `ACESTREAM_HOME=/var/lib/acestream` (mount a volume, e.g. `-v acestream-state:/var/lib/acestream`); `ACESTREAM_START_COMMAND` is unchanged for all platforms. Known ARM limitations: both ARM engines are 3.2.17 while amd64 is 3.2.11 (`platform` reports `android` on ARM), and ARM has no WebRTC transport. WARP (cloudflare-warp) is installed on amd64 and arm64 images (Cloudflare's apt repo ships both); linux/arm/v7 has no build.
 
@@ -472,14 +486,17 @@ permanent keep labels. See `docs/ops/jenkins-ci.md` for retention and rollout.
 
 ## Pipeline responsibilities
 
-The multibranch PR job skips ordinary branches. Application PRs run isolated
-checks and architecture contracts; maintainer-owned PRs also build every supported
-flavor/platform with `validate_pr_images.sh`, remove each temporary image, and
-never publish. Fork Dockerfiles still require review and promotion to a
-maintainer-owned branch before host builds. Develop validates, builds, tests and
-publishes only floating develop tags; manual main releases retain version checks
-and separate latest promotion. Preserve the shared full-run FIFO lock. Buildx
-cleanup must enumerate `.Builder.Name`, deduplicated, never child-node `.Name`.
+The PR job uses an administrator-managed pipeline, never a branch's Jenkinsfile.
+Fork and origin PRs use the same pinned protected-target orchestration and isolated
+checks. Application PRs wait for a separate owner-approved job bound to exact head,
+base and target; it runs the full gate and every supported image combination without
+publication. Dependency changes wait for this approval before installation. The
+parent releases its Docker lock before waiting; each job holds the shared FIFO lock
+for its complete Docker workload and cleanup. Only owner-merged protected develop
+commits may publish floating tags; main releases remain manual. Pipeline definition,
+credential/ACL and GitHub ruleset activation is required before inviting writers;
+see `docs/ops/jenkins-collaborator-safety.md`. Buildx cleanup enumerates
+`.Builder.Name`, deduplicated, never child-node `.Name`.
 
 BuildKit numeric GC limits are bytes: convert the operator MiB settings before
 writing `reservedSpace`/`maxUsedSpace`. Under pressure, reclaim unused old cache
@@ -533,7 +550,7 @@ contributor code in `pull_request_target`. Issue forms and assignment activate
 after reaching default branch main. See `docs/ops/repository-governance.md`.
 
 Contribution-only CI recognizes direct issue-form YAML, ruleset JSON, and the
-named assignment workflow. A target-owned metadata validator and integrity-locked
+named assignment workflow. A private-policy metadata validator and integrity-locked
 YAML parser read them as data; assignment behavior must match the trusted contract.
 No application/image work runs for this scope. Unknown workflows, app/dependency
 changes, metadata-validator changes and mode/symlink changes keep the full gate.
@@ -623,6 +640,14 @@ apply reserves both catalogue revision and source UUID. Never infer times from
 folder names or automatically refresh W3U event schedules. See
 `docs/dev/w3u-catalogues.md#combined-catalogue-and-event-integration`.
 
+
+Collaborator-safe CI keeps administration with the owner; other Jenkins logins are
+read-only. The approved PR job checks GitHub metadata using the discovery App in
+agent-none controller stages before/after the host workload. Never move those
+HTTP requests into a node/agent context or bind their token in shell code. Older
+targets missing metadata validation or the reusable FFmpeg runner use the fixed
+administrator-pinned policy bundle, with dependency comparisons against the
+selected runner ref. See `docs/ops/jenkins-collaborator-safety.md`.
 
 ## Telegram account sources
 

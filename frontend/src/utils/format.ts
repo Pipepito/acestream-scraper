@@ -57,7 +57,14 @@ export const summarizeJobResult = (id: string, result: unknown): string | null =
     case 'url_scraping': {
       const processed = field(result, 'processed');
       const failures = field(result, 'failures') ?? 0;
-      return processed === null ? null : `${plural(processed, 'source', 'sources')}, ${plural(failures, 'error', 'errors')}`;
+      if (processed === null) return null;
+      const events = result && typeof result === 'object' ? (result as Record<string, unknown>).events : null;
+      const updated = field(events, 'updated') ?? 0;
+      const pending = field(events, 'pending') ?? 0;
+      const failed = field(events, 'failures') ?? 0;
+      const deferred = field(events, 'deferred') ?? 0;
+      const summary = updated || pending || failed || deferred ? `; events: ${updated} updated, ${pending} need review, ${failed} source errors, ${deferred} deferred` : '';
+      return `${plural(processed, 'source', 'sources')}, ${plural(failures, 'error', 'errors')}${summary}`;
     }
     case 'channel_status': {
       const checked = field(result, 'checked');
@@ -91,7 +98,9 @@ export const summarizeJobResult = (id: string, result: unknown): string | null =
     }
     case 'channel_cleanup': {
       const deleted = field(result, 'deleted');
-      return deleted === null ? null : `${deleted} channels removed`;
+      const events = result && typeof result === 'object' ? (result as Record<string, unknown>).events : null;
+      const eventCount = field(events, 'deleted') ?? 0;
+      return deleted === null ? null : `${deleted} channels removed${eventCount ? `; ${eventCount} events removed` : ''}`;
     }
     case 'activity_log_cleanup': {
       const n = num(result) ?? field(result, 'deleted');

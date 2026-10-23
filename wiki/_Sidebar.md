@@ -12,6 +12,10 @@
 **Watch and manage**
 
 - [Live TV and web player](Web-Player.md)
+- [Wiseplay / W3U catalogues](W3U-Catalogues.md)
+
+
+- [Sports events](Sports-Events.md)
 - [Channel management](tasks/channel-management.md)
 - [Stream statistics](Stream-Statistics.md)
 - [Extraction recipes](Extraction-Recipes.md)

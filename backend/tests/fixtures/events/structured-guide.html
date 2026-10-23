@@ -1,0 +1,11 @@
+<!doctype html><html><head><title>Example guide</title>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+ {"@type":"SportsEvent","@id":"fixture-101","name":"North United vs South City","sport":"Football","superEvent":{"name":"Example Cup"},"homeTeam":{"name":"North United"},"awayTeam":{"name":"South City"},"startDate":"2026-10-24T23:30:00","eventStatus":"https://schema.org/EventScheduled","offers":{"url":"https://tickets.example/buy"},"subjectOf":[
+  {"@type":"VideoObject","@id":"spanish-hd","name":"Sports One","inLanguage":"es","videoFormat":"HD","contentUrl":"https://media.example/live.m3u8?token=one"},
+  {"@type":"VideoObject","@id":"english-hd","name":"Sports One International","inLanguage":"en","videoFormat":"HD","embedUrl":"https://player.example/watch/101"}
+ ]},
+ {"@type":"SportsEvent","@id":"fixture-102","name":"East vs West","sport":"Basketball","eventStatus":"https://schema.org/EventPostponed"},
+ {"@type":"BroadcastEvent","@id":"dazn","broadcastOfEvent":{"@id":"fixture-101"},"publishedOn":{"name":"DAZN"},"isLiveBroadcast":true,"url":"https://dazn.example/"}
+]}
+</script></head><body>Schedule</body></html>

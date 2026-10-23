@@ -53,9 +53,16 @@ def notify(event: str, title: str, message: str, data: Optional[dict] = None) ->
 
 
 def scraping_completed(result: dict) -> bool:
-    return notify("url_scraping.completed", "URL scraping finished",
-                  "%s URL(s) scraped, %s failed" % (result.get("processed", 0), result.get("failures", 0)),
-                  result)
+    message = "%s URL(s) scraped, %s failed" % (result.get("processed", 0), result.get("failures", 0))
+    if result.get('catalogues'):
+        message += "; %s W3U catalogue(s), %s partial" % (result['catalogues'], result.get('catalogue_partial', 0))
+
+
+    events = result.get('events', {})
+    if any(events.values()):
+        message += "; events: %s updated, %s need review, %s source failures, %s sources deferred" % (
+            events.get('updated', 0), events.get('pending', 0), events.get('failures', 0), events.get('deferred', 0))
+    return notify("url_scraping.completed", "URL scraping finished", message, result)
 
 
 def channel_status_completed(result: dict) -> bool:

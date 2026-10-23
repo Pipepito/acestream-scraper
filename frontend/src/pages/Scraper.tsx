@@ -337,7 +337,7 @@ const Scraper: React.FC = () => {
             </Button>
           </Stack>
         }
-        overflowActions={[{ label: 'Extraction builder', onClick: () => navigate('/scraper/builder') }, { label: 'Refresh', icon: <RefreshIcon fontSize="small" />, onClick: () => void refetch(), disabled: isLoading }]}
+        overflowActions={[{ label: 'W3U catalogues', onClick: () => navigate('/catalogues') }, { label: 'Extraction builder', onClick: () => navigate('/scraper/builder') }, { label: 'Refresh', icon: <RefreshIcon fontSize="small" />, onClick: () => void refetch(), disabled: isLoading }]}
       />
 
       <StatusLine

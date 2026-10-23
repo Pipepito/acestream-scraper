@@ -3,7 +3,7 @@ SQLAlchemy models for the application
 """
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Index, Integer, String, Text, false
+from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint, false
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from sqlalchemy.types import TypeDecorator
@@ -379,4 +379,65 @@ class ScheduledTaskState(Base):
     last_run = Column(UtcDateTime(), nullable=True)
     status = Column(String(32), nullable=False)
     last_error = Column(Text, nullable=True)
+    last_result = Column(JSON, nullable=True)
+
+
+class W3UCatalogue(Base):
+    """Source-scoped hierarchy and private refresh inputs, never a TV assignment."""
+    __tablename__ = 'w3u_catalogues'
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    source_url = Column(String(2048), nullable=True)
+    revision = Column(Integer, nullable=False, default=1)
+    snapshot = Column(JSON, nullable=False)
+    selected_branches = Column(JSON, nullable=False)
+    mode = Column(String(16), nullable=False, default='compatible')
+    refresh_enabled = Column(Boolean, nullable=False, default=False)
+    updated_at = Column(UtcDateTime(), nullable=False, default=_utcnow)
+
+
+class SportingEvent(Base):
+    __tablename__ = 'sporting_events'
+    archived_at = Column(UtcDateTime(), nullable=True)
+    broadcast_mappings = Column(JSON, nullable=True)
+    owner_id = Column(String(32), nullable=False)
+    id = Column(String(32), primary_key=True)
+    revision = Column(Integer, nullable=False, default=1)
+    fields = Column(JSON, nullable=False)
+    correction = Column(JSON, nullable=True)
+    followed = Column(Boolean, nullable=False, default=False)
+    archived = Column(Boolean, nullable=False, default=False)
+
+
+class EventObservationRecord(Base):
+    __tablename__ = 'event_observations'
+    __table_args__ = (UniqueConstraint('source_id', 'external_id', name='uq_event_observation_identity'),)
+    id = Column(String(32), primary_key=True)
+    event_id = Column(String(32), ForeignKey('sporting_events.id', ondelete='CASCADE'), nullable=False, index=True)
+    source_id = Column(String(160), nullable=False)
+    external_id = Column(String(200), nullable=False)
+    payload = Column(JSON, nullable=False)
+    updated_at = Column(UtcDateTime(), nullable=False, default=_utcnow)
+
+
+class EventMedia(Base):
+    __tablename__ = 'event_media'
+    content_id = Column(String(44), primary_key=True)
+    observation_id = Column(String(32), ForeignKey('event_observations.id', ondelete='CASCADE'), nullable=False, index=True)
+    url = Column(Text, nullable=False)
+    headers = Column(JSON, nullable=False)
+
+
+class EventScheduleSource(Base):
+    __tablename__ = 'event_schedule_sources'
+    adapter = Column(JSON, nullable=True)
+    id = Column(String(32), primary_key=True)
+    source_identity = Column(String(160), nullable=False, unique=True)
+    name = Column(String(200), nullable=False)
+    url = Column(Text, nullable=False)
+    revision = Column(Integer, nullable=False, default=1)
+    enabled = Column(Boolean, nullable=False, default=False)
+    reviewed_ids = Column(JSON, nullable=False)
+    last_attempt = Column(UtcDateTime(), nullable=True)
+    last_success = Column(UtcDateTime(), nullable=True)
     last_result = Column(JSON, nullable=True)

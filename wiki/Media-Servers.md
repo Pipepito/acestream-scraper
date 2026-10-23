@@ -181,7 +181,10 @@ If none starts, the response is `502 CHANNEL_STREAM_FAILED`.
 AceStream sources retain their existing direct/Acexy relay. HTTP sources resolve
 fresh broadcaster links and use the guarded input proxy for headers, redirects
 and every HLS resource. FFmpeg repackages supported media as MPEG-TS without
-re-encoding, preserving video and audio tracks. It is bundled in Docker images;
+re-encoding, preserving video and audio tracks. For HLS masters the tuner selects
+the highest advertised resolution (then bandwidth), retaining that rendition’s
+audio/subtitle groups instead of mixing tracks from different quality levels.
+It is bundled in Docker images;
 native installations must provide it. No AceStream engine is needed for an
 HTTP-only channel. Supported input includes direct MPEG-TS and unencrypted or
 AES-128 HLS, including fragmented MP4; arbitrary websites, DASH and DRM are not
@@ -196,6 +199,28 @@ first. This failure memory is process-local and bounded; it does not overwrite
 verified status results. Enable automatic reconnect in your player where supported.
 The server cannot issue an HTTP redirect after sending media, and cannot force a
 client to reconnect. Recovery timing therefore depends on the player.
+
+### Plex Desktop audio compatibility
+
+If Plex Web plays a channel but Plex Desktop ends the session with an AAC
+configuration error, enable **Integrations → Media servers → Tuner settings →
+Plex Desktop compatible audio**, save, then stop and reopen the channel.
+This opt-in setting applies to new `/tuner/channel/<id>.ts` connections, including
+HTTP, direct AceStream and Acexy sources. Legacy `/tuner/stream/<hash>.ts` links
+remain direct relays; refresh the Plex lineup if it still uses those links.
+
+The server converts each audio track to stereo AAC at 160 kbit/s in LATM
+packetization. Video is copied, keeping the selected source’s resolution and
+encoded quality. This uses CPU for audio encoding and requires FFmpeg (bundled
+in all images). Leave experimental transcoding recovery off to keep video
+unchanged. When both options are enabled, recovery still encodes video to MPEG-2
+and its AAC output uses LATM. The audio option alone does not enable recovery
+within a connection. It applies to every viewer using the tuner’s channel URLs.
+
+The compatibility option targets the AAC-to-Matroska failure seen with Plex
+Desktop; local media tests cover LATM decoding, later segment joins and unchanged
+1080p video, but do not establish compatibility with every Plex build. Plex’s own
+client quality/bandwidth settings can still cause video transcoding or downscaling.
 
 **Integrations → Media servers → Tuner settings → Experimental transcoding recovery**
 is off by default and applies to new connections. Enabling it requires FFmpeg and

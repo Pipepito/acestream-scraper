@@ -2,7 +2,8 @@
 
 FFmpeg receives only a session-owned loopback URL. Broadcaster resolution,
 headers, redirects and every HLS resource use the shared guarded input proxy.
-This repackages media without transcoding or creating an AceStream session.
+Video is copied; the optional Plex profile converts audio to stereo AAC/LATM.
+No AceStream session is created.
 """
 from __future__ import annotations
 
@@ -23,7 +24,7 @@ from app.services.tuner_remux import ffmpeg_binary
 logger = logging.getLogger(__name__)
 
 
-def http_tuner_argv(binary: str, url: str) -> list[str]:
+def http_tuner_argv(binary: str, url: str, *, plex_compatible_audio: bool = False) -> list[str]:
     return [
         binary, '-nostdin', '-hide_banner', '-loglevel', 'error',
         '-protocol_whitelist', 'http,tcp,crypto',
@@ -31,18 +32,20 @@ def http_tuner_argv(binary: str, url: str) -> list[str]:
         '-fflags', '+genpts+discardcorrupt', '-probesize', '1000000',
         '-analyzeduration', '1000000', '-i', url,
         '-map', '0:v:0?', '-map', '0:a?', '-c', 'copy',
-        '-f', 'mpegts', '-mpegts_flags', '+resend_headers',
+        *(['-c:a', 'aac', '-b:a', '160k', '-ac', '2'] if plex_compatible_audio else []),
+        '-f', 'mpegts', '-mpegts_flags', '+resend_headers+latm' if plex_compatible_audio else '+resend_headers',
         '-muxdelay', '0', '-flush_packets', '1', 'pipe:1',
     ]
 
 
-async def relay_http_stream(content_id: str, claim: RelayInfo, *, startup_deadline: float) -> AsyncIterator[bytes]:
+async def relay_http_stream(content_id: str, claim: RelayInfo, *, startup_deadline: float, plex_compatible_audio: bool = False) -> AsyncIterator[bytes]:
     source = None
     process = None
     try:
         source = await PlayerHTTPSource.open(content_id, timeout=startup_deadline - time.monotonic())
+        source.select_best_variant = True
         spawn = asyncio.create_task(asyncio.create_subprocess_exec(
-            *http_tuner_argv(ffmpeg_binary(), source.playback_url),
+            *http_tuner_argv(ffmpeg_binary(), source.playback_url, plex_compatible_audio=plex_compatible_audio),
             stdin=asyncio.subprocess.DEVNULL, stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.DEVNULL, start_new_session=True,
         ))

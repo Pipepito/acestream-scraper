@@ -18,6 +18,7 @@ from aiohttp import web
 from fastapi.concurrency import run_in_threadpool
 
 from app.services import hls_manifest, live_providers
+from app.services.hls_selection import best_variant
 from app.services.player_subtitles import media_clock_webvtt
 from app.utils.outbound_http import source_session
 
@@ -79,6 +80,7 @@ def _origin(url: str) -> tuple:
 class PlayerHTTPSource:
     def __init__(self, url: str, headers: dict[str, str]):
         self.url = _http_url(url)
+        self.select_best_variant = False
         # Host, Range and hop-by-hop headers belong to the guarded transport.
         self.headers = {key: value for key, value in headers.items()
                         if key.lower() in ('user-agent', 'referer', 'origin', 'authorization', 'cookie')}
@@ -147,6 +149,8 @@ class PlayerHTTPSource:
             raise ValueError('Invalid HLS manifest')
         # DVR lists can carry hours of entries; preserve the existing bounded
         # live window and explicit byte ranges before rewriting all resources.
+        if self.select_best_variant and hls_manifest.is_master(text):
+            text = best_variant(text)
         if not hls_manifest.is_master(text):
             text = hls_manifest.prune(text, origin)
         out = []

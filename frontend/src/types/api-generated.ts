@@ -4734,6 +4734,12 @@ export interface components {
       /** Only Online */
       only_online: boolean;
       /**
+       * Plex Compatible Audio
+       * @description Convert tuner audio to stereo AAC/LATM for Plex Desktop; copy video unless experimental recovery is enabled
+       * @default false
+       */
+      plex_compatible_audio?: boolean;
+      /**
        * Source Start Seconds
        * @description Seconds a source gets to deliver its first byte before the next is tried
        * @default 15
@@ -4758,6 +4764,8 @@ export interface components {
       max_channels?: number | null;
       /** Only Online */
       only_online?: boolean | null;
+      /** Plex Compatible Audio */
+      plex_compatible_audio?: boolean | null;
       /** Source Start Seconds */
       source_start_seconds?: number | null;
       /** Startup Budget Seconds */

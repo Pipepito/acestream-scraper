@@ -76,6 +76,7 @@ class TunerSettings:
     tuner_count: int
     max_channels: int
     only_online: bool
+    plex_compatible_audio: bool = False
     experimental_transcoding: bool = False
     # Seconds a source gets to deliver its first byte, and for the whole start
     # across sources: a cold P2P start can take longer than the defaults.
@@ -135,6 +136,7 @@ class TunerService:
     def settings(self) -> TunerSettings:
         repo = self.settings_repo
         return TunerSettings(
+            plex_compatible_audio=str(repo.get_setting(SettingsRepository.TUNER_PLEX_COMPATIBLE_AUDIO) or "false").lower() in ("true", "1"),
             experimental_transcoding=str(repo.get_setting(SettingsRepository.TUNER_EXPERIMENTAL_TRANSCODING) or "false").lower() in ("true", "1"),
             friendly_name=repo.get_setting(SettingsRepository.TUNER_FRIENDLY_NAME) or SettingsRepository.DEFAULT_TUNER_FRIENDLY_NAME,
             tuner_count=int(repo.get_setting(SettingsRepository.TUNER_COUNT) or SettingsRepository.DEFAULT_TUNER_COUNT),
@@ -145,7 +147,7 @@ class TunerService:
         )
 
     def update_settings(self, *, friendly_name: Optional[str] = None, tuner_count: Optional[int] = None,
-                        max_channels: Optional[int] = None, only_online: Optional[bool] = None, experimental_transcoding: Optional[bool] = None,
+                        max_channels: Optional[int] = None, only_online: Optional[bool] = None, plex_compatible_audio: Optional[bool] = None, experimental_transcoding: Optional[bool] = None,
                         source_start_seconds: Optional[int] = None, startup_budget_seconds: Optional[int] = None) -> TunerSettings:
         repo = self.settings_repo
         if friendly_name is not None:
@@ -154,6 +156,8 @@ class TunerService:
             repo.set_setting(SettingsRepository.TUNER_COUNT, str(max(MIN_TUNER_COUNT, min(MAX_TUNER_COUNT, int(tuner_count)))), "Concurrent tuner streams advertised")
         if max_channels is not None:
             repo.set_setting(SettingsRepository.TUNER_MAX_CHANNELS, str(max(MIN_MAX_CHANNELS, min(MAX_MAX_CHANNELS, int(max_channels)))), "Maximum channels in the tuner lineup")
+        if plex_compatible_audio is not None:
+            repo.set_setting(SettingsRepository.TUNER_PLEX_COMPATIBLE_AUDIO, "true" if plex_compatible_audio else "false", "AAC/LATM tuner audio for Plex Desktop")
         if experimental_transcoding is not None:
             repo.set_setting(SettingsRepository.TUNER_EXPERIMENTAL_TRANSCODING, "true" if experimental_transcoding else "false", "Experimental CPU-intensive TV relay recovery")
         if only_online is not None:

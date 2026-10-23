@@ -26,6 +26,5 @@ Do not report incomplete or historical image validation as a successful current 
 GitHub's `PR Validation` description distinguishes an owner-approval wait from
 queued checks. In Jenkins, the PR build summary links to its corresponding approved
 validation build. Pending approval builds have an `APPROVAL REQUIRED — PR #…` name,
-a clickable history badge and a direct approval link in their overview. The link
-is visible only inside Jenkins; public status details do not disclose private
-controller addresses. Approval remains restricted to the owner and exact revision.
+a clickable history badge and a direct approval link in their overview. Approval links stay inside Jenkins; the new approval status points back to
+the public PR. Approval remains restricted to the owner and exact revision.

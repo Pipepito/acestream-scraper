@@ -14,6 +14,7 @@ import httpx
 from app.services.engine_client import EngineClient, EngineRefusedError, EngineUnavailableError
 from app.services.stream_relay import EngineStreamError, RelayInfo, RelayRegistry, relay_engine_stream, relay_registry
 from app.services.tuner_remux import remux_source
+from app.services.tuner_http_source import relay_http_stream
 
 STARTUP_BUDGET_SECONDS = 45.0
 ATTEMPT_SECONDS = 15.0
@@ -64,7 +65,7 @@ def prefer_recovered_sources(content_ids: list[str]) -> list[str]:
 
 
 async def relay_ranked_streams(
-    engine: EngineClient, content_ids: list[str], client_label: str, claim: RelayInfo,
+    engine: EngineClient | None, content_ids: list[str], client_label: str, claim: RelayInfo,
     *, client_factory: Callable[..., httpx.AsyncClient] | None = None,
     registry: RelayRegistry = relay_registry,
     candidate_provider: Callable[[], Awaitable[tuple[list[str], bool]]] | None = None,
@@ -117,10 +118,26 @@ async def relay_ranked_streams(
             attempted.add(content_id)
             registry.select_stream(claim.id, content_id)
             attempt_deadline = min(deadline, time.monotonic() + attempt_seconds)
-            raw = relay_engine_stream(engine, content_id, client_label, registry=registry,
-                client_factory=client_factory, claim=claim, release_claim=False,
-                stop_linger=stop_linger, read_seconds=attempt_seconds,
-                startup_deadline=attempt_deadline)
+            is_http = content_id.startswith('url:')
+
+            async def source():
+                if is_http:
+                    upstream = relay_http_stream(content_id, claim, startup_deadline=attempt_deadline)
+                else:
+                    if engine is None:
+                        raise EngineUnavailableError('Acestream Engine URL is not configured')
+                    upstream = relay_engine_stream(engine, content_id, client_label, registry=registry,
+                        client_factory=client_factory, claim=claim, release_claim=False,
+                        stop_linger=stop_linger, read_seconds=attempt_seconds,
+                        startup_deadline=attempt_deadline)
+                try:
+                    async for chunk in upstream:
+                        yield chunk
+                finally:
+                    with anyio.CancelScope(shield=True):
+                        await upstream.aclose()
+
+            raw = source()
             iterator = remux_source(raw, version=version, offset=time.monotonic() - started) if experimental_transcoding else raw
             version += 1
             first_at = last_at = None
@@ -166,7 +183,7 @@ async def relay_ranked_streams(
                 logger.info(
                     'TV relay source ended content_id=%s reason=%s phase=%s route=%s experimental_transcoding=%s',
                     content_id, reason, 'streaming' if first_at is not None else 'starting',
-                    'acexy' if engine.use_acexy else 'direct', experimental_transcoding,
+                    'http' if is_http else 'acexy' if engine is not None and engine.use_acexy else 'direct', experimental_transcoding,
                 )
             finally:
                 with anyio.CancelScope(shield=True):
@@ -189,4 +206,5 @@ async def relay_ranked_streams(
         raise EngineStreamError('No source could sustain TV channel playback within the recovery budget')
     finally:
         registry.close(claim.id)
-        engine.close()
+        if engine is not None:
+            engine.close()

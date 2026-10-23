@@ -13,7 +13,7 @@ from typing import List, Optional, Set
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.models.models import EPGSource, TVChannel
+from app.models.models import AcestreamChannel, EPGSource, TVChannel
 from app.repositories.channel_repository import ChannelRepository
 from app.repositories.settings_repository import SettingsRepository
 from app.services.epg_service import EPGService
@@ -28,6 +28,13 @@ logger = logging.getLogger(__name__)
 MIN_TUNER_COUNT, MAX_TUNER_COUNT = 1, 16
 MIN_MAX_CHANNELS, MAX_MAX_CHANNELS = 1, 1000
 MIN_START_SECONDS, MAX_START_SECONDS = 5, 180
+
+
+def supported_tuner_stream(stream: AcestreamChannel) -> bool:
+    """Accept stored media identities, never arbitrary URLs supplied by clients."""
+    return bool(re.fullmatch(r"[0-9a-fA-F]{40}", stream.id) or (
+        re.fullmatch(r"url:[0-9a-f]{40}", stream.id) and stream.stream_url
+    ))
 
 
 class TunerDeviceIdError(RuntimeError):
@@ -179,7 +186,7 @@ class TunerService:
 
     def stream_ids(self, tv_channel_id: int, *, online_only: bool = False) -> List[str]:
         streams = ChannelRepository(self.db).get_tuner_streams(tv_channel_id, online_only=online_only)
-        valid = [stream for stream in streams if re.fullmatch(r"[0-9a-fA-F]{40}", stream.id)]
+        valid = [stream for stream in streams if supported_tuner_stream(stream)]
         # Recently checked first, then by bitrate. A box that is only on now
         # and then keeps "online" from a session hours or days ago, and a
         # stale source that fails uses up its whole start time before the
@@ -206,7 +213,7 @@ class TunerService:
         fresh_since = now - timedelta(hours=FRESH_CHECK_HOURS)
         ranked = []
         for stream in streams:
-            if not re.fullmatch(r"[0-9a-fA-F]{40}", stream.id):
+            if not supported_tuner_stream(stream):
                 continue
             fresh = _checked_since(stream, fresh_since, now)
             if stream.is_online:
@@ -226,7 +233,7 @@ class TunerService:
         channels: List[TVChannel] = ChannelRepository(self.db).get_playlist_tv_channels()
         candidates = []
         for tv in channels:
-            streams = [s for s in tv.acestream_channels if s.id]
+            streams = [s for s in tv.acestream_channels if s.is_active and supported_tuner_stream(s)]
             if not streams:
                 continue
             if settings.only_online and not any(s.is_online for s in streams):

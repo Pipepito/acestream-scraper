@@ -192,7 +192,7 @@ def test_build_rejects_changed_markdown_or_version(tmp_path):
     assert subprocess.run(command, capture_output=True).returncode == 0
     source = frontend / 'changelog/v2.2.0.md'
     original = source.read_text()
-    source.write_text(original.replace('More stream sources', 'Different stream sources'))
+    source.write_text(original + '\n- Test-only release note.\n')
     result = subprocess.run(command, capture_output=True, text=True)
     assert result.returncode != 0 and 'Changelog drift' in result.stderr
     source.write_text(original)

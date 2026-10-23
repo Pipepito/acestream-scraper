@@ -83,6 +83,13 @@ PYTHONPATH=backend alembic -c backend/migrations/alembic.ini upgrade head
 
 ## Tuner and player media selection
 
+- Tuner candidates include stored `url:` HTTP/broadcaster sources alongside valid
+  AceStream IDs, using the same freshness rules. HTTP input resolves at startup
+  through `PlayerHTTPSource` and is stream-copied to MPEG-TS by FFmpeg, retaining
+  headers/SSRF guards and cleanup within the existing tuner slot/budget. HTTP
+  probes verify packets independently of engine configuration and may run while
+  HTTP playback is active; never infer online status from import or eligibility.
+
 - Stable tuner channel URLs rank active, valid sources by freshness: recent online,
   stale online, then unknown/stale offline. Recent offline is excluded; future
   timestamps are stale. Freshness is six hours; bitrate breaks ties within each

@@ -24,6 +24,7 @@ revision = module("pr_revision", "scripts/ci/verify_pr_revision.py")
 HEAD = "a" * 40
 BASE = "b" * 40
 POLICY_SHA = "c" * 40
+METADATA_CREDENTIAL = "test-status-only"
 APPROVER = "test-maintainer"
 JOB = "/validation/approved-images"
 
@@ -88,7 +89,7 @@ def original_config():
 
 
 def prepared():
-    automatic, privileged = policy.render(APPROVER, JOB, POLICY_SHA)
+    automatic, privileged = policy.render(APPROVER, JOB, POLICY_SHA, METADATA_CREDENTIAL)
     return policy.configure_pr(original_config()), policy.privileged_xml(privileged), automatic
 
 
@@ -139,11 +140,11 @@ def test_configuration_audit_rejects_trust_regressions(mutation):
                                          (APPROVER, "/job'; sh 'oops")])
 def test_configuration_inputs_cannot_inject_groovy_or_broaden_approval(approver, job):
     with pytest.raises(ValueError):
-        policy.render(approver, job, POLICY_SHA)
+        policy.render(approver, job, POLICY_SHA, METADATA_CREDENTIAL)
 
 
 def test_automatic_pipeline_never_executes_head_helpers_or_host_image_builds():
-    automatic, privileged = policy.render(APPROVER, JOB, POLICY_SHA)
+    automatic, privileged = policy.render(APPROVER, JOB, POLICY_SHA, METADATA_CREDENTIAL)
     assert "env.PR_VALIDATION_REF = env.CHANGE_FORK" not in automatic
     assert ": 'HEAD'" not in automatic
     assert "validate_pr_images.sh" not in automatic
@@ -153,7 +154,11 @@ def test_automatic_pipeline_never_executes_head_helpers_or_host_image_builds():
     assert "wait: true, propagate: true" in automatic
     assert automatic.index("deleteDir()") < automatic.index("stage('Owner-approved validation')")
     assert privileged.index("submitter:") < privileged.index("lock(resource:")
-    assert privileged.count("python3 -I trusted/verify_pr_revision.py") == 3
+    assert privileged.count("script { verifyApprovedRevision() }") == 2
+    assert "authentication: 'test-status-only'" in privileged
+    assert "__PR_METADATA_CREDENTIAL__" not in privileged
+    assert privileged.index("stage('Revalidate approved revision')") < privileged.index("agent { label")
+    assert privileged.index("stage('Recheck PR after validation')") > privileged.index("deleteDir()", privileged.index("post {"))
     assert "__PR_APPROVER__" not in privileged
     assert "__POLICY_SHA__" not in automatic + privileged
     assert f"TRUSTED_POLICY_SHA = '{POLICY_SHA}'" in automatic
@@ -248,7 +253,7 @@ def test_embedded_pipeline_shell_scripts_parse(tmp_path):
 @pytest.mark.parametrize("policy_ref", ["develop", "HEAD", "refs/pull/12/head", "c" * 39, "c" * 40 + ";id"])
 def test_privileged_policy_cannot_follow_a_moving_or_injected_ref(policy_ref):
     with pytest.raises(ValueError):
-        policy.render(APPROVER, JOB, policy_ref)
+        policy.render(APPROVER, JOB, policy_ref, METADATA_CREDENTIAL)
 
 
 @pytest.mark.parametrize("target_has_validator", [False, True])
@@ -290,3 +295,46 @@ def test_metadata_rollout_uses_target_or_pinned_policy_never_head(tmp_path, targ
                                  "TRUSTED_POLICY_SHA": pinned, "RESULT": str(output)})
     assert result.returncode == 0, result.stderr
     assert output.read_text() == ("target" if target_has_validator else "pinned")
+
+
+@pytest.mark.parametrize("credential", ["", "wrong'credential", "credential\nsh", "${params.CREDENTIAL}"])
+def test_metadata_credential_is_fixed_and_cannot_inject_pipeline_code(credential):
+    with pytest.raises(ValueError):
+        policy.render(APPROVER, JOB, POLICY_SHA, credential)
+
+
+@pytest.mark.parametrize("modern_target", [False, True])
+def test_runner_compatibility_uses_only_target_or_pinned_inputs(tmp_path, modern_target):
+    import os
+    import re
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    def git(*args):
+        return subprocess.check_output(["git", "-C", str(repo), *args], text=True).strip()
+    git("init", "-q")
+    git("config", "user.name", "Test")
+    git("config", "user.email", "test@example.invalid")
+    def inputs():
+        for name in ("scripts/ci/docker_lifecycle.py", "docker/manifests/ffmpeg.json"):
+            p = repo / name
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text("trusted fixture")
+    def commit(message):
+        git("add", ".")
+        git("commit", "--allow-empty", "-qm", message)
+        return git("rev-parse", "HEAD")
+    if modern_target:
+        inputs()
+    base = commit("Target")
+    inputs()
+    pinned = commit("Pinned policy")
+    (repo / "scripts/ci/docker_lifecycle.py").write_text("untrusted")
+    commit("Contributor")
+    git("remote", "add", "origin", str(repo))
+    pipeline = (ROOT / "jenkins/pr.Jenkinsfile").read_text()
+    script = next(s for s in re.findall(r"'''(.*?)'''", pipeline, re.DOTALL)
+                  if 'runner_ref="$PR_VALIDATION_REF"' in s)
+    result = subprocess.run(["bash", "-c", script], cwd=repo, capture_output=True, text=True,
+                            env={**os.environ, "PR_VALIDATION_REF": base, "TRUSTED_POLICY_SHA": pinned})
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == (base if modern_target else pinned)

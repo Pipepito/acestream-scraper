@@ -144,10 +144,24 @@ bash "$trusted_dir/validate_command_builder.sh"
               when { expression { env.CI_APPLICATION != 'false' } }
               steps {
                 script {
+                  // Older release targets may predate the reusable runner ABI.
+                  // Fall back only to the administrator-pinned complete input set.
+                  env.PR_RUNNER_REF = sh(returnStdout: true, script: '''#!/usr/bin/env bash
+set -euo pipefail
+runner_ref="$PR_VALIDATION_REF"
+if ! git cat-file -e "$runner_ref:scripts/ci/docker_lifecycle.py" 2>/dev/null ||
+   ! git cat-file -e "$runner_ref:docker/manifests/ffmpeg.json" 2>/dev/null; then
+  [[ "$TRUSTED_POLICY_SHA" =~ ^[0-9a-f]{40}$ ]]
+  git fetch --no-tags origin "$TRUSTED_POLICY_SHA" >&2
+  test "$(git rev-parse "${TRUSTED_POLICY_SHA}^{commit}")" = "$TRUSTED_POLICY_SHA"
+  runner_ref="$TRUSTED_POLICY_SHA"
+fi
+printf '%s' "$runner_ref"
+''').trim()
                   def runnerInputsChanged = sh(
                     returnStatus: true,
                     script: '''#!/usr/bin/env bash
-git diff --no-ext-diff --no-textconv --quiet "$PR_VALIDATION_REF" HEAD -- \
+git diff --no-ext-diff --no-textconv --quiet "$PR_RUNNER_REF" HEAD -- \
   backend/requirements.txt \
   frontend/package.json \
   frontend/package-lock.json \
@@ -170,10 +184,10 @@ git diff --no-ext-diff --no-textconv --quiet "$PR_VALIDATION_REF" HEAD -- \
                   sh '''#!/usr/bin/env bash
 set -euo pipefail
 trusted_builder="$WORKSPACE@tmp/build-pr-runner-${BUILD_NUMBER}.sh"
-git show "${PR_VALIDATION_REF}:scripts/ci/build_pr_runner.sh" > "$trusted_builder"
+git show "${PR_RUNNER_REF}:scripts/ci/build_pr_runner.sh" > "$trusted_builder"
 bash "$trusted_builder" \
   --source "$WORKSPACE" \
-  --ref "$PR_VALIDATION_REF" \
+  --ref "$PR_RUNNER_REF" \
   --image-file "$WORKSPACE@tmp/runner-image-${BUILD_NUMBER}"
 '''
                   env.PR_RUNNER_IMAGE = readFile("${env.WORKSPACE}@tmp/runner-image-${env.BUILD_NUMBER}").trim()

@@ -1,5 +1,31 @@
 // Administrator-managed inline Pipeline, never Pipeline-from-PR-SCM.
-// The preparer pins one Jenkins approver and one reviewed policy commit.
+// The preparer pins the approver, policy commit and discovery App credential.
+def validateApprovedMetadata(data) {
+  if (!(data instanceof Map) || data.number?.toString() != params.PR_NUMBER ||
+      data.state != 'open' || data.merged != false ||
+      data.base?.repo?.full_name != 'Pipepito/acestream-scraper' ||
+      data.base?.ref != params.TARGET_BRANCH || data.base?.sha != params.BASE_SHA ||
+      data.head?.sha != params.HEAD_SHA ||
+      (params.TARGET_BRANCH == 'main' &&
+       (data.head?.ref != 'develop' || data.head?.repo?.full_name != 'Pipepito/acestream-scraper'))) {
+    error('PR is closed or its approved identity changed. Request fresh validation and approval.')
+  }
+}
+
+def verifyApprovedRevision() {
+  // Called only in agent-none stages. HTTP Request uses the controller when no
+  // Launcher is in scope; putting this inside node would send auth to the agent.
+  def response = httpRequest(
+    url: "https://api.github.com/repos/Pipepito/acestream-scraper/pulls/${params.PR_NUMBER}",
+    httpMode: 'GET', authentication: '__PR_METADATA_CREDENTIAL__',
+    acceptType: 'APPLICATION_JSON', validResponseCodes: '200', timeout: 20,
+    quiet: true, consoleLogResponseBody: false, responseHandle: 'STRING')
+  if (response.content.length() > 1048576) {
+    error('PR metadata exceeds the response limit.')
+  }
+  validateApprovedMetadata(readJSON(text: response.content, returnPojo: true))
+}
+
 pipeline {
   agent none
   environment {
@@ -26,11 +52,10 @@ pipeline {
               !(params.BASE_SHA ==~ /[0-9a-f]{40}/) ||
               !(params.TARGET_BRANCH in ['develop', 'main']) ||
               '__PR_APPROVER__'.startsWith('__') ||
+              '__PR_METADATA_CREDENTIAL__'.startsWith('__') ||
               !(env.TRUSTED_POLICY_SHA ==~ /[0-9a-f]{40}/)) {
-            error('Invalid revision or missing administrator-configured approver.')
+            error('Invalid revision or missing administrator configuration.')
           }
-          // No executor or Docker lock is held while waiting. Approval is for
-          // these immutable parameters, never a moving branch or a PR label.
           input message: "Allow host builds for https://github.com/Pipepito/acestream-scraper/pull/${params.PR_NUMBER}? Review head ${params.HEAD_SHA} against ${params.TARGET_BRANCH} at ${params.BASE_SHA}. This permits proposed build/dependency code to run on the build host.",
             ok: 'Approve this revision', submitter: '__PR_APPROVER__'
         }
@@ -42,12 +67,18 @@ pipeline {
         timeout(time: 4, unit: 'HOURS')
         lock(resource: 'acestream-scraper-nuc-docker', reason: 'Owner-approved PR image validation')
       }
-      agent { label 'dorat-nuc-ci' }
+      agent none
       stages {
         stage('Revalidate approved revision') {
-          steps {
-            deleteDir()
-            sh '''#!/usr/bin/env bash
+          steps { script { verifyApprovedRevision() } }
+        }
+        stage('Approved host validation') {
+          agent { label 'dorat-nuc-ci' }
+          stages {
+            stage('Checkout approved revision') {
+              steps {
+                deleteDir()
+                sh '''#!/usr/bin/env bash
 set -euo pipefail
 mkdir source
 git -C source init -q
@@ -55,42 +86,42 @@ git -C source remote add origin https://github.com/Pipepito/acestream-scraper.gi
 git -C source fetch --no-tags origin "+refs/heads/$TARGET_BRANCH:refs/remotes/origin/approved-target" "+refs/pull/$PR_NUMBER/head:refs/remotes/origin/approved-head"
 test "$(git -C source rev-parse refs/remotes/origin/approved-target)" = "$BASE_SHA"
 test "$(git -C source rev-parse refs/remotes/origin/approved-head)" = "$HEAD_SHA"
-# The administrator pins reviewed host policy in the managed definition.
-# No PR author, branch, label or build parameter may choose this revision.
 git -C source fetch --no-tags origin "$TRUSTED_POLICY_SHA"
 policy_ref=$(git -C source rev-parse "${TRUSTED_POLICY_SHA}^{commit}")
 test "$policy_ref" = "$TRUSTED_POLICY_SHA"
 mkdir trusted
-for name in verify_pr_revision.py run_approved_pr_validation.sh build_pr_runner.sh bootstrap_jenkins_runner.sh validate_pr_images.sh; do
+for name in run_approved_pr_validation.sh build_pr_runner.sh bootstrap_jenkins_runner.sh validate_pr_images.sh; do
   mode=$(git -C source ls-tree "$policy_ref" -- "scripts/ci/$name" | cut -d ' ' -f 1)
   [[ "$mode" = 100644 || "$mode" = 100755 ]]
   git -C source show "$policy_ref:scripts/ci/$name" > "trusted/$name"
 done
-python3 -I trusted/verify_pr_revision.py --pr "$PR_NUMBER" --head "$HEAD_SHA" --base "$BASE_SHA" --target "$TARGET_BRANCH"
 git -C source checkout --detach "$HEAD_SHA"
 '''
-          }
-        }
-        stage('Validate approved application and images') {
-          steps {
-            sh '''#!/usr/bin/env bash
+              }
+            }
+            stage('Validate approved application and images') {
+              steps {
+                sh '''#!/usr/bin/env bash
 set -euo pipefail
-# Recheck after approval and lock waiting, immediately before proposed code.
-python3 -I trusted/verify_pr_revision.py --pr "$PR_NUMBER" --head "$HEAD_SHA" --base "$BASE_SHA" --target "$TARGET_BRANCH"
 bash trusted/run_approved_pr_validation.sh "$WORKSPACE/source" "$WORKSPACE/trusted"
-python3 -I trusted/verify_pr_revision.py --pr "$PR_NUMBER" --head "$HEAD_SHA" --base "$BASE_SHA" --target "$TARGET_BRANCH"
 '''
+              }
+            }
           }
-        }
-      }
-      post {
-        always {
-          sh '''#!/usr/bin/env bash
+          post {
+            always {
+              sh '''#!/usr/bin/env bash
 if [[ -n "${BUILD_NUMBER:-}" ]]; then
   docker rm --force "acestream-approved-pr-${BUILD_NUMBER}" >/dev/null 2>&1 || true
 fi
 '''
-          deleteDir()
+              deleteDir()
+            }
+          }
+        }
+        stage('Recheck PR after validation') {
+          // No agent/Launcher context: the App token stays on the controller.
+          steps { script { verifyApprovedRevision() } }
         }
       }
     }

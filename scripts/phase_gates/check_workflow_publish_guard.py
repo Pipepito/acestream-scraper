@@ -98,8 +98,9 @@ def main() -> int:
                  r"lock\(resource: 'acestream-scraper-nuc-docker'[^\n]*\n"
                  r"\s*\}\s*agent\s*\{ label 'dorat-nuc-ci' \}", pipeline
              )
-             for pipeline in (pr_jenkinsfile, privileged_jenkinsfile, develop_jenkinsfile, release_jenkinsfile)
-         )),
+             for pipeline in (pr_jenkinsfile, develop_jenkinsfile, release_jenkinsfile)
+         ) and privileged_jenkinsfile.index("lock(resource:") < privileged_jenkinsfile.index("agent { label")
+         and "agent none\n      stages" in privileged_jenkinsfile),
         ("all pipelines share dependency-keyed runners and pressure-aware cleanup",
          "scripts/ci/docker_lifecycle.py" in pr_runner_builder
          and "build_pr_runner.sh" in develop_jenkinsfile
@@ -139,9 +140,11 @@ def main() -> int:
          and 'git show "${PR_VALIDATION_REF}:scripts/ci/run_pr_validation.sh"' in pr_jenkinsfile
          and "runnerInputsChanged" in pr_jenkinsfile
          and "env.CHANGE_FORK" in pr_jenkinsfile),
-        ("application PRs reuse only runners selected from their trusted validation ref",
+        ("application PRs reuse only target or administrator-pinned runners",
          "stage('Build isolated trusted runner')" in pr_jenkinsfile
-         and 'git show "${PR_VALIDATION_REF}:scripts/ci/build_pr_runner.sh"' in pr_jenkinsfile
+         and 'git show "${PR_RUNNER_REF}:scripts/ci/build_pr_runner.sh"' in pr_jenkinsfile
+         and 'runner_ref="$TRUSTED_POLICY_SHA"' in pr_jenkinsfile
+         and 'git diff --no-ext-diff --no-textconv --quiet "$PR_RUNNER_REF" HEAD --' in pr_jenkinsfile
          and "PR_RUNNER_EPHEMERAL" not in pr_jenkinsfile
          and "scripts/ci/docker_lifecycle.py" in pr_jenkinsfile
          and "--image-file" in pr_jenkinsfile

@@ -584,3 +584,12 @@ become permanent channels. Catalogue event preview reuses private snapshot input
 apply reserves both catalogue revision and source UUID. Never infer times from
 folder names or automatically refresh W3U event schedules. See
 `docs/dev/w3u-catalogues.md#combined-catalogue-and-event-integration`.
+
+
+Collaborator-safe CI keeps administration with the owner; other Jenkins logins are
+read-only. The approved PR job checks GitHub metadata using the discovery App in
+agent-none controller stages before/after the host workload. Never move those
+HTTP requests into a node/agent context or bind their token in shell code. Older
+targets missing metadata validation or the reusable FFmpeg runner use the fixed
+administrator-pinned policy bundle, with dependency comparisons against the
+selected runner ref. See `docs/ops/jenkins-collaborator-safety.md`.

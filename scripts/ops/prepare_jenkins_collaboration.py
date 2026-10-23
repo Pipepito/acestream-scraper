@@ -90,8 +90,10 @@ def privileged_xml(script: str) -> str:
     return ET.tostring(root, encoding="unicode")
 
 
-def render(approver: str, job: str, policy_sha: str) -> tuple[str, str]:
+def render(approver: str, job: str, policy_sha: str, metadata_credential: str) -> tuple[str, str]:
     # These are inserted into single-quoted Groovy, never shell-interpolated.
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+", metadata_credential):
+        raise ValueError("Metadata credential must be the fixed project discovery credential")
     if not re.fullmatch(r"[0-9a-f]{40}", policy_sha):
         raise ValueError("Host policy must be pinned to a reviewed full commit SHA")
     if not re.fullmatch(r"[A-Za-z0-9_.@-]+", approver):
@@ -101,7 +103,7 @@ def render(approver: str, job: str, policy_sha: str) -> tuple[str, str]:
     if ".." in job.split("/"):
         raise ValueError("Relative job path components are forbidden")
     automatic = (ROOT / "jenkins/pr.Jenkinsfile").read_text().replace("__PRIVILEGED_JOB__", job).replace("__POLICY_SHA__", policy_sha)
-    privileged = (ROOT / "jenkins/pr-privileged.Jenkinsfile").read_text().replace("__PR_APPROVER__", approver).replace("__POLICY_SHA__", policy_sha)
+    privileged = (ROOT / "jenkins/pr-privileged.Jenkinsfile").read_text().replace("__PR_APPROVER__", approver).replace("__POLICY_SHA__", policy_sha).replace("__PR_METADATA_CREDENTIAL__", metadata_credential)
     return automatic, privileged
 
 
@@ -124,7 +126,7 @@ def audit(pr_xml: str, child_xml: str, managed_script: str, approver: str, job: 
     trust = traits.find(FORK + "/trust")
     if trust is None or trust.get("class") != TRUST:
         raise ValueError("Fork Jenkinsfiles must never be trusted")
-    automatic, privileged = render(approver, job, policy_sha)
+    automatic, privileged = render(approver, job, policy_sha, node.findtext("credentialsId", ""))
     if managed_script != automatic:
         raise ValueError("Managed PR script differs from the reviewed pipeline")
     child = ET.fromstring(child_xml)
@@ -157,7 +159,8 @@ def main() -> int:
         else:
             if args.output is None:
                 raise ValueError("A new private output directory is required")
-            automatic, privileged = render(args.approver, args.privileged_job, args.policy_sha)
+            metadata_credential = source_node(ET.fromstring(args.pr_config.read_text())).findtext("credentialsId", "")
+            automatic, privileged = render(args.approver, args.privileged_job, args.policy_sha, metadata_credential)
             pr = configure_pr(args.pr_config.read_text())
             child = privileged_xml(privileged)
             audit(pr, child, automatic, args.approver, args.privileged_job, args.policy_sha)

@@ -19,9 +19,11 @@ is Nobody. Branch and tag discovery are disabled. The repository head must match
 `refs/pull/<number>/head`. Targets are restricted to `develop` and `main`, and only
 this repository's `develop` may target `main`. The automatic job resolves its protected target
 once to a commit hash for host-side selectors, validators and runner helpers.
-If an older target predates the metadata validator, only that missing bundle falls
-back to the administrator-pinned policy commit; contributor metadata tools are
-never selected. The automatic definition pins that fallback SHA explicitly.
+If an older target predates the metadata validator or the reusable FFmpeg runner,
+the missing metadata bundle or complete runner input set falls back to the
+administrator-pinned policy commit. Dependency differences are compared against
+the actual selected runner ref. Contributor tools are never selected as fallback.
+The automatic definition pins that fallback SHA explicitly.
 The approved job obtains host orchestration from a reviewed full commit SHA pinned
 by the administrator in its managed definition. It is not a build parameter or a
 moving branch. This also permits rollout before merging the helper PR and permits
@@ -55,7 +57,15 @@ shared FIFO lock, checks current remote refs and GitHub PR metadata, runs the fu
 application gate with the approved dependency set, builds every supported image
 combination without publishing, and checks PR metadata again before success.
 Closed PRs, new head commits, target changes and base updates invalidate the run.
-Metadata outages/rate limits fail closed. A new build requires new approval.
+Metadata outages/rate limits fail closed. GitHub metadata checks use the project's
+existing discovery App via HTTP Request and Pipeline Utility Steps, in agent-none
+stages before agent allocation and after agent cleanup. Never move `httpRequest`
+inside an agent/node scope: that plugin sends requests through the active Launcher.
+No token is placed in a shell, workspace, container or agent environment. The
+request uses one fixed GitHub endpoint and a validated numeric PR identifier;
+response data cannot select code or credentials. The local Python verifier remains
+available for credential-free diagnostics, but its unauthenticated API quota is
+not the production approval gate. A new build requires new approval.
 Multiple revisions may wait independently; they never abort a running Docker
 workload. Decline/cancel superseded pending approvals in Jenkins.
 
@@ -69,8 +79,12 @@ four-hour limit.
 ## Credentials, permissions and trusted branches
 
 Keep the multibranch job and approved-image job **outside** the trusted
-publication folder. Neither may resolve `dockerhub-publish`, `github-publish`,
-or unrelated global credentials. Store publication credentials only at the
+publication folder. Neither may resolve `dockerhub-publish` or `github-publish`.
+The fixed PR definitions must never bind unrelated credentials. Existing unrelated
+global credentials on a shared controller require a separate usage audit before
+migration; their presence must not be described as generic job-level credential
+isolation. Contributor code is isolated by the fixed definition and restricted
+containers. Store publication credentials only at the
 publication folder containing develop/release. Inspect both ancestor folders and
 global credential scope; an absence of `withCredentials` in today's script is not
 proof of credential isolation. Keep agent-launch credentials controller-only.
@@ -78,8 +92,10 @@ The GitHub discovery/status App must be limited to this repository and the minim
 necessary permissions. Candidate code receives no credentials or Docker socket in
 validation containers; approved image builds use empty Docker authentication.
 
-Only the owner/administrators may Configure, Replay, edit managed files, approve
-scripts, or change credentials/permissions for these jobs. Do not grant repository
+Only the owner may administer Jenkins, Configure, Replay, edit managed files,
+approve scripts, or change credentials/permissions for these jobs. Other local
+logins may have Read permissions, but no Build, Cancel or Configure permissions.
+Keep anonymous access and self-registration disabled. Do not grant repository
 collaborators a Jenkins login with broad inherited permissions. Build/Cancel access
 to approved-image and publication jobs remains owner-controlled (the fixed parent
 can schedule its child). Restrict release-job Build permission as well as keeping
@@ -100,7 +116,8 @@ hardening does not change that GitHub role or grant access to the Docker registr
 Use a trusted checkout containing these changes. Export the existing multibranch
 job's `config.xml` privately. It may contain private settings: never track or print
 it. The preparer reads it as data, preserves the existing source credential and
-notification settings, switches to a fixed managed definition, and emits private
+notification settings, derives the fixed metadata credential from that source,
+switches to a fixed managed definition, and emits private
 configuration files. Supply the real Jenkins login (not automatically the GitHub
 login) and the approved job's absolute item path using runtime-only variables.
 
@@ -149,7 +166,8 @@ scope or ACLs; complete the manual inspections above as well.
    as `--policy-sha`. Review the helpers from that commit; no moving branch or PR
    parameter may select host orchestration. No release or develop merge is needed
    to bootstrap the managed definitions.
-3. Install/verify Pipeline: Multibranch with defaults and Config File Provider.
+3. Install/verify Pipeline: Multibranch with defaults, Config File Provider,
+   HTTP Request and Pipeline Utility Steps.
    Create the managed Groovy file, create the approved-image job outside publication,
    apply job ACLs/credential separation, then update the multibranch factory and
    discovery settings. Preserve the GitHub App-bound `PR Validation` context.
@@ -183,4 +201,5 @@ SCM-selected definition reintroduces the original trust boundary and is not a
 collaborator-safe rollback.
 
 References: [Jenkins multibranch credential boundaries](https://www.jenkins.io/doc/book/security/securing-org-folders-and-multibranch-pipelines/)
-and [default pipeline configuration](https://github.com/jenkinsci/pipeline-multibranch-defaults-plugin).
+[default pipeline configuration](https://github.com/jenkinsci/pipeline-multibranch-defaults-plugin),
+and [HTTP Request execution context](https://github.com/jenkinsci/http-request-plugin/blob/master/src/main/java/jenkins/plugins/http_request/HttpRequestStep.java).

@@ -100,7 +100,7 @@ def render(approver: str, job: str, policy_sha: str) -> tuple[str, str]:
         raise ValueError("Privileged job must be an absolute Jenkins item path")
     if ".." in job.split("/"):
         raise ValueError("Relative job path components are forbidden")
-    automatic = (ROOT / "jenkins/pr.Jenkinsfile").read_text().replace("__PRIVILEGED_JOB__", job)
+    automatic = (ROOT / "jenkins/pr.Jenkinsfile").read_text().replace("__PRIVILEGED_JOB__", job).replace("__POLICY_SHA__", policy_sha)
     privileged = (ROOT / "jenkins/pr-privileged.Jenkinsfile").read_text().replace("__PR_APPROVER__", approver).replace("__POLICY_SHA__", policy_sha)
     return automatic, privileged
 

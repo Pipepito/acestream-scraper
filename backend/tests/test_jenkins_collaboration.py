@@ -155,7 +155,8 @@ def test_automatic_pipeline_never_executes_head_helpers_or_host_image_builds():
     assert privileged.index("submitter:") < privileged.index("lock(resource:")
     assert privileged.count("python3 -I trusted/verify_pr_revision.py") == 3
     assert "__PR_APPROVER__" not in privileged
-    assert "__POLICY_SHA__" not in privileged
+    assert "__POLICY_SHA__" not in automatic + privileged
+    assert f"TRUSTED_POLICY_SHA = '{POLICY_SHA}'" in automatic
     assert f"TRUSTED_POLICY_SHA = '{POLICY_SHA}'" in privileged
 
 
@@ -248,3 +249,44 @@ def test_embedded_pipeline_shell_scripts_parse(tmp_path):
 def test_privileged_policy_cannot_follow_a_moving_or_injected_ref(policy_ref):
     with pytest.raises(ValueError):
         policy.render(APPROVER, JOB, policy_ref)
+
+
+@pytest.mark.parametrize("target_has_validator", [False, True])
+def test_metadata_rollout_uses_target_or_pinned_policy_never_head(tmp_path, target_has_validator):
+    import os
+    import re
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    def git(*args):
+        return subprocess.check_output(["git", "-C", str(repo), *args], text=True).strip()
+    git("init", "-q")
+    git("config", "user.name", "Test")
+    git("config", "user.email", "test@example.invalid")
+    tools = repo / "scripts/ci/metadata-tools"
+    tools.mkdir(parents=True)
+    for name in ("package.json", "package-lock.json", "validate.cjs", "test.cjs", "assignment-workflow.json"):
+        (tools / name).write_text("fixture")
+    validator = tools.parent / "validate_repository_metadata.sh"
+    def commit(message):
+        git("add", ".")
+        git("commit", "--allow-empty", "-qm", message)
+        return git("rev-parse", "HEAD")
+    if target_has_validator:
+        validator.write_text('printf "target" > "$RESULT"\n')
+    base = commit("Target")
+    validator.write_text('printf "pinned" > "$RESULT"\n')
+    pinned = commit("Administrator reviewed policy")
+    validator.write_text('printf "UNTRUSTED" > "$RESULT"\n')
+    commit("Contributor policy must never execute")
+    git("remote", "add", "origin", str(repo))
+    workspace_tmp = Path(str(repo) + "@tmp")
+    workspace_tmp.mkdir()
+    pipeline = (ROOT / "jenkins/pr.Jenkinsfile").read_text()
+    script = next(s for s in re.findall(r"'''(.*?)'''", pipeline, re.DOTALL)
+                  if "metadata_ref=" in s)
+    output = tmp_path / "result"
+    result = subprocess.run(["bash", "-c", script], cwd=repo, capture_output=True, text=True,
+                            env={**os.environ, "WORKSPACE": str(repo), "PR_VALIDATION_REF": base,
+                                 "TRUSTED_POLICY_SHA": pinned, "RESULT": str(output)})
+    assert result.returncode == 0, result.stderr
+    assert output.read_text() == ("target" if target_has_validator else "pinned")

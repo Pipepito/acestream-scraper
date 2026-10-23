@@ -2,6 +2,9 @@
 // Render __PRIVILEGED_JOB__ with prepare_jenkins_collaboration.py.
 pipeline {
   agent none
+  environment {
+    TRUSTED_POLICY_SHA = '__POLICY_SHA__'
+  }
 
   options {
     skipDefaultCheckout(true)
@@ -99,6 +102,14 @@ set -euo pipefail
 trusted_dir="$(mktemp -d "$WORKSPACE@tmp/metadata-checks.XXXXXX")"
 trap 'rm -rf "$trusted_dir"' EXIT
 metadata_ref="$PR_VALIDATION_REF"
+# Older release targets can predate metadata validation. Only an explicitly
+# administrator-pinned policy may supply the missing validator, never HEAD.
+if ! git cat-file -e "$metadata_ref:scripts/ci/validate_repository_metadata.sh" 2>/dev/null; then
+  [[ "$TRUSTED_POLICY_SHA" =~ ^[0-9a-f]{40}$ ]]
+  git fetch --no-tags origin "$TRUSTED_POLICY_SHA"
+  test "$(git rev-parse "${TRUSTED_POLICY_SHA}^{commit}")" = "$TRUSTED_POLICY_SHA"
+  metadata_ref="$TRUSTED_POLICY_SHA"
+fi
 mkdir -p "$trusted_dir/metadata-tools"
 git show "$metadata_ref:scripts/ci/validate_repository_metadata.sh" > "$trusted_dir/validate_repository_metadata.sh"
 for file in package.json package-lock.json validate.cjs test.cjs assignment-workflow.json; do

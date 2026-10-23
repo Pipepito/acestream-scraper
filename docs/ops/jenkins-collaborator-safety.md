@@ -18,7 +18,10 @@ Only PR head revisions are discovered (origin and fork strategy 2); fork trust
 is Nobody. Branch and tag discovery are disabled. The repository head must match
 `refs/pull/<number>/head`. Targets are restricted to `develop` and `main`, and only
 this repository's `develop` may target `main`. The automatic job resolves its protected target
-once to a commit hash for every host-side selector, validator and runner helper.
+once to a commit hash for host-side selectors, validators and runner helpers.
+If an older target predates the metadata validator, only that missing bundle falls
+back to the administrator-pinned policy commit; contributor metadata tools are
+never selected. The automatic definition pins that fallback SHA explicitly.
 The approved job obtains host orchestration from a reviewed full commit SHA pinned
 by the administrator in its managed definition. It is not a build parameter or a
 moving branch. This also permits rollout before merging the helper PR and permits

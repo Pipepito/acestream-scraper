@@ -14,11 +14,11 @@ Important constraint for this setup:
 
 - Jenkins should be configured through the Jenkins UI.
 - Do not copy `Jenkinsfile`, `jenkins/release.Jenkinsfile`, shell scripts, or helper files into the Jenkins Docker container.
-- Jenkins should load pipeline definitions directly from this Git repository through SCM configuration in the UI.
+- Develop/release load protected-branch definitions through SCM. PR definitions are administrator-managed as described in [Collaborator-safe Jenkins](jenkins-collaborator-safety.md); never select them from contributor branches.
 
 Current job model (adopted 2026-09-04):
 
-- `acestream-scraper-pr` is a multibranch job loading `jenkins/pr.Jenkinsfile`. It discovers origin and fork PRs, reports `PR Validation`, never binds a credential, and confines fork code to restricted containers. Ordinary branch builds skip validation/publication even if branch discovery is accidentally enabled. Maintainer-owned PRs additionally build every supported production flavor/platform and delete each temporary image immediately.
+- `acestream-scraper-pr` uses an administrator-managed `jenkins/pr.Jenkinsfile` through Pipeline: Multibranch with defaults. Forks and origin branches share isolated checks. Application PRs wait for the fixed owner-approved image job before reporting `PR Validation`. See [Collaborator-safe Jenkins](jenkins-collaborator-safety.md) for deployment, credential/ACL checks and immutable revision approval.
 - `acestream-scraper-develop` is a Pipeline-from-SCM job loading `jenkins/develop.Jenkinsfile` from `develop`. It selects affected work, rejects stale revisions, and validates documentation without publishing it. Application/build changes run the full suite and privileged Docker/runtime smokes before publishing the floating `develop` channel.
 - `acestream-scraper-release` loads `jenkins/release.Jenkinsfile` from `main` and remains manual-only.
 
@@ -46,12 +46,11 @@ Develop validation diagnostics:
 
 Security boundary:
 
-- Jenkins itself launches on the trusted Docker-capable executor labeled `dorat-nuc-ci`, but fork-controlled files execute only inside disposable restricted containers.
-- The main PR container receives only the checked-out workspace. It receives no Jenkins credential, no Docker socket, no host network, and no inherited Jenkins environment. It runs as the agent's unprivileged uid with all Linux capabilities dropped, `no-new-privileges`, and CPU/memory/PID limits. Forks execute validation orchestrators from the target branch; maintainer-owned origin PRs may exercise their proposed orchestrators. PRs with application/build or unknown changes run the complete non-Docker backend and frontend suites; documentation-only PRs use the trusted read-only checks below.
-- PR, develop and release application validation use a dependency-keyed runner through `build_pr_runner.sh`. For a fork, Jenkins exports an allowlist of runner inputs and lifecycle code from the trusted target ref, then reuses a verified matching runner or builds from that isolated context; the job never selects the old mutable `:develop` or `:release` runner tags and contributor files cannot affect the networked dependency build. Fork changes to Python/npm requirements or the runner Dockerfile fail closed and require promotion to a reviewed maintainer branch.
-- A second stage runs the target branch's trusted runtime validator against the PR's entrypoint, WARP setup, and healthcheck files under pinned `linux/amd64`, `linux/arm64`, and `linux/arm/v7` Python userlands. Each userland is network-disabled, read-only, capability-dropped, resource-limited, and receives neither credentials nor the Docker socket.
-- Maintainer-owned PRs may execute production Docker builds on the host, with an empty Docker authentication config and no publication. Fork Dockerfiles are never executed on the shared daemon; promote reviewed changes to a maintainer-owned branch for this check. Engine runtime smokes and registry/publication credentials remain in the trusted develop/release pipelines.
-- The container boundary reduces host and credential exposure; it does not replace maintainer review. Tests and repository scripts are contributor-controlled inputs.
+- Automatic PRs use only pinned protected-target host orchestration and dependency inputs. Contributor code executes in restricted, network-disabled containers without credentials or a Docker socket, identically for forks and internal branches.
+- A separate administrator-owned pipeline requires the owner's approval of the exact PR head, base and target before proposed dependency or image code can execute on the host. It rechecks freshness before and after execution and never publishes. `PR Validation` remains pending until it succeeds.
+- The automatic parent releases its full-workload FIFO lock before waiting for the approved child, which acquires the same lock before its executor and retains it through cleanup.
+- Both PR jobs remain outside the publication credential scope. Trusted develop/release keep their existing smoke and publication paths; owner-only protected-branch updates control entry to those paths.
+- These repository definitions require live managed-pipeline, credential, ACL and ruleset activation. Follow [Collaborator-safe Jenkins](jenkins-collaborator-safety.md) before inviting writers.
 
 Current ownership stance:
 
@@ -72,7 +71,7 @@ Networking model:
 
 Executor model:
 
-- The three pipelines currently launch on `dorat-nuc-ci`; the PR pipeline starts hardened validation containers and builds production images only for maintainer-owned PRs. It never mounts the daemon into a validation container.
+- The automatic PR, approved-image, develop and release Docker workloads use `dorat-nuc-ci`; production PR images require explicit owner approval. It never mounts the daemon into a validation container.
 - The trusted develop and release jobs retain direct Docker/Buildx access for runtime smoke and publication.
 - SSH is a documented example agent-launch path, not a pipeline requirement.
 
@@ -232,7 +231,7 @@ The following steps require operator intervention outside the repository:
 - Configure a Jenkins executor labeled `dorat-nuc-ci`.
 - Register the GitHub App, install it on the repository, and store its credentials in Jenkins.
 - If you want webhook-driven scans, expose Jenkins webhook endpoints over reachable HTTPS with working DNS or a reverse proxy/tunnel.
-- Create the Jenkins multibranch validation job from `jenkins/pr.Jenkinsfile`.
+- Create the Jenkins multibranch validation job using the managed definition in [Collaborator-safe Jenkins](jenkins-collaborator-safety.md).
 - Create the automatic trusted develop job from `jenkins/develop.Jenkinsfile`.
 - Create the Jenkins manual release job from `jenkins/release.Jenkinsfile`.
 - Observe the Jenkins check name reported back to GitHub and update branch protection to require it (done 2026-08-28 on `main` and `develop`).
@@ -285,7 +284,7 @@ If you prefer to wire Jenkins jobs first and let the repository bootstrap the ru
   - [ ] `scripts/ci/bootstrap_jenkins_runner.sh`
   - [ ] `scripts/ci/run_jenkins_validation.sh`
   - [ ] `scripts/ci/run_jenkins_release.sh`
-- [ ] Create the multibranch PR-validation job from `jenkins/pr.Jenkinsfile`.
+- [ ] Create the multibranch PR-validation job with an administrator-managed definition; follow [Collaborator-safe Jenkins](jenkins-collaborator-safety.md).
 - [ ] Create the automatic develop job from `jenkins/develop.Jenkinsfile`.
 - [ ] Create the manual release job from `jenkins/release.Jenkinsfile`.
 
@@ -565,7 +564,7 @@ What the pipelines do about it:
 - Cleanup does not globally prune unused images or delete volumes, workspaces, unrelated images, or container-referenced images. It rechecks container references before each non-forced removal. Docker inspection/deletion/prune errors are visible and fail the operation; capability detection selects the supported Buildx cache-size option without hiding real failures. `--dry-run` prints normal deletion/prune plans and describes pressure escalation without making changes. The default cleanup arguments are sufficient; `--all-unused-images` is intentionally no longer supported.
 - `scripts/ci/bootstrap_jenkins_runner.sh` creates `acestream-builder` with a `buildkitd.toml` that enables BuildKit garbage collection with explicit byte values: `reservedSpace` defaults to 4000 MiB, `maxUsedSpace` to 8000 MiB, and `minFreeSpace` to 8 GiB. `BUILDKIT_GC_KEEP_STORAGE_MB` and `BUILDKIT_GC_MAX_STORAGE_MB` are converted to bytes; never pass an unconverted `4000` (that retains only 4 KB). It caps parallel build steps (`max-parallelism = 2`), so the cache is bounded *during* a multi-platform publish, not only between builds; when that config changes the bootstrap recreates the builder.
 - Multi-platform pushes build one platform at a time (next section), which also bounds the cache growth per step.
-- Maintainer PR builds use `validate_pr_images.sh`: one platform/flavor at a time, `--load` to a unique `acestream-scraper-pr-build:` tag, inspection, then immediate non-forced removal. Failure cleanup removes partial exports too; the shared retention policy recognizes abandoned PR tags after interrupted jobs. PR builds reuse the same `JENKINS_BUILDER` (default `acestream-builder`) and Buildx instance metadata as publication, with a separate empty Docker authentication config. Dependency runners and warm layers remain reusable. Develop/release smoke tests remove their own run-scoped images and apply the shared retention policy.
+- Owner-approved PR builds use `validate_pr_images.sh`: one platform/flavor at a time, `--load` to a unique `acestream-scraper-pr-build:` tag, inspection, then immediate non-forced removal. Failure cleanup removes partial exports too; the shared retention policy recognizes abandoned PR tags after interrupted jobs. PR builds reuse the same `JENKINS_BUILDER` (default `acestream-builder`) and Buildx instance metadata as publication, with a separate empty Docker authentication config. Dependency runners and warm layers remain reusable. Develop/release smoke tests remove their own run-scoped images and apply the shared retention policy.
 - `scripts/ci/run_jenkins_release.sh` runs the same cleanup after its engine smoke, before the multi-platform publish builds.
 
 For manual investigation, inspect `docker system df -v`, image labels/container references and `docker buildx du --builder <name>`. Preview `bash scripts/ci/cleanup_runner_docker.sh --dry-run` first. Any live reclaim must hold the same FIFO lock and preserve images needed by the current run; do not run blanket image/volume pruning or remove builders to bypass retention. Workspaces and unrelated retained data require a separate operator decision if managed reclamation is insufficient.
@@ -640,7 +639,7 @@ Monitor:
 
 Cleanup guidance:
 
-- Use Jenkins build retention; all three pipelines discard old build records after 20 runs.
+- Use Jenkins build retention; all four pipelines discard old build records after 20 runs.
 - Periodically prune stopped containers and unused images during a maintenance window:
 
 ```bash
@@ -848,32 +847,13 @@ Changing these ids would require repository changes, so treat them as part of th
 
 ## Multibranch Validation Job
 
-User action required.
-
-Create a multibranch pipeline job that points at this repository and uses `jenkins/pr.Jenkinsfile`.
-
-Do not copy the Jenkinsfile into the controller container; load it from SCM.
-
-Recommended configuration:
-
-1. New Item -> Multibranch Pipeline.
-2. Add the repository using the GitHub App credential `github-app-acestream-scraper`.
-3. Set the script path to `jenkins/pr.Jenkinsfile`.
-4. Disable ordinary branch discovery; this job is for PR revisions only. The Jenkinsfile also skips ordinary branch runs as a defense against configuration drift.
-5. Discover origin PR merge revisions.
-6. Discover fork PR merge revisions and set trust to **Nobody**. Jenkins then loads the Jenkinsfile from the target branch while checking out the proposed merge revision.
-7. Keep the notification context exactly `PR Validation`.
-8. Enable one trigger model: webhook-based indexing, periodic scans, or manual rescans.
-
-Expected behavior:
-
-- Jenkins launches on `dorat-nuc-ci`, but contributor code runs only in the restricted PR container.
-- The job never calls `withCredentials`, never mounts `/var/run/docker.sock`, and never gives the container network access.
-- The job exports only dependency manifests, the runner Dockerfile, the FFmpeg manifest/build script and lifecycle helper from `PR_VALIDATION_REF`, then resolves a dependency-keyed runner. Unchanged dependency inputs reuse the verified local image; missing images are built from the exported context. For a fork that ref is the trusted target branch; a fork cannot alter the network-enabled build context or replace the top-level validation orchestrator.
-- A fork that changes dependency manifests, the runner Dockerfile or the FFmpeg manifest/build script fails closed. After review, move the commit to a maintainer-owned branch; origin PRs may build their own proposed dependency runner.
-- The container executes `scripts/ci/run_pr_validation.sh` as read from the validation ref. The architecture stage likewise extracts its driver and runtime validator from that ref, then executes the PR runtime files in three constrained CPU userlands.
-- `Branch Policy` (since 2026-08-28): a PR into `main` fails unless its head is `develop`.
-- Every application PR statically verifies the production Dockerfile, dry-runs flavor/platform plans, and executes runtime scripts across three architectures. Maintainer-owned PRs also run `validate_pr_images.sh` for all supported combinations (currently four flavors × three platforms), under the same full-run FIFO lock. Each image is loaded and inspected, then deleted before the next build; build failures also run cleanup. This stage uses an empty Docker authentication config and never publishes. Forks report the build boundary explicitly: actual Dockerfile execution requires promotion of the reviewed commit to a maintainer-owned branch. Engine runtime smokes remain in develop/release.
+Use the administrator-managed configuration in [Collaborator-safe Jenkins](jenkins-collaborator-safety.md).
+The old SCM script-path configuration is unsafe for repository writers even with
+fork trust set to Nobody. Origin and fork PRs must discover **head** revisions,
+not merge revisions. The preparer preserves discovery/status credentials and the
+`PR Validation` context while replacing the factory with a fixed managed script.
+Application PRs retain the full gate and supported image matrix through the
+separate exact-revision owner approval job. Docs-only PRs retain lightweight checks.
 
 ## Trusted Develop Job
 
@@ -961,7 +941,7 @@ User action required.
 
 Do not guess the required check name. Observe the exact Jenkins-reported check on a real pull request first, then update GitHub branch protection.
 
-Status 2026-09-04: `PR Validation` remains the required Jenkins context on `main` and `develop`. The multibranch job discovers PR merge revisions only, including forks with trust set to Nobody; ordinary branch and publication work lives in the separate trusted develop job.
+Historical snapshot 2026-09-04 (superseded by the collaborator-safe head-only rollout): `PR Validation` remains the required Jenkins context on `main` and `develop`. The multibranch job discovers PR merge revisions only, including forks with trust set to Nobody; ordinary branch and publication work lives in the separate trusted develop job.
 
 Cutover sequence (historical record):
 
@@ -977,12 +957,12 @@ This avoids blocking merges on a mismatched check name.
 
 Fork PRs are discovered, but remain untrusted by construction:
 
-- GitHub Branch Source trust is **Nobody**, so `jenkins/pr.Jenkinsfile` is always loaded from the PR's target branch for a fork. A fork cannot replace or weaken the container boundary in its PR.
-- The proposed merge revision is mounted read-only, copied into a size-limited tmpfs workspace, and executed on a read-only container filesystem with `--network none`, `--cap-drop ALL`, `no-new-privileges`, an unprivileged uid, and finite CPU, memory, and PID limits.
+- GitHub Branch Source fork trust is **Nobody**, and the administrator-managed pipeline definition applies equally to origin PRs. No contributor branch supplies its Jenkinsfile. Activate and audit this configuration using [Collaborator-safe Jenkins](jenkins-collaborator-safety.md).
+- The proposed head revision is mounted read-only, copied into a size-limited tmpfs workspace, and executed on a read-only container filesystem with `--network none`, `--cap-drop ALL`, `no-new-privileges`, an unprivileged uid, and finite CPU, memory, and PID limits.
 - The container never receives a Jenkins credential, the Docker socket, host paths other than its workspace, or Jenkins environment variables.
-- Every validation runs in a fresh disposable container backed by a dependency-keyed runner. A fork runner's inputs and lifecycle helper are exported from the target branch; a cache miss rebuilds those trusted inputs, and fork code cannot affect dependency installation or retention policy. A fork that changes dependency or runner-image inputs still fails closed and must be moved to a maintainer-owned branch after review.
+- Every validation runs in a fresh disposable container backed by a dependency-keyed runner. Automatic PR runner inputs and lifecycle helpers are exported from the pinned protected target for both forks and internal branches. A cache miss rebuilds only those trusted inputs. Changed dependency inputs require exact-revision owner approval before installation; origin branch access never grants this permission.
 - The target branch's trusted runtime validator executes against PR scripts under pinned amd64, arm64, and arm/v7 userlands. Those containers have the same network, capability, privilege, credential, Docker-socket, and resource restrictions as the application gate.
-- PR validation intentionally omits production image builds and engine runtime smokes for forks. The Dockerfile contract and all flavor/platform plans are checked without execution; the trusted develop pipeline reruns the full suite and privileged smokes before any `:develop*` image publication. Documentation-only publication follows its own lightweight checks.
+- Automatic validation does not execute proposed Dockerfiles. Application PRs then wait for owner-approved image validation of their exact head/base/target, regardless of fork/origin location. Engine runtime smokes remain in trusted develop/release before publication; documentation-only changes retain lightweight checks without publication.
 - Maintainer review remains mandatory. CI confinement protects infrastructure; it does not prove that a contribution is benign or correct.
 
 ## GitHub Actions During The Proving Window
@@ -1088,8 +1068,8 @@ workspace or silently skip validation based on an earlier develop result.
 ### Rolling out the runner retention change
 
 This policy must land on the trusted target branch before fork PRs can use it.
-Do not copy cleanup or runner-policy changes into a contributor PR: the fork guard
-rejects these host-executed inputs. Review and merge the maintainer CI change into
+Contributor changes to cleanup or runner policy cannot execute automatically;
+they require the owner-approved exact-revision validation path. Review and merge the maintainer CI change into
 `develop`, then rerun affected PR validation. Releases adopt it when the change
 reaches `main` through the normal release branch flow. No live cleanup, Jenkins
 configuration edit, release publish or build trigger is part of code validation.
@@ -1100,7 +1080,7 @@ configuration edit, release publish or build trigger is part of code validation.
 The runner compiles the application's minimal FFmpeg using
 `docker/manifests/ffmpeg.json` and `docker/scripts/build-ffmpeg.sh`. The manifest
 pins and verifies the source archive's SHA-256. These inputs join the runner's
-cache key, trusted-ref export and fork-change guard; changing codecs or the
+cache key, trusted-ref export and dependency-approval guard; changing codecs or the
 version cannot reuse an older runner. Downloads/builds happen only while preparing
 the trusted image, before contributor code runs in the network-disabled sandbox.
 

@@ -49,8 +49,8 @@ Docker:
 Branching and release flow (adopted 2026-08-28):
 
 - `develop` is the permanent pre-release branch; feature PRs target `develop`. `main` is the release branch. Both are protected (PRs only, required status `PR Validation`, no force-push/deletion). PRs into `main` are accepted only from `develop` — `jenkins/pr.Jenkinsfile` fails any other head. Releases are cut with a `develop` -> `main` PR; hotfixes go through `develop` too.
-- Fork PRs use `jenkins/pr.Jenkinsfile` from trusted `develop`. PR, develop and release application validation share a dependency-keyed runner selected from committed trusted inputs (verified input/platform labels; build on cache miss), with a fresh disposable validation container each time. Contributor-controlled files execute without network, capabilities, Docker socket, or Jenkins credentials. A second isolated stage runs the trusted entrypoint/runtime contract against the PR files under pinned amd64, arm64, and arm/v7 userlands. Fork-controlled Dockerfiles and dependency inputs are never executed or installed automatically; such changes require a maintainer-owned branch after review. `scripts/ci/run_pr_validation.sh` is the credential-free application gate.
-- PR, trusted `develop`, and release pipelines share the FIFO `acestream-scraper-nuc-docker` lock for their full run. Acquire it in the enclosing stage options before allocating an agent, and keep workspace cleanup inside that stage. The NUC has four executors but only one safe Docker/BuildKit workload slot; later jobs wait instead of pruning images or caches from an in-flight job, and a newer build of the same PR queues rather than aborting its predecessor. Shared cleanup retains two recently used dependency runners and warm build cache; below 8 GiB free it escalates to evict unneeded CI runners and recent cache. Current-job keeps, container images, unrelated images and volumes remain protected; reclamation failures are visible.
+- All PRs use administrator-managed `jenkins/pr.Jenkinsfile` and pinned protected-target helpers. Application/runtime checks run in restricted containers. Proposed dependencies and production image builds require the separate fixed `jenkins/pr-privileged.Jenkinsfile`, approved by the owner for an exact head/base/target. `PR Validation` waits for its result. See `docs/ops/jenkins-collaborator-safety.md`; editing repository files alone does not activate this boundary.
+- PR, trusted `develop`, and release pipelines share the FIFO `acestream-scraper-nuc-docker` lock for their full run. Acquire it in the enclosing stage options before allocating an agent, and keep workspace cleanup inside that stage. The NUC has four executors but only one safe Docker/BuildKit workload slot; later jobs wait instead of pruning images or caches from an in-flight job, and new revisions never abort the lock holder. Approval waits hold no executor or Docker lock; each automatic/approved workload retains the lock through cleanup. Shared cleanup retains two recently used dependency runners and warm build cache; below 8 GiB free it escalates to evict unneeded CI runners and recent cache. Current-job keeps, container images, unrelated images and volumes remain protected; reclamation failures are visible.
 - Every push to `develop` runs the trusted `jenkins/develop.Jenkinsfile` job. It selects work with `scripts/ci/classify_changes.py` against the last successful build. Known documentation-only changes run lightweight checks without publication. Application, build, CI and unknown changes rerun the full suite and Docker/runtime smokes. It refuses stale revisions, then `bash scripts/ci/run_jenkins_release.sh --channel develop` pushes only floating `:develop*` image tags. It never publishes the wiki, Pages, or Docker Hub descriptions. Preview with `--print-publish-plan --channel develop` or `--dry-run --channel develop`; `python3 scripts/phase_gates/check_workflow_publish_guard.py` guards the boundary.
 - `version.txt` records the selected release version without a `-dev` suffix (`v2.2.0` for this cycle). Update it through a PR into `develop` when choosing the next release. Development publication uses only floating `develop*` tags; versioned tags and `latest` remain exclusive to manual release from `main`. The existing rejection of accidental `-dev` versions in release mode remains a defensive guard.
 - Releases stay manual: Jenkins job `acestream-scraper-release` (`jenkins/release.Jenkinsfile`, runs from `main`; params `CONFIRM_RELEASE`, `DRY_RUN`, `PUBLISH_LATEST`) pushes `:vX.Y.Z`, `:vX.Y.Z-<flavor>` and the flavor tags; `PUBLISH_LATEST=true` retags the canaried version manifest to `:latest` via `scripts/ci/promote_latest.sh`. Details: `docs/ops/jenkins-ci.md`.
@@ -464,14 +464,17 @@ permanent keep labels. See `docs/ops/jenkins-ci.md` for retention and rollout.
 
 ## Pipeline responsibilities
 
-The multibranch PR job skips ordinary branches. Application PRs run isolated
-checks and architecture contracts; maintainer-owned PRs also build every supported
-flavor/platform with `validate_pr_images.sh`, remove each temporary image, and
-never publish. Fork Dockerfiles still require review and promotion to a
-maintainer-owned branch before host builds. Develop validates, builds, tests and
-publishes only floating develop tags; manual main releases retain version checks
-and separate latest promotion. Preserve the shared full-run FIFO lock. Buildx
-cleanup must enumerate `.Builder.Name`, deduplicated, never child-node `.Name`.
+The PR job uses an administrator-managed pipeline, never a branch's Jenkinsfile.
+Fork and origin PRs use the same pinned protected-target orchestration and isolated
+checks. Application PRs wait for a separate owner-approved job bound to exact head,
+base and target; it runs the full gate and every supported image combination without
+publication. Dependency changes wait for this approval before installation. The
+parent releases its Docker lock before waiting; each job holds the shared FIFO lock
+for its complete Docker workload and cleanup. Only owner-merged protected develop
+commits may publish floating tags; main releases remain manual. Pipeline definition,
+credential/ACL and GitHub ruleset activation is required before inviting writers;
+see `docs/ops/jenkins-collaborator-safety.md`. Buildx cleanup enumerates
+`.Builder.Name`, deduplicated, never child-node `.Name`.
 
 BuildKit numeric GC limits are bytes: convert the operator MiB settings before
 writing `reservedSpace`/`maxUsedSpace`. Under pressure, reclaim unused old cache

@@ -67,6 +67,7 @@ def read(rel: str) -> str:
 
 def main() -> int:
     pr_jenkinsfile = read("jenkins/pr.Jenkinsfile")
+    privileged_jenkinsfile = read("jenkins/pr-privileged.Jenkinsfile")
     develop_jenkinsfile = read("jenkins/develop.Jenkinsfile")
     develop_validation = read("scripts/ci/run_develop_validation.sh")
     pr_validation = read("scripts/ci/run_pr_validation.sh")
@@ -85,7 +86,7 @@ def main() -> int:
         ("all NUC Docker pipelines share one FIFO lock",
          all(
              "lock(resource: 'acestream-scraper-nuc-docker'" in pipeline
-             for pipeline in (pr_jenkinsfile, develop_jenkinsfile, release_jenkinsfile)
+             for pipeline in (pr_jenkinsfile, privileged_jenkinsfile, develop_jenkinsfile, release_jenkinsfile)
          )
          and "abortPrevious: true" not in pr_jenkinsfile),
         ("Docker lock precedes executor allocation in every pipeline",
@@ -93,11 +94,11 @@ def main() -> int:
              re.search(r"pipeline\s*\{\s*agent none", pipeline)
              and re.search(
                  r"stage\('Serialized Docker work'\)\s*\{\s*"
-                 r"//[^\n]*\n\s*options\s*\{\s*"
+                 r"//[^\n]*\n\s*options\s*\{\s*(?:timeout\([^\n]+\n\s*)?"
                  r"lock\(resource: 'acestream-scraper-nuc-docker'[^\n]*\n"
                  r"\s*\}\s*agent\s*\{ label 'dorat-nuc-ci' \}", pipeline
              )
-             for pipeline in (pr_jenkinsfile, develop_jenkinsfile, release_jenkinsfile)
+             for pipeline in (pr_jenkinsfile, privileged_jenkinsfile, develop_jenkinsfile, release_jenkinsfile)
          )),
         ("all pipelines share dependency-keyed runners and pressure-aware cleanup",
          "scripts/ci/docker_lifecycle.py" in pr_runner_builder
@@ -106,13 +107,15 @@ def main() -> int:
          and "--min-free-gb 8" in develop_jenkinsfile
          and "--min-free-gb 8" in release_sh
          and "--all-unused-images" not in develop_jenkinsfile + release_jenkinsfile + release_sh),
-        ("PR job ignores ordinary branches and builds maintainer image matrices without publication",
+        ("PR job ignores ordinary branches and waits for owner-approved image validation",
          "stage('Pull request validation')" in pr_jenkinsfile
          and "when { changeRequest() }" in pr_jenkinsfile
          and "stage('Ordinary branch skipped')" in pr_jenkinsfile
-         and "stage('Build PR image matrix')" in pr_jenkinsfile
-         and "env.CI_APPLICATION != 'false' && !env.CHANGE_FORK" in pr_jenkinsfile
-         and "validate_pr_images.sh" in pr_jenkinsfile
+         and "stage('Owner-approved validation')" in pr_jenkinsfile
+         and "wait: true, propagate: true" in pr_jenkinsfile
+         and "validate_pr_images.sh" not in pr_jenkinsfile
+         and "submitter: '__PR_APPROVER__'" in privileged_jenkinsfile
+         and "run_approved_pr_validation.sh" in privileged_jenkinsfile
          and "docker image rm" in read("scripts/ci/validate_pr_images.sh")
          and "--load" in read("scripts/ci/validate_pr_images.sh")
          and "--push" not in read("scripts/ci/validate_pr_images.sh")),
@@ -131,8 +134,8 @@ def main() -> int:
          and '$WORKSPACE:/source:ro' in pr_jenkinsfile
          and "GIT_CONFIG_KEY_0=safe.directory" in pr_jenkinsfile
          and "GIT_CONFIG_VALUE_0=/workspace" in pr_jenkinsfile
-         and 'env.PR_VALIDATION_REF = env.CHANGE_FORK' in pr_jenkinsfile
-         and '"refs/remotes/origin/${env.CHANGE_TARGET}"' in pr_jenkinsfile
+         and 'env.PR_VALIDATION_REF = env.CHANGE_FORK' not in pr_jenkinsfile
+         and 'git rev-parse "refs/remotes/origin/$PR_TARGET"' in pr_jenkinsfile
          and 'git show "${PR_VALIDATION_REF}:scripts/ci/run_pr_validation.sh"' in pr_jenkinsfile
          and "runnerInputsChanged" in pr_jenkinsfile
          and "env.CHANGE_FORK" in pr_jenkinsfile),
@@ -147,12 +150,12 @@ def main() -> int:
          and "frontend/package-lock.json" in pr_runner_builder
          and "docker/ci/pr-runner.Dockerfile" in pr_runner_builder),
         ("PR skip decisions and lightweight checks come from the trusted target",
-         'git show "refs/remotes/origin/${CHANGE_TARGET}:scripts/ci/classify_changes.py"' in pr_jenkinsfile
-         and 'git show "refs/remotes/origin/${CHANGE_TARGET}:scripts/ci/$validator"' in pr_jenkinsfile
+         'git show "${PR_VALIDATION_REF}:scripts/ci/classify_changes.py"' in pr_jenkinsfile
+         and 'git show "${PR_VALIDATION_REF}:scripts/ci/$validator"' in pr_jenkinsfile
          and '--pull-request' in pr_jenkinsfile
          and 'python3 -I "$selector"' in pr_jenkinsfile
          and "echo 'CI_APPLICATION=true'" in pr_jenkinsfile
-         and pr_jenkinsfile.count("when { expression { env.CI_APPLICATION != 'false' } }") == 3),
+         and pr_jenkinsfile.count("when { expression { env.CI_APPLICATION != 'false' } }") == 2),
         ("CI selection uses sandbox-safe env properties and defaults to full work",
          all(
              not re.search(r"\benv\s*\[", pipeline)
@@ -165,7 +168,7 @@ def main() -> int:
          )),
         ("metadata validation keeps trusted policy separate from repository input",
          'metadata_ref="$PR_VALIDATION_REF"' in pr_jenkinsfile
-         and 'metadata_ref="refs/remotes/origin/${CHANGE_TARGET}"' in pr_jenkinsfile
+         and 'metadata_ref="refs/remotes/origin/${CHANGE_TARGET}"' not in pr_jenkinsfile
          and 'git show "$metadata_ref:scripts/ci/metadata-tools/$file"' in pr_jenkinsfile
          and 'bash "$trusted_dir/validate_repository_metadata.sh" "$WORKSPACE"' in pr_jenkinsfile
          and 'validate_repository_metadata.sh "$WORKSPACE"' in develop_jenkinsfile
@@ -184,12 +187,12 @@ def main() -> int:
         ("Docker Hub descriptions are manual and Pages uses main/docs",
          all("publish_dockerhub_description.py" not in pipeline
              and "publish_pages.sh" not in pipeline
-             for pipeline in (pr_jenkinsfile, develop_jenkinsfile, release_jenkinsfile))),
+             for pipeline in (pr_jenkinsfile, privileged_jenkinsfile, develop_jenkinsfile, release_jenkinsfile))),
         ("manual release validation is never skipped by changed paths",
          'CI_APPLICATION' not in release_jenkinsfile
          and 'classify_changes.py' not in release_jenkinsfile),
-        ("fork dependency changes fail before networked package installation",
-         "env.CHANGE_FORK && runnerInputsChanged" in pr_jenkinsfile
+        ("all dependency changes wait for approval before networked installation",
+         "env.PR_DEPENDENCIES_CHANGED = runnerInputsChanged" in pr_jenkinsfile
          and "will not install them with network access" in pr_jenkinsfile),
         ("PR runtime contracts execute under isolated amd64 and ARM userlands",
          "stage('Isolated architecture runtime contracts')" in pr_jenkinsfile
@@ -206,7 +209,7 @@ def main() -> int:
         ("PR pipeline rejects PRs into main that do not come from develop",
          "stage('Branch Policy')" in pr_jenkinsfile
          and "env.CHANGE_TARGET == 'main'" in pr_jenkinsfile
-         and "env.CHANGE_BRANCH != 'develop'" in pr_jenkinsfile),
+         and "env.CHANGE_BRANCH != 'develop' || env.CHANGE_FORK" in pr_jenkinsfile),
         ("PR validation runs the full suites without installing dependencies",
          "CI_USE_PREINSTALLED_DEPS=1" in pr_validation
          and "run_v2_test_suite.sh --profile full" in pr_validation

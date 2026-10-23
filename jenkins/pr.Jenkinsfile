@@ -1,11 +1,13 @@
+// Administrator-managed pipeline. Never load the PR copy.
+// Render __PRIVILEGED_JOB__ with prepare_jenkins_collaboration.py.
 pipeline {
   agent none
 
   options {
     skipDefaultCheckout(true)
-    disableConcurrentBuilds()
+    // Multiple revisions may wait for approval; Docker work is still FIFO.
     buildDiscarder(logRotator(numToKeepStr: '20'))
-    timeout(time: 4, unit: 'HOURS')
+    timeout(time: 7, unit: 'DAYS')
     timestamps()
   }
 
@@ -13,6 +15,7 @@ pipeline {
     stage('Serialized Docker work') {
       // Stage options acquire the FIFO lock before allocating an executor.
       options {
+        timeout(time: 4, unit: 'HOURS')
         lock(resource: 'acestream-scraper-nuc-docker', reason: 'Exclusive Docker and BuildKit access on dorat-nuc-ci')
       }
       agent { label 'dorat-nuc-ci' }
@@ -27,9 +30,21 @@ pipeline {
                   currentBuild.displayName = "#${env.BUILD_NUMBER} ${env.BRANCH_NAME ?: 'pull-request'}"
                   env.PR_SANDBOX_NAME = "acestream-${env.JOB_BASE_NAME}-${env.BUILD_NUMBER}"
                     .replaceAll('[^A-Za-z0-9_.-]', '-')
-                  env.PR_VALIDATION_REF = env.CHANGE_FORK \
-                    ? "refs/remotes/origin/${env.CHANGE_TARGET}" \
-                    : 'HEAD'
+                  if (!(env.CHANGE_ID ==~ /[1-9][0-9]*/) ||
+                      !(env.CHANGE_TARGET in ['develop', 'main'])) {
+                    error('Only numbered PRs targeting develop or main are accepted.')
+                  }
+                  if ('__PRIVILEGED_JOB__'.startsWith('__')) {
+                    error('Install the administrator-managed PR pipeline before enabling builds.')
+                  }
+                  env.PR_NUMBER = env.CHANGE_ID
+                  env.PR_TARGET = env.CHANGE_TARGET
+                  env.PR_HEAD_SHA = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+                  // Origin branches have exactly the same trust as forks.
+                  sh 'git fetch --no-tags origin "+refs/heads/$PR_TARGET:refs/remotes/origin/$PR_TARGET" "+refs/pull/$PR_NUMBER/head:refs/remotes/origin/validated-pr"'
+                  env.PR_VALIDATION_REF = sh(returnStdout: true,
+                    script: 'git rev-parse "refs/remotes/origin/$PR_TARGET"').trim()
+                  sh 'test "$PR_HEAD_SHA" = "$(git rev-parse refs/remotes/origin/validated-pr)"'
                 }
               }
             }
@@ -38,7 +53,7 @@ pipeline {
               when { expression { env.CHANGE_TARGET == 'main' } }
               steps {
                 script {
-                  if (env.CHANGE_BRANCH != 'develop') {
+                  if (env.CHANGE_BRANCH != 'develop' || env.CHANGE_FORK) {
                     error("Pull requests into main must come from develop (this one comes from '${env.CHANGE_BRANCH}'). Target develop instead; releases are cut with a develop -> main PR.")
                   }
                 }
@@ -53,9 +68,8 @@ pipeline {
                   def selection = sh(returnStdout: true, script: '''#!/usr/bin/env bash
 set -euo pipefail
 selector="$WORKSPACE@tmp/classify-changes-${BUILD_NUMBER}.py"
-git fetch --no-tags origin "+refs/heads/${CHANGE_TARGET}:refs/remotes/origin/${CHANGE_TARGET}"
-if git show "refs/remotes/origin/${CHANGE_TARGET}:scripts/ci/classify_changes.py" > "$selector" 2>/dev/null; then
-  python3 -I "$selector" --repo "$WORKSPACE" --base "refs/remotes/origin/${CHANGE_TARGET}" --pull-request
+if git show "${PR_VALIDATION_REF}:scripts/ci/classify_changes.py" > "$selector" 2>/dev/null; then
+  python3 -I "$selector" --repo "$WORKSPACE" --base "$PR_VALIDATION_REF" --pull-request
 else
   # First rollout: the target does not have a trusted selector yet.
   echo 'CI_APPLICATION=true'
@@ -79,16 +93,12 @@ fi
             stage('Repository metadata validation') {
               when { expression { env.CI_METADATA != 'false' } }
               steps {
-                // Lightweight PRs use the target's policy. Full origin PRs may
-                // validate proposed policy; fork inputs always remain target-owned.
+                // All host-side policy comes from the pinned protected target.
                 sh '''#!/usr/bin/env bash
 set -euo pipefail
 trusted_dir="$(mktemp -d "$WORKSPACE@tmp/metadata-checks.XXXXXX")"
 trap 'rm -rf "$trusted_dir"' EXIT
 metadata_ref="$PR_VALIDATION_REF"
-if [[ "$CI_APPLICATION" == 'false' ]]; then
-  metadata_ref="refs/remotes/origin/${CHANGE_TARGET}"
-fi
 mkdir -p "$trusted_dir/metadata-tools"
 git show "$metadata_ref:scripts/ci/validate_repository_metadata.sh" > "$trusted_dir/validate_repository_metadata.sh"
 for file in package.json package-lock.json validate.cjs test.cjs assignment-workflow.json; do
@@ -109,7 +119,7 @@ set -euo pipefail
 trusted_dir="$(mktemp -d "$WORKSPACE@tmp/docs-checks.XXXXXX")"
 trap 'rm -rf "$trusted_dir"' EXIT
 for validator in validate_documentation.py validate_docker_docs_contract.py validate_command_builder.sh; do
-  git show "refs/remotes/origin/${CHANGE_TARGET}:scripts/ci/$validator" > "$trusted_dir/$validator"
+  git show "${PR_VALIDATION_REF}:scripts/ci/$validator" > "$trusted_dir/$validator"
 done
 export DOCS_CHECK_ROOT="$WORKSPACE"
 python3 -I "$trusted_dir/validate_documentation.py" --root "$WORKSPACE"
@@ -126,7 +136,7 @@ bash "$trusted_dir/validate_command_builder.sh"
                   def runnerInputsChanged = sh(
                     returnStatus: true,
                     script: '''#!/usr/bin/env bash
-git diff --quiet "refs/remotes/origin/${CHANGE_TARGET}"...HEAD -- \
+git diff --no-ext-diff --no-textconv --quiet "$PR_VALIDATION_REF" HEAD -- \
   backend/requirements.txt \
   frontend/package.json \
   frontend/package-lock.json \
@@ -139,8 +149,9 @@ git diff --quiet "refs/remotes/origin/${CHANGE_TARGET}"...HEAD -- \
 '''
                   ) != 0
 
-                  if (env.CHANGE_FORK && runnerInputsChanged) {
-                    error('This fork changes dependency or runner-image inputs. Those inputs can execute code during installation, so an automatic fork build will not install them with network access. Move the reviewed commit to a maintainer-owned branch to validate the dependency change.')
+                  env.PR_DEPENDENCIES_CHANGED = runnerInputsChanged ? 'true' : 'false'
+                  if (runnerInputsChanged) {
+                    echo 'Dependency changes require owner-approved validation. Automatic checks will not install them with network access.'
                   }
 
                   // The trusted ref selects dependency inputs. Matching inputs share
@@ -160,7 +171,7 @@ bash "$trusted_builder" \
             }
 
             stage('Credential-free PR validation') {
-              when { expression { env.CI_APPLICATION != 'false' } }
+              when { expression { env.CI_APPLICATION != 'false' && env.PR_DEPENDENCIES_CHANGED != 'true' } }
               steps {
                 sh '''#!/usr/bin/env bash
 set -euo pipefail
@@ -211,23 +222,6 @@ bash "$trusted_arch_runner" \
               }
             }
 
-            stage('Build PR image matrix') {
-              when { expression { env.CI_APPLICATION != 'false' && !env.CHANGE_FORK } }
-              steps {
-                sh '''#!/usr/bin/env bash
-set -euo pipefail
-bash scripts/ci/bootstrap_jenkins_runner.sh
-bash scripts/ci/validate_pr_images.sh --name "$PR_SANDBOX_NAME"
-'''
-              }
-            }
-
-            stage('Fork image build boundary') {
-              when { expression { env.CI_APPLICATION != 'false' && env.CHANGE_FORK } }
-              steps {
-                echo 'Fork application and architecture contracts passed in isolation. Host image builds require promotion of the reviewed commit to a maintainer-owned branch; fork Dockerfiles are not executed on the shared daemon.'
-              }
-            }
           }
         }
         stage('Ordinary branch skipped') {
@@ -253,5 +247,19 @@ fi
         }
       }
     }
+    stage('Owner-approved validation') {
+      when { expression { env.CHANGE_ID && env.CI_APPLICATION != 'false' } }
+      steps {
+        // Wait outside the Docker lock. PR Validation stays pending until the
+        // owner approves this exact revision and the privileged child succeeds.
+        build job: '__PRIVILEGED_JOB__', wait: true, propagate: true, parameters: [
+          string(name: 'PR_NUMBER', value: env.PR_NUMBER),
+          string(name: 'HEAD_SHA', value: env.PR_HEAD_SHA),
+          string(name: 'BASE_SHA', value: env.PR_VALIDATION_REF),
+          string(name: 'TARGET_BRANCH', value: env.PR_TARGET)
+        ]
+      }
+    }
+
   }
 }

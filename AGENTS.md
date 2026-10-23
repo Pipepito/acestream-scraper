@@ -28,7 +28,8 @@ loads the applicable file when working below those directories.
 - `frontend/`: React 18, TypeScript, Vite, MUI v5, React Query v5, Jest/RTL.
 - `e2e/`: Playwright/Firefox journeys against the built SPA and real sidecars.
 - `Dockerfile`, `docker/`, `entrypoint.sh`: multi-flavor, multi-architecture image.
-- `jenkins/pr.Jenkinsfile`: fork-aware, credential-free multibranch PR validation.
+- `jenkins/pr.Jenkinsfile`: administrator-managed isolated PR validation.
+- `jenkins/pr-privileged.Jenkinsfile`: fixed owner-approved revision/image validation.
 - `jenkins/develop.Jenkinsfile`: trusted `develop` validation and automatic channel image publish.
 - `jenkins/release.Jenkinsfile`: manual release job, allowed from `main` only.
 - `scripts/ci/`: required checks, Docker builds, publishing, and CI helpers.
@@ -143,16 +144,13 @@ not part of the required PR gate; see `e2e/AGENTS.md` before running it.
   `acestream-scraper-nuc-docker` lock for their full run. Acquire it in the enclosing stage options before allocating an agent, and keep workspace cleanup inside that stage. Although `dorat-nuc-ci`
   has four executors, only one of these Docker/BuildKit workloads may run at once;
   later builds wait and must not abort or prune resources from the lock holder.
-- The multibranch validation job is `acestream-scraper-pr`; trusted publication
-  uses `acestream-scraper-develop`, and manual releases use
-  `acestream-scraper-release`. All currently launch on `dorat-nuc-ci`, but fork
-  code runs only inside network-disabled containers; it must never receive the
-  Docker socket or a Jenkins credential. Each fork build requiring application
-  validation resolves a dependency-keyed runner from trusted target-ref inputs,
-  reusing only a verified matching image and running contributor code in a fresh
-  disposable container. Runtime contracts run in pinned amd64, arm64, and arm/v7
-  userlands. Do not execute a fork-controlled
-  Dockerfile or install fork-controlled dependency inputs automatically.
+- The multibranch PR job and owner-approved image job must live outside the
+  trusted publication folder. Neither may inherit publication credentials. Both
+  forks and internal branches use administrator-managed definitions; protected
+  target commits supply host helpers. Automatic contributor execution stays in
+  restricted offline containers with no Docker socket or credentials. Proposed
+  dependencies/images require owner approval of immutable head/base/target first.
+  See `docs/ops/jenkins-collaborator-safety.md` for mandatory live activation.
 - When Jenkins and GitHub disagree, distinguish the Jenkins build result from the
   GitHub commit status and record the commit SHA each result belongs to.
 
@@ -433,14 +431,17 @@ permanent keep labels. See `docs/ops/jenkins-ci.md` for retention and rollout.
 
 ## Pipeline responsibilities
 
-The multibranch PR job skips ordinary branches. Application PRs run isolated
-checks and architecture contracts; maintainer-owned PRs also build every supported
-flavor/platform with `validate_pr_images.sh`, remove each temporary image, and
-never publish. Fork Dockerfiles still require review and promotion to a
-maintainer-owned branch before host builds. Develop validates, builds, tests and
-publishes only floating develop tags; manual main releases retain version checks
-and separate latest promotion. Preserve the shared full-run FIFO lock. Buildx
-cleanup must enumerate `.Builder.Name`, deduplicated, never child-node `.Name`.
+The PR job uses an administrator-managed pipeline, never a branch's Jenkinsfile.
+Fork and origin PRs use the same pinned protected-target orchestration and isolated
+checks. Application PRs wait for a separate owner-approved job bound to exact head,
+base and target; it runs the full gate and every supported image combination without
+publication. Dependency changes wait for this approval before installation. The
+parent releases its Docker lock before waiting; each job holds the shared FIFO lock
+for its complete Docker workload and cleanup. Only owner-merged protected develop
+commits may publish floating tags; main releases remain manual. Pipeline definition,
+credential/ACL and GitHub ruleset activation is required before inviting writers;
+see `docs/ops/jenkins-collaborator-safety.md`. Buildx cleanup enumerates
+`.Builder.Name`, deduplicated, never child-node `.Name`.
 
 BuildKit numeric GC limits are bytes: convert the operator MiB settings before
 writing `reservedSpace`/`maxUsedSpace`. Under pressure, reclaim unused old cache

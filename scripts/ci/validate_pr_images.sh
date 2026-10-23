@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Maintainer-owned PRs only: build each supported flavor/platform without
+# Owner-approved revisions only: build each supported flavor/platform without
 # publishing. Keep dependency runners/build cache, remove every PR image tag.
 # Caller holds the full-run FIFO Docker lock and has installed binfmt handlers.
 set -euo pipefail
-cd "$(dirname "$0")/../.."
+cd "${PR_IMAGE_SOURCE_ROOT:-$(dirname "$0")/../..}"
 NAME=""
 DRY_RUN=0
 BUILDER="${JENKINS_BUILDER:-acestream-builder}"

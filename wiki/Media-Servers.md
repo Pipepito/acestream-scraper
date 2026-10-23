@@ -98,7 +98,7 @@ refreshes; Live TV can work before that association is found.
 **Integrations › Media servers › Tuner settings**:
 
 - **Tuner name** — what Jellyfin and Plex show for this tuner. Default "AceStream Scraper".
-- **Streams at once** — how many channels may be streamed through the tuner at the same time (default 4). It is the number the tuner advertises to Jellyfin and Plex, and the one it actually enforces: a request beyond it is refused with "All 4 tuner slots are in use". Each concurrent stream is a real AceStream stream on your engine and real upload bandwidth, so keep this near what your connection can actually carry.
+- **Streams at once** — how many channels may be streamed through the tuner at the same time (default 4). It is the number the tuner advertises to Jellyfin and Plex, and the one it actually enforces: a request beyond it is refused with "All 4 tuner slots are in use". Each stream consumes network bandwidth; AceStream sources use an engine session and HTTP sources use an FFmpeg remuxer. Keep this near what your connection and server can carry.
 - **Publish only channels that are online** — off by default. With it off, a channel whose streams are all currently offline is still listed, so tuning it fails with a clear error instead of the channel vanishing from your TV app. Turn it on if you would rather see a shorter, verified list.
 - **Seconds per source** — time allowed for a source to begin delivering media (default 15, range 5–180 seconds).
 - **Seconds to start a channel** — total startup budget across sources (default 45, range 5–180 seconds). The remaining total budget limits each attempt. These settings apply to new TV-channel relay connections. In direct-engine mode, the JSON start request and the first media byte share the same attempt budget; there is no separate 15-second JSON cap. Waiting for a shared source also consumes that budget. Individual `/tuner/stream/` URLs use the smaller saved source/total limit for JSON startup. A player's own timeout can end an attempt sooner.
@@ -129,7 +129,7 @@ curl -s http://192.168.1.10:8000/tuner/lineup.json | head
 
 An empty `[]` means the tuner has nothing to publish: channels need to be **active TV channels with at least one Acestream stream attached**. Acestream streams that are not linked to a TV channel are not published. If the list looks right, run Jellyfin's **Refresh Guide** task once by hand.
 
-**A channel tunes but never plays.** That is the engine, not the tuner. Check the channel in the web player first — the error there names the cause. On 32-bit ARM (`linux/arm/v7`) playback needs a Premium AceStream account; see [Docker](Docker.md#playing-streams-on-arm).
+**A channel tunes but never plays.** Check its assigned sources and run a status check. Try the channel in the web player for a source-specific error. AceStream sources need a working engine; HTTP/broadcaster sources need reachable media and FFmpeg on the scraper. On 32-bit ARM (`linux/arm/v7`), AceStream playback needs a Premium account; see [Docker](Docker.md#playing-streams-on-arm).
 
 **Nothing at all answers on `/tuner/`.** Check it directly:
 
@@ -154,11 +154,21 @@ this URL. Refresh the media server's guide once after upgrading so it picks up
 the new links; existing `/tuner/stream/<content-id>.ts` links still play that exact
 source without failover.
 
-On each tune, the app reads the channel's active sources whose saved status is
-**online**. It tries known measured bitrates from highest to lowest, then sources
-whose bitrate is unknown. Equal bitrates use content ID order. Offline, unchecked,
-inactive, and malformed source IDs are excluded. If the TV channel is disabled or
-has no eligible sources, playback returns `503 NO_ONLINE_STREAMS`.
+On each tune, the app reads the channel's active AceStream and stored HTTP/HLS
+sources, including supported broadcaster links such as Atresmedia. Recently
+verified online sources come first, followed by stale online and unknown/stale
+offline sources. Freshness is six hours; bitrate breaks ties within each group.
+Recently verified offline sources are rechecked before being retried. Inactive
+and malformed sources are excluded. A disabled TV channel or one without eligible
+sources returns `503 NO_ONLINE_STREAMS`.
+
+GET requests queue a bounded refresh of the assigned sources; HEAD only returns
+headers. HTTP checks resolve the broadcaster and verify audio/video packets,
+without an AceStream engine. Importing or attempting to play a source does not
+mark it online; inconclusive checks preserve the prior result. HTTP probes can
+run while that source is playing because they do not stop shared engine sessions.
+The Online only lineup option still requires a verified online source: use the
+stream's Check action before refreshing the media server's guide for a new channel.
 
 Refused, empty, timed-out, or otherwise failed starts advance to the next source.
 Each source is tried once, with a configurable attempt deadline and overall
@@ -168,7 +178,17 @@ In-flight blocking engine calls and cleanup may finish after that
 deadline before returning. One tuner slot stays reserved across all attempts.
 If none starts, the response is `502 CHANNEL_STREAM_FAILED`.
 
-By default the relay copies the original media without FFmpeg or encoding. If a
+AceStream sources retain their existing direct/Acexy relay. HTTP sources resolve
+fresh broadcaster links and use the guarded input proxy for headers, redirects
+and every HLS resource. FFmpeg repackages supported media as MPEG-TS without
+re-encoding, preserving video and audio tracks. It is bundled in Docker images;
+native installations must provide it. No AceStream engine is needed for an
+HTTP-only channel. Supported input includes direct MPEG-TS and unencrypted or
+AES-128 HLS, including fragmented MP4; arbitrary websites, DASH and DRM are not
+made playable by attaching them to a channel. Source codecs must be supported by
+the media server/client. Startup fallback can cross HTTP and AceStream sources.
+
+By default, if a
 source ends, errors or stalls for 25 seconds after playback starts, the response
 ends. The client must reconnect to the **same stable TV channel URL**. Recently
 failed sources are deprioritized for 60 seconds, so working alternatives are tried

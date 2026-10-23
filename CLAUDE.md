@@ -249,6 +249,14 @@ this protection based on distinct session URLs. See `docs/ops/stream-check-pid.m
 
 ## Playback routing
 
+Tuner candidates include stored `url:` HTTP/broadcaster sources alongside valid
+AceStream IDs under the same freshness rules. `tuner_http_source` resolves through
+the shared guarded `PlayerHTTPSource` and stream-copies media to MPEG-TS with
+FFmpeg, preserving the tuner slot, startup budget and cancellation cleanup.
+HTTP-only channels need no engine; HTTP probes may run during playback and only
+verified packets establish online status. Startup fallback can cross source types;
+default midstream failure still requires client reconnect. See `wiki/Media-Servers.md`.
+
 `GET/PUT /api/v1/config/playback-routing` persists `use_acexy` and `acexy_url`
 as one JSON setting. Direct mode is the default. Web-player and tuner factories
 use `playback_client_from_settings`; engine health/probes remain direct.

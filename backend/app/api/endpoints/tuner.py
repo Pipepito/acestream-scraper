@@ -289,7 +289,7 @@ async def tuner_channel(tv_channel_id: int, request: Request):
     candidates = await run_in_threadpool(_channel_candidates, tv_channel_id)
     eligible = candidates or await run_in_threadpool(_channel_candidates, tv_channel_id, include_offline=True)
     if not eligible:
-        raise APIError(code="NO_ONLINE_STREAMS", message="This channel has no online sources available", status_code=503)
+        raise APIError(code="NO_ONLINE_STREAMS", message="This channel has no active supported sources available", status_code=503)
     if request.method == "HEAD":
         return Response(status_code=200, headers=RELAY_HEADERS)
     limit = await run_in_threadpool(_tuner_count)
@@ -322,7 +322,11 @@ async def tuner_channel(tv_channel_id: int, request: Request):
         experimental_transcoding = relay_settings.experimental_transcoding
         if experimental_transcoding:
             await run_in_threadpool(ffmpeg_binary)
-        engine = await run_in_threadpool(_engine)
+        try:
+            engine = await run_in_threadpool(_engine)
+        except EngineUnavailableError:
+            # HTTP sources are independent of the optional playback engine.
+            engine = None
         iterator = relay_ranked_streams(engine, candidates, label, claim, client_factory=_relay_client_factory,
                                       candidate_provider=refreshed_candidates, on_source_failure=refresh_failed_source,
                                       experimental_transcoding=experimental_transcoding,
@@ -338,7 +342,7 @@ async def tuner_channel(tv_channel_id: int, request: Request):
             engine.close()
         relay_registry.close(claim.id)
         if isinstance(exc, (EngineStreamError, EngineUnavailableError)):
-            raise APIError(code="CHANNEL_STREAM_FAILED", message="No online source could start playback", status_code=502) from exc
+            raise APIError(code="CHANNEL_STREAM_FAILED", message="No source could start playback within the startup budget", status_code=502) from exc
         raise
 
     async def body():

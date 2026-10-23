@@ -3,7 +3,7 @@ export interface ReleaseNotes { version: string; summary: string; sections: Arra
 export const releases: ReleaseNotes[] = [
   {
     "version": "v2.2.0",
-    "summary": "More stream sources, easier guide setup and more reliable playback.",
+    "summary": "HTTP playback, W3U catalogues, sporting events and Telegram sources, with easier guide setup and more reliable playback.",
     "sections": [
       {
         "title": "Added",
@@ -31,6 +31,8 @@ export const releases: ReleaseNotes[] = [
         "title": "Fixed",
         "items": [
           "Play imported HTTP/HLS and broadcaster streams in the browser without an AceStream engine, including freshly resolved Atresmedia links. Select audio and text subtitle tracks in the player.",
+          "Play assigned HTTP/HLS and broadcaster sources through the Plex/Jellyfin tuner, including channels with no AceStream source. Verify HTTP media independently of the engine, refresh broadcaster links on opening, and try compatible HTTP or AceStream alternatives when startup fails. HTTP input is repackaged as MPEG-TS without re-encoding.",
+          "Stop browser playback cleanly after terminal HTTP failures and provide bounded, masked source diagnostics. Audio and subtitle selections remain independent between viewers; subtitles default to Off.",
           "Respect the configured application port in containers, update bundled Kubo to 0.43.1, and report optional service states more accurately.",
           "Improve session cleanup, disconnect handling and HLS segment handling during playback."
         ]
@@ -39,7 +41,9 @@ export const releases: ReleaseNotes[] = [
         "title": "Before upgrading",
         "items": [
           "Back up persistent configuration and the database. Startup applies schema migrations using the existing backup and recovery process, including channel ID kind (20260928_1200) and HTTP stream URL/headers (20261021_1200), W3U catalogues (20261022_1200), sporting events and maintenance (20261023_1200 / 20261023_1300), their combined migration revision (20261023_1400), and Telegram source progress (20261023_1500).",
-          "Legacy environment aliases remain supported. ARMv7 engine runtime remains experimental. Mixed HTTP/AceStream tuner failover is not included."
+          "Preserve Telegram session storage and its independent encryption key when moving an installation; ordinary database/configuration backups do not include account sessions or keys.",
+          "HTTP tuner playback requires FFmpeg, included in the container images. Native installations must provide the documented FFmpeg capabilities. Source codec compatibility still depends on the media server/client; switching sources after playback starts normally requires the client to reconnect.",
+          "Legacy environment aliases remain supported. ARMv7 engine runtime remains experimental. Full Wiseplay compatibility, broader website resolvers, automatic Telegram/W3U event interpretation and movies/series navigation remain follow-up work."
         ]
       }
     ]

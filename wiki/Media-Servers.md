@@ -98,8 +98,10 @@ refreshes; Live TV can work before that association is found.
 **Integrations › Media servers › Tuner settings**:
 
 - **Tuner name** — what Jellyfin and Plex show for this tuner. Default "AceStream Scraper".
-- **Streams at once** — how many channels may be streamed through the tuner at the same time (default 4). It is the number the tuner advertises to Jellyfin and Plex, and the one it actually enforces: a request beyond it is refused with "All 4 tuner slots are in use". Each concurrent stream is a real AceStream stream on your engine and real upload bandwidth, so keep this near what your connection can actually carry.
+- **Streams at once** — how many channels may be streamed through the tuner at the same time (default 4). It is the number the tuner advertises to Jellyfin and Plex, and the one it actually enforces: a request beyond it is refused with "All 4 tuner slots are in use". Each stream consumes network bandwidth; AceStream sources use an engine session and HTTP sources use an FFmpeg remuxer. Keep this near what your connection and server can carry.
 - **Publish only channels that are online** — off by default. With it off, a channel whose streams are all currently offline is still listed, so tuning it fails with a clear error instead of the channel vanishing from your TV app. Turn it on if you would rather see a shorter, verified list.
+- **Seconds per source** — time allowed for a source to begin delivering media (default 15, range 5–180 seconds).
+- **Seconds to start a channel** — total startup budget across sources (default 45, range 5–180 seconds). The remaining total budget limits each attempt. These settings apply to new TV-channel relay connections. In direct-engine mode, the JSON start request and the first media byte share the same attempt budget; there is no separate 15-second JSON cap. Waiting for a shared source also consumes that budget. Individual `/tuner/stream/` URLs use the smaller saved source/total limit for JSON startup. A player's own timeout can end an attempt sooner.
 
 The addresses to paste into Plex, and the warnings about refused clients or channels left out, are shown where they matter: on the Plex card and in the **Public address** block above.
 
@@ -127,7 +129,7 @@ curl -s http://192.168.1.10:8000/tuner/lineup.json | head
 
 An empty `[]` means the tuner has nothing to publish: channels need to be **active TV channels with at least one Acestream stream attached**. Acestream streams that are not linked to a TV channel are not published. If the list looks right, run Jellyfin's **Refresh Guide** task once by hand.
 
-**A channel tunes but never plays.** That is the engine, not the tuner. Check the channel in the web player first — the error there names the cause. On 32-bit ARM (`linux/arm/v7`) playback needs a Premium AceStream account; see [Docker](Docker.md#playing-streams-on-arm).
+**A channel tunes but never plays.** Check its assigned sources and run a status check. Try the channel in the web player for a source-specific error. AceStream sources need a working engine; HTTP/broadcaster sources need reachable media and FFmpeg on the scraper. On 32-bit ARM (`linux/arm/v7`), AceStream playback needs a Premium account; see [Docker](Docker.md#playing-streams-on-arm).
 
 **Nothing at all answers on `/tuner/`.** Check it directly:
 
@@ -152,26 +154,73 @@ this URL. Refresh the media server's guide once after upgrading so it picks up
 the new links; existing `/tuner/stream/<content-id>.ts` links still play that exact
 source without failover.
 
-On each tune, the app reads the channel's active sources whose saved status is
-**online**. It tries known measured bitrates from highest to lowest, then sources
-whose bitrate is unknown. Equal bitrates use content ID order. Offline, unchecked,
-inactive, and malformed source IDs are excluded. If the TV channel is disabled or
-has no eligible sources, playback returns `503 NO_ONLINE_STREAMS`.
+On each tune, the app reads the channel's active AceStream and stored HTTP/HLS
+sources, including supported broadcaster links such as Atresmedia. Recently
+verified online sources come first, followed by stale online and unknown/stale
+offline sources. Freshness is six hours; bitrate breaks ties within each group.
+Recently verified offline sources are rechecked before being retried. Inactive
+and malformed sources are excluded. A disabled TV channel or one without eligible
+sources returns `503 NO_ONLINE_STREAMS`.
+
+GET requests queue a bounded refresh of the assigned sources; HEAD only returns
+headers. HTTP checks resolve the broadcaster and verify audio/video packets,
+without an AceStream engine. Importing or attempting to play a source does not
+mark it online; inconclusive checks preserve the prior result. HTTP probes can
+run while that source is playing because they do not stop shared engine sessions.
+The Online only lineup option still requires a verified online source: use the
+stream's Check action before refreshing the media server's guide for a new channel.
 
 Refused, empty, timed-out, or otherwise failed starts advance to the next source.
-Each source is tried once, with a 15-second attempt deadline and a 45-second overall
-startup budget. In-flight blocking engine calls and cleanup may finish after that
+Each source is tried once, with a configurable attempt deadline and overall
+startup budget (15 and 45 seconds by default). If the last available source ends
+empty within three seconds, it is retried once within the same budget.
+In-flight blocking engine calls and cleanup may finish after that
 deadline before returning. One tuner slot stays reserved across all attempts.
 If none starts, the response is `502 CHANNEL_STREAM_FAILED`.
 
-By default the relay copies the original media without FFmpeg or encoding. If a
-source ends, errors or stalls for 15 seconds after playback starts, the response
+AceStream sources retain their existing direct/Acexy relay. HTTP sources resolve
+fresh broadcaster links and use the guarded input proxy for headers, redirects
+and every HLS resource. FFmpeg repackages supported media as MPEG-TS without
+re-encoding, preserving video and audio tracks. For HLS masters the tuner selects
+the highest advertised resolution (then bandwidth), retaining that rendition’s
+audio/subtitle groups instead of mixing tracks from different quality levels.
+It is bundled in Docker images;
+native installations must provide it. No AceStream engine is needed for an
+HTTP-only channel. Supported input includes direct MPEG-TS and unencrypted or
+AES-128 HLS, including fragmented MP4; arbitrary websites, DASH and DRM are not
+made playable by attaching them to a channel. Source codecs must be supported by
+the media server/client. Startup fallback can cross HTTP and AceStream sources.
+
+By default, if a
+source ends, errors or stalls for 25 seconds after playback starts, the response
 ends. The client must reconnect to the **same stable TV channel URL**. Recently
 failed sources are deprioritized for 60 seconds, so working alternatives are tried
 first. This failure memory is process-local and bounded; it does not overwrite
 verified status results. Enable automatic reconnect in your player where supported.
 The server cannot issue an HTTP redirect after sending media, and cannot force a
 client to reconnect. Recovery timing therefore depends on the player.
+
+### Plex Desktop audio compatibility
+
+If Plex Web plays a channel but Plex Desktop ends the session with an AAC
+configuration error, enable **Integrations → Media servers → Tuner settings →
+Plex Desktop compatible audio**, save, then stop and reopen the channel.
+This opt-in setting applies to new `/tuner/channel/<id>.ts` connections, including
+HTTP, direct AceStream and Acexy sources. Legacy `/tuner/stream/<hash>.ts` links
+remain direct relays; refresh the Plex lineup if it still uses those links.
+
+The server converts each audio track to stereo AAC at 160 kbit/s in LATM
+packetization. Video is copied, keeping the selected source’s resolution and
+encoded quality. This uses CPU for audio encoding and requires FFmpeg (bundled
+in all images). Leave experimental transcoding recovery off to keep video
+unchanged. When both options are enabled, recovery still encodes video to MPEG-2
+and its AAC output uses LATM. The audio option alone does not enable recovery
+within a connection. It applies to every viewer using the tuner’s channel URLs.
+
+The compatibility option targets the AAC-to-Matroska failure seen with Plex
+Desktop; local media tests cover LATM decoding, later segment joins and unchanged
+1080p video, but do not establish compatibility with every Plex build. Plex’s own
+client quality/bandwidth settings can still cause video transcoding or downscaling.
 
 **Integrations → Media servers → Tuner settings → Experimental transcoding recovery**
 is off by default and applies to new connections. Enabling it requires FFmpeg and
@@ -180,15 +229,31 @@ at 25 fps and audio to stereo AAC, using two video encoder threads. This is CPU
 intensive, can overload small servers, increase bandwidth and reduce quality. Use
 at your own risk; uninterrupted playback in Plex/Jellyfin is not guaranteed.
 Attempts use fresh transport tables, discontinuities and timestamp offsets.
-Programme positions are not synchronized. Every source is tried once per 45-second
-recovery window; 30 seconds of delivery resets the budget. Exhaustion ends the
+Programme positions are not synchronized. Every source is tried once per configured
+recovery window; 30 seconds of delivery resets the budget. Quiet time after the
+last chunk does not count, including before EOF or a transport error. Exhaustion ends the
 response. Disconnecting cancels recovery and cleans up the process/source session.
+
+When the last TV-relay viewer disconnects, direct-engine cleanup waits five seconds.
+This lets Kodi's second GET reuse the warm source. Reconnecting cancels the pending
+stop; all retained sessions are stopped when the final viewer leaves. Source
+failures and relay deadlines still stop immediately. Acexy owns its own sessions.
 
 On **Playlist**, choose **TV channel relay (automatic failover)** or save a format
 such as `http://scraper:8000/tuner/channel/{tv_channel_id}.ts`. This generates one
 entry per TV channel, preserving its number and EPG ID, and can append unassigned
 streams when **Include unassigned streams at the end** is selected; those use individual URLs without failover. `{channel_id}` remains the hash of a specific AceStream source; use
 `/tuner/stream/{channel_id}.ts` when deliberately pinning that source.
+
+**List each source under its channel** adds optional individual source entries
+below each TV-channel entry (`per_source=true`). They share the channel's guide
+and category, show the source name and a short hash, and use numbers such as
+`12.1` and `12.2`. Each opens that exact source without automatic failover. Existing
+filters still apply. The option is off by default and applies only to TV-channel
+relay formats. In Kodi, enable **PVR & Live TV → Use channel numbers from backend**
+to retain the subchannel numbering; otherwise Kodi assigns sequential numbers.
+HTTP MPEG-TS relay entries include a Kodi media-type hint so Kodi can avoid probing
+their type before playback. Custom HLS and AceStream formats retain their own type.
 
 Successful channel status checks also take a bounded media sample (at most 2 MiB
 and 10 seconds including analysis) to estimate encoded bitrate and discover audio
@@ -206,7 +271,7 @@ relay session.
 A GET of `/tuner/channel/{tv_channel_id}.ts` (HDHomeRun, tuner M3U, or a player
 opening a stable channel URL) queues a quiet refresh of that channel's active
 sources. Already-online sources start immediately. Newly verified alternatives
-can join recovery within its 45-second budget, including when
+can join recovery within its configured startup budget, including when
 all sources were previously offline. The app checks one channel at a time,
 coalesces concurrent requests for that channel, and bounds the queue to 32 channels.
 A full queue leaves playback using the currently known sources.
@@ -225,3 +290,19 @@ the same relay server and have no channel failover; their numbers start at 9000
 (or above the highest included TV number). Search, group and online filters still
 apply. Favorites-only excludes unassigned streams. The playlist URL carries
 `include_unassigned=true|false`; the all-streams endpoint includes them by default.
+
+
+### Source freshness during TV startup
+
+The TV relay tries recently verified online sources first, then older online
+sources, then unknown or older offline sources. Within each group, higher known
+bitrate comes first. A recent explicit offline result excludes that source until
+it becomes stale or a new probe changes its status. Fresh means a check in the
+last six hours, including the six-hour boundary; missing or future timestamps
+are not fresh. Inactive sources/channels remain excluded.
+
+Recent playback failures still deprioritize a source independently of stored
+check freshness. Existing startup limits, background alternative checks and
+viewer ownership remain in effect. HEAD requests do not start playback or probes.
+This ranking improves startup selection; it does not enable raw mid-stream
+source concatenation. Direct-engine JSON startup follows the configured startup budgets above.

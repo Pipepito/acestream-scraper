@@ -40,8 +40,8 @@ testing the SPA through FastAPI rather than the Vite server.
 
 ## UI contract
 
-- Navigation has eleven primary destinations: Live TV, Overview, Scraper, Search,
-  Acestream Channels, TV Channels, EPG, Playlist, Integrations, WARP, and Settings, grouped by Watch, Manage and System.
+- Navigation includes Live TV, Catalogues and Events under Watch; other destinations are Overview, Scraper, Search,
+  Acestream Channels, TV Channels, EPG, Playlist, Integrations, WARP, Settings and Changelog, grouped by Watch, Manage and System.
 - Live TV (`/live-tv`) is the viewing catalog; TV Channels remains the management
   inventory. Use `ChannelPlayerDialog` to retain or resolve TV context and
   `StreamPlayerDialog` for the underlying HLS lifecycle.

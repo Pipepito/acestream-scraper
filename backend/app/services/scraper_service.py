@@ -97,6 +97,10 @@ class ScraperService:
                     # association into the INSERT; existing rows are assigned
                     # by the repository's conflict-checked UPDATE above.
                     tv_channel_id=metadata.get('tv_channel_id'),
+                    # Set only for streams addressed by URL instead of by an
+                    # acestream id. See M3UService._looks_like_stream.
+                    stream_url=metadata.get('stream_url'),
+                    stream_headers=metadata.get('stream_headers'),
                     # Catalogue presence is not evidence of a live signal.
                     is_online=None,
                     commit=False,
@@ -105,6 +109,11 @@ class ScraperService:
             self.db.commit()
             if custom_recipe:
                 await scraper.update_url_status(source_url, "OK")
+            if not status.lower().startswith('error'):
+                from starlette.concurrency import run_in_threadpool
+                from app.services.epg_matching_automation import EPGMatchingAutomation
+                await run_in_threadpool(EPGMatchingAutomation(self.db).run)
+
 
             return [
                 ChannelResult(

@@ -57,6 +57,10 @@ PYTHONPATH=backend alembic -c backend/migrations/alembic.ini upgrade head
 
 ## Tests
 
+- `backend/pytest.ini` turns warnings into errors. Use supported library APIs and
+  keep the TestClient's `httpx2` dependency installed alongside application
+  `httpx`. Deliberate warning cases use a local category/message `pytest.warns`
+  assertion; never blanket-ignore deprecations, SQLAlchemy or resource warnings.
 - Most tests use `backend_runtime`, `client`, and `db_session`, which bind a temp
   SQLite database and create schema quickly.
 - Migration-sensitive behavior uses `alembic_backend_runtime`, `alembic_client`,
@@ -79,8 +83,18 @@ PYTHONPATH=backend alembic -c backend/migrations/alembic.ini upgrade head
 
 ## Tuner and player media selection
 
-- Stable tuner channel URLs resolve online, active sources by measured bitrate
-  (unknown last). Startup retries retain one tuner slot and close every failed
+- Tuner candidates include stored `url:` HTTP/broadcaster sources alongside valid
+  AceStream IDs, using the same freshness rules. HTTP input resolves at startup
+  through `PlayerHTTPSource` and is stream-copied to MPEG-TS by FFmpeg, retaining
+  headers/SSRF guards and cleanup within the existing tuner slot/budget. HTTP
+  probes verify packets independently of engine configuration and may run while
+  HTTP playback is active; never infer online status from import or eligibility.
+
+- Stable tuner channel URLs rank active, valid sources by freshness: recent online,
+  stale online, then unknown/stale offline. Recent offline is excluded; future
+  timestamps are stale. Freshness is six hours; bitrate breaks ties within each
+  group. Recent playback failures still deprioritize sources. Startup retries
+  retain one tuner slot and close every failed
   engine session. Default midstream failures end the response for client reconnect;
   deprioritize recently failed sources. Only explicit experimental transcoding
   enables recovery within the connection through FFmpeg with new table
@@ -133,3 +147,11 @@ independent; checker outage must not fail whole-container health. Direct playbac
 uses process-wide source ownership leases across clients; serialize starts with
 final stops, release exactly once, and preserve session ownership across settings
 changes. Acexy owns its sessions. See `docs/ops/stream-check-pid.md`.
+
+Tuner HLS input selects the highest advertised resolution, then bandwidth, and
+retains only the selected variant’s media groups through the guarded proxy.
+`tuner_plex_compatible_audio` is opt-in for stable TV channel relays: convert all
+audio tracks to stereo AAC/LATM while copying video. It applies to HTTP, direct
+engine and Acexy sources within existing startup/slot/ownership limits. Combined
+with experimental recovery, use LATM in that encoder rather than encoding twice.
+Legacy single-source tuner links remain direct. See `wiki/Media-Servers.md`.

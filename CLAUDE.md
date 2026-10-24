@@ -1,5 +1,19 @@
 # CLAUDE.md
 
+## Private infrastructure authority
+
+Jenkins pipelines and trusted host tooling live in the private
+`Pipepito/acestream-scraper-infra` repository. There are no active pipeline sources
+in this application repository. Jenkins deploys an owner-reviewed infrastructure
+commit as fixed definitions and a checksum-verified tool bundle. Public files,
+including any reintroduced Jenkinsfile, cannot select host policy. App tests,
+local development commands, dependency manifests and runtime Dockerfiles remain
+public. Do not restore retired Jenkins orchestration here. Use
+`docs/ops/jenkins-ci.md` for the public CI contract and the private repository for
+pipeline changes, policy tests, deployment and release commands. Named runner and publishing helpers below belong to that private repository.
+Their public equivalents, where retained for local use, never select host policy.
+
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Common Commands
@@ -37,7 +51,7 @@ Cutover / CI:
 - Same target via the cutover wrapper: `bash scripts/ci/run_cutover_required_checks.sh --profile quick`
 - Strict legacy-path guard: `bash scripts/ci/assert_no_legacy_paths.sh --strict`
 - Pre-deploy DB safety check (creates timestamped backup under `config/backups/`): `bash scripts/ops/preflight_v2_deploy.sh`
-- User docs: GitHub Pages serves `main/docs`; Jenkins does not push a Pages branch. Prepare the shared extraction helper with `bash scripts/ci/prepare_pages.sh` and commit `docs/recipes/`. `bash scripts/ci/validate_command_builder.sh` checks runtime options against container defaults. The manual release job mirrors `wiki/` after successful non-dry-run latest promotion; `bash scripts/ci/publish_wiki.sh --dry-run` previews the flattened, link-rewritten pages. Docker Hub overview text in `docs/dockerhub/` is published manually. Edit `runtime-options.json` when ports/env/flavors change; `app.js` only when a rule changes.
+- User docs: GitHub Pages serves `main/docs`; Jenkins does not push a Pages branch. Prepare the shared extraction helper with `bash scripts/ci/prepare_pages.sh` and commit `docs/recipes/`. `bash scripts/ci/validate_command_builder.sh` checks runtime options against container defaults. The manual release job mirrors `wiki/` after successful non-dry-run latest promotion; the private infrastructure repository owns wiki preview and publication tooling. Docker Hub overview text in `docs/dockerhub/` is published manually. Edit `runtime-options.json` when ports/env/flavors change; `app.js` only when a rule changes.
 
 Docker:
 
@@ -48,12 +62,12 @@ Docker:
 
 Branching and release flow (adopted 2026-08-28):
 
-- `develop` is the permanent pre-release branch; feature PRs target `develop`. `main` is the release branch. Both are protected (PRs only, required status `PR Validation`, no force-push/deletion). PRs into `main` are accepted only from `develop` — `jenkins/pr.Jenkinsfile` fails any other head. Releases are cut with a `develop` -> `main` PR; hotfixes go through `develop` too.
-- Fork PRs use `jenkins/pr.Jenkinsfile` from trusted `develop`. Each build requiring application validation creates a disposable dependency runner from the target ref (so it does not depend on a mutable prebuilt image), then executes contributor-controlled files without network, capabilities, Docker socket, or Jenkins credentials. A second isolated stage runs the trusted entrypoint/runtime contract against the PR files under pinned amd64, arm64, and arm/v7 userlands. Fork-controlled Dockerfiles and dependency inputs are never executed or installed automatically; such changes require a maintainer-owned branch after review. `scripts/ci/run_pr_validation.sh` is the credential-free application gate.
-- PR, trusted `develop`, and release pipelines share the FIFO `acestream-scraper-nuc-docker` lock for their full run. The NUC has four executors but only one safe Docker/BuildKit workload slot; later jobs wait instead of pruning images or caches from an in-flight job, and a newer build of the same PR queues rather than aborting its predecessor. Before each heavy build, project-owned transient images, all unused non-keep images, and builder cache above 1 GB are pruned; the build stops early unless at least 8 GB remains free.
-- Every push to `develop` runs the trusted `jenkins/develop.Jenkinsfile` job. It selects work with `scripts/ci/classify_changes.py` against the last successful build. Known documentation-only changes run lightweight checks without publication. Application, build, CI and unknown changes rerun the full suite and Docker/runtime smokes. It refuses stale revisions, then `bash scripts/ci/run_jenkins_release.sh --channel develop` pushes only floating `:develop*` image tags. It never publishes the wiki, Pages, or Docker Hub descriptions. Preview with `--print-publish-plan --channel develop` or `--dry-run --channel develop`; `python3 scripts/phase_gates/check_workflow_publish_guard.py` guards the boundary.
-- `version.txt` on `develop` carries the next version with a `-dev` suffix (e.g. `v2.1.0-dev`, starting with the cycle after v2.0.0); a PR into `develop` bumps it right before the release PR to the final version. `run_jenkins_release.sh` refuses a release (non-channel) run while `version.txt` contains `-dev`; channel publishes accept it.
-- Releases stay manual: Jenkins job `acestream-scraper-release` (`jenkins/release.Jenkinsfile`, runs from `main`; params `CONFIRM_RELEASE`, `DRY_RUN`, `PUBLISH_LATEST`) pushes `:vX.Y.Z`, `:vX.Y.Z-<flavor>` and the flavor tags; `PUBLISH_LATEST=true` retags the canaried version manifest to `:latest` via `scripts/ci/promote_latest.sh`. Details: `docs/ops/jenkins-ci.md`.
+- `develop` is the permanent pre-release branch; feature PRs target `develop`. `main` is the release branch. Both are protected (PRs only, required status `PR Validation`, no force-push/deletion). PRs into `main` are accepted only from `develop` — the private PR pipeline fails any other head. Releases are cut with a `develop` -> `main` PR; hotfixes go through `develop` too.
+- All PRs use the administrator-managed private PR pipeline and pinned private infrastructure helpers. Application/runtime checks run in restricted containers. Proposed dependencies and production image builds require the fixed private owner-approval pipeline, approved by the owner for an exact head/base/target. `PR Validation` waits for its result. See `docs/ops/jenkins-collaborator-safety.md`; editing repository files alone does not activate this boundary.
+- PR, trusted `develop`, and release pipelines share the FIFO `acestream-scraper-nuc-docker` lock for their full run. Acquire it in the enclosing stage options before allocating an agent, and keep workspace cleanup inside that stage. The NUC has four executors but only one safe Docker/BuildKit workload slot; later jobs wait instead of pruning images or caches from an in-flight job, and new revisions never abort the lock holder. Approval waits hold no executor or Docker lock; each automatic/approved workload retains the lock through cleanup. Shared cleanup retains two recently used dependency runners and warm build cache; below 8 GiB free it escalates to evict unneeded CI runners and recent cache. Current-job keeps, container images, unrelated images and volumes remain protected; reclamation failures are visible.
+- Every push to `develop` runs the private develop pipeline. Its private selector compares the last successful build; known documentation-only changes do not publish images. Application changes run the full suite and Docker/runtime smokes. Only the current protected develop revision can publish floating `develop*` tags. Publication previews and policy tests live in the private infrastructure repository; public application checks remain available here.
+- `version.txt` records the selected release version without a `-dev` suffix (`v2.2.0` for this cycle). Update it through a PR into `develop` when choosing the next release. Development publication uses only floating `develop*` tags; versioned tags and `latest` remain exclusive to manual release from `main`. The existing rejection of accidental `-dev` versions in release mode remains a defensive guard.
+- Releases stay manual: Jenkins job `acestream-scraper-release` (the private release pipeline, runs from `main`; params `CONFIRM_RELEASE`, `DRY_RUN`, `PUBLISH_LATEST`) pushes `:vX.Y.Z`, `:vX.Y.Z-<flavor>` and the flavor tags; `PUBLISH_LATEST=true` retags the canaried version manifest to `:latest` via the private promotion helper. Details: `docs/ops/jenkins-ci.md`.
 
 ## Frontend viewing and mobile checks
 
@@ -105,7 +119,7 @@ The fixtures never reload modules: `_bind_runtime_to(database_url)` re-points th
 ### Frontend
 
 - Routing is declared in `src/App.tsx` and wrapped in `components/layout/AppShell`. Pages under `src/pages/` are the route-level views; reusable components live under `src/components/`.
-- Navigation (since the 2026-09-02 UI overhaul) has nine destinations declared in `components/layout/navItems.tsx`: Overview `/`, Scraper, Search, Acestream Channels, TV Channels, EPG, Playlist, Integrations, Settings. A nav label is always the page's `<h1>`. WARP (`/warp`) is reachable from the Overview services panel only (`hiddenRouteTitles`). Old routes redirect through `LEGACY_REDIRECTS` in `App.tsx` (`/dashboard`, `/health`, `/stats` → `/`; `/channels` → `/tv-channels`; `/search-new` → `/search`; `/epg/mappings` → `/epg?tab=rules`). The EPG page is five tabs bound to `?tab=` (`sources` default, `channels`, `matching`, `rules`, `export`). The Integrations page (`pages/Integrations.tsx`, `/integrations`) is a stack of `ContentSection`s from `components/integrations/` — public address, web player, remote players, media servers (with the tuner settings accordion) — each reporting into one page-level snackbar via a `notify(message, severity)` prop; a section added later appends to that stack rather than restructuring the page. Every card follows the same rule: two visible actions, everything else (Edit, Test connection, Delete) in a `RowActionsMenu` labelled "More actions for <name>", with `useConfirm()` on Delete and on Jellyfin Disconnect only.
+- Navigation groups Watch (Live TV, Catalogues, Events), Manage (Scraper, Search, Acestream Channels, TV Channels, EPG, Playlist) and System (Overview, Integrations, WARP, Settings, Changelog), declared in `components/layout/navItems.tsx`. Labels match page headings. WARP remains directly discoverable. Old routes redirect through `LEGACY_REDIRECTS` in `App.tsx` (`/dashboard`, `/health`, `/stats` → `/`; `/channels` → `/tv-channels`; `/search-new` → `/search`; `/epg/mappings` → `/epg?tab=rules`). The EPG page is five tabs bound to `?tab=` (`sources` default, `channels`, `matching`, `rules`, `export`). The Integrations page (`pages/Integrations.tsx`, `/integrations`) is a stack of `ContentSection`s from `components/integrations/` — public address, web player, remote players, media servers (with the tuner settings accordion) — each reporting into one page-level snackbar via a `notify(message, severity)` prop; a section added later appends to that stack rather than restructuring the page. Every card follows the same rule: two visible actions, everything else (Edit, Test connection, Delete) in a `RowActionsMenu` labelled "More actions for <name>", with `useConfirm()` on Delete and on Jellyfin Disconnect only.
 - Page skeleton: `PageHeader` (title, optional one-line subtitle, `actions`, `overflowActions` that collapse into a "More actions" menu on phones) → `StatusLine` (`role="status"`, measured facts only) → `ContentSection`s. Shared primitives: `components/StatusLine.tsx`, `components/ConfirmDialog.tsx` (`useConfirm()` replaces `window.confirm`), `components/RowActionsMenu.tsx` (row "More actions for X" menus), `components/epg/ScheduleView.tsx` (Now/Next + day tabs), `utils/format.ts` (`formatRelativeTime`, `formatBitrate`, `summarizeJobResult`). No hero blocks, no explanatory paragraphs: copy uses plain words, relative times ("12 min ago") and real units (Mbps/kbps).
 - API access goes through `src/services/*.ts`, all built on `apiClient.ts` (axios). `@tanstack/react-query` v5 is the data layer (see `frontend/package.json`).
 - Vite config (`frontend/vite.config.ts`) hand-tunes `manualChunks` for MUI / data-grid / data-vendor / TVChannels page splits. Preserve the chunking rules unless deliberately retuning bundle size.
@@ -136,12 +150,23 @@ Two interpreters are pinned by `Dockerfile` build args: `ARG APP_PYTHON_VERSION=
 
 The amd64 engine archive is vendored under `docker/vendor/acestream/`; legacy ARM APKs and bionic `.deb`s remain under `docker/vendor/` for reproducibility (each directory has `SHA256SUMS`, with matching GitHub Release assets on the `acestream-binaries-<versions>` tag). Current ARM builds instead copy the matching platform from the digest-pinned jopsis OCI image and therefore require Docker Hub access on a cold builder. `docker/scripts/install-acestream.sh` resolves conventional archives as vendored copy → upstream URL → `mirror_urls`, sha256-verified. The `acestream-installer` stage takes `ARG TARGETPLATFORM` and `ARG ACESTREAM_SOURCE=auto` (`auto` = resolve from the manifest via `docker/scripts/acestream_manifest.py`, the shared resolver also used by `scripts/ci/derive_acestream_build_args.py`; explicit `--build-arg ACESTREAM_*` values override; `fixture` = contract-test fixture). `docker/vendor` is bind-mounted into that stage, not copied into a layer. `scripts/ci/build_multiarch_images.sh` no longer injects global `ACESTREAM_*` build-args (they would pin one engine for every platform of a multi-platform build). Bumping the pins: `docker/vendor/acestream/README.md`. The Acexy source is vendored the same way under `docker/vendor/acexy/` (`docker/manifests/acexy.json` `vendored_file`/`sha256`); the `acexy-builder` stage prefers that archive over `git clone` because the Jenkins runner's WARP egress gets refused by GitHub for anonymous clones.
 
-The `frontend-builder`, `acexy-builder` and `ffmpeg-builder` stages run on `$BUILDPLATFORM` (static assets are platform-independent; Go cross-compiles via `TARGETARCH`/`TARGETVARIANT`; `ffmpeg-builder` cross-compiles a minimal static ffmpeg/ffprobe with Debian's cross toolchains, `docker/scripts/build-ffmpeg.sh` against the vendored source under `docker/vendor/ffmpeg/` sha256-checked against `docker/manifests/ffmpeg.json`), so multi-platform builds only emulate the Python stages. Every flavor and platform copies the built binaries to `/opt/ffmpeg/bin/` (`FFMPEG_BINARY_PATH`), powering the web player (see the player domain above); `IMAGE_HAS_FFMPEG` is set by `entrypoint.sh` from whether that path is executable. Publishes are platform-major and push by digest (`scripts/ci/run_jenkins_release.sh`, `build_multiarch_images.sh --push-by-digest`); see `docs/ops/jenkins-ci.md`.
+The `frontend-builder`, `acexy-builder` and `ffmpeg-builder` stages run on `$BUILDPLATFORM` (static assets are platform-independent; Go cross-compiles via `TARGETARCH`/`TARGETVARIANT`; `ffmpeg-builder` cross-compiles a minimal static ffmpeg/ffprobe with Debian's cross toolchains, `docker/scripts/build-ffmpeg.sh` against the vendored source under `docker/vendor/ffmpeg/` sha256-checked against `docker/manifests/ffmpeg.json`), so multi-platform builds only emulate the Python stages. Every flavor and platform copies the built binaries to `/opt/ffmpeg/bin/` (`FFMPEG_BINARY_PATH`), powering the web player (see the player domain above); `IMAGE_HAS_FFMPEG` is set by `entrypoint.sh` from whether that path is executable. Publishes are platform-major and push by digest through the private release orchestrator and its reviewed image builder; see `docs/ops/jenkins-ci.md`.
 
 `entrypoint.sh` enforces the install/runtime split: which binaries are installed is set by the chosen flavor (`IMAGE_HAS_ACESTREAM`, `IMAGE_HAS_ACEXY`); whether they actually start is controlled by `ENABLE_ACESTREAM_ENGINE`, `ENABLE_ACEXY`, `ENABLE_WARP`, `ENABLE_IPFS`, `ENABLE_ZERONET` (+`ENABLE_TOR`). Every amd64 and arm64 image also bundles a ZeroNet node (`docker/scripts/install-zeronet.sh`: zeronet-conservancy pinned by commit with DHT, on its own Python 3.11 and gevent 26.8.0). `IMAGE_HAS_ZERONET` is derived from the launcher's presence at runtime; state lives at `/data/zeronet`, with configuration and private state under `.node/`. The entrypoint copies legacy `sites.json` and `users.json` into `.node/private` only when absent, preserving the originals. UI uses `43110`, fileserver `26552`, and `ENABLE_ZERONET=true` defaults `ZERONET_URL` to the embedded node. Every flavor bundles the Kubo IPFS daemon on amd64/arm64 (`docker/scripts/install-ipfs.sh`, sha512-pinned per arch; Kubo has no 32-bit ARM build, so arm/v7 ships without it and `IMAGE_HAS_IPFS` is derived from the binary's presence at runtime). `ipfs://`/`ipns://` sources are fetched through `IPFS_GATEWAY_URL` (default `http://127.0.0.1:8081` — the embedded gateway binds 8081 because Acexy owns 8080 in-container); the repo lives at `/data/ipfs` (`IPFS_PATH`). WARP requires `NET_ADMIN` + `SYS_ADMIN` capabilities and `/dev/net/tun` (amd64 and arm64 images). Acexy refuses to target `localhost:6878` if the in-container engine is disabled. On ARM images the engine is launched through `/opt/acestream/start-engine` (`docker/scripts/acestream-android/start-engine`), which requires a 4 KB-page kernel (`getconf PAGESIZE` must be 4096; Raspberry Pi 5 needs `kernel=kernel8.img` in `config.txt`) and keeps state/cache/logs under `ACESTREAM_HOME=/var/lib/acestream` (mount a volume, e.g. `-v acestream-state:/var/lib/acestream`); `ACESTREAM_START_COMMAND` is unchanged for all platforms. Known ARM limitations: both ARM engines are 3.2.17 while amd64 is 3.2.11 (`platform` reports `android` on ARM), and ARM has no WebRTC transport. WARP (cloudflare-warp) is installed on amd64 and arm64 images (Cloudflare's apt repo ships both); linux/arm/v7 has no build.
 
 ### Engineering norms (project-specific)
 
+- Run routine project-local tests and dependency setup in `backend/venv` or
+  project `node_modules` without separate conversational confirmation. Prefer
+  cached dependencies on unreliable connections. Mandatory sandbox controls
+  still apply; global installs and releases are outside this authorization.
+- Keep validation warning-free: backend pytest fails on warnings, including
+  dependency deprecations and SQLAlchemy warnings. Fix APIs, dependencies and
+  resource lifecycles instead of adding global ignores or silencing console
+  output. Assert deliberately exercised warnings locally with `pytest.warns`
+  and a specific category/message. Preserve intentional operator notices such
+  as legacy environment-alias warnings. Dependency changes require a full gate
+  against current resolved CI-compatible versions, not only an older cache.
 - TypeScript-only frontend: no `.js`/`.jsx` files; all components typed via named interfaces, no `any`. See `docs/dev/typescript-standards.md`.
 - Backend uses Python 3.11+, pydantic v2, SQLAlchemy 2.x; type hints required; every endpoint round-trips through Pydantic DTOs and surfaces in `/openapi.json`.
 - `docs/migration/development-progress.md` is the live status doc; `docs/migration/migration-strategy.md` and `docs/migration/development-phases.md` define cutover rules.
@@ -169,18 +194,30 @@ The current product already points toward a structured operational dashboard: Ma
 
 ### Tuner automatic failover and media metadata
 
-`services/tuner_playback_service.py` tries online, active, valid sources returned by
-`TunerService.online_stream_ids()` in descending `bitrate_bps` order (unknown last).
+`services/tuner_playback_service.py` tries active, valid sources returned by
+`TunerService.relay_stream_ids()`: recent online, stale online, then unknown/stale
+offline, with bitrate ordering within each group. Recent explicit offline results
+are excluded. Freshness covers the last six hours; future timestamps are stale.
+Recent relay failures still deprioritize a source.
 One reserved relay claim survives failed attempts; startup has per-attempt and total
 deadlines. By default failures after playback starts end the response; client
 reconnections prefer alternatives over sources that failed in the last 60 seconds. Each
 source passes through `tuner_remux.remux_source` only when experimental transcoding
 is explicitly enabled (off by default; otherwise clients reconnect after failure) with FFmpeg table versions and
 discontinuity signalling, MPEG-2 video and AAC audio normalization; never concatenate
-raw sources. Decoder recovery remains experimental and client-dependent. Stall detection is 15 seconds,
+raw sources. Decoder recovery remains experimental and client-dependent. Stall detection is 25 seconds (a healthy low-bitrate source is silent up to ~16 s between engine pieces),
 recovery is bounded to 45 seconds, and 30 seconds of delivery resets failure history.
 FFmpeg is required only for experimental transcoding; default relays preserve source bytes.
 HDHomeRun and tuner M3U use stable TV-channel URLs; raw content-ID URLs stay compatible.
+When the client leaves (the server cancels the response; the cancellation reaches the
+engine reader first), the final engine stop is deferred `STOP_LINGER_SECONDS` (5) so
+Kodi's second GET finds the source running; a start within it parks the old session,
+stopped with the source's final stop. The relay's own start/stall deadlines stop at once.
+Cancelled callbacks must still own the pending session before issuing a stop.
+Tuner settings expose 5–180 seconds per source and total startup (defaults 15/45),
+applied to new connections. The separate engine JSON start HTTP timeout is unchanged.
+Playlist's optional `per_source` entries retain filtering, guide identity and
+reverse-proxy prefixes; see `wiki/Media-Servers.md` for Kodi numbering and media hints.
 `stream_bitrate_service.probe_media` samples at most 2 MiB within 10 seconds during
 successful broadcast checks, feeds ffprobe through stdin with only the pipe protocol,
 and stores bitrate/timestamp and audio tracks through the channel repository. Missing
@@ -211,6 +248,14 @@ owned by the relay/web player and recheck ownership before cleanup; do not remov
 this protection based on distinct session URLs. See `docs/ops/stream-check-pid.md`.
 
 ## Playback routing
+
+Tuner candidates include stored `url:` HTTP/broadcaster sources alongside valid
+AceStream IDs under the same freshness rules. `tuner_http_source` resolves through
+the shared guarded `PlayerHTTPSource` and stream-copies media to MPEG-TS with
+FFmpeg, preserving the tuner slot, startup budget and cancellation cleanup.
+HTTP-only channels need no engine; HTTP probes may run during playback and only
+verified packets establish online status. Startup fallback can cross source types;
+default midstream failure still requires client reconnect. See `wiki/Media-Servers.md`.
 
 `GET/PUT /api/v1/config/playback-routing` persists `use_acexy` and `acexy_url`
 as one JSON setting. Direct mode is the default. Web-player and tuner factories
@@ -319,8 +364,9 @@ selected in Jenkins (CLI: `FORCE_VERSION_OVERWRITE=1`). Registry lookup failures
 always block. Checks run before preflight, after login, and before tag assignment;
 the FIFO Jenkins lock serializes local publishers, but external publishers must
 not race the same version. Channel tags and canary `:latest` promotion remain
-separate. Both `PUBLISH_LATEST` and the force option reach dry runs. Git tags and
-GitHub release notes remain manual; see `docs/ops/jenkins-ci.md`.
+separate. Both `PUBLISH_LATEST` and the force option reach dry runs. After successful non-dry-run latest promotion, Jenkins publishes the Git tag
+and GitHub release from the promoted image’s commit and canonical Markdown.
+Never overwrite mismatched tags/releases. See `docs/ops/jenkins-ci.md`.
 
 ## Pipeline artifact retention
 
@@ -414,3 +460,215 @@ not merely a successful CLI call, before engines start. The ARM resolver follows
 container nameserver changes and retains the last valid configuration during a
 partial rewrite. Keep WARP opt-in; direct-route lookup failures must not trigger
 automatic routing changes. See `docs/ops/arm64-mod-detected.md`.
+
+## Reviewed guide setup
+
+EPG Matching defaults to a read-only preview with explicit row selection. Apply
+rechecks the complete source scope and rejects changed `expected_previews` before
+writing. Preserve assignments and source-qualified guide identity; ambiguous
+matches are never chosen by row ID. Settings → Automation stores opt-in
+`epg_matching` (off by default); successful scrapes/EPG refreshes apply only
+unambiguous exact matches off the event loop after ingestion commits. Keep its
+last result visible and failures independent of ingestion. Playlists and XMLTV
+share collision-safe IDs and validated token propagation for guide discovery.
+See `docs/ops/guide-matching.md`.
+
+## CI runner reuse and retention
+
+PR, develop and release share `build_pr_runner.sh` and `docker_lifecycle.py`.
+Runner identity includes committed dependency inputs, the pinned Dockerfile and
+platform; never select a mutable legacy runner tag or execute fork policy on the
+host. Keep the FIFO lock for the full run. Cleanup retains recent runners/warm
+cache, escalates under disk pressure, protects explicit keeps and all container
+references, and reports failures. Do not restore blanket unused-image pruning or
+permanent keep labels. See `docs/ops/jenkins-ci.md` for retention and rollout.
+
+
+## Pipeline responsibilities
+
+The PR job uses an administrator-managed pipeline, never a branch's Jenkinsfile.
+Fork and origin PRs use the same pinned protected-target orchestration and isolated
+checks. Application PRs wait for a separate owner-approved job bound to exact head,
+base and target; it runs the full gate and every supported image combination without
+publication. Dependency changes wait for this approval before installation. The
+parent releases its Docker lock before waiting; each job holds the shared FIFO lock
+for its complete Docker workload and cleanup. Only owner-merged protected develop
+commits may publish floating tags; main releases remain manual. Pipeline definition,
+credential/ACL and GitHub ruleset activation is required before inviting writers;
+see `docs/ops/jenkins-collaborator-safety.md`. Buildx cleanup enumerates
+`.Builder.Name`, deduplicated, never child-node `.Name`.
+
+BuildKit numeric GC limits are bytes: convert the operator MiB settings before
+writing `reservedSpace`/`maxUsedSpace`. Under pressure, reclaim unused old cache
+without a size floor before recent cache or runners, and allow bounded time for
+asynchronous Docker disk reclamation. Never reduce the required free-space gate.
+
+Guide matching treats an imported stream ID as authoritative only if it resolves
+in any imported guide, including disabled or out-of-scope sources. Unknown IDs
+fall through to names without being overwritten; apply revalidates the complete
+ID inventory. Keep indexed ID candidates, bounded name comparisons, ambiguity,
+country/edition and assignment guards. Reviewed matching strips publisher text
+after `-->`; automation still requires conservative agreement of every name.
+
+
+Startup catch-up uses restored launch history: overdue interval guide/scrape jobs
+start after five minutes, staggered five minutes; stream checks re-evaluate after
+fifteen minutes. Explicit clock anchors and queued/running jobs are respected.
+Failed/interrupted launches still count toward the normal interval. Cleanup is
+not accelerated. See `docs/ops/scheduled-job-history.md`.
+
+Catalogue status checks wait between probes while app-owned relay/web sessions
+are active. Pause time is cumulative and capped at ten minutes before releasing
+the maintenance queue. Partial results report deferred work and viewing/shutdown
+reasons through history, Overview and webhooks. External direct-engine players
+are not detectable through these application registries.
+
+Stream-check ordering gives never-checked streams priority, then oldest age
+groups measured in saved check intervals. Favorites and TV assignments win
+within an age group; they must not starve older loose streams across interrupted
+passes. Keep the inventory query in ChannelRepository and ordering in the status
+service. See `docs/ops/scheduled-job-history.md`.
+
+Direct-engine JSON startup shares the caller's existing budget: TV relays pass
+one deadline capped by per-source and remaining total limits; browser sessions
+use their remaining `PLAYER_START_TIMEOUT_SECONDS`. Charge worker/source-lock
+waiting to that deadline. Preserve source leases and collect late start replies
+on cancellation before releasing clients/slots; disconnect linger remains
+separate from immediate deadline cleanup. See `wiki/Media-Servers.md` and
+`wiki/Web-Player.md`.
+
+## Repository contribution governance
+
+`.github/rulesets/` records intended live GitHub rules; merging JSON does not apply
+it. Baseline main/develop rules require PRs, resolved conversations and the
+Jenkins-bound `PR Validation`, without bypass. A separate one-approval rule allows
+automatic exemption for Pipepito as the merging user (not by PR author); it
+cannot bypass baseline CI. Collaborators still need approval when merging.
+Version tags are immutable. `.github/workflows/assign-pull-requests.yml` assigns
+other authors' PRs to Pipepito using metadata only: never check out or execute
+contributor code in `pull_request_target`. Issue forms and assignment activate
+after reaching default branch main. See `docs/ops/repository-governance.md`.
+
+Contribution-only CI recognizes direct issue-form YAML, ruleset JSON, and the
+named assignment workflow. A private-policy metadata validator and integrity-locked
+YAML parser read them as data; assignment behavior must match the trusted contract.
+No application/image work runs for this scope. Unknown workflows, app/dependency
+changes, metadata-validator changes and mode/symlink changes keep the full gate.
+PR selectors cannot exempt their own changes; the policy must reach the target
+branch first. See `docs/ops/jenkins-ci.md`.
+
+## Gluetun forwarding and changelog
+
+`ACESTREAM_GLUETUN_PORT_FILE` opts the bundled playback engine into shared-file
+P2P port synchronization. Only its supervisor applies validated, debounced port
+changes, preserving UI Stop and process-group cleanup. The checker keeps port
+8622; custom commands/external engines are not managed. See `wiki/Gluetun.md`.
+The `/changelog` page bundles version history; reading/dismissing its notice is
+per browser. Edit `frontend/changelog/vX.Y.Z.md` alongside `version.txt` and run
+`cd frontend && npm run changelog`; never hand-edit the generated data.
+Never imply development notes establish stable publication. See
+`docs/dev/gluetun-changelog-v2.2.md`.
+
+Published stable update checks use the cached, authenticated system API; failures
+remain quiet and the changelog stays offline. Announce each newer version once
+per browser, with manual Docker/native instructions; never auto-update. Release
+notes and promotion provenance are documented in `docs/ops/release-notes.md`.
+
+
+Browser playback accepts imported `url:` IDs as well as AceStream IDs. Resolve
+stored broadcaster links at session start; HTTP input uses a session-owned
+loopback proxy over `outbound_http.source_session`. Rewrite every HLS resource,
+including keys/maps/audio/subtitles; never hand upstream manifests or URLs directly to
+FFmpeg. Preserve source headers, redirect/SSRF guards, bounded manifests and
+resource inventories, shared audio/subtitle selection, startup budgets and cancellation
+cleanup. HTTP sessions must not start/probe/stop AceStream or expose signed URLs.
+See `wiki/Web-Player.md`.
+
+Browser subtitle selection defaults to Off. Share sessions only for identical
+channel/audio/subtitle choices; changing either track releases only that viewer.
+Text subtitles use the same FFmpeg HLS clock as video. Normalize bounded HLS
+WebVTT timestamp maps in the guarded input proxy; preserve `.vtt`/`.webvtt`
+extensions and authenticate subtitle playlists/segments, including query-token
+propagation for native HLS. Bitmap subtitle conversion is unsupported.
+
+The isolated CI runner builds the same minimal FFmpeg from the runtime manifest
+and build script; include both in trusted exports, cache keys and fork guards.
+Keep Debian FFmpeg only as `FFMPEG_TEST_TOOL_PATH` for synthetic media fixtures.
+See `docs/ops/jenkins-ci.md#ffmpeg-in-the-isolated-validation-runner`.
+
+
+## W3U catalogues
+
+`/catalogues` keeps W3U hierarchy separate from TV assignments. Preview is read-only;
+opaque expiring tokens and catalogue revisions protect save. Traverse only bounded
+structured child documents through `outbound_http.source_session`; never execute
+publisher scripts or treat arbitrary page/image URLs as media. Imports reuse the
+channel repository and shared player. Preserve existing channel metadata and all
+channels on partial refresh, deselection and catalogue removal. Scheduled refresh
+is opt-in within the existing scrape queue. Public DTOs expose source hosts and
+header names only. See `wiki/W3U-Catalogues.md` and `docs/dev/w3u-catalogues.md`;
+W3U event imports use the shared reviewed EventImport contract; VOD and unsupported host resolvers remain separate.
+
+
+## Sporting events foundation
+
+`/events` stores schedules separately from channels. Use versioned `EventImport`
+observations, stable source/external IDs, read-only previews and explicit selected
+rows. Refresh preserves manual corrections and missing broadcasts; cross-source
+association is explicit. Require source timezones, reject ambiguous/nonexistent
+local times without an offset, and never infer live state or media signal from
+clock/import. Event-only HTTP media uses the shared guarded player without TV
+assignments or playlist export. Following is installation-wide; archive is
+reversible until opt-in retention deletes eligible rows. W3U entries have an explicit reviewed event bridge; Telegram transport remains separate; no guide overlay is offered here.
+See `docs/dev/sporting-events.md` and `wiki/Sports-Events.md`.
+
+
+Sporting-event URL sources accept reviewed version-1 schedules or bounded
+SportsEvent JSON/HTML JSON-LD with stable IDs and explicit timezone/date rules.
+Only approved, still-present event identities refresh through `url_scraping`'s
+FIFO/catch-up; new rows require review. Retention defaults off and runs during
+existing daily cleanup, protects followed events and never deletes permanent
+channels. Preserve source revisions, manual broadcaster mappings, archive clocks
+and private guarded artwork fetching. See `docs/dev/sporting-events.md`.
+
+
+Combined catalogues/events use migration revision `20261023_1400`, preserving both
+prior histories. Catalogue live imports require explicit confirmation; refresh
+imports only previously reviewed entry identities. Explicit event/VOD types cannot
+become permanent channels. Catalogue event preview reuses private snapshot inputs;
+apply reserves both catalogue revision and source UUID. Never infer times from
+folder names or automatically refresh W3U event schedules. See
+`docs/dev/w3u-catalogues.md#combined-catalogue-and-event-integration`.
+
+
+Collaborator-safe CI keeps administration with the owner; other Jenkins logins are
+read-only. The approved PR job checks GitHub metadata using the discovery App in
+agent-none controller stages before/after the host workload. Never move those
+HTTP requests into a node/agent context or bind their token in shell code. Older
+targets missing metadata validation or the reusable FFmpeg runner use the fixed
+administrator-pinned policy bundle, with dependency comparisons against the
+selected runner ref. See `docs/ops/jenkins-collaborator-safety.md`.
+
+## Telegram account sources
+
+Telegram uses one encrypted user-account session outside the DB/config/log tree,
+with an independently mounted Fernet key and mandatory `TELEGRAM_ADMIN_TOKEN`.
+All Telegram endpoints require this header credential and HTTPS or localhost;
+never return/log API hashes, session strings, codes or passwords. Keep transports
+separate from the bounded recipe worker and additive ingestion. Source cursor and
+message observations commit with imports; never call URL snapshot deletion from
+a message consumer. Preserve stable sender IDs, membership checks, bounded queues,
+flood waits, session lease and retained-revision reconciliation. New sources default
+to new messages only; pause retains progress. See `wiki/Telegram-Sources.md`.
+
+Telegram migration `20261023_1500` follows catalogue/event revision `20261023_1400`.
+Keep the W3U `20261022_1200` identity unchanged; Telegram must not reuse it.
+See `wiki/Telegram-Sources.md#database-upgrades`.
+
+Tuner HLS input selects the highest advertised resolution, then bandwidth, and
+retains only the selected variant’s media groups through the guarded proxy.
+`tuner_plex_compatible_audio` is opt-in for stable TV channel relays: convert all
+audio tracks to stereo AAC/LATM while copying video. It applies to HTTP, direct
+engine and Acexy sources within existing startup/slot/ownership limits. Combined
+with experimental recovery, use LATM in that encoder rather than encoding twice.
+Legacy single-source tuner links remain direct. See `wiki/Media-Servers.md`.

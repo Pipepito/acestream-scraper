@@ -34,7 +34,8 @@ class TestPlaylistEndpoints:
 
         # Check M3U format
         lines = content.split('\n')
-        assert lines[0] == "#EXTM3U"
+        # The header now advertises the guide; see url-tvg below.
+        assert lines[0].startswith("#EXTM3U")
 
         # Should have EXTINF entries for each channel
         extinf_count = sum(1 for line in lines if line.startswith("#EXTINF:"))

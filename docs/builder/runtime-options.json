@@ -104,7 +104,7 @@
       "defaultHost": 8000,
       "hostAddress": "0.0.0.0",
       "label": "Web interface",
-      "description": "The scraper's web UI and API (uvicorn, port set by FLASK_PORT). Published on 0.0.0.0 (IPv4) on purpose: an unaddressed mapping also listens on [::], and Docker then shows every IPv6 client to the app as the bridge gateway — which defeats the address check that keeps the token-free tuner routes (/tuner/*, used by Jellyfin and Plex) off the wider network."
+      "description": "The scraper's web UI and API (the default container command and healthcheck use FLASK_PORT; custom commands must bind to the same port). Published on 0.0.0.0 (IPv4) on purpose: an unaddressed mapping also listens on [::], and Docker then shows every IPv6 client to the app as the bridge gateway — which defeats the address check that keeps the token-free tuner routes (/tuner/*, used by Jellyfin and Plex) off the wider network."
     },
     {
       "id": "acexy",
@@ -381,7 +381,7 @@
       "env": "PLAYER_START_TIMEOUT_SECONDS",
       "group": "player",
       "label": "Player startup timeout",
-      "description": "Seconds a browser-player session may remain in starting state before it is reported as stalled.",
+      "description": "Seconds for direct-engine JSON startup and initial browser-player buffering before the session is reported as stalled.",
       "type": "number",
       "placeholderFrom": "player.startTimeoutSecondsDefault",
       "min": 1,
@@ -435,7 +435,7 @@
       "env": "ACESTREAM_BIND_ALL",
       "group": "engine",
       "label": "Accept engine clients from any address",
-      "description": "Leave on for Tailscale, IPv6 LANs and unusual Docker networks. Only publish the unauthenticated engine API on trusted networks.",
+      "description": "On by default. Allows remote, VPN and Docker clients through the engine address filter. Publishing the engine port allows remote clients; 0.0.0.0:6878:6878 explicitly maps all IPv4 interfaces. ACESTREAM_HTTP_HOST is the internal connection address, not a listening restriction. Only publish the unauthenticated engine API on trusted networks.",
       "type": "boolean",
       "default": true,
       "appliesWhen": "engineOn"
@@ -479,6 +479,44 @@
       "type": "password",
       "placeholder": "Optional",
       "appliesWhen": "warpOn"
+    },
+    {
+      "id": "gluetunPortFile",
+      "env": "ACESTREAM_GLUETUN_PORT_FILE",
+      "group": "engine",
+      "label": "Gluetun forwarded-port file",
+      "description": "Optional shared file inside this container. Requires Gluetun shared networking and a read-only directory mount configured separately; see wiki/Gluetun. Port changes restart playback. The checker keeps its own port.",
+      "type": "text",
+      "placeholder": "/gluetun/forwarded_port",
+      "appliesWhen": "engineOn"
+    },
+    {
+      "id": "telegramAdminToken",
+      "env": "TELEGRAM_ADMIN_TOKEN",
+      "group": "integrations",
+      "label": "Telegram admin token",
+      "description": "Separate private admin credential, at least 32 characters. Telegram also needs the separately mounted encryption key and private session volume described in the Telegram Sources guide.",
+      "type": "password",
+      "appliesWhen": "always"
+    },
+    {
+      "id": "telegramKeyFile",
+      "env": "TELEGRAM_KEY_FILE",
+      "group": "integrations",
+      "label": "Telegram encryption key file",
+      "description": "Absolute path to a separately mounted private Fernet key, for example /run/secrets/telegram.key. Mount it read-only and outside config, logs and the session volume.",
+      "type": "text",
+      "appliesWhen": "always"
+    },
+    {
+      "id": "telegramSessionDir",
+      "env": "TELEGRAM_SESSION_DIR",
+      "group": "integrations",
+      "label": "Telegram private session directory",
+      "description": "Separately mounted persistent directory with mode 0700. Do not include it in ordinary backups.",
+      "type": "text",
+      "placeholder": "/var/lib/acestream-telegram",
+      "appliesWhen": "always"
     }
   ],
   "zeronet": {

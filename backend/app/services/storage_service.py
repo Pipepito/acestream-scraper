@@ -16,6 +16,8 @@ _CACHE_UNTIL = 0.0
 _LOCK = threading.Lock()
 MAX_ENTRIES = 100_000
 MAX_MOUNTS = 64
+SCAN_TIMEOUT_SECONDS = 8
+COLD_SCAN_WAIT_SECONDS = SCAN_TIMEOUT_SECONDS + 1
 
 
 def mount_directories(text):
@@ -135,15 +137,22 @@ def storage_report():
     warnings = [ConfigurationWarning(**item) for item in get_settings().configuration_warnings]
     if _CACHE is not None and time.monotonic() < _CACHE_UNTIL:
         return _CACHE.model_copy(update={'configuration_warnings': warnings})
-    if not _LOCK.acquire(blocking=False):
+    # A cancelled first HTTP request can leave its bounded scan running. Let
+    # another cold request share that result instead of reporting a transient
+    # outage. Existing cached data remains immediately available during refresh.
+    wait = COLD_SCAN_WAIT_SECONDS if _CACHE is None else 0
+    if not _LOCK.acquire(timeout=wait):
         if _CACHE is not None:
             return _CACHE.model_copy(update={'message': 'Showing the previous scan while storage is refreshed.'})
         raise RuntimeError('Storage scan is already running')
     try:
+        # The scan may have completed while this caller was acquiring the lock.
+        if _CACHE is not None and time.monotonic() < _CACHE_UNTIL:
+            return _CACHE.model_copy(update={'configuration_warnings': warnings})
         root = Path(__file__).resolve().parents[2]
         try:
             result = subprocess.run([sys.executable, '-m', 'app.services.storage_service'],
-                                    input=json.dumps(configured_directories()), text=True, capture_output=True, timeout=8,
+                                    input=json.dumps(configured_directories()), text=True, capture_output=True, timeout=SCAN_TIMEOUT_SECONDS,
                                     cwd=root, env={'PATH': os.defpath, 'PYTHONPATH': str(root)})
             if result.returncode:
                 raise ValueError('Storage scan failed')

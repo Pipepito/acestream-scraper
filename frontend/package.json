@@ -29,7 +29,11 @@
     "lint": "eslint 'src/**/*.{ts,tsx}'",
     "typecheck": "tsc --noEmit",
     "codegen": "openapi-typescript ../backend/openapi.json -o src/types/api-generated.ts",
-    "build:recipes": "vite build --config vite.recipes.config.ts"
+    "build:recipes": "vite build --config vite.recipes.config.ts",
+    "changelog": "node scripts/generate-changelog.js",
+    "changelog:check": "node scripts/generate-changelog.js --check",
+    "prebuild": "npm run changelog:check",
+    "prestart": "npm run changelog:check"
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",

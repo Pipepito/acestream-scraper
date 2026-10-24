@@ -36,7 +36,7 @@ Settings use environment variables and the application database. Relative databa
 | `frontend/` | React/TypeScript application and UI tests |
 | `e2e/` | Browser journeys and their local test stack |
 | `docker/` | Image components, manifests, and installers |
-| `scripts/` and `jenkins/` | Validation, operations, and publication |
+| `scripts/` | Public application validation and local operations |
 | `wiki/` | Source for the published user guides |
 | `docs/` | Technical guides and the Docker command builder |
 
@@ -55,16 +55,18 @@ For user documentation changes:
 python3 scripts/ci/validate_documentation.py
 python3 scripts/ci/validate_docker_docs_contract.py
 bash scripts/ci/validate_command_builder.sh
-bash scripts/ci/publish_wiki.sh --dry-run
 bash scripts/ci/prepare_pages.sh
-python3 scripts/ci/publish_dockerhub_description.py --dry-run
 ```
 
 These previews do not publish. Documentation-only PRs use lightweight checks; application, packaging, dependency, CI, and unknown changes retain full validation. Manual releases always retain the release gate.
 
+Jenkins pipelines, runner policy and publication tooling live in a private infrastructure repository. Contributors do not need access to it. The application checks above remain public and reproducible; changes to public helper scripts cannot change the host's CI policy.
+
 ## Send a contribution
 
-Open feature and fix PRs against `develop`. `main` is the release branch. Include what changed and the checks you ran. Read the root and relevant directory's `AGENTS.md` and `CLAUDE.md` for repository conventions.
+Open feature and fix PRs against `develop`. `main` is the release branch. Include what changed and the checks you ran. PRs require Jenkins validation and resolved review conversations. Trusted collaborators can push branches; only the maintainer merges into protected branches. Pipepito is exempt from the review-only rule; Jenkins validation and resolved conversations remain mandatory. PRs from other authors are assigned to `Pipepito` once the assignment workflow reaches `main`. Read the root and relevant directory's `AGENTS.md` and `CLAUDE.md` for repository conventions.
+
+Application PRs wait for owner-approved image checks after automatic isolated validation. The Jenkins PR build summary links to the approval build, and pending approvals show `APPROVAL REQUIRED` in its history. GitHub's validation status explains the wait.
 
 Edit the user docs in `wiki/`; the manual release job mirrors them to GitHub's wiki after successful latest promotion. GitHub Pages serves `main/docs`; rebuild and commit `docs/recipes/` with `bash scripts/ci/prepare_pages.sh` when the extraction helper changes. Edit Docker Hub text in `docs/dockerhub/` and copy it to Docker Hub manually. Develop validates documentation without publishing it. Keep the root README focused on what the project does and where to start.
 

@@ -115,7 +115,7 @@ async def register_warp_license(request: dict):
         raise APIError(
             code="WARP_LICENSE_REQUIRED",
             message="Missing license key",
-            status_code=http_status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=http_status.HTTP_422_UNPROCESSABLE_CONTENT,
             context={"operation": "license"},
         )
 

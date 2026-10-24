@@ -33,8 +33,9 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import pytest
+import pytest_asyncio
 from fastapi.testclient import TestClient
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -346,17 +347,17 @@ def alembic_client(alembic_backend_runtime, alembic_override_get_db):
     return TestClient(alembic_backend_runtime.app)
 
 
-@pytest.fixture(scope="function")
+@pytest_asyncio.fixture(scope="function")
 async def async_client(backend_runtime, override_get_db):
     """Create an async test client."""
-    async with AsyncClient(app=backend_runtime.app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=backend_runtime.app), base_url="http://test") as ac:
         yield ac
 
 
-@pytest.fixture(scope="function")
+@pytest_asyncio.fixture(scope="function")
 async def alembic_async_client(alembic_backend_runtime, alembic_override_get_db):
     """Create an async migrated test client."""
-    async with AsyncClient(app=alembic_backend_runtime.app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=alembic_backend_runtime.app), base_url="http://test") as ac:
         yield ac
 
 
@@ -735,3 +736,24 @@ def assert_epg_program_response(response_data, expected_data):
     assert response_data["description"] == expected_data["description"]
     assert response_data["category"] == expected_data["category"]
     assert response_data["image_url"] == expected_data["image_url"]
+
+
+@pytest.fixture(autouse=True)
+def _relay_registry_left_clean():
+    """Every test leaves the relay registry as it found it.
+
+    relay_registry is process-wide. A claim a test leaves open is an active
+    relay for every later test: it takes a tuner slot, shows in the active
+    streams and makes status checks skip its source, so the failure lands in
+    an unrelated test. Closing it here stops the leak; failing names the test
+    that leaked it.
+    """
+    from app.services.stream_relay import relay_registry
+    before = {info.id for info in relay_registry.active()}
+    yield
+    left = [info for info in relay_registry.active() if info.id not in before]
+    for info in left:
+        relay_registry.close(info.id)
+    if left:
+        pytest.fail("test left %d relay claim(s) open: %s" % (
+            len(left), ", ".join(f"{i.content_id[:12] or '-'} ({i.client_label})" for i in left)))

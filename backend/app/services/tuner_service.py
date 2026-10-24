@@ -7,12 +7,13 @@ import logging
 import re
 import secrets
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Set
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.models.models import EPGSource, TVChannel
+from app.models.models import AcestreamChannel, EPGSource, TVChannel
 from app.repositories.channel_repository import ChannelRepository
 from app.repositories.settings_repository import SettingsRepository
 from app.services.epg_service import EPGService
@@ -26,6 +27,14 @@ logger = logging.getLogger(__name__)
 
 MIN_TUNER_COUNT, MAX_TUNER_COUNT = 1, 16
 MIN_MAX_CHANNELS, MAX_MAX_CHANNELS = 1, 1000
+MIN_START_SECONDS, MAX_START_SECONDS = 5, 180
+
+
+def supported_tuner_stream(stream: AcestreamChannel) -> bool:
+    """Accept stored media identities, never arbitrary URLs supplied by clients."""
+    return bool(re.fullmatch(r"[0-9a-fA-F]{40}", stream.id) or (
+        re.fullmatch(r"url:[0-9a-f]{40}", stream.id) and stream.stream_url
+    ))
 
 
 class TunerDeviceIdError(RuntimeError):
@@ -67,7 +76,12 @@ class TunerSettings:
     tuner_count: int
     max_channels: int
     only_online: bool
+    plex_compatible_audio: bool = False
     experimental_transcoding: bool = False
+    # Seconds a source gets to deliver its first byte, and for the whole start
+    # across sources: a cold P2P start can take longer than the defaults.
+    source_start_seconds: int = 15
+    startup_budget_seconds: int = 45
 
 
 @dataclass
@@ -98,6 +112,21 @@ class Lineup:
     overflow: int = 0
 
 
+# A check older than this ranks a source after every fresher one when the
+# relay picks what to try first. The status check runs hourly by default.
+FRESH_CHECK_HOURS = 6
+
+
+def _checked_since(stream, since, until) -> bool:
+    checked = getattr(stream, "last_checked", None)
+    if checked is None:
+        return False
+    if checked.tzinfo is None:
+        checked = checked.replace(tzinfo=timezone.utc)
+    # A clock correction must not make an observation fresh indefinitely.
+    return since <= checked <= until
+
+
 class TunerService:
     def __init__(self, db: Session):
         self.db = db
@@ -107,15 +136,19 @@ class TunerService:
     def settings(self) -> TunerSettings:
         repo = self.settings_repo
         return TunerSettings(
+            plex_compatible_audio=str(repo.get_setting(SettingsRepository.TUNER_PLEX_COMPATIBLE_AUDIO) or "false").lower() in ("true", "1"),
             experimental_transcoding=str(repo.get_setting(SettingsRepository.TUNER_EXPERIMENTAL_TRANSCODING) or "false").lower() in ("true", "1"),
             friendly_name=repo.get_setting(SettingsRepository.TUNER_FRIENDLY_NAME) or SettingsRepository.DEFAULT_TUNER_FRIENDLY_NAME,
             tuner_count=int(repo.get_setting(SettingsRepository.TUNER_COUNT) or SettingsRepository.DEFAULT_TUNER_COUNT),
             max_channels=int(repo.get_setting(SettingsRepository.TUNER_MAX_CHANNELS) or SettingsRepository.DEFAULT_TUNER_MAX_CHANNELS),
             only_online=str(repo.get_setting(SettingsRepository.TUNER_ONLY_ONLINE) or "false").lower() in ("true", "1"),
+            source_start_seconds=int(repo.get_setting(SettingsRepository.TUNER_SOURCE_START_SECONDS) or SettingsRepository.DEFAULT_TUNER_SOURCE_START_SECONDS),
+            startup_budget_seconds=int(repo.get_setting(SettingsRepository.TUNER_STARTUP_BUDGET_SECONDS) or SettingsRepository.DEFAULT_TUNER_STARTUP_BUDGET_SECONDS),
         )
 
     def update_settings(self, *, friendly_name: Optional[str] = None, tuner_count: Optional[int] = None,
-                        max_channels: Optional[int] = None, only_online: Optional[bool] = None, experimental_transcoding: Optional[bool] = None) -> TunerSettings:
+                        max_channels: Optional[int] = None, only_online: Optional[bool] = None, plex_compatible_audio: Optional[bool] = None, experimental_transcoding: Optional[bool] = None,
+                        source_start_seconds: Optional[int] = None, startup_budget_seconds: Optional[int] = None) -> TunerSettings:
         repo = self.settings_repo
         if friendly_name is not None:
             repo.set_setting(SettingsRepository.TUNER_FRIENDLY_NAME, friendly_name.strip() or SettingsRepository.DEFAULT_TUNER_FRIENDLY_NAME, "Tuner name shown in Jellyfin/Plex")
@@ -123,10 +156,16 @@ class TunerService:
             repo.set_setting(SettingsRepository.TUNER_COUNT, str(max(MIN_TUNER_COUNT, min(MAX_TUNER_COUNT, int(tuner_count)))), "Concurrent tuner streams advertised")
         if max_channels is not None:
             repo.set_setting(SettingsRepository.TUNER_MAX_CHANNELS, str(max(MIN_MAX_CHANNELS, min(MAX_MAX_CHANNELS, int(max_channels)))), "Maximum channels in the tuner lineup")
+        if plex_compatible_audio is not None:
+            repo.set_setting(SettingsRepository.TUNER_PLEX_COMPATIBLE_AUDIO, "true" if plex_compatible_audio else "false", "AAC/LATM tuner audio for Plex Desktop")
         if experimental_transcoding is not None:
             repo.set_setting(SettingsRepository.TUNER_EXPERIMENTAL_TRANSCODING, "true" if experimental_transcoding else "false", "Experimental CPU-intensive TV relay recovery")
         if only_online is not None:
             repo.set_setting(SettingsRepository.TUNER_ONLY_ONLINE, "true" if only_online else "false", "Hide channels whose streams are all offline")
+        if source_start_seconds is not None:
+            repo.set_setting(SettingsRepository.TUNER_SOURCE_START_SECONDS, str(max(MIN_START_SECONDS, min(MAX_START_SECONDS, int(source_start_seconds)))), "Seconds a source gets to deliver its first byte")
+        if startup_budget_seconds is not None:
+            repo.set_setting(SettingsRepository.TUNER_STARTUP_BUDGET_SECONDS, str(max(MIN_START_SECONDS, min(MAX_START_SECONDS, int(startup_budget_seconds)))), "Seconds for the whole start across sources")
         return self.settings()
 
     def device_id(self) -> str:
@@ -151,9 +190,44 @@ class TunerService:
 
     def stream_ids(self, tv_channel_id: int, *, online_only: bool = False) -> List[str]:
         streams = ChannelRepository(self.db).get_tuner_streams(tv_channel_id, online_only=online_only)
-        valid = [stream for stream in streams if re.fullmatch(r"[0-9a-fA-F]{40}", stream.id)]
-        valid.sort(key=lambda stream: (-(stream.bitrate_bps or 0), stream.id))
+        valid = [stream for stream in streams if supported_tuner_stream(stream)]
+        # Recently checked first, then by bitrate. A box that is only on now
+        # and then keeps "online" from a session hours or days ago, and a
+        # stale source that fails uses up its whole start time before the
+        # next one is tried, so it goes after every fresh one. It is not
+        # dropped: only tried later.
+        now = datetime.now(timezone.utc)
+        fresh_since = now - timedelta(hours=FRESH_CHECK_HOURS)
+        valid.sort(key=lambda stream: (not _checked_since(stream, fresh_since, now), -(stream.bitrate_bps or 0), stream.id))
         return list(dict.fromkeys(stream.id.lower() for stream in valid))
+
+    def relay_stream_ids(self, tv_channel_id: int) -> List[str]:
+        """What the TV relay tries, in order: online and checked recently;
+        online from an old check; then never checked, or offline from an old
+        check. Only a source found offline recently is left out.
+
+        When a box that is only on now and then is switched on for a match,
+        every status is hours or days old, and the source that is live tonight may be the one the
+        last check, last week, found offline. Leaving it out made the
+        channel fail with a live source assigned to it. A recent offline
+        verdict from a status check still counts.
+        """
+        streams = ChannelRepository(self.db).get_tuner_streams(tv_channel_id)
+        now = datetime.now(timezone.utc)
+        fresh_since = now - timedelta(hours=FRESH_CHECK_HOURS)
+        ranked = []
+        for stream in streams:
+            if not supported_tuner_stream(stream):
+                continue
+            fresh = _checked_since(stream, fresh_since, now)
+            if stream.is_online:
+                bucket = 0 if fresh else 1
+            elif stream.is_online is False and fresh:
+                continue
+            else:
+                bucket = 2
+            ranked.append((bucket, -(stream.bitrate_bps or 0), stream.id.lower()))
+        return list(dict.fromkeys(cid for _, _, cid in sorted(ranked)))
 
     # --- lineup -------------------------------------------------------------
     def build_lineup(self) -> Lineup:
@@ -163,7 +237,7 @@ class TunerService:
         channels: List[TVChannel] = ChannelRepository(self.db).get_playlist_tv_channels()
         candidates = []
         for tv in channels:
-            streams = [s for s in tv.acestream_channels if s.id]
+            streams = [s for s in tv.acestream_channels if s.is_active and supported_tuner_stream(s)]
             if not streams:
                 continue
             if settings.only_online and not any(s.is_online for s in streams):
@@ -262,16 +336,18 @@ class TunerService:
         lines.append('</tv>')
         return '\n'.join(lines)
 
-    @staticmethod
-    def build_playlist_m3u(lineup: Lineup, public_base_url: str) -> str:
-        """M3U for Jellyfin's M3U tuner: tvg-id keeps the upstream EPG id, and
+    def build_playlist_m3u(self, lineup: Lineup, public_base_url: str) -> str:
+        """M3U for Jellyfin's M3U tuner: tvg-id shares the XMLTV identity, and
         every stream URL points at the relay rather than at the engine."""
+        from app.services.epg_identity_service import EPGIdentityService
+        identities = EPGIdentityService(self.db)
         base = public_base_url.rstrip('/')
-        lines = ["#EXTM3U"]
+        lines = [f'#EXTM3U url-tvg="{m3u_attr(base)}/tuner/epg.xml"']
         for entry in lineup.entries:
             attrs = []
-            if entry.epg_id:
-                attrs.append(f'tvg-id="{m3u_attr(entry.epg_id)}"')
+            epg_id = identities.resolve(entry.epg_source_id, entry.epg_id)
+            if epg_id:
+                attrs.append(f'tvg-id="{m3u_attr(epg_id)}"')
             attrs.append(f'tvg-chno="{entry.guide_number}"')
             attrs.append(f'tvg-name="{m3u_attr(entry.guide_name)}"')
             if entry.logo_url:

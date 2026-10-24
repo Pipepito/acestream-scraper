@@ -46,7 +46,7 @@ class EPGSourceOperations:
         if not db_source:
             return None
 
-        update_data = source_data.dict(exclude_unset=True)
+        update_data = source_data.model_dump(exclude_unset=True)
         for key, value in update_data.items():
             setattr(db_source, key, value)
 
@@ -135,6 +135,10 @@ class EPGSourceOperations:
                 source.last_error = result.get("error", "Unknown error")
 
             self.db.commit()
+
+            if result["success"]:
+                from app.services.epg_matching_automation import EPGMatchingAutomation
+                EPGMatchingAutomation(self.db).run()
 
             # Calculate duration
             duration = (datetime.now() - start_time).total_seconds()

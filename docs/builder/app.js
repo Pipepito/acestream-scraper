@@ -382,6 +382,9 @@
     const engineApi = data.ports.find((p) => p.id === 'engineApi');
     if (d.engineOn && engineApi && state.ports.engineApi && state.ports.engineApi.enabled) {
       out.push(['warn', engineApi.securityNote]);
+      out.push(['info', state.runtimeSettings.engineBindAll === false
+        ? 'The engine address filter is enabled. For VPN or Docker clients that cannot connect, turn on “Accept engine clients from any address” in Advanced settings.'
+        : 'The engine accepts clients from any address by default (ACESTREAM_BIND_ALL=true). Publishing this port allows remote clients. A mapping of 0.0.0.0:6878:6878 makes the all-IPv4 binding explicit; 127.0.0.1:6878:6878 restricts it to this host.']);
     }
     if (state.volumes.config && !state.volumes.config.enabled) {
       out.push(['warn', 'Without the configuration folder your channels and settings are lost whenever the container is replaced.']);

@@ -32,6 +32,7 @@ COPY frontend/package*.json ./
 RUN npm install
 
 COPY frontend/ ./
+COPY version.txt /build/version.txt
 RUN npm run build
 
 
@@ -46,6 +47,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         build-essential \
         python3-dev \
+        libffi-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY backend/requirements.txt ./requirements.txt
@@ -137,7 +139,7 @@ FROM python:${ACESTREAM_ENGINE_PYTHON_VERSION}-slim AS engine-python
 FROM --platform=$BUILDPLATFORM debian:bookworm-slim AS ipfs-installer
 
 ARG TARGETPLATFORM
-ARG KUBO_VERSION=v0.43.0
+ARG KUBO_VERSION=v0.43.1
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl tar \
@@ -322,6 +324,7 @@ RUN apt-get update \
 
 COPY --from=python-deps /install /usr/local
 COPY backend/ /app/
+COPY version.txt /app/version.txt
 RUN mkdir -p /app/frontend_build /app/logs /opt/acestream/bin /opt/acexy/bin
 COPY --from=frontend-builder /build/frontend/dist/ /app/frontend_build/
 
@@ -356,13 +359,16 @@ COPY --from=ffmpeg-builder /out/ /opt/ffmpeg/bin/
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY backend/capture_logs.py /usr/local/bin/capture_logs.py
 COPY backend/engine_cache_cleanup.py /usr/local/bin/engine_cache_cleanup.py
+COPY backend/gluetun_port.py /usr/local/bin/gluetun_port.py
 COPY warp-setup.sh /usr/local/bin/warp-setup.sh
 COPY healthcheck.sh /usr/local/bin/healthcheck.sh
 
 RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/warp-setup.sh /usr/local/bin/healthcheck.sh
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/entrypoint.sh"]
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--no-proxy-headers", "--timeout-graceful-shutdown", "3"]
+# Let entrypoint.sh build the default app command from FLASK_PORT.
+# Explicit docker run / Compose commands still pass through unchanged.
+CMD []
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 CMD ["/usr/local/bin/healthcheck.sh"]
 
@@ -389,6 +395,7 @@ COPY --from=acestream-installer /opt/acestream/ /opt/acestream/
 # The directory is empty for the native x86_64 engine.
 COPY --from=acestream-installer /opt/acestream-system/ /system/
 COPY --chmod=755 docker/scripts/start-check-engine /opt/acestream/start-check-engine
+COPY --chmod=755 docker/scripts/start-playback-engine /opt/acestream/start-playback-engine
 RUN mkdir -p /var/lib/acestream /var/lib/acestream-check /data
 
 # The same start command works for every platform: on x86_64 start-engine is
@@ -398,7 +405,7 @@ ENV IMAGE_HAS_ACESTREAM=true \
     ACESTREAM_BINARY_PATH=/opt/acestream/bin/acestreamengine \
     ACESTREAM_HOME=/var/lib/acestream \
     ACESTREAM_BIND_ALL=true \
-    ACESTREAM_START_COMMAND="env PYTHONPATH=/opt/acestream/python-deps /opt/acestream/start-engine --client-console --http-port 6878 --cache-auto 0 --cache-max-bytes 536870912 --disk-cache-limit 536870912 --live-cache-type memory --live-mem-cache-size 67108864"
+    ACESTREAM_START_COMMAND="exec /opt/acestream/start-playback-engine"
 
 
 FROM scraper AS scraper-acexy

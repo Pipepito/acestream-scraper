@@ -36,6 +36,8 @@ The Settings tabs use `/settings?tab=playback|automation|links|access`.
 - `check-engine`: `{use_dedicated, url}` selects an external checker. With dedicated checks off, checks use the playback URL; without either URL they are skipped. A bundled checker is container-managed and read-only here. A configured checker's failure never falls back to playback.
 - `base_url`: default stream-link format. Named formats can be selected using `base_url_id`. `{channel_id}` is the AceStream hash; `{tv_channel_id}` is the TV-channel database ID. Use `/tuner/channel/{tv_channel_id}.ts` for one stable station URL with fallback sources, or `/tuner/stream/{channel_id}.ts` for one exact source. `{pid}` supplies a player/session ID where supported; a format without placeholders is a prefix.
 - `rescrape_interval`: default 24 hours; `epg_refresh_interval`: default 6 hours; `channel_status_interval`: default 60 minutes.
+- `notification_webhook_url`: empty by default (off). Settings → Automation → Notifications sends JSON after scheduled/run-now scrapes and stream checks, manual scrapes, and individual channel checks. Events are `url_scraping.completed`, `channel_status.completed`, `channel_check.completed` and their `.failed` variants. Scrape-all sends one summary; skipped individual checks send nothing. A failure includes the exception class, never its text. The payload is `{"event": "...", "title": "...", "message": "...", "data": {...}}`; Gotify accepts the `title` and `message` fields directly at `https://host/message?token=...`. Delivery failure does not fail the action; *Send test* checks delivery. These are action notifications, not offline-transition monitoring or native Telegram integration. See [manual-action notification details](../docs/ops/manual-notifications.md).
+  The API masks secret-bearing path/query/credentials with `•••`. Saving the returned mask preserves the stored URL; other masked values are refused. Delivery uses the same outbound policy as source fetches: `ALLOW_PRIVATE_SCRAPE_TARGETS=false` refuses LAN webhooks.
 
 See the [illustrated walkthrough](Usage.md) and [playback routing guide](Remote-Players.md#playback-routing) for examples.
 
@@ -57,7 +59,7 @@ See the [illustrated walkthrough](Usage.md) and [playback routing guide](Remote-
 
 | Variable | Description | Default | Notes |
 |----------|-------------|---------|-------|
-| `FLASK_PORT` | Port the web app (uvicorn) listens on | `8000` | Name kept from v1 but still the real setting: `entrypoint.sh` passes it to `uvicorn --port` and `healthcheck.sh` probes `http://localhost:${FLASK_PORT}/api/v1/health`. Change it if port 8000 is in use |
+| `FLASK_PORT` | Port the web app (uvicorn) listens on | `8000` | Name kept from v1 but still the real setting: the default container command uses it for `uvicorn --port` and `healthcheck.sh` probes `http://localhost:${FLASK_PORT}/api/v1/health`. A custom Compose `command:` or `docker run` command is used unchanged; keep its bind port consistent with this value |
 | `FLASK_ENV` | *Superseded (2026-08-28)* — v1 Flask environment mode, not read by the v2 (FastAPI) runtime | – | For local debugging run `uvicorn main:app --reload` from `backend/` instead |
 | `API_TOKEN` | Require a token on API and playlist routes | unset (open) | Sent as `Authorization: Bearer`, `X-Api-Token`, or `?token=` (for IPTV players); `/api/v1/health` stays public |
 | `ALLOW_PRIVATE_SCRAPE_TARGETS` | Allow scrape/EPG URLs on private/LAN addresses | `true` | Set `false` to block loopback/private/link-local targets; the cloud metadata endpoint is always blocked. It does not affect remote players, media servers or player discovery, which are LAN targets by design; the metadata/link-local block still applies to them |
@@ -77,7 +79,7 @@ External players and media servers (VLC, Kodi, Jellyfin, Plex) fetch streams ove
 | `TUNER_ALLOWED_NETWORKS` | Networks allowed to use the token-free `/tuner/*` routes | `127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10` | `*` disables the check. Media servers cannot send an `API_TOKEN`, so these routes are gated by address instead. Publish the web port as `-p 0.0.0.0:8000:8000` (never the bare `8000:8000`): an unaddressed mapping also listens on `[::]`, and Docker then presents every IPv6 client to the app as the bridge gateway (`172.17.0.1`), which is inside this default list |
 | `PLAYER_HLS_DIR` | Where the web player writes HLS segments | `/tmp/acestream-player` | `/dev/shm/acestream-player` with a larger `shm_size` keeps them in RAM |
 | `PLAYER_MAX_SESSIONS` | Maximum channels the web player prepares at once | `3` | Each session costs one engine stream and one ffmpeg process |
-| `PLAYER_START_TIMEOUT_SECONDS` | Seconds a web-player session may stay in "starting" before it is reported as stalled | `45` | Raise it on slow links where streams take longer to buffer |
+| `PLAYER_START_TIMEOUT_SECONDS` | Seconds for direct-engine JSON startup and initial web-player buffering before the session is reported as stalled | `45` | Raise it on slow links where streams take longer to buffer |
 | `FFMPEG_BINARY_PATH` | ffmpeg used by the web player | *(empty)* | Empty falls back to `ffmpeg` on `PATH`; images that bundle ffmpeg set it to `/opt/ffmpeg/bin/ffmpeg` |
 | `MEDIA_SERVER_MIN_REFRESH_MINUTES` | Minimum minutes between automatic Jellyfin/Plex guide refreshes | `30` | `0` disables the debounce |
 
@@ -221,6 +223,22 @@ When using Docker, map these ports as needed:
 | 4001 | IPFS swarm port (TCP and UDP) | Only if `ENABLE_IPFS=true`; improves peer connectivity |
 | 8081 | IPFS HTTP gateway | Only if `ENABLE_IPFS=true` and you want to browse IPFS through the node |
 | 5001 | IPFS RPC API / WebUI | Unauthenticated — publish only as `127.0.0.1:5001:5001` if needed |
+
+To change the container's listening port, set `FLASK_PORT` and map that same
+container port. For example:
+
+```yaml
+environment:
+  FLASK_PORT: "8002"
+ports:
+  - "0.0.0.0:8002:8002"
+```
+
+No `command:` override is needed. With host networking or a shared network
+namespace (such as `network_mode: service:gluetun`), choose a free port in that
+namespace; publish it on the container that owns the namespace when needed.
+If only the host port conflicts under ordinary bridge networking, keep
+`FLASK_PORT=8000` and use `0.0.0.0:8002:8000` instead.
 
 ## Volumes
 

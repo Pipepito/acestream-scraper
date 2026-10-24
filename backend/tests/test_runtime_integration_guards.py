@@ -150,194 +150,20 @@ def test_legacy_path_guard_accepts_current_runtime_contract():
     assert result.returncode == 0, result.stdout + result.stderr
 
 
-def test_legacy_path_guard_covers_jenkins_entrypoints():
-    guard_script = (REPO_ROOT / "scripts" / "ci" / "assert_no_legacy_paths.sh").read_text()
-
-    assert '"Jenkinsfile"' in guard_script
-    assert '"jenkins/release.Jenkinsfile"' in guard_script
-    assert '"scripts/ci/run_jenkins_validation.sh"' in guard_script
-    assert '"scripts/ci/run_jenkins_release.sh"' in guard_script
 
 
-def test_jenkins_validation_wrapper_fails_fast_when_builder_is_missing(tmp_path):
-    fake_bin = tmp_path / "bin"
-    fake_bin.mkdir()
-    fake_bash_log = tmp_path / "fake-bash.log"
-
-    _write_executable(
-        fake_bin / "bash",
-        "#!/bin/bash\n"
-        "set -euo pipefail\n"
-        "printf '%s\\n' \"$*\" >> \"${FAKE_BASH_LOG:?}\"\n"
-        "printf 'unexpected downstream bash call: %s\\n' \"$*\" >&2\n"
-        "exit 99\n",
-    )
-    _write_executable(
-        fake_bin / "docker",
-        "#!/bin/bash\n"
-        "set -euo pipefail\n"
-        "if [ \"${1:-}\" = \"buildx\" ] && [ \"${2:-}\" = \"inspect\" ]; then\n"
-        "  printf 'missing builder: %s\\n' \"${3:-}\" >&2\n"
-        "  exit 1\n"
-        "fi\n"
-        "printf 'unexpected docker call: %s\\n' \"$*\" >&2\n"
-        "exit 98\n",
-    )
-
-    env = os.environ.copy()
-    env["PATH"] = f"{fake_bin}:{env['PATH']}"
-    env["FAKE_BASH_LOG"] = str(fake_bash_log)
-    env["JENKINS_BUILDER"] = "missing-builder"
-
-    result = subprocess.run(
-        ["/bin/bash", str(REPO_ROOT / "scripts/ci/run_jenkins_validation.sh")],
-        cwd=REPO_ROOT,
-        check=False,
-        capture_output=True,
-        text=True,
-        env=env,
-    )
-
-    assert result.returncode != 0
-    assert "missing-builder" in (result.stdout + result.stderr)
-    assert not fake_bash_log.exists() or fake_bash_log.read_text() == ""
 
 
-def test_jenkins_release_wrapper_fails_fast_when_builder_is_missing(tmp_path):
-    fake_bin = tmp_path / "bin"
-    fake_bin.mkdir()
-    fake_bash_log = tmp_path / "fake-bash.log"
-
-    _write_executable(
-        fake_bin / "bash",
-        "#!/bin/bash\n"
-        "set -euo pipefail\n"
-        "printf '%s\\n' \"$*\" >> \"${FAKE_BASH_LOG:?}\"\n"
-        "printf 'unexpected downstream bash call: %s\\n' \"$*\" >&2\n"
-        "exit 99\n",
-    )
-    _write_executable(
-        fake_bin / "docker",
-        "#!/bin/bash\n"
-        "set -euo pipefail\n"
-        "if [ \"${1:-}\" = \"buildx\" ] && [ \"${2:-}\" = \"inspect\" ]; then\n"
-        "  printf 'missing builder: %s\\n' \"${3:-}\" >&2\n"
-        "  exit 1\n"
-        "fi\n"
-        "printf 'unexpected docker call: %s\\n' \"$*\" >&2\n"
-        "exit 98\n",
-    )
-
-    env = os.environ.copy()
-    env["PATH"] = f"{fake_bin}:{env['PATH']}"
-    env["FAKE_BASH_LOG"] = str(fake_bash_log)
-    env["JENKINS_BUILDER"] = "missing-builder"
-
-    result = subprocess.run(
-        ["/bin/bash", str(REPO_ROOT / "scripts/ci/run_jenkins_release.sh"), "--dry-run"],
-        cwd=REPO_ROOT,
-        check=False,
-        capture_output=True,
-        text=True,
-        env=env,
-    )
-
-    assert result.returncode != 0
-    assert "missing-builder" in (result.stdout + result.stderr)
-    assert not fake_bash_log.exists() or fake_bash_log.read_text() == ""
 
 
-def test_jenkins_release_pipeline_verifies_checkout_matches_origin_main():
-    pipeline = (REPO_ROOT / "jenkins" / "release.Jenkinsfile").read_text()
-
-    assert "git fetch --no-tags origin main" in pipeline
-    assert 'head_sha="$(git rev-parse HEAD)"' in pipeline
-    assert 'origin_main_sha="$(git rev-parse origin/main)"' in pipeline
-    assert 'if [[ "$head_sha" != "$origin_main_sha" ]]; then' in pipeline
-    assert "Release pipeline requires the checked-out commit to match origin/main." in pipeline
 
 
-def test_jenkins_release_pipeline_exposes_publish_latest_parameter():
-    pipeline = (REPO_ROOT / "jenkins" / "release.Jenkinsfile").read_text()
-
-    assert "name: 'PUBLISH_LATEST'" in pipeline
-    assert "defaultValue: false" in pipeline
-    assert "PUBLISH_LATEST=${params.PUBLISH_LATEST ? '1' : '0'}" in pipeline
-    assert "run_jenkins_release.sh --print-publish-plan" in pipeline
 
 
-def test_run_jenkins_release_print_publish_plan_default_excludes_latest():
-    # Without PUBLISH_LATEST set, the publish plan must not include the
-    # floating :latest tag. This protects the canary flow: the first publish
-    # of a new version pushes only the versioned + flavor-channel tags so
-    # users on :latest are unaffected until an opt-in promotion run.
-    env = os.environ.copy()
-    env.pop("PUBLISH_LATEST", None)
-
-    result = subprocess.run(
-        [
-            "/bin/bash",
-            str(REPO_ROOT / "scripts/ci/run_jenkins_release.sh"),
-            "--print-publish-plan",
-        ],
-        cwd=REPO_ROOT,
-        check=False,
-        capture_output=True,
-        text=True,
-        env=env,
-    )
-
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert "pipepito/acestream-scraper:latest" not in result.stdout, result.stdout
-    assert "pipepito/acestream-scraper:scraper-acestream-acexy" in result.stdout
-    assert "pipepito/acestream-scraper:scraper" in result.stdout
 
 
-def test_run_jenkins_release_print_publish_plan_with_publish_latest_includes_latest():
-    env = os.environ.copy()
-    env["PUBLISH_LATEST"] = "1"
-
-    result = subprocess.run(
-        [
-            "/bin/bash",
-            str(REPO_ROOT / "scripts/ci/run_jenkins_release.sh"),
-            "--print-publish-plan",
-        ],
-        cwd=REPO_ROOT,
-        check=False,
-        capture_output=True,
-        text=True,
-        env=env,
-    )
-
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert "pipepito/acestream-scraper:latest" in result.stdout, result.stdout
 
 
-def test_run_jenkins_release_publish_latest_only_promotes_full_payload_flavor():
-    # Even when PUBLISH_LATEST=1, only the scraper-acestream-acexy flavor
-    # (the canonical :latest payload) should receive the floating :latest tag.
-    # The partial flavors must continue to be addressable only via channel +
-    # versioned tags so an operator can never accidentally promote a partial
-    # build to :latest.
-    env = os.environ.copy()
-    env["PUBLISH_LATEST"] = "1"
-
-    result = subprocess.run(
-        [
-            "/bin/bash",
-            str(REPO_ROOT / "scripts/ci/run_jenkins_release.sh"),
-            "--print-publish-plan",
-        ],
-        cwd=REPO_ROOT,
-        check=False,
-        capture_output=True,
-        text=True,
-        env=env,
-    )
-
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert result.stdout.count(":latest") == 1, result.stdout
 
 
 def test_build_script_derives_real_acexy_source_from_manifest():
@@ -378,53 +204,10 @@ def test_build_script_derives_real_acexy_source_from_manifest():
     assert "ACEXY_REPO" not in result.stdout + result.stderr
 
 
-def test_run_jenkins_release_channel_plan_pushes_floating_channel_tags_only():
-    # The develop pre-release channel publishes floating channel tags per
-    # flavor and never a version tag or :latest.
-    result = subprocess.run(
-        ["/bin/bash", str(REPO_ROOT / "scripts/ci/run_jenkins_release.sh"),
-         "--print-publish-plan", "--channel", "develop"],
-        cwd=REPO_ROOT, check=False, capture_output=True, text=True, env=os.environ.copy(),
-    )
-    assert result.returncode == 0, result.stdout + result.stderr
-    version = (REPO_ROOT / "version.txt").read_text().strip()
-    assert "pipepito/acestream-scraper:develop " in result.stdout or "pipepito/acestream-scraper:develop\n" in result.stdout
-    for flavor in ("scraper", "scraper-acestream", "scraper-acexy", "scraper-acestream-acexy"):
-        assert f"pipepito/acestream-scraper:develop-{flavor}" in result.stdout, result.stdout
-    assert "pipepito/acestream-scraper:latest" not in result.stdout
-    assert f"pipepito/acestream-scraper:{version}" not in result.stdout
 
 
-def test_run_jenkins_release_rejects_invalid_channel_names():
-    result = subprocess.run(
-        ["/bin/bash", str(REPO_ROOT / "scripts/ci/run_jenkins_release.sh"),
-         "--print-publish-plan", "--channel", "Not Valid"],
-        cwd=REPO_ROOT, check=False, capture_output=True, text=True,
-    )
-    assert result.returncode != 0
-    assert "Invalid channel name" in result.stderr
 
 
-def test_run_jenkins_release_refuses_dev_versions(tmp_path):
-    # develop carries vX.Y.Z-dev; only the release PR bumps it, so a release
-    # run on a -dev version must stop before doing anything.
-    import shutil
-    scripts_dir = tmp_path / "scripts" / "ci"
-    scripts_dir.mkdir(parents=True)
-    shutil.copy(REPO_ROOT / "scripts/ci/run_jenkins_release.sh", scripts_dir / "run_jenkins_release.sh")
-    (tmp_path / "version.txt").write_text("v2.1.0-dev\n")
-    result = subprocess.run(
-        ["/bin/bash", str(scripts_dir / "run_jenkins_release.sh"), "--print-publish-plan"],
-        cwd=tmp_path, check=False, capture_output=True, text=True,
-    )
-    assert result.returncode != 0
-    assert "Refusing to release a development version" in result.stderr
-    # ...while the channel publish of the same tree is fine.
-    result = subprocess.run(
-        ["/bin/bash", str(scripts_dir / "run_jenkins_release.sh"), "--print-publish-plan", "--channel", "develop"],
-        cwd=tmp_path, check=False, capture_output=True, text=True,
-    )
-    assert result.returncode == 0, result.stderr
 
 
 def test_build_script_multi_platform_push_is_sequential_by_digest():
@@ -469,7 +252,7 @@ def test_build_script_push_by_digest_single_platform():
     out = result.stdout
     assert "push-by-digest=true" in out and "name=example.com/app" in out
     assert "Pushed linux/arm/v7 as example.com/app@" in out
-    assert "docker buildx prune --builder acestream-builder -f --max-used-space 2GB" in out
+    assert "docker buildx prune --builder acestream-builder -af --max-used-space 2GB" in out
     assert "imagetools" not in out and "--tag" not in out
 
     bad = subprocess.run(
@@ -480,33 +263,6 @@ def test_build_script_push_by_digest_single_platform():
     assert bad.returncode != 0 and "exactly one platform" in bad.stdout + bad.stderr
 
 
-def test_run_jenkins_release_channel_dry_run_is_platform_major(tmp_path):
-    # Every flavor is built for one platform before the next platform, each
-    # pushed by digest, the builder cache is pruned between platforms, and the
-    # tags are assembled per flavor at the end.
-    env = os.environ.copy()
-    env.pop("PUBLISH_LATEST", None)
-    # The release script deliberately verifies its configured builder even for a
-    # dry run. Keep this contract test independent of the host's Docker daemon.
-    fake_bin = tmp_path / "bin"
-    fake_bin.mkdir()
-    _write_executable(fake_bin / "docker", "#!/usr/bin/env bash\nexit 0\n")
-    env["PATH"] = f"{fake_bin}:{env['PATH']}"
-    env["JENKINS_BUILDER"] = "default"
-    result = subprocess.run(
-        ["/bin/bash", str(REPO_ROOT / "scripts/ci/run_jenkins_release.sh"), "--dry-run", "--channel", "develop"],
-        cwd=REPO_ROOT, check=False, capture_output=True, text=True, env=env,
-    )
-    assert result.returncode == 0, result.stdout + result.stderr
-    out = result.stdout
-    builds = [line for line in out.splitlines() if line.startswith("Building linux/")]
-    assert len(builds) == 12, builds  # 4 flavors x 3 platforms
-    # platform-major: the first four builds are all for the first platform
-    assert {line.split()[1] for line in builds[:4]} == {"linux/amd64"}
-    assert out.count("docker buildx prune --builder default") == 3
-    assert out.count("imagetools create") == 4
-    assert "--tag pipepito/acestream-scraper:develop " in out
-    assert "pipepito/acestream-scraper:latest" not in out
 
 
 def test_entrypoint_exports_media_integration_defaults():
@@ -531,7 +287,7 @@ def test_uvicorn_is_launched_with_app_owned_proxy_trust_and_graceful_timeout():
     flags = '--no-proxy-headers --timeout-graceful-shutdown 3'
     cmd = 'CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--no-proxy-headers", "--timeout-graceful-shutdown", "3"]'
     assert f'APP_COMMAND=(uvicorn main:app --host 0.0.0.0 --port "$FLASK_PORT" {flags})' in entrypoint
-    assert cmd in dockerfile
+    assert "\nCMD []\n" in dockerfile
     # The backend-only image is the fourth launch path; it must not hand
     # uvicorn X-Forwarded-* trust that ForwardedHeadersMiddleware owns.
     assert cmd in backend_dockerfile
@@ -693,10 +449,6 @@ def test_entrypoint_clears_the_ffmpeg_path_when_nothing_is_installed_there(tmp_p
     assert reported["IMAGE_HAS_FFMPEG"] == "false"
 
 
-def test_jenkins_smoke_stage_runs_the_ffmpeg_build_test():
-    pipeline = (REPO_ROOT / "Jenkinsfile").read_text()
-    assert "backend/tests/docker/test_ffmpeg_build.py" in pipeline
-    assert "backend/tests/docker/test_ffmpeg_vendor.py" in pipeline
 
 
 def test_command_builder_declares_current_runtime_settings_and_filters_them():

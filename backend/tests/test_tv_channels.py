@@ -80,7 +80,7 @@ class TestTVChannelEndpoints:
         """Test creating a TV channel with invalid data."""
         invalid_data = {"name": ""}  # Missing required fields
         response = client.post("/api/v1/tv-channels/", json=invalid_data)
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_update_tv_channel(self, client, seed_tv_channels):
         """Test updating an existing TV channel."""
@@ -527,9 +527,10 @@ class TestTVChannelEPGMatchAnalysis:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["summary"]["epg_channels_analyzed"] == 6
-        assert data["summary"]["matched_epg_channels"] >= 5
-        assert data["summary"]["matched_acestream_channels"] >= 5
-        assert data["summary"]["creatable_rows"] >= 5
+        assert data["summary"]["matched_epg_channels"] == 4
+        assert any(row["ambiguous_count"] for row in data["rows"])
+        assert data["summary"]["matched_acestream_channels"] == 5
+        assert data["summary"]["creatable_rows"] == 4
         assert len(data["rows"]) == 6
 
     def test_analyze_epg_matches_applies_strictness_thresholds(self, client, seeded_match_data):
@@ -598,7 +599,7 @@ class TestTVChannelEPGMatchAnalysis:
 
         response = client.post("/api/v1/tv-channels/analyze-epg-matches", json={"strictness": "balanced"})
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
         assert "budget" in response.json()["detail"].lower()
 
     def test_analyze_epg_matches_marks_duplicate_existing_conflicts_as_not_creatable(self, client, seeded_match_data, db_session):
@@ -652,7 +653,7 @@ class TestTVChannelCreateFromEPGAnalysis:
             json={"strictness": "strict", "epg_channel_ids": [epg_channel.id]},
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
         assert "no accepted matches" in response.json()["detail"].lower()
 
     def test_create_from_epg_analysis_reports_row_level_partial_success(self, client, seeded_match_data, db_session):
@@ -698,21 +699,14 @@ class TestTVChannelCreateFromEPGAnalysis:
         associated_ids = [row["id"] for row in associated.json()]
         assert associated_ids == ["shared-candidate"]
 
-    def test_create_from_epg_analysis_limits_uniqueness_to_selected_rows(self, client, seeded_conflict_data):
+    def test_create_from_epg_analysis_preserves_full_inventory_uniqueness(self, client, seeded_conflict_data):
         response = client.post(
             "/api/v1/tv-channels/create-from-epg-analysis",
             json={"strictness": "balanced", "epg_channel_ids": [seeded_conflict_data["loser"].id]},
         )
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["created_count"] == 1
-        assert data["failure_count"] == 0
-        assert data["row_outcomes"][0]["status"] == "created"
-
-        associated = client.get(f"/api/v1/tv-channels/{data['row_outcomes'][0]['tv_channel_id']}/acestreams")
-        assert associated.status_code == status.HTTP_200_OK
-        assert [row["id"] for row in associated.json()] == ["shared-candidate"]
+        # Selecting the loser must not invent an assignment absent from preview.
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+        assert "no accepted matches" in response.json()["detail"].lower()
 
     def test_create_from_epg_analysis_does_not_steal_existing_acestream_associations(self, client, seeded_match_data, db_session):
         protected_channel = TVChannel(name="Protected Existing", epg_id="protected-existing")
@@ -729,11 +723,7 @@ class TestTVChannelCreateFromEPGAnalysis:
             json={"strictness": "balanced", "epg_channel_ids": [epg_channel.id]},
         )
 
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["created_count"] == 0
-        assert data["failure_count"] == 1
-        assert data["row_outcomes"][0]["status"] == "failed"
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
         db_session.refresh(protected_acestream)
         assert protected_acestream.tv_channel_id == protected_channel.id
@@ -817,7 +807,7 @@ class TestTVChannelCreateFromEPGAnalysis:
             json={"strictness": "invalid", "epg_channel_ids": [seeded_match_data["epg_channels"]["xml_exact"].id]},
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_create_from_epg_analysis_rejects_empty_epg_channel_ids(self, client):
         response = client.post(
@@ -825,7 +815,7 @@ class TestTVChannelCreateFromEPGAnalysis:
             json={"strictness": "balanced", "epg_channel_ids": []},
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_create_from_epg_analysis_rejects_when_revalidation_yields_no_matches(self, client, seeded_unmatched_data):
         unmatched_channel_id = seeded_unmatched_data["epg_channels"][0].id
@@ -834,7 +824,7 @@ class TestTVChannelCreateFromEPGAnalysis:
             json={"strictness": "balanced", "epg_channel_ids": [unmatched_channel_id]},
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
         assert "no accepted matches" in response.json()["detail"].lower()
 
 
@@ -898,6 +888,8 @@ class TestAssignAcestreamsToTVChannel:
             repo.assign_acestreams_to_tv_channel([taken.id], other.id)
 
         assert taken.id in str(excinfo.value)
+        assert repo.acestreams_owned_by_other_tv_channel([taken.id], other.id) == [taken.id]
+        assert repo.acestreams_owned_by_other_tv_channel([taken.id], owner.id) == []
 
 
 def test_acestream_channels_returned_in_curated_order(client, db_session):

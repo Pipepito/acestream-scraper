@@ -17,6 +17,46 @@ from app.services.m3u_service import M3UService
 from app.services.scraper_service import ScraperService
 
 
+@pytest.fixture
+def fetched_playlist(monkeypatch):
+    """Keep endpoint/parser tests independent of public DNS and TLS teardown."""
+    async def fetch_content(_scraper, url):
+        if url.endswith('/malformed.m3u'):
+            return '#EXTM3U\n#EXTINF:broken\nnot a stream\n'
+        return '#EXTM3U\n#EXTINF:-1,Fixture channel\nacestream://' + 'a' * 40 + '\n'
+
+    monkeypatch.setattr('app.scrapers.http.HTTPScraper.fetch_content', fetch_content)
+
+
+def test_tv_association_database_failure_preserves_previous_source_channels(db_session, monkeypatch):
+    from app.models.url_types import RegularURL
+    from app.services.tvchannel_service import TVChannelService
+    from sqlalchemy.exc import OperationalError
+
+    url = 'https://example.com/association-failure.m3u'
+    previous_id, incoming_id = 'a' * 40, 'b' * 40
+    db_session.add(AcestreamChannel(id=previous_id, name='Previous', source_url=url))
+    db_session.commit()
+
+    class Scraper:
+        url_obj = RegularURL(url)
+
+        async def scrape(self):
+            return [(incoming_id, 'Incoming', {'tvg_id': 'guide.example'})], 'OK'
+
+    def unavailable(*args):
+        raise OperationalError('SELECT TV channel', {}, RuntimeError('database unavailable'))
+
+    monkeypatch.setattr('app.services.scraper_service.create_scraper_for_url', lambda *args: Scraper())
+    monkeypatch.setattr(TVChannelService, 'get_tv_channel_by_epg_id', unavailable)
+    channels, result = asyncio.run(ScraperService(db_session).scrape_url(url, 'regular'))
+
+    assert result.startswith('Error:')
+    assert channels == []
+    assert db_session.get(AcestreamChannel, previous_id) is not None
+    assert db_session.get(AcestreamChannel, incoming_id) is None
+
+
 class TestScraperEndpoints:
     """Test scraper operations."""
 
@@ -51,7 +91,7 @@ class TestScraperEndpoints:
         """Test scraping with empty data."""
         scrape_data = {}
         response = client.post("/api/v1/scrapers/scrape", json=scrape_data)
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 class TestScrapedURLEndpoints:
@@ -104,7 +144,7 @@ class TestScrapedURLEndpoints:
         """Test creating a scraped URL with invalid data."""
         invalid_data = {"url": ""}  # Missing required fields
         response = client.post("/api/v1/scrapers/urls", json=invalid_data)
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_create_scraped_url_duplicate(self, client, seed_scraped_urls):
         """Test creating a scraped URL with duplicate URL."""
@@ -321,7 +361,7 @@ acestream://7777777777777777777777777777777777777777
             )
         ]
 
-    def test_scrape_and_create_channels(self, client, db_session):
+    def test_scrape_and_create_channels(self, client, db_session, fetched_playlist):
         """Test that scraping creates channels in the database."""
         # Create a URL to scrape
         url_data = {
@@ -343,12 +383,13 @@ acestream://7777777777777777777777777777777777777777
 
         # Verify scraping was attempted
         assert scrape_result["url"] == url_data["url"]
-        assert "channels_found" in scrape_result
-        assert "status" in scrape_result
+        assert scrape_result["channels_found"] == 0
+        assert scrape_result["status"] == "pending"
+        assert db_session.get(AcestreamChannel, "a" * 40) is not None
 
-    def test_scrape_with_different_url_types(self, client):
+    def test_scrape_with_different_url_types(self, client, fetched_playlist):
         """Test scraping with different URL types."""
-        url_types = ["regular", "acexy", "special"]
+        url_types = ["regular", "auto", "acexy", "special"]
 
         for url_type in url_types:
             scrape_data = {
@@ -359,8 +400,14 @@ acestream://7777777777777777777777777777777777777777
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
             assert data["url"] == scrape_data["url"]
+            if url_type in {"regular", "auto"}:
+                assert data["channels_found"] == 1
+                assert data["status"] == "OK"
+            else:
+                assert data["channels_found"] == 0
+                assert f"Unsupported URL type: {url_type}" in data["status"]
 
-    def test_scrape_with_malformed_content(self, client):
+    def test_scrape_with_malformed_content(self, client, fetched_playlist):
         """Test scraping with malformed content handling."""
         scrape_data = {
             "url": "https://example.com/malformed.m3u",
@@ -371,7 +418,7 @@ acestream://7777777777777777777777777777777777777777
         data = response.json()
         # Should handle malformed content gracefully
         assert "status" in data
-        assert data["channels_found"] >= 0
+        assert data["channels_found"] == 0
 
     def test_scrape_service_replaces_stale_source_channels(self, db_session, monkeypatch):
         source_url = "https://example.com/perf_replace.m3u"
@@ -512,6 +559,142 @@ acestream://{channel_id}
             AcestreamChannel.id == channel_id
         ).one()
         assert persisted.tv_channel_id == tv_channels[0].id
+
+    @pytest.mark.parametrize("existing_target", [False, True])
+    def test_rescrape_preserves_owned_and_protected_streams(self, db_session, monkeypatch, existing_target):
+        source_url = "https://example.com/owned_streams.m3u"
+        guide = EPGSource(url="https://example.com/guide.xml", name="Guide")
+        owner = TVChannel(name="My chosen channel", channel_number=37, is_favorite=True)
+        db_session.add_all([guide, owner])
+        db_session.flush()
+        db_session.add(EPGChannel(epg_source_id=guide.id, channel_xml_id="guide-id", name="Guide Channel"))
+        if existing_target:
+            db_session.add(TVChannel(name="Guide Channel", epg_id="guide-id", epg_source_id=guide.id))
+        ids = [str(i) * 40 for i in range(1, 6)]
+        for channel_id, extra in zip(ids[:4], [
+            {"tv_channel_id": owner.id},
+            {"epg_update_protected": True},
+            {"is_active": False},
+            {},
+        ]):
+            db_session.add(AcestreamChannel(
+                id=channel_id, name="Guide Channel", tvg_id="guide-id", source_url=source_url,
+                **extra,
+            ))
+        db_session.commit()
+        content = "#EXTM3U\n" + "".join(
+            f'#EXTINF:-1 tvg-id="guide-id",Guide Channel\nacestream://{channel_id}\n'
+            for channel_id in ids
+        )
+
+        class FakeScraper:
+            def __init__(self):
+                from app.models.url_types import RegularURL
+                self.url_obj = RegularURL(source_url)
+                self.db = self.epg_service = self.tv_channel_service = None
+
+            async def scrape(self):
+                return M3UService().extract_channels_from_content(
+                    content, db=self.db, epg_service=self.epg_service,
+                    tv_channel_service=self.tv_channel_service,
+                ), "OK"
+
+        monkeypatch.setattr("app.services.scraper_service.create_scraper_for_url", lambda *_: FakeScraper())
+        service = ScraperService(db_session)
+        for _ in range(2):
+            channels, result = asyncio.run(service.scrape_url(source_url, "regular"))
+            assert result == "OK"
+            assert len(channels) == 5
+            db_session.expire_all()
+            target = db_session.query(TVChannel).filter_by(epg_id="guide-id").one()
+            assert db_session.get(AcestreamChannel, ids[0]).tv_channel_id == owner.id
+            assert db_session.get(AcestreamChannel, ids[1]).tv_channel_id is None
+            assert db_session.get(AcestreamChannel, ids[2]).tv_channel_id is None
+            assert db_session.get(AcestreamChannel, ids[3]).tv_channel_id == target.id
+            assert db_session.get(AcestreamChannel, ids[4]).tv_channel_id == target.id
+            assert owner.name == "My chosen channel"
+            assert owner.channel_number == 37
+            assert owner.is_favorite is True
+
+    def test_scrape_skips_hashes_owned_by_another_tv_channel(self, db_session, monkeypatch):
+        """A taken hash must not abort the rest of the playlist."""
+        source_url = "https://example.com/mixed_owned_hashes.m3u"
+        taken_id = "0cd11c1f51b84ebe9954496b3ef9b6aeccf7307c"
+        sibling_id = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        fresh_id = "cccccccccccccccccccccccccccccccccccccccc"
+
+        owner = TVChannel(name="Owner Channel", epg_id="owner.example")
+        db_session.add(owner)
+        db_session.flush()
+        db_session.add(AcestreamChannel(
+            id=taken_id, name="Shared Channel", tv_channel_id=owner.id
+        ))
+        epg_source = EPGSource(url="https://example.com/guide.xml", name="Guide")
+        db_session.add(epg_source)
+        db_session.flush()
+        db_session.add_all([
+            EPGChannel(
+                epg_source_id=epg_source.id,
+                channel_xml_id="shared.example",
+                name="Shared Channel",
+            ),
+            EPGChannel(
+                epg_source_id=epg_source.id,
+                channel_xml_id="fresh.example",
+                name="Fresh Channel",
+            ),
+        ])
+        db_session.commit()
+
+        content = f"""#EXTM3U
+#EXTINF:-1 tvg-id="shared.example",Shared Channel
+acestream://{taken_id}
+#EXTINF:-1 tvg-id="shared.example",Shared Channel
+acestream://{sibling_id}
+#EXTINF:-1 tvg-id="fresh.example",Fresh Channel
+acestream://{fresh_id}
+"""
+
+        class _FakeScraper:
+            def __init__(self):
+                from app.models.url_types import RegularURL
+
+                self.url_obj = RegularURL(source_url)
+                self.db = None
+                self.epg_service = None
+                self.tv_channel_service = None
+
+            async def scrape(self):
+                return M3UService().extract_channels_from_content(
+                    content,
+                    db=self.db,
+                    epg_service=self.epg_service,
+                    tv_channel_service=self.tv_channel_service,
+                ), "OK"
+
+        monkeypatch.setattr(
+            "app.services.scraper_service.create_scraper_for_url",
+            lambda _url, _url_type: _FakeScraper(),
+        )
+
+        channels, scrape_status = asyncio.run(
+            ScraperService(db_session).scrape_url(source_url, "regular")
+        )
+
+        assert scrape_status == "OK"
+        assert {channel.channel_id for channel in channels} == {
+            taken_id, sibling_id, fresh_id
+        }
+
+        taken = db_session.query(AcestreamChannel).filter(AcestreamChannel.id == taken_id).one()
+        sibling = db_session.query(AcestreamChannel).filter(AcestreamChannel.id == sibling_id).one()
+        fresh = db_session.query(AcestreamChannel).filter(AcestreamChannel.id == fresh_id).one()
+        shared_tv = db_session.query(TVChannel).filter(TVChannel.epg_id == "shared.example").one()
+        fresh_tv = db_session.query(TVChannel).filter(TVChannel.epg_id == "fresh.example").one()
+
+        assert taken.tv_channel_id == owner.id
+        assert sibling.tv_channel_id == shared_tv.id
+        assert fresh.tv_channel_id == fresh_tv.id
 
     def test_scrape_service_clears_stale_metadata_on_rescrape(self, db_session, monkeypatch):
         source_url = "https://example.com/stale_metadata.m3u"

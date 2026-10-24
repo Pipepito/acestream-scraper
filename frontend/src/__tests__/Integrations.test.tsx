@@ -5,6 +5,8 @@ import Integrations from '../pages/Integrations';
 import { createAppTheme } from '../theme';
 import { TestMemoryRouter } from '../testUtils/router';
 
+jest.mock('../components/integrations/TelegramSection', () => function MockTelegramSection() { return <div>Telegram sources</div>; });
+
 const mockPublicUrl = jest.fn();
 const mockUpdatePublicBaseUrl = jest.fn();
 const mockCapabilities = jest.fn();
@@ -567,6 +569,42 @@ describe('Integrations page', () => {
     expect(save).toBeEnabled();
     fireEvent.click(save);
     await waitFor(() => expect(mockUpdateTunerSettings).toHaveBeenCalledWith(expect.objectContaining({ tuner_count: 2, max_channels: 300 })));
+  });
+
+  it('lets a slow engine have more time to start a channel', async () => {
+    // A cold P2P start can take longer than 15 s per source (#226).
+    renderPage();
+    const section = screen.getByRole('region', { name: 'Media servers' });
+    fireEvent.click(within(section).getByRole('button', { name: 'Tuner settings' }));
+    const perSource = within(section).getByRole('spinbutton', { name: 'Seconds per source' });
+    const total = within(section).getByRole('spinbutton', { name: 'Seconds to start a channel' });
+    const save = within(section).getByRole('button', { name: 'Save tuner settings' });
+    expect(perSource).toHaveValue(15);
+    expect(total).toHaveValue(45);
+
+    fireEvent.change(perSource, { target: { value: '200' } });
+    expect(within(section).getByText('Enter a whole number between 5 and 180.')).toBeInTheDocument();
+    expect(save).toBeDisabled();
+
+    fireEvent.change(perSource, { target: { value: '40' } });
+    fireEvent.change(total, { target: { value: '58' } });
+    fireEvent.click(save);
+    await waitFor(() => expect(mockUpdateTunerSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ source_start_seconds: 40, startup_budget_seconds: 58 })));
+  });
+
+  it('saves Plex Desktop audio compatibility independently of video recovery', async () => {
+    renderPage();
+    const section = screen.getByRole('region', { name: 'Media servers' });
+    fireEvent.click(within(section).getByRole('button', { name: 'Tuner settings' }));
+    const toggle = within(section).getByRole('checkbox', { name: 'Plex Desktop compatible audio' });
+    expect(toggle).not.toBeChecked();
+    fireEvent.click(toggle);
+    expect(within(section).getByText(/video passes through without encoding/)).toBeVisible();
+    fireEvent.click(within(section).getByRole('button', { name: 'Save tuner settings' }));
+    await waitFor(() => expect(mockUpdateTunerSettings).toHaveBeenCalledWith(expect.objectContaining({
+      plex_compatible_audio: true, experimental_transcoding: false,
+    })));
   });
 
   it('requires explicitly enabling experimental transcoding recovery', async () => {

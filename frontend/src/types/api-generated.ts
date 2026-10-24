@@ -158,6 +158,26 @@ export interface paths {
     /** Update Base Url */
     patch: operations["update_base_url_api_v1_base_urls__base_url_id__patch"];
   };
+  "/api/v1/catalogues": {
+    /** List Catalogues */
+    get: operations["list_catalogues_api_v1_catalogues_get"];
+    /** Save Catalogue */
+    post: operations["save_catalogue_api_v1_catalogues_post"];
+  };
+  "/api/v1/catalogues/preview": {
+    /** Preview Catalogue */
+    post: operations["preview_catalogue_api_v1_catalogues_preview_post"];
+  };
+  "/api/v1/catalogues/{catalogue_id}": {
+    /** Get Catalogue */
+    get: operations["get_catalogue_api_v1_catalogues__catalogue_id__get"];
+    /** Delete Catalogue */
+    delete: operations["delete_catalogue_api_v1_catalogues__catalogue_id__delete"];
+  };
+  "/api/v1/catalogues/{catalogue_id}/events/preview": {
+    /** Preview Event */
+    post: operations["preview_event_api_v1_catalogues__catalogue_id__events_preview_post"];
+  };
   "/api/v1/channels/": {
     /**
      * Get Acestream Channels
@@ -315,6 +335,16 @@ export interface paths {
     /** Update Dashboard Config */
     put: operations["update_dashboard_config_api_v1_config_dashboard_put"];
   };
+  "/api/v1/config/epg-matching": {
+    /** Get Epg Matching */
+    get: operations["get_epg_matching_api_v1_config_epg_matching_get"];
+    /** Update Epg Matching */
+    put: operations["update_epg_matching_api_v1_config_epg_matching_put"];
+  };
+  "/api/v1/config/epg-matching/last-run": {
+    /** Epg Matching Last Run */
+    get: operations["epg_matching_last_run_api_v1_config_epg_matching_last_run_get"];
+  };
   "/api/v1/config/epg_refresh_interval": {
     /**
      * Get Epg Refresh Interval
@@ -326,6 +356,27 @@ export interface paths {
      * @description Update the interval between automatic EPG refreshes in hours (reschedules the job).
      */
     put: operations["update_epg_refresh_interval_api_v1_config_epg_refresh_interval_put"];
+  };
+  "/api/v1/config/notification_webhook_url": {
+    /**
+     * Get Notification Webhook Url
+     * @description Get the webhook that receives task notifications (empty = off), as
+     * scheme and host only: webhooks keep their secret in the query or path.
+     * An invalid previously saved URL returns only '•••' so it can be replaced or cleared.
+     */
+    get: operations["get_notification_webhook_url_api_v1_config_notification_webhook_url_get"];
+    /**
+     * Update Notification Webhook Url
+     * @description Set the webhook that receives task notifications; empty turns them off (#41).
+     */
+    put: operations["update_notification_webhook_url_api_v1_config_notification_webhook_url_put"];
+  };
+  "/api/v1/config/notification_webhook_url/test": {
+    /**
+     * Test Notification Webhook
+     * @description Send a test notification to the saved webhook.
+     */
+    post: operations["test_notification_webhook_api_v1_config_notification_webhook_url_test_post"];
   };
   "/api/v1/config/playback-routing": {
     /** Get Playback Routing */
@@ -525,6 +576,54 @@ export interface paths {
      */
     post: operations["generate_epg_xml_api_v1_epg_xml_post"];
   };
+  "/api/v1/events": {
+    /** List Events */
+    get: operations["list_events_api_v1_events_get"];
+  };
+  "/api/v1/events/apply": {
+    /** Apply Events */
+    post: operations["apply_events_api_v1_events_apply_post"];
+  };
+  "/api/v1/events/preview": {
+    /** Preview Events */
+    post: operations["preview_events_api_v1_events_preview_post"];
+  };
+  "/api/v1/events/retention": {
+    /** Event Retention */
+    get: operations["event_retention_api_v1_events_retention_get"];
+    /** Save Event Retention */
+    patch: operations["save_event_retention_api_v1_events_retention_patch"];
+  };
+  "/api/v1/events/sources": {
+    /** Event Sources */
+    get: operations["event_sources_api_v1_events_sources_get"];
+  };
+  "/api/v1/events/sources/preview": {
+    /** Preview Event Source */
+    post: operations["preview_event_source_api_v1_events_sources_preview_post"];
+  };
+  "/api/v1/events/sources/refresh": {
+    /** Queue Event Refresh */
+    post: operations["queue_event_refresh_api_v1_events_sources_refresh_post"];
+  };
+  "/api/v1/events/sources/{source_id}": {
+    /** Update Event Source */
+    patch: operations["update_event_source_api_v1_events_sources__source_id__patch"];
+  };
+  "/api/v1/events/{event_id}": {
+    /** Get Event */
+    get: operations["get_event_api_v1_events__event_id__get"];
+    /** Update Event */
+    patch: operations["update_event_api_v1_events__event_id__patch"];
+  };
+  "/api/v1/events/{event_id}/artwork": {
+    /** Event Artwork */
+    get: operations["event_artwork_api_v1_events__event_id__artwork_get"];
+  };
+  "/api/v1/events/{event_id}/broadcast": {
+    /** Map Event Broadcast */
+    patch: operations["map_event_broadcast_api_v1_events__event_id__broadcast_patch"];
+  };
   "/api/v1/health": {
     /**
      * Check Health
@@ -591,6 +690,14 @@ export interface paths {
     /** HLS playlist */
     get: operations["playlist_api_v1_player_sessions__session_id__index_m3u8_get"];
   };
+  "/api/v1/player/sessions/{session_id}/subtitles.m3u8": {
+    /** Subtitle HLS playlist */
+    get: operations["subtitle_playlist_api_v1_player_sessions__session_id__subtitles_m3u8_get"];
+  };
+  "/api/v1/player/sessions/{session_id}/video.m3u8": {
+    /** Video HLS playlist */
+    get: operations["video_playlist_api_v1_player_sessions__session_id__video_m3u8_get"];
+  };
   "/api/v1/player/sessions/{session_id}/{segment}": {
     /** HLS segment */
     get: operations["segment_api_v1_player_sessions__session_id___segment__get"];
@@ -624,6 +731,10 @@ export interface paths {
      * @description Get list of all available channel groups
      */
     get: operations["get_channel_groups_api_v1_playlists_groups_get"];
+  };
+  "/api/v1/playlists/guide-coverage": {
+    /** Guide Coverage */
+    get: operations["guide_coverage_api_v1_playlists_guide_coverage_get"];
   };
   "/api/v1/playlists/m3u": {
     /**
@@ -882,6 +993,74 @@ export interface paths {
   "/api/v1/system/storage": {
     /** Container directories and filesystem space */
     get: operations["get_storage_api_v1_system_storage_get"];
+  };
+  "/api/v1/system/updates": {
+    /** Check for a newer published stable release */
+    get: operations["get_updates_api_v1_system_updates_get"];
+  };
+  "/api/v1/telegram/account": {
+    /** Logout */
+    delete: operations["logout_api_v1_telegram_account_delete"];
+  };
+  "/api/v1/telegram/chats": {
+    /** Chats */
+    get: operations["chats_api_v1_telegram_chats_get"];
+  };
+  "/api/v1/telegram/chats/{chat_id}/topics": {
+    /** Topics */
+    get: operations["topics_api_v1_telegram_chats__chat_id__topics_get"];
+  };
+  "/api/v1/telegram/code": {
+    /** Code */
+    post: operations["code_api_v1_telegram_code_post"];
+  };
+  "/api/v1/telegram/disconnect": {
+    /** Disconnect */
+    post: operations["disconnect_api_v1_telegram_disconnect_post"];
+  };
+  "/api/v1/telegram/login": {
+    /** Login */
+    post: operations["login_api_v1_telegram_login_post"];
+  };
+  "/api/v1/telegram/password": {
+    /** Password */
+    post: operations["password_api_v1_telegram_password_post"];
+  };
+  "/api/v1/telegram/preset": {
+    /** Preset */
+    get: operations["preset_api_v1_telegram_preset_get"];
+  };
+  "/api/v1/telegram/preview": {
+    /** Preview */
+    post: operations["preview_api_v1_telegram_preview_post"];
+  };
+  "/api/v1/telegram/reconnect": {
+    /** Reconnect */
+    post: operations["reconnect_api_v1_telegram_reconnect_post"];
+  };
+  "/api/v1/telegram/resolve": {
+    /** Resolve */
+    post: operations["resolve_api_v1_telegram_resolve_post"];
+  };
+  "/api/v1/telegram/sources": {
+    /** Sources */
+    get: operations["sources_api_v1_telegram_sources_get"];
+    /** Create Source */
+    post: operations["create_source_api_v1_telegram_sources_post"];
+  };
+  "/api/v1/telegram/sources/{source_id}": {
+    /** Update Source */
+    put: operations["update_source_api_v1_telegram_sources__source_id__put"];
+    /** Delete Source */
+    delete: operations["delete_source_api_v1_telegram_sources__source_id__delete"];
+  };
+  "/api/v1/telegram/sources/{source_id}/scan": {
+    /** Scan */
+    post: operations["scan_api_v1_telegram_sources__source_id__scan_post"];
+  };
+  "/api/v1/telegram/status": {
+    /** Status */
+    get: operations["status_api_v1_telegram_status_get"];
   };
   "/api/v1/tuner/settings": {
     /** Tuner settings */
@@ -1176,6 +1355,11 @@ export interface components {
        * @description Acestream channel ID (required, GUID string)
        */
       id: string;
+      /**
+       * Id Kind
+       * @description Which getstream parameter the engine accepted for this id; null means it has not been confirmed yet
+       */
+      id_kind?: ("id" | "infohash") | null;
       /** Is Active */
       is_active: boolean;
       /** Is Online */
@@ -1487,6 +1671,41 @@ export interface components {
       /** Acestreamchannel Ids */
       acestreamchannel_ids: string[];
     };
+    /** BroadcastView */
+    BroadcastView: {
+      /** Checked At */
+      checked_at?: string | null;
+      /**
+       * Compatibility
+       * @enum {string}
+       */
+      compatibility: "playable" | "unresolved" | "unsupported" | "unavailable";
+      /** Content Id */
+      content_id: string | null;
+      /** Country */
+      country: string;
+      /** Id */
+      id: string;
+      /** Is Online */
+      is_online?: boolean | null;
+      /** Label */
+      label: string;
+      /** Language */
+      language: string;
+      /**
+       * Manually Mapped
+       * @default false
+       */
+      manually_mapped?: boolean;
+      /** Origin */
+      origin: string;
+      /** Quality */
+      quality: string;
+      /** Reason */
+      reason: string;
+      /** Source Name */
+      source_name: string;
+    };
     /**
      * BulkChannelActivateRequest
      * @description Schema for bulk channel activation/deactivation
@@ -1508,6 +1727,250 @@ export interface components {
       /** Acestreamchannel Ids */
       acestreamchannel_ids: string[];
       fields: components["schemas"]["AcestreamChannelUpdate"];
+    };
+    /** CatalogueCounts */
+    CatalogueCounts: {
+      /**
+       * Accepted
+       * @default 0
+       */
+      accepted?: number;
+      /**
+       * Bytes Read
+       * @description Traversal byte budget used, including cached input and failed-read reservations
+       * @default 0
+       */
+      bytes_read?: number;
+      /**
+       * Cached Documents
+       * @default 0
+       */
+      cached_documents?: number;
+      /**
+       * Duplicates
+       * @default 0
+       */
+      duplicates?: number;
+      /**
+       * Failed Fetches
+       * @default 0
+       */
+      failed_fetches?: number;
+      /**
+       * Invalid
+       * @default 0
+       */
+      invalid?: number;
+      /**
+       * Requests
+       * @default 0
+       */
+      requests?: number;
+      /**
+       * Unsupported
+       * @default 0
+       */
+      unsupported?: number;
+    };
+    /** CatalogueEntry */
+    CatalogueEntry: {
+      /** Channel Id */
+      channel_id?: string | null;
+      /**
+       * Content Type
+       * @default unknown
+       * @enum {string}
+       */
+      content_type?: "live" | "event" | "vod" | "unknown";
+      /**
+       * Description
+       * @default
+       */
+      description?: string;
+      /**
+       * Duplicate
+       * @default false
+       */
+      duplicate?: boolean;
+      /** Guide Id */
+      guide_id?: string | null;
+      /** Header Names */
+      header_names?: string[];
+      /** Id */
+      id: string;
+      /** Image */
+      image?: string | null;
+      /**
+       * Imported
+       * @default false
+       */
+      imported?: boolean;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "folder" | "acestream" | "hls" | "mpegts" | "resolver" | "vod" | "unsupported" | "invalid";
+      /** Name */
+      name: string;
+      /** Number */
+      number?: number | null;
+      /**
+       * Origin
+       * @default
+       */
+      origin?: string;
+      /** Parent Id */
+      parent_id?: string | null;
+      /**
+       * Reason
+       * @default
+       */
+      reason?: string;
+      /**
+       * Retained
+       * @default false
+       */
+      retained?: boolean;
+    };
+    /** CatalogueEventPreviewRequest */
+    CatalogueEventPreviewRequest: {
+      /**
+       * Competition
+       * @default
+       */
+      competition?: string;
+      /** Ends At */
+      ends_at?: string | null;
+      /** Entry Ids */
+      entry_ids: string[];
+      /** Event Id */
+      event_id?: string | null;
+      /** Participants */
+      participants?: string[];
+      /** Revision */
+      revision: number;
+      /**
+       * Sport
+       * @default
+       */
+      sport?: string;
+      /** Starts At */
+      starts_at?: string | null;
+      /**
+       * State
+       * @default unknown
+       * @enum {string}
+       */
+      state?: "unknown" | "scheduled" | "live" | "finished" | "postponed" | "cancelled";
+      /**
+       * Time Notes
+       * @default
+       */
+      time_notes?: string;
+      /** Timezone */
+      timezone: string;
+      /** Title */
+      title: string;
+    };
+    /** CataloguePreviewRequest */
+    CataloguePreviewRequest: {
+      /** Catalogue Id */
+      catalogue_id?: number | null;
+      /** Sample */
+      sample?: string | null;
+      /** Url */
+      url?: string | null;
+    };
+    /** CatalogueSaveRequest */
+    CatalogueSaveRequest: {
+      /**
+       * Confirm Live
+       * @default false
+       */
+      confirm_live?: boolean;
+      /**
+       * Mode
+       * @default compatible
+       * @enum {string}
+       */
+      mode?: "compatible" | "acestream";
+      /** Name */
+      name: string;
+      /** Preview Token */
+      preview_token: string;
+      /**
+       * Refresh Enabled
+       * @default false
+       */
+      refresh_enabled?: boolean;
+      /** Selected Branches */
+      selected_branches: string[];
+    };
+    /** CatalogueSummary */
+    CatalogueSummary: {
+      /** Id */
+      id: number;
+      /** Name */
+      name: string;
+      /** Origin */
+      origin: string;
+      /** Partial */
+      partial: boolean;
+      /** Refresh Enabled */
+      refresh_enabled: boolean;
+      /** Revision */
+      revision: number;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+    };
+    /** CatalogueView */
+    CatalogueView: {
+      /**
+       * Can Refresh
+       * @default false
+       */
+      can_refresh?: boolean;
+      counts: components["schemas"]["CatalogueCounts"];
+      /** Entries */
+      entries: components["schemas"]["CatalogueEntry"][];
+      /** Id */
+      id?: number | null;
+      /**
+       * Mode
+       * @default compatible
+       * @enum {string}
+       */
+      mode?: "compatible" | "acestream";
+      /** Name */
+      name: string;
+      /** Origin */
+      origin: string;
+      /**
+       * Partial
+       * @default false
+       */
+      partial?: boolean;
+      /** Preview Token */
+      preview_token?: string | null;
+      /**
+       * Refresh Enabled
+       * @default false
+       */
+      refresh_enabled?: boolean;
+      /**
+       * Revision
+       * @default 0
+       */
+      revision?: number;
+      /** Selected Branches */
+      selected_branches?: string[];
+      /** Updated At */
+      updated_at?: string | null;
+      /** Warnings */
+      warnings?: string[];
     };
     /**
      * ChannelResult
@@ -1767,10 +2230,25 @@ export interface components {
     };
     /** EPGMatchRowResponse */
     EPGMatchRowResponse: {
+      /**
+       * Ambiguous Count
+       * @default 0
+       */
+      ambiguous_count?: number;
+      /**
+       * Automation Safe
+       * @default false
+       */
+      automation_safe?: boolean;
       /** Best Match Confidence */
       best_match_confidence?: string | null;
       /** Best Match Type */
       best_match_type?: string | null;
+      /**
+       * Can Apply
+       * @default false
+       */
+      can_apply?: boolean;
       /** Candidate Count */
       candidate_count: number;
       /** Candidates */
@@ -1799,6 +2277,45 @@ export interface components {
       has_duplicate_existing_conflict?: boolean;
       /** Is Creatable */
       is_creatable: boolean;
+      /**
+       * Review Token
+       * @default
+       */
+      review_token?: string;
+    };
+    /** EPGMatchingConfig */
+    EPGMatchingConfig: {
+      /**
+       * Enabled
+       * @description Automatically apply unambiguous exact guide matches after successful scraping or EPG refresh
+       * @default false
+       */
+      enabled?: boolean;
+    };
+    /** EPGMatchingRun */
+    EPGMatchingRun: {
+      /**
+       * Assigned
+       * @default 0
+       */
+      assigned?: number;
+      /**
+       * Created
+       * @default 0
+       */
+      created?: number;
+      /** Finished At */
+      finished_at?: string | null;
+      /**
+       * Review Needed
+       * @default 0
+       */
+      review_needed?: number;
+      /**
+       * Status
+       * @default never
+       */
+      status?: string;
     };
     /**
      * EPGProgramResponse
@@ -1959,6 +2476,332 @@ export interface components {
       favorites_only?: boolean;
       /** Search Term */
       search_term?: string | null;
+    };
+    /** EventApply */
+    EventApply: {
+      /**
+       * Refresh Source
+       * @default false
+       */
+      refresh_source?: boolean;
+      /** Selected Ids */
+      selected_ids: string[];
+      /** Token */
+      token: string;
+    };
+    /** EventBroadcast */
+    EventBroadcast: {
+      /** Channel Id */
+      channel_id?: string | null;
+      /**
+       * Country
+       * @default
+       */
+      country?: string;
+      /** Headers */
+      headers?: {
+        [key: string]: string;
+      };
+      /** Id */
+      id: string;
+      /** Label */
+      label: string;
+      /**
+       * Language
+       * @default
+       */
+      language?: string;
+      /**
+       * Quality
+       * @default
+       */
+      quality?: string;
+      /** Url */
+      url?: string | null;
+    };
+    /** EventBroadcastMapping */
+    EventBroadcastMapping: {
+      /** Broadcast Id */
+      broadcast_id: string;
+      /** Channel Id */
+      channel_id?: string | null;
+      /** Revision */
+      revision: number;
+    };
+    /** EventFields */
+    EventFields: {
+      /**
+       * Competition
+       * @default
+       */
+      competition?: string;
+      /** Ends At */
+      ends_at?: string | null;
+      /** Participants */
+      participants?: string[];
+      /**
+       * Sport
+       * @default
+       */
+      sport?: string;
+      /** Starts At */
+      starts_at?: string | null;
+      /**
+       * State
+       * @default unknown
+       * @enum {string}
+       */
+      state?: "unknown" | "scheduled" | "live" | "finished" | "postponed" | "cancelled";
+      /**
+       * Time Notes
+       * @default
+       */
+      time_notes?: string;
+      /** Timezone */
+      timezone: string;
+      /** Title */
+      title: string;
+    };
+    /** EventImport */
+    EventImport: {
+      /** Observations */
+      observations: components["schemas"]["EventObservation"][];
+      /**
+       * Version
+       * @default 1
+       * @constant
+       */
+      version?: 1;
+    };
+    /** EventList */
+    EventList: {
+      /** Events */
+      events: components["schemas"]["EventView"][];
+      /** Total */
+      total: number;
+    };
+    /** EventObservation */
+    EventObservation: {
+      /** Artwork Url */
+      artwork_url?: string | null;
+      /** Broadcasts */
+      broadcasts?: components["schemas"]["EventBroadcast"][];
+      /**
+       * Competition
+       * @default
+       */
+      competition?: string;
+      /** Ends At */
+      ends_at?: string | null;
+      /** Event Id */
+      event_id?: string | null;
+      /** External Id */
+      external_id: string;
+      /** Participants */
+      participants?: string[];
+      /** Source Id */
+      source_id: string;
+      /**
+       * Source Kind
+       * @default manual
+       * @enum {string}
+       */
+      source_kind?: "guide" | "w3u" | "telegram" | "manual";
+      /** Source Name */
+      source_name: string;
+      /**
+       * Sport
+       * @default
+       */
+      sport?: string;
+      /** Starts At */
+      starts_at?: string | null;
+      /**
+       * State
+       * @default unknown
+       * @enum {string}
+       */
+      state?: "unknown" | "scheduled" | "live" | "finished" | "postponed" | "cancelled";
+      /**
+       * Time Notes
+       * @default
+       */
+      time_notes?: string;
+      /** Timezone */
+      timezone: string;
+      /** Title */
+      title: string;
+    };
+    /** EventPreview */
+    EventPreview: {
+      /** Events */
+      events: components["schemas"]["EventView"][];
+      /** Token */
+      token: string;
+      /** Warnings */
+      warnings: string[];
+    };
+    /** EventRefreshQueued */
+    EventRefreshQueued: {
+      /** Message */
+      message: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "triggered" | "already_running";
+    };
+    /** EventRefreshResult */
+    EventRefreshResult: {
+      /** Message */
+      message: string;
+      /**
+       * Pending
+       * @default 0
+       */
+      pending?: number;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "updated" | "error" | "unchanged";
+      /**
+       * Updated
+       * @default 0
+       */
+      updated?: number;
+    };
+    /** EventRetention */
+    EventRetention: {
+      /**
+       * Archived Days
+       * @default 0
+       */
+      archived_days?: number;
+      /**
+       * Ended Days
+       * @default 0
+       */
+      ended_days?: number;
+    };
+    /** EventSourcePreviewRequest */
+    EventSourcePreviewRequest: {
+      /**
+       * Format
+       * @default event_import
+       * @enum {string}
+       */
+      format?: "event_import" | "schema_org";
+      /** Source Id */
+      source_id?: string | null;
+      /**
+       * Timezone
+       * @default UTC
+       */
+      timezone?: string;
+      /** Url */
+      url?: string | null;
+    };
+    /** EventSourceUpdate */
+    EventSourceUpdate: {
+      /** Enabled */
+      enabled: boolean;
+      /** Revision */
+      revision: number;
+    };
+    /** EventSourceView */
+    EventSourceView: {
+      /** Enabled */
+      enabled: boolean;
+      /**
+       * Format
+       * @default event_import
+       * @enum {string}
+       */
+      format?: "event_import" | "schema_org";
+      /** Id */
+      id: string;
+      /** Last Attempt */
+      last_attempt: string | null;
+      last_result: components["schemas"]["EventRefreshResult"] | null;
+      /** Last Success */
+      last_success: string | null;
+      /** Name */
+      name: string;
+      /** Origin */
+      origin: string;
+      /** Reviewed */
+      reviewed: number;
+      /** Revision */
+      revision: number;
+      /**
+       * Timezone
+       * @default UTC
+       */
+      timezone?: string;
+    };
+    /** EventUpdate */
+    EventUpdate: {
+      /** Archived */
+      archived?: boolean | null;
+      correction?: components["schemas"]["EventFields"] | null;
+      /** Followed */
+      followed?: boolean | null;
+      /** Revision */
+      revision: number;
+    };
+    /** EventView */
+    EventView: {
+      /** Archived */
+      archived: boolean;
+      /** Broadcasts */
+      broadcasts: components["schemas"]["BroadcastView"][];
+      /**
+       * Competition
+       * @default
+       */
+      competition?: string;
+      /** Corrected */
+      corrected: boolean;
+      /** Ends At */
+      ends_at?: string | null;
+      /** Followed */
+      followed: boolean;
+      /**
+       * Has Artwork
+       * @default false
+       */
+      has_artwork?: boolean;
+      /** Id */
+      id: string;
+      /** Participants */
+      participants?: string[];
+      /** Provenance */
+      provenance: components["schemas"]["ProvenanceView"][];
+      /** Revision */
+      revision: number;
+      /**
+       * Sport
+       * @default
+       */
+      sport?: string;
+      /** Starts At */
+      starts_at?: string | null;
+      /**
+       * State
+       * @default unknown
+       * @enum {string}
+       */
+      state?: "unknown" | "scheduled" | "live" | "finished" | "postponed" | "cancelled";
+      /**
+       * Time Notes
+       * @default
+       */
+      time_notes?: string;
+      /** Timezone */
+      timezone: string;
+      /** Title */
+      title: string;
     };
     /** ExtractedChannel */
     ExtractedChannel: {
@@ -2295,6 +3138,18 @@ export interface components {
        */
       total?: number;
     };
+    /**
+     * NotificationWebhookUpdate
+     * @description Schema for updating the notification webhook (#41).
+     */
+    NotificationWebhookUpdate: {
+      /**
+       * Value
+       * @description HTTP(S) webhook URL with a valid host and port, without whitespace or fragments; empty turns notifications off
+       * @default
+       */
+      value?: string;
+    };
     /** PlaybackRouting */
     PlaybackRouting: {
       /**
@@ -2337,9 +3192,14 @@ export interface components {
       audio_index?: number | null;
       /**
        * Content Id
-       * @description AceStream content id (40 hex)
+       * @description AceStream content ID (40 hex) or imported HTTP stream ID (url: followed by 40 hex)
        */
       content_id: string;
+      /**
+       * Subtitle Index
+       * @description Subtitle track to play; null disables subtitles
+       */
+      subtitle_index?: number | null;
     };
     /** PlayerSessionListResponse */
     PlayerSessionListResponse: {
@@ -2356,7 +3216,7 @@ export interface components {
       /** Content Id */
       content_id: string;
       /** Error */
-      error?: ("engine_unavailable" | "engine_refused" | "engine_stalled" | "ffmpeg_missing" | "ffmpeg_failed") | null;
+      error?: ("engine_unavailable" | "engine_refused" | "engine_stalled" | "ffmpeg_missing" | "ffmpeg_failed" | "source_unavailable") | null;
       /**
        * Error Message
        * @default
@@ -2374,6 +3234,10 @@ export interface components {
        */
       state: "starting" | "ready" | "error" | "stopped";
       stats?: components["schemas"]["PlayerStats"] | null;
+      /** Subtitle Index */
+      subtitle_index?: number | null;
+      /** Subtitle Tracks */
+      subtitle_tracks?: components["schemas"]["SubtitleTrack"][];
       /** Viewers */
       viewers: number;
     };
@@ -2387,6 +3251,31 @@ export interface components {
       speed_up: number;
       /** Status */
       status: string;
+    };
+    /** PlaylistGuideCoverage */
+    PlaylistGuideCoverage: {
+      /** Guide Channels */
+      guide_channels: number;
+      /** Linked Streams */
+      linked_streams: number;
+      /** Streams */
+      streams: number;
+    };
+    /** ProvenanceView */
+    ProvenanceView: {
+      /** External Id */
+      external_id: string;
+      /** Source Id */
+      source_id: string;
+      /** Source Kind */
+      source_kind: string;
+      /** Source Name */
+      source_name: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
     };
     /**
      * PublicBaseUrlUpdate
@@ -3158,6 +4047,23 @@ export interface components {
        */
       upload_speed_kbytes_sec?: number | null;
     };
+    /** SubtitleTrack */
+    SubtitleTrack: {
+      /** Codec */
+      codec?: string | null;
+      /**
+       * Index
+       * @description Zero-based subtitle track index (ffmpeg 0:s:index)
+       */
+      index: number;
+      /** Language */
+      language?: string | null;
+      /**
+       * Supported
+       * @default true
+       */
+      supported?: boolean;
+    };
     /**
      * TVChannelAssociationRequest
      * @description Schema for asociating one acestream channel with a TV channel
@@ -3286,6 +4192,12 @@ export interface components {
     TVChannelCreateFromEPGAnalysisRequest: {
       /** Epg Channel Ids */
       epg_channel_ids: number[];
+      /** Expected Previews */
+      expected_previews?: {
+        [key: string]: string;
+      } | null;
+      /** Source Id */
+      source_id?: number | null;
       /**
        * Strictness
        * @enum {string}
@@ -3510,6 +4422,274 @@ export interface components {
       /** Unmatched Streams */
       unmatched_streams: number;
     };
+    /** TelegramCode */
+    TelegramCode: {
+      /**
+       * Code
+       * Format: password
+       */
+      code: string;
+    };
+    /** TelegramLogin */
+    TelegramLogin: {
+      /**
+       * Api Hash
+       * Format: password
+       */
+      api_hash: string;
+      /** Api Id */
+      api_id: number;
+      /**
+       * Phone
+       * Format: password
+       */
+      phone: string;
+    };
+    /** TelegramPassword */
+    TelegramPassword: {
+      /**
+       * Password
+       * Format: password
+       */
+      password: string;
+    };
+    /** TelegramPeer */
+    TelegramPeer: {
+      /** Id */
+      id: string;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "user" | "chat" | "channel" | "topic";
+      /** Label */
+      label: string;
+    };
+    /** TelegramPreview */
+    TelegramPreview: {
+      /** Chat Id */
+      chat_id: string;
+      /** Messages */
+      messages: components["schemas"]["TelegramPreviewMessage"][];
+    };
+    /** TelegramPreviewMessage */
+    TelegramPreviewMessage: {
+      /** Message Id */
+      message_id: number;
+      /** Outcome */
+      outcome: string;
+      result: components["schemas"]["RecipePreview"];
+      /** Sender Id */
+      sender_id?: string | null;
+    };
+    /** TelegramPreviewRequest */
+    TelegramPreviewRequest: {
+      /**
+       * Limit
+       * @default 10
+       */
+      limit?: number;
+      source: components["schemas"]["TelegramSourceConfig"];
+    };
+    /** TelegramResolve */
+    TelegramResolve: {
+      /** Username */
+      username: string;
+    };
+    /** TelegramSource */
+    TelegramSource: {
+      /**
+       * Bare Ids
+       * @default true
+       */
+      bare_ids?: boolean;
+      /** Chat Id */
+      chat_id: string;
+      /** Chat Label */
+      chat_label: string;
+      /** Cursor */
+      cursor: number;
+      /**
+       * Enabled
+       * @default true
+       */
+      enabled?: boolean;
+      /**
+       * Exclude
+       * @default
+       */
+      exclude?: string;
+      /**
+       * Filter Mode
+       * @default keyword
+       * @enum {string}
+       */
+      filter_mode?: "keyword" | "regex";
+      /** Id */
+      id: number;
+      /** Imported Count */
+      imported_count: number;
+      /**
+       * Include
+       * @default
+       */
+      include?: string;
+      /**
+       * Include Forwards
+       * @default true
+       */
+      include_forwards?: boolean;
+      /** Last Success */
+      last_success?: string | null;
+      /** Message */
+      message: string;
+      /** Name */
+      name: string;
+      recipe?: components["schemas"]["ExtractionRecipe"] | null;
+      /** Sender Ids */
+      sender_ids?: string[];
+      /** Sender Labels */
+      sender_labels?: {
+        [key: string]: string;
+      };
+      /**
+       * Sender Rule
+       * @default posting
+       * @enum {string}
+       */
+      sender_rule?: "posting" | "original";
+      /** State */
+      state: string;
+      /** Topic Id */
+      topic_id?: number | null;
+    };
+    /** TelegramSourceConfig */
+    TelegramSourceConfig: {
+      /**
+       * Bare Ids
+       * @default true
+       */
+      bare_ids?: boolean;
+      /** Chat Id */
+      chat_id: string;
+      /**
+       * Enabled
+       * @default true
+       */
+      enabled?: boolean;
+      /**
+       * Exclude
+       * @default
+       */
+      exclude?: string;
+      /**
+       * Filter Mode
+       * @default keyword
+       * @enum {string}
+       */
+      filter_mode?: "keyword" | "regex";
+      /**
+       * Include
+       * @default
+       */
+      include?: string;
+      /**
+       * Include Forwards
+       * @default true
+       */
+      include_forwards?: boolean;
+      /** Name */
+      name: string;
+      recipe?: components["schemas"]["ExtractionRecipe"] | null;
+      /** Sender Ids */
+      sender_ids?: string[];
+      /**
+       * Sender Rule
+       * @default posting
+       * @enum {string}
+       */
+      sender_rule?: "posting" | "original";
+      /** Topic Id */
+      topic_id?: number | null;
+    };
+    /** TelegramSourceCreate */
+    TelegramSourceCreate: {
+      /**
+       * Bare Ids
+       * @default true
+       */
+      bare_ids?: boolean;
+      /** Chat Id */
+      chat_id: string;
+      /**
+       * Enabled
+       * @default true
+       */
+      enabled?: boolean;
+      /**
+       * Exclude
+       * @default
+       */
+      exclude?: string;
+      /**
+       * Filter Mode
+       * @default keyword
+       * @enum {string}
+       */
+      filter_mode?: "keyword" | "regex";
+      /**
+       * History Count
+       * @default 0
+       */
+      history_count?: number;
+      /** History Since */
+      history_since?: string | null;
+      /**
+       * Include
+       * @default
+       */
+      include?: string;
+      /**
+       * Include Forwards
+       * @default true
+       */
+      include_forwards?: boolean;
+      /** Name */
+      name: string;
+      recipe?: components["schemas"]["ExtractionRecipe"] | null;
+      /** Sender Ids */
+      sender_ids?: string[];
+      /**
+       * Sender Rule
+       * @default posting
+       * @enum {string}
+       */
+      sender_rule?: "posting" | "original";
+      /** Topic Id */
+      topic_id?: number | null;
+    };
+    /** TelegramStatus */
+    TelegramStatus: {
+      /**
+       * Account Label
+       * @default
+       */
+      account_label?: string;
+      /**
+       * Message
+       * @default
+       */
+      message?: string;
+      /**
+       * Queue Size
+       * @default 0
+       */
+      queue_size?: number;
+      /** Retry At */
+      retry_at?: string | null;
+      /** State */
+      state: string;
+    };
     /** TunerAccessResponse */
     TunerAccessResponse: {
       /** Addresses */
@@ -3553,6 +4733,24 @@ export interface components {
       max_channels: number;
       /** Only Online */
       only_online: boolean;
+      /**
+       * Plex Compatible Audio
+       * @description Convert tuner audio to stereo AAC/LATM for Plex Desktop; copy video unless experimental recovery is enabled
+       * @default false
+       */
+      plex_compatible_audio?: boolean;
+      /**
+       * Source Start Seconds
+       * @description Seconds a source gets to deliver its first byte before the next is tried
+       * @default 15
+       */
+      source_start_seconds?: number;
+      /**
+       * Startup Budget Seconds
+       * @description Seconds for the whole start across sources; keep it under the player's own timeout (Kodi gives up after about 30)
+       * @default 45
+       */
+      startup_budget_seconds?: number;
       /** Tuner Count */
       tuner_count: number;
     };
@@ -3566,6 +4764,12 @@ export interface components {
       max_channels?: number | null;
       /** Only Online */
       only_online?: boolean | null;
+      /** Plex Compatible Audio */
+      plex_compatible_audio?: boolean | null;
+      /** Source Start Seconds */
+      source_start_seconds?: number | null;
+      /** Startup Budget Seconds */
+      startup_budget_seconds?: number | null;
       /** Tuner Count */
       tuner_count?: number | null;
     };
@@ -3733,6 +4937,30 @@ export interface components {
       /** Url Type */
       url_type?: string | null;
     };
+    /** UpdateStatus */
+    UpdateStatus: {
+      /** Current Version */
+      current_version: string;
+      /**
+       * Deployment
+       * @enum {string}
+       */
+      deployment: "docker" | "native";
+      /** Latest Version */
+      latest_version?: string | null;
+      /** Release Url */
+      release_url?: string | null;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "checked" | "unavailable";
+      /**
+       * Update Available
+       * @default false
+       */
+      update_available?: boolean;
+    };
     /** ValidationError */
     ValidationError: {
       /** Context */
@@ -3884,6 +5112,7 @@ export interface operations {
         group?: string | null;
         only_online?: boolean;
         include_unassigned?: boolean | null;
+        per_source?: boolean;
         include_groups?: string | null;
         exclude_groups?: string | null;
         base_url?: string | null;
@@ -4384,6 +5613,130 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["BaseUrlResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** List Catalogues */
+  list_catalogues_api_v1_catalogues_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["CatalogueSummary"][];
+        };
+      };
+    };
+  };
+  /** Save Catalogue */
+  save_catalogue_api_v1_catalogues_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CatalogueSaveRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["CatalogueView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Preview Catalogue */
+  preview_catalogue_api_v1_catalogues_preview_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CataloguePreviewRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["CatalogueView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get Catalogue */
+  get_catalogue_api_v1_catalogues__catalogue_id__get: {
+    parameters: {
+      path: {
+        catalogue_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["CatalogueView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Delete Catalogue */
+  delete_catalogue_api_v1_catalogues__catalogue_id__delete: {
+    parameters: {
+      path: {
+        catalogue_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Preview Event */
+  preview_event_api_v1_catalogues__catalogue_id__events_preview_post: {
+    parameters: {
+      path: {
+        catalogue_id: number;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CatalogueEventPreviewRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventPreview"];
         };
       };
       /** @description Validation Error */
@@ -4926,6 +6279,50 @@ export interface operations {
       };
     };
   };
+  /** Get Epg Matching */
+  get_epg_matching_api_v1_config_epg_matching_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EPGMatchingConfig"];
+        };
+      };
+    };
+  };
+  /** Update Epg Matching */
+  update_epg_matching_api_v1_config_epg_matching_put: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EPGMatchingConfig"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EPGMatchingConfig"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Epg Matching Last Run */
+  epg_matching_last_run_api_v1_config_epg_matching_last_run_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EPGMatchingRun"];
+        };
+      };
+    };
+  };
   /**
    * Get Epg Refresh Interval
    * @description Get the interval between automatic EPG refreshes in hours.
@@ -4961,6 +6358,61 @@ export interface operations {
       422: {
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Get Notification Webhook Url
+   * @description Get the webhook that receives task notifications (empty = off), as
+   * scheme and host only: webhooks keep their secret in the query or path.
+   * An invalid previously saved URL returns only '•••' so it can be replaced or cleared.
+   */
+  get_notification_webhook_url_api_v1_config_notification_webhook_url_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["SettingResponse"];
+        };
+      };
+    };
+  };
+  /**
+   * Update Notification Webhook Url
+   * @description Set the webhook that receives task notifications; empty turns them off (#41).
+   */
+  update_notification_webhook_url_api_v1_config_notification_webhook_url_put: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["NotificationWebhookUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ConfigUpdateResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Test Notification Webhook
+   * @description Send a test notification to the saved webhook.
+   */
+  test_notification_webhook_api_v1_config_notification_webhook_url_test_post: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ConfigUpdateResponse"];
         };
       };
     };
@@ -5691,6 +7143,286 @@ export interface operations {
       };
     };
   };
+  /** List Events */
+  list_events_api_v1_events_get: {
+    parameters: {
+      query?: {
+        search?: string;
+        sport?: string;
+        competition?: string;
+        source?: string;
+        day?: string | null;
+        zone?: string;
+        upcoming?: boolean;
+        followed?: boolean;
+        archived?: boolean;
+        offset?: number;
+        limit?: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventList"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Apply Events */
+  apply_events_api_v1_events_apply_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EventApply"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventView"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Preview Events */
+  preview_events_api_v1_events_preview_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EventImport"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventPreview"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Event Retention */
+  event_retention_api_v1_events_retention_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventRetention"];
+        };
+      };
+    };
+  };
+  /** Save Event Retention */
+  save_event_retention_api_v1_events_retention_patch: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EventRetention"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventRetention"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Event Sources */
+  event_sources_api_v1_events_sources_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventSourceView"][];
+        };
+      };
+    };
+  };
+  /** Preview Event Source */
+  preview_event_source_api_v1_events_sources_preview_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EventSourcePreviewRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventPreview"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Queue Event Refresh */
+  queue_event_refresh_api_v1_events_sources_refresh_post: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventRefreshQueued"];
+        };
+      };
+    };
+  };
+  /** Update Event Source */
+  update_event_source_api_v1_events_sources__source_id__patch: {
+    parameters: {
+      path: {
+        source_id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EventSourceUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventSourceView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get Event */
+  get_event_api_v1_events__event_id__get: {
+    parameters: {
+      path: {
+        event_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Update Event */
+  update_event_api_v1_events__event_id__patch: {
+    parameters: {
+      path: {
+        event_id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EventUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Event Artwork */
+  event_artwork_api_v1_events__event_id__artwork_get: {
+    parameters: {
+      path: {
+        event_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "image/jpeg": unknown;
+          "image/png": unknown;
+          "image/webp": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Map Event Broadcast */
+  map_event_broadcast_api_v1_events__event_id__broadcast_patch: {
+    parameters: {
+      path: {
+        event_id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EventBroadcastMapping"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   /**
    * Check Health
    * @description Check the overall system health
@@ -6026,6 +7758,46 @@ export interface operations {
       };
     };
   };
+  /** Subtitle HLS playlist */
+  subtitle_playlist_api_v1_player_sessions__session_id__subtitles_m3u8_get: {
+    parameters: {
+      path: {
+        session_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Video HLS playlist */
+  video_playlist_api_v1_player_sessions__session_id__video_m3u8_get: {
+    parameters: {
+      path: {
+        session_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   /** HLS segment */
   segment_api_v1_player_sessions__session_id___segment__get: {
     parameters: {
@@ -6114,6 +7886,17 @@ export interface operations {
       };
     };
   };
+  /** Guide Coverage */
+  guide_coverage_api_v1_playlists_guide_coverage_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlaylistGuideCoverage"];
+        };
+      };
+    };
+  };
   /**
    * Get M3U Playlist
    * @description Generate M3U playlist with specified filters
@@ -6133,6 +7916,8 @@ export interface operations {
         only_online?: boolean;
         /** @description Append unassigned streams at the end; defaults off for TV relay formats, on for stream formats. */
         include_unassigned?: boolean | null;
+        /** @description TV relay formats: list each source under its channel, to switch by hand. */
+        per_source?: boolean;
         favorites_only?: boolean;
         include_groups?: string | null;
         exclude_groups?: string | null;
@@ -6172,6 +7957,8 @@ export interface operations {
         only_online?: boolean;
         /** @description Append unassigned streams at the end; defaults off for TV relay formats, on for stream formats. */
         include_unassigned?: boolean | null;
+        /** @description TV relay formats: list each source under its channel, to switch by hand. */
+        per_source?: boolean;
         favorites_only?: boolean;
         include_groups?: string | null;
         exclude_groups?: string | null;
@@ -7101,6 +8888,323 @@ export interface operations {
       };
     };
   };
+  /** Check for a newer published stable release */
+  get_updates_api_v1_system_updates_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["UpdateStatus"];
+        };
+      };
+    };
+  };
+  /** Logout */
+  logout_api_v1_telegram_account_delete: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TelegramStatus"];
+        };
+      };
+    };
+  };
+  /** Chats */
+  chats_api_v1_telegram_chats_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TelegramPeer"][];
+        };
+      };
+    };
+  };
+  /** Topics */
+  topics_api_v1_telegram_chats__chat_id__topics_get: {
+    parameters: {
+      path: {
+        chat_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TelegramPeer"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Code */
+  code_api_v1_telegram_code_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TelegramCode"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TelegramStatus"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Disconnect */
+  disconnect_api_v1_telegram_disconnect_post: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TelegramStatus"];
+        };
+      };
+    };
+  };
+  /** Login */
+  login_api_v1_telegram_login_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TelegramLogin"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TelegramStatus"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Password */
+  password_api_v1_telegram_password_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TelegramPassword"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TelegramStatus"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Preset */
+  preset_api_v1_telegram_preset_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ExtractionRecipe"];
+        };
+      };
+    };
+  };
+  /** Preview */
+  preview_api_v1_telegram_preview_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TelegramPreviewRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TelegramPreview"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Reconnect */
+  reconnect_api_v1_telegram_reconnect_post: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TelegramStatus"];
+        };
+      };
+    };
+  };
+  /** Resolve */
+  resolve_api_v1_telegram_resolve_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TelegramResolve"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TelegramPeer"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Sources */
+  sources_api_v1_telegram_sources_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TelegramSource"][];
+        };
+      };
+    };
+  };
+  /** Create Source */
+  create_source_api_v1_telegram_sources_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TelegramSourceCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TelegramSource"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Update Source */
+  update_source_api_v1_telegram_sources__source_id__put: {
+    parameters: {
+      path: {
+        source_id: number;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TelegramSourceConfig"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TelegramSource"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Delete Source */
+  delete_source_api_v1_telegram_sources__source_id__delete: {
+    parameters: {
+      path: {
+        source_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": {
+            [key: string]: boolean;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Scan */
+  scan_api_v1_telegram_sources__source_id__scan_post: {
+    parameters: {
+      path: {
+        source_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": {
+            [key: string]: boolean;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Status */
+  status_api_v1_telegram_status_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TelegramStatus"];
+        };
+      };
+    };
+  };
   /** Tuner settings */
   get_tuner_settings_api_v1_tuner_settings_get: {
     responses: {
@@ -7768,6 +9872,7 @@ export interface operations {
         group?: string | null;
         only_online?: boolean;
         include_unassigned?: boolean | null;
+        per_source?: boolean;
         include_groups?: string | null;
         exclude_groups?: string | null;
         base_url?: string | null;
@@ -7802,6 +9907,7 @@ export interface operations {
         group?: string | null;
         only_online?: boolean;
         include_unassigned?: boolean | null;
+        per_source?: boolean;
         include_groups?: string | null;
         exclude_groups?: string | null;
         base_url?: string | null;

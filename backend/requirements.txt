@@ -1,5 +1,7 @@
 # Core FastAPI dependencies
 fastapi>=0.104.0
+# Modern HTTP status names used by application code and tests.
+starlette>=0.48.0
 uvicorn>=0.23.2
 pydantic>=2.4.2
 pydantic-settings>=2.0.3
@@ -21,4 +23,10 @@ requests>=2.31.0
 asyncio>=3.4.3
 apscheduler>=3.11.0
 pytest>=7.4.2
-pytest-asyncio>=0.21.1
+pytest-asyncio>=1.4.0
+# Starlette TestClient uses httpx2; application HTTP integrations still use httpx.
+httpx2>=2.15.1,<3
+
+# Optional Telegram user-account sources (no Bot API).
+Telethon==1.45.0
+cryptography>=46.0.0,<48

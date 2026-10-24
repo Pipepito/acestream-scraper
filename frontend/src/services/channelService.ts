@@ -21,6 +21,7 @@ export interface AcestreamChannel {
   tvg_name?: string;
   m3u_source?: string;
   original_url?: string;
+  id_kind?: components['schemas']['AcestreamChannelResponse']['id_kind'];
   network_status?: components['schemas']['AcestreamChannelResponse']['network_status'];
   is_online: boolean | null;
   last_checked?: string;
@@ -161,7 +162,7 @@ const acestreamChannelService = {
       delete params.is_active;
       delete params.active_only;
     }
-    const { data } = await apiClient.get('/v1/acestream-channels', { params });
+    const { data } = await apiClient.get('/v1/acestream-channels/', { params });
     return data;
   },
 
@@ -177,7 +178,7 @@ const acestreamChannelService = {
    * Create a new channel
    */
   createAcestreamChannel: async (channelData: CreateAcestreamChannelDTO): Promise<AcestreamChannel> => {
-    const { data } = await apiClient.post('/v1/acestream-channels', channelData);
+    const { data } = await apiClient.post('/v1/acestream-channels/', channelData);
     return data;
   },
 

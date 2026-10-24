@@ -29,6 +29,7 @@ expect_failure_contains() {
     set -e
 
     if [ "$status" -eq 0 ]; then
+        printf '%s\n' "$output" >&2
         fail "$description unexpectedly succeeded"
     fi
 
@@ -316,6 +317,47 @@ FAKE_WARP_CLI_LOG="$TMP_DIR/warp-cli.log"
 FAKE_NFT_LOG="$TMP_DIR/nft.log"
 FAKE_WARP_READY_FILE="$TMP_DIR/warp-ready"
 
+# Capture the actual argv produced by the entrypoint without starting the app.
+cat > "$FAKE_BIN/uvicorn" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$@" > "${APP_ARG_LOG:?APP_ARG_LOG is required}"
+EOF
+chmod +x "$FAKE_BIN/uvicorn"
+
+APP_TEST_ENV=(env -u FLASK_PORT PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR"
+    LOGROTATE_DIR="$TMP_DIR/app-logrotate" SUPERVISOR_RUN_DIR="$TMP_DIR/app-run"
+    ENABLE_WARP=false ENABLE_ACESTREAM_ENGINE=false ENABLE_ACESTREAM_CHECK_ENGINE=false
+    ENABLE_ACEXY=false ENABLE_ZERONET=false ENABLE_IPFS=false ENABLE_TOR=false
+    APP_ARG_LOG="$TMP_DIR/app-args")
+
+for port_setting in unset empty custom; do
+    app_env=("${APP_TEST_ENV[@]}")
+    expected_port=8000
+    case "$port_setting" in
+        empty) app_env+=(FLASK_PORT=) ;;
+        custom) app_env+=(FLASK_PORT=8002); expected_port=8002 ;;
+    esac
+    expect_success "Default app command with $port_setting FLASK_PORT" \
+        "${app_env[@]}" bash "$ENTRYPOINT_SCRIPT"
+    printf '%s\n' main:app --host 0.0.0.0 --port "$expected_port" \
+        --no-proxy-headers --timeout-graceful-shutdown 3 > "$TMP_DIR/expected-app-args"
+    cmp -s "$TMP_DIR/expected-app-args" "$TMP_DIR/app-args" \
+        || fail "Default app argv did not honor $port_setting FLASK_PORT"
+    expect_success "App healthcheck with $port_setting FLASK_PORT" \
+        "${app_env[@]}" CURL_LOG_FILE="$TMP_DIR/app-health-$port_setting" \
+        bash "$HEALTHCHECK_SCRIPT"
+    assert_log_contains "$TMP_DIR/app-health-$port_setting" "http://localhost:$expected_port/api/v1/health"
+done
+
+expect_success "Explicit app command preserves its arguments" \
+    "${APP_TEST_ENV[@]}" FLASK_PORT=8002 bash "$ENTRYPOINT_SCRIPT" \
+    uvicorn custom:app --host 127.0.0.1 --port 9000 --root-path '/custom path'
+printf '%s\n' custom:app --host 127.0.0.1 --port 9000 --root-path '/custom path' \
+    > "$TMP_DIR/expected-app-args"
+cmp -s "$TMP_DIR/expected-app-args" "$TMP_DIR/app-args" \
+    || fail "Explicit app command arguments were changed"
+
 expect_failure_contains \
     "AceStream-missing flavor guard" \
     "AceStream is enabled but not installed in this image flavor" \
@@ -441,10 +483,13 @@ expect_failure_contains \
     "In-container AceStream engine not accessible" \
     env PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR" CURL_LOG_FILE="$TMP_DIR/health-engine-only.log" CURL_FAIL_MATCH="engine.local:7000" FLASK_PORT=8000 ENABLE_ACEXY=false ENABLE_ACESTREAM_ENGINE=true ACESTREAM_HTTP_HOST=engine.local ACESTREAM_HTTP_PORT=7000 bash "$HEALTHCHECK_SCRIPT"
 
+# Keep the dummy app alive until the supervisor observes the failed launcher.
+# A two-second successful app can finish first under ARM emulation, turning
+# this into a race between app completion and the intended failure assertion.
 expect_failure_contains \
     "Entrypoint surfaces failed auxiliary launcher" \
     "Acexy startup command exited with status 7" \
-    env PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR" LOGROTATE_DIR="$TMP_DIR/logrotate-fail" ENABLE_WARP=false IMAGE_HAS_ACESTREAM=false IMAGE_HAS_ACEXY=true ENABLE_ACESTREAM_ENGINE=false ENABLE_ACEXY=true ACEXY_HOST=engine.example ACEXY_PORT=9999 ACEXY_START_COMMAND='exit 7' bash "$ENTRYPOINT_SCRIPT" bash -lc 'sleep 2'
+    env PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR" LOGROTATE_DIR="$TMP_DIR/logrotate-fail" ENABLE_WARP=false IMAGE_HAS_ACESTREAM=false IMAGE_HAS_ACEXY=true ENABLE_ACESTREAM_ENGINE=false ENABLE_ACEXY=true ACEXY_HOST=engine.example ACEXY_PORT=9999 ACEXY_START_COMMAND='exit 7' bash "$ENTRYPOINT_SCRIPT" bash -lc 'sleep 60'
 
 APP_DONE_FILE="$TMP_DIR/app-done"
 rm -f "$APP_DONE_FILE"
@@ -500,11 +545,13 @@ wait_for_seconds() {
 wait_for() { wait_for_seconds 20 "$@"; }
 launched() { [ -f "$ENGINE_TEST_DIR/launches" ] && [ "$(wc -l < "$ENGINE_TEST_DIR/launches")" -ge "$1" ]; }
 no_pid() { [ ! -f "$SUPERVISOR_RUN_DIR/acestream.pid" ]; }
-# This wait spans five deliberate crashes, each with exit detection, the 2s
-# restart delay and pre-launch cleanup. One transition's 20s budget is too
-# tight for the full sequence in the one-CPU emulated ARM contract container.
-# Keep individual UI transitions at 20s and the matrix watchdog at 5 minutes.
-wait_for_seconds 60 launched 6
+# Observe every deliberate crash/recovery with the same bounded budget as a
+# UI transition. A single 60s deadline for all five recoveries races healthy
+# progress in the one-CPU emulated ARM container (including pre-launch cleanup).
+# Each transition still has 20s; the matrix watchdog still caps the whole run.
+for expected_launch in 1 2 3 4 5 6; do
+    wait_for launched "$expected_launch"
+done
 request stop
 wait_for test -f "$SUPERVISOR_RUN_DIR/acestream.stopped"
 wait_for no_pid

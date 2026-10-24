@@ -18,10 +18,13 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.api.api import api_router
 from app.api.auth import require_api_token
 from app.api.endpoints import tuner as tuner_endpoints
+from app.api.endpoints.live import live_router
 from app.api.endpoints.playlists import (
+    epg_url_for,
     get_all_streams_playlist,
     get_m3u_playlist,
     get_tv_channels_playlist,
+    playlist_service_for,
     trigger_url_scrape_refresh,
 )
 from app.api.error_handlers import register_error_handlers
@@ -34,6 +37,7 @@ from app.config.database import (
     provision_schema,
 )
 from app.config.settings import get_settings, settings
+from app.config.version import get_app_version
 from app.middleware.forwarded import ForwardedHeadersMiddleware, parse_trusted
 from app.services.startup_service import startup_service
 from app.repositories.startup_recovery import database_path, legacy_disabled, recover_database
@@ -55,7 +59,6 @@ from app.utils.logging import setup_logging
 
 # Setup logging before anything else
 setup_logging()
-logging.getLogger().warning("[MAIN] Root logger active at startup")
 
 
 def initialize_database():
@@ -173,6 +176,8 @@ async def lifespan(app: FastAPI):
     data_lock = None
     services_started = False
 
+    from app.services.telegram.manager import manager as telegram_manager
+
     async def stop_services():
         nonlocal reaper, services_started
         if reaper is not None:
@@ -180,6 +185,7 @@ async def lifespan(app: FastAPI):
             with suppress(asyncio.CancelledError):
                 await reaper
             reaper = None
+        await telegram_manager.stop()
         await tuner_probe_service.stop()
         if services_started:
             try:
@@ -221,7 +227,16 @@ async def lifespan(app: FastAPI):
             task_service.add_interval_task(run_channel_cleanup_task, seconds=86400, job_id="channel_cleanup")  # daily
             task_service.add_interval_task(run_channel_status_task, seconds=status_minutes * 60, job_id="channel_status")
             task_service.add_interval_task(run_media_server_sync_task, seconds=600, job_id="media_server_sync")  # every 10 min
+            # A machine that is only on for a few hours never reaches a 6 h or
+            # 24 h interval counted from startup. See catch_up_missed_runs.
+            # Not at once: the first minutes after power-on are when channels
+            # are opened, and the guide refresh holds SQLite's write lock.
+            task_service.catch_up_missed_runs(start_after_seconds=300)
+            # channel_status opens the engine, so not at startup: a quarter of
+            # an hour later, and only if it is still overdue then.
+            task_service.catch_up_later("channel_status", delay_seconds=900)
             await player_service.start()
+            await telegram_manager.start()
             await asyncio.to_thread(_schedule_deferred_migration)
             reaper = asyncio.create_task(reap_relays_forever())
             startup_service.record('Ready to use')
@@ -256,7 +271,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Acestream Scraper API",
     description="API for scraping and managing Acestream channels",
-    version="2.0.0",
+    version=get_app_version(),
     lifespan=lifespan,
 )
 
@@ -315,6 +330,9 @@ app.include_router(api_router, prefix="/api/v1", dependencies=[Depends(require_a
 # HDHomeRun-style tuner routes: token-free by design (tuner clients cannot send
 # credentials), gated by TUNER_ALLOWED_NETWORKS inside the router (spec 4.4).
 app.include_router(tuner_endpoints.hdhr_router)
+# Broadcasters' live channels, resolved when opened: token-free and
+# network-gated for the same reason as the tuner.
+app.include_router(live_router)
 register_error_handlers(app)
 
 # Static files serving
@@ -334,10 +352,12 @@ for dirname in static_dirs:
 # Public playlist route for user-friendly URLs (no /api prefix)
 @app.get("/playlists/m3u", response_class=PlainTextResponse, dependencies=[Depends(require_api_token)])
 async def public_m3u_playlist(
+    request: Request,
     search: Optional[str] = None,
     group: Optional[str] = None,
     only_online: bool = True,
     include_unassigned: Optional[bool] = None,
+    per_source: bool = False,
     include_groups: Optional[str] = Query(None),
     exclude_groups: Optional[str] = Query(None),
     base_url: Optional[str] = Query(None),
@@ -352,7 +372,7 @@ async def public_m3u_playlist(
     if refresh:
         trigger_url_scrape_refresh()
 
-    playlist_service = PlaylistService(db)
+    playlist_service = playlist_service_for(request, db)
     try:
         include_groups_list = include_groups.split(",") if include_groups else None
         exclude_groups_list = exclude_groups.split(",") if exclude_groups else None
@@ -361,13 +381,15 @@ async def public_m3u_playlist(
             group=group,
             only_online=only_online,
             include_unassigned=include_unassigned,
+            per_source=per_source,
             include_groups=include_groups_list,
             exclude_groups=exclude_groups_list,
             base_url=base_url,
             base_url_id=base_url_id,
-            format=format
+            format=format,
+            epg_url=epg_url_for(request, db),
         )
-        headers = {"Content-Disposition": "attachment; filename=playlist.m3u"}
+        headers = {"Content-Disposition": "attachment; filename=playlist.m3u", "Cache-Control": "private, no-store"}
         return PlainTextResponse(m3u_content, headers=headers)
     except LookupError as e:
         # Client error (unknown base_url_id): keep the error-playlist body
@@ -381,10 +403,12 @@ async def public_m3u_playlist(
 # fallback would answer with index.html and HTTP 200, silently breaking them.
 @app.get("/playlist.m3u", response_class=PlainTextResponse, dependencies=[Depends(require_api_token)])
 async def legacy_m3u_playlist(
+    request: Request,
     search: Optional[str] = None,
     group: Optional[str] = None,
     only_online: bool = True,
     include_unassigned: Optional[bool] = None,
+    per_source: bool = False,
     include_groups: Optional[str] = Query(None),
     exclude_groups: Optional[str] = Query(None),
     base_url: Optional[str] = Query(None),
@@ -397,10 +421,12 @@ async def legacy_m3u_playlist(
     Legacy v1 playlist URL. Behaves identically to /playlists/m3u.
     """
     return await public_m3u_playlist(
+        request=request,
         search=search,
         group=group,
         only_online=only_online,
         include_unassigned=include_unassigned,
+        per_source=per_source,
         include_groups=include_groups,
         exclude_groups=exclude_groups,
         base_url=base_url,
@@ -414,10 +440,12 @@ async def legacy_m3u_playlist(
 # the canonical v2 routes live under /api/v1/playlists/*.
 @app.get("/api/playlists/m3u", response_class=PlainTextResponse, dependencies=[Depends(require_api_token)])
 async def legacy_api_m3u_playlist(
+    request: Request,
     search: Optional[str] = None,
     group: Optional[str] = None,
     only_online: bool = True,
     include_unassigned: Optional[bool] = None,
+    per_source: bool = False,
     include_groups: Optional[str] = Query(None),
     exclude_groups: Optional[str] = Query(None),
     base_url: Optional[str] = Query(None),
@@ -431,10 +459,12 @@ async def legacy_api_m3u_playlist(
     (API error contract, unlike the player-facing /playlists/m3u route).
     """
     return await get_m3u_playlist(
+        request=request,
         search=search,
         group=group,
         only_online=only_online,
         include_unassigned=include_unassigned,
+        per_source=per_source,
         include_groups=include_groups,
         exclude_groups=exclude_groups,
         base_url=base_url,
@@ -446,6 +476,7 @@ async def legacy_api_m3u_playlist(
 
 @app.get("/api/playlists/tv-channels/m3u", response_class=PlainTextResponse, dependencies=[Depends(require_api_token)])
 async def legacy_tv_channels_playlist(
+    request: Request,
     search: Optional[str] = None,
     favorites_only: bool = False,
     base_url: Optional[str] = Query(None),
@@ -459,6 +490,7 @@ async def legacy_tv_channels_playlist(
     /api/v1/playlists/tv-channels/m3u.
     """
     return await get_tv_channels_playlist(
+        request=request,
         search=search,
         favorites_only=favorites_only,
         base_url=base_url,
@@ -470,6 +502,7 @@ async def legacy_tv_channels_playlist(
 
 @app.get("/api/playlists/all-streams/m3u", response_class=PlainTextResponse, dependencies=[Depends(require_api_token)])
 async def legacy_all_streams_playlist(
+    request: Request,
     search: Optional[str] = None,
     include_unassigned: bool = True,
     base_url: Optional[str] = Query(None),
@@ -483,6 +516,7 @@ async def legacy_all_streams_playlist(
     /api/v1/playlists/all-streams/m3u.
     """
     return await get_all_streams_playlist(
+        request=request,
         search=search,
         include_unassigned=include_unassigned,
         base_url=base_url,
@@ -526,7 +560,7 @@ async def legacy_epg_xml(
 async def spa_server(request: Request, exc: StarletteHTTPException):
     """Serve SPA for all non-API routes."""
     # Only handle 404s for non-API routes (client-side routing)
-    if exc.status_code == 404 and not request.url.path.startswith(("/api", "/tuner")):
+    if exc.status_code == 404 and not request.url.path.startswith(("/api", "/tuner", "/live/")):
         return FileResponse(os.path.join(frontend_dir, "index.html"))
     # For API routes or other status codes, return the exception as an HTTP
     # response, preserving headers such as WWW-Authenticate on 401s.

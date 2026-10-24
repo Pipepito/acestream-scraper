@@ -146,6 +146,23 @@ if [ "$WARP_ENABLE_NAT" = "true" ]; then
     run_privileged nft add rule ip nat WARP_NAT oifname CloudflareWARP masquerade >> "$WARP_LOG" 2>&1 || true
 fi
 
+# Hosts that must not go through the tunnel, comma or space separated. Some
+# services refuse WARP egress: Brightcove's playback API answers 403
+# CLIENT_GEO "anonymizing_proxy", and some providers sign stream URLs for the
+# IP that requested them and then reject segments from another WARP address.
+# `tunnel host add` is idempotent; WARP keeps the list across reconnects.
+# Adding a host that is not yet excluded makes WARP reconnect once
+# (PolicyChanged); re-adding an existing one does not.
+exclude_hosts=${WARP_EXCLUDE_HOSTS:-}
+for host in ${exclude_hosts//,/ }; do
+    [ -n "$host" ] || continue
+    if warp-cli --accept-tos tunnel host add "$host" >> "$WARP_LOG" 2>&1; then
+        log "Excluded from the tunnel: $host"
+    else
+        log "Could not exclude $host from the tunnel"
+    fi
+done
+
 log "Checking WARP status"
 warp-cli --accept-tos status >> "$WARP_LOG" 2>&1
 log "WARP initialization completed"

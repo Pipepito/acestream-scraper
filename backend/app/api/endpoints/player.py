@@ -5,9 +5,11 @@ from __future__ import annotations
 import re
 import stat as stat_module
 from datetime import datetime, timezone
+from pathlib import Path
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
@@ -27,9 +29,10 @@ from app.schemas.player import (
 from app.services.player_service import PlayerLimitReached, PlayerSession, player_service
 from app.services.stream_relay import relay_registry
 from app.services.tuner_probe_service import tuner_probe_service
+from app.utils.hls_response import HLSFileResponse
 
 router = APIRouter(tags=["player"])
-_SEGMENT = re.compile(r"^seg\d{5}\.ts$")
+_SEGMENT = re.compile(r"^(?:seg\d{5}\.ts|index\d+\.vtt)$")
 
 
 def _status(session: PlayerSession) -> PlayerSessionStatus:
@@ -38,6 +41,8 @@ def _status(session: PlayerSession) -> PlayerSessionStatus:
         id=session.id,
         content_id=session.content_id,
         audio_index=session.audio_index,
+        subtitle_index=session.subtitle_index,
+        subtitle_tracks=session.subtitle_tracks,
         audio_tracks=session.audio_tracks,
         state=session.state,
         error=session.error,
@@ -121,7 +126,7 @@ def active_streams(db: Session = Depends(get_db)) -> ActiveStreamListResponse:
 @router.post("/sessions", response_model=PlayerSessionStatus, summary="Start (or join) playback of a channel")
 async def create_session(payload: PlayerSessionCreate) -> PlayerSessionStatus:
     try:
-        session = await player_service.open_session(payload.content_id.lower(), audio_index=payload.audio_index)
+        session = await player_service.open_session(payload.content_id.lower(), audio_index=payload.audio_index, subtitle_index=payload.subtitle_index)
     except PlayerLimitReached as exc:
         raise APIError(
             code="PLAYER_LIMIT_REACHED",
@@ -129,7 +134,7 @@ async def create_session(payload: PlayerSessionCreate) -> PlayerSessionStatus:
             status_code=status.HTTP_409_CONFLICT,
             context={"limit": exc.limit, "active": exc.active},
         ) from exc
-    if session.state in ('starting', 'ready'):
+    if session.state in ('starting', 'ready') and not session.content_id.startswith('url:'):
         await tuner_probe_service.start_for_stream(session.content_id)
     return _status(session)
 
@@ -151,20 +156,44 @@ async def leave_session(session_id: str) -> Response:
 async def playlist(session_id: str, request: Request) -> Response:
     session = _session_or_404(session_id)
     player_service.touch(session_id)
-    path = player_service.playlist_path(session)
+    if session.subtitle_index is not None:
+        suffix = "?" + urlencode({"token": request.query_params["token"]}) if "token" in request.query_params else ""
+        # Both outputs are muxed by the same FFmpeg process and clock. Keeping
+        # the master here avoids a second source fetch or mismatched timelines.
+        text = ('#EXTM3U\n#EXT-X-VERSION:3\n'
+                '#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="Selected subtitles",'
+                f'DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,URI="subtitles.m3u8{suffix}"\n'
+                '#EXT-X-STREAM-INF:BANDWIDTH=10000000,SUBTITLES="subs"\n'
+                f'video.m3u8{suffix}\n')
+        return Response(content=text, media_type="application/vnd.apple.mpegurl", headers={"Cache-Control": "no-store"})
+    return await _media_playlist(session, player_service.playlist_path(session), request)
+
+
+async def _media_playlist(session: PlayerSession, path: Path, request: Request) -> Response:
+    player_service.touch(session.id)
     try:
-        # Read instead of exists()+read: ffmpeg swaps the playlist in with
-        # os.replace, and a teardown can remove the directory in between.
-        text = path.read_text()
+        text = await run_in_threadpool(path.read_text)
     except OSError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Playlist not ready") from None
-    # Native (Safari/iOS) players cannot send headers and drop the playlist's
-    # query when resolving relative segment URIs: carry ?token= onto each one.
     token = request.query_params.get("token")
     if token:
         suffix = "?" + urlencode({"token": token})
         text = "\n".join(line + suffix if line and not line.startswith("#") else line for line in text.splitlines()) + "\n"
     return Response(content=text, media_type="application/vnd.apple.mpegurl", headers={"Cache-Control": "no-store"})
+
+
+@router.get("/sessions/{session_id}/video.m3u8", summary="Video HLS playlist", response_class=Response)
+async def video_playlist(session_id: str, request: Request) -> Response:
+    session = _session_or_404(session_id)
+    return await _media_playlist(session, player_service.playlist_path(session), request)
+
+
+@router.get("/sessions/{session_id}/subtitles.m3u8", summary="Subtitle HLS playlist", response_class=Response)
+async def subtitle_playlist(session_id: str, request: Request) -> Response:
+    session = _session_or_404(session_id)
+    if session.subtitle_index is None:
+        raise HTTPException(status_code=404, detail="Subtitles are disabled")
+    return await _media_playlist(session, session.dir / "index_vtt.m3u8", request)
 
 
 @router.get("/sessions/{session_id}/{segment}", summary="HLS segment", response_class=FileResponse)
@@ -175,15 +204,13 @@ async def segment(session_id: str, segment: str) -> FileResponse:
     player_service.touch(session_id)
     path = session.dir / segment
     try:
-        # Stat once and hand the result to FileResponse. Segment deletion is
-        # routine here (ffmpeg's delete_segments, teardown's rmtree); without
-        # stat_result Starlette re-stats at send time and raises RuntimeError,
-        # which would surface as a 500 instead of this 404.
-        file_stat = path.stat()
+        # Validate off the event loop. HLSFileResponse also handles deletion
+        # between this stat and opening the file, before sending any headers.
+        file_stat = await run_in_threadpool(path.stat)
     except OSError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Segment not ready") from None
     if not stat_module.S_ISREG(file_stat.st_mode):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Segment not ready")
-    return FileResponse(
-        path, media_type="video/mp2t", headers={"Cache-Control": "no-store"}, stat_result=file_stat
+    return HLSFileResponse(
+        path, media_type="text/vtt" if segment.endswith(".vtt") else "video/mp2t", headers={"Cache-Control": "no-store"}, stat_result=file_stat
     )

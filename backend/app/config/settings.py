@@ -5,7 +5,7 @@ import logging
 from functools import lru_cache
 from typing import List, Annotated
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import SecretStr, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 LEGACY_ENV_NAMES = {
@@ -48,6 +48,11 @@ class Settings(BaseSettings):
                 warning["legacy"], warning["replacement"], warning["selected"],
             )
         return self
+
+    # Explicit opt-in: key and encrypted sessions must be mounted separately.
+    TELEGRAM_ADMIN_TOKEN: SecretStr = SecretStr('')
+    TELEGRAM_SESSION_DIR: str = '/var/lib/acestream-telegram'
+    TELEGRAM_KEY_FILE: str = ''
 
     APP_NAME: str = "Acestream Scraper"
     DEBUG: bool = True

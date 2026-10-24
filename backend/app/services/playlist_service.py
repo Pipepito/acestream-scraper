@@ -2,7 +2,7 @@
 Service for managing and generating M3U playlists
 """
 import re
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import quote, urlsplit, urlunsplit
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -14,13 +14,41 @@ from app.services.stream_ranking import score_acestream, sort_streams_curated
 from app.utils.m3u import m3u_attr
 
 
+LIVE_MIMETYPE_PROP = '#KODIPROP:mimetype=application/vnd.apple.mpegurl'
+RELAY_MIMETYPE_PROP = '#KODIPROP:mimetype=video/mp2t'
+
+
 class PlaylistService:
     """Service for generating M3U playlists"""
 
-    def __init__(self, db: Session):
-        """Initialize with database session"""
+    def __init__(self, db: Session, live_base_url: Optional[str] = None):
+        """Initialize with database session.
+
+        live_base_url is the server's public address, where players open a
+        broadcaster's live channel (/live/...).
+        """
         self.db = db
+        self.live_base_url = live_base_url
         self.channel_repository = ChannelRepository(db)
+
+    @staticmethod
+    def _exportable(stream):
+        # W3U-owned HTTP inputs can carry private signed URLs and Referer
+        # values. Until external playback has a credential-preserving relay,
+        # these are browser-only; never put those inputs in M3U exports.
+        return not (getattr(stream, 'stream_url', None)
+                    and str(getattr(stream, 'source_url', '') or '').startswith('catalogue:'))
+
+    def guide_coverage(self):
+        from app.repositories.epg_match_repository import EPGMatchRepository
+        return EPGMatchRepository(self.db).coverage()
+
+    @property
+    def epg_ids(self):
+        from app.services.epg_identity_service import EPGIdentityService
+        if not hasattr(self, "_epg_ids"):
+            self._epg_ids = EPGIdentityService(self.db)
+        return self._epg_ids
 
     async def generate_playlist(
         self,
@@ -34,6 +62,8 @@ class PlaylistService:
         base_url_id: Optional[int] = None,
         format: Optional[str] = None,
         include_unassigned: Optional[bool] = None,
+        epg_url: Optional[str] = None,
+        per_source: bool = False,
     ) -> str:
         """
         Generate an M3U playlist with the specified filters
@@ -67,12 +97,15 @@ class PlaylistService:
             tv_channels = [tv for tv in self.channel_repository.get_playlist_tv_channels(search=search, favorites_only=favorites_only)
                            if tv.id in tv_ids]
             name_counts = {}
-            entries, _, _ = self._tv_channel_entries(tv_channels, base_url, False, 1, name_counts)
+            entries, _, _ = self._tv_channel_entries(
+                tv_channels, base_url, False, 1, name_counts, per_source=per_source,
+                source_ids={channel.id for channel in channels},
+            )
             if include_unassigned:
                 unassigned = [c for c in channels if c.tv_channel_id is None
                               and (not search or search.casefold() in (c.name or '').casefold())]
                 entries.extend(self._unassigned_entries(unassigned, tv_channels, base_url, False, 1, name_counts))
-            return "#EXTM3U\n" + "\n".join(entries) + "\n"
+            return self._m3u_header(epg_url) + "\n" + "\n".join(entries) + "\n"
 
         if include_unassigned is False:
             channels = [c for c in channels if c.tv_channel_id is not None]
@@ -83,7 +116,8 @@ class PlaylistService:
             channels,
             base_url=base_url,
             format=format,
-            addpid=addpid_enabled
+            addpid=addpid_enabled,
+            epg_url=epg_url,
         )
         return m3u_content
 
@@ -93,7 +127,8 @@ class PlaylistService:
         favorites_only: bool = False,
         base_url: Optional[str] = None,
         base_url_id: Optional[int] = None,
-        format: Optional[str] = None
+        format: Optional[str] = None,
+        epg_url: Optional[str] = None,
     ) -> str:
         """
         Generate a curated M3U playlist of TV channels with their assigned
@@ -106,7 +141,7 @@ class PlaylistService:
         )
         base_url, addpid = self._resolve_output_settings(base_url, base_url_id)
 
-        lines: List[str] = ["#EXTM3U"]
+        lines: List[str] = [self._m3u_header(epg_url)]
         pid_counter = 1
         name_counts: Dict[str, int] = {}
         entry_lines, pid_counter, _ = self._tv_channel_entries(
@@ -121,7 +156,8 @@ class PlaylistService:
         include_unassigned: bool = True,
         base_url: Optional[str] = None,
         base_url_id: Optional[int] = None,
-        format: Optional[str] = None
+        format: Optional[str] = None,
+        epg_url: Optional[str] = None,
     ) -> str:
         """
         Generate an M3U playlist of numbered TV channels followed by
@@ -130,7 +166,7 @@ class PlaylistService:
         tv_channels = self.channel_repository.get_playlist_tv_channels(search=search)
         base_url, addpid = self._resolve_output_settings(base_url, base_url_id)
 
-        lines: List[str] = ["#EXTM3U"]
+        lines: List[str] = [self._m3u_header(epg_url)]
         pid_counter = 1
         name_counts: Dict[str, int] = {}
         entry_lines, pid_counter, processed_ids = self._tv_channel_entries(
@@ -144,28 +180,71 @@ class PlaylistService:
 
         return "\n".join(lines) + "\n"
 
+    @staticmethod
+    def _raw_relay_base(base_url: str) -> str:
+        """The relay route for one stream, next to a TV-channel relay format."""
+        parts = urlsplit(base_url)
+        # Preserve a reverse-proxy prefix for the built-in tuner route.
+        prefix = parts.path.split('/tuner/channel/', 1)[0] if '/tuner/channel/' in parts.path else ''
+        return urlunsplit((parts.scheme, parts.netloc, prefix + '/tuner/stream/{channel_id}.ts', parts.query, ''))
+
+    def _source_entries(self, tv_channel, streams, base_url, name_counts, epg_id):
+        """One entry per source of a relayed TV channel, right after it, to
+        switch by hand when the automatic choice fails.
+
+        Named as the source publishes itself plus the start of the acestream
+        id, numbered N.1, N.2... so they sort under the channel, and sharing
+        its guide. Acestream sources go through the raw relay (no failover:
+        the point is to pick this one); the rest open as in any stream list.
+        """
+        stream_base = self._raw_relay_base(base_url)
+        width = len(str(len(streams)))
+        # Use the parent entry's resolved guide even when its preferred stream
+        # is excluded from the optional source list by a stream-level filter.
+        lines = []
+        for index, stream in enumerate(streams, start=1):
+            if not self._exportable(stream):
+                continue
+            label = (stream.name or "").strip() or tv_channel.name
+            if not getattr(stream, 'stream_url', None):
+                label = f"{label} [{stream.id[:8]}]"
+            name = self._dedupe_name(self._attr(label), name_counts)
+            attrs = []
+            if tv_channel.channel_number is not None:
+                attrs.append(f'tvg-chno="{tv_channel.channel_number}.{index:0{width}d}"')
+            if epg_id:
+                attrs.append(f'tvg-id="{self._attr(epg_id)}"')
+            attrs.append(f'tvg-name="{name}"')
+            logo = tv_channel.logo_url or stream.logo
+            if logo:
+                attrs.append(f'tvg-logo="{self._attr(logo)}"')
+            if tv_channel.category:
+                attrs.append(f'group-title="{self._attr(tv_channel.category)}"')
+            lines.append(f'#EXTINF:-1 {" ".join(attrs)},{name}')
+            lines.extend(self._link_lines(self._stream_link(stream_base, stream.id, stream_url=getattr(stream, 'stream_url', None), stream_headers=getattr(stream, 'stream_headers', None), live_base_url=self.live_base_url)))
+        return lines
+
     def _unassigned_entries(self, channels, tv_channels, base_url, addpid, pid_counter, name_counts):
         """Append standalone streams after TV numbers, using raw relay IDs when needed."""
         if "{tv_channel_id}" in base_url:
-            parts = urlsplit(base_url)
-            # Preserve a reverse-proxy prefix for the built-in tuner route.
-            prefix = parts.path.split('/tuner/channel/', 1)[0] if '/tuner/channel/' in parts.path else ''
-            base_url = urlunsplit((parts.scheme, parts.netloc, prefix + '/tuner/stream/{channel_id}.ts', parts.query, ''))
+            base_url = self._raw_relay_base(base_url)
             addpid = False
         number = max([8999] + [tv.channel_number for tv in tv_channels if tv.channel_number is not None]) + 1
         lines = []
         for channel in channels:
-            if not channel.id:
+            if not channel.id or not self._exportable(channel):
                 continue
             name = self._dedupe_name(self._attr(channel.name or f"Stream {channel.id[:8]}"), name_counts)
             attrs = [f'tvg-chno="{number}"', f'tvg-name="{name}"']
             number += 1
-            if channel.tvg_id:
-                attrs.append(f'tvg-id="{self._attr(channel.tvg_id)}"')
+            epg_id = self.epg_ids.resolve(None, channel.tvg_id)
+            if epg_id:
+                attrs.append(f'tvg-id="{self._attr(epg_id)}"')
             if channel.logo:
                 attrs.append(f'tvg-logo="{self._attr(channel.logo)}"')
             attrs.append(f'group-title="{self._attr(channel.group or "Unassigned Streams")}"')
-            lines.extend([f'#EXTINF:-1 {" ".join(attrs)},{name}', self._stream_link(base_url, channel.id, pid_counter if addpid else None)])
+            lines.append(f'#EXTINF:-1 {" ".join(attrs)},{name}')
+            lines.extend(self._link_lines(self._stream_link(base_url, channel.id, pid_counter if addpid else None, stream_url=getattr(channel, 'stream_url', None), stream_headers=getattr(channel, 'stream_headers', None), live_base_url=self.live_base_url)))
             if addpid:
                 pid_counter += 1
         return lines
@@ -177,18 +256,24 @@ class PlaylistService:
         addpid: bool,
         pid_counter: int,
         name_counts: Dict[str, int],
+        per_source: bool = False,
+        source_ids: Optional[set[str]] = None,
     ):
         """Build EXTINF/link line pairs for TV channels with their assigned
-        streams. Returns (lines, next_pid_counter, processed_acestream_ids)."""
+        streams. Returns (lines, next_pid_counter, processed_acestream_ids).
+
+        per_source adds each source under its relayed channel."""
         lines: List[str] = []
         processed_ids = set()
 
         for tv_channel in tv_channels:
-            streams = [s for s in tv_channel.acestream_channels if s.id]
+            streams = [s for s in tv_channel.acestream_channels if s.id and self._exportable(s)]
             if not streams:
                 continue
             streams = sort_streams_curated(streams)
             stable = "{tv_channel_id}" in base_url
+            sources = [stream for stream in streams
+                       if source_ids is None or stream.id in source_ids] if stable and per_source else []
             if stable:
                 processed_ids.update(stream.id for stream in streams)
                 streams = streams[:1]
@@ -219,10 +304,9 @@ class PlaylistService:
                         attrs.append(f'tvg-chno="{tv_channel.channel_number}"')
                 # All streams of a channel share the channel's EPG listing, so
                 # tvg-id stays un-suffixed and keeps matching the EPG XML ids.
-                if tv_channel.epg_id:
-                    attrs.append(f'tvg-id="{self._attr(tv_channel.epg_id)}"')
-                elif stream.tvg_id:
-                    attrs.append(f'tvg-id="{self._attr(stream.tvg_id)}"')
+                epg_id = self.epg_ids.resolve(tv_channel.epg_source_id, tv_channel.epg_id) if tv_channel.epg_id else self.epg_ids.resolve(None, stream.tvg_id)
+                if epg_id:
+                    attrs.append(f'tvg-id="{self._attr(epg_id)}"')
                 attrs.append(f'tvg-name="{display_name}"')
                 if tv_channel.logo_url:
                     attrs.append(f'tvg-logo="{self._attr(tv_channel.logo_url)}"')
@@ -232,9 +316,14 @@ class PlaylistService:
                     attrs.append(f'group-title="{self._attr(tv_channel.category)}"')
 
                 lines.append(f'#EXTINF:-1 {" ".join(attrs)},{display_name}')
-                lines.append(self._stream_link(base_url, stream.id, pid_counter if addpid else None, tv_channel_id=tv_channel.id))
+                # A stream with its own URL is handed out as that URL even in
+                # a relay format: the TV relay only opens acestreams.
+                link = self._stream_link(base_url, stream.id, pid_counter if addpid else None, tv_channel_id=tv_channel.id, stream_url=getattr(stream, 'stream_url', None), stream_headers=getattr(stream, 'stream_headers', None), live_base_url=self.live_base_url)
+                lines.extend(self._link_lines(link))
                 if addpid:
                     pid_counter += 1
+            if sources:
+                lines.extend(self._source_entries(tv_channel, sources, base_url, name_counts, epg_id))
 
         return lines, pid_counter, processed_ids
 
@@ -269,6 +358,17 @@ class PlaylistService:
         return candidate
 
     @staticmethod
+    def _m3u_header(epg_url: Optional[str] = None) -> str:
+        """The #EXTM3U line, carrying url-tvg when the caller knows the guide.
+
+        Without url-tvg a player has the channel ids but nowhere to fetch the
+        guide from, so the EPG never shows up however well the ids match.
+        """
+        if not epg_url:
+            return "#EXTM3U"
+        return f'#EXTM3U url-tvg="{PlaylistService._attr(epg_url)}"'
+
+    @staticmethod
     def _attr(value) -> str:
         """Sanitize a value for use inside a double-quoted EXTINF attribute.
 
@@ -277,15 +377,65 @@ class PlaylistService:
         """
         return m3u_attr(value)
 
+    def _link_lines(self, link: str) -> List[str]:
+        """The lines that open a stream: its link, preceded by the mimetype
+        when it goes through /live/ or the tuner relay.
+
+        Without it IPTV Simple finds out the type by opening the link in
+        Kodi's INTERFACE thread, twice. Against a broadcaster that does not
+        answer, that left the remote dead for 16 s even with the 8 s budget
+        on /live/; with the mimetype, 0 s (measured with a provider that never
+        answers). Everything behind /live/ is HLS. Direct links to
+        other CDNs may be MPEG-TS or anything else, so they are left alone.
+        """
+        from app.services import live_providers
+        if self.live_base_url and link.startswith(f"{self.live_base_url.rstrip('/')}{live_providers.LIVE_PATH}"):
+            return [LIVE_MIMETYPE_PROP, link]
+        # The tuner relay always answers MPEG-TS, and opening an acestream
+        # through it is when Kodi waits longest: a dead channel left the
+        # remote dead for 13 s while it probed the type, 0 s with this line;
+        # a live one showed video at 5.5 s instead of 8.5 s. Other link
+        # formats are the user's and may be anything.
+        # Only real HTTP relay paths (upstream 84ce59a): a user's link that
+        # merely contains the words must not get the hint.
+        try:
+            parts = urlsplit(link)
+        except ValueError:
+            return [link]
+        if (parts.scheme in ('http', 'https') and parts.netloc
+                and re.search(r'/tuner/(?:channel|stream)/[^/]+\.ts$', parts.path)):
+            return [RELAY_MIMETYPE_PROP, link]
+        return [link]
+
     @staticmethod
-    def _stream_link(base_url: str, channel_id: str, pid: Optional[int] = None, *, tv_channel_id: Optional[int] = None) -> str:
+    def _stream_link(base_url: str, channel_id: str, pid: Optional[int] = None, *, tv_channel_id: Optional[int] = None, stream_url: Optional[str] = None, stream_headers: Optional[dict] = None, live_base_url: Optional[str] = None) -> str:
         """Build a stream link from a base-URL pattern (#62).
 
         A pattern containing {channel_id} is rendered by substitution
         (with {pid} filled from the per-entry counter, or stripped when
         pids are disabled); a pattern without placeholders is a plain
         prefix, matching the legacy base_url behavior.
+
+        A stream that carries its own `stream_url` -- an IPTV entry that is
+        not an acestream id -- is emitted as that URL, untouched. Every base
+        URL pattern assumes an engine that resolves an acestream id; applied
+        here it would produce `...getstream?id=url:<sha1>`, which no engine
+        can play.
         """
+        if stream_url:
+            from app.services import live_providers
+            from app.services.hls_manifest import needs_manifest
+            if live_base_url and needs_manifest(stream_url, stream_headers):
+                # Its manifests are served by us, whole: ffmpeg reads them
+                # cut short from the CDN. Segments still go straight to it.
+                stream_url = f"{live_base_url.rstrip('/')}{live_providers.LIVE_PATH}{quote(str(channel_id), safe='')}"
+            elif live_providers.for_stream_url(stream_url) is not None:
+                # Its link expires: point the player at the route that signs
+                # a new one when the channel is opened.
+                if not live_base_url:
+                    raise ValueError("A live channel needs the server's public address")
+                stream_url = f"{live_base_url.rstrip('/')}{live_providers.LIVE_PATH}{quote(str(channel_id), safe='')}"
+            return PlaylistService._with_headers(stream_url, stream_headers)
         if "{tv_channel_id}" in base_url:
             if tv_channel_id is None:
                 raise ValueError("This relay format requires a TV channel assignment")
@@ -311,6 +461,24 @@ class PlaylistService:
         if pid is not None:
             link += f"&pid={pid}"
         return link
+
+    # Kodi reads `url|Name=value&Name=value` and sends those headers itself,
+    # to the playlist AND to every segment it fetches from the CDN. The values
+    # must be percent-encoded: unescaped, Kodi cuts each one at its first
+    # space, and a 120-character User-Agent arrives as `Mozilla/5.0`.
+    _HEADER_ORDER = ("User-Agent", "Referer", "Origin")
+
+    @staticmethod
+    def _with_headers(url: str, headers: Optional[dict]) -> str:
+        if not headers:
+            return url
+        from urllib.parse import quote
+        parts = [f"{name}={quote(str(headers[name]), safe='')}"
+                 for name in PlaylistService._HEADER_ORDER if headers.get(name)]
+        if not parts:
+            return url
+        # A list may already carry some headers after its own `|`.
+        return url + ("&" if "|" in url else "|") + "&".join(parts)
 
     @staticmethod
     def _strip_pid_placeholder(link: str) -> str:
@@ -360,7 +528,7 @@ class PlaylistService:
         """
         return self.channel_repository.get_unique_groups()
 
-    def _generate_m3u_content(self, channels: List[AcestreamChannel], base_url: Optional[str] = None, format: Optional[str] = None, addpid: bool = False) -> str:
+    def _generate_m3u_content(self, channels: List[AcestreamChannel], base_url: Optional[str] = None, format: Optional[str] = None, addpid: bool = False, epg_url: Optional[str] = None) -> str:
         """
         Convert channels to M3U format, supporting custom base_url and format
 
@@ -373,7 +541,7 @@ class PlaylistService:
             M3U formatted string
         """
         # M3U header
-        header = "#EXTM3U\n"
+        header = self._m3u_header(epg_url) + "\n"
 
         # Generate each channel entry
         entries = []
@@ -381,7 +549,7 @@ class PlaylistService:
 
         for channel in channels:
             # Skip invalid channels
-            if not channel.id or not channel.name:
+            if not channel.id or not channel.name or not self._exportable(channel):
                 continue
 
             # Build channel attributes
@@ -398,15 +566,17 @@ class PlaylistService:
                 attrs.append(f'tvg-logo="{logo}"')
 
             # Add channel name and ID if available
-            tvg_id = getattr(channel, 'tvg_id', '')
+            tv = channel.tv_channel
+            tvg_id = (self.epg_ids.resolve(tv.epg_source_id, tv.epg_id) if tv and tv.epg_id
+                      else self.epg_ids.resolve(None, channel.tvg_id))
             if tvg_id:
-                attrs.append(f'tvg-id="{tvg_id}"')
+                attrs.append(f'tvg-id="{self._attr(tvg_id)}"')
 
             # Generate entry
             entry = f'#EXTINF:-1 {" ".join(attrs)}, {channel.name}\n'
 
-            link = self._stream_link(base_url, channel.id, pid_counter if addpid else None)
-            entry += link + '\n'
+            link = self._stream_link(base_url, channel.id, pid_counter if addpid else None, stream_url=getattr(channel, 'stream_url', None), stream_headers=getattr(channel, 'stream_headers', None), live_base_url=self.live_base_url)
+            entry += ''.join(line + '\n' for line in self._link_lines(link))
 
             entries.append(entry)
             if addpid:

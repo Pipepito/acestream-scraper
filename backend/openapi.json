@@ -8534,6 +8534,12 @@
             "title": "Only Online",
             "type": "boolean"
           },
+          "plex_compatible_audio": {
+            "default": false,
+            "description": "Convert tuner audio to stereo AAC/LATM for Plex Desktop; copy video unless experimental recovery is enabled",
+            "title": "Plex Compatible Audio",
+            "type": "boolean"
+          },
           "source_start_seconds": {
             "default": 15,
             "description": "Seconds a source gets to deliver its first byte before the next is tried",
@@ -8608,6 +8614,17 @@
               }
             ],
             "title": "Only Online"
+          },
+          "plex_compatible_audio": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plex Compatible Audio"
           },
           "source_start_seconds": {
             "anyOf": [

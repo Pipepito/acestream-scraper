@@ -13,7 +13,7 @@ import httpx
 
 from app.services.engine_client import EngineClient, EngineRefusedError, EngineUnavailableError
 from app.services.stream_relay import EngineStreamError, RelayInfo, RelayRegistry, relay_engine_stream, relay_registry
-from app.services.tuner_remux import remux_source
+from app.services.tuner_remux import remux_source, compatible_audio_source
 from app.services.tuner_http_source import relay_http_stream
 
 STARTUP_BUDGET_SECONDS = 45.0
@@ -70,6 +70,7 @@ async def relay_ranked_streams(
     registry: RelayRegistry = relay_registry,
     candidate_provider: Callable[[], Awaitable[tuple[list[str], bool]]] | None = None,
     experimental_transcoding: bool = False,
+    plex_compatible_audio: bool = False,
     on_source_failure: Callable[[str], Awaitable[None]] | None = None,
     attempt_seconds: float | None = None,
     startup_budget_seconds: float | None = None,
@@ -122,7 +123,8 @@ async def relay_ranked_streams(
 
             async def source():
                 if is_http:
-                    upstream = relay_http_stream(content_id, claim, startup_deadline=attempt_deadline)
+                    upstream = relay_http_stream(content_id, claim, startup_deadline=attempt_deadline,
+                        plex_compatible_audio=plex_compatible_audio and not experimental_transcoding)
                 else:
                     if engine is None:
                         raise EngineUnavailableError('Acestream Engine URL is not configured')
@@ -138,7 +140,13 @@ async def relay_ranked_streams(
                         await upstream.aclose()
 
             raw = source()
-            iterator = remux_source(raw, version=version, offset=time.monotonic() - started) if experimental_transcoding else raw
+            if experimental_transcoding:
+                iterator = remux_source(raw, version=version, offset=time.monotonic() - started,
+                    plex_compatible_audio=plex_compatible_audio)
+            elif plex_compatible_audio and not is_http:
+                iterator = compatible_audio_source(raw)
+            else:
+                iterator = raw
             version += 1
             first_at = last_at = None
             healthy = False

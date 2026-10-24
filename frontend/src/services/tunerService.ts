@@ -5,6 +5,7 @@ export interface TunerSettings {
   tuner_count: number;
   max_channels: number;
   only_online: boolean;
+  plex_compatible_audio?: boolean;
   experimental_transcoding?: boolean;
   /** Seconds a source gets to deliver its first byte before the next is tried. */
   source_start_seconds?: number;

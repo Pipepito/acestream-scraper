@@ -26,6 +26,7 @@ class SettingsRepository:
     TUNER_COUNT = 'tuner_count'
     TUNER_MAX_CHANNELS = 'tuner_max_channels'
     TUNER_ONLY_ONLINE = 'tuner_only_online'
+    TUNER_PLEX_COMPATIBLE_AUDIO = 'tuner_plex_compatible_audio'
     TUNER_EXPERIMENTAL_TRANSCODING = 'tuner_experimental_transcoding'
     TUNER_SOURCE_START_SECONDS = 'tuner_source_start_seconds'
     TUNER_STARTUP_BUDGET_SECONDS = 'tuner_startup_budget_seconds'

@@ -147,3 +147,11 @@ independent; checker outage must not fail whole-container health. Direct playbac
 uses process-wide source ownership leases across clients; serialize starts with
 final stops, release exactly once, and preserve session ownership across settings
 changes. Acexy owns its sessions. See `docs/ops/stream-check-pid.md`.
+
+Tuner HLS input selects the highest advertised resolution, then bandwidth, and
+retains only the selected variant’s media groups through the guarded proxy.
+`tuner_plex_compatible_audio` is opt-in for stable TV channel relays: convert all
+audio tracks to stereo AAC/LATM while copying video. It applies to HTTP, direct
+engine and Acexy sources within existing startup/slot/ownership limits. Combined
+with experimental recovery, use LATM in that encoder rather than encoding twice.
+Legacy single-source tuner links remain direct. See `wiki/Media-Servers.md`.

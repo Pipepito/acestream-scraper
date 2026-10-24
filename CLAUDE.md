@@ -664,3 +664,11 @@ to new messages only; pause retains progress. See `wiki/Telegram-Sources.md`.
 Telegram migration `20261023_1500` follows catalogue/event revision `20261023_1400`.
 Keep the W3U `20261022_1200` identity unchanged; Telegram must not reuse it.
 See `wiki/Telegram-Sources.md#database-upgrades`.
+
+Tuner HLS input selects the highest advertised resolution, then bandwidth, and
+retains only the selected variant’s media groups through the guarded proxy.
+`tuner_plex_compatible_audio` is opt-in for stable TV channel relays: convert all
+audio tracks to stereo AAC/LATM while copying video. It applies to HTTP, direct
+engine and Acexy sources within existing startup/slot/ownership limits. Combined
+with experimental recovery, use LATM in that encoder rather than encoding twice.
+Legacy single-source tuner links remain direct. See `wiki/Media-Servers.md`.

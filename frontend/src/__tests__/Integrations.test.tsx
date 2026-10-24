@@ -593,6 +593,20 @@ describe('Integrations page', () => {
       expect.objectContaining({ source_start_seconds: 40, startup_budget_seconds: 58 })));
   });
 
+  it('saves Plex Desktop audio compatibility independently of video recovery', async () => {
+    renderPage();
+    const section = screen.getByRole('region', { name: 'Media servers' });
+    fireEvent.click(within(section).getByRole('button', { name: 'Tuner settings' }));
+    const toggle = within(section).getByRole('checkbox', { name: 'Plex Desktop compatible audio' });
+    expect(toggle).not.toBeChecked();
+    fireEvent.click(toggle);
+    expect(within(section).getByText(/video passes through without encoding/)).toBeVisible();
+    fireEvent.click(within(section).getByRole('button', { name: 'Save tuner settings' }));
+    await waitFor(() => expect(mockUpdateTunerSettings).toHaveBeenCalledWith(expect.objectContaining({
+      plex_compatible_audio: true, experimental_transcoding: false,
+    })));
+  });
+
   it('requires explicitly enabling experimental transcoding recovery', async () => {
     renderPage();
     const section = screen.getByRole('region', { name: 'Media servers' });

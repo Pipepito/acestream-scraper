@@ -129,7 +129,7 @@ async def test_disconnect_drains_a_full_ffmpeg_output_pipe(monkeypatch):
     source = SimpleNamespace(playback_url='http://127.0.0.1/opaque', close=AsyncMock())
     monkeypatch.setattr(tuner_http_source.PlayerHTTPSource, 'open', AsyncMock(return_value=source))
     monkeypatch.setattr(tuner_http_source, 'ffmpeg_binary', lambda: sys.executable)
-    monkeypatch.setattr(tuner_http_source, 'http_tuner_argv', lambda *args: [sys.executable, '-c',
+    monkeypatch.setattr(tuner_http_source, 'http_tuner_argv', lambda *args, **kwargs: [sys.executable, '-c',
         'import os; payload=b"x"*65536\nwhile True: os.write(1,payload)'])
     registry = RelayRegistry()
     claim = registry.try_open(HTTP_ID, 'Plex', 1)
@@ -165,8 +165,9 @@ def media_tools():
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize('kind', ['mpegts', 'hls', 'fmp4', 'encrypted', 'subtitles'])
-async def test_real_http_media_is_remuxed_with_headers_and_no_engine(media_tools, tmp_path, monkeypatch, kind):
+@pytest.mark.parametrize('compatible', [False, True])
+@pytest.mark.parametrize('kind', ['mpegts', 'hls', 'fmp4', 'encrypted', 'subtitles', 'master'])
+async def test_real_http_media_is_remuxed_with_headers_and_no_engine(media_tools, tmp_path, monkeypatch, kind, compatible):
     ffmpeg, fixture_tool = media_tools
     target = tmp_path / ('stream.ts' if kind == 'mpegts' else 'index.m3u8')
     options = ['-f', 'mpegts'] if kind == 'mpegts' else ['-f', 'hls', '-hls_time', '1', '-hls_list_size', '0']
@@ -190,6 +191,15 @@ async def test_real_http_media_is_remuxed_with_headers_and_no_engine(media_tools
         target.write_text('#EXTM3U\n#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="Spanish",'
             'LANGUAGE="es",URI="subtitles.m3u8"\n'
             '#EXT-X-STREAM-INF:BANDWIDTH=1000000,SUBTITLES="subs"\nindex.m3u8\n')
+    if kind == 'master':
+        subprocess.run([fixture_tool, '-v', 'error', '-f', 'lavfi', '-i', 'color=c=blue:size=1920x1080:rate=25',
+            '-f', 'lavfi', '-i', 'sine=frequency=880:sample_rate=48000', '-t', '4',
+            '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p', '-g', '25', '-c:a', 'aac',
+            '-f', 'hls', '-hls_time', '1', '-hls_list_size', '0', str(tmp_path / 'high.m3u8')],
+            check=True, capture_output=True, timeout=20)
+        target = tmp_path / 'master.m3u8'
+        target.write_text('#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=500000,RESOLUTION=160x90\nindex.m3u8\n'
+            '#EXT-X-STREAM-INF:BANDWIDTH=4000000,RESOLUTION=1920x1080\nhigh.m3u8\n')
     fetched = []
     async def handler(request):
         assert request.headers.get('Referer') == 'https://broadcaster.example/'
@@ -214,7 +224,7 @@ async def test_real_http_media_is_remuxed_with_headers_and_no_engine(media_tools
         claim = registry.try_open(HTTP_ID, 'Plex', 1)
         async with asyncio.timeout(15):
             output = b''.join([chunk async for chunk in tuner_playback_service.relay_ranked_streams(
-                None, [HTTP_ID], 'Plex', claim, registry=registry)])
+                None, [HTTP_ID], 'Plex', claim, registry=registry, plex_compatible_audio=compatible)])
     assert len(output) > 188 and len(output) % 188 == 0
     assert all(output[i] == 0x47 for i in range(0, len(output), 188))
     assert claim.bytes_sent == len(output)
@@ -223,6 +233,17 @@ async def test_real_http_media_is_remuxed_with_headers_and_no_engine(media_tools
     assert all(proxy._runner is None and not proxy._tasks for proxy in proxies)
     if kind == 'encrypted':
         assert '/key' in fetched
+    if kind == 'master':
+        assert '/high.m3u8' in fetched and '/index.m3u8' not in fetched
+        probe = subprocess.run([fixture_tool, '-hide_banner', '-i', 'pipe:0', '-f', 'null', '-'],
+            input=output, capture_output=True, timeout=10)
+        assert probe.returncode == 0
+        assert '1920x1080' in probe.stderr.decode()
+    if compatible:
+        probe = subprocess.run([fixture_tool, '-hide_banner', '-i', 'pipe:0', '-f', 'null', '-'],
+            input=output, capture_output=True, timeout=10)
+        assert probe.returncode == 0
+        assert 'aac_latm' in probe.stderr.decode()
     # Decode the actual tuner output, not just its transport sync bytes.
     result = subprocess.run([fixture_tool, '-v', 'error', '-i', 'pipe:0', '-map', '0:v:0',
         '-map', '0:a:0', '-f', 'null', '-'], input=output, capture_output=True, timeout=10)

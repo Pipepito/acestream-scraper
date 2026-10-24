@@ -1,4 +1,4 @@
-"""Experimental CPU transcoding for MPEG-TS recovery within a connection.
+"""Tuner audio compatibility and experimental MPEG-TS transcoding recovery.
 
 FFmpeg receives only bytes from the guarded engine relay, never upstream URLs.
 Video is normalized to MPEG-2 and audio to AAC so existing decoder contexts
@@ -24,11 +24,11 @@ def ffmpeg_binary() -> str:
     configured = get_settings().FFMPEG_BINARY_PATH.strip()
     path = configured if configured and os.access(configured, os.X_OK) else shutil.which('ffmpeg')
     if not path:
-        raise EngineStreamError('Experimental transcoding recovery requires FFmpeg on the server')
+        raise EngineStreamError('Tuner audio compatibility and transcoding require FFmpeg on the server')
     return path
 
 
-def remux_argv(binary: str, *, version: int, offset: float) -> list[str]:
+def remux_argv(binary: str, *, version: int, offset: float, plex_compatible_audio: bool = False) -> list[str]:
     return [
         binary, '-nostdin', '-hide_banner', '-loglevel', 'error',
         '-protocol_whitelist', 'pipe', '-fflags', '+genpts+discardcorrupt',
@@ -36,21 +36,48 @@ def remux_argv(binary: str, *, version: int, offset: float) -> list[str]:
         '-map', '0:v:0', '-map', '0:a?',
         '-c:v', 'mpeg2video', '-threads', '2', '-q:v', '3', '-g', '25', '-bf', '0', '-r', '25',
         '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k', '-ac', '2',
-        '-f', 'mpegts', '-mpegts_flags', '+initial_discontinuity+resend_headers',
+        '-f', 'mpegts', '-mpegts_flags', '+initial_discontinuity+resend_headers' + ('+latm' if plex_compatible_audio else ''),
         '-tables_version', str(version % 32), '-output_ts_offset', f'{max(0.0, offset):.6f}',
         '-mpegts_copyts', '0', '-muxdelay', '0', '-flush_packets', '1', 'pipe:1'
     ]
 
 
-async def remux_source(source: AsyncIterator[bytes], *, version: int, offset: float) -> AsyncIterator[bytes]:
+def compatible_audio_argv(binary: str) -> list[str]:
+    return [
+        binary, '-nostdin', '-hide_banner', '-loglevel', 'error',
+        '-protocol_whitelist', 'pipe', '-fflags', '+genpts+discardcorrupt',
+        '-probesize', '1000000', '-analyzeduration', '1000000', '-f', 'mpegts', '-i', 'pipe:0',
+        '-map', '0:v:0?', '-map', '0:a?', '-map', '0:s?', '-c:v', 'copy', '-c:s', 'copy',
+        '-c:a', 'aac', '-b:a', '160k', '-ac', '2',
+        '-f', 'mpegts', '-mpegts_flags', '+resend_headers+latm',
+        '-muxdelay', '0', '-flush_packets', '1', 'pipe:1',
+    ]
+
+
+def compatible_audio_source(source: AsyncIterator[bytes]) -> AsyncIterator[bytes]:
+    return _transform_source(source, compatible_audio_argv(ffmpeg_binary()))
+
+
+def remux_source(source: AsyncIterator[bytes], *, version: int, offset: float,
+                 plex_compatible_audio: bool = False) -> AsyncIterator[bytes]:
+    return _transform_source(source, remux_argv(ffmpeg_binary(), version=version, offset=offset,
+        plex_compatible_audio=plex_compatible_audio))
+
+
+async def _transform_source(source: AsyncIterator[bytes], argv: list[str]) -> AsyncIterator[bytes]:
     process = None
     feeder = None
     try:
-        process = await asyncio.create_subprocess_exec(
-            *remux_argv(ffmpeg_binary(), version=version, offset=offset),
-            stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
+        spawn = asyncio.create_task(asyncio.create_subprocess_exec(
+            *argv, stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.DEVNULL, start_new_session=True,
-        )
+        ))
+        with anyio.CancelScope(shield=True):
+            try:
+                process = await asyncio.shield(spawn)
+            except asyncio.CancelledError:
+                process = await spawn
+                raise
 
         async def feed() -> None:
             try:
@@ -72,7 +99,7 @@ async def remux_source(source: AsyncIterator[bytes], *, version: int, offset: fl
                 del buffered[:complete]
         await feeder
         if await process.wait() != 0:
-            raise EngineStreamError('The source could not be remuxed as video')
+            raise EngineStreamError('The source could not be converted for the tuner')
     except OSError as exc:
         raise EngineStreamError('Unable to start TV relay remuxer') from exc
     finally:
@@ -80,13 +107,20 @@ async def remux_source(source: AsyncIterator[bytes], *, version: int, offset: fl
             if feeder is not None:
                 feeder.cancel()
                 await asyncio.gather(feeder, return_exceptions=True)
-            await source.aclose()
-            if process is not None and process.returncode is None:
-                with contextlib.suppress(ProcessLookupError):
-                    os.killpg(process.pid, signal.SIGTERM)
+            # Drain stdout while reaping: a full pipe can otherwise block wait().
+            if process is not None:
+                async def drain():
+                    while await process.stdout.read(64 * 1024):
+                        pass
+                drained = asyncio.create_task(drain())
+                if process.returncode is None:
+                    with contextlib.suppress(ProcessLookupError):
+                        os.killpg(process.pid, signal.SIGTERM)
                 try:
                     await asyncio.wait_for(process.wait(), timeout=2)
                 except TimeoutError:
                     with contextlib.suppress(ProcessLookupError):
                         os.killpg(process.pid, signal.SIGKILL)
                     await process.wait()
+                await drained
+            await source.aclose()

@@ -320,7 +320,7 @@ async def tuner_channel(tv_channel_id: int, request: Request):
     try:
         relay_settings = await run_in_threadpool(_relay_settings)
         experimental_transcoding = relay_settings.experimental_transcoding
-        if experimental_transcoding:
+        if experimental_transcoding or relay_settings.plex_compatible_audio:
             await run_in_threadpool(ffmpeg_binary)
         try:
             engine = await run_in_threadpool(_engine)
@@ -330,6 +330,7 @@ async def tuner_channel(tv_channel_id: int, request: Request):
         iterator = relay_ranked_streams(engine, candidates, label, claim, client_factory=_relay_client_factory,
                                       candidate_provider=refreshed_candidates, on_source_failure=refresh_failed_source,
                                       experimental_transcoding=experimental_transcoding,
+                                      plex_compatible_audio=relay_settings.plex_compatible_audio,
                                       attempt_seconds=relay_settings.source_start_seconds,
                                       startup_budget_seconds=relay_settings.startup_budget_seconds)
         first = await anext(iterator)

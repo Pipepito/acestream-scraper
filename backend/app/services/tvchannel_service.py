@@ -32,6 +32,9 @@ class TVChannelService:
     def reorder_channels(self, channel_ids: List[int], expected_order: List[int]) -> None:
         self.repository.reorder_tv_channels(channel_ids, expected_order)
 
+    def reorder_streams(self, tv_channel_id: int, stream_ids: List[str], expected_order: Optional[List[str]] = None):
+        return self.repository.reorder_tv_channel_streams(tv_channel_id, stream_ids, expected_order)
+
     def get_tv_channels_with_total(self, skip: int = 0, limit: int = 100,
                                    search: Optional[str] = None,
                                    favorites_only: bool = False):

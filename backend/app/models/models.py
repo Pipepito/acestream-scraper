@@ -130,6 +130,7 @@ class AcestreamChannel(Base):
 
     # Relationship with TVChannel
     tv_channel_id = Column(Integer, ForeignKey("tv_channels.id"), nullable=True)
+    stream_order = Column(Integer, nullable=True)
     tv_channel = relationship("TVChannel", back_populates="acestream_channels")
 
     @property

@@ -61,6 +61,7 @@ class AcestreamChannelResponse(AcestreamChannelBase):
     audio_tracks: Optional[List[AudioTrack]] = Field(None, description="Audio tracks found at the last successful media probe; null means unknown")
     bitrate_bps: Optional[int] = Field(None, ge=1, description="Last measured encoded media bitrate in bits per second; not P2P download speed")
     bitrate_checked_at: Optional[datetime] = None
+    stream_order: Optional[int] = Field(None, ge=1, description="Priority preference order among streams for this channel; 1 is highest priority.")
     tv_channel_id: Optional[int] = None
     tv_channel_name: Optional[str] = None
     tv_channel_is_favorite: Optional[bool] = None
@@ -308,6 +309,19 @@ class TVChannelReorderRequest(BaseModel):
     def unique_ids(cls, values: List[int]) -> List[int]:
         if any(value <= 0 for value in values) or len(values) != len(set(values)):
             raise ValueError("Channel IDs must be positive and unique")
+        return values
+
+
+class TVChannelStreamReorderRequest(BaseModel):
+    """Desired stream IDs in preference order; saved with stream_order 1 through N."""
+    stream_ids: List[str] = Field(..., min_length=1, description="Desired complete acestream ID ordering for this TV channel.")
+    expected_order: Optional[List[str]] = Field(None, description="Original acestream ID ordering; rejects stale reorder edits if provided.")
+
+    @field_validator("stream_ids")
+    @classmethod
+    def unique_stream_ids(cls, values: List[str]) -> List[str]:
+        if len(values) != len(set(values)):
+            raise ValueError("Stream IDs must be unique")
         return values
 
 

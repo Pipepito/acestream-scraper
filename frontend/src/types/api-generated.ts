@@ -1052,6 +1052,13 @@ export interface paths {
      */
     post: operations["associate_acestream_api_v1_tv_channels__tv_channel_id__acestreams_post"];
   };
+  "/api/v1/tv-channels/{tv_channel_id}/acestreams/reorder": {
+    /**
+     * Reorder Tv Channel Acestreams
+     * @description Reorder streams for a TV channel by setting their preference order (1, 2, ...).
+     */
+    post: operations["reorder_tv_channel_acestreams_api_v1_tv_channels__tv_channel_id__acestreams_reorder_post"];
+  };
   "/api/v1/tv-channels/{tv_channel_id}/acestreams/{acestream_id}": {
     /**
      * Remove Acestream Association
@@ -1237,6 +1244,11 @@ export interface components {
       network_status?: ("found" | "not_found" | "unknown") | null;
       /** Source Url */
       source_url?: string | null;
+      /**
+       * Stream Order
+       * @description Priority preference order among streams for this channel; 1 is highest priority.
+       */
+      stream_order?: number | null;
       stream_stats?: components["schemas"]["StreamStats"] | null;
       /** Tv Channel Id */
       tv_channel_id?: number | null;
@@ -3567,6 +3579,22 @@ export interface components {
       name?: string | null;
       /** Website */
       website?: string | null;
+    };
+    /**
+     * TVChannelStreamReorderRequest
+     * @description Desired stream IDs in preference order; saved with stream_order 1 through N.
+     */
+    TVChannelStreamReorderRequest: {
+      /**
+       * Expected Order
+       * @description Original acestream ID ordering; rejects stale reorder edits if provided.
+       */
+      expected_order?: string[] | null;
+      /**
+       * Stream Ids
+       * @description Desired complete acestream ID ordering for this TV channel.
+       */
+      stream_ids: string[];
     };
     /** TVMatchApplyRequest */
     TVMatchApplyRequest: {
@@ -7826,6 +7854,36 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["MessageResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Reorder Tv Channel Acestreams
+   * @description Reorder streams for a TV channel by setting their preference order (1, 2, ...).
+   */
+  reorder_tv_channel_acestreams_api_v1_tv_channels__tv_channel_id__acestreams_reorder_post: {
+    parameters: {
+      path: {
+        tv_channel_id: number;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TVChannelStreamReorderRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AcestreamChannelResponse"][];
         };
       };
       /** @description Validation Error */

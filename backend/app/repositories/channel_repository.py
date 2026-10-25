@@ -8,6 +8,7 @@ from typing import Dict, Any, Iterable, List, Optional
 from datetime import datetime, timezone
 
 from app.models.models import AcestreamChannel, EPGChannel, TVChannel
+from app.services.stream_ranking import sort_streams_curated
 
 
 class ChannelRepository:
@@ -55,6 +56,27 @@ class ChannelRepository:
                 by_id[channel_id].channel_number = number
                 by_id[channel_id].updated_at = now
             self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
+
+    def reorder_tv_channel_streams(self, tv_channel_id: int, stream_ids: List[str], expected_order: Optional[List[str]] = None) -> List[AcestreamChannel]:
+        """Validate the complete snapshot and commit all stream orders together."""
+        try:
+            tv_channel = self.get_tv_channel_by_id(tv_channel_id)
+            if not tv_channel:
+                raise ValueError("TV Channel not found")
+            current_streams = sort_streams_curated(tv_channel.acestream_channels)
+            current_ids = [s.id for s in current_streams]
+            if expected_order is not None and current_ids != expected_order:
+                raise ValueError("The stream list changed. Refresh to load the latest order.")
+            if set(current_ids) != set(stream_ids):
+                raise ValueError("The stream list does not match the channel's associated streams.")
+            by_id = {s.id: s for s in current_streams}
+            for order, stream_id in enumerate(stream_ids, start=1):
+                by_id[stream_id].stream_order = order
+            self.db.commit()
+            return sort_streams_curated(tv_channel.acestream_channels)
         except Exception:
             self.db.rollback()
             raise
@@ -569,6 +591,7 @@ class ChannelRepository:
             return False
 
         acestream_channel.tv_channel_id = None
+        acestream_channel.stream_order = None
         self.db.commit()
         return True
 

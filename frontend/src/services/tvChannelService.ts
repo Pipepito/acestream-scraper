@@ -157,6 +157,17 @@ export const tvChannelService = {
   },
 
   /**
+   * Reorder acestream channels associated with a TV channel
+   */
+  reorderAcestreams: async (tvChannelId: number, streamIds: string[], expectedOrder?: string[]): Promise<any[]> => {
+    const response = await apiClient.post(`${BASE_URL}/${tvChannelId}/acestreams/reorder`, {
+      stream_ids: streamIds,
+      expected_order: expectedOrder,
+    });
+    return response.data;
+  },
+
+  /**
    * Associate an acestream channel with a TV channel
    */
   associateAcestream: async (tvChannelId: number, aceStreamId: string): Promise<any> => {

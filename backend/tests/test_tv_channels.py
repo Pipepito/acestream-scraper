@@ -934,3 +934,49 @@ def test_reorder_rejects_partial_and_duplicate_lists_without_changes(client, see
     assert client.post('/api/v1/tv-channels/reorder', json={'channel_ids': ids[:-1], 'expected_order': ids}).status_code == 409
     assert client.post('/api/v1/tv-channels/reorder', json={'channel_ids': [ids[0]] * 3, 'expected_order': ids}).status_code == 422
     assert client.get('/api/v1/tv-channels/').json()['items'] == before
+
+
+def test_reorder_tv_channel_acestreams(client, db_session):
+    from app.models.models import AcestreamChannel, TVChannel
+
+    tv = TVChannel(name="Stream Reorder Test")
+    db_session.add(tv)
+    db_session.flush()
+    stream_a = AcestreamChannel(id="1" * 40, name="Stream A", is_online=True, tv_channel_id=tv.id)
+    stream_b = AcestreamChannel(id="2" * 40, name="Stream B", is_online=True, tv_channel_id=tv.id)
+    stream_c = AcestreamChannel(id="3" * 40, name="Stream C", is_online=True, tv_channel_id=tv.id)
+    db_session.add_all([stream_a, stream_b, stream_c])
+    db_session.commit()
+
+    initial = client.get(f"/api/v1/tv-channels/{tv.id}/acestreams").json()
+    initial_ids = [s["id"] for s in initial]
+    desired_order = [stream_c.id, stream_a.id, stream_b.id]
+
+    # Reorder
+    res = client.post(
+        f"/api/v1/tv-channels/{tv.id}/acestreams/reorder",
+        json={"stream_ids": desired_order, "expected_order": initial_ids},
+    )
+    assert res.status_code == 200
+    updated = res.json()
+    assert [s["id"] for s in updated] == desired_order
+    assert [s["stream_order"] for s in updated] == [1, 2, 3]
+
+    # Verify detail reflects the new preference order
+    detail = client.get(f"/api/v1/tv-channels/{tv.id}").json()
+    assert [s["id"] for s in detail["acestream_channels"]] == desired_order
+    assert [s["stream_order"] for s in detail["acestream_channels"]] == [1, 2, 3]
+
+    # Stale expected_order rejected
+    stale_res = client.post(
+        f"/api/v1/tv-channels/{tv.id}/acestreams/reorder",
+        json={"stream_ids": desired_order, "expected_order": initial_ids},
+    )
+    assert stale_res.status_code == 400
+
+    # Partial/mismatched stream IDs rejected
+    bad_res = client.post(
+        f"/api/v1/tv-channels/{tv.id}/acestreams/reorder",
+        json={"stream_ids": [stream_c.id, stream_a.id]},
+    )
+    assert bad_res.status_code == 400

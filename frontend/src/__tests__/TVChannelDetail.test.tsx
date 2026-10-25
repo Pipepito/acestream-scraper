@@ -11,6 +11,7 @@ const mockUseTVChannelAcestreams = jest.fn();
 const mockUseAssociateAcestream = jest.fn();
 const mockUseRemoveAcestreamAssociation = jest.fn();
 const mockUseUpdateTVChannel = jest.fn();
+const mockUseReorderTVChannelAcestreams = jest.fn();
 const mockUseAcestreamChannels = jest.fn();
 const mockUseResolveEPGChannel = jest.fn();
 
@@ -41,6 +42,7 @@ jest.mock('../hooks/useTVChannels', () => ({
   useAssociateAcestream: (...args: unknown[]) => mockUseAssociateAcestream(...args),
   useRemoveAcestreamAssociation: (...args: unknown[]) => mockUseRemoveAcestreamAssociation(...args),
   useUpdateTVChannel: (...args: unknown[]) => mockUseUpdateTVChannel(...args),
+  useReorderTVChannelAcestreams: (...args: unknown[]) => mockUseReorderTVChannelAcestreams(...args),
 }));
 jest.mock('../hooks/useChannels', () => ({
   useAcestreamChannels: (...args: unknown[]) => mockUseAcestreamChannels(...args),
@@ -82,6 +84,7 @@ describe('TVChannelDetail', () => {
     mockUseAssociateAcestream.mockReturnValue({ mutateAsync: jest.fn() });
     mockUseRemoveAcestreamAssociation.mockReturnValue({ mutateAsync: jest.fn() });
     mockUseUpdateTVChannel.mockReturnValue({ mutateAsync: jest.fn() });
+    mockUseReorderTVChannelAcestreams.mockReturnValue({ mutateAsync: jest.fn() });
     mockUseAcestreamChannels.mockReturnValue({ data: { items: [] }, isLoading: false });
     mockUseResolveEPGChannel.mockReturnValue({ data: { id: 99, name: 'Arena Guide' }, isLoading: false, isError: false });
   });
@@ -245,5 +248,44 @@ describe('TVChannelDetail', () => {
 
     expect(await screen.findByText(/removed acestream arena feed 1 successfully/i)).toBeInTheDocument();
     expect(mutateAsync).toHaveBeenCalledWith({ tvChannelId: 7, aceStreamId: 'ace-1' });
+  });
+
+  it('renders streams with descending preference order and allows reordering and saving', async () => {
+    const multiStreamChannel = {
+      ...baseChannel,
+      acestream_channels: [
+        { id: 'ace-1', name: 'Primary Stream', group: 'Sports', is_online: true },
+        { id: 'ace-2', name: 'Backup Stream', group: 'Sports', is_online: true },
+      ],
+    };
+    const mutateAsync = jest.fn().mockResolvedValue(undefined);
+    mockUseReorderTVChannelAcestreams.mockReturnValue({ mutateAsync });
+    mockUseTVChannel.mockReturnValue({ data: multiStreamChannel, isLoading: false, isError: false });
+
+    renderPage();
+
+    // Order numbers 1 and 2 are displayed to the left
+    expect(screen.getByLabelText('Order 1')).toHaveTextContent('1');
+    expect(screen.getByLabelText('Order 2')).toHaveTextContent('2');
+
+    // Save button is initially disabled
+    const saveButton = screen.getByRole('button', { name: 'Save' });
+    expect(saveButton).toBeDisabled();
+
+    // Move first stream down
+    fireEvent.click(screen.getByRole('button', { name: 'Move Primary Stream down' }));
+
+    // Now order changed: Save button is enabled
+    expect(saveButton).not.toBeDisabled();
+
+    // Click Save
+    fireEvent.click(saveButton);
+
+    expect(mutateAsync).toHaveBeenCalledWith({
+      tvChannelId: 7,
+      streamIds: ['ace-2', 'ace-1'],
+      expectedOrder: ['ace-1', 'ace-2'],
+    });
+    expect(await screen.findByText(/stream preference order saved successfully/i)).toBeInTheDocument();
   });
 });

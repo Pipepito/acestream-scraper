@@ -1,4 +1,4 @@
-# TV and system dashboard implementation plan
+# TV and system dashboards
 
 Implementation record, 2026-10-26. Initial baseline: `221952f`; integrated develop
 through PR #269 merge `26ad950`.
@@ -82,21 +82,21 @@ provider implementations remain shared.
   explain how to populate them and offer All upcoming without silently switching.
 
 The PR's `/events/interests` returns available choices, not saved personal
-preferences. New dashboard preference persistence is therefore explicit work.
+preferences. The dashboard therefore persists these preferences separately in browser storage.
 Viewing or filtering the dashboard must not import events, change source settings,
 trigger refreshes or start playback. New provider events still require review.
 
 ### Immediate event selection
 
-The current list sorts saved events by start time, and `upcoming` includes earlier
+The default agenda list sorts saved events by start time, and `upcoming` includes earlier
 events from today. PR #269 adds a calendar-day window, but does not introduce
 nearest-start or live-first ordering. Sorting the first response page in the
 browser would miss eligible events on later pages.
 
-Add an opt-in dashboard selection mode to the existing event list contract,
-leaving normal agenda behavior intact. Apply eligibility, interests/following and
-ordering to the complete bounded inventory before limiting the response to six.
-Keep business rules in `EventService` and database access in its repository.
+The opt-in `selection=dashboard` mode preserves normal agenda behavior. Eligibility,
+interests/following and ordering apply to the complete bounded inventory before
+limiting the response to six. Business rules live in `EventService`; database access
+remains in its repository.
 
 Implemented selection rules:
 
@@ -115,11 +115,10 @@ Implemented selection rules:
   interval and on window focus; invalidate event queries after follow/correction
   changes. Test midnight, DST and events crossing the selection boundary.
 
-Use shared agenda row/date/broadcaster formatting from PR #269. If its full agenda
-component cannot preserve dashboard ranking, extract the row instead of forcing
-the dashboard through the agenda's day-group sorting. Add event deep links such
-as `/events?event=<id>` so View broadcasts opens the existing detail experience.
-Missing/archived event links need a useful state and a route back to the agenda.
+The shared `EventAgendaRow` preserves dashboard ranking without the full agenda's
+day-group sorting. Links at `/events?event=<id>&zone=<timezone>` open the existing
+detail drawer in the selected timezone. Missing and archived links show explicit
+states, with Close event details returning to the agenda.
 
 A linked TV or EPG channel is navigation, not proof of playable signal. Preserve
 unmatched broadcaster names and the PR's manual regional mappings. Play actions
@@ -252,3 +251,30 @@ split. The release-note top-bar behavior and intervening stream-order changes ar
 preserved. Event selection, the shared agenda row, display preferences, event detail
 deep links, and shared-query refresh are implemented. See `wiki/Sports-Events.md`
 and `docs/dev/sporting-events.md` for the resulting user/API behavior.
+
+Event integration validation on 2026-10-26 (local evidence, not Jenkins status):
+
+- 10 dashboard selection tests passed, plus the 41 existing sporting-event,
+  provider and maintenance tests. Cases include more than one result page,
+  ordering/ties, corrections, OR interests/following, stale live assertions,
+  date-only fixtures, midnight and both DST transitions.
+- Full frontend suite: 92 suites, 557 tests passed. Frontend/E2E typechecks and
+  zero-warning ESLint passed.
+- Quick cross-stack gate passed: documentation/backend contracts, generated-client
+  drift, focused frontend checks, production build and Pages helper consistency.
+- Sixteen mocked browser cases passed across four device/browser profiles and
+  both themes; all eight dashboard cases passed again after timezone deep-link
+  handling and shorter date labels. Verified saved preferences, detail navigation,
+  separate integration pages, no playback/API mutations, no horizontal overflow,
+  and no browser warnings/errors. Phone/desktop screenshots were inspected.
+- Strict legacy-path guard and whitespace checks passed. The existing Vite vendor
+  chunk-size advisory remains. No live external integrations or Docker sidecars
+  were exercised.
+
+The full cross-stack gate reached the full backend suite: 2,036 passed, 24 skipped,
+42 failed and 21 setup errors in the restricted sandbox. Retrying those exact 63
+cases with localhost socket access passed 52; the remaining 11 media tests require
+host FFmpeg/ffprobe, which are unavailable in this environment. The full gate is
+therefore not green. No test exclusions or warning suppressions were added; the
+independent quick gate and full frontend suite above passed. Logs were retained
+locally in `/tmp/dashboard-full-gate.log` and `/tmp/dashboard-backend-retry.log`.

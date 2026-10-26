@@ -11,11 +11,13 @@ NOW = datetime(2026, 10, 25, 0, 30, tzinfo=timezone.utc)
 @pytest.fixture
 def clock(monkeypatch):
     from app.services import event_service
+    current = [NOW]
     class Clock(datetime):
         @classmethod
         def now(cls, tz=None):
-            return NOW.astimezone(tz) if tz else NOW.replace(tzinfo=None)
+            return current[0].astimezone(tz) if tz else current[0].replace(tzinfo=None)
     monkeypatch.setattr(event_service, 'datetime', Clock)
+    return current
 
 
 @pytest.fixture
@@ -112,3 +114,20 @@ def test_date_only_order_ties_and_dst_window(client, add_event, clock):
 @pytest.mark.parametrize('params', [{'selection': 'invalid'}, {'zone': 'No/Zone'}, {'limit': 0}, {'window_days': 31}])
 def test_selection_contract_validation(client, params):
     assert client.get('/api/v1/events', params=params).status_code == 422
+
+
+def test_spring_dst_calendar_window_and_midnight_refresh(client, add_event, clock):
+    clock[0] = datetime(2026, 3, 28, 22, 59, 59, tzinfo=timezone.utc)
+    add_event('first-day-tbc', scheduled_date='2026-03-28')
+    add_event('spring-last', starts_at='2026-04-03T21:59:59Z')
+    add_event('next-window', starts_at='2026-04-03T22:00:00Z')
+    assert ids(read(client)) == ['spring-last', 'first-day-tbc']
+    clock[0] += timedelta(seconds=1)  # Madrid midnight advances the calendar window.
+    assert ids(read(client)) == ['spring-last', 'next-window']
+
+
+def test_started_scheduled_event_leaves_summary_until_publisher_reports_live(client, add_event, clock):
+    add_event('starting', starts_at=NOW, state='scheduled')
+    assert ids(read(client)) == ['starting']
+    clock[0] += timedelta(seconds=1)
+    assert read(client)['total'] == 0

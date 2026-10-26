@@ -84,7 +84,7 @@ it('offers setup when no external players are saved', () => {
   mockPlayers.mockReturnValue({ data: [] });
   renderPage();
   fireEvent.click(screen.getByRole('button', { name: 'Send to player Watchable' }));
-  expect(screen.getByRole('menuitem', { name: /Add a player/ })).toHaveAttribute('href', '/integrations');
+  expect(screen.getByRole('menuitem', { name: /Add a player/ })).toHaveAttribute('href', '/integrations/remote-players');
 });
 
 it('reports a failed send without opening the web player', async () => {

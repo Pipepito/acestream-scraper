@@ -111,7 +111,7 @@ const WarpPage: React.FC = () => {
             </Button>
           </Stack>
         }
-        overflowActions={[{ label: 'Back to Overview', onClick: () => navigate('/') }]}
+        overflowActions={[{ label: 'Back to System status', onClick: () => navigate('/system') }]}
       />
 
       <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap role="status" aria-label="WARP status" sx={{ mb: 2 }}>
@@ -130,7 +130,7 @@ const WarpPage: React.FC = () => {
       {!running ? (
         <Alert severity="info" sx={{ mb: 2 }}>
           WARP is not running in this container. Start it with <code>ENABLE_WARP=true</code> and give the container the <code>NET_ADMIN</code> and{' '}
-          <code>SYS_ADMIN</code> capabilities (see the README). Restart it from the Services panel on the Overview once enabled.
+          <code>SYS_ADMIN</code> capabilities (see the README). Restart it from the Services panel on System status once enabled.
         </Alert>
       ) : null}
 

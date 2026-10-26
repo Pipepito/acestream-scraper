@@ -24,8 +24,8 @@ test('optional checker settings persist and no-engine setups skip checks', async
     await page.getByRole('button', { name: 'Save engine URL', exact: true }).click();
     await expect(page.getByRole('status', { name: 'Engine status', exact: true })).toContainText('Not configured');
     const storageReport = page.waitForResponse(response => response.url().endsWith('/api/v1/system/storage') && response.request().method() === 'GET');
-    await page.goto('/');
-    await expect(page.getByRole('status', { name: 'Overview summary' })).toContainText('not configured');
+    await page.goto('/system');
+    await expect(page.getByRole('status', { name: 'System status summary' })).toContainText('not configured');
     const checkerCard = page.getByRole('group', { name: 'Service AceStream checking engine' });
     await expect(checkerCard).toContainText('Disabled');
     await expect(checkerCard.getByRole('link', { name: 'Configure engine' })).toHaveAttribute('href', '/settings?tab=automation');

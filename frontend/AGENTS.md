@@ -10,7 +10,7 @@ Run inside `frontend/`:
 npm ci
 npm start
 npm test -- --runInBand
-npm test -- --runInBand src/__tests__/Overview.test.tsx
+npm test -- --runInBand src/__tests__/SystemDashboard.test.tsx
 npm run typecheck
 npm run lint -- --max-warnings=0
 npm run build
@@ -40,8 +40,8 @@ testing the SPA through FastAPI rather than the Vite server.
 
 ## UI contract
 
-- Navigation includes Live TV, Catalogues and Events under Watch; other destinations are Overview, Scraper, Search,
-  Acestream Channels, TV Channels, EPG, Playlist, Integrations, WARP, Settings and Changelog, grouped by Watch, Manage and System.
+- Navigation includes TV dashboard, Live TV, Catalogues and Events under Watch; other destinations are System status, Scraper, Search,
+  Acestream Channels, TV Channels, EPG, Playlist, Public address, Web player, Remote players, Media servers, Telegram, WARP, Settings and Changelog, grouped by Watch, Manage, Integrations and System.
 - Live TV (`/live-tv`) is the viewing catalog; TV Channels remains the management
   inventory. Use `ChannelPlayerDialog` to retain or resolve TV context and
   `StreamPlayerDialog` for the underlying HLS lifecycle.
@@ -84,7 +84,7 @@ testing the SPA through FastAPI rather than the Vite server.
 Live TV embeds the existing HLS player alongside a scrollable catalogue. Filtering
 does not release playback; changing the channel or Stop watching releases the
 current viewer. Other pages retain the player dialog. Navigation groups Watch,
-Manage and System, with WARP always discoverable. Settings uses deep-linkable
+Manage, Integrations and System, with WARP always discoverable. Settings uses deep-linkable
 `?tab=playback|automation|links|access` sections; public address belongs to
 Integrations. PID/AppID belong to Stream links, not Automation.
 
@@ -114,3 +114,22 @@ URL, and with neither URL probes are skipped without changing channel results.
 A configured dedicated checker never falls back on failure. Bundled checker
 configuration remains supervisor-owned and read-only in Settings. New scraper-only
 installs default to an empty playback URL; existing saved endpoints are preserved.
+
+## TV and system dashboards
+
+The default `/` route is TV dashboard under Watch: app-owned playback, channel/stream
+inventory and time until the next content updates. System status at `/system` owns services, storage,
+diagnostics and full job history. `/health` redirects to `/system`; `/dashboard` and
+`/stats` redirect to `/`. Keep section failures independent and missing data unknown.
+Playback summaries only read the shared streams query; never touch session heartbeats
+or ownership. See `docs/dev/dashboard-split.md` for the event agenda integration plan.
+
+## Integration navigation
+
+Integrations is a sidebar category with independent pages at
+`/integrations/public-address`, `/integrations/web-player`,
+`/integrations/remote-players`, `/integrations/media-servers` and
+`/integrations/telegram`. The old `/integrations` URL redirects to Public address.
+Keep tuner settings with Media servers, WARP under System, and contextual links
+pointing directly to the relevant setup. Each page mounts only its own section;
+shared query keys and page-scoped feedback preserve existing operations.

@@ -14,7 +14,7 @@ export const usePlayerCapabilities = () =>
     staleTime: 60_000,
   });
 
-/** Everything streaming right now — browser sessions and relays; polled while the Integrations page is open. */
+/** Everything streaming right now — browser sessions and relays; polled while a playback summary is mounted. */
 export const useActiveStreams = () =>
   useQuery<{ streams: ActiveStream[] }>({
     queryKey: PLAYER_STREAMS_QUERY_KEY,

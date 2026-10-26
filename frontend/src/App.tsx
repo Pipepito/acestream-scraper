@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 import AppShell from './components/layout/AppShell';
 import ApiTokenNotice from './components/ApiTokenNotice';
-import Overview from './pages/Overview';
+import TVDashboard from './pages/TVDashboard';
 import AcestreamChannels from './pages/AcestreamChannels';
 import TVChannels from './pages/TVChannels';
 import TVChannelDetail from './pages/TVChannelDetail';
@@ -12,12 +12,17 @@ import EPGChannelDetail from './pages/EPGChannelDetail';
 import Playlist from './pages/Playlist';
 import WARP from './pages/WARP';
 import Search from './pages/Search';
-import Integrations from './pages/Integrations';
 import Settings from './pages/Settings';
 import LiveTV from './pages/LiveTV';
 import NotFound from './pages/NotFound';
 import UpdateAvailableNotice from './components/UpdateAvailableNotice';
 import WhatsNewNotice from './components/WhatsNewNotice';
+const PublicAddress = React.lazy(() => import('./pages/integrations/PublicAddress'));
+const WebPlayer = React.lazy(() => import('./pages/integrations/WebPlayer'));
+const RemotePlayers = React.lazy(() => import('./pages/integrations/RemotePlayers'));
+const MediaServers = React.lazy(() => import('./pages/integrations/MediaServers'));
+const Telegram = React.lazy(() => import('./pages/integrations/Telegram'));
+const SystemDashboard = React.lazy(() => import('./pages/SystemDashboard'));
 const Catalogues = React.lazy(() => import('./pages/Catalogues'));
 
 
@@ -28,7 +33,8 @@ const ExtractionBuilder = React.lazy(() => import('./pages/ExtractionBuilder'));
 /** Old URLs keep working: they land on the page that now holds that information. */
 export const LEGACY_REDIRECTS: Array<{ from: string; to: string }> = [
   { from: '/dashboard', to: '/' },
-  { from: '/health', to: '/' },
+  { from: '/integrations', to: '/integrations/public-address' },
+  { from: '/health', to: '/system' },
   { from: '/stats', to: '/' },
   { from: '/channels', to: '/tv-channels' },
   { from: '/channels/:id', to: '/tv-channels' },
@@ -49,7 +55,8 @@ const App: React.FC = () => {
       <UpdateAvailableNotice />
       <WhatsNewNotice />
       <Routes>
-        <Route path="/" element={<Overview />} />
+        <Route path="/" element={<TVDashboard />} />
+        <Route path="/system" element={<React.Suspense fallback={<p role="status">Loading system status…</p>}><SystemDashboard /></React.Suspense>} />
         <Route path="/acestream-channels" element={<AcestreamChannels />} />
         <Route path="/catalogues" element={<React.Suspense fallback={<p role="status">Loading catalogues…</p>}><Catalogues /></React.Suspense>} />
         <Route path="/live-tv" element={<LiveTV />} />
@@ -63,7 +70,11 @@ const App: React.FC = () => {
         <Route path="/playlist" element={<Playlist />} />
         <Route path="/warp" element={<WARP />} />
         <Route path="/search" element={<Search />} />
-        <Route path="/integrations" element={<Integrations />} />
+        <Route path="/integrations/public-address" element={<React.Suspense fallback={<p role="status">Loading integration…</p>}><PublicAddress /></React.Suspense>} />
+        <Route path="/integrations/web-player" element={<React.Suspense fallback={<p role="status">Loading integration…</p>}><WebPlayer /></React.Suspense>} />
+        <Route path="/integrations/remote-players" element={<React.Suspense fallback={<p role="status">Loading integration…</p>}><RemotePlayers /></React.Suspense>} />
+        <Route path="/integrations/media-servers" element={<React.Suspense fallback={<p role="status">Loading integration…</p>}><MediaServers /></React.Suspense>} />
+        <Route path="/integrations/telegram" element={<React.Suspense fallback={<p role="status">Loading integration…</p>}><Telegram /></React.Suspense>} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/changelog" element={<React.Suspense fallback={<p role="status">Loading changelog…</p>}><Changelog /></React.Suspense>} />
         {LEGACY_REDIRECTS.map((redirect) => (

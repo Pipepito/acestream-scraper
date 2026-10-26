@@ -10,27 +10,34 @@ If you have not created the container yet, use the [Docker command builder](http
 
 ## Find your way around
 
-Navigation groups **Watch** (Live TV), **Manage** (sources, Search, stream and TV inventories, EPG, Playlist), and **System** (Overview, Integrations, WARP, Settings). The top-left button collapses the sidebar on desktop and opens the menu on a phone. The theme button switches between light and dark.
+Navigation groups **Watch** (TV dashboard, Live TV, Catalogues, Events), **Manage** (sources, Search, stream and TV inventories, EPG, Playlist), **Integrations** (Public address, Web player, Remote players, Media servers, Telegram), and **System** (System status, WARP, Settings). The top-left button collapses the sidebar on desktop and opens the menu on a phone. The theme button switches between light and dark.
 
 A **stream** is one AceStream content ID. A **TV channel** groups stream IDs for one station, with its channel number, favorite flag and programme guide. Scraping discovers streams; assigning them to TV channels creates the viewing catalogue.
 
 Choose **Wiki** in the top bar for these guides and troubleshooting help. It stays available on phones and with the sidebar collapsed, and opens in a new tab so your current page and playback remain open.
 
-## Step 1: Check the Overview
+## Step 1: Open the TV dashboard
 
-The **Overview** page is the first place to check after startup. Its status line shows whether the AceStream engine is reachable, how many streams and TV channels are loaded, and when scraping and EPG refresh last ran.
+The **TV dashboard** at `/` is the landing page. It shows browser playback and server
+relays, saved channels and streams, guide coverage, and time until the next source, guide and stream-check updates. Running and queued
+updates show their current state; results and history stay on System status. **Watch TV** opens the viewing catalogue; **Events** opens saved schedules.
+Players connected directly to an external engine are outside the playback summary.
+Starting or failed sessions have their own labels and are not counted as playing.
 
-The **Services** section distinguishes three states:
+Open **System status** under System (`/system`) for service health, software version,
+storage, diagnostics and the complete scheduled-job history. Services distinguish
+running, stopped, disabled, external and not-installed states. An unavailable status
+read stays unknown; it is not reported as healthy.
 
-- **Running**: enabled and answering.
-- **Not running**: installed in the selected image but disabled or unhealthy.
-- **Not installed**: unavailable in the selected image flavor or platform.
+The playback and checking engines have separate Start, Stop and Restart controls.
+Stop pauses automatic engine recovery until Start/Restart or a container restart.
+**Download diagnostics** collects recent scraper and service logs. Scheduled jobs
+retain their last launch and result across restarts; unfinished runs are interrupted.
 
-The inventory and scheduled-jobs sections show what is loaded and when automation runs next. Engines are optional: a scraper-only installation can manage sources and playlists without one. Browser playback and engine search need a reachable playback engine; status checks need a playback or dedicated checking engine.
-
-The playback and checking engines have separate Start, Stop and Restart controls. Stop pauses automatic engine recovery until Start/Restart or a container restart. **Download diagnostics** collects recent scraper and service logs. Scheduled jobs retain their last launch and result across restarts; an unfinished run is marked interrupted.
-
-![Overview page with service, inventory, and scheduled-job status](usage-01-overview.png)
+Engines are optional. A scraper-only installation can manage sources and playlists;
+HTTP browser playback does not require AceStream. AceStream playback and engine
+search need a reachable playback engine. Checks of AceStream streams need a playback
+or dedicated checking engine.
 
 ## Step 2: Configure playback, checks and links
 
@@ -39,9 +46,11 @@ Open **Settings**. Its four tabs can be bookmarked independently:
 | Tab | Use it for |
 |---|---|
 | **Playback** (`/settings?tab=playback`) | Save the optional engine URL reachable from the backend. A bundled engine normally uses `http://localhost:6878`. Optionally enable **Route playback through Acexy** and save its backend-facing URL. This does not start Acexy and applies to new sessions. |
-| **Automation** (`/settings?tab=automation`) | Choose a dedicated checking engine and save source-scrape, EPG-refresh and stream-check intervals. Changes apply immediately. A bundled checker is read-only here; its controls are in Overview. |
+| **Automation** (`/settings?tab=automation`) | Choose a dedicated checking engine and save source-scrape, EPG-refresh and stream-check intervals. Changes apply immediately. A bundled checker is read-only here; its controls are in System status. |
 | **Stream links** (`/settings?tab=links`) | Add named player formats, choose the default, and set optional PID/AppID compatibility flags. The same editor is available in Playlist. |
 | **API access** (`/settings?tab=access`) | Store the server's `API_TOKEN` in this browser, if one is configured. This does not set or change the server token. |
+
+Integrations is a menu category: each setup has its own page. Public address (`/integrations/public-address`), Web player (`/integrations/web-player`), Remote players (`/integrations/remote-players`), Media servers (`/integrations/media-servers`) and Telegram (`/integrations/telegram`) can be bookmarked directly. Shared tuner settings remain on Media servers; old `/integrations` bookmarks open Public address.
 
 Set the address other devices use in **Integrations → Public address**. A backend engine URL may use `localhost` when it shares the container; a link opened on another device must use the server's reachable address.
 
@@ -134,7 +143,7 @@ Open **EPG**. The five tabs form one workflow:
 4. **Rules**: manage include/exclude patterns used by matching.
 5. **Export**: download XMLTV containing only your configured TV channels.
 
-Large imports can continue in the background. Progress and future runs appear on **Overview**.
+Large imports can continue in the background. Progress and future runs appear on **System status**.
 
 **Playlist → Programme guide** shows how many catalogue streams have a linked guide
 and links directly to reviewed matching. A guide imported under Sources is not
@@ -233,7 +242,7 @@ All current application APIs are under `/api/v1`. A small set of v1 playlist ali
 
 ## WARP
 
-Open **WARP** under System, or choose **Manage WARP** in Overview. When installed and enabled, The page shows connection state, mode, account, and exit location, and provides connect/disconnect controls. Enabling WARP in Docker requires `ENABLE_WARP=true`, the `NET_ADMIN` and `SYS_ADMIN` capabilities, and the `/dev/net/tun` device. Set `WARP_ENABLE_NAT=true` to connect automatically, or use the page's connect control. WARP is available on `linux/amd64` and `linux/arm64`; it is unavailable on `linux/arm/v7` because Cloudflare does not publish a 32-bit ARM package.
+Open **WARP** under System, or choose **Manage WARP** in System status. When installed and enabled, The page shows connection state, mode, account, and exit location, and provides connect/disconnect controls. Enabling WARP in Docker requires `ENABLE_WARP=true`, the `NET_ADMIN` and `SYS_ADMIN` capabilities, and the `/dev/net/tun` device. Set `WARP_ENABLE_NAT=true` to connect automatically, or use the page's connect control. WARP is available on `linux/amd64` and `linux/arm64`; it is unavailable on `linux/arm/v7` because Cloudflare does not publish a 32-bit ARM package.
 
 ## Next steps
 

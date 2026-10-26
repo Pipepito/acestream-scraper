@@ -299,6 +299,19 @@
             ],
             "title": "Source Url"
           },
+          "stream_order": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Priority preference order among streams for this channel; 1 is highest priority.",
+            "title": "Stream Order"
+          },
           "stream_stats": {
             "anyOf": [
               {
@@ -7532,6 +7545,35 @@
           "acestreams"
         ],
         "title": "TVChannelStatsResponse",
+        "type": "object"
+      },
+      "TVChannelStreamReorderRequest": {
+        "description": "Desired stream IDs in preference order; saved with stream_order 1 through N.",
+        "properties": {
+          "expected_order": {
+            "description": "Original complete acestream ID ordering; rejects stale reorder edits.",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Expected Order",
+            "type": "array"
+          },
+          "stream_ids": {
+            "description": "Desired complete acestream ID ordering for this TV channel.",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Stream Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "stream_ids",
+          "expected_order"
+        ],
+        "title": "TVChannelStreamReorderRequest",
         "type": "object"
       },
       "TVChannelUpdate": {
@@ -18810,6 +18852,63 @@
           }
         },
         "summary": "Associate Acestream",
+        "tags": [
+          "tv-channels"
+        ]
+      }
+    },
+    "/api/v1/tv-channels/{tv_channel_id}/acestreams/reorder": {
+      "post": {
+        "description": "Reorder streams for a TV channel by setting their preference order (1, 2, ...).",
+        "operationId": "reorder_tv_channel_acestreams_api_v1_tv_channels__tv_channel_id__acestreams_reorder_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tv_channel_id",
+            "required": true,
+            "schema": {
+              "title": "Tv Channel Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TVChannelStreamReorderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AcestreamChannelResponse"
+                  },
+                  "title": "Response Reorder Tv Channel Acestreams Api V1 Tv Channels  Tv Channel Id  Acestreams Reorder Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reorder Tv Channel Acestreams",
         "tags": [
           "tv-channels"
         ]

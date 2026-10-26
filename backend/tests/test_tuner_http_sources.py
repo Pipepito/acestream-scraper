@@ -289,3 +289,17 @@ async def test_http_start_interruption_reaps_process_and_proxy(media_tools, monk
     assert children and all(child.returncode is not None for child in children)
     assert proxies and all(proxy._runner is None and not proxy._tasks for proxy in proxies)
     assert registry.count_active() == 0
+
+
+def test_saved_preference_applies_to_http_sources(db_session):
+    tv = TVChannel(name='Preferred HTTP', is_active=True)
+    db_session.add(tv)
+    db_session.flush()
+    db_session.add_all([
+        AcestreamChannel(id=HTTP_ID, name='HTTP', tv_channel_id=tv.id,
+                         stream_url='atresplayer://lasexta', is_active=True, stream_order=1),
+        AcestreamChannel(id=ACE_ID, name='Engine', tv_channel_id=tv.id,
+                         is_active=True, is_online=True, last_checked=datetime.now(timezone.utc)),
+    ])
+    db_session.commit()
+    assert TunerService(db_session).relay_stream_ids(tv.id) == [HTTP_ID, ACE_ID]

@@ -67,6 +67,20 @@ class ChannelRepository:
             self.db.rollback()
             raise
 
+    def lock_tv_channel_streams(self, tv_channel_id: int) -> List[AcestreamChannel]:
+        """Acquire the write lock before reading the reorder snapshot (also on SQLite)."""
+        self.db.query(TVChannel).filter(TVChannel.id == tv_channel_id).update(
+            {TVChannel.updated_at: TVChannel.updated_at}, synchronize_session=False,
+        )
+        return (self.db.query(AcestreamChannel)
+                .filter(AcestreamChannel.tv_channel_id == tv_channel_id)
+                .populate_existing().all())
+
+    def save_stream_order(self, streams: List[AcestreamChannel]) -> None:
+        for order, stream in enumerate(streams, start=1):
+            stream.stream_order = order
+        self.db.commit()
+
     def get_tv_channels_with_total(self, skip: int = 0, limit: int = 100,
                                    search: Optional[str] = None,
                                    favorites_only: bool = False) -> (list, int):
@@ -394,6 +408,9 @@ class ChannelRepository:
         if not channel:
             return None
 
+        if "tv_channel_id" in updates and updates["tv_channel_id"] != channel.tv_channel_id:
+            channel.stream_order = None
+
         # Update fields from the dictionary
         for key, value in updates.items():
             if hasattr(channel, key):
@@ -579,6 +596,8 @@ class ChannelRepository:
         if not tv_channel:
             return False
 
+        for stream in tv_channel.acestream_channels:
+            stream.stream_order = None
         self.db.delete(tv_channel)
         self.db.commit()
         return True
@@ -593,6 +612,8 @@ class ChannelRepository:
         if not tv_channel or not acestream_channel:
             return False
 
+        if acestream_channel.tv_channel_id != tv_channel_id:
+            acestream_channel.stream_order = None
         acestream_channel.tv_channel_id = tv_channel_id
         self.db.commit()
         return True
@@ -607,6 +628,7 @@ class ChannelRepository:
             return False
 
         acestream_channel.tv_channel_id = None
+        acestream_channel.stream_order = None
         self.db.commit()
         return True
 

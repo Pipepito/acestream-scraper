@@ -31,6 +31,7 @@ from app.schemas.channel import (
     TVChannelResponse,
     TVChannelUpdate,
     TVChannelReorderRequest,
+    TVChannelStreamReorderRequest,
 )
 
 router = APIRouter()
@@ -313,6 +314,33 @@ async def remove_acestream_association(
 
     # Return empty Response with 204 status code
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post(
+    "/{tv_channel_id}/acestreams/reorder",
+    response_model=List[AcestreamChannelResponse],
+)
+def reorder_tv_channel_acestreams(
+    tv_channel_id: int,
+    request: TVChannelStreamReorderRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Reorder streams for a TV channel by setting their preference order (1, 2, ...).
+    """
+    service = TVChannelService(db)
+    channel = service.get_tv_channel_by_id(tv_channel_id)
+    if not channel:
+        raise HTTPException(status_code=404, detail="TV Channel not found")
+    try:
+        updated_streams = service.reorder_streams(
+            tv_channel_id=tv_channel_id,
+            stream_ids=request.stream_ids,
+            expected_order=request.expected_order,
+        )
+        return updated_streams
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
 
 
 @router.post(

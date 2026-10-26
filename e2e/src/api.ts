@@ -192,6 +192,11 @@ export class Api {
   }
 
   /* search (engine) */
+  resolveSearchResult(infohash: string): Promise<{ content_id: string }> {
+    return this.request.post(this.url(`/api/v1/search/${encodeURIComponent(infohash)}/resolve`))
+      .then((r) => json<{ content_id: string }>(r, 'POST /search/resolve'));
+  }
+
   search(query: string, perPage = 10): Promise<SearchResponse> {
     const qs = new URLSearchParams({ query, page: '1', per_page: String(perPage) });
     return this.get(this.url(`/api/v1/search?${qs}`)).then((r) => json<SearchResponse>(r, 'GET /search'));

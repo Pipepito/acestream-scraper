@@ -194,6 +194,20 @@ Choose **Watch**. The player and scrollable catalogue stay on the same page. Sea
 
 Use **Search** to query the connected AceStream engine catalogue. Add one result or select several and add them together. Use **Add channel** on **Acestream Channels** when you already know a content ID.
 
+Search returns infohashes, which are different from playback content IDs. **Add**
+and **Play** resolve the selected result through the configured playback engine
+before saving or opening it. A failed lookup leaves the inventory unchanged and
+can be retried; **Play** does not add a channel. Saved channels and exported links
+use the resolved content ID, including with Acexy routing. Catalogue search and
+resolution still require the playback engine, even when a dedicated checker or
+Acexy is configured.
+
+If a result added by an older version passes **Check broadcast** but fails with
+“failed to load content”, add it again from Search. The corrected content ID may
+create a separate entry: move any TV assignment to it, then remove the old entry
+when no longer needed. Existing entries are not rewritten automatically because
+a 40-character hash alone cannot identify which kind it is.
+
 Search shows the catalogue's availability and last update separately from the
 current broadcast. **Catalogue: available** is an upstream report, not proof of
 an emission now. **Check broadcast** opens a temporary engine session for that

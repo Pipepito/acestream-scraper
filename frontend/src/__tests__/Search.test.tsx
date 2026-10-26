@@ -5,11 +5,16 @@ import { useMediaQuery } from '@mui/material';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import Search from '../pages/Search';
+import { searchService } from '../services/searchService';
 import { mockResponsiveShellQueries } from '../testUtils/mockResponsiveShell';
 import { createAppTheme } from '../theme';
 
+const INFOHASH = '42832fbf9a1d3bdcca043e09951d6769fbbe04e7';
+const CONTENT_ID = 'e72d03fb9694164317260f684470be9ab781ed95';
+jest.mock('../services/searchService');
+
 const mockUseSearch = jest.fn();
-const mockUseAddAcestreamChannel = jest.fn();
+const mockUseAddSearchResult = jest.fn();
 const mockUseMediaQuery = useMediaQuery as jest.MockedFunction<typeof useMediaQuery>;
 
 jest.mock('@mui/material', () => {
@@ -23,7 +28,7 @@ jest.mock('@mui/material', () => {
 
 jest.mock('../hooks/useSearch', () => ({
   useSearch: (...args: unknown[]) => mockUseSearch(...args),
-  useAddAcestreamChannel: (...args: unknown[]) => mockUseAddAcestreamChannel(...args),
+  useAddSearchResult: (...args: unknown[]) => mockUseAddSearchResult(...args),
 }));
 
 jest.mock('../components/player/StreamPlayerDialog', () => ({
@@ -42,8 +47,8 @@ describe('Search page', () => {
     success: true,
     message: 'ok',
     results: [
-      { id: 'ace-1', name: 'Arena Premium', categories: ['sports'], bitrate: 1800 },
-      { id: 'ace-2', name: 'News Global', categories: ['news'], bitrate: 1200 },
+      { id: INFOHASH, name: 'Arena Premium', categories: ['sports'], bitrate: 1800 },
+      { id: 'b'.repeat(40), name: 'News Global', categories: ['news'], bitrate: 1200 },
     ],
     pagination: { page: 1, page_size: 10, total_results: 2, total_pages: 1 },
   };
@@ -105,6 +110,7 @@ describe('Search page', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.mocked(searchService.resolveContentId).mockReset().mockResolvedValue(CONTENT_ID);
     mockUseMediaQuery.mockReset();
     mockResponsiveShellQueries(mockUseMediaQuery, theme, {
       isPhone: false,
@@ -112,7 +118,7 @@ describe('Search page', () => {
       isWideDesktop: true,
     });
     configureSearchMock();
-    mockUseAddAcestreamChannel.mockReturnValue({ mutateAsync: jest.fn(), isPending: false });
+    mockUseAddSearchResult.mockReturnValue({ mutateAsync: jest.fn(), isPending: false });
   });
 
   it('renders shared header and section-first search hierarchy', () => {
@@ -171,7 +177,7 @@ describe('Search page', () => {
 
   it('adds a single result and invalidates the acestream inventory query', async () => {
     const mutateAsync = jest.fn().mockResolvedValue({});
-    mockUseAddAcestreamChannel.mockReturnValue({ mutateAsync, isPending: false });
+    mockUseAddSearchResult.mockReturnValue({ mutateAsync, isPending: false });
 
     const { queryClient } = renderPage();
     const invalidateQueries = jest.spyOn(queryClient, 'invalidateQueries').mockResolvedValue(undefined);
@@ -182,18 +188,19 @@ describe('Search page', () => {
 
     await waitFor(() => {
       expect(mutateAsync).toHaveBeenCalledWith({
-        id: 'ace-1',
+        id: INFOHASH,
         name: 'Arena Premium',
-        group: 'sports',
+        categories: ['sports'],
+        bitrate: 1800,
       });
     });
 
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['acestream-channels'] });
   });
 
-  it('plays a result without adding it', () => {
+  it('resolves and plays a result without adding it', async () => {
     const mutateAsync = jest.fn().mockResolvedValue({});
-    mockUseAddAcestreamChannel.mockReturnValue({ mutateAsync, isPending: false });
+    mockUseAddSearchResult.mockReturnValue({ mutateAsync, isPending: false });
 
     renderPage();
 
@@ -201,13 +208,26 @@ describe('Search page', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Search' }));
     fireEvent.click(screen.getByRole('button', { name: 'play Arena Premium' }));
 
-    expect(screen.getByRole('dialog', { name: 'Arena Premium' })).toHaveTextContent('ace-1');
+    expect(await screen.findByRole('dialog', { name: 'Arena Premium' })).toHaveTextContent(CONTENT_ID);
+    expect(searchService.resolveContentId).toHaveBeenCalledWith(INFOHASH);
     expect(mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it('keeps the player closed and allows retry when resolution fails', async () => {
+    jest.mocked(searchService.resolveContentId).mockRejectedValueOnce(new Error('Engine unavailable'));
+    renderPage();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search Query' }), { target: { value: 'arena' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+    fireEvent.click(screen.getByRole('button', { name: 'play Arena Premium' }));
+    expect(await screen.findByText(/Could not play:/)).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'play Arena Premium' }));
+    expect(await screen.findByRole('dialog', { name: 'Arena Premium' })).toHaveTextContent(CONTENT_ID);
   });
 
   it('removes a successfully added single result from the current selection summary', async () => {
     const mutateAsync = jest.fn().mockResolvedValue({});
-    mockUseAddAcestreamChannel.mockReturnValue({ mutateAsync, isPending: false });
+    mockUseAddSearchResult.mockReturnValue({ mutateAsync, isPending: false });
 
     renderPage();
 
@@ -222,9 +242,10 @@ describe('Search page', () => {
 
     await waitFor(() => {
       expect(mutateAsync).toHaveBeenCalledWith({
-        id: 'ace-1',
+        id: INFOHASH,
         name: 'Arena Premium',
-        group: 'sports',
+        categories: ['sports'],
+        bitrate: 1800,
       });
     });
 
@@ -236,7 +257,7 @@ describe('Search page', () => {
 
   it('adds selected results in batch and invalidates the acestream inventory query', async () => {
     const mutateAsync = jest.fn().mockResolvedValue({});
-    mockUseAddAcestreamChannel.mockReturnValue({ mutateAsync, isPending: false });
+    mockUseAddSearchResult.mockReturnValue({ mutateAsync, isPending: false });
 
     const { queryClient } = renderPage();
     const invalidateQueries = jest.spyOn(queryClient, 'invalidateQueries').mockResolvedValue(undefined);
@@ -249,14 +270,16 @@ describe('Search page', () => {
 
     await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(2));
     expect(mutateAsync).toHaveBeenNthCalledWith(1, {
-      id: 'ace-1',
+      id: INFOHASH,
       name: 'Arena Premium',
-      group: 'sports',
+      categories: ['sports'],
+      bitrate: 1800,
     });
     expect(mutateAsync).toHaveBeenNthCalledWith(2, {
-      id: 'ace-2',
+      id: 'b'.repeat(40),
       name: 'News Global',
-      group: 'news',
+      categories: ['news'],
+      bitrate: 1200,
     });
 
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['acestream-channels'] });
@@ -268,7 +291,7 @@ describe('Search page', () => {
       .fn()
       .mockResolvedValueOnce({})
       .mockRejectedValueOnce(new Error('Second add failed'));
-    mockUseAddAcestreamChannel.mockReturnValue({ mutateAsync, isPending: false });
+    mockUseAddSearchResult.mockReturnValue({ mutateAsync, isPending: false });
 
     try {
       const { queryClient } = renderPage();
@@ -282,14 +305,16 @@ describe('Search page', () => {
 
       await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(2));
       expect(mutateAsync).toHaveBeenNthCalledWith(1, {
-        id: 'ace-1',
+        id: INFOHASH,
         name: 'Arena Premium',
-        group: 'sports',
+        categories: ['sports'],
+        bitrate: 1800,
       });
       expect(mutateAsync).toHaveBeenNthCalledWith(2, {
-        id: 'ace-2',
+        id: 'b'.repeat(40),
         name: 'News Global',
-        group: 'news',
+        categories: ['news'],
+        bitrate: 1200,
       });
 
       expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['acestream-channels'] });
@@ -304,7 +329,7 @@ describe('Search page', () => {
       .fn()
       .mockResolvedValueOnce({})
       .mockRejectedValueOnce(new Error('Second add failed'));
-    mockUseAddAcestreamChannel.mockReturnValue({ mutateAsync, isPending: false });
+    mockUseAddSearchResult.mockReturnValue({ mutateAsync, isPending: false });
 
     try {
       renderPage();
@@ -320,14 +345,16 @@ describe('Search page', () => {
 
       await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(2));
       expect(mutateAsync).toHaveBeenNthCalledWith(1, {
-        id: 'ace-1',
+        id: INFOHASH,
         name: 'Arena Premium',
-        group: 'sports',
+        categories: ['sports'],
+        bitrate: 1800,
       });
       expect(mutateAsync).toHaveBeenNthCalledWith(2, {
-        id: 'ace-2',
+        id: 'b'.repeat(40),
         name: 'News Global',
-        group: 'news',
+        categories: ['news'],
+        bitrate: 1200,
       });
 
       expect(screen.getByRole('status', { name: 'Search summary' })).toHaveTextContent('Selected1');

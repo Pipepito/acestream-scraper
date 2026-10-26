@@ -33,6 +33,10 @@ class SearchPagination(BaseModel):
     total_results: int = Field(..., description="Total number of results")
     total_pages: int = Field(..., description="Total number of pages")
 
+
+class ResolvedSearchResult(BaseModel):
+    content_id: str = Field(..., pattern=r"^[0-9a-f]{40}$", description="Resolved transport-file content ID for saving or playback")
+
 class SearchResponse(BaseModel):
     success: bool = Field(..., description="Success status of the request")
     message: str = Field(..., description="Message describing the result")

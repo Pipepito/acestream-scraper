@@ -3,7 +3,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 
 from app.config.database import get_db
-from app.schemas.search import SearchResponse, AddChannelRequest, AddMultipleRequest
+from app.schemas.search import SearchResponse, AddChannelRequest, AddMultipleRequest, ResolvedSearchResult
 from app.schemas.channel_status import ChannelStatusResponse
 from app.services.search_service import SearchService
 from app.services.config_service import ConfigService
@@ -59,6 +59,15 @@ async def check_search_broadcast(
 ):
     """Verify a search result's broadcast without adding it to the inventory."""
     return await search_service.check_broadcast(infohash.lower())
+
+
+@router.post("/{infohash}/resolve", response_model=ResolvedSearchResult)
+async def resolve_search_result(
+    infohash: str = Path(..., pattern=r"^[0-9a-fA-F]{40}$"),
+    search_service: SearchService = Depends(get_search_service),
+):
+    """Resolve a catalogue result before saving it or opening the shared player."""
+    return ResolvedSearchResult(content_id=await search_service.resolve_content_id(infohash.lower()))
 
 @router.post("/add_multiple")
 async def add_multiple_channels(

@@ -1,7 +1,7 @@
 
 import { useMutation, useQuery, keepPreviousData, UseQueryOptions } from '@tanstack/react-query';
-import { searchService, SearchResponse } from '../services/searchService';
-import { acestreamChannelService, CreateAcestreamChannelDTO, AcestreamChannel } from '../services/channelService';
+import { searchService, SearchResponse, SearchResultItem } from '../services/searchService';
+import { acestreamChannelService, AcestreamChannel } from '../services/channelService';
 
 type QueryOpts<T> = Omit<UseQueryOptions<T>, 'queryKey' | 'queryFn'>;
 
@@ -21,9 +21,15 @@ export const useSearch = (
 };
 
 
-// Mutation to add an Acestream channel
-export const useAddAcestreamChannel = () => {
-  return useMutation<AcestreamChannel, Error, CreateAcestreamChannelDTO>({
-    mutationFn: (channel: CreateAcestreamChannelDTO) => acestreamChannelService.createAcestreamChannel(channel),
+export const useAddSearchResult = () => {
+  return useMutation<AcestreamChannel, Error, SearchResultItem>({
+    mutationFn: async (channel) => {
+      const contentId = await searchService.resolveContentId(channel.id);
+      return acestreamChannelService.createAcestreamChannel({
+        id: contentId,
+        name: channel.name,
+        group: channel.categories?.[0],
+      });
+    },
   });
 };

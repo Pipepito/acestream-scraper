@@ -632,6 +632,16 @@ channels. Preserve source revisions, manual broadcaster mappings, archive clocks
 and private guarded artwork fetching. See `docs/dev/sporting-events.md`.
 
 
+Built-in event providers use guarded fixed WOSTI Spain/OpenFootball adapters and
+saved OR interests with a default 14-day source window. WOSTI has occurrence
+snapshots, not stable fixture IDs: changed dates/times need review, never silent
+reschedule merging. OpenFootball date-only fixtures keep kickoff unknown.
+Broadcaster links prefer unambiguous TV matches over EPG with conservative country
+checks; manual regional choices override them and survive refresh. Links are not
+media/signal evidence. Keep new events review-only and preserve data outside filters.
+See `docs/dev/sporting-events.md` and `wiki/Sports-Events.md`.
+
+
 Combined catalogues/events use migration revision `20261023_1400`, preserving both
 prior histories. Catalogue live imports require explicit confirmation; refresh
 imports only previously reviewed entry identities. Explicit event/VOD types cannot

@@ -2,13 +2,59 @@
 
 Development feature for v2.2.0; these notes do not establish stable availability.
 
-Open **Watch → Events**. Upcoming shows today's and future events, plus events with
-unknown start times. **Today** selects your current local date; **By date**, **All
-events** and **Archived** offer other views. Search by title/participant and filter
-by sport, competition, source or Following. The initial display timezone is your
-browser's timezone; open **Filters & timezone** and enter another IANA timezone,
-such as `Europe/Madrid`, to change
+Open **Watch → Events** for a day-by-day agenda with start times and broadcaster
+names. Select **When** to see the next **14 days** (including today), **Today**,
+**Choose a date**, **All saved events** or **Archived**. Events without a date appear
+at the end of the upcoming schedule and in All saved events; unknown times show
+“Time TBC”. Open an event title for its details and where to watch.
+
+Search by title/participant, or open **Filter events** to select sports,
+competitions, teams or Following. Sports, competitions and teams combine with
+**OR**: Premier League, one team and Motorsport includes anything matching any
+selection. The filter button shows the active count even when collapsed.
+**More filters & timezone** contains source and text filters, the 7/14/30-day
+window and display timezone. Text filters further narrow the view. Times initially
+use your browser timezone; enter an IANA timezone such as `Europe/Madrid` to change
 it for this page visit.
+
+## Built-in providers
+
+**Add events** opens **Built-in provider**. No JSON file or API key is needed:
+
+- **Fútbol en la TV · Spain** reads the [multi-sport guide](https://www.futbolenlatv.es/deporte)
+  and selected sport feeds, including [motorsport](https://www.futbolenlatv.es/deporte/automovilismo).
+  Spain is the **broadcast market**, not a restriction on teams or competition countries.
+  The all-sports page currently publishes a short-range schedule; individual sport
+  pages can cover more days. The default includes all sports and the motorsport page.
+- **OpenFootball** reads the selected league/season from
+  [football.json](https://github.com/openfootball/football.json). Choose a published
+  season and confirm the source timezone. Community fixture coverage varies, and
+  this source does **not** include TV broadcasters. A date without kickoff time
+  stays date-only; the app does not invent a midnight start.
+
+Choose an import window (7, **14** or 30 days) and **Preview events**. In the preview,
+select any sports, competitions and teams you want, then **Update preview with
+interests**. Selections combine with OR; empty selections include everything in the
+chosen feeds. Choose events individually or **Select all shown events**, then save.
+The available-interest list comes from the published window; an exact name can also
+be typed and accepted with Enter. At most 500 matching events appear per preview;
+narrow the interests if the provider publishes more.
+
+Each provider has one saved configuration (one per league/season for OpenFootball).
+The source remembers its feeds, interests and window. **Sources & retention →
+Review schedule** reopens them. An empty preview can still save the source for later
+review. Scheduled refresh updates selected, previously reviewed events; new events
+still need review. A shorter window or changed interest never deletes saved events
+or manual links. Display interests on the Events page are independent of import
+interests and apply for the current page visit.
+
+Fútbol en la TV does not publish stable fixture IDs in these pages. The integration
+therefore identifies exact published occurrences, including their date and time.
+An edited kickoff appears as a **new occurrence requiring review**, not an automatic
+reschedule. Check it and archive the older occurrence when appropriate. Doubleheaders,
+practice sessions and races are not merged just because their titles match.
+OpenFootball uses season, league, round and teams, so a kickoff edit retains identity.
+Neither source creates playable streams or promises complete 14-day coverage.
 
 ## Add and review
 
@@ -40,7 +86,7 @@ catalogue or Telegram messages. Their collectors use this shared contract. A min
 }
 ```
 
-An observation can include `participants`, a known `ends_at`, `time_notes`, and up
+An observation can include `participants`, `scheduled_date` (when the date is known but time is not), a known `ends_at`, `time_notes`, and up
 to 50 broadcasts. A broadcast may include `language`, `quality`, `country`, either
 `url` or an existing `channel_id`, and supported `headers` (`User-Agent`, `Referer`,
 `Origin`). Keep source/event and broadcast IDs stable across refreshes. Re-importing
@@ -54,6 +100,11 @@ server restart. Changed events reject stale previews; preview again. Invalid fil
 write nothing. Missing events and broadcasts remain saved on partial refresh.
 
 ## Schedule URLs and structured guides
+
+For other providers, use the advanced JSON/URL modes. A free website or JSON API
+must supply the version 1 format above or supported SportsEvent metadata below;
+arbitrary provider APIs and iCalendar (`.ics`) feeds still need an adapter.
+Invalid JSON and schema errors show the affected field paths before anything saves.
 
 Choose **Add events → Load schedule URL**. Select either the version 1 JSON format
 above or **Structured sports guide (JSON or HTML JSON-LD)**. For structured guides,
@@ -83,7 +134,9 @@ lets you accept newly discovered events. Failed, empty, invalid or partial feeds
 preserve saved events and variants. The last success, errors and new-event count
 are visible per source. Signed schedule URLs are not exposed in the source list.
 
-At most 20 schedule URLs are saved. Each fetch is limited to 2 MiB and 15 seconds;
+At most 20 sources are saved. A URL fetch is limited to 2 MiB and 15 seconds;
+built-in providers use at most three simultaneous requests, 2 MiB per response,
+12 MiB total and one shared 15-second deadline;
 a pass has a 120-second fetch budget and prioritizes sources with older attempts.
 Remaining sources are deferred. Turning refresh off during a fetch prevents its
 results from applying. A source identity belongs to one URL; use distinct publisher
@@ -92,8 +145,10 @@ saved URL, while publisher event IDs remain stable through postponements.
 
 ## Watch and follow
 
-Open an event's title or **View broadcasts** to inspect language/quality, source,
-compatibility and the last verified signal when available. **Play** uses the normal
+Open an event's title for its time and **Where to watch**. **Manage event** reveals
+schedule corrections, archive controls, channel links, language/quality, source
+and the last verified signal when available. **Schedule notes** expands any timing
+information supplied by the source. **Play** uses the normal
 browser player with shared audio/subtitle choices and cleanup. Choose another
 broadcast explicitly if one fails; seamless automatic switching is not provided.
 The existing player replaces only your viewer's session.
@@ -105,11 +160,19 @@ send HTML to FFmpeg. Expired URLs need a revised import. Event-only HTTP sources
 stay private and are not added to TV Channels, permanent stream inventory or
 playlist exports. No TV number, guide assignment or TV favorite is inferred.
 
-Use **Map [broadcaster] to a stream** to search active streams and select the exact
-country/edition. The selection is explicit, saved for that event's broadcast and
-preserved by refresh. **Use source broadcast** removes the override. Missing or
-disabled mapped streams remain unavailable; a generic “DAZN” never selects one
-automatically. No permanent channel is created or changed by mapping.
+Broadcaster names link to an existing **TV channel first**, otherwise an unambiguous
+**EPG channel**. Matching requires the same normalized name and compatible explicit
+country/edition; generic names such as DAZN and ambiguous matches remain plain text.
+A link opens the existing channel detail page and does not assert playable signal.
+
+For an unmatched broadcaster, use **Link [broadcaster]**; for an existing link,
+open **Manage event** first. Choose a TV or EPG channel manually, including a
+differently named channel in your country. **Individual stream** retains the direct
+stream mapping option. The choice applies to this event's broadcast, survives
+refresh and overrides automatic matching. **Use source broadcast** clears it.
+Missing/disabled or replaced manual targets remain unavailable until reviewed;
+no permanent channel, EPG assignment or name changes are made. Manual links are
+per broadcast, not global broadcaster aliases.
 
 If a source supplies `artwork_url` (or structured `image`), **Load event artwork**
 fetches it on request through the server. Only small PNG/JPEG/static WebP images

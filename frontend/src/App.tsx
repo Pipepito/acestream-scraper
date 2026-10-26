@@ -17,7 +17,6 @@ import Settings from './pages/Settings';
 import LiveTV from './pages/LiveTV';
 import NotFound from './pages/NotFound';
 import UpdateAvailableNotice from './components/UpdateAvailableNotice';
-import WhatsNewNotice from './components/WhatsNewNotice';
 const Catalogues = React.lazy(() => import('./pages/Catalogues'));
 
 
@@ -47,7 +46,6 @@ const App: React.FC = () => {
     <AppShell>
       <ApiTokenNotice />
       <UpdateAvailableNotice />
-      <WhatsNewNotice />
       <Routes>
         <Route path="/" element={<Overview />} />
         <Route path="/acestream-channels" element={<AcestreamChannels />} />

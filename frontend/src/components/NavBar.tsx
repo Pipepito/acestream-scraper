@@ -24,6 +24,7 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { getNavTitle, isNavItemSelected, navItems } from './layout/navItems';
 import { getShellLayout } from '../styles/layout';
 import { useAppThemeMode } from '../bootstrap/AppBootstrap';
+import WhatsNewNotice from './WhatsNewNotice';
 
 interface NavBarProps {
   drawerWidth?: number;
@@ -153,7 +154,8 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264, collapsed = false, o
           ) : null}
           {isDesktop && onToggleCollapsed ? <IconButton color="inherit" aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'} aria-expanded={!collapsed} onClick={onToggleCollapsed} edge="start" sx={{ mr: 2 }}><MenuIcon /></IconButton> : null}
           <Typography noWrap sx={{ minWidth: 0, fontWeight: 600 }}>{getNavTitle(location.pathname)}</Typography>
-          <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+          <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: { xs: 0, sm: 1 }, flexShrink: 0 }}>
+            <WhatsNewNotice />
             <Button
               component="a"
               href="https://github.com/Pipepito/acestream-scraper/wiki"

@@ -9,9 +9,9 @@ this is not live-source certification or a claim of arbitrary website support.
 Issue #55 and both comments were reread on 2026-10-23. The original request links a
 ZeroNet page. A contributor reports that the page wraps futbolenlatv.es through a
 CORS proxy and owns no event data; the original public gateway is reportedly dead.
-These are contributor observations, **not a new live-source verification**. No
-public gateway, CORS proxy, scraped website markup or schedule endpoint is embedded
-as a runtime dependency.
+These are contributor observations, **not a new live-source verification**. The original public gateway and CORS proxy are not runtime dependencies. Optional
+built-in providers below were inspected on 2026-10-26; their upstream availability
+and markup remain external dependencies only when configured.
 
 PR #259's handoff calls for sharing this event model and reviewing content before
 live-channel import. The implementations are now reconciled in that PR; #260 is
@@ -28,9 +28,11 @@ or local ISO start/end timestamps, state, time assumptions and broadcast variant
 See the synthetic fixture in `backend/tests/fixtures/events/schedule.json`.
 
 - Identity is `(source_id, external_id)`, never title or start time. Adapters must
-  retain stable publisher identifiers through postponement. Do not put dates in
-  synthetic identity if those dates change with postponement. With no reliable
-  identity, require operator review rather than guessing a cross-source match.
+  retain stable publisher identifiers through postponement. WOSTI is explicitly a
+  reviewed occurrence snapshot because it exposes no fixture IDs: a changed date/time
+  yields a new reviewable observation, never an inferred reschedule. Do not use that
+  snapshot identity to silently reconcile fixtures. With no reliable identity,
+  require operator review rather than guessing a cross-source match.
 - A **new** observation may explicitly associate an existing `event_id`. This is
   a reviewed mapping. It contributes broadcasts/provenance; the original owner
   remains authoritative for schedule fields. Existing observations cannot be
@@ -43,10 +45,11 @@ See the synthetic fixture in `backend/tests/fixtures/events/schedule.json`.
 - Source refresh never overwrites `correction`, `followed` or `archived`. Clearing
   a correction reveals the latest owner schedule. The correction is a complete
   schedule override, not a field-by-field merge.
-- A broadcaster label does not select a channel. An explicit `channel_id` refers
+- A broadcaster label never selects playable media. Conservative normalized-name
+  matching can link an existing TV/EPG detail page, with TV priority and explicit
+  compatible countries. Ambiguous/generic labels stay unresolved. An explicit `channel_id` refers
   to an existing active channel; nonexistent/disabled mappings remain unavailable.
-  A generic “DAZN” remains unresolved. This avoids country/edition ambiguity until
-  reviewed guide-matching adapters supply qualified mappings.
+  A generic “DAZN” remains unresolved until a manual choice.
 
 ## Review and persistence
 
@@ -95,8 +98,10 @@ without discarding existing data. Page responses contain at most 100 events.
 
 Local timestamps require a declared timezone. A nonexistent spring-forward time
 or ambiguous repeated autumn hour is rejected unless an explicit numeric offset
-is supplied. ISO dates without time, relative strings, numeric timestamps and
-unrecognized zones are rejected. Adapters must resolve “today,” URL dates and
+is supplied. ISO dates without time in timestamp fields, relative strings, numeric timestamps
+and unrecognized zones are rejected. `scheduled_date` separately preserves a known
+calendar date when kickoff is unknown; date filtering uses it without a timezone
+shift, while known timestamps use the requested display zone. Adapters must resolve “today,” URL dates and
 midnight crossings with documented source context in `time_notes`; this service
 does not infer them. End must be explicitly known and later than start. UTC is
 stored; browsing uses the selected display timezone, initially the browser's zone.
@@ -150,15 +155,55 @@ TVChannel rows. A retained active player already owns its source copy. Deleted
 events require fresh explicit approval before reimport.
 
 `PATCH /events/{id}/broadcast` stores a source-qualified broadcast mapping to an
-explicit active stream. No broadcaster-name auto-selection is implemented. Mapping
-survives feed updates and can be cleared to reveal the source again. API projections
-resolve mapping signal in bulk and make disabled/missing mappings unavailable.
+explicit active stream or TV/EPG target. Name matching reuses the conservative
+TV matching normalization/country guards, indexes bounded inventories (20,000 per
+kind; exceeding the bound disables automatic matching rather than claiming uniqueness),
+and prefers TV before EPG. `linked` means a navigable channel, not playable media.
+Manual links override automatic choices and suppress any different source stream.
+EPG manual targets retain source/XML identity and name to reject reused IDs. A
+removed/renamed manual target stays unavailable without automatic fallback. Mapping
+survives feed updates and can be cleared. No global broadcaster alias is implied.
 
 Optional artwork stays private in observations. `GET /events/{id}/artwork` uses the
 same guarded fetch boundary with 2 admitted requests, 10s, 512 KiB and bounded raster
 dimensions (4096 per axis, 4 million pixels). It rejects HTML/SVG and animated WebP,
 returns typed bytes with nosniff/no-store, and never changes playback. The UI loads
 artwork only on request via the authenticated API and revokes its blob URL on unmount.
+
+## Built-in providers and interests
+
+`event_providers.py` exposes fixed WOSTI Spain sport feeds and OpenFootball
+league/season paths through `GET /events/providers`. The existing source preview
+accepts `provider_options`; it cannot combine a provider with an arbitrary URL.
+Options persist in `EventScheduleSource.adapter`, and date-only values and typed
+broadcast targets use existing JSON columns. No SQL schema migration is needed.
+Old source configurations and string stream mappings remain readable. Re-adding an
+existing provider is rejected with a link-back instruction to Review schedule, so a
+new form cannot silently replace saved filters or disable its refresh setting.
+
+Providers use the existing pinned DNS/redirect client, at most three concurrent
+requests, 2 MiB per response, 12 MiB total and a shared 15-second deadline. Failure
+cancels siblings and preserves the previous state. No script, affiliate URL, remote
+context or image is executed/fetched as media. The HTML fixture is a small synthetic
+representation of inspected WOSTI rows. OpenFootball composite IDs use season,
+league, round and both teams; duplicate identities fail closed. WOSTI snapshots
+use sport, competition, title, date and clock, with an explicit reschedule warning.
+Broadcast changes keep the snapshot identity; doubleheaders remain distinct.
+
+`provider_options.interests` combines exact normalized sports/competitions/teams
+with OR. The calendar window starts today in the source zone and ends exclusively
+at today + N days (default 14; 1–30 accepted by API). Choices are discovered before
+interest filtering; previews return at most 500 rows with a truncation notice.
+Display filters use the same union rule independently from saved imports. A field
+for `scheduled_date` is retained when kickoff is absent. Neither the window nor
+interest changes perform deletion. Existing manual corrections stay authoritative.
+
+Provider-only empty selections may save source options, with the same source
+revision/identity transaction guard. Manual and arbitrary URL imports still need
+selected rows. New provider rows still require review; scheduled refresh does not
+subscribe users to automatic creation. Use pending counts and Review schedule.
+The date window limits refresh input as well as previews; rows outside it remain
+saved with their previous observations.
 
 ## Catalogue integration and follow-ups
 

@@ -32,17 +32,17 @@ it.each(['light', 'dark'] as const)('opens readable version history and acknowle
   expect(screen.getByRole('heading', { name: 'v2.1.0' })).toBeVisible();
   expect(screen.getByRole('link', { name: 'v2.0.0' })).toHaveAttribute('href', '#v2.0.0');
   expect(localStorage.getItem(key)).toBe(currentRelease.version);
-  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: `What’s new in ${currentRelease.version}` })).not.toBeInTheDocument();
 });
 
 it('dismisses persistently without navigating away', async () => {
   const view = renderPage();
   await userEvent.setup().click(screen.getByRole('button', { name: 'Dismiss changelog notice' }));
   expect(screen.getByText('Overview')).toBeVisible();
-  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: `What’s new in ${currentRelease.version}` })).not.toBeInTheDocument();
   view.unmount();
   renderPage();
-  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: `What’s new in ${currentRelease.version}` })).not.toBeInTheDocument();
 });
 
 it('acknowledges a direct visit and describes development builds without inventing publication dates', () => {
@@ -57,12 +57,12 @@ it('responds to another tab acknowledging the current version', () => {
     localStorage.setItem(key, currentRelease.version);
     window.dispatchEvent(new Event('storage'));
   });
-  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: `What’s new in ${currentRelease.version}` })).not.toBeInTheDocument();
 });
 
 it('dismisses when browser storage writes are unavailable', async () => {
   jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked'); });
   renderPage();
   await userEvent.setup().click(screen.getByRole('button', { name: 'Dismiss changelog notice' }));
-  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: `What’s new in ${currentRelease.version}` })).not.toBeInTheDocument();
 });

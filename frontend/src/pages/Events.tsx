@@ -1,9 +1,11 @@
 import React, { useDeferredValue, useState } from 'react';
-import { Alert, Box, Button, Chip, CircularProgress, Drawer, FormControlLabel, Checkbox, Stack, Tab, Tabs, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, CircularProgress, Drawer, MenuItem, FormControlLabel, Checkbox, Stack, TextField, Typography } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
+import EventAgenda from '../components/events/EventAgenda';
 import StatusLine from '../components/StatusLine';
+import EventInterestFields, { emptyInterests } from '../components/events/EventInterestFields';
 import EventImportPanel from '../components/events/EventImportPanel';
 import EventSourcesPanel from '../components/events/EventSourcesPanel';
 import EventDetails from '../components/events/EventDetails';
@@ -24,6 +26,9 @@ export default function Events() {
   const [zoneError, setZoneError] = useState(false);
   const [day, setDay] = useState(() => today(browserZone));
   const [search, setSearch] = useState('');
+  const [interests, setInterests] = useState(emptyInterests);
+  const [windowDays, setWindowDays] = useState(14);
+  const choices = useQuery({ queryKey: ['events', 'interests'], queryFn: eventService.interests });
   const [sport, setSport] = useState('');
   const [competition, setCompetition] = useState('');
   const [source, setSource] = useState('');
@@ -37,7 +42,7 @@ export default function Events() {
   const [playing, setPlaying] = useState<{ id: string; title: string } | null>(null);
   const [message, setMessage] = useState('');
   const deferredSearch = useDeferredValue(search);
-  const filters = { search: deferredSearch, sport, competition, source, zone, day: tab === 'date' ? day : undefined, upcoming: tab === 'upcoming', followed, archived: tab === 'archived', offset };
+  const filters = { interests: JSON.stringify(interests), window_days: tab === 'upcoming' ? windowDays : undefined, search: deferredSearch, sport, competition, source, zone, day: tab === 'today' ? today(zone) : tab === 'date' ? day : undefined, upcoming: tab === 'upcoming', followed, archived: tab === 'archived', offset };
   const list = useQuery({ queryKey: ['events', 'list', filters], queryFn: () => eventService.list(filters) });
   const detail = useQuery({ queryKey: ['events', 'detail', selected], queryFn: () => eventService.get(selected!), enabled: Boolean(selected) });
   const update = useMutation({ mutationFn: (input: EventUpdate) => eventService.update(selected!, input),
@@ -45,53 +50,47 @@ export default function Events() {
     onError: (err) => setMessage(getErrorMessage(err)) });
   const events = list.data?.events ?? [];
   const total = list.data?.total ?? 0;
-  const resetFilters = () => { setSearch(''); setSport(''); setCompetition(''); setSource(''); setFollowed(false); setOffset(0); setTab('all'); };
+  const interestCount = Object.values(interests).flat().length + [sport, competition, source].filter(Boolean).length + Number(followed);
+  const resetFilters = () => { setInterests(emptyInterests); setSearch(''); setSport(''); setCompetition(''); setSource(''); setFollowed(false); setOffset(0); setTab('all'); };
   return <Box>
-    <PageHeader title="Events" subtitle="Schedules, broadcasts and your followed events." actions={<Stack direction="row" gap={1} flexWrap="wrap"><Button onClick={() => setManaging(!managing)} aria-expanded={managing}>Sources & retention</Button><Button variant="contained" onClick={() => { setReviewSource(undefined); setManaging(false); setAdding(true); }}>Add events</Button></Stack>} />
+    <PageHeader title="Events" subtitle="Find your next match, race or game." actions={<Stack direction="row" gap={1} flexWrap="wrap"><Button onClick={() => setManaging(!managing)} aria-expanded={managing}>Sources & retention</Button><Button variant="contained" onClick={() => { setReviewSource(undefined); setManaging(false); setAdding(true); }}>Add events</Button></Stack>} />
     <StatusLine items={[{ label: 'Events', value: list.isPending ? 'Loading…' : list.isError ? 'Unavailable' : total }, { label: 'Times', value: zone }]} />
     {message && !selected ? <Alert severity={update.isError ? 'error' : 'success'} onClose={() => setMessage('')} sx={{ mb: 2 }}>{message}</Alert> : null}
     {managing ? <EventSourcesPanel onReview={(source) => { setReviewSource(source); setManaging(false); setAdding(true); }} /> : null}
     {adding ? <EventImportPanel key={reviewSource?.id ?? 'new'} source={reviewSource} zone={zone} onClose={() => { setAdding(false); setReviewSource(undefined); }} /> : null}
     <ContentSection title="Schedule">
-      <Tabs value={tab} onChange={(_, value: string) => { setTab(value); setOffset(0); }} variant="scrollable" scrollButtons="auto" aria-label="Event dates">
-        <Tab label="Upcoming" value="upcoming" /><Tab label="By date" value="date" /><Tab label="All events" value="all" /><Tab label="Archived" value="archived" />
-      </Tabs>
-      <Stack direction="row" flexWrap="wrap" gap={1.5} sx={{ my: 2 }}>
-        <Button onClick={() => { setDay(today(zone)); setTab('date'); setOffset(0); }}>Today</Button>
-        {tab === 'date' ? <TextField type="date" label="Event date" value={day} onChange={(e) => { setDay(e.target.value); setOffset(0); }} InputLabelProps={{ shrink: true }} /> : null}
-        <TextField label="Search events" value={search} onChange={(e) => { setSearch(e.target.value); setOffset(0); }} sx={{ flex: 1, minWidth: 180 }} />
+      <Stack direction="row" flexWrap="wrap" gap={1.5} sx={{ mb: 2.5 }}>
+        <TextField select size="small" label="When" value={tab} onChange={(e) => { setTab(e.target.value); setOffset(0); }} sx={{ minWidth: 160 }}>
+          <MenuItem value="upcoming">Next {windowDays} days</MenuItem><MenuItem value="today">Today</MenuItem><MenuItem value="date">Choose a date</MenuItem><MenuItem value="all">All saved events</MenuItem><MenuItem value="archived">Archived</MenuItem>
+        </TextField>
+        {tab === 'date' ? <TextField size="small" type="date" label="Event date" value={day} onChange={(e) => { setDay(e.target.value); setOffset(0); }} InputLabelProps={{ shrink: true }} /> : null}
+        <TextField size="small" label="Search events" value={search} onChange={(e) => { setSearch(e.target.value); setOffset(0); }} sx={{ flex: 1, minWidth: 180 }} />
+        <Button aria-expanded={advanced} aria-controls="event-filters" onClick={() => setAdvanced(!advanced)}>Filter events{interestCount ? ` (${interestCount})` : ''}</Button>
       </Stack>
-      <Stack direction="row" gap={1.5} flexWrap="wrap" sx={{ mb: 2 }}>
-        <FormControlLabel control={<Checkbox checked={followed} onChange={(_, value) => { setFollowed(value); setOffset(0); }} />} label="Following" />
-        <Button aria-expanded={advanced} aria-controls="event-filters" onClick={() => setAdvanced(!advanced)}>Filters & timezone{[sport, competition, source].filter(Boolean).length ? ` (${[sport, competition, source].filter(Boolean).length})` : ''}</Button>
-      </Stack>
-      {advanced ? <Stack id="event-filters" direction={{ xs: 'column', sm: 'row' }} gap={1.5} flexWrap="wrap" sx={{ mb: 2 }}>
-        <TextField label="Display timezone" value={zoneInput} error={zoneError} helperText={zoneError ? 'Use a timezone such as Europe/Madrid' : 'IANA timezone'} onChange={(e) => setZoneInput(e.target.value)} onBlur={() => {
-          try { new Intl.DateTimeFormat(undefined, { timeZone: zoneInput }).format(); setZone(zoneInput); setZoneError(false); setOffset(0); } catch { setZoneError(true); }
-        }} />
-        <TextField size="small" label="Sport" value={sport} onChange={(e) => { setSport(e.target.value); setOffset(0); }} />
-        <TextField size="small" label="Competition" value={competition} onChange={(e) => { setCompetition(e.target.value); setOffset(0); }} />
-        <TextField size="small" label="Source" value={source} onChange={(e) => { setSource(e.target.value); setOffset(0); }} />
+      {advanced ? <Stack id="event-filters" spacing={2} sx={{ mb: 3 }}>
+        <EventInterestFields value={interests} choices={choices.data} onChange={(value) => { setInterests(value); setOffset(0); }} />
+        <Stack direction="row" gap={1} flexWrap="wrap">
+          <FormControlLabel control={<Checkbox checked={followed} onChange={(_, value) => { setFollowed(value); setOffset(0); }} />} label="Following" />
+          {interestCount ? <Button onClick={() => { setInterests(emptyInterests); setSport(''); setCompetition(''); setSource(''); setFollowed(false); setOffset(0); }}>Clear filters</Button> : null}
+        </Stack>
+        <Box component="details">
+          <Box component="summary" sx={{ cursor: 'pointer', color: 'text.secondary', py: 1 }}>More filters & timezone</Box>
+          <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.5} flexWrap="wrap" sx={{ mt: 1 }}>
+            <TextField size="small" label="Display timezone" value={zoneInput} error={zoneError} helperText={zoneError ? 'Use a timezone such as Europe/Madrid' : 'IANA timezone'} onChange={(e) => setZoneInput(e.target.value)} onBlur={() => {
+              try { new Intl.DateTimeFormat(undefined, { timeZone: zoneInput }).format(); setZone(zoneInput); setZoneError(false); setOffset(0); } catch { setZoneError(true); }
+            }} />
+            <TextField select size="small" label="Upcoming window" value={windowDays} onChange={(e) => { setWindowDays(Number(e.target.value)); setOffset(0); }}>{[7, 14, 30].map((days) => <MenuItem value={days} key={days}>Next {days} days</MenuItem>)}</TextField>
+            <TextField size="small" label="Sport contains" value={sport} onChange={(e) => { setSport(e.target.value); setOffset(0); }} />
+            <TextField size="small" label="Competition contains" value={competition} onChange={(e) => { setCompetition(e.target.value); setOffset(0); }} />
+            <TextField size="small" label="Source" value={source} onChange={(e) => { setSource(e.target.value); setOffset(0); }} />
+          </Stack>
+        </Box>
       </Stack> : null}
       {list.isPending ? <CircularProgress aria-label="Loading events" /> : list.isError ? <Alert severity="error" action={<Button onClick={() => void list.refetch()}>Retry</Button>}>Events could not be loaded.</Alert> : !events.length ? <Stack spacing={1} sx={{ py: 3 }}>
         <Typography variant="h6">No events in this view</Typography>
-        <Typography color="text.secondary">Add an event or import a schedule. Events without a start time appear under Upcoming and All events.</Typography>
+        <Typography color="text.secondary">Add an event or import a schedule. Events without a date appear in the upcoming schedule and All saved events.</Typography>
         <Box><Button onClick={resetFilters}>Show all events</Button><Button onClick={() => setAdding(true)}>Add events</Button></Box>
-      </Stack> : <Stack component="ul" sx={{ listStyle: 'none', m: 0, p: 0 }}>
-        {events.map((event) => <Stack component="li" key={event.id} direction={{ xs: 'column', sm: 'row' }} gap={2} sx={{ py: 2, borderBottom: 1, borderColor: 'divider', alignItems: { sm: 'center' } }}>
-          <Box sx={{ width: { sm: 150 }, flexShrink: 0 }}>
-            <Typography fontWeight={600}>{event.starts_at ? new Date(event.starts_at).toLocaleTimeString(undefined, { timeZone: zone, hour: '2-digit', minute: '2-digit' }) : 'Time unknown'}</Typography>
-            <Typography variant="body2" color="text.secondary">{event.starts_at ? new Date(event.starts_at).toLocaleDateString(undefined, { timeZone: zone, month: 'short', day: 'numeric' }) : 'Check source updates'}</Typography>
-          </Box>
-          <Box sx={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
-            <Button sx={{ p: 0, textAlign: 'left', justifyContent: 'flex-start', fontSize: '1rem', fontWeight: 600 }} onClick={() => setSelected(event.id)}>{event.title}</Button>
-            <Typography variant="body2" color="text.secondary">{[event.sport, event.competition].filter(Boolean).join(' · ') || 'Sport not supplied'}</Typography>
-            <Typography variant="body2">{event.broadcasts.filter((b) => b.compatibility === 'playable').length} playable · {event.broadcasts.filter((b) => b.compatibility === 'unresolved').length} unresolved · {event.broadcasts.filter((b) => b.compatibility === 'unsupported').length} unsupported{event.broadcasts.some((b) => b.compatibility === 'unavailable') ? ` · ${event.broadcasts.filter((b) => b.compatibility === 'unavailable').length} unavailable` : ''}</Typography>
-          </Box>
-          <Stack direction="row" gap={1} alignItems="center" flexWrap="wrap"><Chip label={event.state === 'live' ? 'Live · reported' : event.state} size="small" variant="outlined" />{event.followed ? <Chip label="Following" size="small" /> : null}
-            <Button aria-label={`View broadcasts for ${event.title}`} onClick={() => setSelected(event.id)}>View broadcasts</Button></Stack>
-        </Stack>)}
-      </Stack>}
+      </Stack> : <EventAgenda events={events} zone={zone} today={today(zone)} onSelect={setSelected} />}
       {total > 50 ? <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2 }}><Button disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - 50))}>Previous</Button><Typography>{offset + 1}–{Math.min(offset + 50, total)} of {total}</Typography><Button disabled={offset + 50 >= total} onClick={() => setOffset(offset + 50)}>Next</Button></Stack> : null}
     </ContentSection>
     <Drawer anchor="right" open={Boolean(selected)} onClose={() => setSelected(null)} PaperProps={{ role: 'dialog', 'aria-label': 'Event details', sx: { width: { xs: '100%', sm: 620 }, maxWidth: '100%', p: 2 } }}>

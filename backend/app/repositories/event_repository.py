@@ -1,6 +1,6 @@
 """DB-only access for event ingestion and reviewed edits."""
 from sqlalchemy import select, update, delete
-from app.models.models import SportingEvent, EventObservationRecord, EventMedia, AcestreamChannel
+from app.models.models import SportingEvent, EventObservationRecord, EventMedia, AcestreamChannel, TVChannel, EPGChannel, EPGSource
 
 
 class EventRepository:
@@ -21,6 +21,26 @@ class EventRepository:
 
     def channel(self, content_id):
         return self.db.get(AcestreamChannel, content_id)
+
+    def target_rows(self, kind, search=None):
+        if kind == 'tv':
+            query = select(TVChannel.id, TVChannel.name, TVChannel.country).where(TVChannel.is_active.is_(True))
+        else:
+            query = select(EPGChannel.id, EPGChannel.name, EPGChannel.epg_source_id, EPGChannel.channel_xml_id,
+                           EPGSource.name.label('source_name')).join(EPGSource).where(EPGSource.enabled.is_(True))
+        model = TVChannel if kind == 'tv' else EPGChannel
+        if search is not None:
+            query = query.where(model.name.icontains(search, autoescape=True))
+        return list(self.db.execute(query.order_by(model.name, model.id).limit(30 if search is not None else 20001)).mappings())
+
+    def target(self, kind, target_id):
+        if kind == 'tv':
+            row = self.db.get(TVChannel, target_id)
+            return dict(id=row.id, name=row.name, country=row.country) if row and row.is_active else None
+        row = self.db.execute(select(EPGChannel.id, EPGChannel.name, EPGChannel.epg_source_id, EPGChannel.channel_xml_id,
+                             EPGSource.name.label('source_name')).join(EPGSource)
+                             .where(EPGChannel.id == target_id, EPGSource.enabled.is_(True))).mappings().first()
+        return dict(row) if row else None
 
     def channels(self, content_ids):
         ids = list(content_ids)

@@ -17,7 +17,7 @@ from app.models.models import AcestreamChannel, EPGSource, TVChannel
 from app.repositories.channel_repository import ChannelRepository
 from app.repositories.settings_repository import SettingsRepository
 from app.services.epg_service import EPGService
-from app.services.stream_ranking import sort_streams_curated
+from app.services.stream_ranking import preference_key, sort_streams_curated
 from app.utils.m3u import m3u_attr
 
 # libhdhomerun's device-id checksum table, verbatim.
@@ -198,11 +198,11 @@ class TunerService:
         # dropped: only tried later.
         now = datetime.now(timezone.utc)
         fresh_since = now - timedelta(hours=FRESH_CHECK_HOURS)
-        valid.sort(key=lambda stream: (not _checked_since(stream, fresh_since, now), -(stream.bitrate_bps or 0), stream.id))
+        valid.sort(key=lambda stream: (*preference_key(stream), not _checked_since(stream, fresh_since, now), -(stream.bitrate_bps or 0), stream.id))
         return list(dict.fromkeys(stream.id.lower() for stream in valid))
 
     def relay_stream_ids(self, tv_channel_id: int) -> List[str]:
-        """What the TV relay tries, in order: online and checked recently;
+        """Saved preferences first among eligible sources; otherwise online and checked recently;
         online from an old check; then never checked, or offline from an old
         check. Only a source found offline recently is left out.
 
@@ -226,8 +226,8 @@ class TunerService:
                 continue
             else:
                 bucket = 2
-            ranked.append((bucket, -(stream.bitrate_bps or 0), stream.id.lower()))
-        return list(dict.fromkeys(cid for _, _, cid in sorted(ranked)))
+            ranked.append((*preference_key(stream), bucket, -(stream.bitrate_bps or 0), stream.id.lower()))
+        return list(dict.fromkeys(row[-1] for row in sorted(ranked)))
 
     # --- lineup -------------------------------------------------------------
     def build_lineup(self) -> Lineup:

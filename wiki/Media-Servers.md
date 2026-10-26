@@ -294,7 +294,7 @@ apply. Favorites-only excludes unassigned streams. The playlist URL carries
 
 ### Source freshness during TV startup
 
-The TV relay tries recently verified online sources first, then older online
+Without saved stream preferences, the TV relay tries recently verified online sources first, then older online
 sources, then unknown or older offline sources. Within each group, higher known
 bitrate comes first. A recent explicit offline result excludes that source until
 it becomes stale or a new probe changes its status. Fresh means a check in the
@@ -306,3 +306,21 @@ check freshness. Existing startup limits, background alternative checks and
 viewer ownership remain in effect. HEAD requests do not start playback or probes.
 This ranking improves startup selection; it does not enable raw mid-stream
 source concatenation. Direct-engine JSON startup follows the configured startup budgets above.
+
+
+## Preferred stream order
+
+Open a TV channel and use the stream drag handles or up/down buttons to choose
+which eligible source the relay tries first. Keyboard users can also use arrow
+keys on a drag handle. Select **Save order** to persist the order, or **Cancel** to
+reload the current order. Background refreshes keep unsaved edits; if another
+edit or inventory change makes the original order stale, Save asks you to cancel
+and retry.
+
+Saved preferences come before automatic freshness and bitrate ranking. Streams
+added later follow the saved preferences in automatic order. With no saved
+preferences, the existing automatic order is unchanged. Recent offline results,
+inactive sources and unsupported IDs remain excluded, and recent playback failures
+still move a source behind alternatives. These preferences also order the channel
+stream list and curated playlist sources. Moving a stream to a different TV channel
+clears its old preference.

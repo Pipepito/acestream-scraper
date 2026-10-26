@@ -684,6 +684,14 @@ with experimental recovery, use LATM in that encoder rather than encoding twice.
 Legacy single-source tuner links remain direct. See `wiki/Media-Servers.md`.
 
 
+TV channel stream preferences override automatic freshness/bitrate ranking for
+eligible sources. Recent offline, inactive and unsupported sources remain excluded;
+recent relay failures still deprioritize a preferred source. Unordered streams
+follow saved preferences using existing automatic ranking. Reassignment clears the
+old channel preference. Reorder saves require the complete original snapshot and
+serialize before reading it; stale edits return 409. See `wiki/Media-Servers.md`.
+
+
 Search result IDs are catalogue infohashes. Resolve selected Add/Play actions via
 `POST /api/v1/search/{infohash}/resolve` and the playback engine's `get_content_id`
 before saving or opening the shared player. Check broadcast keeps its infohash

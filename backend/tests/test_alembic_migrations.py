@@ -491,3 +491,24 @@ def test_alembic_upgrade_repairs_partial_activity_log_channel_id_migration(tmp_p
         assert migrated_activity['user'] == 'tester'
     finally:
         engine.dispose()
+
+
+def test_stream_order_upgrade_and_downgrade_preserve_existing_streams(tmp_path):
+    db_path = tmp_path / 'stream-order.db'
+    upgrade_to_revision(db_path, '20261023_1500')
+    engine = create_engine(database_url_for(db_path))
+    try:
+        with engine.begin() as connection:
+            connection.execute(text("INSERT INTO acestream_channels (id, name) VALUES ('existing', 'Existing')"))
+        upgrade_to_revision(db_path, 'head')
+        with engine.begin() as connection:
+            assert connection.execute(text('SELECT stream_order FROM acestream_channels')).scalar() is None
+            connection.execute(text('UPDATE acestream_channels SET stream_order = 1'))
+        downgrade_to_revision(db_path, '20261023_1500')
+        assert 'stream_order' not in _column_map(inspect(engine), 'acestream_channels')
+        with engine.connect() as connection:
+            assert connection.execute(text('SELECT name FROM acestream_channels')).scalar() == 'Existing'
+        upgrade_to_revision(db_path, 'head')
+        assert _column_map(inspect(engine), 'acestream_channels')['stream_order']['nullable'] is True
+    finally:
+        engine.dispose()

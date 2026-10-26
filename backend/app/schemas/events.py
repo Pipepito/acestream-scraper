@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 EventState = Literal['unknown', 'scheduled', 'live', 'finished', 'postponed', 'cancelled']
+EventSelection = Literal['agenda', 'dashboard']
 
 
 class StrictModel(BaseModel):

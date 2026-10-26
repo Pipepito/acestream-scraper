@@ -1,6 +1,7 @@
 # TV and system dashboard implementation plan
 
-Draft, 2026-10-26. Application baseline: `develop` at `221952f`.
+Implementation record, 2026-10-26. Initial baseline: `221952f`; integrated develop
+through PR #269 merge `26ad950`.
 
 Split Overview into a TV dashboard at `/`, where users land, and System status at
 `/system`. The landing page answers what is playing, what is coming up, and what
@@ -8,7 +9,7 @@ channels and streams are available. System status answers whether the applicatio
 and its services are running and what maintenance needs attention.
 
 Implementation in progress on `feat/tv-system-dashboards`: the dashboard split is
-implemented. The event integration remains the next dependent step after PR #269.
+implemented, including immediate event selection and browser display preferences.
 
 ## Content and navigation
 
@@ -58,15 +59,14 @@ an error page. Keep content and playback errors local to their sections.
 
 [PR #269](https://github.com/Pipepito/acestream-scraper/pull/269),
 “Add built-in sports schedules and simplify event browsing”, was inspected at
-head `524d7991fa2585dbc26e5691b578c8150988749d` on 2026-10-26. It was open and
-targeted `develop`. Recheck its state and final contracts before implementation
-with `gh pr view 269`; this snapshot makes no CI assertion.
+merged into `develop` as `26ad950424492dcc75924ecf238fb9eb9eaa8ed0` on
+2026-10-26, confirmed through GitHub. The feature branch incorporates that merge;
+this record makes no CI assertion.
 
 The PR introduces a day-by-day `EventAgenda`, `EventInterestFields`, broadcaster
 TV/EPG targets, date-only fixtures, WOSTI/OpenFootball provider options, and
-interest filters combining sports, competitions and teams with OR. Build the
-event dashboard integration after those contracts land; do not copy its provider
-implementation or merge the PR as part of this planning task.
+interest filters combining sports, competitions and teams with OR. The dashboard now reuses these merged contracts and the extracted agenda row;
+provider implementations remain shared.
 
 ### What to track
 
@@ -98,7 +98,7 @@ leaving normal agenda behavior intact. Apply eligibility, interests/following an
 ordering to the complete bounded inventory before limiting the response to six.
 Keep business rules in `EventService` and database access in its repository.
 
-Proposed selection rules:
+Implemented selection rules:
 
 - Exclude archived, finished and cancelled events. Explicitly past end times also
   exclude events from the immediate list, even if a source still says live.
@@ -218,8 +218,8 @@ Local checks on 2026-10-26 against the uncommitted feature branch based on
 
 The production build retains its existing >500 kB chunk advisory for the player
 and data-grid vendor bundles. Real media playback and Docker sidecars were not
-exercised. PR #269-dependent event selection and personalization are not yet
-implemented or tested in this branch.
+exercised. At this initial checkpoint, event selection and personalization were
+still pending; the subsequent event integration is documented below.
 
 The TV scheduler summary was subsequently reduced to next-update timing only.
 The two dashboard suites passed with 21 tests; frontend typecheck, zero-warning
@@ -244,3 +244,11 @@ Telegram source setup, VLC Android pairing and dashboard navigation. The product
 build passed with the existing vendor chunk-size advisory. Screenshots were
 inspected locally; the strict legacy-path and whitespace checks passed. No live
 external integrations or Docker sidecars were changed or exercised.
+
+## Event integration after PR #269
+
+Latest develop was merged locally after checkpointing the dashboard and integration
+split. The release-note top-bar behavior and intervening stream-order changes are
+preserved. Event selection, the shared agenda row, display preferences, event detail
+deep links, and shared-query refresh are implemented. See `wiki/Sports-Events.md`
+and `docs/dev/sporting-events.md` for the resulting user/API behavior.

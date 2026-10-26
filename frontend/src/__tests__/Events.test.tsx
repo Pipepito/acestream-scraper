@@ -1,4 +1,5 @@
 import React from 'react';
+import { TestMemoryRouter } from '../testUtils/router';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from '@mui/material/styles';
@@ -26,9 +27,9 @@ const event: SportingEvent = {
   ],
   provenance: [{ source_id: 'guide', source_name: 'Guide', source_kind: 'guide', external_id: '1', updated_at: '2026-10-22T00:00:00Z' }],
 };
-function renderPage(mode: 'light' | 'dark' = 'light') {
+function renderPage(mode: 'light' | 'dark' = 'light', route = '/events') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
-  return render(<QueryClientProvider client={client}><ThemeProvider theme={createAppTheme(mode)}><Events /></ThemeProvider></QueryClientProvider>);
+  return render(<QueryClientProvider client={client}><ThemeProvider theme={createAppTheme(mode)}><TestMemoryRouter initialEntries={[route]}><Events /></TestMemoryRouter></ThemeProvider></QueryClientProvider>);
 }
 beforeEach(() => {
   jest.clearAllMocks();
@@ -300,4 +301,18 @@ it('changes the date scope without exposing management controls', async () => {
   await user.click(screen.getByRole('button', { name: 'Manage event' }));
   expect(screen.getByRole('button', { name: 'Correct schedule' })).toBeVisible();
   expect(screen.getByRole('button', { name: 'Archive event' })).toBeVisible();
+});
+
+it('opens a dashboard deep link and handles archived or missing events', async () => {
+  service.get.mockResolvedValue({ ...event, archived: true });
+  const { unmount } = renderPage('light', `/events?event=${event.id}`);
+  expect(await screen.findByText('This event is archived. Close details to return to the agenda.')).toBeVisible();
+  expect(service.get).toHaveBeenCalledWith(event.id);
+  fireEvent.click(screen.getByRole('button', { name: 'Close event details' }));
+  await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Event details' })).not.toBeInTheDocument());
+  unmount();
+  service.get.mockRejectedValue(new Error('Not found'));
+  renderPage('light', '/events?event=missing');
+  expect(await screen.findByText(/The event may have been removed/)).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Close event details' })).toBeVisible();
 });

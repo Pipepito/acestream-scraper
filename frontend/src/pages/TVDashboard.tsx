@@ -1,4 +1,6 @@
 import React from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import UpcomingEvents from '../components/overview/UpcomingEvents';
 import { Link as RouterLink } from 'react-router-dom';
 import { Alert, Box, Button, Stack, Typography } from '@mui/material';
 import PageHeader from '../components/layout/PageHeader';
@@ -15,12 +17,14 @@ import { normalizeApiError } from '../services/apiErrors';
 const REFRESH_MS = 30_000;
 
 export default function TVDashboard() {
+  const cache = useQueryClient();
   const stats = useStats({ refetchInterval: REFRESH_MS });
   const tvStats = useTvChannelStats({ refetchInterval: REFRESH_MS });
   const tasks = useBackgroundTaskStatus(REFRESH_MS);
   const playback = useActiveStreams();
   const playing = playback.data?.streams.filter(stream => stream.state === 'ready' || stream.state === 'streaming').length;
   const refresh = () => {
+    void cache.invalidateQueries({ queryKey: ['events', 'dashboard'] });
     void stats.refetch();
     void tvStats.refetch();
     void tasks.refetch();
@@ -28,7 +32,7 @@ export default function TVDashboard() {
   };
 
   return <Box>
-    <PageHeader title="TV dashboard" subtitle="Playback, channels and guide coverage." actions={<Stack direction="row" gap={1} flexWrap="wrap">
+    <PageHeader title="TV dashboard" subtitle="Playback, upcoming events and channels." actions={<Stack direction="row" gap={1} flexWrap="wrap">
       <Button component={RouterLink} to="/events">Events</Button>
       <Button component={RouterLink} to="/live-tv" variant="contained">Watch TV</Button>
     </Stack>} />
@@ -43,6 +47,8 @@ export default function TVDashboard() {
         Could not load current playback: {normalizeApiError(playback.error).message}
       </Alert> : !playback.data ? <Typography role="status">Loading playback…</Typography> : <ActiveStreamsList streams={playback.data.streams} />}
     </ContentSection>
+
+    <UpcomingEvents />
 
     <ContentSection title="Channels and streams" description="Saved inventory and the last observed stream status." actions={<Stack direction="row" gap={1} flexWrap="wrap">
       <Button component={RouterLink} to="/tv-channels">TV channels</Button>

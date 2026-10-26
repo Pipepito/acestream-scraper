@@ -118,11 +118,15 @@ installs default to an empty playback URL; existing saved endpoints are preserve
 ## TV and system dashboards
 
 The default `/` route is TV dashboard under Watch: app-owned playback, channel/stream
-inventory and time until the next content updates. System status at `/system` owns services, storage,
+inventory, upcoming/followed events and time until the next content updates. System status at `/system` owns services, storage,
 diagnostics and full job history. `/health` redirects to `/system`; `/dashboard` and
 `/stats` redirect to `/`. Keep section failures independent and missing data unknown.
 Playback summaries only read the shared streams query; never touch session heartbeats
-or ownership. See `docs/dev/dashboard-split.md` for the event agenda integration plan.
+or ownership. Event summaries use server-side `selection=dashboard` before pagination,
+with six results over seven local calendar days. Display interests/timezone are
+browser preferences; Following remains installation-wide. Reuse agenda rows and
+`/events?event=<id>&zone=<timezone>` details; never import or play during dashboard
+reads. See `docs/dev/dashboard-split.md`.
 
 ## Integration navigation
 

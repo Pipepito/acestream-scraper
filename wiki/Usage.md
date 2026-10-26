@@ -19,8 +19,11 @@ Choose **Wiki** in the top bar for these guides and troubleshooting help. It sta
 ## Step 1: Open the TV dashboard
 
 The **TV dashboard** at `/` is the landing page. It shows browser playback and server
-relays, saved channels and streams, guide coverage, and time until the next source, guide and stream-check updates. Running and queued
+relays, immediate and followed events, saved channels and streams, guide coverage, and time until the next source, guide and stream-check updates. Running and queued
 updates show their current state; results and history stay on System status. **Watch TV** opens the viewing catalogue; **Events** opens saved schedules.
+**Up next** shows up to six saved events. Choose All upcoming, Following or My interests;
+Customize events saves sports, competitions, teams and timezone for this browser.
+Open an event to view broadcasts or follow it. See [Sports events](Sports-Events.md).
 Players connected directly to an external engine are outside the playback summary.
 Starting or failed sessions have their own labels and are not counted as playing.
 

@@ -1,4 +1,6 @@
 import React from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+jest.mock('../components/overview/UpcomingEvents', () => function MockUpcomingEvents() { return <section aria-label="Up next">Upcoming events</section>; });
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { ThemeProvider } from '@mui/material/styles';
 import TVDashboard from '../pages/TVDashboard';
@@ -13,7 +15,7 @@ jest.mock('../hooks/useConfig', () => ({ useStats: () => mockStats(), useTvChann
 jest.mock('../hooks/useDashboard', () => ({ useBackgroundTaskStatus: () => mockTasks() }));
 jest.mock('../hooks/usePlayer', () => ({ useActiveStreams: () => mockPlayback() }));
 const query = (data: unknown) => ({ data, error: null, refetch: jest.fn() });
-const renderPage = (mode: 'light' | 'dark' = 'light') => render(<ThemeProvider theme={createAppTheme(mode)}><TestMemoryRouter><TVDashboard /></TestMemoryRouter></ThemeProvider>);
+const renderPage = (mode: 'light' | 'dark' = 'light') => render(<QueryClientProvider client={new QueryClient()}><ThemeProvider theme={createAppTheme(mode)}><TestMemoryRouter><TVDashboard /></TestMemoryRouter></ThemeProvider></QueryClientProvider>);
 
 beforeEach(() => {
   mockStats.mockReturnValue(query({ channels: { total: 6, online: 1, offline: 2, unknown: 3 }, urls: { total: 2, active: 2, error: 0 }, epg: { sources: 1, channels: 12, programs: 50 } }));

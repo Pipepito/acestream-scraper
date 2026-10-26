@@ -13,7 +13,7 @@ export type EventSourcePreviewRequest = components['schemas']['EventSourcePrevie
 export type EventUpdate = components['schemas']['EventUpdate'];
 export interface EventFilters {
   search: string; sport: string; competition: string; source: string; zone: string;
-  interests?: string; window_days?: number;
+  interests?: string; window_days?: number; selection?: 'agenda' | 'dashboard'; limit?: number;
   day?: string; upcoming: boolean; followed: boolean; archived: boolean; offset: number;
 }
 export const eventService = {

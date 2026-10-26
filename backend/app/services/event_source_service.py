@@ -26,6 +26,9 @@ REFRESH_BUDGET_SECONDS = 120
 async def fetch_schedule(url, *, timeout=15, adapter=None):
     # aiohttp's total deadline includes DNS, every redirect and body delivery.
     try:
+        if adapter and adapter.get('provider_options'):
+            from app.services.event_providers import fetch_provider
+            return await fetch_provider(adapter['provider_options'], zone=adapter['timezone'], timeout=timeout)
         async with source_session(timeout=aiohttp.ClientTimeout(total=timeout)) as session:
             async with session.get(url, max_redirects=5) as response:
                 response.raise_for_status()
@@ -45,6 +48,8 @@ async def fetch_schedule(url, *, timeout=15, adapter=None):
             raise ValueError('A schedule URL must contain one stable source identity')
         return request
     except Exception:
+        if adapter and adapter.get('provider_options'):
+            raise ValueError('Could not load this provider schedule. Check the selected feeds, season and source timezone, then retry. The provider may be unavailable or its format may have changed. Existing events were preserved.') from None
         # Neither network exceptions nor Pydantic input are safe for public/log output.
         raise ValueError('Could not load this guide. Check its format, stable event IDs, explicit dates and source timezone (including DST); limit 2 MiB / 15 seconds. Existing events were preserved.') from None
 
@@ -88,19 +93,36 @@ class EventSourceService:
         if request.source_id and not row:
             raise LookupError('Schedule source not found')
         url = row.url if row else request.url
-        adapter = row.adapter if row else {'format': request.format, 'timezone': request.timezone}
+        adapter = dict(row.adapter or {}) if row else {'format': request.format, 'timezone': request.timezone}
+        options = request.provider_options or (adapter.get('provider_options') if row else None)
+        provider_info = None
+        if options:
+            from app.schemas.events import EventProviderOptions
+            from app.services.event_providers import provider_location
+            options = EventProviderOptions.model_validate(options)
+            provider_info = provider_location(options)
+            url = provider_info[0]
+            adapter = {'format': 'event_import', 'timezone': 'Europe/Madrid' if options.provider == 'wosti_es' else request.timezone if request.provider_options else adapter['timezone'],
+                       'provider_options': options.model_dump(mode='json')}
+            if row and (row.source_identity != provider_info[1] or row.url != url):
+                raise ValueError('Choose the same provider and competition when editing a saved source')
         prior = (row.id, row.revision, row.source_identity) if row else None
         self.db.rollback()  # Do not hold a DB transaction during upstream I/O.
         data = asyncio.run(fetch_schedule(url, adapter=adapter))
-        identity = data.observations[0].source_id
+        identity = provider_info[1] if provider_info else data.observations[0].source_id
         row = self.repo.by_identity(identity)
+        if provider_info and row and not request.source_id:
+            raise ValueError('This provider is already saved. Open Sources & retention → Review schedule to add events or change its interests.')
         if prior and (not row or (row.id, row.revision, identity) != prior):
             raise ValueError('Schedule source changed; review it again')
         if row and row.url != url:
             raise ValueError('This source identity belongs to another URL; use a distinct publisher identity')
         context = dict(id=row.id if row else None, revision=row.revision if row else None,
-            identity=identity, url=url, name=data.observations[0].source_name, adapter=adapter)
+            identity=identity, url=url, name=provider_info[2] if provider_info else data.observations[0].source_name, adapter=adapter)
         result = EventService(self.db).preview(data, context=context)
+        if provider_info:
+            result.available_interests = data.available_interests
+            result.warnings.extend(data.warnings)
         result.warnings.append('Only selected events will refresh. New events always need review; omitted events remain saved.')
         return result
 
@@ -124,7 +146,7 @@ class EventSourceService:
         token = None
         try:
             data = asyncio.run(fetch_schedule(url, timeout=timeout, adapter=adapter))
-            if data.observations[0].source_id != identity:
+            if any(o.source_id != identity for o in data.observations):
                 raise ValueError('Source identity changed')
             existing = {o.external_id: o.event_id for o in self.repo.observations(identity)}
             accepted = [o.model_copy(update={'event_id': existing[o.external_id]}) for o in data.observations

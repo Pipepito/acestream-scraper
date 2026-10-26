@@ -2,7 +2,7 @@
 import json
 import pytest
 from sqlalchemy import create_engine, inspect, text
-from migration_test_utils import database_url_for, upgrade_to_revision, upgrade_to_head
+from migration_test_utils import current_head_revision, database_url_for, upgrade_to_revision, upgrade_to_head
 
 A = 'a' * 40
 
@@ -102,7 +102,7 @@ def test_merge_migration_preserves_both_histories(tmp_path, revision):
         upgrade_to_head(path)
         assert {'w3u_catalogues', 'sporting_events', 'event_schedule_sources', 'telegram_sources', 'telegram_observations'} <= set(inspect(engine).get_table_names())
         with engine.connect() as conn:
-            assert conn.execute(text('SELECT version_num FROM alembic_version')).scalars().all() == ['20261023_1500']
+            assert conn.execute(text('SELECT version_num FROM alembic_version')).scalars().all() == [current_head_revision()]
             assert conn.execute(text('SELECT name FROM acestream_channels')).scalar() == 'Manual'
             if 'w3u_catalogues' in tables:
                 assert conn.execute(text('SELECT revision FROM w3u_catalogues')).scalar() == 3

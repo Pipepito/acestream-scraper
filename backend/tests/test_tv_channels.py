@@ -934,3 +934,122 @@ def test_reorder_rejects_partial_and_duplicate_lists_without_changes(client, see
     assert client.post('/api/v1/tv-channels/reorder', json={'channel_ids': ids[:-1], 'expected_order': ids}).status_code == 409
     assert client.post('/api/v1/tv-channels/reorder', json={'channel_ids': [ids[0]] * 3, 'expected_order': ids}).status_code == 422
     assert client.get('/api/v1/tv-channels/').json()['items'] == before
+
+
+def test_reorder_tv_channel_acestreams(client, db_session):
+    from app.models.models import AcestreamChannel, TVChannel
+
+    tv = TVChannel(name="Stream Reorder Test")
+    db_session.add(tv)
+    db_session.flush()
+    stream_a = AcestreamChannel(id="1" * 40, name="Stream A", is_online=True, tv_channel_id=tv.id)
+    stream_b = AcestreamChannel(id="2" * 40, name="Stream B", is_online=True, tv_channel_id=tv.id)
+    stream_c = AcestreamChannel(id="3" * 40, name="Stream C", is_online=True, tv_channel_id=tv.id)
+    db_session.add_all([stream_a, stream_b, stream_c])
+    db_session.commit()
+
+    initial = client.get(f"/api/v1/tv-channels/{tv.id}/acestreams").json()
+    initial_ids = [s["id"] for s in initial]
+    desired_order = [stream_c.id, stream_a.id, stream_b.id]
+
+    # Reorder
+    res = client.post(
+        f"/api/v1/tv-channels/{tv.id}/acestreams/reorder",
+        json={"stream_ids": desired_order, "expected_order": initial_ids},
+    )
+    assert res.status_code == 200
+    updated = res.json()
+    assert [s["id"] for s in updated] == desired_order
+    assert [s["stream_order"] for s in updated] == [1, 2, 3]
+
+    # Verify detail reflects the new preference order
+    detail = client.get(f"/api/v1/tv-channels/{tv.id}").json()
+    assert [s["id"] for s in detail["acestream_channels"]] == desired_order
+    assert [s["stream_order"] for s in detail["acestream_channels"]] == [1, 2, 3]
+
+    # Stale expected_order rejected
+    stale_res = client.post(
+        f"/api/v1/tv-channels/{tv.id}/acestreams/reorder",
+        json={"stream_ids": desired_order, "expected_order": initial_ids},
+    )
+    assert stale_res.status_code == 409
+
+    # Partial/mismatched stream IDs rejected
+    bad_res = client.post(
+        f"/api/v1/tv-channels/{tv.id}/acestreams/reorder",
+        json={"stream_ids": [stream_c.id, stream_a.id], "expected_order": desired_order},
+    )
+    assert bad_res.status_code == 409
+
+
+def test_stream_order_does_not_follow_reassignment_or_channel_deletion(db_session):
+    from app.models.models import AcestreamChannel, TVChannel
+    from app.repositories.channel_repository import ChannelRepository
+    first, second = TVChannel(name='First'), TVChannel(name='Second')
+    db_session.add_all([first, second])
+    db_session.flush()
+    stream = AcestreamChannel(id='a' * 40, name='Feed', tv_channel_id=first.id, stream_order=1)
+    db_session.add(stream)
+    db_session.commit()
+    repository = ChannelRepository(db_session)
+    repository.associate_acestream_to_tv_channel(first.id, stream.id)
+    assert stream.stream_order == 1
+    repository.associate_acestream_to_tv_channel(second.id, stream.id)
+    assert stream.stream_order is None
+    stream.stream_order = 1
+    db_session.commit()
+    repository.update_channel(stream.id, {'tv_channel_id': first.id})
+    assert stream.stream_order is None
+    stream.stream_order = 1
+    db_session.commit()
+    repository.delete_tv_channel(first.id)
+    db_session.refresh(stream)
+    assert stream.tv_channel_id is None
+    assert stream.stream_order is None
+
+
+def test_stream_reorder_requires_complete_unique_snapshot(client, db_session):
+    from app.models.models import AcestreamChannel, TVChannel
+    tv = TVChannel(name='Snapshot')
+    db_session.add(tv)
+    db_session.flush()
+    first, second = 'a' * 40, 'b' * 40
+    db_session.add_all([AcestreamChannel(id=sid, name=sid, tv_channel_id=tv.id) for sid in [first, second]])
+    db_session.commit()
+    url = f'/api/v1/tv-channels/{tv.id}/acestreams/reorder'
+    assert client.post(url, json={'stream_ids': [second, first]}).status_code == 422
+    assert client.post(url, json={'stream_ids': [first, first], 'expected_order': [first, second]}).status_code == 422
+    assert client.post(url, json={'stream_ids': [second, first], 'expected_order': [first, second]}).status_code == 200
+    assert client.post(url, json={'stream_ids': [first, second], 'expected_order': [first, second]}).status_code == 409
+    saved = client.get(f'/api/v1/tv-channels/{tv.id}/acestreams').json()
+    assert [(stream['id'], stream['stream_order']) for stream in saved] == [(second, 1), (first, 2)]
+
+
+def test_concurrent_stream_reorders_reject_the_losing_snapshot(alembic_db_session):
+    db_session = alembic_db_session
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+    from sqlalchemy.orm import Session
+    from app.models.models import AcestreamChannel, TVChannel
+    from app.services.tvchannel_service import TVChannelService
+    tv = TVChannel(name='Concurrent order')
+    db_session.add(tv)
+    db_session.flush()
+    ids = ['a' * 40, 'b' * 40, 'c' * 40]
+    db_session.add_all([AcestreamChannel(id=sid, name=sid, tv_channel_id=tv.id) for sid in ids])
+    db_session.commit()
+    tv_id, engine = tv.id, db_session.get_bind()
+    barrier = Barrier(2)
+
+    def save(desired):
+        with Session(engine) as session:
+            barrier.wait(timeout=5)
+            try:
+                TVChannelService(session).reorder_streams(tv_id, desired, ids)
+                return 'saved'
+            except ValueError:
+                return 'stale'
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        outcomes = list(pool.map(save, [ids[::-1], [ids[1], ids[2], ids[0]]]))
+    assert sorted(outcomes) == ['saved', 'stale']

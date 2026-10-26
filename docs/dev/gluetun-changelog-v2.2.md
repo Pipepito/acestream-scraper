@@ -30,7 +30,10 @@ Edit the version Markdown in `frontend/changelog/` and run
 builds reject drift. See [release notes](../ops/release-notes.md) for the complete
 single-source and publication contract.
 
-The installed-build notice is acknowledged by reading or dismissing it.
+The installed-build notice is a compact “What’s new” link in the top bar, with
+an unread dot and a dismiss button. On phones the link uses a labelled icon to
+leave room for navigation. Reading or dismissing it acknowledges the current
+version for that browser; Changelog remains available in navigation afterward.
 A separate published-update notice checks stable GitHub releases through the
 cached backend endpoint and announces each newer version once per browser.
 It gives manual Docker/native update instructions and never installs updates.

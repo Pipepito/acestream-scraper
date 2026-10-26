@@ -16,7 +16,6 @@ import Settings from './pages/Settings';
 import LiveTV from './pages/LiveTV';
 import NotFound from './pages/NotFound';
 import UpdateAvailableNotice from './components/UpdateAvailableNotice';
-import WhatsNewNotice from './components/WhatsNewNotice';
 const PublicAddress = React.lazy(() => import('./pages/integrations/PublicAddress'));
 const WebPlayer = React.lazy(() => import('./pages/integrations/WebPlayer'));
 const RemotePlayers = React.lazy(() => import('./pages/integrations/RemotePlayers'));
@@ -53,7 +52,6 @@ const App: React.FC = () => {
     <AppShell>
       <ApiTokenNotice />
       <UpdateAvailableNotice />
-      <WhatsNewNotice />
       <Routes>
         <Route path="/" element={<TVDashboard />} />
         <Route path="/system" element={<React.Suspense fallback={<p role="status">Loading system status…</p>}><SystemDashboard /></React.Suspense>} />

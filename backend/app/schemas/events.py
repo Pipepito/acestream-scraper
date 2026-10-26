@@ -1,5 +1,5 @@
 """Versioned observations shared by reviewed schedule, W3U and Telegram adapters."""
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Literal
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -34,6 +34,7 @@ class EventFields(StrictModel):
     competition: str = Field(default='', max_length=200)
     participants: list[str] = Field(default_factory=list, max_length=8)
     starts_at: datetime | None = None
+    scheduled_date: date | None = None
     ends_at: datetime | None = None
     timezone: str = Field(max_length=100)
     time_notes: str = Field(default='', max_length=500)
@@ -143,6 +144,7 @@ class EventImport(StrictModel):
 
 
 class BroadcastView(StrictModel):
+    target: 'EventChannelTarget | None' = None
     manually_mapped: bool = False
     id: str
     label: str
@@ -152,7 +154,7 @@ class BroadcastView(StrictModel):
     source_name: str
     origin: str
     content_id: str | None
-    compatibility: Literal['playable', 'unresolved', 'unsupported', 'unavailable']
+    compatibility: Literal['playable', 'linked', 'unresolved', 'unsupported', 'unavailable']
     reason: str
     is_online: bool | None = None
     checked_at: datetime | None = None
@@ -182,7 +184,61 @@ class EventList(StrictModel):
     total: int
 
 
+class EventInterests(StrictModel):
+    sports: list[str] = Field(default_factory=list, max_length=100)
+    competitions: list[str] = Field(default_factory=list, max_length=100)
+    teams: list[str] = Field(default_factory=list, max_length=100)
+
+    @field_validator('sports', 'competitions', 'teams')
+    @classmethod
+    def bounded_names(cls, value):
+        if any(not name.strip() or len(name) > 200 for name in value):
+            raise ValueError('Interest names must contain 1–200 characters')
+        return list(dict.fromkeys(name.strip() for name in value))
+
+
+class EventInterestChoices(EventInterests):
+    sports: list[str] = Field(default_factory=list, max_length=2000)
+    competitions: list[str] = Field(default_factory=list, max_length=2000)
+    teams: list[str] = Field(default_factory=list, max_length=2000)
+
+
+def current_football_season():
+    now = datetime.now(timezone.utc)
+    year = now.year - (now.month < 7)
+    return f'{year}-{(year + 1) % 100:02d}'
+
+
+class EventProviderOptions(StrictModel):
+    provider: Literal['wosti_es', 'openfootball']
+    feeds: list[str] = Field(default_factory=lambda: ['all', 'automovilismo'], min_length=1, max_length=20)
+    season: str = Field(default_factory=current_football_season, pattern=r'^20\d{2}-\d{2}$')
+    league: Literal['en.1', 'en.2', 'es.1', 'de.1', 'fr.1', 'it.1', 'nl.1', 'pt.1'] = 'es.1'
+    window_days: int = Field(default=14, ge=1, le=30)
+    interests: EventInterests = Field(default_factory=EventInterests)
+
+
+class EventProviderChoice(StrictModel):
+    id: str
+    name: str
+    timezone: str = 'Europe/Madrid'
+
+
+class EventProviderCatalog(StrictModel):
+    feeds: list[EventProviderChoice]
+    leagues: list[EventProviderChoice]
+
+
+class EventChannelTarget(StrictModel):
+    kind: Literal['tv', 'epg']
+    id: int = Field(ge=1)
+    name: str
+    country: str = ''
+    source_name: str = ''
+
+
 class EventPreview(StrictModel):
+    available_interests: EventInterestChoices = Field(default_factory=EventInterestChoices)
     token: str
     events: list[EventView]
     warnings: list[str]
@@ -190,7 +246,7 @@ class EventPreview(StrictModel):
 
 class EventApply(StrictModel):
     token: str = Field(min_length=1, max_length=128)
-    selected_ids: list[str] = Field(min_length=1, max_length=500)
+    selected_ids: list[str] = Field(max_length=500)
     refresh_source: bool = False
 
 
@@ -202,6 +258,7 @@ class EventUpdate(StrictModel):
 
 
 class EventSourcePreviewRequest(StrictModel):
+    provider_options: EventProviderOptions | None = None
     format: Literal['event_import', 'schema_org'] = 'event_import'
     timezone: str = Field(default='UTC', max_length=100)
 
@@ -215,7 +272,7 @@ class EventSourcePreviewRequest(StrictModel):
 
     @model_validator(mode='after')
     def one_source(self):
-        if bool(self.url) == bool(self.source_id):
+        if bool(self.url) + bool(self.source_id) + bool(self.provider_options and not self.source_id) != 1:
             raise ValueError('Choose a schedule URL or a saved source')
         if self.url:
             parsed = urlsplit(self.url)
@@ -237,6 +294,7 @@ class EventRefreshResult(StrictModel):
 
 
 class EventSourceView(StrictModel):
+    provider_options: EventProviderOptions | None = None
     format: Literal['event_import', 'schema_org'] = 'event_import'
     timezone: str = 'UTC'
     id: str
@@ -259,6 +317,14 @@ class EventBroadcastMapping(StrictModel):
     revision: int = Field(ge=1)
     broadcast_id: str = Field(min_length=1, max_length=193)
     channel_id: str | None = Field(default=None, pattern=r'^(?:url:)?[0-9a-fA-F]{40}$')
+    target_kind: Literal['tv', 'epg'] | None = None
+    target_id: int | None = Field(default=None, ge=1)
+
+    @model_validator(mode='after')
+    def one_target(self):
+        if bool(self.target_kind) != bool(self.target_id) or (self.channel_id and self.target_kind):
+            raise ValueError('Choose one TV channel, EPG channel or stream')
+        return self
 
 
 class EventRefreshQueued(StrictModel):

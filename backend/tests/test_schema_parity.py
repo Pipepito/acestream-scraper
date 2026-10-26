@@ -115,6 +115,7 @@ def test_acestream_channels_schema_includes_runtime_last_seen(tmp_path):
             'original_url',
             'epg_update_protected',
             'tv_channel_id',
+            'stream_order',
         }
 
         assert columns['id_kind']['nullable'] is True

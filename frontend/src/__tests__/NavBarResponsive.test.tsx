@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from '@mui/material/styles';
 import { useMediaQuery } from '@mui/material';
 import NavBar from '../components/NavBar';
+import { currentRelease } from '../data/changelog';
 import AppShell from '../components/layout/AppShell';
 import { createAppTheme } from '../theme';
 import { getShellContentMaxWidth, getShellLayout } from '../styles/layout';
@@ -65,6 +66,7 @@ const tab = async () => {
 
 describe('NavBar responsive shell behavior', () => {
   beforeEach(() => {
+    localStorage.setItem('acestream.changelog.seen.v1', 'v2.1.0');
     mockUseMediaQuery.mockReset();
     (useAppThemeMode as jest.Mock).mockReturnValue({
       mode: 'light',
@@ -98,6 +100,8 @@ describe('NavBar responsive shell behavior', () => {
 
     expect(screen.getByRole('button', { name: 'open drawer' })).toBeVisible();
     expect(screen.getByRole('banner')).toHaveTextContent('Scraper');
+    expect(within(screen.getByRole('banner')).getByRole('link', { name: `What’s new in ${currentRelease.version}` })).toBeVisible();
+    expect(within(screen.getByRole('main')).queryByRole('link', { name: /What’s new/ })).not.toBeInTheDocument();
     const wikiLink = screen.getByRole('link', { name: 'Wiki (opens in a new tab)' });
     expect(wikiLink).toBeVisible();
     expect(wikiLink).toHaveAttribute('href', 'https://github.com/Pipepito/acestream-scraper/wiki');
@@ -168,6 +172,10 @@ describe('NavBar responsive shell behavior', () => {
       ui: <NavBar />,
     });
 
+    await tab();
+    expect(screen.getByRole('link', { name: `What’s new in ${currentRelease.version}` })).toHaveFocus();
+    await tab();
+    expect(screen.getByRole('button', { name: 'Dismiss changelog notice' })).toHaveFocus();
     await tab();
     expect(screen.getByRole('link', { name: 'Wiki (opens in a new tab)' })).toHaveFocus();
     await tab();

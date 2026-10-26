@@ -1,6 +1,6 @@
 """Reviewed, incremental event ingestion. No network or media checks during import."""
 from collections import OrderedDict
-from datetime import datetime, timezone
+from datetime import date as calendar_date, datetime, timezone, timedelta
 import hashlib
 import json
 import secrets
@@ -44,9 +44,11 @@ def validate_inventory(event_count, observations):
 class EventService:
     def __init__(self, db):
         self.repo = EventRepository(db)
+        from app.services.event_broadcast_service import EventBroadcastService
+        self.broadcasts = EventBroadcastService(self.repo)
 
     def _channels(self, observations, events=()):
-        ids = {cid for event in events for cid in (event.broadcast_mappings or {}).values()}
+        ids = {cid for event in events for cid in (event.broadcast_mappings or {}).values() if isinstance(cid, str)}
         for row in observations:
             for broadcast in row.payload['broadcasts']:
                 if broadcast.get('channel_id'):
@@ -65,11 +67,20 @@ class EventService:
                 source_kind=obs.source_kind, external_id=obs.external_id, updated_at=row.updated_at))
             for b in obs.broadcasts:
                 mapping = (event.broadcast_mappings or {}).get(f'{row.id}:{b.id}')
-                if mapping:
+                target = self.broadcasts.reviewed_target(mapping) if isinstance(mapping, dict) else self.broadcasts.match(b) if not mapping else None
+                if isinstance(mapping, dict):
+                    b = b.model_copy(update={'channel_id': None, 'url': None})
+                if isinstance(mapping, str):
                     b = b.model_copy(update={'channel_id': mapping, 'url': None})
                 cid = None
                 compatibility = 'unresolved'
-                reason = 'No stream mapped. Broadcaster names are not matched automatically.'
+                reason = 'Choose a channel to link this broadcaster.'
+                if target:
+                    compatibility = 'linked'
+                    reason = 'Linked TV channel' if target.kind == 'tv' else 'Linked EPG channel'
+                elif isinstance(mapping, dict):
+                    reason = 'Previously linked channel changed, is missing or is disabled'
+                    compatibility = 'unavailable'
                 channel = None
                 if b.channel_id:
                     channel = channels.get(b.channel_id.lower())
@@ -86,7 +97,7 @@ class EventService:
                         cid, compatibility, reason = media_id(row.id, b), 'playable', 'Guarded HTTP playback'
                     else:
                         compatibility, reason = 'unsupported', 'Website or unsupported media; a compatible resolver is required'
-                broadcasts.append(BroadcastView(manually_mapped=bool(mapping), id=f'{row.id}:{b.id}', label=b.label, language=b.language,
+                broadcasts.append(BroadcastView(target=target, manually_mapped=bool(mapping), id=f'{row.id}:{b.id}', label=b.label, language=b.language,
                     quality=b.quality, country=b.country, source_name=obs.source_name,
                     origin=urlsplit(b.url).hostname or '' if b.url else '', content_id=cid,
                     compatibility=compatibility, reason=reason,
@@ -102,9 +113,17 @@ class EventService:
             raise LookupError('Event not found')
         return self._view(event, self.repo.observations(event_id))
 
-    def list(self, *, search='', sport='', competition='', source='', date=None, zone='UTC',
+    def interests(self):
+        from app.schemas.events import EventInterestChoices
+        data = [row.correction or row.fields for row in self.repo.inventory() if not row.archived]
+        return EventInterestChoices(sports=sorted({d['sport'] for d in data if d['sport']})[:2000],
+            competitions=sorted({d['competition'] for d in data if d['competition']})[:2000],
+            teams=sorted({name for d in data for name in d['participants']})[:2000])
+
+    def list(self, *, interests=None, window_days=None, search='', sport='', competition='', source='', date=None, zone='UTC',
              upcoming=False, followed=False, archived=False, offset=0, limit=50):
         from zoneinfo import ZoneInfo
+        from app.services.event_providers import matches_interests
         tz = ZoneInfo(zone)
         today = datetime.now(timezone.utc).astimezone(tz).date()
         rows = self.repo.inventory()
@@ -116,8 +135,9 @@ class EventService:
         for row in rows:
             data = row.correction or row.fields
             start = datetime.fromisoformat(data['starts_at'].replace('Z', '+00:00')) if data.get('starts_at') else None
-            local_day = start.astimezone(tz).date() if start else None
-            if (row.archived != archived or (followed and not row.followed)
+            local_day = start.astimezone(tz).date() if start else calendar_date.fromisoformat(data['scheduled_date']) if data.get('scheduled_date') else None
+            if (row.archived != archived or (interests and not matches_interests(data, interests))
+                    or (upcoming and window_days and local_day and local_day >= today + timedelta(days=window_days)) or (followed and not row.followed)
                     or (sport and sport.casefold() not in data['sport'].casefold())
                     or (competition and competition.casefold() not in data['competition'].casefold())
                     or (search and search.casefold() not in ' '.join([data['title'], *data['participants']]).casefold())
@@ -186,7 +206,7 @@ class EventService:
                 raise ValueError('Preview expired; preview the schedule again')
             _, proposed, observations, revisions, context = preview
             selected = set(request.selected_ids)
-            if not selected or not selected <= proposed.keys():
+            if (not selected and not (context and context.get('adapter', {}).get('provider_options'))) or not selected <= proposed.keys():
                 raise ValueError('Select events from this preview')
             try:
                 existing_obs = {r.id: r for r in self.repo.observations()}
@@ -265,7 +285,12 @@ class EventService:
         if request.broadcast_id not in broadcasts:
             raise ValueError('Broadcast changed; reload the event')
         mappings = dict(event.broadcast_mappings or {})
-        if request.channel_id:
+        if request.target_kind:
+            target = self.repo.target(request.target_kind, request.target_id)
+            if not target:
+                raise ValueError('Choose an existing active TV channel or enabled EPG channel')
+            mappings[request.broadcast_id] = {**target, 'kind': request.target_kind}
+        elif request.channel_id:
             channel = self.repo.channel(request.channel_id.lower())
             if not channel or not channel.is_active:
                 raise ValueError('Choose an existing active stream')

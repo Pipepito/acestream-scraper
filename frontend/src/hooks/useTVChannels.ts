@@ -210,3 +210,18 @@ export const useReorderTVChannels = () => {
     },
   });
 };
+
+export const useReorderTVChannelAcestreams = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ tvChannelId, streamIds, expectedOrder }: { tvChannelId: number; streamIds: string[]; expectedOrder: string[] }) =>
+      tvChannelService.reorderAcestreams(tvChannelId, streamIds, expectedOrder),
+    onSuccess: async (_, variables) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TV_CHANNEL_DETAIL, variables.tvChannelId] }),
+        queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TV_CHANNEL_ACESTREAMS, variables.tvChannelId] }),
+        queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.ALL_TV_CHANNELS] }),
+      ]);
+    },
+  });
+};

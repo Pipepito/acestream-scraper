@@ -183,6 +183,26 @@ class SearchService:
             AcestreamChannel(id=infohash, name=infohash), identifier='infohash', persist=False
         )
 
+    async def resolve_content_id(self, infohash: str) -> str:
+        from app.services.engine_client import EngineClient, EngineRefusedError, EngineUnavailableError
+
+        # Resolve against the catalogue/playback engine, never the checker or
+        # Acexy. Do not start playback or persist anything during this lookup.
+        if self.config_service and not (self.config_service.get_ace_engine_url() or "").strip():
+            raise HTTPException(status_code=503, detail="AceStream Engine URL is not configured")
+        engine_url = self._get_engine_url()
+
+        def resolve():
+            with EngineClient(engine_url) as engine:
+                return engine.resolve_content_id(infohash)
+
+        try:
+            return await asyncio.to_thread(resolve)
+        except EngineRefusedError:
+            raise HTTPException(status_code=502, detail="The engine could not resolve this search result. Try again later.") from None
+        except EngineUnavailableError:
+            raise HTTPException(status_code=502, detail="Could not resolve the search result. Check the AceStream engine and try again.") from None
+
     def extract_acestream_id(self, url: str) -> Optional[str]:
         """
         Extract acestream ID from a URL.

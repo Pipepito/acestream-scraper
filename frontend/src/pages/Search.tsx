@@ -26,17 +26,16 @@ import {
 } from '@mui/material';
 import CheckIcon from '@mui/icons-material/Check';
 import PlayArrowRounded from '@mui/icons-material/PlayArrowRounded';
-import { useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import ContentSection from '../components/layout/ContentSection';
 import PageHeader from '../components/layout/PageHeader';
 import ChannelPlayerDialog from '../components/player/ChannelPlayerDialog';
 import StatusLine from '../components/StatusLine';
-import { useAddAcestreamChannel, useSearch } from '../hooks/useSearch';
+import { useAddSearchResult, useSearch } from '../hooks/useSearch';
 import { useSnackbar } from '../hooks/useSnackbar';
 import { normalizeApiError } from '../services/apiErrors';
-import { CreateAcestreamChannelDTO } from '../services/channelService';
-import { SearchResultItem } from '../services/searchService';
+import { searchService, SearchResultItem } from '../services/searchService';
 import { formatBitrate } from '../utils/format';
 import SearchBroadcastStatus from '../components/SearchBroadcastStatus';
 
@@ -61,7 +60,12 @@ const Search: React.FC = () => {
     { enabled: !!activeSearch }
   );
 
-  const addChannelMutation = useAddAcestreamChannel();
+  const addChannelMutation = useAddSearchResult();
+  const playMutation = useMutation({
+    mutationFn: (channel: SearchResultItem) => searchService.resolveContentId(channel.id),
+    onSuccess: (contentId, channel) => setPlayerTarget({ contentId, title: channel.name }),
+    onError: (error) => showSnackbar(`Could not play: ${normalizeApiError(error).message}`, 'error'),
+  });
   const searchErrorMessage = searchError instanceof Error ? searchError.message : String(searchError);
 
   const handleSearch = useCallback(() => {
@@ -99,12 +103,6 @@ const Search: React.FC = () => {
     }
   };
 
-  const mapToCreateAcestreamChannelDTO = (item: SearchResultItem): CreateAcestreamChannelDTO => ({
-    id: item.id,
-    name: item.name,
-    group: item.categories && item.categories.length > 0 ? item.categories[0] : undefined,
-  });
-
   const markAdded = (ids: string[]) => {
     setAddedIds((prev) => {
       const next = new Set(prev);
@@ -115,7 +113,7 @@ const Search: React.FC = () => {
 
   const handleAddChannel = async (channel: SearchResultItem) => {
     try {
-      await addChannelMutation.mutateAsync(mapToCreateAcestreamChannelDTO(channel));
+      await addChannelMutation.mutateAsync(channel);
       queryClient.invalidateQueries({ queryKey: ['acestream-channels'] });
       setSelectedChannels((prev) => prev.filter((item) => item.id !== channel.id));
       markAdded([channel.id]);
@@ -133,7 +131,7 @@ const Search: React.FC = () => {
 
     try {
       for (const channel of selectedChannels) {
-        await addChannelMutation.mutateAsync(mapToCreateAcestreamChannelDTO(channel));
+        await addChannelMutation.mutateAsync(channel);
         successfulChannelIds.push(channel.id);
       }
     } catch (error) {
@@ -295,10 +293,11 @@ const Search: React.FC = () => {
                               <Button
                                 size="small"
                                 startIcon={<PlayArrowRounded />}
-                                onClick={() => setPlayerTarget({ contentId: channel.id, title: channel.name })}
+                                onClick={() => playMutation.mutate(channel)}
+                                disabled={playMutation.isPending}
                                 aria-label={`play ${channel.name}`}
                               >
-                                Play
+                                {playMutation.isPending && playMutation.variables?.id === channel.id ? 'Resolving…' : 'Play'}
                               </Button>
                               {added ? (
                                 <Chip size="small" color="success" icon={<CheckIcon />} label="Added" aria-label={`Added ${channel.name}`} />

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 import time
 from threading import Timer
 import uuid
@@ -151,6 +152,30 @@ class EngineClient:
         if not isinstance(body, dict):
             raise EngineUnavailableError("Engine response has no 'response' object")
         return body
+
+    def resolve_content_id(self, infohash: str) -> str:
+        """Resolve a catalogue infohash without starting a playback session."""
+        if not re.fullmatch(r"[0-9a-fA-F]{40}", infohash):
+            raise ValueError("Invalid search infohash")
+        if self.use_acexy:
+            raise EngineUnavailableError("Content ID resolution requires an AceStream engine")
+        try:
+            response = self._client.get(
+                f"{self.engine_url}/server/api",
+                params={"api_version": 3, "method": "get_content_id", "infohash": infohash.lower()},
+                timeout=START_TIMEOUT,
+            )
+            response.raise_for_status()
+            payload = response.json()
+        except (httpx.HTTPError, ValueError) as exc:
+            raise EngineUnavailableError("Could not resolve the search result with the engine") from exc
+        if isinstance(payload, dict) and payload.get("error"):
+            raise EngineRefusedError("The engine could not resolve this search result")
+        result = payload.get("result") if isinstance(payload, dict) else None
+        content_id = result.get("content_id") if isinstance(result, dict) else None
+        if not isinstance(content_id, str) or not re.fullmatch(r"[0-9a-fA-F]{40}", content_id):
+            raise EngineUnavailableError("The engine returned an invalid content ID")
+        return content_id.lower()
 
     def start(self, content_id: str, pid: Optional[str] = None, *, startup_deadline: Optional[float] = None) -> EngineSession:
         if self.use_acexy:

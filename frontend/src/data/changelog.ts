@@ -30,6 +30,7 @@ export const releases: ReleaseNotes[] = [
       {
         "title": "Fixed",
         "items": [
+          "Resolve AceStream Search results to content IDs before adding or playing them, fixing streams that passed Check broadcast but failed with “failed to load content”. If previously added results still fail, add them again from Search and reassign TV channels to the corrected entries.",
           "Play imported HTTP/HLS and broadcaster streams in the browser without an AceStream engine, including freshly resolved Atresmedia links. Select audio and text subtitle tracks in the player.",
           "Play assigned HTTP/HLS and broadcaster sources through the Plex/Jellyfin tuner, including channels with no AceStream source. Verify HTTP media independently of the engine, refresh broadcaster links on opening, and try compatible HTTP or AceStream alternatives when startup fails. HTTP input is repackaged as MPEG-TS without re-encoding.",
           "Stop browser playback cleanly after terminal HTTP failures and provide bounded, masked source diagnostics. Audio and subtitle selections remain independent between viewers; subtitles default to Off.",

@@ -5702,6 +5702,21 @@
         "title": "RescrapeIntervalUpdate",
         "type": "object"
       },
+      "ResolvedSearchResult": {
+        "properties": {
+          "content_id": {
+            "description": "Resolved transport-file content ID for saving or playback",
+            "pattern": "^[0-9a-f]{40}$",
+            "title": "Content Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "content_id"
+        ],
+        "title": "ResolvedSearchResult",
+        "type": "object"
+      },
       "ScanDefaultResponse": {
         "properties": {
           "cidr": {
@@ -16862,6 +16877,51 @@
           }
         },
         "summary": "Check Search Broadcast",
+        "tags": [
+          "search",
+          "search"
+        ]
+      }
+    },
+    "/api/v1/search/{infohash}/resolve": {
+      "post": {
+        "description": "Resolve a catalogue result before saving it or opening the shared player.",
+        "operationId": "resolve_search_result_api_v1_search__infohash__resolve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "infohash",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9a-fA-F]{40}$",
+              "title": "Infohash",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResolvedSearchResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resolve Search Result",
         "tags": [
           "search",
           "search"

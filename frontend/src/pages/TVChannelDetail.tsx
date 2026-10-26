@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Alert,
@@ -69,6 +69,12 @@ interface EditFormData {
   is_favorite: boolean;
 }
 
+interface StreamOrderDraft {
+  channelId: number;
+  streams: AcestreamChannel[];
+  expectedOrder: string[];
+}
+
 const TVChannelDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -83,31 +89,26 @@ const TVChannelDetail: React.FC = () => {
   const updateChannelMutation = useUpdateTVChannel();
   const reorderStreamsMutation = useReorderTVChannelAcestreams();
 
-  const [orderedStreams, setOrderedStreams] = useState<AcestreamChannel[]>([]);
-  const [isOrderModified, setIsOrderModified] = useState(false);
+  const [orderDraft, setOrderDraft] = useState<StreamOrderDraft | null>(null);
+  const draft = orderDraft?.channelId === channelId ? orderDraft : null;
+  const orderedStreams = draft?.streams ?? channel?.acestream_channels ?? [];
+  const isOrderModified = draft !== null && orderedStreams.some((stream, index) => stream.id !== draft.expectedOrder[index]);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
   const draggedStreamId = useRef<string | null>(null);
   const [dragOverStreamId, setDragOverStreamId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (channel?.acestream_channels) {
-      setOrderedStreams(channel.acestream_channels);
-      setIsOrderModified(false);
-    }
-  }, [channel?.acestream_channels]);
-
   const moveStream = (id: string, targetId: string) => {
     if (isSavingOrder || id === targetId) return;
-    setOrderedStreams((current) => {
-      const from = current.findIndex((s) => s.id === id);
-      const to = current.findIndex((s) => s.id === targetId);
-      if (from < 0 || to < 0) return current;
-      const next = [...current];
-      const [item] = next.splice(from, 1);
-      next.splice(to, 0, item);
-      return next;
+    const from = orderedStreams.findIndex((stream) => stream.id === id);
+    const to = orderedStreams.findIndex((stream) => stream.id === targetId);
+    if (from < 0 || to < 0) return;
+    const next = [...orderedStreams];
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+    setOrderDraft({
+      channelId, streams: next,
+      expectedOrder: draft?.expectedOrder ?? orderedStreams.map((stream) => stream.id),
     });
-    setIsOrderModified(true);
   };
 
   const moveStreamStep = (index: number, direction: 'up' | 'down') => {
@@ -117,15 +118,15 @@ const TVChannelDetail: React.FC = () => {
   };
 
   const handleSaveOrder = async () => {
-    if (!channel || orderedStreams.length < 2 || !isOrderModified) return;
+    if (!channel || !draft || orderedStreams.length < 2 || !isOrderModified || isSavingOrder) return;
     setIsSavingOrder(true);
     try {
       await reorderStreamsMutation.mutateAsync({
         tvChannelId: channelId,
         streamIds: orderedStreams.map((s) => s.id),
-        expectedOrder: channel.acestream_channels.map((s) => s.id),
+        expectedOrder: draft.expectedOrder,
       });
-      setIsOrderModified(false);
+      setOrderDraft(null);
       setNotice({ message: 'Stream preference order saved successfully.', severity: 'success' });
     } catch (err) {
       setNotice({ message: normalizeApiError(err).message || 'Failed to save stream order.', severity: 'error' });
@@ -379,7 +380,10 @@ const TVChannelDetail: React.FC = () => {
       <ContentSection
         title="Streams"
         actions={
-          <Stack direction="row" spacing={1}>
+          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+            {draft && (
+              <Button disabled={isSavingOrder} onClick={() => setOrderDraft(null)}>Cancel</Button>
+            )}
             <Button
               variant="contained"
               color="primary"
@@ -388,7 +392,7 @@ const TVChannelDetail: React.FC = () => {
               disabled={!isOrderModified || isSavingOrder || streamCount < 2}
               onClick={() => void handleSaveOrder()}
             >
-              {isSavingOrder ? 'Saving…' : 'Save'}
+              {isSavingOrder ? 'Saving…' : 'Save order'}
             </Button>
             <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => setOpenAssociateDialog(true)}>
               Add stream

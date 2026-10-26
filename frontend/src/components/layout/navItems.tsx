@@ -8,6 +8,7 @@ import EventNoteRoundedIcon from '@mui/icons-material/EventNoteRounded';
 import PlaylistPlayRoundedIcon from '@mui/icons-material/PlaylistPlayRounded';
 import HubRoundedIcon from '@mui/icons-material/HubRounded';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
+import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
 
 export interface NavItem {
   text: string;
@@ -19,6 +20,10 @@ export interface NavItem {
 
 export const navItems: NavItem[] = [
   { text: 'Live TV', path: '/live-tv', icon: <LiveTvRoundedIcon />, section: 'Watch' },
+  { text: 'Catalogues', path: '/catalogues', icon: <PlaylistPlayRoundedIcon />, section: 'Watch' },
+
+
+  { text: 'Events', path: '/events', icon: <EventNoteRoundedIcon />, section: 'Watch' },
   { text: 'Overview', path: '/', icon: <DashboardRoundedIcon />, section: 'System' },
   { text: 'Scraper', path: '/scraper', icon: <TravelExploreRoundedIcon />, section: 'Manage' },
   { text: 'Search', path: '/search', icon: <SearchRoundedIcon />, section: 'Manage' },
@@ -29,6 +34,7 @@ export const navItems: NavItem[] = [
   { text: 'Integrations', path: '/integrations', icon: <HubRoundedIcon />, section: 'System' },
   { text: 'WARP', path: '/warp', icon: <HubRoundedIcon />, section: 'System' },
   { text: 'Settings', path: '/settings', icon: <SettingsRoundedIcon />, section: 'System' },
+  { text: 'Changelog', path: '/changelog', icon: <HistoryRoundedIcon />, section: 'System' },
 ];
 
 /** Routable pages that are reached from within another page rather than the nav. */

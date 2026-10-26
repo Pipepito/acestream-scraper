@@ -79,10 +79,10 @@ cd "$SRC"
     --enable-ffmpeg --enable-ffprobe \
     --disable-avdevice --disable-autodetect \
     --enable-static --disable-shared --extra-ldflags=-static --pkg-config-flags=--static \
-    --enable-demuxer=mpegts,hls,mov,matroska,aac,mp3,ac3,mpegvideo,h264,hevc,data \
-    --enable-muxer=hls,mpegts,mp4,segment,stream_segment,null \
-    --enable-decoder=h264,hevc,aac,aac_latm,ac3,eac3,mp2,mp3,mpeg2video \
-    --enable-encoder=aac,mpeg2video \
+    --enable-demuxer=mpegts,hls,mov,matroska,aac,mp3,ac3,mpegvideo,h264,hevc,data,webvtt \
+    --enable-muxer=hls,mpegts,mp4,segment,stream_segment,null,webvtt \
+    --enable-decoder=h264,hevc,aac,aac_latm,ac3,eac3,mp2,mp3,mpeg2video,webvtt,subrip,ass,mov_text \
+    --enable-encoder=aac,mpeg2video,webvtt \
     --enable-parser=h264,hevc,aac,aac_latm,ac3,mpegaudio,mpegvideo \
     --enable-bsf=aac_adtstoasc,h264_mp4toannexb,hevc_mp4toannexb,extract_extradata,dump_extradata,setts \
     --enable-filter=aformat,aresample,anull,null,copy,format,scale,asetnsamples,volume \

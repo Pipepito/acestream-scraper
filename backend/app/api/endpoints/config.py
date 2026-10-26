@@ -254,7 +254,8 @@ def update_public_base_url(
 @router.get("/notification_webhook_url", response_model=SettingResponse)
 def get_notification_webhook_url(config_service: ConfigService = Depends(get_config_service)):
     """Get the webhook that receives task notifications (empty = off), as
-    scheme and host only: webhooks keep their secret in the query or path."""
+    scheme and host only: webhooks keep their secret in the query or path.
+    An invalid previously saved URL returns only '•••' so it can be replaced or cleared."""
     return {"key": "notification_webhook_url", "value": config_service.get_masked_notification_webhook_url()}
 
 

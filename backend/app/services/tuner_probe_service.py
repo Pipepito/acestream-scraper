@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import re
 from datetime import datetime, timezone
 from threading import Event
 
@@ -11,6 +10,7 @@ from app.config.database import SessionLocal
 from app.repositories.channel_repository import ChannelRepository
 from app.services.channel_status_service import ChannelStatusService
 from app.services.probe_queue import ProbePriority
+from app.services.tuner_service import supported_tuner_stream
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ def refresh_channel(tv_channel_id: int, stopping: Event) -> None:
             for channel in channels:
                 if stopping.is_set():
                     break
-                if not re.fullmatch(r"[0-9a-fA-F]{40}", channel.id):
+                if not supported_tuner_stream(channel):
                     continue
                 checked = channel.last_checked
                 if checked is not None:

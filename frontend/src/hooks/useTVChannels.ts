@@ -214,7 +214,7 @@ export const useReorderTVChannels = () => {
 export const useReorderTVChannelAcestreams = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ tvChannelId, streamIds, expectedOrder }: { tvChannelId: number; streamIds: string[]; expectedOrder?: string[] }) =>
+    mutationFn: ({ tvChannelId, streamIds, expectedOrder }: { tvChannelId: number; streamIds: string[]; expectedOrder: string[] }) =>
       tvChannelService.reorderAcestreams(tvChannelId, streamIds, expectedOrder),
     onSuccess: async (_, variables) => {
       await Promise.all([

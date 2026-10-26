@@ -2,16 +2,23 @@
 Repository for channel data operations
 """
 from app.config.database_retry import retry_database_write
-from sqlalchemy import or_
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 from typing import Dict, Any, Iterable, List, Optional
 from datetime import datetime, timezone
 
 from app.models.models import AcestreamChannel, EPGChannel, TVChannel
-from app.services.stream_ranking import sort_streams_curated
 
 
 class ChannelRepository:
+    def get_status_check_inventory(self):
+        """Read only the active stream fields needed to plan a status pass."""
+        return (self.db.query(AcestreamChannel.id, AcestreamChannel.last_checked,
+                              AcestreamChannel.tv_channel_id, TVChannel.is_favorite)
+                .outerjoin(TVChannel, AcestreamChannel.tv_channel_id == TVChannel.id)
+                .filter(AcestreamChannel.is_active.is_(True))
+                .all())
+
     def get_tuner_streams(self, tv_channel_id: int, *, online_only: bool = False) -> List[AcestreamChannel]:
         query = (self.db.query(AcestreamChannel)
                 .join(TVChannel, TVChannel.id == AcestreamChannel.tv_channel_id)
@@ -60,26 +67,19 @@ class ChannelRepository:
             self.db.rollback()
             raise
 
-    def reorder_tv_channel_streams(self, tv_channel_id: int, stream_ids: List[str], expected_order: Optional[List[str]] = None) -> List[AcestreamChannel]:
-        """Validate the complete snapshot and commit all stream orders together."""
-        try:
-            tv_channel = self.get_tv_channel_by_id(tv_channel_id)
-            if not tv_channel:
-                raise ValueError("TV Channel not found")
-            current_streams = sort_streams_curated(tv_channel.acestream_channels)
-            current_ids = [s.id for s in current_streams]
-            if expected_order is not None and current_ids != expected_order:
-                raise ValueError("The stream list changed. Refresh to load the latest order.")
-            if set(current_ids) != set(stream_ids):
-                raise ValueError("The stream list does not match the channel's associated streams.")
-            by_id = {s.id: s for s in current_streams}
-            for order, stream_id in enumerate(stream_ids, start=1):
-                by_id[stream_id].stream_order = order
-            self.db.commit()
-            return sort_streams_curated(tv_channel.acestream_channels)
-        except Exception:
-            self.db.rollback()
-            raise
+    def lock_tv_channel_streams(self, tv_channel_id: int) -> List[AcestreamChannel]:
+        """Acquire the write lock before reading the reorder snapshot (also on SQLite)."""
+        self.db.query(TVChannel).filter(TVChannel.id == tv_channel_id).update(
+            {TVChannel.updated_at: TVChannel.updated_at}, synchronize_session=False,
+        )
+        return (self.db.query(AcestreamChannel)
+                .filter(AcestreamChannel.tv_channel_id == tv_channel_id)
+                .populate_existing().all())
+
+    def save_stream_order(self, streams: List[AcestreamChannel]) -> None:
+        for order, stream in enumerate(streams, start=1):
+            stream.stream_order = order
+        self.db.commit()
 
     def get_tv_channels_with_total(self, skip: int = 0, limit: int = 100,
                                    search: Optional[str] = None,
@@ -125,7 +125,10 @@ class ChannelRepository:
         """Get acestream channels not assigned to any TV channel."""
         query = self.db.query(AcestreamChannel).filter(AcestreamChannel.tv_channel_id.is_(None))
         if search:
-            query = query.filter(AcestreamChannel.name.ilike(f"%{search}%"))
+            query = query.filter(
+                AcestreamChannel.name.ilike(f"%{search}%") |
+                AcestreamChannel.id.ilike(f"%{search}%")
+            )
         return query.order_by(AcestreamChannel.group, AcestreamChannel.name).all()
     def get_import_assignment_exclusions(self, acestream_ids: Iterable[str]) -> set[str]:
         """Preserve existing owners and explicit opt-outs during catalogue ingestion."""
@@ -233,7 +236,10 @@ class ChannelRepository:
             query = query.filter(AcestreamChannel.is_active == True)
 
         if search:
-            query = query.filter(AcestreamChannel.name.ilike(f"%{search}%"))
+            query = query.filter(
+                AcestreamChannel.name.ilike(f"%{search}%") |
+                AcestreamChannel.id.ilike(f"%{search}%")
+            )
 
         return query.offset(skip).limit(limit).all()
 
@@ -265,13 +271,25 @@ class ChannelRepository:
 
         # Apply filters
         if search:
-            query = query.filter(AcestreamChannel.name.ilike(f"%{search}%"))
+            query = query.filter(
+                AcestreamChannel.name.ilike(f"%{search}%") |
+                AcestreamChannel.id.ilike(f"%{search}%")
+            )
 
         if group:
             query = query.filter(AcestreamChannel.group == group)
 
         if only_online:
-            query = query.filter(AcestreamChannel.is_online == True)
+            # An HTTP stream not checked yet is unknown, and without this the
+            # default playlist (only_online=true) had NO HTTP channel at all
+            # until the next status pass. Unknown HTTP streams are published:
+            # a dead one fails in Kodi within seconds and leaves the remote
+            # responsive, which is not true of an acestream id waiting on the
+            # engine. Checked-dead ones are left out.
+            query = query.filter(or_(
+                AcestreamChannel.is_online == True,
+                and_(AcestreamChannel.stream_url.isnot(None), AcestreamChannel.is_online.is_(None)),
+            ))
 
         if include_groups and len(include_groups) > 0:
             query = query.filter(AcestreamChannel.group.in_(include_groups))
@@ -327,6 +345,8 @@ class ChannelRepository:
                                tvg_name: Optional[str] = None,
                                tv_channel_id: Optional[int] = None,
                                is_online: Optional[bool] = None,
+                               stream_url: Optional[str] = None,
+                               stream_headers: Optional[dict] = None,
                                commit: bool = True) -> AcestreamChannel:
         """Create a new channel or update existing one. Always update tvg_id and tvg_name if present (even if empty string)."""
         channel = self.get_channel_by_id(channel_id)
@@ -343,13 +363,23 @@ class ChannelRepository:
                 tv_channel_id=tv_channel_id,
                 last_seen=datetime.now(timezone.utc),
                 is_active=True,
-                is_online=is_online
+                is_online=is_online,
+                stream_url=stream_url or None,
+                stream_headers=stream_headers or None
             )
             self.db.add(channel)
         else:
             # Update existing channel
             channel.name = name
             channel.last_seen = datetime.now(timezone.utc)
+            # Only ever set it, never clear it: a later scrape that does not
+            # carry the URL must not turn a working IPTV stream into an id
+            # the engine will be asked about.
+            if stream_url:
+                channel.stream_url = stream_url
+                # The list is the authority on its own headers: if it stops
+                # publishing them, stop sending them.
+                channel.stream_headers = stream_headers or None
             # is_active is the user's "show in playlist" choice; a scrape never overrides it.
             if source_url is not None:
                 channel.source_url = source_url
@@ -377,6 +407,9 @@ class ChannelRepository:
         channel = self.get_channel_by_id(channel_id)
         if not channel:
             return None
+
+        if "tv_channel_id" in updates and updates["tv_channel_id"] != channel.tv_channel_id:
+            channel.stream_order = None
 
         # Update fields from the dictionary
         for key, value in updates.items():
@@ -563,6 +596,8 @@ class ChannelRepository:
         if not tv_channel:
             return False
 
+        for stream in tv_channel.acestream_channels:
+            stream.stream_order = None
         self.db.delete(tv_channel)
         self.db.commit()
         return True
@@ -577,6 +612,8 @@ class ChannelRepository:
         if not tv_channel or not acestream_channel:
             return False
 
+        if acestream_channel.tv_channel_id != tv_channel_id:
+            acestream_channel.stream_order = None
         acestream_channel.tv_channel_id = tv_channel_id
         self.db.commit()
         return True
@@ -611,7 +648,10 @@ class ChannelRepository:
         if active_only:
             query = query.filter(AcestreamChannel.is_active == True)
         if search:
-            query = query.filter(AcestreamChannel.name.ilike(f"%{search}%"))
+            query = query.filter(
+                AcestreamChannel.name.ilike(f"%{search}%") |
+                AcestreamChannel.id.ilike(f"%{search}%")
+            )
         if group:
             query = query.filter(AcestreamChannel.group == group)
         if is_active is not None:
@@ -641,7 +681,10 @@ class ChannelRepository:
         if active_only:
             query = query.filter(AcestreamChannel.is_active == True)
         if search:
-            query = query.filter(AcestreamChannel.name.ilike(f"%{search}%"))
+            query = query.filter(
+                AcestreamChannel.name.ilike(f"%{search}%") |
+                AcestreamChannel.id.ilike(f"%{search}%")
+            )
         if group:
             query = query.filter(AcestreamChannel.group == group)
         if is_active is not None:

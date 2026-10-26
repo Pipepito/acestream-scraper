@@ -315,9 +315,9 @@ class TVChannelReorderRequest(BaseModel):
 class TVChannelStreamReorderRequest(BaseModel):
     """Desired stream IDs in preference order; saved with stream_order 1 through N."""
     stream_ids: List[str] = Field(..., min_length=1, description="Desired complete acestream ID ordering for this TV channel.")
-    expected_order: Optional[List[str]] = Field(None, description="Original acestream ID ordering; rejects stale reorder edits if provided.")
+    expected_order: List[str] = Field(..., min_length=1, description="Original complete acestream ID ordering; rejects stale reorder edits.")
 
-    @field_validator("stream_ids")
+    @field_validator("stream_ids", "expected_order")
     @classmethod
     def unique_stream_ids(cls, values: List[str]) -> List[str]:
         if len(values) != len(set(values)):

@@ -33,8 +33,9 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import pytest
+import pytest_asyncio
 from fastapi.testclient import TestClient
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -346,17 +347,17 @@ def alembic_client(alembic_backend_runtime, alembic_override_get_db):
     return TestClient(alembic_backend_runtime.app)
 
 
-@pytest.fixture(scope="function")
+@pytest_asyncio.fixture(scope="function")
 async def async_client(backend_runtime, override_get_db):
     """Create an async test client."""
-    async with AsyncClient(app=backend_runtime.app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=backend_runtime.app), base_url="http://test") as ac:
         yield ac
 
 
-@pytest.fixture(scope="function")
+@pytest_asyncio.fixture(scope="function")
 async def alembic_async_client(alembic_backend_runtime, alembic_override_get_db):
     """Create an async migrated test client."""
-    async with AsyncClient(app=alembic_backend_runtime.app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=alembic_backend_runtime.app), base_url="http://test") as ac:
         yield ac
 
 

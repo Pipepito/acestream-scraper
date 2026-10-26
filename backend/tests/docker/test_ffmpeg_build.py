@@ -106,6 +106,14 @@ def test_ffmpeg_builder_produces_a_working_static_binary(tmp_path, platform):
     assert player.returncode == 0, player.stderr
     assert (out / "player" / "index.m3u8").exists() and list((out / "player").glob("seg*.ts"))
 
+    # The player needs both WebVTT decoding and encoding, not just discovery.
+    (tmp_path / "captions.vtt").write_text("WEBVTT\n\n00:00:00.100 --> 00:00:01.000\nCaption\n")
+    captions = subprocess.run(base + ["/ff/ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error",
+        "-i", "/ff/captions.vtt", "-c:s", "webvtt", "/out/captions.vtt"],
+        capture_output=True, text=True, timeout=300)
+    assert captions.returncode == 0, captions.stderr
+    assert "Caption" in (out / "captions.vtt").read_text()
+
     # Exercise the relay's actual encoding flags against the bundled binary.
     from app.services.tuner_remux import remux_argv
     relay = subprocess.run(base[:3] + ['-i'] + base[3:] + remux_argv('/ff/ffmpeg', version=1, offset=0),

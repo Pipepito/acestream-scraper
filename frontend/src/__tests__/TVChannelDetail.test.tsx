@@ -250,7 +250,7 @@ describe('TVChannelDetail', () => {
     expect(mutateAsync).toHaveBeenCalledWith({ tvChannelId: 7, aceStreamId: 'ace-1' });
   });
 
-  it('renders streams with descending preference order and allows reordering and saving', async () => {
+  it('renders streams in preference order and allows reordering and saving', async () => {
     const multiStreamChannel = {
       ...baseChannel,
       acestream_channels: [
@@ -269,7 +269,7 @@ describe('TVChannelDetail', () => {
     expect(screen.getByLabelText('Order 2')).toHaveTextContent('2');
 
     // Save button is initially disabled
-    const saveButton = screen.getByRole('button', { name: 'Save' });
+    const saveButton = screen.getByRole('button', { name: 'Save order' });
     expect(saveButton).toBeDisabled();
 
     // Move first stream down
@@ -288,4 +288,29 @@ describe('TVChannelDetail', () => {
     });
     expect(await screen.findByText(/stream preference order saved successfully/i)).toBeInTheDocument();
   });
+  it('keeps edits and the original snapshot across refreshes, and Cancel reloads current data', async () => {
+    const streams = [
+      { id: 'ace-1', name: 'Primary', is_online: true },
+      { id: 'ace-2', name: 'Backup', is_online: true },
+    ];
+    const mutateAsync = jest.fn().mockRejectedValue(new Error('The stream list changed'));
+    mockUseReorderTVChannelAcestreams.mockReturnValue({ mutateAsync });
+    mockUseTVChannel.mockReturnValue({ data: { ...baseChannel, acestream_channels: streams }, isLoading: false });
+    renderPage();
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Drag Primary' }), { key: 'ArrowDown' });
+    expect(screen.getByRole('button', { name: 'Save order' })).toBeEnabled();
+    mockUseTVChannel.mockReturnValue({ data: { ...baseChannel, acestream_channels: [...streams].reverse() }, isLoading: false });
+    // A second move returns to the original order and must disable Save.
+    fireEvent.click(screen.getByRole('button', { name: 'Move Primary up' }));
+    expect(screen.getByRole('button', { name: 'Save order' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Move Primary down' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save order' }));
+    expect(await screen.findByText('The stream list changed')).toBeInTheDocument();
+    expect(mutateAsync).toHaveBeenCalledWith({ tvChannelId: 7, streamIds: ['ace-2', 'ace-1'], expectedOrder: ['ace-1', 'ace-2'] });
+    expect(screen.getByRole('button', { name: 'Save order' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByRole('button', { name: 'Save order' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Move Backup up' })).toBeDisabled();
+  });
+
 });

@@ -21,7 +21,7 @@ const OpenChannelPlayer: React.FC<ChannelPlayerDialogProps> = (props) => {
   const now = useNow();
   const channel = tv.data;
   return <StreamPlayerDialog {...props} contentId={selectedId} title={channel?.name ?? props.title}
-    extraActions={selectedId ? <PlayOnMenu contentId={selectedId} title={channel?.name ?? props.title} /> : undefined}
+    extraActions={selectedId && !selectedId.startsWith('url:') ? <PlayOnMenu contentId={selectedId} title={channel?.name ?? props.title} /> : undefined}
     schedule={channel ? <ChannelGuide channel={channel} now={now} /> : undefined}
     details={<>
       {tv.isError ? <Alert severity="warning">Channel details are unavailable. You can still play this stream.</Alert> : null}

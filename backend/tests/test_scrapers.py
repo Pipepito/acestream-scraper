@@ -17,6 +17,17 @@ from app.services.m3u_service import M3UService
 from app.services.scraper_service import ScraperService
 
 
+@pytest.fixture
+def fetched_playlist(monkeypatch):
+    """Keep endpoint/parser tests independent of public DNS and TLS teardown."""
+    async def fetch_content(_scraper, url):
+        if url.endswith('/malformed.m3u'):
+            return '#EXTM3U\n#EXTINF:broken\nnot a stream\n'
+        return '#EXTM3U\n#EXTINF:-1,Fixture channel\nacestream://' + 'a' * 40 + '\n'
+
+    monkeypatch.setattr('app.scrapers.http.HTTPScraper.fetch_content', fetch_content)
+
+
 def test_tv_association_database_failure_preserves_previous_source_channels(db_session, monkeypatch):
     from app.models.url_types import RegularURL
     from app.services.tvchannel_service import TVChannelService
@@ -80,7 +91,7 @@ class TestScraperEndpoints:
         """Test scraping with empty data."""
         scrape_data = {}
         response = client.post("/api/v1/scrapers/scrape", json=scrape_data)
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 class TestScrapedURLEndpoints:
@@ -133,7 +144,7 @@ class TestScrapedURLEndpoints:
         """Test creating a scraped URL with invalid data."""
         invalid_data = {"url": ""}  # Missing required fields
         response = client.post("/api/v1/scrapers/urls", json=invalid_data)
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_create_scraped_url_duplicate(self, client, seed_scraped_urls):
         """Test creating a scraped URL with duplicate URL."""
@@ -350,7 +361,7 @@ acestream://7777777777777777777777777777777777777777
             )
         ]
 
-    def test_scrape_and_create_channels(self, client, db_session):
+    def test_scrape_and_create_channels(self, client, db_session, fetched_playlist):
         """Test that scraping creates channels in the database."""
         # Create a URL to scrape
         url_data = {
@@ -372,12 +383,13 @@ acestream://7777777777777777777777777777777777777777
 
         # Verify scraping was attempted
         assert scrape_result["url"] == url_data["url"]
-        assert "channels_found" in scrape_result
-        assert "status" in scrape_result
+        assert scrape_result["channels_found"] == 0
+        assert scrape_result["status"] == "pending"
+        assert db_session.get(AcestreamChannel, "a" * 40) is not None
 
-    def test_scrape_with_different_url_types(self, client):
+    def test_scrape_with_different_url_types(self, client, fetched_playlist):
         """Test scraping with different URL types."""
-        url_types = ["regular", "acexy", "special"]
+        url_types = ["regular", "auto", "acexy", "special"]
 
         for url_type in url_types:
             scrape_data = {
@@ -388,8 +400,14 @@ acestream://7777777777777777777777777777777777777777
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
             assert data["url"] == scrape_data["url"]
+            if url_type in {"regular", "auto"}:
+                assert data["channels_found"] == 1
+                assert data["status"] == "OK"
+            else:
+                assert data["channels_found"] == 0
+                assert f"Unsupported URL type: {url_type}" in data["status"]
 
-    def test_scrape_with_malformed_content(self, client):
+    def test_scrape_with_malformed_content(self, client, fetched_playlist):
         """Test scraping with malformed content handling."""
         scrape_data = {
             "url": "https://example.com/malformed.m3u",
@@ -400,7 +418,7 @@ acestream://7777777777777777777777777777777777777777
         data = response.json()
         # Should handle malformed content gracefully
         assert "status" in data
-        assert data["channels_found"] >= 0
+        assert data["channels_found"] == 0
 
     def test_scrape_service_replaces_stale_source_channels(self, db_session, monkeypatch):
         source_url = "https://example.com/perf_replace.m3u"

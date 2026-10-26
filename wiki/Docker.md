@@ -143,6 +143,12 @@ upgrading; a rollback uses the retained legacy files, not subsequent v2 state.
 
 The bundled node includes a targeted manifest-verification patch. See [verification scope and remaining upstream limitations](../docs/ops/zeronet-verification.md).
 
+Sources written as `zero://<site>/<file>` use the complete configured `ZERONET_URL`,
+including HTTPS, non-default ports, IPv6 and a gateway path prefix. A missing-site
+bootstrap request uses the same prefix before retrying the requested file. Explicit
+HTTP source URLs retain their own address. Bare JSON link lists retain names next
+to their AceStream IDs; direct JSON/M3U fetch failures are reported on the source.
+
 The checked-in compose stack keeps the `zeronet` service behind an optional `zeronet` profile and points the default app config at `http://host.docker.internal:43110`. It uses an amd64-focused sidecar image. On 32-bit ARM hosts, point `ZERONET_URL` at an external ZeroNet service or swap in a compatible sidecar. With the embedded node enabled, leave `ZERONET_URL` unset — the entrypoint targets the embedded UI port automatically.
 
 IPFS is also bundled: every flavor ships the [Kubo](https://github.com/ipfs/kubo) IPFS daemon on `linux/amd64` and `linux/arm64`. Kubo publishes no 32-bit ARM build, so `linux/arm/v7` images ship without it (the container exits with a clear error if `ENABLE_IPFS=true` is requested there — same situation as WARP). The daemon is opt-in: nothing IPFS-related runs until `ENABLE_IPFS=true`. `ipfs://` and `ipns://` sources are fetched through `IPFS_GATEWAY_URL`, which defaults to the embedded gateway at `http://127.0.0.1:8081` — the gateway uses `8081` in-container because Acexy already listens on `8080`. You can also scrape IPFS without the embedded daemon: keep `ENABLE_IPFS=false` and point `IPFS_GATEWAY_URL` at an external node, e.g. `http://host.docker.internal:8080` for a Kubo/IPFS Desktop install on the Docker host (this works on every platform, `linux/arm/v7` included).
@@ -446,3 +452,10 @@ so it does not require mounting the engine's temporary files into the scraper.
 ## Optional DNS override
 
 The command builder's **Use xdp.es DNS** option is off by default. Enabling it adds `--dns=85.208.114.52` to Docker commands or a `dns:` entry to Compose. It selects [xdp.es Standard](https://xdp.es/about), without ad filtering, using ordinary unencrypted DNS. Recreate the container to apply or remove it; WARP may override DNS while connected.
+
+## Gluetun forwarded P2P ports
+
+For a bundled playback engine sharing Gluetun’s network namespace, opt into
+forwarded-port synchronization with `ACESTREAM_GLUETUN_PORT_FILE`. See
+[Gluetun setup](Gluetun.md) for the shared read-only directory, port ownership,
+restart behavior and provider requirements.

@@ -52,3 +52,16 @@ it('sends the requested audio index when starting playback', async () => {
   await playerService.startSession('a'.repeat(40), 1);
   expect(apiClient.post).toHaveBeenLastCalledWith('/v1/player/sessions', { content_id: 'a'.repeat(40), audio_index: 1 });
 });
+
+
+it('sends both selected tracks and omits subtitles when they are off', async () => {
+  (apiClient.post as jest.Mock).mockResolvedValue({ data: { id: 'subtitle-session' } });
+  await playerService.startSession('a'.repeat(40), 1, 0);
+  expect(apiClient.post).toHaveBeenLastCalledWith('/v1/player/sessions', {
+    content_id: 'a'.repeat(40), audio_index: 1, subtitle_index: 0,
+  });
+  await playerService.startSession('a'.repeat(40), 1);
+  expect(apiClient.post).toHaveBeenLastCalledWith('/v1/player/sessions', {
+    content_id: 'a'.repeat(40), audio_index: 1,
+  });
+});

@@ -80,7 +80,7 @@ class TestTVChannelEndpoints:
         """Test creating a TV channel with invalid data."""
         invalid_data = {"name": ""}  # Missing required fields
         response = client.post("/api/v1/tv-channels/", json=invalid_data)
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_update_tv_channel(self, client, seed_tv_channels):
         """Test updating an existing TV channel."""
@@ -599,7 +599,7 @@ class TestTVChannelEPGMatchAnalysis:
 
         response = client.post("/api/v1/tv-channels/analyze-epg-matches", json={"strictness": "balanced"})
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
         assert "budget" in response.json()["detail"].lower()
 
     def test_analyze_epg_matches_marks_duplicate_existing_conflicts_as_not_creatable(self, client, seeded_match_data, db_session):
@@ -653,7 +653,7 @@ class TestTVChannelCreateFromEPGAnalysis:
             json={"strictness": "strict", "epg_channel_ids": [epg_channel.id]},
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
         assert "no accepted matches" in response.json()["detail"].lower()
 
     def test_create_from_epg_analysis_reports_row_level_partial_success(self, client, seeded_match_data, db_session):
@@ -705,7 +705,7 @@ class TestTVChannelCreateFromEPGAnalysis:
             json={"strictness": "balanced", "epg_channel_ids": [seeded_conflict_data["loser"].id]},
         )
         # Selecting the loser must not invent an assignment absent from preview.
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
         assert "no accepted matches" in response.json()["detail"].lower()
 
     def test_create_from_epg_analysis_does_not_steal_existing_acestream_associations(self, client, seeded_match_data, db_session):
@@ -723,7 +723,7 @@ class TestTVChannelCreateFromEPGAnalysis:
             json={"strictness": "balanced", "epg_channel_ids": [epg_channel.id]},
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
         db_session.refresh(protected_acestream)
         assert protected_acestream.tv_channel_id == protected_channel.id
@@ -807,7 +807,7 @@ class TestTVChannelCreateFromEPGAnalysis:
             json={"strictness": "invalid", "epg_channel_ids": [seeded_match_data["epg_channels"]["xml_exact"].id]},
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_create_from_epg_analysis_rejects_empty_epg_channel_ids(self, client):
         response = client.post(
@@ -815,7 +815,7 @@ class TestTVChannelCreateFromEPGAnalysis:
             json={"strictness": "balanced", "epg_channel_ids": []},
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_create_from_epg_analysis_rejects_when_revalidation_yields_no_matches(self, client, seeded_unmatched_data):
         unmatched_channel_id = seeded_unmatched_data["epg_channels"][0].id
@@ -824,7 +824,7 @@ class TestTVChannelCreateFromEPGAnalysis:
             json={"strictness": "balanced", "epg_channel_ids": [unmatched_channel_id]},
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
         assert "no accepted matches" in response.json()["detail"].lower()
 
 
@@ -972,11 +972,84 @@ def test_reorder_tv_channel_acestreams(client, db_session):
         f"/api/v1/tv-channels/{tv.id}/acestreams/reorder",
         json={"stream_ids": desired_order, "expected_order": initial_ids},
     )
-    assert stale_res.status_code == 400
+    assert stale_res.status_code == 409
 
     # Partial/mismatched stream IDs rejected
     bad_res = client.post(
         f"/api/v1/tv-channels/{tv.id}/acestreams/reorder",
-        json={"stream_ids": [stream_c.id, stream_a.id]},
+        json={"stream_ids": [stream_c.id, stream_a.id], "expected_order": desired_order},
     )
-    assert bad_res.status_code == 400
+    assert bad_res.status_code == 409
+
+
+def test_stream_order_does_not_follow_reassignment_or_channel_deletion(db_session):
+    from app.models.models import AcestreamChannel, TVChannel
+    from app.repositories.channel_repository import ChannelRepository
+    first, second = TVChannel(name='First'), TVChannel(name='Second')
+    db_session.add_all([first, second])
+    db_session.flush()
+    stream = AcestreamChannel(id='a' * 40, name='Feed', tv_channel_id=first.id, stream_order=1)
+    db_session.add(stream)
+    db_session.commit()
+    repository = ChannelRepository(db_session)
+    repository.associate_acestream_to_tv_channel(first.id, stream.id)
+    assert stream.stream_order == 1
+    repository.associate_acestream_to_tv_channel(second.id, stream.id)
+    assert stream.stream_order is None
+    stream.stream_order = 1
+    db_session.commit()
+    repository.update_channel(stream.id, {'tv_channel_id': first.id})
+    assert stream.stream_order is None
+    stream.stream_order = 1
+    db_session.commit()
+    repository.delete_tv_channel(first.id)
+    db_session.refresh(stream)
+    assert stream.tv_channel_id is None
+    assert stream.stream_order is None
+
+
+def test_stream_reorder_requires_complete_unique_snapshot(client, db_session):
+    from app.models.models import AcestreamChannel, TVChannel
+    tv = TVChannel(name='Snapshot')
+    db_session.add(tv)
+    db_session.flush()
+    first, second = 'a' * 40, 'b' * 40
+    db_session.add_all([AcestreamChannel(id=sid, name=sid, tv_channel_id=tv.id) for sid in [first, second]])
+    db_session.commit()
+    url = f'/api/v1/tv-channels/{tv.id}/acestreams/reorder'
+    assert client.post(url, json={'stream_ids': [second, first]}).status_code == 422
+    assert client.post(url, json={'stream_ids': [first, first], 'expected_order': [first, second]}).status_code == 422
+    assert client.post(url, json={'stream_ids': [second, first], 'expected_order': [first, second]}).status_code == 200
+    assert client.post(url, json={'stream_ids': [first, second], 'expected_order': [first, second]}).status_code == 409
+    saved = client.get(f'/api/v1/tv-channels/{tv.id}/acestreams').json()
+    assert [(stream['id'], stream['stream_order']) for stream in saved] == [(second, 1), (first, 2)]
+
+
+def test_concurrent_stream_reorders_reject_the_losing_snapshot(alembic_db_session):
+    db_session = alembic_db_session
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+    from sqlalchemy.orm import Session
+    from app.models.models import AcestreamChannel, TVChannel
+    from app.services.tvchannel_service import TVChannelService
+    tv = TVChannel(name='Concurrent order')
+    db_session.add(tv)
+    db_session.flush()
+    ids = ['a' * 40, 'b' * 40, 'c' * 40]
+    db_session.add_all([AcestreamChannel(id=sid, name=sid, tv_channel_id=tv.id) for sid in ids])
+    db_session.commit()
+    tv_id, engine = tv.id, db_session.get_bind()
+    barrier = Barrier(2)
+
+    def save(desired):
+        with Session(engine) as session:
+            barrier.wait(timeout=5)
+            try:
+                TVChannelService(session).reorder_streams(tv_id, desired, ids)
+                return 'saved'
+            except ValueError:
+                return 'stale'
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        outcomes = list(pool.map(save, [ids[::-1], [ids[1], ids[2], ids[0]]]))
+    assert sorted(outcomes) == ['saved', 'stale']

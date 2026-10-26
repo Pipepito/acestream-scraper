@@ -22,7 +22,9 @@ from typing import Any, Callable, Deque, Dict, List, Literal, Optional, TypeVar
 from fastapi.concurrency import run_in_threadpool
 
 from app.config.settings import get_settings
-from app.schemas.media import AudioTrack
+from app.schemas.media import AudioTrack, SubtitleTrack
+from app.services.diagnostics_service import redact
+from app.services.player_http_source import PlayerHTTPSource
 from app.services.engine_client import (
     EngineClient,
     EngineRefusedError,
@@ -30,12 +32,13 @@ from app.services.engine_client import (
     EngineStats,
     EngineUnavailableError,
     playback_client_from_settings,
+    start_engine_session,
 )
 
 logger = logging.getLogger(__name__)
 
 PlayerState = Literal["starting", "ready", "error", "stopped"]
-PlayerError = Literal["engine_unavailable", "engine_refused", "engine_stalled", "ffmpeg_missing", "ffmpeg_failed"]
+PlayerError = Literal["engine_unavailable", "engine_refused", "engine_stalled", "ffmpeg_missing", "ffmpeg_failed", "source_unavailable"]
 
 IDLE_SECONDS = 20.0
 NO_VIEWERS_SECONDS = 5.0
@@ -65,6 +68,8 @@ class PlayerSession:
     created_at: float
     last_access: float
     audio_index: Optional[int] = None
+    subtitle_index: Optional[int] = None
+    subtitle_tracks: List[SubtitleTrack] = field(default_factory=list)
     audio_tracks: List[AudioTrack] = field(default_factory=list)
     state: PlayerState = "starting"
     error: Optional[PlayerError] = None
@@ -72,6 +77,7 @@ class PlayerSession:
     viewers: int = 0
     viewers_zero_since: Optional[float] = None
     engine_session: Optional[EngineSession] = None
+    http_source: Optional[PlayerHTTPSource] = None
     process: Optional[asyncio.subprocess.Process] = None
     codecs: Dict[str, Optional[str]] = field(default_factory=lambda: {"video": None, "audio": None})
     stats: Optional[EngineStats] = None
@@ -141,11 +147,11 @@ class PlayerService:
             "hls_dir": str(self.hls_dir()),
         }
 
-    def ffmpeg_argv(self, playback_url: str, directory: Path, audio_index: Optional[int] = None) -> List[str]:
+    def ffmpeg_argv(self, playback_url: str, directory: Path, audio_index: Optional[int] = None, subtitle_index: Optional[int] = None) -> List[str]:
         # Allow the configured startup budget to cover proxy/engine buffering.
         # The session reaper still enforces startup and media-stall deadlines.
         read_timeout_us = int(max(20.0, float(self._settings().PLAYER_START_TIMEOUT_SECONDS)) * 1_000_000)
-        return [
+        argv = [
             str(self.ffmpeg_path()), "-nostdin", "-hide_banner", "-loglevel", "info", "-nostats",
             "-rw_timeout", str(read_timeout_us), "-fflags", "+genpts+discardcorrupt",
             "-i", playback_url, "-map", "0:v:0", "-map", f"0:a:{audio_index}" if audio_index is not None else "0:a:0?", "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-ac", "2",
@@ -154,6 +160,11 @@ class PlayerService:
             "-hls_segment_type", "mpegts", "-hls_segment_filename", str(directory / "seg%05d.ts"),
             str(directory / "index.m3u8"),
         ]
+
+        if subtitle_index is not None:
+            position = argv.index("-f")
+            argv[position:position] = ["-map", f"0:s:{subtitle_index}", "-c:s", "webvtt"]
+        return argv
 
     # --- lifecycle -----------------------------------------------------------
     async def start(self) -> None:
@@ -247,10 +258,10 @@ class PlayerService:
             return False
         return sum(1 for line in lines if line.strip().endswith(".ts")) >= 2
 
-    async def open_session(self, content_id: str, audio_index: Optional[int] = None) -> PlayerSession:
+    async def open_session(self, content_id: str, audio_index: Optional[int] = None, subtitle_index: Optional[int] = None) -> PlayerSession:
         async with self._lock:
             for existing in self.sessions.values():
-                if existing.content_id == content_id and (existing.audio_index or 0) == (audio_index or 0) and existing.state in ("starting", "ready"):
+                if existing.content_id == content_id and (existing.audio_index or 0) == (audio_index or 0) and existing.subtitle_index == subtitle_index and existing.state in ("starting", "ready"):
                     existing.viewers += 1
                     existing.viewers_zero_since = None
                     existing.last_access = self._now()
@@ -271,6 +282,7 @@ class PlayerService:
                 id=session_id,
                 content_id=content_id,
                 audio_index=audio_index,
+                subtitle_index=subtitle_index,
                 dir=self.hls_dir() / session_id,
                 created_at=now,
                 last_access=now,
@@ -286,36 +298,75 @@ class PlayerService:
         return session
 
     async def _launch(self, session: PlayerSession) -> None:
+        try:
+            await self._launch_owned(session)
+        except asyncio.CancelledError:
+            await self._teardown(session, immediate=True)
+            raise
+
+    async def _launch_owned(self, session: PlayerSession) -> None:
         ffmpeg = self.ffmpeg_path()
         if ffmpeg is None:
             await self._fail(session, "ffmpeg_missing", "ffmpeg is not installed on this server")
             return
-        try:
-            engine_session = await run_in_threadpool(
-                self._engine_call, lambda engine: engine.start(session.content_id)
-            )
-        except EngineRefusedError as exc:
-            await self._fail(session, "engine_refused", str(exc))
-            return
-        except EngineUnavailableError as exc:
-            await self._fail(session, "engine_unavailable", str(exc))
-            return
-        if session.state in ("stopped", "error"):
-            # The reaper (or shutdown) tore the session down, or the start-timeout
-            # tick failed it, while the engine was answering — the teardown or
-            # _fail that already ran would never reap what we are about to create,
-            # so hand the engine handle back and spawn nothing.
-            await self._stop_engine_session(session.content_id, engine_session)
-            return
-        session.engine_session = engine_session
+        if session.content_id.startswith("url:"):
+            remaining = session.created_at + float(self._settings().PLAYER_START_TIMEOUT_SECONDS) - self._now()
+            try:
+                source = await PlayerHTTPSource.open(session.content_id, timeout=remaining)
+            except Exception:
+                await self._fail(session, "source_unavailable", "The HTTP stream could not be opened")
+                return
+            if session.state in ("stopped", "error"):
+                await source.close()
+                return
+            session.http_source = source
+            playback_url = source.playback_url
+        else:
+            try:
+                remaining = session.created_at + float(self._settings().PLAYER_START_TIMEOUT_SECONDS) - self._now()
+                deadline = time.monotonic() + remaining
+                engine_session = await start_engine_session(
+                    lambda: self._engine_call(lambda engine: engine.start(session.content_id, startup_deadline=deadline)),
+                    lambda opened: self._engine_call(lambda engine: engine.stop(opened)),
+                )
+            except EngineRefusedError as exc:
+                await self._fail(session, "engine_refused", str(exc))
+                return
+            except EngineUnavailableError as exc:
+                await self._fail(session, "engine_unavailable", str(exc))
+                return
+            if session.state in ("stopped", "error"):
+                # The reaper (or shutdown) tore the session down, or the start-timeout
+                # tick failed it, while the engine was answering — the teardown or
+                # _fail that already ran would never reap what we are about to create,
+                # so hand the engine handle back and spawn nothing.
+                await self._stop_engine_session(session.content_id, engine_session)
+                return
+            session.engine_session = engine_session
+            playback_url = engine_session.playback_url
         session.dir.mkdir(parents=True, exist_ok=True)
-        argv = self.ffmpeg_argv(engine_session.playback_url, session.dir, session.audio_index)
+        argv = self.ffmpeg_argv(playback_url, session.dir, session.audio_index, session.subtitle_index)
+        if session.http_source is not None:
+            # Inputs cannot open local files, concat lists or arbitrary protocols.
+            # HTTPS and all HLS child fetches are handled by the guarded proxy.
+            position = argv.index("-i")
+            argv[position:position] = ["-protocol_whitelist", "http,tcp,crypto",
+                                       "-format_whitelist", "hls,mpegts,mov,aac,mp3,webvtt", "-http_proxy", ""]
         process: Optional[asyncio.subprocess.Process] = None
         try:
-            process = await asyncio.create_subprocess_exec(
+            spawn = asyncio.create_task(asyncio.create_subprocess_exec(
                 *argv, stdin=asyncio.subprocess.DEVNULL, stdout=asyncio.subprocess.DEVNULL,
                 stderr=asyncio.subprocess.PIPE, start_new_session=True, preexec_fn=_set_pdeathsig,
-            )
+            ))
+            try:
+                process = await asyncio.shield(spawn)
+            except asyncio.CancelledError:
+                # A cancelled spawn can still return a child. Reap it before
+                # releasing the input proxy/engine and the session slot.
+                with contextlib.suppress(OSError):
+                    late_process = await spawn
+                    await self._terminate(late_process, immediate=True)
+                raise
         except OSError as exc:
             await self._fail(session, "ffmpeg_failed", f"could not start ffmpeg: {exc}")
         if session.state in ("stopped", "error"):  # torn down or failed during the spawn itself
@@ -361,10 +412,13 @@ class PlayerService:
         session.error_since = self._now()
         process, session.process = session.process, None
         engine_session, session.engine_session = session.engine_session, None
+        http_source, session.http_source = session.http_source, None
         if process is not None:
             await self._terminate(process, immediate=True)
         if engine_session is not None:
             await self._stop_engine_session(session.content_id, engine_session)
+        if http_source is not None:
+            await http_source.close()
 
     async def _read_stderr(self, session: PlayerSession) -> None:
         """Drain ffmpeg's stderr forever so the pipe cannot fill, keeping the
@@ -375,19 +429,31 @@ class PlayerService:
         stream = proc.stderr
         input_streams = True
         audio_stream_ids: set[int] = set()
+        subtitle_stream_ids: set[int] = set()
+        truncated_line = False
         try:
             while True:
                 try:
-                    raw = await stream.readline()
-                except (asyncio.LimitOverrunError, ValueError):
-                    # A progress line without a newline overran the buffer.
-                    raw = await stream.read(4096)
+                    raw = await stream.readuntil(b'\n')
+                except asyncio.LimitOverrunError as exc:
+                    # Consume only the known oversized portion, leaving its
+                    # delimiter to readuntil. Discard the remainder as well:
+                    # a partial URL/credential cannot be reliably masked.
+                    await stream.readexactly(exc.consumed)
+                    truncated_line = True
+                    continue
+                except asyncio.IncompleteReadError as exc:
+                    raw = exc.partial
                 if not raw:
                     break
+                if truncated_line:
+                    truncated_line = False
+                    continue
                 line = raw.decode("utf-8", "replace").replace("\r", "\n").strip()
                 if not line:
                     continue
-                session.stderr_tail.append(line[-300:])
+                # Mask before truncating, including the opaque loopback URL.
+                session.stderr_tail.append(redact(line.replace(str(session.dir), '[player-output]'))[-300:])
                 if line.startswith(("Stream mapping:", "Output #")):
                     input_streams = False
                 audio = re.search(r"Stream #0:(\d+)(?:\[[^]]*\])?(?:\(([^)]*)\))?: Audio: ([A-Za-z0-9_]+)(.*)", line)
@@ -396,6 +462,12 @@ class PlayerService:
                     layout = re.search(r", (mono|stereo|[0-9]+\.[0-9]+)(?:[ ,]|$)", audio.group(4))
                     session.audio_tracks.append(AudioTrack(index=len(session.audio_tracks),
                         language=audio.group(2), codec=audio.group(3), channel_layout=layout.group(1) if layout else None))
+                subtitle = re.search(r"Stream #0:(\d+)(?:\[[^]]*\])?(?:\(([^)]*)\))?: Subtitle: ([A-Za-z0-9_]+)", line)
+                if input_streams and subtitle and int(subtitle[1]) not in subtitle_stream_ids:
+                    subtitle_stream_ids.add(int(subtitle[1]))
+                    session.subtitle_tracks.append(SubtitleTrack(index=len(session.subtitle_tracks),
+                        language=subtitle[2], codec=subtitle[3],
+                        supported=subtitle[3] in {"webvtt", "subrip", "ass", "mov_text"}))
                 match = _STREAM_LINE.search(line)
                 if match and input_streams:
                     kind, codec = match.group(1).lower(), match.group(2).lower()
@@ -407,10 +479,16 @@ class PlayerService:
             with contextlib.suppress(Exception):
                 await proc.wait()
             if session.state != "stopped":
+                if session.content_id.startswith("url:") and session.error is None:
+                    failures = session.http_source.failures if session.http_source is not None else ()
+                    logger.warning('HTTP player session %s: ffmpeg exited with %s; upstream: %s; stderr: %s',
+                                   session.id, proc.returncode, ' | '.join(failures) or 'no recorded failures',
+                                   ' | '.join(session.stderr_tail))
                 await self._fail(
                     session,
                     "ffmpeg_failed",
-                    f"ffmpeg exited with {proc.returncode}: " + " | ".join(session.stderr_tail),
+                    ("The HTTP stream ended or returned unsupported media" if session.content_id.startswith("url:")
+                     else f"ffmpeg exited with {proc.returncode}: " + " | ".join(session.stderr_tail)),
                 )
 
     # --- periodic work -------------------------------------------------------
@@ -449,7 +527,10 @@ class PlayerService:
             elif now - session.created_at > float(self._settings().PLAYER_START_TIMEOUT_SECONDS):
                 stats = session.stats
                 detail = f"{stats.peers} peers (status={stats.status})" if stats else "no engine statistics"
-                await self._fail(session, "engine_stalled", f"the stream did not start: {detail}")
+                if session.content_id.startswith("url:"):
+                    await self._fail(session, "source_unavailable", "The HTTP stream did not become ready in time")
+                else:
+                    await self._fail(session, "engine_stalled", f"the stream did not start: {detail}")
         idle = now - session.last_access > IDLE_SECONDS
         no_viewers = (
             session.viewers == 0
@@ -500,6 +581,9 @@ class PlayerService:
             await asyncio.gather(session.reader, return_exceptions=True)
         if session.engine_session is not None:
             await self._stop_engine_session(session.content_id, session.engine_session)
+        http_source, session.http_source = session.http_source, None
+        if http_source is not None:
+            await http_source.close()
         try:
             shutil.rmtree(session.dir, ignore_errors=True)
         except Exception:  # noqa: BLE001 - never let cleanup stop the loop

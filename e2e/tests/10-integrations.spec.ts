@@ -70,6 +70,7 @@ test.describe('integrations', () => {
     // flight when the player is deleted lands on 404.
     errors.allowApi(/\/api\/v1\/remote-players\/test 502/);
     errors.allowApi(/\/api\/v1\/remote-players\/\d+\/status (502|404)/);
+    errors.allowBackend(/app\.api\.error_handlers - ERROR - APIError code=REMOTE_PLAYER_AUTH message=VLC's web interface has no password/);
     const integrations = new IntegrationsPage(page);
     await integrations.open();
 

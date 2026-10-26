@@ -5,6 +5,8 @@ test('optional checker settings persist and no-engine setups skip checks', async
   const checker = await (await api.raw('get', '/api/v1/config/check-engine')).json();
   test.skip(checker.managed, 'Bundled checker is controlled by the container.');
   try {
+    // Exercise clearing a saved URL even on a fresh scraper-only installation.
+    if (!playback.value) await api.putSetting('ace_engine_url', 'http://127.0.0.1:6878');
     await api.raw('put', '/api/v1/config/check-engine', { use_dedicated: false, url: '' });
     await page.goto('/settings?tab=automation');
     const form = page.getByRole('form', { name: 'Checking engine', exact: true });
@@ -21,11 +23,13 @@ test('optional checker settings persist and no-engine setups skip checks', async
     await page.getByRole('textbox', { name: 'Acestream Engine URL', exact: true }).fill('');
     await page.getByRole('button', { name: 'Save engine URL', exact: true }).click();
     await expect(page.getByRole('status', { name: 'Engine status', exact: true })).toContainText('Not configured');
+    const storageReport = page.waitForResponse(response => response.url().endsWith('/api/v1/system/storage') && response.request().method() === 'GET');
     await page.goto('/');
     await expect(page.getByRole('status', { name: 'Overview summary' })).toContainText('not configured');
     const checkerCard = page.getByRole('group', { name: 'Service AceStream checking engine' });
     await expect(checkerCard).toContainText('Disabled');
     await expect(checkerCard.getByRole('link', { name: 'Configure engine' })).toHaveAttribute('href', '/settings?tab=automation');
+    expect((await storageReport).ok()).toBe(true);
     await page.screenshot({ path: 'test-results/optional-engines-overview.png', fullPage: true });
     await page.goto('/acestream-channels');
     await page.getByRole('button', { name: 'Run status check now', exact: true }).click();

@@ -1150,6 +1150,106 @@
         "title": "Body_bulk_delete_acestream_channels_api_v1_channels_bulk_delete_post",
         "type": "object"
       },
+      "BroadcastView": {
+        "additionalProperties": false,
+        "properties": {
+          "checked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked At"
+          },
+          "compatibility": {
+            "enum": [
+              "playable",
+              "unresolved",
+              "unsupported",
+              "unavailable"
+            ],
+            "title": "Compatibility",
+            "type": "string"
+          },
+          "content_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Id"
+          },
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "is_online": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Online"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "manually_mapped": {
+            "default": false,
+            "title": "Manually Mapped",
+            "type": "boolean"
+          },
+          "origin": {
+            "title": "Origin",
+            "type": "string"
+          },
+          "quality": {
+            "title": "Quality",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "source_name": {
+            "title": "Source Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "language",
+          "quality",
+          "country",
+          "source_name",
+          "origin",
+          "content_id",
+          "compatibility",
+          "reason"
+        ],
+        "title": "BroadcastView",
+        "type": "object"
+      },
       "BulkChannelActivateRequest": {
         "description": "Schema for bulk channel activation/deactivation",
         "properties": {
@@ -1191,6 +1291,545 @@
           "fields"
         ],
         "title": "BulkChannelEditRequest",
+        "type": "object"
+      },
+      "CatalogueCounts": {
+        "properties": {
+          "accepted": {
+            "default": 0,
+            "title": "Accepted",
+            "type": "integer"
+          },
+          "bytes_read": {
+            "default": 0,
+            "description": "Traversal byte budget used, including cached input and failed-read reservations",
+            "title": "Bytes Read",
+            "type": "integer"
+          },
+          "cached_documents": {
+            "default": 0,
+            "title": "Cached Documents",
+            "type": "integer"
+          },
+          "duplicates": {
+            "default": 0,
+            "title": "Duplicates",
+            "type": "integer"
+          },
+          "failed_fetches": {
+            "default": 0,
+            "title": "Failed Fetches",
+            "type": "integer"
+          },
+          "invalid": {
+            "default": 0,
+            "title": "Invalid",
+            "type": "integer"
+          },
+          "requests": {
+            "default": 0,
+            "title": "Requests",
+            "type": "integer"
+          },
+          "unsupported": {
+            "default": 0,
+            "title": "Unsupported",
+            "type": "integer"
+          }
+        },
+        "title": "CatalogueCounts",
+        "type": "object"
+      },
+      "CatalogueEntry": {
+        "properties": {
+          "channel_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel Id"
+          },
+          "content_type": {
+            "default": "unknown",
+            "enum": [
+              "live",
+              "event",
+              "vod",
+              "unknown"
+            ],
+            "title": "Content Type",
+            "type": "string"
+          },
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "duplicate": {
+            "default": false,
+            "title": "Duplicate",
+            "type": "boolean"
+          },
+          "guide_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Guide Id"
+          },
+          "header_names": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Header Names",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image"
+          },
+          "imported": {
+            "default": false,
+            "title": "Imported",
+            "type": "boolean"
+          },
+          "kind": {
+            "enum": [
+              "folder",
+              "acestream",
+              "hls",
+              "mpegts",
+              "resolver",
+              "vod",
+              "unsupported",
+              "invalid"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Number"
+          },
+          "origin": {
+            "default": "",
+            "title": "Origin",
+            "type": "string"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "reason": {
+            "default": "",
+            "title": "Reason",
+            "type": "string"
+          },
+          "retained": {
+            "default": false,
+            "title": "Retained",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind"
+        ],
+        "title": "CatalogueEntry",
+        "type": "object"
+      },
+      "CatalogueEventPreviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "competition": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Competition",
+            "type": "string"
+          },
+          "ends_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ends At"
+          },
+          "entry_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Entry Ids",
+            "type": "array"
+          },
+          "event_id": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{32}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Id"
+          },
+          "participants": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Participants",
+            "type": "array"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "sport": {
+            "default": "",
+            "maxLength": 100,
+            "title": "Sport",
+            "type": "string"
+          },
+          "starts_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starts At"
+          },
+          "state": {
+            "default": "unknown",
+            "enum": [
+              "unknown",
+              "scheduled",
+              "live",
+              "finished",
+              "postponed",
+              "cancelled"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "time_notes": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Time Notes",
+            "type": "string"
+          },
+          "timezone": {
+            "maxLength": 100,
+            "title": "Timezone",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "timezone",
+          "revision",
+          "entry_ids"
+        ],
+        "title": "CatalogueEventPreviewRequest",
+        "type": "object"
+      },
+      "CataloguePreviewRequest": {
+        "properties": {
+          "catalogue_id": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Catalogue Id"
+          },
+          "sample": {
+            "anyOf": [
+              {
+                "maxLength": 4194304,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sample"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "maxLength": 2048,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "title": "CataloguePreviewRequest",
+        "type": "object"
+      },
+      "CatalogueSaveRequest": {
+        "properties": {
+          "confirm_live": {
+            "default": false,
+            "title": "Confirm Live",
+            "type": "boolean"
+          },
+          "mode": {
+            "default": "compatible",
+            "enum": [
+              "compatible",
+              "acestream"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "preview_token": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Preview Token",
+            "type": "string"
+          },
+          "refresh_enabled": {
+            "default": false,
+            "title": "Refresh Enabled",
+            "type": "boolean"
+          },
+          "selected_branches": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10000,
+            "title": "Selected Branches",
+            "type": "array"
+          }
+        },
+        "required": [
+          "preview_token",
+          "name",
+          "selected_branches"
+        ],
+        "title": "CatalogueSaveRequest",
+        "type": "object"
+      },
+      "CatalogueSummary": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "origin": {
+            "title": "Origin",
+            "type": "string"
+          },
+          "partial": {
+            "title": "Partial",
+            "type": "boolean"
+          },
+          "refresh_enabled": {
+            "title": "Refresh Enabled",
+            "type": "boolean"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "revision",
+          "origin",
+          "partial",
+          "refresh_enabled",
+          "updated_at"
+        ],
+        "title": "CatalogueSummary",
+        "type": "object"
+      },
+      "CatalogueView": {
+        "properties": {
+          "can_refresh": {
+            "default": false,
+            "title": "Can Refresh",
+            "type": "boolean"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/CatalogueCounts"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/CatalogueEntry"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "mode": {
+            "default": "compatible",
+            "enum": [
+              "compatible",
+              "acestream"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "origin": {
+            "title": "Origin",
+            "type": "string"
+          },
+          "partial": {
+            "default": false,
+            "title": "Partial",
+            "type": "boolean"
+          },
+          "preview_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preview Token"
+          },
+          "refresh_enabled": {
+            "default": false,
+            "title": "Refresh Enabled",
+            "type": "boolean"
+          },
+          "revision": {
+            "default": 0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "selected_branches": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Selected Branches",
+            "type": "array"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "origin",
+          "entries",
+          "counts"
+        ],
+        "title": "CatalogueView",
         "type": "object"
       },
       "ChannelResult": {
@@ -2317,6 +2956,868 @@
         "title": "EPGXmlGenerationRequest",
         "type": "object"
       },
+      "EventApply": {
+        "additionalProperties": false,
+        "properties": {
+          "refresh_source": {
+            "default": false,
+            "title": "Refresh Source",
+            "type": "boolean"
+          },
+          "selected_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 500,
+            "minItems": 1,
+            "title": "Selected Ids",
+            "type": "array"
+          },
+          "token": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "selected_ids"
+        ],
+        "title": "EventApply",
+        "type": "object"
+      },
+      "EventBroadcast": {
+        "additionalProperties": false,
+        "properties": {
+          "channel_id": {
+            "anyOf": [
+              {
+                "pattern": "^(?:url:)?[0-9a-fA-F]{40}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel Id"
+          },
+          "country": {
+            "default": "",
+            "maxLength": 80,
+            "title": "Country",
+            "type": "string"
+          },
+          "headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "maxProperties": 3,
+            "title": "Headers",
+            "type": "object"
+          },
+          "id": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "language": {
+            "default": "",
+            "maxLength": 80,
+            "title": "Language",
+            "type": "string"
+          },
+          "quality": {
+            "default": "",
+            "maxLength": 80,
+            "title": "Quality",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": [
+          "id",
+          "label"
+        ],
+        "title": "EventBroadcast",
+        "type": "object"
+      },
+      "EventBroadcastMapping": {
+        "additionalProperties": false,
+        "properties": {
+          "broadcast_id": {
+            "maxLength": 193,
+            "minLength": 1,
+            "title": "Broadcast Id",
+            "type": "string"
+          },
+          "channel_id": {
+            "anyOf": [
+              {
+                "pattern": "^(?:url:)?[0-9a-fA-F]{40}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel Id"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "revision",
+          "broadcast_id"
+        ],
+        "title": "EventBroadcastMapping",
+        "type": "object"
+      },
+      "EventFields": {
+        "additionalProperties": false,
+        "properties": {
+          "competition": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Competition",
+            "type": "string"
+          },
+          "ends_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ends At"
+          },
+          "participants": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Participants",
+            "type": "array"
+          },
+          "sport": {
+            "default": "",
+            "maxLength": 100,
+            "title": "Sport",
+            "type": "string"
+          },
+          "starts_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starts At"
+          },
+          "state": {
+            "default": "unknown",
+            "enum": [
+              "unknown",
+              "scheduled",
+              "live",
+              "finished",
+              "postponed",
+              "cancelled"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "time_notes": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Time Notes",
+            "type": "string"
+          },
+          "timezone": {
+            "maxLength": 100,
+            "title": "Timezone",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "timezone"
+        ],
+        "title": "EventFields",
+        "type": "object"
+      },
+      "EventImport": {
+        "additionalProperties": false,
+        "properties": {
+          "observations": {
+            "items": {
+              "$ref": "#/components/schemas/EventObservation"
+            },
+            "maxItems": 500,
+            "minItems": 1,
+            "title": "Observations",
+            "type": "array"
+          },
+          "version": {
+            "const": 1,
+            "default": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "observations"
+        ],
+        "title": "EventImport",
+        "type": "object"
+      },
+      "EventList": {
+        "additionalProperties": false,
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/EventView"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "events",
+          "total"
+        ],
+        "title": "EventList",
+        "type": "object"
+      },
+      "EventObservation": {
+        "additionalProperties": false,
+        "properties": {
+          "artwork_url": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artwork Url"
+          },
+          "broadcasts": {
+            "items": {
+              "$ref": "#/components/schemas/EventBroadcast"
+            },
+            "maxItems": 50,
+            "title": "Broadcasts",
+            "type": "array"
+          },
+          "competition": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Competition",
+            "type": "string"
+          },
+          "ends_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ends At"
+          },
+          "event_id": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{32}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Id"
+          },
+          "external_id": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "External Id",
+            "type": "string"
+          },
+          "participants": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Participants",
+            "type": "array"
+          },
+          "source_id": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "^[\\w.:-]+$",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_kind": {
+            "default": "manual",
+            "enum": [
+              "guide",
+              "w3u",
+              "telegram",
+              "manual"
+            ],
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "source_name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Source Name",
+            "type": "string"
+          },
+          "sport": {
+            "default": "",
+            "maxLength": 100,
+            "title": "Sport",
+            "type": "string"
+          },
+          "starts_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starts At"
+          },
+          "state": {
+            "default": "unknown",
+            "enum": [
+              "unknown",
+              "scheduled",
+              "live",
+              "finished",
+              "postponed",
+              "cancelled"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "time_notes": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Time Notes",
+            "type": "string"
+          },
+          "timezone": {
+            "maxLength": 100,
+            "title": "Timezone",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "timezone",
+          "source_id",
+          "source_name",
+          "external_id"
+        ],
+        "title": "EventObservation",
+        "type": "object"
+      },
+      "EventPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/EventView"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "token": {
+            "title": "Token",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "token",
+          "events",
+          "warnings"
+        ],
+        "title": "EventPreview",
+        "type": "object"
+      },
+      "EventRefreshQueued": {
+        "additionalProperties": false,
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "triggered",
+              "already_running"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "message"
+        ],
+        "title": "EventRefreshQueued",
+        "type": "object"
+      },
+      "EventRefreshResult": {
+        "additionalProperties": false,
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "pending": {
+            "default": 0,
+            "title": "Pending",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "updated",
+              "error",
+              "unchanged"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "updated": {
+            "default": 0,
+            "title": "Updated",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status",
+          "message"
+        ],
+        "title": "EventRefreshResult",
+        "type": "object"
+      },
+      "EventRetention": {
+        "additionalProperties": false,
+        "properties": {
+          "archived_days": {
+            "default": 0,
+            "maximum": 3650.0,
+            "minimum": 0.0,
+            "title": "Archived Days",
+            "type": "integer"
+          },
+          "ended_days": {
+            "default": 0,
+            "maximum": 3650.0,
+            "minimum": 0.0,
+            "title": "Ended Days",
+            "type": "integer"
+          }
+        },
+        "title": "EventRetention",
+        "type": "object"
+      },
+      "EventSourcePreviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "event_import",
+            "enum": [
+              "event_import",
+              "schema_org"
+            ],
+            "title": "Format",
+            "type": "string"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{32}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          },
+          "timezone": {
+            "default": "UTC",
+            "maxLength": 100,
+            "title": "Timezone",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "title": "EventSourcePreviewRequest",
+        "type": "object"
+      },
+      "EventSourceUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "revision",
+          "enabled"
+        ],
+        "title": "EventSourceUpdate",
+        "type": "object"
+      },
+      "EventSourceView": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "format": {
+            "default": "event_import",
+            "enum": [
+              "event_import",
+              "schema_org"
+            ],
+            "title": "Format",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "last_attempt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Attempt"
+          },
+          "last_result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EventRefreshResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_success": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Success"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "origin": {
+            "title": "Origin",
+            "type": "string"
+          },
+          "reviewed": {
+            "title": "Reviewed",
+            "type": "integer"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "timezone": {
+            "default": "UTC",
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "revision",
+          "name",
+          "origin",
+          "enabled",
+          "reviewed",
+          "last_attempt",
+          "last_success",
+          "last_result"
+        ],
+        "title": "EventSourceView",
+        "type": "object"
+      },
+      "EventUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "archived": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived"
+          },
+          "correction": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EventFields"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "followed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Followed"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "revision"
+        ],
+        "title": "EventUpdate",
+        "type": "object"
+      },
+      "EventView": {
+        "additionalProperties": false,
+        "properties": {
+          "archived": {
+            "title": "Archived",
+            "type": "boolean"
+          },
+          "broadcasts": {
+            "items": {
+              "$ref": "#/components/schemas/BroadcastView"
+            },
+            "title": "Broadcasts",
+            "type": "array"
+          },
+          "competition": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Competition",
+            "type": "string"
+          },
+          "corrected": {
+            "title": "Corrected",
+            "type": "boolean"
+          },
+          "ends_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ends At"
+          },
+          "followed": {
+            "title": "Followed",
+            "type": "boolean"
+          },
+          "has_artwork": {
+            "default": false,
+            "title": "Has Artwork",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "participants": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Participants",
+            "type": "array"
+          },
+          "provenance": {
+            "items": {
+              "$ref": "#/components/schemas/ProvenanceView"
+            },
+            "title": "Provenance",
+            "type": "array"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "sport": {
+            "default": "",
+            "maxLength": 100,
+            "title": "Sport",
+            "type": "string"
+          },
+          "starts_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starts At"
+          },
+          "state": {
+            "default": "unknown",
+            "enum": [
+              "unknown",
+              "scheduled",
+              "live",
+              "finished",
+              "postponed",
+              "cancelled"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "time_notes": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Time Notes",
+            "type": "string"
+          },
+          "timezone": {
+            "maxLength": 100,
+            "title": "Timezone",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "timezone",
+          "id",
+          "revision",
+          "corrected",
+          "followed",
+          "archived",
+          "broadcasts",
+          "provenance"
+        ],
+        "title": "EventView",
+        "type": "object"
+      },
       "ExtractedChannel": {
         "properties": {
           "channel_id": {
@@ -3108,7 +4609,7 @@
         "properties": {
           "value": {
             "default": "",
-            "description": "http(s) URL that receives a JSON POST per notification; empty turns notifications off",
+            "description": "HTTP(S) webhook URL with a valid host and port, without whitespace or fragments; empty turns notifications off",
             "title": "Value",
             "type": "string"
           }
@@ -3213,10 +4714,24 @@
             "title": "Audio Index"
           },
           "content_id": {
-            "description": "AceStream content id (40 hex)",
-            "pattern": "^[0-9a-fA-F]{40}$",
+            "description": "AceStream content ID (40 hex) or imported HTTP stream ID (url: followed by 40 hex)",
+            "pattern": "^(?:url:)?[0-9a-fA-F]{40}$",
             "title": "Content Id",
             "type": "string"
+          },
+          "subtitle_index": {
+            "anyOf": [
+              {
+                "maximum": 63.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Subtitle track to play; null disables subtitles",
+            "title": "Subtitle Index"
           }
         },
         "required": [
@@ -3276,7 +4791,8 @@
                   "engine_refused",
                   "engine_stalled",
                   "ffmpeg_missing",
-                  "ffmpeg_failed"
+                  "ffmpeg_failed",
+                  "source_unavailable"
                 ],
                 "type": "string"
               },
@@ -3322,6 +4838,24 @@
                 "type": "null"
               }
             ]
+          },
+          "subtitle_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtitle Index"
+          },
+          "subtitle_tracks": {
+            "items": {
+              "$ref": "#/components/schemas/SubtitleTrack"
+            },
+            "title": "Subtitle Tracks",
+            "type": "array"
           },
           "viewers": {
             "title": "Viewers",
@@ -3389,6 +4923,41 @@
           "guide_channels"
         ],
         "title": "PlaylistGuideCoverage",
+        "type": "object"
+      },
+      "ProvenanceView": {
+        "additionalProperties": false,
+        "properties": {
+          "external_id": {
+            "title": "External Id",
+            "type": "string"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_kind": {
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "source_name": {
+            "title": "Source Name",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id",
+          "source_name",
+          "source_kind",
+          "external_id",
+          "updated_at"
+        ],
+        "title": "ProvenanceView",
         "type": "object"
       },
       "PublicBaseUrlUpdate": {
@@ -5171,6 +6740,48 @@
         "title": "StreamStats",
         "type": "object"
       },
+      "SubtitleTrack": {
+        "properties": {
+          "codec": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Codec"
+          },
+          "index": {
+            "description": "Zero-based subtitle track index (ffmpeg 0:s:index)",
+            "minimum": 0.0,
+            "title": "Index",
+            "type": "integer"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "supported": {
+            "default": true,
+            "title": "Supported",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "index"
+        ],
+        "title": "SubtitleTrack",
+        "type": "object"
+      },
       "TVChannelAssociationRequest": {
         "description": "Schema for asociating one acestream channel with a TV channel",
         "properties": {
@@ -5921,6 +7532,35 @@
         "title": "TVChannelStatsResponse",
         "type": "object"
       },
+      "TVChannelStreamReorderRequest": {
+        "description": "Desired stream IDs in preference order; saved with stream_order 1 through N.",
+        "properties": {
+          "expected_order": {
+            "description": "Original complete acestream ID ordering; rejects stale reorder edits.",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Expected Order",
+            "type": "array"
+          },
+          "stream_ids": {
+            "description": "Desired complete acestream ID ordering for this TV channel.",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Stream Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "stream_ids",
+          "expected_order"
+        ],
+        "title": "TVChannelStreamReorderRequest",
+        "type": "object"
+      },
       "TVChannelUpdate": {
         "description": "Schema for TV channel update",
         "properties": {
@@ -6058,40 +7698,6 @@
           }
         },
         "title": "TVChannelUpdate",
-        "type": "object"
-      },
-      "TVChannelStreamReorderRequest": {
-        "description": "Desired stream IDs in preference order; saved with stream_order 1 through N.",
-        "properties": {
-          "expected_order": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Original acestream ID ordering; rejects stale reorder edits if provided.",
-            "title": "Expected Order"
-          },
-          "stream_ids": {
-            "description": "Desired complete acestream ID ordering for this TV channel.",
-            "items": {
-              "type": "string"
-            },
-            "minItems": 1,
-            "title": "Stream Ids",
-            "type": "array"
-          }
-        },
-        "required": [
-          "stream_ids"
-        ],
-        "title": "TVChannelStreamReorderRequest",
         "type": "object"
       },
       "TVMatchApplyRequest": {
@@ -6290,6 +7896,589 @@
         "title": "TVMatchPreview",
         "type": "object"
       },
+      "TelegramCode": {
+        "properties": {
+          "code": {
+            "format": "password",
+            "maxLength": 16,
+            "minLength": 1,
+            "title": "Code",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "TelegramCode",
+        "type": "object"
+      },
+      "TelegramLogin": {
+        "additionalProperties": false,
+        "properties": {
+          "api_hash": {
+            "format": "password",
+            "maxLength": 32,
+            "minLength": 32,
+            "title": "Api Hash",
+            "type": "string",
+            "writeOnly": true
+          },
+          "api_id": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 2147483647.0,
+            "title": "Api Id",
+            "type": "integer"
+          },
+          "phone": {
+            "format": "password",
+            "maxLength": 32,
+            "minLength": 5,
+            "title": "Phone",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "api_id",
+          "api_hash",
+          "phone"
+        ],
+        "title": "TelegramLogin",
+        "type": "object"
+      },
+      "TelegramPassword": {
+        "properties": {
+          "password": {
+            "format": "password",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Password",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "title": "TelegramPassword",
+        "type": "object"
+      },
+      "TelegramPeer": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "user",
+              "chat",
+              "channel",
+              "topic"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "kind"
+        ],
+        "title": "TelegramPeer",
+        "type": "object"
+      },
+      "TelegramPreview": {
+        "properties": {
+          "chat_id": {
+            "title": "Chat Id",
+            "type": "string"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/TelegramPreviewMessage"
+            },
+            "title": "Messages",
+            "type": "array"
+          }
+        },
+        "required": [
+          "chat_id",
+          "messages"
+        ],
+        "title": "TelegramPreview",
+        "type": "object"
+      },
+      "TelegramPreviewMessage": {
+        "properties": {
+          "message_id": {
+            "title": "Message Id",
+            "type": "integer"
+          },
+          "outcome": {
+            "title": "Outcome",
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/RecipePreview"
+          },
+          "sender_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sender Id"
+          }
+        },
+        "required": [
+          "message_id",
+          "outcome",
+          "result"
+        ],
+        "title": "TelegramPreviewMessage",
+        "type": "object"
+      },
+      "TelegramPreviewRequest": {
+        "properties": {
+          "limit": {
+            "default": 10,
+            "maximum": 30.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "source": {
+            "$ref": "#/components/schemas/TelegramSourceConfig"
+          }
+        },
+        "required": [
+          "source"
+        ],
+        "title": "TelegramPreviewRequest",
+        "type": "object"
+      },
+      "TelegramResolve": {
+        "properties": {
+          "username": {
+            "pattern": "^@?[A-Za-z][A-Za-z0-9_]{3,31}$",
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username"
+        ],
+        "title": "TelegramResolve",
+        "type": "object"
+      },
+      "TelegramSource": {
+        "additionalProperties": false,
+        "properties": {
+          "bare_ids": {
+            "default": true,
+            "title": "Bare Ids",
+            "type": "boolean"
+          },
+          "chat_id": {
+            "pattern": "^-?[1-9][0-9]{0,18}$",
+            "title": "Chat Id",
+            "type": "string"
+          },
+          "chat_label": {
+            "title": "Chat Label",
+            "type": "string"
+          },
+          "cursor": {
+            "title": "Cursor",
+            "type": "integer"
+          },
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "exclude": {
+            "default": "",
+            "maxLength": 512,
+            "title": "Exclude",
+            "type": "string"
+          },
+          "filter_mode": {
+            "default": "keyword",
+            "enum": [
+              "keyword",
+              "regex"
+            ],
+            "title": "Filter Mode",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "imported_count": {
+            "title": "Imported Count",
+            "type": "integer"
+          },
+          "include": {
+            "default": "",
+            "maxLength": 512,
+            "title": "Include",
+            "type": "string"
+          },
+          "include_forwards": {
+            "default": true,
+            "title": "Include Forwards",
+            "type": "boolean"
+          },
+          "last_success": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Success"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "recipe": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtractionRecipe"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sender_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Sender Ids",
+            "type": "array"
+          },
+          "sender_labels": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Sender Labels",
+            "type": "object"
+          },
+          "sender_rule": {
+            "default": "posting",
+            "enum": [
+              "posting",
+              "original"
+            ],
+            "title": "Sender Rule",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "topic_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic Id"
+          }
+        },
+        "required": [
+          "name",
+          "chat_id",
+          "id",
+          "chat_label",
+          "cursor",
+          "state",
+          "imported_count",
+          "message"
+        ],
+        "title": "TelegramSource",
+        "type": "object"
+      },
+      "TelegramSourceConfig": {
+        "additionalProperties": false,
+        "properties": {
+          "bare_ids": {
+            "default": true,
+            "title": "Bare Ids",
+            "type": "boolean"
+          },
+          "chat_id": {
+            "pattern": "^-?[1-9][0-9]{0,18}$",
+            "title": "Chat Id",
+            "type": "string"
+          },
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "exclude": {
+            "default": "",
+            "maxLength": 512,
+            "title": "Exclude",
+            "type": "string"
+          },
+          "filter_mode": {
+            "default": "keyword",
+            "enum": [
+              "keyword",
+              "regex"
+            ],
+            "title": "Filter Mode",
+            "type": "string"
+          },
+          "include": {
+            "default": "",
+            "maxLength": 512,
+            "title": "Include",
+            "type": "string"
+          },
+          "include_forwards": {
+            "default": true,
+            "title": "Include Forwards",
+            "type": "boolean"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "recipe": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtractionRecipe"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sender_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Sender Ids",
+            "type": "array"
+          },
+          "sender_rule": {
+            "default": "posting",
+            "enum": [
+              "posting",
+              "original"
+            ],
+            "title": "Sender Rule",
+            "type": "string"
+          },
+          "topic_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic Id"
+          }
+        },
+        "required": [
+          "name",
+          "chat_id"
+        ],
+        "title": "TelegramSourceConfig",
+        "type": "object"
+      },
+      "TelegramSourceCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "bare_ids": {
+            "default": true,
+            "title": "Bare Ids",
+            "type": "boolean"
+          },
+          "chat_id": {
+            "pattern": "^-?[1-9][0-9]{0,18}$",
+            "title": "Chat Id",
+            "type": "string"
+          },
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "exclude": {
+            "default": "",
+            "maxLength": 512,
+            "title": "Exclude",
+            "type": "string"
+          },
+          "filter_mode": {
+            "default": "keyword",
+            "enum": [
+              "keyword",
+              "regex"
+            ],
+            "title": "Filter Mode",
+            "type": "string"
+          },
+          "history_count": {
+            "default": 0,
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "History Count",
+            "type": "integer"
+          },
+          "history_since": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "History Since"
+          },
+          "include": {
+            "default": "",
+            "maxLength": 512,
+            "title": "Include",
+            "type": "string"
+          },
+          "include_forwards": {
+            "default": true,
+            "title": "Include Forwards",
+            "type": "boolean"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "recipe": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtractionRecipe"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sender_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Sender Ids",
+            "type": "array"
+          },
+          "sender_rule": {
+            "default": "posting",
+            "enum": [
+              "posting",
+              "original"
+            ],
+            "title": "Sender Rule",
+            "type": "string"
+          },
+          "topic_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic Id"
+          }
+        },
+        "required": [
+          "name",
+          "chat_id"
+        ],
+        "title": "TelegramSourceCreate",
+        "type": "object"
+      },
+      "TelegramStatus": {
+        "properties": {
+          "account_label": {
+            "default": "",
+            "title": "Account Label",
+            "type": "string"
+          },
+          "message": {
+            "default": "",
+            "title": "Message",
+            "type": "string"
+          },
+          "queue_size": {
+            "default": 0,
+            "title": "Queue Size",
+            "type": "integer"
+          },
+          "retry_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retry At"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "TelegramStatus",
+        "type": "object"
+      },
       "TunerAccessResponse": {
         "properties": {
           "addresses": {
@@ -6387,6 +8576,12 @@
             "title": "Only Online",
             "type": "boolean"
           },
+          "plex_compatible_audio": {
+            "default": false,
+            "description": "Convert tuner audio to stereo AAC/LATM for Plex Desktop; copy video unless experimental recovery is enabled",
+            "title": "Plex Compatible Audio",
+            "type": "boolean"
+          },
           "source_start_seconds": {
             "default": 15,
             "description": "Seconds a source gets to deliver its first byte before the next is tried",
@@ -6461,6 +8656,17 @@
               }
             ],
             "title": "Only Online"
+          },
+          "plex_compatible_audio": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plex Compatible Audio"
           },
           "source_start_seconds": {
             "anyOf": [
@@ -6938,6 +9144,64 @@
         "title": "URLUpdate",
         "type": "object"
       },
+      "UpdateStatus": {
+        "properties": {
+          "current_version": {
+            "title": "Current Version",
+            "type": "string"
+          },
+          "deployment": {
+            "enum": [
+              "docker",
+              "native"
+            ],
+            "title": "Deployment",
+            "type": "string"
+          },
+          "latest_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Version"
+          },
+          "release_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Release Url"
+          },
+          "status": {
+            "enum": [
+              "checked",
+              "unavailable"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "update_available": {
+            "default": false,
+            "title": "Update Available",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "current_version",
+          "deployment",
+          "status"
+        ],
+        "title": "UpdateStatus",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -7082,7 +9346,7 @@
   "info": {
     "description": "API for scraping and managing Acestream channels",
     "title": "Acestream Scraper API",
-    "version": "2.0.0"
+    "version": "v2.2.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -8575,6 +10839,238 @@
         ]
       }
     },
+    "/api/v1/catalogues": {
+      "get": {
+        "operationId": "list_catalogues_api_v1_catalogues_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CatalogueSummary"
+                  },
+                  "title": "Response List Catalogues Api V1 Catalogues Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Catalogues",
+        "tags": [
+          "catalogues"
+        ]
+      },
+      "post": {
+        "operationId": "save_catalogue_api_v1_catalogues_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CatalogueSaveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogueView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Catalogue",
+        "tags": [
+          "catalogues"
+        ]
+      }
+    },
+    "/api/v1/catalogues/preview": {
+      "post": {
+        "operationId": "preview_catalogue_api_v1_catalogues_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CataloguePreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogueView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Catalogue",
+        "tags": [
+          "catalogues"
+        ]
+      }
+    },
+    "/api/v1/catalogues/{catalogue_id}": {
+      "delete": {
+        "operationId": "delete_catalogue_api_v1_catalogues__catalogue_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "catalogue_id",
+            "required": true,
+            "schema": {
+              "title": "Catalogue Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Catalogue",
+        "tags": [
+          "catalogues"
+        ]
+      },
+      "get": {
+        "operationId": "get_catalogue_api_v1_catalogues__catalogue_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "catalogue_id",
+            "required": true,
+            "schema": {
+              "title": "Catalogue Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogueView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Catalogue",
+        "tags": [
+          "catalogues"
+        ]
+      }
+    },
+    "/api/v1/catalogues/{catalogue_id}/events/preview": {
+      "post": {
+        "operationId": "preview_event_api_v1_catalogues__catalogue_id__events_preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "catalogue_id",
+            "required": true,
+            "schema": {
+              "title": "Catalogue Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CatalogueEventPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Event",
+        "tags": [
+          "catalogues"
+        ]
+      }
+    },
     "/api/v1/channels/": {
       "get": {
         "description": "Get all channels with optional filtering.\nSupports both skip/limit and page/page_size parameters.\nSet assigned=false to list only streams not linked to a TV channel.\nReturns paginated items and total count.",
@@ -9717,7 +12213,7 @@
     },
     "/api/v1/config/notification_webhook_url": {
       "get": {
-        "description": "Get the webhook that receives task notifications (empty = off), as\nscheme and host only: webhooks keep their secret in the query or path.",
+        "description": "Get the webhook that receives task notifications (empty = off), as\nscheme and host only: webhooks keep their secret in the query or path.\nAn invalid previously saved URL returns only '\u2022\u2022\u2022' so it can be replaced or cleared.",
         "operationId": "get_notification_webhook_url_api_v1_config_notification_webhook_url_get",
         "responses": {
           "200": {
@@ -11126,6 +13622,633 @@
         ]
       }
     },
+    "/api/v1/events": {
+      "get": {
+        "operationId": "list_events_api_v1_events_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 200,
+              "title": "Search",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sport",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 100,
+              "title": "Sport",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "competition",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 200,
+              "title": "Competition",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 200,
+              "title": "Source",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "day",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Day"
+            }
+          },
+          {
+            "in": "query",
+            "name": "zone",
+            "required": false,
+            "schema": {
+              "default": "UTC",
+              "maxLength": 100,
+              "title": "Zone",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "upcoming",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Upcoming",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "followed",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Followed",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "archived",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Archived",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Events",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/apply": {
+      "post": {
+        "operationId": "apply_events_api_v1_events_apply_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventApply"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EventView"
+                  },
+                  "title": "Response Apply Events Api V1 Events Apply Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Apply Events",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/preview": {
+      "post": {
+        "operationId": "preview_events_api_v1_events_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventImport"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Events",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/retention": {
+      "get": {
+        "operationId": "event_retention_api_v1_events_retention_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventRetention"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Event Retention",
+        "tags": [
+          "events"
+        ]
+      },
+      "patch": {
+        "operationId": "save_event_retention_api_v1_events_retention_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventRetention"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventRetention"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Event Retention",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/sources": {
+      "get": {
+        "operationId": "event_sources_api_v1_events_sources_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EventSourceView"
+                  },
+                  "title": "Response Event Sources Api V1 Events Sources Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Event Sources",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/sources/preview": {
+      "post": {
+        "operationId": "preview_event_source_api_v1_events_sources_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventSourcePreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Event Source",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/sources/refresh": {
+      "post": {
+        "operationId": "queue_event_refresh_api_v1_events_sources_refresh_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventRefreshQueued"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Queue Event Refresh",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/sources/{source_id}": {
+      "patch": {
+        "operationId": "update_event_source_api_v1_events_sources__source_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "title": "Source Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventSourceUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventSourceView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Event Source",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/{event_id}": {
+      "get": {
+        "operationId": "get_event_api_v1_events__event_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_id",
+            "required": true,
+            "schema": {
+              "title": "Event Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Event",
+        "tags": [
+          "events"
+        ]
+      },
+      "patch": {
+        "operationId": "update_event_api_v1_events__event_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_id",
+            "required": true,
+            "schema": {
+              "title": "Event Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Event",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/{event_id}/artwork": {
+      "get": {
+        "operationId": "event_artwork_api_v1_events__event_id__artwork_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_id",
+            "required": true,
+            "schema": {
+              "title": "Event Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/jpeg": {},
+              "image/png": {},
+              "image/webp": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Event Artwork",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/{event_id}/broadcast": {
+      "patch": {
+        "operationId": "map_event_broadcast_api_v1_events__event_id__broadcast_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_id",
+            "required": true,
+            "schema": {
+              "title": "Event Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventBroadcastMapping"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Map Event Broadcast",
+        "tags": [
+          "events"
+        ]
+      }
+    },
     "/api/v1/health": {
       "get": {
         "description": "Check the overall system health",
@@ -11751,6 +14874,78 @@
           }
         },
         "summary": "HLS playlist",
+        "tags": [
+          "player",
+          "player"
+        ]
+      }
+    },
+    "/api/v1/player/sessions/{session_id}/subtitles.m3u8": {
+      "get": {
+        "operationId": "subtitle_playlist_api_v1_player_sessions__session_id__subtitles_m3u8_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Subtitle HLS playlist",
+        "tags": [
+          "player",
+          "player"
+        ]
+      }
+    },
+    "/api/v1/player/sessions/{session_id}/video.m3u8": {
+      "get": {
+        "operationId": "video_playlist_api_v1_player_sessions__session_id__video_m3u8_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Video HLS playlist",
         "tags": [
           "player",
           "player"
@@ -14147,6 +17342,615 @@
         "tags": [
           "system",
           "system"
+        ]
+      }
+    },
+    "/api/v1/system/updates": {
+      "get": {
+        "operationId": "get_updates_api_v1_system_updates_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Check for a newer published stable release",
+        "tags": [
+          "system",
+          "system"
+        ]
+      }
+    },
+    "/api/v1/telegram/account": {
+      "delete": {
+        "operationId": "logout_api_v1_telegram_account_delete",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Logout",
+        "tags": [
+          "telegram"
+        ]
+      }
+    },
+    "/api/v1/telegram/chats": {
+      "get": {
+        "operationId": "chats_api_v1_telegram_chats_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TelegramPeer"
+                  },
+                  "title": "Response Chats Api V1 Telegram Chats Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Chats",
+        "tags": [
+          "telegram"
+        ]
+      }
+    },
+    "/api/v1/telegram/chats/{chat_id}/topics": {
+      "get": {
+        "operationId": "topics_api_v1_telegram_chats__chat_id__topics_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chat_id",
+            "required": true,
+            "schema": {
+              "title": "Chat Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TelegramPeer"
+                  },
+                  "title": "Response Topics Api V1 Telegram Chats  Chat Id  Topics Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Topics",
+        "tags": [
+          "telegram"
+        ]
+      }
+    },
+    "/api/v1/telegram/code": {
+      "post": {
+        "operationId": "code_api_v1_telegram_code_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramCode"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Code",
+        "tags": [
+          "telegram"
+        ]
+      }
+    },
+    "/api/v1/telegram/disconnect": {
+      "post": {
+        "operationId": "disconnect_api_v1_telegram_disconnect_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Disconnect",
+        "tags": [
+          "telegram"
+        ]
+      }
+    },
+    "/api/v1/telegram/login": {
+      "post": {
+        "operationId": "login_api_v1_telegram_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramLogin"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Login",
+        "tags": [
+          "telegram"
+        ]
+      }
+    },
+    "/api/v1/telegram/password": {
+      "post": {
+        "operationId": "password_api_v1_telegram_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramPassword"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Password",
+        "tags": [
+          "telegram"
+        ]
+      }
+    },
+    "/api/v1/telegram/preset": {
+      "get": {
+        "operationId": "preset_api_v1_telegram_preset_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractionRecipe"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Preset",
+        "tags": [
+          "telegram"
+        ]
+      }
+    },
+    "/api/v1/telegram/preview": {
+      "post": {
+        "operationId": "preview_api_v1_telegram_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview",
+        "tags": [
+          "telegram"
+        ]
+      }
+    },
+    "/api/v1/telegram/reconnect": {
+      "post": {
+        "operationId": "reconnect_api_v1_telegram_reconnect_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Reconnect",
+        "tags": [
+          "telegram"
+        ]
+      }
+    },
+    "/api/v1/telegram/resolve": {
+      "post": {
+        "operationId": "resolve_api_v1_telegram_resolve_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramResolve"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramPeer"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resolve",
+        "tags": [
+          "telegram"
+        ]
+      }
+    },
+    "/api/v1/telegram/sources": {
+      "get": {
+        "operationId": "sources_api_v1_telegram_sources_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TelegramSource"
+                  },
+                  "title": "Response Sources Api V1 Telegram Sources Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Sources",
+        "tags": [
+          "telegram"
+        ]
+      },
+      "post": {
+        "operationId": "create_source_api_v1_telegram_sources_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramSourceCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramSource"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Source",
+        "tags": [
+          "telegram"
+        ]
+      }
+    },
+    "/api/v1/telegram/sources/{source_id}": {
+      "delete": {
+        "operationId": "delete_source_api_v1_telegram_sources__source_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "title": "Source Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "title": "Response Delete Source Api V1 Telegram Sources  Source Id  Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Source",
+        "tags": [
+          "telegram"
+        ]
+      },
+      "put": {
+        "operationId": "update_source_api_v1_telegram_sources__source_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "title": "Source Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramSourceConfig"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramSource"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Source",
+        "tags": [
+          "telegram"
+        ]
+      }
+    },
+    "/api/v1/telegram/sources/{source_id}/scan": {
+      "post": {
+        "operationId": "scan_api_v1_telegram_sources__source_id__scan_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "title": "Source Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "title": "Response Scan Api V1 Telegram Sources  Source Id  Scan Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Scan",
+        "tags": [
+          "telegram"
+        ]
+      }
+    },
+    "/api/v1/telegram/status": {
+      "get": {
+        "operationId": "status_api_v1_telegram_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Status",
+        "tags": [
+          "telegram"
         ]
       }
     },

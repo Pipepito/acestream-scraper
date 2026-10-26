@@ -12,6 +12,7 @@ from app.repositories.channel_repository import ChannelRepository
 from app.models.models import AcestreamChannel, EPGChannel, TVChannel
 from app.services.epg_match_service import EPGMatchService
 from app.services.epg_link_service import EPGLinkService
+from app.services.stream_ranking import sort_streams_curated
 
 _MATCH_APPLY_LOCK = RLock()
 
@@ -32,8 +33,22 @@ class TVChannelService:
     def reorder_channels(self, channel_ids: List[int], expected_order: List[int]) -> None:
         self.repository.reorder_tv_channels(channel_ids, expected_order)
 
-    def reorder_streams(self, tv_channel_id: int, stream_ids: List[str], expected_order: Optional[List[str]] = None):
-        return self.repository.reorder_tv_channel_streams(tv_channel_id, stream_ids, expected_order)
+    def reorder_streams(
+        self, tv_channel_id: int, stream_ids: List[str], expected_order: List[str],
+    ) -> List[AcestreamChannel]:
+        try:
+            current = sort_streams_curated(self.repository.lock_tv_channel_streams(tv_channel_id))
+            current_ids = [stream.id for stream in current]
+            if (current_ids != expected_order or set(current_ids) != set(stream_ids)
+                    or len(stream_ids) != len(current_ids)):
+                raise ValueError("The stream list changed. Cancel and retry with the latest order.")
+            by_id = {stream.id: stream for stream in current}
+            ordered = [by_id[stream_id] for stream_id in stream_ids]
+            self.repository.save_stream_order(ordered)
+            return ordered
+        except Exception:
+            self.repository.db.rollback()
+            raise
 
     def get_tv_channels_with_total(self, skip: int = 0, limit: int = 100,
                                    search: Optional[str] = None,

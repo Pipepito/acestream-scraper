@@ -12,6 +12,7 @@ jest.mock('@mui/material', () => {
   const actual = jest.requireActual('@mui/material');
   return { ...actual, useMediaQuery: jest.fn() };
 });
+jest.mock('../components/UpdateAvailableNotice', () => ({ __esModule: true, default: () => null }));
 jest.mock('../pages/Overview', () => ({ __esModule: true, default: () => <h1>Overview</h1> }));
 jest.mock('../pages/TVChannels', () => ({ __esModule: true, default: () => <h1>TV Channels</h1> }));
 jest.mock('../pages/Search', () => ({ __esModule: true, default: () => <h1>Search</h1> }));
@@ -31,8 +32,10 @@ describe('routes', () => {
     mockResponsiveShellQueries(useMediaQuery as jest.MockedFunction<typeof useMediaQuery>, createAppTheme('light'), { isPhone: false });
   });
 
-  it('exposes eleven destinations whose labels are the page titles', () => {
-    expect(navItems.map((item) => item.text)).toEqual(['Live TV', 'Overview', 'Scraper', 'Search', 'Acestream Channels', 'TV Channels', 'EPG', 'Playlist', 'Integrations', 'WARP', 'Settings']);
+  it('exposes destinations whose labels are the page titles', () => {
+    expect(navItems.map((item) => item.text)).toEqual(['Live TV', 'Catalogues', 'Events', 'Overview', 'Scraper', 'Search', 'Acestream Channels', 'TV Channels', 'EPG', 'Playlist', 'Integrations', 'WARP', 'Settings', 'Changelog']);
+    expect(getNavTitle('/events')).toBe('Events');
+    expect(getNavTitle('/changelog')).toBe('Changelog');
     expect(getNavTitle('/epg/channels/12')).toBe('EPG');
     expect(getNavTitle('/integrations')).toBe('Integrations');
     expect(getNavTitle('/warp')).toBe('WARP');

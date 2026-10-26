@@ -1,0 +1,30 @@
+name: Help or question
+description: Ask about setup or usage when the guides do not answer your question.
+labels: [question]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check the [FAQ](https://github.com/Pipepito/acestream-scraper/wiki/FAQ) and [troubleshooting guide](https://github.com/Pipepito/acestream-scraper/wiki/Troubleshooting) first.
+        Use Bug report for a reproducible failure. Do not post credentials, private source URLs, databases, or full environment dumps.
+  - type: textarea
+    id: goal
+    attributes:
+      label: What are you trying to do?
+      description: Describe your goal and the question you need answered.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Version and environment
+      description: Include the version/image, installation method, host OS/architecture, and relevant players or integrations. If not installed yet, say so.
+    validations:
+      required: true
+  - type: textarea
+    id: attempts
+    attributes:
+      label: What have you read or tried?
+      description: Link the relevant guides and explain where you got stuck. Include any exact error, with private details removed.
+    validations:
+      required: true

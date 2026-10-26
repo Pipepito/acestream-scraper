@@ -3,14 +3,17 @@ import logging
 from urllib.parse import urlsplit, urlunsplit
 import httpx
 from fastapi import HTTPException
+from pydantic import AnyHttpUrl, TypeAdapter
 import re
 
 from app.repositories.settings_repository import SettingsRepository
+from app.config.version import get_app_version
 from app.schemas.config import PlaybackRouting
 from app.services.public_url_service import InvalidPublicBaseUrl, normalize_public_base_url
 
 # How a hidden secret reads in the API.
 MASK = "•••"
+_WEBHOOK_URL = TypeAdapter(AnyHttpUrl)
 
 logger = logging.getLogger(__name__)
 
@@ -96,6 +99,21 @@ class ConfigService:
         return self.settings_repo.get_setting(SettingsRepository.NOTIFICATION_WEBHOOK_URL) or ""
 
     @staticmethod
+    def _parse_webhook_url(url: str):
+        """Validate syntax without resolving DNS or rewriting signed URLs."""
+        if any(char.isspace() or ord(char) < 32 or ord(char) == 127 for char in url) or "\\" in url:
+            raise ValueError("Invalid webhook URL")
+        parts = urlsplit(url)
+        if parts.scheme not in ("http", "https") or not parts.hostname or parts.fragment:
+            raise ValueError("Invalid webhook URL")
+        if parts.port is not None and not 1 <= parts.port <= 65535:
+            raise ValueError("Invalid webhook port")
+        # Also reject malformed authorities/IP literals accepted by urlsplit.
+        # Keep the original bytes: normalization can change webhook signatures.
+        _WEBHOOK_URL.validate_python(url)
+        return parts
+
+    @staticmethod
     def mask_webhook_url(url: str) -> str:
         """The webhook as the API shows it: scheme and host only, the rest
         hidden. Webhooks keep their secret in the query (Gotify's token) or in
@@ -104,7 +122,12 @@ class ConfigService:
         which one is set."""
         if not url:
             return ""
-        parts = urlsplit(url)
+        try:
+            parts = ConfigService._parse_webhook_url(url)
+        except ValueError:
+            # Older versions could persist malformed values before masking
+            # failed. Keep settings readable so the user can replace/clear it.
+            return MASK
         host = parts.hostname or ""
         if ":" in host:
             host = "[" + host + "]"
@@ -122,12 +145,18 @@ class ConfigService:
         Saving back what the API showed -- the masked URL -- keeps the stored
         one: the secret never makes the round trip."""
         value = (value or "").strip()
-        if value and value == self.get_masked_notification_webhook_url():
+        if value and value != MASK and value == self.get_masked_notification_webhook_url():
             return True
         if MASK in value:
             raise HTTPException(status_code=422, detail="Paste the whole webhook URL; the masked one cannot be saved")
-        if value and not value.lower().startswith(("http://", "https://")):
-            raise HTTPException(status_code=422, detail="The webhook must be an http(s) URL")
+        if value:
+            try:
+                self._parse_webhook_url(value)
+            except ValueError:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Use an HTTP(S) webhook URL with a valid host and port, without spaces or a fragment",
+                ) from None
         return self.settings_repo.set_setting(
             SettingsRepository.NOTIFICATION_WEBHOOK_URL,
             value,
@@ -292,7 +321,7 @@ class ConfigService:
             "acestream": acestream_status,
             "database": database_status,
             "settings": settings,
-            "version": "2.0.0",
+            "version": get_app_version(),
             "uptime": "unknown",
             "memory": {},
             "cpu": {},

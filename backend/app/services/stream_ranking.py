@@ -20,6 +20,12 @@ def score_acestream(stream) -> int:
     return score
 
 
+def preference_key(stream) -> tuple[bool, int]:
+    """Explicit preferences precede automatic ranking; unordered streams follow."""
+    order = getattr(stream, "stream_order", None)
+    return (order is None, order or 0)
+
+
 def stream_sort_key(stream):
     order = getattr(stream, "stream_order", None)
     if order is not None:

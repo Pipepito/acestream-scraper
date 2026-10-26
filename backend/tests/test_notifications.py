@@ -24,11 +24,16 @@ def webhook(monkeypatch):
             self.end_headers()
 
     server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
-    threading.Thread(target=server.serve_forever, daemon=True).start()
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
     url = 'http://127.0.0.1:%d/message?token=x' % server.server_address[1]
     monkeypatch.setattr(notification_service, 'webhook_url', lambda: url)
-    yield received, status
-    server.shutdown()
+    try:
+        yield received, status
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
 
 
 def test_a_finished_scrape_is_posted_as_json(webhook):
@@ -79,13 +84,13 @@ def test_without_a_webhook_nothing_is_sent(monkeypatch):
     assert notification_service.notify('x', 't', 'm') is False and calls == []
 
 
-def test_the_scraping_task_notifies_when_it_ends(monkeypatch):
+def test_the_scraping_task_notifies_when_it_ends(monkeypatch, alembic_backend_runtime):
     from app.tasks import url_scraping_task
     sent = []
     monkeypatch.setattr(url_scraping_task.notification_service, 'scraping_completed', lambda result: sent.append(result))
     monkeypatch.setattr(url_scraping_task.ScraperService, 'get_enabled_urls', lambda self: [])
     url_scraping_task.run_url_scraping_task()
-    assert sent == [{'processed': 0, 'failures': 0}]
+    assert sent == [{'processed': 0, 'failures': 0, 'events': {'updated': 0, 'pending': 0, 'failures': 0, 'deferred': 0}}]
 
 
 def test_the_api_saves_clears_and_rejects_the_webhook(client):
@@ -127,3 +132,15 @@ def test_saving_the_masked_value_keeps_the_real_url(client, db_session):
 
 def test_the_test_button_needs_a_webhook(client):
     assert client.post('/api/v1/config/notification_webhook_url/test').status_code == 422
+
+
+@pytest.mark.parametrize("reason,text", [("viewing", "playback active"), ("shutdown", "application stopping")])
+def test_incomplete_channel_pass_reports_deferred_work(webhook, reason, text):
+    received, _ = webhook
+    result = {"checked": 1, "online": 1, "offline": 0, "failed": 0, "skipped": 0,
+              "deferred": 2, "stop_reason": reason}
+    assert notification_service.channel_status_completed(result)
+    sent = received[0]["json"]
+    assert sent["title"] == "Channel check incomplete"
+    assert sent["message"] == f"1 checked: 1 online, 0 offline, 0 failed; 2 deferred ({text})"
+    assert sent["data"] == result

@@ -74,3 +74,60 @@ status is preserved. Errors count exceptions, not offline streams. Older saved
 results lack online/offline totals, so Overview shows their known counts without
 inventing an offline count. Progress shows how much of the active inventory has
 been processed.
+
+
+## Startup catch-up
+
+After history is restored, interval-based guide refresh and URL scraping can run
+earlier than their normal first interval when the saved last launch is overdue
+or absent. The first eligible job waits five minutes after startup; when both
+are due, guide refresh comes first and scraping follows five minutes later.
+Cleanup jobs are not brought forward. Explicit start-time anchors remain in
+control and are never overridden by catch-up.
+
+Stream checks are reconsidered fifteen minutes after startup. The callback
+rechecks the current interval, last launch, configured start time and job
+availability before requesting a run. Running or queued work is not duplicated.
+A saved last launch, including a failed or interrupted run, still counts toward
+the normal interval; this is catch-up of missed launches, not an immediate retry
+policy for failures. Run now remains available to request an earlier attempt.
+
+Changing a schedule replaces its pending timing. Restart discards in-memory
+callbacks and reconstructs eligibility from persisted history. Individual manual
+source operations retain their separate history and do not count as a complete
+catalogue-wide scheduled pass.
+
+## Stream checks while watching
+
+Scheduled and run-now catalogue status passes wait between sources while an
+application TV relay or starting/ready web-player session is active. A probe
+already in progress finishes and cleans up normally. Waiting holds no database
+transaction and has a cumulative ten-minute budget per pass; then the pass ends
+and releases the maintenance FIFO so guide refresh and scraping can continue.
+Shutdown also stops waiting before another probe starts.
+
+Incomplete runs retain their checked/online/offline/skipped/error counts and add
+`deferred` plus `stop_reason` (`viewing` or `shutdown`) to the saved result.
+Overview and webhook notifications distinguish this from a complete pass. The
+existing `channel_status.completed` webhook event remains compatible; its title
+and message explicitly say incomplete when work remains.
+
+This guard observes application-owned sessions, including routed remote-player
+playback. It cannot discover arbitrary players connected directly to an external
+engine. A dedicated checker still waits because playback and checking can share
+CPU/network capacity. Its failure never falls back to the playback engine.
+
+## Fair ordering of interrupted stream checks
+
+A status pass considers active streams only. Never-checked streams come first.
+Previously checked streams are grouped by complete saved check intervals since
+their last observation, oldest group first. Favorites, then streams assigned to
+TV channels, take priority within each age group; older observations and stable
+IDs break remaining ties. With a one-hour interval, a three-hour-old loose stream
+precedes a recently checked favorite. Within the same age group, the favorite
+still goes first.
+
+A completed check moves the stream into a newer group, allowing repeated short
+passes to reach older lower-priority streams. No separate cursor is stored and
+ordering does not modify observations. This uses the configured stream-check
+interval, not a hard-coded freshness window.

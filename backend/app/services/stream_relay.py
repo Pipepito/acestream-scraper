@@ -24,7 +24,7 @@ from fastapi.concurrency import run_in_threadpool
 from starlette.responses import StreamingResponse
 from starlette.types import Receive, Scope, Send
 
-from app.services.engine_client import EngineClient, EngineSession
+from app.services.engine_client import EngineClient, EngineSession, start_engine_session
 
 logger = logging.getLogger(__name__)
 
@@ -179,6 +179,7 @@ async def relay_engine_stream(
     release_claim: bool = True,
     stop_linger: Optional[Callable[[], float]] = None,
     read_seconds: Optional[float] = None,
+    startup_deadline: Optional[float] = None,
 ) -> AsyncIterator[bytes]:
     """Yield MPEG-TS bytes for ``content_id``.
 
@@ -205,6 +206,8 @@ async def relay_engine_stream(
     ``read_seconds`` lets a caller that waits longer than RELAY_TIMEOUT's read
     for the first byte keep the connection that long: without it, a source the
     tuner gives 60 s would still be cut by httpx at 30 s of silence.
+    ``startup_deadline`` is an absolute monotonic deadline shared with the
+    caller; source-lock waiting and direct-engine JSON startup consume it.
     """
     registry = registry or relay_registry
     factory = client_factory or _default_client_factory
@@ -212,7 +215,12 @@ async def relay_engine_stream(
     session: Optional[EngineSession] = None
     cancelled = False
     try:
-        session = await run_in_threadpool(engine.start, content_id)
+        session = await start_engine_session(
+            lambda: engine.start(content_id, startup_deadline=startup_deadline)
+            if startup_deadline is not None else engine.start(content_id),
+            lambda opened: engine.stop(opened, linger_seconds=stop_linger())
+            if stop_linger is not None else engine.stop(opened),
+        )
         engine_host = _host_identity(urlsplit(engine.engine_url).hostname)
         try:
             timeout = RELAY_TIMEOUT if read_seconds is None else httpx.Timeout(

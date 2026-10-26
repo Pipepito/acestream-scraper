@@ -16,9 +16,15 @@ class RecipeRequestLimits:
         self.app = app
 
     async def __call__(self, scope, receive, send):
-        if scope['type'] != 'http' or scope.get('path', '').rstrip('/') != '/api/v1/scrapers/recipes/preview':
+        path = scope.get('path', '').rstrip('/')
+        event_write = (path == '/api/v1/events' or path.startswith('/api/v1/events/')) and scope.get('method') in ('POST', 'PATCH')
+        catalogue_preview = path == '/api/v1/catalogues/preview'
+        event_write = event_write or (path.startswith('/api/v1/catalogues/') and path.endswith('/events/preview') and scope.get('method') == 'POST')
+        if scope['type'] != 'http' or (path != '/api/v1/scrapers/recipes/preview' and not event_write and not catalogue_preview):
             await self.app(scope, receive, send)
             return
+        body_limit = (2 * 1024 * 1024 if event_write else
+                      8 * 1024 * 1024 + 4096 if catalogue_preview else MAX_PREVIEW_BODY_BYTES)
         async def error(status, message, headers=None):
             await JSONResponse({'detail': message}, status_code=status, headers=headers)(scope, receive, send)
         try:
@@ -27,7 +33,7 @@ class RecipeRequestLimits:
             await error(exc.status_code, exc.detail, exc.headers)
             return
         if not _PREVIEWS.acquire(blocking=False):
-            await error(503, 'Two extraction previews are already running; try again shortly')
+            await error(503, 'Two preview requests are already running; try again shortly')
             return
         try:
             headers = dict(scope.get('headers', []))
@@ -42,7 +48,7 @@ class RecipeRequestLimits:
                 except ValueError:
                     await error(400, 'Invalid Content-Length')
                     return
-                if size < 0 or size > MAX_PREVIEW_BODY_BYTES:
+                if size < 0 or size > body_limit:
                     await error(413, 'Preview request is too large; reduce JSON escaping or use a smaller sample')
                     return
             total = 0
@@ -60,7 +66,7 @@ class RecipeRequestLimits:
                         return
                     chunk = message.get('body', b'')
                     total += len(chunk)
-                    if total > MAX_PREVIEW_BODY_BYTES:
+                    if total > body_limit:
                         await error(413, 'Preview request is too large; reduce JSON escaping or use a smaller sample')
                         return
                     await asyncio.to_thread(body.write, chunk)

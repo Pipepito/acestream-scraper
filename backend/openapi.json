@@ -1168,6 +1168,7 @@
           "compatibility": {
             "enum": [
               "playable",
+              "linked",
               "unresolved",
               "unsupported",
               "unavailable"
@@ -1233,6 +1234,16 @@
           "source_name": {
             "title": "Source Name",
             "type": "string"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EventChannelTarget"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -1530,6 +1541,18 @@
             "minimum": 1.0,
             "title": "Revision",
             "type": "integer"
+          },
+          "scheduled_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scheduled Date"
           },
           "sport": {
             "default": "",
@@ -2969,7 +2992,6 @@
               "type": "string"
             },
             "maxItems": 500,
-            "minItems": 1,
             "title": "Selected Ids",
             "type": "array"
           },
@@ -3085,6 +3107,33 @@
             "minimum": 1.0,
             "title": "Revision",
             "type": "integer"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Id"
+          },
+          "target_kind": {
+            "anyOf": [
+              {
+                "enum": [
+                  "tv",
+                  "epg"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Kind"
           }
         },
         "required": [
@@ -3092,6 +3141,45 @@
           "broadcast_id"
         ],
         "title": "EventBroadcastMapping",
+        "type": "object"
+      },
+      "EventChannelTarget": {
+        "additionalProperties": false,
+        "properties": {
+          "country": {
+            "default": "",
+            "title": "Country",
+            "type": "string"
+          },
+          "id": {
+            "minimum": 1.0,
+            "title": "Id",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "tv",
+              "epg"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "source_name": {
+            "default": "",
+            "title": "Source Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "name"
+        ],
+        "title": "EventChannelTarget",
         "type": "object"
       },
       "EventFields": {
@@ -3122,6 +3210,18 @@
             "maxItems": 8,
             "title": "Participants",
             "type": "array"
+          },
+          "scheduled_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scheduled Date"
           },
           "sport": {
             "default": "",
@@ -3202,6 +3302,68 @@
           "observations"
         ],
         "title": "EventImport",
+        "type": "object"
+      },
+      "EventInterestChoices": {
+        "additionalProperties": false,
+        "properties": {
+          "competitions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 2000,
+            "title": "Competitions",
+            "type": "array"
+          },
+          "sports": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 2000,
+            "title": "Sports",
+            "type": "array"
+          },
+          "teams": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 2000,
+            "title": "Teams",
+            "type": "array"
+          }
+        },
+        "title": "EventInterestChoices",
+        "type": "object"
+      },
+      "EventInterests": {
+        "additionalProperties": false,
+        "properties": {
+          "competitions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Competitions",
+            "type": "array"
+          },
+          "sports": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Sports",
+            "type": "array"
+          },
+          "teams": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Teams",
+            "type": "array"
+          }
+        },
+        "title": "EventInterests",
         "type": "object"
       },
       "EventList": {
@@ -3293,6 +3455,18 @@
             "title": "Participants",
             "type": "array"
           },
+          "scheduled_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scheduled Date"
+          },
           "source_id": {
             "maxLength": 160,
             "minLength": 1,
@@ -3379,6 +3553,9 @@
       "EventPreview": {
         "additionalProperties": false,
         "properties": {
+          "available_interests": {
+            "$ref": "#/components/schemas/EventInterestChoices"
+          },
           "events": {
             "items": {
               "$ref": "#/components/schemas/EventView"
@@ -3404,6 +3581,112 @@
           "warnings"
         ],
         "title": "EventPreview",
+        "type": "object"
+      },
+      "EventProviderCatalog": {
+        "additionalProperties": false,
+        "properties": {
+          "feeds": {
+            "items": {
+              "$ref": "#/components/schemas/EventProviderChoice"
+            },
+            "title": "Feeds",
+            "type": "array"
+          },
+          "leagues": {
+            "items": {
+              "$ref": "#/components/schemas/EventProviderChoice"
+            },
+            "title": "Leagues",
+            "type": "array"
+          }
+        },
+        "required": [
+          "feeds",
+          "leagues"
+        ],
+        "title": "EventProviderCatalog",
+        "type": "object"
+      },
+      "EventProviderChoice": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "timezone": {
+            "default": "Europe/Madrid",
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "EventProviderChoice",
+        "type": "object"
+      },
+      "EventProviderOptions": {
+        "additionalProperties": false,
+        "properties": {
+          "feeds": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Feeds",
+            "type": "array"
+          },
+          "interests": {
+            "$ref": "#/components/schemas/EventInterests"
+          },
+          "league": {
+            "default": "es.1",
+            "enum": [
+              "en.1",
+              "en.2",
+              "es.1",
+              "de.1",
+              "fr.1",
+              "it.1",
+              "nl.1",
+              "pt.1"
+            ],
+            "title": "League",
+            "type": "string"
+          },
+          "provider": {
+            "enum": [
+              "wosti_es",
+              "openfootball"
+            ],
+            "title": "Provider",
+            "type": "string"
+          },
+          "season": {
+            "pattern": "^20\\d{2}-\\d{2}$",
+            "title": "Season",
+            "type": "string"
+          },
+          "window_days": {
+            "default": 14,
+            "maximum": 30.0,
+            "minimum": 1.0,
+            "title": "Window Days",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "provider"
+        ],
+        "title": "EventProviderOptions",
         "type": "object"
       },
       "EventRefreshQueued": {
@@ -3495,6 +3778,16 @@
             ],
             "title": "Format",
             "type": "string"
+          },
+          "provider_options": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EventProviderOptions"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "source_id": {
             "anyOf": [
@@ -3611,6 +3904,16 @@
           "origin": {
             "title": "Origin",
             "type": "string"
+          },
+          "provider_options": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EventProviderOptions"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "reviewed": {
             "title": "Reviewed",
@@ -3754,6 +4057,18 @@
           "revision": {
             "title": "Revision",
             "type": "integer"
+          },
+          "scheduled_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scheduled Date"
           },
           "sport": {
             "default": "",
@@ -13745,6 +14060,35 @@
           },
           {
             "in": "query",
+            "name": "interests",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 16000,
+              "title": "Interests",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "window_days",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 30,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Window Days"
+            }
+          },
+          {
+            "in": "query",
             "name": "offset",
             "required": false,
             "schema": {
@@ -13840,6 +14184,75 @@
         ]
       }
     },
+    "/api/v1/events/broadcast-targets": {
+      "get": {
+        "operationId": "event_broadcast_targets_api_v1_events_broadcast_targets_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 200,
+              "title": "Search",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EventChannelTarget"
+                  },
+                  "title": "Response Event Broadcast Targets Api V1 Events Broadcast Targets Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Event Broadcast Targets",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/interests": {
+      "get": {
+        "operationId": "event_interests_api_v1_events_interests_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventInterestChoices"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Event Interests",
+        "tags": [
+          "events"
+        ]
+      }
+    },
     "/api/v1/events/preview": {
       "post": {
         "operationId": "preview_events_api_v1_events_preview_post",
@@ -13876,6 +14289,27 @@
           }
         },
         "summary": "Preview Events",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/providers": {
+      "get": {
+        "operationId": "event_providers_api_v1_events_providers_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventProviderCatalog"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Event Providers",
         "tags": [
           "events"
         ]

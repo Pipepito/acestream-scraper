@@ -12,6 +12,7 @@ from app.schemas.events import EventImport, EventPreview, EventApply, EventView,
 from app.services.event_service import EventService
 from app.services.event_source_service import EventSourceService
 from app.schemas.events import EventSourcePreviewRequest, EventSourceView, EventSourceUpdate, EventRetention, EventBroadcastMapping, EventRefreshQueued
+from app.schemas.events import EventInterests, EventInterestChoices, EventChannelTarget, EventProviderCatalog
 
 
 class PrivateEventRoute(APIRoute):
@@ -53,13 +54,18 @@ def list_events(search: str = Query('', max_length=200), sport: str = Query('', 
                 competition: str = Query('', max_length=200), source: str = Query('', max_length=200),
                 day: date | None = None, zone: str = Query('UTC', max_length=100),
                 upcoming: bool = False, followed: bool = False, archived: bool = False,
+                interests: str = Query('', max_length=16000), window_days: int | None = Query(None, ge=1, le=30),
                 offset: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=100),
                 svc: EventService = Depends(service)):
     try:
         ZoneInfo(zone)
     except (ZoneInfoNotFoundError, ValueError):
         raise HTTPException(422, 'Choose a valid IANA timezone') from None
-    return invoke(svc.list, search=search, sport=sport, competition=competition, source=source,
+    try:
+        selected = EventInterests.model_validate_json(interests) if interests else EventInterests()
+    except ValidationError:
+        raise HTTPException(422, 'Choose valid sports, competitions and teams') from None
+    return invoke(svc.list, search=search, sport=sport, competition=competition, source=source, interests=selected, window_days=window_days,
                   date=day, zone=zone, upcoming=upcoming, followed=followed, archived=archived, offset=offset, limit=limit)
 
 
@@ -76,6 +82,23 @@ def apply_events(request: EventApply, svc: EventService = Depends(service)):
 @router.get('/sources', response_model=list[EventSourceView])
 def event_sources(db: Session = Depends(get_db)):
     return invoke(EventSourceService(db).list)
+
+
+@router.get('/providers', response_model=EventProviderCatalog)
+def event_providers():
+    from app.services.event_providers import FEEDS, LEAGUES
+    return EventProviderCatalog(feeds=[{'id': key, 'name': value} for key, value in FEEDS.items()],
+        leagues=[{'id': key, 'name': name, 'timezone': zone} for key, (name, zone) in LEAGUES.items()])
+
+
+@router.get('/interests', response_model=EventInterestChoices)
+def event_interests(svc: EventService = Depends(service)):
+    return invoke(svc.interests)
+
+
+@router.get('/broadcast-targets', response_model=list[EventChannelTarget])
+def event_broadcast_targets(search: str = Query('', max_length=200), svc: EventService = Depends(service)):
+    return invoke(svc.broadcasts.search, search)
 
 
 @router.post('/sources/preview', response_model=EventPreview)

@@ -584,9 +584,21 @@ export interface paths {
     /** Apply Events */
     post: operations["apply_events_api_v1_events_apply_post"];
   };
+  "/api/v1/events/broadcast-targets": {
+    /** Event Broadcast Targets */
+    get: operations["event_broadcast_targets_api_v1_events_broadcast_targets_get"];
+  };
+  "/api/v1/events/interests": {
+    /** Event Interests */
+    get: operations["event_interests_api_v1_events_interests_get"];
+  };
   "/api/v1/events/preview": {
     /** Preview Events */
     post: operations["preview_events_api_v1_events_preview_post"];
+  };
+  "/api/v1/events/providers": {
+    /** Event Providers */
+    get: operations["event_providers_api_v1_events_providers_get"];
   };
   "/api/v1/events/retention": {
     /** Event Retention */
@@ -1698,7 +1710,7 @@ export interface components {
        * Compatibility
        * @enum {string}
        */
-      compatibility: "playable" | "unresolved" | "unsupported" | "unavailable";
+      compatibility: "playable" | "linked" | "unresolved" | "unsupported" | "unavailable";
       /** Content Id */
       content_id: string | null;
       /** Country */
@@ -1724,6 +1736,7 @@ export interface components {
       reason: string;
       /** Source Name */
       source_name: string;
+      target?: components["schemas"]["EventChannelTarget"] | null;
     };
     /**
      * BulkChannelActivateRequest
@@ -1868,6 +1881,8 @@ export interface components {
       participants?: string[];
       /** Revision */
       revision: number;
+      /** Scheduled Date */
+      scheduled_date?: string | null;
       /**
        * Sport
        * @default
@@ -2546,6 +2561,32 @@ export interface components {
       channel_id?: string | null;
       /** Revision */
       revision: number;
+      /** Target Id */
+      target_id?: number | null;
+      /** Target Kind */
+      target_kind?: ("tv" | "epg") | null;
+    };
+    /** EventChannelTarget */
+    EventChannelTarget: {
+      /**
+       * Country
+       * @default
+       */
+      country?: string;
+      /** Id */
+      id: number;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "tv" | "epg";
+      /** Name */
+      name: string;
+      /**
+       * Source Name
+       * @default
+       */
+      source_name?: string;
     };
     /** EventFields */
     EventFields: {
@@ -2558,6 +2599,8 @@ export interface components {
       ends_at?: string | null;
       /** Participants */
       participants?: string[];
+      /** Scheduled Date */
+      scheduled_date?: string | null;
       /**
        * Sport
        * @default
@@ -2592,6 +2635,24 @@ export interface components {
        */
       version?: 1;
     };
+    /** EventInterestChoices */
+    EventInterestChoices: {
+      /** Competitions */
+      competitions?: string[];
+      /** Sports */
+      sports?: string[];
+      /** Teams */
+      teams?: string[];
+    };
+    /** EventInterests */
+    EventInterests: {
+      /** Competitions */
+      competitions?: string[];
+      /** Sports */
+      sports?: string[];
+      /** Teams */
+      teams?: string[];
+    };
     /** EventList */
     EventList: {
       /** Events */
@@ -2618,6 +2679,8 @@ export interface components {
       external_id: string;
       /** Participants */
       participants?: string[];
+      /** Scheduled Date */
+      scheduled_date?: string | null;
       /** Source Id */
       source_id: string;
       /**
@@ -2653,12 +2716,56 @@ export interface components {
     };
     /** EventPreview */
     EventPreview: {
+      available_interests?: components["schemas"]["EventInterestChoices"];
       /** Events */
       events: components["schemas"]["EventView"][];
       /** Token */
       token: string;
       /** Warnings */
       warnings: string[];
+    };
+    /** EventProviderCatalog */
+    EventProviderCatalog: {
+      /** Feeds */
+      feeds: components["schemas"]["EventProviderChoice"][];
+      /** Leagues */
+      leagues: components["schemas"]["EventProviderChoice"][];
+    };
+    /** EventProviderChoice */
+    EventProviderChoice: {
+      /** Id */
+      id: string;
+      /** Name */
+      name: string;
+      /**
+       * Timezone
+       * @default Europe/Madrid
+       */
+      timezone?: string;
+    };
+    /** EventProviderOptions */
+    EventProviderOptions: {
+      /** Feeds */
+      feeds?: string[];
+      interests?: components["schemas"]["EventInterests"];
+      /**
+       * League
+       * @default es.1
+       * @enum {string}
+       */
+      league?: "en.1" | "en.2" | "es.1" | "de.1" | "fr.1" | "it.1" | "nl.1" | "pt.1";
+      /**
+       * Provider
+       * @enum {string}
+       */
+      provider: "wosti_es" | "openfootball";
+      /** Season */
+      season?: string;
+      /**
+       * Window Days
+       * @default 14
+       */
+      window_days?: number;
     };
     /** EventRefreshQueued */
     EventRefreshQueued: {
@@ -2711,6 +2818,7 @@ export interface components {
        * @enum {string}
        */
       format?: "event_import" | "schema_org";
+      provider_options?: components["schemas"]["EventProviderOptions"] | null;
       /** Source Id */
       source_id?: string | null;
       /**
@@ -2749,6 +2857,7 @@ export interface components {
       name: string;
       /** Origin */
       origin: string;
+      provider_options?: components["schemas"]["EventProviderOptions"] | null;
       /** Reviewed */
       reviewed: number;
       /** Revision */
@@ -2799,6 +2908,8 @@ export interface components {
       provenance: components["schemas"]["ProvenanceView"][];
       /** Revision */
       revision: number;
+      /** Scheduled Date */
+      scheduled_date?: string | null;
       /**
        * Sport
        * @default
@@ -7199,6 +7310,8 @@ export interface operations {
         upcoming?: boolean;
         followed?: boolean;
         archived?: boolean;
+        interests?: string;
+        window_days?: number | null;
         offset?: number;
         limit?: number;
       };
@@ -7240,6 +7353,39 @@ export interface operations {
       };
     };
   };
+  /** Event Broadcast Targets */
+  event_broadcast_targets_api_v1_events_broadcast_targets_get: {
+    parameters: {
+      query?: {
+        search?: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventChannelTarget"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Event Interests */
+  event_interests_api_v1_events_interests_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventInterestChoices"];
+        };
+      };
+    };
+  };
   /** Preview Events */
   preview_events_api_v1_events_preview_post: {
     requestBody: {
@@ -7258,6 +7404,17 @@ export interface operations {
       422: {
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Event Providers */
+  event_providers_api_v1_events_providers_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventProviderCatalog"];
         };
       };
     };

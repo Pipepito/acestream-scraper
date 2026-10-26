@@ -265,7 +265,7 @@ async def test_membership_failure_queue_bounds_flood_and_revision_retry(alembic_
 
 
 def test_migration_upgrade_downgrade_preserves_existing_streams(tmp_path):
-    from migration_test_utils import upgrade_to_revision, upgrade_to_head, downgrade_to_revision, database_url_for
+    from migration_test_utils import current_head_revision, upgrade_to_revision, upgrade_to_head, downgrade_to_revision, database_url_for
     from sqlalchemy import create_engine, text, inspect
     path = tmp_path / 'migration.db'
     upgrade_to_revision(path, '20261023_1400')
@@ -278,7 +278,7 @@ def test_migration_upgrade_downgrade_preserves_existing_streams(tmp_path):
         upgrade_to_head(path)
         assert {'telegram_sources', 'telegram_observations'} <= set(inspect(engine).get_table_names())
         with engine.connect() as connection:
-            assert connection.execute(text('SELECT version_num FROM alembic_version')).scalar() == '20261023_1500'
+            assert connection.execute(text('SELECT version_num FROM alembic_version')).scalars().all() == [current_head_revision()]
         downgrade_to_revision(path, '20261023_1400')
         assert not {'telegram_sources', 'telegram_observations'} & set(inspect(engine).get_table_names())
         with engine.connect() as connection:

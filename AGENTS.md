@@ -623,3 +623,11 @@ to new messages only; pause retains progress. See `wiki/Telegram-Sources.md`.
 Telegram migration `20261023_1500` follows catalogue/event revision `20261023_1400`.
 Keep the W3U `20261022_1200` identity unchanged; Telegram must not reuse it.
 See `wiki/Telegram-Sources.md#database-upgrades`.
+
+
+Search result IDs are catalogue infohashes. Resolve selected Add/Play actions via
+`POST /api/v1/search/{infohash}/resolve` and the playback engine's `get_content_id`
+before saving or opening the shared player. Check broadcast keeps its infohash
+probe. Resolution must not create channels or start engine sessions; failures
+never fall back to saving/playing the infohash as a content ID. Existing entries
+remain unchanged; see `wiki/Usage.md#search-and-manual-additions` for recovery.

@@ -917,6 +917,13 @@ export interface paths {
      */
     post: operations["check_search_broadcast_api_v1_search__infohash__check_status_post"];
   };
+  "/api/v1/search/{infohash}/resolve": {
+    /**
+     * Resolve Search Result
+     * @description Resolve a catalogue result before saving it or opening the shared player.
+     */
+    post: operations["resolve_search_result_api_v1_search__infohash__resolve_post"];
+  };
   "/api/v1/startup": {
     /** Status */
     get: operations["status_api_v1_startup_get"];
@@ -3577,6 +3584,14 @@ export interface components {
        * @description Hours between automatic rescrapes
        */
       value?: string | null;
+    };
+    /** ResolvedSearchResult */
+    ResolvedSearchResult: {
+      /**
+       * Content Id
+       * @description Resolved transport-file content ID for saving or playback
+       */
+      content_id: string;
     };
     /** ScanDefaultResponse */
     ScanDefaultResponse: {
@@ -8649,6 +8664,31 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["ChannelStatusResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Resolve Search Result
+   * @description Resolve a catalogue result before saving it or opening the shared player.
+   */
+  resolve_search_result_api_v1_search__infohash__resolve_post: {
+    parameters: {
+      path: {
+        infohash: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ResolvedSearchResult"];
         };
       };
       /** @description Validation Error */

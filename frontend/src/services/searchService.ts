@@ -43,6 +43,12 @@ export interface AddMultipleResponse {
 const BASE_URL = '/v1/search';
 
 export const searchService = {
+  resolveContentId: async (infohash: string): Promise<string> => {
+    const response = await apiClient.post<components['schemas']['ResolvedSearchResult']>(
+      `${BASE_URL}/${encodeURIComponent(infohash)}/resolve`, {}
+    );
+    return response.data.content_id;
+  },
   checkBroadcast: async (id: string): Promise<BroadcastStatus> => {
     // Allow the configured 120s maximum, one doubled startup retry, an
     // observation window, and cleanup. Normal checks use 10s windows.

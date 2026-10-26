@@ -14060,6 +14060,20 @@
           },
           {
             "in": "query",
+            "name": "selection",
+            "required": false,
+            "schema": {
+              "default": "agenda",
+              "enum": [
+                "agenda",
+                "dashboard"
+              ],
+              "title": "Selection",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
             "name": "interests",
             "required": false,
             "schema": {

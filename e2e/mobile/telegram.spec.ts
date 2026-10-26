@@ -34,7 +34,7 @@ for (const mode of ['light', 'dark']) {
       await route.fulfill({ json: data });
     });
     await page.addInitScript(value => localStorage.setItem('app-theme-mode', value), mode);
-    await page.goto('/integrations');
+    await page.goto('/integrations/telegram');
     await page.waitForLoadState('networkidle');
     await page.getByLabel('Telegram admin token').fill('synthetic-admin-only');
     await page.getByRole('button', { name: 'Unlock Telegram settings' }).click();

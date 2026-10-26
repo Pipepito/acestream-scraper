@@ -220,3 +220,24 @@ overlays/export are not offered: no XMLTV programs, assignments, IDs, playlists 
 tokens are changed. Any future overlay needs its own preview and preservation tests.
 
 See [Sports events](../../wiki/Sports-Events.md) for the operator workflow.
+
+## Dashboard selection
+
+`GET /api/v1/events?selection=dashboard` opts into immediate selection. The default
+`agenda` preserves existing list semantics. EventService ranks the bounded saved
+inventory before offset/limit and applies following, OR interests and corrections
+before pagination; DB access remains in EventRepository. No schema migration is
+needed. The dashboard requests six results and a seven-calendar-day window in its
+IANA timezone, polling at 60 seconds under the shared `events` query prefix.
+
+Exclude archives, finished/cancelled events and past end times. Promote started
+live assertions with a future end, or without an end only within the preceding
+24 hours. Next rank future starts within the local calendar window, then date-only
+fixtures by their supplied date; break ties by ID. Undated and stale assertions
+remain in the agenda. Do not infer start/end times or verified media from dates or
+publisher state. Selection uses timezone-aware UTC now with local calendar bounds.
+
+`tv-dashboard-events-v1` stores validated, versioned display preferences only;
+blocked/corrupt storage falls back safely. `/events?event=<id>&zone=<timezone>` opens
+the existing detail drawer. Follow/correction mutations invalidate the shared query
+prefix; summary reads never modify sources, events or playback leases.

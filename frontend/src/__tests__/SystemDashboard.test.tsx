@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, within } from '@testing-library/react';
 import { ThemeProvider } from '@mui/material/styles';
-import Overview from '../pages/Overview';
+import SystemDashboard from '../pages/SystemDashboard';
 import { createAppTheme } from '../theme';
 import { TestMemoryRouter } from '../testUtils/router';
 
@@ -44,12 +44,12 @@ const renderPage = () =>
   render(
     <ThemeProvider theme={createAppTheme('light')}>
       <TestMemoryRouter>
-        <Overview />
+        <SystemDashboard />
       </TestMemoryRouter>
     </ThemeProvider>
   );
 
-describe('Overview', () => {
+describe('SystemDashboard', () => {
   beforeEach(() => {
     jest.useFakeTimers().setSystemTime(new Date('2026-09-02T10:12:00Z'));
     mockUseSystemServices.mockReturnValue(query({ supervised: true, checked_at: '', services: [service('acestream', 'running', { label: 'AceStream engine', version: '3.1.80 (android)' }), service('acexy', 'running')] }));
@@ -68,13 +68,10 @@ describe('Overview', () => {
 
   it('reports a healthy stack with measured facts and the scheduler table', () => {
     renderPage();
-    expect(screen.getByRole('heading', { level: 1, name: 'Overview' })).toBeInTheDocument();
-    expect(screen.getByText('HEALTHY')).toBeInTheDocument();
-    const summary = screen.getByRole('status', { name: 'Overview summary' });
+    expect(screen.getByRole('heading', { level: 1, name: 'System status' })).toBeInTheDocument();
+    expect(screen.getByText('Services healthy')).toBeInTheDocument();
+    const summary = screen.getByRole('status', { name: 'System status summary' });
     expect(within(summary).getByText('3.1.80 (android)')).toBeInTheDocument();
-    expect(within(summary).getByText('6, 1 online')).toBeInTheDocument();
-    expect(within(summary).getByText('638 channels')).toBeInTheDocument();
-    expect(within(summary).getByText('12 min ago')).toBeInTheDocument();
     expect(screen.getByTestId('services-panel')).toBeInTheDocument();
 
     const jobs = screen.getByRole('table', { name: 'Scheduled jobs' });
@@ -89,9 +86,8 @@ describe('Overview', () => {
     expect(rows[3]).toHaveTextContent('Remove stale channels');
     expect(rows[3]).toHaveTextContent('never');
 
-    const guide = screen.getByRole('region', { name: 'Sources and guide' });
-    expect(within(guide).getByText('Programmes')).toBeInTheDocument();
-    expect(within(guide).getByText('81799')).toBeInTheDocument();
+    expect(within(summary).getByText('2.1.0')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Sources and guide' })).not.toBeInTheDocument();
     expect(screen.queryByText(/Stream capacity/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Recent Activity/)).not.toBeInTheDocument();
   });
@@ -99,31 +95,31 @@ describe('Overview', () => {
   it('reports an external engine as online when the in-container one is switched off', () => {
     mockUseSystemServices.mockReturnValue(query({ supervised: true, checked_at: '', services: [service('acestream', 'disabled', { label: 'AceStream engine', enabled: false, running: false, message: 'Installed but turned off (ENABLE_ACESTREAM_ENGINE=false).' })] }));
     renderPage();
-    expect(screen.getByText('HEALTHY')).toBeInTheDocument();
-    expect(within(screen.getByRole('status', { name: 'Overview summary' })).getByText('online (external)')).toBeInTheDocument();
+    expect(screen.getByText('Services healthy')).toBeInTheDocument();
+    expect(within(screen.getByRole('status', { name: 'System status summary' })).getByText('online (external)')).toBeInTheDocument();
   });
 
   it('shows an intentional engine stop without flagging it as a failure', () => {
     mockUseHealth.mockReturnValue(query({ status: 'healthy', acestream: { status: 'error' } }));
     mockUseSystemServices.mockReturnValue(query({ supervised: true, services: [service('acestream', 'stopped', { stopped_by_user: true })] }));
     renderPage();
-    expect(screen.getByText('HEALTHY')).toBeInTheDocument();
-    expect(within(screen.getByRole('status', { name: 'Overview summary' })).getByText('stopped by you')).toBeInTheDocument();
+    expect(screen.getByText('Services healthy')).toBeInTheDocument();
+    expect(within(screen.getByRole('status', { name: 'System status summary' })).getByText('stopped by you')).toBeInTheDocument();
   });
 
   it('treats an engine-free scraper as healthy', () => {
     mockUseHealth.mockReturnValue(query({ status: 'healthy', acestream: { status: 'unknown' } }));
     mockUseSystemServices.mockReturnValue(query({ supervised: false, services: [service('acestream', 'disabled', { enabled: false, endpoint: null, running: false })] }));
     renderPage();
-    expect(screen.getByText('HEALTHY')).toBeInTheDocument();
-    expect(within(screen.getByRole('status', { name: 'Overview summary' })).getByText('not configured')).toHaveAttribute('data-tone', 'default');
+    expect(screen.getByText('Services healthy')).toBeInTheDocument();
+    expect(within(screen.getByRole('status', { name: 'System status summary' })).getByText('not configured')).toHaveAttribute('data-tone', 'default');
   });
 
   it('flags attention when the engine probe fails even if no service is marked stopped', () => {
     mockUseHealth.mockReturnValue(query({ status: 'healthy', acestream: { status: 'error', message: 'Connection refused' }, settings: {}, version: '2.1.0' }));
     renderPage();
-    expect(screen.getByText('ATTENTION')).toBeInTheDocument();
-    expect(within(screen.getByRole('status', { name: 'Overview summary' })).getByText('not reachable')).toBeInTheDocument();
+    expect(screen.getByText('Services need attention')).toBeInTheDocument();
+    expect(within(screen.getByRole('status', { name: 'System status summary' })).getByText('not reachable')).toBeInTheDocument();
   });
 
   it.each(['', 'http://external-engine:6878'])(
@@ -135,9 +131,9 @@ describe('Overview', () => {
       }));
       renderPage();
       const label = aceEngineUrl ? 'not reachable' : 'not configured';
-      expect(within(screen.getByRole('status', { name: 'Overview summary' })).getByText(label))
+      expect(within(screen.getByRole('status', { name: 'System status summary' })).getByText(label))
         .toHaveAttribute('data-tone', aceEngineUrl ? 'error' : 'default');
-      expect(screen.getByText(aceEngineUrl ? 'ATTENTION' : 'HEALTHY')).toBeInTheDocument();
+      expect(screen.getByText(aceEngineUrl ? 'Services need attention' : 'Services healthy')).toBeInTheDocument();
     },
   );
 
@@ -145,8 +141,33 @@ describe('Overview', () => {
     mockUseHealth.mockReturnValue(query({ status: 'degraded', acestream: { status: 'error', message: 'Connection refused' }, settings: {}, version: '2.1.0' }));
     mockUseSystemServices.mockReturnValue(query({ supervised: true, checked_at: '', services: [service('acestream', 'stopped', { label: 'AceStream engine', message: 'Enabled but not running.' })] }));
     renderPage();
-    expect(screen.getByText('ATTENTION')).toBeInTheDocument();
+    expect(screen.getByText('Services need attention')).toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent('AceStream engine: Enabled but not running.');
-    expect(within(screen.getByRole('status', { name: 'Overview summary' })).getByText('not reachable')).toHaveAttribute('data-tone', 'error');
+    expect(within(screen.getByRole('status', { name: 'System status summary' })).getByText('not reachable')).toHaveAttribute('data-tone', 'error');
   });
+  it.each(['health', 'services'])('keeps diagnostics and jobs available when %s fails, including stale data', (failed) => {
+    const hook = failed === 'health' ? mockUseHealth : mockUseSystemServices;
+    hook.mockReturnValue({ ...hook(), error: new Error('Connection lost') });
+    renderPage();
+    expect(screen.getByText('Status unavailable')).toBeVisible();
+    expect(screen.queryByText('Services healthy')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /download diagnostics/i })).toBeVisible();
+    expect(screen.getByRole('table', { name: 'Scheduled jobs' })).toBeInTheDocument();
+    expect(screen.getByText('Storage')).toBeInTheDocument();
+  });
+
+  it('does not claim the scheduler is stopped while loading', () => {
+    mockUseBackgroundTaskStatus.mockReturnValue(query(undefined));
+    renderPage();
+    expect(screen.getByText('Loading scheduled jobs…')).toBeVisible();
+    expect(screen.queryByText('The scheduler is not running.')).not.toBeInTheDocument();
+  });
+
+  it('keeps an unknown configured-engine probe unknown', () => {
+    mockUseHealth.mockReturnValue(query({ status: 'healthy', acestream: { status: 'unknown' }, settings: { ace_engine_url: 'http://engine:6878' } }));
+    renderPage();
+    expect(screen.getByText('Status unavailable')).toBeVisible();
+    expect(screen.queryByText('Services healthy')).not.toBeInTheDocument();
+  });
+
 });

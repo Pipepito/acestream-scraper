@@ -8,11 +8,11 @@ The app pretends to be an **HDHomeRun tuner** — a network TV tuner both Jellyf
 
 **Three things have to be true**, and the app checks all three for you under **Integrations**.
 
-1. **The media server can reach this app.** Jellyfin and Plex fetch the channel list, the guide and the video themselves, from wherever they run. The address they use is the **Public address** at the top of the Integrations page. If that shows something only your browser can reach (`localhost`, a Docker-internal name), type the address the media server would use — usually this machine's LAN address, e.g. `http://192.168.1.10:8000` — and press **Save**.
+1. **The media server can reach this app.** Jellyfin and Plex fetch the channel list, the guide and the video themselves, from wherever they run. The address they use is the **Public address** under **Integrations › Public address**. If that shows something only your browser can reach (`localhost`, a Docker-internal name), type the address the media server would use — usually this machine's LAN address, e.g. `http://192.168.1.10:8000` — and press **Save**.
 
 2. **The media server is on an allowed network.** The tuner routes (`/tuner/*`) carry no API token, because no media server can send one — Jellyfin and Plex fetch them with a plain HTTP client, and Plex has no credential field at all. They are gated by **address** instead: only clients inside `TUNER_ALLOWED_NETWORKS` are answered, everything else gets `403`. The default list is every private range plus loopback and Tailscale's `100.64.0.0/10`, so a media server on your LAN is already allowed. See [Configuration](Configuration.md#media-integrations).
 
-3. **The app sees real client addresses.** Publish the web port as `-p 0.0.0.0:8000:8000`, never the bare `-p 8000:8000`. An unaddressed mapping also listens on IPv6, and Docker then rewrites every IPv6 client to the bridge gateway (`172.17.0.1`) before the app sees it — which is inside the allowed list, so the address gate stops meaning anything. The **Public address** block on the Integrations page warns you when it sees this ("This host hides real client addresses…").
+3. **The app sees real client addresses.** Publish the web port as `-p 0.0.0.0:8000:8000`, never the bare `-p 8000:8000`. An unaddressed mapping also listens on IPv6, and Docker then rewrites every IPv6 client to the bridge gateway (`172.17.0.1`) before the app sees it — which is inside the allowed list, so the address gate stops meaning anything. The **Integrations › Public address** page warns you when it sees this ("This host hides real client addresses…").
 
 Behind a reverse proxy there is one more rule: `/tuner/` must be excluded from proxy authentication, because these clients cannot answer a login prompt. The nginx, Caddy and Traefik snippets are in [Reverse Proxy / HTTPS](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/ops/reverse-proxy.md).
 
@@ -119,7 +119,7 @@ Each channel gets a **GuideNumber**, the number Jellyfin and Plex show and sort 
 
 **Jellyfin or Plex gets 403 from the tuner.** The media server's address is outside `TUNER_ALLOWED_NETWORKS`. The **Public address** block names the most recent refusal and the address it came from — add that network to `TUNER_ALLOWED_NETWORKS`, or check that the app is seeing real client addresses (`-p 0.0.0.0:8000:8000`, and a reverse proxy listed in `FORWARDED_ALLOW_IPS`).
 
-**Plex says the tuner is dead, or Jellyfin's tuner turns red.** The public address changed — a new DHCP lease, a moved container, a different port. Fix the **Public address** on the Integrations page, then press **Connect** again (Jellyfin) or re-enter the tuner address in Plex.
+**Plex says the tuner is dead, or Jellyfin's tuner turns red.** The public address changed — a new DHCP lease, a moved container, a different port. Fix **Integrations › Public address**, then press **Connect** again (Jellyfin) or re-enter the tuner address in Plex.
 
 **No channels show up in Jellyfin.** Check the lineup itself, from a machine on an allowed network:
 

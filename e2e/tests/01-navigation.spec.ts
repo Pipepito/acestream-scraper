@@ -4,7 +4,7 @@ import { NAV_ROUTES, type NavLabel } from '../src/pages/app-shell';
 test.describe('navigation', () => {
   test('every nav item opens its page and marks itself current; labels equal page titles', async ({ app, page }) => {
     await app.goto('/');
-    await app.expectHeading('Overview');
+    await app.expectHeading('TV dashboard');
     const labels = await app.nav().getByRole('link').allInnerTexts();
     expect(labels.map((l) => l.trim())).toEqual(Object.keys(NAV_ROUTES));
     for (const [label, route] of Object.entries(NAV_ROUTES) as [NavLabel, string][]) {
@@ -17,9 +17,10 @@ test.describe('navigation', () => {
 
   test('old bookmarks redirect to the merged pages', async ({ app, page }) => {
     for (const [from, heading, url] of [
-      ['/dashboard', 'Overview', /\/$/],
-      ['/health', 'Overview', /\/$/],
-      ['/stats', 'Overview', /\/$/],
+      ['/integrations', 'Public address', /\/integrations\/public-address$/],
+      ['/dashboard', 'TV dashboard', /\/$/],
+      ['/health', 'System status', /\/system$/],
+      ['/stats', 'TV dashboard', /\/$/],
       ['/channels', 'TV Channels', /\/tv-channels$/],
       ['/search-new', 'Search', /\/search$/],
       ['/epg/mappings', 'EPG', /\/epg\?tab=rules$/],
@@ -37,12 +38,12 @@ test.describe('navigation', () => {
     await app.goto('/this/route/does/not/exist');
     await app.expectHeading('Page not found');
     await page.getByRole('button', { name: 'Open Dashboard' }).click();
-    await app.expectHeading('Overview');
+    await app.expectHeading('TV dashboard');
   });
 
   test('theme toggle switches between light and dark and persists', async ({ app, page }) => {
     await app.goto('/');
-    await app.expectHeading('Overview');
+    await app.expectHeading('TV dashboard');
     await expect(app.themeToggle()).toHaveAttribute('aria-label', 'Switch to dark theme');
     await app.themeToggle().click();
     await expect(app.themeToggle()).toHaveAttribute('aria-label', 'Switch to light theme');

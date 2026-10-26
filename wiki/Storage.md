@@ -1,6 +1,6 @@
 # Container storage
 
-Open **Overview → Storage** to see data directories, detected mount destinations,
+Open **System status → Storage** to see data directories, detected mount destinations,
 allocated file sizes and filesystem free space. No Docker socket or host privileges
 are needed. Legacy environment variables also produce a deprecation notice here,
 showing the replacement name without exposing either value.

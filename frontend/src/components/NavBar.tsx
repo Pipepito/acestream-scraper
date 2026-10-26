@@ -121,7 +121,7 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264, collapsed = false, o
         </Typography>
       </Toolbar>
       <Divider sx={{ borderColor: theme.appTokens.shell.navBorder }} />
-      {(['Watch', 'Manage', 'System'] as const).map((section) => <React.Fragment key={section}>
+      {(['Watch', 'Manage', 'Integrations', 'System'] as const).map((section) => <React.Fragment key={section}>
         <List sx={{ py: 1 }} aria-label={section}>
           <ListItem><Typography variant="overline" color="text.secondary">{section}</Typography></ListItem>
           {renderNavItems(navItems.filter((item) => item.section === section))}

@@ -1,3 +1,5 @@
+import { useSearchParams } from 'react-router-dom';
+import { validEventZone } from '../hooks/useDashboardEvents';
 import React, { useDeferredValue, useState } from 'react';
 import { Alert, Box, Button, CircularProgress, Drawer, MenuItem, FormControlLabel, Checkbox, Stack, TextField, Typography } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -20,11 +22,14 @@ function today(zone: string) {
 }
 export default function Events() {
   const cache = useQueryClient();
+  const [params, setParams] = useSearchParams();
+  const initialZone = params.get('zone') || browserZone;
+  const displayZone = validEventZone(initialZone) ? initialZone : browserZone;
   const [tab, setTab] = useState('upcoming');
-  const [zone, setZone] = useState(browserZone);
-  const [zoneInput, setZoneInput] = useState(browserZone);
+  const [zone, setZone] = useState(displayZone);
+  const [zoneInput, setZoneInput] = useState(displayZone);
   const [zoneError, setZoneError] = useState(false);
-  const [day, setDay] = useState(() => today(browserZone));
+  const [day, setDay] = useState(() => today(displayZone));
   const [search, setSearch] = useState('');
   const [interests, setInterests] = useState(emptyInterests);
   const [windowDays, setWindowDays] = useState(14);
@@ -38,7 +43,15 @@ export default function Events() {
   const [managing, setManaging] = useState(false);
   const [reviewSource, setReviewSource] = useState<EventSource | undefined>();
   const [adding, setAdding] = useState(false);
-  const [selected, setSelected] = useState<string | null>(null);
+  const selected = params.get('event');
+  const setSelected = (id: string | null) => {
+    setMessage('');
+    setParams(current => {
+      const next = new URLSearchParams(current);
+      if (id) next.set('event', id); else next.delete('event');
+      return next;
+    });
+  };
   const [playing, setPlaying] = useState<{ id: string; title: string } | null>(null);
   const [message, setMessage] = useState('');
   const deferredSearch = useDeferredValue(search);
@@ -97,8 +110,9 @@ export default function Events() {
     {message ? <Alert severity={update.isError ? 'error' : 'success'} onClose={() => setMessage('')} sx={{ mb: 2 }}>{message}</Alert> : null}
     <Button onClick={() => setSelected(null)} sx={{ alignSelf: 'flex-start', mb: 1 }}>Close event details</Button>
     {selected && detail.isPending ? <CircularProgress aria-label="Loading event details" /> : null}
-    {selected && detail.isError ? <Alert severity="error" action={<Button onClick={() => void detail.refetch()}>Retry</Button>}>Event details could not be loaded.</Alert> : null}
-    {selected && detail.data ? <EventDetails key={`${detail.data.id}:${detail.data.revision}`} event={detail.data} zone={zone} busy={update.isPending} onUpdate={(input) => update.mutate(input)} onPlay={(id, label) => setPlaying({ id, title: `${detail.data.title} · ${label}` })} /> : null}
+    {selected && detail.isError ? <Alert severity="error" action={<Button onClick={() => void detail.refetch()}>Retry</Button>}>Event details could not be loaded. The event may have been removed; close details to return to the agenda.</Alert> : null}
+    {selected && detail.data?.archived ? <Alert severity="info">This event is archived. Close details to return to the agenda.</Alert> : null}
+    {selected && detail.data && !detail.isError ? <EventDetails key={`${detail.data.id}:${detail.data.revision}`} event={detail.data} zone={zone} busy={update.isPending} onUpdate={(input) => update.mutate(input)} onPlay={(id, label) => setPlaying({ id, title: `${detail.data.title} · ${label}` })} /> : null}
     </Drawer>
     <StreamPlayerDialog open={Boolean(playing)} contentId={playing?.id ?? null} title={playing?.title ?? ''} onClose={() => setPlaying(null)} />
   </Box>;

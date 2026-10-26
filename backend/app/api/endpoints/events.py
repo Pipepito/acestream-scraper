@@ -12,7 +12,7 @@ from app.schemas.events import EventImport, EventPreview, EventApply, EventView,
 from app.services.event_service import EventService
 from app.services.event_source_service import EventSourceService
 from app.schemas.events import EventSourcePreviewRequest, EventSourceView, EventSourceUpdate, EventRetention, EventBroadcastMapping, EventRefreshQueued
-from app.schemas.events import EventInterests, EventInterestChoices, EventChannelTarget, EventProviderCatalog
+from app.schemas.events import EventInterests, EventInterestChoices, EventChannelTarget, EventProviderCatalog, EventSelection
 
 
 class PrivateEventRoute(APIRoute):
@@ -54,6 +54,7 @@ def list_events(search: str = Query('', max_length=200), sport: str = Query('', 
                 competition: str = Query('', max_length=200), source: str = Query('', max_length=200),
                 day: date | None = None, zone: str = Query('UTC', max_length=100),
                 upcoming: bool = False, followed: bool = False, archived: bool = False,
+                selection: EventSelection = 'agenda',
                 interests: str = Query('', max_length=16000), window_days: int | None = Query(None, ge=1, le=30),
                 offset: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=100),
                 svc: EventService = Depends(service)):
@@ -66,7 +67,7 @@ def list_events(search: str = Query('', max_length=200), sport: str = Query('', 
     except ValidationError:
         raise HTTPException(422, 'Choose valid sports, competitions and teams') from None
     return invoke(svc.list, search=search, sport=sport, competition=competition, source=source, interests=selected, window_days=window_days,
-                  date=day, zone=zone, upcoming=upcoming, followed=followed, archived=archived, offset=offset, limit=limit)
+                  date=day, zone=zone, upcoming=upcoming, followed=followed, archived=archived, offset=offset, limit=limit, selection=selection)
 
 
 @router.post('/preview', response_model=EventPreview)

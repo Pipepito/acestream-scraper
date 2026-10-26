@@ -48,19 +48,20 @@ async function playbackChannel(api: Api, nameHint?: string): Promise<{ id: strin
 }
 
 test.describe('integrations', () => {
-  test('the page shows every integration section and the public address', async ({ page, api }) => {
+  test('each integration setup has a dedicated page', async ({ page, api }) => {
     const integrations = new IntegrationsPage(page);
     await integrations.open();
 
     await expect(integrations.publicAddressSection()).toBeVisible();
-    await expect(integrations.webPlayerSection()).toBeVisible();
-    await expect(integrations.remotePlayersSection()).toBeVisible();
-    await expect(integrations.mediaServersSection()).toBeVisible();
 
     const resolved = (await api.raw('get', '/api/v1/system/public-url').then((r) => r.json())) as { url: string };
-    await expect(integrations.summary()).toContainText('Public address');
-    await expect(integrations.summary()).toContainText(resolved.url);
     await expect(integrations.publicAddressSection()).toContainText(resolved.url);
+    await integrations.open('web-player');
+    await expect(integrations.webPlayerSection()).toBeVisible();
+    await integrations.open('remote-players');
+    await expect(integrations.remotePlayersSection()).toBeVisible();
+    await integrations.open('media-servers');
+    await expect(integrations.mediaServersSection()).toBeVisible();
   });
 
   test('a VLC without a password is diagnosed in plain words, and the player can be deleted again', async ({ page, errors }) => {
@@ -72,7 +73,7 @@ test.describe('integrations', () => {
     errors.allowApi(/\/api\/v1\/remote-players\/\d+\/status (502|404)/);
     errors.allowBackend(/app\.api\.error_handlers - ERROR - APIError code=REMOTE_PLAYER_AUTH message=VLC's web interface has no password/);
     const integrations = new IntegrationsPage(page);
-    await integrations.open();
+    await integrations.open('remote-players');
 
     const name = 'E2E unprotected VLC';
     try {

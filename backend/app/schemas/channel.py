@@ -19,6 +19,7 @@ class AcestreamChannelBase(BaseModel):
 
 class AcestreamChannelCreate(AcestreamChannelBase):
     """Schema for Acestream channel creation"""
+    allow_excluded: bool = False
     source_url: Optional[str] = None
     group: Optional[str] = None
     logo: Optional[str] = None

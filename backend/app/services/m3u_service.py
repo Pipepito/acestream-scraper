@@ -216,9 +216,7 @@ class M3UService:
                 channels.append((channel_id, name, metadata))
                 channel_info = {}
         logger.info(f"Extracted {len(channels)} channels from M3U content")
-        # Auto-create TV channels from EPG if services are provided
-        if db and epg_service and tv_channel_service:
-            channels = self.auto_create_tv_channels_from_epg(db, channels, epg_service, tv_channel_service)
+        # Parsing is read-only; the importing service owns admission and assignment.
         return channels
 
     def auto_create_tv_channels_from_epg(self, db, parsed_channels, epg_service, tv_channel_service):
@@ -233,6 +231,10 @@ class M3UService:
         Returns:
             List of (acestream_id, name, metadata) with tv_channel_id assigned where applicable
         """
+        from app.services.import_exclusion_service import ImportExclusionService
+        policy = ImportExclusionService(db).snapshot(claim=True)
+        parsed_channels = [(cid, name, meta) for cid, name, meta in parsed_channels
+                           if not policy.matches(cid, name)]
         # Build tvg_id -> [channel indices] mapping
         excluded = tv_channel_service.repository.get_import_assignment_exclusions(
             channel_id for channel_id, _name, _meta in parsed_channels
@@ -266,7 +268,7 @@ class M3UService:
                     'epg_source_id': epg_channel.epg_source_id,
                     'is_active': True
                 }
-                new_tv_channel = tv_channel_service.create_tv_channel(**tv_channel_data)
+                new_tv_channel = tv_channel_service.repository.create_tv_channel(**tv_channel_data, commit=False)
                 self._assign_parsed_streams(
                     tv_channel_service, parsed_channels, indices, new_tv_channel.id
                 )
@@ -285,7 +287,7 @@ class M3UService:
             )
         assignable = [ace_id for ace_id in ace_ids if ace_id not in conflicting]
         if assignable:
-            repo.assign_acestreams_to_tv_channel(assignable, tv_channel_id)
+            repo.assign_acestreams_to_tv_channel(assignable, tv_channel_id, commit=False)
         for idx in indices:
             if parsed_channels[idx][0] not in conflicting:
                 parsed_channels[idx][2]['tv_channel_id'] = tv_channel_id

@@ -1,5 +1,27 @@
 # Frontend Design Review Evidence
 
+## Import exclusions and saved searches — 2026-10-27
+
+Validated against the working implementation based on develop `db25aaae`.
+Recheck with `cd e2e && npx playwright test --config playwright.mobile.config.ts mobile/import-management.spec.ts`.
+
+- Eight mocked browser journeys passed: light/dark at 320px WebKit, 390px Chromium,
+  768px Firefox and 1440px Chromium. No horizontal page overflow or browser errors.
+- Verified read-only exclusion preview, visible incomplete counts, explicit rule
+  save, configuration-only saved-search creation with automation off, FIFO waiting
+  feedback, disabled duplicate Run now, and browser Back restoring the prior tab.
+- Keyboard activation submits the explicit Save button inside the dialog. Shared
+  MUI controls retain focus management, semantic labels and non-color run states.
+  No custom animation was introduced; the shared reduced-motion behavior remains.
+- Inspected small-phone dark and desktop light screenshots. Long names wrap,
+  actions stack on phones, tabs have scroll controls, and Waiting/Paused remain
+  distinct labels. Captures are local ignored Playwright artifacts under
+  `e2e/test-results/import-management-*/imports-{light,dark}.png`.
+- Jest covers the submitted-query Save action, mixed Search import outcomes,
+  exclusion links independent of pagination, bounded previews and saved run state.
+  The journey uses mocked APIs; live catalogue/swarm behavior is covered separately
+  by backend contract and ingress tests, not claimed by these screenshots.
+
 ## Shared Layout Primitives
 - Light theme: method=`CI=true npm test -- --runInBand --watch=false src/__tests__/layoutPrimitives.test.tsx src/__tests__/Dashboard.test.tsx` covering `createAppTheme('light')` for shared primitives and dashboard; result=pass; notes=verified the page header, `Controls`, `Recent Activity`, and `Background Tasks` render with semantic typography and surface tokens in light mode.
 - Dark theme: method=`CI=true npm test -- --runInBand --watch=false src/__tests__/layoutPrimitives.test.tsx src/__tests__/Dashboard.test.tsx` covering `createAppTheme('dark')` for shared primitives and dashboard; result=pass; notes=verified the same shared layout artifacts render under dark tokens without light-only color assumptions.

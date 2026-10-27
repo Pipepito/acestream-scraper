@@ -197,10 +197,13 @@ def check_acestream_channel_status(acestreamchannel_id: str, db: Session = Depen
 
 
 @router.post("/", response_model=AcestreamChannelResponse, status_code=status.HTTP_201_CREATED)
-async def create_acestream_channel(acestreamchannel: AcestreamChannelCreate, db: Session = Depends(get_db)):
+def create_acestream_channel(acestreamchannel: AcestreamChannelCreate, db: Session = Depends(get_db)):
     """
     Create a new Acestream channel. If a channel with the same ID exists, update it.
     """
+    from app.services.import_exclusion_service import ImportExclusionService
+    ImportExclusionService(db).require_allowed(acestreamchannel.id, acestreamchannel.name,
+        allow_excluded=acestreamchannel.allow_excluded)
     service = AcestreamChannelService(db)
     channel_id = acestreamchannel.id
     existing_channel = service.get_channel_by_id(channel_id)
@@ -209,7 +212,7 @@ async def create_acestream_channel(acestreamchannel: AcestreamChannelCreate, db:
         # Update existing channel (upsert behavior for V1 compatibility)
         updated_channel = service.update_channel(
             channel_id=channel_id,
-            updates=acestreamchannel.model_dump(exclude_unset=True)
+            updates=acestreamchannel.model_dump(exclude_unset=True, exclude={"allow_excluded"})
         )
         return updated_channel
     else:

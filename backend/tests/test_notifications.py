@@ -45,6 +45,24 @@ def test_a_finished_scrape_is_posted_as_json(webhook):
                             'message': '5 URL(s) scraped, 1 failed', 'data': {'processed': 5, 'failures': 1}}
 
 
+def test_search_summary_distinguishes_deferred_units(monkeypatch):
+    sent = []
+    monkeypatch.setattr(notification_service, 'notify', lambda *args: sent.append(args))
+    notification_service.scraping_completed({'saved_searches': {
+        'partial': 1, 'interrupted': 2, 'deferred_candidates': 3, 'deferred_searches': 4}})
+    message = sent[0][2]
+    assert '1 partial' in message and '2 interrupted' in message
+    assert '3 candidates deferred' in message and '4 searches deferred' in message
+
+
+def test_manual_search_summary_does_not_claim_url_sources_were_scraped(monkeypatch):
+    sent = []
+    monkeypatch.setattr(notification_service, 'notify', lambda *args: sent.append(args))
+    notification_service.scraping_completed({'processed': 0, 'saved_search_id': 1, 'saved_searches': {'added': 2}})
+    assert sent[0][1] == 'Saved search finished'
+    assert 'URL' not in sent[0][2] and '2 added' in sent[0][2]
+
+
 def test_a_finished_channel_check_says_how_many_are_online(webhook):
     received, _ = webhook
     notification_service.channel_status_completed({'checked': 10, 'online': 7, 'offline': 3, 'failed': 0, 'skipped': 2})
@@ -90,7 +108,11 @@ def test_the_scraping_task_notifies_when_it_ends(monkeypatch, alembic_backend_ru
     monkeypatch.setattr(url_scraping_task.notification_service, 'scraping_completed', lambda result: sent.append(result))
     monkeypatch.setattr(url_scraping_task.ScraperService, 'get_enabled_urls', lambda self: [])
     url_scraping_task.run_url_scraping_task()
-    assert sent == [{'processed': 0, 'failures': 0, 'events': {'updated': 0, 'pending': 0, 'failures': 0, 'deferred': 0}}]
+    assert len(sent) == 1
+    assert sent[0]['processed'] == sent[0]['failures'] == 0
+    assert sent[0]['events'] == {'updated': 0, 'pending': 0, 'failures': 0, 'deferred': 0}
+    assert sent[0]['saved_searches']['searches'] == 0
+    assert sent[0]['import_exclusions'] == {'excluded_candidates': 0}
 
 
 def test_the_api_saves_clears_and_rejects_the_webhook(client):

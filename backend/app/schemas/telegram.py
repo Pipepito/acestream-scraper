@@ -74,6 +74,7 @@ class TelegramSourceCreate(TelegramSourceConfig):
 
 
 class TelegramSource(TelegramSourceConfig):
+    excluded_count: int = 0
     id: int
     chat_label: str
     sender_labels: dict[str, str] = Field(default_factory=dict)
@@ -85,6 +86,8 @@ class TelegramSource(TelegramSourceConfig):
 
 
 class TelegramPreviewMessage(BaseModel):
+    excluded_count: int = 0
+    excluded_rule_ids: dict[str, list[int]] = Field(default_factory=dict)
     message_id: int
     sender_id: str | None = None
     outcome: str

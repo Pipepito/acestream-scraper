@@ -1,4 +1,5 @@
 import React from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@mui/material/styles';
 import { useMediaQuery } from '@mui/material';
@@ -101,7 +102,7 @@ describe('Search page', () => {
       ...render(
         <ThemeProvider theme={theme}>
           <QueryClientProvider client={queryClient}>
-            <Search />
+            <MemoryRouter><Search /></MemoryRouter>
           </QueryClientProvider>
         </ThemeProvider>
       ),
@@ -176,7 +177,7 @@ describe('Search page', () => {
   });
 
   it('adds a single result and invalidates the acestream inventory query', async () => {
-    const mutateAsync = jest.fn().mockResolvedValue({});
+    const mutateAsync = jest.fn().mockResolvedValue({ outcome: 'added', rule_ids: [] });
     mockUseAddSearchResult.mockReturnValue({ mutateAsync, isPending: false });
 
     const { queryClient } = renderPage();
@@ -199,7 +200,7 @@ describe('Search page', () => {
   });
 
   it('resolves and plays a result without adding it', async () => {
-    const mutateAsync = jest.fn().mockResolvedValue({});
+    const mutateAsync = jest.fn().mockResolvedValue({ outcome: 'added', rule_ids: [] });
     mockUseAddSearchResult.mockReturnValue({ mutateAsync, isPending: false });
 
     renderPage();
@@ -226,7 +227,7 @@ describe('Search page', () => {
   });
 
   it('removes a successfully added single result from the current selection summary', async () => {
-    const mutateAsync = jest.fn().mockResolvedValue({});
+    const mutateAsync = jest.fn().mockResolvedValue({ outcome: 'added', rule_ids: [] });
     mockUseAddSearchResult.mockReturnValue({ mutateAsync, isPending: false });
 
     renderPage();
@@ -255,115 +256,32 @@ describe('Search page', () => {
     expect(screen.getByRole('checkbox', { name: 'select search result News Global' })).toBeChecked();
   });
 
-  it('adds selected results in batch and invalidates the acestream inventory query', async () => {
-    const mutateAsync = jest.fn().mockResolvedValue({});
-    mockUseAddSearchResult.mockReturnValue({ mutateAsync, isPending: false });
-
+  it('imports selected rows together and retains excluded/unresolved selections', async () => {
+    jest.mocked(searchService.importResults).mockResolvedValueOnce({
+      policy_revision: 1, added: 1, existing: 0, excluded: 1, unresolved: 0, deferred: 0,
+      items: [{ infohash: INFOHASH, content_id: CONTENT_ID, outcome: 'added', rule_ids: [] }, { infohash: 'b'.repeat(40), outcome: 'excluded', rule_ids: [1] }],
+    });
     const { queryClient } = renderPage();
-    const invalidateQueries = jest.spyOn(queryClient, 'invalidateQueries').mockResolvedValue(undefined);
-
+    const invalidate = jest.spyOn(queryClient, 'invalidateQueries');
     fireEvent.change(screen.getByRole('textbox', { name: 'Search Query' }), { target: { value: 'arena' } });
     fireEvent.click(screen.getByRole('button', { name: 'Search' }));
-    fireEvent.click(screen.getByRole('checkbox', { name: 'select search result Arena Premium' }));
-    fireEvent.click(screen.getByRole('checkbox', { name: 'select search result News Global' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'select all search results' }));
     fireEvent.click(screen.getByRole('button', { name: 'Add 2 selected channels' }));
-
-    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(2));
-    expect(mutateAsync).toHaveBeenNthCalledWith(1, {
-      id: INFOHASH,
-      name: 'Arena Premium',
-      categories: ['sports'],
-      bitrate: 1800,
-    });
-    expect(mutateAsync).toHaveBeenNthCalledWith(2, {
-      id: 'b'.repeat(40),
-      name: 'News Global',
-      categories: ['news'],
-      bitrate: 1200,
-    });
-
-    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['acestream-channels'] });
+    await waitFor(() => expect(searchService.importResults).toHaveBeenCalledWith(defaultResults.results));
+    expect(await screen.findByText(/1 added, 0 existing, 1 excluded/)).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'select search result News Global' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'select search result Arena Premium' })).not.toBeChecked();
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['acestream-channels'] });
   });
 
-  it('invalidates the acestream inventory query when a batch partially succeeds before failing', async () => {
-    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => undefined);
-    const mutateAsync = jest
-      .fn()
-      .mockResolvedValueOnce({})
-      .mockRejectedValueOnce(new Error('Second add failed'));
-    mockUseAddSearchResult.mockReturnValue({ mutateAsync, isPending: false });
-
-    try {
-      const { queryClient } = renderPage();
-      const invalidateQueries = jest.spyOn(queryClient, 'invalidateQueries').mockResolvedValue(undefined);
-
-      fireEvent.change(screen.getByRole('textbox', { name: 'Search Query' }), { target: { value: 'arena' } });
-      fireEvent.click(screen.getByRole('button', { name: 'Search' }));
-      fireEvent.click(screen.getByRole('checkbox', { name: 'select search result Arena Premium' }));
-      fireEvent.click(screen.getByRole('checkbox', { name: 'select search result News Global' }));
-      fireEvent.click(screen.getByRole('button', { name: 'Add 2 selected channels' }));
-
-      await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(2));
-      expect(mutateAsync).toHaveBeenNthCalledWith(1, {
-        id: INFOHASH,
-        name: 'Arena Premium',
-        categories: ['sports'],
-        bitrate: 1800,
-      });
-      expect(mutateAsync).toHaveBeenNthCalledWith(2, {
-        id: 'b'.repeat(40),
-        name: 'News Global',
-        categories: ['news'],
-        bitrate: 1200,
-      });
-
-      expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['acestream-channels'] });
-    } finally {
-      consoleError.mockRestore();
-    }
-  });
-
-  it('keeps only failed batch rows selected after earlier successes', async () => {
-    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => undefined);
-    const mutateAsync = jest
-      .fn()
-      .mockResolvedValueOnce({})
-      .mockRejectedValueOnce(new Error('Second add failed'));
-    mockUseAddSearchResult.mockReturnValue({ mutateAsync, isPending: false });
-
-    try {
-      renderPage();
-
-      fireEvent.change(screen.getByRole('textbox', { name: 'Search Query' }), { target: { value: 'arena' } });
-      fireEvent.click(screen.getByRole('button', { name: 'Search' }));
-      fireEvent.click(screen.getByRole('checkbox', { name: 'select search result Arena Premium' }));
-      fireEvent.click(screen.getByRole('checkbox', { name: 'select search result News Global' }));
-
-      expect(screen.getByRole('status', { name: 'Search summary' })).toHaveTextContent('Selected2');
-
-      fireEvent.click(screen.getByRole('button', { name: 'Add 2 selected channels' }));
-
-      await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(2));
-      expect(mutateAsync).toHaveBeenNthCalledWith(1, {
-        id: INFOHASH,
-        name: 'Arena Premium',
-        categories: ['sports'],
-        bitrate: 1800,
-      });
-      expect(mutateAsync).toHaveBeenNthCalledWith(2, {
-        id: 'b'.repeat(40),
-        name: 'News Global',
-        categories: ['news'],
-        bitrate: 1200,
-      });
-
-      expect(screen.getByRole('status', { name: 'Search summary' })).toHaveTextContent('Selected1');
-      expect(screen.getByRole('button', { name: 'Add 1 selected channels' })).toBeInTheDocument();
-      expect(screen.getByRole('checkbox', { name: 'select search result Arena Premium' })).not.toBeChecked();
-      expect(screen.getByRole('checkbox', { name: 'select search result News Global' })).toBeChecked();
-    } finally {
-      consoleError.mockRestore();
-    }
+  it('save search uses the submitted query and leaves automatic refresh off', async () => {
+    renderPage();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search Query' }), { target: { value: 'submitted' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search Query' }), { target: { value: 'unsubmitted' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save search' }));
+    expect(screen.getByRole('textbox', { name: 'Query' })).toHaveValue('submitted');
+    expect(screen.getByRole('checkbox', { name: /Import matching results/ })).not.toBeChecked();
   });
 
   it('keeps empty-state guidance focused on broader query or category changes', () => {

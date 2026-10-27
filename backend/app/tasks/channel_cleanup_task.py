@@ -31,6 +31,8 @@ def cleanup_hidden_channels(db: Session, *, days: int, now: Optional[datetime] =
         .filter((AcestreamChannel.last_seen.is_(None)) | (AcestreamChannel.last_seen < cutoff))
         .all()
     )
+    from app.repositories.channel_repository import ChannelRepository
+    ChannelRepository(db).remove_search_memberships([channel.id for channel in stale])
     for channel in stale:
         db.delete(channel)
     db.commit()

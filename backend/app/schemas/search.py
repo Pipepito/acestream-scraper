@@ -3,7 +3,7 @@ from typing import List, Optional
 
 class SearchResultItem(BaseModel):
     id: str = Field(..., description="Acestream channel ID (infohash)")
-    name: str = Field(..., description="Channel name")
+    name: str = Field(..., min_length=1, max_length=512, description="Channel name")
     bitrate: Optional[int] = Field(None, description="Channel bitrate")
     categories: List[str] = Field(default_factory=list, description="Categories of the channel")
     status: Optional[int] = Field(None, description="Catalogue status: 2 available, 1 uncertain; not a live probe")
@@ -44,8 +44,8 @@ class SearchResponse(BaseModel):
     pagination: SearchPagination = Field(..., description="Pagination information")
 
 class AddChannelRequest(BaseModel):
-    id: Optional[str] = Field(None, description="Acestream channel ID (optional, will be generated if not provided)")
-    name: str = Field(..., description="Channel name")
+    id: str = Field(pattern=r"^[0-9a-fA-F]{40}$", description="Catalogue infohash; resolved by the server before import")
+    name: str = Field(..., min_length=1, max_length=512, description="Channel name")
     url: str = Field(..., description="Channel URL")
     category: Optional[str] = Field(None, description="Channel category")
     description: Optional[str] = Field(None, description="Channel description")
@@ -53,4 +53,34 @@ class AddChannelRequest(BaseModel):
     tv_channel_id: Optional[int] = Field(None, description="TV channel ID for association")
 
 class AddMultipleRequest(BaseModel):
-    channels: List[AddChannelRequest] = Field(..., description="List of channels to add")
+    channels: List[AddChannelRequest] = Field(..., min_length=1, max_length=100, description="Catalogue results to resolve and import")
+
+
+class SearchImportItem(BaseModel):
+    infohash: str = Field(pattern=r'^[a-fA-F0-9]{40}$')
+    name: str = Field(min_length=1, max_length=512)
+    category: str = Field(default='', max_length=100)
+
+
+class SearchImportRequest(BaseModel):
+    items: list[SearchImportItem] = Field(min_length=1, max_length=100)
+
+
+from typing import Literal
+
+
+class SearchImportOutcome(BaseModel):
+    infohash: str
+    content_id: str | None = None
+    outcome: Literal['added', 'existing', 'excluded', 'unresolved', 'duplicate', 'deferred']
+    rule_ids: list[int] = Field(default_factory=list)
+
+
+class SearchImportResponse(BaseModel):
+    items: list[SearchImportOutcome]
+    policy_revision: int
+    added: int = 0
+    existing: int = 0
+    excluded: int = 0
+    unresolved: int = 0
+    deferred: int = 0

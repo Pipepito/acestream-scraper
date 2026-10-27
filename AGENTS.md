@@ -223,7 +223,7 @@ Preserve other Docker console output, child PIDs/exit codes,
 process-group cleanup and intentional-stop behavior. The DB-independent
 `GET /api/v1/system/diagnostics` endpoint exports bounded fixed-file tails with
 credential masking and normal API-token enforcement, including during startup
-failure. Overview provides the download. See `docs/ops/runtime-diagnostics.md`.
+failure. System status provides the download. See `docs/ops/runtime-diagnostics.md`.
 
 ## Verified signal and scheduled job history
 
@@ -254,7 +254,7 @@ changes. Acexy owns its sessions. See `docs/ops/stream-check-pid.md`.
 Live TV embeds the existing HLS player alongside a scrollable catalogue. Filtering
 does not release playback; changing the channel or Stop watching releases the
 current viewer. Other pages retain the player dialog. Navigation groups Watch,
-Manage and System, with WARP always discoverable. Settings uses deep-linkable
+Manage, Integrations and System, with WARP always discoverable. Settings uses deep-linkable
 `?tab=playback|automation|links|access` sections; public address belongs to
 Integrations. PID/AppID belong to Stream links, not Automation.
 
@@ -370,7 +370,7 @@ See `docs/dev/extraction-recipes.md` and `wiki/Extraction-Recipes.md`.
 ## v2.1 configuration
 
 v2.1 retains the six deprecated environment names through Settings, including
-`.env` support and value-free warnings in logs/Overview. Nonempty canonical names
+`.env` support and value-free warnings in logs/System status. Nonempty canonical names
 win. Keep repository defaults on resolved Settings and preserve entrypoint alias
 selection before bundled-service defaults. Removal (#155) is deferred by maintainer
 decision. See `docs/release/v2.1-release-notes.md`.
@@ -393,7 +393,7 @@ Manual, bulk and scheduled checks share the bounded sampler and existing queue.
 See `wiki/Stream-Statistics.md`.
 
 
-Overview storage uses a DB-independent, authenticated `/api/v1/system/storage`
+System status storage uses a DB-independent, authenticated `/api/v1/system/storage`
 report. Discover container mount destinations without exposing mount sources or
 using the Docker socket. Keep scans cached, isolated, bounded, symlink-safe and
 off the event loop; partial/unknown sizes must not be shown as complete or zero.
@@ -479,7 +479,7 @@ bring destructive cleanup forward. See `docs/ops/scheduled-job-history.md`.
 Catalogue status passes wait between probes for app-owned relay/web playback,
 with a cumulative ten-minute pause budget and no DB transaction while waiting.
 Budget expiry or shutdown reports deferred work and a stop reason, releases the
-FIFO, and preserves truthful Overview/webhook summaries. Direct external-engine
+FIFO, and preserves truthful System status/webhook summaries. Direct external-engine
 players are outside this registry-based guard.
 
 Stream-check ordering gives never-checked streams priority, then oldest age
@@ -649,3 +649,26 @@ before saving or opening the shared player. Check broadcast keeps its infohash
 probe. Resolution must not create channels or start engine sessions; failures
 never fall back to saving/playing the infohash as a content ID. Existing entries
 remain unchanged; see `wiki/Usage.md#search-and-manual-additions` for recovery.
+
+## TV and system dashboards
+
+The default `/` route is TV dashboard under Watch: app-owned playback, channel/stream
+inventory, upcoming/followed events and time until the next content updates. System status at `/system` owns services, storage,
+diagnostics and full job history. `/health` redirects to `/system`; `/dashboard` and
+`/stats` redirect to `/`. Keep section failures independent and missing data unknown.
+Playback summaries only read the shared streams query; never touch session heartbeats
+or ownership. Event summaries use server-side `selection=dashboard` before pagination,
+with six results over seven local calendar days. Display interests/timezone are
+browser preferences; Following remains installation-wide. Reuse agenda rows and
+`/events?event=<id>&zone=<timezone>` details; never import or play during dashboard
+reads. See `docs/dev/dashboard-split.md`.
+
+## Integration navigation
+
+Integrations is a sidebar category with independent pages at
+`/integrations/public-address`, `/integrations/web-player`,
+`/integrations/remote-players`, `/integrations/media-servers` and
+`/integrations/telegram`. The old `/integrations` URL redirects to Public address.
+Keep tuner settings with Media servers, WARP under System, and contextual links
+pointing directly to the relevant setup. Each page mounts only its own section;
+shared query keys and page-scoped feedback preserve existing operations.

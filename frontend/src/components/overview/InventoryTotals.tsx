@@ -4,7 +4,7 @@ import { useTheme } from '@mui/material/styles';
 import type { Stats, TvChannelStats } from '../../services/configService';
 
 export interface InventoryTotalsProps {
-  stats: Stats;
+  stats?: Stats;
   tvStats?: TvChannelStats;
 }
 
@@ -19,12 +19,12 @@ const InventoryTotals: React.FC<InventoryTotalsProps> = ({ stats, tvStats }) => 
   const groups: Group[] = [
     {
       title: 'Streams',
-      rows: [
+      rows: stats ? [
         ['Total', stats.channels.total],
         ['Online', stats.channels.online],
         ['Offline', stats.channels.offline],
         ['Not checked yet', stats.channels.unknown],
-      ],
+      ] : [['Total', 'Unavailable']],
     },
     {
       title: 'TV channels',
@@ -39,16 +39,16 @@ const InventoryTotals: React.FC<InventoryTotalsProps> = ({ stats, tvStats }) => 
     },
     {
       title: 'Sources and guide',
-      rows: [
+      rows: stats ? [
         ['Source URLs', `${stats.urls.total} (${stats.urls.active} enabled${stats.urls.error ? `, ${stats.urls.error} failing` : ''})`],
         ['EPG sources', stats.epg.sources],
         ['Guide channels', stats.epg.channels],
         ['Programmes', stats.epg.programs],
-      ],
+      ] : [['Sources and guide', 'Unavailable']],
     },
   ];
   return (
-    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, minmax(0, 1fr))' }, gap: 3 }}>
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' }, gap: 3 }}>
       {groups.map((group) => (
         <Box key={group.title} component="section" aria-label={group.title}>
           <Typography variant="subtitle2" component="h3" sx={{ mb: 1 }}>

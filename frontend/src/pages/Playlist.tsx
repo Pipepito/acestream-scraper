@@ -180,7 +180,7 @@ const Playlist: React.FC = () => {
                 <FormHelperText>Default uses your saved format, or acestream:// when none is saved.</FormHelperText>
               </FormControl>
               {selectedFormat ? <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}><strong>{selectedFormat.name}:</strong> {selectedFormat.pattern}</Typography> : null}
-              {selectedFormat?.pattern.includes('{tv_channel_id}') ? <Alert severity="info">One entry per TV channel, using its stable ID. If playback fails, the relay selects another source when your player reconnects. Experimental transcoding recovery can be enabled in Integrations → Tuner settings. Unassigned streams can be included below the TV channels using individual relay URLs.</Alert> : null}
+              {selectedFormat?.pattern.includes('{tv_channel_id}') ? <Alert severity="info">One entry per TV channel, using its stable ID. If playback fails, the relay selects another source when your player reconnects. Experimental transcoding recovery can be enabled in Integrations → Media servers → Tuner settings. Unassigned streams can be included below the TV channels using individual relay URLs.</Alert> : null}
               {baseUrlsError ? <Alert severity="warning">Could not load stream link formats. Try reloading the page.</Alert> : null}
               <Button onClick={() => setFormatsOpen(value => !value)} aria-expanded={formatsOpen} aria-controls="playlist-formats" size="small">{namedBaseUrls.length ? 'Manage link formats' : 'Set up link formats'}</Button>
               <Box>

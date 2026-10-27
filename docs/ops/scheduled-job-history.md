@@ -1,6 +1,6 @@
 # Scheduled job history
 
-Overview displays the most recent scheduler run's launch time, result, and next
+System status displays the most recent scheduler run's launch time, result, and next
 scheduled time. The latest run per task is stored in `scheduled_task_states`, so
 application/container restarts retain history when the database is persisted.
 
@@ -28,7 +28,7 @@ Acestream Channels uses **Run status check now** to request the existing
 `POST /api/v1/background-tasks/channel_status/run`. The job covers all active
 streams, independently of the current page, filters or selection. Already-running
 jobs are not duplicated; an unavailable scheduler returns 503. Progress and results
-remain under the scheduled job in Overview. Individual and playback-time checks
+remain under the scheduled job in System status. Individual and playback-time checks
 retain their interactive probe priority and safety guards.
 
 The former `/channels/check_status_all` and `/acestream-channels/check_status_all`
@@ -49,7 +49,7 @@ hours means 03:15, 09:15, 15:15 and 21:15. Minute intervals dividing 60 repeat
 at the selected minute offset each hour. These use calendar triggers; DST can
 skip or repeat a local occurrence. Other intervals use elapsed time from the
 stable anchor date 2020-01-01 in the selected timezone, so local times can shift
-with DST. Overview reports the scheduler's actual next occurrence.
+with DST. System status reports the scheduler's actual next occurrence.
 
 All recurring maintenance jobs, including scheduler “run now” requests, share a
 FIFO execution queue. A due job displays **Waiting** until earlier work finishes;
@@ -71,7 +71,7 @@ Stream-check results now distinguish **checked, online, offline, skipped and
 errors**. Checked is online + offline, not the full catalogue size. Skipped
 includes recently checked/in-use streams and unavailable engines, whose previous
 status is preserved. Errors count exceptions, not offline streams. Older saved
-results lack online/offline totals, so Overview shows their known counts without
+results lack online/offline totals, so System status shows their known counts without
 inventing an offline count. Progress shows how much of the active inventory has
 been processed.
 
@@ -108,7 +108,7 @@ Shutdown also stops waiting before another probe starts.
 
 Incomplete runs retain their checked/online/offline/skipped/error counts and add
 `deferred` plus `stop_reason` (`viewing` or `shutdown`) to the saved result.
-Overview and webhook notifications distinguish this from a complete pass. The
+System status and webhook notifications distinguish this from a complete pass. The
 existing `channel_status.completed` webhook event remains compatible; its title
 and message explicitly say incomplete when work remains.
 

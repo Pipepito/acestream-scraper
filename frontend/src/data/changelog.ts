@@ -21,6 +21,10 @@ export const releases: ReleaseNotes[] = [
       {
         "title": "Improved",
         "items": [
+          "Choose the preferred stream order within each TV channel using drag handles, keyboard arrows or move buttons, then save or cancel. Saved preferences guide eligible tuner sources and curated playlists while preserving playback-failure fallback. Contributed by @Devs-Alv in PR #267.",
+          "TV dashboard shows live reports and the nearest saved events, with Following and browser-saved sport, competition and team interests. Open an event directly to view its broadcasts.",
+          "Open each integration from its own menu category: Public address, Web player, Remote players, Media servers and Telegram now have dedicated setup pages.",
+          "Land on a TV dashboard with current app playback, channel and stream inventory, and time until the next content updates. Service controls, storage, diagnostics and full scheduled-job history now live in System status.",
           "Configure tuner startup budgets for slow sources. Direct-engine startup now respects the remaining player or tuner budget, including time spent waiting for an engine slot.",
           "Resume overdue scheduled work after startup, prioritize older and unchecked streams fairly, and pause catalogue checks during app-owned playback.",
           "Preserve imported catalogues on assignment conflicts, search by stream ID, and import ZeroNet links while keeping custom gateway prefixes.",
@@ -39,9 +43,33 @@ export const releases: ReleaseNotes[] = [
         ]
       },
       {
+        "title": "Contributors",
+        "items": [
+          "Thank you @scarcraft1 for playlist guide discovery (PR #205), channel identifier metadata (PR #211), source request compatibility (PR #218) and relay ownership regression coverage (PR #219).",
+          "Thank you @scarcraft1 for relay stall handling (PR #220), Kodi disconnect and session cleanup improvements (PR #221), Kodi MPEG-TS hints (PR #222), optional per-source playlists (PR #223) and configurable tuner startup budgets (PR #227).",
+          "Thank you @scarcraft1 for webhook notifications (PR #228), SQLite lock handling (PR #236), startup catch-up (PR #237), fair stream-check ordering (PR #238), playback-aware checks (PR #239) and tuner source ranking (PR #240).",
+          "Thank you @scarcraft1 for HTTP/HLS imports and broadcaster sources (PR #241), ZeroNet source fixes (PR #242) and WARP host exclusions (PR #251).",
+          "Thank you @Devs-Alv for preserving scrapes when streams already have TV assignments (PR #225), stream-ID search and canonical API URLs (PR #229), and preferred stream ordering (PR #267)."
+        ]
+      },
+      {
+        "title": "Thanks for the ideas and bug reports",
+        "items": [
+          "@dcablop391 for reporting missing programme guides in exported playlists (issue #204).",
+          "@Filipedls for diagnosing the ignored container port setting (issue #208).",
+          "@francisjurado74-creator for flagging the bundled Kubo update (issue #214).",
+          "@atabel for documenting slow AceStream cold starts and the startup timeout limits (issue #226).",
+          "@scarcraft1 for proposing HTTP/HLS imports and official broadcaster sources (issues #234 and #235), and investigating sports-guide sources (issue #233).",
+          "@P10Ms for proposing Gluetun forwarded-port synchronization (issue #246).",
+          "@illienkist for reproducing the Search infohash/content-ID playback failure (issue #266).",
+          "@tomandocubatas for the sporting-events idea (issue #55). The reviewed Events foundation is included; broader automatic ingestion remains follow-up work.",
+          "@ParronS3 for reporting WARP remote-connection limitations (issue #93). Explicit host exclusions are included; general public-client routing remains unresolved."
+        ]
+      },
+      {
         "title": "Before upgrading",
         "items": [
-          "Back up persistent configuration and the database. Startup applies schema migrations using the existing backup and recovery process, including channel ID kind (20260928_1200) and HTTP stream URL/headers (20261021_1200), W3U catalogues (20261022_1200), sporting events and maintenance (20261023_1200 / 20261023_1300), their combined migration revision (20261023_1400), and Telegram source progress (20261023_1500).",
+          "Back up persistent configuration and the database. Startup applies schema migrations using the existing backup and recovery process, including channel ID kind (20260928_1200) and HTTP stream URL/headers (20261021_1200), W3U catalogues (20261022_1200), sporting events and maintenance (20261023_1200 / 20261023_1300), their combined migration revision (20261023_1400), Telegram source progress (20261023_1500), and preferred stream ordering (20261026_1200).",
           "Preserve Telegram session storage and its independent encryption key when moving an installation; ordinary database/configuration backups do not include account sessions or keys.",
           "HTTP tuner playback requires FFmpeg, included in the container images. Native installations must provide the documented FFmpeg capabilities. Source codec compatibility still depends on the media server/client; switching sources after playback starts normally requires the client to reconnect.",
           "Legacy environment aliases remain supported. ARMv7 engine runtime remains experimental. Full Wiseplay compatibility, broader website resolvers, automatic Telegram/W3U event interpretation and movies/series navigation remain follow-up work."

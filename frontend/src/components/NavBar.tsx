@@ -121,13 +121,30 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264, collapsed = false, o
         </Typography>
       </Toolbar>
       <Divider sx={{ borderColor: theme.appTokens.shell.navBorder }} />
-      {(['Watch', 'Manage', 'System'] as const).map((section) => <React.Fragment key={section}>
+      {(['Watch', 'Manage', 'Integrations', 'System'] as const).map((section) => <React.Fragment key={section}>
         <List sx={{ py: 1 }} aria-label={section}>
           <ListItem><Typography variant="overline" color="text.secondary">{section}</Typography></ListItem>
           {renderNavItems(navItems.filter((item) => item.section === section))}
         </List>
         {section !== 'System' ? <Divider /> : null}
       </React.Fragment>)}
+      <Box sx={{ mt: 'auto', p: 2, borderTop: `1px solid ${theme.appTokens.shell.navBorder}` }}>
+        <Button
+          component="a"
+          href="https://ko-fi.com/pipepito"
+          target="_blank"
+          rel="noopener noreferrer"
+          variant="text"
+          color="inherit"
+          fullWidth
+          endIcon={<OpenInNewIcon />}
+          aria-label="Support on Ko-fi (opens in a new tab)"
+          onClick={isPhone ? handleDrawerClose : undefined}
+          sx={{ minHeight: 44 }}
+        >
+          Support on Ko-fi
+        </Button>
+      </Box>
     </Box>
   );
 

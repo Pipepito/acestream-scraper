@@ -61,7 +61,7 @@ const PlayOnMenu: React.FC<PlayOnMenuProps> = ({ contentId, title, label, onDone
       <Menu anchorEl={anchor} open={Boolean(anchor)} onClose={() => setAnchor(null)}>
         {players.length === 0
           ? (
-              <MenuItem component={RouterLink} to="/integrations" onClick={() => setAnchor(null)}>
+              <MenuItem component={RouterLink} to="/integrations/remote-players" onClick={() => setAnchor(null)}>
                 <ListItemText primary="Add a player" secondary="VLC or Kodi on your network, under Integrations" />
               </MenuItem>
             )

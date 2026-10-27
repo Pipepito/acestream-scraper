@@ -55,11 +55,11 @@ describe('PlayOnMenu', () => {
     expect(alert.className).toContain('Warning');
   });
 
-  it('points at the Integrations page when there are no players', () => {
+  it('points at Remote players setup when there are no players', () => {
     mockPlayers.mockReturnValue({ data: [], isLoading: false });
     mount();
     fireEvent.click(screen.getByRole('button', { name: 'Play on…' }));
-    expect(screen.getByRole('menuitem', { name: /Add a player/ })).toHaveAttribute('href', '/integrations');
+    expect(screen.getByRole('menuitem', { name: /Add a player/ })).toHaveAttribute('href', '/integrations/remote-players');
   });
 
   it('explains a wrong password without the API-token notice', async () => {

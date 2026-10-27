@@ -81,7 +81,7 @@ export const playerService = {
     const { data } = await apiClient.post<PlayerSessionStatus>(`${BASE_URL}/sessions`, { content_id: contentId, ...(audioIndex !== undefined ? { audio_index: audioIndex } : {}), ...(subtitleIndex !== undefined ? { subtitle_index: subtitleIndex } : {}) });
     return data;
   },
-  /** Browser sessions and tuner/remote-player relays in one list (Integrations page). */
+  /** Browser sessions and tuner/remote-player relays in one list (TV dashboard and Web player setup). */
   listActiveStreams: async (): Promise<{ streams: ActiveStream[] }> => {
     const { data } = await apiClient.get<{ streams: ActiveStream[] }>(`${BASE_URL}/streams`);
     return data;

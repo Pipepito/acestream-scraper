@@ -62,7 +62,7 @@ unreadable `account.enc` and reconnecting with a new key.
 
 1. Register an application at [my.telegram.org](https://my.telegram.org) to obtain
    an `api_id` and `api_hash`. An application key alone does not authorize messages.
-2. Open Integrations through HTTPS, or through localhost (an SSH local tunnel is
+2. Open **Integrations → Telegram** (`/integrations/telegram`) through HTTPS, or through localhost (an SSH local tunnel is
    suitable). Plain HTTP over the LAN is rejected for Telegram controls. Behind
    HTTPS proxies, set `FORWARDED_ALLOW_IPS` to the actual proxy addresses and have
    the proxy overwrite forwarded headers; never trust arbitrary internet peers.

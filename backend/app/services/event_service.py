@@ -41,6 +41,28 @@ def validate_inventory(event_count, observations):
         raise ValueError('Event inventory limit reached; existing events were preserved')
 
 
+def dashboard_rank(data, start, now, tz, window_days):
+    """Rank the full saved inventory before pagination; dates never imply times."""
+    if data['state'] in ('finished', 'cancelled'):
+        return None
+    end = datetime.fromisoformat(data['ends_at'].replace('Z', '+00:00')) if data.get('ends_at') else None
+    if end and end <= now:
+        return None
+    if data['state'] == 'live' and start and start <= now:
+        if end or start >= now - timedelta(hours=24):
+            return (0, start)
+    today = now.astimezone(tz).date()
+    last_day = today + timedelta(days=window_days)
+    if start:
+        if start >= now and start.astimezone(tz).date() < last_day:
+            return (1, start)
+    elif data.get('scheduled_date'):
+        day = calendar_date.fromisoformat(data['scheduled_date'])
+        if today <= day < last_day:
+            return (2, day)
+    return None
+
+
 class EventService:
     def __init__(self, db):
         self.repo = EventRepository(db)
@@ -121,11 +143,12 @@ class EventService:
             teams=sorted({name for d in data for name in d['participants']})[:2000])
 
     def list(self, *, interests=None, window_days=None, search='', sport='', competition='', source='', date=None, zone='UTC',
-             upcoming=False, followed=False, archived=False, offset=0, limit=50):
+             upcoming=False, followed=False, archived=False, offset=0, limit=50, selection='agenda'):
         from zoneinfo import ZoneInfo
         from app.services.event_providers import matches_interests
         tz = ZoneInfo(zone)
-        today = datetime.now(timezone.utc).astimezone(tz).date()
+        now = datetime.now(timezone.utc)
+        today = now.astimezone(tz).date()
         rows = self.repo.inventory()
         all_obs = self.repo.observations()
         grouped = {}
@@ -135,18 +158,21 @@ class EventService:
         for row in rows:
             data = row.correction or row.fields
             start = datetime.fromisoformat(data['starts_at'].replace('Z', '+00:00')) if data.get('starts_at') else None
+            rank = dashboard_rank(data, start, now, tz, window_days or 7) if selection == 'dashboard' else None
+            if selection == 'dashboard' and (row.archived or rank is None):
+                continue
             local_day = start.astimezone(tz).date() if start else calendar_date.fromisoformat(data['scheduled_date']) if data.get('scheduled_date') else None
             if (row.archived != archived or (interests and not matches_interests(data, interests))
-                    or (upcoming and window_days and local_day and local_day >= today + timedelta(days=window_days)) or (followed and not row.followed)
+                    or (selection == 'agenda' and upcoming and window_days and local_day and local_day >= today + timedelta(days=window_days)) or (followed and not row.followed)
                     or (sport and sport.casefold() not in data['sport'].casefold())
                     or (competition and competition.casefold() not in data['competition'].casefold())
                     or (search and search.casefold() not in ' '.join([data['title'], *data['participants']]).casefold())
                     or (source and not any(source.casefold() in obs.payload['source_name'].casefold() for obs in grouped.get(row.id, [])))
                     or (date and local_day != date)
-                    or (upcoming and (local_day is not None and local_day < today or data['state'] in ('finished', 'cancelled')))):
+                    or (selection == 'agenda' and upcoming and (local_day is not None and local_day < today or data['state'] in ('finished', 'cancelled')))):
                 continue
-            selected.append((start, row))
-        selected.sort(key=lambda item: (item[0] is None, item[0] or datetime.max.replace(tzinfo=timezone.utc), item[1].id))
+            selected.append((rank if selection == 'dashboard' else (start is None, start or datetime.max.replace(tzinfo=timezone.utc)), row))
+        selected.sort(key=lambda item: (*item[0], item[1].id))
         page = selected[offset:offset + limit]
         channels = self._channels([obs for _, row in page for obs in grouped.get(row.id, [])], [row for _, row in page])
         return EventList(total=len(selected), events=[self._view(row, grouped.get(row.id, []), channels)

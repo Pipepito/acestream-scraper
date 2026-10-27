@@ -7310,6 +7310,7 @@ export interface operations {
         upcoming?: boolean;
         followed?: boolean;
         archived?: boolean;
+        selection?: "agenda" | "dashboard";
         interests?: string;
         window_days?: number | null;
         offset?: number;

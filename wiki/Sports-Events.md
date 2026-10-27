@@ -222,3 +222,23 @@ Review its schedule and timezone, preview, then select the event to save. The
 shared event model retains private broadcast inputs without creating permanent
 channels. Catalogue refresh does not automatically change event schedules; review
 the saved source again to update it. See [W3U catalogues](W3U-Catalogues.md#add-a-catalogue-broadcast-to-events).
+
+## Events on the TV dashboard
+
+**Up next** shows up to six saved events across the next seven calendar days in
+your selected timezone. Eligible **Live · reported** events appear first, then
+nearest timed starts, followed by date-only fixtures labelled **Time TBC**.
+Finished, cancelled, archived and explicitly ended events are excluded. A live
+report without an end expires from this summary 24 hours after its start; fully
+undated events remain in the full agenda. These labels do not verify playback.
+
+Choose **All upcoming**, **Following** or **My interests**. **Customize events**
+saves sports, competitions, teams and timezone in this browser. Interest matches
+use OR: any selected sport, competition or team qualifies. Choose at least one for
+My interests. Following uses the installation-wide follow state from event details.
+An empty view stays empty until you change it; it never silently switches filters.
+
+The summary refreshes every minute and on window focus. Opening an event uses the
+existing broadcasts/details view; closing it returns to the agenda. Dashboard reads
+never import schedules, change provider interests or start playback. Add or review
+provider events from **Events** as usual.

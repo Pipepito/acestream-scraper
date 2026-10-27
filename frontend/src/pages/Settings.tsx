@@ -297,7 +297,11 @@ const Settings: React.FC = () => {
       </ContentSection>
 
       <ContentSection title="Players and network" description="Manage the address other devices use, remote players, media servers and tuner limits in Integrations.">
-        <Button component={RouterLink} to="/integrations" variant="outlined">Manage integrations</Button>
+        <Stack direction="row" gap={1} flexWrap="wrap">
+          <Button component={RouterLink} to="/integrations/public-address" variant="outlined">Public address</Button>
+          <Button component={RouterLink} to="/integrations/remote-players" variant="outlined">Remote players</Button>
+          <Button component={RouterLink} to="/integrations/media-servers" variant="outlined">Media servers and tuner</Button>
+        </Stack>
       </ContentSection>
       </Box>
       <Box {...panelProps('automation')}>
@@ -367,7 +371,7 @@ const Settings: React.FC = () => {
         </Stack>
       </ContentSection>
       <Button component={RouterLink} to="/playlist">Open playlist builder</Button>
-      <Button component={RouterLink} to="/integrations">Manage public address</Button>
+      <Button component={RouterLink} to="/integrations/public-address">Manage public address</Button>
       </Box>
       <Box {...panelProps('access')}>
       <ContentSection title="API access" description="Only needed when the server sets API_TOKEN. The token is stored in this browser and sent with every request.">

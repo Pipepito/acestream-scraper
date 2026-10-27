@@ -59,8 +59,7 @@ Useful variants:
 
 ## Scenarios
 
-`scenarios/default.json` describes what the journey uses; add another file and select it with
-`E2E_SCENARIO=<name>`. Validated by `src/scenario/schema.ts`:
+`scenarios/example.json` is an inert template with reserved `example.invalid` URLs and synthetic names. Live journeys require an explicit `E2E_SCENARIO=<name|path>`; there is no automatic external source catalogue. Copy the template into `e2e/.stack/scenario.json`, replace its placeholders with operator-owned or authorized fixtures, and export `E2E_SCENARIO` before running the live suite. Keep private source data out of Git. The independent mocked mobile suite needs no scenario. Validated by `src/scenario/schema.ts`:
 
 | Section | Purpose |
 | --- | --- |

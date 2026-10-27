@@ -1,0 +1,272 @@
+[
+  {
+    "name": "ACE_ENGINE_URL",
+    "group": "playback",
+    "default": "",
+    "label": "Playback engine address",
+    "kind": "url",
+    "help": "Optional for AceStream. Official HTTP broadcasts do not need an engine. Saved Settings \u2192 Playback takes precedence."
+  },
+  {
+    "name": "ACE_CHECK_ENGINE_URL",
+    "group": "playback",
+    "default": "",
+    "label": "Dedicated checking engine address",
+    "kind": "url",
+    "help": "Leave empty for playback-engine checks. A configured checker never falls back on failure."
+  },
+  {
+    "name": "PLAYER_MAX_SESSIONS",
+    "group": "playback",
+    "default": 3,
+    "label": "Maximum browser sessions",
+    "kind": "integer",
+    "help": "",
+    "minimum": 1,
+    "maximum": 100
+  },
+  {
+    "name": "PLAYER_START_TIMEOUT_SECONDS",
+    "group": "playback",
+    "default": 45,
+    "label": "Player startup timeout (seconds)",
+    "kind": "integer",
+    "help": "",
+    "minimum": 1,
+    "maximum": 600
+  },
+  {
+    "name": "PUBLIC_BASE_URL",
+    "group": "network",
+    "default": "",
+    "label": "Public address",
+    "kind": "url",
+    "help": "Address players use to reach this app. Saved Integrations \u2192 Public address takes precedence."
+  },
+  {
+    "name": "ALLOW_PRIVATE_SCRAPE_TARGETS",
+    "group": "network",
+    "default": true,
+    "label": "Allow sources on private networks",
+    "kind": "boolean",
+    "help": "Turn off when private-network sources are not needed. Metadata endpoints always remain blocked."
+  },
+  {
+    "name": "TUNER_ALLOWED_NETWORKS",
+    "group": "network",
+    "default": "127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10",
+    "label": "Networks allowed to use tuner routes",
+    "kind": "networks",
+    "help": "Tuner routes do not use the API token. * allows every network."
+  },
+  {
+    "name": "FORWARDED_ALLOW_IPS",
+    "group": "network",
+    "default": "127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16",
+    "label": "Trusted reverse proxies",
+    "kind": "networks",
+    "help": ""
+  },
+  {
+    "name": "CORS_ORIGINS",
+    "group": "network",
+    "default": "http://localhost:3000",
+    "label": "Allowed browser origins",
+    "kind": "text",
+    "help": "Comma-separated origins, or a JSON array. Usually only needed for separate frontend hosting."
+  },
+  {
+    "name": "ENABLE_ACESTREAM_ENGINE",
+    "group": "services",
+    "default": false,
+    "label": "Bundled playback engine",
+    "kind": "boolean",
+    "help": "Requires installed software and the corresponding Docker permissions, ports and volumes. Restart to apply."
+  },
+  {
+    "name": "ENABLE_ACESTREAM_CHECK_ENGINE",
+    "group": "services",
+    "default": false,
+    "label": "Bundled checking engine",
+    "kind": "boolean",
+    "help": "Requires installed software and the corresponding Docker permissions, ports and volumes. Restart to apply."
+  },
+  {
+    "name": "ENABLE_ACEXY",
+    "group": "services",
+    "default": false,
+    "label": "Acexy",
+    "kind": "boolean",
+    "help": "Requires installed software and the corresponding Docker permissions, ports and volumes. Restart to apply."
+  },
+  {
+    "name": "ENABLE_IPFS",
+    "group": "services",
+    "default": false,
+    "label": "IPFS",
+    "kind": "boolean",
+    "help": "Requires installed software and the corresponding Docker permissions, ports and volumes. Restart to apply."
+  },
+  {
+    "name": "ENABLE_ZERONET",
+    "group": "services",
+    "default": false,
+    "label": "ZeroNet",
+    "kind": "boolean",
+    "help": "Requires installed software and the corresponding Docker permissions, ports and volumes. Restart to apply."
+  },
+  {
+    "name": "ENABLE_TOR",
+    "group": "services",
+    "default": false,
+    "label": "Tor for ZeroNet",
+    "kind": "boolean",
+    "help": "Requires installed software and the corresponding Docker permissions, ports and volumes. Restart to apply."
+  },
+  {
+    "name": "ENABLE_WARP",
+    "group": "services",
+    "default": false,
+    "label": "WARP",
+    "kind": "boolean",
+    "help": "Requires installed software and the corresponding Docker permissions, ports and volumes. Restart to apply."
+  },
+  {
+    "name": "ACESTREAM_BIND_ALL",
+    "group": "services",
+    "default": true,
+    "label": "Allow remote engine clients",
+    "kind": "boolean",
+    "help": "The engine API has no authentication. Publish its port only on trusted networks."
+  },
+  {
+    "name": "WARP_ENABLE_NAT",
+    "group": "services",
+    "default": false,
+    "label": "Connect WARP before starting engines",
+    "kind": "boolean",
+    "help": "Requires NET_ADMIN, SYS_ADMIN and /dev/net/tun in Docker. No routing changes until explicitly enabled."
+  },
+  {
+    "name": "WARP_FORCE_IPV4",
+    "group": "services",
+    "default": true,
+    "label": "Prefer IPv4 through WARP",
+    "kind": "boolean",
+    "help": ""
+  },
+  {
+    "name": "ZERONET_URL",
+    "group": "advanced",
+    "default": "http://127.0.0.1:43110",
+    "label": "ZeroNet gateway",
+    "kind": "url",
+    "help": ""
+  },
+  {
+    "name": "IPFS_GATEWAY_URL",
+    "group": "advanced",
+    "default": "http://127.0.0.1:8081",
+    "label": "IPFS gateway",
+    "kind": "url",
+    "help": ""
+  },
+  {
+    "name": "SCRAPER_TIMEOUT",
+    "group": "advanced",
+    "default": 10,
+    "label": "Source timeout (seconds)",
+    "kind": "integer",
+    "help": "",
+    "minimum": 1,
+    "maximum": 600
+  },
+  {
+    "name": "SCRAPER_RETRIES",
+    "group": "advanced",
+    "default": 3,
+    "label": "Source retries",
+    "kind": "integer",
+    "help": "",
+    "minimum": 0,
+    "maximum": 20
+  },
+  {
+    "name": "ZERONET_TIMEOUT",
+    "group": "advanced",
+    "default": 20,
+    "label": "ZeroNet timeout (seconds)",
+    "kind": "integer",
+    "help": "",
+    "minimum": 1,
+    "maximum": 600
+  },
+  {
+    "name": "ZERONET_RETRIES",
+    "group": "advanced",
+    "default": 5,
+    "label": "ZeroNet retries",
+    "kind": "integer",
+    "help": "",
+    "minimum": 0,
+    "maximum": 20
+  },
+  {
+    "name": "IPFS_TIMEOUT",
+    "group": "advanced",
+    "default": 30,
+    "label": "IPFS timeout (seconds)",
+    "kind": "integer",
+    "help": "",
+    "minimum": 1,
+    "maximum": 600
+  },
+  {
+    "name": "IPFS_RETRIES",
+    "group": "advanced",
+    "default": 3,
+    "label": "IPFS retries",
+    "kind": "integer",
+    "help": "",
+    "minimum": 0,
+    "maximum": 20
+  },
+  {
+    "name": "CHANNEL_CLEANUP_DAYS",
+    "group": "advanced",
+    "default": 30,
+    "label": "Inactive-channel retention (days)",
+    "kind": "integer",
+    "help": "",
+    "minimum": 0,
+    "maximum": 36500
+  },
+  {
+    "name": "MEDIA_SERVER_MIN_REFRESH_MINUTES",
+    "group": "advanced",
+    "default": 30,
+    "label": "Media-server refresh debounce (minutes)",
+    "kind": "integer",
+    "help": "",
+    "minimum": 0,
+    "maximum": 10080
+  },
+  {
+    "name": "ACESTREAM_STATUS_TIMEOUT",
+    "group": "advanced",
+    "default": 10,
+    "label": "Engine status timeout (seconds)",
+    "kind": "integer",
+    "help": "",
+    "minimum": 1,
+    "maximum": 600
+  },
+  {
+    "name": "EPG_PROGRAM_RETENTION_HOURS",
+    "group": "advanced",
+    "default": 24,
+    "label": "Guide retention (hours)",
+    "kind": "number",
+    "help": "Any negative value keeps expired programmes."
+  }
+]

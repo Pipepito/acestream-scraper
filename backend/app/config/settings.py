@@ -2,6 +2,9 @@
 
 import json
 import logging
+import os
+
+from runtime_config import OPTION_MAP, config_path, read_config, remember_applied
 from functools import lru_cache
 from typing import List, Annotated
 
@@ -34,8 +37,25 @@ class Settings(BaseSettings):
                     if selected == legacy:
                         data[canonical] = raw[legacy]
                     warnings.append({"legacy": legacy, "replacement": canonical, "selected": selected})
+            for legacy in os.environ.get('SCRAPER_LEGACY_ENV_NAMES', '').split(','):
+                if legacy in LEGACY_ENV_NAMES and not any(w['legacy'] == legacy for w in warnings):
+                    warnings.append({'legacy': legacy, 'replacement': LEGACY_ENV_NAMES[legacy], 'selected': LEGACY_ENV_NAMES[legacy]})
             # The retired toggle no longer disables compatibility.
             data.pop("ENABLE_LEGACY_ENV_ALIASES", None)
+            # The file owns migrated options after bootstrap. Explicit constructor
+            # values remain useful for isolated tests and tooling.
+            location = init_settings().get('DATABASE_URL') or data.get('DATABASE_URL') or 'sqlite:///./config/scraper.db'
+            if location.startswith('sqlite:///') and location != 'sqlite:///:memory:':
+                path = config_path(location)
+                saved = read_config(path)
+                if saved is not None:
+                    remember_applied(path, saved['runtime'])
+                    for warning in warnings:
+                        if warning['replacement'] in OPTION_MAP:
+                            warning['selected'] = warning['replacement']
+                    if os.environ.get('SCRAPER_RUNTIME_LOADED') != '1':
+                        for name in OPTION_MAP: data.pop(name, None)
+                        data.update({name: value for name, value in saved['runtime'].items() if name in cls.model_fields})
             data["configuration_warnings"] = warnings
             return data
         return init_settings, compatible_environment, file_secret_settings
@@ -70,6 +90,7 @@ class Settings(BaseSettings):
     # embedded Kubo daemon's gateway (entrypoint.sh binds it on 8081 because
     # Acexy owns 8080 in-container); point it at any external gateway instead.
     IPFS_GATEWAY_URL: str = "http://127.0.0.1:8081"
+    ALLOW_PRIVATE_SCRAPE_TARGETS: bool = True
     SCRAPER_TIMEOUT: int = 10
     SCRAPER_RETRIES: int = 3
     ZERONET_TIMEOUT: int = 20

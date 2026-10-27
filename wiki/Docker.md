@@ -459,3 +459,16 @@ For a bundled playback engine sharing Gluetun’s network namespace, opt into
 forwarded-port synchronization with `ACESTREAM_GLUETUN_PORT_FILE`. See
 [Gluetun setup](Gluetun.md) for the shared read-only directory, port ownership,
 restart behavior and provider requirements.
+
+
+## First-run configuration on develop
+
+The web wizard at `/setup` saves reviewed runtime options in
+`runtime-config.json` beside the SQLite database (normally `/app/config`). Keep the
+whole directory mounted and writable. Environment values for migrated options seed
+only a missing file; use **Settings → Setup wizard** for subsequent changes, then
+restart. Image selection, ports, volumes, capabilities and private credentials
+remain in Compose. Existing database preferences remain authoritative. See
+[configuration precedence](Configuration.md#first-run-setup) and the
+[option audit](../docs/dev/runtime-configuration-audit.md). This development feature
+is not evidence that the currently published stable image includes it.

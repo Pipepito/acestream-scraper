@@ -147,7 +147,8 @@ class SettingsRepository:
         """Set up default settings if they don't exist"""
         default_settings = {
             self.BASE_URL: (self.DEFAULT_BASE_URL, "Base URL for Acestream links"),
-            self.ACE_ENGINE_URL: (self.DEFAULT_ACE_ENGINE_URL, "Acestream Engine URL"),
+            # Keep the runtime default live until the operator explicitly saves
+            # a database override (including an intentional empty endpoint).
             self.RESCRAPE_INTERVAL: (self.DEFAULT_RESCRAPE_INTERVAL, "Hours between automatic rescrapes"),
             self.ADDPID: (self.DEFAULT_ADDPID, "Add PID to Acestream links"),
             self.EPG_REFRESH_INTERVAL: (self.DEFAULT_EPG_REFRESH_INTERVAL, "Hours between EPG refreshes"),

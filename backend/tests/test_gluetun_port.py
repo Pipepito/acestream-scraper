@@ -142,7 +142,7 @@ def test_changelog_tracks_selected_release():
 ])
 def test_sync_rejects_unsupported_engine_configuration(tmp_path, enabled, command, message):
     root = Path(__file__).resolve().parents[2]
-    env = {**os.environ, 'LOG_DIR': str(tmp_path / 'logs'), 'LOGROTATE_DIR': str(tmp_path / 'rotation'),
+    env = {**os.environ, 'DATABASE_URL': 'sqlite:///' + str(tmp_path / 'scraper.db'), 'LOG_DIR': str(tmp_path / 'logs'), 'LOGROTATE_DIR': str(tmp_path / 'rotation'),
            'SUPERVISOR_RUN_DIR': str(tmp_path / 'run'), 'ENABLE_WARP': 'false',
            'ENABLE_ACESTREAM_ENGINE': enabled, 'IMAGE_HAS_ACESTREAM': enabled,
            'ENABLE_ACEXY': 'false', 'ENABLE_IPFS': 'false', 'ENABLE_ZERONET': 'false',

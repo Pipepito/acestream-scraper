@@ -6045,6 +6045,79 @@
         "title": "ResolvedSearchResult",
         "type": "object"
       },
+      "RuntimeOption": {
+        "properties": {
+          "default": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Default"
+          },
+          "group": {
+            "title": "Group",
+            "type": "string"
+          },
+          "help": {
+            "title": "Help",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "maximum": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maximum"
+          },
+          "minimum": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimum"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "group",
+          "label",
+          "kind",
+          "default",
+          "help"
+        ],
+        "title": "RuntimeOption",
+        "type": "object"
+      },
       "ScanDefaultResponse": {
         "properties": {
           "cidr": {
@@ -6663,6 +6736,120 @@
           "settings"
         ],
         "title": "SettingsResponse",
+        "type": "object"
+      },
+      "SetupState": {
+        "properties": {
+          "api_protected": {
+            "title": "Api Protected",
+            "type": "boolean"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/RuntimeOption"
+            },
+            "title": "Options",
+            "type": "array"
+          },
+          "restart_required": {
+            "title": "Restart Required",
+            "type": "boolean"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "string"
+          },
+          "runtime": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "title": "Runtime",
+            "type": "object"
+          },
+          "setup_complete": {
+            "title": "Setup Complete",
+            "type": "boolean"
+          },
+          "unavailable": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Unavailable",
+            "type": "object"
+          },
+          "version": {
+            "const": 1,
+            "default": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "setup_complete",
+          "revision",
+          "runtime",
+          "options",
+          "unavailable",
+          "restart_required",
+          "api_protected"
+        ],
+        "title": "SetupState",
+        "type": "object"
+      },
+      "SetupUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_revision": {
+            "maxLength": 64,
+            "minLength": 64,
+            "title": "Expected Revision",
+            "type": "string"
+          },
+          "runtime": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "maxProperties": 100,
+            "title": "Runtime",
+            "type": "object"
+          },
+          "setup_complete": {
+            "default": true,
+            "title": "Setup Complete",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "expected_revision",
+          "runtime"
+        ],
+        "title": "SetupUpdate",
         "type": "object"
       },
       "StartupEvent": {
@@ -17415,6 +17602,68 @@
         "tags": [
           "search",
           "search"
+        ]
+      }
+    },
+    "/api/v1/setup": {
+      "get": {
+        "operationId": "get_setup_api_v1_setup_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetupState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Setup",
+        "tags": [
+          "setup",
+          "setup"
+        ]
+      },
+      "put": {
+        "operationId": "save_setup_api_v1_setup_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetupUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetupState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Setup",
+        "tags": [
+          "setup",
+          "setup"
         ]
       }
     },

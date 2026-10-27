@@ -31,3 +31,7 @@ samples/
 
 # Playwright e2e suite
 e2e/
+
+# Installation settings must never enter an image build context.
+**/runtime-config.json
+**/runtime-config.json.lock

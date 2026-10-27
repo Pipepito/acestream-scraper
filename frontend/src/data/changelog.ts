@@ -8,6 +8,7 @@ export const releases: ReleaseNotes[] = [
       {
         "title": "Added",
         "items": [
+          "Set up a fresh installation with a web wizard for playback, access and optional services. Runtime options persist in runtime-config.json beside the database; environment values seed the file once and later edits require a restart. Existing database preferences stay in place. The README includes a setup prompt for ChatGPT and shell-enabled coding agents.",
           "Collect AceStream links from selected Telegram groups/channels through an optional user-account connection. Preview extraction, filter senders/topics, and recover progress after restart. Requires HTTPS or localhost, a separate admin token and encrypted session storage with an independent key. Playlist discovery and event/VOD interpretation remain separate.",
           "Preview and import Wiseplay/W3U catalogues, browse folders and source details, and keep selected live streams refreshed. Live-channel imports require explicit review; event broadcasts can enter the shared Events preview. Unsupported websites and VOD remain visible with their limits.",
           "Browse sporting events, review manual/JSON schedules or structured sports guides, follow events and choose compatible broadcasts. Map broadcasters explicitly, load optional artwork, refresh reviewed schedule URLs and configure separate event retention. Schedules stay separate from permanent TV channels; W3U entries support reviewed event imports; automatic W3U schedule extraction and Telegram event interpretation remain separate work.",
@@ -69,6 +70,7 @@ export const releases: ReleaseNotes[] = [
       {
         "title": "Before upgrading",
         "items": [
+          "Once runtime-config.json exists, change migrated runtime options through Settings → Setup wizard or edit the file while stopped. Environment changes no longer override those options. Keep the database directory writable and backed up; ports, mounts and credentials remain deployment settings.",
           "Back up persistent configuration and the database. Startup applies schema migrations using the existing backup and recovery process, including channel ID kind (20260928_1200) and HTTP stream URL/headers (20261021_1200), W3U catalogues (20261022_1200), sporting events and maintenance (20261023_1200 / 20261023_1300), their combined migration revision (20261023_1400), Telegram source progress (20261023_1500), and preferred stream ordering (20261026_1200).",
           "Preserve Telegram session storage and its independent encryption key when moving an installation; ordinary database/configuration backups do not include account sessions or keys.",
           "HTTP tuner playback requires FFmpeg, included in the container images. Native installations must provide the documented FFmpeg capabilities. Source codec compatibility still depends on the media server/client; switching sources after playback starts normally requires the client to reconnect.",

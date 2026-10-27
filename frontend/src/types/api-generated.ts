@@ -936,6 +936,12 @@ export interface paths {
      */
     post: operations["resolve_search_result_api_v1_search__infohash__resolve_post"];
   };
+  "/api/v1/setup": {
+    /** Get Setup */
+    get: operations["get_setup_api_v1_setup_get"];
+    /** Save Setup */
+    put: operations["save_setup_api_v1_setup_put"];
+  };
   "/api/v1/startup": {
     /** Status */
     get: operations["status_api_v1_startup_get"];
@@ -3716,6 +3722,25 @@ export interface components {
        */
       content_id: string;
     };
+    /** RuntimeOption */
+    RuntimeOption: {
+      /** Default */
+      default: boolean | number | string;
+      /** Group */
+      group: string;
+      /** Help */
+      help: string;
+      /** Kind */
+      kind: string;
+      /** Label */
+      label: string;
+      /** Maximum */
+      maximum?: number | null;
+      /** Minimum */
+      minimum?: number | null;
+      /** Name */
+      name: string;
+    };
     /** ScanDefaultResponse */
     ScanDefaultResponse: {
       /** Cidr */
@@ -4016,6 +4041,47 @@ export interface components {
       settings: {
         [key: string]: string;
       };
+    };
+    /** SetupState */
+    SetupState: {
+      /** Api Protected */
+      api_protected: boolean;
+      /** Options */
+      options: components["schemas"]["RuntimeOption"][];
+      /** Restart Required */
+      restart_required: boolean;
+      /** Revision */
+      revision: string;
+      /** Runtime */
+      runtime: {
+        [key: string]: boolean | number | string;
+      };
+      /** Setup Complete */
+      setup_complete: boolean;
+      /** Unavailable */
+      unavailable: {
+        [key: string]: string;
+      };
+      /**
+       * Version
+       * @default 1
+       * @constant
+       */
+      version?: 1;
+    };
+    /** SetupUpdate */
+    SetupUpdate: {
+      /** Expected Revision */
+      expected_revision: string;
+      /** Runtime */
+      runtime: {
+        [key: string]: boolean | number | string;
+      };
+      /**
+       * Setup Complete
+       * @default true
+       */
+      setup_complete?: boolean;
     };
     /** StartupEvent */
     StartupEvent: {
@@ -8875,6 +8941,39 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["ResolvedSearchResult"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get Setup */
+  get_setup_api_v1_setup_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["SetupState"];
+        };
+      };
+    };
+  };
+  /** Save Setup */
+  save_setup_api_v1_setup_put: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SetupUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["SetupState"];
         };
       };
       /** @description Validation Error */

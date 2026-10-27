@@ -241,3 +241,7 @@ e2e/.stack/
 
 # Standalone recipe helper build
 frontend/dist-recipes/
+
+# Persisted installation configuration (may contain private addresses)
+**/runtime-config.json
+**/runtime-config.json.lock

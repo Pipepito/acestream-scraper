@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# These cases exercise the shell after persisted configuration was resolved.
+# Each case supplies its effective environment; bootstrap/snapshot persistence
+# is covered separately by backend/tests/test_runtime_config.py.
+export SCRAPER_RUNTIME_LOADED=1
+
 REPO_ROOT=${RUNTIME_CONTRACT_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}
 ENTRYPOINT_SCRIPT="$REPO_ROOT/entrypoint.sh"
 WARP_SETUP_SCRIPT="$REPO_ROOT/warp-setup.sh"

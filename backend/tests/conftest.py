@@ -106,9 +106,9 @@ def backend_runtime():
 
 
 @pytest.fixture(scope="function")
-def alembic_test_db():
+def alembic_test_db(tmp_path):
     """Create a temp SQLite file and run Alembic to head against it."""
-    db_fd, db_path = tempfile.mkstemp(suffix='.db')
+    db_fd, db_path = tempfile.mkstemp(suffix='.db', dir=tmp_path)
     os.close(db_fd)
     db_path = Path(db_path)
 
@@ -143,9 +143,9 @@ def alembic_backend_runtime(alembic_test_db):
 
 # Test database setup
 @pytest.fixture(scope="function")
-def test_db(backend_runtime):
+def test_db(backend_runtime, tmp_path):
     """Create a temp SQLite engine using ``Base.metadata.create_all`` (legacy fast path)."""
-    db_fd, db_path = tempfile.mkstemp(suffix='.db')
+    db_fd, db_path = tempfile.mkstemp(suffix='.db', dir=tmp_path)
     os.close(db_fd)
 
     database_url = f"sqlite:///{db_path}"

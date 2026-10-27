@@ -39,15 +39,22 @@ describe('ChannelFilterBar', () => {
     const onChange = jest.fn();
     const { rerender } = render(<ChannelFilterBar filters={{}} groups={[]} onChange={onChange} />);
 
-    fireEvent.mouseDown(screen.getByLabelText('Linked'));
-    fireEvent.click(within(screen.getByRole('listbox')).getByText('Not linked'));
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Linked' }));
+    fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'Not linked' }));
     expect(onChange).toHaveBeenLastCalledWith({ assigned: false });
 
-    fireEvent.mouseDown(screen.getByLabelText('Linked'));
-    fireEvent.click(within(screen.getByRole('listbox')).getByText('Linked'));
+    rerender(<ChannelFilterBar filters={{ assigned: false }} groups={[]} onChange={onChange} />);
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Linked' }));
+    fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'Linked' }));
     expect(onChange).toHaveBeenLastCalledWith({ assigned: true });
 
+    rerender(<ChannelFilterBar filters={{ assigned: true }} groups={[]} onChange={onChange} />);
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Linked' }));
+    fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'Any' }));
+    expect(onChange).toHaveBeenLastCalledWith({ assigned: undefined });
+
     rerender(<ChannelFilterBar filters={{ assigned: false }} groups={[]} onChange={onChange} />);
-    expect(screen.getByRole('button', { name: 'Reset filters' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Reset filters' }));
+    expect(onChange).toHaveBeenLastCalledWith({});
   });
 });

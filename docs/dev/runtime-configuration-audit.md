@@ -1,6 +1,6 @@
 # Runtime configuration and first-run setup
 
-Implementation audit, 2026-10-27, based on develop `e90b315` plus this change.
+Implementation audit, 2026-10-27, based on develop `f465f13` plus this change.
 Recheck `backend/app/config/settings.py`, `backend/app/config/runtime-options.json`,
 `entrypoint.sh`, `healthcheck.sh`, `warp-setup.sh`, `Dockerfile`,
 `docker-compose.yml` and `docs/builder/runtime-options.json` when adding options.
@@ -132,7 +132,9 @@ validation; unit/browser checks do not establish live stream availability.
 
 ## Local validation snapshot — 2026-10-27
 
-Working tree based on `e90b315`; this is not a Jenkins or release result.
+Full-suite results below were collected on the working tree based on `e90b315`.
+The follow-up quick gate and focused tests ran at `7a53ef1`, rebased onto develop
+`f465f13`. These are local results, not Jenkins or release results.
 
 - Full backend suite excluding Docker builds: **2,145 passed, 1 failed**. The
   remaining `test_real_ffmpeg_reads_guarded_hls_without_engine[subtitles]` failure
@@ -154,10 +156,13 @@ Working tree based on `e90b315`; this is not a Jenkins or release result.
 - Shell supervision checks: **49 passed**; the runtime contract script passed.
   Docker manifest metadata, command-builder ownership/defaults, strict legacy-path
   guard, Pages payload drift and whitespace checks passed.
-- The quick gate passed 4 documentation and 87 backend checks, then stopped at its
-  comparison with *committed* generated types because this change is uncommitted.
-  Separate regeneration confirmed OpenAPI and TypeScript output are identical to
-  the updated working-tree artifacts. This does not claim a passing aggregate gate.
+- After committing the generated API artifacts and rebasing onto `f465f13`,
+  `CI_USE_PREINSTALLED_DEPS=1 bash scripts/ci/run_v2_test_suite.sh --profile quick`
+  passed, including committed-type drift, lint, typecheck, frontend build and Pages
+  payload checks. This resolves the earlier pre-commit generated-type guard stop.
+  The focused runtime-configuration and notification tests also passed: **36 passed**.
+  Notification tests required local loopback-server permission; their initial
+  sandboxed invocation could not bind sockets. No application changes were needed.
 - Docker image/architecture smoke runs and live broadcaster playback were not run.
   Future verification should use the prepared CI runner with its pinned media tools.
 

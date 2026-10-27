@@ -19,12 +19,21 @@ from app.repositories.url_repository import URLRepository
 logger = logging.getLogger(__name__)
 
 
+class ScrapeOutcome(tuple):
+    """Two-value compatibility plus typed admission metadata for summaries."""
+    def __new__(cls, channels, status, excluded_count=0):
+        result = super().__new__(cls, (channels, status))
+        result.excluded_count = excluded_count
+        return result
+
+
 class ScraperService:
     """Service for managing scraping operations"""
 
     def __init__(self, db: Session):
         self.db = db
         self.url_repository = URLRepository(db)
+        self.last_import_exclusions = 0
 
     async def scrape_url(self, url: str, url_type: str = 'auto') -> Tuple[List[ChannelResult], str]:
         """
@@ -39,6 +48,7 @@ class ScraperService:
         """
         logger.info(f"Scraping URL: {url} (type: {url_type})")
 
+        self.last_import_exclusions = 0
         custom_recipe = False
         try:
             scraper = create_scraper_for_url(url, url_type)
@@ -46,12 +56,11 @@ class ScraperService:
                 source_url = scraper.url_obj.get_normalized_url()
             except AttributeError:
                 source_url = create_url_object(url, url_type).get_normalized_url()
-            # Inject db, epg_service, tv_channel_service for robust TV channel creation/association
-            epg_service = EPGService(self.db)
-            tv_channel_service = TVChannelService(self.db)
+            # Fetchers may update source status; admission/assignment runs later
+            # in a worker-owned persistence session.
             scraper.db = self.db
-            scraper.epg_service = epg_service
-            scraper.tv_channel_service = tv_channel_service
+            scraper.epg_service = None
+            scraper.tv_channel_service = None
             url_record = self.url_repository.get_by_url(url) or self.url_repository.get_by_url(source_url)
             scraper.scrape_bare_ids = bool(url_record.scrape_bare_ids) if url_record else False
             if url_record and url_record.extraction_recipe:
@@ -69,66 +78,14 @@ class ScraperService:
             else:
                 raw_channels, status = await scraper.scrape()
 
-            # Auto-create TV channels from EPG and assign tv_channel_id
-            m3u_service = M3UService()
-            raw_channels = m3u_service.auto_create_tv_channels_from_epg(self.db, raw_channels, epg_service, tv_channel_service)
-
-            new_channel_ids = {channel_id for channel_id, _, _ in raw_channels}
-            source_urls = {url, source_url}
-            source_query = self.db.query(AcestreamChannel).filter(AcestreamChannel.source_url.in_(source_urls))
-            if new_channel_ids and not (url_record and url_record.extraction_recipe):
-                source_query = source_query.filter(~AcestreamChannel.id.in_(new_channel_ids))
-                source_query.delete(synchronize_session=False)
-
-            # Persist channels to DB using transaction-scoped upserts
-            channel_repository = ChannelRepository(self.db)
-            persisted_channels = []
-            for channel_id, name, metadata in raw_channels:
-                persisted = channel_repository.create_or_update_channel(
-                    channel_id=channel_id,
-                    name=name,
-                    source_url=source_url,
-                    group=metadata.get('group_title', metadata.get('group', '')),
-                    logo=metadata.get('tvg_logo', metadata.get('logo', '')),
-                    tvg_id=metadata.get('tvg_id', ''),
-                    tvg_name=metadata.get('tvg_name', ''),
-                    # auto_create_tv_channels_from_epg also handles IDs that
-                    # have not been persisted yet. Carry its staged
-                    # association into the INSERT; existing rows are assigned
-                    # by the repository's conflict-checked UPDATE above.
-                    tv_channel_id=metadata.get('tv_channel_id'),
-                    # Set only for streams addressed by URL instead of by an
-                    # acestream id. See M3UService._looks_like_stream.
-                    stream_url=metadata.get('stream_url'),
-                    stream_headers=metadata.get('stream_headers'),
-                    # Catalogue presence is not evidence of a live signal.
-                    is_online=None,
-                    commit=False,
-                )
-                persisted_channels.append(persisted)
-            self.db.commit()
+            from starlette.concurrency import run_in_threadpool
+            bind = self.db.get_bind()
+            self.db.rollback()
+            channels, self.last_import_exclusions = await run_in_threadpool(
+                _apply_scrape, bind, raw_channels, url, source_url, custom_recipe, status)
             if custom_recipe:
                 await scraper.update_url_status(source_url, "OK")
-            if not status.lower().startswith('error'):
-                from starlette.concurrency import run_in_threadpool
-                from app.services.epg_matching_automation import EPGMatchingAutomation
-                await run_in_threadpool(EPGMatchingAutomation(self.db).run)
-
-
-            return [
-                ChannelResult(
-                    channel_id=ch.id,
-                    name=ch.name,
-                    metadata={
-                        'group': ch.group,
-                        'logo': ch.logo,
-                        'tvg_id': ch.tvg_id,
-                        'tvg_name': ch.tvg_name,
-                        'source_url': ch.source_url,
-                        'tv_channel_id': getattr(ch, 'tv_channel_id', None)
-                    }
-                ) for ch in persisted_channels
-            ], status
+            return ScrapeOutcome(channels, status, self.last_import_exclusions)
 
         except Exception as e:
             self.db.rollback()
@@ -231,3 +188,67 @@ class ScraperService:
     def get_enabled_urls(self) -> List[ScrapedURL]:
         """Get all enabled URLs"""
         return self.url_repository.get_enabled()
+
+
+def _apply_scrape(bind, raw_channels, url, source_url, custom_recipe, status):
+    """Worker-owned session: no ORM rows cross the fetch/apply thread boundary."""
+    with Session(bind=bind) as db:
+        # Fetching has finished. Admission, reconciliation and TV assignment
+        # share this short transaction and the policy's DB write claim.
+        from app.services.import_exclusion_service import ImportExclusionService
+        policy = ImportExclusionService(db).snapshot(claim=True)
+        observed_ids = {cid for cid, _, _ in raw_channels}
+        excluded_ids = {cid for cid, name, _ in raw_channels if policy.matches(cid, name)}
+        excluded_count = len(excluded_ids)
+        raw_channels = [(cid, name, meta) for cid, name, meta in raw_channels
+                        if cid not in excluded_ids]
+        source_urls = {url, source_url}
+        source_query = db.query(AcestreamChannel).filter(AcestreamChannel.source_url.in_(source_urls))
+        protected_ids = excluded_ids | {ch.id for ch in source_query.all() if policy.matches(ch.id, ch.name)}
+        # All-excluded, empty, failed and partial snapshots never prune.
+        if raw_channels and observed_ids and not custom_recipe and status == 'OK':
+            missing = source_query.filter(~AcestreamChannel.id.in_(observed_ids | protected_ids))
+            ChannelRepository(db).remove_search_memberships([row.id for row in missing.all()])
+            missing.delete(synchronize_session=False)
+        m3u_service = M3UService()
+        raw_channels = m3u_service.auto_create_tv_channels_from_epg(
+            db, raw_channels, EPGService(db), TVChannelService(db))
+
+        # Persist channels to DB using transaction-scoped upserts
+        channel_repository = ChannelRepository(db)
+        persisted_channels = []
+        for channel_id, name, metadata in raw_channels:
+            persisted = channel_repository.create_or_update_channel(
+                channel_id=channel_id,
+                name=name,
+                source_url=source_url,
+                group=metadata.get('group_title', metadata.get('group', '')),
+                logo=metadata.get('tvg_logo', metadata.get('logo', '')),
+                tvg_id=metadata.get('tvg_id', ''),
+                tvg_name=metadata.get('tvg_name', ''),
+                # auto_create_tv_channels_from_epg also handles IDs that
+                # have not been persisted yet. Carry its staged
+                # association into the INSERT; existing rows are assigned
+                # by the repository's conflict-checked UPDATE above.
+                tv_channel_id=metadata.get('tv_channel_id'),
+                # Set only for streams addressed by URL instead of by an
+                # acestream id. See M3UService._looks_like_stream.
+                stream_url=metadata.get('stream_url'),
+                stream_headers=metadata.get('stream_headers'),
+                # Catalogue presence is not evidence of a live signal.
+                is_online=None,
+                commit=False,
+            )
+            persisted_channels.append(persisted)
+        db.commit()
+        # Optional automation must also protect excluded incoming identities,
+        # even when their stored operator name does not match the new rule.
+        if not status.lower().startswith('error'):
+            from app.services.epg_matching_automation import EPGMatchingAutomation
+            EPGMatchingAutomation(db).run(import_excluded_ids=protected_ids)
+        channels = [ChannelResult(channel_id=ch.id, name=ch.name, metadata={
+            'group': ch.group, 'logo': ch.logo, 'tvg_id': ch.tvg_id,
+            'tvg_name': ch.tvg_name, 'source_url': ch.source_url,
+            'tv_channel_id': ch.tv_channel_id,
+        }) for ch in persisted_channels]
+        return channels, excluded_count

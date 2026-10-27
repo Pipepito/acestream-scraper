@@ -41,6 +41,7 @@ export interface AcestreamChannel {
  * Acestream Channel creation DTO
  */
 export interface CreateAcestreamChannelDTO {
+  allow_excluded?: boolean;
   id: string;
   name: string;
   source_url?: string;

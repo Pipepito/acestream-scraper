@@ -3,9 +3,10 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 
 from app.config.database import get_db
-from app.schemas.search import SearchResponse, AddChannelRequest, AddMultipleRequest, ResolvedSearchResult
+from app.schemas.search import SearchImportRequest, SearchImportResponse, SearchResponse, AddChannelRequest, AddMultipleRequest, ResolvedSearchResult
 from app.schemas.channel_status import ChannelStatusResponse
 from app.services.search_service import SearchService
+from app.services.search_import_service import SearchImportService
 from app.services.config_service import ConfigService
 
 router = APIRouter(tags=["search"])
@@ -41,7 +42,7 @@ async def search_channels(
         page_size = 100
     return await search_service.search(query, page, page_size, category or "")
 
-@router.post("/add")
+@router.post("/add", response_model=SearchImportResponse)
 async def add_channel(
     channel: AddChannelRequest,
     search_service: SearchService = Depends(get_search_service)
@@ -69,7 +70,7 @@ async def resolve_search_result(
     """Resolve a catalogue result before saving it or opening the shared player."""
     return ResolvedSearchResult(content_id=await search_service.resolve_content_id(infohash.lower()))
 
-@router.post("/add_multiple")
+@router.post("/add_multiple", response_model=SearchImportResponse)
 async def add_multiple_channels(
     request: AddMultipleRequest,
     search_service: SearchService = Depends(get_search_service)
@@ -78,3 +79,8 @@ async def add_multiple_channels(
     Add multiple channels from search results to the database (delegated to service)
     """
     return await search_service.add_multiple_channels(request)
+
+
+@router.post('/import', response_model=SearchImportResponse)
+def import_search_results(request: SearchImportRequest, db: Session = Depends(get_db)):
+    return SearchImportService(db).import_items(request)

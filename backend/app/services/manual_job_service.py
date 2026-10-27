@@ -11,7 +11,8 @@ def _summary(kind, result):
     if kind == 'url_scraping':
         rows = result if isinstance(result, list) else [result]
         return {'processed': len(rows), 'failures': sum(str(status).lower().startswith('error') for _, status in rows),
-                'channels': sum(len(channels) for channels, _ in rows)}
+                'channels': sum(len(channels) for channels, _ in rows),
+                'import_exclusions': {'excluded_candidates': sum(getattr(row, 'excluded_count', 0) for row in rows)}}
     if kind == 'epg_refresh':
         rows = result if isinstance(result, list) else [result]
         successful = sum(bool(row.get('success')) for row in rows)

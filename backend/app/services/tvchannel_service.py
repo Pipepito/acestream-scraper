@@ -149,7 +149,7 @@ class TVChannelService:
 
     @serialized_matching
     def create_tv_channels_from_epg_analysis(self, strictness: str, epg_channel_ids: List[int],
-                                            source_id=None, expected_previews=None, automatic=False) -> Dict[str, Any]:
+                                            source_id=None, expected_previews=None, automatic=False, import_excluded_ids=None) -> Dict[str, Any]:
         selected_ids = sorted(set(epg_channel_ids))
         analysis = EPGMatchService(self.repository.db).analyze_matches(
             strictness=strictness,
@@ -163,7 +163,12 @@ class TVChannelService:
         ):
             raise StaleEPGPreview('Matches changed. Analyze again before applying.')
         if automatic:
-            selected_rows = [row for row in selected_rows if row['automation_safe']]
+            from app.services.import_exclusion_service import ImportExclusionService
+            policy = ImportExclusionService(self.repository.db).snapshot(claim=True)
+            blocked = {channel.id for channel in self.repository.db.query(AcestreamChannel).all()
+                       if policy.matches(channel.id, channel.name)} | set(import_excluded_ids or ())
+            selected_rows = [row for row in selected_rows if row['automation_safe'] and
+                not any(c['acestream_channel_id'] in blocked for c in row['candidates'])]
 
         if not selected_rows:
             raise ValueError("No accepted matches found for selected EPG rows.")

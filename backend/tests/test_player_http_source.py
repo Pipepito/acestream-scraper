@@ -152,6 +152,40 @@ def test_oversized_manifest_and_slow_origin_are_bounded(monkeypatch):
     asyncio.run(run())
 
 
+def test_gzip_manifest_is_decoded_even_when_identity_was_asked():
+    """Telemadrid's CDN answers its media playlist with Content-Encoding: gzip
+    although the proxy asks for identity; passed through, FFmpeg got the
+    compressed bytes without the header and rejected the playlist."""
+    import gzip
+
+    async def run():
+        async def handler(request):
+            assert request.headers['Accept-Encoding'] == 'identity'
+            if request.path == '/segment.ts':
+                return web.Response(body=gzip.compress(b'G' * 188), headers={'Content-Encoding': 'gzip'})
+            body = gzip.compress(b'#EXTM3U\n#EXT-X-TARGETDURATION:6\n#EXTINF:6,\nsegment.ts\n')
+            return web.Response(body=body, headers={'Content-Encoding': 'gzip'},
+                                content_type='application/octet-stream')
+        async with origin(handler) as base:
+            source = PlayerHTTPSource(base + '/live.m3u8', {})
+            await source.start()
+            try:
+                async with aiohttp.ClientSession(auto_decompress=False) as client:
+                    async with client.get(source.playback_url) as response:
+                        assert response.status == 200
+                        assert 'Content-Encoding' not in response.headers
+                        text = await response.text()
+                    assert text.startswith('#EXTM3U')
+                    segment = [line for line in text.splitlines() if line and not line.startswith('#')][0]
+                    assert urlsplit(segment).hostname == '127.0.0.1' and 'segment.ts' not in segment
+                    async with client.get(segment) as response:
+                        assert 'Content-Encoding' not in response.headers
+                        assert await response.read() == b'G' * 188
+            finally:
+                await source.close()
+    asyncio.run(run())
+
+
 def test_proxy_records_bounded_status_details_without_signed_urls():
     async def run():
         async def handler(request):

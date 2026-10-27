@@ -222,7 +222,10 @@ class PlayerHTTPSource:
             headers['Range'] = byte_range
         timeout = aiohttp.ClientTimeout(total=None, connect=READ_TIMEOUT, sock_read=READ_TIMEOUT)
         async with asyncio.timeout(READ_TIMEOUT) as budget:
-            async with source_session(timeout=timeout, auto_decompress=False, cookie_jar=aiohttp.DummyCookieJar()) as client:
+            # Identity is asked for, but some CDNs (Telemadrid's) still gzip the
+            # media playlist: decode whatever arrives encoded, or FFmpeg gets the
+            # compressed bytes without the header and rejects the playlist.
+            async with source_session(timeout=timeout, auto_decompress=True, cookie_jar=aiohttp.DummyCookieJar()) as client:
                 for _ in range(MAX_REDIRECTS + 1):
                     _http_url(url)
                     async with client.get(url, headers=headers, allow_redirects=False) as upstream:
@@ -258,9 +261,12 @@ class PlayerHTTPSource:
                         budget.reschedule(None)
                         # Stream media with backpressure; never buffer a whole live
                         # transport stream or segment. Range metadata is preserved.
+                        # Lengths and ranges of an encoded body do not describe the
+                        # decoded bytes sent on.
+                        encoded = upstream.headers.get('Content-Encoding', 'identity').lower() != 'identity'
                         response = web.StreamResponse(status=upstream.status, headers={
                             key: upstream.headers[key] for key in ('Content-Length', 'Content-Range', 'Accept-Ranges')
-                            if key in upstream.headers
+                            if key in upstream.headers and not encoded
                         })
                         response.content_type = 'application/octet-stream'
                         await response.prepare(request)

@@ -34,7 +34,7 @@ type SnackbarNotice = {
 };
 
 const hasAnyFilter = (filters: AcestreamChannelFilters): boolean =>
-  Boolean(filters.search || filters.group || filters.is_online !== undefined || filters.is_active !== undefined);
+  Boolean(filters.search || filters.group || filters.is_online !== undefined || filters.is_active !== undefined || filters.assigned !== undefined);
 
 const AcestreamChannels: React.FC = () => {
   const navigate = useNavigate();

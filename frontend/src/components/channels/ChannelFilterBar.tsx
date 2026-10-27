@@ -16,7 +16,7 @@ type TriState = '' | 'true' | 'false';
 const toTriState = (value: boolean | undefined): TriState => (value === undefined ? '' : value ? 'true' : 'false');
 const fromTriState = (value: TriState): boolean | undefined => (value === '' ? undefined : value === 'true');
 
-/** Filters honoured by the channel list API: text search, group, online state and playlist visibility. */
+/** Filters honoured by the channel list API: text search, group, online state, playlist visibility and TV channel linkage. */
 const ChannelFilterBar: React.FC<ChannelFilterBarProps> = ({ filters, groups, onChange }) => {
   const [search, setSearch] = useState(filters.search ?? '');
 
@@ -33,7 +33,7 @@ const ChannelFilterBar: React.FC<ChannelFilterBarProps> = ({ filters, groups, on
     return () => window.clearTimeout(timer);
   }, [search, filters, onChange]);
 
-  const hasFilters = Boolean(filters.search || filters.group || filters.is_online !== undefined || filters.is_active !== undefined);
+  const hasFilters = Boolean(filters.search || filters.group || filters.is_online !== undefined || filters.is_active !== undefined || filters.assigned !== undefined);
 
   const handleGroup = (event: SelectChangeEvent<string>) => {
     onChange({ ...filters, group: event.target.value || undefined });
@@ -43,6 +43,9 @@ const ChannelFilterBar: React.FC<ChannelFilterBarProps> = ({ filters, groups, on
   };
   const handleVisibility = (event: SelectChangeEvent<TriState>) => {
     onChange({ ...filters, is_active: fromTriState(event.target.value as TriState) });
+  };
+  const handleAssigned = (event: SelectChangeEvent<TriState>) => {
+    onChange({ ...filters, assigned: fromTriState(event.target.value as TriState) });
   };
 
   return (
@@ -84,6 +87,14 @@ const ChannelFilterBar: React.FC<ChannelFilterBarProps> = ({ filters, groups, on
           <MenuItem value="">All channels</MenuItem>
           <MenuItem value="true">In playlist</MenuItem>
           <MenuItem value="false">Hidden</MenuItem>
+        </Select>
+      </FormControl>
+      <FormControl size="small" sx={{ minWidth: 150 }}>
+        <InputLabel id="channel-filter-linked">Linked</InputLabel>
+        <Select labelId="channel-filter-linked" label="Linked" value={toTriState(filters.assigned)} onChange={handleAssigned}>
+          <MenuItem value="">Any</MenuItem>
+          <MenuItem value="true">Linked</MenuItem>
+          <MenuItem value="false">Not linked</MenuItem>
         </Select>
       </FormControl>
       {hasFilters ? (

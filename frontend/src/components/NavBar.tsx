@@ -128,6 +128,23 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264, collapsed = false, o
         </List>
         {section !== 'System' ? <Divider /> : null}
       </React.Fragment>)}
+      <Box sx={{ mt: 'auto', p: 2, borderTop: `1px solid ${theme.appTokens.shell.navBorder}` }}>
+        <Button
+          component="a"
+          href="https://ko-fi.com/pipepito"
+          target="_blank"
+          rel="noopener noreferrer"
+          variant="text"
+          color="inherit"
+          fullWidth
+          endIcon={<OpenInNewIcon />}
+          aria-label="Support on Ko-fi (opens in a new tab)"
+          onClick={isPhone ? handleDrawerClose : undefined}
+          sx={{ minHeight: 44 }}
+        >
+          Support on Ko-fi
+        </Button>
+      </Box>
     </Box>
   );
 

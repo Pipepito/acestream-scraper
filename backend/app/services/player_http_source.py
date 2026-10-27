@@ -83,7 +83,8 @@ class PlayerHTTPSource:
         self.select_best_variant = False
         # Host, Range and hop-by-hop headers belong to the guarded transport.
         self.headers = {key: value for key, value in headers.items()
-                        if key.lower() in ('user-agent', 'referer', 'origin', 'authorization', 'cookie')}
+                        if key.lower() in ('user-agent', 'referer', 'origin', 'sec-fetch-mode',
+                                           'authorization', 'cookie')}
         self._resources: OrderedDict[str, str] = OrderedDict()
         self._ids: dict[str, str] = {}
         self._runner: web.AppRunner | None = None

@@ -69,8 +69,9 @@ class M3UService:
             tv_channel_service=tv_channel_service,
         )
 
-    _VLCOPT = re.compile(r'^#EXTVLCOPT:\s*http-(referrer|user-agent|origin)\s*=\s*(.+)$', re.I)
-    _HEADER_NAMES = {'referrer': 'Referer', 'user-agent': 'User-Agent', 'origin': 'Origin'}
+    _VLCOPT = re.compile(r'^#EXTVLCOPT:\s*http-(referrer|user-agent|origin|sec-fetch-mode)\s*=\s*(.+)$', re.I)
+    _HEADER_NAMES = {'referrer': 'Referer', 'user-agent': 'User-Agent', 'origin': 'Origin',
+                     'sec-fetch-mode': 'Sec-Fetch-Mode'}
 
     @staticmethod
     def _looks_like_stream(line: str) -> bool:

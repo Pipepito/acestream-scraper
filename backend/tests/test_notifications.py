@@ -130,6 +130,15 @@ def test_saving_the_masked_value_keeps_the_real_url(client, db_session):
     assert SettingsRepository(db_session).get_setting('notification_webhook_url') == 'https://gotify.lan/message?token=secret'
 
 
+def test_the_log_never_shows_the_secret(client, caplog):
+    """Saving a setting logs its key, not its value: the webhook keeps its secret there."""
+    with caplog.at_level('DEBUG'):
+        client.put('/api/v1/config/notification_webhook_url', json={'value': 'https://gotify.lan/message?token=secret'})
+        client.put('/api/v1/config/notification_webhook_url', json={'value': 'https://gotify.lan/message?token=secret2'})
+    assert 'notification_webhook_url' in caplog.text          # that it really logged the save
+    assert 'secret' not in caplog.text, caplog.text
+
+
 def test_the_test_button_needs_a_webhook(client):
     assert client.post('/api/v1/config/notification_webhook_url/test').status_code == 422
 

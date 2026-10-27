@@ -111,12 +111,12 @@ class SettingsRepository:
             setting = self.db.query(Setting).filter(Setting.key == key).first()
 
             if setting:
-                logger.info(f"Updating setting {key} to {value}")
+                logger.info(f"Updating setting {key}")
                 setting.value = str(value)
                 if description:
                     setting.description = description
             else:
-                logger.info(f"Creating setting {key} = {value}")
+                logger.info(f"Creating setting {key}")
                 setting = Setting(
                     key=key,
                     value=str(value),
@@ -127,7 +127,8 @@ class SettingsRepository:
             self.db.commit()
             self.db.flush()
             self.db.expire_all()
-            logger.info(f"Committed setting {key} = {value}")
+            # Key only: some values carry a secret (a webhook's token).
+            logger.info(f"Committed setting {key}")
             return True
         except Exception as e:
             logger.error(f"Error setting {key}: {e}")

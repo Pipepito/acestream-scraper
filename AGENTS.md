@@ -414,6 +414,12 @@ the lock file, and let the surviving engine take over after owner exit. Never
 start competing upstream listeners that can unlink each other's socket. See
 `docs/ops/arm64-mod-detected.md` for live-test scope and remaining network limits.
 
+OCI installs build a DNS-only `libnetd_client.so` against the matching bionic
+libc so native lookups reach that socket. Preserve the bounded native protocol
+listener, requested ports/families/socket types and local hosts aliases; never
+link glibc or install Android fwmark routing hooks. Validate with actual bionic
+libc calls, not only Python's overridden resolver. ARMv7 remains experimental.
+
 WARP auto-connect (`WARP_ENABLE_NAT=true`) must wait for JSON status Connected,
 not merely a successful CLI call, before engines start. The ARM resolver follows
 container nameserver changes and retains the last valid configuration during a

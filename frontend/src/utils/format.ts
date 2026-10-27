@@ -64,7 +64,11 @@ export const summarizeJobResult = (id: string, result: unknown): string | null =
       const failed = field(events, 'failures') ?? 0;
       const deferred = field(events, 'deferred') ?? 0;
       const summary = updated || pending || failed || deferred ? `; events: ${updated} updated, ${pending} need review, ${failed} source errors, ${deferred} deferred` : '';
-      return `${plural(processed, 'source', 'sources')}, ${plural(failures, 'error', 'errors')}${summary}`;
+      const nested = result && typeof result === 'object' ? result as Record<string, unknown> : {};
+      const searches = nested.saved_searches;
+      const searchSummary = searches ? `; saved searches: ${field(searches, 'added') ?? 0} added, ${field(searches, 'existing') ?? 0} existing, ${field(searches, 'excluded_candidates') ?? 0} excluded, ${field(searches, 'unresolved_candidates') ?? 0} unresolved, ${field(searches, 'partial') ?? 0} partial, ${field(searches, 'failed') ?? 0} failed, ${field(searches, 'skipped') ?? 0} skipped, ${field(searches, 'interrupted') ?? 0} interrupted, ${field(searches, 'deferred_candidates') ?? 0} candidates deferred, ${field(searches, 'deferred_searches') ?? 0} searches deferred` : '';
+      const excluded = field(nested.import_exclusions, 'excluded_candidates') ?? 0;
+      return `${plural(processed, 'source', 'sources')}, ${plural(failures, 'error', 'errors')}${summary}${searchSummary}${excluded ? `; ${excluded} source candidates excluded` : ''}`;
     }
     case 'channel_status': {
       const checked = field(result, 'checked');

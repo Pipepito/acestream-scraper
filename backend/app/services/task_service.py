@@ -12,9 +12,10 @@ from apscheduler.triggers.date import DateTrigger
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.jobstores.base import JobLookupError
-from threading import Event, Lock, Condition
+from threading import Event, Lock, Condition, Thread, RLock
 from collections import deque
 import logging
+import time
 
 
 class TaskService:
@@ -27,6 +28,12 @@ class TaskService:
         self._persist_lock = Lock()
         self._maintenance_condition = Condition()
         self._maintenance_queue = deque()
+        # Admission lock -> queue condition is the fixed order. Persistence and
+        # snapshots never run under the condition lock.
+        self._target_admission = RLock()
+        self._target_reservations = {}
+        self._target_threads = set()
+        self._maintenance_hooks = {}
         self._schedule_anchors = {}
         self._interval_seconds = {}
         self._schedule_timezone = "UTC"
@@ -58,6 +65,10 @@ class TaskService:
         if self._state_store is None:
             return
         try:
+            from app.config.database import SessionLocal
+            from app.repositories.saved_search_repository import SavedSearchRepository
+            with SessionLocal() as db:
+                SavedSearchRepository(db).interrupt_orphans()
             states = self._state_store.load()
             for state in states.values():
                 if state["status"] in {"running", "waiting"}:
@@ -99,6 +110,14 @@ class TaskService:
             return True
 
     def shutdown(self):
+        self.shutdown_event.set()
+        with self._maintenance_condition:
+            self._maintenance_condition.notify_all()
+        with self._target_admission:
+            workers = list(self._target_threads)
+        deadline = time.monotonic() + 12
+        for worker in workers:
+            worker.join(timeout=max(0, deadline - time.monotonic()))
         if not self.scheduler.running:
             self.logger.info("Background scheduler already stopped; skipping shutdown.")
             self.shutdown_event.set()
@@ -184,29 +203,114 @@ class TaskService:
                 return _execute(*args, **kwargs)
             ticket = object()
             state = self._ensure_task_state(job_id)
-            with self._maintenance_condition:
-                self._maintenance_queue.append(ticket)
-                with self._state_lock:
-                    state["status"] = "waiting"
-                while self._maintenance_queue[0] is not ticket:
-                    if self.shutdown_event.is_set():
-                        self._maintenance_queue.remove(ticket)
-                        with self._state_lock:
-                            state["status"] = "interrupted"
-                        return None
-                    self._maintenance_condition.wait(timeout=0.25)
+            hook = self._maintenance_hooks.get(job_id)
             try:
-                if self.shutdown_event.is_set():
+                snapshots = hook['snapshot']() if hook else []
+            except Exception as exc:
+                with self._state_lock:
+                    state.update(status='error', last_run=datetime.now(timezone.utc),
+                                 last_error=self._error_message(exc), last_result=None)
+                self.persist_current_state(job_id, state)
+                self.logger.exception('Could not snapshot maintenance targets')
+                raise
+            targets = []
+            try:
+                with self._target_admission:
+                    for key, target in snapshots:
+                        if key not in self._target_reservations:
+                            from uuid import uuid4
+                            try:
+                                prepared = hook['prepare'](uuid4().hex, target)
+                            except Exception:
+                                self.logger.exception('Could not reserve maintenance target')
+                                continue
+                            self._target_reservations[key] = prepared
+                            targets.append((key, prepared))
+                    with self._maintenance_condition:
+                        self._maintenance_queue.append(ticket)
                     with self._state_lock:
-                        state["status"] = "interrupted"
+                        state['status'] = 'waiting'
+                self.persist_current_state(job_id, state)
+                if not self._wait_maintenance(ticket):
+                    with self._state_lock:
+                        state['status'] = 'interrupted'
+                    self.persist_current_state(job_id, state)
                     return None
+                if hook:
+                    kwargs[hook['argument']] = [target for _, target in targets]
                 return _execute(*args, **kwargs)
             finally:
-                with self._maintenance_condition:
-                    self._maintenance_queue.popleft()
-                    self._maintenance_condition.notify_all()
+                for key, target in targets:
+                    self._release_target(key, target, hook['finish'])
+                self._release_maintenance(ticket)
 
         return _runner
+
+    def register_maintenance_targets(self, job_id, *, snapshot, prepare, finish, argument):
+        self._maintenance_hooks[job_id] = dict(snapshot=snapshot, prepare=prepare, finish=finish, argument=argument)
+
+    def _wait_maintenance(self, ticket):
+        with self._maintenance_condition:
+            while self._maintenance_queue and self._maintenance_queue[0] is not ticket:
+                if self.shutdown_event.is_set():
+                    return False
+                self._maintenance_condition.wait(timeout=.25)
+            return not self.shutdown_event.is_set()
+
+    def _release_maintenance(self, ticket):
+        with self._maintenance_condition:
+            if ticket in self._maintenance_queue:
+                self._maintenance_queue.remove(ticket)
+            self._maintenance_condition.notify_all()
+
+    def _release_target(self, key, target, finish):
+        try:
+            finish(target)
+        except Exception:
+            # A failed state-store write must not strand other reservations or
+            # the enclosing FIFO ticket. Restart recovery handles orphaned state.
+            self.logger.exception('Could not persist maintenance target completion')
+        finally:
+            with self._target_admission:
+                if self._target_reservations.get(key) is target:
+                    self._target_reservations.pop(key, None)
+
+    def submit_maintenance_target(self, key, target, *, prepare, execute, finish):
+        from uuid import uuid4
+        from app.api.error_handlers import APIError
+        ticket = object()
+        with self._target_admission:
+            if self.shutdown_event.is_set() or not self.scheduler.running:
+                raise APIError('MAINTENANCE_UNAVAILABLE', 'Maintenance is stopping or unavailable. Try again shortly.', 503)
+            if key in self._target_reservations:
+                return self._target_reservations[key]['run_id']
+            prepared = prepare(uuid4().hex, target)
+            self._target_reservations[key] = prepared
+            with self._maintenance_condition:
+                self._maintenance_queue.append(ticket)
+            def worker():
+                try:
+                    if self._wait_maintenance(ticket):
+                        execute(prepared, self.shutdown_event)
+                except Exception:
+                    self.logger.exception('Targeted maintenance failed')
+                finally:
+                    try:
+                        self._release_target(key, prepared, finish)
+                    finally:
+                        self._release_maintenance(ticket)
+                        with self._target_admission:
+                            self._target_threads.discard(thread)
+            thread = Thread(target=worker, name='saved-search-maintenance', daemon=True)
+            self._target_threads.add(thread)
+            try:
+                thread.start()
+            except Exception:
+                self._target_threads.discard(thread)
+                self._release_target(key, prepared, finish)
+                self._release_maintenance(ticket)
+                raise
+            return prepared['run_id']
 
     @staticmethod
     def _error_message(exc: Exception) -> str:

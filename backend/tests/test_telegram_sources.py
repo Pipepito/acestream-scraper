@@ -1,3 +1,4 @@
+from app.services.telegram import ingestion
 """No live Telegram account or credentials. Transport is synthetic throughout."""
 import asyncio
 import json
@@ -91,14 +92,14 @@ def test_additive_replay_edit_delete_and_manual_ownership(alembic_backend_runtim
     source = repo.save_source('account', config(), 'Sports chat', {}, 0)
     _, generation = repo.snapshot(source.id, 'account')
     result = preview_message(config(), Message(1, SAMPLE))[1]
-    assert repo.record(source.id, 'account', generation, 1, 'one', result, True)
-    assert repo.record(source.id, 'account', generation, 1, 'one', result, True)
+    assert ingestion.record(source.id, 'account', generation, 1, 'one', result, True)
+    assert ingestion.record(source.id, 'account', generation, 1, 'one', result, True)
     with alembic_backend_runtime.SessionLocal() as db:
         assert db.query(AcestreamChannel).count() == 6
         channel = db.get(AcestreamChannel, IDS[0]); channel.name = 'Manual'; channel.is_active = False
         db.commit()
-    assert repo.record(source.id, 'account', generation, 1, 'edit', result, False)
-    assert repo.record(source.id, 'account', generation, 1, 'delete', RecipePreview(**EMPTY), False)
+    assert ingestion.record(source.id, 'account', generation, 1, 'edit', result, False)
+    assert ingestion.record(source.id, 'account', generation, 1, 'delete', RecipePreview(**EMPTY), False)
     with alembic_backend_runtime.SessionLocal() as db:
         assert db.query(AcestreamChannel).count() == 6
         assert db.get(AcestreamChannel, IDS[0]).name == 'Manual'
@@ -108,7 +109,7 @@ def test_additive_replay_edit_delete_and_manual_ownership(alembic_backend_runtim
         assert db.get(TelegramObservation, (source.id, 1)).channel_ids == []
     assert repo.list_sources('account')[0].imported_count == 6
     repo.save_source('account', config(enabled=False), 'Sports', {}, 0, source.id)
-    assert not repo.record(source.id, 'account', generation, 2, 'stale', result, True)
+    assert not ingestion.record(source.id, 'account', generation, 2, 'stale', result, True)
     assert repo.list_sources('account')[0].cursor == 1
     repo.remove('account')
     with alembic_backend_runtime.SessionLocal() as db:
@@ -335,7 +336,7 @@ def test_observation_retention_is_bounded(alembic_backend_runtime):
         db.add_all([TelegramObservation(source_id=source.id, message_id=mid, revision='old', channel_ids=[],
             observed_at=now - timedelta(days=31) if mid == 1 else now) for mid in range(1, 1003)])
         db.commit()
-    repo.record(source.id, 'account', generation, 1003, 'new', RecipePreview(**EMPTY), True)
+    ingestion.record(source.id, 'account', generation, 1003, 'new', RecipePreview(**EMPTY), True)
     with alembic_backend_runtime.SessionLocal() as db:
         assert db.query(TelegramObservation).count() == 1000
         assert db.get(TelegramObservation, (source.id, 1)) is None
@@ -356,7 +357,7 @@ async def test_rule_changes_reprocess_retained_messages_and_failed_writes_do_not
     assert (await manager.sources())[0].imported_count == 6
     manager.client.messages.append(raw(2))
     with monkeypatch.context() as patch:
-        patch.setattr(repo, 'record', lambda *args: (_ for _ in ()).throw(RuntimeError('disk full')))
+        patch.setattr(ingestion, 'record', lambda *args: (_ for _ in ()).throw(RuntimeError('disk full')))
         with pytest.raises(RuntimeError):
             await manager.scan(source.id, [])
     assert (await manager.sources())[0].cursor == 1

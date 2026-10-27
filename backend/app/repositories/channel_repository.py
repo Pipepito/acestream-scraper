@@ -168,7 +168,7 @@ class ChannelRepository:
             if row.tv_channel_id is not None and row.tv_channel_id != tv_channel_id
         )
 
-    def assign_acestreams_to_tv_channel(self, acestream_ids: list, tv_channel_id: int) -> int:
+    def assign_acestreams_to_tv_channel(self, acestream_ids: list, tv_channel_id: int, *, commit: bool = True) -> int:
         """Assign multiple acestream channels to a TV channel by setting their tv_channel_id."""
         if not acestream_ids:
             return 0
@@ -196,7 +196,7 @@ class ChannelRepository:
             )
             .update({"tv_channel_id": tv_channel_id}, synchronize_session=False)
         )
-        if self.db.in_nested_transaction():
+        if not commit or self.db.in_nested_transaction():
             self.db.flush()
         else:
             self.db.commit()
@@ -317,6 +317,14 @@ class ChannelRepository:
         """Get a channel by ID"""
         return self.db.query(AcestreamChannel).filter(AcestreamChannel.id == channel_id).first()
 
+    def existing_import_ids(self, channel_ids):
+        ids = list(set(channel_ids))
+        found = set()
+        for offset in range(0, len(ids), 500):
+            found.update(cid for (cid,) in self.db.query(AcestreamChannel.id).filter(
+                AcestreamChannel.id.in_(ids[offset:offset + 500])).all())
+        return found
+
     def names_by_id(self, channel_ids: Iterable[str]) -> Dict[str, str]:
         """Channel names for these acestream ids, keyed by the lowercase id.
 
@@ -426,9 +434,14 @@ class ChannelRepository:
         if not channel:
             return False
 
+        self.remove_search_memberships([channel_id])
         self.db.delete(channel)
         self.db.commit()
         return True
+
+    def remove_search_memberships(self, channel_ids):
+        from app.models.models import SavedSearchChannel
+        self.db.query(SavedSearchChannel).filter(SavedSearchChannel.channel_id.in_(channel_ids)).delete(synchronize_session=False)
 
     def bulk_delete_channels(self, channel_ids: List[str]) -> bool:
         """
@@ -436,6 +449,7 @@ class ChannelRepository:
         """
         if not channel_ids:
             return False
+        self.remove_search_memberships(channel_ids)
         deleted = (
             self.db.query(AcestreamChannel)
             .filter(AcestreamChannel.id.in_(channel_ids))
@@ -553,7 +567,7 @@ class ChannelRepository:
                          epg_source_id: Optional[int] = None,
                          channel_number: Optional[int] = None,
                          is_active: bool = True,
-                         is_favorite: bool = False) -> TVChannel:
+                         is_favorite: bool = False, *, commit: bool = True) -> TVChannel:
         """Create a new TV channel"""
         tv_channel = TVChannel(
             name=name,
@@ -570,7 +584,10 @@ class ChannelRepository:
             is_favorite=is_favorite
         )
         self.db.add(tv_channel)
-        self.db.commit()
+        if commit:
+            self.db.commit()
+        else:
+            self.db.flush()
         self.db.refresh(tv_channel)
         return tv_channel
 

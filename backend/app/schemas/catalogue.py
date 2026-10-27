@@ -33,9 +33,11 @@ class CatalogueEntry(BaseModel):
     duplicate: bool = False
     retained: bool = False
     imported: bool = False
+    excluded_rule_ids: list[int] = Field(default_factory=list)
 
 
 class CatalogueCounts(BaseModel):
+    excluded: int = 0
     accepted: int = 0
     duplicates: int = 0
     invalid: int = 0
@@ -47,6 +49,7 @@ class CatalogueCounts(BaseModel):
 
 
 class CatalogueView(BaseModel):
+    policy_revision: int = 0
     id: int | None = None
     revision: int = 0
     name: str

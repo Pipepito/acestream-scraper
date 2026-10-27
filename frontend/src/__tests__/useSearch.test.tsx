@@ -20,28 +20,17 @@ function setup() {
 
 beforeEach(() => jest.resetAllMocks());
 
-it('resolves a search infohash before saving the content ID and metadata', async () => {
-  api.post.mockResolvedValueOnce({ data: { content_id: CONTENT_ID } })
-    .mockResolvedValueOnce({ data: { id: CONTENT_ID, name: channel.name } });
+it('sends selected infohashes to authoritative server import, never manual creation', async () => {
+  api.post.mockResolvedValueOnce({ data: { items: [{ infohash: INFOHASH, content_id: CONTENT_ID, outcome: 'added' }] } });
   const { result } = setup();
   await act(async () => { await result.current.mutateAsync(channel); });
-  expect(api.post).toHaveBeenNthCalledWith(1, `/v1/search/${INFOHASH}/resolve`, {});
-  expect(api.post).toHaveBeenNthCalledWith(2, '/v1/acestream-channels/', {
-    id: CONTENT_ID, name: channel.name, group: 'sports',
-  });
+  expect(api.post).toHaveBeenCalledTimes(1);
+  expect(api.post).toHaveBeenCalledWith('/v1/search/import', { items: [{ infohash: INFOHASH, name: channel.name, category: 'sports' }] }, { timeout: 135000 });
 });
 
-it('does not save an unresolved infohash and can retry after resolution fails', async () => {
-  api.post.mockRejectedValueOnce(new Error('Engine unavailable'));
+it('returns excluded outcomes without retrying through manual creation', async () => {
+  api.post.mockResolvedValueOnce({ data: { items: [{ infohash: INFOHASH, outcome: 'excluded', rule_ids: [1] }] } });
   const { result } = setup();
-  await act(async () => {
-    await expect(result.current.mutateAsync(channel)).rejects.toThrow('Engine unavailable');
-  });
+  await act(async () => { expect((await result.current.mutateAsync(channel)).outcome).toBe('excluded'); });
   expect(api.post).toHaveBeenCalledTimes(1);
-  api.post.mockResolvedValueOnce({ data: { content_id: CONTENT_ID } })
-    .mockResolvedValueOnce({ data: { id: CONTENT_ID } });
-  await act(async () => { await result.current.mutateAsync(channel); });
-  expect(api.post).toHaveBeenLastCalledWith('/v1/acestream-channels/', {
-    id: CONTENT_ID, name: channel.name, group: 'sports',
-  });
 });

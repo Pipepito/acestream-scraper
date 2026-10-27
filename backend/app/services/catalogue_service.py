@@ -30,7 +30,8 @@ def public_view(snapshot, *, row=None, token=None, source_url=None):
         selected_branches=row.selected_branches if row else ['root'],
         mode=row.mode if row else 'compatible', refresh_enabled=row.refresh_enabled if row else False,
         can_refresh=bool(row.source_url if row else source_url),
-        updated_at=row.updated_at if row else None, preview_token=token)
+        updated_at=row.updated_at if row else None, preview_token=token,
+        policy_revision=snapshot.get("_policy_revision", 0))
 
 
 def remember(value):
@@ -107,6 +108,14 @@ class CatalogueService:
             snapshot['_reviewed_live_ids'] = old.get('_reviewed_live_ids', [e['id'] for e in old['entries'] if e.get('imported')]) if old else []
             # Persist unique final documents only, avoiding redirect-alias amplification.
             snapshot['documents'] = {value['url']: value for value in snapshot['documents'].values()}
+            from app.services.import_exclusion_service import ImportExclusionService
+            policy = ImportExclusionService(self.db).snapshot()
+            snapshot['_policy_revision'] = policy.revision
+            snapshot['counts']['excluded'] = 0
+            for entry in snapshot['entries']:
+                entry['excluded_rule_ids'] = (policy.matches(entry['channel_id'], entry['name'])
+                    if entry.get('channel_id') and entry.get('content_type') not in ('event', 'vod') else [])
+                snapshot['counts']['excluded'] += bool(entry['excluded_rule_ids'])
             token = remember(dict(snapshot=snapshot, source_url=source_url,
                                   catalogue_id=catalogue_id, revision=revision))
             row = self.repository.get(catalogue_id) if catalogue_id else None
@@ -116,14 +125,14 @@ class CatalogueService:
         finally:
             _ADMISSION.release()
 
-    def save(self, request):
+    def save(self, request, *, reviewed=True):
         with _SAVE_LOCK:
-            result = self._save(request)
+            result = self._save(request, reviewed=reviewed)
             with _PREVIEW_LOCK:
                 _PREVIEWS.pop(request.preview_token, None)
             return result
 
-    def _save(self, request):
+    def _save(self, request, *, reviewed=True):
         preview = recalled(request.preview_token)
         snapshot = preview['snapshot']
         entries = snapshot['entries']
@@ -142,6 +151,13 @@ class CatalogueService:
                 parent = by_id.get(parent, {}).get('parent_id')
             return False
         try:
+            from app.services.import_exclusion_service import ImportExclusionService
+            from app.api.error_handlers import APIError
+            policy = ImportExclusionService(self.db).snapshot(claim=True)
+            if reviewed and policy.revision != snapshot.get('_policy_revision', 0):
+                raise APIError('IMPORT_POLICY_CHANGED', 'Import exclusions changed. Preview again.', 409)
+            snapshot['_policy_revision'] = policy.revision
+            snapshot['counts']['excluded'] = sum(bool(policy.matches(e.get('channel_id') or '', e['name'])) for e in entries if e.get('channel_id') and e.get('content_type') not in ('event', 'vod'))
             row = self.repository.save(preview['catalogue_id'], preview['revision'], dict(
                 name=safe_text(request.name) or 'W3U catalogue', source_url=preview['source_url'],
                 snapshot=copy.deepcopy(snapshot), selected_branches=list(dict.fromkeys(request.selected_branches)),
@@ -157,6 +173,10 @@ class CatalogueService:
                         or entry.get('content_type') in ('event', 'vod')
                         or (not request.confirm_live and entry['id'] not in reviewed)
                         or (request.mode == 'acestream' and entry['kind'] != 'acestream')):
+                    continue
+                reviewed.add(entry['id'])
+                entry['excluded_rule_ids'] = policy.matches(channel_id, entry['name'])
+                if entry['excluded_rule_ids']:
                     continue
                 if channel_id not in imported:
                     # Existing rows retain operator names, assignments, activity,
@@ -193,7 +213,7 @@ class CatalogueService:
         from app.schemas.catalogue import CataloguePreviewRequest, CatalogueSaveRequest
         preview = self.preview(CataloguePreviewRequest(catalogue_id=catalogue_id))
         return self.save(CatalogueSaveRequest(preview_token=preview.preview_token, name=preview.name,
-            selected_branches=preview.selected_branches, mode=preview.mode, refresh_enabled=preview.refresh_enabled))
+            selected_branches=preview.selected_branches, mode=preview.mode, refresh_enabled=preview.refresh_enabled), reviewed=False)
 
     def refresh_enabled(self):
         ids = self.repository.enabled_ids()

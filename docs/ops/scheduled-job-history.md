@@ -131,3 +131,20 @@ A completed check moves the stream into a newer group, allowing repeated short
 passes to reach older lower-priority streams. No separate cursor is stored and
 ordering does not modify observations. This uses the configured stream-check
 interval, not a hard-coded freshness window.
+
+## Saved catalogue searches
+
+Saved searches run as a bounded substep of `url_scraping`, inheriting its existing
+cadence/anchors and catch-up. Manual targeted runs use the same maintenance FIFO,
+not the manual-history wrapper. Targets are reserved at enqueue time, so manual
+and scheduled work coalesce in either order. No nested FIFO acquisition occurs.
+Waiting/running states are persisted before admission; restart marks orphaned runs
+interrupted without replaying them immediately. Budget-deferred searches retain
+old attempt times so they lead the next batch. Deleting/pausing/editing an automatic
+target while waiting or fetching prevents stale apply. One-shot paused manual runs
+remain permitted at the accepted revision.
+
+Scrape summaries retain their top-level fields and add `saved_searches` and
+`import_exclusions`. Excluded is not failed, unresolved is not offline, and deferred
+is not checked. Notifications aggregate scheduled searches once per scrape pass.
+See [import execution contract](../dev/import-exclusions-and-saved-searches.md).

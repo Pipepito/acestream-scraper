@@ -218,6 +218,9 @@ async def lifespan(app: FastAPI):
             await asyncio.to_thread(task_service.restore_states)
             from app.services.schedule_config_service import load_schedule_anchors
             task_service.configure_schedule(await asyncio.to_thread(load_schedule_anchors))
+            from app.services.saved_search_service import scheduled_targets, prepare_target, finish_target
+            task_service.register_maintenance_targets('url_scraping', snapshot=scheduled_targets,
+                prepare=prepare_target, finish=finish_target, argument='saved_search_targets')
             task_service.start()
             task_service.add_interval_task(run_activity_log_cleanup, seconds=86400, job_id="activity_log_cleanup")  # daily
             scrape_hours, epg_hours, status_minutes = await asyncio.to_thread(_configured_intervals)

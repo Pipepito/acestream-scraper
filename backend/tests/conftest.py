@@ -566,7 +566,7 @@ acestream://fedcba987654321
 @pytest.fixture
 def mock_acestream_search():
     """Mock Acestream search API."""
-    with patch('app.services.search_service.requests.get') as mock_get:
+    with patch('app.services.search_catalogue_client.SearchCatalogueClient.get') as mock_get:
         mock_search_response = {
             "result": {
                 "results": [
@@ -607,13 +607,13 @@ def mock_acestream_engine():
                             "items": [
                                 {
                                     "name": "Test Channel 1",
-                                    "acestream_id": "test123456789",
+                                    "infohash": "a" * 40,
                                     "category": "Entertainment",
                                     "group": "Test Group"
                                 },
                                 {
                                     "name": "Test Channel 2",
-                                    "acestream_id": "test987654321",
+                                    "infohash": "b" * 40,
                                     "category": "Sports",
                                     "group": "Sports Group"
                                 }
@@ -640,28 +640,13 @@ def mock_acestream_engine():
 
 
 @pytest.fixture
-def mock_search_service(mock_acestream_engine):
-    """Mock the search service to avoid external API calls."""
-    with patch('requests.get') as mock_get:
-        def _mock_requests_get(url, params=None, timeout=None):
-            # Mock the requests.get call to the Acestream Engine
-            mock_response = Mock()
-            mock_response.status_code = 200
-
-            # Get query parameters from the params
-            query = params.get('query', '') if params else ''
-            page = params.get('page', 0) if params else 0
-            page_size = params.get('page_size', 10) if params else 10
-            category = params.get('category', '') if params else ''
-
-            # Generate mock response based on parameters
-            mock_data = mock_acestream_engine(query, page, page_size, category)
-            mock_response.json.return_value = mock_data
-            mock_response.text = json.dumps(mock_data)
-
-            return mock_response
-
-        mock_get.side_effect = _mock_requests_get
+def mock_search_service(mock_acestream_engine, db_session):
+    from app.repositories.settings_repository import SettingsRepository
+    SettingsRepository(db_session).set_setting('ace_engine_url', 'http://engine')
+    with patch('app.services.search_catalogue_client.SearchCatalogueClient.get') as mock_get:
+        def response(path, params):
+            return mock_acestream_engine(params.get('query', ''), params.get('page', 0), params.get('page_size', 10), params.get('category', ''))
+        mock_get.side_effect = response
         yield mock_get
 
 

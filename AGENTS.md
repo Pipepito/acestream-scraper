@@ -678,3 +678,21 @@ Integrations is a sidebar category with independent pages at
 Keep tuner settings with Media servers, WARP under System, and contextual links
 pointing directly to the relevant setup. Each page mounts only its own section;
 shared query keys and page-scoped feedback preserve existing operations.
+
+## Import exclusions and saved searches
+
+Scraper tabs are `?tab=sources|searches|exclusions`; old links default to Sources.
+Exclusions gate permanent channel imports before assignment/upsert, not playback or
+existing-channel editing. Keep raw scrape IDs separate from admitted IDs and protect
+excluded existing rows from pruning. Rule mutations and final import apply share
+the policy singleton DB write claim; previews never mutate inventory. Manual Add's
+explicit `allow_excluded` override must never propagate to automatic imports.
+
+Search imports resolve infohashes server-side and preserve existing metadata.
+Saved searches default paused, save configuration only, import additively and retain
+separate memberships. Query/category edits pause refresh. Target reservations use
+the shared maintenance FIFO at enqueue time, including scheduled `url_scraping`
+snapshots; never acquire the FIFO again inside that job. Workers own sessions and
+recheck definition/policy/run ownership before apply. Restart interrupts orphaned
+runs. Keep bounds, preview tokens, truthful partial outcomes and starvation-safe
+oldest-attempt ordering. See `docs/dev/import-exclusions-and-saved-searches.md`.

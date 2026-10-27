@@ -1,9 +1,11 @@
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router-dom';
 import { responsiveTableSx } from '../styles/responsiveTable';
 import React, { useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Box,
+  Tabs,
+  Tab,
   Button,
   TextField,
   Dialog,
@@ -37,6 +39,8 @@ import { useURLs, useCreateURL, useUpdateURL, usePatchURL, useDeleteURL, useScra
 import { CreateURLDTO, UpdateURLDTO, ScrapedURL, scraperService } from '../services/scraperService';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
+import ImportExclusions from '../components/imports/ImportExclusions';
+import SavedSearches from '../components/imports/SavedSearches';
 import StatusLine from '../components/StatusLine';
 import RowActionsMenu from '../components/RowActionsMenu';
 import { useConfirm } from '../components/ConfirmDialog';
@@ -89,7 +93,7 @@ const initialFormData: URLFormData = {
   scrape_bare_ids: false
 };
 
-const Scraper: React.FC = () => {
+const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation }) => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { confirm, dialog: confirmDialog } = useConfirm();
@@ -340,6 +344,7 @@ const Scraper: React.FC = () => {
         overflowActions={[{ label: 'W3U catalogues', onClick: () => navigate('/catalogues') }, { label: 'Extraction builder', onClick: () => navigate('/scraper/builder') }, { label: 'Refresh', icon: <RefreshIcon fontSize="small" />, onClick: () => void refetch(), disabled: isLoading }]}
       />
 
+      {navigation}
       <StatusLine
         aria-label="Source status"
         items={[
@@ -515,4 +520,15 @@ const Scraper: React.FC = () => {
   );
 };
 
+const Scraper: React.FC = () => {
+  const [params, setParams] = useSearchParams();
+  const selected = params.get('tab');
+  const tab = selected === 'searches' || selected === 'exclusions' ? selected : 'sources';
+  const navigation = <Tabs value={tab} onChange={(_, value: string) => { const next = new URLSearchParams(params); next.set('tab', value); setParams(next); }} aria-label="Scraper sections" variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile sx={{ mb: 2 }}>
+    <Tab value="sources" label="Sources" /><Tab value="searches" label="Saved searches" /><Tab value="exclusions" label="Import exclusions" />
+  </Tabs>;
+  return <Box>
+    {tab === 'sources' ? <ScraperSources navigation={navigation} /> : <><PageHeader title="Scraper" subtitle="Manage discoveries and future imports." />{navigation}{tab === 'searches' ? <SavedSearches /> : <ImportExclusions />}</>}
+  </Box>;
+};
 export default Scraper;

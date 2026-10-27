@@ -30,7 +30,7 @@ class EPGMatchingAutomation:
         except (ValueError, ValidationError):
             return EPGMatchingRun()
 
-    def run(self):
+    def run(self, *, import_excluded_ids=None):
         from app.services.epg_match_service import EPGMatchService
         from app.services.tvchannel_service import TVChannelService, _MATCH_APPLY_LOCK
         # The same lock covers reviewed applies. Repository assignments also
@@ -49,6 +49,7 @@ class EPGMatchingAutomation:
                 if selected:
                     applied = TVChannelService(self.db).create_tv_channels_from_epg_analysis(
                         'strict', [row['epg_channel_id'] for row in selected], automatic=True,
+                        import_excluded_ids=import_excluded_ids,
                         expected_previews={row['epg_channel_id']: row['review_token'] for row in selected})
                     result.created = applied['created_count']
                     result.assigned = applied['associated_count']

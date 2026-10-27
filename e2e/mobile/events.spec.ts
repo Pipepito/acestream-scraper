@@ -24,6 +24,7 @@ for (const mode of ['light', 'dark']) {
       const path = new URL(route.request().url()).pathname;
       let json: unknown = { status: 'ready', phase: 'Ready to use', events: [] };
       if (path === '/api/v1/events/sources') json = [];
+      if (path === '/api/v1/events/broadcast-targets') json = [];
       if (path === '/api/v1/events/retention') {
         json = { ended_days: 0, archived_days: 0 };
         if (route.request().method() === 'PATCH') { retained = true; json = route.request().postDataJSON(); }
@@ -42,16 +43,18 @@ for (const mode of ['light', 'dark']) {
     }, mode);
     await page.goto('/events');
     await expect(page.getByRole('heading', { name: 'Events', exact: true })).toBeVisible();
-    const title = page.getByRole('button', { name: fixture.title, exact: true });
+    const title = page.getByRole('button', { name: `View broadcasts for ${fixture.title}`, exact: true });
     await title.focus();
     await page.keyboard.press('Enter');
     await expect(page.getByRole('button', { name: 'Play Sports One' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Play DAZN' })).toHaveCount(0);
-    await expect(page.getByText('A compatible resolver is required.', { exact: false })).toBeVisible();
+    await expect(page.getByText('Link a channel to watch this broadcast.', { exact: true })).toBeVisible();
     await expect(page.getByRole('dialog', { name: 'Event details' })).toBeInViewport();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: test.info().outputPath(`event-details-${mode}.png`), fullPage: false, animations: 'disabled' });
-    await page.getByRole('button', { name: 'Map DAZN to a stream' }).click();
+    await page.getByRole('button', { name: 'Link DAZN', exact: true }).click();
+    await page.getByRole('combobox', { name: /^Link to/ }).click();
+    await page.getByRole('option', { name: 'Individual stream', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Save broadcast mapping' })).toBeDisabled();
     await page.getByRole('combobox', { name: 'Find stream for DAZN' }).click();
     await page.getByRole('option', { name: 'DAZN Spain · Spain · bbbbbbbb' }).click();
@@ -59,11 +62,14 @@ for (const mode of ['light', 'dark']) {
     await expect.poll(() => mapped).toBe(true);
     await page.getByRole('button', { name: 'Close event details' }).click();
     await expect(page.getByRole('button', { name: 'Add events', exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Today', exact: true }).click();
+    await page.getByRole('combobox', { name: /^When/ }).click();
+    await page.getByRole('option', { name: 'Choose a date', exact: true }).click();
     await expect(page.getByLabel('Event date', { exact: true })).toBeVisible();
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({ path: test.info().outputPath(`events-${mode}.png`), fullPage: true, animations: 'disabled' });
     await page.getByRole('button', { name: 'Add events', exact: true }).click();
+    await page.getByRole('combobox', { name: /^Add from/ }).click();
+    await page.getByRole('option', { name: 'Create an event', exact: true }).click();
     await page.getByLabel('Event title').fill('Another match');
     await page.getByRole('button', { name: 'Preview events', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Save selected (0)', exact: true })).toBeDisabled();

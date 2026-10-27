@@ -5,10 +5,14 @@ from app.repositories.channel_repository import ChannelRepository
 from app.schemas.extraction import ExtractedChannel
 
 
-def ingest_records(db: Session, records: list[ExtractedChannel], provenance: str) -> int:
+def ingest_records(db: Session, records: list[ExtractedChannel], provenance: str, *, policy=None) -> int:
+    from app.services.import_exclusion_service import ImportExclusionService
+    policy = policy or ImportExclusionService(db).snapshot(claim=True)
     repository = ChannelRepository(db)
     imported = 0
     for record in records:
+        if policy.matches(record.channel_id, record.name):
+            continue
         existing = repository.get_channel_by_id(record.channel_id)
         if existing is None:
             repository.create_or_update_channel(record.channel_id, record.name,

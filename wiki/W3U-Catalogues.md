@@ -129,3 +129,12 @@ updates are manual; the catalogue's scheduled-refresh switch does not change eve
 schedules. Stable unique publisher IDs preserve event identity across signed URL
 changes. Without one, changing the folder or media creates a different identity:
 review it carefully. Catalogue removal keeps existing events and channels.
+
+### Global import exclusions
+
+Installed previews retain the source tree and annotate excluded live entries.
+Excluded entries are not counted as imported. Explicitly reviewed live identities
+remain reviewed even when blocked, so disabling a rule allows their later refresh;
+unreviewed branches still require confirmation. Policy changes invalidate an open
+reviewed preview: preview again before saving. Existing channels stay unchanged.
+Event-only and VOD entries do not become permanent channels through exclusions.

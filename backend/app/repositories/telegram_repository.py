@@ -12,7 +12,7 @@ from app.schemas.extraction import RecipePreview
 def dto(row: TelegramSourceRow) -> TelegramSource:
     return TelegramSource(**row.config, id=row.id, chat_label=row.chat_label,
         sender_labels=row.sender_labels, cursor=row.cursor, state=row.state,
-        last_success=row.last_success, imported_count=row.imported_count, message=row.message)
+        last_success=row.last_success, imported_count=row.imported_count, excluded_count=row.excluded_count, message=row.message)
 
 
 def list_sources(account_id: str) -> list[TelegramSource]:
@@ -57,37 +57,6 @@ def set_status(source_id: int, state: str, message: str = '') -> None:
             row.state, row.message = state, message
             db.commit()
 
-
-def record(source_id: int, account_id: str, generation: int, message_id: int,
-           revision: str, result: RecipePreview, advance: bool) -> bool:
-    from app.services.incremental_ingestion_service import ingest_records
-    with SessionLocal() as db:
-        row = db.get(TelegramSourceRow, source_id)
-        if row is None or row.account_id != account_id or row.generation != generation or not row.config['enabled']:
-            return False
-        now = datetime.now(timezone.utc)
-        obs = db.get(TelegramObservation, (source_id, message_id))
-        if obs is None or obs.revision != revision:
-            count = ingest_records(db, result.channels, f'telegram-source:{source_id}')
-            row.imported_count += count
-            if obs is None:
-                obs = TelegramObservation(source_id=source_id, message_id=message_id)
-                db.add(obs)
-            obs.revision, obs.channel_ids, obs.observed_at = revision, [c.channel_id for c in result.channels], now
-        if advance:
-            row.cursor = max(row.cursor, message_id)
-        row.last_success, row.state, row.message = now, 'current', ''
-        db.flush()
-        # No bodies retained. Retain at most 1000 revisions/source and 30 days.
-        db.query(TelegramObservation).filter(TelegramObservation.source_id == source_id,
-            TelegramObservation.observed_at < now - timedelta(days=30)).delete(synchronize_session=False)
-        excess = [mid for (mid,) in db.query(TelegramObservation.message_id).filter_by(source_id=source_id)
-                  .order_by(TelegramObservation.message_id.desc()).offset(1000).all()]
-        if excess:
-            db.query(TelegramObservation).filter(TelegramObservation.source_id == source_id,
-                TelegramObservation.message_id.in_(excess)).delete(synchronize_session=False)
-        db.commit()
-        return True
 
 
 def observed_ids(source_id: int) -> list[int]:

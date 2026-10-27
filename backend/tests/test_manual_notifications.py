@@ -39,6 +39,7 @@ def test_manual_scrape_notifies_once(client, monkeypatch, sent, run_async, statu
     assert sent[0]["event"] == "url_scraping.completed"
     assert sent[0]["data"] == {
         "processed": 1, "failures": int(status.startswith("error")), "channels": 0,
+        "import_exclusions": {"excluded_candidates": 0},
     }
     assert "private" not in str(sent)
     assert "upstream details" not in str(sent)

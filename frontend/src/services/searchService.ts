@@ -18,27 +18,8 @@ export interface SearchResponse {
   pagination: SearchPagination;
 }
 
-export interface AddChannelRequest {
-  id: string;
-  name: string;
-}
-
-export interface AddChannelResponse {
-  success: boolean;
-  message: string;
-  channel: any; // Using 'any' for now, should be replaced with proper type
-}
-
-export interface AddMultipleRequest {
-  channels: AddChannelRequest[];
-}
-
-export interface AddMultipleResponse {
-  success: boolean;
-  message: string;
-  added_channels: any[]; // Using 'any' for now, should be replaced with proper type
-  existing_channels: any[]; // Using 'any' for now, should be replaced with proper type
-}
+export type SearchImportResponse = components['schemas']['SearchImportResponse'];
+export type SearchImportOutcome = components['schemas']['SearchImportOutcome'];
 
 const BASE_URL = '/v1/search';
 
@@ -66,7 +47,7 @@ export const searchService = {
     pageSize: number = 10,
     category?: string
   ): Promise<SearchResponse> => {
-    const params: Record<string, any> = {
+    const params: Record<string, string | number> = {
       query,
       page,
       // The backend declares this query parameter as `per_page`.
@@ -81,19 +62,10 @@ export const searchService = {
     return response.data;
   },
 
-  /**
-   * Add a channel from search results
-   */
-  addChannel: async (channel: AddChannelRequest): Promise<AddChannelResponse> => {
-    const response = await apiClient.post(`${BASE_URL}/add`, channel);
+  importResults: async (channels: SearchResultItem[]): Promise<SearchImportResponse> => {
+    const response = await apiClient.post<SearchImportResponse>(`${BASE_URL}/import`, {
+      items: channels.map(channel => ({ infohash: channel.id, name: channel.name, category: channel.categories?.[0] || '' })),
+    }, { timeout: 135000 });
     return response.data;
   },
-
-  /**
-   * Add multiple channels from search results
-   */
-  addMultipleChannels: async (channels: AddChannelRequest[]): Promise<AddMultipleResponse> => {
-    const response = await apiClient.post(`${BASE_URL}/add_multiple`, { channels });
-    return response.data;
-  }
 };

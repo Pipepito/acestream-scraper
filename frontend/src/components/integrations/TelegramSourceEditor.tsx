@@ -99,7 +99,7 @@ export default function TelegramSourceEditor({ api, source, onSaved, onCancel }:
           {preview.messages.length === 0 && <Typography>No recent messages.</Typography>}
           {preview.messages.map(message => <Box key={message.message_id} sx={{ borderBottom: 1, borderColor: 'divider', py: 1, overflowWrap: 'anywhere' }}>
             <Typography variant="body2">Message {message.message_id} · sender {message.sender_id ?? 'unverified'} · {message.outcome} · {message.result.duplicate_count} duplicates · {message.result.invalid_count} invalid</Typography>
-            {message.result.channels.map(channel => <Typography key={channel.channel_id} variant="body2">{channel.name} — {channel.channel_id}</Typography>)}
+            {message.result.channels.map(channel => <Typography key={channel.channel_id} variant="body2">{channel.name} — {channel.channel_id}{message.excluded_rule_ids?.[channel.channel_id]?.length ? <Button href={`/scraper?tab=exclusions#rule-${message.excluded_rule_ids[channel.channel_id][0]}`}>Excluded · Review rule</Button> : null}</Typography>)}
           </Box>)}
         </Stack>}
         <Stack direction="row" spacing={1}><Button variant="contained" disabled={!form.name.trim() || !form.chat_id} onClick={() => void run(async () => { await api.save(form, source?.id); await onSaved(); })}>Save source</Button><Button onClick={onCancel}>Cancel</Button></Stack>

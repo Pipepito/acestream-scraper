@@ -455,6 +455,7 @@ class TelegramSourceRow(Base):
     state = Column(String(32), nullable=False, default='waiting')
     last_success = Column(UtcDateTime(), nullable=True)
     imported_count = Column(Integer, nullable=False, default=0)
+    excluded_count = Column(Integer, nullable=False, default=0)
     message = Column(String(255), nullable=False, default='')
     generation = Column(Integer, nullable=False, default=0)
 
@@ -467,3 +468,60 @@ class TelegramObservation(Base):
     revision = Column(String(64), nullable=False)
     channel_ids = Column(JSON, nullable=False)
     observed_at = Column(UtcDateTime(), nullable=False)
+
+
+from sqlalchemy import CheckConstraint
+
+class ImportPolicyState(Base):
+    __tablename__ = 'import_policy_state'
+    __table_args__ = (CheckConstraint('id = 1', name='ck_import_policy_singleton'),)
+    id = Column(Integer, primary_key=True)
+    revision = Column(Integer, nullable=False, default=0)
+
+
+class ImportExclusionRule(Base):
+    __tablename__ = 'import_exclusion_rules'
+    __table_args__ = (
+        UniqueConstraint('kind', 'match_value', name='uq_import_exclusion_match'),
+        CheckConstraint("kind IN ('name_contains', 'name_equals', 'stream_id_equals')", name='ck_import_exclusion_kind'),
+    )
+    id = Column(Integer, primary_key=True)
+    kind = Column(String(32), nullable=False)
+    value = Column(String(256), nullable=False)
+    match_value = Column(String(768), nullable=False)
+    enabled = Column(Boolean, nullable=False, default=True, index=True)
+    note = Column(String(500), nullable=True)
+    revision = Column(Integer, nullable=False, default=1)
+    created_at = Column(UtcDateTime(), nullable=False, default=_utcnow)
+    updated_at = Column(UtcDateTime(), nullable=False, default=_utcnow)
+
+
+class SavedSearch(Base):
+    __tablename__ = 'saved_searches'
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), nullable=False)
+    query = Column(String(256), nullable=False)
+    category = Column(String(100), nullable=False)
+    fingerprint = Column(String(64), nullable=False, unique=True)
+    refresh_enabled = Column(Boolean, nullable=False, default=False)
+    revision = Column(Integer, nullable=False, default=1)
+    created_at = Column(UtcDateTime(), nullable=False, default=_utcnow)
+    updated_at = Column(UtcDateTime(), nullable=False, default=_utcnow)
+    last_attempt_at = Column(UtcDateTime())
+    last_started_at = Column(UtcDateTime())
+    last_finished_at = Column(UtcDateTime())
+    last_success_at = Column(UtcDateTime())
+    last_outcome = Column(String(32))
+    last_result = Column(JSON)
+    error_code = Column(String(64))
+    error_message = Column(String(255))
+    run_id = Column(String(32))
+    run_state = Column(String(32))
+
+
+class SavedSearchChannel(Base):
+    __tablename__ = 'saved_search_channels'
+    saved_search_id = Column(Integer, ForeignKey('saved_searches.id', ondelete='CASCADE'), primary_key=True)
+    channel_id = Column(String(255), ForeignKey('acestream_channels.id', ondelete='CASCADE'), primary_key=True)
+    first_discovered_at = Column(UtcDateTime(), nullable=False, default=_utcnow)
+    last_discovered_at = Column(UtcDateTime(), nullable=False, default=_utcnow)

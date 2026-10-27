@@ -22,6 +22,7 @@ class ChannelResult(BaseModel):
 
 
 class ScraperResult(BaseModel):
+    excluded_count: int = 0
     """Result model for scraper response"""
     message: str
     channels: List[ChannelResult]

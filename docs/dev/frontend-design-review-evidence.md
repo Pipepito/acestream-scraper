@@ -22,6 +22,12 @@ Recheck with `cd e2e && npx playwright test --config playwright.mobile.config.ts
   The journey uses mocked APIs; live catalogue/swarm behavior is covered separately
   by backend contract and ingress tests, not claimed by these screenshots.
 
+## Ko-fi Support Link (2026-10-27)
+
+- Built SPA checked with local Playwright Chromium at 1440×900 and 320×640 in both light and dark themes, with reduced motion and mocked API readiness. Screenshots confirmed the navigation footer link fits both layouts; no horizontal overflow or browser warnings/errors occurred.
+- Keyboard Tab from Changelog reaches Support on Ko-fi with a visible focus indicator. Enter opens `https://ko-fi.com/pipepito` in a new tab; the destination was intercepted locally for this check. The phone drawer closes after activation. The link has a 44px minimum height, announces the new tab, and uses `noopener noreferrer`.
+- `NavBarResponsive.test.tsx`: all six existing navigation tests passed. Typecheck, ESLint with zero warnings, production build and strict legacy-path guard passed. Vite reported its chunk-size warning for the player and data-grid bundles. This static link has no loading/error states.
+
 ## Shared Layout Primitives
 - Light theme: method=`CI=true npm test -- --runInBand --watch=false src/__tests__/layoutPrimitives.test.tsx src/__tests__/Dashboard.test.tsx` covering `createAppTheme('light')` for shared primitives and dashboard; result=pass; notes=verified the page header, `Controls`, `Recent Activity`, and `Background Tasks` render with semantic typography and surface tokens in light mode.
 - Dark theme: method=`CI=true npm test -- --runInBand --watch=false src/__tests__/layoutPrimitives.test.tsx src/__tests__/Dashboard.test.tsx` covering `createAppTheme('dark')` for shared primitives and dashboard; result=pass; notes=verified the same shared layout artifacts render under dark tokens without light-only color assumptions.

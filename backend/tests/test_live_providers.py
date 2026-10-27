@@ -92,6 +92,22 @@ def test_mediaset_imported_with_referer_and_guide():
     assert telecinco['group_title'] == 'Generalistas'
 
 
+@pytest.mark.parametrize('provider', [atresplayer, mediaset, sietetv, telemadrid])
+def test_every_play_header_survives_the_import(provider, fake):
+    """Checks, /live/ and the player use the headers the import stored, so one
+    the import drops is never sent. 7 TV's CDN answers 403 without Sec-Fetch-Mode."""
+    if provider is atresplayer:
+        fake({f'{atresplayer.API}/client/v1/info/channels': [{'title': 'Antena 3', 'id': 'a3'}]})
+    for meta in _imported(provider).values():
+        assert meta.get('stream_headers', {}) == provider.PLAY_HEADERS
+
+
+def test_sec_fetch_mode_reaches_kodi():
+    link = PlaylistService._stream_link('x', 'url:x', stream_url='https://cdn/live.m3u8',
+                                        stream_headers=dict(sietetv.PLAY_HEADERS))
+    assert '&Sec-Fetch-Mode=cors' in link, link
+
+
 def test_atresplayer_fetches_channels_and_keeps_only_tv(fake):
     fake({f'{atresplayer.API}/client/v1/info/channels': [
         {'title': 'Antena 3', 'id': 'a3'}, {'title': 'Nova', 'id': 'nv'},

@@ -244,6 +244,35 @@ becomes archaeology.
 
 ### Status
 
-Pending. Captured evidence will be added by whoever runs the visual
-review pass post-release. The behavior-level evidence above is
-sufficient for v2 ship sign-off.
+The complete cross-page capture set remains pending. Feature-specific curated
+captures are indexed below; they do not establish full release sign-off.
+
+## Visual Evidence Index — Import Management (2026-10-27)
+
+Application commit `fbb5c1a`, local ARM64 `scraper-acestream-acexy` image,
+real SPA and migrated SQLite API with a controlled upstream catalogue/source:
+
+- [Saved searches, light, 1440 × 960](screenshots/import-exclusions-saved-searches/searches-light-1440.png).
+- [Import exclusions, dark, 1440 × 960](screenshots/import-exclusions-saved-searches/exclusions-dark-1440.png).
+- [Import exclusions, light, 390 × 960](screenshots/import-exclusions-saved-searches/exclusions-light-390.png).
+- [Saved searches, dark, 390 × 960](screenshots/import-exclusions-saved-searches/searches-dark-390.png).
+
+All four were visually inspected and passed horizontal-overflow assertions.
+`e2e/tests/18-import-management.spec.ts` passed with strict browser/backend error
+monitoring, verifying configuration-only creation, manual/scheduled coalescing,
+automatic refresh, canonical IDs, metadata preservation, source reconciliation
+and explicit manual override. The deliberately provoked `IMPORT_EXCLUDED` log
+has a local expected-error assertion. See the [capture instructions and fixture
+scope](screenshots/import-exclusions-saved-searches/README.md).
+
+Separate live-engine Search journeys passed (3 tests), as did real-container
+navigation and guarded HTTP media/probe journeys (5 tests). Docker health,
+AceStream 3.2.17 and Acexy responded successfully; rules, saved-search history
+and engine configuration matched exactly after restart. These checks do not
+claim successful live P2P media playback or other architecture/flavor coverage.
+
+The complete deterministic responsive suite also passed: 140 tests in 2.1 minutes,
+covering Chromium phone/desktop, 320px WebKit and Firefox tablet in both themes.
+Existing Events test assumptions were aligned with the current accessible labels,
+mapping mode, manual-event selection and date controls; application behavior was
+unchanged. E2E TypeScript validation and the strict legacy-path guard passed.

@@ -466,7 +466,7 @@ class PlaylistService:
     # to the playlist AND to every segment it fetches from the CDN. The values
     # must be percent-encoded: unescaped, Kodi cuts each one at its first
     # space, and a 120-character User-Agent arrives as `Mozilla/5.0`.
-    _HEADER_ORDER = ("User-Agent", "Referer", "Origin")
+    _HEADER_ORDER = ("User-Agent", "Referer", "Origin", "Sec-Fetch-Mode")
 
     @staticmethod
     def _with_headers(url: str, headers: Optional[dict]) -> str:

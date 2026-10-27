@@ -25,9 +25,9 @@ GEO = 'https://geo.dailymotion.com'
 PLAYER_ID = 'x11h8c'
 PUBLISHER_ID = 'x2mgfup'
 VIDEO = GEO + '/videos/%s'
-# Applied when the stream is opened (live.py), whatever the import stored.
+# Published in the provider's playlist; the import keeps each of them.
 PLAY_HEADERS = {'User-Agent': base.USER_AGENT, 'Referer': GEO + '/', 'Origin': GEO,
-                'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Site': 'same-site', 'Sec-Fetch-Dest': 'empty'}
+                'Sec-Fetch-Mode': 'cors'}
 
 # Dailymotion id -> (name, guide id). dobleM's id: a week ahead, where
 # TDTChannels' 7Rioja.TV has the same programmes but only today.

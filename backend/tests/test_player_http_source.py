@@ -106,6 +106,12 @@ def test_proxy_headers_redirects_ranges_and_metadata_blocking(monkeypatch):
     asyncio.run(run())
 
 
+def test_source_keeps_sec_fetch_mode():
+    """7 TV La Rioja's CDN answers 403 to a manifest request without it."""
+    source = PlayerHTTPSource('https://origin.example/live', {'Sec-Fetch-Mode': 'cors', 'Host': 'evil.invalid'})
+    assert source.headers == {'Sec-Fetch-Mode': 'cors'}
+
+
 def test_broadcaster_resolution_is_fresh_and_cancellable(monkeypatch):
     monkeypatch.setattr(http_source, 'stored_http_source', lambda _: HTTPStreamSource('atresplayer://lasexta', {}))
     calls = []

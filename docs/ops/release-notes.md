@@ -13,6 +13,14 @@ nested lists and links are rejected so the offline view cannot silently differ.
 Keep technical links and detailed procedures in the wiki. Historical entries
 are curated summaries; this does not rewrite previously published GitHub releases.
 
+Credit community implementation work by verified GitHub handle and PR number in
+a Contributors section. Thank issue authors for the specific ideas, reports or
+reproductions behind included changes in a separate acknowledgements section.
+Check authorship and merged commits against the release branch; distinguish
+contributed code from suggestions, and describe partial fixes without implying
+that their umbrella issue is complete. Plain-text handles and issue/PR numbers
+keep attribution compatible with both the offline view and GitHub publication.
+
 Run `cd frontend && npm run changelog`, then commit both the Markdown and generated
 `frontend/src/data/changelog.ts`. `prebuild` and `prestart` reject drift. The main
 Docker build also checks `version.txt`; the standalone frontend context checks

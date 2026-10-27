@@ -4,7 +4,7 @@ Discover AceStream streams, organize your TV channels, and watch or share them w
 
 Scraper brings sources, programme guides, playlists, and playback together. Import links from web pages, playlists, JSON, text, ZeroNet, or IPFS, then turn them into a catalogue you can browse and maintain.
 
-**[Get started](https://pipepito.github.io/acestream-scraper/)** · [Docker Hub](https://hub.docker.com/r/pipepito/acestream-scraper) · [Docs](https://github.com/Pipepito/acestream-scraper/wiki)
+**[Get started](https://pipepito.github.io/acestream-scraper/)** · [Docker Hub](https://hub.docker.com/r/pipepito/acestream-scraper) · [Docs](https://github.com/Pipepito/acestream-scraper/wiki) · [Support on Ko-fi](https://ko-fi.com/pipepito)
 
 ![Live TV with the channel catalogue and programme guide](wiki/usage-09-live-tv.png)
 
@@ -102,5 +102,9 @@ The [illustrated walkthrough](https://github.com/Pipepito/acestream-scraper/wiki
 Found a bug or have an idea? [Open an issue](https://github.com/Pipepito/acestream-scraper/issues). To help with source formats, see [contributing scraper data](https://github.com/Pipepito/acestream-scraper/wiki/Contributing-Scraper-Data).
 
 For code contributions, start with the [development guide](https://github.com/Pipepito/acestream-scraper/wiki/Development) and [technical documentation](docs/README.md). Pull requests target `develop`.
+
+## Support the project
+
+If Acestream Scraper is useful to you, you can [support its development on Ko-fi](https://ko-fi.com/pipepito). Thank you for helping keep the project going.
 
 Licensed under MIT.

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import { Alert, Box, Button, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import { type SportingEvent, type EventFields, type EventUpdate } from '../../services/eventService';
 import { EventChannelName } from './EventAgenda';
@@ -40,6 +41,15 @@ export default function EventDetails({ event, zone, busy, onUpdate, onPlay }: Pr
       {event.state === 'postponed' ? <Alert severity="info">Postponed. Check the revised start time before watching.</Alert> : null}
       {event.state === 'finished' ? <Alert severity="info">This event has ended. A listed stream may now show other programming.</Alert> : null}
       {event.state === 'cancelled' ? <Alert severity="info">This event was cancelled.</Alert> : null}
+      {event.epg_matches?.length ? <Stack spacing={1}>
+        <Typography component="h3" variant="subtitle1" fontWeight={600}>Matching guide programmes</Typography>
+        {event.epg_matches.map((match) => <Stack key={match.program_id} spacing={0.5}>
+          <Typography>{match.title} · {new Date(match.starts_at).toLocaleString(undefined, { timeZone: zone })}</Typography>
+          <Button component={RouterLink} to={`/epg/channels/${match.epg_channel.id}`} sx={{ alignSelf: 'flex-start' }}>{match.epg_channel.name} · {match.epg_channel.source_name}</Button>
+          {match.tv_channel ? <Button component={RouterLink} to={`/tv-channels/${match.tv_channel.id}`} sx={{ alignSelf: 'flex-start' }}>Open {match.tv_channel.name}</Button> : null}
+        </Stack>)}
+        <Typography variant="caption">Matched by both teams and schedule time. Guide listings do not confirm live signal.</Typography>
+      </Stack> : null}
       <Typography component="h3" variant="subtitle1" fontWeight={600}>Where to watch</Typography>
       {!event.broadcasts.length ? <Alert severity="info">No broadcast announced yet. You can follow this event and check back after the next import.</Alert> : null}
       {event.broadcasts.map((broadcast) => <Stack key={broadcast.id} direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ py: 1.5, borderTop: 1, borderColor: 'divider' }}>

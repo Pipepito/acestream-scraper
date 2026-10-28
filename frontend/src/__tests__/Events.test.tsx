@@ -1,6 +1,6 @@
 import React from 'react';
 import { TestMemoryRouter } from '../testUtils/router';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from '@mui/material/styles';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -10,7 +10,7 @@ import EventAgenda from '../components/events/EventAgenda';
 import channelService from '../services/channelService';
 import { eventService, type SportingEvent } from '../services/eventService';
 
-jest.mock('../services/eventService', () => ({ eventService: { list: jest.fn(), get: jest.fn(), preview: jest.fn(), apply: jest.fn(), update: jest.fn(), sources: jest.fn(), previewSource: jest.fn(), updateSource: jest.fn(), retention: jest.fn(), saveRetention: jest.fn(), mapBroadcast: jest.fn(), artwork: jest.fn(), refreshSources: jest.fn(), providers: jest.fn(), interests: jest.fn(), broadcastTargets: jest.fn(), mapBroadcastTarget: jest.fn() } }));
+jest.mock('../services/eventService', () => ({ eventService: { list: jest.fn(), get: jest.fn(), preview: jest.fn(), apply: jest.fn(), update: jest.fn(), sources: jest.fn(), previewSource: jest.fn(), updateSource: jest.fn(), deleteSource: jest.fn(), retention: jest.fn(), saveRetention: jest.fn(), mapBroadcast: jest.fn(), artwork: jest.fn(), refreshSources: jest.fn(), providers: jest.fn(), interests: jest.fn(), broadcastTargets: jest.fn(), mapBroadcastTarget: jest.fn() } }));
 jest.mock('../services/channelService', () => ({ __esModule: true, default: { getAcestreamChannels: jest.fn() } }));
 jest.mock('../components/player/StreamPlayerDialog', () => ({ __esModule: true, default: ({ open, contentId, onClose }: { open: boolean; contentId: string; onClose: () => void }) => {
   const { Dialog } = jest.requireActual<typeof import('@mui/material')>('@mui/material');
@@ -315,4 +315,29 @@ it('opens a dashboard deep link and handles archived or missing events', async (
   renderPage('light', '/events?event=missing');
   expect(await screen.findByText(/The event may have been removed/)).toBeVisible();
   expect(screen.getByRole('button', { name: 'Close event details' })).toBeVisible();
+});
+
+
+it('confirms source removal and keeps imported events', async () => {
+  const user = userEvent.setup();
+  service.sources.mockResolvedValue([{ id: 'source', revision: 2, last_attempt: null, last_success: null, last_result: null, name: 'Football guide', origin: 'example.org', enabled: true, reviewed: 1, format: 'event_import', timezone: 'Europe/Madrid' }]);
+  service.deleteSource.mockResolvedValue(undefined);
+  renderPage();
+  await user.click(screen.getByRole('button', { name: 'Sources & retention' }));
+  await user.click(await screen.findByRole('button', { name: 'Delete source' }));
+  expect(screen.getByText(/Imported events, manual corrections and channels will be kept/)).toBeVisible();
+  await user.click(screen.getByRole('button', { name: 'Cancel' }));
+  expect(service.deleteSource).not.toHaveBeenCalled();
+  await user.click(screen.getByRole('button', { name: 'Delete source' }));
+  const dialog = screen.getByRole('dialog');
+  await user.click(within(dialog).getByRole('button', { name: 'Delete source' }));
+  await waitFor(() => expect(service.deleteSource).toHaveBeenCalledWith('source', 2));
+});
+
+it('shows matched guide programmes and assigned TV channel links', async () => {
+  service.get.mockResolvedValue({ ...event, epg_matches: [{ program_id: 7, title: 'Cup: North United - South City', starts_at: event.starts_at!, ends_at: '2026-10-24T23:30:00Z', epg_channel: { kind: 'epg', id: 3, name: 'Guide Sports', source_name: 'Local guide' }, tv_channel: { kind: 'tv', id: 4, name: 'Sports TV' } }] });
+  renderPage('dark', `/events?event=${event.id}`);
+  expect(await screen.findByText('Matching guide programmes')).toBeVisible();
+  expect(screen.getByRole('link', { name: /Guide Sports/ })).toHaveAttribute('href', '/epg/channels/3');
+  expect(screen.getByRole('link', { name: 'Open Sports TV' })).toHaveAttribute('href', '/tv-channels/4');
 });

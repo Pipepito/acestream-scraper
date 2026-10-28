@@ -169,7 +169,17 @@ class ProvenanceView(StrictModel):
     updated_at: datetime
 
 
+class EventProgramMatch(StrictModel):
+    program_id: int
+    title: str
+    starts_at: datetime
+    ends_at: datetime
+    epg_channel: 'EventChannelTarget'
+    tv_channel: 'EventChannelTarget | None' = None
+
+
 class EventView(EventFields):
+    epg_matches: list[EventProgramMatch] = Field(default_factory=list)
     has_artwork: bool = False
     id: str
     revision: int

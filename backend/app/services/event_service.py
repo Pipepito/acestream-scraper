@@ -68,6 +68,8 @@ class EventService:
         self.repo = EventRepository(db)
         from app.services.event_broadcast_service import EventBroadcastService
         self.broadcasts = EventBroadcastService(self.repo)
+        from app.services.event_epg_service import EventEPGService
+        self.epg = EventEPGService(self.repo)
 
     def _channels(self, observations, events=()):
         ids = {cid for event in events for cid in (event.broadcast_mappings or {}).values() if isinstance(cid, str)}
@@ -125,7 +127,7 @@ class EventService:
                     compatibility=compatibility, reason=reason,
                     is_online=channel.is_online if channel else None,
                     checked_at=channel.last_checked if channel else None))
-        return EventView(has_artwork=any(o.payload.get('artwork_url') for o in observations), **(event.correction or event.fields), id=event.id, revision=event.revision,
+        return EventView(epg_matches=self.epg.match(event.correction or event.fields), has_artwork=any(o.payload.get('artwork_url') for o in observations), **(event.correction or event.fields), id=event.id, revision=event.revision,
             corrected=bool(event.correction), followed=event.followed, archived=event.archived,
             broadcasts=broadcasts, provenance=provenance)
 

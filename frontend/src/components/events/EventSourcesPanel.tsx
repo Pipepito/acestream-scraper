@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Alert, Box, Button, Checkbox, CircularProgress, FormControlLabel, Stack, TextField, Typography } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useConfirm } from '../ConfirmDialog';
 import ContentSection from '../layout/ContentSection';
 import { eventService, type EventSource, type EventRetention } from '../../services/eventService';
 import { eventErrorMessage as getErrorMessage } from './eventErrors';
@@ -28,13 +29,18 @@ function RetentionForm({ policy }: { policy: EventRetention }) {
 
 export default function EventSourcesPanel({ onReview }: { onReview: (source: EventSource) => void }) {
   const cache = useQueryClient();
+  const { confirm, dialog } = useConfirm();
+  const remove = useMutation({ mutationFn: (source: EventSource) => eventService.deleteSource(source.id, source.revision),
+    onSuccess: () => { void cache.invalidateQueries({ queryKey: ['events', 'sources'] }); } });
   const sources = useQuery({ queryKey: ['events', 'sources'], queryFn: eventService.sources, refetchInterval: 15000 });
   const refresh = useMutation({ mutationFn: eventService.refreshSources });
   const retention = useQuery({ queryKey: ['events', 'retention'], queryFn: eventService.retention });
   const update = useMutation({ mutationFn: ({ source, enabled }: { source: EventSource; enabled: boolean }) => eventService.updateSource(source.id, source.revision, enabled),
     onSuccess: () => { void cache.invalidateQueries({ queryKey: ['events', 'sources'] }); } });
   return <ContentSection title="Sources & retention">
+    {dialog}
     <Stack spacing={2}>
+      {remove.isError ? <Alert severity="error">{getErrorMessage(remove.error)}</Alert> : null}
       <Typography variant="body2">Saved sources refresh with the scraping schedule in Settings → Automation. Run scraping and event refresh below to queue a pass now. Only reviewed events update automatically; use Review schedule to add new events.</Typography>
       <Box><Button disabled={refresh.isPending || !sources.data?.some((source) => source.enabled)} onClick={() => refresh.mutate()}>Run scraping & event refresh</Button></Box>
       {refresh.isSuccess ? <Alert severity="info">{refresh.data.message}</Alert> : null}
@@ -48,6 +54,9 @@ export default function EventSourcesPanel({ onReview }: { onReview: (source: Eve
         <Stack direction="row" gap={1} flexWrap="wrap">
           <FormControlLabel control={<Checkbox checked={source.enabled} disabled={update.isPending} onChange={(_, enabled) => update.mutate({ source, enabled })} />} label={`Automatic refresh for ${source.name}`} />
           <Button onClick={() => onReview(source)}>Review schedule</Button>
+          <Button color="error" disabled={remove.isPending || update.isPending} onClick={async () => {
+            if (await confirm({ title: `Delete ${source.name}?`, body: 'Remove this source and stop its automatic refresh. Imported events, manual corrections and channels will be kept.', confirmLabel: 'Delete source', danger: true })) remove.mutate(source);
+          }}>Delete source</Button>
         </Stack>
       </Stack>)}
       {retention.isPending ? <CircularProgress aria-label="Loading event retention" /> : retention.isError ? <Alert severity="error" action={<Button onClick={() => void retention.refetch()}>Retry retention</Button>}>Could not load retention.</Alert> : <RetentionForm policy={retention.data} />}

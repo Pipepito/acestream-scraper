@@ -105,10 +105,15 @@ def parse_wosti(raw, *, feed='all'):
     observations = []
     for table in tables:
         day = None
+        section_competition = ""
         for row in table.select('tr'):
             if 'cabeceraTabla' in row.get('class', []):
+                section_competition = ''
                 found = re.search(r'\b(\d{2}/\d{2}/\d{4})\b', row.get_text(' ', strip=True))
                 day = datetime.strptime(found[1], '%d/%m/%Y').date() if found else None
+                continue
+            if 'cabeceraCompericion' in row.get('class', []):
+                section_competition = row.get_text(' ', strip=True)
                 continue
             clock_node = row.select_one('td.hora')
             if not clock_node:
@@ -119,8 +124,8 @@ def parse_wosti(raw, *, feed='all'):
                 sport_node = row.select_one('.contenedorImgCompeticion > img')
             sport = sport_node.get('alt', '') if sport_node else ('Fútbol' if feed == 'football' else FEEDS[feed])
             sport = SPORT_NAMES.get(sport, sport)
-            competition = competition_node.get_text(' ', strip=True) if competition_node else ''
-            teams = [node.get_text(' ', strip=True) for node in row.select('td.local > span, td.visitante > span')]
+            competition = section_competition or (competition_node.get_text(' ', strip=True) if competition_node else '')
+            teams = [node.get_text(' ', strip=True) for node in row.select('td.local > span, td.local > a > span, td.visitante > span, td.visitante > a > span')]
             single = row.select_one('.eventoUnico')
             title = ' vs '.join(teams) if len(teams) == 2 else single.get_text(' · ', strip=True) if single else ''
             if not day or not title or not competition or not sport:

@@ -75,10 +75,9 @@ const Search: React.FC = () => {
   const searchErrorMessage = searchError instanceof Error ? searchError.message : String(searchError);
 
   const handleSearch = useCallback(() => {
-    if (!searchQuery.trim()) return;
 
     setActiveSearch({
-      query: searchQuery,
+      query: searchQuery.trim(),
       page: 1,
       category,
     });
@@ -174,6 +173,7 @@ const Search: React.FC = () => {
             <TextField
               fullWidth
               label="Search Query"
+              helperText="Leave blank to browse all published channels."
               placeholder="Enter search terms..."
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
@@ -197,14 +197,14 @@ const Search: React.FC = () => {
             </FormControl>
           </Grid>
           <Grid item xs={12} md={2}>
-            <Button fullWidth variant="contained" size="large" onClick={handleSearch} disabled={!searchQuery.trim() || searchLoading}>
+            <Button fullWidth variant="contained" size="large" onClick={handleSearch} disabled={searchLoading}>
               {searchLoading ? <CircularProgress size={24} color="inherit" /> : 'Search'}
             </Button>
           </Grid>
         </Grid>
       </ContentSection>
 
-      {activeSearch ? <Button sx={{ mb: 2 }} onClick={() => setSaveOpen(true)}>Save search</Button> : null}
+      {activeSearch?.query ? <Button sx={{ mb: 2 }} onClick={() => setSaveOpen(true)}>Save search</Button> : null}
       {saveOpen && activeSearch ? <SavedSearchDialog initial={{ name: activeSearch.query.slice(0, 100), query: activeSearch.query, category: activeSearch.category, refresh_enabled: false }} onClose={() => setSaveOpen(false)} /> : null}
       {importMessage ? <Alert severity="info" sx={{ mb: 2 }}>{importMessage}<Button component={RouterLink} to={`/scraper?tab=exclusions${importRuleId ? `#rule-${importRuleId}` : ''}`}>{importRuleId ? `Exclusion rule #${importRuleId}` : 'Import exclusions'}</Button></Alert> : null}
       {searchError && activeSearch ? (
@@ -227,7 +227,7 @@ const Search: React.FC = () => {
           <StatusLine
             aria-label="Search summary"
             items={[
-              { label: 'Results', value: `${totalResults} for ‘${activeSearch.query}’${activeSearch.category ? ` in ${activeSearch.category}` : ''}` },
+              { label: 'Results', value: `${totalResults} ${activeSearch.query ? `for ‘${activeSearch.query}’` : 'in all channels'}${activeSearch.category ? ` in ${activeSearch.category}` : ''}` },
               { label: 'Selected', value: String(selectedChannels.length) },
               ...(addedIds.size > 0 ? [{ label: 'Added this session', value: String(addedIds.size), tone: 'success' as const }] : []),
             ]}

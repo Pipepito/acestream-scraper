@@ -32,6 +32,7 @@ export const eventService = {
   previewSource: async (input: EventSourcePreviewRequest): Promise<EventPreview> => (await apiClient.post('/v1/events/sources/preview', input)).data,
   updateSource: async (id: string, revision: number, enabled: boolean): Promise<EventSource> =>
     (await apiClient.patch(`/v1/events/sources/${id}`, { revision, enabled })).data,
+  deleteSource: async (id: string, revision: number): Promise<void> => { await apiClient.delete(`/v1/events/sources/${id}`, { params: { revision } }); },
   refreshSources: async (): Promise<components['schemas']['EventRefreshQueued']> => (await apiClient.post('/v1/events/sources/refresh')).data,
   retention: async (): Promise<EventRetention> => (await apiClient.get('/v1/events/retention')).data,
   saveRetention: async (input: EventRetention): Promise<EventRetention> => (await apiClient.patch('/v1/events/retention', input)).data,

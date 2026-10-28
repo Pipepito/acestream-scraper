@@ -242,3 +242,24 @@ The summary refreshes every minute and on window focus. Opening an event uses th
 existing broadcasts/details view; closing it returns to the agenda. Dashboard reads
 never import schedules, change provider interests or start playback. Add or review
 provider events from **Events** as usual.
+
+### Removing a schedule source and finding guide programmes
+
+In **Sources & retention**, **Delete source** removes the saved provider/URL and
+stops automatic refresh. Confirmation explains that imported events, corrections,
+following and permanent channels are retained. Archive unwanted events separately.
+A stale edit or pending preview cannot recreate a deleted source; reload and review
+it again to add it back.
+
+Event previews and details check imported, enabled EPG guides for both participant
+names in programme titles/subtitles, ignoring case, accents and punctuation.
+Known kickoffs allow programme starts within 30 minutes; unknown kickoffs use the
+source's local calendar date. Repeats on one guide channel, widely separated start
+times and known replay/highlights labels are left unmatched. This first matching
+pass requires both full team names; aliases and abbreviations are not guessed.
+
+**Matching guide programmes** links to the guide channel and, when exactly one
+active TV channel has that source-qualified guide assignment, to that TV channel.
+Matches are rechecked against current guide data, including after EPG replacement.
+Source broadcasts, manual choices and kickoff times stay intact. A programme
+association does not prove live signal or create a permanent channel.

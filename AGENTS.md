@@ -584,7 +584,10 @@ association is explicit. Require source timezones, reject ambiguous/nonexistent
 local times without an offset, and never infer live state or media signal from
 clock/import. Event-only HTTP media uses the shared guarded player without TV
 assignments or playlist export. Following is installation-wide; archive is
-reversible until opt-in retention deletes eligible rows. W3U entries have an explicit reviewed event bridge; Telegram transport remains separate; no guide overlay is offered here.
+reversible until opt-in retention deletes eligible rows. W3U entries have an explicit reviewed event bridge; Telegram transport remains separate. Read-only EPG programme associations use both
+participant names and bounded schedule times, preserve source/manual metadata, and
+link TV channels only through unambiguous source-qualified guide assignments.
+Source deletion removes refresh configuration while retaining imported events.
 See `docs/dev/sporting-events.md` and `wiki/Sports-Events.md`.
 
 

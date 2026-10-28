@@ -264,3 +264,21 @@ def test_refresh_now_uses_existing_deduplicated_job(client, monkeypatch, outcome
     assert calls == ['url_scraping']
     if status == 200:
         assert response.json()['status'] == outcome
+
+
+def test_delete_source_preserves_events_and_invalidates_pending_review(client, feed):
+    data = source_preview(client)
+    source = save_source(client, data)
+    before = client.get('/api/v1/events').json()
+    pending = client.post('/api/v1/events/sources/preview', json={'source_id': source['id']}).json()
+    path = '/api/v1/events/sources/' + source['id']
+    assert client.delete(path, params={'revision': source['revision'] + 1}).status_code == 409
+    assert len(client.get('/api/v1/events/sources').json()) == 1
+    assert client.delete(path, params={'revision': source['revision']}).status_code == 204
+    assert client.get('/api/v1/events/sources').json() == []
+    assert client.get('/api/v1/events').json() == before
+    response = client.post('/api/v1/events/apply', json={'token': pending['token'],
+        'selected_ids': [e['id'] for e in pending['events']], 'refresh_source': True})
+    assert response.status_code == 409
+    assert client.get('/api/v1/events/sources').json() == []
+    assert client.get('/api/v1/events').json() == before

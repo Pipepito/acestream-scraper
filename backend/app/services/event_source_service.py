@@ -136,6 +136,14 @@ class EventSourceService:
             raise
         return self.view(self.repo.get(source_id))
 
+    def delete(self, source_id, revision):
+        try:
+            self.repo.delete(source_id, revision)
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
+
     def refresh(self, source_id, *, timeout=15):
         row = self.repo.get(source_id)
         if not row or not row.enabled:

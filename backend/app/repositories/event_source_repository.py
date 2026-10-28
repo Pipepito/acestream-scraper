@@ -23,6 +23,12 @@ class EventSourceRepository:
         if result.rowcount != 1:
             raise ValueError('Schedule source changed; review it again')
 
+    def delete(self, source_id, revision):
+        result = self.db.execute(delete(EventScheduleSource).where(
+            EventScheduleSource.id == source_id, EventScheduleSource.revision == revision))
+        if result.rowcount != 1:
+            raise ValueError('Schedule source changed; reload before deleting')
+
     def observations(self, identity):
         return list(self.db.scalars(select(EventObservationRecord).where(EventObservationRecord.source_id == identity)))
 

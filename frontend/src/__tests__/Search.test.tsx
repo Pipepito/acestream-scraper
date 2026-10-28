@@ -122,6 +122,16 @@ describe('Search page', () => {
     mockUseAddSearchResult.mockReturnValue({ mutateAsync: jest.fn(), isPending: false });
   });
 
+  it('browses all channels on an empty search and keeps pagination', () => {
+    configureSearchMock({ results: { ...defaultResults, pagination: { page: 1, page_size: 10, total_results: 25, total_pages: 3 } } });
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+    expect(mockUseSearch).toHaveBeenLastCalledWith('', 1, 10, '', { enabled: true });
+    expect(screen.getByText('25 in all channels')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /go to page 2/i }));
+    expect(mockUseSearch).toHaveBeenLastCalledWith('', 2, 10, '', { enabled: true });
+  });
+
   it('renders shared header and section-first search hierarchy', () => {
     renderPage();
 

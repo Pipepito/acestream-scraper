@@ -11,7 +11,7 @@ import json
 import pytest
 
 from app.services import live_providers
-from app.services.live_providers import base, pluto
+from app.services.live_providers import base, plex, pluto
 from app.services.m3u_service import M3UService
 from app.services.playlist_service import PlaylistService
 
@@ -74,6 +74,7 @@ def _imported(provider):
 
 @pytest.mark.parametrize('url, provider', [
     ('https://pluto.tv/es/live-tv', pluto),
+    ('https://watch.plex.tv/es/live-tv', plex),
 ])
 def test_website_is_recognised(url, provider):
     assert live_providers.for_source_url(url) is provider
@@ -81,6 +82,7 @@ def test_website_is_recognised(url, provider):
 
 def test_scheme_selects_resolver():
     assert live_providers.for_stream_url('pluto://abcdef0123456789abcdef01') is pluto
+    assert live_providers.for_stream_url('plex://a-b') is plex
 
 
 # --- Pluto TV ---------------------------------------------------------------
@@ -173,6 +175,55 @@ def test_pluto_boot_has_the_fields_it_requires(fake):
 def test_pluto_rejects_a_made_up_id(fake):
     http = fake({})
     assert live_providers.resolve('pluto://../../x') is None
+    assert http.calls == []
+
+
+# --- Plex -------------------------------------------------------------------
+
+PLEX_ID = 'cccccccccccccccccccccccc-dddddddddddddddddddddddd'
+
+
+def _plex_list(token='tok-1'):
+    return {'headers': {'user-agent': 'Mozilla/5.0', 'X-Plex-Token': token},
+            'regions': {'es': {'name': 'Spain'}},
+            'channels': {
+                PLEX_ID: {'name': 'Serie Ejemplo', 'logo': 'https://plex/logo.png', 'regions': ['es']},
+                'cccccccccccccccccccccccc-aaaaaaaaaaaaaaaaaaaaaaaa': {'name': 'Solo EE. UU.', 'regions': ['us']},
+            }}
+
+
+def test_plex_imports_spanish_channels(fake):
+    fake({plex.LIST: _plex_list()})
+    streams = _imported(plex)
+    assert set(streams) == {'Serie Ejemplo'}
+    assert streams['Serie Ejemplo']['stream_url'] == f'plex://{PLEX_ID}'
+    assert streams['Serie Ejemplo']['tvg_logo'] == 'https://plex/logo.png'
+    assert streams['Serie Ejemplo']['group_title'] == 'Plex'
+
+
+def test_plex_resolves_without_the_redirector(fake):
+    """jmp2.uk only adds the list's shared token to Plex's own URL, and
+    answers 429 after ~35 requests: the link is built here instead."""
+    http = fake({plex.LIST: _plex_list()})
+    plex.channels()
+    link = live_providers.resolve(f'plex://{PLEX_ID}')
+    assert link == f'https://epg.provider.plex.tv/library/parts/{PLEX_ID}.m3u8?X-Plex-Token=tok-1'
+    assert len(http.calls) == 1, 'the token from the import is reused'
+
+
+def test_plex_reads_the_token_once_after_a_restart(fake, clock):
+    http = fake({plex.LIST: _plex_list()})
+    assert live_providers.resolve(f'plex://{PLEX_ID}').endswith('tok-1')
+    assert live_providers.resolve(f'plex://{PLEX_ID}').endswith('tok-1')
+    assert len(http.calls) == 1
+    clock.now += plex.TOKEN_SECONDS + 1
+    http.answers[plex.LIST] = _plex_list('tok-2')
+    assert live_providers.resolve(f'plex://{PLEX_ID}').endswith('tok-2')
+
+
+def test_plex_rejects_a_made_up_id(fake):
+    http = fake({})
+    assert live_providers.resolve('plex://x?y=1') is None
     assert http.calls == []
 
 

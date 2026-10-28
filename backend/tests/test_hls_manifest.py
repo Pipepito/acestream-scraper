@@ -350,3 +350,40 @@ def test_hung_origin_is_also_time_limited(lan, client, db_session, monkeypatch):
     assert client.get(f'/live/{stream.id}').status_code == 502
     assert clock.monotonic() - started < 1.5
     assert cancelled == [True]
+
+
+def test_a_master_signed_for_the_server_is_served_not_redirected(lan, client, db_session, origin, monkeypatch):
+    """7 TV's master (Dailymotion) answers 403 to any address but the one that
+    resolved it: with WARP the server leaves through the tunnel and the player
+    through the home line. Variants and segments are not bound, so serving the
+    master is enough."""
+    from app.api.endpoints import live
+    from app.services import live_providers
+    from app.services.live_providers import sietetv
+    table, asked = origin
+    stream = AcestreamChannel(id='url:7tv', name='7 TV La Rioja', stream_url='7riojaplay://x8dhao1',
+                              stream_headers=dict(sietetv.PLAY_HEADERS))
+    db_session.add(stream)
+    db_session.commit()
+    monkeypatch.setattr(live, '_recent', {})
+    monkeypatch.setattr(live_providers, 'resolve', lambda url: 'https://cdndirector.dailymotion.com/live/x8dhao1.m3u8?sec=1')
+    table['https://cdndirector.dailymotion.com/live/x8dhao1.m3u8?sec=1'] = FakeResponse(body=MASTER.encode())
+    assert client.head(f'/live/{stream.id}').status_code == 200
+    response = client.get(f'/live/{stream.id}', follow_redirects=False)
+    assert response.status_code == 200, response.headers.get('location')
+    assert asked[0] == ('https://cdndirector.dailymotion.com/live/x8dhao1.m3u8?sec=1', sietetv.PLAY_HEADERS)
+    variant = [u for u in _urls(response.text) if 'baja' in u][0]
+    assert variant.startswith('/live/url%3A7tv?u=')
+
+
+def test_other_broadcasters_still_redirect(lan, client, db_session, origin, monkeypatch):
+    from app.api.endpoints import live
+    from app.services import live_providers
+    _table, asked = origin
+    stream = AcestreamChannel(id='url:t5', name='Telecinco', stream_url='mediaset://T5', stream_headers={'Referer': 'https://x/'})
+    db_session.add(stream)
+    db_session.commit()
+    monkeypatch.setattr(live, '_recent', {})
+    monkeypatch.setattr(live_providers, 'resolve', lambda url: 'https://dai.example/master.m3u8')
+    assert client.get(f'/live/{stream.id}', follow_redirects=False).status_code == 302
+    assert asked == []

@@ -12,7 +12,8 @@ export function currentTarget(): Target {
 
 /** Resolve the scenario file: E2E_SCENARIO may be a name (scenarios/<name>.json) or a path. */
 export function scenarioPath(): string {
-  const requested = process.env.E2E_SCENARIO ?? 'default';
+  const requested = process.env.E2E_SCENARIO;
+  if (!requested) throw new Error('Live journeys require E2E_SCENARIO=<path> with operator-owned or authorized fixtures. Copy scenarios/example.json and replace its placeholders first.');
   const asPath = path.isAbsolute(requested) ? requested : path.resolve(process.cwd(), requested);
   if (requested.endsWith('.json') && existsSync(asPath)) return asPath;
   return path.join(SCENARIO_DIR, `${requested}.json`);

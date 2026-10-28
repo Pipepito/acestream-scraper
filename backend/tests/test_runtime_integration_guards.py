@@ -386,6 +386,7 @@ def _entrypoint_env(tmp_path: Path, **overrides: str) -> dict[str, str]:
     env = os.environ.copy()
     env.update(
         {
+            "DATABASE_URL": "sqlite:///" + str(tmp_path / "scraper.db"),
             "LOG_DIR": str(tmp_path / "logs"),
             "LOGROTATE_DIR": str(tmp_path / "logrotate"),
             "SUPERVISOR_RUN_DIR": str(tmp_path / "run"),

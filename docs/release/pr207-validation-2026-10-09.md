@@ -8,8 +8,8 @@ was performed. The supplied installation was read only to obtain source URLs.
 
 ## Guide matching reproduction (#204)
 
-A fresh, disposable Docker database imported a public
-[New Era M3U](https://github.com/yIsus-mEx/AF1CIONADOS/blob/main/Acestream.Lista.New.Era.26.02.25.m3u),
+A fresh, disposable Docker database imported an operator-supplied M3U
+(source location omitted; it is not a repository default),
 the supplied IPNS source through its configured gateway, and the supplied F1 HTTP
 source. The combined catalogue contained **466 unique streams**, 144 with imported
 `tvg_id` values. These are different data from the contributor's 589/1007-stream

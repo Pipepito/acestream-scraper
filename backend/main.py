@@ -1,6 +1,7 @@
 """
 Main application entry point for Acestream Scraper v2 backend.
 """
+from pathlib import Path
 import asyncio
 import logging
 import os
@@ -71,6 +72,12 @@ def initialize_database():
     """
     from migrate_database import DatabaseMigrator
 
+    from runtime_config import config_path, ensure_config
+    runtime_settings = get_settings()
+    runtime_path = config_path(runtime_settings.DATABASE_URL)
+    # Include resolved .env/legacy names without serializing private credentials.
+    bootstrap = {**os.environ, **runtime_settings.model_dump()}
+    ensure_config(runtime_path, bootstrap, existing_database=Path(runtime_settings.DATABASE_URL[len('sqlite:///'):]).exists())
     migrator = DatabaseMigrator()
 
     # Only run migration if acestream.db exists and hasn't been migrated yet.

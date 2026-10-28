@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Load the persisted data options before selecting or launching any service.
+RUNTIME_CONFIG_SCRIPT="$(dirname "$0")/backend/runtime_config.py"
+if [ ! -f "$RUNTIME_CONFIG_SCRIPT" ]; then RUNTIME_CONFIG_SCRIPT=/app/runtime_config.py; fi
+if [ "${SCRAPER_RUNTIME_LOADED:-}" != 1 ] && [ -f "$RUNTIME_CONFIG_SCRIPT" ]; then
+    exec python3 "$RUNTIME_CONFIG_SCRIPT" run bash "$0" "$@"
+fi
+
 LOG_DIR=${LOG_DIR:-/app/logs}
 mkdir -p "$LOG_DIR"
 export LOG_DIR

@@ -728,6 +728,20 @@ Keep tuner settings with Media servers, WARP under System, and contextual links
 pointing directly to the relevant setup. Each page mounts only its own section;
 shared query keys and page-scoped feedback preserve existing operations.
 
+
+## First-run runtime configuration
+
+`runtime-config.json` version 1 lives beside the SQLite database. Only reviewed
+`backend/app/config/runtime-options.json` data options migrate from environment on
+first creation; existing files win thereafter. Keep commands, paths, ports, image
+facts and credentials in deployment configuration. `/setup` offers an optional web
+wizard; writes are authenticated, validated, revision-checked and atomic. Changes
+require restart; Docker health checks read the applied boot snapshot. Preserve
+existing database preferences and legacy v1 `config.json`. Fresh databases contain
+no source URLs/streams. Live E2E tests require an explicit authorized scenario;
+never restore a default third-party catalogue. See
+`docs/dev/runtime-configuration-audit.md` and `wiki/Configuration.md#first-run-setup`.
+
 ## Import exclusions and saved searches
 
 Scraper tabs are `?tab=sources|searches|exclusions`; old links default to Sources.

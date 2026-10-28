@@ -41,6 +41,9 @@ services:
       # - ./zeronet_app_data:/data/zeronet
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    # On develop, migrated runtime options below seed runtime-config.json once.
+    # Later changes use Settings → Setup wizard and require a restart.
+    # Ports, paths and credentials remain deployment configuration.
     environment:
       - DATABASE_URL=sqlite:///./config/scraper.db
       - LEGACY_DATABASE_URL=sqlite:///./config/acestream.db

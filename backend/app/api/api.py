@@ -45,6 +45,9 @@ api_router.include_router(events.router, prefix='/events', tags=['events'])
 from app.api.endpoints import telegram
 api_router.include_router(telegram.router, prefix="/telegram", tags=["telegram"])
 
+from app.api.endpoints import setup
+api_router.include_router(setup.router, prefix='/setup', tags=['setup'])
+
 from app.api.endpoints import import_exclusions
 api_router.include_router(import_exclusions.router, prefix='/import-exclusions', tags=['import-exclusions'])
 

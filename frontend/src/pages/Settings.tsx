@@ -250,7 +250,7 @@ const Settings: React.FC = () => {
 
   return (
     <Box>
-      <PageHeader title="Settings" subtitle="Playback, scheduled jobs, playlist links and access from this browser." actions={<Button href="/startup" variant="outlined">Startup diagnostics</Button>} />
+      <PageHeader title="Settings" subtitle="Playback, scheduled jobs, playlist links and access from this browser." actions={<><Button component={RouterLink} to="/setup" variant="outlined">Setup wizard</Button><Button href="/startup" variant="outlined">Startup diagnostics</Button></>} />
 
       <Tabs value={section} onChange={(_event, value: string) => { const next = new URLSearchParams(params); next.set('tab', value); setParams(next); }} variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile aria-label="Settings sections" sx={{ mb: 2 }}>
         {sections.map((name, index) => <Tab key={name} value={name} id={`settings-tab-${name}`} aria-controls={`settings-panel-${name}`} label={['Playback', 'Automation', 'Stream links', 'API access'][index]} />)}

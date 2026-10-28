@@ -44,6 +44,7 @@ export const navItems: NavItem[] = [
 
 /** Routable pages that are reached from within another page rather than the nav. */
 export const hiddenRouteTitles: Array<{ path: string; title: string }> = [
+  { path: '/setup', title: 'Set up scraper' },
   { path: '/scraper/builder', title: 'Extraction builder' },
 ];
 

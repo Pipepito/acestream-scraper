@@ -15,6 +15,8 @@ import Search from './pages/Search';
 import Settings from './pages/Settings';
 import LiveTV from './pages/LiveTV';
 import NotFound from './pages/NotFound';
+import SetupNotice from './components/SetupNotice';
+const Setup = React.lazy(() => import('./pages/Setup'));
 import UpdateAvailableNotice from './components/UpdateAvailableNotice';
 const PublicAddress = React.lazy(() => import('./pages/integrations/PublicAddress'));
 const WebPlayer = React.lazy(() => import('./pages/integrations/WebPlayer'));
@@ -52,6 +54,7 @@ const App: React.FC = () => {
     <AppShell>
       <ApiTokenNotice />
       <UpdateAvailableNotice />
+      <SetupNotice />
       <Routes>
         <Route path="/" element={<TVDashboard />} />
         <Route path="/system" element={<React.Suspense fallback={<p role="status">Loading system status…</p>}><SystemDashboard /></React.Suspense>} />
@@ -73,6 +76,7 @@ const App: React.FC = () => {
         <Route path="/integrations/remote-players" element={<React.Suspense fallback={<p role="status">Loading integration…</p>}><RemotePlayers /></React.Suspense>} />
         <Route path="/integrations/media-servers" element={<React.Suspense fallback={<p role="status">Loading integration…</p>}><MediaServers /></React.Suspense>} />
         <Route path="/integrations/telegram" element={<React.Suspense fallback={<p role="status">Loading integration…</p>}><Telegram /></React.Suspense>} />
+        <Route path="/setup" element={<React.Suspense fallback={<p role="status">Loading setup…</p>}><Setup /></React.Suspense>} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/changelog" element={<React.Suspense fallback={<p role="status">Loading changelog…</p>}><Changelog /></React.Suspense>} />
         {LEGACY_REDIRECTS.map((redirect) => (

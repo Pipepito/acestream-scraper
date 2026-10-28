@@ -11,7 +11,7 @@ import json
 import pytest
 
 from app.services import live_providers
-from app.services.live_providers import base, plex, pluto
+from app.services.live_providers import base, plex, pluto, samsung
 from app.services.m3u_service import M3UService
 from app.services.playlist_service import PlaylistService
 
@@ -75,6 +75,7 @@ def _imported(provider):
 @pytest.mark.parametrize('url, provider', [
     ('https://pluto.tv/es/live-tv', pluto),
     ('https://watch.plex.tv/es/live-tv', plex),
+    ('https://www.samsungtvplus.com/', samsung),
 ])
 def test_website_is_recognised(url, provider):
     assert live_providers.for_source_url(url) is provider
@@ -83,6 +84,7 @@ def test_website_is_recognised(url, provider):
 def test_scheme_selects_resolver():
     assert live_providers.for_stream_url('pluto://abcdef0123456789abcdef01') is pluto
     assert live_providers.for_stream_url('plex://a-b') is plex
+    assert live_providers.for_stream_url('samsung://ESXX0000003CC') is samsung
 
 
 # --- Pluto TV ---------------------------------------------------------------
@@ -225,6 +227,79 @@ def test_plex_rejects_a_made_up_id(fake):
     http = fake({})
     assert live_providers.resolve('plex://x?y=1') is None
     assert http.calls == []
+
+
+# --- Samsung TV Plus --------------------------------------------------------
+
+def _samsung_list():
+    return {'slug': 'stvp-{id}', 'regions': {'es': {'channels': {
+        'ESXX0000001AA': {'name': 'Cine Ejemplo', 'logo': 'https://s/ce.png', 'group': 'Cine'},
+        'ESXX0000002BB': {'name': 'Canal Uno', 'license_url': 'https://widevine/x'},
+    }}}}
+
+
+def test_samsung_leaves_out_drm_channels(fake):
+    """13 of 189 carry a Widevine licence: Kodi cannot play them here."""
+    fake({samsung.LIST: _samsung_list()})
+    streams = _imported(samsung)
+    assert set(streams) == {'Cine Ejemplo'}
+    assert streams['Cine Ejemplo']['stream_url'] == 'samsung://ESXX0000001AA'
+    assert streams['Cine Ejemplo']['tvg_logo'] == 'https://s/ce.png'
+    assert streams['Cine Ejemplo']['group_title'] == 'Samsung TV Plus'
+
+
+def test_samsung_keeps_the_redirectors_answer(fake, clock):
+    http = fake({'https://jmp2.uk/stvp-ESXX0000001AA': 'https://cdn/cine-ejemplo.m3u8'})
+    assert live_providers.resolve('samsung://ESXX0000001AA') == 'https://cdn/cine-ejemplo.m3u8'
+    clock.now += 3600
+    assert live_providers.resolve('samsung://ESXX0000001AA') == 'https://cdn/cine-ejemplo.m3u8'
+    assert len(http.calls) == 1
+
+
+def test_samsung_caps_redirector_requests(fake, clock):
+    """The redirector answered 429 after ~35 requests in 25 minutes."""
+    http = fake({'https://jmp2.uk/stvp-': lambda url: 'https://cdn/' + url.rsplit('-', 1)[1]})
+    for n in range(samsung.REDIRECTS_PER_HOUR):
+        assert live_providers.resolve(f'samsung://ES{n:08d}') == f'https://cdn/ES{n:08d}'
+    assert live_providers.resolve('samsung://ES99999999') is None
+    assert len(http.calls) == samsung.REDIRECTS_PER_HOUR
+    clock.now += 3601
+    assert live_providers.resolve('samsung://ES99999999') == 'https://cdn/ES99999999'
+
+
+def test_samsung_waits_after_429_and_keeps_old_links(fake, clock):
+    http = fake({'https://jmp2.uk/stvp-ES00000001': 'https://cdn/one.m3u8',
+                 'https://jmp2.uk/stvp-': ValueError('HTTP 429')})
+    assert live_providers.resolve('samsung://ES00000001') == 'https://cdn/one.m3u8'
+    clock.now += samsung.LINK_SECONDS + 1
+    assert live_providers.resolve('samsung://ES00000002') is None
+    asked = len(http.calls)
+    # Expired, but the redirector is resting: the old link beats no link.
+    assert live_providers.resolve('samsung://ES00000001') == 'https://cdn/one.m3u8'
+    assert live_providers.resolve('samsung://ES00000002') is None
+    assert len(http.calls) == asked
+    clock.now += samsung.PAUSE_AFTER_REFUSAL
+    del http.answers['https://jmp2.uk/stvp-']
+    http.answers['https://jmp2.uk/stvp-ES00000002'] = 'https://cdn/two.m3u8'
+    assert live_providers.resolve('samsung://ES00000002') == 'https://cdn/two.m3u8'
+
+
+def test_samsung_status_checks_never_ask_the_redirector(fake):
+    """A status sweep over 176 channels would spend the redirector's quota
+    in minutes: checks only use links already resolved for playback."""
+    http = fake({'https://jmp2.uk/stvp-ES00000001': 'https://cdn/one.m3u8'})
+    assert asyncio.run(live_providers.resolve_async('samsung://ES00000001', checking=True)) is None
+    assert http.calls == []
+    assert asyncio.run(live_providers.resolve_async('samsung://ES00000001')) == 'https://cdn/one.m3u8'
+    assert asyncio.run(live_providers.resolve_async('samsung://ES00000001', checking=True)) == 'https://cdn/one.m3u8'
+    assert len(http.calls) == 1
+
+
+def test_samsung_rejects_a_made_up_id(fake):
+    http = fake({})
+    assert live_providers.resolve('samsung://../x') is None
+    assert http.calls == []
+
 
 
 # --- the shared HTTP client -------------------------------------------------

@@ -2,10 +2,11 @@
 
 Adding a broadcaster's website as a scraper source (https://www.atresplayer.com,
 https://www.mediasetinfinity.es, https://www.7riojaplay.tv,
-https://www.telemadrid.es, https://www.apuntmedia.es) imports its channels
-like any M3U list: the source is recognised by its host and its channels are
-written out as M3U, each stream stored as `<scheme>://<id>` with the headers
-playback needs.
+https://www.telemadrid.es; for free ad-supported channels in Spain,
+https://pluto.tv, https://watch.plex.tv, https://www.samsungtvplus.com)
+imports its channels like any M3U list: the
+source is recognised by its host and its channels are written out as M3U,
+each stream stored as `<scheme>://<id>` with the headers playback needs.
 
 Their links carry signed tokens that expire -- Mediaset's master playlist
 after about ten minutes, Atresmedia's after eight hours -- so they are never
@@ -16,10 +17,10 @@ from typing import Optional
 from types import ModuleType
 from urllib.parse import urlparse
 
-from app.services.live_providers import (apunt, atresplayer, base, mediaset, plex, pluto, sietetv,
-                                         telemadrid)
+from app.services.live_providers import (apunt, atresplayer, base, mediaset, plex, pluto, samsung,
+                                         sietetv, telemadrid)
 
-PROVIDERS = (atresplayer, mediaset, sietetv, telemadrid, apunt, pluto, plex)
+PROVIDERS = (atresplayer, mediaset, sietetv, telemadrid, apunt, pluto, plex, samsung)
 # One advertised source per installed adapter; no network requests during listing.
 BUILTIN_SOURCES = (
     {'id': 'atresplayer', 'name': 'Atresmedia', 'url': 'https://www.atresplayer.com'},
@@ -29,6 +30,7 @@ BUILTIN_SOURCES = (
     {'id': 'apunt', 'name': 'À Punt', 'url': 'https://www.apuntmedia.es'},
     {'id': 'pluto', 'name': 'Pluto TV', 'url': 'https://pluto.tv'},
     {'id': 'plex', 'name': 'Plex', 'url': 'https://watch.plex.tv'},
+    {'id': 'samsung', 'name': 'Samsung TV Plus', 'url': 'https://samsungtvplus.com'},
 )
 LIVE_PATH = '/live/'
 

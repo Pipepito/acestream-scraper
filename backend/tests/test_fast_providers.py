@@ -345,3 +345,14 @@ def test_stream_check_resolves_as_a_check(monkeypatch):
     online, _error = asyncio.run(http_stream_check.check('mediaset://T5'))
     assert online is None
     assert seen == [True]
+
+
+@pytest.mark.parametrize('stream_url', [f'pluto://{PLUTO_ID}', f'plex://{PLEX_ID}'])
+def test_status_checks_leave_pluto_and_plex_alone(fake, stream_url):
+    """Measured in a test install: the scheduled sweep reached the freshly
+    imported channels first, and Plex's own host answered 429 to 3 of its
+    first 21 checks. With 146 + 268 channels a sweep is what is not done."""
+    http = fake({pluto.BOOT: BOOT, plex.LIST: _plex_list()})
+    assert asyncio.run(live_providers.resolve_async(stream_url, checking=True)) is None
+    assert http.calls == []
+    assert asyncio.run(live_providers.resolve_async(stream_url)) is not None

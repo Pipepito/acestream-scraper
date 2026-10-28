@@ -77,7 +77,10 @@ def channels() -> List[Dict[str, Optional[str]]]:
 
 
 def resolve(ident: str) -> Optional[str]:
-    if not _ID.fullmatch(ident):
+    # Not for status checks: in a test install the scheduled sweep reached the
+    # newly imported channels first and Plex's host answered 429 to 3 of its
+    # first 21. A check returns "not checked" instead.
+    if not _ID.fullmatch(ident) or base.checking.get():
         return None
     value = token()
     if not value:

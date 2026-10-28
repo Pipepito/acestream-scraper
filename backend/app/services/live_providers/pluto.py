@@ -95,7 +95,9 @@ def channels() -> List[Dict[str, Optional[str]]]:
 
 
 def resolve(ident: str) -> Optional[str]:
-    if not _ID.fullmatch(ident):
+    # Status checks would open the 146 channels one after another with the
+    # one shared token; they are left unchecked, see plex.py for the 429.
+    if not _ID.fullmatch(ident) or base.checking.get():
         return None
     current = session()
     if not current:

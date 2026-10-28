@@ -118,7 +118,11 @@ async def open_live_stream(stream_id: str, request: Request, db: Session = Depen
     stream_url, stream_headers = await run_in_threadpool(load_stream)
     # Errors are answered as JSON here: a 404 raised as an exception would
     # reach the SPA fallback and come back as index.html with HTTP 200.
-    if hls_manifest.needs_manifest(stream_url, stream_headers):
+    # A broadcaster whose master only answers the address that resolved it
+    # is served from here too: with WARP, the server and the player leave
+    # through different addresses, and a redirect gets the player a 403.
+    serve_here = getattr(live_providers.for_stream_url(stream_url), 'SERVE_MANIFEST', False)
+    if serve_here or hls_manifest.needs_manifest(stream_url, stream_headers):
         if request.method == "HEAD":
             return Response(status_code=200, media_type=HLS_TYPE)
         # A variant or nested manifest: only a URL we signed when rewriting
@@ -127,9 +131,17 @@ async def open_live_stream(stream_id: str, request: Request, db: Session = Depen
         if nested is not None:
             if not hls_manifest.is_signed(nested, request.query_params.get("s", "")):
                 return JSONResponse({"detail": "Unsigned manifest URL"}, status_code=403)
+        url = nested or stream_url
+        if serve_here and nested is None:
+            try:
+                url = await asyncio.wait_for(_resolve_once(stream_url), OPEN_BUDGET_SECONDS)
+            except asyncio.TimeoutError:
+                url = None
+            if not url:
+                return JSONResponse({"detail": "The broadcaster did not return a live link"}, status_code=502)
         try:
             return await asyncio.wait_for(
-                _serve_manifest(stream_id, nested or stream_url, stream_headers, request.scope.get("root_path", "").rstrip("/")),
+                _serve_manifest(stream_id, url, stream_headers, request.scope.get("root_path", "").rstrip("/")),
                 OPEN_BUDGET_SECONDS)
         except asyncio.TimeoutError:
             return JSONResponse({"detail": "The origin did not answer in time"}, status_code=502)

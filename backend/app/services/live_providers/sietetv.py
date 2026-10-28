@@ -25,6 +25,11 @@ GEO = 'https://geo.dailymotion.com'
 PLAYER_ID = 'x11h8c'
 PUBLISHER_ID = 'x2mgfup'
 VIDEO = GEO + '/videos/%s'
+# The master answers 403 to any address but the one that resolved it
+# (measured 28-10: 200 from the server, 403 from the player once WARP sends
+# them out through different addresses); variants and segments are not
+# bound. So /live/ serves the master instead of redirecting to it.
+SERVE_MANIFEST = True
 # Published in the provider's playlist; the import keeps each of them.
 PLAY_HEADERS = {'User-Agent': base.USER_AGENT, 'Referer': GEO + '/', 'Origin': GEO,
                 'Sec-Fetch-Mode': 'cors'}

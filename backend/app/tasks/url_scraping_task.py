@@ -8,7 +8,7 @@ import logging
 import asyncio
 
 
-def run_url_scraping_task():
+def run_url_scraping_task(saved_search_targets=None):
     db = SessionLocal()
     logger = logging.getLogger("url_scraping_task")
     try:
@@ -20,10 +20,12 @@ def run_url_scraping_task():
         async def scrape_all():
             processed = 0
             failures = 0
+            excluded = 0
             for url, url_type in enabled_urls:
                 try:
                     channels, status = await service.scrape_url(url, url_type)
                     processed += 1
+                    excluded += service.last_import_exclusions
                     if status.lower().startswith("error"):
                         failures += 1
                     logger.info(
@@ -40,6 +42,7 @@ def run_url_scraping_task():
             return {
                 "processed": processed,
                 "failures": failures,
+                "import_exclusions": {"excluded_candidates": excluded},
             }
 
         result = asyncio.run(scrape_all())
@@ -54,6 +57,8 @@ def run_url_scraping_task():
         from app.services.event_source_service import EventSourceService
         from app.services.task_service import task_service
         result['events'] = EventSourceService(db).refresh_all(shutdown=task_service.shutdown_event)
+        from app.services.saved_search_service import run_reserved_batch
+        result['saved_searches'] = run_reserved_batch(saved_search_targets or [], task_service.shutdown_event)
         logger.info("URL scraping task completed result=%s", result)
         notification_service.scraping_completed(result)
         return result

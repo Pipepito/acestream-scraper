@@ -66,6 +66,7 @@ async def scrape_url(
                 channels=channels,
                 url=request.url,
                 channels_found=len(channels),
+                excluded_count=scraper_service.last_import_exclusions,
                 status=status_msg
             )
     except Exception as e:

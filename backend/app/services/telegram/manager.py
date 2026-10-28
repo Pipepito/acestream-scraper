@@ -295,7 +295,10 @@ class Manager:
             outcome, result = await threaded(preview_message, request.source, msg)
             known = await threaded(repo.existing_ids, [c.channel_id for c in result.channels])
             result.duplicate_count += len(known)
-            results.append(TelegramPreviewMessage(message_id=msg.id, sender_id=msg.sender_id, outcome=outcome, result=result))
+            from app.services.telegram.ingestion import preview_exclusions
+            excluded = await threaded(preview_exclusions, result.channels)
+            results.append(TelegramPreviewMessage(message_id=msg.id, sender_id=msg.sender_id, outcome=outcome,
+                result=result, excluded_count=len(excluded), excluded_rule_ids=excluded))
         return TelegramPreview(chat_id=request.source.chat_id, messages=results)
 
     async def process(self, source: TelegramSource, generation: int, message: Message, advance: bool) -> bool:
@@ -305,7 +308,8 @@ class Manager:
         if previous == revision and not advance:
             return True
         _, result = await threaded(preview_message, config, message)
-        return await threaded(repo.record, source.id, self.account['id'], generation,
+        from app.services.telegram.ingestion import record
+        return await threaded(record, source.id, self.account['id'], generation,
                                        message.id, revision, result, advance)
 
     async def scan(self, source_id: int, hints: list[tuple[str | None, int, bool]]) -> None:

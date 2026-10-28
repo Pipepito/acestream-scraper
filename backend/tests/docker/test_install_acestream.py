@@ -232,13 +232,38 @@ def test_arm_oci_image_install_layout(
     assert "engine_source=oci:jopsis/acestream:v3.2.17-fix@sha256:" in metadata
 
     ace = set(_list_dir_in_image(tag, "/opt/acestream", platform))
-    assert {"main.py.oci-orig", "main_linux.py", "bionic_dns.py", "app_bridge.py", "app_bridge.py.oci-orig",
+    assert {"main.py.oci-orig", "main_linux.py", "bionic_dns.py", "bionic_dns_proxy.py", "app_bridge.py", "app_bridge.py.oci-orig",
             "engine_version.json", "modules.zip", "python", "lib", "start-engine"} <= ace
     assert "install_id" not in ace
     assert "engine_runtime.json" not in ace
     assert _path_test_in_image(tag, "-x", "/opt/acestream/start-engine", platform)
     assert _path_test_in_image(tag, "-x", "/opt/acestream/python/bin/python", platform)
     assert _path_test_in_image(tag, "-x", f"/opt/acestream-system/bin/{linker}", platform)
+    libdir = "lib64" if platform == "linux/arm64" else "lib"
+    library = f"/opt/acestream-system/{libdir}/libnetd_client.so"
+    dynamic = subprocess.run(
+        ["docker", "run", "--rm", "--platform", platform, tag, "readelf", "-d", library],
+        check=True, capture_output=True, text=True,
+    ).stdout
+    assert "[libc.so]" in dynamic
+    assert "libc.so.6" not in dynamic  # Never link the bionic adapter to glibc.
+
+    if platform == "linux/arm64" and _native_platform() == platform:
+        result = subprocess.run(
+            ["docker", "run", "--rm", "--network", "none", "--platform", platform,
+             "--entrypoint", "/bin/sh", tag, "-ec",
+             "ln -s /opt/acestream-system /system; "
+             "export ANDROID_ROOT=/system ANDROID_DATA=/data "
+             "PYTHONHOME=/opt/acestream/python "
+             "LD_LIBRARY_PATH=/system/lib64:/opt/acestream/python/lib "
+             "PYTHONPATH=/opt/acestream/python/lib/stdlib:/opt/acestream/python/lib/modules:"
+             "/opt/acestream/data:/opt/acestream/lib:/opt/acestream/modules.zip:"
+             "/opt/acestream/eggs-unpacked:/opt/acestream/eggs:/opt/acestream; "
+             "exec /opt/acestream/python/bin/python /tmp/acestream-fixture/native_dns_smoke.py"],
+            capture_output=True, text=True, timeout=30,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert "native bionic DNS smoke passed" in result.stdout
 
 
 def test_scraper_acestream_runtime_has_python310(request: pytest.FixtureRequest):

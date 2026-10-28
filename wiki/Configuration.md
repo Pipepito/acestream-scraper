@@ -369,3 +369,13 @@ Update these names in your Compose file, container settings or `.env` file when 
 - `ACESTREAM_ENGINE_URL` -> `ACE_ENGINE_URL`
 
 `ENABLE_LEGACY_ENV_ALIASES` is no longer required and does not disable compatibility. See the [v2.1 upgrade notes](../docs/release/v2.1-release-notes.md).
+
+### Import policy and automatic saved searches
+
+Global exclusions live in Scraper → Import exclusions. Saved catalogue queries
+live in Scraper → Saved searches. Both are database settings, with no new environment
+variables or ports. Saving a query is configuration only; automatic imports are
+opt-in on the existing source refresh schedule (Settings → Automation). Editing its
+query/category pauses refresh until explicitly enabled again. Run now uses the
+shared maintenance queue and may run a paused query once. Exclusions skip future
+imports across sources and never delete existing channels. See [Usage](Usage.md#import-exclusions-and-saved-searches).

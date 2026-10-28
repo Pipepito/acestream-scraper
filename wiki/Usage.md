@@ -254,3 +254,28 @@ Open **WARP** under System, or choose **Manage WARP** in System status. When ins
 - [Troubleshooting and startup recovery](Troubleshooting.md)
 - [Frequently asked questions](FAQ.md)
 - [Bug reporting](Bug-Reporting.md)
+
+## Import exclusions and saved searches
+
+Open **Scraper → Import exclusions** to skip future imports by Name contains,
+Name equals or Stream ID equals. Matching is literal and ignores name case and
+repeated spaces; accents and regional markers still matter. **Preview matches**
+checks current inventory without changing it. A limited preview shows “at least”.
+Existing channels, favorites, TV assignments and playback stay available. Removing
+or disabling a rule permits future discoveries; it does not replay Telegram history.
+Manual Add can use **Add anyway** after a separate confirmation for that one stream.
+
+On Search, **Save search** captures the last submitted query/category, even if you
+have since edited the search form. Saving does not fetch or import. Manage it under
+**Scraper → Saved searches**. **Run now** imports discoveries once; **Preview**
+reads results without saving them, and **Import this preview** imports only that
+private snapshot. Previews expire after five minutes. Automatic refresh is off by
+default. Enable it to import matching results on the source refresh schedule in
+Settings → Automation. Changing query/category pauses automatic refresh again.
+
+Waiting means another maintenance job has the shared queue. A second Run now does
+not create another copy. Existing channels are preserved, including operator names
+and signal results. Missing results never remove channels. Deleting a saved search
+keeps imported channels. Complete, partial, skipped and failed outcomes distinguish
+excluded candidates from unresolved IDs and deferred work. Configure the catalogue
+engine in Settings → Playback; no engine is selected silently.

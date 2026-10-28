@@ -34,7 +34,7 @@ export default function TelegramSection() {
     cache.removeQueries({ queryKey: ['telegram'] });
   };
   const toggle = async (source: TelegramSource) => {
-    const { id: _id, chat_label: _chat, sender_labels: _labels, cursor: _cursor, state: _state, last_success: _success, imported_count: _count, message: _message, ...config } = source;
+    const { id: _id, chat_label: _chat, sender_labels: _labels, cursor: _cursor, state: _state, last_success: _success, imported_count: _count, excluded_count: _excluded, message: _message, ...config } = source;
     await api.save({ ...config, enabled: !source.enabled } as TelegramSourceConfig, source.id);
   };
   return <Box id="telegram"><ContentSection title="Telegram sources" description="Collect AceStream links from selected chats using your own Telegram account.">
@@ -83,7 +83,7 @@ export default function TelegramSection() {
           {!sources.data?.length && <Typography>No sources yet. Select a joined chat to start collecting.</Typography>}
           {sources.data?.map(source => <Stack key={source.id} spacing={1} sx={{ borderBottom: 1, borderColor: 'divider', py: 2, overflowWrap: 'anywhere' }}>
             <Typography variant="subtitle1">{source.name}</Typography>
-            <Typography variant="body2">{source.chat_label} · {source.state.replaceAll('_', ' ')} · {source.imported_count} new streams imported</Typography>
+            <Typography variant="body2">{source.chat_label} · {source.state.replaceAll('_', ' ')} · {source.imported_count} new streams imported · {source.excluded_count ?? 0} excluded in last processed message</Typography>
             <Typography variant="body2">Last processed: {source.last_success ? new Date(source.last_success).toLocaleString() : 'No messages processed yet'}</Typography>
             {source.message && <Alert severity="warning">{source.message}</Alert>}
             <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">

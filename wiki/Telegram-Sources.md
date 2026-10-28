@@ -177,3 +177,13 @@ Record that manual result separately; automated tests are not proof of a live lo
 References: [Telegram app registration](https://core.telegram.org/api/obtaining_api_id),
 [authorization](https://core.telegram.org/api/auth),
 [Telethon sessions](https://docs.telethon.dev/en/stable/concepts/sessions.html).
+
+### Global import exclusions
+
+Recent-message previews show excluded stream candidates without hiding extracted
+records. Valid messages advance their cursor and revision even if every stream is
+excluded. The last processed message's exclusion count is separate from the total
+new streams imported. Excluded existing streams keep all metadata and last-seen
+times. Disabling or deleting a rule does not replay old messages; normal new or
+explicitly reconciled message revisions use the current policy. Cursor, observations
+and admitted streams still commit atomically.

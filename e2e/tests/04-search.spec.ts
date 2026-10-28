@@ -25,7 +25,7 @@ test.describe('engine search', () => {
         const { content_id: contentId } = await api.resolveSearchResult(r.id);
         await api.deleteChannel(contentId);
         await search.addRow(r.name);
-        await search.expectAlert(`Added ${r.name} to your channels.`);
+        await search.expectAlert(`${r.name}: added.`);
         await expect(search.addedChip(r.name)).toBeVisible();
         await expect
           .poll(async () => (await api.getChannel(contentId))?.name, { timeout: 15_000, message: `channel ${contentId} added from search` })
@@ -53,7 +53,7 @@ test.describe('engine search', () => {
     }
     await expect(search.summary()).toContainText(new RegExp(`Selected\\s*${batch.length}`));
     await search.addSelected();
-    await search.expectAlert(`Added ${batch.length} channels.`);
+    await search.expectAlert(`${batch.length} added, 0 existing, 0 excluded, 0 unresolved, 0 deferred.`);
     for (const r of batch) {
       const contentId = contentIds.get(r.id)!;
       await expect.poll(async () => (await api.getChannel(contentId))?.id, { timeout: 15_000 }).toBe(contentId);

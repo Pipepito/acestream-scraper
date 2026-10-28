@@ -112,6 +112,7 @@ RUN apt-get update \
         curl \
         tar \
         unzip \
+        gcc \
     && rm -rf /var/lib/apt/lists/*
 
 COPY docker/testdata/acestream/ /tmp/acestream-fixture/

@@ -37,9 +37,15 @@ import { useSnackbar } from '../hooks/useSnackbar';
 import { normalizeApiError } from '../services/apiErrors';
 import { searchService, SearchResultItem } from '../services/searchService';
 import { formatBitrate } from '../utils/format';
+import SavedSearchDialog from '../components/imports/SavedSearchDialog';
+import { Link as RouterLink } from 'react-router-dom';
 import SearchBroadcastStatus from '../components/SearchBroadcastStatus';
 
 const Search: React.FC = () => {
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [importMessage, setImportMessage] = useState('');
+  const [importRuleId, setImportRuleId] = useState<number>();
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [category, setCategory] = useState<string>('');
   const [page, setPage] = useState<number>(1);
@@ -113,11 +119,16 @@ const Search: React.FC = () => {
 
   const handleAddChannel = async (channel: SearchResultItem) => {
     try {
-      await addChannelMutation.mutateAsync(channel);
+      const outcome = await addChannelMutation.mutateAsync(channel);
+      setImportRuleId(outcome.rule_ids?.[0]);
+      if (outcome.outcome !== 'added' && outcome.outcome !== 'existing') {
+        setImportMessage(`${channel.name}: ${outcome.outcome}${outcome.rule_ids?.length ? ` (rule ${outcome.rule_ids.join(', ')})` : ''}.`);
+        return;
+      }
       queryClient.invalidateQueries({ queryKey: ['acestream-channels'] });
       setSelectedChannels((prev) => prev.filter((item) => item.id !== channel.id));
       markAdded([channel.id]);
-      showSnackbar(`Added ${channel.name} to your channels.`, 'success');
+      showSnackbar(`${channel.name}: ${outcome.outcome}.`, 'success');
     } catch (error) {
       showSnackbar(`Could not add ${channel.name}: ${normalizeApiError(error).message}`, 'error');
     }
@@ -126,27 +137,19 @@ const Search: React.FC = () => {
   const handleAddSelectedChannels = async () => {
     if (selectedChannels.length === 0) return;
 
-    const successfulChannelIds: string[] = [];
-    let failure: unknown = null;
-
+    setBulkBusy(true);
     try {
-      for (const channel of selectedChannels) {
-        await addChannelMutation.mutateAsync(channel);
-        successfulChannelIds.push(channel.id);
-      }
+      const result = await searchService.importResults(selectedChannels);
+      setImportRuleId(result.items.find(item => item.rule_ids?.length)?.rule_ids?.[0]);
+      const successful = result.items.filter(item => item.outcome === 'added' || item.outcome === 'existing').map(item => item.infohash);
+      markAdded(successful);
+      setSelectedChannels(prev => prev.filter(item => !successful.includes(item.id)));
+      if (successful.length) void queryClient.invalidateQueries({ queryKey: ['acestream-channels'] });
+      setImportMessage(`${result.added} added, ${result.existing} existing, ${result.excluded} excluded, ${result.unresolved} unresolved, ${result.deferred} deferred.`);
     } catch (error) {
-      failure = error;
+      showSnackbar(normalizeApiError(error).message, 'error');
     } finally {
-      if (successfulChannelIds.length > 0) {
-        queryClient.invalidateQueries({ queryKey: ['acestream-channels'] });
-        setSelectedChannels((prev) => prev.filter((channel) => !successfulChannelIds.includes(channel.id)));
-        markAdded(successfulChannelIds);
-      }
-      if (failure) {
-        showSnackbar(`Added ${successfulChannelIds.length}; the next one failed: ${normalizeApiError(failure).message}`, 'error');
-      } else {
-        showSnackbar(`Added ${successfulChannelIds.length} channel${successfulChannelIds.length === 1 ? '' : 's'}.`, 'success');
-      }
+      setBulkBusy(false);
     }
   };
 
@@ -201,6 +204,9 @@ const Search: React.FC = () => {
         </Grid>
       </ContentSection>
 
+      {activeSearch ? <Button sx={{ mb: 2 }} onClick={() => setSaveOpen(true)}>Save search</Button> : null}
+      {saveOpen && activeSearch ? <SavedSearchDialog initial={{ name: activeSearch.query.slice(0, 100), query: activeSearch.query, category: activeSearch.category, refresh_enabled: false }} onClose={() => setSaveOpen(false)} /> : null}
+      {importMessage ? <Alert severity="info" sx={{ mb: 2 }}>{importMessage}<Button component={RouterLink} to={`/scraper?tab=exclusions${importRuleId ? `#rule-${importRuleId}` : ''}`}>{importRuleId ? `Exclusion rule #${importRuleId}` : 'Import exclusions'}</Button></Alert> : null}
       {searchError && activeSearch ? (
         <Alert severity="error" sx={{ mb: 3 }}>
           Search for &quot;{activeSearch.query}&quot; failed. {searchErrorMessage}
@@ -212,7 +218,7 @@ const Search: React.FC = () => {
           title="Results"
           actions={
             hasSelection ? (
-              <Button variant="contained" onClick={handleAddSelectedChannels} disabled={addChannelMutation.isPending} aria-label={`Add ${selectedChannels.length} selected channels`}>
+              <Button variant="contained" onClick={handleAddSelectedChannels} disabled={addChannelMutation.isPending || bulkBusy} aria-label={`Add ${selectedChannels.length} selected channels`}>
                 {addChannelMutation.isPending ? <CircularProgress size={24} /> : `Add ${selectedChannels.length} selected channels`}
               </Button>
             ) : null
@@ -302,7 +308,7 @@ const Search: React.FC = () => {
                               {added ? (
                                 <Chip size="small" color="success" icon={<CheckIcon />} label="Added" aria-label={`Added ${channel.name}`} />
                               ) : (
-                                <Button size="small" variant="outlined" onClick={() => handleAddChannel(channel)} disabled={addChannelMutation.isPending} aria-label={`Add ${channel.name}`}>
+                                <Button size="small" variant="outlined" onClick={() => handleAddChannel(channel)} disabled={addChannelMutation.isPending || bulkBusy} aria-label={`Add ${channel.name}`}>
                                   Add
                                 </Button>
                               )}

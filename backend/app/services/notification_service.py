@@ -54,6 +54,10 @@ def notify(event: str, title: str, message: str, data: Optional[dict] = None) ->
 
 def scraping_completed(result: dict) -> bool:
     message = "%s URL(s) scraped, %s failed" % (result.get("processed", 0), result.get("failures", 0))
+    title = 'URL scraping finished'
+    if result.get('saved_search_id') is not None:
+        title = 'Saved search finished'
+        message = 'Saved search run finished'
     if result.get('catalogues'):
         message += "; %s W3U catalogue(s), %s partial" % (result['catalogues'], result.get('catalogue_partial', 0))
 
@@ -62,7 +66,17 @@ def scraping_completed(result: dict) -> bool:
     if any(events.values()):
         message += "; events: %s updated, %s need review, %s source failures, %s sources deferred" % (
             events.get('updated', 0), events.get('pending', 0), events.get('failures', 0), events.get('deferred', 0))
-    return notify("url_scraping.completed", "URL scraping finished", message, result)
+    searches = result.get('saved_searches', {})
+    if searches:
+        message += "; saved searches: %s added, %s existing, %s excluded, %s unresolved, %s partial, %s failed, %s skipped, %s interrupted, %s candidates deferred, %s searches deferred" % (
+            searches.get('added', 0), searches.get('existing', 0), searches.get('excluded_candidates', 0),
+            searches.get('unresolved_candidates', 0), searches.get('partial', 0), searches.get('failed', 0),
+            searches.get('skipped', 0), searches.get('interrupted', 0),
+            searches.get('deferred_candidates', 0), searches.get('deferred_searches', 0))
+    excluded = result.get('import_exclusions', {}).get('excluded_candidates', 0)
+    if excluded:
+        message += "; %s source candidates excluded" % excluded
+    return notify("url_scraping.completed", title, message, result)
 
 
 def channel_status_completed(result: dict) -> bool:

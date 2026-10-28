@@ -138,7 +138,7 @@ const Catalogues: React.FC = () => {
     <PageHeader title="Catalogues" subtitle="Browse Wiseplay/W3U folders and review compatible streams before importing."
       primaryActions={<Button variant="contained" disabled={pending} onClick={() => { setAdding(true); setPreview(null); prepare.reset(); save.reset(); }}>Add catalogue</Button>} />
     <StatusLine items={[{ label: 'Saved', value: list.data?.length ?? '—' },
-      ...(view ? [{ label: 'Compatible', value: view.counts.accepted ?? 0 }, { label: 'Duplicates', value: view.counts.duplicates ?? 0 },
+      ...(view ? [{ label: 'Compatible', value: view.counts.accepted ?? 0 }, { label: 'Excluded', value: view.counts.excluded ?? 0 }, { label: 'Duplicates', value: view.counts.duplicates ?? 0 },
         { label: 'Invalid', value: view.counts.invalid ?? 0 }, { label: 'Unsupported', value: view.counts.unsupported ?? 0 },
         { label: 'Fetch failures', value: view.counts.failed_fetches ?? 0 }] : [])]} />
     {error ? <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert> : null}
@@ -241,6 +241,7 @@ const Catalogues: React.FC = () => {
             {!preview && view.id && ['acestream', 'hls', 'mpegts', 'resolver'].includes(detail.kind) && detail.content_type !== 'vod' ? <Button variant="outlined" onClick={() => setEventEntry(detail)}>Add as event</Button> : null}
             {!preview ? <Button startIcon={history.favorites.includes(itemKey(detail)) ? <StarRounded /> : <StarOutlineRounded />} onClick={() => favorite(detail)}>{history.favorites.includes(itemKey(detail)) ? 'Remove favorite' : 'Add favorite'}</Button> : null}
           </Stack>
+          {detail.excluded_rule_ids?.length ? <Alert severity="info">Excluded from permanent channel imports. <Button href={`/scraper?tab=exclusions#rule-${detail.excluded_rule_ids[0]}`}>Review exclusion</Button></Alert> : null}
           {!detail.imported && detail.channel_id ? <Typography variant="body2">Review this source as a live channel, or add it as an event to choose a broadcast in Events.</Typography> : null}
           {variants.length ? <Box><Typography variant="subtitle2">Other entries with this title in the same folder</Typography>
             {variants.map((entry) => <Button key={entry.id} onClick={() => inspect(entry)}>{kindLabels[entry.kind]} · {entry.origin} · {entry.channel_id?.slice(-8) ?? 'unavailable'}</Button>)}

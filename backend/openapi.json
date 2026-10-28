@@ -19,6 +19,11 @@
       "AcestreamChannelCreate": {
         "description": "Schema for Acestream channel creation",
         "properties": {
+          "allow_excluded": {
+            "default": false,
+            "title": "Allow Excluded",
+            "type": "boolean"
+          },
           "group": {
             "anyOf": [
               {
@@ -714,16 +719,10 @@
             "title": "Description"
           },
           "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Acestream channel ID (optional, will be generated if not provided)",
-            "title": "Id"
+            "description": "Catalogue infohash; resolved by the server before import",
+            "pattern": "^[0-9a-fA-F]{40}$",
+            "title": "Id",
+            "type": "string"
           },
           "logo": {
             "anyOf": [
@@ -739,6 +738,8 @@
           },
           "name": {
             "description": "Channel name",
+            "maxLength": 512,
+            "minLength": 1,
             "title": "Name",
             "type": "string"
           },
@@ -761,6 +762,7 @@
           }
         },
         "required": [
+          "id",
           "name",
           "url"
         ],
@@ -770,10 +772,12 @@
       "AddMultipleRequest": {
         "properties": {
           "channels": {
-            "description": "List of channels to add",
+            "description": "Catalogue results to resolve and import",
             "items": {
               "$ref": "#/components/schemas/AddChannelRequest"
             },
+            "maxItems": 100,
+            "minItems": 1,
             "title": "Channels",
             "type": "array"
           }
@@ -1327,6 +1331,11 @@
             "title": "Duplicates",
             "type": "integer"
           },
+          "excluded": {
+            "default": 0,
+            "title": "Excluded",
+            "type": "integer"
+          },
           "failed_fetches": {
             "default": 0,
             "title": "Failed Fetches",
@@ -1384,6 +1393,13 @@
             "default": false,
             "title": "Duplicate",
             "type": "boolean"
+          },
+          "excluded_rule_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Excluded Rule Ids",
+            "type": "array"
           },
           "guide_id": {
             "anyOf": [
@@ -1797,6 +1813,11 @@
             "default": false,
             "title": "Partial",
             "type": "boolean"
+          },
+          "policy_revision": {
+            "default": 0,
+            "title": "Policy Revision",
+            "type": "integer"
           },
           "preview_token": {
             "anyOf": [
@@ -4133,6 +4154,296 @@
         "title": "EventView",
         "type": "object"
       },
+      "ExclusionInput": {
+        "properties": {
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "kind": {
+            "enum": [
+              "name_contains",
+              "name_equals",
+              "stream_id_equals"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "value": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "value"
+        ],
+        "title": "ExclusionInput",
+        "type": "object"
+      },
+      "ExclusionList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ExclusionRule"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "policy_revision": {
+            "title": "Policy Revision",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "policy_revision"
+        ],
+        "title": "ExclusionList",
+        "type": "object"
+      },
+      "ExclusionPreview": {
+        "properties": {
+          "complete": {
+            "title": "Complete",
+            "type": "boolean"
+          },
+          "examples": {
+            "items": {
+              "$ref": "#/components/schemas/ImportCandidate"
+            },
+            "title": "Examples",
+            "type": "array"
+          },
+          "matched": {
+            "title": "Matched",
+            "type": "integer"
+          },
+          "policy_revision": {
+            "title": "Policy Revision",
+            "type": "integer"
+          },
+          "scanned": {
+            "title": "Scanned",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "policy_revision",
+          "scanned",
+          "matched",
+          "complete",
+          "examples"
+        ],
+        "title": "ExclusionPreview",
+        "type": "object"
+      },
+      "ExclusionPreviewRequest": {
+        "properties": {
+          "candidates": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ImportCandidate"
+                },
+                "maxItems": 200,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Candidates"
+          },
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "kind": {
+            "enum": [
+              "name_contains",
+              "name_equals",
+              "stream_id_equals"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "value": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "value"
+        ],
+        "title": "ExclusionPreviewRequest",
+        "type": "object"
+      },
+      "ExclusionRule": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "name_contains",
+              "name_equals",
+              "stream_id_equals"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "value": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "value",
+          "id",
+          "revision",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ExclusionRule",
+        "type": "object"
+      },
+      "ExclusionUpdate": {
+        "properties": {
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "expected_revision": {
+            "minimum": 1.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "name_contains",
+              "name_equals",
+              "stream_id_equals"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "value": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "value",
+          "expected_revision"
+        ],
+        "title": "ExclusionUpdate",
+        "type": "object"
+      },
+      "ExclusionWrite": {
+        "properties": {
+          "policy_revision": {
+            "title": "Policy Revision",
+            "type": "integer"
+          },
+          "rule": {
+            "$ref": "#/components/schemas/ExclusionRule"
+          }
+        },
+        "required": [
+          "rule",
+          "policy_revision"
+        ],
+        "title": "ExclusionWrite",
+        "type": "object"
+      },
       "ExtractedChannel": {
         "properties": {
           "channel_id": {
@@ -4362,6 +4673,26 @@
           "error"
         ],
         "title": "HealthURLTotals",
+        "type": "object"
+      },
+      "ImportCandidate": {
+        "properties": {
+          "channel_id": {
+            "maxLength": 44,
+            "title": "Channel Id",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 512,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id",
+          "name"
+        ],
+        "title": "ImportCandidate",
         "type": "object"
       },
       "MediaServerCreate": {
@@ -6118,6 +6449,492 @@
         "title": "RuntimeOption",
         "type": "object"
       },
+      "SavedSearchInput": {
+        "properties": {
+          "category": {
+            "default": "",
+            "maxLength": 100,
+            "title": "Category",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "query": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Query",
+            "type": "string"
+          },
+          "refresh_enabled": {
+            "default": false,
+            "title": "Refresh Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "query"
+        ],
+        "title": "SavedSearchInput",
+        "type": "object"
+      },
+      "SavedSearchList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SavedSearchView"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total"
+        ],
+        "title": "SavedSearchList",
+        "type": "object"
+      },
+      "SavedSearchPreview": {
+        "properties": {
+          "expires_in_seconds": {
+            "default": 300,
+            "title": "Expires In Seconds",
+            "type": "integer"
+          },
+          "preview_token": {
+            "title": "Preview Token",
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/SavedSearchResult"
+          }
+        },
+        "required": [
+          "preview_token",
+          "result"
+        ],
+        "title": "SavedSearchPreview",
+        "type": "object"
+      },
+      "SavedSearchPreviewRequest": {
+        "properties": {
+          "definition": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SavedSearchInput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expected_revision": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Revision"
+          },
+          "saved_search_id": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Saved Search Id"
+          }
+        },
+        "title": "SavedSearchPreviewRequest",
+        "type": "object"
+      },
+      "SavedSearchResult": {
+        "properties": {
+          "added": {
+            "default": 0,
+            "title": "Added",
+            "type": "integer"
+          },
+          "candidates_seen": {
+            "default": 0,
+            "title": "Candidates Seen",
+            "type": "integer"
+          },
+          "deferred_candidates": {
+            "default": 0,
+            "title": "Deferred Candidates",
+            "type": "integer"
+          },
+          "definition_revision": {
+            "title": "Definition Revision",
+            "type": "integer"
+          },
+          "duplicates": {
+            "default": 0,
+            "title": "Duplicates",
+            "type": "integer"
+          },
+          "duration_seconds": {
+            "default": 0,
+            "title": "Duration Seconds",
+            "type": "number"
+          },
+          "excluded_candidates": {
+            "default": 0,
+            "title": "Excluded Candidates",
+            "type": "integer"
+          },
+          "existing": {
+            "default": 0,
+            "title": "Existing",
+            "type": "integer"
+          },
+          "finished_at": {
+            "format": "date-time",
+            "title": "Finished At",
+            "type": "string"
+          },
+          "outcome": {
+            "enum": [
+              "complete",
+              "partial",
+              "failed",
+              "skipped",
+              "interrupted"
+            ],
+            "title": "Outcome",
+            "type": "string"
+          },
+          "pages_fetched": {
+            "default": 0,
+            "title": "Pages Fetched",
+            "type": "integer"
+          },
+          "policy_revision": {
+            "title": "Policy Revision",
+            "type": "integer"
+          },
+          "resolved_content_ids": {
+            "default": 0,
+            "title": "Resolved Content Ids",
+            "type": "integer"
+          },
+          "samples": {
+            "items": {
+              "$ref": "#/components/schemas/SearchImportOutcome"
+            },
+            "maxItems": 100,
+            "title": "Samples",
+            "type": "array"
+          },
+          "samples_truncated": {
+            "default": false,
+            "title": "Samples Truncated",
+            "type": "boolean"
+          },
+          "schema_version": {
+            "default": 1,
+            "title": "Schema Version",
+            "type": "integer"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "stop_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stop Reason"
+          },
+          "unique_infohashes": {
+            "default": 0,
+            "title": "Unique Infohashes",
+            "type": "integer"
+          },
+          "unresolved_candidates": {
+            "default": 0,
+            "title": "Unresolved Candidates",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "outcome",
+          "policy_revision",
+          "definition_revision",
+          "started_at",
+          "finished_at"
+        ],
+        "title": "SavedSearchResult",
+        "type": "object"
+      },
+      "SavedSearchRunRequest": {
+        "properties": {
+          "expected_revision": {
+            "minimum": 1.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "preview_token": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preview Token"
+          }
+        },
+        "required": [
+          "expected_revision"
+        ],
+        "title": "SavedSearchRunRequest",
+        "type": "object"
+      },
+      "SavedSearchUpdate": {
+        "properties": {
+          "category": {
+            "default": "",
+            "maxLength": 100,
+            "title": "Category",
+            "type": "string"
+          },
+          "expected_revision": {
+            "minimum": 1.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "query": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Query",
+            "type": "string"
+          },
+          "refresh_enabled": {
+            "default": false,
+            "title": "Refresh Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "query",
+          "expected_revision"
+        ],
+        "title": "SavedSearchUpdate",
+        "type": "object"
+      },
+      "SavedSearchView": {
+        "properties": {
+          "category": {
+            "default": "",
+            "maxLength": 100,
+            "title": "Category",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "last_attempt_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Attempt At"
+          },
+          "last_finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Finished At"
+          },
+          "last_outcome": {
+            "anyOf": [
+              {
+                "enum": [
+                  "complete",
+                  "partial",
+                  "failed",
+                  "skipped",
+                  "interrupted"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Outcome"
+          },
+          "last_result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SavedSearchResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Started At"
+          },
+          "last_success_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Success At"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "query": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Query",
+            "type": "string"
+          },
+          "refresh_enabled": {
+            "default": false,
+            "title": "Refresh Enabled",
+            "type": "boolean"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "run_state": {
+            "anyOf": [
+              {
+                "enum": [
+                  "waiting",
+                  "running"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run State"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "query",
+          "id",
+          "revision",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "SavedSearchView",
+        "type": "object"
+      },
       "ScanDefaultResponse": {
         "properties": {
           "cidr": {
@@ -6315,6 +7132,11 @@
             "title": "Channels Found",
             "type": "integer"
           },
+          "excluded_count": {
+            "default": 0,
+            "title": "Excluded Count",
+            "type": "integer"
+          },
           "message": {
             "title": "Message",
             "type": "string"
@@ -6336,6 +7158,141 @@
           "status"
         ],
         "title": "ScraperResultExtended",
+        "type": "object"
+      },
+      "SearchImportItem": {
+        "properties": {
+          "category": {
+            "default": "",
+            "maxLength": 100,
+            "title": "Category",
+            "type": "string"
+          },
+          "infohash": {
+            "pattern": "^[a-fA-F0-9]{40}$",
+            "title": "Infohash",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "infohash",
+          "name"
+        ],
+        "title": "SearchImportItem",
+        "type": "object"
+      },
+      "SearchImportOutcome": {
+        "properties": {
+          "content_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Id"
+          },
+          "infohash": {
+            "title": "Infohash",
+            "type": "string"
+          },
+          "outcome": {
+            "enum": [
+              "added",
+              "existing",
+              "excluded",
+              "unresolved",
+              "duplicate",
+              "deferred"
+            ],
+            "title": "Outcome",
+            "type": "string"
+          },
+          "rule_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Rule Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "infohash",
+          "outcome"
+        ],
+        "title": "SearchImportOutcome",
+        "type": "object"
+      },
+      "SearchImportRequest": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SearchImportItem"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "SearchImportRequest",
+        "type": "object"
+      },
+      "SearchImportResponse": {
+        "properties": {
+          "added": {
+            "default": 0,
+            "title": "Added",
+            "type": "integer"
+          },
+          "deferred": {
+            "default": 0,
+            "title": "Deferred",
+            "type": "integer"
+          },
+          "excluded": {
+            "default": 0,
+            "title": "Excluded",
+            "type": "integer"
+          },
+          "existing": {
+            "default": 0,
+            "title": "Existing",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SearchImportOutcome"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "policy_revision": {
+            "title": "Policy Revision",
+            "type": "integer"
+          },
+          "unresolved": {
+            "default": 0,
+            "title": "Unresolved",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "policy_revision"
+        ],
+        "title": "SearchImportResponse",
         "type": "object"
       },
       "SearchPagination": {
@@ -6456,6 +7413,8 @@
           },
           "name": {
             "description": "Channel name",
+            "maxLength": 512,
+            "minLength": 1,
             "title": "Name",
             "type": "string"
           },
@@ -8533,6 +9492,21 @@
       },
       "TelegramPreviewMessage": {
         "properties": {
+          "excluded_count": {
+            "default": 0,
+            "title": "Excluded Count",
+            "type": "integer"
+          },
+          "excluded_rule_ids": {
+            "additionalProperties": {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "title": "Excluded Rule Ids",
+            "type": "object"
+          },
           "message_id": {
             "title": "Message Id",
             "type": "integer"
@@ -8628,6 +9602,11 @@
             "maxLength": 512,
             "title": "Exclude",
             "type": "string"
+          },
+          "excluded_count": {
+            "default": 0,
+            "title": "Excluded Count",
+            "type": "integer"
           },
           "filter_mode": {
             "default": "keyword",
@@ -14922,6 +15901,270 @@
         ]
       }
     },
+    "/api/v1/import-exclusions": {
+      "get": {
+        "operationId": "list_rules_api_v1_import_exclusions_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "enabled",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Enabled"
+            }
+          },
+          {
+            "in": "query",
+            "name": "rule_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Rule Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExclusionList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Rules",
+        "tags": [
+          "import-exclusions"
+        ]
+      },
+      "post": {
+        "operationId": "create_rule_api_v1_import_exclusions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExclusionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExclusionWrite"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Rule",
+        "tags": [
+          "import-exclusions"
+        ]
+      }
+    },
+    "/api/v1/import-exclusions/preview": {
+      "post": {
+        "operationId": "preview_api_v1_import_exclusions_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExclusionPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExclusionPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview",
+        "tags": [
+          "import-exclusions"
+        ]
+      }
+    },
+    "/api/v1/import-exclusions/{rule_id}": {
+      "delete": {
+        "operationId": "delete_rule_api_v1_import_exclusions__rule_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rule_id",
+            "required": true,
+            "schema": {
+              "title": "Rule Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "expected_revision",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "Expected Revision",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Rule",
+        "tags": [
+          "import-exclusions"
+        ]
+      },
+      "patch": {
+        "operationId": "update_rule_api_v1_import_exclusions__rule_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rule_id",
+            "required": true,
+            "schema": {
+              "title": "Rule Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExclusionUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExclusionWrite"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Rule",
+        "tags": [
+          "import-exclusions"
+        ]
+      }
+    },
     "/api/v1/media-servers": {
       "get": {
         "operationId": "list_media_servers_api_v1_media_servers_get",
@@ -16893,6 +18136,329 @@
         ]
       }
     },
+    "/api/v1/saved-searches": {
+      "get": {
+        "operationId": "list_searches_api_v1_saved_searches_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedSearchList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Searches",
+        "tags": [
+          "saved-searches"
+        ]
+      },
+      "post": {
+        "operationId": "create_search_api_v1_saved_searches_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SavedSearchInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedSearchView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Search",
+        "tags": [
+          "saved-searches"
+        ]
+      }
+    },
+    "/api/v1/saved-searches/preview": {
+      "post": {
+        "operationId": "preview_api_v1_saved_searches_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SavedSearchPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedSearchPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview",
+        "tags": [
+          "saved-searches"
+        ]
+      }
+    },
+    "/api/v1/saved-searches/{search_id}": {
+      "delete": {
+        "operationId": "delete_search_api_v1_saved_searches__search_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "search_id",
+            "required": true,
+            "schema": {
+              "title": "Search Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "expected_revision",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "Expected Revision",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Search",
+        "tags": [
+          "saved-searches"
+        ]
+      },
+      "get": {
+        "operationId": "get_search_api_v1_saved_searches__search_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "search_id",
+            "required": true,
+            "schema": {
+              "title": "Search Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedSearchView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Search",
+        "tags": [
+          "saved-searches"
+        ]
+      },
+      "patch": {
+        "operationId": "update_search_api_v1_saved_searches__search_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "search_id",
+            "required": true,
+            "schema": {
+              "title": "Search Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SavedSearchUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedSearchView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Search",
+        "tags": [
+          "saved-searches"
+        ]
+      }
+    },
+    "/api/v1/saved-searches/{search_id}/run": {
+      "post": {
+        "operationId": "run_search_api_v1_saved_searches__search_id__run_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "search_id",
+            "required": true,
+            "schema": {
+              "title": "Search Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SavedSearchRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedSearchView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Run Search",
+        "tags": [
+          "saved-searches"
+        ]
+      }
+    },
     "/api/v1/scrapers/recipes/preview": {
       "post": {
         "description": "Test a sample in an isolated worker. No source/channel writes.",
@@ -17451,7 +19017,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/SearchImportResponse"
+                }
               }
             },
             "description": "Successful Response"
@@ -17492,7 +19060,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/SearchImportResponse"
+                }
               }
             },
             "description": "Successful Response"
@@ -17509,6 +19079,48 @@
           }
         },
         "summary": "Add Multiple Channels",
+        "tags": [
+          "search",
+          "search"
+        ]
+      }
+    },
+    "/api/v1/search/import": {
+      "post": {
+        "operationId": "import_search_results_api_v1_search_import_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchImportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchImportResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Import Search Results",
         "tags": [
           "search",
           "search"

@@ -279,3 +279,8 @@ and signal results. Missing results never remove channels. Deleting a saved sear
 keeps imported channels. Complete, partial, skipped and failed outcomes distinguish
 excluded candidates from unresolved IDs and deferred work. Configure the catalogue
 engine in Settings → Playback; no engine is selected silently.
+
+Leave **Search Query** empty and click **Search** to browse all channels published
+in the AceStream catalogue. Category filters and pagination still apply; each
+page is fetched separately. Whitespace-only input is treated as empty. Browsing
+starts only after clicking Search (or pressing Enter), not when opening the page.

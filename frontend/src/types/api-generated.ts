@@ -619,6 +619,8 @@ export interface paths {
     post: operations["queue_event_refresh_api_v1_events_sources_refresh_post"];
   };
   "/api/v1/events/sources/{source_id}": {
+    /** Delete Event Source */
+    delete: operations["delete_event_source_api_v1_events_sources__source_id__delete"];
     /** Update Event Source */
     patch: operations["update_event_source_api_v1_events_sources__source_id__patch"];
   };
@@ -2789,6 +2791,25 @@ export interface components {
       /** Warnings */
       warnings: string[];
     };
+    /** EventProgramMatch */
+    EventProgramMatch: {
+      /**
+       * Ends At
+       * Format: date-time
+       */
+      ends_at: string;
+      epg_channel: components["schemas"]["EventChannelTarget"];
+      /** Program Id */
+      program_id: number;
+      /**
+       * Starts At
+       * Format: date-time
+       */
+      starts_at: string;
+      /** Title */
+      title: string;
+      tv_channel?: components["schemas"]["EventChannelTarget"] | null;
+    };
     /** EventProviderCatalog */
     EventProviderCatalog: {
       /** Feeds */
@@ -2958,6 +2979,8 @@ export interface components {
       corrected: boolean;
       /** Ends At */
       ends_at?: string | null;
+      /** Epg Matches */
+      epg_matches?: components["schemas"]["EventProgramMatch"][];
       /** Followed */
       followed: boolean;
       /**
@@ -8031,6 +8054,29 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["EventRefreshQueued"];
+        };
+      };
+    };
+  };
+  /** Delete Event Source */
+  delete_event_source_api_v1_events_sources__source_id__delete: {
+    parameters: {
+      query: {
+        revision: number;
+      };
+      path: {
+        source_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };

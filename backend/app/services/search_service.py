@@ -59,7 +59,7 @@ class SearchService:
             self.db.rollback()
         def read():
             with SearchCatalogueClient(url) as client:
-                payload = client.get('/search', dict(query=query, category=category, page=page - 1, page_size=page_size))
+                payload = client.get('/search', dict(query=query.strip(), category=category, page=page - 1, page_size=page_size))
                 return flatten_results(payload)
         try:
             items, total, invalid, capped = await asyncio.to_thread(read)

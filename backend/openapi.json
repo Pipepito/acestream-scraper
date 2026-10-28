@@ -3604,6 +3604,51 @@
         "title": "EventPreview",
         "type": "object"
       },
+      "EventProgramMatch": {
+        "additionalProperties": false,
+        "properties": {
+          "ends_at": {
+            "format": "date-time",
+            "title": "Ends At",
+            "type": "string"
+          },
+          "epg_channel": {
+            "$ref": "#/components/schemas/EventChannelTarget"
+          },
+          "program_id": {
+            "title": "Program Id",
+            "type": "integer"
+          },
+          "starts_at": {
+            "format": "date-time",
+            "title": "Starts At",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "tv_channel": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EventChannelTarget"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "program_id",
+          "title",
+          "starts_at",
+          "ends_at",
+          "epg_channel"
+        ],
+        "title": "EventProgramMatch",
+        "type": "object"
+      },
       "EventProviderCatalog": {
         "additionalProperties": false,
         "properties": {
@@ -4046,6 +4091,13 @@
               }
             ],
             "title": "Ends At"
+          },
+          "epg_matches": {
+            "items": {
+              "$ref": "#/components/schemas/EventProgramMatch"
+            },
+            "title": "Epg Matches",
+            "type": "array"
           },
           "followed": {
             "title": "Followed",
@@ -15643,6 +15695,49 @@
       }
     },
     "/api/v1/events/sources/{source_id}": {
+      "delete": {
+        "operationId": "delete_event_source_api_v1_events_sources__source_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "title": "Source Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "revision",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "Revision",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Event Source",
+        "tags": [
+          "events"
+        ]
+      },
       "patch": {
         "operationId": "update_event_source_api_v1_events_sources__source_id__patch",
         "parameters": [

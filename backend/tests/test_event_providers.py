@@ -242,3 +242,17 @@ def test_manual_target_removes_a_different_source_stream_and_reset_restores_it(c
         'revision': response.json()['revision'], 'broadcast_id': event['broadcasts'][0]['id'], 'channel_id': None})
     assert response.status_code == 200
     assert response.json()['broadcasts'][0]['content_id'] == 'a' * 40
+
+
+def test_football_linked_teams_and_competition_headers():
+    html = '''<table class="tablaPrincipal">
+      <tr class="cabeceraTabla"><td>28/10/2026</td></tr>
+      <tr class="cabeceraCompericion"><td><a>Copa del Rey</a></td></tr>
+      <tr><td class="hora">19:00</td><td class="detalles"><span class="ajusteDoslineas">1ª Ronda</span></td>
+      <td class="local"><a><span>North United</span></a></td><td class="visitante"><a><span>South City</span></a></td>
+      <td><ul class="listaCanales"><li>Sports One</li></ul></td></tr></table>'''
+    row = parse_wosti(html, feed='football')[0]
+    assert row.competition == 'Copa del Rey'
+    assert row.participants == ['North United', 'South City']
+    assert row.starts_at.isoformat() == '2026-10-28T18:00:00+00:00'
+    assert row.broadcasts[0].label == 'Sports One'

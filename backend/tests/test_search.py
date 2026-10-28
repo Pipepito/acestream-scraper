@@ -113,3 +113,19 @@ def test_legacy_imports_enforce_policy(client, db_session, monkeypatch, route):
     result = client.post('/api/v1/search' + route, json=item if route == '/add' else {'channels': [item]})
     assert result.status_code == 200
     assert result.json()['excluded'] == 1
+
+
+def test_empty_search_uses_paginated_catalogue_request(monkeypatch):
+    import asyncio
+    from types import SimpleNamespace
+    from app.services.search_service import SearchService
+    from app.services.search_catalogue_client import SearchCatalogueClient
+    requests = []
+    def get(self, path, params):
+        requests.append((path, params))
+        return {'result': {'results': [{'infohash': 'a' * 40, 'name': 'All channel'}], 'total': 201}}
+    monkeypatch.setattr(SearchCatalogueClient, 'get', get)
+    config = SimpleNamespace(get_ace_engine_url=lambda: 'http://engine.example')
+    result = asyncio.run(SearchService(config).search('  ', 3, 25, 'sports'))
+    assert requests == [('/search', {'query': '', 'category': 'sports', 'page': 2, 'page_size': 25})]
+    assert result['pagination'] == dict(page=3, page_size=25, total_results=201, total_pages=9)

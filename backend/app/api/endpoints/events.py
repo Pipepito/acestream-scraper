@@ -117,6 +117,12 @@ def update_event_source(source_id: str, request: EventSourceUpdate, db: Session 
     return invoke(EventSourceService(db).update, source_id, request)
 
 
+@router.delete('/sources/{source_id}', status_code=204)
+def delete_event_source(source_id: str, revision: int = Query(..., ge=1), db: Session = Depends(get_db)):
+    invoke(EventSourceService(db).delete, source_id, revision)
+    return Response(status_code=204)
+
+
 @router.get('/retention', response_model=EventRetention)
 def event_retention(db: Session = Depends(get_db)):
     return invoke(EventSourceService(db).retention)

@@ -241,3 +241,23 @@ publisher state. Selection uses timezone-aware UTC now with local calendar bound
 blocked/corrupt storage falls back safely. `/events?event=<id>&zone=<timezone>` opens
 the existing detail drawer. Follow/correction mutations invalidate the shared query
 prefix; summary reads never modify sources, events or playback leases.
+
+### Source deletion and programme associations
+
+`DELETE /api/v1/events/sources/{source_id}?revision=N` removes only the saved
+schedule configuration using an atomic revision check. It retains observations,
+events and event media. In-flight refresh reservations and source preview/apply
+identity checks prevent stale operations from recreating the configuration.
+
+`EventView.epg_matches` is a read-only, derived programme association, available in
+preview and saved event responses without a schema migration. Candidate queries
+use enabled guides and bounded start-time ranges (5,001-row overflow sentinel).
+Both normalized full participant names must occur in title/subtitle. Repeated
+programmes on a guide channel or matches separated by more than 30 minutes are
+ambiguous; date-only inputs use timezone-aware calendar boundaries. TV targets
+require the exact EPG source and XML channel ID and one active assignment. No
+source/manual metadata is overwritten and no stale programme IDs are persisted.
+
+WOSTI football uses linked participant spans and competition header rows; the
+multi-sport row layout remains supported. The fetch byte/deadline limits and
+all-or-nothing failure preservation remain in force.

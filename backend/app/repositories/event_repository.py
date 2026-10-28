@@ -1,6 +1,6 @@
 """DB-only access for event ingestion and reviewed edits."""
 from sqlalchemy import select, update, delete
-from app.models.models import SportingEvent, EventObservationRecord, EventMedia, AcestreamChannel, TVChannel, EPGChannel, EPGSource
+from app.models.models import SportingEvent, EventObservationRecord, EventMedia, AcestreamChannel, TVChannel, EPGChannel, EPGSource, EPGProgram
 
 
 class EventRepository:
@@ -41,6 +41,21 @@ class EventRepository:
                              EPGSource.name.label('source_name')).join(EPGSource)
                              .where(EPGChannel.id == target_id, EPGSource.enabled.is_(True))).mappings().first()
         return dict(row) if row else None
+
+    def program_candidates(self, lower, upper):
+        return list(self.db.execute(select(
+            EPGProgram.id, EPGProgram.title, EPGProgram.subtitle, EPGProgram.start_time, EPGProgram.end_time,
+            EPGProgram.epg_channel_id, EPGChannel.epg_source_id, EPGChannel.channel_xml_id,
+            EPGChannel.name.label('channel_name'), EPGSource.name.label('source_name'))
+            .join(EPGChannel, EPGProgram.epg_channel_id == EPGChannel.id)
+            .join(EPGSource, EPGChannel.epg_source_id == EPGSource.id)
+            .where(EPGSource.enabled.is_(True), EPGProgram.start_time >= lower, EPGProgram.start_time < upper)
+            .order_by(EPGProgram.start_time, EPGProgram.id).limit(5001)).mappings())
+
+    def program_tv_targets(self, source_id, xml_id):
+        return list(self.db.execute(select(TVChannel.id, TVChannel.name, TVChannel.country).where(
+            TVChannel.is_active.is_(True), TVChannel.epg_source_id == source_id, TVChannel.epg_id == xml_id)
+            .limit(2)).mappings())
 
     def channels(self, content_ids):
         ids = list(content_ids)

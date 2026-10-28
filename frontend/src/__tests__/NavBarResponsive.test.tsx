@@ -182,7 +182,7 @@ describe('NavBar responsive shell behavior', () => {
     expect(screen.getByRole('button', { name: /switch to dark theme/i })).toHaveFocus();
 
     for (const name of [
-      'TV dashboard', 'Live TV', 'Catalogues', 'Events', 'Scraper', 'Search', 'Acestream Channels', 'TV Channels',
+      'TV dashboard', 'Live TV', 'Recordings', 'Catalogues', 'Events', 'Scraper', 'Search', 'Acestream Channels', 'TV Channels',
       'EPG', 'Playlist', 'Public address', 'Web player', 'Remote players', 'Media servers', 'Telegram', 'System status', 'WARP', 'Settings',
     ]) {
       await tab();

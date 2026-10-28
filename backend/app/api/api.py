@@ -13,6 +13,8 @@ api_router.include_router(scrapers.router, prefix="/scrapers", tags=["scrapers"]
 api_router.include_router(epg.router, prefix="/epg", tags=["epg"])
 api_router.include_router(playlists.router, prefix="/playlists", tags=["playlists"])
 api_router.include_router(search.router, prefix="/search", tags=["search"])
+from app.api.endpoints import recordings
+api_router.include_router(recordings.config_router, prefix="/config", tags=["config"])
 api_router.include_router(config.router, prefix="/config", tags=["config"])
 api_router.include_router(health.router, tags=["health"])
 api_router.include_router(warp.router, prefix="/warp", tags=["warp"])
@@ -53,3 +55,5 @@ api_router.include_router(import_exclusions.router, prefix='/import-exclusions',
 
 from app.api.endpoints import saved_searches
 api_router.include_router(saved_searches.router, prefix='/saved-searches', tags=['saved-searches'])
+
+api_router.include_router(recordings.router, prefix="/recordings", tags=["recordings"])

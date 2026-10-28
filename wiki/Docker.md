@@ -479,3 +479,7 @@ remain in Compose. Existing database preferences remain authoritative. See
 [configuration precedence](Configuration.md#first-run-setup) and the
 [option audit](../docs/dev/runtime-configuration-audit.md). This development feature
 is not evidence that the currently published stable image includes it.
+
+## Recording storage
+
+For built-in DVR, mount an existing persistent directory, set `RECORDINGS_DIR` to its absolute container path and enable recordings in Settings → Automation. Keep it separate from player HLS/cache storage. See [Recordings](Recordings.md) for admission, retention, permissions and rollback.

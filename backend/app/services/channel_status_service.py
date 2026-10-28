@@ -159,17 +159,37 @@ class ChannelStatusService:
                     previous_downloaded = downloaded
                 await asyncio.sleep(min(1.0, max(0, deadline - asyncio.get_running_loop().time())))
         finally:
-            if command_url and not self._in_use(channel_id):
+            if command_url:
                 try:
-                    await self._fetch_engine_response(command_url, {'method': 'stop'}, 3.0)
+                    await asyncio.to_thread(self._release_probe, engine_url, channel_id, command_url)
                 except Exception:
                     logger.warning('Could not stop channel status probe session')
+
+    def _release_probe(self, engine_url, channel_id, command_url):
+        # Hold the same source lock as EngineClient.start/final stop. A probe
+        # finishing after playback started is parked for the final lease release.
+        from app.services.playback_ownership import source_ownership
+        from app.services.engine_client import EngineSession
+        source = source_ownership(engine_url, channel_id)
+        with source.lock:
+            if source.leases:
+                source.parked.append(EngineSession(channel_id, '', '', '', command_url, True))
+            elif not self._in_use(channel_id):
+                asyncio.run(self._fetch_engine_response(command_url, {'method': 'stop'}, 3.0))
+
+    def _recording_reserved(self):
+        from app.services.recording_coordinator import recording_coordinator
+        from app.services.check_engine_config_service import CheckEngineConfigService
+        return bool(recording_coordinator.activity()) and not CheckEngineConfigService(self.settings_repo).get().use_dedicated
 
     @staticmethod
     def _in_use(channel_id: str) -> bool:
         from app.services.stream_relay import relay_registry
         from app.services.player_service import player_service
         key = channel_id.lower()
+        from app.services.recording_coordinator import recording_coordinator
+        if recording_coordinator.source_active(key):
+            return True
         return any(relay.content_id.lower() == key for relay in relay_registry.active()) or any(
             session.content_id.lower() == key and session.state in ('starting', 'ready')
             for session in player_service.list_sessions()
@@ -211,13 +231,13 @@ class ChannelStatusService:
         since = submitted if priority == ProbePriority.MANUAL else submitted - timedelta(seconds=30)
         if priority == ProbePriority.BACKGROUND and scan_started_at is not None:
             since = min(since, scan_started_at)
-        if not is_http and self._in_use(channel.id):
+        if not is_http and (self._in_use(channel.id) or self._recording_reserved()):
             return self._skipped_result(channel)
         ticket = probe_queue.enqueue(priority)
         probed = False
         try:
             await probe_queue.acquire(ticket)
-            if not is_http and self._in_use(channel.id):
+            if not is_http and (self._in_use(channel.id) or self._recording_reserved()):
                 return self._skipped_result(channel)
             if persist and identifier == 'id':
                 recent = await asyncio.to_thread(self._recent_result, channel.id, since)
@@ -306,7 +326,7 @@ class ChannelStatusService:
                 return self._skipped_result(channel)
             if not await self._wait_for_engine(engine_url):
                 return self._engine_unavailable_result(channel)
-            if self._in_use(channel.id):
+            if self._in_use(channel.id) or self._recording_reserved():
                 return self._skipped_result(channel)
             status_url = f"{engine_url}/ace/getstream"
             params = {identifier: channel.id, 'format': 'json', 'pid': uuid4().hex}

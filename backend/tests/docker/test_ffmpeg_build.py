@@ -124,3 +124,20 @@ def test_ffmpeg_builder_produces_a_working_static_binary(tmp_path, platform):
         'stream=codec_name', '-of', 'json', '/out/relay.ts'], capture_output=True, text=True, timeout=300)
     assert relay_probe.returncode == 0, relay_probe.stderr
     assert [item['codec_name'] for item in json.loads(relay_probe.stdout)['streams']] == ['mpeg2video', 'aac']
+
+    # DVR preserves source video; AAC preparation must work on every platform
+    # without libx264, concat, Matroska or reopening an output file for faststart.
+    dvr = subprocess.run(base[:3] + ['-i'] + base[3:] + ['/ff/ffmpeg', '-nostdin',
+        '-hide_banner', '-loglevel', 'error', '-protocol_whitelist', 'pipe', '-f', 'mpegts',
+        '-i', 'pipe:0', '-map', '0:v:0?', '-map', '0:a:0?', '-c', 'copy', '-c:a', 'aac',
+        '-b:a', '160k', '-movflags', '+frag_keyframe+empty_moov+default_base_moof',
+        '-f', 'mp4', 'pipe:1'], input=FIXTURE.read_bytes(), capture_output=True, timeout=300)
+    assert dvr.returncode == 0, dvr.stderr.decode(errors='replace')
+    (out / 'recording.mp4').write_bytes(dvr.stdout)
+    dvr_probe = subprocess.run(base + ['/ff/ffprobe', '-v', 'error', '-show_entries',
+        'stream=codec_name:packet=pts_time,size', '-of', 'json', '/out/recording.mp4'],
+        capture_output=True, text=True, timeout=300)
+    assert dvr_probe.returncode == 0, dvr_probe.stderr
+    observed = json.loads(dvr_probe.stdout)
+    assert [item['codec_name'] for item in observed['streams']] == ['h264', 'aac']
+    assert len(observed['packets']) > 1

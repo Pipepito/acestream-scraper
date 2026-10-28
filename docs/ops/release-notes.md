@@ -8,18 +8,21 @@ Added/Improved/Fixed sections and upgrade instructions during feature work;
 review it in develop → main. PR descriptions and readiness documents link here.
 
 The supported Markdown subset is a version H1, a one-line summary paragraph,
-H2 section titles and one-line plain-text bullets. Inline formatting, HTML,
-nested lists and links are rejected so the offline view cannot silently differ.
+H2 section titles and one-line bullets. Explicit HTTPS GitHub links are supported
+for PRs, issues and contributors, for example `[PR #270](https://github.com/Pipepito/acestream-scraper/pull/270)`.
+Other inline formatting, HTML, nested lists and non-GitHub links are rejected.
+The offline view renders the same supported links without interpreting HTML.
 Keep technical links and detailed procedures in the wiki. Historical entries
 are curated summaries; this does not rewrite previously published GitHub releases.
 
-Credit community implementation work by verified GitHub handle and PR number in
-a Contributors section. Thank issue authors for the specific ideas, reports or
-reproductions behind included changes in a separate acknowledgements section.
+Credit community implementation work by verified GitHub handle and PR number.
+Keep a concise Thanks section that distinguishes implementation contributions
+from ideas, reports and reproductions; avoid repeating the same contributor
+across multiple bullets.
 Check authorship and merged commits against the release branch; distinguish
 contributed code from suggestions, and describe partial fixes without implying
-that their umbrella issue is complete. Plain-text handles and issue/PR numbers
-keep attribution compatible with both the offline view and GitHub publication.
+that their umbrella issue is complete. Use explicit HTTPS GitHub links for handles and issue/PR references so attribution
+is clickable in both the offline view and GitHub publication.
 
 Run `cd frontend && npm run changelog`, then commit both the Markdown and generated
 `frontend/src/data/changelog.ts`. `prebuild` and `prestart` reject drift. The main

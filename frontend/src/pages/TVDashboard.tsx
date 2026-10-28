@@ -1,3 +1,4 @@
+import RecordingOverview from '../components/recordings/RecordingOverview';
 import React from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import UpcomingEvents from '../components/overview/UpcomingEvents';
@@ -48,6 +49,7 @@ export default function TVDashboard() {
       </Alert> : !playback.data ? <Typography role="status">Loading playback…</Typography> : <ActiveStreamsList streams={playback.data.streams} />}
     </ContentSection>
 
+    <RecordingOverview />
     <UpcomingEvents />
 
     <ContentSection title="Channels and streams" description="Saved inventory and the last observed stream status." actions={<Stack direction="row" gap={1} flexWrap="wrap">

@@ -1,3 +1,4 @@
+import RecordButton from '../recordings/RecordButton';
 import { networkStatusLabel } from '../channels/NetworkStatusChip';
 import React, { useState } from 'react';
 import { Alert, MenuItem, TextField } from '@mui/material';
@@ -21,7 +22,7 @@ const OpenChannelPlayer: React.FC<ChannelPlayerDialogProps> = (props) => {
   const now = useNow();
   const channel = tv.data;
   return <StreamPlayerDialog {...props} contentId={selectedId} title={channel?.name ?? props.title}
-    extraActions={selectedId && !selectedId.startsWith('url:') ? <PlayOnMenu contentId={selectedId} title={channel?.name ?? props.title} /> : undefined}
+    extraActions={<>{channel ? <RecordButton channelId={channel.id} channelName={channel.name} /> : null}{selectedId && !selectedId.startsWith('url:') ? <PlayOnMenu contentId={selectedId} title={channel?.name ?? props.title} /> : null}</>}
     schedule={channel ? <ChannelGuide channel={channel} now={now} /> : undefined}
     details={<>
       {tv.isError ? <Alert severity="warning">Channel details are unavailable. You can still play this stream.</Alert> : null}

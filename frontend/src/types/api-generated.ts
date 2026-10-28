@@ -396,6 +396,12 @@ export interface paths {
      */
     put: operations["update_public_base_url_api_v1_config_public_base_url_put"];
   };
+  "/api/v1/config/recordings": {
+    /** Settings */
+    get: operations["settings_api_v1_config_recordings_get"];
+    /** Configure */
+    put: operations["configure_api_v1_config_recordings_put"];
+  };
   "/api/v1/config/rescrape_interval": {
     /**
      * Get Rescrape Interval
@@ -801,6 +807,60 @@ export interface paths {
      * - **refresh**: Trigger a background rescrape of all enabled URLs
      */
     get: operations["get_tv_channels_playlist_api_v1_playlists_tv_channels_m3u_get"];
+  };
+  "/api/v1/recordings": {
+    /** Listing */
+    get: operations["listing_api_v1_recordings_get"];
+    /** Create */
+    post: operations["create_api_v1_recordings_post"];
+  };
+  "/api/v1/recordings/capabilities": {
+    /** Capabilities */
+    get: operations["capabilities_api_v1_recordings_capabilities_get"];
+  };
+  "/api/v1/recordings/current-programme": {
+    /** Current Programme */
+    get: operations["current_programme_api_v1_recordings_current_programme_get"];
+  };
+  "/api/v1/recordings/upcoming": {
+    /** Upcoming */
+    get: operations["upcoming_api_v1_recordings_upcoming_get"];
+  };
+  "/api/v1/recordings/{rid}": {
+    /** Detail */
+    get: operations["detail_api_v1_recordings__rid__get"];
+    /** Delete */
+    delete: operations["delete_api_v1_recordings__rid__delete"];
+    /** Edit */
+    patch: operations["edit_api_v1_recordings__rid__patch"];
+  };
+  "/api/v1/recordings/{rid}/cancel": {
+    /** Cancel */
+    post: operations["cancel_api_v1_recordings__rid__cancel_post"];
+  };
+  "/api/v1/recordings/{rid}/conversions": {
+    /** Convert */
+    post: operations["convert_api_v1_recordings__rid__conversions_post"];
+  };
+  "/api/v1/recordings/{rid}/files/{fid}": {
+    /** File */
+    get: operations["file_api_v1_recordings__rid__files__fid__get"];
+    /** File */
+    head: operations["file_api_v1_recordings__rid__files__fid__head"];
+  };
+  "/api/v1/recordings/{rid}/playback-sessions": {
+    /** Open Playback */
+    post: operations["open_playback_api_v1_recordings__rid__playback_sessions_post"];
+  };
+  "/api/v1/recordings/{rid}/playback-sessions/{sid}": {
+    /** Playback Status */
+    get: operations["playback_status_api_v1_recordings__rid__playback_sessions__sid__get"];
+    /** Close Playback */
+    delete: operations["close_playback_api_v1_recordings__rid__playback_sessions__sid__delete"];
+  };
+  "/api/v1/recordings/{rid}/stop": {
+    /** Stop */
+    post: operations["stop_api_v1_recordings__rid__stop_post"];
   };
   "/api/v1/remote-players": {
     /** Saved remote players */
@@ -3600,6 +3660,31 @@ export interface components {
       /** Streams */
       streams: number;
     };
+    /** ProgrammeSelection */
+    ProgrammeSelection: {
+      /** Category */
+      category?: string | null;
+      /** Description */
+      description?: string | null;
+      /**
+       * End Time
+       * Format: date-time
+       */
+      end_time: string;
+      /** Epg Channel Id */
+      epg_channel_id: number;
+      /** Id */
+      id: number;
+      /**
+       * Start Time
+       * Format: date-time
+       */
+      start_time: string;
+      /** Subtitle */
+      subtitle?: string | null;
+      /** Title */
+      title: string;
+    };
     /** ProvenanceView */
     ProvenanceView: {
       /** External Id */
@@ -3713,6 +3798,252 @@ export interface components {
     RecipeSample: {
       /** Sample */
       sample: string;
+    };
+    /** RecordingAttemptView */
+    RecordingAttemptView: {
+      /** Ended At */
+      ended_at: string | null;
+      /** Exit Code */
+      exit_code: number | null;
+      /** Id */
+      id: string;
+      /** Ordinal */
+      ordinal: number;
+      /** Reason */
+      reason: string | null;
+      /** Route */
+      route: string;
+      /** Source Id */
+      source_id: string;
+      /**
+       * Started At
+       * Format: date-time
+       */
+      started_at: string;
+    };
+    /** RecordingCapabilities */
+    RecordingCapabilities: {
+      /** Aac Conversion */
+      aac_conversion: boolean;
+      /** Available */
+      available: boolean;
+      /** Enabled */
+      enabled: boolean;
+      /** Message */
+      message: string;
+      /** Mp4 Remux */
+      mp4_remux: boolean;
+      settings: components["schemas"]["RecordingSettings"];
+      /** Storage Ready */
+      storage_ready: boolean;
+      /** Stream Copy */
+      stream_copy: boolean;
+    };
+    /** RecordingConversion */
+    RecordingConversion: {
+      /** File Id */
+      file_id: string;
+      /**
+       * Profile
+       * @default remux
+       * @enum {string}
+       */
+      profile?: "remux" | "aac";
+    };
+    /** RecordingCreate */
+    RecordingCreate: {
+      /**
+       * End Time
+       * Format: date-time
+       */
+      end_time: string;
+      /** Idempotency Key */
+      idempotency_key: string;
+      /**
+       * Mode
+       * @default schedule
+       * @enum {string}
+       */
+      mode?: "now" | "schedule";
+      programme?: components["schemas"]["ProgrammeSelection"] | null;
+      /**
+       * Start Time
+       * Format: date-time
+       */
+      start_time: string;
+      /** Timezone */
+      timezone: string;
+      /** Tv Channel Id */
+      tv_channel_id: number;
+    };
+    /** RecordingEdit */
+    RecordingEdit: {
+      /** End Time */
+      end_time?: string | null;
+      /** Expected Revision */
+      expected_revision: number;
+      /** Protected */
+      protected?: boolean | null;
+      /** Start Time */
+      start_time?: string | null;
+    };
+    /** RecordingFile */
+    RecordingFile: {
+      /** Bytes */
+      bytes: number;
+      /** Codecs */
+      codecs: string[];
+      /** Duration */
+      duration: number | null;
+      /** Id */
+      id: string;
+      /** Kind */
+      kind: string;
+      /** Profile */
+      profile: string | null;
+      /** Reason */
+      reason: string | null;
+      /** Source Artifact Id */
+      source_artifact_id: string | null;
+      /** State */
+      state: string;
+    };
+    /** RecordingGap */
+    RecordingGap: {
+      /**
+       * End
+       * Format: date-time
+       */
+      end: string;
+      /** Reason */
+      reason: string;
+      /**
+       * Start
+       * Format: date-time
+       */
+      start: string;
+    };
+    /** RecordingList */
+    RecordingList: {
+      /** Items */
+      items: components["schemas"]["RecordingView"][];
+      /** Total */
+      total: number;
+    };
+    /** RecordingPlaybackRequest */
+    RecordingPlaybackRequest: {
+      /** File Id */
+      file_id: string;
+    };
+    /** RecordingPlaybackView */
+    RecordingPlaybackView: {
+      /** File Id */
+      file_id: string;
+      /** Id */
+      id: string;
+      /** Media Url */
+      media_url?: string | null;
+      /** Message */
+      message: string;
+      /**
+       * State
+       * @enum {string}
+       */
+      state: "preparing" | "ready" | "failed";
+    };
+    /** RecordingSettings */
+    RecordingSettings: {
+      /**
+       * Enabled
+       * @default false
+       */
+      enabled?: boolean;
+      /**
+       * Max Concurrent
+       * @default 1
+       */
+      max_concurrent?: number;
+      /**
+       * Max Recording Bytes
+       * @default 107374182400
+       */
+      max_recording_bytes?: number;
+      /**
+       * Min Free Bytes
+       * @default 2147483648
+       */
+      min_free_bytes?: number;
+      /** Retention Days */
+      retention_days?: number | null;
+    };
+    /** RecordingSnapshot */
+    RecordingSnapshot: {
+      /** Category */
+      category?: string | null;
+      /** Channel Name */
+      channel_name: string;
+      /** Description */
+      description?: string | null;
+      /** Guide Channel Id */
+      guide_channel_id?: string | null;
+      /** Guide Source Uuid */
+      guide_source_uuid?: string | null;
+      /** Original End */
+      original_end?: string | null;
+      /** Original Start */
+      original_start?: string | null;
+      /** Provider Programme Id */
+      provider_programme_id?: string | null;
+      /** Subtitle */
+      subtitle?: string | null;
+      /** Title */
+      title: string;
+    };
+    /** RecordingView */
+    RecordingView: {
+      /** Actual End */
+      actual_end: string | null;
+      /** Actual Start */
+      actual_start: string | null;
+      /** Attempts */
+      attempts?: components["schemas"]["RecordingAttemptView"][];
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * End Time
+       * Format: date-time
+       */
+      end_time: string;
+      /** Files */
+      files?: components["schemas"]["RecordingFile"][];
+      /** Gaps */
+      gaps: components["schemas"]["RecordingGap"][];
+      /** Id */
+      id: string;
+      /** Protected */
+      protected: boolean;
+      /** Reason */
+      reason: string | null;
+      /** Revision */
+      revision: number;
+      snapshot: components["schemas"]["RecordingSnapshot"];
+      /**
+       * Start Time
+       * Format: date-time
+       */
+      start_time: string;
+      /**
+       * State
+       * @enum {string}
+       */
+      state: "scheduled" | "starting" | "recording" | "recovering" | "finalizing" | "completed" | "partial" | "failed" | "missed" | "cancelled" | "deleting" | "deleted";
+      /** Timezone */
+      timezone: string;
+      /** Tv Channel Id */
+      tv_channel_id: number | null;
     };
     /** RemotePlayerCommandRequest */
     RemotePlayerCommandRequest: {
@@ -7204,6 +7535,39 @@ export interface operations {
       };
     };
   };
+  /** Settings */
+  settings_api_v1_config_recordings_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["RecordingSettings"];
+        };
+      };
+    };
+  };
+  /** Configure */
+  configure_api_v1_config_recordings_put: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RecordingSettings"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["RecordingSettings"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   /**
    * Get Rescrape Interval
    * @description Get the interval between automatic rescrapes in hours.
@@ -8912,6 +9276,363 @@ export interface operations {
       200: {
         content: {
           "text/plain": string;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Listing */
+  listing_api_v1_recordings_get: {
+    parameters: {
+      query?: {
+        offset?: number;
+        limit?: number;
+        state?: ("scheduled" | "starting" | "recording" | "recovering" | "finalizing" | "completed" | "partial" | "failed" | "missed" | "cancelled" | "deleting" | "deleted") | null;
+        search?: string | null;
+        tv_channel_id?: number | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["RecordingList"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Create */
+  create_api_v1_recordings_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RecordingCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        content: {
+          "application/json": components["schemas"]["RecordingView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Capabilities */
+  capabilities_api_v1_recordings_capabilities_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["RecordingCapabilities"];
+        };
+      };
+    };
+  };
+  /** Current Programme */
+  current_programme_api_v1_recordings_current_programme_get: {
+    parameters: {
+      query: {
+        tv_channel_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ProgrammeSelection"] | null;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Upcoming */
+  upcoming_api_v1_recordings_upcoming_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["RecordingList"];
+        };
+      };
+    };
+  };
+  /** Detail */
+  detail_api_v1_recordings__rid__get: {
+    parameters: {
+      path: {
+        rid: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["RecordingView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Delete */
+  delete_api_v1_recordings__rid__delete: {
+    parameters: {
+      path: {
+        rid: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      202: {
+        content: {
+          "application/json": components["schemas"]["RecordingView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Edit */
+  edit_api_v1_recordings__rid__patch: {
+    parameters: {
+      path: {
+        rid: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RecordingEdit"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["RecordingView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Cancel */
+  cancel_api_v1_recordings__rid__cancel_post: {
+    parameters: {
+      path: {
+        rid: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      202: {
+        content: {
+          "application/json": components["schemas"]["RecordingView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Convert */
+  convert_api_v1_recordings__rid__conversions_post: {
+    parameters: {
+      path: {
+        rid: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RecordingConversion"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      202: {
+        content: {
+          "application/json": components["schemas"]["RecordingFile"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** File */
+  file_api_v1_recordings__rid__files__fid__get: {
+    parameters: {
+      query?: {
+        download?: boolean;
+      };
+      path: {
+        rid: string;
+        fid: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** File */
+  file_api_v1_recordings__rid__files__fid__head: {
+    parameters: {
+      query?: {
+        download?: boolean;
+      };
+      path: {
+        rid: string;
+        fid: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Open Playback */
+  open_playback_api_v1_recordings__rid__playback_sessions_post: {
+    parameters: {
+      path: {
+        rid: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RecordingPlaybackRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        content: {
+          "application/json": components["schemas"]["RecordingPlaybackView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Playback Status */
+  playback_status_api_v1_recordings__rid__playback_sessions__sid__get: {
+    parameters: {
+      path: {
+        rid: string;
+        sid: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["RecordingPlaybackView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Close Playback */
+  close_playback_api_v1_recordings__rid__playback_sessions__sid__delete: {
+    parameters: {
+      path: {
+        rid: string;
+        sid: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Stop */
+  stop_api_v1_recordings__rid__stop_post: {
+    parameters: {
+      path: {
+        rid: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      202: {
+        content: {
+          "application/json": components["schemas"]["RecordingView"];
         };
       };
       /** @description Validation Error */

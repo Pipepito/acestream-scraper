@@ -40,7 +40,7 @@ testing the SPA through FastAPI rather than the Vite server.
 
 ## UI contract
 
-- Navigation includes TV dashboard, Live TV, Catalogues and Events under Watch; other destinations are System status, Scraper, Search,
+- Navigation includes TV dashboard, Live TV, Recordings, Catalogues and Events under Watch; other destinations are System status, Scraper, Search,
   Acestream Channels, TV Channels, EPG, Playlist, Public address, Web player, Remote players, Media servers, Telegram, WARP, Settings and Changelog, grouped by Watch, Manage, Integrations and System.
 - Live TV (`/live-tv`) is the viewing catalog; TV Channels remains the management
   inventory. Use `ChannelPlayerDialog` to retain or resolve TV context and
@@ -137,3 +137,16 @@ Integrations is a sidebar category with independent pages at
 Keep tuner settings with Media servers, WARP under System, and contextual links
 pointing directly to the relevant setup. Each page mounts only its own section;
 shared query keys and page-scoped feedback preserve existing operations.
+
+
+## Built-in recordings
+
+Recordings are opt-in with an explicit persistent `RECORDINGS_DIR`. Keep DVR
+capture on its dedicated coordinator, outside the maintenance FIFO; prioritize
+scheduled capture over local MP4/AAC preparation. Preserve direct-engine source
+leases, guarded HTTP input, control-pipe/process-group cleanup, journal recovery,
+stop intent and immutable guide snapshots. Never replace originals during
+conversion or delete protected/active/reader-held media. File routes retain the
+optional API-token policy and descriptor-relative no-follow access. Recordings
+is under Watch; scheduling is TV-channel-only. See `wiki/Recordings.md` and
+`docs/ops/recordings.md` for limits, qualification and rollback.

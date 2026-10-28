@@ -80,7 +80,11 @@ class TVChannelService:
         return self.repository.update_tv_channel(tv_channel_id=tv_channel_id, updates=updates)
 
     def delete_tv_channel(self, tv_channel_id: int) -> bool:
-        return self.repository.delete_tv_channel(tv_channel_id)
+        deleted = self.repository.delete_tv_channel(tv_channel_id)
+        if deleted:
+            from app.services.recording_coordinator import recording_coordinator
+            recording_coordinator.request_refresh()
+        return deleted
 
     def associate_acestream(self, tv_channel_id: int, acestream_id: str) -> bool:
         return self.repository.associate_acestream_to_tv_channel(tv_channel_id=tv_channel_id, acestream_channel_id=acestream_id)

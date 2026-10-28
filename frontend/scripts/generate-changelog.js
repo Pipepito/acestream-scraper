@@ -1,5 +1,5 @@
 // Markdown is the source. Keep the supported subset deliberately small and safe:
-// one version heading, one summary paragraph, section headings and plain bullets.
+// one version heading, one summary paragraph, section headings and bullets with optional GitHub links.
 const fs = require('node:fs');
 const path = require('node:path');
 const root = path.resolve(__dirname, '..');
@@ -20,9 +20,10 @@ function parseNotes(text, version) {
     } else fail(`Unsupported Markdown in ${version}: ${line}`);
   }
   if (!sections.length || sections.some(s => !s.items.length)) fail(`Empty section in ${version}`);
-  // Plain text only: do not silently render Markdown markup as literal text offline.
+  // Only explicit HTTPS GitHub links are supported; HTML and other Markdown stay forbidden.
   for (const text of [summary, ...sections.flatMap(s => [s.title, ...s.items])]) {
-    if (/[<>`*\[\]]|(^|\W)_|_(\W|$)/.test(text)) fail(`Use plain text in ${version}: ${text}`);
+    const plain = text.replace(/\[([^\[\]\n]+)\]\(https:\/\/github\.com\/[A-Za-z0-9_./-]+\)/g, '$1');
+    if (/[<>`*\[\]]|(^|\W)_|_(\W|$)/.test(plain)) fail(`Use plain text or HTTPS GitHub links in ${version}: ${text}`);
   }
   return { version, summary, sections };
 }

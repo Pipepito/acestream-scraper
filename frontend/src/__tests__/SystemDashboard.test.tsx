@@ -1,3 +1,4 @@
+jest.mock('../components/recordings/RecordingOverview', () => ({ __esModule: true, default: () => <span>Recordings</span> }));
 import React from 'react';
 import { render, screen, within } from '@testing-library/react';
 import { ThemeProvider } from '@mui/material/styles';

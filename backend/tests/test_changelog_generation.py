@@ -12,7 +12,8 @@ const assert = require('node:assert/strict');
 const {parseNotes} = require('./frontend/scripts/generate-changelog.js');
 const text = '# v2.2.0\\nSummary.\\n## Added\\n- Works offline.\\n';
 assert.equal(parseNotes(text, 'v2.2.0').sections[0].items[0], 'Works offline.');
-for (const invalid of [text.replace('v2.2.0','v2.1.0'), text.replace('- Works offline.', '```html'), text.replace('Works offline.', '<script>'), text.replace('- Works offline.', '')]) {
+assert.ok(parseNotes(text.replace('Works offline.', '[PR #270](https://github.com/Pipepito/acestream-scraper/pull/270)'), 'v2.2.0'));
+for (const invalid of [text.replace('Works offline.', '[bad](javascript:alert(1))'), text.replace('Works offline.', '[bad](https://github.com.evil.test/name)'), text.replace('v2.2.0','v2.1.0'), text.replace('- Works offline.', '```html'), text.replace('Works offline.', '<script>'), text.replace('- Works offline.', '')]) {
   assert.throws(() => parseNotes(invalid, 'v2.2.0'));
 }
 """

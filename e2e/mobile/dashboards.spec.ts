@@ -18,6 +18,8 @@ for (const mode of ['light', 'dark']) {
       requests.push(path);
       if (request.method() !== 'GET') mutations.push(`${request.method()} ${path}`);
       const fixtures: Record<string, unknown> = {
+        '/api/v1/recordings/upcoming': { total: 0, items: [] },
+        '/api/v1/recordings/capabilities': { enabled: false, storage_ready: false, message: 'Configure recordings.' },
         '/api/v1/events': { total: url.searchParams.get('followed') === 'true' ? 0 : 2, events: url.searchParams.get('followed') === 'true' ? [] : [event, { ...event, id: 'next-race', title: 'Next race', starts_at: null, scheduled_date: '2026-10-27', state: 'scheduled' }] },
         '/api/v1/events/grand-prix': event,
         '/api/v1/events/interests': { sports: ['Motorsport'], competitions: ['Formula 1'], teams: [] },

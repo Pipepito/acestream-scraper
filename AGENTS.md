@@ -713,3 +713,16 @@ snapshots; never acquire the FIFO again inside that job. Workers own sessions an
 recheck definition/policy/run ownership before apply. Restart interrupts orphaned
 runs. Keep bounds, preview tokens, truthful partial outcomes and starvation-safe
 oldest-attempt ordering. See `docs/dev/import-exclusions-and-saved-searches.md`.
+
+
+## Built-in recordings
+
+Recordings are opt-in with an explicit persistent `RECORDINGS_DIR`. Keep DVR
+capture on its dedicated coordinator, outside the maintenance FIFO; prioritize
+scheduled capture over local MP4/AAC preparation. Preserve direct-engine source
+leases, guarded HTTP input, control-pipe/process-group cleanup, journal recovery,
+stop intent and immutable guide snapshots. Never replace originals during
+conversion or delete protected/active/reader-held media. File routes retain the
+optional API-token policy and descriptor-relative no-follow access. Recordings
+is under Watch; scheduling is TV-channel-only. See `wiki/Recordings.md` and
+`docs/ops/recordings.md` for limits, qualification and rollback.

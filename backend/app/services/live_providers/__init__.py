@@ -52,6 +52,8 @@ def playlist(provider: ModuleType) -> str:
     lines = ['#EXTM3U']
     for channel in provider.channels():
         tvg = f' tvg-id="{channel["tvg_id"]}"' if channel.get('tvg_id') else ''
+        if channel.get('logo'):
+            tvg += ' tvg-logo="%s"' % channel['logo'].replace('"', '%22')
         lines.append(f'#EXTINF:-1{tvg} group-title="{provider.GROUP}",{channel["name"]}')
         for name, value in provider.PLAY_HEADERS.items():
             lines.append(f'#EXTVLCOPT:http-{"referrer" if name == "Referer" else name.lower()}={value}')
@@ -75,8 +77,11 @@ def resolve(stream_url: str) -> Optional[str]:
         return None
 
 
-async def resolve_async(stream_url: str, *, timeout: float = 15):
-    """Keep existing provider adapters off-loop with one bounded/cancellable budget."""
+async def resolve_async(stream_url: str, *, timeout: float = 15, checking: bool = False):
+    """Keep existing provider adapters off-loop with one bounded/cancellable budget.
+
+    `checking`: a status check, not a viewer -- see `base.checking`.
+    """
     import asyncio
     import anyio
     import time
@@ -87,9 +92,11 @@ async def resolve_async(stream_url: str, *, timeout: float = 15):
 
     def run():
         token = base.resolution_limits.set((deadline, cancelled))
+        mode = base.checking.set(checking)
         try:
             return resolve(stream_url)
         finally:
+            base.checking.reset(mode)
             base.resolution_limits.reset(token)
 
     try:

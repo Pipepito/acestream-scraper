@@ -3,7 +3,7 @@ export interface ReleaseNotes { version: string; summary: string; sections: Arra
 export const releases: ReleaseNotes[] = [
   {
     "version": "v2.2.0",
-    "summary": "HTTP playback, W3U catalogues, sporting events and Telegram sources, with easier guide setup and more reliable playback.",
+    "summary": "HTTP playback, W3U catalogues, sporting events and Telegram sources, with web setup, saved searches, easier guide setup and more reliable playback.",
     "sections": [
       {
         "title": "Added",
@@ -23,6 +23,9 @@ export const releases: ReleaseNotes[] = [
       {
         "title": "Improved",
         "items": [
+          "Filter AceStream channels by Any, Linked or Not linked to a TV channel, and clear the selection with the other filters (PR #270).",
+          "Import reviewed schedules from Fútbol en la TV (WOSTI Spain) and OpenFootball, with saved sport, competition and team interests and a day-by-day agenda. Prefer unambiguous TV broadcaster links over EPG matches; date-only fixtures keep their kickoff unknown (PR #269).",
+          "Open the project’s Ko-fi support page from the README or navigation menu (PR #272).",
           "Choose the preferred stream order within each TV channel using drag handles, keyboard arrows or move buttons, then save or cancel. Saved preferences guide eligible tuner sources and curated playlists while preserving playback-failure fallback. Contributed by @Devs-Alv in PR #267.",
           "TV dashboard shows live reports and the nearest saved events, with Following and browser-saved sport, competition and team interests. Open an event directly to view its broadcasts.",
           "Open each integration from its own menu category: Public address, Web player, Remote players, Media servers and Telegram now have dedicated setup pages.",
@@ -36,9 +39,14 @@ export const releases: ReleaseNotes[] = [
       {
         "title": "Fixed",
         "items": [
+          "Restore native DNS resolution and connectivity monitoring for bundled ARM engines with a matching bionic DNS adapter. ARM64 native lookups and connectivity were verified; ARMv7 still needs real-hardware validation, and this does not establish infohash playback or performance gains (issue #253, PR #275).",
+          "Select the highest advertised HLS tuner resolution and offer optional Plex Desktop compatible stereo AAC/LATM audio while preserving video. This option uses additional CPU; verification with the reported Plex installation remains separate (PR #265).",
+          "Decode gzip-compressed HLS responses even when an upstream ignores the requested identity encoding, fixing affected Telemadrid playback (PR #274).",
+          "Preserve Sec-Fetch-Mode through playlist import, playback and export, restoring 7 TV La Rioja checks where its CDN requires the header (PR #276, issue #235).",
+          "Log saved setting names without their values so webhook tokens and other setting secrets do not appear in those log messages (PR #277, issue #41).",
           "Resolve AceStream Search results to content IDs before adding or playing them, fixing streams that passed Check broadcast but failed with “failed to load content”. If previously added results still fail, add them again from Search and reassign TV channels to the corrected entries.",
           "Play imported HTTP/HLS and broadcaster streams in the browser without an AceStream engine, including freshly resolved Atresmedia links. Select audio and text subtitle tracks in the player.",
-          "Play assigned HTTP/HLS and broadcaster sources through the Plex/Jellyfin tuner, including channels with no AceStream source. Verify HTTP media independently of the engine, refresh broadcaster links on opening, and try compatible HTTP or AceStream alternatives when startup fails. HTTP input is repackaged as MPEG-TS without re-encoding.",
+          "Play assigned HTTP/HLS and broadcaster sources through the Plex/Jellyfin tuner, including channels with no AceStream source. Verify HTTP media independently of the engine, refresh broadcaster links on opening, and try compatible HTTP or AceStream alternatives when startup fails. By default HTTP input is repackaged as MPEG-TS without re-encoding; the optional Plex audio compatibility setting converts audio.",
           "Stop browser playback cleanly after terminal HTTP failures and provide bounded, masked source diagnostics. Audio and subtitle selections remain independent between viewers; subtitles default to Off.",
           "Respect the configured application port in containers, update bundled Kubo to 0.43.1, and report optional service states more accurately.",
           "Improve session cleanup, disconnect handling and HLS segment handling during playback."
@@ -51,12 +59,16 @@ export const releases: ReleaseNotes[] = [
           "Thank you @scarcraft1 for relay stall handling (PR #220), Kodi disconnect and session cleanup improvements (PR #221), Kodi MPEG-TS hints (PR #222), optional per-source playlists (PR #223) and configurable tuner startup budgets (PR #227).",
           "Thank you @scarcraft1 for webhook notifications (PR #228), SQLite lock handling (PR #236), startup catch-up (PR #237), fair stream-check ordering (PR #238), playback-aware checks (PR #239) and tuner source ranking (PR #240).",
           "Thank you @scarcraft1 for HTTP/HLS imports and broadcaster sources (PR #241), ZeroNet source fixes (PR #242) and WARP host exclusions (PR #251).",
-          "Thank you @Devs-Alv for preserving scrapes when streams already have TV assignments (PR #225), stream-ID search and canonical API URLs (PR #229), and preferred stream ordering (PR #267)."
+          "Thank you @Devs-Alv for preserving scrapes when streams already have TV assignments (PR #225), stream-ID search and canonical API URLs (PR #229), preferred stream ordering (PR #267), and the Linked channel filter (PR #270).",
+          "Thank you @scarcraft1 for compressed HLS response handling (PR #274), required broadcaster headers (PR #276), and keeping saved setting values out of logs (PR #277).",
+          "Thank you @Pipepito for release integration and the setup, import-management, dashboard, sports-provider, browser/tuner playback, Telegram, catalogue and ARM DNS implementation work."
         ]
       },
       {
         "title": "Thanks for the ideas and bug reports",
         "items": [
+          "@Pipepito for the notification, W3U catalogue and Telegram source proposals (issues #41, #257 and #258); the latter two retain follow-up scope.",
+          "@scarcraft1 for identifying and reproducing the native ARM libc DNS failure (issue #253).",
           "@dcablop391 for reporting missing programme guides in exported playlists (issue #204).",
           "@Filipedls for diagnosing the ignored container port setting (issue #208).",
           "@francisjurado74-creator for flagging the bundled Kubo update (issue #214).",

@@ -42,8 +42,11 @@ def normalize(message: Any, forum: bool = False) -> Message:
 
 class Transport:
     def __init__(self, api_id: int, api_hash: str, session: str = '') -> None:
+        # One retry: an account on another data centre answers PHONE_MIGRATE /
+        # USER_MIGRATE, and Telethon re-sends the request only after switching.
+        # Flood waits still raise at once (flood_sleep_threshold=0).
         self.client = TelegramClient(StringSession(session), api_id, api_hash,
-            flood_sleep_threshold=0, request_retries=0, connection_retries=3,
+            flood_sleep_threshold=0, request_retries=1, connection_retries=3,
             retry_delay=2, auto_reconnect=True, base_logger=_log,
             entity_cache_limit=1000)
         self.client.session.save_entities = False
@@ -134,11 +137,18 @@ class Transport:
         return TelegramPeer(id=str(utils.get_peer_id(entity)), label=utils.get_display_name(entity),
                             kind='user' if isinstance(entity, types.User) else 'channel' if isinstance(entity, types.Channel) else 'chat')
 
-    async def recent(self, entity: Any, limit: int) -> list[Any]:
-        return [message async for message in self.client.iter_messages(entity, limit=limit)]
+    @staticmethod
+    def _thread(topic_id: int | None) -> dict:
+        # Read a forum topic's own thread, so a quiet topic in a busy chat is not
+        # crowded out by other topics. General (1) has no thread: it stays chat-wide.
+        return {'reply_to': topic_id} if topic_id and topic_id != 1 else {}
 
-    async def after(self, entity: Any, cursor: int, limit: int = 10) -> list[Any]:
-        return [message async for message in self.client.iter_messages(entity, min_id=cursor, reverse=True, limit=limit)]
+    async def recent(self, entity: Any, limit: int, topic_id: int | None = None) -> list[Any]:
+        return [message async for message in self.client.iter_messages(entity, limit=limit, **self._thread(topic_id))]
+
+    async def after(self, entity: Any, cursor: int, limit: int = 10, topic_id: int | None = None) -> list[Any]:
+        return [message async for message in self.client.iter_messages(
+            entity, min_id=cursor, reverse=True, limit=limit, **self._thread(topic_id))]
 
     async def by_ids(self, entity: Any, ids: list[int]) -> list[Any]:
         return await self.client.get_messages(entity, ids=ids)

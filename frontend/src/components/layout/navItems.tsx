@@ -21,6 +21,7 @@ export interface NavItem {
 export const navItems: NavItem[] = [
   { text: 'TV dashboard', path: '/', icon: <DashboardRoundedIcon />, section: 'Watch' },
   { text: 'Live TV', path: '/live-tv', icon: <LiveTvRoundedIcon />, section: 'Watch' },
+  { text: 'Recordings', path: '/recordings', icon: <HistoryRoundedIcon />, section: 'Watch' },
   { text: 'Catalogues', path: '/catalogues', icon: <PlaylistPlayRoundedIcon />, section: 'Watch' },
 
 

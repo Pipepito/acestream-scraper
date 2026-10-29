@@ -615,6 +615,10 @@ class ChannelRepository:
 
         for stream in tv_channel.acestream_channels:
             stream.stream_order = None
+        # SQLite connections need not enable FK actions. Preserve history and
+        # prevent later numeric ID reuse from rebinding a saved recording.
+        from app.models.recordings import Recording
+        self.db.query(Recording).filter_by(tv_channel_id=tv_channel_id).update({'tv_channel_id': None, 'revision': Recording.revision + 1})
         self.db.delete(tv_channel)
         self.db.commit()
         return True

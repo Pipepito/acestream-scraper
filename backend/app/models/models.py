@@ -2,8 +2,9 @@
 SQLAlchemy models for the application
 """
 from datetime import datetime, timezone
+from uuid import uuid4
 
-from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint, false
+from sqlalchemy import text, JSON, Boolean, Column, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint, false
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from sqlalchemy.types import TypeDecorator
@@ -163,6 +164,7 @@ class AcestreamChannel(Base):
 class EPGSource(Base):
     """Model for EPG sources"""
     __tablename__ = "epg_sources"
+    recording_uuid = Column(String(32), nullable=False, unique=True, default=lambda: uuid4().hex, server_default=text('(lower(hex(randomblob(16))))'))
 
     id = Column(Integer, primary_key=True, index=True)
     url = Column(String(2048), nullable=False)
@@ -525,3 +527,6 @@ class SavedSearchChannel(Base):
     channel_id = Column(String(255), ForeignKey('acestream_channels.id', ondelete='CASCADE'), primary_key=True)
     first_discovered_at = Column(UtcDateTime(), nullable=False, default=_utcnow)
     last_discovered_at = Column(UtcDateTime(), nullable=False, default=_utcnow)
+
+# Register operational models for both Alembic and metadata-created test databases.
+from app.models import recordings as _recording_models  # noqa: E402,F401

@@ -411,6 +411,16 @@
       "configurationOwner": "deployment"
     },
     {
+      "id": "recordingsDir",
+      "env": "RECORDINGS_DIR",
+      "group": "player",
+      "label": "Recording folder",
+      "description": "Existing persistent folder for DVR originals and derivatives. Add a matching volume mount, then enable Recordings in Automation settings. Never use the player temporary folder.",
+      "type": "text",
+      "appliesWhen": "always",
+      "configurationOwner": "deployment"
+    },
+    {
       "id": "mediaServerRefreshMinutes",
       "env": "MEDIA_SERVER_MIN_REFRESH_MINUTES",
       "group": "player",

@@ -1,3 +1,4 @@
+import RecordingSettingsFields from '../components/recordings/RecordingSettingsFields';
 import GuideMatchingFields from '../components/GuideMatchingFields';
 import ScheduleAnchorFields from '../components/ScheduleAnchorFields';
 import StreamLinkFormatsSection from '../components/StreamLinkFormatsSection';
@@ -306,6 +307,7 @@ const Settings: React.FC = () => {
       </Box>
       <Box {...panelProps('automation')}>
 
+      {section === 'automation' ? <ContentSection title="Recordings"><RecordingSettingsFields /></ContentSection> : null}
       {section === 'automation' ? <ContentSection title="Guide matching"><GuideMatchingFields /></ContentSection> : null}
       <ContentSection title="Stream status checks"><CheckEngineFields /></ContentSection>
 

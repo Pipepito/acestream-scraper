@@ -6,6 +6,21 @@ import ContentSection from '../components/layout/ContentSection';
 import { currentRelease, releases } from '../data/changelog';
 import { markChangelogRead } from '../hooks/useChangelog';
 
+/** Render the small link subset accepted by the release-note generator, never HTML. */
+export function ReleaseNoteText({ text }: { text: string }) {
+  const pattern = /\[([^\]\n[]+)\]\((https:\/\/github\.com\/[A-Za-z0-9_./-]+)\)/g;
+  const parts: React.ReactNode[] = [];
+  let end = 0;
+  for (const match of Array.from(text.matchAll(pattern))) {
+    const start = match.index!;
+    parts.push(text.slice(end, start));
+    parts.push(<Link key={start} href={match[2]} target="_blank" rel="noopener noreferrer">{match[1]}</Link>);
+    end = start + match[0].length;
+  }
+  parts.push(text.slice(end));
+  return <>{parts}</>;
+}
+
 export default function Changelog() {
   useEffect(markChangelogRead, []);
   return (
@@ -26,7 +41,7 @@ export default function Changelog() {
               <Box key={section.title} sx={{ mt: 2 }}>
                 <Typography component="h3" variant="subtitle1" fontWeight={600}>{section.title}</Typography>
                 <Box component="ul" sx={{ pl: 2.5, mt: 1, mb: 2, maxWidth: '80ch' }}>
-                  {section.items.map((item) => <Typography component="li" key={item} sx={{ mb: 1, overflowWrap: 'anywhere' }}>{item}</Typography>)}
+                  {section.items.map((item) => <Typography component="li" key={item} sx={{ mb: 1, overflowWrap: 'anywhere' }}><ReleaseNoteText text={item} /></Typography>)}
                 </Box>
               </Box>
             ))}

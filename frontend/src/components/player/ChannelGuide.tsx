@@ -19,7 +19,7 @@ const ChannelGuide: React.FC<{ channel: TVChannel; now: Date; compact?: boolean 
   if (!channel.epg_id || !channel.epg_source_id) return <Typography color="text.secondary">No guide mapped to this channel.</Typography>;
   if (mapping.isLoading || programs.isLoading) return <Typography role="status">Loading programme…</Typography>;
   if (mapping.isError || programs.isError) return <Alert severity="warning" action={<Button color="inherit" onClick={() => { if (mapping.isError) void mapping.refetch(); else void programs.refetch(); }}>Retry</Button>}>Guide unavailable.</Alert>;
-  if (!compact && mapping.data) return <ScheduleView epgChannelId={mapping.data.id} now={now} />;
+  if (!compact && mapping.data) return <ScheduleView tvChannelId={channel.id} tvChannelName={channel.name} epgChannelId={mapping.data.id} now={now} />;
   const current = programs.data?.find((item) => parseISO(item.start_time) <= now && parseISO(item.end_time) > now);
   const next = programs.data?.find((item) => parseISO(item.start_time) > now);
   return <>

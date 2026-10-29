@@ -17,6 +17,9 @@ from typing import Optional
 
 def watching() -> Optional[str]:
     """What someone is watching through, or None when nobody is."""
+    from app.services.recording_coordinator import recording_coordinator
+    if recording_coordinator.activity():
+        return "recording"
     from app.services.stream_relay import relay_registry
     if relay_registry.count_active():
         return "tv relay"

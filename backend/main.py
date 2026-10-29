@@ -184,6 +184,7 @@ async def lifespan(app: FastAPI):
     services_started = False
 
     from app.services.telegram.manager import manager as telegram_manager
+    from app.services.recording_coordinator import recording_coordinator
 
     async def stop_services():
         nonlocal reaper, services_started
@@ -192,6 +193,7 @@ async def lifespan(app: FastAPI):
             with suppress(asyncio.CancelledError):
                 await reaper
             reaper = None
+        await recording_coordinator.stop()
         await telegram_manager.stop()
         await tuner_probe_service.stop()
         if services_started:
@@ -245,6 +247,7 @@ async def lifespan(app: FastAPI):
             # channel_status opens the engine, so not at startup: a quarter of
             # an hour later, and only if it is still overdue then.
             task_service.catch_up_later("channel_status", delay_seconds=900)
+            await recording_coordinator.start()
             await player_service.start()
             await telegram_manager.start()
             await asyncio.to_thread(_schedule_deferred_migration)
@@ -291,7 +294,7 @@ async def startup_readiness(request: Request, call_next):
     path = request.url.path
     if startup_service.active and startup_service.status != 'ready':
         spa_paths = {'/', '/startup', '/live-tv', '/tv-channels', '/acestream-channels',
-                     '/scraper', '/epg', '/playlist', '/warp', '/search', '/integrations', '/settings'}
+                     '/recordings', '/scraper', '/epg', '/playlist', '/warp', '/search', '/integrations', '/settings'}
         allowed = path in spa_paths or path.startswith(('/assets/', '/static/', '/api/v1/startup'))
         allowed = allowed or path.startswith(('/tv-channels/', '/epg/channels/'))
         allowed = allowed or path in {'/favicon.ico', '/manifest.json', '/robots.txt'}

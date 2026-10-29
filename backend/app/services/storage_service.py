@@ -123,7 +123,7 @@ def configured_directories():
     settings = get_settings()
     paths = {os.environ.get('IPFS_PATH', '/data/ipfs'), os.environ.get('ZERONET_DATA_DIR', '/data/zeronet'),
              '/var/lib/acestream', '/var/lib/acestream-check', '/var/lib/cloudflare-warp',
-             os.environ.get('LOG_DIR', '/app/logs'), settings.PLAYER_HLS_DIR}
+             os.environ.get('LOG_DIR', '/app/logs'), settings.PLAYER_HLS_DIR, settings.RECORDINGS_DIR}
     for value in (settings.DATABASE_URL, settings.LEGACY_DATABASE_URL):
         url = make_url(value)
         if url.get_backend_name() == 'sqlite' and url.database and url.database != ':memory:':

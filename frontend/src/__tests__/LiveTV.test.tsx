@@ -1,3 +1,4 @@
+jest.mock('../components/recordings/RecordButton', () => ({ __esModule: true, default: () => <span>Recordings</span> }));
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';

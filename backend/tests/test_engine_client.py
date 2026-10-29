@@ -292,3 +292,17 @@ def test_cleanup_keeps_original_ownership_after_routing_changes():
     assert not changed_calls
     changed.stop(b)
     assert changed_calls[-1].url.host == 'engine'
+
+
+def test_late_probe_cleanup_waits_for_recording_or_viewer_lease():
+    from app.services.channel_status_service import ChannelStatusService
+    client, calls = _ownership_client()
+    session = client.start(CID)
+    probe_url = 'http://engine:6878/ace/cmd/hash/probe'
+    service = object.__new__(ChannelStatusService)
+    service._release_probe('http://engine:6878', CID, probe_url)
+    assert len(calls) == 1
+    client.stop(session)
+    assert {str(request.url).split('?')[0] for request in calls[1:]} == {session.command_url, probe_url}
+    client.stop(session)
+    assert len(calls) == 3

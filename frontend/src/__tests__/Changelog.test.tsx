@@ -66,3 +66,12 @@ it('dismisses when browser storage writes are unavailable', async () => {
   await userEvent.setup().click(screen.getByRole('button', { name: 'Dismiss changelog notice' }));
   expect(screen.queryByRole('link', { name: `What’s new in ${currentRelease.version}` })).not.toBeInTheDocument();
 });
+
+it('renders release-note PR, issue and contributor mentions as safe GitHub links', () => {
+  renderPage('/changelog');
+  expect(screen.getAllByRole('link', { name: 'PR #270' })[0]).toHaveAttribute('href', 'https://github.com/Pipepito/acestream-scraper/pull/270');
+  expect(screen.getAllByRole('link', { name: 'issue #253' })[0]).toHaveAttribute('href', 'https://github.com/Pipepito/acestream-scraper/issues/253');
+  const contributor = screen.getAllByRole('link', { name: '@scarcraft1' })[0];
+  expect(contributor).toHaveAttribute('href', 'https://github.com/scarcraft1');
+  expect(contributor).toHaveAttribute('rel', 'noopener noreferrer');
+});

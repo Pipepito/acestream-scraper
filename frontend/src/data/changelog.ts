@@ -3,11 +3,12 @@ export interface ReleaseNotes { version: string; summary: string; sections: Arra
 export const releases: ReleaseNotes[] = [
   {
     "version": "v2.2.0",
-    "summary": "HTTP playback, W3U catalogues, sporting events and Telegram sources, with web setup, saved searches, easier guide setup and more reliable playback.",
+    "summary": "HTTP playback, W3U catalogues, sporting events and Telegram sources, with built-in recordings, web setup, saved searches, easier guide setup and more reliable playback.",
     "sections": [
       {
         "title": "Added",
         "items": [
+          "Record TV channels now or schedule a programme from its guide, edit start/end times, stop capture and browse recording history. Download preserved MPEG-TS originals or prepare MP4/AAC playback. Recording is opt-in with a persistent RECORDINGS_DIR; capacity checks, storage limits, protected files and optional retention keep capture bounded. Interrupted captures retain usable parts and may resume after restart. Scheduled starts run independently of maintenance; actual media arrival still depends on source startup.",
           "Set up a fresh installation with a web wizard for playback, access and optional services. Runtime options persist in runtime-config.json beside the database; environment values seed the file once and later edits require a restart. Existing database preferences stay in place. The README includes a setup prompt for ChatGPT and shell-enabled coding agents.",
           "Define global import exclusions without deleting existing channels, and save catalogue searches for one-shot or opt-in scheduled additive imports. Preview decisions and track waiting, partial, excluded and unresolved outcomes.",
           "Collect AceStream links from selected Telegram groups/channels through an optional user-account connection. Preview extraction, filter senders/topics, and recover progress after restart. Requires HTTPS or localhost, a separate admin token and encrypted session storage with an independent key. Playlist discovery and event/VOD interpretation remain separate.",
@@ -23,10 +24,10 @@ export const releases: ReleaseNotes[] = [
       {
         "title": "Improved",
         "items": [
-          "Filter AceStream channels by Any, Linked or Not linked to a TV channel, and clear the selection with the other filters (PR #270).",
-          "Import reviewed schedules from Fútbol en la TV (WOSTI Spain) and OpenFootball, with saved sport, competition and team interests and a day-by-day agenda. Prefer unambiguous TV broadcaster links over EPG matches; date-only fixtures keep their kickoff unknown (PR #269).",
-          "Open the project’s Ko-fi support page from the README or navigation menu (PR #272).",
-          "Choose the preferred stream order within each TV channel using drag handles, keyboard arrows or move buttons, then save or cancel. Saved preferences guide eligible tuner sources and curated playlists while preserving playback-failure fallback. Contributed by @Devs-Alv in PR #267.",
+          "Filter AceStream channels by Any, Linked or Not linked to a TV channel, and clear the selection with the other filters ([PR #270](https://github.com/Pipepito/acestream-scraper/pull/270)).",
+          "Import reviewed schedules from Fútbol en la TV (WOSTI Spain) and OpenFootball, with saved sport, competition and team interests and a day-by-day agenda. Prefer unambiguous TV broadcaster links over EPG matches; date-only fixtures keep their kickoff unknown ([PR #269](https://github.com/Pipepito/acestream-scraper/pull/269)).",
+          "Open the project’s Ko-fi support page from the README or navigation menu ([PR #272](https://github.com/Pipepito/acestream-scraper/pull/272)).",
+          "Choose the preferred stream order within each TV channel using drag handles, keyboard arrows or move buttons, then save or cancel. Saved preferences guide eligible tuner sources and curated playlists while preserving playback-failure fallback. Contributed by [@Devs-Alv](https://github.com/Devs-Alv) in [PR #267](https://github.com/Pipepito/acestream-scraper/pull/267).",
           "TV dashboard shows live reports and the nearest saved events, with Following and browser-saved sport, competition and team interests. Open an event directly to view its broadcasts.",
           "Open each integration from its own menu category: Public address, Web player, Remote players, Media servers and Telegram now have dedicated setup pages.",
           "Land on a TV dashboard with current app playback, channel and stream inventory, and time until the next content updates. Service controls, storage, diagnostics and full scheduled-job history now live in System status.",
@@ -39,11 +40,11 @@ export const releases: ReleaseNotes[] = [
       {
         "title": "Fixed",
         "items": [
-          "Restore native DNS resolution and connectivity monitoring for bundled ARM engines with a matching bionic DNS adapter. ARM64 native lookups and connectivity were verified; ARMv7 still needs real-hardware validation, and this does not establish infohash playback or performance gains (issue #253, PR #275).",
-          "Select the highest advertised HLS tuner resolution and offer optional Plex Desktop compatible stereo AAC/LATM audio while preserving video. This option uses additional CPU; verification with the reported Plex installation remains separate (PR #265).",
-          "Decode gzip-compressed HLS responses even when an upstream ignores the requested identity encoding, fixing affected Telemadrid playback (PR #274).",
-          "Preserve Sec-Fetch-Mode through playlist import, playback and export, restoring 7 TV La Rioja checks where its CDN requires the header (PR #276, issue #235).",
-          "Log saved setting names without their values so webhook tokens and other setting secrets do not appear in those log messages (PR #277, issue #41).",
+          "Restore native DNS resolution and connectivity monitoring for bundled ARM engines with a matching bionic DNS adapter. ARM64 native lookups and connectivity were verified; ARMv7 still needs real-hardware validation, and this does not establish infohash playback or performance gains ([issue #253](https://github.com/Pipepito/acestream-scraper/issues/253), [PR #275](https://github.com/Pipepito/acestream-scraper/pull/275)).",
+          "Select the highest advertised HLS tuner resolution and offer optional Plex Desktop compatible stereo AAC/LATM audio while preserving video. This option uses additional CPU; verification with the reported Plex installation remains separate ([PR #265](https://github.com/Pipepito/acestream-scraper/pull/265)).",
+          "Decode gzip-compressed HLS responses even when an upstream ignores the requested identity encoding, fixing affected Telemadrid playback ([PR #274](https://github.com/Pipepito/acestream-scraper/pull/274)).",
+          "Preserve Sec-Fetch-Mode through playlist import, playback and export, restoring 7 TV La Rioja checks where its CDN requires the header ([PR #276](https://github.com/Pipepito/acestream-scraper/pull/276), [issue #235](https://github.com/Pipepito/acestream-scraper/issues/235)).",
+          "Log saved setting names without their values so webhook tokens and other setting secrets do not appear in those log messages ([PR #277](https://github.com/Pipepito/acestream-scraper/pull/277), [issue #41](https://github.com/Pipepito/acestream-scraper/issues/41)).",
           "Resolve AceStream Search results to content IDs before adding or playing them, fixing streams that passed Check broadcast but failed with “failed to load content”. If previously added results still fail, add them again from Search and reassign TV channels to the corrected entries.",
           "Play imported HTTP/HLS and broadcaster streams in the browser without an AceStream engine, including freshly resolved Atresmedia links. Select audio and text subtitle tracks in the player.",
           "Play assigned HTTP/HLS and broadcaster sources through the Plex/Jellyfin tuner, including channels with no AceStream source. Verify HTTP media independently of the engine, refresh broadcaster links on opening, and try compatible HTTP or AceStream alternatives when startup fails. By default HTTP input is repackaged as MPEG-TS without re-encoding; the optional Plex audio compatibility setting converts audio.",
@@ -53,38 +54,18 @@ export const releases: ReleaseNotes[] = [
         ]
       },
       {
-        "title": "Contributors",
+        "title": "Thanks",
         "items": [
-          "Thank you @scarcraft1 for playlist guide discovery (PR #205), channel identifier metadata (PR #211), source request compatibility (PR #218) and relay ownership regression coverage (PR #219).",
-          "Thank you @scarcraft1 for relay stall handling (PR #220), Kodi disconnect and session cleanup improvements (PR #221), Kodi MPEG-TS hints (PR #222), optional per-source playlists (PR #223) and configurable tuner startup budgets (PR #227).",
-          "Thank you @scarcraft1 for webhook notifications (PR #228), SQLite lock handling (PR #236), startup catch-up (PR #237), fair stream-check ordering (PR #238), playback-aware checks (PR #239) and tuner source ranking (PR #240).",
-          "Thank you @scarcraft1 for HTTP/HLS imports and broadcaster sources (PR #241), ZeroNet source fixes (PR #242) and WARP host exclusions (PR #251).",
-          "Thank you @Devs-Alv for preserving scrapes when streams already have TV assignments (PR #225), stream-ID search and canonical API URLs (PR #229), preferred stream ordering (PR #267), and the Linked channel filter (PR #270).",
-          "Thank you @scarcraft1 for compressed HLS response handling (PR #274), required broadcaster headers (PR #276), and keeping saved setting values out of logs (PR #277).",
-          "Thank you @Pipepito for release integration and the setup, import-management, dashboard, sports-provider, browser/tuner playback, Telegram, catalogue and ARM DNS implementation work."
-        ]
-      },
-      {
-        "title": "Thanks for the ideas and bug reports",
-        "items": [
-          "@Pipepito for the notification, W3U catalogue and Telegram source proposals (issues #41, #257 and #258); the latter two retain follow-up scope.",
-          "@scarcraft1 for identifying and reproducing the native ARM libc DNS failure (issue #253).",
-          "@dcablop391 for reporting missing programme guides in exported playlists (issue #204).",
-          "@Filipedls for diagnosing the ignored container port setting (issue #208).",
-          "@francisjurado74-creator for flagging the bundled Kubo update (issue #214).",
-          "@atabel for documenting slow AceStream cold starts and the startup timeout limits (issue #226).",
-          "@scarcraft1 for proposing HTTP/HLS imports and official broadcaster sources (issues #234 and #235), and investigating sports-guide sources (issue #233).",
-          "@P10Ms for proposing Gluetun forwarded-port synchronization (issue #246).",
-          "@illienkist for reproducing the Search infohash/content-ID playback failure (issue #266).",
-          "@tomandocubatas for the sporting-events idea (issue #55). The reviewed Events foundation is included; broader automatic ingestion remains follow-up work.",
-          "@ParronS3 for reporting WARP remote-connection limitations (issue #93). Explicit host exclusions are included; general public-client routing remains unresolved."
+          "[@scarcraft1](https://github.com/scarcraft1) for guide discovery, notifications, HTTP/HLS sources, playback reliability, scheduling and ARM DNS investigation; [@Devs-Alv](https://github.com/Devs-Alv) for import safety, stream search, ordering and channel filters; [@Pipepito](https://github.com/Pipepito) for implementation and release integration.",
+          "Thanks to [@dcablop391](https://github.com/dcablop391), [@Filipedls](https://github.com/Filipedls), [@francisjurado74-creator](https://github.com/francisjurado74-creator), [@atabel](https://github.com/atabel), [@P10Ms](https://github.com/P10Ms), [@illienkist](https://github.com/illienkist), [@tomandocubatas](https://github.com/tomandocubatas) and [@ParronS3](https://github.com/ParronS3) for ideas, diagnostics and bug reports."
         ]
       },
       {
         "title": "Before upgrading",
         "items": [
+          "Recordings remain disabled until you configure persistent storage and enable them in Automation. Back up the recording folder and database together. Video is preserved without re-encoding, so browser support depends on its codec; originals remain downloadable. Linux multi-architecture and hardware DVR qualification remains outstanding.",
           "Once runtime-config.json exists, change migrated runtime options through Settings → Setup wizard or edit the file while stopped. Environment changes no longer override those options. Keep the database directory writable and backed up; ports, mounts and credentials remain deployment settings.",
-          "Back up persistent configuration and the database. Startup applies schema migrations using the existing backup and recovery process, including channel ID kind (20260928_1200) and HTTP stream URL/headers (20261021_1200), W3U catalogues (20261022_1200), sporting events and maintenance (20261023_1200 / 20261023_1300), their combined migration revision (20261023_1400), Telegram source progress (20261023_1500), preferred stream ordering (20261026_1200), import exclusions (20261027_1200), and saved searches (20261027_1300).",
+          "Back up persistent configuration and the database. Startup applies schema migrations using the existing backup and recovery process, including channel ID kind (20260928_1200) and HTTP stream URL/headers (20261021_1200), W3U catalogues (20261022_1200), sporting events and maintenance (20261023_1200 / 20261023_1300), their combined migration revision (20261023_1400), Telegram source progress (20261023_1500), preferred stream ordering (20261026_1200), import exclusions (20261027_1200), saved searches (20261027_1300), and recording history and stable guide identities (20261028_1200).",
           "Preserve Telegram session storage and its independent encryption key when moving an installation; ordinary database/configuration backups do not include account sessions or keys.",
           "HTTP tuner playback requires FFmpeg, included in the container images. Native installations must provide the documented FFmpeg capabilities. Source codec compatibility still depends on the media server/client; switching sources after playback starts normally requires the client to reconnect.",
           "Legacy environment aliases remain supported. ARMv7 engine runtime remains experimental. Full Wiseplay compatibility, broader website resolvers, automatic Telegram/W3U event interpretation and movies/series navigation remain follow-up work."

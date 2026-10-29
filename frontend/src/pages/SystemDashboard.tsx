@@ -1,3 +1,4 @@
+import RecordingOverview from '../components/recordings/RecordingOverview';
 import { Link as RouterLink } from 'react-router-dom';
 import React from 'react';
 import { useTheme } from '@mui/material/styles';
@@ -91,6 +92,7 @@ const SystemDashboard: React.FC = () => {
         <DiagnosticsDownload />
       </ContentSection>
 
+      <RecordingOverview system />
       <StoragePanel />
 
       <Box id="scheduled-jobs" sx={{ scrollMarginTop: 90 }}><ContentSection actions={<Button component={RouterLink} to="/settings?tab=automation">Edit schedules</Button>} title="Scheduled jobs" description="What ran last, what it did, and when it runs again.">

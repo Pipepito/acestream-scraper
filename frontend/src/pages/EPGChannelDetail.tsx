@@ -39,7 +39,7 @@ import { EPGStringMapping } from '../services/epgService';
 import { TVChannel } from '../types/tvChannelTypes';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
-import ScheduleView from '../components/epg/ScheduleView';
+import GuideRecordingSelector from '../components/recordings/GuideRecordingSelector';
 import { useConfirm } from '../components/ConfirmDialog';
 
 interface StringMappingFormData {
@@ -218,7 +218,7 @@ const EPGChannelDetail: React.FC = () => {
       </Stack>
 
       <ContentSection title="Schedule">
-        <ScheduleView epgChannelId={channelId} />
+        <GuideRecordingSelector epgChannelId={channelId} sourceId={channel.epg_source_id} xmlId={channel.channel_xml_id} />
       </ContentSection>
 
       <ContentSection

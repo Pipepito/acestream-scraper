@@ -126,6 +126,7 @@ def test_invalid_timezone_intervals(dvr, start, end):
 
 def test_upgrade_from_prior_head_preserves_guides(tmp_path):
     import sqlite3
+    from contextlib import closing
     from alembic.config import Config
     from alembic import command
     path = tmp_path/'migration.db'
@@ -134,17 +135,17 @@ def test_upgrade_from_prior_head_preserves_guides(tmp_path):
     config.attributes['database_url'] = 'sqlite:///'+str(path)
     config.attributes['configure_logger'] = False
     command.upgrade(config, '20261027_1300')
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         db.execute("INSERT INTO epg_sources (id,name,url) VALUES (1,'Guide','https://example.com')")
         db.execute("INSERT INTO epg_channels (id,epg_source_id,channel_xml_id,name) VALUES (1,1,'one','One')")
     command.upgrade(config, 'head')
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         first = db.execute('SELECT recording_uuid FROM epg_sources').fetchone()[0]
         assert len(first) == 32
         assert db.execute('SELECT name FROM epg_channels').fetchone() == ('One',)
         assert db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='recordings'").fetchone()
     command.upgrade(config, 'head')
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         assert db.execute('SELECT recording_uuid FROM epg_sources').fetchone()[0] == first
 
 

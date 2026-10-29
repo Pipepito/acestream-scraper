@@ -63,6 +63,20 @@ def test_forward_identity_and_link_entities():
     assert preview_message(config(sender_ids=['123']), msg)[0] == 'sender filtered'
 
 
+def test_share_links_with_a_content_id_are_recognised():
+    """AceStream's own share links read acestream:?content_id=<id>, often with
+    an infohash after it. Seen in a real account (29-10); they gave no match."""
+    text = ('🇪🇸 Liga Hypermotion\nacestream:?content_id=' + IDS[0] + '&infohash=' + 'c' * 40 + '\n\n'
+            'Copa\nacestream://?content_id=' + IDS[1])
+    outcome, result = preview_message(config(), Message(1, text))
+    assert outcome == 'matched'
+    assert [(c.name, c.channel_id) for c in result.channels] == [('🇪🇸 Liga Hypermotion', IDS[0]), ('Copa', IDS[1])]
+    msg = Message(2, 'See below', links=[('🇪🇸 Sports', 'acestream:?content_id=' + IDS[2])])
+    assert [(c.name, c.channel_id) for c in preview_message(config(), msg)[1].channels] == [('🇪🇸 Sports', IDS[2])]
+    # An infohash alone is a different key, and the bare-ID switch still applies.
+    assert not preview_message(config(), Message(3, 'Only\nacestream:?infohash=' + IDS[3]))[1].channels
+
+
 def test_chatter_malformed_ids_duplicates_and_bare_switch():
     assert preview_message(config(), Message(1, 'No streams here'))[0] == 'no match'
     assert not preview_message(config(), Message(1, 'Wrong\n' + 'a'*41))[1].channels

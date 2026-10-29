@@ -324,10 +324,6 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=python-deps /install /usr/local
-COPY backend/ /app/
-COPY version.txt /app/version.txt
-RUN mkdir -p /app/frontend_build /app/logs /opt/acestream/bin /opt/acexy/bin
-COPY --from=frontend-builder /build/frontend/dist/ /app/frontend_build/
 
 # Kubo IPFS daemon (all flavors; /opt/ipfs/bin is empty on linux/arm/v7 where
 # upstream ships no 32-bit ARM build — the entrypoint detects the missing
@@ -356,6 +352,12 @@ RUN mkdir -p /data/zeronet \
 
 # Static ffmpeg/ffprobe for the web player (every flavor and platform).
 COPY --from=ffmpeg-builder /out/ /opt/ffmpeg/bin/
+
+# Keep changing application content after stable OS and bundled-service layers.
+COPY backend/ /app/
+COPY version.txt /app/version.txt
+RUN mkdir -p /app/frontend_build /app/logs /opt/acestream/bin /opt/acexy/bin
+COPY --from=frontend-builder /build/frontend/dist/ /app/frontend_build/
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY backend/capture_logs.py /usr/local/bin/capture_logs.py

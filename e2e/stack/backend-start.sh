@@ -2,15 +2,17 @@
 # Run the scraper backend from source against the containerised engine, with an
 # isolated SQLite database under e2e/.stack/config and a fresh SPA build.
 #   E2E_SKIP_FRONTEND_BUILD=1  reuse backend/frontend_build as-is
-#   E2E_RESET_DB=1             delete the e2e database before starting
+#   E2E_RESET_DB=1             reset the isolated database and first-run configuration
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
 
 bash "$E2E_DIR/stack/backend-stop.sh" >/dev/null 2>&1 || true
 mkdir -p "$STACK_DIR/config"
 if [ "${E2E_RESET_DB:-0}" = "1" ]; then
-  rm -f "$STACK_DIR/config/scraper.db" "$STACK_DIR/config/scraper.db-journal"
-  log "reset e2e database"
+  rm -f "$STACK_DIR/config/scraper.db" "$STACK_DIR/config/scraper.db-journal" \
+    "$STACK_DIR/config/scraper.db-wal" "$STACK_DIR/config/scraper.db-shm" \
+    "$STACK_DIR/config/runtime-config.json"
+  log "reset e2e database and first-run configuration"
 fi
 
 if [ "${E2E_SKIP_FRONTEND_BUILD:-0}" != "1" ]; then

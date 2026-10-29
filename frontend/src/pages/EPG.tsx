@@ -267,13 +267,13 @@ const EPG: React.FC = () => {
               {sourceSelect}
               <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" useFlexGap>
                 <Typography variant="body2" color="text.secondary">
-                  {totalEPGChannels === 0
+                  {isLoadingChannels && !epgChannelPage ? 'Loading channels…' : totalEPGChannels === 0
                     ? 'Showing 0-0 of 0 channels'
                     : `Showing ${(channelPage - 1) * channelPageSize + 1}-${Math.min(channelPage * channelPageSize, totalEPGChannels)} of ${totalEPGChannels} channels`}
                 </Typography>
                 <TablePagination
                   component="div"
-                  count={totalEPGChannels}
+                  count={isLoadingChannels && !epgChannelPage ? -1 : totalEPGChannels}
                   page={Math.max(channelPage - 1, 0)}
                   onPageChange={handleChannelPageChange}
                   rowsPerPage={channelPageSize}

@@ -1,10 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Box, Button, Checkbox, FormControlLabel, Link, Stack, TextField, Typography } from '@mui/material';
-import { Link as RouterLink } from 'react-router-dom';
+import { Alert, Box, Button, Checkbox, FormControlLabel, Link, Stack, TextField, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Stepper, Step, StepLabel, useMediaQuery } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
-import StatusLine from '../components/StatusLine';
 import { setupQueryKey, setupService, type SetupState, type RuntimeOption } from '../services/setupService';
 import { ApiError } from '../services/apiErrors';
 import { getErrorMessage } from '../utils/errorUtils';
@@ -19,7 +18,8 @@ const nextSteps = [
   { to: '/integrations/media-servers', label: 'Connect players and media servers', detail: 'Configure the public address, playback route, tuner and remote players for your network.' },
 ];
 
-function SetupForm({ initial }: { initial: SetupState }) {
+function SetupForm({ initial, onClose }: { initial: SetupState; onClose: () => void }) {
+  const fullScreen = useMediaQuery(useTheme().breakpoints.down('sm'));
   const client = useQueryClient();
   const [saved, setSaved] = useState(initial);
   const [draft, setDraft] = useState(initial.runtime);
@@ -29,14 +29,16 @@ function SetupForm({ initial }: { initial: SetupState }) {
   const heading = useRef<HTMLDivElement>(null);
   const top = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (finished) { top.current?.focus(); top.current?.scrollIntoView?.({ block: 'start' }); }
-  }, [finished]);
+    const target = finished ? top.current : heading.current;
+    target?.focus();
+    target?.scrollIntoView?.({ block: 'start' });
+  }, [finished, step]);
   const changes = saved.options.filter(option => draft[option.name] !== saved.runtime[option.name]);
   const mutation = useMutation({
     mutationFn: setupService.save,
     onSuccess: state => { setSaved(state); setDraft(state.runtime); setFinished(true); client.setQueryData(setupQueryKey, state); },
   });
-  const move = (index: number) => { setStep(index); heading.current?.focus(); };
+  const move = (index: number) => { setStep(index); };
   const field = (option: RuntimeOption) => {
     const value = draft[option.name] ?? option.default;
     const reason = saved.unavailable[option.name];
@@ -49,17 +51,23 @@ function SetupForm({ initial }: { initial: SetupState }) {
       helperText={option.help || undefined} inputProps={numeric ? { min: option.minimum, max: option.maximum, step: option.kind === 'integer' ? 1 : 'any' } : { maxLength: 4096 }}
       onChange={event => setDraft(previous => ({ ...previous, [option.name]: numeric && event.target.value !== '' ? Number(event.target.value) : event.target.value }))} />;
   };
-  return <>
-    <Box ref={top} tabIndex={-1} sx={{ outlineOffset: 4, scrollMarginTop: 80 }}><PageHeader title="Set up scraper" subtitle="Choose how this installation runs. You can revisit setup from Settings." actions={<Button component={RouterLink} to="/">Explore the app</Button>} /></Box>
-    <StatusLine items={[{ label: 'Setup', value: finished ? 'Saved' : `${step + 1} of ${steps.length}` }, { label: 'Configuration', value: 'runtime-config.json beside the database' }, { label: 'Runtime', value: saved.restart_required ? 'Restart required' : 'Current settings' }]} />
+  return <Dialog open fullWidth maxWidth="md" fullScreen={fullScreen} aria-labelledby="setup-title" onClose={mutation.isPending ? undefined : onClose}>
+    <DialogTitle id="setup-title" ref={top} tabIndex={-1}>Set up scraper</DialogTitle>
+    <DialogContent dividers>
+    <Typography color="text.secondary" sx={{ mb: 2 }}>Review the settings imported from your deployment. Saved configuration takes precedence on future starts.</Typography>
+    {saved.restart_required ? <Alert severity="info" sx={{ mb: 2 }}>Restart required</Alert> : null}
+    {!finished ? <>
+      <Typography variant="body2" sx={{ display: { sm: 'none' }, mb: 2 }}>Step {step + 1} of {steps.length} · {steps[step]}</Typography>
+      <Stepper activeStep={step} sx={{ display: { xs: 'none', sm: 'flex' }, mb: 3 }}>{steps.map(label => <Step key={label}><StepLabel>{label}</StepLabel></Step>)}</Stepper>
+    </> : null}
     {mutation.isError ? <Alert severity="error" sx={{ mb: 2 }}>{mutation.error instanceof ApiError && mutation.error.status === 409 ? 'Configuration changed in another session. Reload the saved configuration before trying again.' : getErrorMessage(mutation.error)} <Button onClick={() => window.location.reload()}>Reload saved configuration</Button></Alert> : null}
     {finished ? <>
       <Alert severity="success" sx={{ mb: 2 }}>{saved.restart_required ? 'Setup saved. Restart the container or native application to apply runtime changes. This will interrupt active playback.' : 'Setup saved. You can now add your sources.'}</Alert>
       <ContentSection title="Build your catalogue" description="Start with broadcaster-owned sources you are authorized to access. Availability may depend on your region.">
-        <Stack spacing={3}>{nextSteps.map(item => <Box key={item.to}><Link component={RouterLink} to={item.to}>{item.label}</Link><Typography variant="body2" sx={{ mt: 0.5 }}>{item.detail}</Typography></Box>)}</Stack>
+        <Stack spacing={3}>{nextSteps.map(item => <Box key={item.to}><Link component={RouterLink} to={item.to} onClick={onClose}>{item.label}</Link><Typography variant="body2" sx={{ mt: 0.5 }}>{item.detail}</Typography></Box>)}</Stack>
       </ContentSection>
       <Button onClick={() => { setFinished(false); move(0); }}>Review runtime settings</Button>
-    </> : <Box component="form" onSubmit={event => { event.preventDefault(); if (step < 3) move(step + 1); else mutation.mutate({ expected_revision: saved.revision, runtime: draft, setup_complete: true }); }}>
+    </> : <Box component="form" id="setup-form" onSubmit={event => { event.preventDefault(); if (step < 3) move(step + 1); else mutation.mutate({ expected_revision: saved.revision, runtime: draft, setup_complete: true }); }}>
       <Box ref={heading} tabIndex={-1} sx={{ outlineOffset: 4 }}><Typography variant="h6" component="h2" sx={{ mb: 2 }}>{steps[step]}</Typography></Box>
       <ContentSection>
         <Stack spacing={3}>
@@ -75,17 +83,29 @@ function SetupForm({ initial }: { initial: SetupState }) {
           </>}
         </Stack>
       </ContentSection>
-      <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
-        <Button disabled={step === 0 || mutation.isPending} onClick={() => move(step - 1)}>Back</Button>
-        <Button variant="contained" type="submit" disabled={mutation.isPending}>{mutation.isPending ? 'Saving…' : step === 3 ? 'Save setup' : 'Continue'}</Button>
-      </Stack>
     </Box>}
-  </>;
+    </DialogContent>
+    <DialogActions sx={{ px: 3, py: 2 }}>
+      <Button disabled={mutation.isPending} onClick={onClose}>{finished ? 'Done' : 'Set up later'}</Button>
+      <Box sx={{ flex: 1 }} />
+      {!finished ? <>
+        <Button disabled={step === 0 || mutation.isPending} onClick={() => move(step - 1)}>Back</Button>
+        <Button variant="contained" type="submit" form="setup-form" disabled={mutation.isPending}>{mutation.isPending ? 'Saving…' : step === 3 ? 'Save setup' : 'Continue'}</Button>
+      </> : null}
+    </DialogActions>
+  </Dialog>;
 }
 
-export default function Setup() {
+export default function Setup({ onClose }: { onClose?: () => void }) {
+  const navigate = useNavigate();
+  const close = onClose ?? (() => navigate('/settings', { replace: true }));
   const query = useQuery({ queryKey: setupQueryKey, queryFn: setupService.get });
-  if (query.isPending) return <Typography role="status">Loading setup…</Typography>;
-  if (query.isError) return <Alert severity="error">Setup could not be loaded. <Button onClick={() => query.refetch()}>Retry</Button></Alert>;
-  return <SetupForm initial={query.data} />;
+  if (!query.data) return <Dialog open fullWidth maxWidth="sm" aria-labelledby="setup-loading-title" onClose={close}>
+    <DialogTitle id="setup-loading-title">Set up scraper</DialogTitle>
+    <DialogContent>{query.isError
+      ? <Alert severity="error">Setup could not be loaded. <Button onClick={() => query.refetch()}>Retry</Button></Alert>
+      : <Typography role="status">Loading setup…</Typography>}</DialogContent>
+    <DialogActions><Button onClick={close}>Set up later</Button></DialogActions>
+  </Dialog>;
+  return <SetupForm initial={query.data} onClose={close} />;
 }

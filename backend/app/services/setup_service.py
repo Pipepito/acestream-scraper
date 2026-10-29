@@ -5,7 +5,7 @@ import shutil
 
 from app.config.settings import get_settings
 from app.schemas.setup import SetupState, SetupUpdate
-from runtime_config import (OPTIONS, ConfigError, config_path, ensure_config,
+from runtime_config import (OPTIONS, ConfigError, config_path, defaults, ensure_config,
                             restart_required, revision, update_config)
 
 
@@ -32,12 +32,11 @@ class SetupService:
         settings = get_settings()
         self.path = config_path(settings.DATABASE_URL)
         self.environment = {**os.environ, **settings.model_dump()}
-        self.existing_database = Path(settings.DATABASE_URL[len('sqlite:///'):]).exists()
 
     def state(self) -> SetupState:
-        data = ensure_config(self.path, self.environment, existing_database=self.existing_database)
+        data = ensure_config(self.path, self.environment)
         return SetupState(
-            setup_complete=data['setup_complete'], revision=revision(data), runtime=data['runtime'],
+            setup_complete=data['setup_complete'], revision=revision(data), runtime={**defaults(), **data['runtime']},
             options=OPTIONS, unavailable=unavailable_options(),
             restart_required=restart_required(self.path, data), api_protected=bool(os.environ.get('API_TOKEN', '').strip()),
         )

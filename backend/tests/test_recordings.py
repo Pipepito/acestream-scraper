@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 import os
 import pytest
-from app.models.models import TVChannel, EPGSource, EPGChannel, EPGProgram
+from app.models.models import AcestreamChannel, TVChannel, EPGSource, EPGChannel, EPGProgram
 from app.models.recordings import Recording, RecordingArtifact
 from app.services.recording_storage import RecordingStorage
 
@@ -25,6 +25,7 @@ def dvr(client, db_session, monkeypatch, tmp_path):
     db_session.flush()
     now = datetime.now(timezone.utc)
     programme = EPGProgram(epg_channel_id=guide.id, title='Programme', start_time=now+timedelta(hours=1), end_time=now+timedelta(hours=2))
+    db_session.add(AcestreamChannel(id='a' * 40, name='One stream', tv_channel_id=tv.id, is_active=True))
     db_session.add(programme)
     db_session.commit()
     response = client.put('/api/v1/config/recordings', json={'enabled': True, 'min_free_bytes': 67108864})
@@ -75,6 +76,8 @@ def test_capacity_across_channels_and_disable(dvr):
     assert client.post('/api/v1/recordings', json=request(tv, programme)).status_code == 201
     other = TVChannel(name='Two', epg_source_id=tv.epg_source_id, epg_id=tv.epg_id)
     db.add(other)
+    db.flush()
+    db.add(AcestreamChannel(id='b' * 40, name='Two stream', tv_channel_id=other.id, is_active=True))
     db.commit()
     assert client.post('/api/v1/recordings', json=request(other, programme)).status_code == 409
     assert client.put('/api/v1/config/recordings', json={'enabled':False}).status_code == 200
@@ -126,6 +129,7 @@ def test_invalid_timezone_intervals(dvr, start, end):
 
 def test_upgrade_from_prior_head_preserves_guides(tmp_path):
     import sqlite3
+    from contextlib import closing
     from alembic.config import Config
     from alembic import command
     path = tmp_path/'migration.db'
@@ -134,17 +138,17 @@ def test_upgrade_from_prior_head_preserves_guides(tmp_path):
     config.attributes['database_url'] = 'sqlite:///'+str(path)
     config.attributes['configure_logger'] = False
     command.upgrade(config, '20261027_1300')
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         db.execute("INSERT INTO epg_sources (id,name,url) VALUES (1,'Guide','https://example.com')")
         db.execute("INSERT INTO epg_channels (id,epg_source_id,channel_xml_id,name) VALUES (1,1,'one','One')")
     command.upgrade(config, 'head')
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         first = db.execute('SELECT recording_uuid FROM epg_sources').fetchone()[0]
         assert len(first) == 32
         assert db.execute('SELECT name FROM epg_channels').fetchone() == ('One',)
         assert db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='recordings'").fetchone()
     command.upgrade(config, 'head')
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         assert db.execute('SELECT recording_uuid FROM epg_sources').fetchone()[0] == first
 
 
@@ -211,3 +215,19 @@ def test_playback_subscriptions_are_independent(dvr):
     assert client.get(url+'/'+first['id']).status_code == 404
     assert client.get(url+'/'+second['id']).json()['state'] == 'preparing'
     client.delete(url+'/'+second['id'])
+
+
+def test_programme_recording_requires_an_enabled_assigned_stream(dvr):
+    client, db, tv, programme = dvr
+    stream = db.get(AcestreamChannel, 'a' * 40)
+    stream.is_active = False
+    db.commit()
+    response = client.post('/api/v1/recordings', json=request(tv, programme))
+    assert response.status_code == 409
+    assert response.json()['error']['code'] == 'RECORDING_NO_ENABLED_STREAMS'
+    assert db.query(Recording).count() == 0
+    stream.is_active = True
+    db.commit()
+    result = client.post('/api/v1/recordings', json=request(tv, programme))
+    assert result.status_code == 201, result.text
+    assert result.json()['snapshot']['title'] == programme.title

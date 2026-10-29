@@ -268,7 +268,7 @@ class Manager:
             labels[identity] = await self.client.label(identity)
         cursor = 0
         if source_id is None:
-            recent = await self.client.recent(entity, max(1, data.history_count))
+            recent = await self.client.recent(entity, max(1, data.history_count), data.topic_id)
             if data.history_count:
                 recent = [m for m in recent if not data.history_since or m.date >= data.history_since]
                 cursor = min((m.id for m in recent), default=1) - 1
@@ -288,7 +288,7 @@ class Manager:
     async def preview(self, request: TelegramPreviewRequest) -> TelegramPreview:
         self.require_connected()
         entity, _ = await self.client.member(request.source.chat_id)
-        messages = await self.client.recent(entity, request.limit)
+        messages = await self.client.recent(entity, request.limit, request.source.topic_id)
         results = []
         for raw in messages:
             msg = normalize(raw, forum=getattr(entity, 'forum', False))
@@ -343,7 +343,7 @@ class Manager:
                 pending.discard(mid)
         if pending:
             self.wake.set()
-        messages = await self.client.after(entity, source.cursor, 10)
+        messages = await self.client.after(entity, source.cursor, 10, source.topic_id)
         for raw in messages:
             if not await self.process(source, generation, normalize(raw, forum=getattr(entity, 'forum', False)), True):
                 return

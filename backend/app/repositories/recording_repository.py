@@ -1,6 +1,6 @@
 """DB-only DVR operations. Caller owns commit/rollback."""
 from sqlalchemy import select
-from app.models.models import EPGChannel, EPGProgram, EPGSource, TVChannel, Setting
+from app.models.models import AcestreamChannel, EPGChannel, EPGProgram, EPGSource, TVChannel, Setting
 from app.models.recordings import Recording, RecordingArtifact, RecordingAttempt
 from app.repositories.import_exclusion_repository import ImportExclusionRepository
 
@@ -44,6 +44,10 @@ class RecordingRepository:
 
     def channel(self, cid):
         return self.db.get(TVChannel, cid)
+
+    def has_enabled_streams(self, cid):
+        return self.db.scalar(select(AcestreamChannel.id).where(
+            AcestreamChannel.tv_channel_id == cid, AcestreamChannel.is_active.is_(True)).limit(1)) is not None
 
     def programme(self, pid):
         return self.db.query(EPGProgram, EPGChannel, EPGSource).select_from(EPGProgram).join(EPGChannel, EPGProgram.epg_channel_id == EPGChannel.id).join(EPGSource, EPGChannel.epg_source_id == EPGSource.id).filter(EPGProgram.id == pid).first()

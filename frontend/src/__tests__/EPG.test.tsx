@@ -205,6 +205,7 @@ describe('EPG page', () => {
     fireEvent.click(screen.getByLabelText('Go to next page'));
 
     expect(lastCallOfListQuery()).toEqual([undefined, 2, 100]);
+    expect(screen.getByText('Loading channels…')).toBeInTheDocument();
   });
 
   it('shows the matching controls only on the Matching tab', () => {

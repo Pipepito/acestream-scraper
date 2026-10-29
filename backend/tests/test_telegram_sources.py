@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 import pytest
 from cryptography.fernet import Fernet
 from telethon import errors, types
-from app.schemas.telegram import TelegramSourceConfig, TelegramSourceCreate, TelegramLogin
+from app.schemas.telegram import TelegramPeer, TelegramPreviewRequest, TelegramSourceConfig, TelegramSourceCreate, TelegramLogin
 from app.schemas.extraction import ExtractionRecipe, RecipePreview
 from app.services.telegram.extraction import Message, PAIR_RECIPE, preview_message, EMPTY
 from app.services.telegram.transport import normalize, Transport
@@ -61,6 +61,20 @@ def test_forward_identity_and_link_entities():
     assert outcome == 'matched' and result.channels[0].name == '🇪🇸 Sports'
     assert len(result.channels) == 1
     assert preview_message(config(sender_ids=['123']), msg)[0] == 'sender filtered'
+
+
+def test_share_links_with_a_content_id_are_recognised():
+    """AceStream's own share links read acestream:?content_id=<id>, often with
+    an infohash after it. Seen in a real account (29-10); they gave no match."""
+    text = ('🇪🇸 Liga Hypermotion\nacestream:?content_id=' + IDS[0] + '&infohash=' + 'c' * 40 + '\n\n'
+            'Copa\nacestream://?content_id=' + IDS[1])
+    outcome, result = preview_message(config(), Message(1, text))
+    assert outcome == 'matched'
+    assert [(c.name, c.channel_id) for c in result.channels] == [('🇪🇸 Liga Hypermotion', IDS[0]), ('Copa', IDS[1])]
+    msg = Message(2, 'See below', links=[('🇪🇸 Sports', 'acestream:?content_id=' + IDS[2])])
+    assert [(c.name, c.channel_id) for c in preview_message(config(), msg)[1].channels] == [('🇪🇸 Sports', IDS[2])]
+    # An infohash alone is a different key, and the bare-ID switch still applies.
+    assert not preview_message(config(), Message(3, 'Only\nacestream:?infohash=' + IDS[3]))[1].channels
 
 
 def test_chatter_malformed_ids_duplicates_and_bare_switch():
@@ -192,8 +206,14 @@ class FakeTransport:
         if self.lost_access: raise ValueError('lost')
         return chat, 'Sports chat'
     async def label(self, identity): return 'Test sender'
-    async def recent(self, entity, limit): return list(reversed(self.messages))[:limit]
-    async def after(self, entity, cursor, limit): return [m for m in self.messages if m.id > cursor][:limit]
+    async def topics(self, entity): return [TelegramPeer(id='7', label='Links', kind='topic')]
+    def _in(self, m, topic_id):
+        # Like Telegram's GetReplies: a topic other than General only returns its own thread.
+        return not topic_id or topic_id == 1 or normalize(m).topic_id == topic_id
+    async def recent(self, entity, limit, topic_id=None):
+        return [m for m in reversed(self.messages) if self._in(m, topic_id)][:limit]
+    async def after(self, entity, cursor, limit, topic_id=None):
+        return [m for m in self.messages if m.id > cursor and self._in(m, topic_id)][:limit]
     async def by_ids(self, entity, ids): return [next((m for m in self.messages if m.id == mid), None) for mid in ids]
 
 
@@ -396,3 +416,66 @@ def test_consumer_lifespan_can_restart_on_another_event_loop():
     asyncio.run(lifespan())
     asyncio.run(lifespan())
     assert service.task is None
+
+
+@pytest.mark.asyncio
+async def test_login_code_follows_the_account_to_its_data_centre():
+    """A new session starts on Telegram's default data centre. An account
+    that lives elsewhere gets PHONE_MIGRATE_X for auth.sendCode; Telethon
+    switches DC and must send the request again there. With no retry left it
+    raised ValueError("Request was unsuccessful 1 time(s)"), shown as the
+    generic "Telegram action could not complete". Seen with a real Spanish
+    account (28-10); with one retry the code arrived at once."""
+    transport = Transport(12345, '0' * 32)
+    client = transport.client
+    loop = asyncio.get_running_loop()
+    answers = [errors.PhoneMigrateError(request=None, capture=4),
+               types.auth.SentCode(type=types.auth.SentCodeTypeApp(length=5), phone_code_hash='code-hash')]
+    sent = []
+
+    def send(request, ordered=False):
+        sent.append(type(request).__name__)
+        future = loop.create_future()
+        answer = answers.pop(0)
+        if isinstance(answer, Exception):
+            future.set_exception(answer)
+        else:
+            future.set_result(answer)
+        return future
+
+    client._sender = SimpleNamespace(send=send)
+    client._switch_dc = AsyncMock()
+    client.is_user_authorized = AsyncMock(return_value=False)
+    assert await transport.send_code('+34600000000') == 'code-hash'
+    client._switch_dc.assert_awaited_once_with(4)
+    assert sent == ['SendCodeRequest', 'SendCodeRequest']
+
+
+def in_topic(mid, topic, text=SAMPLE):
+    return types.Message(id=mid, peer_id=types.PeerChannel(123), from_id=types.PeerUser(123), message=text,
+                         date=datetime.now(timezone.utc),
+                         reply_to=types.MessageReplyHeader(reply_to_msg_id=topic, forum_topic=True))
+
+
+@pytest.mark.asyncio
+async def test_topic_preview_and_history_read_inside_the_topic(alembic_backend_runtime, private_settings):
+    """Forum channels seen with a real account (29-10) post links in quiet
+    topics while other topics are busy. Reading the last N messages of the
+    whole chat and filtering afterwards left 27-30 of 30 as "topic
+    filtered", so a topic preview or bounded history import found nothing."""
+    manager = Manager(FakeTransport)
+    await manager.login(TelegramLogin(api_id=12345, api_hash='a'*32, phone='+123456789'))
+    await manager.authorize('12345')
+    client = manager.client
+    client.messages = [in_topic(1, 7)] + [in_topic(mid, 8, 'chatter') for mid in range(2, 42)]
+    source = config(topic_id=7)
+    preview = await manager.preview(TelegramPreviewRequest(source=source, limit=10))
+    assert [m.message_id for m in preview.messages] == [1]
+    assert preview.messages[0].outcome == 'matched'
+    saved = await manager.save_source(TelegramSourceCreate(**source.model_dump(), history_count=10))
+    assert saved.cursor == 0
+    client.messages.append(in_topic(42, 8, 'more chatter'))
+    await manager.scan(saved.id, [])
+    assert (await manager.sources())[0].cursor == 1
+    assert set(repo.existing_ids(IDS)) == set(IDS)
+    await manager.stop()

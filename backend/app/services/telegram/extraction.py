@@ -56,9 +56,10 @@ def worker_extract(config: TelegramSourceConfig, message: Message) -> dict:
     # Link entity labels become local name/ID records. No unrelated URL is fetched.
     entity_records = []
     for label, url in message.links:
+        url = share_link(url)
         if re.fullmatch(r'acestream://[0-9a-fA-F]{40}', url):
             entity_records.append(f'{label[:200] or url[12:]}\n{url}')
-    sample = message.text + ('\n' + '\n'.join(entity_records) if entity_records else '')
+    sample = share_link(message.text) + ('\n' + '\n'.join(entity_records) if entity_records else '')
     if config.recipe:
         result = extract(config.recipe, sample)
     else:
@@ -76,6 +77,15 @@ def worker_extract(config: TelegramSourceConfig, message: Message) -> dict:
                 result['channels'].append({'channel_id': cid, 'name': cid, 'metadata': {}})
                 result['record_count'] += 1
     return {'outcome': 'matched' if result['channels'] else 'no match', 'result': result}
+
+
+# AceStream's share links: acestream:?content_id=<id>[&infohash=...]. An
+# infohash alone is a different key and is left alone.
+_SHARE_LINK = re.compile(r'acestream:(?://)?\?(?:[^\s?#]*&)?content_id=([0-9a-fA-F]{40})(?:&[^\s#]*)?', re.I)
+
+
+def share_link(text: str) -> str:
+    return _SHARE_LINK.sub(lambda m: 'acestream://' + m.group(1).lower(), text)
 
 
 def preview_message(config: TelegramSourceConfig, message: Message) -> tuple[str, RecipePreview]:

@@ -137,11 +137,18 @@ class Transport:
         return TelegramPeer(id=str(utils.get_peer_id(entity)), label=utils.get_display_name(entity),
                             kind='user' if isinstance(entity, types.User) else 'channel' if isinstance(entity, types.Channel) else 'chat')
 
-    async def recent(self, entity: Any, limit: int) -> list[Any]:
-        return [message async for message in self.client.iter_messages(entity, limit=limit)]
+    @staticmethod
+    def _thread(topic_id: int | None) -> dict:
+        # Read a forum topic's own thread, so a quiet topic in a busy chat is not
+        # crowded out by other topics. General (1) has no thread: it stays chat-wide.
+        return {'reply_to': topic_id} if topic_id and topic_id != 1 else {}
 
-    async def after(self, entity: Any, cursor: int, limit: int = 10) -> list[Any]:
-        return [message async for message in self.client.iter_messages(entity, min_id=cursor, reverse=True, limit=limit)]
+    async def recent(self, entity: Any, limit: int, topic_id: int | None = None) -> list[Any]:
+        return [message async for message in self.client.iter_messages(entity, limit=limit, **self._thread(topic_id))]
+
+    async def after(self, entity: Any, cursor: int, limit: int = 10, topic_id: int | None = None) -> list[Any]:
+        return [message async for message in self.client.iter_messages(
+            entity, min_id=cursor, reverse=True, limit=limit, **self._thread(topic_id))]
 
     async def by_ids(self, entity: Any, ids: list[int]) -> list[Any]:
         return await self.client.get_messages(entity, ids=ids)

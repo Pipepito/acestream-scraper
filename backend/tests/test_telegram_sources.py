@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 import pytest
 from cryptography.fernet import Fernet
 from telethon import errors, types
-from app.schemas.telegram import TelegramSourceConfig, TelegramSourceCreate, TelegramLogin
+from app.schemas.telegram import TelegramPeer, TelegramPreviewRequest, TelegramSourceConfig, TelegramSourceCreate, TelegramLogin
 from app.schemas.extraction import ExtractionRecipe, RecipePreview
 from app.services.telegram.extraction import Message, PAIR_RECIPE, preview_message, EMPTY
 from app.services.telegram.transport import normalize, Transport
@@ -192,8 +192,14 @@ class FakeTransport:
         if self.lost_access: raise ValueError('lost')
         return chat, 'Sports chat'
     async def label(self, identity): return 'Test sender'
-    async def recent(self, entity, limit): return list(reversed(self.messages))[:limit]
-    async def after(self, entity, cursor, limit): return [m for m in self.messages if m.id > cursor][:limit]
+    async def topics(self, entity): return [TelegramPeer(id='7', label='Links', kind='topic')]
+    def _in(self, m, topic_id):
+        # Like Telegram's GetReplies: a topic other than General only returns its own thread.
+        return not topic_id or topic_id == 1 or normalize(m).topic_id == topic_id
+    async def recent(self, entity, limit, topic_id=None):
+        return [m for m in reversed(self.messages) if self._in(m, topic_id)][:limit]
+    async def after(self, entity, cursor, limit, topic_id=None):
+        return [m for m in self.messages if m.id > cursor and self._in(m, topic_id)][:limit]
     async def by_ids(self, entity, ids): return [next((m for m in self.messages if m.id == mid), None) for mid in ids]
 
 
@@ -429,3 +435,33 @@ async def test_login_code_follows_the_account_to_its_data_centre():
     assert await transport.send_code('+34600000000') == 'code-hash'
     client._switch_dc.assert_awaited_once_with(4)
     assert sent == ['SendCodeRequest', 'SendCodeRequest']
+
+
+def in_topic(mid, topic, text=SAMPLE):
+    return types.Message(id=mid, peer_id=types.PeerChannel(123), from_id=types.PeerUser(123), message=text,
+                         date=datetime.now(timezone.utc),
+                         reply_to=types.MessageReplyHeader(reply_to_msg_id=topic, forum_topic=True))
+
+
+@pytest.mark.asyncio
+async def test_topic_preview_and_history_read_inside_the_topic(alembic_backend_runtime, private_settings):
+    """Forum channels seen with a real account (29-10) post links in quiet
+    topics while other topics are busy. Reading the last N messages of the
+    whole chat and filtering afterwards left 27-30 of 30 as "topic
+    filtered", so a topic preview or bounded history import found nothing."""
+    manager = Manager(FakeTransport)
+    await manager.login(TelegramLogin(api_id=12345, api_hash='a'*32, phone='+123456789'))
+    await manager.authorize('12345')
+    client = manager.client
+    client.messages = [in_topic(1, 7)] + [in_topic(mid, 8, 'chatter') for mid in range(2, 42)]
+    source = config(topic_id=7)
+    preview = await manager.preview(TelegramPreviewRequest(source=source, limit=10))
+    assert [m.message_id for m in preview.messages] == [1]
+    assert preview.messages[0].outcome == 'matched'
+    saved = await manager.save_source(TelegramSourceCreate(**source.model_dump(), history_count=10))
+    assert saved.cursor == 0
+    client.messages.append(in_topic(42, 8, 'more chatter'))
+    await manager.scan(saved.id, [])
+    assert (await manager.sources())[0].cursor == 1
+    assert set(repo.existing_ids(IDS)) == set(IDS)
+    await manager.stop()

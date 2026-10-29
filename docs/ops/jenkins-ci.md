@@ -78,3 +78,21 @@ commit SHA and infrastructure revision in build logs, and distinguish the Jenkin
 result from GitHub's commit status. PR #207 is the current release PR; inspect its
 live state before reporting readiness. A passing historical build does not validate
 new commits. See [collaborator safety](jenkins-collaborator-safety.md).
+
+## Production image acceptance
+
+Private CI now has a public, standard-library probe in
+`docker/testdata/image_acceptance.py`. It executes inside the production image
+without mounting replacement application source or installing packages. Native
+flavors exercise the real entrypoint, migrations, SPA, OpenAPI, FFmpeg, healthcheck
+and enabled engines; the engine-free Acexy flavor uses a loopback-only synthetic
+upstream. The existing checker lifecycle probe remains separate. ARM packaging
+checks inspect the final image; emulation is not proof of Android engine runtime
+support on real ARM hardware.
+
+The private deployment pins a reviewed public test-contract commit so older
+release application revisions can use the same acceptance checks. Tests remain
+public, while only private orchestration may invoke host Docker operations.
+Changes to that pinned contract require an infrastructure review/deployment.
+The production Dockerfile places application copies after stable installation
+layers so application edits do not reinstall bundled operating-system packages.

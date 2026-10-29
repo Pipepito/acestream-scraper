@@ -10,6 +10,7 @@ import os
 import re
 from pathlib import Path
 import subprocess
+import struct
 import threading
 import time
 import urllib.request
@@ -40,6 +41,41 @@ def engine_version(host, expected):
     assert actual and expected.startswith(actual), (actual, expected)
 
 
+def needed_libraries(blob):
+    """Read DT_NEEDED from ELF32/64 without adding binutils to the image."""
+    assert blob[:4] == b'\x7fELF' and blob[5] == 1, 'Expected little-endian ELF'
+    wide = blob[4] == 2
+    assert blob[4] in (1, 2)
+    phoff = struct.unpack_from('<Q' if wide else '<I', blob, 32 if wide else 28)[0]
+    size, count = struct.unpack_from('<HH', blob, 54 if wide else 42)
+    segments = []
+    dynamic = None
+    for index in range(count):
+        offset = phoff + index * size
+        if wide:
+            kind, _, fileoff, vaddr, _, filesz, _, _ = struct.unpack_from('<IIQQQQQQ', blob, offset)
+        else:
+            kind, fileoff, vaddr, _, filesz, _, _, _ = struct.unpack_from('<IIIIIIII', blob, offset)
+        if kind == 1:
+            segments.append((vaddr, fileoff, filesz))
+        elif kind == 2:
+            dynamic = (fileoff, filesz)
+    assert dynamic is not None, 'Missing ELF dynamic segment'
+    names, strings = [], None
+    for offset in range(dynamic[0], sum(dynamic), 16 if wide else 8):
+        tag, value = struct.unpack_from('<QQ' if wide else '<II', blob, offset)
+        if tag == 0:
+            break
+        if tag == 1:
+            names.append(value)
+        if tag == 5:
+            strings = value
+    assert strings is not None, 'Missing ELF string table'
+    base = next(fileoff + strings - vaddr for vaddr, fileoff, filesz in segments
+                if vaddr <= strings < vaddr + filesz)
+    return {blob[base + name:blob.index(b'\0', base + name)].decode('ascii') for name in names}
+
+
 def layout(platform, expected):
     root = Path('/opt/acestream')
     metadata = (root / 'install-metadata.txt').read_text()
@@ -57,8 +93,8 @@ def layout(platform, expected):
     for path in (root / 'start-engine', root / 'python/bin/python', Path('/system/bin') / linker):
         assert os.access(path, os.X_OK), path
     library = (Path('/system') / libdir / 'libnetd_client.so').read_bytes()
-    assert library.startswith(b'\x7fELF')
-    assert b'libc.so\0' in library and b'libc.so.6' not in library
+    needed = needed_libraries(library)
+    assert 'libc.so' in needed and 'libc.so.6' not in needed, needed
 
 
 class ExternalEngineFixture(BaseHTTPRequestHandler):

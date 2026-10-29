@@ -158,7 +158,7 @@ test.describe('integrations', () => {
     }
   });
 
-  test('the same channel is attempted against the real engine', async ({ page, api, scenario, errors }, testInfo) => {
+  test('the same channel is attempted against the scenario engine', async ({ page, api, scenario, errors }, testInfo) => {
     const caps = (await api.raw('get', '/api/v1/player/capabilities').then((r) => r.json())) as { ffmpeg_available: boolean };
     if (!caps.ffmpeg_available) {
       testInfo.annotations.push({ type: 'skipped', description: 'no ffmpeg on this host' });
@@ -182,7 +182,7 @@ test.describe('integrations', () => {
     const failed = dialog.getByRole('alert');
     await expect(playing.or(failed).first()).toBeVisible({ timeout: scenario.integrations.playbackTimeoutMs });
     const outcome = (await playing.count()) > 0 ? 'playing' : `error: ${(await failed.first().innerText()).replace(/\s+/g, ' ').slice(0, 200)}`;
-    testInfo.annotations.push({ type: 'real-engine-playback', description: `${target.name} -> ${outcome}` });
+    testInfo.annotations.push({ type: 'scenario-engine-playback', description: `${scenario.name}: ${target.name} -> ${outcome}` });
 
     await dialog.getByRole('button', { name: 'Close' }).click();
     await expect(dialog).toBeHidden();

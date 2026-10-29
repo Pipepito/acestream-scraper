@@ -1,5 +1,5 @@
 import React from 'react';
-import { MemoryRouter } from 'react-router-dom';
+import { TestMemoryRouter as MemoryRouter } from '../testUtils/router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@mui/material/styles';
 import { useMediaQuery } from '@mui/material';
@@ -13,6 +13,8 @@ import { createAppTheme } from '../theme';
 const INFOHASH = '42832fbf9a1d3bdcca043e09951d6769fbbe04e7';
 const CONTENT_ID = 'e72d03fb9694164317260f684470be9ab781ed95';
 jest.mock('../services/searchService');
+jest.mock('../hooks/useChannels', () => ({ useAcestreamChannel: () => ({ data: undefined }) }));
+jest.mock('../hooks/useTVChannels', () => ({ useTVChannel: () => ({ data: undefined }) }));
 
 const mockUseSearch = jest.fn();
 const mockUseAddSearchResult = jest.fn();

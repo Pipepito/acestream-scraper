@@ -9,7 +9,7 @@ export const releases: ReleaseNotes[] = [
         "title": "Added",
         "items": [
           "Record TV channels now or schedule a programme from its guide, edit start/end times, stop capture and browse recording history. Download preserved MPEG-TS originals or prepare MP4/AAC playback. Recording is opt-in with a persistent RECORDINGS_DIR; capacity checks, storage limits, protected files and optional retention keep capture bounded. Interrupted captures retain usable parts and may resume after restart. Scheduled starts run independently of maintenance; actual media arrival still depends on source startup.",
-          "Set up a fresh installation with a web wizard for playback, access and optional services. Runtime options persist in runtime-config.json beside the database; environment values seed the file once and later edits require a restart. Existing database preferences stay in place. The README includes a setup prompt for ChatGPT and shell-enabled coding agents.",
+          "Set up an installation with a modal wizard for playback, access and optional services. It opens when a missing runtime file is bootstrapped, including on existing databases, and prefills deployment values. Runtime options persist in runtime-config.json beside the database; environment values seed the file once and later edits require a restart. Existing database preferences stay in place. The README includes a setup prompt for ChatGPT and shell-enabled coding agents.",
           "Define global import exclusions without deleting existing channels, and save catalogue searches for one-shot or opt-in scheduled additive imports. Preview decisions and track waiting, partial, excluded and unresolved outcomes.",
           "Collect AceStream links from selected Telegram groups/channels through an optional user-account connection. Preview extraction, filter senders/topics, and recover progress after restart. Requires HTTPS or localhost, a separate admin token and encrypted session storage with an independent key. Playlist discovery and event/VOD interpretation remain separate.",
           "Preview and import Wiseplay/W3U catalogues, browse folders and source details, and keep selected live streams refreshed. Live-channel imports require explicit review; event broadcasts can enter the shared Events preview. Unsupported websites and VOD remain visible with their limits.",
@@ -24,6 +24,7 @@ export const releases: ReleaseNotes[] = [
       {
         "title": "Improved",
         "items": [
+          "Browse the seven-day TV guide directly in Live TV without starting playback, and schedule a selected programme using its exact guide times. Recording requires an enabled assigned stream. The Docker builder includes a matching persistent recording-folder mount.",
           "Filter AceStream channels by Any, Linked or Not linked to a TV channel, and clear the selection with the other filters ([PR #270](https://github.com/Pipepito/acestream-scraper/pull/270)).",
           "Import reviewed schedules from Fútbol en la TV (WOSTI Spain) and OpenFootball, with saved sport, competition and team interests and a day-by-day agenda. Prefer unambiguous TV broadcaster links over EPG matches; date-only fixtures keep their kickoff unknown ([PR #269](https://github.com/Pipepito/acestream-scraper/pull/269)).",
           "Open the project’s Ko-fi support page from the README or navigation menu ([PR #272](https://github.com/Pipepito/acestream-scraper/pull/272)).",
@@ -40,6 +41,8 @@ export const releases: ReleaseNotes[] = [
       {
         "title": "Fixed",
         "items": [
+          "Show actionable API errors, including missing recording storage, instead of replacing them with generic server-error text.",
+          "Prevent interrupted Firefox requests from crashing pages during navigation, and keep guide pagination valid while loading.",
           "Restore native DNS resolution and connectivity monitoring for bundled ARM engines with a matching bionic DNS adapter. ARM64 native lookups and connectivity were verified; ARMv7 still needs real-hardware validation, and this does not establish infohash playback or performance gains ([issue #253](https://github.com/Pipepito/acestream-scraper/issues/253), [PR #275](https://github.com/Pipepito/acestream-scraper/pull/275)).",
           "Select the highest advertised HLS tuner resolution and offer optional Plex Desktop compatible stereo AAC/LATM audio while preserving video. This option uses additional CPU; verification with the reported Plex installation remains separate ([PR #265](https://github.com/Pipepito/acestream-scraper/pull/265)).",
           "Decode gzip-compressed HLS responses even when an upstream ignores the requested identity encoding, fixing affected Telemadrid playback ([PR #274](https://github.com/Pipepito/acestream-scraper/pull/274)).",
@@ -56,7 +59,7 @@ export const releases: ReleaseNotes[] = [
       {
         "title": "Thanks",
         "items": [
-          "[@scarcraft1](https://github.com/scarcraft1) for guide discovery, notifications, HTTP/HLS sources, playback reliability, scheduling and ARM DNS investigation; [@Devs-Alv](https://github.com/Devs-Alv) for import safety, stream search, ordering and channel filters; [@Pipepito](https://github.com/Pipepito) for implementation and release integration.",
+          "[@scarcraft1](https://github.com/scarcraft1) for guide discovery, notifications, HTTP/HLS sources, playback reliability, scheduling and ARM DNS investigation; [@Devs-Alv](https://github.com/Devs-Alv) for import safety, stream search, ordering and channel filters.",
           "Thanks to [@dcablop391](https://github.com/dcablop391), [@Filipedls](https://github.com/Filipedls), [@francisjurado74-creator](https://github.com/francisjurado74-creator), [@atabel](https://github.com/atabel), [@P10Ms](https://github.com/P10Ms), [@illienkist](https://github.com/illienkist), [@tomandocubatas](https://github.com/tomandocubatas) and [@ParronS3](https://github.com/ParronS3) for ideas, diagnostics and bug reports."
         ]
       },

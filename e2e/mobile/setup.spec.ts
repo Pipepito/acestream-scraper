@@ -12,7 +12,7 @@ for (const mode of ['light', 'dark']) {
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
     let state = {
       version: 1, setup_complete: false, revision: 'a'.repeat(64), restart_required: false, api_protected: false,
-      runtime: Object.fromEntries(options.map(option => [option.name, option.default])), options,
+      runtime: { ...Object.fromEntries(options.map(option => [option.name, option.default])), PLAYER_MAX_SESSIONS: 7 }, options,
       unavailable: { ENABLE_IPFS: 'This image does not include IPFS.' },
     };
     let saves = 0;
@@ -33,12 +33,14 @@ for (const mode of ['light', 'dark']) {
       await route.fulfill({ json: data });
     });
     await page.addInitScript(value => localStorage.setItem('app-theme-mode', value), mode);
-    await page.goto('/setup');
+    await page.goto('/changelog');
     await page.waitForLoadState('networkidle');
     await expect(page.getByRole('heading', { name: 'Set up scraper' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Set up scraper' })).toBeVisible();
+    await expect(page.getByRole('spinbutton', { name: 'Maximum browser sessions' })).toHaveValue('7');
     await page.getByRole('spinbutton', { name: 'Maximum browser sessions' }).fill('5');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await page.screenshot({ path: test.info().outputPath(`setup-playback-${mode}.png`), fullPage: true });
+    await page.screenshot({ path: test.info().outputPath(`setup-playback-${mode}.png`), fullPage: false, animations: 'disabled' });
     await page.getByRole('button', { name: 'Continue' }).click();
     await expect(page.getByText(/No API token is configured/)).toBeVisible();
     await page.getByRole('button', { name: 'Continue' }).click();
@@ -51,11 +53,14 @@ for (const mode of ['light', 'dark']) {
     await page.getByRole('button', { name: 'Save setup' }).click();
     await expect(page.getByText(/Setup saved. Restart the container/)).toBeVisible();
     const title = await page.getByRole('heading', { name: 'Set up scraper' }).boundingBox();
-    expect(title?.y).toBeGreaterThanOrEqual(56);
+    expect(title?.y).toBeGreaterThanOrEqual(0);
     await expect(page.getByRole('link', { name: 'Add an official broadcaster' })).toHaveAttribute('href', '/scraper');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await page.screenshot({ path: test.info().outputPath(`setup-finished-${mode}.png`), fullPage: true });
+    await page.screenshot({ path: test.info().outputPath(`setup-finished-${mode}.png`), fullPage: false, animations: 'disabled' });
+    await page.getByRole('button', { name: 'Done', exact: true }).click();
     await page.reload();
+    await expect(page.getByRole('dialog', { name: 'Set up scraper' })).toHaveCount(0);
+    await page.getByRole('link', { name: 'Review setup' }).click();
     await expect(page.getByRole('spinbutton', { name: 'Maximum browser sessions' })).toHaveValue('5');
     await expect(page.getByText('Restart required', { exact: true })).toBeVisible();
     expect(saves).toBe(1);

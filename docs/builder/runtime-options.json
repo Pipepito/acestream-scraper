@@ -1,5 +1,5 @@
 {
-  "_comment": "Source of truth for the command builder page (docs/index.html, published from validated develop builds to the gh-pages branch). Facts only \u2014 the wiring logic lives in docs/builder/app.js and references entries here by id. Keep this file in sync with entrypoint.sh, Dockerfile, docker-compose.yml and wiki/Docker.md; scripts/ci/validate_command_builder.sh checks the contract on every CI build.",
+  "_comment": "Source of truth for the command builder page (docs/index.html, served by GitHub Pages from main/docs). Facts only \u2014 the wiring logic lives in docs/builder/app.js and references entries here by id. Keep this file in sync with entrypoint.sh, Dockerfile, docker-compose.yml and wiki/Docker.md; scripts/ci/validate_command_builder.sh checks the contract on every CI build.",
   "image": "pipepito/acestream-scraper",
   "repoUrl": "https://github.com/Pipepito/acestream-scraper",
   "wikiUrl": "https://github.com/Pipepito/acestream-scraper/wiki",
@@ -231,6 +231,13 @@
       "target": "/data/zeronet",
       "label": "ZeroNet node state",
       "description": "Sites, keys and content of the bundled ZeroNet node (ZERONET_DATA_DIR). Without it the node re-downloads everything on every container replacement."
+    },
+    {
+      "id": "recordings",
+      "defaultSource": "./recordings",
+      "target": "/recordings",
+      "label": "Recordings",
+      "description": "Persistent DVR originals and prepared files. Follows Recording folder in Advanced settings. Create the host folder with write permission for the application, then enable recordings in Settings \u2192 Automation."
     }
   ],
   "settingGroups": [
@@ -415,7 +422,7 @@
       "env": "RECORDINGS_DIR",
       "group": "player",
       "label": "Recording folder",
-      "description": "Existing persistent folder for DVR originals and derivatives. Add a matching volume mount, then enable Recordings in Automation settings. Never use the player temporary folder.",
+      "description": "Absolute container folder for DVR originals and prepared files, for example /recordings. Adds a matching persistent volume under Folders. Create the host folder, then enable recordings in Settings \u2192 Automation. Leave empty to omit recording storage.",
       "type": "text",
       "appliesWhen": "always",
       "configurationOwner": "deployment"

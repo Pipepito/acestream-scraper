@@ -158,3 +158,34 @@ def test_wizard_accepts_documented_json_cors_text(tmp_path):
     first = ensure_config(path, {})
     updated = update_config(path, {'CORS_ORIGINS': '["https://one.example", "https://two.example"]'}, revision(first), True)
     assert updated['runtime']['CORS_ORIGINS'] == 'https://one.example,https://two.example'
+
+
+def test_existing_database_still_needs_setup_when_config_is_missing(tmp_path):
+    (tmp_path / 'scraper.db').touch()
+    path = tmp_path / 'runtime-config.json'
+    state = ensure_config(path, {'PLAYER_MAX_SESSIONS': '9', 'ENABLE_IPFS': 'true'})
+    assert state['setup_complete'] is False
+    assert state['runtime']['PLAYER_MAX_SESSIONS'] == 9
+    assert state['runtime']['ENABLE_IPFS'] is True
+    saved = update_config(path, state['runtime'], revision(state), True)
+    assert ensure_config(path, {'PLAYER_MAX_SESSIONS': '2'}) == saved
+
+
+def test_bundled_endpoint_is_seeded_with_deployment_port():
+    values = bootstrap_values({'ENABLE_ACESTREAM_ENGINE': 'true', 'ACESTREAM_HTTP_PORT': '16878'})
+    assert values['ACE_ENGINE_URL'] == 'http://localhost:16878'
+    assert bootstrap_values({'ENABLE_ACESTREAM_ENGINE': 'true', 'ACE_ENGINE_URL': 'http://external:6878'})['ACE_ENGINE_URL'] == 'http://external:6878'
+    assert bootstrap_values({})['ACE_ENGINE_URL'] == ''
+
+
+def test_wizard_exposes_complete_saved_values_and_defaults(wizard_client):
+    path = config_path()
+    ensure_config(path, {'PLAYER_MAX_SESSIONS': '7', 'ENABLE_IPFS': 'true'})
+    data = read_config(path)
+    del data['runtime']['SCRAPER_TIMEOUT']
+    path.write_text(json.dumps(data))
+    state = wizard_client.get('/api/v1/setup').json()
+    assert state['runtime']['PLAYER_MAX_SESSIONS'] == 7
+    assert state['runtime']['ENABLE_IPFS'] is True
+    assert state['runtime']['SCRAPER_TIMEOUT'] == OPTION_MAP['SCRAPER_TIMEOUT']['default']
+    assert state['setup_complete'] is False

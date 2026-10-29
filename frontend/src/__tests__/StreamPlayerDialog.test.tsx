@@ -250,6 +250,7 @@ describe('StreamPlayerDialog', () => {
     expect(hlsInstances[0].destroy).toHaveBeenCalled();
     expect(screen.getByRole('alert')).toHaveTextContent(/Playback stopped/);
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    await act(async () => { await Promise.resolve(); });
     expect(mockStart).toHaveBeenCalledTimes(2);
   });
 

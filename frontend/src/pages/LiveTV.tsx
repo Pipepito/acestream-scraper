@@ -84,7 +84,7 @@ const LiveTV: React.FC = () => {
             <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap">
               <Button variant="contained" startIcon={<PlayArrowRounded />} disabled={!channel.acestream_channels.length}
                 aria-pressed={selectedId === channel.id} aria-label={`Watch ${channel.name}`} onClick={() => { setPlayingStream(null); const next = new URLSearchParams(params); next.set('channel', String(channel.id)); setParams(next); }}>{selectedId === channel.id ? 'Selected' : 'Watch'}</Button>
-              <RecordButton channelId={channel.id} channelName={channel.name} />
+              <RecordButton channelId={channel.id} channelName={channel.name} disabled={!channel.acestream_channels.some(stream => stream.is_active)} />
               <PlayOnMenu contentId={channel.acestream_channels[0].id} title={channel.name} label="Send to player" />
             </Stack>
           </Stack>

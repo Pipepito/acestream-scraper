@@ -77,7 +77,7 @@ def initialize_database():
     runtime_path = config_path(runtime_settings.DATABASE_URL)
     # Include resolved .env/legacy names without serializing private credentials.
     bootstrap = {**os.environ, **runtime_settings.model_dump()}
-    ensure_config(runtime_path, bootstrap, existing_database=Path(runtime_settings.DATABASE_URL[len('sqlite:///'):]).exists())
+    ensure_config(runtime_path, bootstrap)
     migrator = DatabaseMigrator()
 
     # Only run migration if acestream.db exists and hasn't been migrated yet.

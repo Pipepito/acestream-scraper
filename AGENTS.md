@@ -83,7 +83,8 @@ loads the applicable file when working below those directories.
 
 ## Verification
 
-Choose checks proportionate to the change and report exactly what ran.
+Use focused checks while iterating; the mandatory completion validation below
+always applies before reporting a task complete.
 
 - Routine project-local tests and dependency setup in `backend/venv` or the
   project's `node_modules` are authorized without separate conversational
@@ -119,10 +120,44 @@ python3 scripts/ci/validate_docker_manifest_metadata.py
 bash scripts/ci/validate_command_builder.sh
 ```
 
-Use `bash scripts/ci/run_v2_test_suite.sh --profile full` for broad validation.
-Docker packaging/smoke tests are separate and may require Docker/buildx and much
-more time. Playwright is valuable for user-visible or integration changes, but is
-not part of the required PR gate; see `e2e/AGENTS.md` before running it.
+The full application gate, separate Docker packaging/smoke tests and browser/E2E
+suites are all required for task completion, even where the PR pipeline selects a
+smaller scope. See the completion requirement below and `e2e/AGENTS.md`.
+
+## Mandatory completion validation
+
+Before declaring a task complete, run the full local validation set against the
+final changes. This is an explicit maintainer requirement to catch failures before
+slow Jenkins runs and reduce the pipeline queue. Quick profiles, focused tests,
+docs-only CI classification and previously passing runs are useful during
+iteration, but do not replace this completion gate, regardless of change size.
+
+- Inspect the current validation definitions in the private infrastructure
+  repository and `docs/ops/jenkins-ci.md`; reproduce every validation stage locally,
+  including the full backend/frontend gate, lint/typechecks, generated-artifact
+  drift, documentation/metadata/runtime contracts, all supported architecture and
+  image-flavor build checks, and Docker packaging/service/media smoke tests. The
+  public `run_v2_test_suite.sh --profile full` excludes Docker tests, so it is not
+  sufficient by itself. Run the complete automated browser/E2E suites too, following
+  `e2e/AGENTS.md` and using isolated test data and services.
+- Check Docker/buildx availability before starting. If Docker is stopped or
+  disabled, explicitly ask the user to start it, then resume and run the outstanding
+  checks. Distinguish a sandbox/socket permission failure from a stopped daemon;
+  request the required tool permission rather than assuming Docker is down.
+- Missing dependencies (including FFmpeg or browsers), unavailable infrastructure,
+  unsupported local architecture execution, skipped tests and failed checks are
+  outstanding validation, not passes. Fix the prerequisite or identify the exact
+  blocker and ask for what is needed. Never silently omit tests or claim the task
+  is complete while required validation remains unexecuted. Only an explicit user
+  waiver may narrow this requirement for a particular task.
+- Keep logs and report the commands, tested revision/worktree, pass/fail/skip counts,
+  warnings and any remaining blockers. After a fix, rerun failed checks and every
+  affected/dependent stage; completion evidence must cover the final changes.
+- This authorizes local validation, not publication or shared-infrastructure
+  mutation. Do not trigger/cancel Jenkins jobs, publish images, promote tags, merge,
+  change Jenkins policy or prune unrelated Docker resources without the separate
+  authorization required elsewhere in this guide. Keep private host policy in the
+  private repository and preserve its isolation/locking requirements.
 
 ## Branch and release policy
 
@@ -688,8 +723,10 @@ shared query keys and page-scoped feedback preserve existing operations.
 `runtime-config.json` version 1 lives beside the SQLite database. Only reviewed
 `backend/app/config/runtime-options.json` data options migrate from environment on
 first creation; existing files win thereafter. Keep commands, paths, ports, image
-facts and credentials in deployment configuration. `/setup` offers an optional web
-wizard; writes are authenticated, validated, revision-checked and atomic. Changes
+facts and credentials in deployment configuration. A modal wizard opens after
+a missing file is seeded from deployment values, even when the database exists,
+until setup is saved. Users can postpone it and reopen it at `/setup` from Settings;
+writes are authenticated, validated, revision-checked and atomic. Changes
 require restart; Docker health checks read the applied boot snapshot. Preserve
 existing database preferences and legacy v1 `config.json`. Fresh databases contain
 no source URLs/streams. Live E2E tests require an explicit authorized scenario;
@@ -726,3 +763,8 @@ conversion or delete protected/active/reader-held media. File routes retain the
 optional API-token policy and descriptor-relative no-follow access. Recordings
 is under Watch; scheduling is TV-channel-only. See `wiki/Recordings.md` and
 `docs/ops/recordings.md` for limits, qualification and rollback.
+
+Live TV exposes the seven-day guide inline without starting playback. Programme
+recording uses the selected guide snapshot and exact instants by default; time
+adjustments are optional. Require an active assigned TV channel with an enabled
+stream for recording admission. See `wiki/Recordings.md`.

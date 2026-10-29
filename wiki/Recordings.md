@@ -1,10 +1,12 @@
 # Recordings
 
-Record now captures a TV Channel independently of browser playback. Choose **Record now** in Live TV or the channel player, or **Schedule recording** beside a future programme in its guide. Raw catalogue streams must first belong to a TV Channel. When multiple TV Channels share a guide, select the intended channel.
+Record now captures a TV Channel independently of browser playback. Choose **Record now** in Live TV or the channel player, or **Schedule recording** beside a future programme in its guide. Raw catalogue streams must first belong to a TV Channel. In **Live TV**, expand **TV guide & recordings** on a channel to browse today and the next six days without starting playback. Select **Schedule recording** on a programme, review its title and times, then confirm. The exact programme times are prefilled; **Adjust recording times** allows padding or other changes. When multiple TV Channels share a guide, select the intended channel. Recording requires an active assigned TV channel with at least one enabled stream.
 
 ## Setup
 
 Recordings are off by default. Create a persistent directory owned by the application user, mount it into the container, and set `RECORDINGS_DIR` to its absolute container path (for example `/recordings`). Native installations also need FFmpeg and its sibling ffprobe executable; `FFMPEG_BINARY_PATH` selects the binary. The recording folder must be separate from the temporary player HLS folder. Symlinked directories and files are rejected.
+
+The Docker command builder includes **Recording folder** under Advanced settings. Enter an absolute container path (for example `/recordings`); its matching **Recordings** volume appears under Folders. Choose a persistent host folder. The generated run and Compose commands include both the environment path and mount. Capacity, space limits and retention stay in app settings.
 
 Enable recordings in **Settings → Automation**. Defaults are one simultaneous capture, 2 GiB free-space reserve, 100 GiB per recording, and no automatic deletion. Up to four simultaneous captures are supported. Recording admission estimates space at 20 Mbit/s plus 20% headroom; this is an estimate, not an observed bitrate. Actual size depends on the source. A recording cannot exceed 12 hours; up to 1,000 pending requests within 90 days are allowed. Overlapping reservations beyond the configured capacity are rejected, including two seconds for cleanup between reservations.
 

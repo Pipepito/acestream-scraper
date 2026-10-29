@@ -154,6 +154,41 @@ The `frontend-builder`, `acexy-builder` and `ffmpeg-builder` stages run on `$BUI
 
 `entrypoint.sh` enforces the install/runtime split: which binaries are installed is set by the chosen flavor (`IMAGE_HAS_ACESTREAM`, `IMAGE_HAS_ACEXY`); whether they actually start is controlled by `ENABLE_ACESTREAM_ENGINE`, `ENABLE_ACEXY`, `ENABLE_WARP`, `ENABLE_IPFS`, `ENABLE_ZERONET` (+`ENABLE_TOR`). Every amd64 and arm64 image also bundles a ZeroNet node (`docker/scripts/install-zeronet.sh`: zeronet-conservancy pinned by commit with DHT, on its own Python 3.11 and gevent 26.8.0). `IMAGE_HAS_ZERONET` is derived from the launcher's presence at runtime; state lives at `/data/zeronet`, with configuration and private state under `.node/`. The entrypoint copies legacy `sites.json` and `users.json` into `.node/private` only when absent, preserving the originals. UI uses `43110`, fileserver `26552`, and `ENABLE_ZERONET=true` defaults `ZERONET_URL` to the embedded node. Every flavor bundles the Kubo IPFS daemon on amd64/arm64 (`docker/scripts/install-ipfs.sh`, sha512-pinned per arch; Kubo has no 32-bit ARM build, so arm/v7 ships without it and `IMAGE_HAS_IPFS` is derived from the binary's presence at runtime). `ipfs://`/`ipns://` sources are fetched through `IPFS_GATEWAY_URL` (default `http://127.0.0.1:8081` — the embedded gateway binds 8081 because Acexy owns 8080 in-container); the repo lives at `/data/ipfs` (`IPFS_PATH`). WARP requires `NET_ADMIN` + `SYS_ADMIN` capabilities and `/dev/net/tun` (amd64 and arm64 images). Acexy refuses to target `localhost:6878` if the in-container engine is disabled. On ARM images the engine is launched through `/opt/acestream/start-engine` (`docker/scripts/acestream-android/start-engine`), which requires a 4 KB-page kernel (`getconf PAGESIZE` must be 4096; Raspberry Pi 5 needs `kernel=kernel8.img` in `config.txt`) and keeps state/cache/logs under `ACESTREAM_HOME=/var/lib/acestream` (mount a volume, e.g. `-v acestream-state:/var/lib/acestream`); `ACESTREAM_START_COMMAND` is unchanged for all platforms. Known ARM limitations: both ARM engines are 3.2.17 while amd64 is 3.2.11 (`platform` reports `android` on ARM), and ARM has no WebRTC transport. WARP (cloudflare-warp) is installed on amd64 and arm64 images (Cloudflare's apt repo ships both); linux/arm/v7 has no build.
 
+## Mandatory completion validation
+
+Before declaring a task complete, run the full local validation set against the
+final changes. This is an explicit maintainer requirement to catch failures before
+slow Jenkins runs and reduce the pipeline queue. Quick profiles, focused tests,
+docs-only CI classification and previously passing runs are useful during
+iteration, but do not replace this completion gate, regardless of change size.
+
+- Inspect the current validation definitions in the private infrastructure
+  repository and `docs/ops/jenkins-ci.md`; reproduce every validation stage locally,
+  including the full backend/frontend gate, lint/typechecks, generated-artifact
+  drift, documentation/metadata/runtime contracts, all supported architecture and
+  image-flavor build checks, and Docker packaging/service/media smoke tests. The
+  public `run_v2_test_suite.sh --profile full` excludes Docker tests, so it is not
+  sufficient by itself. Run the complete automated browser/E2E suites too, following
+  `e2e/AGENTS.md` and using isolated test data and services.
+- Check Docker/buildx availability before starting. If Docker is stopped or
+  disabled, explicitly ask the user to start it, then resume and run the outstanding
+  checks. Distinguish a sandbox/socket permission failure from a stopped daemon;
+  request the required tool permission rather than assuming Docker is down.
+- Missing dependencies (including FFmpeg or browsers), unavailable infrastructure,
+  unsupported local architecture execution, skipped tests and failed checks are
+  outstanding validation, not passes. Fix the prerequisite or identify the exact
+  blocker and ask for what is needed. Never silently omit tests or claim the task
+  is complete while required validation remains unexecuted. Only an explicit user
+  waiver may narrow this requirement for a particular task.
+- Keep logs and report the commands, tested revision/worktree, pass/fail/skip counts,
+  warnings and any remaining blockers. After a fix, rerun failed checks and every
+  affected/dependent stage; completion evidence must cover the final changes.
+- This authorizes local validation, not publication or shared-infrastructure
+  mutation. Do not trigger/cancel Jenkins jobs, publish images, promote tags, merge,
+  change Jenkins policy or prune unrelated Docker resources without the separate
+  authorization required elsewhere in this guide. Keep private host policy in the
+  private repository and preserve its isolation/locking requirements.
+
 ### Engineering norms (project-specific)
 
 - Run routine project-local tests and dependency setup in `backend/venv` or
@@ -737,8 +772,10 @@ shared query keys and page-scoped feedback preserve existing operations.
 `runtime-config.json` version 1 lives beside the SQLite database. Only reviewed
 `backend/app/config/runtime-options.json` data options migrate from environment on
 first creation; existing files win thereafter. Keep commands, paths, ports, image
-facts and credentials in deployment configuration. `/setup` offers an optional web
-wizard; writes are authenticated, validated, revision-checked and atomic. Changes
+facts and credentials in deployment configuration. A modal wizard opens after
+a missing file is seeded from deployment values, even when the database exists,
+until setup is saved. Users can postpone it and reopen it at `/setup` from Settings;
+writes are authenticated, validated, revision-checked and atomic. Changes
 require restart; Docker health checks read the applied boot snapshot. Preserve
 existing database preferences and legacy v1 `config.json`. Fresh databases contain
 no source URLs/streams. Live E2E tests require an explicit authorized scenario;
@@ -775,3 +812,8 @@ conversion or delete protected/active/reader-held media. File routes retain the
 optional API-token policy and descriptor-relative no-follow access. Recordings
 is under Watch; scheduling is TV-channel-only. See `wiki/Recordings.md` and
 `docs/ops/recordings.md` for limits, qualification and rollback.
+
+Live TV exposes the seven-day guide inline without starting playback. Programme
+recording uses the selected guide snapshot and exact instants by default; time
+adjustments are optional. Require an active assigned TV channel with an enabled
+stream for recording admission. See `wiki/Recordings.md`.

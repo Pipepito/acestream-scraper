@@ -140,6 +140,8 @@ class RecordingService:
             channel = self.repo.channel(data.tv_channel_id)
             if channel is None or not channel.is_active:
                 raise APIError('RECORDING_CHANNEL_UNAVAILABLE', 'Choose an active TV Channel.', 409)
+            if not self.repo.has_enabled_streams(channel.id):
+                raise APIError('RECORDING_NO_ENABLED_STREAMS', 'Enable a stream assigned to this TV channel before scheduling a recording.', 409)
             snapshot = RecordingSnapshot(title=channel.name, channel_name=channel.name)
             occurrence = None
             if data.programme:

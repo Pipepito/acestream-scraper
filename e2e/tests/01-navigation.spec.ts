@@ -6,7 +6,7 @@ test.describe('navigation', () => {
     await app.goto('/');
     await app.expectHeading('TV dashboard');
     const labels = await app.nav().getByRole('link').allInnerTexts();
-    expect(labels.map((l) => l.trim())).toEqual(Object.keys(NAV_ROUTES));
+    expect(labels.map((l) => l.trim())).toEqual([...Object.keys(NAV_ROUTES), 'Support on Ko-fi']);
     for (const [label, route] of Object.entries(NAV_ROUTES) as [NavLabel, string][]) {
       await app.navigate(label);
       await app.expectHeading(label);

@@ -3,7 +3,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import { createAppTheme } from '../theme';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
+import { TestMemoryRouter as MemoryRouter } from '../testUtils/router';
 import ImportExclusions from '../components/imports/ImportExclusions';
 import { importExclusionService as service } from '../services/importExclusionService';
 jest.mock('../services/importExclusionService');

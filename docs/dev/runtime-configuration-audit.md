@@ -37,9 +37,11 @@ read the boot snapshot in the supervisor run directory, so edits do not make a
 healthy running instance probe services it has not started. Software availability
 is derived from the installed image, never from writable file claims.
 
-Fresh starts show an optional setup notice. Existing database files are marked
-setup-complete during bootstrap, preserving their normal navigation. `/setup` is
-always reachable from Settings. The wizard guides runtime choices and then links
+A missing runtime file is seeded from the deployment and marked setup-incomplete,
+regardless of whether a database already exists. A modal opens until the user saves
+setup; postponing dismisses it for the current visit. Imported values prefill the
+form, including the bundled playback endpoint with its deployment port. `/setup`
+reopens the same modal from Settings. Existing files remain authoritative. The wizard guides runtime choices and then links
 to the existing source/guide/channel/automation/integration editors, which retain
 their own reviewed save workflows. It imports no channels and performs no playback.
 
@@ -92,7 +94,7 @@ usually needs a container recreation, new mounts, credentials, or an image build
 | --- | --- | --- |
 | Database location and legacy import | `DATABASE_URL`, `LEGACY_DATABASE_URL`, `SCRAPER_DB_URL`, `LEGACY_DB_URL` | Locate the database/config before reading it; retain backup-first migrations. |
 | Private credentials | `API_TOKEN`, `TELEGRAM_ADMIN_TOKEN`, `TELEGRAM_KEY_FILE`, `WARP_LICENSE_KEY` | Keep secrets out of the wizard response and ordinary config backups. |
-| Persistent and temporary paths | `PLAYER_HLS_DIR`, `ACESTREAM_HOME`, `ACESTREAM_GLUETUN_PORT_FILE`, `IPFS_PATH`, `ZERONET_DATA_DIR`, `TOR_DATA_DIR`, `TELEGRAM_SESSION_DIR`, `LOG_DIR`, `LOGROTATE_DIR`, `SUPERVISOR_RUN_DIR`, `TMPDIR` | Must agree with volumes, ownership and lifecycle cleanup; Telegram key/session storage remains separately mounted. |
+| Persistent and temporary paths | `RECORDINGS_DIR`, `PLAYER_HLS_DIR`, `ACESTREAM_HOME`, `ACESTREAM_GLUETUN_PORT_FILE`, `IPFS_PATH`, `ZERONET_DATA_DIR`, `TOR_DATA_DIR`, `TELEGRAM_SESSION_DIR`, `LOG_DIR`, `LOGROTATE_DIR`, `SUPERVISOR_RUN_DIR`, `TMPDIR` | Must agree with volumes, ownership and lifecycle cleanup; Telegram key/session storage remains separately mounted. |
 | Ports and network bindings | `FLASK_PORT`, `ACESTREAM_HTTP_HOST`, `ACESTREAM_HTTP_PORT`, `ACEXY_HOST`, `ACEXY_PORT`, `ACEXY_LISTEN_ADDR`, `ACEXY_STATUS_PORT`, `IPFS_API_HOST`, `IPFS_API_PORT`, `IPFS_GATEWAY_PORT`, `IPFS_SWARM_PORT`, `ZERONET_UI_HOST`, `ZERONET_UI_PORT`, `ZERONET_FILESERVER_PORT` | Must agree with Docker published ports and external endpoints; unauthenticated service interfaces must remain deliberate. |
 | Executables and launch overrides | `APP_COMMAND`, `ACESTREAM_START_COMMAND`, `ACEXY_START_COMMAND`, `IPFS_START_COMMAND`, `ZERONET_START_COMMAND`, `WARP_START_COMMAND`, `FFMPEG_BINARY_PATH`, `IPFS_BINARY_PATH`, `ZERONET_BINARY_PATH`, `ACESTREAM_BINARY_PATH`, `ACESTREAM_PYTHON_BIN`, `ACESTREAM_BIONIC_LINKER`, `ACESTREAM_BIONIC_LIBDIR`, `TORRC_PATH` | Host command/executable policy cannot be selected by a web setup document. |
 | Sidecar initialization and shell arguments | `IPFS_PROFILE`, `ZERONET_TRACKERS`, `ZERONET_EXTRA_ARGS`, `WARP_EXCLUDE_HOSTS`, `ACEXY_NO_RESPONSE_TIMEOUT` | Initialization-only effects or values assembled into trusted shell commands; retain operator-controlled deployment inputs. |

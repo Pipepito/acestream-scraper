@@ -150,14 +150,21 @@ def bootstrap_values(environment: dict) -> dict:
         selected['IPFS_GATEWAY_URL'] = 'http://127.0.0.1:' + environment['IPFS_GATEWAY_PORT']
     if 'ZERONET_URL' not in selected and environment.get('ZERONET_UI_PORT'):
         selected['ZERONET_URL'] = 'http://127.0.0.1:' + environment['ZERONET_UI_PORT']
-    return {**defaults(), **validate_values(selected, bootstrap=True)}
+    values = {**defaults(), **validate_values(selected, bootstrap=True)}
+    # The entrypoint derives this endpoint too. Persist the same first-boot
+    # default so setup reflects the bundled engine, including custom ports.
+    if values['ENABLE_ACESTREAM_ENGINE'] and not values['ACE_ENGINE_URL']:
+        host = environment.get('ACESTREAM_HTTP_HOST') or 'localhost'
+        port = environment.get('ACESTREAM_HTTP_PORT') or '6878'
+        values['ACE_ENGINE_URL'] = f'http://{host}:{port}'
+    return validate_values(values)
 
 
-def ensure_config(path: Path, environment: dict, *, existing_database: bool = False) -> dict:
+def ensure_config(path: Path, environment: dict) -> dict:
     with locked(path):
         data = read_config(path)
         if data is None:
-            data = {'version': 1, 'setup_complete': existing_database, 'runtime': bootstrap_values(environment)}
+            data = {'version': 1, 'setup_complete': False, 'runtime': bootstrap_values(environment)}
             write_config(path, data)
         _APPLIED.setdefault(str(path), dict(data['runtime']))
         return data
@@ -223,8 +230,7 @@ def main():
             data = read_config(Path(tempfile.gettempdir()) / 'acestream-scraper-run/runtime-applied.json')
         if data is None: raise ConfigError('Runtime configuration has not been initialized.')
     else:
-        url = os.environ.get('DATABASE_URL') or os.environ.get('SCRAPER_DB_URL') or 'sqlite:///./config/scraper.db'
-        data = ensure_config(path, dict(os.environ), existing_database=Path(url[len('sqlite:///'):]).exists())
+        data = ensure_config(path, dict(os.environ))
         try:
             snapshot.parent.mkdir(parents=True, exist_ok=True)
         except PermissionError:

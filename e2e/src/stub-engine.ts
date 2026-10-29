@@ -22,15 +22,13 @@ export interface StubEngine {
 }
 
 /**
- * Pacing: ~25 KB every 50 ms ≈ 500 KB/s, close enough to an SD channel that ffmpeg
- * and the browser buffer the way they would on a live one. The chunk is a whole
- * number of 188-byte TS packets purely so the size reads as a stream size; the
- * consumer sees one byte stream and never the chunk boundaries. The fixture is
- * replayed verbatim on a loop, so a decoder resyncs at each wrap.
+ * The committed sample is two seconds long. Replay at its actual byte rate so
+ * ffmpeg does not rotate the HLS window faster than a browser can consume it.
+ * Chunks contain whole TS packets; a decoder resyncs at each fixture wrap.
  */
 const PACKET_BYTES = 188;
-const PACKETS_PER_CHUNK = 133;
-const CHUNK_INTERVAL_MS = 50;
+const PACKETS_PER_CHUNK = 5;
+const FIXTURE_DURATION_MS = 2000;
 
 const json = (res: ServerResponse, body: unknown): void => {
   const payload = JSON.stringify(body);
@@ -63,6 +61,7 @@ export async function startStubEngine(
 
     let offset = 0;
     const chunkBytes = PACKET_BYTES * PACKETS_PER_CHUNK;
+    const chunkIntervalMs = Math.ceil(FIXTURE_DURATION_MS * chunkBytes / fixture.length);
     const timer = setInterval(() => {
       if (res.writableEnded || res.destroyed) return;
       // Backpressure: skip this tick rather than growing the socket buffer forever.
@@ -75,7 +74,7 @@ export async function startStubEngine(
         offset = (offset + take) % fixture.length;
       }
       res.write(chunk);
-    }, CHUNK_INTERVAL_MS);
+    }, chunkIntervalMs);
     timers.add(timer);
 
     const finish = (): void => {

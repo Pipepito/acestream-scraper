@@ -47,7 +47,7 @@ test('manual UI actions deliver one webhook each through the built backend', asy
     await scraper.addUrl({ url: source, urlType: 'regular' });
     await scraper.scrape(source);
     await expect.poll(() => events.map((event) => event.event)).toEqual(['test', 'url_scraping.completed']);
-    expect(events[1].data).toEqual({ processed: 1, failures: 0, channels: 1 });
+    expect(events[1].data).toEqual({ processed: 1, failures: 0, channels: 1, import_exclusions: { excluded_candidates: 0 } });
     await expect.poll(async () => (await api.getChannel(id))?.name).toBe(name);
 
     expect((await request.put('/api/v1/config/check-engine', {

@@ -12,11 +12,13 @@ async function fixtures(page: Page) {
   const now = Date.now();
   const starts: string[] = [];
   const leaves: string[] = [];
+  const recordings: Record<string, unknown>[] = [];
   await page.route('**/api/**', async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname.replace('/api/v1', '');
     let data: unknown = {};
     if (path === '/startup') data = { status: 'ready', phase: 'Ready to use', events: [], recovery_token: 'test' };
+    else if (path === '/setup') data = { setup_complete: true, restart_required: false };
     else if (path === '/tv-channels') data = { items: channels, total: channels.length };
     else if (/^\/tv-channels\/\d+$/.test(path)) data = channels.find((item) => item.id === Number(path.split('/').pop()));
     else if (path === '/acestream-channels/') {
@@ -32,6 +34,7 @@ async function fixtures(page: Page) {
       { id: 2, epg_channel_id: 1, title: 'Highlights', start_time: new Date(now + 900_000).toISOString(), end_time: new Date(now + 4500_000).toISOString() },
     ];
     else if (path === '/remote-players') data = [];
+    else if (path === '/recordings' && request.method() === 'POST') { recordings.push(request.postDataJSON()); data = { id: 'recording-1' }; }
     else if (path === '/player/sessions' && request.method() === 'POST') {
       starts.push(request.postDataJSON().content_id);
       data = { id: `session-${starts.length}`, state: 'error', error: 'engine_unavailable', codecs: {}, hls_ready: false };
@@ -41,7 +44,7 @@ async function fixtures(page: Page) {
     }
     await route.fulfill({ json: data });
   });
-  return { starts, leaves };
+  return { starts, leaves, recordings };
 }
 
 for (const mode of ['light', 'dark']) {
@@ -56,7 +59,7 @@ for (const mode of ['light', 'dark']) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await expect(page.getByRole('button', { name: 'Watch No streams TV' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Watch Independent live stream' })).toBeVisible();
-    await page.screenshot({ path: test.info().outputPath(`catalog-${mode}.png`), fullPage: true });
+    await page.screenshot({ path: test.info().outputPath(`catalog-${mode}.png`), fullPage: false, animations: 'disabled' });
     await page.getByRole('checkbox', { name: 'Favorites only' }).check();
     await expect(page.getByRole('button', { name: 'Watch No guide TV' })).toHaveCount(0);
     await page.getByRole('searchbox', { name: 'Find a channel' }).fill('missing');
@@ -72,7 +75,7 @@ for (const mode of ['light', 'dark']) {
     await expect.poll(() => starts).toEqual([streams[0].id, streams[1].id]);
     await expect.poll(() => leaves).toContain('session-1');
     await expect(page.getByRole('region', { name: 'Live TV player', exact: true })).toHaveJSProperty('scrollWidth', await page.getByRole('region', { name: 'Live TV player', exact: true }).evaluate((el) => el.clientWidth));
-    await page.screenshot({ path: test.info().outputPath(`player-${mode}.png`), fullPage: true });
+    await page.screenshot({ path: test.info().outputPath(`player-${mode}.png`), fullPage: false, animations: 'disabled' });
     await page.getByRole('button', { name: 'Stop watching', exact: true }).click();
     await expect(page.getByRole('region', { name: 'Live TV player', exact: true })).toHaveCount(0);
     await expect.poll(() => leaves).toContain('session-2');
@@ -143,7 +146,7 @@ for (const mode of ['light', 'dark']) {
     expect(starts).toEqual([]);
     await expect(page.getByRole('region', { name: 'Live TV player', exact: true })).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await page.screenshot({ path: test.info().outputPath(`send-to-player-${mode}.png`), fullPage: true });
+    await page.screenshot({ path: test.info().outputPath(`send-to-player-${mode}.png`), fullPage: false, animations: 'disabled' });
   });
 }
 
@@ -170,3 +173,37 @@ for (const mode of ['light', 'dark']) {
   await page.getByRole('button', { name: 'Stop watching' }).click();
   await expect.poll(() => leaves).toContain('session-2');
  });
+
+for (const mode of ['light', 'dark']) {
+  test(`${mode}: schedule a programme from Live TV without playing`, async ({ page }) => {
+    const { starts, leaves, recordings } = await fixtures(page);
+    const errors: string[] = [];
+    page.on('pageerror', error => errors.push(error.message));
+    await page.addInitScript(value => localStorage.setItem('app-theme-mode', value), mode);
+    await page.goto('/live-tv');
+    await page.getByRole('button', { name: 'TV guide for Arena TV' }).click();
+    const guide = page.getByRole('region', { name: 'TV guide for Arena TV' });
+    // The fixture can cross local midnight in any of the tested timezones.
+    if (!(await guide.getByRole('button', { name: 'Record Highlights' }).count())) {
+      await guide.getByRole('tab', { name: 'Tomorrow' }).click();
+    }
+    await guide.getByRole('button', { name: 'Record Highlights' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Schedule recording' });
+    await expect(dialog.getByText('Highlights', { exact: true })).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Adjust recording times' })).toBeVisible();
+    expect(recordings).toHaveLength(0);
+    await page.screenshot({ path: test.info().outputPath(`programme-recording-${mode}.png`), fullPage: false, animations: 'disabled' });
+    await dialog.getByRole('button', { name: 'Schedule', exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    expect(recordings).toHaveLength(1);
+    expect(recordings[0]).toMatchObject({ tv_channel_id: 1, mode: 'schedule', programme: { id: 2, title: 'Highlights' } });
+    const selected = recordings[0].programme as { start_time: string; end_time: string };
+    expect(recordings[0].start_time).toBe(selected.start_time);
+    expect(recordings[0].end_time).toBe(selected.end_time);
+    expect(starts).toEqual([]);
+    expect(leaves).toEqual([]);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: test.info().outputPath(`channel-guide-${mode}.png`), fullPage: false, animations: 'disabled' });
+    expect(errors).toEqual([]);
+  });
+}

@@ -4,7 +4,7 @@ import { SearchPage } from '../src/pages/search';
 test.describe.configure({ mode: 'serial' });
 
 test.describe('engine search', () => {
-  test('search results come from the live engine and can be added one by one', async ({ page, api, scenario }, testInfo) => {
+  test('search results come from the configured engine and can be added one by one', async ({ page, api, scenario }, testInfo) => {
     const search = new SearchPage(page);
     await search.open();
     let addedThisSession = 0;

@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 import os
 import pytest
-from app.models.models import TVChannel, EPGSource, EPGChannel, EPGProgram
+from app.models.models import AcestreamChannel, TVChannel, EPGSource, EPGChannel, EPGProgram
 from app.models.recordings import Recording, RecordingArtifact
 from app.services.recording_storage import RecordingStorage
 
@@ -25,6 +25,7 @@ def dvr(client, db_session, monkeypatch, tmp_path):
     db_session.flush()
     now = datetime.now(timezone.utc)
     programme = EPGProgram(epg_channel_id=guide.id, title='Programme', start_time=now+timedelta(hours=1), end_time=now+timedelta(hours=2))
+    db_session.add(AcestreamChannel(id='a' * 40, name='One stream', tv_channel_id=tv.id, is_active=True))
     db_session.add(programme)
     db_session.commit()
     response = client.put('/api/v1/config/recordings', json={'enabled': True, 'min_free_bytes': 67108864})
@@ -75,6 +76,8 @@ def test_capacity_across_channels_and_disable(dvr):
     assert client.post('/api/v1/recordings', json=request(tv, programme)).status_code == 201
     other = TVChannel(name='Two', epg_source_id=tv.epg_source_id, epg_id=tv.epg_id)
     db.add(other)
+    db.flush()
+    db.add(AcestreamChannel(id='b' * 40, name='Two stream', tv_channel_id=other.id, is_active=True))
     db.commit()
     assert client.post('/api/v1/recordings', json=request(other, programme)).status_code == 409
     assert client.put('/api/v1/config/recordings', json={'enabled':False}).status_code == 200
@@ -211,3 +214,19 @@ def test_playback_subscriptions_are_independent(dvr):
     assert client.get(url+'/'+first['id']).status_code == 404
     assert client.get(url+'/'+second['id']).json()['state'] == 'preparing'
     client.delete(url+'/'+second['id'])
+
+
+def test_programme_recording_requires_an_enabled_assigned_stream(dvr):
+    client, db, tv, programme = dvr
+    stream = db.get(AcestreamChannel, 'a' * 40)
+    stream.is_active = False
+    db.commit()
+    response = client.post('/api/v1/recordings', json=request(tv, programme))
+    assert response.status_code == 409
+    assert response.json()['error']['code'] == 'RECORDING_NO_ENABLED_STREAMS'
+    assert db.query(Recording).count() == 0
+    stream.is_active = True
+    db.commit()
+    result = client.post('/api/v1/recordings', json=request(tv, programme))
+    assert result.status_code == 201, result.text
+    assert result.json()['snapshot']['title'] == programme.title

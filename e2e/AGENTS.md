@@ -9,6 +9,16 @@ AceStream, Acexy, and IPFS services. It is slower and more stateful than unit te
 It requires Docker Desktop, Node 22, `backend/venv`, `frontend/node_modules`, and
 Firefox installed through Playwright.
 
+When no authorized live scenario exists, `stack/fixture-server.py` creates an
+isolated scenario with owned playlist/search data, a rolling guide and generated
+media; see `README.md`. Run the full journeys against a real FFmpeg-equipped
+backend with strict error monitoring. These synthetic engine/proxy responses do
+not replace the real Docker service smokes or architecture/flavour matrix.
+The first journey saves the actual setup wizard before later journeys navigate.
+Run the separate mobile and monitor configurations as well. The root mandatory
+completion policy applies: missing Docker, prerequisites, skipped or failed checks
+must be resolved or explicitly waived before declaring the work complete.
+
 ## Safe run sequence
 
 From `e2e/`:

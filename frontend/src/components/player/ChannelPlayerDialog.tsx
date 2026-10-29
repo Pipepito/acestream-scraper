@@ -22,7 +22,7 @@ const OpenChannelPlayer: React.FC<ChannelPlayerDialogProps> = (props) => {
   const now = useNow();
   const channel = tv.data;
   return <StreamPlayerDialog {...props} contentId={selectedId} title={channel?.name ?? props.title}
-    extraActions={<>{channel ? <RecordButton channelId={channel.id} channelName={channel.name} /> : null}{selectedId && !selectedId.startsWith('url:') ? <PlayOnMenu contentId={selectedId} title={channel?.name ?? props.title} /> : null}</>}
+    extraActions={<>{channel ? <RecordButton channelId={channel.id} channelName={channel.name} disabled={!channel.is_active || !channel.acestream_channels.some(stream => stream.is_active)} /> : null}{selectedId && !selectedId.startsWith('url:') ? <PlayOnMenu contentId={selectedId} title={channel?.name ?? props.title} /> : null}</>}
     schedule={channel ? <ChannelGuide channel={channel} now={now} /> : undefined}
     details={<>
       {tv.isError ? <Alert severity="warning">Channel details are unavailable. You can still play this stream.</Alert> : null}

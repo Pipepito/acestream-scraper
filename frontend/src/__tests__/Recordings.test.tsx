@@ -5,9 +5,11 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TestMemoryRouter } from '../testUtils/router';
 import Recordings from '../pages/Recordings';
+import RecordingSettingsFields from '../components/recordings/RecordingSettingsFields';
+import { ApiError } from '../services/apiErrors';
 import RecordingPlayback from '../components/recordings/RecordingPlayback';
 import { recordingService, type Recording } from '../services/recordingService';
-jest.mock('../services/recordingService', () => ({ recordingService: { list: jest.fn(), capabilities: jest.fn(), stop: jest.fn(), openPlayback: jest.fn(), closePlayback: jest.fn(), playback: jest.fn() }, recordingFileUrl: () => '/media' }));
+jest.mock('../services/recordingService', () => ({ recordingService: { settings: jest.fn(), configure: jest.fn(), list: jest.fn(), capabilities: jest.fn(), stop: jest.fn(), openPlayback: jest.fn(), closePlayback: jest.fn(), playback: jest.fn() }, recordingFileUrl: () => '/media' }));
 const api = jest.mocked(recordingService);
 const wrap = (child: React.ReactNode) => render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><ThemeProvider theme={createAppTheme('light')}><TestMemoryRouter>{child}</TestMemoryRouter></ThemeProvider></QueryClientProvider>);
 beforeEach(() => jest.clearAllMocks());
@@ -33,4 +35,15 @@ test('releases a late playback subscription after the dialog closes', async () =
   unmount();
   resolve({ id: 'late', state: 'preparing', file_id: 'derivative', message: 'Preparing' });
   await waitFor(() => expect(api.closePlayback).toHaveBeenCalledWith('one', 'late'));
+});
+
+ test('shows the actionable storage error when saving recording settings', async () => {
+  api.settings.mockResolvedValue({ enabled: false, max_concurrent: 1 });
+  const message = 'Recording storage is unavailable. Check the configured directory and mount.';
+  api.configure.mockRejectedValue(new ApiError({ message, code: 'RECORDING_STORAGE_UNAVAILABLE', status: 503, kind: 'server', canRetry: true }));
+  wrap(<RecordingSettingsFields />);
+  fireEvent.click(await screen.findByRole('checkbox', { name: 'Enable recordings' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Save recording settings' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent(message);
+  expect(screen.getByRole('checkbox', { name: 'Enable recordings' })).toBeChecked();
 });

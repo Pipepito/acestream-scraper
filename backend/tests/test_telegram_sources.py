@@ -396,3 +396,36 @@ def test_consumer_lifespan_can_restart_on_another_event_loop():
     asyncio.run(lifespan())
     asyncio.run(lifespan())
     assert service.task is None
+
+
+@pytest.mark.asyncio
+async def test_login_code_follows_the_account_to_its_data_centre():
+    """A new session starts on Telegram's default data centre. An account
+    that lives elsewhere gets PHONE_MIGRATE_X for auth.sendCode; Telethon
+    switches DC and must send the request again there. With no retry left it
+    raised ValueError("Request was unsuccessful 1 time(s)"), shown as the
+    generic "Telegram action could not complete". Seen with a real Spanish
+    account (28-10); with one retry the code arrived at once."""
+    transport = Transport(12345, '0' * 32)
+    client = transport.client
+    loop = asyncio.get_running_loop()
+    answers = [errors.PhoneMigrateError(request=None, capture=4),
+               types.auth.SentCode(type=types.auth.SentCodeTypeApp(length=5), phone_code_hash='code-hash')]
+    sent = []
+
+    def send(request, ordered=False):
+        sent.append(type(request).__name__)
+        future = loop.create_future()
+        answer = answers.pop(0)
+        if isinstance(answer, Exception):
+            future.set_exception(answer)
+        else:
+            future.set_result(answer)
+        return future
+
+    client._sender = SimpleNamespace(send=send)
+    client._switch_dc = AsyncMock()
+    client.is_user_authorized = AsyncMock(return_value=False)
+    assert await transport.send_code('+34600000000') == 'code-hash'
+    client._switch_dc.assert_awaited_once_with(4)
+    assert sent == ['SendCodeRequest', 'SendCodeRequest']

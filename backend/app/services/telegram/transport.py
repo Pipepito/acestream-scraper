@@ -42,8 +42,11 @@ def normalize(message: Any, forum: bool = False) -> Message:
 
 class Transport:
     def __init__(self, api_id: int, api_hash: str, session: str = '') -> None:
+        # One retry: an account on another data centre answers PHONE_MIGRATE /
+        # USER_MIGRATE, and Telethon re-sends the request only after switching.
+        # Flood waits still raise at once (flood_sleep_threshold=0).
         self.client = TelegramClient(StringSession(session), api_id, api_hash,
-            flood_sleep_threshold=0, request_retries=0, connection_retries=3,
+            flood_sleep_threshold=0, request_retries=1, connection_retries=3,
             retry_delay=2, auto_reconnect=True, base_logger=_log,
             entity_cache_limit=1000)
         self.client.session.save_entities = False

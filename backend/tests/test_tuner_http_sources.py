@@ -303,3 +303,80 @@ def test_saved_preference_applies_to_http_sources(db_session):
     ])
     db_session.commit()
     assert TunerService(db_session).relay_stream_ids(tv.id) == [HTTP_ID, ACE_ID]
+
+
+def test_http_relay_probes_enough_to_find_late_audio():
+    """Plex's 1080p variant (5 Mbps) can carry no AAC frame for seconds:
+    probing 1 MB / 1 s left the audio without a sample rate and FFmpeg refused
+    to write the MPEG-TS header (exit 234). 3 MB / 2 s still failed 1 start in
+    14 on the bench and 2 in 6 on the box (28-10, FFmpeg: "unspecified sample
+    rate"). 8 MB / 6 s failed none of 7 and started no later (0.8-2.5 s against
+    1.0-1.8 s): FFmpeg stops probing as soon as every stream is known."""
+    from app.services.tuner_http_source import http_tuner_argv
+    argv = http_tuner_argv('ffmpeg', 'http://127.0.0.1:1/x.m3u8')
+    assert int(argv[argv.index('-probesize') + 1]) >= 8_000_000
+    assert int(argv[argv.index('-analyzeduration') + 1]) >= 6_000_000
+
+
+@pytest.mark.parametrize('stderr, reason', [
+    ('[in#0/hls @ 0x1] Could not find codec parameters for stream 1 (Audio: aac, 0 channels): unspecified sample rate\n'
+     '[mpegts @ 0x2] sample rate not set\n[out#0/mpegts @ 0x3] Could not write header (incorrect codec parameters ?): Invalid argument\n',
+     'streams not found while probing'),
+    ('[hls @ 0x1] HTTP error 429 Too Many Requests\n', 'HTTP 429'),
+    ('[http @ 0x1] Server returned 403 Forbidden (access denied)\n', 'HTTP 403'),
+    ('http://127.0.0.1:9/x.m3u8: Invalid data found when processing input\n', 'invalid data'),
+    ('[tcp @ 0x1] Connection to tcp://127.0.0.1:9 failed: Connection refused\n', 'connection failed'),
+    ('', 'no message'),
+    ('something new at https://cdn.example/live.m3u8?token=secret\n', 'unrecognised'),
+])
+def test_ffmpeg_failure_is_named_without_its_text(stderr, reason):
+    from app.services.tuner_http_source import ffmpeg_failure_reason
+    assert ffmpeg_failure_reason(stderr) == reason
+
+
+@pytest.mark.asyncio
+async def test_failed_remux_logs_the_reason_but_not_the_url(monkeypatch, caplog):
+    import logging
+    import sys
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock
+    source = SimpleNamespace(playback_url='http://127.0.0.1/opaque', close=AsyncMock(), failures=[])
+    monkeypatch.setattr(tuner_http_source.PlayerHTTPSource, 'open', AsyncMock(return_value=source))
+    monkeypatch.setattr(tuner_http_source, 'ffmpeg_binary', lambda: sys.executable)
+    monkeypatch.setattr(tuner_http_source, 'http_tuner_argv', lambda *args, **kwargs: [sys.executable, '-c',
+        'import sys; sys.stderr.write("https://cdn.example/x.m3u8?token=secret: sample rate not set\\n"); sys.exit(234)'])
+    registry = RelayRegistry()
+    claim = registry.try_open(HTTP_ID, 'Plex', 1)
+    caplog.set_level(logging.INFO, logger=tuner_http_source.__name__)
+    with pytest.raises(EngineStreamError):
+        await anext(tuner_http_source.relay_http_stream(HTTP_ID, claim, startup_deadline=asyncio.get_running_loop().time() + 30))
+    logged = ' '.join(r.getMessage() for r in caplog.records if r.name == tuner_http_source.__name__)
+    assert 'exit_code=234' in logged and 'reason=streams not found while probing' in logged
+    assert 'secret' not in logged and 'cdn.example' not in logged
+
+
+@pytest.mark.asyncio
+async def test_disconnect_does_not_wait_for_ffmpeg_to_finish_on_its_own(monkeypatch):
+    """Measured on the bench (28-10): after SIGTERM a live HLS remux took
+    3.4-4.8 s to exit (Telemadrid, Pluto), so the 2 s grace always ended in
+    SIGKILL and only delayed releasing the tuner slot. Nothing is written
+    after the client leaves, so FFmpeg is killed at once."""
+    import sys
+    import time
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock
+    source = SimpleNamespace(playback_url='http://127.0.0.1/opaque', close=AsyncMock(), failures=[])
+    monkeypatch.setattr(tuner_http_source.PlayerHTTPSource, 'open', AsyncMock(return_value=source))
+    monkeypatch.setattr(tuner_http_source, 'ffmpeg_binary', lambda: sys.executable)
+    monkeypatch.setattr(tuner_http_source, 'http_tuner_argv', lambda *args, **kwargs: [sys.executable, '-c',
+        'import os, signal, time\nsignal.signal(signal.SIGTERM, signal.SIG_IGN)\n'
+        'while True:\n    os.write(1, b"G" * 188 * 64); time.sleep(.01)'])
+    registry = RelayRegistry()
+    claim = registry.try_open(HTTP_ID, 'Plex', 1)
+    iterator = tuner_playback_service.relay_ranked_streams(None, [HTTP_ID], 'Plex', claim, registry=registry)
+    assert await anext(iterator)
+    started = time.monotonic()
+    await asyncio.wait_for(iterator.aclose(), 5)
+    assert time.monotonic() - started < 1
+    source.close.assert_awaited_once()
+    assert registry.count_active() == 0

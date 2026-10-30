@@ -85,9 +85,9 @@ def main() -> int:
 
     runtime = stages.get("runtime-base", [])
     required_runtime = {
-        "COPY entrypoint.sh /usr/local/bin/entrypoint.sh",
-        "COPY warp-setup.sh /usr/local/bin/warp-setup.sh",
-        "COPY healthcheck.sh /usr/local/bin/healthcheck.sh",
+        "COPY --link --chmod=755 entrypoint.sh /usr/local/bin/entrypoint.sh",
+        "COPY --link --chmod=755 warp-setup.sh /usr/local/bin/warp-setup.sh",
+        "COPY --link --chmod=755 healthcheck.sh /usr/local/bin/healthcheck.sh",
         'ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/entrypoint.sh"]',
         'HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 CMD ["/usr/local/bin/healthcheck.sh"]',
     }

@@ -25,6 +25,7 @@ backend/logs/
 .planning/
 infra-details.md
 frontend/dist/
+frontend/dist-recipes/
 docs/
 wiki/
 samples/

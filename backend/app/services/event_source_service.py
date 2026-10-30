@@ -23,7 +23,8 @@ MAX_SOURCES = 20
 REFRESH_BUDGET_SECONDS = 120
 
 
-async def fetch_schedule(url, *, timeout=15, adapter=None):
+async def fetch_schedule(url, *, timeout=None, adapter=None):
+    timeout = timeout if timeout is not None else (adapter or {}).get('timeout_seconds', 15)
     # aiohttp's total deadline includes DNS, every redirect and body delivery.
     try:
         if adapter and adapter.get('provider_options'):
@@ -51,7 +52,7 @@ async def fetch_schedule(url, *, timeout=15, adapter=None):
         if adapter and adapter.get('provider_options'):
             raise ValueError('Could not load this provider schedule. Check the selected feeds, season and source timezone, then retry. The provider may be unavailable or its format may have changed. Existing events were preserved.') from None
         # Neither network exceptions nor Pydantic input are safe for public/log output.
-        raise ValueError('Could not load this guide. Check its format, stable event IDs, explicit dates and source timezone (including DST); limit 2 MiB / 15 seconds. Existing events were preserved.') from None
+        raise ValueError('Could not load this guide. Check its format, stable event IDs, explicit dates and source timezone (including DST); limit 2 MiB. Check the configured request timeout. Existing events were preserved.') from None
 
 
 def save_reviewed_source(db, context, selected, observations, enabled):
@@ -106,6 +107,7 @@ class EventSourceService:
                        'provider_options': options.model_dump(mode='json')}
             if row and (row.source_identity != provider_info[1] or row.url != url):
                 raise ValueError('Choose the same provider and competition when editing a saved source')
+        adapter['timeout_seconds'] = request.timeout_seconds if request.timeout_seconds is not None else (row.adapter or {}).get('timeout_seconds', 15) if row else 15
         prior = (row.id, row.revision, row.source_identity) if row else None
         self.db.rollback()  # Do not hold a DB transaction during upstream I/O.
         data = asyncio.run(fetch_schedule(url, adapter=adapter))
@@ -144,7 +146,7 @@ class EventSourceService:
             self.db.rollback()
             raise
 
-    def refresh(self, source_id, *, timeout=15):
+    def refresh(self, source_id, *, timeout=None):
         row = self.repo.get(source_id)
         if not row or not row.enabled:
             return None
@@ -189,16 +191,16 @@ class EventSourceService:
 
     def refresh_all(self, *, shutdown=None):
         rows = sorted(self.repo.all(), key=lambda row: (row.last_attempt or datetime.min.replace(tzinfo=timezone.utc), row.id))
-        ids = [row.id for row in rows if row.enabled]
+        ids = [(row.id, (row.adapter or {}).get('timeout_seconds', 15)) for row in rows if row.enabled]
         self.db.rollback()
         deadline = time.monotonic() + REFRESH_BUDGET_SECONDS
         result = {'updated': 0, 'pending': 0, 'failures': 0, 'deferred': 0}
-        for index, source_id in enumerate(ids):
+        for index, (source_id, timeout) in enumerate(ids):
             remaining = deadline - time.monotonic()
             if remaining <= 0 or (shutdown and shutdown.is_set()):
                 result['deferred'] = len(ids) - index
                 break
-            refreshed = self.refresh(source_id, timeout=min(15, remaining))
+            refreshed = self.refresh(source_id, timeout=timeout)
             if refreshed:
                 result['updated'] += refreshed.updated
                 result['pending'] += refreshed.pending

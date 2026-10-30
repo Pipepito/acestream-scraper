@@ -1,3 +1,10 @@
+# syntax=docker/dockerfile:1.7
+
+# A stable epoch keeps identical exported layers identical across fresh checkouts.
+# Build with rewrite-timestamp=true (see build_multiarch_images.sh). Do not use
+# the application commit time here: that would change every dependency layer.
+ARG SOURCE_DATE_EPOCH=946684800
+
 # Two Python interpreters live in the engine-bearing images and they are
 # pinned independently:
 #   APP_PYTHON_VERSION             the FastAPI app's runtime (scraper flavors can
@@ -296,8 +303,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     IPFS_GATEWAY_PORT=8081 \
     FFMPEG_BINARY_PATH=/opt/ffmpeg/bin/ffmpeg
 
-WORKDIR /app
-
 # Cloudflare publishes cloudflare-warp for amd64 and arm64 (no 32-bit ARM), so
 # those images ship warp-cli; linux/arm/v7 stays without it (ENABLE_WARP is
 # unsupported there). The apt suite follows the base image's Debian codename.
@@ -319,18 +324,18 @@ RUN apt-get update \
         && wget -q https://pkg.cloudflareclient.com/pubkey.gpg -O /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg \
         && printf 'deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ %s main\n' "${VERSION_CODENAME:-bookworm}" > /etc/apt/sources.list.d/cloudflare-client.list \
         && apt-get update \
-        && apt-get install -y --no-install-recommends cloudflare-warp ;; \
+        && apt-get install -y --no-install-recommends cloudflare-warp tor ;; \
     esac \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=python-deps /install /usr/local
+COPY --link --from=python-deps /install /usr/local
 
 # Kubo IPFS daemon (all flavors; /opt/ipfs/bin is empty on linux/arm/v7 where
 # upstream ships no 32-bit ARM build — the entrypoint detects the missing
 # binary and refuses ENABLE_IPFS=true there). The daemon is opt-in at runtime:
 # ENABLE_IPFS=false by default. Its gateway defaults to 8081 in-container
 # because Acexy already owns 8080.
-COPY --from=ipfs-installer /opt/ipfs/ /opt/ipfs/
+COPY --link --from=ipfs-installer /opt/ipfs/ /opt/ipfs/
 RUN mkdir -p /data/ipfs \
     && if [ -x /opt/ipfs/bin/ipfs ]; then ln -sf /opt/ipfs/bin/ipfs /usr/local/bin/ipfs; fi
 
@@ -341,32 +346,27 @@ RUN mkdir -p /data/ipfs \
 # way. tor rides along for the ENABLE_TOR toggle, on the same platforms where
 # the bundled node exists — Debian ships tor for arm64, so the only reason it
 # was amd64-only was that ZeroNet was.
-COPY --from=zeronet-installer /opt/zeronet/ /opt/zeronet/
-RUN mkdir -p /data/zeronet \
-    && case "$TARGETARCH" in \
-        amd64|arm64) \
-            apt-get update \
-            && apt-get install -y --no-install-recommends tor \
-            && rm -rf /var/lib/apt/lists/* ;; \
-    esac
+COPY --link --from=zeronet-installer /opt/zeronet/ /opt/zeronet/
+RUN mkdir -p /data/zeronet
 
 # Static ffmpeg/ffprobe for the web player (every flavor and platform).
-COPY --from=ffmpeg-builder /out/ /opt/ffmpeg/bin/
+COPY --link --from=ffmpeg-builder /out/ /opt/ffmpeg/bin/
 
-# Keep changing application content after stable OS and bundled-service layers.
-COPY backend/ /app/
-COPY version.txt /app/version.txt
+# Runtime helpers and directories are independent of application source changes.
 RUN mkdir -p /app/frontend_build /app/logs /opt/acestream/bin /opt/acexy/bin
-COPY --from=frontend-builder /build/frontend/dist/ /app/frontend_build/
+COPY --link --chmod=755 entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY --link backend/capture_logs.py /usr/local/bin/capture_logs.py
+COPY --link backend/engine_cache_cleanup.py /usr/local/bin/engine_cache_cleanup.py
+COPY --link backend/gluetun_port.py /usr/local/bin/gluetun_port.py
+COPY --link --chmod=755 warp-setup.sh /usr/local/bin/warp-setup.sh
+COPY --link --chmod=755 healthcheck.sh /usr/local/bin/healthcheck.sh
 
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-COPY backend/capture_logs.py /usr/local/bin/capture_logs.py
-COPY backend/engine_cache_cleanup.py /usr/local/bin/engine_cache_cleanup.py
-COPY backend/gluetun_port.py /usr/local/bin/gluetun_port.py
-COPY warp-setup.sh /usr/local/bin/warp-setup.sh
-COPY healthcheck.sh /usr/local/bin/healthcheck.sh
-
-RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/warp-setup.sh /usr/local/bin/healthcheck.sh
+# Linked copies keep each payload reusable when a preceding layer changes.
+# All destinations here are real directories, not inherited directory symlinks.
+WORKDIR /app
+COPY --link backend/ /app/
+COPY --link version.txt /app/version.txt
+COPY --link --from=frontend-builder /build/frontend/dist/ /app/frontend_build/
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/entrypoint.sh"]
 # Let entrypoint.sh build the default app command from FLASK_PORT.
@@ -387,18 +387,20 @@ FROM scraper AS scraper-acestream
 # links libpython<version>.so.1.0 directly). Harmless on ARM, where the
 # Android engine brings its own CPython.
 ARG ACESTREAM_ENGINE_PYTHON_VERSION
-COPY --from=engine-python /usr/local/bin/python${ACESTREAM_ENGINE_PYTHON_VERSION} /usr/local/bin/python${ACESTREAM_ENGINE_PYTHON_VERSION}
-COPY --from=engine-python /usr/local/lib/python${ACESTREAM_ENGINE_PYTHON_VERSION} /usr/local/lib/python${ACESTREAM_ENGINE_PYTHON_VERSION}
-COPY --from=engine-python /usr/local/lib/libpython${ACESTREAM_ENGINE_PYTHON_VERSION}.so.1.0 /usr/local/lib/libpython${ACESTREAM_ENGINE_PYTHON_VERSION}.so.1.0
-RUN ldconfig
+COPY --link --from=engine-python /usr/local/bin/python${ACESTREAM_ENGINE_PYTHON_VERSION} /usr/local/bin/python${ACESTREAM_ENGINE_PYTHON_VERSION}
+COPY --link --from=engine-python /usr/local/lib/python${ACESTREAM_ENGINE_PYTHON_VERSION} /usr/local/lib/python${ACESTREAM_ENGINE_PYTHON_VERSION}
+COPY --link --from=engine-python /usr/local/lib/libpython${ACESTREAM_ENGINE_PYTHON_VERSION}.so.1.0 /usr/local/lib/libpython${ACESTREAM_ENGINE_PYTHON_VERSION}.so.1.0
+# The auxiliary ldconfig cache records build-host inode/device IDs; it is not
+# used by the runtime linker and would change this layer on every rebuild.
+RUN ldconfig && rm -f /var/cache/ldconfig/aux-cache
 
-COPY --from=acestream-installer /opt/acestream/ /opt/acestream/
+COPY --link --from=acestream-installer /opt/acestream/ /opt/acestream/
 # ARM flavors run the official Android engine payload against a minimal Android 9
 # bionic userland; its ELF interpreter path is hard-coded to /system/bin/linker*.
 # The directory is empty for the native x86_64 engine.
-COPY --from=acestream-installer /opt/acestream-system/ /system/
-COPY --chmod=755 docker/scripts/start-check-engine /opt/acestream/start-check-engine
-COPY --chmod=755 docker/scripts/start-playback-engine /opt/acestream/start-playback-engine
+COPY --link --from=acestream-installer /opt/acestream-system/ /system/
+COPY --link --chmod=755 docker/scripts/start-check-engine /opt/acestream/start-check-engine
+COPY --link --chmod=755 docker/scripts/start-playback-engine /opt/acestream/start-playback-engine
 RUN mkdir -p /var/lib/acestream /var/lib/acestream-check /data
 
 # The same start command works for every platform: on x86_64 start-engine is
@@ -415,7 +417,7 @@ FROM scraper AS scraper-acexy
 
 ARG ACEXY_BINARY_NAME=acexy
 
-COPY --from=acexy-builder /out/${ACEXY_BINARY_NAME} /opt/acexy/bin/${ACEXY_BINARY_NAME}
+COPY --link --from=acexy-builder /out/${ACEXY_BINARY_NAME} /opt/acexy/bin/${ACEXY_BINARY_NAME}
 
 ENV IMAGE_HAS_ACEXY=true \
     ACEXY_BINARY_PATH=/opt/acexy/bin/${ACEXY_BINARY_NAME} \
@@ -426,7 +428,7 @@ FROM scraper-acestream AS scraper-acestream-acexy
 
 ARG ACEXY_BINARY_NAME=acexy
 
-COPY --from=acexy-builder /out/${ACEXY_BINARY_NAME} /opt/acexy/bin/${ACEXY_BINARY_NAME}
+COPY --link --from=acexy-builder /out/${ACEXY_BINARY_NAME} /opt/acexy/bin/${ACEXY_BINARY_NAME}
 
 ENV IMAGE_HAS_ACEXY=true \
     ACEXY_BINARY_PATH=/opt/acexy/bin/${ACEXY_BINARY_NAME} \

@@ -32,7 +32,7 @@ def test_frontend_container_builds_from_vite_dist_directory():
     root_dockerfile = (REPO_ROOT / "Dockerfile").read_text()
 
     assert "COPY --from=build /app/dist /usr/share/nginx/html" in frontend_dockerfile
-    assert "COPY --from=frontend-builder /build/frontend/dist/ /app/frontend_build/" in root_dockerfile
+    assert "COPY --link --from=frontend-builder /build/frontend/dist/ /app/frontend_build/" in root_dockerfile
 
 
 def test_copy_build_script_copies_artifacts_with_overrides(tmp_path):
@@ -239,7 +239,7 @@ def test_build_script_multi_platform_push_is_sequential_by_digest():
          "--flavor", "scraper", "--platforms", "linux/amd64", "--push", "--tag", "a/app:1"],
         cwd=REPO_ROOT, check=True, capture_output=True, text=True,
     )
-    assert "--push" in single.stdout and "imagetools" not in single.stdout
+    assert "type=image" in single.stdout and "push=true" in single.stdout and "imagetools" not in single.stdout
 
 
 def test_build_script_push_by_digest_single_platform():

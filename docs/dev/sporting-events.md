@@ -125,7 +125,7 @@ and [BroadcastEvent](https://schema.org/BroadcastEvent).
 `POST /events/sources/preview` fetches either normalized EventImport or this
 structured subset. `EventSourcePreviewRequest` carries the format/timezone for a
 new URL or an opaque saved source ID. It uses `outbound_http.source_session`, which
-pins DNS and validates redirects without environment proxies. Limit: 2 MiB / 15s,
+pins DNS and validates redirects without environment proxies. Limit: 2 MiB / configurable 5–300s (15s default),
 5 redirects, 64 JSON-LD blocks, depth 32, 20,000 JSON nodes and 500 observations.
 Errors expose neither private inputs nor response bodies.
 
@@ -141,7 +141,7 @@ Refresh runs inside `url_scraping`, using its existing FIFO, deduplication, anch
 and startup catch-up. `POST /events/sources/refresh` requests that same scheduled job through
 `run_task_now`, preserving running/waiting deduplication; it also scrapes channel
 sources. There is no competing event job. A pass
-limits fetch time to 120s, checks shutdown between sources and prioritizes oldest
+limits admission to 120s between sources (admitted sources receive their saved timeout), checks shutdown between sources and prioritizes oldest
 attempts. DB transactions end before network I/O. Results appear in source status,
 Overview history and scraping notifications, independently of channel results.
 
@@ -182,7 +182,7 @@ existing provider is rejected with a link-back instruction to Review schedule, s
 new form cannot silently replace saved filters or disable its refresh setting.
 
 Providers use the existing pinned DNS/redirect client, at most three concurrent
-requests, 2 MiB per response, 12 MiB total and a shared 15-second deadline. Failure
+requests, 2 MiB per response, 12 MiB total and a shared saved source deadline (15s default). Failure
 cancels siblings and preserves the previous state. No script, affiliate URL, remote
 context or image is executed/fetched as media. The HTML fixture is a small synthetic
 representation of inspected WOSTI rows. OpenFootball composite IDs use season,
@@ -215,9 +215,10 @@ W3U event dates require operator review; automatic W3U schedule extraction and
 Telegram transport (#258) remain follow-ups. The existing ingestion contract can
 associate source-qualified broadcasts explicitly without inferring matches by title.
 
-Broader host resolvers and automatic fallback remain in their linked work. Guide
-overlays/export are not offered: no XMLTV programs, assignments, IDs, playlists or
-tokens are changed. Any future overlay needs its own preview and preservation tests.
+Broader host resolvers and automatic fallback remain in their linked work.
+[Regional guides and reviewed overlays](regional-guides-and-overlays.md) implements
+#233: opt-in regional HTML converters and explicit event windows in XMLTV exports.
+Original guide rows, assignments, IDs, playlists and tokens remain unchanged.
 
 See [Sports events](../../wiki/Sports-Events.md) for the operator workflow.
 

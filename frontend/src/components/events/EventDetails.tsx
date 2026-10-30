@@ -3,6 +3,7 @@ import { Link as RouterLink } from 'react-router-dom';
 import { Alert, Box, Button, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import { type SportingEvent, type EventFields, type EventUpdate } from '../../services/eventService';
 import { EventChannelName } from './EventAgenda';
+import EventGuideOverlay from './EventGuideOverlay';
 import EventArtwork from './EventArtwork';
 import EventBroadcastMapper from './EventBroadcastMapper';
 import ContentSection from '../layout/ContentSection';
@@ -67,6 +68,7 @@ export default function EventDetails({ event, zone, busy, onUpdate, onPlay }: Pr
         </Stack>
         {broadcast.content_id && broadcast.compatibility === 'playable' ? <Button variant="outlined" sx={{ alignSelf: { xs: 'flex-start', sm: 'center' }, flexShrink: 0 }} onClick={() => onPlay(broadcast.content_id!, broadcast.label)}>Play {broadcast.label}</Button> : null}
       </Stack>)}
+      {managing ? <EventGuideOverlay key={`${event.id}:${event.revision}`} event={event} /> : null}
       {event.time_notes ? <Box component="details">
         <Box component="summary" sx={{ cursor: 'pointer', color: 'text.secondary', py: 1 }}>Schedule notes</Box>
         <Typography variant="body2" sx={{ mt: 1 }}>{event.time_notes}</Typography>

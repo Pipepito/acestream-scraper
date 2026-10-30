@@ -89,3 +89,50 @@ for (const mode of ['light', 'dark']) {
     expect(errors).toEqual([]);
   });
 }
+
+for (const mode of ['light', 'dark']) {
+  test(`${mode}: football source filters and timeout precede fetching`, async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', error => errors.push(error.message));
+    page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+    let submitted: { timeout_seconds: number; provider_options: { feeds: string[]; football_competitions: string[] } } | undefined;
+    await page.route('**/api/**', async route => {
+      const path = new URL(route.request().url()).pathname;
+      let json: unknown = { status: 'ready', phase: 'Ready to use', events: [] };
+      if (path === '/api/v1/events') json = { events: [fixture], total: 1 };
+      if (path === '/api/v1/events/interests') json = { sports: [], competitions: [], teams: [] };
+      if (path === '/api/v1/events/providers') json = {
+        feeds: [{ id: 'all', name: 'All sports' }, { id: 'automovilismo', name: 'Motorsport' }, { id: 'football', name: 'Football' }],
+        leagues: [], football_competitions: [{ id: 'la-liga', name: 'La Liga' }],
+      };
+      if (path === '/api/v1/events/sources/preview') {
+        submitted = route.request().postDataJSON();
+        json = { token: 'review', events: [], warnings: [], available_interests: { sports: [], competitions: [], teams: [] } };
+      }
+      await route.fulfill({ json });
+    });
+    await page.addInitScript(value => {
+      localStorage.setItem('app-theme-mode', value);
+      localStorage.setItem('acestream.changelog.seen.v1', 'v2.2.0');
+    }, mode);
+    await page.goto('/events');
+    await page.getByRole('button', { name: 'Add events', exact: true }).click();
+    await page.getByRole('combobox', { name: 'Sports feeds' }).click();
+    await page.getByRole('option', { name: 'All sports', exact: true }).click();
+    await page.getByRole('combobox', { name: 'Sports feeds' }).click();
+    await page.getByRole('option', { name: 'Motorsport', exact: true }).click();
+    await page.getByRole('combobox', { name: 'Sports feeds' }).click();
+    await page.getByRole('option', { name: 'Football', exact: true }).click();
+    await page.getByRole('combobox', { name: 'Football competitions' }).click();
+    await page.getByRole('option', { name: 'La Liga', exact: true }).click();
+    await page.getByLabel('Request timeout (seconds)').fill('240');
+    expect(submitted).toBeUndefined();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: test.info().outputPath(`event-provider-${mode}.png`), fullPage: true, animations: 'disabled' });
+    await page.getByRole('button', { name: 'Preview events', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Save source without events' })).toBeVisible();
+    expect(submitted).toMatchObject({ timeout_seconds: 240,
+      provider_options: { feeds: ['football'], football_competitions: ['la-liga'] } });
+    expect(errors).toEqual([]);
+  });
+}

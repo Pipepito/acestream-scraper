@@ -820,6 +820,15 @@ adjustments are optional. Require an active assigned TV channel with an enabled
 stream for recording admission. See `wiki/Recordings.md`.
 
 
+Regional guide URLs opt into bounded TV Rioja/Sincroguía HTML conversion. Keep
+current-week weekday interpretation, Madrid DST rejection, all-or-nothing fetches
+and source-qualified identities. Event XMLTV overlays require preview/apply with
+revision/fingerprint checks and an explicit end; preserve original EPG rows and
+recording IDs. Changed schedule/target identities suspend overlays. Football
+competition choices narrow upstream URLs before fetching; saved 5–300s source
+timeouts apply to preview and refresh, with pass admission checked between sources.
+See `docs/dev/regional-guides-and-overlays.md`.
+
 ## Named import sources
 
 Scraper sources accept an optional friendly name. Built-in broadcaster choices
@@ -831,3 +840,9 @@ or exposing private catalogue media URLs. See `wiki/Usage.md`.
 
 
 Setup defaults to adding channel sources and an optional programme guide. Sources and guides save as added; Finish setup only marks onboarding complete. Runtime controls live under Connection settings (advanced), preserving imported deployment values and file precedence. EPG dobleM is an explicit shared guide preset; preview and selected matching reuse the reviewed guide workflow.
+
+# Self-hosted code-quality feedback
+
+See `docs/ops/code-quality.md` for optional Git hooks and coverage reporting.
+`CI_COVERAGE_DIR` enables separate backend/frontend reports in the existing full
+suite. Jenkins gates and scanner policy remain in the private infrastructure repo.

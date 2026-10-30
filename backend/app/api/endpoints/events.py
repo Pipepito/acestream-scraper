@@ -10,6 +10,8 @@ from pydantic import ValidationError
 from app.config.database import get_db
 from app.schemas.events import EventImport, EventPreview, EventApply, EventView, EventList, EventUpdate
 from app.services.event_service import EventService
+from app.services.event_overlay_service import EventOverlayService
+from app.schemas.events import EventOverlayRequest, EventOverlayApply, EventOverlayView, EventOverlayPreview
 from app.services.event_source_service import EventSourceService
 from app.schemas.events import EventSourcePreviewRequest, EventSourceView, EventSourceUpdate, EventRetention, EventBroadcastMapping, EventRefreshQueued
 from app.schemas.events import EventInterests, EventInterestChoices, EventChannelTarget, EventProviderCatalog, EventSelection
@@ -87,8 +89,8 @@ def event_sources(db: Session = Depends(get_db)):
 
 @router.get('/providers', response_model=EventProviderCatalog)
 def event_providers():
-    from app.services.event_providers import FEEDS, LEAGUES
-    return EventProviderCatalog(feeds=[{'id': key, 'name': value} for key, value in FEEDS.items()],
+    from app.services.event_providers import FEEDS, LEAGUES, FOOTBALL_COMPETITIONS
+    return EventProviderCatalog(football_competitions=[{'id': key, 'name': value} for key, value in FOOTBALL_COMPETITIONS.items()], feeds=[{'id': key, 'name': value} for key, value in FEEDS.items()],
         leagues=[{'id': key, 'name': name, 'timezone': zone} for key, (name, zone) in LEAGUES.items()])
 
 
@@ -153,3 +155,25 @@ def map_event_broadcast(event_id: str, request: EventBroadcastMapping, svc: Even
 def event_artwork(event_id: str, svc: EventService = Depends(service)):
     data, media_type = invoke(svc.artwork, event_id)
     return Response(data, media_type=media_type, headers={'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff'})
+
+
+@router.get('/{event_id}/guide-overlays', response_model=list[EventOverlayView])
+def list_event_overlays(event_id: str, db: Session = Depends(get_db)):
+    return invoke(EventOverlayService(db).list, event_id)
+
+
+@router.post('/{event_id}/guide-overlays/preview', response_model=EventOverlayPreview)
+def preview_event_overlay(event_id: str, request: EventOverlayRequest, db: Session = Depends(get_db)):
+    return invoke(EventOverlayService(db).preview, event_id, request)
+
+
+@router.post('/{event_id}/guide-overlays', response_model=list[EventOverlayView])
+def apply_event_overlay(event_id: str, request: EventOverlayApply, db: Session = Depends(get_db)):
+    return invoke(EventOverlayService(db).apply, event_id, request)
+
+
+@router.delete('/{event_id}/guide-overlays', status_code=204)
+def remove_event_overlay(event_id: str, revision: int = Query(..., ge=1),
+                         broadcast_id: str = Query(..., min_length=1, max_length=193), db: Session = Depends(get_db)):
+    invoke(EventOverlayService(db).remove, event_id, revision, broadcast_id)
+    return Response(status_code=204)

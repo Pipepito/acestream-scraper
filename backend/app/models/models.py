@@ -402,6 +402,7 @@ class W3UCatalogue(Base):
 
 class SportingEvent(Base):
     __tablename__ = 'sporting_events'
+    guide_overlays = Column(JSON, nullable=True)
     archived_at = Column(UtcDateTime(), nullable=True)
     broadcast_mappings = Column(JSON, nullable=True)
     owner_id = Column(String(32), nullable=False)

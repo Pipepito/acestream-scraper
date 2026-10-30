@@ -8,6 +8,7 @@ interface Props { value: EventProviderOptions; onChange: (value: EventProviderOp
 export default function EventProviderFields({ value, onChange, zone, onZone, saved, disabled }: Props) {
   const catalog = useQuery({ queryKey: ['events', 'providers'], queryFn: eventService.providers, staleTime: Infinity });
   const feeds = catalog.data?.feeds ?? [];
+  const competitions = catalog.data?.football_competitions ?? [];
   const leagues = catalog.data?.leagues ?? [];
   return <Stack spacing={2}>
     <TextField select label="Provider" value={value.provider} disabled={saved || disabled} onChange={(e) => {
@@ -22,8 +23,14 @@ export default function EventProviderFields({ value, onChange, zone, onZone, sav
       <Autocomplete multiple options={feeds} loading={catalog.isFetching} disabled={disabled}
         value={feeds.filter((feed) => value.feeds?.includes(feed.id))} getOptionLabel={(feed) => feed.name}
         isOptionEqualToValue={(a, b) => a.id === b.id}
-        onChange={(_, selected) => onChange({ ...value, feeds: selected.map((feed) => feed.id) })}
+        onChange={(_, selected) => onChange({ ...value, feeds: selected.map((feed) => feed.id), football_competitions: selected.some((feed) => feed.id === 'football') && !selected.some((feed) => feed.id === 'all') ? value.football_competitions : [] })}
         renderInput={(params) => <TextField {...params} label="Sports feeds" helperText="No API key needed. Times use Europe/Madrid." />} />
+      {value.feeds?.includes('football') ? <Autocomplete multiple options={competitions} disabled={disabled || value.feeds.includes('all')}
+        value={competitions.filter((competition) => value.football_competitions?.includes(competition.id))}
+        getOptionLabel={(competition) => competition.name} isOptionEqualToValue={(a, b) => a.id === b.id}
+        onChange={(_, selected) => onChange({ ...value, football_competitions: selected.map((competition) => competition.id) })}
+        renderInput={(params) => <TextField {...params} label="Football competitions"
+          helperText={value.feeds?.includes('all') ? 'Remove All sports to request only selected football competitions.' : 'Choose competitions before fetching. Blank requests all football. Other selected sports are still included.'} />} /> : null}
     </> : <>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
         <TextField fullWidth select label="League" value={value.league} disabled={saved || disabled || !leagues.length} onChange={(e) => {

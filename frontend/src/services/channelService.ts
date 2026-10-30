@@ -2,6 +2,8 @@
  * Acestream Channel API service
  */
 import apiClient from './apiClient';
+
+export type ChannelSourceFilter = components['schemas']['ChannelSourceFilter'];
 import type { components } from '../types/api-generated';
 
 /**
@@ -75,6 +77,7 @@ export interface UpdateAcestreamChannelDTO {
  * Acestream Channel filter parameters
  */
 export interface AcestreamChannelFilters {
+  source_url?: string;
   search?: string;
   group?: string;
   is_active?: boolean;
@@ -222,6 +225,11 @@ const acestreamChannelService = {
   /**
    * Get all unique channel groups
    */
+  getSources: async (): Promise<ChannelSourceFilter[]> => {
+    const { data } = await apiClient.get('/v1/acestream-channels/sources');
+    return data;
+  },
+
   getGroups: async (): Promise<string[]> => {
     const { data } = await apiClient.get('/v1/acestream-channels/groups');
     return data;

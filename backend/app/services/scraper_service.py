@@ -94,6 +94,24 @@ class ScraperService:
             logger.error(f"Error scraping URL {url}: {str(e)}")
             return [], f"Error: {str(e)}"
 
+    @staticmethod
+    def _source_type(url: str, url_type: str) -> str:
+        from app.services.live_providers import for_source_url
+        if url_type == 'broadcaster':
+            try:
+                create_url_object(url, url_type)
+            except ValueError as exc:
+                from app.api.error_handlers import APIError
+                raise APIError(code='INVALID_BROADCASTER', message=str(exc), status_code=422) from exc
+        if url_type in ('auto', 'regular', 'broadcaster') and for_source_url(url):
+            return 'broadcaster'
+        return url_type
+
+    @classmethod
+    def _response(cls, url):
+        response = URLResponse.model_validate(url)
+        return response.model_copy(update={'url_type': cls._source_type(url.url, url.url_type)})
+
     def get_scraped_urls(self, skip: int = 0, limit: int = 100) -> List[URLResponse]:
         """Get list of URLs that have been scraped, including channels_found count"""
         urls = self.url_repository.get_all(skip=skip, limit=limit)
@@ -123,13 +141,14 @@ class ScraperService:
             channels_found = url_to_count.get(url.url, 0)
             data = url.__dict__.copy()
             data['channels_found'] = channels_found
+            data['url_type'] = self._source_type(url.url, url.url_type)
             responses.append(URLResponse(**data))
         return responses
 
     def get_scraped_url(self, url_id: int) -> Optional[URLResponse]:
         """Get a specific scraped URL by ID"""
         url = self.url_repository.get_by_id(url_id)
-        return URLResponse.model_validate(url) if url else None
+        return self._response(url) if url else None
 
     def get_scraped_url_entity(self, url_id: int) -> Optional[ScrapedURL]:
         """Get raw scraped URL model for service-internal decisions."""
@@ -137,10 +156,13 @@ class ScraperService:
 
     def create_scraped_url(self, url_data: URLCreate) -> URLResponse:
         """Create a new scraped URL or update existing if duplicate"""
+        url_data.url_type = self._source_type(url_data.url, url_data.url_type)
         # Check for existing URL
         url = self.url_repository.get_by_url(url_data.url)
         if url:
             # Update fields if duplicate
+            if 'name' in url_data.model_fields_set:
+                url.name = url_data.name
             url.url_type = url_data.url_type
             url.enabled = url_data.enabled
             url.status = url_data.status
@@ -148,9 +170,10 @@ class ScraperService:
             if "extraction_recipe" in url_data.model_fields_set:
                 url.extraction_recipe = url_data.extraction_recipe.model_dump() if url_data.extraction_recipe else None
             url = self.url_repository.update(url)
-            return URLResponse.model_validate(url)
+            return self._response(url)
         # Create new if not exists
         url = ScrapedURL(
+            name=url_data.name,
             url=url_data.url,
             url_type=url_data.url_type,
             enabled=url_data.enabled,
@@ -160,7 +183,7 @@ class ScraperService:
         )
         self.url_repository.add(url)
         self.db.refresh(url)
-        return URLResponse.model_validate(url)
+        return self._response(url)
 
     def update_scraped_url(self, url_id: int, url_data: URLUpdate) -> Optional[URLResponse]:
         """Update a scraped URL"""
@@ -169,12 +192,13 @@ class ScraperService:
             return None
 
         update_data = url_data.model_dump(exclude_unset=True)
+        update_data['url_type'] = self._source_type(update_data.get('url') or url.url, update_data.get('url_type') or url.url_type)
         for field, value in update_data.items():
             setattr(url, field, value)
 
         url = self.url_repository.update(url)
         self.db.refresh(url)
-        return URLResponse.model_validate(url)
+        return self._response(url)
 
     def delete_scraped_url(self, url_id: int) -> bool:
         """Delete a scraped URL"""

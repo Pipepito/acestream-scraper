@@ -145,6 +145,7 @@ def test_scraped_urls_schema_matches_runtime_contract(tmp_path):
         assert set(columns) == {
             'id',
             'url',
+            'name',
             'url_type',
             'status',
             'last_processed',
@@ -162,6 +163,7 @@ def test_scraped_urls_schema_matches_runtime_contract(tmp_path):
         assert primary_key['constrained_columns'] == ['id']
         assert 'INT' in _sqlite_type_name(columns['id'])
 
+        assert columns['name']['nullable'] is True
         assert columns['url']['nullable'] is False
         assert 'DATE' in _sqlite_type_name(columns['last_scraped']) or 'TIME' in _sqlite_type_name(columns['last_scraped'])
         assert 'TEXT' in _sqlite_type_name(columns['error'])

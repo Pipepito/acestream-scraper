@@ -4,7 +4,7 @@ import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, 
 import { Add, FileDownload, Refresh } from '@mui/icons-material';
 import type { GridSortModel } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
-import { keepPreviousData } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
 import ChannelTable from '../components/ChannelTable';
 import ChannelCardList from '../components/channels/ChannelCardList';
@@ -34,7 +34,7 @@ type SnackbarNotice = {
 };
 
 const hasAnyFilter = (filters: AcestreamChannelFilters): boolean =>
-  Boolean(filters.search || filters.group || filters.is_online !== undefined || filters.is_active !== undefined || filters.assigned !== undefined);
+  Boolean(filters.source_url || filters.search || filters.group || filters.is_online !== undefined || filters.is_active !== undefined || filters.assigned !== undefined);
 
 const AcestreamChannels: React.FC = () => {
   const navigate = useNavigate();
@@ -72,6 +72,8 @@ const AcestreamChannels: React.FC = () => {
   } = useAcestreamChannels({ ...filters, page: page + 1, page_size: pageSize }, { placeholderData: keepPreviousData });
   const { data: onlineData } = useAcestreamChannels({ is_online: true, page: 1, page_size: 1 });
   const { data: allData } = useAcestreamChannels({ page: 1, page_size: 1 });
+
+  const sources = useQuery({ queryKey: ['channel-sources'], queryFn: acestreamChannelService.getSources });
 
   const channels = channelsData.items;
   const totalCount = channelsData.total;
@@ -399,7 +401,8 @@ const AcestreamChannels: React.FC = () => {
           ) : undefined
         }
       >
-        <ChannelFilterBar filters={filters} groups={groups} onChange={handleFilterChange} />
+        {sources.isError ? <Alert severity="error" action={<Button onClick={() => void sources.refetch()}>Retry</Button>}>Unable to load source filters.</Alert> : null}
+        <ChannelFilterBar filters={filters} groups={groups} sources={sources.data ?? []} onChange={handleFilterChange} />
         {isCompact ? (
           <ChannelCardList
             channels={channels}

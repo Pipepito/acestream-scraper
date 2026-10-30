@@ -138,3 +138,19 @@ remain reviewed even when blocked, so disabling a rule allows their later refres
 unreviewed branches still require confirmation. Policy changes invalidate an open
 reviewed preview: preview again before saving. Existing channels stay unchanged.
 Event-only and VOD entries do not become permanent channels through exclusions.
+
+### Find imported streams by catalogue
+
+On **Acestream Channels**, use **Source** and search for the saved catalogue name.
+The filter covers its reviewed imports, including streams already owned by another
+source; their original names, settings and assignments remain unchanged. Other
+filters and pagination apply within that source selection. Removed catalogues leave
+imported channels intact; their original `catalogue:<id>` remains available as a
+source filter.
+
+Import compatibility does not verify signal. If playback fails, download diagnostics
+from System status and correlate `scraper.log` with the selected engine or proxy log.
+Acexy's `timeout awaiting response headers` means the proxy did not receive the
+engine's media response in time. It does not establish whether the ID is invalid,
+the broadcast is offline, or engine connectivity is failing. See the
+[Acexy startup timeout guidance](Docker.md) and compare direct-engine diagnostics.

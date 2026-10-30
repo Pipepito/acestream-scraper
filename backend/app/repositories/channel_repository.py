@@ -11,6 +11,14 @@ from app.models.models import AcestreamChannel, EPGChannel, TVChannel
 
 
 class ChannelRepository:
+    def source_filter_inventory(self):
+        from app.models.models import ScrapedURL, W3UCatalogue
+        values = [value for (value,) in self.db.query(AcestreamChannel.source_url).distinct()
+                  if value]
+        sources = self.db.query(ScrapedURL.url, ScrapedURL.url_type, ScrapedURL.name).all()
+        catalogues = self.db.query(W3UCatalogue.id, W3UCatalogue.name).all()
+        return values, sources, catalogues
+
     def get_status_check_inventory(self):
         """Read only the active stream fields needed to plan a status pass."""
         return (self.db.query(AcestreamChannel.id, AcestreamChannel.last_checked,
@@ -694,7 +702,8 @@ class ChannelRepository:
                                       group: Optional[str] = None,
                                       is_active: Optional[bool] = None,
                                       is_online: Optional[bool] = None,
-                                      assigned: Optional[bool] = None):
+                                      assigned: Optional[bool] = None,
+                                      source_url: Optional[str] = None):
         """
         Get paginated channels and total count for current filter
         """
@@ -717,6 +726,17 @@ class ChannelRepository:
                 query = query.filter(AcestreamChannel.tv_channel_id.isnot(None))
             else:
                 query = query.filter(AcestreamChannel.tv_channel_id.is_(None))
+        if source_url:
+            predicate = AcestreamChannel.source_url == source_url
+            if source_url.startswith('catalogue:'):
+                from app.models.models import W3UCatalogue
+                catalogue_id = source_url.removeprefix('catalogue:')
+                row = self.db.get(W3UCatalogue, int(catalogue_id)) if catalogue_id.isdecimal() else None
+                if row:
+                    ids = [entry['channel_id'] for entry in row.snapshot.get('entries', [])
+                           if entry.get('imported') and entry.get('channel_id')]
+                    predicate = or_(predicate, AcestreamChannel.id.in_(ids))
+            query = query.filter(predicate)
         total = query.count()
-        items = query.offset(skip).limit(limit).all()
+        items = query.order_by(AcestreamChannel.name, AcestreamChannel.id).offset(skip).limit(limit).all()
         return items, total

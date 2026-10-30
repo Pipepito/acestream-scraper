@@ -817,3 +817,13 @@ Live TV exposes the seven-day guide inline without starting playback. Programme
 recording uses the selected guide snapshot and exact instants by default; time
 adjustments are optional. Require an active assigned TV channel with an enabled
 stream for recording admission. See `wiki/Recordings.md`.
+
+
+## Named import sources
+
+Scraper sources accept an optional friendly name. Built-in broadcaster choices
+come from the installed adapter registry through `/api/v1/scrapers/providers`;
+`broadcaster` is a validated source type, and saving never starts an import.
+Acestream Channels filters source identity before counting/pagination. W3U source
+filters include reviewed shared imports without replacing their original owners
+or exposing private catalogue media URLs. See `wiki/Usage.md`.

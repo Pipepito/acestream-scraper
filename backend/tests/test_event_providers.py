@@ -294,3 +294,7 @@ def test_saved_timeout_used_by_preview_and_background_refresh(client, db_session
     EventSourceService(db_session).refresh_all()
     assert seen == [(None, 240), (None, 240), (240, 240)]
     assert client.post('/api/v1/events/sources/preview', json={'source_id': source['id'], 'timeout_seconds': 301}).status_code == 422
+
+
+def test_wosti_accepts_multiple_table_classes():
+    assert len(parse_wosti(HTML.replace('class="tablaPrincipal"', 'class="tablaPrincipal eventos"'))) == 4

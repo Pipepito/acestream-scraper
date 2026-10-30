@@ -113,7 +113,7 @@ def parse_openfootball(raw, options, zone):
 
 
 def parse_wosti(raw, *, feed='all'):
-    soup = BeautifulSoup(raw, 'html.parser', parse_only=SoupStrainer('table', class_='tablaPrincipal'))
+    soup = BeautifulSoup(raw, 'html.parser', parse_only=SoupStrainer('table'))
     tables = soup.select('table.tablaPrincipal')
     if not tables:
         raise ValueError('Sports guide markup changed')

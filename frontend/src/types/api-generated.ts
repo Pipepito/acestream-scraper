@@ -1393,6 +1393,12 @@ export interface paths {
     /** Disconnect from WARP */
     post: operations["disconnect_from_warp_api_v1_warp_disconnect_post"];
   };
+  "/api/v1/warp/exclusions": {
+    /** Get Exclusions */
+    get: operations["get_exclusions_api_v1_warp_exclusions_get"];
+    /** Save Exclusions */
+    put: operations["save_exclusions_api_v1_warp_exclusions_put"];
+  };
   "/api/v1/warp/license": {
     /** Register WARP license */
     post: operations["register_warp_license_api_v1_warp_license_post"];
@@ -6154,12 +6160,35 @@ export interface components {
       /** Error Type */
       type: string;
     };
+    /** WarpExclusionsState */
+    WarpExclusionsState: {
+      /** Active Hosts */
+      active_hosts: string[] | null;
+      /** Applied */
+      applied: boolean;
+      /** Error */
+      error?: string | null;
+      /** Hosts */
+      hosts: string[];
+      /** Revision */
+      revision: string;
+    };
+    /**
+     * WarpExclusionsUpdate
+     * @description Replace only app-managed exclusions, with optimistic concurrency.
+     */
+    WarpExclusionsUpdate: {
+      /** Expected Revision */
+      expected_revision: string;
+      /** Hosts */
+      hosts: string[];
+    };
     /**
      * WarpModeEnum
      * @description Available WARP modes for API use
      * @enum {string}
      */
-    WarpModeEnum: "warp" | "dot" | "proxy" | "off";
+    WarpModeEnum: "doh" | "warp+doh" | "warp+dot" | "tunnel_only" | "warp" | "dot" | "proxy" | "off";
     /**
      * WarpModeRequest
      * @description Request schema for changing WARP mode
@@ -11970,6 +11999,39 @@ export interface operations {
       200: {
         content: {
           "application/json": unknown;
+        };
+      };
+    };
+  };
+  /** Get Exclusions */
+  get_exclusions_api_v1_warp_exclusions_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["WarpExclusionsState"];
+        };
+      };
+    };
+  };
+  /** Save Exclusions */
+  save_exclusions_api_v1_warp_exclusions_put: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["WarpExclusionsUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["WarpExclusionsState"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };

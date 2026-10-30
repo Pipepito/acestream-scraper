@@ -262,7 +262,7 @@ describe('Supporting page normalization', () => {
 
     renderPage(<WarpPage />);
 
-    expect(screen.getByRole('combobox', { name: 'Mode' })).toHaveTextContent(/dot/i);
+    expect(screen.getByRole('combobox', { name: 'Mode' })).toHaveTextContent('DNS over TLS only');
     expect(screen.getByRole('button', { name: 'Set Mode' })).toBeDisabled();
     expect(screen.getByRole('status', { name: 'WARP status' })).toHaveTextContent(/mode dot/i);
   });

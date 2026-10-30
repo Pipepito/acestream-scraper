@@ -11889,9 +11889,90 @@
         "title": "ValidationError",
         "type": "object"
       },
+      "WarpExclusionsState": {
+        "properties": {
+          "active_hosts": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Hosts"
+          },
+          "applied": {
+            "title": "Applied",
+            "type": "boolean"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "hosts": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Hosts",
+            "type": "array"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "string"
+          }
+        },
+        "required": [
+          "hosts",
+          "revision",
+          "active_hosts",
+          "applied"
+        ],
+        "title": "WarpExclusionsState",
+        "type": "object"
+      },
+      "WarpExclusionsUpdate": {
+        "description": "Replace only app-managed exclusions, with optimistic concurrency.",
+        "properties": {
+          "expected_revision": {
+            "maxLength": 64,
+            "minLength": 64,
+            "title": "Expected Revision",
+            "type": "string"
+          },
+          "hosts": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 64,
+            "title": "Hosts",
+            "type": "array"
+          }
+        },
+        "required": [
+          "hosts",
+          "expected_revision"
+        ],
+        "title": "WarpExclusionsUpdate",
+        "type": "object"
+      },
       "WarpModeEnum": {
         "description": "Available WARP modes for API use",
         "enum": [
+          "doh",
+          "warp+doh",
+          "warp+dot",
+          "tunnel_only",
           "warp",
           "dot",
           "proxy",
@@ -23762,6 +23843,66 @@
           }
         },
         "summary": "Disconnect from WARP",
+        "tags": [
+          "warp"
+        ]
+      }
+    },
+    "/api/v1/warp/exclusions": {
+      "get": {
+        "operationId": "get_exclusions_api_v1_warp_exclusions_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarpExclusionsState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Exclusions",
+        "tags": [
+          "warp"
+        ]
+      },
+      "put": {
+        "operationId": "save_exclusions_api_v1_warp_exclusions_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarpExclusionsUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarpExclusionsState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Exclusions",
         "tags": [
           "warp"
         ]

@@ -7,6 +7,7 @@ import sys
 import time
 from app.services.engine_client import start_engine_session
 from app.services.player_http_source import PlayerHTTPSource
+from app.utils.stream_kind import stream_kind
 
 
 @dataclass
@@ -92,7 +93,7 @@ class CaptureInput:
         self.http = None
 
     async def open(self, cid, deadline):
-        if cid.startswith('url:'):
+        if stream_kind(cid) == 'http':
             self.http = await PlayerHTTPSource.open(cid, timeout=max(0, deadline-time.monotonic()))
             self.http.select_best_variant = True
             return self.http.playback_url

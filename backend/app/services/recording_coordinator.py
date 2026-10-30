@@ -20,6 +20,7 @@ from app.services.engine_client import playback_client_from_settings
 from app.services.recording_capture import CaptureInput, capture_argv, spawn_owned
 from app.services.recording_service import RecordingService, ROOT_KEY
 from app.services.recording_storage import RecordingStorage, binaries, inspect_media
+from app.utils.stream_kind import stream_kind
 
 log = logging.getLogger(__name__)
 
@@ -403,7 +404,7 @@ class RecordingCoordinator:
                 began = time.monotonic()
                 aid, fid = uuid4().hex, uuid4().hex
                 attempt = dict(id=aid, ordinal=len(data['attempts'])+1, source_id=cid,
-                    route='http' if cid.startswith('url:') else 'direct', started_at=_utcnow().isoformat(),
+                    route='http' if stream_kind(cid) == 'http' else 'direct', started_at=_utcnow().isoformat(),
                     ended_at=None, exit_code=None, reason=None, process_identity=None)
                 file = dict(id=fid, attempt_id=aid, root_id=storage.root_id, filename=fid+'.ts', kind='original',
                             state='writing', bytes=0, duration=None, codecs=[], reason=None)
@@ -415,7 +416,7 @@ class RecordingCoordinator:
                     data['state'] = 'starting' if not data.get('actual_start') else 'recovering'
                     self.transition(rid, data['state'])
                     await self.checkpoint(storage, data)
-                    client = None if cid.startswith('url:') else await asyncio.to_thread(engine_client)
+                    client = None if stream_kind(cid) == 'http' else await asyncio.to_thread(engine_client)
                     source = CaptureInput(client)
                     if client and client.use_acexy:
                         attempt['route'] = 'acexy'

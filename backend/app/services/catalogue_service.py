@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from app.repositories.catalogue_repository import CatalogueRepository
 from app.schemas.catalogue import CatalogueEntry, CatalogueView, CatalogueSummary
 from app.services.w3u_parser import W3UTraversal, COMPATIBLE, http_url, origin, safe_text
+from app.utils.stream_kind import stream_kind
 
 _PREVIEWS = OrderedDict()
 _PREVIEW_LOCK = threading.Lock()
@@ -245,7 +246,7 @@ class CatalogueService:
             raise ValueError('Publisher IDs are not unique in this catalogue; correct the source before importing events')
         for entry in selected:
             cid = entry.get('channel_id')
-            url = entry.get('_stream_url') or ('acestream://' + cid if cid and not cid.startswith('url:') else None)
+            url = entry.get('_stream_url') or ('acestream://' + cid if cid and stream_kind(cid) != 'http' else None)
             # Resolver web pages are not direct event media; retain an explicit
             # unresolved broadcast for mapping, rather than bypassing the player.
             if entry['kind'] == 'resolver':

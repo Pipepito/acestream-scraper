@@ -373,7 +373,9 @@ BASE_CMD=(docker buildx build)
 if [[ -n "$BUILDER" ]]; then
   BASE_CMD+=(--builder "$BUILDER")
 fi
-BASE_CMD+=(--file "$DOCKERFILE" --target "$TARGET")
+# Keep layer timestamps stable across application commits and fresh checkouts.
+# Explicitly override the caller environment; a per-commit epoch churns layers.
+BASE_CMD+=(--file "$DOCKERFILE" --target "$TARGET" --build-arg SOURCE_DATE_EPOCH=946684800)
 if [[ -n "$NETWORK" ]]; then
   BASE_CMD+=(--network "$NETWORK")
 fi
@@ -405,7 +407,7 @@ build_platform_by_digest() {
   local repo="$1" platform="$2" meta_file="$3"
   echo "Building $platform (push by digest to $repo)"
   run_or_print "${BASE_CMD[@]}" --platform "$platform" \
-    --output "type=image,name=$repo,push=true,push-by-digest=true,name-canonical=true" \
+    --output "type=image,name=$repo,push=true,push-by-digest=true,name-canonical=true,rewrite-timestamp=true" \
     --metadata-file "$meta_file" "$CONTEXT"
 }
 
@@ -503,15 +505,22 @@ else
     BUILD_CMD+=(--tag "$tag")
   done
   if [[ "$PUSH" -eq 1 ]]; then
-    BUILD_CMD+=(--push)
+    BUILD_CMD+=(--output type=image,push=true,rewrite-timestamp=true)
   elif [[ "$LOAD" -eq 1 ]]; then
-    BUILD_CMD+=(--load)
+    BUILD_CMD+=(--output type=docker,dest=-,rewrite-timestamp=true)
   else
     BUILD_CMD+=(--output type=cacheonly)
   fi
   BUILD_CMD+=("$CONTEXT")
   [[ "$DRY_RUN" -eq 1 ]] && print_plan_header
-  run_or_print "${BUILD_CMD[@]}"
+  if [[ "$LOAD" -eq 1 && "$DRY_RUN" -eq 0 ]]; then
+    # Explicit tar streaming avoids Docker's automatic containerd unpack path,
+    # which cannot apply timestamp rewriting. pipefail preserves either failure.
+    "${BUILD_CMD[@]}" | docker load
+  else
+    run_or_print "${BUILD_CMD[@]}"
+    [[ "$LOAD" -eq 0 ]] || echo '[DRY RUN] docker load < exported image stream'
+  fi
   prune_builder_after
 fi
 

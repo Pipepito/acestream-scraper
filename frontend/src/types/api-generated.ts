@@ -142,6 +142,64 @@ export interface paths {
     /** Get Recent Activity */
     get: operations["get_recent_activity_api_v1_activity_recent_get"];
   };
+  "/api/v1/auth/bootstrap": {
+    /** Bootstrap */
+    post: operations["bootstrap_api_v1_auth_bootstrap_post"];
+  };
+  "/api/v1/auth/credentials": {
+    /** Credentials */
+    get: operations["credentials_api_v1_auth_credentials_get"];
+    /** Issue Credential */
+    post: operations["issue_credential_api_v1_auth_credentials_post"];
+  };
+  "/api/v1/auth/credentials/{credential_id}": {
+    /** Revoke Credential */
+    delete: operations["revoke_credential_api_v1_auth_credentials__credential_id__delete"];
+  };
+  "/api/v1/auth/disable": {
+    /** Disable */
+    post: operations["disable_api_v1_auth_disable_post"];
+  };
+  "/api/v1/auth/login": {
+    /** Login */
+    post: operations["login_api_v1_auth_login_post"];
+  };
+  "/api/v1/auth/logout": {
+    /** Logout */
+    post: operations["logout_api_v1_auth_logout_post"];
+  };
+  "/api/v1/auth/password": {
+    /** Change Password */
+    put: operations["change_password_api_v1_auth_password_put"];
+  };
+  "/api/v1/auth/policy": {
+    /** Policy */
+    get: operations["policy_api_v1_auth_policy_get"];
+    /** Update Policy */
+    put: operations["update_policy_api_v1_auth_policy_put"];
+  };
+  "/api/v1/auth/sessions": {
+    /** Sessions */
+    get: operations["sessions_api_v1_auth_sessions_get"];
+  };
+  "/api/v1/auth/sessions/{session_id}": {
+    /** Revoke Session */
+    delete: operations["revoke_session_api_v1_auth_sessions__session_id__delete"];
+  };
+  "/api/v1/auth/status": {
+    /** Access Status */
+    get: operations["access_status_api_v1_auth_status_get"];
+  };
+  "/api/v1/auth/users": {
+    /** Users */
+    get: operations["users_api_v1_auth_users_get"];
+    /** Create User */
+    post: operations["create_user_api_v1_auth_users_post"];
+  };
+  "/api/v1/auth/users/{user_id}": {
+    /** Update User */
+    put: operations["update_user_api_v1_auth_users__user_id__put"];
+  };
   "/api/v1/background-tasks/channel_status/run": {
     /** Run Channel Status Job */
     post: operations["run_channel_status_job_api_v1_background_tasks_channel_status_run_post"];
@@ -161,6 +219,28 @@ export interface paths {
     delete: operations["delete_base_url_api_v1_base_urls__base_url_id__delete"];
     /** Update Base Url */
     patch: operations["update_base_url_api_v1_base_urls__base_url_id__patch"];
+  };
+  "/api/v1/cast/browser": {
+    /** Browser */
+    post: operations["browser_api_v1_cast_browser_post"];
+  };
+  "/api/v1/cast/capabilities": {
+    /** Capabilities */
+    get: operations["capabilities_api_v1_cast_capabilities_get"];
+  };
+  "/api/v1/cast/devices": {
+    /** Devices */
+    get: operations["devices_api_v1_cast_devices_get"];
+  };
+  "/api/v1/cast/sessions": {
+    /** Sessions */
+    get: operations["sessions_api_v1_cast_sessions_get"];
+    /** Start */
+    post: operations["start_api_v1_cast_sessions_post"];
+  };
+  "/api/v1/cast/sessions/{cast_id}/commands": {
+    /** Command */
+    post: operations["command_api_v1_cast_sessions__cast_id__commands_post"];
   };
   "/api/v1/catalogues": {
     /** List Catalogues */
@@ -1385,6 +1465,58 @@ export interface paths {
      */
     post: operations["refresh_url_api_v1_urls__url_id__refresh_post"];
   };
+  "/api/v1/view/channels": {
+    /** Channels */
+    get: operations["channels_api_v1_view_channels_get"];
+  };
+  "/api/v1/view/events": {
+    /** Events */
+    get: operations["events_api_v1_view_events_get"];
+  };
+  "/api/v1/view/guide": {
+    /** Guide */
+    get: operations["guide_api_v1_view_guide_get"];
+  };
+  "/api/v1/view/live": {
+    /** Live */
+    get: operations["live_api_v1_view_live_get"];
+  };
+  "/api/v1/view/playlists": {
+    /** Playlist Link */
+    post: operations["playlist_link_api_v1_view_playlists_post"];
+  };
+  "/api/v1/view/recordings": {
+    /** Recordings */
+    get: operations["recordings_api_v1_view_recordings_get"];
+  };
+  "/api/v1/view/recordings/{rid}/files/{fid}": {
+    /** Recording File */
+    get: operations["recording_file_api_v1_view_recordings__rid__files__fid__get"];
+  };
+  "/api/v1/view/recordings/{rid}/playback-sessions": {
+    /** Start Recording */
+    post: operations["start_recording_api_v1_view_recordings__rid__playback_sessions_post"];
+  };
+  "/api/v1/view/recordings/{rid}/playback-sessions/{sid}": {
+    /** Recording Status */
+    get: operations["recording_status_api_v1_view_recordings__rid__playback_sessions__sid__get"];
+    /** Stop Recording */
+    delete: operations["stop_recording_api_v1_view_recordings__rid__playback_sessions__sid__delete"];
+  };
+  "/api/v1/viewers": {
+    /** Create */
+    post: operations["create_api_v1_viewers_post"];
+  };
+  "/api/v1/viewers/{viewer_id}": {
+    /** Status */
+    get: operations["status_api_v1_viewers__viewer_id__get"];
+    /** Release */
+    delete: operations["release_api_v1_viewers__viewer_id__delete"];
+  };
+  "/api/v1/viewers/{viewer_id}/media/{resource}": {
+    /** Media */
+    get: operations["media_api_v1_viewers__viewer_id__media__resource__get"];
+  };
   "/api/v1/warp/connect": {
     /** Connect to WARP */
     post: operations["connect_to_warp_api_v1_warp_connect_post"];
@@ -1438,6 +1570,97 @@ export type webhooks = Record<string, never>;
 
 export interface components {
   schemas: {
+    /** AccessPolicy */
+    AccessPolicy: {
+      /**
+       * Cast Media Url
+       * @default
+       */
+      cast_media_url?: string;
+      /**
+       * Compatibility Conversion
+       * @default false
+       */
+      compatibility_conversion?: boolean;
+      /** Home Networks */
+      home_networks?: string[];
+      /**
+       * Local Iptv
+       * @default false
+       */
+      local_iptv?: boolean;
+      /** Local Networks */
+      local_networks?: string[];
+      /** Public Features */
+      public_features?: ("live" | "channels" | "guide" | "events" | "recordings" | "playlists" | "cast" | "cast_server")[];
+      /**
+       * Public Playlists
+       * @default false
+       */
+      public_playlists?: boolean;
+      /**
+       * Remote Casting
+       * @default false
+       */
+      remote_casting?: boolean;
+    };
+    /** AccessStatus */
+    AccessStatus: {
+      /** Csrf */
+      csrf: string;
+      /**
+       * Legacy Token
+       * @default false
+       */
+      legacy_token?: boolean;
+      /**
+       * Mode
+       * @enum {string}
+       */
+      mode: "pending" | "open" | "accounts";
+      /** Permissions */
+      permissions?: ("live" | "channels" | "guide" | "events" | "recordings" | "playlists" | "cast" | "cast_server")[];
+      user?: components["schemas"]["AccountView"] | null;
+    };
+    /** AccountCreate */
+    AccountCreate: {
+      /**
+       * Administrator
+       * @default false
+       */
+      administrator?: boolean;
+      /**
+       * Password
+       * Format: password
+       */
+      password: string;
+      /** Permissions */
+      permissions?: ("live" | "channels" | "guide" | "events" | "recordings" | "playlists" | "cast" | "cast_server")[];
+      /** Username */
+      username: string;
+    };
+    /** AccountUpdate */
+    AccountUpdate: {
+      /** Administrator */
+      administrator: boolean;
+      /** Enabled */
+      enabled: boolean;
+      /** Permissions */
+      permissions: ("live" | "channels" | "guide" | "events" | "recordings" | "playlists" | "cast" | "cast_server")[];
+    };
+    /** AccountView */
+    AccountView: {
+      /** Administrator */
+      administrator: boolean;
+      /** Enabled */
+      enabled: boolean;
+      /** Id */
+      id: string;
+      /** Permissions */
+      permissions: ("live" | "channels" | "guide" | "events" | "recordings" | "playlists" | "cast" | "cast_server")[];
+      /** Username */
+      username: string;
+    };
     /**
      * AceEngineUrlUpdate
      * @description Schema for updating the Acestream Engine URL
@@ -1841,6 +2064,31 @@ export interface components {
       /** Acestreamchannel Ids */
       acestreamchannel_ids: string[];
     };
+    /** Bootstrap */
+    Bootstrap: {
+      /**
+       * Enabled
+       * @default true
+       */
+      enabled?: boolean;
+      /**
+       * Migrate Legacy Token
+       * @default false
+       */
+      migrate_legacy_token?: boolean;
+      /**
+       * Password
+       * Format: password
+       */
+      password: string;
+      /**
+       * Password Confirmation
+       * Format: password
+       */
+      password_confirmation: string;
+      /** Username */
+      username: string;
+    };
     /** BroadcastView */
     BroadcastView: {
       /** Checked At */
@@ -1907,6 +2155,84 @@ export interface components {
       /** Acestreamchannel Ids */
       acestreamchannel_ids: string[];
       fields: components["schemas"]["AcestreamChannelUpdate"];
+    };
+    /** CastCapabilities */
+    CastCapabilities: {
+      /** Compatibility Conversion */
+      compatibility_conversion: boolean;
+      /** Media Url Configured */
+      media_url_configured: boolean;
+      /**
+       * Message
+       * @default
+       */
+      message?: string;
+      /** Server Devices */
+      server_devices: boolean;
+    };
+    /** CastCommand */
+    CastCommand: {
+      /**
+       * Action
+       * @enum {string}
+       */
+      action: "play" | "pause" | "stop" | "volume";
+      /** Volume */
+      volume?: number | null;
+    };
+    /** CastDevice */
+    CastDevice: {
+      /** Id */
+      id: string;
+      /** Model */
+      model: string;
+      /** Name */
+      name: string;
+    };
+    /** CastStart */
+    CastStart: {
+      /**
+       * Audio Index
+       * @description Audio track to play; null uses the first available audio track
+       */
+      audio_index?: number | null;
+      /**
+       * Compatibility
+       * @default false
+       */
+      compatibility?: boolean;
+      /**
+       * Content Id
+       * @description AceStream content ID (40 hex) or imported HTTP stream ID (url: followed by 40 hex)
+       */
+      content_id: string;
+      /** Device Id */
+      device_id?: string | null;
+      /**
+       * Replace
+       * @default false
+       */
+      replace?: boolean;
+      /**
+       * Subtitle Index
+       * @description Subtitle track to play; null disables subtitles
+       */
+      subtitle_index?: number | null;
+    };
+    /** CastStatus */
+    CastStatus: {
+      /** Device Id */
+      device_id: string;
+      /** Device Name */
+      device_name: string;
+      /** Id */
+      id: string;
+      /** State */
+      state: string;
+      /** Viewer Id */
+      viewer_id: string;
+      /** Volume */
+      volume?: number | null;
     };
     /** CatalogueCounts */
     CatalogueCounts: {
@@ -2322,6 +2648,57 @@ export interface components {
       /** Selected */
       selected: string;
     };
+    /** CredentialCreate */
+    CredentialCreate: {
+      /**
+       * Kind
+       * @default playback
+       * @enum {string}
+       */
+      kind?: "admin" | "playback";
+      /** Label */
+      label: string;
+    };
+    /** CredentialIssued */
+    CredentialIssued: {
+      /** Created At */
+      created_at: number;
+      /** Id */
+      id: string;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "admin" | "playback";
+      /** Label */
+      label: string;
+      /** Token */
+      token: string;
+    };
+    /** CredentialView */
+    CredentialView: {
+      /** Created At */
+      created_at: number;
+      /** Id */
+      id: string;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "admin" | "playback";
+      /** Label */
+      label: string;
+    };
+    /** Credentials */
+    Credentials: {
+      /**
+       * Password
+       * Format: password
+       */
+      password: string;
+      /** Username */
+      username: string;
+    };
     /**
      * DashboardConfigResponse
      * @description Schema for dashboard config response
@@ -2341,6 +2718,14 @@ export interface components {
       auto_refresh_interval?: number | null;
       /** Retention Days */
       retention_days?: number | null;
+    };
+    /** DisableAccess */
+    DisableAccess: {
+      /**
+       * Current Password
+       * Format: password
+       */
+      current_password: string;
     };
     /**
      * EPGChannelListResponse
@@ -3664,6 +4049,24 @@ export interface components {
        */
       value?: string;
     };
+    /** PasswordChange */
+    PasswordChange: {
+      /**
+       * Current Password
+       * Format: password
+       */
+      current_password: string;
+      /**
+       * Password
+       * Format: password
+       */
+      password: string;
+      /**
+       * Password Confirmation
+       * Format: password
+       */
+      password_confirmation: string;
+    };
     /** PlaybackRouting */
     PlaybackRouting: {
       /**
@@ -3774,6 +4177,13 @@ export interface components {
       linked_streams: number;
       /** Streams */
       streams: number;
+    };
+    /** PlaylistLink */
+    PlaylistLink: {
+      /** Guide Url */
+      guide_url: string;
+      /** Url */
+      url: string;
     };
     /** ProgrammeSelection */
     ProgrammeSelection: {
@@ -4939,6 +5349,19 @@ export interface components {
        * @description True when the app runs under the container entrypoint
        */
       supervised: boolean;
+    };
+    /** SessionView */
+    SessionView: {
+      /** Created At */
+      created_at: number;
+      /** Expires At */
+      expires_at: number;
+      /** Id */
+      id: string;
+      /** Last Seen */
+      last_seen: number;
+      /** Username */
+      username: string;
     };
     /**
      * SettingResponse
@@ -6154,6 +6577,43 @@ export interface components {
       /** Error Type */
       type: string;
     };
+    /** ViewerStatus */
+    ViewerStatus: {
+      /** Audio Index */
+      audio_index?: number | null;
+      /** Audio Tracks */
+      audio_tracks?: components["schemas"]["AudioTrack"][];
+      codecs: components["schemas"]["PlayerCodecs"];
+      /** Content Id */
+      content_id: string;
+      /** Control Token */
+      control_token?: string | null;
+      /** Error */
+      error?: ("engine_unavailable" | "engine_refused" | "engine_stalled" | "ffmpeg_missing" | "ffmpeg_failed" | "source_unavailable") | null;
+      /**
+       * Error Message
+       * @default
+       */
+      error_message?: string;
+      /** Hls Ready */
+      hls_ready: boolean;
+      /** Id */
+      id: string;
+      /** Playlist Url */
+      playlist_url: string;
+      /**
+       * State
+       * @enum {string}
+       */
+      state: "starting" | "ready" | "error" | "stopped";
+      stats?: components["schemas"]["PlayerStats"] | null;
+      /** Subtitle Index */
+      subtitle_index?: number | null;
+      /** Subtitle Tracks */
+      subtitle_tracks?: components["schemas"]["SubtitleTrack"][];
+      /** Viewers */
+      viewers: number;
+    };
     /**
      * WarpModeEnum
      * @description Available WARP modes for API use
@@ -6167,6 +6627,77 @@ export interface components {
     WarpModeRequest: {
       /** @description The WARP mode to set */
       mode: components["schemas"]["WarpModeEnum"];
+    };
+    /** WatchChannel */
+    WatchChannel: {
+      /** Category */
+      category?: string | null;
+      /** Id */
+      id: string;
+      /** Name */
+      name: string;
+      /** Online */
+      online?: boolean | null;
+      /** Tv Channel Id */
+      tv_channel_id?: number | null;
+    };
+    /** WatchChannels */
+    WatchChannels: {
+      /** Items */
+      items: components["schemas"]["WatchChannel"][];
+      /** Total */
+      total: number;
+    };
+    /** WatchEvent */
+    WatchEvent: {
+      /**
+       * Competition
+       * @default
+       */
+      competition?: string;
+      /** Id */
+      id: string;
+      /** Starts At */
+      starts_at?: string | null;
+      /**
+       * State
+       * @default
+       */
+      state?: string;
+      /** Title */
+      title: string;
+    };
+    /** WatchProgramme */
+    WatchProgramme: {
+      /** Channel */
+      channel: string;
+      /**
+       * End
+       * Format: date-time
+       */
+      end: string;
+      /** Id */
+      id: number;
+      /**
+       * Start
+       * Format: date-time
+       */
+      start: string;
+      /** Title */
+      title: string;
+    };
+    /** WatchRecording */
+    WatchRecording: {
+      /** Channel */
+      channel: string;
+      /** Files */
+      files?: string[];
+      /** Id */
+      id: string;
+      /** State */
+      state: string;
+      /** Title */
+      title: string;
     };
     /** BaseUrlUpdate */
     app__schemas__base_url__BaseUrlUpdate: {
@@ -6713,6 +7244,287 @@ export interface operations {
       };
     };
   };
+  /** Bootstrap */
+  bootstrap_api_v1_auth_bootstrap_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["Bootstrap"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AccountView"] | null;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Credentials */
+  credentials_api_v1_auth_credentials_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["CredentialView"][];
+        };
+      };
+    };
+  };
+  /** Issue Credential */
+  issue_credential_api_v1_auth_credentials_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CredentialCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        content: {
+          "application/json": components["schemas"]["CredentialIssued"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Revoke Credential */
+  revoke_credential_api_v1_auth_credentials__credential_id__delete: {
+    parameters: {
+      path: {
+        credential_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Disable */
+  disable_api_v1_auth_disable_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["DisableAccess"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Login */
+  login_api_v1_auth_login_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["Credentials"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AccountView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Logout */
+  logout_api_v1_auth_logout_post: {
+    responses: {
+      /** @description Successful Response */
+      204: {
+        content: never;
+      };
+    };
+  };
+  /** Change Password */
+  change_password_api_v1_auth_password_put: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PasswordChange"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Policy */
+  policy_api_v1_auth_policy_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AccessPolicy"];
+        };
+      };
+    };
+  };
+  /** Update Policy */
+  update_policy_api_v1_auth_policy_put: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AccessPolicy"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AccessPolicy"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Sessions */
+  sessions_api_v1_auth_sessions_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["SessionView"][];
+        };
+      };
+    };
+  };
+  /** Revoke Session */
+  revoke_session_api_v1_auth_sessions__session_id__delete: {
+    parameters: {
+      path: {
+        session_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Access Status */
+  access_status_api_v1_auth_status_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AccessStatus"];
+        };
+      };
+    };
+  };
+  /** Users */
+  users_api_v1_auth_users_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AccountView"][];
+        };
+      };
+    };
+  };
+  /** Create User */
+  create_user_api_v1_auth_users_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AccountCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        content: {
+          "application/json": components["schemas"]["AccountView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Update User */
+  update_user_api_v1_auth_users__user_id__put: {
+    parameters: {
+      path: {
+        user_id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AccountUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AccountView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   /** Run Channel Status Job */
   run_channel_status_job_api_v1_background_tasks_channel_status_run_post: {
     responses: {
@@ -6806,6 +7618,108 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["BaseUrlResponse"];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Browser */
+  browser_api_v1_cast_browser_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CastStart"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ViewerStatus"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Capabilities */
+  capabilities_api_v1_cast_capabilities_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["CastCapabilities"];
+        };
+      };
+    };
+  };
+  /** Devices */
+  devices_api_v1_cast_devices_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["CastDevice"][];
+        };
+      };
+    };
+  };
+  /** Sessions */
+  sessions_api_v1_cast_sessions_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["CastStatus"][];
+        };
+      };
+    };
+  };
+  /** Start */
+  start_api_v1_cast_sessions_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CastStart"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["CastStatus"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Command */
+  command_api_v1_cast_sessions__cast_id__commands_post: {
+    parameters: {
+      path: {
+        cast_id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CastCommand"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        content: never;
       };
       /** @description Validation Error */
       422: {
@@ -11940,6 +12854,310 @@ export interface operations {
     responses: {
       /** @description Successful Response */
       202: {
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Channels */
+  channels_api_v1_view_channels_get: {
+    parameters: {
+      query?: {
+        search?: string;
+        offset?: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["WatchChannels"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Events */
+  events_api_v1_view_events_get: {
+    parameters: {
+      query?: {
+        offset?: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["WatchEvent"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Guide */
+  guide_api_v1_view_guide_get: {
+    parameters: {
+      query?: {
+        offset?: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["WatchProgramme"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Live */
+  live_api_v1_view_live_get: {
+    parameters: {
+      query?: {
+        search?: string;
+        offset?: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["WatchChannels"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Playlist Link */
+  playlist_link_api_v1_view_playlists_post: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlaylistLink"];
+        };
+      };
+    };
+  };
+  /** Recordings */
+  recordings_api_v1_view_recordings_get: {
+    parameters: {
+      query?: {
+        offset?: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["WatchRecording"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Recording File */
+  recording_file_api_v1_view_recordings__rid__files__fid__get: {
+    parameters: {
+      path: {
+        rid: string;
+        fid: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Start Recording */
+  start_recording_api_v1_view_recordings__rid__playback_sessions_post: {
+    parameters: {
+      path: {
+        rid: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RecordingPlaybackRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        content: {
+          "application/json": components["schemas"]["RecordingPlaybackView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Recording Status */
+  recording_status_api_v1_view_recordings__rid__playback_sessions__sid__get: {
+    parameters: {
+      path: {
+        rid: string;
+        sid: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["RecordingPlaybackView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Stop Recording */
+  stop_recording_api_v1_view_recordings__rid__playback_sessions__sid__delete: {
+    parameters: {
+      path: {
+        rid: string;
+        sid: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Create */
+  create_api_v1_viewers_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PlayerSessionCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ViewerStatus"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Status */
+  status_api_v1_viewers__viewer_id__get: {
+    parameters: {
+      path: {
+        viewer_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ViewerStatus"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Release */
+  release_api_v1_viewers__viewer_id__delete: {
+    parameters: {
+      path: {
+        viewer_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Media */
+  media_api_v1_viewers__viewer_id__media__resource__get: {
+    parameters: {
+      path: {
+        viewer_id: string;
+        resource: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
         content: {
           "application/json": unknown;
         };

@@ -507,3 +507,15 @@ This is not a guarantee of identical cold builds: floating upstream images,
 package repositories and generated dependency files can still change. Retaining
 the builder cache remains useful; never retain stale packages indefinitely just
 to make downloads smaller.
+
+## Accounts and Chromecast
+
+The first-run screen offers account setup; no authentication Docker variables or
+bootstrap secrets are needed. Administrators manage accounts and passwords in
+Settings → Access. Container owners can recover a forgotten password with
+`docker exec -it <container> python -m app.auth reset-password`.
+
+Server-side Chromecast discovery requires multicast access to the home network;
+published HTTP ports alone do not forward mDNS. Keep the receiver-accessible URL
+and verified home client networks in Settings. See [Accounts and casting](Accounts-and-Casting.md)
+for permissions, Kodi access, HTTPS, browser support and backup/rollback procedures.

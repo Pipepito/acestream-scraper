@@ -76,6 +76,7 @@ class PlayerSession:
     error: Optional[PlayerError] = None
     error_message: str = ""
     viewers: int = 0
+    compatibility: bool = False
     viewers_zero_since: Optional[float] = None
     engine_session: Optional[EngineSession] = None
     http_source: Optional[PlayerHTTPSource] = None
@@ -259,15 +260,17 @@ class PlayerService:
             return False
         return sum(1 for line in lines if line.strip().endswith(".ts")) >= 2
 
-    async def open_session(self, content_id: str, audio_index: Optional[int] = None, subtitle_index: Optional[int] = None) -> PlayerSession:
+    async def open_session(self, content_id: str, audio_index: Optional[int] = None, subtitle_index: Optional[int] = None, *, compatibility: bool = False) -> PlayerSession:
         async with self._lock:
             for existing in self.sessions.values():
-                if existing.content_id == content_id and (existing.audio_index or 0) == (audio_index or 0) and existing.subtitle_index == subtitle_index and existing.state in ("starting", "ready"):
+                if existing.content_id == content_id and existing.compatibility == compatibility and (existing.audio_index or 0) == (audio_index or 0) and existing.subtitle_index == subtitle_index and existing.state in ("starting", "ready"):
                     existing.viewers += 1
                     existing.viewers_zero_since = None
                     existing.last_access = self._now()
                     return existing
             limit = int(self._settings().PLAYER_MAX_SESSIONS)
+            if compatibility and any(s.compatibility and s.state in ('starting', 'ready') for s in self.sessions.values()):
+                raise PlayerLimitReached(1, 1)
             active = sum(1 for s in self.sessions.values() if s.state in ("starting", "ready"))
             if active >= limit:
                 raise PlayerLimitReached(limit, active)
@@ -288,6 +291,7 @@ class PlayerService:
                 created_at=now,
                 last_access=now,
                 viewers=1,
+                compatibility=compatibility,
             )
             self.sessions[session.id] = session
         for old in retired:
@@ -347,6 +351,13 @@ class PlayerService:
             playback_url = engine_session.playback_url
         session.dir.mkdir(parents=True, exist_ok=True)
         argv = self.ffmpeg_argv(playback_url, session.dir, session.audio_index, session.subtitle_index)
+        if session.compatibility:
+            video_codec = argv.index('-c:v') + 1
+            argv[video_codec] = 'libx264'
+            argv[video_codec + 1:video_codec + 1] = ['-preset', 'veryfast', '-crf', '23', '-profile:v', 'main',
+                '-pix_fmt', 'yuv420p', '-threads', '2', '-vf',
+                "scale=w='min(1280,iw)':h='min(720,ih)':force_original_aspect_ratio=decrease:force_divisible_by=2,fps=30",
+                '-g', '60', '-keyint_min', '60', '-sc_threshold', '0', '-maxrate', '3M', '-bufsize', '6M']
         if session.http_source is not None:
             # Inputs cannot open local files, concat lists or arbitrary protocols.
             # HTTPS and all HLS child fetches are handled by the guarded proxy.
@@ -502,8 +513,19 @@ class PlayerService:
         multiple of the per-call timeout, stretching the interval that decides
         when a stale session is torn down.
         """
+        if self is player_service:
+            from app.services.cast_service import cast_service
+            from app.services.viewer_service import viewer_service
+            await cast_service.tick()
+            await viewer_service.tick()
         now = self._now()
         sessions = list(self.sessions.values())
+        if any(session.compatibility for session in sessions):
+            from app.services.recording_coordinator import recording_coordinator
+            if recording_coordinator.activity():
+                for session in sessions:
+                    if session.compatibility and session.state in ('starting', 'ready'):
+                        await self._fail(session, 'ffmpeg_failed', 'Compatibility conversion stopped because recording takes priority')
         await asyncio.gather(*(self._refresh_stats(session) for session in sessions))
         for session in sessions:
             try:

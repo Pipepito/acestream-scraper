@@ -16,6 +16,9 @@ import Settings from './pages/Settings';
 import LiveTV from './pages/LiveTV';
 import NotFound from './pages/NotFound';
 import SetupNotice from './components/SetupNotice';
+import { Button, Stack, Typography } from '@mui/material';
+import { useAccess } from './components/access/AccessContext';
+import { accessService } from './services/accessService';
 const Setup = React.lazy(() => import('./pages/Setup'));
 import UpdateAvailableNotice from './components/UpdateAvailableNotice';
 const PublicAddress = React.lazy(() => import('./pages/integrations/PublicAddress'));
@@ -51,8 +54,10 @@ const RedirectTo: React.FC<{ to: string }> = ({ to }) => {
 };
 
 const App: React.FC = () => {
+  const access = useAccess();
   return (
     <AppShell>
+      {access?.status.user ? <Stack direction="row" spacing={2} justifyContent="flex-end" alignItems="center" sx={{ mb: 1 }}><Typography variant="body2">{access.status.user.username}</Typography><Button onClick={() => void accessService.logout().then(access.refresh)}>Sign out</Button></Stack> : null}
       <ApiTokenNotice />
       <UpdateAvailableNotice />
       <SetupNotice />

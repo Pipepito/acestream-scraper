@@ -1,5 +1,17 @@
 # Codex repository guide
 
+## Accounts and Cast receivers
+
+First-run account setup and later activation live in Settings → Access; no new
+Docker bootstrap credentials are required. Keep the independent migrated access
+store and fail-closed marker outside catalogue exports/recovery. Default-deny
+management applies to all API aliases and ASGI prefixes. Viewer/media capabilities,
+IPTV credentials and administrative headers are separate. Server Cast requires
+account permission and verified home-network membership unless remote control is
+explicitly enabled. Receiver cleanup must verify exact media ownership; original
+video is the default and optional bounded H.264 conversion yields to recording.
+See `docs/ops/access-and-casting.md` and `wiki/Accounts-and-Casting.md`.
+
 ## Private infrastructure authority
 
 Jenkins pipelines and trusted host tooling live in the private

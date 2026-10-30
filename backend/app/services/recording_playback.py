@@ -15,7 +15,7 @@ _sessions = {}
 TTL = 60
 
 
-def create(service, rid, fid):
+def create(service, rid, fid, *, owner=None):
     recording = check(service.repo.get(rid))
     file = check(service.repo.file(rid, fid))
     if recording.state not in ('completed', 'partial') or file.state != 'ready':
@@ -30,13 +30,15 @@ def create(service, rid, fid):
         if len(_sessions) >= 16:
             raise APIError('RECORDING_PLAYBACK_LIMIT', 'Too many recording playback sessions.', 409)
         sid = uuid4().hex
-        _sessions[sid] = dict(recording=rid, file=file.id, expires=now+TTL)
-    return status(service, rid, sid)
+        _sessions[sid] = dict(recording=rid, file=file.id, expires=now+TTL, owner=owner)
+    return status(service, rid, sid, owner=owner)
 
 
-def status(service, rid, sid):
+def status(service, rid, sid, *, owner=None):
     with _lock:
         session = _sessions.get(sid)
+        if session and session.get('owner') != owner:
+            raise APIError('RECORDING_PLAYBACK_EXPIRED', 'Playback session not found.', 404)
         if session is None or session['recording'] != rid or session['expires'] < time.monotonic():
             _sessions.pop(sid, None)
             raise APIError('RECORDING_PLAYBACK_EXPIRED', 'Playback session expired. Open the recording again.', 404)
@@ -53,7 +55,7 @@ def status(service, rid, sid):
         else 'This recording cannot be prepared for this browser. Download the original.')
 
 
-def close(rid, sid):
+def close(rid, sid, *, owner=None):
     with _lock:
-        if _sessions.get(sid, {}).get('recording') == rid:
+        if _sessions.get(sid, {}).get('recording') == rid and _sessions[sid].get('owner') == owner:
             del _sessions[sid]

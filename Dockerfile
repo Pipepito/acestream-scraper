@@ -259,6 +259,9 @@ RUN apt-get update \
         arm64:*) apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu libc6-dev-arm64-cross ;; \
         arm:*)   apt-get install -y --no-install-recommends gcc-arm-linux-gnueabihf libc6-dev-armhf-cross ;; \
        esac \
+    && case "${TARGETARCH}" in amd64|arm64) codec_arch="${TARGETARCH}" ;; arm) codec_arch=armhf ;; esac \
+    && if [ "$codec_arch" != "$host" ]; then dpkg --add-architecture "$codec_arch"; apt-get update; fi \
+    && apt-get install -y --no-install-recommends "libx264-dev:$codec_arch" \
     && rm -rf /var/lib/apt/lists/*
 
 COPY docker/scripts/build-ffmpeg.sh /usr/local/lib/ffmpeg-build/build-ffmpeg.sh

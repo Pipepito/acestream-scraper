@@ -93,6 +93,16 @@ def test_ffmpeg_builder_produces_a_working_static_binary(tmp_path, platform):
                            capture_output=True, text=True, timeout=300)
     assert probe.returncode == 0, probe.stderr
     assert [stream["codec_name"] for stream in json.loads(probe.stdout)["streams"]] == ["h264", "ac3"], probe.stdout
+    compatible = subprocess.run(base + ["/ff/ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-i", "/f/sample.m2ts",
+        "-t", "1", "-c:v", "libx264", "-preset", "veryfast", "-profile:v", "main", "-pix_fmt", "yuv420p", "-threads", "2",
+        "-vf", "scale=w='min(1280,iw)':h='min(720,ih)':force_original_aspect_ratio=decrease:force_divisible_by=2,fps=30",
+        "-g", "60", "-c:a", "aac", "-ac", "2", "-f", "mpegts", "/out/compatible.ts"], capture_output=True, text=True, timeout=300)
+    assert compatible.returncode == 0, compatible.stderr
+    converted_probe = subprocess.run(base + ["/ff/ffprobe", "-v", "error", "-show_entries", "stream=codec_name,width,height,r_frame_rate", "-of", "json", "/out/compatible.ts"], capture_output=True, text=True, timeout=300)
+    assert converted_probe.returncode == 0, converted_probe.stderr
+    converted = json.loads(converted_probe.stdout)['streams']
+    assert [stream['codec_name'] for stream in converted] == ['h264', 'aac']
+    assert converted[0]['width'] <= 1280 and converted[0]['height'] <= 720 and converted[0]['r_frame_rate'] == '30/1'
     remux = subprocess.run(base + ["/ff/ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-i", "/f/sample.m2ts",
                                    "-c", "copy", "-f", "hls", "-hls_time", "1", "/out/copy.m3u8"], capture_output=True, text=True, timeout=300)
     assert remux.returncode == 0, remux.stderr

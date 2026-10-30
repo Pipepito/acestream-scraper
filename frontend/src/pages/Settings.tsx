@@ -44,6 +44,8 @@ import { getApiToken, setApiToken as storeApiToken, clearApiToken as removeStore
 import { getErrorMessage } from '../utils/errorUtils';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
+import AccessSettings from '../components/access/AccessSettings';
+import { useAccess } from '../components/access/AccessContext';
 
 type FeedbackSeverity = 'success' | 'error';
 type Notify = (message: string, severity: FeedbackSeverity) => void;
@@ -89,6 +91,7 @@ const IntervalField: React.FC<IntervalFieldProps> = ({ max = 168, id, label, hel
 );
 
 const Settings: React.FC = () => {
+  const access = useAccess();
   const [params, setParams] = useSearchParams();
   const sections = ['playback', 'automation', 'links', 'access'];
   const section = sections.includes(params.get('tab') ?? '') ? params.get('tab')! : 'playback';
@@ -254,7 +257,7 @@ const Settings: React.FC = () => {
       <PageHeader title="Settings" subtitle="Playback, scheduled jobs, playlist links and access from this browser." actions={<><Button component={RouterLink} to="/setup" variant="outlined">Setup wizard</Button><Button href="/startup" variant="outlined">Startup diagnostics</Button></>} />
 
       <Tabs value={section} onChange={(_event, value: string) => { const next = new URLSearchParams(params); next.set('tab', value); setParams(next); }} variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile aria-label="Settings sections" sx={{ mb: 2 }}>
-        {sections.map((name, index) => <Tab key={name} value={name} id={`settings-tab-${name}`} aria-controls={`settings-panel-${name}`} label={['Playback', 'Automation', 'Stream links', 'API access'][index]} />)}
+        {sections.map((name, index) => <Tab key={name} value={name} id={`settings-tab-${name}`} aria-controls={`settings-panel-${name}`} label={['Playback', 'Automation', 'Stream links', 'Access'][index]} />)}
       </Tabs>
       <Box {...panelProps('playback')}>
       <ContentSection
@@ -376,7 +379,8 @@ const Settings: React.FC = () => {
       <Button component={RouterLink} to="/integrations/public-address">Manage public address</Button>
       </Box>
       <Box {...panelProps('access')}>
-      <ContentSection title="API access" description="Only needed when the server sets API_TOKEN. The token is stored in this browser and sent with every request.">
+      {section === 'access' ? <AccessSettings /> : null}
+      {access?.status.mode !== 'accounts' ? <ContentSection title="Legacy API access" description="Only needed when the server sets API_TOKEN. The token is stored in this browser and sent with every request.">
         <Stack spacing={2} sx={{ maxWidth: 520 }}>
           {apiTokenRequired ? (
             <Alert severity="warning">The server rejected a request because a valid token is missing. Enter the token below to restore access.</Alert>
@@ -413,7 +417,7 @@ const Settings: React.FC = () => {
             </Stack>
           </form>
         </Stack>
-      </ContentSection>
+      </ContentSection> : null}
 
       </Box>
       <Snackbar open={feedback.open} autoHideDuration={6000} onClose={() => setFeedback((current) => ({ ...current, open: false }))}>

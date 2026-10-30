@@ -231,3 +231,21 @@ def test_programme_recording_requires_an_enabled_assigned_stream(dvr):
     result = client.post('/api/v1/recordings', json=request(tv, programme))
     assert result.status_code == 201, result.text
     assert result.json()['snapshot']['title'] == programme.title
+
+
+def test_recording_subscriptions_are_owned_by_account(monkeypatch):
+    from types import SimpleNamespace
+    from app.services import recording_playback
+    from app.api.error_handlers import APIError
+    from unittest.mock import Mock
+    recording = SimpleNamespace(state='completed')
+    artifact = SimpleNamespace(id='a' * 32, state='ready', kind='converted')
+    service = SimpleNamespace(repo=SimpleNamespace(get=Mock(return_value=recording), file=Mock(return_value=artifact)))
+    first = recording_playback.create(service, 'r', artifact.id, owner='first')
+    try:
+        with pytest.raises(APIError):
+            recording_playback.status(service, 'r', first.id, owner='second')
+        recording_playback.close('r', first.id, owner='second')
+        assert recording_playback.status(service, 'r', first.id, owner='first').state == 'ready'
+    finally:
+        recording_playback.close('r', first.id, owner='first')

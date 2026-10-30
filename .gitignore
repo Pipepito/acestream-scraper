@@ -245,6 +245,8 @@ frontend/dist-recipes/
 # Persisted installation configuration (may contain private addresses)
 **/runtime-config.json
 **/runtime-config.json.lock
+**/access.db*
+**/access.required
 
 .quality-reports/
 .coverage

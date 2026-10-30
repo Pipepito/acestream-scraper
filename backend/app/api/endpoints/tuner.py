@@ -22,6 +22,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from sqlalchemy.orm import Session
 
 from app.api.error_handlers import APIError
+from app.api.auth import authenticated_player_url
 from app.config.database import SessionLocal, get_db
 from app.repositories.settings_repository import SettingsRepository
 from app.schemas.tuner import TunerSettingsResponse, TunerSettingsUpdate, TunerStatusResponse, TunerUrls
@@ -102,7 +103,7 @@ def _discover(request: Request, db: Session) -> dict:
     return {
         "FriendlyName": settings.friendly_name, "Manufacturer": "Silicondust", "ModelNumber": "HDTC-2US",
         "FirmwareName": "hdhomeruntc_atsc", "FirmwareVersion": "20240101", "DeviceID": service.device_id(), "DeviceAuth": "",
-        "BaseURL": f"{public}/tuner", "LineupURL": f"{public}/tuner/lineup.json", "TunerCount": settings.tuner_count,
+        "BaseURL": f"{public}/tuner", "LineupURL": authenticated_player_url(request, f"{public}/tuner/lineup.json"), "TunerCount": settings.tuner_count,
     }
 
 
@@ -119,7 +120,7 @@ def lineup_json(request: Request, db: Session = Depends(get_db)) -> JSONResponse
     public = _public(request, db)
     entries = TunerService(db).build_lineup().entries
     return JSONResponse(
-        [{"GuideNumber": e.guide_number, "GuideName": e.guide_name, "URL": f"{public}/tuner/channel/{e.tv_channel_id}.ts"} for e in entries],
+        [{"GuideNumber": e.guide_number, "GuideName": e.guide_name, "URL": authenticated_player_url(request, f"{public}/tuner/channel/{e.tv_channel_id}.ts")} for e in entries],
         headers={"Cache-Control": "no-store"},
     )
 
@@ -172,8 +173,48 @@ def guide_xml(db: Session = Depends(get_db)) -> Response:
 def playlist_m3u(request: Request, db: Session = Depends(get_db)) -> PlainTextResponse:
     """The same lineup as an M3U, for servers configured with an M3U tuner."""
     service = TunerService(db)
-    return PlainTextResponse(service.build_playlist_m3u(service.build_lineup(), _public(request, db)),
+    content = service.build_playlist_m3u(service.build_lineup(), _public(request, db))
+    base = _public(request, db)
+    content = re.sub(re.escape(base) + r'/tuner/[^\s"<>]+', lambda match: authenticated_player_url(request, match.group(0)), content)
+    return PlainTextResponse(content,
                              headers={"Cache-Control": "no-store"})
+
+
+@hdhr_router.head('/source/{content_id}.ts', include_in_schema=False)
+@hdhr_router.get('/source/{content_id}.ts', include_in_schema=False)
+async def tuner_http_source(content_id: str, request: Request):
+    """A stored HTTP source uses the bounded, credential-preserving TS relay."""
+    from app.services.watch_service import imported_stream
+    if not re.fullmatch(r'url:[0-9a-f]{40}', content_id) or not await run_in_threadpool(imported_stream, content_id):
+        raise HTTPException(404, 'Channel not found')
+    if request.method == 'HEAD':
+        return Response(status_code=200, headers=RELAY_HEADERS)
+    limit = await run_in_threadpool(_tuner_count)
+    label = f"tuner:{request.client.host if request.client else '?'}"
+    claim = relay_registry.try_open(content_id, label, limit)
+    if claim is None:
+        raise HTTPException(503, 'All tuner slots are in use')
+    iterator = None
+    try:
+        settings = await run_in_threadpool(_relay_settings)
+        iterator = relay_ranked_streams(None, [content_id], label, claim, client_factory=_relay_client_factory,
+            attempt_seconds=settings.source_start_seconds, startup_budget_seconds=settings.startup_budget_seconds)
+        first = await anext(iterator)
+    except BaseException as error:
+        if iterator:
+            await iterator.aclose()
+        relay_registry.close(claim.id)
+        if isinstance(error, (EngineStreamError, EngineUnavailableError, StopAsyncIteration)):
+            raise HTTPException(502, 'The source could not start playback') from None
+        raise
+    async def body():
+        try:
+            yield first
+            async for chunk in iterator:
+                yield chunk
+        finally:
+            await iterator.aclose()
+    return ClosingStreamingResponse(body(), headers=RELAY_HEADERS)
 
 
 @hdhr_router.get("/epg.xml", include_in_schema=False)

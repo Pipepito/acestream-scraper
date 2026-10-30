@@ -12,6 +12,7 @@
 **Watch and manage**
 
 - [Live TV and web player](Web-Player.md)
+- [Accounts and Chromecast](Accounts-and-Casting.md)
 - [Wiseplay / W3U catalogues](W3U-Catalogues.md)
 
 

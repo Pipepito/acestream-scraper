@@ -28,6 +28,8 @@ import { buildPublicUrl } from '../../services/playlistService';
 import { getErrorMessage } from '../../utils/errorUtils';
 import { formatBitrate } from '../../utils/format';
 import { describePlayerError } from './playerCopy';
+import CastControls from './CastControls';
+import { useAccess } from '../access/AccessContext';
 
 export interface StreamPlayerDialogProps {
   open: boolean;
@@ -63,6 +65,8 @@ const startPlayback = (video: HTMLVideoElement): void => {
 
 /** Plays one channel through the backend's HLS pipeline. */
 const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId, title, onClose, extraActions, details, schedule, largePlayer, onTogglePlayerSize, inline = false }) => {
+  const access = useAccess();
+  const canManage = !access || access.status.mode === 'open' || Boolean(access.status.user?.administrator);
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('md'));
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -89,7 +93,7 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
   const audioIndex = audioSelection.contentId === contentId ? audioSelection.index : null;
   const start = useStartPlayerSession();
   const { data: status, error: statusError } = usePlayerSessionStatus(sessionId);
-  const { data: publicUrl } = usePublicUrl();
+  const { data: publicUrl } = usePublicUrl({ enabled: canManage });
 
   const leave = useCallback(() => {
     const id = sessionIdRef.current;
@@ -318,7 +322,8 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
       </DialogContent>
       <DialogActions sx={{ flexWrap: 'wrap', gap: 1, px: 2, pb: 'max(16px, env(safe-area-inset-bottom))' }}>
         {extraActions}
-        {!isHttpStream ? <Button onClick={handleCopy} disabled={!streamLink}>
+        {access && contentId && open ? <CastControls contentId={contentId} audioIndex={audioIndex} subtitleIndex={subtitleIndex} /> : null}
+        {!isHttpStream && canManage && access?.status.mode !== 'accounts' ? <Button onClick={handleCopy} disabled={!streamLink}>
           Copy stream link
         </Button> : null}
         <Button variant="contained" onClick={handleClose}>

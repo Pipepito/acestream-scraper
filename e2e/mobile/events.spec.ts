@@ -98,8 +98,8 @@ for (const mode of ['light', 'dark']) {
     let submitted: { timeout_seconds: number; provider_options: { feeds: string[]; football_competitions: string[] } } | undefined;
     await page.route('**/api/**', async route => {
       const path = new URL(route.request().url()).pathname;
-      let json: unknown = { status: 'ready', phase: 'Ready to use' };
-      if (path === '/api/v1/events') json = { events: [], total: 0 };
+      let json: unknown = { status: 'ready', phase: 'Ready to use', events: [] };
+      if (path === '/api/v1/events') json = { events: [fixture], total: 1 };
       if (path === '/api/v1/events/interests') json = { sports: [], competitions: [], teams: [] };
       if (path === '/api/v1/events/providers') json = {
         feeds: [{ id: 'all', name: 'All sports' }, { id: 'automovilismo', name: 'Motorsport' }, { id: 'football', name: 'Football' }],

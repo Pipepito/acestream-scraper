@@ -223,6 +223,7 @@ def current_football_season():
 class EventProviderOptions(StrictModel):
     provider: Literal['wosti_es', 'openfootball']
     feeds: list[str] = Field(default_factory=lambda: ['all', 'automovilismo'], min_length=1, max_length=20)
+    football_competitions: list[str] = Field(default_factory=list, max_length=20)
     season: str = Field(default_factory=current_football_season, pattern=r'^20\d{2}-\d{2}$')
     league: Literal['en.1', 'en.2', 'es.1', 'de.1', 'fr.1', 'it.1', 'nl.1', 'pt.1'] = 'es.1'
     window_days: int = Field(default=14, ge=1, le=30)
@@ -236,6 +237,7 @@ class EventProviderChoice(StrictModel):
 
 
 class EventProviderCatalog(StrictModel):
+    football_competitions: list[EventProviderChoice] = Field(default_factory=list)
     feeds: list[EventProviderChoice]
     leagues: list[EventProviderChoice]
 
@@ -269,6 +271,7 @@ class EventUpdate(StrictModel):
 
 
 class EventSourcePreviewRequest(StrictModel):
+    timeout_seconds: int | None = Field(default=None, ge=5, le=300)
     provider_options: EventProviderOptions | None = None
     format: Literal['event_import', 'schema_org'] = 'event_import'
     timezone: str = Field(default='UTC', max_length=100)
@@ -305,6 +308,7 @@ class EventRefreshResult(StrictModel):
 
 
 class EventSourceView(StrictModel):
+    timeout_seconds: int = Field(default=15, ge=5, le=300)
     provider_options: EventProviderOptions | None = None
     format: Literal['event_import', 'schema_org'] = 'event_import'
     timezone: str = 'UTC'
@@ -341,3 +345,40 @@ class EventBroadcastMapping(StrictModel):
 class EventRefreshQueued(StrictModel):
     status: Literal['triggered', 'already_running']
     message: str
+
+
+class EventOverlayRequest(StrictModel):
+    revision: int = Field(ge=1)
+    broadcast_id: str = Field(min_length=1, max_length=193)
+    ends_at: datetime
+
+    @field_validator('ends_at')
+    @classmethod
+    def explicit_offset(cls, value):
+        if value.tzinfo is None:
+            raise ValueError('Include a UTC offset in the overlay end time')
+        return value.astimezone(timezone.utc)
+
+
+class EventOverlayProgram(StrictModel):
+    title: str
+    starts_at: datetime
+    ends_at: datetime
+
+
+class EventOverlayPreview(StrictModel):
+    fingerprint: str
+    channel: EventChannelTarget
+    programme: EventOverlayProgram
+    affected: list[EventOverlayProgram]
+
+
+class EventOverlayApply(EventOverlayRequest):
+    expected_fingerprint: str = Field(pattern=r'^[0-9a-f]{64}$')
+
+
+class EventOverlayView(StrictModel):
+    broadcast_id: str
+    channel: EventChannelTarget
+    programme: EventOverlayProgram
+    active: bool

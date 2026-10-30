@@ -27,6 +27,8 @@ export default function EventImportPanel({ zone, onClose, source, catalogue }: P
   const [competition, setCompetition] = useState('');
   const [format, setFormat] = useState<'event_import' | 'schema_org'>(source?.format ?? 'event_import');
   const [sourceZone, setSourceZone] = useState(source?.timezone ?? 'Europe/Madrid');
+  const [timeoutSeconds, setTimeoutSeconds] = useState(String(source?.timeout_seconds ?? 15));
+  const validTimeout = /^\d+$/.test(timeoutSeconds) && Number(timeoutSeconds) >= 5 && Number(timeoutSeconds) <= 300;
   const [scheduleUrl, setScheduleUrl] = useState('');
   const [refreshSource, setRefreshSource] = useState(source?.enabled ?? false);
   const [url, setUrl] = useState('');
@@ -43,7 +45,7 @@ export default function EventImportPanel({ zone, onClose, source, catalogue }: P
     }) : eventService.preview(input),
     onSuccess: (result) => { setPreview(result); setSelected([]); setError(''); },
     onError: (err) => setError(getErrorMessage(err)) });
-  const reviewSource = useMutation({ mutationFn: () => eventService.previewSource(mode === 'provider' ? { source_id: source?.id, provider_options: provider, timezone: sourceZone } : source ? { source_id: source.id } : { url: scheduleUrl, format, timezone: sourceZone }),
+  const reviewSource = useMutation({ mutationFn: () => eventService.previewSource({ timeout_seconds: Number(timeoutSeconds), ...(mode === 'provider' ? { source_id: source?.id, provider_options: provider, timezone: sourceZone } : source ? { source_id: source.id } : { url: scheduleUrl, format, timezone: sourceZone }) }),
     onSuccess: (result) => { setPreview(result); setSelected([]); setError(''); setReviewedProvider(JSON.stringify(provider)); },
     onError: (err) => setError(getErrorMessage(err)) });
   const save = useMutation({ mutationFn: () => (mode === 'url' || mode === 'provider') ? eventService.apply(preview!.token, selected, refreshSource) : eventService.apply(preview!.token, selected),
@@ -129,8 +131,11 @@ export default function EventImportPanel({ zone, onClose, source, catalogue }: P
         }} /></Button>
         <TextField multiline minRows={6} maxRows={12} label="Event schedule JSON" value={raw} onChange={(e) => setRaw(e.target.value)} inputProps={{ maxLength: 2 * 1024 * 1024 }} />
       </>}
+      {mode === 'provider' || mode === 'url' ? <TextField label="Request timeout (seconds)" type="number" value={timeoutSeconds}
+        disabled={busy} onChange={(e) => setTimeoutSeconds(e.target.value)} inputProps={{ min: 5, max: 300 }} error={!validTimeout}
+        helperText="5–300 seconds for the complete source request. Saved for previews and automatic refresh." /> : null}
       <Stack direction="row" spacing={1}>
-        <Button variant="contained" disabled={busy || (mode === 'manual' ? !title.trim() : mode === 'url' ? !source && !scheduleUrl.trim() : mode === 'provider' ? provider.provider === 'wosti_es' && !provider.feeds?.length : !raw.trim())} onClick={submit}>{review.isPending || reviewSource.isPending ? 'Preparing preview…' : 'Preview events'}</Button>
+        <Button variant="contained" disabled={busy || ((mode === 'provider' || mode === 'url') && !validTimeout) || (mode === 'manual' ? !title.trim() : mode === 'url' ? !source && !scheduleUrl.trim() : mode === 'provider' ? provider.provider === 'wosti_es' && !provider.feeds?.length : !raw.trim())} onClick={submit}>{review.isPending || reviewSource.isPending ? 'Preparing preview…' : 'Preview events'}</Button>
         <Button disabled={busy} onClick={onClose}>Cancel</Button>
       </Stack>
     </Stack>}

@@ -8,6 +8,7 @@ export const releases: ReleaseNotes[] = [
       {
         "title": "Added",
         "items": [
+          "Add TV Rioja and Sincroguía channel pages as optional EPG sources. Preview and apply event windows over exported XMLTV guides while preserving regular listings and original recording schedules. Regional parsing is adapted from @scarcraft1’s contribution in issue #233.",
           "Record TV channels now or schedule a programme from its guide, edit start/end times, stop capture and browse recording history. Download preserved MPEG-TS originals or prepare MP4/AAC playback. Recording is opt-in with a persistent RECORDINGS_DIR; capacity checks, storage limits, protected files and optional retention keep capture bounded. Interrupted captures retain usable parts and may resume after restart. Scheduled starts run independently of maintenance; actual media arrival still depends on source startup.",
           "Set up an installation with a modal wizard for playback, access and optional services. It opens when a missing runtime file is bootstrapped, including on existing databases, and prefills deployment values. Runtime options persist in runtime-config.json beside the database; environment values seed the file once and later edits require a restart. Existing database preferences stay in place. The README includes a setup prompt for ChatGPT and shell-enabled coding agents.",
           "Define global import exclusions without deleting existing channels, and save catalogue searches for one-shot or opt-in scheduled additive imports. Preview decisions and track waiting, partial, excluded and unresolved outcomes.",
@@ -24,6 +25,7 @@ export const releases: ReleaseNotes[] = [
       {
         "title": "Improved",
         "items": [
+          "Choose football competitions before fetching Fútbol en la TV schedules, and save a 5–300-second timeout for event-source previews and refreshes.",
           "Browse the seven-day TV guide directly in Live TV without starting playback, and schedule a selected programme using its exact guide times. Recording requires an enabled assigned stream. The Docker builder includes a matching persistent recording-folder mount.",
           "Filter AceStream channels by Any, Linked or Not linked to a TV channel, and clear the selection with the other filters ([PR #270](https://github.com/Pipepito/acestream-scraper/pull/270)).",
           "Import reviewed schedules from Fútbol en la TV (WOSTI Spain) and OpenFootball, with saved sport, competition and team interests and a day-by-day agenda. Prefer unambiguous TV broadcaster links over EPG matches; date-only fixtures keep their kickoff unknown ([PR #269](https://github.com/Pipepito/acestream-scraper/pull/269)).",

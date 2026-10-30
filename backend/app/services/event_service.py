@@ -81,7 +81,7 @@ class EventService:
                     ids.add(broadcast['url'][11:].lower())
         return self.repo.channels(ids)
 
-    def _view(self, event, observations, channels=None):
+    def _view(self, event, observations, channels=None, *, include_epg_matches=True):
         channels = self._channels(observations, [event]) if channels is None else channels
         broadcasts = []
         provenance = []
@@ -127,15 +127,15 @@ class EventService:
                     compatibility=compatibility, reason=reason,
                     is_online=channel.is_online if channel else None,
                     checked_at=channel.last_checked if channel else None))
-        return EventView(epg_matches=self.epg.match(event.correction or event.fields), has_artwork=any(o.payload.get('artwork_url') for o in observations), **(event.correction or event.fields), id=event.id, revision=event.revision,
+        return EventView(epg_matches=self.epg.match(event.correction or event.fields) if include_epg_matches else [], has_artwork=any(o.payload.get('artwork_url') for o in observations), **(event.correction or event.fields), id=event.id, revision=event.revision,
             corrected=bool(event.correction), followed=event.followed, archived=event.archived,
             broadcasts=broadcasts, provenance=provenance)
 
-    def get(self, event_id):
+    def get(self, event_id, *, include_epg_matches=True):
         event = self.repo.get(event_id)
         if event is None:
             raise LookupError('Event not found')
-        return self._view(event, self.repo.observations(event_id))
+        return self._view(event, self.repo.observations(event_id), include_epg_matches=include_epg_matches)
 
     def interests(self):
         from app.schemas.events import EventInterestChoices

@@ -13,7 +13,7 @@ import unicodedata
 from zoneinfo import ZoneInfo
 
 import aiohttp
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, SoupStrainer
 
 from app.schemas.events import EventBroadcast, EventInterestChoices, EventObservation, EventProviderOptions
 from app.utils.outbound_http import source_session
@@ -24,6 +24,17 @@ FEEDS = {
     'motociclismo': 'Motorcycling', 'balonmano': 'Handball', 'beisbol': 'Baseball',
     'boxeo': 'Boxing', 'futbol-americano': 'American football', 'futbol-sala': 'Futsal',
     'ciclismo': 'Cycling', 'golf': 'Golf', 'padel': 'Padel', 'mma': 'MMA',
+}
+# Fixed, inspected provider paths: selections narrow upstream requests, not just rows.
+FOOTBALL_COMPETITIONS = {
+    'la-liga': 'La Liga EA Sports', 'segunda-division-espana': 'LaLiga Hypermotion',
+    'copa-del-rey': 'Copa del Rey', 'liga-campeones': 'Champions League',
+    'europa-league': 'Europa League', 'uefa-europa-conference-league': 'Conference League',
+    'premier-league': 'Premier League', 'bundesliga': 'Bundesliga',
+    'ligue-1': 'Francia Ligue 1', 'supercopa-espana': 'Supercopa de España',
+    'uefa-nations-league': 'UEFA Nations League', 'mundial-de-clubes': 'FIFA Copa Mundial de Clubes',
+    'primera-division-rfef': 'Primera Federación', 'primeira-liga': 'Liga portuguesa',
+    'division1-feminine': 'D1 Féminine', 'brasileirao': 'Serie A Brasil',
 }
 SPORT_NAMES = {
     'Fútbol': 'Football', 'Automovilismo': 'Motorsport', 'Baloncesto': 'Basketball',
@@ -61,6 +72,10 @@ def provider_location(options):
     if options.provider == 'wosti_es':
         if any(feed not in FEEDS for feed in options.feeds):
             raise ValueError('Choose a supported sports feed')
+        if any(key not in FOOTBALL_COMPETITIONS for key in options.football_competitions):
+            raise ValueError('Choose a supported football competition')
+        if options.football_competitions and ('football' not in options.feeds or 'all' in options.feeds):
+            raise ValueError('Choose Football without All sports to narrow competition requests')
         return 'https://www.futbolenlatv.es/deporte', 'provider:wosti:es', 'Fútbol en la TV · Spain'
     start, end = map(int, options.season.split('-'))
     if (start + 1) % 100 != end:
@@ -98,7 +113,7 @@ def parse_openfootball(raw, options, zone):
 
 
 def parse_wosti(raw, *, feed='all'):
-    soup = BeautifulSoup(raw, 'html.parser')
+    soup = BeautifulSoup(raw, 'html.parser', parse_only=SoupStrainer('table'))
     tables = soup.select('table.tablaPrincipal')
     if not tables:
         raise ValueError('Sports guide markup changed')
@@ -151,15 +166,26 @@ class ProviderSchedule:
     warnings: list[str] = field(default_factory=list)
 
 
+def provider_urls(options):
+    url, _, _ = provider_location(options)
+    if options.provider != 'wosti_es':
+        return [(url, '')]
+    urls = []
+    for feed in dict.fromkeys(options.feeds):
+        if feed == 'football' and options.football_competitions:
+            urls.extend(('https://www.futbolenlatv.es/competicion/' + key, 'football')
+                        for key in dict.fromkeys(options.football_competitions))
+        else:
+            path = '/deporte' if feed == 'all' else '/deporte/futbol' if feed == 'football' else '/deporte/' + feed
+            urls.append(('https://www.futbolenlatv.es' + path, feed))
+    return urls
+
+
 async def fetch_provider(options, *, zone, timeout=15, now=None):
     options = EventProviderOptions.model_validate(options)
-    url, _, _ = provider_location(options)
+    urls = provider_urls(options)
     if options.provider == 'wosti_es':
-        urls = [('https://www.futbolenlatv.es' + ('/deporte' if feed == 'all' else '/' if feed == 'football' else '/deporte/' + feed), feed)
-                for feed in dict.fromkeys(options.feeds)]
         zone = 'Europe/Madrid'
-    else:
-        urls = [(url, '')]
     semaphore = asyncio.Semaphore(3)
     total_bytes = 0
     async with asyncio.timeout(timeout):
@@ -176,7 +202,7 @@ async def fetch_provider(options, *, zone, timeout=15, now=None):
                             if len(data) > 2 * 1024 * 1024 or total_bytes > 12 * 1024 * 1024:
                                 raise ValueError('Provider response exceeds size limit')
                     raw = data.decode('utf-8-sig')
-                    return parse_wosti(raw, feed=feed) if options.provider == 'wosti_es' else parse_openfootball(raw, options, zone)
+                    return await asyncio.to_thread(parse_wosti, raw, feed=feed) if options.provider == 'wosti_es' else await asyncio.to_thread(parse_openfootball, raw, options, zone)
             # TaskGroup cancels sibling requests on failure, before closing the session.
             async with asyncio.TaskGroup() as group:
                 tasks = [group.create_task(load(url, feed)) for url, feed in urls]

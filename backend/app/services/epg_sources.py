@@ -182,30 +182,35 @@ class EPGSourceOperations:
         try:
             logger.info(f"Fetching EPG data from {source.url}")
 
-            # Make HTTP request with timeout. Redirects are followed
-            # manually so every hop passes the outbound URL guard.
-            current_url = source.url
-            validate_outbound_url(current_url)
-            response = None
-            for _ in range(6):
-                response = source_get(current_url, timeout=60, allow_redirects=False)
-                if response.is_redirect or response.is_permanent_redirect:
-                    location = response.headers.get('Location')
-                    if not location:
-                        break
-                    current_url = urljoin(current_url, location)
-                    validate_outbound_url(current_url)
-                    continue
-                break
+            from app.services import regional_guides
+            if regional_guides.supports(source.url):
+                import asyncio
+                content = asyncio.run(regional_guides.fetch(source.url))
             else:
-                raise BlockedURLError(f"Too many redirects fetching '{source.url}'")
-            response.raise_for_status()
+                # Make HTTP request with timeout. Redirects are followed
+                # manually so every hop passes the outbound URL guard.
+                current_url = source.url
+                validate_outbound_url(current_url)
+                response = None
+                for _ in range(6):
+                    response = source_get(current_url, timeout=60, allow_redirects=False)
+                    if response.is_redirect or response.is_permanent_redirect:
+                        location = response.headers.get('Location')
+                        if not location:
+                            break
+                        current_url = urljoin(current_url, location)
+                        validate_outbound_url(current_url)
+                        continue
+                    break
+                else:
+                    raise BlockedURLError(f"Too many redirects fetching '{source.url}'")
+                response.raise_for_status()
 
-            # Handle gzipped content
-            content = response.content
-            if source.url.endswith('.gz'):
-                import gzip
-                content = gzip.decompress(content)
+                # Handle gzipped content
+                content = response.content
+                if source.url.endswith('.gz'):
+                    import gzip
+                    content = gzip.decompress(content)
 
             # Use the improved _process_epg_xml method
             channels_found, programs_found = self._process_epg_xml(source.id, content)

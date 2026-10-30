@@ -51,6 +51,7 @@ const EPGSourceDialog: React.FC<EPGSourceDialogProps> = ({
         onChange={onChange}
         sx={{ mb: 2 }}
         placeholder="https://example.com/epg.xml"
+        helperText="XMLTV, TV Rioja weekday schedule, or a Sincroguía /programacion/ channel page. Football schedules belong in Events."
       />
       <FormControlLabel
         control={

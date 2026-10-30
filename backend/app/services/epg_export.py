@@ -138,7 +138,13 @@ class EPGExportOperations:
         programs_by_channel: Dict[int, List[EPGProgram]] = {}
         for program in programs:
             programs_by_channel.setdefault(program.epg_channel_id, []).append(program)
-        return programs_by_channel
+        # Project reviewed event windows for XMLTV/tuner exports. Imported rows
+        # remain the authoritative regular guide and are never changed here.
+        from app.services.event_overlay_service import EventOverlayService
+        for channel_id in epg_channel_ids:
+            programs_by_channel.setdefault(channel_id, [])
+        return EventOverlayService(self.db).project(programs_by_channel,
+            now - timedelta(days=days_back), now + timedelta(days=days_forward))
 
     @staticmethod
     def programme_xml_lines(program: EPGProgram, channel_id: str) -> List[str]:

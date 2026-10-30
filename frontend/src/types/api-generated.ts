@@ -652,6 +652,18 @@ export interface paths {
     /** Map Event Broadcast */
     patch: operations["map_event_broadcast_api_v1_events__event_id__broadcast_patch"];
   };
+  "/api/v1/events/{event_id}/guide-overlays": {
+    /** List Event Overlays */
+    get: operations["list_event_overlays_api_v1_events__event_id__guide_overlays_get"];
+    /** Apply Event Overlay */
+    post: operations["apply_event_overlay_api_v1_events__event_id__guide_overlays_post"];
+    /** Remove Event Overlay */
+    delete: operations["remove_event_overlay_api_v1_events__event_id__guide_overlays_delete"];
+  };
+  "/api/v1/events/{event_id}/guide-overlays/preview": {
+    /** Preview Event Overlay */
+    post: operations["preview_event_overlay_api_v1_events__event_id__guide_overlays_preview_post"];
+  };
   "/api/v1/health": {
     /**
      * Check Health
@@ -2874,6 +2886,65 @@ export interface components {
       /** Title */
       title: string;
     };
+    /** EventOverlayApply */
+    EventOverlayApply: {
+      /** Broadcast Id */
+      broadcast_id: string;
+      /**
+       * Ends At
+       * Format: date-time
+       */
+      ends_at: string;
+      /** Expected Fingerprint */
+      expected_fingerprint: string;
+      /** Revision */
+      revision: number;
+    };
+    /** EventOverlayPreview */
+    EventOverlayPreview: {
+      /** Affected */
+      affected: components["schemas"]["EventOverlayProgram"][];
+      channel: components["schemas"]["EventChannelTarget"];
+      /** Fingerprint */
+      fingerprint: string;
+      programme: components["schemas"]["EventOverlayProgram"];
+    };
+    /** EventOverlayProgram */
+    EventOverlayProgram: {
+      /**
+       * Ends At
+       * Format: date-time
+       */
+      ends_at: string;
+      /**
+       * Starts At
+       * Format: date-time
+       */
+      starts_at: string;
+      /** Title */
+      title: string;
+    };
+    /** EventOverlayRequest */
+    EventOverlayRequest: {
+      /** Broadcast Id */
+      broadcast_id: string;
+      /**
+       * Ends At
+       * Format: date-time
+       */
+      ends_at: string;
+      /** Revision */
+      revision: number;
+    };
+    /** EventOverlayView */
+    EventOverlayView: {
+      /** Active */
+      active: boolean;
+      /** Broadcast Id */
+      broadcast_id: string;
+      channel: components["schemas"]["EventChannelTarget"];
+      programme: components["schemas"]["EventOverlayProgram"];
+    };
     /** EventPreview */
     EventPreview: {
       available_interests?: components["schemas"]["EventInterestChoices"];
@@ -2907,6 +2978,8 @@ export interface components {
     EventProviderCatalog: {
       /** Feeds */
       feeds: components["schemas"]["EventProviderChoice"][];
+      /** Football Competitions */
+      football_competitions?: components["schemas"]["EventProviderChoice"][];
       /** Leagues */
       leagues: components["schemas"]["EventProviderChoice"][];
     };
@@ -2926,6 +2999,8 @@ export interface components {
     EventProviderOptions: {
       /** Feeds */
       feeds?: string[];
+      /** Football Competitions */
+      football_competitions?: string[];
       interests?: components["schemas"]["EventInterests"];
       /**
        * League
@@ -3000,6 +3075,8 @@ export interface components {
       provider_options?: components["schemas"]["EventProviderOptions"] | null;
       /** Source Id */
       source_id?: string | null;
+      /** Timeout Seconds */
+      timeout_seconds?: number | null;
       /**
        * Timezone
        * @default UTC
@@ -3041,6 +3118,11 @@ export interface components {
       reviewed: number;
       /** Revision */
       revision: number;
+      /**
+       * Timeout Seconds
+       * @default 15
+       */
+      timeout_seconds?: number;
       /**
        * Timezone
        * @default UTC
@@ -8625,6 +8707,106 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["EventView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** List Event Overlays */
+  list_event_overlays_api_v1_events__event_id__guide_overlays_get: {
+    parameters: {
+      path: {
+        event_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventOverlayView"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Apply Event Overlay */
+  apply_event_overlay_api_v1_events__event_id__guide_overlays_post: {
+    parameters: {
+      path: {
+        event_id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EventOverlayApply"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventOverlayView"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Remove Event Overlay */
+  remove_event_overlay_api_v1_events__event_id__guide_overlays_delete: {
+    parameters: {
+      query: {
+        revision: number;
+        broadcast_id: string;
+      };
+      path: {
+        event_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Preview Event Overlay */
+  preview_event_overlay_api_v1_events__event_id__guide_overlays_preview_post: {
+    parameters: {
+      path: {
+        event_id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EventOverlayRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EventOverlayPreview"];
         };
       };
       /** @description Validation Error */

@@ -71,8 +71,9 @@ channel mapping first; no global DAZN or HDR alias is introduced.
 Preview exposes affected programmes without writes. Apply obtains the event's
 revision write claim, recomputes the target/schedule/affected-programme fingerprint
 and rejects stale previews or overlapping accepted overlays. Migration
-`20261030_1200` adds nullable `sporting_events.guide_overlays` after the recording
-migration; upgrade/downgrade tests preserve existing events. A source URL digest,
+`20261030_1300` adds nullable `sporting_events.guide_overlays` after the source-name
+migration `20261030_1200`; upgrade/downgrade tests preserve existing events and
+named sources. A source URL digest,
 guide identity and broadcast target are retained privately to detect replacement.
 
 `programs_in_window` projects overlays for both ordinary XMLTV and tuner exports:

@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -74,6 +75,7 @@ jest.mock('../hooks/useTVChannels', () => ({
 }));
 jest.mock('../services/channelService', () => ({
   acestreamChannelService: {
+    getSources: jest.fn().mockResolvedValue([]),
     getGroups: (...args: unknown[]) => mockGetGroups(...args),
     runStatusCheckNow: (...args: unknown[]) => mockCheckAllStatuses(...args),
     updateAcestreamChannel: (...args: unknown[]) => mockUpdateAcestreamChannel(...args),
@@ -106,11 +108,11 @@ const alpha: Row = {
 describe('AcestreamChannels page', () => {
   const renderPage = () =>
     render(
-      <ThemeProvider theme={createAppTheme('light')}>
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><ThemeProvider theme={createAppTheme('light')}>
         <TestMemoryRouter>
           <AcestreamChannels />
         </TestMemoryRouter>
-      </ThemeProvider>
+      </ThemeProvider></QueryClientProvider>
     );
 
   const user = () => userEvent.setup();

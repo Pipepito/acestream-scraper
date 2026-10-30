@@ -1265,6 +1265,29 @@
         "title": "BroadcastView",
         "type": "object"
       },
+      "BuiltinProvider": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "url"
+        ],
+        "title": "BuiltinProvider",
+        "type": "object"
+      },
       "BulkChannelActivateRequest": {
         "description": "Schema for bulk channel activation/deactivation",
         "properties": {
@@ -1899,6 +1922,35 @@
           "name"
         ],
         "title": "ChannelResult",
+        "type": "object"
+      },
+      "ChannelSourceFilter": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "scrape",
+              "broadcaster",
+              "catalogue",
+              "import"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "label",
+          "kind"
+        ],
+        "title": "ChannelSourceFilter",
         "type": "object"
       },
       "ChannelStatusJobRunResponse": {
@@ -11397,6 +11449,18 @@
               }
             ]
           },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
           "scrape_bare_ids": {
             "default": false,
             "title": "Scrape Bare Ids",
@@ -11505,6 +11569,18 @@
               }
             ],
             "title": "Last Scraped"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
           },
           "scrape_bare_ids": {
             "default": false,
@@ -11622,6 +11698,18 @@
                 "type": "null"
               }
             ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
           },
           "scrape_bare_ids": {
             "anyOf": [
@@ -12528,6 +12616,22 @@
               ],
               "title": "Assigned"
             }
+          },
+          {
+            "in": "query",
+            "name": "source_url",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Url"
+            }
           }
         ],
         "responses": {
@@ -12760,6 +12864,31 @@
           }
         },
         "summary": "Get Channel Groups",
+        "tags": [
+          "channels"
+        ]
+      }
+    },
+    "/api/v1/acestream-channels/sources": {
+      "get": {
+        "operationId": "get_channel_sources_api_v1_acestream_channels_sources_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ChannelSourceFilter"
+                  },
+                  "title": "Response Get Channel Sources Api V1 Acestream Channels Sources Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Channel Sources",
         "tags": [
           "channels"
         ]
@@ -13736,6 +13865,22 @@
               ],
               "title": "Assigned"
             }
+          },
+          {
+            "in": "query",
+            "name": "source_url",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Url"
+            }
           }
         ],
         "responses": {
@@ -13968,6 +14113,31 @@
           }
         },
         "summary": "Get Channel Groups",
+        "tags": [
+          "channels"
+        ]
+      }
+    },
+    "/api/v1/channels/sources": {
+      "get": {
+        "operationId": "get_channel_sources_api_v1_channels_sources_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ChannelSourceFilter"
+                  },
+                  "title": "Response Get Channel Sources Api V1 Channels Sources Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Channel Sources",
         "tags": [
           "channels"
         ]
@@ -20575,6 +20745,31 @@
         "summary": "Run Search",
         "tags": [
           "saved-searches"
+        ]
+      }
+    },
+    "/api/v1/scrapers/providers": {
+      "get": {
+        "operationId": "builtin_providers_api_v1_scrapers_providers_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BuiltinProvider"
+                  },
+                  "title": "Response Builtin Providers Api V1 Scrapers Providers Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Builtin Providers",
+        "tags": [
+          "scrapers"
         ]
       }
     },

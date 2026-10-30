@@ -778,3 +778,12 @@ recording IDs. Changed schedule/target identities suspend overlays. Football
 competition choices narrow upstream URLs before fetching; saved 5–300s source
 timeouts apply to preview and refresh, with pass admission checked between sources.
 See `docs/dev/regional-guides-and-overlays.md`.
+
+## Named import sources
+
+Scraper sources accept an optional friendly name. Built-in broadcaster choices
+come from the installed adapter registry through `/api/v1/scrapers/providers`;
+`broadcaster` is a validated source type, and saving never starts an import.
+Acestream Channels filters source identity before counting/pagination. W3U source
+filters include reviewed shared imports without replacing their original owners
+or exposing private catalogue media URLs. See `wiki/Usage.md`.

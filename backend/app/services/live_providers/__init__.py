@@ -18,6 +18,13 @@ from urllib.parse import urlparse
 from app.services.live_providers import atresplayer, base, mediaset, sietetv, telemadrid
 
 PROVIDERS = (atresplayer, mediaset, sietetv, telemadrid)
+# One advertised source per installed adapter; no network requests during listing.
+BUILTIN_SOURCES = (
+    {'id': 'atresplayer', 'name': 'Atresmedia', 'url': 'https://www.atresplayer.com'},
+    {'id': 'mediaset', 'name': 'Mediaset', 'url': 'https://www.mediasetinfinity.es'},
+    {'id': '7riojaplay', 'name': '7 Rioja', 'url': 'https://www.7riojaplay.tv'},
+    {'id': 'telemadrid', 'name': 'Telemadrid', 'url': 'https://www.telemadrid.es'},
+)
 LIVE_PATH = '/live/'
 
 

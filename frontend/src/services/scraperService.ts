@@ -2,12 +2,15 @@
  * Scraper API service
  */
 import apiClient from './apiClient';
+import type { components } from '../types/api-generated';
+export type BuiltinProvider = components['schemas']['BuiltinProvider'];
 import type { ExtractionRecipe } from '../recipes/types';
 
 /**
  * Scraper URL model interface
  */
 export interface ScrapedURL {
+  name?: string | null;
   id: number;
   url: string;
   url_type: string;
@@ -27,6 +30,7 @@ export interface ScrapedURL {
  * URL creation DTO
  */
 export interface CreateURLDTO {
+  name?: string | null;
   url: string;
   url_type: string;
   enabled?: boolean;
@@ -38,6 +42,7 @@ export interface CreateURLDTO {
  * URL update DTO
  */
 export interface UpdateURLDTO {
+  name?: string | null;
   url?: string;
   url_type?: string;
   enabled?: boolean;
@@ -73,6 +78,10 @@ export interface ScrapeResult {
  * Scraper API service
  */
 export const scraperService = {
+  getProviders: async (): Promise<BuiltinProvider[]> => {
+    const { data } = await apiClient.get('/v1/scrapers/providers');
+    return data;
+  },
   /**
    * Get all URLs
    */

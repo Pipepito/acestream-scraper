@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta, timezone
 import xml.etree.ElementTree as ET
 
+import pytest
+
 from sqlalchemy import create_engine, inspect, text
 
 from app.models.models import EPGProgram
@@ -94,17 +96,25 @@ def test_overlay_requires_assigned_target_explicit_end_and_rejects_conflicts(cli
     assert response.status_code == 409 and 'occupies' in response.text
 
 
-def test_overlay_migration_preserves_existing_events_and_upgrade_path(tmp_path):
+@pytest.mark.parametrize('previous_revision', ['20261028_1200', '20261030_1200'])
+def test_overlay_migration_preserves_existing_events_and_upgrade_path(tmp_path, previous_revision):
     path = tmp_path / 'overlay.db'
-    upgrade_to_revision(path, '20261028_1200')
+    upgrade_to_revision(path, previous_revision)
     engine = create_engine(database_url_for(path))
     with engine.begin() as conn:
         conn.execute(text("INSERT INTO sporting_events (id, owner_id, revision, fields, followed, archived) VALUES ('test', 'owner', 3, '{}', 1, 0)"))
+        if previous_revision == '20261030_1200':
+            conn.execute(text("INSERT INTO scraped_urls (url,url_type,enabled,name) VALUES ('https://example.test/list','auto',1,'My source')"))
     upgrade_to_head(path)
     with engine.connect() as conn:
         assert conn.execute(text('SELECT revision, followed, guide_overlays FROM sporting_events')).one() == (3, 1, None)
-    downgrade_to_revision(path, '20261028_1200')
+        if previous_revision == '20261030_1200':
+            assert conn.execute(text('SELECT name FROM scraped_urls')).scalar_one() == 'My source'
+    downgrade_to_revision(path, previous_revision)
     assert 'guide_overlays' not in {c['name'] for c in inspect(engine).get_columns('sporting_events')}
+    if previous_revision == '20261030_1200':
+        with engine.connect() as conn:
+            assert conn.execute(text('SELECT name FROM scraped_urls')).scalar_one() == 'My source'
     upgrade_to_head(path)
     engine.dispose()
     fresh = tmp_path / 'fresh.db'

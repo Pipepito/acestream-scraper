@@ -95,6 +95,10 @@ export interface paths {
      */
     get: operations["get_channel_groups_api_v1_acestream_channels_groups_get"];
   };
+  "/api/v1/acestream-channels/sources": {
+    /** Get Channel Sources */
+    get: operations["get_channel_sources_api_v1_acestream_channels_sources_get"];
+  };
   "/api/v1/acestream-channels/status_summary": {
     /**
      * Get Channel Status Summary
@@ -229,6 +233,10 @@ export interface paths {
      * @description Get unique channel groups.
      */
     get: operations["get_channel_groups_api_v1_channels_groups_get"];
+  };
+  "/api/v1/channels/sources": {
+    /** Get Channel Sources */
+    get: operations["get_channel_sources_api_v1_channels_sources_get"];
   };
   "/api/v1/channels/status_summary": {
     /**
@@ -943,6 +951,10 @@ export interface paths {
   "/api/v1/saved-searches/{search_id}/run": {
     /** Run Search */
     post: operations["run_search_api_v1_saved_searches__search_id__run_post"];
+  };
+  "/api/v1/scrapers/providers": {
+    /** Builtin Providers */
+    get: operations["builtin_providers_api_v1_scrapers_providers_get"];
   };
   "/api/v1/scrapers/recipes/preview": {
     /**
@@ -1865,6 +1877,15 @@ export interface components {
       source_name: string;
       target?: components["schemas"]["EventChannelTarget"] | null;
     };
+    /** BuiltinProvider */
+    BuiltinProvider: {
+      /** Id */
+      id: string;
+      /** Name */
+      name: string;
+      /** Url */
+      url: string;
+    };
     /**
      * BulkChannelActivateRequest
      * @description Schema for bulk channel activation/deactivation
@@ -2161,6 +2182,18 @@ export interface components {
       };
       /** Name */
       name: string;
+    };
+    /** ChannelSourceFilter */
+    ChannelSourceFilter: {
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "scrape" | "broadcaster" | "catalogue" | "import";
+      /** Label */
+      label: string;
+      /** Value */
+      value: string;
     };
     /** ChannelStatusJobRunResponse */
     ChannelStatusJobRunResponse: {
@@ -5961,6 +5994,8 @@ export interface components {
        */
       enabled?: boolean;
       extraction_recipe?: components["schemas"]["ExtractionRecipe"] | null;
+      /** Name */
+      name?: string | null;
       /**
        * Scrape Bare Ids
        * @default false
@@ -6015,6 +6050,8 @@ export interface components {
       last_processed?: string | null;
       /** Last Scraped */
       last_scraped?: string | null;
+      /** Name */
+      name?: string | null;
       /**
        * Scrape Bare Ids
        * @default false
@@ -6056,6 +6093,8 @@ export interface components {
       /** Enabled */
       enabled?: boolean | null;
       extraction_recipe?: components["schemas"]["ExtractionRecipe"] | null;
+      /** Name */
+      name?: string | null;
       /** Scrape Bare Ids */
       scrape_bare_ids?: boolean | null;
       /** Status */
@@ -6315,6 +6354,7 @@ export interface operations {
         is_active?: boolean | null;
         is_online?: boolean | null;
         assigned?: boolean | null;
+        source_url?: string | null;
       };
     };
     responses: {
@@ -6456,6 +6496,17 @@ export interface operations {
       200: {
         content: {
           "application/json": unknown;
+        };
+      };
+    };
+  };
+  /** Get Channel Sources */
+  get_channel_sources_api_v1_acestream_channels_sources_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ChannelSourceFilter"][];
         };
       };
     };
@@ -6895,6 +6946,7 @@ export interface operations {
         is_active?: boolean | null;
         is_online?: boolean | null;
         assigned?: boolean | null;
+        source_url?: string | null;
       };
     };
     responses: {
@@ -7036,6 +7088,17 @@ export interface operations {
       200: {
         content: {
           "application/json": unknown;
+        };
+      };
+    };
+  };
+  /** Get Channel Sources */
+  get_channel_sources_api_v1_channels_sources_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ChannelSourceFilter"][];
         };
       };
     };
@@ -10262,6 +10325,17 @@ export interface operations {
       422: {
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Builtin Providers */
+  builtin_providers_api_v1_scrapers_providers_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["BuiltinProvider"][];
         };
       };
     };

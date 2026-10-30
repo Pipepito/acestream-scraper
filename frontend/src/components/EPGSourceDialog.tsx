@@ -9,6 +9,7 @@ import {
   Switch,
   TextField,
 } from '@mui/material';
+import { epgProviders } from '../services/epgProviders';
 import { EPGSourceFormData } from '../hooks/useEPGSourceManagement';
 
 interface EPGSourceDialogProps {
@@ -16,6 +17,7 @@ interface EPGSourceDialogProps {
   isEdit: boolean;
   formData: EPGSourceFormData;
   onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onSelectProvider?: (provider: { name: string; url: string }) => void;
   onClose: () => void;
   onSubmit: () => void;
 }
@@ -25,6 +27,7 @@ const EPGSourceDialog: React.FC<EPGSourceDialogProps> = ({
   isEdit,
   formData,
   onChange,
+  onSelectProvider,
   onClose,
   onSubmit,
 }) => (
@@ -33,6 +36,7 @@ const EPGSourceDialog: React.FC<EPGSourceDialogProps> = ({
       {isEdit ? 'Edit EPG Source' : 'Add EPG Source'}
     </DialogTitle>
     <DialogContent>
+      {!isEdit && onSelectProvider ? epgProviders.map(provider => <Button key={provider.id} onClick={() => onSelectProvider(provider)}>Use {provider.name}</Button>) : null}
       <TextField
         margin="dense"
         name="name"

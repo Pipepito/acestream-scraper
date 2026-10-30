@@ -25,6 +25,9 @@ class SetupState(BaseModel):
     unavailable: dict[str, str]
     restart_required: bool
     api_protected: bool
+    resolved_runtime: dict[str, RuntimeValue] = Field(default_factory=dict)
+    saved_overrides: dict[str, str] = Field(default_factory=dict)
+    recordings_configured: bool = False
 
 
 class SetupUpdate(BaseModel):

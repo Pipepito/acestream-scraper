@@ -771,8 +771,9 @@ shared query keys and page-scoped feedback preserve existing operations.
 
 `runtime-config.json` version 1 lives beside the SQLite database. Only reviewed
 `backend/app/config/runtime-options.json` data options migrate from environment on
-first creation; existing files win thereafter. Keep commands, paths, ports, image
-facts and credentials in deployment configuration. A modal wizard opens after
+first creation and for missing keys on upgrade; existing keys always win. Internal
+service listeners, connections, buffering and timezone can be saved in setup. Keep
+commands, paths, published port mappings, image facts and credentials in deployment configuration. A modal wizard opens after
 a missing file is seeded from deployment values, even when the database exists,
 until setup is saved. Users can postpone it and reopen it at `/setup` from Settings;
 writes are authenticated, validated, revision-checked and atomic. Changes
@@ -836,6 +837,10 @@ come from the installed adapter registry through `/api/v1/scrapers/providers`;
 Acestream Channels filters source identity before counting/pagination. W3U source
 filters include reviewed shared imports without replacing their original owners
 or exposing private catalogue media URLs. See `wiki/Usage.md`.
+
+
+Setup defaults to adding channel sources and an optional programme guide. Sources and guides save as added; Finish setup only marks onboarding complete. Runtime controls live under Connection settings (advanced), preserving imported deployment values and file precedence. EPG dobleM is an explicit shared guide preset; preview and selected matching reuse the reviewed guide workflow.
+
 # Self-hosted code-quality feedback
 
 See `docs/ops/code-quality.md` for optional Git hooks and coverage reporting.

@@ -12,7 +12,7 @@ for (const mode of ['light', 'dark']) {
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
     let state = {
       version: 1, setup_complete: false, revision: 'a'.repeat(64), restart_required: false, api_protected: false,
-      runtime: { ...Object.fromEntries(options.map(option => [option.name, option.default])), PLAYER_MAX_SESSIONS: 7 }, options,
+      runtime: { ...Object.fromEntries(options.map(option => [option.name, option.default])), PLAYER_MAX_SESSIONS: 7, ENABLE_ACESTREAM_ENGINE: true, ENABLE_ACESTREAM_CHECK_ENGINE: true, ENABLE_ACEXY: true, ACEXY_LISTEN_ADDR: ":8084", ACEXY_BUFFER_SIZE: "5MiB" }, options,
       unavailable: { ENABLE_IPFS: 'This image does not include IPFS.' },
     };
     let saves = 0;
@@ -25,11 +25,16 @@ for (const mode of ['light', 'dark']) {
         if (request.method() === 'PUT') {
           const update = request.postDataJSON();
           expect(update.expected_revision).toBe(state.revision);
-          state = { ...state, runtime: update.runtime, setup_complete: true, revision: 'b'.repeat(64), restart_required: true };
+          if (Object.keys(update.runtime).length) {
+            expect(update.runtime.ACE_CHECK_ENGINE_URL).toBe('');
+            expect(update.runtime.ACEXY_BUFFER_SIZE).toBe('10MiB');
+          }
+          state = { ...state, runtime: { ...state.runtime, ...update.runtime }, setup_complete: update.setup_complete, revision: 'b'.repeat(64), restart_required: true };
           saves++;
         }
         data = state;
       }
+      if (endpoint === '/scrapers/urls' || endpoint === '/epg/sources') data = [];
       await route.fulfill({ json: data });
     });
     await page.addInitScript(value => localStorage.setItem('app-theme-mode', value), mode);
@@ -37,7 +42,13 @@ for (const mode of ['light', 'dark']) {
     await page.waitForLoadState('networkidle');
     await expect(page.getByRole('heading', { name: 'Set up scraper' })).toBeVisible();
     await expect(page.getByRole('dialog', { name: 'Set up scraper' })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Channel source link' })).toBeVisible();
+    await expect(page.getByRole('spinbutton')).toHaveCount(0);
+    await page.screenshot({ path: test.info().outputPath(`setup-sources-${mode}.png`), animations: 'disabled' });
+    await page.getByRole('button', { name: 'Connection settings (advanced)' }).click();
     await expect(page.getByRole('spinbutton', { name: 'Maximum browser sessions' })).toHaveValue('7');
+    await expect(page.getByRole('textbox', { name: 'Playback engine address', exact: true })).toHaveValue('http://localhost:6878');
+    await expect(page.getByRole('textbox', { name: 'Dedicated checking engine address' })).toHaveValue('http://127.0.0.1:6880');
     await page.getByRole('spinbutton', { name: 'Maximum browser sessions' }).fill('5');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: test.info().outputPath(`setup-playback-${mode}.png`), fullPage: false, animations: 'disabled' });
@@ -45,6 +56,9 @@ for (const mode of ['light', 'dark']) {
     await expect(page.getByText(/No API token is configured/)).toBeVisible();
     await page.getByRole('button', { name: 'Continue' }).click();
     await expect(page.getByRole('checkbox', { name: 'IPFS', exact: true })).toBeDisabled();
+    await page.getByRole('button', { name: 'Acexy connection and buffering' }).click();
+    await expect(page.getByRole('textbox', { name: 'Acexy listen address' })).toHaveValue(':8084');
+    await page.getByRole('textbox', { name: 'Acexy buffer size' }).fill('10MiB');
     await page.getByRole('button', { name: 'Continue' }).click();
     await expect(page.getByText('Maximum browser sessions: 5')).toBeVisible();
     await page.getByRole('button', { name: 'Advanced settings' }).click();
@@ -52,18 +66,24 @@ for (const mode of ['light', 'dark']) {
     expect(saves).toBe(0);
     await page.getByRole('button', { name: 'Save setup' }).click();
     await expect(page.getByText(/Setup saved. Restart the container/)).toBeVisible();
-    const title = await page.getByRole('heading', { name: 'Set up scraper' }).boundingBox();
+    const title = await page.getByRole('heading', { name: 'Connection settings' }).boundingBox();
     expect(title?.y).toBeGreaterThanOrEqual(0);
-    await expect(page.getByRole('link', { name: 'Add an official broadcaster' })).toHaveAttribute('href', '/scraper');
+    await page.getByRole('button', { name: 'Return to setup' }).click();
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Use EPG dobleM' })).toBeVisible();
+    await page.screenshot({ path: test.info().outputPath(`setup-guide-${mode}.png`), animations: 'disabled' });
+    await page.getByRole('button', { name: 'Finish setup' }).click();
+    await expect(page.getByRole('heading', { name: 'Setup saved', exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: test.info().outputPath(`setup-finished-${mode}.png`), fullPage: false, animations: 'disabled' });
-    await page.getByRole('button', { name: 'Done', exact: true }).click();
+    await page.getByRole('button', { name: 'Close', exact: true }).click();
     await page.reload();
     await expect(page.getByRole('dialog', { name: 'Set up scraper' })).toHaveCount(0);
     await page.getByRole('link', { name: 'Review setup' }).click();
+    await page.getByRole('button', { name: 'Connection settings (advanced)' }).click();
     await expect(page.getByRole('spinbutton', { name: 'Maximum browser sessions' })).toHaveValue('5');
     await expect(page.getByText('Restart required', { exact: true })).toBeVisible();
-    expect(saves).toBe(1);
+    expect(saves).toBe(2);
     expect(errors).toEqual([]);
   });
 }

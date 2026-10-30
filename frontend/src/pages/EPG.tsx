@@ -83,6 +83,7 @@ const EPG: React.FC = () => {
     openSourceDialog,
     isEditSource,
     sourceFormData,
+    selectSourceProvider,
     refreshingSourceId,
     isRefreshingAll,
     handleAddSourceClick,
@@ -379,6 +380,7 @@ const EPG: React.FC = () => {
         open={openSourceDialog}
         isEdit={isEditSource}
         formData={sourceFormData}
+        onSelectProvider={selectSourceProvider}
         onChange={handleSourceFormChange}
         onClose={handleCloseSourceDialog}
         onSubmit={handleSourceFormSubmit}

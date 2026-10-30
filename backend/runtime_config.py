@@ -18,6 +18,7 @@ import sys
 import tempfile
 from contextlib import contextmanager
 from urllib.parse import urlsplit
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 OPTIONS = json.loads((Path(__file__).parent / 'app/config/runtime-options.json').read_text())
 OPTION_MAP = {option['name']: option for option in OPTIONS}
@@ -83,10 +84,34 @@ def validate_values(values: dict, *, bootstrap: bool = False) -> dict:
                 if name == 'CORS_ORIGINS':
                     for origin in filter(None, map(str.strip, value.split(','))):
                         if origin != '*' and (urlsplit(origin).scheme not in ('http', 'https') or not urlsplit(origin).hostname): raise ValueError
+                if kind == 'host' and not valid_host(value): raise ValueError
+                if kind == 'hosts' and any(not valid_host(host, port=True) for host in value.split()): raise ValueError
+                if kind == 'ipv4': ipaddress.IPv4Address(value)
+                if kind == 'listen':
+                    host, port = value.rsplit(':', 1)
+                    if (host and not valid_host(host)) or not port.isdigit() or not 1 <= int(port) <= 65535: raise ValueError
+                if kind == 'duration' and not re.fullmatch(r'(?:[0-9]+(?:\.[0-9]+)?(?:ms|s|m|h))+', value): raise ValueError
+                if kind == 'bytes' and not re.fullmatch(r'[1-9][0-9]*(?:B|KiB|MiB|GiB|KB|MB|GB)', value): raise ValueError
+                if kind == 'timezone':
+                    try: ZoneInfo(value)
+                    except (ZoneInfoNotFoundError, ValueError): raise ValueError from None
             result[name] = value
         except (ValueError, TypeError, KeyError):
             raise ConfigError(f'Invalid value for {name}.') from None
     return result
+
+
+def valid_host(value: str, *, port: bool = False) -> bool:
+    """Data-only hosts; also safe in the legacy ZeroNet argument builder."""
+    if not value or value.startswith('-'): return False
+    host = value
+    if port and ':' in value and not value.startswith('['):
+        host, number = value.rsplit(':', 1)
+        if not number.isdigit() or not 1 <= int(number) <= 65535: return False
+    if host.startswith('[') and host.endswith(']'):
+        try: ipaddress.IPv6Address(host[1:-1]); return True
+        except ValueError: return False
+    return bool(re.fullmatch(r'[a-zA-Z0-9_][a-zA-Z0-9_.-]*', host))
 
 
 def defaults() -> dict:
@@ -142,22 +167,32 @@ def write_config(path: Path, data: dict):
         if os.path.exists(temporary): os.unlink(temporary)
 
 
-def bootstrap_values(environment: dict) -> dict:
-    selected = {key: value for key, value in environment.items() if key in OPTION_MAP}
+def bootstrap_values(environment: dict, saved: dict | None = None) -> dict:
+    saved = saved or {}
+    # Never parse a superseded environment value (even if it is now invalid).
+    selected = {key: value for key, value in environment.items() if key in OPTION_MAP and key not in saved}
     for old, new in ALIASES.items():
-        if environment.get(old) and not selected.get(new): selected[new] = environment[old]
-    if 'IPFS_GATEWAY_URL' not in selected and environment.get('IPFS_GATEWAY_PORT'):
-        selected['IPFS_GATEWAY_URL'] = 'http://127.0.0.1:' + environment['IPFS_GATEWAY_PORT']
-    if 'ZERONET_URL' not in selected and environment.get('ZERONET_UI_PORT'):
-        selected['ZERONET_URL'] = 'http://127.0.0.1:' + environment['ZERONET_UI_PORT']
-    values = {**defaults(), **validate_values(selected, bootstrap=True)}
-    # The entrypoint derives this endpoint too. Persist the same first-boot
-    # default so setup reflects the bundled engine, including custom ports.
-    if values['ENABLE_ACESTREAM_ENGINE'] and not values['ACE_ENGINE_URL']:
-        host = environment.get('ACESTREAM_HTTP_HOST') or 'localhost'
-        port = environment.get('ACESTREAM_HTTP_PORT') or '6878'
-        values['ACE_ENGINE_URL'] = f'http://{host}:{port}'
+        if new not in saved and environment.get(old) and not selected.get(new): selected[new] = environment[old]
+    values = {**defaults(), **validate_values(selected, bootstrap=True), **saved}
+    for name, port in [('IPFS_GATEWAY_URL', 'IPFS_GATEWAY_PORT'), ('ZERONET_URL', 'ZERONET_UI_PORT')]:
+        if name not in saved and name not in selected:
+            values[name] = f'http://127.0.0.1:{values[port]}'
+    if 'ACEXY_LISTEN_ADDR' not in saved and 'ACEXY_LISTEN_ADDR' not in selected:
+        values['ACEXY_LISTEN_ADDR'] = ':' + str(environment.get('ACEXY_STATUS_PORT') or 8080)
+    if values['ENABLE_ACESTREAM_ENGINE']:
+        for name, source in [('ACEXY_HOST', 'ACESTREAM_HTTP_HOST'), ('ACEXY_PORT', 'ACESTREAM_HTTP_PORT')]:
+            if name not in saved and name not in selected: values[name] = values[source]
     return validate_values(values)
+
+
+def resolved_values(values: dict) -> dict:
+    """Resolve automatic endpoints without storing a managed checker as external."""
+    result = {**defaults(), **values}
+    if result['ENABLE_ACESTREAM_ENGINE'] and not result['ACE_ENGINE_URL']:
+        result['ACE_ENGINE_URL'] = f"http://{result['ACESTREAM_HTTP_HOST']}:{result['ACESTREAM_HTTP_PORT']}"
+    if result['ENABLE_ACESTREAM_CHECK_ENGINE']:
+        result['ACE_CHECK_ENGINE_URL'] = 'http://127.0.0.1:6880'
+    return result
 
 
 def ensure_config(path: Path, environment: dict) -> dict:
@@ -166,6 +201,11 @@ def ensure_config(path: Path, environment: dict) -> dict:
         if data is None:
             data = {'version': 1, 'setup_complete': False, 'runtime': bootstrap_values(environment)}
             write_config(path, data)
+        else:
+            values = bootstrap_values(environment, data['runtime'])
+            if values != data['runtime']:
+                data = {**data, 'runtime': values}
+                write_config(path, data)
         _APPLIED.setdefault(str(path), dict(data['runtime']))
         return data
 
@@ -194,6 +234,11 @@ def validate_combination(values: dict):
     if values.get('ENABLE_ACESTREAM_CHECK_ENGINE'):
         if not values.get('ENABLE_ACESTREAM_ENGINE') or values.get('ACE_CHECK_ENGINE_URL'):
             raise ConfigError('Bundled checks require the bundled playback engine and an empty external checker address.')
+        if values.get('ACESTREAM_HTTP_PORT', 6878) == 6880:
+            raise ConfigError('Playback HTTP port conflicts with the bundled checking engine.')
+    if values.get('ENABLE_ACEXY') and not values.get('ENABLE_ACESTREAM_ENGINE'):
+        if values.get('ACEXY_HOST', 'localhost') in ('localhost', '127.0.0.1', '[::1]') and values.get('ACEXY_PORT', 6878) == values.get('ACESTREAM_HTTP_PORT', 6878):
+            raise ConfigError('Acexy needs the bundled playback engine or an external upstream host.')
     if values.get('ENABLE_TOR') and not values.get('ENABLE_ZERONET'):
         raise ConfigError('Tor requires the bundled ZeroNet service.')
     if values.get('WARP_ENABLE_NAT') and not values.get('ENABLE_WARP'):
@@ -202,7 +247,7 @@ def validate_combination(values: dict):
 
 def environment_for(data: dict, environment: dict) -> dict:
     result = {key: value for key, value in environment.items() if key not in OPTION_MAP and key not in ALIASES}
-    for key, value in {**defaults(), **data['runtime']}.items():
+    for key, value in bootstrap_values(environment, data['runtime']).items():
         result[key] = str(value).lower() if type(value) is bool else str(value)
     return result
 

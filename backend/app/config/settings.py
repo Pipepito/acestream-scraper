@@ -4,7 +4,7 @@ import json
 import logging
 import os
 
-from runtime_config import OPTION_MAP, config_path, read_config, remember_applied
+from runtime_config import OPTION_MAP, bootstrap_values, config_path, read_config, remember_applied, resolved_values
 from functools import lru_cache
 from typing import List, Annotated
 
@@ -54,8 +54,9 @@ class Settings(BaseSettings):
                         if warning['replacement'] in OPTION_MAP:
                             warning['selected'] = warning['replacement']
                     if os.environ.get('SCRAPER_RUNTIME_LOADED') != '1':
+                        values = resolved_values(bootstrap_values(raw, saved['runtime']))
                         for name in OPTION_MAP: data.pop(name, None)
-                        data.update({name: value for name, value in saved['runtime'].items() if name in cls.model_fields})
+                        data.update({name: value for name, value in values.items() if name in cls.model_fields})
             data["configuration_warnings"] = warnings
             return data
         return init_settings, compatible_environment, file_secret_settings

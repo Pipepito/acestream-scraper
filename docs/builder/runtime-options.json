@@ -287,7 +287,7 @@
       "type": "text",
       "placeholder": "Europe/Madrid",
       "appliesWhen": "always",
-      "configurationOwner": "deployment"
+      "configurationOwner": "runtime-file"
     },
     {
       "id": "apiToken",
@@ -493,7 +493,7 @@
       "type": "text",
       "placeholder": "media-box.local 192.168.1.10",
       "appliesWhen": "zeronetUiPublished",
-      "configurationOwner": "deployment"
+      "configurationOwner": "runtime-file"
     },
     {
       "id": "ipfsProfile",
@@ -592,6 +592,6 @@
     "publicBaseUrl": "Jellyfin, Plex and VLC need an address they can reach: set it under Integrations \u2192 Public address, or pass PUBLIC_BASE_URL.",
     "externalEngineSettings": "Engines are optional for scraping and playlist management. Add a reachable endpoint under Advanced settings \u2192 Playback engine address, or later in Settings \u2192 Playback. Configure dedicated checks in Settings \u2192 Automation.",
     "afterRun": "Then open http://localhost:{webPort} (use your Docker host address on another device). Check Overview \u2192 Services, add sources in Scraper, organize TV Channels and open Live TV or Playlist.",
-    "runtimeConfiguration": "On develop, runtime options marked runtime-file seed runtime-config.json beside the database only when it is absent. Use Settings \u2192 Setup wizard for later changes and restart to apply. Ports, mounts, capabilities and credentials remain in deployment configuration."
+    "runtimeConfiguration": "Runtime-file options are imported into runtime-config.json beside the database when their key is missing. Each saved key overrides Docker environment values. Use Settings \u2192 Setup wizard and restart to apply. Internal service listeners and Acexy buffering are configurable there; Docker published ports, mounts, capabilities and credentials remain deployment settings."
   }
 }

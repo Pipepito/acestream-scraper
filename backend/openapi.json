@@ -8793,6 +8793,31 @@
             "title": "Options",
             "type": "array"
           },
+          "recordings_configured": {
+            "default": false,
+            "title": "Recordings Configured",
+            "type": "boolean"
+          },
+          "resolved_runtime": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "title": "Resolved Runtime",
+            "type": "object"
+          },
           "restart_required": {
             "title": "Restart Required",
             "type": "boolean"
@@ -8819,6 +8844,13 @@
               ]
             },
             "title": "Runtime",
+            "type": "object"
+          },
+          "saved_overrides": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Saved Overrides",
             "type": "object"
           },
           "setup_complete": {

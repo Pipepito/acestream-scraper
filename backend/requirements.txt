@@ -11,7 +11,7 @@ sqlalchemy>=2.0.22
 alembic>=1.12.0
 
 # Scraper dependencies
-aiohttp>=3.8.6
+aiohttp>=3.14.4
 beautifulsoup4>=4.12.2
 lxml>=4.9.3
 

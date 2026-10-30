@@ -16,6 +16,11 @@ cd backend
 uvicorn main:app --reload --host 0.0.0.0 --port 8000 --no-proxy-headers
 ```
 
+The root `requirements.txt`, `requirements-dev.txt` and `requirements-prod.txt`
+are compatibility entry points for `backend/requirements.txt`. They no longer
+install the retired Flask runtime or its old dependency pins. Use the canonical
+backend file for new environments.
+
 In a second terminal, start the frontend:
 
 ```bash

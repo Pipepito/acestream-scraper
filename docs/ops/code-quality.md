@@ -35,7 +35,12 @@ advisory with an 80% changed-line goal for each component separately. Docs-only
 PRs still receive secret/static checks and an explicit test/coverage applicability
 summary. Full existing release and image validation remains mandatory.
 
-Detailed findings and trends remain in Jenkins. GitHub gets conclusions, counts
-and report links, not source snippets or discovered secrets. Report false positives
+Detailed findings and trends remain in Jenkins. GitHub Checks get conclusions,
+counts and report links. The corresponding private policy update also adds one
+PR conversation summary per execution, updated with the final result. It includes
+the exact revisions, counts and up to 20 fixable high/critical dependency findings,
+with new blockers first. Private infrastructure links, source snippets, secret
+locations and discovered secret values are omitted. Source-scan success does not
+replace application/image checks or owner approval. Report false positives
 to the maintainer; exceptions require a fingerprint, reason, reviewer and expiry
 in the infrastructure repository. PR-owned suppressions do not weaken CI policy.

@@ -14,7 +14,10 @@ git config --local core.hooksPath .githooks
 ```
 
 The optional pre-commit hook scans the staged diff for secrets and checks changed
-Python files. Pre-push runs the fast checks. Hooks can be bypassed locally and do
+Python files. Ruff findings are advisory in both hooks during rollout; Ruff
+execution/configuration failures and detected secrets still fail. Pre-push always
+continues from advisory Ruff findings to the existing ESLint/TypeScript gates.
+Hooks can be bypassed locally and do
 not replace Jenkins. To uninstall them, unset `core.hooksPath` in local Git config.
 Do not add real credentials to fixtures; use clearly synthetic test data.
 

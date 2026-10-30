@@ -2,7 +2,7 @@
 import httpx
 import pytest
 
-from app.services.remote_players.base import PlayerAuthError
+from app.services.remote_players.base import PlayerAuthError, PlayerCommandError
 from app.services.remote_players.service import RemotePlayerService
 from app.utils.url_guard import BlockedURLError
 
@@ -78,6 +78,19 @@ def test_resolve_stream_url_relay_and_pattern(alembic_db_session):
     url = httpx.URL(svc.resolve_stream_url(custom, IH, "http://scraper.lan:8000"))
     assert url.params["id"] == IH
     assert len(url.params["pid"]) == 32
+
+
+def test_tv_relay_format_rejects_unassigned_stream_without_sending(alembic_db_session):
+    from app.repositories.base_url_repository import BaseUrlRepository
+    seen = []
+    svc = _service(alembic_db_session, lambda request: seen.append(request))
+    pattern = BaseUrlRepository(alembic_db_session).create(
+        'TV relay', 'http://scraper.lan:8000/tuner/channels/{tv_channel_id}.ts')
+    player = svc.repo.create(name='TV relay', kind='vlc', host='192.168.1.20', port=8080,
+                             username=None, password='synthetic', base_url_id=pattern.id)
+    with pytest.raises(PlayerCommandError, match='assigned to a TV channel'):
+        svc.play(player, IH, 'http://scraper.lan:8000', 'Unassigned')
+    assert seen == []
 
 
 def test_play_and_commands_go_through_the_driver(alembic_db_session):

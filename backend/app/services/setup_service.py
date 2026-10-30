@@ -2,11 +2,13 @@
 import os
 from pathlib import Path
 import shutil
+import json
+from urllib.parse import urlsplit, urlunsplit
 
 from app.config.settings import get_settings
 from app.schemas.setup import SetupState, SetupUpdate
 from runtime_config import (OPTIONS, ConfigError, config_path, defaults, ensure_config,
-                            restart_required, revision, update_config)
+                            restart_required, revision, update_config, resolved_values)
 
 
 def unavailable_options() -> dict[str, str]:
@@ -27,11 +29,41 @@ def unavailable_options() -> dict[str, str]:
     return result
 
 
+def visible_endpoint(value: str) -> str:
+    """Do not echo credentials or query tokens from older saved preferences."""
+    try:
+        parsed = urlsplit(value)
+        if not parsed.hostname: return ''
+        host = parsed.hostname
+        if ':' in host: host = f'[{host}]'
+        if parsed.port: host += f':{parsed.port}'
+        return urlunsplit((parsed.scheme, host, parsed.path, '', ''))
+    except ValueError:
+        return 'Invalid saved address; review Settings'
+
+
 class SetupService:
-    def __init__(self):
+    def __init__(self, repository=None):
         settings = get_settings()
         self.path = config_path(settings.DATABASE_URL)
         self.environment = {**os.environ, **settings.model_dump()}
+        self.repository = repository
+
+    def saved_overrides(self) -> dict[str, str]:
+        raw = self.repository.get_setup_overrides() if self.repository else {}
+        result = {}
+        for key, name in [('ace_engine_url', 'ACE_ENGINE_URL'), ('public_base_url', 'PUBLIC_BASE_URL')]:
+            if key in raw and (raw[key] or key == 'ace_engine_url'):
+                result[name] = visible_endpoint(raw[key] or '')
+        for key, name, flag, url in [('check_engine_config', 'ACE_CHECK_ENGINE_URL', 'use_dedicated', 'url'),
+                                      ('playback_routing', 'ACEXY_URL', 'use_acexy', 'acexy_url')]:
+            if raw.get(key):
+                try:
+                    value = json.loads(raw[key])
+                    result[name] = visible_endpoint(value.get(url, '')) if value.get(flag) else ''
+                except (ValueError, AttributeError, TypeError):
+                    result[name] = 'Invalid saved preference; review Settings'
+        return result
 
     def state(self) -> SetupState:
         data = ensure_config(self.path, self.environment)
@@ -39,6 +71,8 @@ class SetupService:
             setup_complete=data['setup_complete'], revision=revision(data), runtime={**defaults(), **data['runtime']},
             options=OPTIONS, unavailable=unavailable_options(),
             restart_required=restart_required(self.path, data), api_protected=bool(os.environ.get('API_TOKEN', '').strip()),
+            resolved_runtime=resolved_values(data['runtime']), saved_overrides=self.saved_overrides(),
+            recordings_configured=bool(get_settings().RECORDINGS_DIR),
         )
 
     def save(self, request: SetupUpdate) -> SetupState:
@@ -47,12 +81,6 @@ class SetupService:
             if request.runtime.get(name) and not current.runtime.get(name):
                 raise ConfigError(reason)
         desired = {**current.runtime, **request.runtime}
-        if desired.get('ENABLE_ACEXY') and not desired.get('ENABLE_ACESTREAM_ENGINE'):
-            host, port = os.environ.get('ACEXY_HOST', 'localhost'), os.environ.get('ACEXY_PORT', '6878')
-            if host in ('localhost', '127.0.0.1') and port == '6878':
-                raise ConfigError('Acexy needs the bundled playback engine or an external ACEXY_HOST/ACEXY_PORT in your deployment.')
-        if desired.get('ENABLE_ACESTREAM_CHECK_ENGINE') and os.environ.get('ACESTREAM_HTTP_PORT') == '6880':
-            raise ConfigError('Playback HTTP port conflicts with the bundled checking engine. Change the deployment port first.')
         if os.environ.get('ACESTREAM_GLUETUN_PORT_FILE') and not desired.get('ENABLE_ACESTREAM_ENGINE'):
             raise ConfigError('Remove Gluetun port synchronization from the deployment before disabling the bundled engine.')
         update_config(self.path, request.runtime, request.expected_revision, request.setup_complete)

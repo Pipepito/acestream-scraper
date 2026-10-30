@@ -19,18 +19,23 @@ Scraper stores catalogue and application preferences in the database. The develo
 
 ## First-run setup
 
-Open **Set up scraper** on a fresh installation, or **Settings → Setup wizard** (`/setup`). Choose playback, network access and optional services, review the changes, then save. You can explore the app without completing the wizard. After saving, follow the links for sources, guides, TV channels, schedules and integrations. No sources or streams are preloaded. Official broadcaster adapters such as Atresplayer are used only when you add their source.
+Open **Set up scraper** on a fresh installation, or **Settings → Setup wizard** (`/setup`). The two steps are **Add channels** and **Programme guide (optional)**:
+
+1. Paste a channel-list or playlist link, or choose a built-in broadcaster, then select **Add source and find channels**. The source is saved immediately and channels are imported. Failed imports can be retried without adding the source again.
+2. Optionally choose **EPG dobleM** or paste another XMLTV guide link. The built-in choice uses [guiaiptv.xml](https://raw.githubusercontent.com/davidmuma/EPG_dobleM/master/guiaiptv.xml) from [EPG dobleM](https://github.com/davidmuma/EPG_dobleM), mainly for Spanish channels. It is also available in **EPG → Add EPG Source**. Nothing is downloaded until you choose it. Wait for the guide to download, select **Find matching channels**, review the suggested stream-to-guide pairs and select only the matches you want to save. This can create TV channels; preview alone never changes assignments.
+
+Select **Finish setup** even if you skip the guide. You can leave at any point; added sources and guides remain saved. No source is preloaded automatically. Deployment values are already loaded under **Connection settings (advanced)**, where playback, network and optional-service settings remain available.
 
 The default file is `config/runtime-config.json`, next to `config/scraper.db`; a custom `DATABASE_URL` places it in that database's directory. It is separate from the legacy v1 `config.json`. The directory must be writable and mounted persistently. Back up both the database and runtime file; treat the file as private even though credential variables are excluded.
 
-- On the first start only, supported environment values initialize the versioned JSON file. Native startup also reads compatible application values from `.env`.
-- Once the file exists, its migrated options win over those environment variables. Change them in the wizard or edit the file while stopped. Removing a key restores its default, not a newly supplied environment value.
+- On first start, supported environment values initialize the versioned JSON file. Upgrades import newly supported or missing keys once. Native startup also reads compatible application values from `.env`.
+- Each saved key wins over its environment variable. Change them in the wizard or edit the file while stopped. Removing a key imports its current deployment value again, or its default if none is supplied.
 - Save reports when a restart is required. Restart the container/application to apply runtime changes; playback is interrupted. Setup does not restart it for you. Docker health checks keep using the running settings until restart.
 - Existing database preferences are retained. A saved playback URL, checker selection or public address takes precedence over the corresponding runtime default; edit those in their existing Settings/Integrations pages.
-- If the runtime file was missing, setup opens as a modal even when the database already exists. It is prefilled from deployment values, including the bundled engine address and port. **Set up later** postpones it for this visit; **Save setup** completes it. Reopen it from Settings at any time. Existing files and saved database preferences are preserved.
+- If the runtime file was missing, setup opens as a modal even when the database already exists. It is prefilled from deployment values, including the bundled engine address and port. **Set up later** postpones it for this visit; **Finish setup** completes it. Reopen it from Settings at any time. Existing files and saved database preferences are preserved.
 - Invalid JSON, unknown options or unsupported versions stop configuration loading without replacing the file. Restore a known-good copy or correct it while stopped. Do not delete the file merely to apply one environment change: deletion reimports all bootstrap values and loses file-only choices.
 
-Docker still owns image choice, ports, mounts, capabilities, executable overrides and secrets (`API_TOKEN`, Telegram credentials/key location, WARP license). Setup cannot install missing services or grant Docker permissions. Keep API protection and public exposure in your deployment configuration. See the [complete option audit](../docs/dev/runtime-configuration-audit.md) for the exact migrated and retained options.
+Docker still owns image choice, published port mappings, mounts, capabilities, executable overrides and secrets (`API_TOKEN`, Telegram credentials/key location, WARP license). Setup cannot install missing services or grant Docker permissions. Keep API protection and public exposure in your deployment configuration. See the [complete option audit](../docs/dev/runtime-configuration-audit.md) for the exact migrated and retained options.
 
 
 | Where | What to configure |
@@ -57,9 +62,36 @@ The Settings tabs use `/settings?tab=playback|automation|links|access`.
 
 See the [illustrated walkthrough](Usage.md) and [playback routing guide](Remote-Players.md#playback-routing) for examples.
 
+### Shorten the Docker command
+
+Setup imports any supported key missing from `runtime-config.json`, including
+new service options added by an upgrade. An existing key always wins, even when
+it is false, zero or empty. After reviewing and saving setup, remove the matching
+`-e` arguments if desired; keep the configuration volume.
+
+For example, an enabled bundled engine with `ACESTREAM_HTTP_PORT=6878` displays
+`http://localhost:6878`. An enabled bundled checker displays its managed address
+`http://127.0.0.1:6880`; do not enter that as an external checker. Under Optional
+services, expand Acexy to review `ACEXY_HOST`, `ACEXY_PORT`, `ACEXY_LISTEN_ADDR`,
+`ACEXY_NO_RESPONSE_TIMEOUT` and `ACEXY_BUFFER_SIZE`. A listener of `:8084`, timeout
+of `10s` and buffer of `5MiB` are imported and saved as supplied. IPFS/ZeroNet
+ports and UI access, engine connection details and the advanced timezone can
+also move into the file. Restart the container after saving.
+
+Internal service connections use container ports: mapping host `8085` to container
+`8081` still means the scraper connects to `http://127.0.0.1:8081`. Changing an
+internal listener requires updating its Docker mapping if published. Volumes,
+`RECORDINGS_DIR`, devices, capabilities, credentials and command overrides stay
+in Docker. `ALLOW_REMOTE_ACCESS` is not a supported setting; use the wizard's
+**Allow remote engine clients** (`ACESTREAM_BIND_ALL`) for the engine address filter.
+
+Existing database preferences are shown separately with links to Playback,
+Automation or Public address. They retain precedence. Enabling Acexy starts the
+service; choosing it for app playback remains an explicit Playback setting.
+
 ## Environment Variables
 
-For migrated options listed in the [runtime audit](../docs/dev/runtime-configuration-audit.md), the following environment values are **first-start seeds only**. Deployment-only options remain environment-controlled. The wizard/file is available on develop; check release notes before expecting it in a published stable image.
+For migrated options listed in the [runtime audit](../docs/dev/runtime-configuration-audit.md), the following environment values are **seeds for missing configuration keys only**. Deployment-only options remain environment-controlled. The wizard/file is available on develop; check release notes before expecting it in a published stable image.
 
 ### Database and backend settings
 
@@ -122,7 +154,7 @@ External players and media servers (VLC, Kodi, Jellyfin, Plex) fetch streams ove
 | `ACEXY_HOST` | Hostname of Acestream Engine | `localhost` | Hostname or IP where Acestream Engine runs |
 | `ACEXY_PORT` | Port of Acestream Engine | `6878` | Port where Acestream Engine is accessible |
 | `ACEXY_NO_RESPONSE_TIMEOUT` | Timeout for Acestream responses | `15s` | Format: `15s`, `1m`, etc. |
-| `ACEXY_BUFFER_SIZE` | Buffer size for data transfers | `5MiB` | Format: `5MiB`, `10MiB`, etc. |
+| `ACEXY_BUFFER_SIZE` | Buffer size for data transfers | `4MiB` | Format: `5MiB`, `10MiB`, etc. |
 
 ### Why both Acexy and an engine?
 

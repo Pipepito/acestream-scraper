@@ -415,11 +415,11 @@ export ZERONET_FILESERVER_PORT="${ZERONET_FILESERVER_PORT:-26552}"
 export ZERONET_TRACKERS="${ZERONET_TRACKERS:-udp://tracker.opentrackr.org:1337/announce udp://open.stealth.si:80/announce udp://tracker.torrent.eu.org:451/announce}"
 if feature_enabled "$ENABLE_ZERONET"; then
     # Keep the scraper pointed at the embedded node when the operator hasn't
-    # chosen an explicit external endpoint. Also rewrite the conventional
-    # 43110 default when the UI port moved.
+    # chosen an explicit endpoint. The runtime loader derives the first-boot
+    # default from the UI port; a saved URL remains authoritative thereafter.
     ZERONET_URL="${ZERONET_URL:-${ZERONET_BASE_URL:-}}"
     case "${ZERONET_URL:-}" in
-        ""|http://127.0.0.1:43110)
+        "")
             ZERONET_URL="http://127.0.0.1:$ZERONET_UI_PORT"
             ;;
     esac

@@ -14,7 +14,7 @@ creates it before services start. Native startup creates it before provisioning
 the database. Creation imports supported environment values once; native startup
 also includes resolved `.env` and legacy application aliases. A file already on
 disk always wins for migrated options, including explicit false/empty values.
-Missing file keys use the registry defaults, not new environment values.
+Missing keys import their current environment values once, falling back to registry defaults. This also upgrades existing version-1 files when new options become configurable; it never replaces an existing key, including false, zero or an empty string. Invalid superseded environment values are ignored.
 
 The file contains `version`, `setup_complete` and `runtime`. Runtime keys retain
 their environment names for operator recognition. Unknown keys, commands, secrets,
@@ -41,15 +41,40 @@ A missing runtime file is seeded from the deployment and marked setup-incomplete
 regardless of whether a database already exists. A modal opens until the user saves
 setup; postponing dismisses it for the current visit. Imported values prefill the
 form, including the bundled playback endpoint with its deployment port. `/setup`
-reopens the same modal from Settings. Existing files remain authoritative. The wizard guides runtime choices and then links
-to the existing source/guide/channel/automation/integration editors, which retain
-their own reviewed save workflows. It imports no channels and performs no playback.
+reopens the same modal from Settings. Existing files remain authoritative. The
+default wizard adds source URLs, imports channels and optionally downloads an
+XMLTV guide with explicitly reviewed matching. EPG dobleM is a shared frontend
+preset, never an automatic import. Connection settings are behind an advanced
+entry. Source and guide actions reuse their existing APIs; matching reuses the
+review-token checks and starts with no rows selected. Finish setup marks onboarding
+complete without changing runtime options. It performs no playback.
+
+## Derived connections and upgrade behavior
+
+An empty runtime playback address uses the bundled engine connection host/port
+when enabled. The wizard displays that address without converting it to a fixed
+override. The bundled checker displays `http://127.0.0.1:6880`, while its external
+checker field stays empty in the file. `resolved_runtime` exposes those derived
+connections separately from the editable `runtime` data.
+
+Setup shows explicit database playback/checker/public-address and proxy overrides,
+including a deliberately disabled playback address, with links to their existing
+editors. It never rewrites them. Contextual suggestions can align Acexy's upstream
+and the scraper's IPFS/ZeroNet gateways with configured bundled-service ports.
+Accepting a suggestion changes only the draft until Save. Neither an enabled flag
+nor a suggested address is a live health assertion.
+
+Service values are strictly typed/validated before reaching the exec environment.
+ZeroNet UI hosts reject shell syntax and option-like tokens. Health probes retain
+the complete applied boot snapshot, including newly managed listener ports.
+Changes require a container restart; restarting a single service still uses its
+current supervisor environment. No Docker socket or automatic restart is added.
 
 ## Options moved into the file
 
 The following table is generated from the reviewed runtime registry. These options
-are available in the wizard; advanced controls are disclosed on Review. All need a
-restart. Values passed with Docker `-e` or Compose seed only a missing file.
+are available in the wizard; service connection controls expand under Optional services and application controls under Review. All need a
+restart. Values passed with Docker `-e` or Compose seed only missing keys.
 
 | Option | Wizard section | Default |
 | --- | --- | --- |
@@ -84,6 +109,21 @@ restart. Values passed with Docker `-e` or Compose seed only a missing file.
 | `MEDIA_SERVER_MIN_REFRESH_MINUTES` | advanced | `30` |
 | `ACESTREAM_STATUS_TIMEOUT` | advanced | `10` |
 | `EPG_PROGRAM_RETENTION_HOURS` | advanced | `24` |
+| `TZ` | advanced | `UTC` |
+| `ACESTREAM_HTTP_HOST` | acestream | `localhost` |
+| `ACESTREAM_HTTP_PORT` | acestream | `6878` |
+| `ACEXY_HOST` | acexy | `localhost` |
+| `ACEXY_PORT` | acexy | `6878` |
+| `ACEXY_LISTEN_ADDR` | acexy | `:8080` |
+| `ACEXY_NO_RESPONSE_TIMEOUT` | acexy | `30s` |
+| `ACEXY_BUFFER_SIZE` | acexy | `4MiB` |
+| `ZERONET_UI_PORT` | zeronet | `43110` |
+| `ZERONET_FILESERVER_PORT` | zeronet | `26552` |
+| `ZERONET_UI_HOST` | zeronet | Empty |
+| `IPFS_API_HOST` | ipfs | `127.0.0.1` |
+| `IPFS_API_PORT` | ipfs | `5001` |
+| `IPFS_GATEWAY_PORT` | ipfs | `8081` |
+| `IPFS_SWARM_PORT` | ipfs | `4001` |
 
 ## Options retained in deployment configuration
 
@@ -95,9 +135,9 @@ usually needs a container recreation, new mounts, credentials, or an image build
 | Database location and legacy import | `DATABASE_URL`, `LEGACY_DATABASE_URL`, `SCRAPER_DB_URL`, `LEGACY_DB_URL` | Locate the database/config before reading it; retain backup-first migrations. |
 | Private credentials | `API_TOKEN`, `TELEGRAM_ADMIN_TOKEN`, `TELEGRAM_KEY_FILE`, `WARP_LICENSE_KEY` | Keep secrets out of the wizard response and ordinary config backups. |
 | Persistent and temporary paths | `RECORDINGS_DIR`, `PLAYER_HLS_DIR`, `ACESTREAM_HOME`, `ACESTREAM_GLUETUN_PORT_FILE`, `IPFS_PATH`, `ZERONET_DATA_DIR`, `TOR_DATA_DIR`, `TELEGRAM_SESSION_DIR`, `LOG_DIR`, `LOGROTATE_DIR`, `SUPERVISOR_RUN_DIR`, `TMPDIR` | Must agree with volumes, ownership and lifecycle cleanup; Telegram key/session storage remains separately mounted. |
-| Ports and network bindings | `FLASK_PORT`, `ACESTREAM_HTTP_HOST`, `ACESTREAM_HTTP_PORT`, `ACEXY_HOST`, `ACEXY_PORT`, `ACEXY_LISTEN_ADDR`, `ACEXY_STATUS_PORT`, `IPFS_API_HOST`, `IPFS_API_PORT`, `IPFS_GATEWAY_PORT`, `IPFS_SWARM_PORT`, `ZERONET_UI_HOST`, `ZERONET_UI_PORT`, `ZERONET_FILESERVER_PORT` | Must agree with Docker published ports and external endpoints; unauthenticated service interfaces must remain deliberate. |
+| Docker networking and web port | Published port mappings, networks, `FLASK_PORT` | Internal service ports can be saved in setup, but Docker mappings must still match. `ACEXY_STATUS_PORT` only seeds the listener when `ACEXY_LISTEN_ADDR` has not been saved or supplied. |
 | Executables and launch overrides | `APP_COMMAND`, `ACESTREAM_START_COMMAND`, `ACEXY_START_COMMAND`, `IPFS_START_COMMAND`, `ZERONET_START_COMMAND`, `WARP_START_COMMAND`, `FFMPEG_BINARY_PATH`, `IPFS_BINARY_PATH`, `ZERONET_BINARY_PATH`, `ACESTREAM_BINARY_PATH`, `ACESTREAM_PYTHON_BIN`, `ACESTREAM_BIONIC_LINKER`, `ACESTREAM_BIONIC_LIBDIR`, `TORRC_PATH` | Host command/executable policy cannot be selected by a web setup document. |
-| Sidecar initialization and shell arguments | `IPFS_PROFILE`, `ZERONET_TRACKERS`, `ZERONET_EXTRA_ARGS`, `WARP_EXCLUDE_HOSTS`, `ACEXY_NO_RESPONSE_TIMEOUT` | Initialization-only effects or values assembled into trusted shell commands; retain operator-controlled deployment inputs. |
+| Sidecar initialization and shell arguments | `IPFS_PROFILE`, `ZERONET_TRACKERS`, `ZERONET_EXTRA_ARGS`, `WARP_EXCLUDE_HOSTS` | Initialization-only effects or values assembled into trusted shell commands; retain operator-controlled deployment inputs. |
 | Supervision and diagnostics | `SUPERVISED_RESTART_DELAY_SECONDS`, `SUPERVISED_FAST_EXIT_LIMIT`, `SUPERVISED_FAST_EXIT_WINDOW`, `WARP_READY_ATTEMPTS`, `WARP_READY_INTERVAL`, `LOG_FILE_MAX_BYTES`, `LOG_FILE_BACKUP_COUNT`, `FASTAPI_DEBUG`, `DEBUG_ENABLE_QLOG`, `WARP_SLEEP` | Low-level process/recovery policy and capture settings remain boot-time operator controls. |
 | Application packaging | `APP_NAME`, `DEBUG`, `FRONTEND_BUILD_PATH`, `FRONTEND_STATIC_DIR`, `DOCKER_ENVIRONMENT`, `TZ`, `ACESTREAM_INSTALL_METADATA` | Packaging, filesystem layout or container process timezone; schedule timezone remains in the database. |
 | Compatibility | `ACESTREAM_ENGINE_URL`, `ZERONET_BASE_URL`, `CORS_ALLOW_ORIGINS`, `ENABLE_LEGACY_ENV_ALIASES` | The three migrated aliases seed canonical file keys on first boot. Other aliases still locate DB/frontend paths. Compatibility notices contain names only. The retired toggle does not disable aliases. |

@@ -11,12 +11,13 @@ test('setup opens automatically on first run and saves the deployment defaults',
     await page.goto('/setup');
   }
   await expect(wizard).toBeVisible();
-  await expect(wizard.getByRole('spinbutton', { name: 'Maximum browser sessions' }))
-    .toHaveValue(String(before.runtime.PLAYER_MAX_SESSIONS));
-  for (let step = 0; step < 3; step++) await wizard.getByRole('button', { name: 'Continue', exact: true }).click();
-  await wizard.getByRole('button', { name: 'Save setup', exact: true }).click();
-  await expect(wizard.getByText(/Setup saved\./)).toBeVisible();
-  await wizard.getByRole('button', { name: 'Done', exact: true }).click();
+  await expect(wizard.getByRole('textbox', { name: 'Channel source link' })).toBeVisible();
+  await expect(wizard.getByRole('spinbutton')).toHaveCount(0);
+  await wizard.getByRole('button', { name: 'Continue', exact: true }).click();
+  await expect(wizard.getByRole('button', { name: 'Use EPG dobleM' })).toBeVisible();
+  await wizard.getByRole('button', { name: 'Finish setup', exact: true }).click();
+  await expect(wizard.getByRole('heading', { name: 'Setup saved', exact: true })).toBeVisible();
+  await wizard.getByRole('button', { name: 'Close', exact: true }).click();
   const after = await (await api.raw('get', '/api/v1/setup')).json();
   expect(after.setup_complete).toBe(true);
   expect(after.runtime).toEqual(before.runtime);

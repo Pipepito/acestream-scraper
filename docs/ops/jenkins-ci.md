@@ -28,6 +28,10 @@ backend/frontend development and individual tests. The architecture gate retains
 public build-plan and manifest checks; infrastructure publication-policy tests
 live alongside the private pipelines.
 
+See [code quality](code-quality.md) for optional local hooks, coverage collection,
+and the staged rollout of self-hosted security reporting. Enabling report collection
+does not grant permission to run host builds or publish images.
+
 ## What Jenkins runs
 
 Automatic PR checks use a fixed administrator-managed pipeline and private host

@@ -23,6 +23,7 @@ requests>=2.31.0
 asyncio>=3.4.3
 apscheduler>=3.11.0
 pytest>=7.4.2
+pytest-cov==7.0.0
 pytest-asyncio>=1.4.0
 # Starlette TestClient uses httpx2; application HTTP integrations still use httpx.
 httpx2>=2.15.1,<3

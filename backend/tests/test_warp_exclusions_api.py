@@ -6,7 +6,7 @@ import time
 import pytest
 
 from runtime_config import ConfigConflict, ConfigError
-from warp_exclusions import WarpExclusions, normalize_hosts, read_state, revision
+from warp_exclusions import WarpExclusions, normalize_hosts, read_state
 
 
 @pytest.fixture
@@ -95,7 +95,8 @@ def test_saved_empty_overrides_environment(service, monkeypatch):
 
 
 def test_symlinks_fail_closed(service, tmp_path):
-    victim = tmp_path / 'untouched'; victim.write_text('unchanged')
+    victim = tmp_path / 'untouched'
+    victim.write_text('unchanged')
     service.path.symlink_to(victim)
     with pytest.raises(ConfigError):
         service.state()

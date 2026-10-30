@@ -1,7 +1,6 @@
 """WARP_EXCLUDE_HOSTS keeps chosen hosts out of the WARP tunnel."""
 import os
 import sys
-import json
 from pathlib import Path
 import subprocess
 

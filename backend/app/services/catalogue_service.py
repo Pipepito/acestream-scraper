@@ -9,9 +9,9 @@ from collections import OrderedDict
 from datetime import datetime, timezone
 
 from app.repositories.catalogue_repository import CatalogueRepository
-from app.repositories.channel_repository import ChannelRepository
 from app.schemas.catalogue import CatalogueEntry, CatalogueView, CatalogueSummary
 from app.services.w3u_parser import W3UTraversal, COMPATIBLE, http_url, origin, safe_text
+from app.utils.stream_kind import stream_kind
 
 _PREVIEWS = OrderedDict()
 _PREVIEW_LOCK = threading.Lock()
@@ -153,6 +153,7 @@ class CatalogueService:
         try:
             from app.services.import_exclusion_service import ImportExclusionService
             from app.api.error_handlers import APIError
+            from app.services.import_pipeline import ImportEntry, ImportPipeline, ImportReference
             policy = ImportExclusionService(self.db).snapshot(claim=True)
             if reviewed and policy.revision != snapshot.get('_policy_revision', 0):
                 raise APIError('IMPORT_POLICY_CHANGED', 'Import exclusions changed. Preview again.', 409)
@@ -164,8 +165,7 @@ class CatalogueService:
                 mode=request.mode, refresh_enabled=request.refresh_enabled and bool(preview['source_url']),
                 updated_at=datetime.now(timezone.utc)))
             reviewed = set(snapshot.get('_reviewed_live_ids', []))
-            channels = ChannelRepository(self.db)
-            imported = set()
+            eligible = []
             for entry in entries:
                 channel_id = entry.get('channel_id')
                 entry['imported'] = False
@@ -175,30 +175,27 @@ class CatalogueService:
                         or (request.mode == 'acestream' and entry['kind'] != 'acestream')):
                     continue
                 reviewed.add(entry['id'])
-                entry['excluded_rule_ids'] = policy.matches(channel_id, entry['name'])
-                if entry['excluded_rule_ids']:
-                    continue
-                if channel_id not in imported:
-                    # Existing rows retain operator names, assignments, activity,
-                    # headers and other-source ownership. Refresh never deletes.
-                    existing = channels.get_channel_by_id(channel_id)
-                    if existing is None:
-                        path = []
-                        parent = entry['parent_id']
-                        while parent and parent != 'root':
-                            ancestor = by_id.get(parent)
-                            if ancestor is None:
-                                break
-                            path.append(ancestor['name'])
-                            parent = ancestor['parent_id']
-                        channels.create_or_update_channel(channel_id=channel_id, name=entry['name'],
-                            source_url=f'catalogue:{row.id}', group=' / '.join(reversed(path))[:255],
-                            logo=entry['image'], tvg_id=entry['guide_id'],
-                            stream_url=entry.get('_stream_url'), stream_headers=entry.get('_headers'),
-                            is_online=None, commit=False)
-                    imported.add(channel_id)
-                entry['imported'] = True
-                reviewed.add(entry['id'])
+                eligible.append(entry)
+
+            def import_entry(entry: dict) -> ImportEntry:
+                path = []
+                parent = entry['parent_id']
+                while parent and parent != 'root':
+                    ancestor = by_id.get(parent)
+                    if ancestor is None:
+                        break
+                    path.append(ancestor['name'])
+                    parent = ancestor['parent_id']
+                return ImportEntry(entry['channel_id'], entry['name'], group=' / '.join(reversed(path))[:255],
+                                   logo=entry['image'], tvg_id=entry['guide_id'],
+                                   stream_url=entry.get('_stream_url'), stream_headers=entry.get('_headers'))
+            # Existing rows retain operator names, assignments, activity,
+            # headers and other-source ownership. Refresh never deletes.
+            result = ImportPipeline.apply(self.db, ImportReference(f'catalogue:{row.id}'),
+                                          [import_entry(entry) for entry in eligible], 'insert_only', policy=policy)
+            for entry, item in zip(eligible, result.items):
+                entry['excluded_rule_ids'] = item.rule_ids
+                entry['imported'] = item.outcome != 'excluded'
             snapshot['_reviewed_live_ids'] = sorted(reviewed)
             # SQLAlchemy JSON mutations must be assigned as a fresh value.
             row.snapshot = copy.deepcopy(snapshot)
@@ -249,7 +246,7 @@ class CatalogueService:
             raise ValueError('Publisher IDs are not unique in this catalogue; correct the source before importing events')
         for entry in selected:
             cid = entry.get('channel_id')
-            url = entry.get('_stream_url') or ('acestream://' + cid if cid and not cid.startswith('url:') else None)
+            url = entry.get('_stream_url') or ('acestream://' + cid if cid and stream_kind(cid) != 'http' else None)
             # Resolver web pages are not direct event media; retain an explicit
             # unresolved broadcast for mapping, rather than bypassing the player.
             if entry['kind'] == 'resolver':

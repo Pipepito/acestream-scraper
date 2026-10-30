@@ -34,6 +34,7 @@ from app.services.engine_client import (
     playback_client_from_settings,
     start_engine_session,
 )
+from app.utils.stream_kind import stream_kind
 
 logger = logging.getLogger(__name__)
 
@@ -309,7 +310,7 @@ class PlayerService:
         if ffmpeg is None:
             await self._fail(session, "ffmpeg_missing", "ffmpeg is not installed on this server")
             return
-        if session.content_id.startswith("url:"):
+        if stream_kind(session.content_id) == 'http':
             remaining = session.created_at + float(self._settings().PLAYER_START_TIMEOUT_SECONDS) - self._now()
             try:
                 source = await PlayerHTTPSource.open(session.content_id, timeout=remaining)
@@ -479,7 +480,7 @@ class PlayerService:
             with contextlib.suppress(Exception):
                 await proc.wait()
             if session.state != "stopped":
-                if session.content_id.startswith("url:") and session.error is None:
+                if stream_kind(session.content_id) == 'http' and session.error is None:
                     failures = session.http_source.failures if session.http_source is not None else ()
                     logger.warning('HTTP player session %s: ffmpeg exited with %s; upstream: %s; stderr: %s',
                                    session.id, proc.returncode, ' | '.join(failures) or 'no recorded failures',
@@ -487,7 +488,7 @@ class PlayerService:
                 await self._fail(
                     session,
                     "ffmpeg_failed",
-                    ("The HTTP stream ended or returned unsupported media" if session.content_id.startswith("url:")
+                    ("The HTTP stream ended or returned unsupported media" if stream_kind(session.content_id) == 'http'
                      else f"ffmpeg exited with {proc.returncode}: " + " | ".join(session.stderr_tail)),
                 )
 
@@ -527,7 +528,7 @@ class PlayerService:
             elif now - session.created_at > float(self._settings().PLAYER_START_TIMEOUT_SECONDS):
                 stats = session.stats
                 detail = f"{stats.peers} peers (status={stats.status})" if stats else "no engine statistics"
-                if session.content_id.startswith("url:"):
+                if stream_kind(session.content_id) == 'http':
                     await self._fail(session, "source_unavailable", "The HTTP stream did not become ready in time")
                 else:
                     await self._fail(session, "engine_stalled", f"the stream did not start: {detail}")

@@ -418,7 +418,7 @@ class ChannelRepository:
             self.db.flush()
         return channel
 
-    def update_channel(self, channel_id: str, updates: Dict[str, Any]) -> AcestreamChannel:
+    def update_channel(self, channel_id: str, updates: Dict[str, Any], *, commit: bool = True) -> AcestreamChannel:
         """Update channel properties"""
         channel = self.get_channel_by_id(channel_id)
         if not channel:
@@ -432,8 +432,11 @@ class ChannelRepository:
             if hasattr(channel, key):
                 setattr(channel, key, value)
 
-        self.db.commit()
-        self.db.refresh(channel)
+        if commit:
+            self.db.commit()
+            self.db.refresh(channel)
+        else:
+            self.db.flush()
         return channel
 
     def delete_channel(self, channel_id: str) -> bool:

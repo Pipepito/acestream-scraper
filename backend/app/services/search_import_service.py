@@ -2,7 +2,7 @@
 from app.schemas.search import SearchImportOutcome, SearchImportResponse
 from app.services.search_catalogue_client import SearchCatalogueClient, CatalogueReadError
 from app.services.import_exclusion_service import ImportExclusionService
-from app.repositories.channel_repository import ChannelRepository
+from app.services.import_pipeline import ImportEntry, ImportPipeline, ImportReference
 from app.api.error_handlers import APIError
 
 
@@ -29,9 +29,7 @@ def resolve_candidates(client, candidates, policy):
 
 
 def apply_candidates(db, candidates, policy, provenance='Acestream Search', *, dry_run=False):
-    repo = ChannelRepository(db)
-    outcomes, seen = [], set()
-    existing_ids = repo.existing_import_ids(c['content_id'] for c in candidates if c.get('content_id'))
+    decisions, pending = [], []
     for item in candidates:
         cid = item.get('content_id')
         rules = policy.matches(cid or '', item['name'])
@@ -43,16 +41,17 @@ def apply_candidates(db, candidates, policy, provenance='Acestream Search', *, d
             # authoritative ID: defer rather than saving its infohash.
             decision = 'deferred'
         elif cid:
-            if cid in seen:
-                decision = 'duplicate'
-            else:
-                decision = 'existing' if cid in existing_ids else 'added'
-                if cid not in existing_ids and not dry_run:
-                    repo.create_or_update_channel(cid, item['name'], source_url=provenance,
-                        group=item.get('category') or None, is_online=None, commit=False)
-                seen.add(cid)
-        outcomes.append(SearchImportOutcome(infohash=item['infohash'], content_id=cid,
-            outcome=decision, rule_ids=rules))
+            pending.append(len(decisions))
+        decisions.append((decision, rules))
+    result = ImportPipeline.apply(db, ImportReference(provenance, dry_run=dry_run), [
+        ImportEntry(candidates[index]['content_id'], candidates[index]['name'],
+                    group=candidates[index].get('category') or None)
+        for index in pending], 'insert_only', policy=policy)
+    for index, item in zip(pending, result.items):
+        decisions[index] = (item.outcome, decisions[index][1])
+    outcomes = [SearchImportOutcome(infohash=item['infohash'], content_id=item.get('content_id'),
+                                    outcome=decision, rule_ids=rules)
+                for item, (decision, rules) in zip(candidates, decisions)]
     return SearchImportResponse(items=outcomes, policy_revision=policy.revision,
         **{key: sum(i.outcome == key for i in outcomes)
            for key in ('added', 'existing', 'excluded', 'unresolved', 'deferred')})

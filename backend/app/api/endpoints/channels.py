@@ -209,32 +209,22 @@ def create_acestream_channel(acestreamchannel: AcestreamChannelCreate, db: Sessi
     """
     Create a new Acestream channel. If a channel with the same ID exists, update it.
     """
-    from app.services.import_exclusion_service import ImportExclusionService
-    ImportExclusionService(db).require_allowed(acestreamchannel.id, acestreamchannel.name,
-        allow_excluded=acestreamchannel.allow_excluded)
-    service = AcestreamChannelService(db)
-    channel_id = acestreamchannel.id
-    existing_channel = service.get_channel_by_id(channel_id)
-
-    if existing_channel:
-        # Update existing channel (upsert behavior for V1 compatibility)
-        updated_channel = service.update_channel(
-            channel_id=channel_id,
-            updates=acestreamchannel.model_dump(exclude_unset=True, exclude={"allow_excluded"})
-        )
-        return updated_channel
-    else:
-        # Create new channel
-        return service.create_channel(
-            channel_id=channel_id,
-            name=acestreamchannel.name,
-            source_url=acestreamchannel.source_url,
-            group=acestreamchannel.group,
-            logo=acestreamchannel.logo,
-            tvg_id=acestreamchannel.tvg_id,
-            tvg_name=acestreamchannel.tvg_name,
-            is_online=acestreamchannel.is_online
-        )
+    from app.services.import_pipeline import ImportEntry, ImportPipeline, ImportReference
+    # allow_excluded overrides import exclusions for this request only; it is
+    # never stored and never reaches automatic imports.
+    result = ImportPipeline.apply(db, ImportReference(acestreamchannel.source_url,
+                                                      allow_excluded=acestreamchannel.allow_excluded), [
+        ImportEntry(acestreamchannel.id, acestreamchannel.name, group=acestreamchannel.group,
+                    logo=acestreamchannel.logo, tvg_id=acestreamchannel.tvg_id,
+                    tvg_name=acestreamchannel.tvg_name, is_online=acestreamchannel.is_online,
+                    # An existing row (upsert behavior for V1 compatibility)
+                    # only takes the fields the request sent.
+                    updates=acestreamchannel.model_dump(exclude_unset=True, exclude={"allow_excluded"}))],
+        'manual')
+    db.commit()
+    channel = result.items[0].channel
+    db.refresh(channel)
+    return channel
 
 
 @router.put("/{acestreamchannel_id}", response_model=AcestreamChannelResponse)

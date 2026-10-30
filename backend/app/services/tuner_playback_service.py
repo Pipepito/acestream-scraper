@@ -15,6 +15,7 @@ from app.services.engine_client import EngineClient, EngineRefusedError, EngineU
 from app.services.stream_relay import EngineStreamError, RelayInfo, RelayRegistry, relay_engine_stream, relay_registry
 from app.services.tuner_remux import remux_source, compatible_audio_source
 from app.services.tuner_http_source import relay_http_stream
+from app.utils.stream_kind import stream_kind
 
 STARTUP_BUDGET_SECONDS = 45.0
 ATTEMPT_SECONDS = 15.0
@@ -119,7 +120,7 @@ async def relay_ranked_streams(
             attempted.add(content_id)
             registry.select_stream(claim.id, content_id)
             attempt_deadline = min(deadline, time.monotonic() + attempt_seconds)
-            is_http = content_id.startswith('url:')
+            is_http = stream_kind(content_id) == 'http'
 
             async def source():
                 if is_http:

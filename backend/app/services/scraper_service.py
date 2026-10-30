@@ -10,10 +10,6 @@ from app.models.models import ScrapedURL, AcestreamChannel
 from app.models.url_types import create_url_object
 from app.schemas.scraper import ChannelResult, URLResponse, URLCreate, URLUpdate
 from app.scrapers import create_scraper_for_url
-from app.services.m3u_service import M3UService
-from app.services.epg_service import EPGService
-from app.services.tvchannel_service import TVChannelService
-from app.repositories.channel_repository import ChannelRepository
 from app.repositories.url_repository import URLRepository
 
 logger = logging.getLogger(__name__)
@@ -216,63 +212,22 @@ class ScraperService:
 
 def _apply_scrape(bind, raw_channels, url, source_url, custom_recipe, status):
     """Worker-owned session: no ORM rows cross the fetch/apply thread boundary."""
+    from app.services.import_pipeline import ImportEntry, ImportPipeline, ImportReference
     with Session(bind=bind) as db:
         # Fetching has finished. Admission, reconciliation and TV assignment
         # share this short transaction and the policy's DB write claim.
-        from app.services.import_exclusion_service import ImportExclusionService
-        policy = ImportExclusionService(db).snapshot(claim=True)
-        observed_ids = {cid for cid, _, _ in raw_channels}
-        excluded_ids = {cid for cid, name, _ in raw_channels if policy.matches(cid, name)}
-        excluded_count = len(excluded_ids)
-        raw_channels = [(cid, name, meta) for cid, name, meta in raw_channels
-                        if cid not in excluded_ids]
-        source_urls = {url, source_url}
-        source_query = db.query(AcestreamChannel).filter(AcestreamChannel.source_url.in_(source_urls))
-        protected_ids = excluded_ids | {ch.id for ch in source_query.all() if policy.matches(ch.id, ch.name)}
-        # All-excluded, empty, failed and partial snapshots never prune.
-        if raw_channels and observed_ids and not custom_recipe and status == 'OK':
-            missing = source_query.filter(~AcestreamChannel.id.in_(observed_ids | protected_ids))
-            ChannelRepository(db).remove_search_memberships([row.id for row in missing.all()])
-            missing.delete(synchronize_session=False)
-        m3u_service = M3UService()
-        raw_channels = m3u_service.auto_create_tv_channels_from_epg(
-            db, raw_channels, EPGService(db), TVChannelService(db))
-
-        # Persist channels to DB using transaction-scoped upserts
-        channel_repository = ChannelRepository(db)
-        persisted_channels = []
-        for channel_id, name, metadata in raw_channels:
-            persisted = channel_repository.create_or_update_channel(
-                channel_id=channel_id,
-                name=name,
-                source_url=source_url,
-                group=metadata.get('group_title', metadata.get('group', '')),
-                logo=metadata.get('tvg_logo', metadata.get('logo', '')),
-                tvg_id=metadata.get('tvg_id', ''),
-                tvg_name=metadata.get('tvg_name', ''),
-                # auto_create_tv_channels_from_epg also handles IDs that
-                # have not been persisted yet. Carry its staged
-                # association into the INSERT; existing rows are assigned
-                # by the repository's conflict-checked UPDATE above.
-                tv_channel_id=metadata.get('tv_channel_id'),
-                # Set only for streams addressed by URL instead of by an
-                # acestream id. See M3UService._looks_like_stream.
-                stream_url=metadata.get('stream_url'),
-                stream_headers=metadata.get('stream_headers'),
-                # Catalogue presence is not evidence of a live signal.
-                is_online=None,
-                commit=False,
-            )
-            persisted_channels.append(persisted)
+        result = ImportPipeline.apply(
+            db, ImportReference(source_url, aliases=(url,), status=status, custom_recipe=custom_recipe),
+            [ImportEntry.from_scrape(cid, name, meta) for cid, name, meta in raw_channels], 'snapshot')
         db.commit()
         # Optional automation must also protect excluded incoming identities,
         # even when their stored operator name does not match the new rule.
         if not status.lower().startswith('error'):
             from app.services.epg_matching_automation import EPGMatchingAutomation
-            EPGMatchingAutomation(db).run(import_excluded_ids=protected_ids)
+            EPGMatchingAutomation(db).run(import_excluded_ids=result.protected_ids)
         channels = [ChannelResult(channel_id=ch.id, name=ch.name, metadata={
             'group': ch.group, 'logo': ch.logo, 'tvg_id': ch.tvg_id,
             'tvg_name': ch.tvg_name, 'source_url': ch.source_url,
             'tv_channel_id': ch.tv_channel_id,
-        }) for ch in persisted_channels]
-        return channels, excluded_count
+        }) for ch in result.channels]
+        return channels, len(result.excluded_ids)

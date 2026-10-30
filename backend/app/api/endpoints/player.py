@@ -30,6 +30,7 @@ from app.services.player_service import PlayerLimitReached, PlayerSession, playe
 from app.services.stream_relay import relay_registry
 from app.services.tuner_probe_service import tuner_probe_service
 from app.utils.hls_response import HLSFileResponse
+from app.utils.stream_kind import stream_kind
 
 router = APIRouter(tags=["player"])
 _SEGMENT = re.compile(r"^(?:seg\d{5}\.ts|index\d+\.vtt)$")
@@ -134,7 +135,7 @@ async def create_session(payload: PlayerSessionCreate) -> PlayerSessionStatus:
             status_code=status.HTTP_409_CONFLICT,
             context={"limit": exc.limit, "active": exc.active},
         ) from exc
-    if session.state in ('starting', 'ready') and not session.content_id.startswith('url:'):
+    if session.state in ('starting', 'ready') and stream_kind(session.content_id) != 'http':
         await tuner_probe_service.start_for_stream(session.content_id)
     return _status(session)
 

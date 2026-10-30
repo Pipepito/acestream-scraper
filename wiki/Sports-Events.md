@@ -134,11 +134,11 @@ lets you accept newly discovered events. Failed, empty, invalid or partial feeds
 preserve saved events and variants. The last success, errors and new-event count
 are visible per source. Signed schedule URLs are not exposed in the source list.
 
-At most 20 sources are saved. A URL fetch is limited to 2 MiB and 15 seconds;
-built-in providers use at most three simultaneous requests, 2 MiB per response,
-12 MiB total and one shared 15-second deadline;
-a pass has a 120-second fetch budget and prioritizes sources with older attempts.
-Remaining sources are deferred. Turning refresh off during a fetch prevents its
+At most 20 sources are saved. URL fetches are limited to 2 MiB. Built-in providers
+use at most three simultaneous requests, 2 MiB per response and 12 MiB total.
+The saved request timeout applies to the complete source fetch (5–300 seconds,
+15 by default). A pass admits sources for 120 seconds and prioritizes older attempts;
+an admitted source receives its full timeout. Remaining sources are deferred. Turning refresh off during a fetch prevents its
 results from applying. A source identity belongs to one URL; use distinct publisher
 identities for different feeds. A structured guide derives its namespace from its
 saved URL, while publisher event IDs remain stable through postponements.
@@ -212,7 +212,8 @@ Limits: 2 MiB per JSON upload, 500 observations per import, 2,000 stored events,
 4,000 observations, 10,000 broadcasts and 16 MiB observation data. A reached limit
 preserves the existing inventory. Reviewed W3U imports share this event model;
 automatic W3U schedule extraction and Telegram transport remain in #257/#258. Arbitrary website
-resolvers, automatic playback fallback and guide overlays are not offered here.
+resolvers and automatic playback fallback remain separate. Reviewed guide-export
+overlays are described below; original guide rows and recording schedules stay intact.
 
 
 ## From a Wiseplay catalogue

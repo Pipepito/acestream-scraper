@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+exec bash scripts/ci/quality_local.sh fast

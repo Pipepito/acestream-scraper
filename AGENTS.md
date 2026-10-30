@@ -83,6 +83,11 @@ loads the applicable file when working below those directories.
 
 ## Verification
 
+Self-hosted quality reporting and optional local hooks are documented in
+`docs/ops/code-quality.md`. Use `CI_COVERAGE_DIR` with the full application suite
+to collect backend/frontend reports without repeating tests. Private infrastructure
+policy, not proposed application configuration, controls Jenkins gates.
+
 Use focused checks while iterating; the mandatory completion validation below
 always applies before reporting a task complete.
 

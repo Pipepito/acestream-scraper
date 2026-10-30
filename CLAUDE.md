@@ -827,3 +827,8 @@ come from the installed adapter registry through `/api/v1/scrapers/providers`;
 Acestream Channels filters source identity before counting/pagination. W3U source
 filters include reviewed shared imports without replacing their original owners
 or exposing private catalogue media URLs. See `wiki/Usage.md`.
+# Self-hosted code-quality feedback
+
+See `docs/ops/code-quality.md` for optional Git hooks and coverage reporting.
+`CI_COVERAGE_DIR` enables separate backend/frontend reports in the existing full
+suite. Jenkins gates and scanner policy remain in the private infrastructure repo.

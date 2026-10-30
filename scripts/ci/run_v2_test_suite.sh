@@ -55,6 +55,15 @@ echo "Running docs contract guard..."
 PYTHONPATH=backend "$BACKEND_PYTEST" -q backend/tests/docker/test_docs_contract.py
 
 echo "Running canonical backend suite ($PROFILE)..."
+coverage_args=()
+if [[ -n "${CI_COVERAGE_DIR:-}" ]]; then
+  mkdir -p "$CI_COVERAGE_DIR/backend" "$CI_COVERAGE_DIR/frontend"
+  coverage_args=(--cov=backend --cov-branch
+    "--cov-config=${CI_COVERAGE_CONFIG:-.coveragerc}"
+    "--cov-report=xml:$CI_COVERAGE_DIR/backend/coverage.xml"
+    "--cov-report=json:$CI_COVERAGE_DIR/backend/coverage.json"
+    "--junitxml=$CI_COVERAGE_DIR/backend/junit.xml")
+fi
 if [[ "$PROFILE" == "quick" ]]; then
   PYTHONPATH=backend "$BACKEND_PYTEST" -q \
     backend/tests/contracts/test_channel_contracts.py \
@@ -68,7 +77,7 @@ else
   # backend/tests/docker builds images with buildx (QEMU for ARM) and boots
   # the real engines; the Jenkinsfiles run those files as explicit smoke
   # stages, so keep them out of the unit/contract run.
-  PYTHONPATH=backend "$BACKEND_PYTEST" -q backend/tests --ignore=backend/tests/docker
+  PYTHONPATH=backend "$BACKEND_PYTEST" -q backend/tests --ignore=backend/tests/docker "${coverage_args[@]}"
 fi
 
 echo "Refreshing OpenAPI schema for codegen..."
@@ -114,7 +123,17 @@ echo "Running canonical frontend suite ($PROFILE)..."
   if [[ "$PROFILE" == "quick" ]]; then
     CI=true npm test -- --watch=false --runInBand Dashboard.test.tsx AcestreamChannelsPage.test.tsx
   else
-    CI=true npm test -- --watch=false --runInBand
+    jest_args=()
+    if [[ -n "${CI_COVERAGE_DIR:-}" ]]; then
+      jest_args=(--coverage '--collectCoverageFrom=src/**/*.{ts,tsx}'
+        '--collectCoverageFrom=!src/**/*.d.ts' '--collectCoverageFrom=!src/types/api-generated.ts'
+        '--collectCoverageFrom=!src/**/__tests__/**' '--collectCoverageFrom=!src/**/*.test.{ts,tsx}'
+        '--collectCoverageFrom=!src/setupTests.ts' '--collectCoverageFrom=!src/testUtils/**'
+        "--coverageDirectory=$CI_COVERAGE_DIR/frontend"
+        --coverageReporters=cobertura --coverageReporters=json-summary --coverageReporters=lcovonly
+        --json "--outputFile=$CI_COVERAGE_DIR/frontend/tests.json")
+    fi
+    CI=true npm test -- --watch=false --runInBand "${jest_args[@]}"
   fi
 
   npm run build

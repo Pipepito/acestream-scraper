@@ -16,6 +16,7 @@
 
 
 - [Sports events](Sports-Events.md)
+- [Regional guide sources](EPG.md)
 - [Channel management](tasks/channel-management.md)
 - [Stream statistics](Stream-Statistics.md)
 - [Telegram sources](Telegram-Sources.md)

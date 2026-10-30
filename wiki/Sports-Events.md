@@ -263,3 +263,32 @@ active TV channel has that source-qualified guide assignment, to that TV channel
 Matches are rechecked against current guide data, including after EPG replacement.
 Source broadcasts, manual choices and kickoff times stay intact. A programme
 association does not prove live signal or create a permanent channel.
+
+## Competition requests and slow sources
+
+In Add events → Built-in provider, select Football and remove All sports to use
+**Football competitions**. Choose one or more competitions before previewing;
+only their provider pages are requested. Leaving competitions blank fetches all
+football. Other selected sports are still fetched. The competition list is curated;
+unsupported competitions remain available through the complete football feed.
+
+**Request timeout (seconds)** accepts 5–300, defaults to 15, and is saved for both
+preview and automatic refresh. Review schedule lets you change it. A timeout or
+failed page preserves imported events. Narrowing a feed never deletes prior imports.
+
+## Place an event in exported guides
+
+Open an event → Manage event → **XMLTV guide overlay**. Link its broadcaster to
+your exact TV or EPG channel first; TV channels need an enabled guide assignment.
+Choose the broadcast and confirm the overlay end with an explicit UTC offset.
+Preview the regular programmes affected, then Apply reviewed overlay.
+
+XMLTV and tuner guide exports show the match in that window and regular programming
+before and after it. The original guide and built-in recording programme selection
+stay unchanged. Unknown ends are never estimated automatically; the confirmed
+window does not change the source's event end. Maximum window: twelve hours.
+
+Changed schedules/channel links suspend overlays for another review. Archived,
+postponed or cancelled events are excluded. Remove overlay restores the regular
+export. Conflicting event windows are rejected; a generic DAZN label is never
+silently assigned to a particular DAZN channel.

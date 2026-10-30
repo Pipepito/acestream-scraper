@@ -256,3 +256,41 @@ def test_football_linked_teams_and_competition_headers():
     assert row.participants == ['North United', 'South City']
     assert row.starts_at.isoformat() == '2026-10-28T18:00:00+00:00'
     assert row.broadcasts[0].label == 'Sports One'
+
+
+def test_competition_selections_replace_broad_football_fetches():
+    from app.services.event_providers import provider_urls
+    options = EventProviderOptions(provider='wosti_es', feeds=['football', 'tenis'],
+                                   football_competitions=['la-liga', 'copa-del-rey', 'la-liga'])
+    assert provider_urls(options) == [
+        ('https://www.futbolenlatv.es/competicion/la-liga', 'football'),
+        ('https://www.futbolenlatv.es/competicion/copa-del-rey', 'football'),
+        ('https://www.futbolenlatv.es/deporte/tenis', 'tenis')]
+    options.feeds = ['all', 'football']
+    with pytest.raises(ValueError, match='without All sports'):
+        provider_urls(options)
+    options.feeds = ['football']
+    options.football_competitions = ['../private']
+    with pytest.raises(ValueError, match='competition'):
+        provider_urls(options)
+
+
+def test_saved_timeout_used_by_preview_and_background_refresh(client, db_session, monkeypatch):
+    from app.services import event_source_service
+    from app.services.event_source_service import EventSourceService
+    seen = []
+    async def fetch(url, **kwargs):
+        seen.append((kwargs.get('timeout'), kwargs['adapter']['timeout_seconds']))
+        return select_provider_rows(parse_wosti(HTML), EventProviderOptions(provider='wosti_es'), zone='Europe/Madrid', now=NOW)
+    monkeypatch.setattr(event_source_service, 'fetch_schedule', fetch)
+    response = client.post('/api/v1/events/sources/preview', json={
+        'provider_options': {'provider': 'wosti_es'}, 'timeout_seconds': 240})
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert client.post('/api/v1/events/apply', json={'token': data['token'], 'selected_ids': [], 'refresh_source': True}).status_code == 200
+    source = client.get('/api/v1/events/sources').json()[0]
+    assert source['timeout_seconds'] == 240
+    assert client.post('/api/v1/events/sources/preview', json={'source_id': source['id']}).status_code == 200
+    EventSourceService(db_session).refresh_all()
+    assert seen == [(None, 240), (None, 240), (240, 240)]
+    assert client.post('/api/v1/events/sources/preview', json={'source_id': source['id'], 'timeout_seconds': 301}).status_code == 422

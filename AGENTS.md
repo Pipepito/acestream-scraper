@@ -768,3 +768,13 @@ Live TV exposes the seven-day guide inline without starting playback. Programme
 recording uses the selected guide snapshot and exact instants by default; time
 adjustments are optional. Require an active assigned TV channel with an enabled
 stream for recording admission. See `wiki/Recordings.md`.
+
+
+Regional guide URLs opt into bounded TV Rioja/Sincroguía HTML conversion. Keep
+current-week weekday interpretation, Madrid DST rejection, all-or-nothing fetches
+and source-qualified identities. Event XMLTV overlays require preview/apply with
+revision/fingerprint checks and an explicit end; preserve original EPG rows and
+recording IDs. Changed schedule/target identities suspend overlays. Football
+competition choices narrow upstream URLs before fetching; saved 5–300s source
+timeouts apply to preview and refresh, with pass admission checked between sources.
+See `docs/dev/regional-guides-and-overlays.md`.

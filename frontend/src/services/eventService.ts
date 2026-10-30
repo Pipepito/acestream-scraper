@@ -1,5 +1,8 @@
 import apiClient from './apiClient';
 import type { components } from '../types/api-generated';
+export type EventOverlayRequest = components['schemas']['EventOverlayRequest'];
+export type EventOverlayPreview = components['schemas']['EventOverlayPreview'];
+export type EventOverlayView = components['schemas']['EventOverlayView'];
 export type EventInterests = components['schemas']['EventInterests'];
 export type EventProviderOptions = components['schemas']['EventProviderOptions'];
 export type EventChannelTarget = components['schemas']['EventChannelTarget'];
@@ -17,6 +20,14 @@ export interface EventFilters {
   day?: string; upcoming: boolean; followed: boolean; archived: boolean; offset: number;
 }
 export const eventService = {
+  overlays: async (id: string): Promise<EventOverlayView[]> => (await apiClient.get(`/v1/events/${id}/guide-overlays`)).data,
+  previewOverlay: async (id: string, input: EventOverlayRequest): Promise<EventOverlayPreview> =>
+    (await apiClient.post(`/v1/events/${id}/guide-overlays/preview`, input)).data,
+  applyOverlay: async (id: string, input: EventOverlayRequest, expected_fingerprint: string): Promise<EventOverlayView[]> =>
+    (await apiClient.post(`/v1/events/${id}/guide-overlays`, { ...input, expected_fingerprint })).data,
+  removeOverlay: async (id: string, revision: number, broadcast_id: string): Promise<void> => {
+    await apiClient.delete(`/v1/events/${id}/guide-overlays`, { params: { revision, broadcast_id } });
+  },
   list: async (params: EventFilters): Promise<components['schemas']['EventList']> =>
     (await apiClient.get('/v1/events', { params })).data,
   get: async (id: string): Promise<SportingEvent> => (await apiClient.get(`/v1/events/${id}`)).data,
@@ -29,7 +40,7 @@ export const eventService = {
   mapBroadcastTarget: async (id: string, revision: number, broadcast_id: string, target: EventChannelTarget): Promise<SportingEvent> =>
     (await apiClient.patch(`/v1/events/${id}/broadcast`, { revision, broadcast_id, target_kind: target.kind, target_id: target.id })).data,
   sources: async (): Promise<EventSource[]> => (await apiClient.get('/v1/events/sources')).data,
-  previewSource: async (input: EventSourcePreviewRequest): Promise<EventPreview> => (await apiClient.post('/v1/events/sources/preview', input)).data,
+  previewSource: async (input: EventSourcePreviewRequest): Promise<EventPreview> => (await apiClient.post('/v1/events/sources/preview', input, { timeout: ((input.timeout_seconds ?? 300) + 30) * 1000 })).data,
   updateSource: async (id: string, revision: number, enabled: boolean): Promise<EventSource> =>
     (await apiClient.patch(`/v1/events/sources/${id}`, { revision, enabled })).data,
   deleteSource: async (id: string, revision: number): Promise<void> => { await apiClient.delete(`/v1/events/sources/${id}`, { params: { revision } }); },

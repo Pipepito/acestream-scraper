@@ -10,7 +10,7 @@ import EventAgenda from '../components/events/EventAgenda';
 import channelService from '../services/channelService';
 import { eventService, type SportingEvent } from '../services/eventService';
 
-jest.mock('../services/eventService', () => ({ eventService: { list: jest.fn(), get: jest.fn(), preview: jest.fn(), apply: jest.fn(), update: jest.fn(), sources: jest.fn(), previewSource: jest.fn(), updateSource: jest.fn(), deleteSource: jest.fn(), retention: jest.fn(), saveRetention: jest.fn(), mapBroadcast: jest.fn(), artwork: jest.fn(), refreshSources: jest.fn(), providers: jest.fn(), interests: jest.fn(), broadcastTargets: jest.fn(), mapBroadcastTarget: jest.fn() } }));
+jest.mock('../services/eventService', () => ({ eventService: { overlays: jest.fn(), previewOverlay: jest.fn(), applyOverlay: jest.fn(), removeOverlay: jest.fn(), list: jest.fn(), get: jest.fn(), preview: jest.fn(), apply: jest.fn(), update: jest.fn(), sources: jest.fn(), previewSource: jest.fn(), updateSource: jest.fn(), deleteSource: jest.fn(), retention: jest.fn(), saveRetention: jest.fn(), mapBroadcast: jest.fn(), artwork: jest.fn(), refreshSources: jest.fn(), providers: jest.fn(), interests: jest.fn(), broadcastTargets: jest.fn(), mapBroadcastTarget: jest.fn() } }));
 jest.mock('../services/channelService', () => ({ __esModule: true, default: { getAcestreamChannels: jest.fn() } }));
 jest.mock('../components/player/StreamPlayerDialog', () => ({ __esModule: true, default: ({ open, contentId, onClose }: { open: boolean; contentId: string; onClose: () => void }) => {
   const { Dialog } = jest.requireActual<typeof import('@mui/material')>('@mui/material');
@@ -33,6 +33,7 @@ function renderPage(mode: 'light' | 'dark' = 'light', route = '/events') {
 }
 beforeEach(() => {
   jest.clearAllMocks();
+  service.overlays.mockResolvedValue([]);
   service.sources.mockResolvedValue([]);
   service.providers.mockResolvedValue({ feeds: [{ id: 'all', name: 'All sports' }, { id: 'automovilismo', name: 'Motorsport' }], leagues: [{ id: 'es.1', name: 'La Liga', timezone: 'Europe/Madrid' }] });
   service.interests.mockResolvedValue({ sports: ['Football', 'Motorsport'], competitions: ['Fórmula 1', 'Premier League'], teams: ['North United'] });
@@ -340,4 +341,52 @@ it('shows matched guide programmes and assigned TV channel links', async () => {
   expect(await screen.findByText('Matching guide programmes')).toBeVisible();
   expect(screen.getByRole('link', { name: /Guide Sports/ })).toHaveAttribute('href', '/epg/channels/3');
   expect(screen.getByRole('link', { name: 'Open Sports TV' })).toHaveAttribute('href', '/tv-channels/4');
+});
+
+
+it('selects football competitions and a timeout before the first provider request', async () => {
+  service.providers.mockResolvedValue({ feeds: [{ id: 'all', name: 'All sports' }, { id: 'football', name: 'Football' }],
+    leagues: [], football_competitions: [{ id: 'la-liga', name: 'La Liga' }] });
+  const user = userEvent.setup();
+  renderPage();
+  await user.click(screen.getByRole('button', { name: 'Add events' }));
+  await user.click(await screen.findByLabelText('Sports feeds'));
+  await user.click(await screen.findByRole('option', { name: 'Football' }));
+  await user.click(screen.getByLabelText('Sports feeds'));
+  await user.click(await screen.findByRole('option', { name: 'All sports' }));
+  await user.click(screen.getByLabelText('Football competitions'));
+  await user.click(await screen.findByRole('option', { name: 'La Liga' }));
+  await user.clear(screen.getByLabelText('Request timeout (seconds)'));
+  await user.type(screen.getByLabelText('Request timeout (seconds)'), '240');
+  expect(service.previewSource).not.toHaveBeenCalled();
+  await user.click(screen.getByRole('button', { name: 'Preview events' }));
+  await waitFor(() => expect(service.previewSource).toHaveBeenCalledWith(expect.objectContaining({
+    timeout_seconds: 240, provider_options: expect.objectContaining({ football_competitions: ['la-liga'], feeds: ['football'] }),
+  })));
+});
+
+it('previews an XMLTV overlay and requires review again when the end changes', async () => {
+  const target = { kind: 'tv' as const, id: 7, name: 'Sports One' };
+  service.get.mockResolvedValue({ ...event, broadcasts: [{ ...event.broadcasts[0], target }] });
+  service.previewOverlay.mockResolvedValue({ fingerprint: 'a'.repeat(64), channel: target,
+    programme: { title: event.title, starts_at: event.starts_at!, ends_at: '2026-10-24T23:30:00Z' },
+    affected: [{ title: 'Regular guide', starts_at: event.starts_at!, ends_at: '2026-10-25T01:00:00Z' }] });
+  service.applyOverlay.mockResolvedValue([]);
+  const user = userEvent.setup();
+  renderPage();
+  await user.click(await screen.findByRole('button', { name: `View broadcasts for ${event.title}` }));
+  await user.click(screen.getByRole('button', { name: 'Manage event' }));
+  await user.click(screen.getByLabelText('Overlay broadcast'));
+  await user.click(screen.getByRole('option', { name: 'Sports One → Sports One' }));
+  await user.type(screen.getByLabelText('Overlay end (ISO date and time)'), '2026-10-24T23:30:00Z');
+  await user.click(screen.getByRole('button', { name: 'Preview guide overlay' }));
+  expect(await screen.findByText(/Regular guide ·/)).toBeVisible();
+  expect(service.applyOverlay).not.toHaveBeenCalled();
+  await user.type(screen.getByLabelText('Overlay end (ISO date and time)'), 'x');
+  expect(screen.queryByRole('button', { name: 'Apply reviewed overlay' })).not.toBeInTheDocument();
+  await user.keyboard('{Backspace}');
+  await user.click(screen.getByRole('button', { name: 'Apply reviewed overlay' }));
+  await waitFor(() => expect(service.applyOverlay).toHaveBeenCalledWith(event.id, {
+    revision: 1, broadcast_id: 'es', ends_at: '2026-10-24T23:30:00Z',
+  }, 'a'.repeat(64)));
 });

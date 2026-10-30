@@ -3571,6 +3571,151 @@
         "title": "EventObservation",
         "type": "object"
       },
+      "EventOverlayApply": {
+        "additionalProperties": false,
+        "properties": {
+          "broadcast_id": {
+            "maxLength": 193,
+            "minLength": 1,
+            "title": "Broadcast Id",
+            "type": "string"
+          },
+          "ends_at": {
+            "format": "date-time",
+            "title": "Ends At",
+            "type": "string"
+          },
+          "expected_fingerprint": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Expected Fingerprint",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "revision",
+          "broadcast_id",
+          "ends_at",
+          "expected_fingerprint"
+        ],
+        "title": "EventOverlayApply",
+        "type": "object"
+      },
+      "EventOverlayPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "affected": {
+            "items": {
+              "$ref": "#/components/schemas/EventOverlayProgram"
+            },
+            "title": "Affected",
+            "type": "array"
+          },
+          "channel": {
+            "$ref": "#/components/schemas/EventChannelTarget"
+          },
+          "fingerprint": {
+            "title": "Fingerprint",
+            "type": "string"
+          },
+          "programme": {
+            "$ref": "#/components/schemas/EventOverlayProgram"
+          }
+        },
+        "required": [
+          "fingerprint",
+          "channel",
+          "programme",
+          "affected"
+        ],
+        "title": "EventOverlayPreview",
+        "type": "object"
+      },
+      "EventOverlayProgram": {
+        "additionalProperties": false,
+        "properties": {
+          "ends_at": {
+            "format": "date-time",
+            "title": "Ends At",
+            "type": "string"
+          },
+          "starts_at": {
+            "format": "date-time",
+            "title": "Starts At",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "starts_at",
+          "ends_at"
+        ],
+        "title": "EventOverlayProgram",
+        "type": "object"
+      },
+      "EventOverlayRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "broadcast_id": {
+            "maxLength": 193,
+            "minLength": 1,
+            "title": "Broadcast Id",
+            "type": "string"
+          },
+          "ends_at": {
+            "format": "date-time",
+            "title": "Ends At",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "revision",
+          "broadcast_id",
+          "ends_at"
+        ],
+        "title": "EventOverlayRequest",
+        "type": "object"
+      },
+      "EventOverlayView": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "broadcast_id": {
+            "title": "Broadcast Id",
+            "type": "string"
+          },
+          "channel": {
+            "$ref": "#/components/schemas/EventChannelTarget"
+          },
+          "programme": {
+            "$ref": "#/components/schemas/EventOverlayProgram"
+          }
+        },
+        "required": [
+          "broadcast_id",
+          "channel",
+          "programme",
+          "active"
+        ],
+        "title": "EventOverlayView",
+        "type": "object"
+      },
       "EventPreview": {
         "additionalProperties": false,
         "properties": {
@@ -3659,6 +3804,13 @@
             "title": "Feeds",
             "type": "array"
           },
+          "football_competitions": {
+            "items": {
+              "$ref": "#/components/schemas/EventProviderChoice"
+            },
+            "title": "Football Competitions",
+            "type": "array"
+          },
           "leagues": {
             "items": {
               "$ref": "#/components/schemas/EventProviderChoice"
@@ -3708,6 +3860,14 @@
             "maxItems": 20,
             "minItems": 1,
             "title": "Feeds",
+            "type": "array"
+          },
+          "football_competitions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Football Competitions",
             "type": "array"
           },
           "interests": {
@@ -3867,6 +4027,19 @@
             ],
             "title": "Source Id"
           },
+          "timeout_seconds": {
+            "anyOf": [
+              {
+                "maximum": 300.0,
+                "minimum": 5.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timeout Seconds"
+          },
           "timezone": {
             "default": "UTC",
             "maxLength": 100,
@@ -3987,6 +4160,13 @@
           },
           "revision": {
             "title": "Revision",
+            "type": "integer"
+          },
+          "timeout_seconds": {
+            "default": 15,
+            "maximum": 300.0,
+            "minimum": 5.0,
+            "title": "Timeout Seconds",
             "type": "integer"
           },
           "timezone": {
@@ -16827,6 +17007,212 @@
           }
         },
         "summary": "Map Event Broadcast",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/{event_id}/guide-overlays": {
+      "delete": {
+        "operationId": "remove_event_overlay_api_v1_events__event_id__guide_overlays_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_id",
+            "required": true,
+            "schema": {
+              "title": "Event Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "revision",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "Revision",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "broadcast_id",
+            "required": true,
+            "schema": {
+              "maxLength": 193,
+              "minLength": 1,
+              "title": "Broadcast Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Remove Event Overlay",
+        "tags": [
+          "events"
+        ]
+      },
+      "get": {
+        "operationId": "list_event_overlays_api_v1_events__event_id__guide_overlays_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_id",
+            "required": true,
+            "schema": {
+              "title": "Event Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EventOverlayView"
+                  },
+                  "title": "Response List Event Overlays Api V1 Events  Event Id  Guide Overlays Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Event Overlays",
+        "tags": [
+          "events"
+        ]
+      },
+      "post": {
+        "operationId": "apply_event_overlay_api_v1_events__event_id__guide_overlays_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_id",
+            "required": true,
+            "schema": {
+              "title": "Event Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventOverlayApply"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EventOverlayView"
+                  },
+                  "title": "Response Apply Event Overlay Api V1 Events  Event Id  Guide Overlays Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Apply Event Overlay",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/{event_id}/guide-overlays/preview": {
+      "post": {
+        "operationId": "preview_event_overlay_api_v1_events__event_id__guide_overlays_preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_id",
+            "required": true,
+            "schema": {
+              "title": "Event Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventOverlayRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventOverlayPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Event Overlay",
         "tags": [
           "events"
         ]

@@ -3,6 +3,17 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import ChannelFilterBar from '../components/channels/ChannelFilterBar';
 
 describe('ChannelFilterBar', () => {
+  it('finds a named catalogue source and preserves other filters', () => {
+    const onChange = jest.fn();
+    render(<ChannelFilterBar filters={{ group: 'Sports' }} groups={['Sports']} sources={[
+      { value: 'catalogue:7', label: 'My catalogue', kind: 'catalogue' },
+      { value: 'https://example.test/list', label: 'Local TV', kind: 'scrape' },
+    ]} onChange={onChange} />);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Source' }), { target: { value: 'My catalogue' } });
+    fireEvent.click(screen.getByRole('option', { name: 'My catalogue · W3U catalogue · catalogue:7' }));
+    expect(onChange).toHaveBeenCalledWith({ group: 'Sports', source_url: 'catalogue:7' });
+  });
+
   it('debounces the search box and trims the value', async () => {
     const onChange = jest.fn();
     render(<ChannelFilterBar filters={{}} groups={['Sports']} onChange={onChange} />);

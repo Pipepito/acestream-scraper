@@ -10,6 +10,12 @@ from app.services.stream_ranking import sort_streams_curated
 
 
 
+class ChannelSourceFilter(BaseModel):
+    value: str
+    label: str
+    kind: Literal['scrape', 'broadcaster', 'catalogue', 'import']
+
+
 class AcestreamChannelBase(BaseModel):
     """Base model for Acestream channel data"""
     id: str = Field(..., description="Acestream channel ID (required, GUID string)")

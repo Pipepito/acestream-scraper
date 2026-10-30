@@ -11,7 +11,7 @@ import { getErrorMessage } from '../utils/errorUtils';
 const steps = ['Playback', 'Network access', 'Optional services', 'Review'];
 const groups = ['playback', 'network', 'services'];
 const nextSteps = [
-  { to: '/scraper', label: 'Add an official broadcaster', detail: 'Add https://www.atresplayer.com, https://www.mediasetinfinity.es, https://www.telemadrid.es or https://www.7riojaplay.tv in Scraper, then review the imported channels. Nothing is imported automatically.' },
+  { to: '/scraper', label: 'Add an official broadcaster', detail: 'Open Add URL in Scraper and select a built-in provider, then import and review its channels. Nothing is imported automatically.' },
   { to: '/epg?tab=sources', label: 'Add programme guides', detail: 'Choose your XMLTV sources, preview matches and apply the channel assignments you want.' },
   { to: '/tv-channels', label: 'Organize TV channels', detail: 'Assign streams, set numbers and favorites, then open Live TV or export a playlist.' },
   { to: '/settings?tab=automation', label: 'Schedule updates', detail: 'Choose refresh intervals and optional start times. Review matching and cleanup before enabling automation.' },

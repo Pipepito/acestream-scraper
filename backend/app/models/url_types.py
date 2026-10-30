@@ -248,6 +248,11 @@ def create_url_object(url: str, url_type: str = 'auto') -> BaseURL:
         raise ValueError("URL cannot be empty")
     
     # Handle explicit URL types
+    if url_type == 'broadcaster':
+        from app.services.live_providers import for_source_url
+        if not RegularURL.is_valid_url(url) or for_source_url(url) is None:
+            raise ValueError('Select a supported built-in broadcaster URL')
+        return RegularURL(url)
     if url_type == 'regular':
         # For explicit regular URLs, skip validation to allow non-standard URLs
         return RegularURL(url, skip_validation=True)

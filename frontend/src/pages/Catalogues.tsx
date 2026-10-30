@@ -92,11 +92,13 @@ const Catalogues: React.FC = () => {
   const save = useMutation({ mutationFn: catalogueService.save, onSuccess: (result) => {
     queryClient.setQueryData(['catalogue', result.id], result);
     void queryClient.invalidateQueries({ queryKey: ['catalogues'] });
+    void queryClient.invalidateQueries({ queryKey: ['channel-sources'] });
     void queryClient.invalidateQueries({ queryKey: ['acestream-channels'] });
     setPreview(null); setParams({ catalogue: String(result.id) }); resetBrowse();
   } });
   const remove = useMutation({ mutationFn: catalogueService.remove, onSuccess: () => {
     void queryClient.invalidateQueries({ queryKey: ['catalogues'] });
+    void queryClient.invalidateQueries({ queryKey: ['channel-sources'] });
     setParams({}); setConfirmRemove(false); setPreview(null); setDetails(null);
   } });
   const pending = prepare.isPending || save.isPending || remove.isPending;

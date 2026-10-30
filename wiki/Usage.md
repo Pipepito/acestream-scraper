@@ -16,6 +16,19 @@ A **stream** is one AceStream content ID. A **TV channel** groups stream IDs for
 
 Choose **Wiki** in the top bar for these guides and troubleshooting help. It stays available on phones and with the sidebar collapsed, and opens in a new tab so your current page and playback remain open.
 
+## Named sources and built-in broadcasters
+
+In **Scraper → Add URL**, choose **Built-in provider** for Atresmedia, Mediaset,
+Telemadrid or 7 Rioja. The form fills the supported URL and marks it **Built-in
+broadcaster**. These adapters import broadcaster channels directly; custom HTTP,
+ZeroNet and IPFS sources retain their extraction workflow. Saving the definition
+never starts an import: use the source's Scrape action when ready.
+
+**Friendly name (optional)** is available when adding or editing any source. Leave
+it blank to use the URL. **Acestream Channels → Source** searches these names and
+URLs as well as saved W3U catalogue names, before pagination and alongside the
+other filters. Existing broadcaster URLs are recognized without re-adding them.
+
 ## Step 1: Open the TV dashboard
 
 The **TV dashboard** at `/` is the landing page. It shows browser playback and server

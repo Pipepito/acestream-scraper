@@ -10,7 +10,7 @@ import pytest
 
 from runtime_config import (ConfigConflict, ConfigError, OPTION_MAP, bootstrap_values,
                             config_path, ensure_config, environment_for, read_config,
-                            revision, update_config)
+                            revision, update_config, resolved_values)
 
 
 def test_seed_once_preserves_environment_and_secrets_boundary(tmp_path):
@@ -173,7 +173,8 @@ def test_existing_database_still_needs_setup_when_config_is_missing(tmp_path):
 
 def test_bundled_endpoint_is_seeded_with_deployment_port():
     values = bootstrap_values({'ENABLE_ACESTREAM_ENGINE': 'true', 'ACESTREAM_HTTP_PORT': '16878'})
-    assert values['ACE_ENGINE_URL'] == 'http://localhost:16878'
+    assert values['ACE_ENGINE_URL'] == ''
+    assert resolved_values(values)['ACE_ENGINE_URL'] == 'http://localhost:16878'
     assert bootstrap_values({'ENABLE_ACESTREAM_ENGINE': 'true', 'ACE_ENGINE_URL': 'http://external:6878'})['ACE_ENGINE_URL'] == 'http://external:6878'
     assert bootstrap_values({})['ACE_ENGINE_URL'] == ''
 
@@ -189,3 +190,78 @@ def test_wizard_exposes_complete_saved_values_and_defaults(wizard_client):
     assert state['runtime']['ENABLE_IPFS'] is True
     assert state['runtime']['SCRAPER_TIMEOUT'] == OPTION_MAP['SCRAPER_TIMEOUT']['default']
     assert state['setup_complete'] is False
+
+
+def test_upgrade_imports_missing_keys_once_and_ignores_invalid_overridden_env(tmp_path):
+    path = tmp_path / 'runtime-config.json'
+    path.write_text(json.dumps({'version': 1, 'setup_complete': True, 'runtime': {
+        'ACE_ENGINE_URL': '', 'ENABLE_ACESTREAM_ENGINE': False, 'PLAYER_MAX_SESSIONS': 7,
+    }}))
+    data = ensure_config(path, {'PLAYER_MAX_SESSIONS': 'invalid', 'ENABLE_ACESTREAM_ENGINE': 'true',
+                              'ACE_ENGINE_URL': 'http://ignored:1234', 'ACEXY_LISTEN_ADDR': ':8084',
+                              'ACEXY_BUFFER_SIZE': '10MiB', 'ACEXY_NO_RESPONSE_TIMEOUT': '10s', 'TZ': 'Europe/Madrid'})
+    assert data['setup_complete'] is True
+    assert data['runtime']['PLAYER_MAX_SESSIONS'] == 7
+    assert data['runtime']['ENABLE_ACESTREAM_ENGINE'] is False
+    assert data['runtime']['ACE_ENGINE_URL'] == ''
+    assert data['runtime']['ACEXY_LISTEN_ADDR'] == ':8084'
+    env = environment_for(data, {'ACEXY_BUFFER_SIZE': 'wrong', 'ACEXY_LISTEN_ADDR': ':1234', 'API_TOKEN': 'private'})
+    assert env['ACEXY_LISTEN_ADDR'] == ':8084'
+    assert env['ACEXY_BUFFER_SIZE'] == '10MiB'
+    assert env['TZ'] == 'Europe/Madrid'
+    assert env['API_TOKEN'] == 'private'
+    assert ensure_config(path, {'ACEXY_LISTEN_ADDR': ':9999'}) == data
+
+
+@pytest.mark.parametrize('values', [
+    {'ACESTREAM_HTTP_PORT': 65536}, {'ACEXY_LISTEN_ADDR': ':0'},
+    {'ACEXY_LISTEN_ADDR': 'http://host:8080'}, {'ACEXY_HOST': 'host;touch /tmp/pwn'},
+    {'ZERONET_UI_HOST': 'localhost $(id)'}, {'ZERONET_UI_HOST': '--help'},
+    {'IPFS_API_HOST': 'not-an-ip'}, {'ACEXY_BUFFER_SIZE': 'forever'},
+    {'ACEXY_NO_RESPONSE_TIMEOUT': 'tomorrow'}, {'TZ': '../../etc/passwd'},
+])
+def test_service_options_are_validated_as_data(values):
+    from runtime_config import validate_values
+    with pytest.raises(ConfigError): validate_values(values)
+
+
+def test_checker_is_derived_not_saved_as_external(wizard_client):
+    path = config_path()
+    ensure_config(path, {'ENABLE_ACESTREAM_ENGINE': 'true', 'ENABLE_ACESTREAM_CHECK_ENGINE': 'true',
+                        'ACESTREAM_HTTP_PORT': '16878', 'ACEXY_LISTEN_ADDR': ':8084'})
+    first = wizard_client.get('/api/v1/setup').json()
+    assert first['runtime']['ACE_ENGINE_URL'] == ''
+    assert first['resolved_runtime']['ACE_ENGINE_URL'] == 'http://localhost:16878'
+    assert first['resolved_runtime']['ACE_CHECK_ENGINE_URL'] == 'http://127.0.0.1:6880'
+    assert first['runtime']['ACE_CHECK_ENGINE_URL'] == ''
+    response = wizard_client.put('/api/v1/setup', json={'runtime': first['runtime'], 'expected_revision': first['revision']})
+    assert response.status_code == 200, response.text
+    assert read_config(path)['runtime']['ACE_CHECK_ENGINE_URL'] == ''
+
+
+def test_setup_reports_saved_preferences_without_changing_them(wizard_client, db_session):
+    from app.repositories.settings_repository import SettingsRepository
+    repository = SettingsRepository(db_session)
+    repository.set_setting('ace_engine_url', '')
+    repository.set_setting('public_base_url', 'https://tv.example')
+    repository.set_setting('playback_routing', '{"use_acexy":true,"acexy_url":"http://localhost:8084"}')
+    state = wizard_client.get('/api/v1/setup').json()
+    assert state['saved_overrides']['ACE_ENGINE_URL'] == ''
+    assert state['saved_overrides']['PUBLIC_BASE_URL'] == 'https://tv.example'
+    assert state['saved_overrides']['ACEXY_URL'] == 'http://localhost:8084'
+    assert repository.get_setting('ace_engine_url') == ''
+
+
+def test_service_restart_environment_uses_saved_values(tmp_path):
+    root = Path(__file__).resolve().parents[1]
+    env = {**os.environ, 'DATABASE_URL': 'sqlite:///' + str(tmp_path / 'db.sqlite'),
+           'SUPERVISOR_RUN_DIR': str(tmp_path / 'run'), 'ACEXY_LISTEN_ADDR': ':8084',
+           'ACEXY_NO_RESPONSE_TIMEOUT': '10s', 'ACEXY_BUFFER_SIZE': '5MiB'}
+    command = [sys.executable, str(root / 'runtime_config.py')]
+    probe = [sys.executable, '-c', 'import os; print(os.environ["ACEXY_LISTEN_ADDR"], os.environ["ACEXY_NO_RESPONSE_TIMEOUT"], os.environ["ACEXY_BUFFER_SIZE"])']
+    assert subprocess.check_output([*command, 'run', *probe], env=env, text=True).strip() == ':8084 10s 5MiB'
+    path = config_path(env['DATABASE_URL'])
+    first = read_config(path)
+    update_config(path, {'ACEXY_LISTEN_ADDR': ':8086', 'ACEXY_BUFFER_SIZE': '10MiB'}, revision(first), True)
+    assert subprocess.check_output([*command, 'health', *probe], env=env, text=True).strip() == ':8084 10s 5MiB'
+    assert subprocess.check_output([*command, 'run', *probe], env=env, text=True).strip() == ':8086 10s 10MiB'

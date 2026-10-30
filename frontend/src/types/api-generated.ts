@@ -4893,6 +4893,15 @@ export interface components {
       api_protected: boolean;
       /** Options */
       options: components["schemas"]["RuntimeOption"][];
+      /**
+       * Recordings Configured
+       * @default false
+       */
+      recordings_configured?: boolean;
+      /** Resolved Runtime */
+      resolved_runtime?: {
+        [key: string]: boolean | number | string;
+      };
       /** Restart Required */
       restart_required: boolean;
       /** Revision */
@@ -4900,6 +4909,10 @@ export interface components {
       /** Runtime */
       runtime: {
         [key: string]: boolean | number | string;
+      };
+      /** Saved Overrides */
+      saved_overrides?: {
+        [key: string]: string;
       };
       /** Setup Complete */
       setup_complete: boolean;

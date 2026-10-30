@@ -778,3 +778,17 @@ come from the installed adapter registry through `/api/v1/scrapers/providers`;
 Acestream Channels filters source identity before counting/pagination. W3U source
 filters include reviewed shared imports without replacing their original owners
 or exposing private catalogue media URLs. See `wiki/Usage.md`.
+
+## Setup configuration ownership
+
+The setup wizard imports missing runtime-config.json keys once from deployment;
+existing values (including false/empty) always win. Internal service listeners,
+Acexy connection/buffering and timezone are file-owned. Published port mappings,
+mount paths, devices, capabilities, commands and credentials remain deployment-owned.
+Show automatic bundled playback/checker addresses separately from stored external
+URLs and explain database overrides. A saved change needs a container restart;
+health probes and service-only restarts retain the applied boot environment. See
+`docs/dev/runtime-configuration-audit.md` and `wiki/Configuration.md#first-run-setup`.
+
+
+Setup defaults to adding channel sources and an optional programme guide. Sources and guides save as added; Finish setup only marks onboarding complete. Runtime controls live under Connection settings (advanced), preserving imported deployment values and file precedence. EPG dobleM is an explicit shared guide preset; preview and selected matching reuse the reviewed guide workflow.

@@ -143,6 +143,11 @@ class SettingsRepository:
         except Exception as e:
             return {}
 
+    def get_setup_overrides(self) -> Dict[str, str]:
+        """Only the preferences that can override wizard connection defaults."""
+        keys = [self.ACE_ENGINE_URL, self.PUBLIC_BASE_URL, 'check_engine_config', self.PLAYBACK_ROUTING]
+        return {row.key: row.value for row in self.db.query(Setting).filter(Setting.key.in_(keys)).all()}
+
     def setup_defaults(self) -> bool:
         """Set up default settings if they don't exist"""
         default_settings = {

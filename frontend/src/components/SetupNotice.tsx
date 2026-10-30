@@ -23,6 +23,6 @@ export default function SetupNotice() {
   </React.Suspense>;
   if (query.data.setup_complete && !query.data.restart_required) return null;
   return <Alert severity="info" sx={{ mb: 2 }} action={<Button component={Link} to="/setup" color="inherit">{query.data.restart_required ? 'Review setup' : 'Set up scraper'}</Button>}>
-    {query.data.restart_required ? 'Configuration saved. Restart the container or application to apply it.' : 'Finish setup to save your deployment settings. You can return to it from Settings.'}
+    {query.data.restart_required ? 'Configuration saved. Restart the container or application to apply it.' : 'Add channel sources and an optional programme guide. You can return to setup from Settings.'}
   </Alert>;
 }

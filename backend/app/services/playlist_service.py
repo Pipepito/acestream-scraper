@@ -9,7 +9,7 @@ from datetime import datetime
 import time
 
 from app.repositories.channel_repository import ChannelRepository
-from app.models.models import AcestreamChannel
+from app.models.models import AcestreamChannel, TVChannel
 from app.services.stream_ranking import score_acestream, sort_streams_curated
 from app.utils.m3u import m3u_attr
 

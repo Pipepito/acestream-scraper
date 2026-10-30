@@ -52,12 +52,6 @@ class ImportExclusionService:
         return PolicySnapshot(self.repo.revision(), tuple(
             (r.id, r.kind, r.match_value) for r in self.repo.rules(True)))
 
-    def require_allowed(self, channel_id, name, *, allow_excluded=False):
-        matched = self.snapshot(claim=True).matches(channel_id, name)
-        if matched and not allow_excluded:
-            raise APIError('IMPORT_EXCLUDED', 'This stream matches an import exclusion.', 409,
-                           {'rule_ids': matched})
-
     def list(self, offset=0, limit=50, enabled=None, rule_id=None):
         query = self.repo.rules(enabled)
         if rule_id is not None:

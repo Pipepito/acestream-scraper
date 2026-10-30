@@ -574,7 +574,9 @@ async def spa_server(request: Request, exc: StarletteHTTPException):
     """Serve SPA for all non-API routes."""
     # Only handle 404s for non-API routes (client-side routing)
     if exc.status_code == 404 and not request.url.path.startswith(("/api", "/tuner", "/live/")):
-        return FileResponse(os.path.join(frontend_dir, "index.html"))
+        # Exported image timestamps are normalized; HTML must not acquire a
+        # long heuristic cache lifetime from its old Last-Modified timestamp.
+        return FileResponse(os.path.join(frontend_dir, "index.html"), headers={"Cache-Control": "no-store"})
     # For API routes or other status codes, return the exception as an HTTP
     # response, preserving headers such as WWW-Authenticate on 401s.
     return JSONResponse(
@@ -588,7 +590,7 @@ async def read_index():
     """Serve the React frontend index page."""
     try:
         with open(os.path.join(frontend_dir, "index.html"), "r") as f:
-            return HTMLResponse(content=f.read())
+            return HTMLResponse(content=f.read(), headers={"Cache-Control": "no-store"})
     except FileNotFoundError:
         # If frontend build doesn't exist yet, return a placeholder
         return HTMLResponse(content="<html><body><h1>Acestream Scraper</h1><p>Frontend not built yet. Please run 'npm run build' in the frontend directory.</p></body></html>")

@@ -483,3 +483,27 @@ is not evidence that the currently published stable image includes it.
 ## Recording storage
 
 For built-in DVR, mount an existing persistent directory, set `RECORDINGS_DIR` to its absolute container path and enable recordings in Settings → Automation. Keep it separate from player HLS/cache storage. See [Recordings](Recordings.md) for admission, retention, permissions and rollback.
+
+## Reusing image layers when building
+
+Use `scripts/ci/build_multiarch_images.sh` for local image builds. It requires
+BuildKit 0.13 or newer and exports loaded and pushed images with a fixed
+`SOURCE_DATE_EPOCH=946684800` (2000-01-01 UTC) and `rewrite-timestamp=true`.
+This normalizes image/file timestamps; the image creation timestamp is therefore
+not the build date. The SPA HTML uses Cache-Control: no-store so normalized
+file timestamps cannot leave browsers on an obsolete app shell. Use CI records and build provenance for build time and source
+revision. Do not substitute each application commit's timestamp: that changes
+otherwise identical dependency layers on every update.
+
+The Dockerfile uses linked copies for application files, Python dependencies and
+bundled services, so changing an earlier layer need not rebuild or re-export an
+unchanged payload. Runtime package installation precedes application content;
+entrypoint permissions are set during copying instead of a later layer.
+
+The first update using this layout can still download replacement layers.
+Subsequent updates reuse identical content already present on the client. Base
+image updates and changed dependency versions intentionally change layers.
+This is not a guarantee of identical cold builds: floating upstream images,
+package repositories and generated dependency files can still change. Retaining
+the builder cache remains useful; never retain stale packages indefinitely just
+to make downloads smaller.

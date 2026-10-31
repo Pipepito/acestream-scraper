@@ -16,6 +16,24 @@ test('accounts isolate viewing from administration and can be disabled in Settin
   await page.getByRole('button', { name: 'Create administrator and continue' }).click();
   await expect(page.getByRole('heading', { name: 'Change your password' })).toBeVisible();
   try {
+    await page.getByRole('checkbox', { name: 'Allow IPTV without credentials on trusted local networks' }).check();
+    await page.getByLabel('Local IPTV networks').fill('192.168.23.0/24');
+    await page.getByRole('button', { name: 'Save access policy' }).click();
+    await expect(page.getByText('Access policy saved.')).toBeVisible();
+    await page.goto('/integrations/tv-casting');
+    await expect(page.getByRole('heading', { level: 1, name: 'TV casting' })).toBeVisible();
+    await page.getByRole('checkbox', { name: 'Offer H.264 compatibility conversion' }).check();
+    await page.getByRole('button', { name: 'Save casting settings' }).click();
+    await expect(page.getByText('TV casting settings saved.')).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole('checkbox', { name: 'Offer H.264 compatibility conversion' })).toBeChecked();
+    await page.goto('/settings?tab=access');
+    await expect(page.getByRole('checkbox', { name: 'Allow IPTV without credentials on trusted local networks' })).toBeChecked();
+    await expect(page.getByLabel('Local IPTV networks')).toHaveValue('192.168.23.0/24');
+    await expect(page.getByLabel('Home networks')).toHaveCount(0);
+    await page.getByRole('checkbox', { name: 'Allow IPTV without credentials on trusted local networks' }).uncheck();
+    await page.getByRole('button', { name: 'Save access policy' }).click();
+    await expect(page.getByText('Access policy saved.')).toBeVisible();
     await page.getByLabel('New account username').fill('e2eviewer');
     await page.getByLabel('Initial password').fill(password);
     await page.getByRole('button', { name: 'Create account', exact: true }).click();

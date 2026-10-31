@@ -2,12 +2,12 @@ import { test, expect } from '@playwright/test';
 
 const setups = [
   ['public-address', 'Public address'], ['web-player', 'Web player'],
-  ['remote-players', 'Remote players'], ['media-servers', 'Media servers'], ['telegram', 'Telegram'],
+  ['tv-casting', 'TV casting'], ['remote-players', 'Remote players'], ['media-servers', 'Media servers'], ['telegram', 'Telegram'],
 ] as const;
 
 for (const mode of ['light', 'dark']) {
   test(`${mode}: integrations have independent pages and a menu category`, async ({ page }) => {
-    // This journey loads all five integrations plus their menu navigation.
+    // This journey loads all six integrations plus their menu navigation.
     test.setTimeout(60_000);
     const errors: string[] = [];
     const requests: string[] = [];
@@ -25,6 +25,10 @@ for (const mode of ['light', 'dark']) {
       requests.push(path);
       if (request.method() !== 'GET') mutations.push(path);
       const fixtures: Record<string, unknown> = {
+        '/auth/status': { mode: 'open', user: null, permissions: [], csrf: 'fixture-csrf', legacy_token: false },
+        '/cast/capabilities': { server_devices: true, home_connection: true, compatibility_conversion: false, media_url_configured: true, media_url: 'https://scraper.example.test' },
+        '/cast/settings': { home_networks: [], remote_casting: false, compatibility_conversion: false, cast_media_url: '' },
+        '/cast/devices': [{ id: 'tv', name: 'Living room television with a long descriptive name', model: 'Google Cast Android TV' }],
         '/startup': { status: 'ready', phase: 'Ready to use', events: [] },
         '/system/public-url': { url: 'http://scraper.test:8000', source: 'setting', warnings: [] },
         '/remote-players': [], '/media-servers': [], '/base-urls': [],
@@ -49,15 +53,22 @@ for (const mode of ['light', 'dark']) {
       if (slug !== 'media-servers') expect(requests).not.toContain('/media-servers');
       if (slug !== 'public-address') expect(requests).not.toContain('/system/public-url');
       expect(requests.some(path => path.includes('/telegram/'))).toBe(false);
+      if (slug === 'tv-casting') {
+        await expect(page.getByText('Living room television with a long descriptive name')).toBeVisible();
+        await page.getByRole('button', { name: 'Advanced connection settings' }).click();
+        await expect(page.getByRole('textbox', { name: 'Application address for TVs' })).toHaveValue('');
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      }
       if (slug === 'media-servers') {
         await page.getByRole('button', { name: 'Tuner settings', exact: true }).click();
         await expect(page.getByRole('textbox', { name: 'Tuner name' })).toBeVisible();
       }
-      await page.screenshot({ path: test.info().outputPath(`${slug}-${mode}.png`), fullPage: true });
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.screenshot({ path: test.info().outputPath(`${slug}-${mode}.png`), fullPage: true, animations: 'disabled' });
       const menu = page.getByRole('button', { name: 'open drawer' });
       if (await menu.isVisible()) await menu.click();
       const group = page.getByRole('list', { name: 'Integrations', exact: true });
-      await expect(group.getByRole('link')).toHaveCount(5);
+      await expect(group.getByRole('link')).toHaveCount(6);
       await expect(group.getByRole('link', { name: title, exact: true })).toHaveAttribute('aria-current', 'page');
       await group.getByRole('link', { name: 'Public address', exact: true }).click();
       await expect(page).toHaveURL(/\/integrations\/public-address$/);

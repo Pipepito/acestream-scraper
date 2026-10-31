@@ -1,6 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
-export type NavLabel = 'Live TV' | 'Recordings' | 'WARP' | 'TV dashboard' | 'System status' | 'Events' | 'Catalogues' | 'Changelog' | 'Scraper' | 'Search' | 'Acestream Channels' | 'TV Channels' | 'EPG' | 'Playlist' | 'Public address' | 'Web player' | 'Remote players' | 'Media servers' | 'Telegram' | 'Settings';
+export type NavLabel = 'Live TV' | 'Recordings' | 'WARP' | 'TV dashboard' | 'System status' | 'Events' | 'Catalogues' | 'Changelog' | 'Scraper' | 'Search' | 'Acestream Channels' | 'TV Channels' | 'EPG' | 'Playlist' | 'Public address' | 'Web player' | 'TV casting' | 'Remote players' | 'Media servers' | 'Telegram' | 'Settings';
 
 export const NAV_ROUTES: Record<NavLabel, string> = {
   'TV dashboard': '/',
@@ -16,6 +16,7 @@ export const NAV_ROUTES: Record<NavLabel, string> = {
   Playlist: '/playlist',
   'Public address': '/integrations/public-address',
   'Web player': '/integrations/web-player',
+  'TV casting': '/integrations/tv-casting',
   'Remote players': '/integrations/remote-players',
   'Media servers': '/integrations/media-servers',
   Telegram: '/integrations/telegram',

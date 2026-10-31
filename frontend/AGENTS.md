@@ -41,7 +41,7 @@ testing the SPA through FastAPI rather than the Vite server.
 ## UI contract
 
 - Navigation includes TV dashboard, Live TV, Recordings, Catalogues and Events under Watch; other destinations are System status, Scraper, Search,
-  Acestream Channels, TV Channels, EPG, Playlist, Public address, Web player, Remote players, Media servers, Telegram, WARP, Settings and Changelog, grouped by Watch, Manage, Integrations and System.
+  Acestream Channels, TV Channels, EPG, Playlist, Public address, Web player, TV casting, Remote players, Media servers, Telegram, WARP, Settings and Changelog, grouped by Watch, Manage, Integrations and System.
 - Live TV (`/live-tv`) is the viewing catalog; TV Channels remains the management
   inventory. Use `ChannelPlayerDialog` to retain or resolve TV context and
   `StreamPlayerDialog` for the underlying HLS lifecycle.
@@ -135,7 +135,7 @@ reads. See `docs/dev/dashboard-split.md`.
 
 Integrations is a sidebar category with independent pages at
 `/integrations/public-address`, `/integrations/web-player`,
-`/integrations/remote-players`, `/integrations/media-servers` and
+`/integrations/tv-casting`, `/integrations/remote-players`, `/integrations/media-servers` and
 `/integrations/telegram`. The old `/integrations` URL redirects to Public address.
 Keep tuner settings with Media servers, WARP under System, and contextual links
 pointing directly to the relevant setup. Each page mounts only its own section;

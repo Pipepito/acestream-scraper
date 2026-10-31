@@ -166,20 +166,42 @@ def trusted_client(request, networks):
     except ValueError:
         return False
     # A configured proxy without a resolved forwarding chain is ambiguous.
-    if parse_trusted(get_settings().FORWARDED_ALLOW_IPS).contains(peer) and (host == peer or not request.headers.get('x-forwarded-for')):
+    proxy = parse_trusted(get_settings().FORWARDED_ALLOW_IPS).contains(peer)
+    if not proxy and any(name in request.headers for name in ('forwarded', 'x-forwarded-for', 'x-real-ip')):
+        return False
+    if proxy and (host == peer or not request.headers.get('x-forwarded-for')):
         return False
     if host == peer and TunerNetworkGate.classify_source(peer, False) in ('docker-gateway', 'loopback'):
         return False
     return any(address in ipaddress.ip_network(value) for value in networks)
 
 
+DEFAULT_HOME_NETWORKS = ('10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16', 'fc00::/7')
+
+
+def home_client(request):
+    return trusted_client(request, request.state.access_policy.home_networks or DEFAULT_HOME_NETWORKS)
+
+
 def require_server_cast(request):
-    require_permission(request, 'cast_server')
-    if not getattr(request.state, 'access_user', None):
-        raise HTTPException(403, 'Sign in with permission to control server devices')
+    user = getattr(request.state, 'access_user', None)
+    if getattr(request.state, 'access_mode', 'open') != 'open':
+        require_permission(request, 'cast_server')
+        if not user:
+            raise HTTPException(403, 'Sign in with permission to control server devices')
     policy = request.state.access_policy
-    if not policy.remote_casting and not trusted_client(request, policy.home_networks):
-        raise HTTPException(403, 'Server devices can only be controlled from an approved home network')
+    # Remote control always requires an account, including after accounts are disabled.
+    if not (policy.remote_casting and user) and not home_client(request):
+        from app.config.settings import get_settings
+        from app.middleware.forwarded import parse_trusted
+        peer = getattr(request.state, 'peer', (None, 0))[0]
+        if parse_trusted(get_settings().FORWARDED_ALLOW_IPS).contains(peer) and request.client and request.client.host == peer:
+            raise HTTPException(403, 'The client address is hidden or listed as a trusted proxy. In setup → Connection settings → Network access, trust only your actual reverse proxy; without a proxy use 127.0.0.1. Save and restart the container.')
+        raise HTTPException(403, 'This connection is not recognized as home. Open TV casting to check the connection or trust your home connection as an administrator.')
+    if not same_origin(request):
+        raise HTTPException(403, 'Open casting from the application itself')
+    if request.method not in ('GET', 'HEAD') and not getattr(request.state, 'header_authenticated', False):
+        require_csrf(request)
 
 
 def playback_allowed(request, repo):

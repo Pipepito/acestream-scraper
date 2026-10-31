@@ -163,6 +163,27 @@ def test_vault_encryption_permissions_lock_and_recovery(private_settings):
         Vault()
 
 
+def test_vault_loads_account_encrypted_before_cryptography_upgrade(private_settings):
+    """A synthetic cryptography 47 token stays readable with the security update."""
+    import base64
+    from app.services.telegram.vault import Vault
+
+    key, root = private_settings
+    key.write_bytes(base64.urlsafe_b64encode(bytes(range(32))))
+    vault = Vault()
+    token = (
+        b"gAAAAABlU_EANzzHlQJI9VE4YgUCePSwzGT6yCqvpWKiff5IRUDQyyRRi-xd9x5C5scE"
+        b"DeMq9H_h7qhXBou_Rm198NIGg-toYd341l9io2jWCB_Btpb45Sl56ifN9jiP-E_I1wgbb"
+        b"EgTvOfsQeI46yb77tTDNkEMyyc6OblLSja3wR9PiAjODY0="
+    )
+    vault.path.write_bytes(token)
+    vault.path.chmod(0o600)
+    expected = {"session": "synthetic-upgrade-fixture", "api_hash": "synthetic"}
+    assert vault.load() == expected
+    vault.save(expected)
+    assert Vault().load() == expected
+
+
 @pytest.mark.asyncio
 async def test_admin_requires_explicit_token_transport_and_same_origin(private_settings):
     from starlette.requests import Request

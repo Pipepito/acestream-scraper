@@ -102,12 +102,7 @@ const AppBootstrap: React.FC = () => {
       <AppThemeModeContext.Provider value={controller}>
         <ThemeProvider theme={theme}>
           <CssBaseline />
-          <BrowserRouter
-            future={{
-              v7_startTransition: true,
-              v7_relativeSplatPath: true,
-            }}
-          >
+          <BrowserRouter>
             <StartupGate><App /></StartupGate>
           </BrowserRouter>
         </ThemeProvider>

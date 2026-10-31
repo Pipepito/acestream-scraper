@@ -336,9 +336,24 @@ docker run -d \
 - Port overrides: `IPFS_SWARM_PORT` (default `4001`), `IPFS_API_PORT` (default `5001`), `IPFS_GATEWAY_PORT` (default `8081`; `8080` is taken by Acexy in-container). The entrypoint re-applies these to the IPFS config on every boot.
 - Once running, add sources as `ipfs://<cid>/path/list.m3u` (or `ipns://<name>/...`) in the Scraper page — they are fetched through the embedded gateway. A bare `ipfs://<cid>` whose content is an M3U playlist also works; the scraper detects the playlist by content.
 
-Bundled Kubo is pinned to v0.43.1 with separate SHA-512 checksums for amd64 and
-arm64. Upstream provides no ARMv7 binary; that platform still needs an external
+Bundled Kubo is a security rebuild of v0.43.1 from checksum-verified upstream
+source, using a patched Go toolchain and reviewed dependency locks. See
+[`docker/ipfs/README.md`](../docker/ipfs/README.md) for provenance. Upstream provides no ARMv7 binary; that platform still needs an external
 IPFS gateway. Existing persistent IPFS repositories are retained on upgrade.
+
+### Runtime dependency maintenance
+
+WARP retains the official daemon, CLI and diagnostic tools on amd64/arm64.
+The unused desktop taskbar and its GUI libraries are excluded. The signed APT
+package's control information and checksum remain under
+`/usr/share/doc/cloudflare-warp`; startup, state storage and required capabilities
+are unchanged. New vendor dependencies require a packaging review.
+
+Python package managers and their bootstrap wheels are build-only. Install extra
+Python packages in a derived image build or a separate environment; do not rely
+on `pip` being available in the production container. ZeroNet keeps its own
+interpreter and runtime dependencies. Existing encrypted Telegram sessions remain
+compatible with the updated cryptography library.
 
 ### View Running Containers
 ```bash

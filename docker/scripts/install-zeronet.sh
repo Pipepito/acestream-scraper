@@ -140,8 +140,28 @@ if patched != src:
     path.write_text(patched, encoding="utf-8")
 INNER_PATH_PATCH
 
+# Stats imports pkg_resources without using it (the only call is commented
+# out). setuptools 82 removed that deprecated API; preserve the Stats page.
+"$PYTHON_BIN" - "$ZN_DIR/app/plugins/Stats/StatsPlugin.py" <<'STATS_PATCH'
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+source = path.read_text(encoding="utf-8")
+old = "        import pkg_resources\n"
+if source.count(old) != 1:
+    sys.exit("Stats compatibility patch: unexpected pinned upstream source")
+path.write_text(source.replace(old, ""), encoding="utf-8")
+STATS_PATCH
+
 log "installing python dependencies"
+"$PYTHON_BIN" -m pip install --no-cache-dir --upgrade pip setuptools wheel
 "$PYTHON_BIN" -m pip install --no-cache-dir -r "$REQUIREMENTS"
+
+# Packaging tools are build-only. Their vendored libraries and ensurepip wheels
+# must not remain in the immutable runtime after dependency installation.
+"$PYTHON_BIN" -m pip uninstall --yes pip setuptools wheel
+rm -rf "$PYTHON_PREFIX"/lib/python*/ensurepip
 
 # Carry the whole interpreter prefix along: the runtime image runs the app on
 # a different CPython, so ZeroNet brings its own (binary, stdlib, libpython

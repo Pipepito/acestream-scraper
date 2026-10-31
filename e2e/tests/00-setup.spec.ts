@@ -11,7 +11,9 @@ test('setup opens automatically on first run and saves the deployment defaults',
   const before = await (await api.raw('get', '/api/v1/setup')).json() as {
     setup_complete: boolean; runtime: Record<string, string | number | boolean>;
   };
-  await page.goto('/changelog');
+  if (access.mode !== 'pending') {
+    await page.goto('/changelog');
+  }
   const wizard = page.getByRole('dialog', { name: 'Set up scraper' });
   if (before.setup_complete) {
     await expect(wizard).toHaveCount(0);

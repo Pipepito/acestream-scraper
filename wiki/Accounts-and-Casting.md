@@ -58,6 +58,12 @@ Accounts and IPTV access are separate. Choose any of these:
 Local access is evaluated from the verified client address. A private reverse
 proxy, loopback address or Docker gateway alone does not establish home membership.
 Forwarded client addresses are accepted only from explicitly trusted proxies.
+Check the existing `FORWARDED_ALLOW_IPS` deployment option: it must identify your
+actual reverse proxies, not the entire home network. A client inside a trusted
+proxy range without a verified forwarded address is denied local access. For a
+direct installation without a reverse proxy, `FORWARDED_ALLOW_IPS=127.0.0.1`
+keeps ordinary LAN clients outside that range. This is network configuration;
+account setup and password recovery do not require Docker credentials.
 With user management enabled, this saved policy controls tuner access too; with
 accounts disabled, the existing tuner network policy remains in force.
 

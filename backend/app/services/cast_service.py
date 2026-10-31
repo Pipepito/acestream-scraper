@@ -82,7 +82,8 @@ class CastDiscovery:
     def remember_unicast(self, info):
         with self.lock:
             key = str(info.uuid)
-            if key not in self.devices and len(self.devices) < 128 or key in self.devices and self.devices[key][2] is None:
+            if ((key not in self.devices and len(self.devices) < 128)
+                    or (key in self.devices and self.devices[key][2] is None)):
                 self.devices[key] = (info, time.monotonic(), None)
 
     def get(self, identity):

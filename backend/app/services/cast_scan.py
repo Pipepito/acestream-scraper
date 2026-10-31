@@ -19,8 +19,13 @@ def scan_networks(request):
     import ifaddr
     networks = []
     client = request.client.host if request.client else None
-    if client and trusted_client(request, [f'{client}/32' if ':' not in client else f'{client}/128']):
-        networks.append(default_scan_cidr(client))
+    try:
+        address = ipaddress.ip_address(client or '')
+        address = getattr(address, 'ipv4_mapped', None) or address
+        if trusted_client(request, [str(ipaddress.ip_network(address))]):
+            networks.append(default_scan_cidr(str(address)))
+    except ValueError:
+        pass
     for adapter in ifaddr.get_adapters():
         for address in adapter.ips:
             if isinstance(address.ip, str):
@@ -50,7 +55,6 @@ class CastScanner:
                 if discovery.list():
                     return discovery.list()
                 raise HTTPException(409, 'No home network could be detected. Docker may need host networking for TV discovery. A trusted proxy must preserve the client address.')
-            self.last_scan = time.monotonic()
             slots = asyncio.Semaphore(32)
             async with httpx.AsyncClient(timeout=httpx.Timeout(1.5), trust_env=False, follow_redirects=False) as client:
                 async def probe(host):
@@ -60,8 +64,10 @@ class CastScanner:
                             discovery.remember_unicast(info)
                 # At most three /24s, 32 in flight, and a global deadline.
                 async with asyncio.timeout(20):
-                    tasks = [probe(str(host)) for cidr in networks for host in ipaddress.ip_network(cidr).hosts()]
-                    await asyncio.gather(*tasks)
+                    async with asyncio.TaskGroup() as tasks:
+                        for cidr in networks:
+                            for host in ipaddress.ip_network(cidr).hosts():
+                                tasks.create_task(probe(str(host)))
             return discovery.list()
 
 
@@ -97,7 +103,7 @@ async def device_info(client, host):
         name = str(info.get('name') or data.get('name') or 'TV')[:100]
         model = str(info.get('model_name') or 'Google Cast')[:100]
         return CastInfo({HostServiceInfo(host, 8009)}, identity, model, name, host, 8009, 'cast', 'Google')
-    except (httpx.HTTPError, ValueError, TypeError, AttributeError):
+    except (httpx.HTTPError, ValueError, TypeError, AttributeError, RecursionError):
         return None
 
 

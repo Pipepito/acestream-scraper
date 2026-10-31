@@ -269,6 +269,7 @@ def test_scan_infers_client_lan_without_scanning_container_network(monkeypatch):
         return Request({'type': 'http', 'method': 'GET', 'scheme': 'http', 'path': '/', 'headers': [],
             'client': (host, 1234), 'state': {'peer': (host, 1234)}})
     assert scan_networks(request('192.168.1.30')) == ['192.168.1.0/24']
+    assert scan_networks(request('::ffff:192.168.1.30')) == ['192.168.1.0/24']
     assert scan_networks(request('8.8.8.8')) == []
 
 
@@ -312,3 +313,35 @@ async def test_unicast_discovery_supports_legacy_android_tv_identity():
         assert found.model_name == 'Google Cast'
         del data['cast_build_revision']
         assert await device_info(client, '192.168.1.20') is None
+
+
+@pytest.mark.asyncio
+async def test_malformed_nested_discovery_data_does_not_abort_other_receivers():
+    import httpx
+    from app.services.cast_scan import device_info
+    body = b'[' * 2000 + b'0' + b']' * 2000
+    async with httpx.AsyncClient(transport=httpx.MockTransport(lambda request: httpx.Response(200, stream=httpx.ByteStream(body)))) as client:
+        assert await device_info(client, '192.168.1.20') is None
+
+
+@pytest.mark.asyncio
+async def test_cancelled_scan_waits_for_all_probe_cleanup(monkeypatch):
+    from app.services.cast_scan import CastScanner
+    entered = asyncio.Event()
+    active = set()
+    async def pending(client, host):
+        active.add(host)
+        entered.set()
+        try:
+            await asyncio.sleep(60)
+        finally:
+            active.remove(host)
+    monkeypatch.setattr('app.services.cast_scan.scan_networks', lambda request: ['192.168.1.0/30'])
+    monkeypatch.setattr('app.services.cast_scan.device_info', pending)
+    discovery = SimpleNamespace(start=Mock(), list=Mock(return_value=[]))
+    task = asyncio.create_task(CastScanner().discover(None, discovery))
+    await entered.wait()
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    assert active == set()

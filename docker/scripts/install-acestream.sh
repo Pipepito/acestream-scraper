@@ -213,9 +213,16 @@ install_executable() {
         "$PYTHON_BIN" -m pip install \
             --no-warn-script-location \
             --target="$ACE_DIR/python-deps" \
-            -r "$ACE_DIR/requirements.txt"
+            -r "$ACE_DIR/requirements.txt" \
+            'certifi>=2026.10.23'
+        # The upstream executable archive carries a 2020 certificate bundle as
+        # an egg. Replace the actual package, not only its scanner metadata.
+        # PYTHONPATH already exposes python-deps to both engine launchers.
+        rm -f "$ACE_DIR"/lib/certifi-*.egg
         # Fast-fail on ABI issues at build time rather than at first launch.
         PYTHONPATH="$ACE_DIR/python-deps" "$PYTHON_BIN" -c "import apsw; print('apsw ok')"
+        PYTHONPATH="$ACE_DIR/python-deps" "$PYTHON_BIN" -c \
+            "import certifi, ssl; assert certifi.__version__ >= '2026.10.23'; ssl.create_default_context(cafile=certifi.where())"
     fi
 }
 

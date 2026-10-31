@@ -21,6 +21,13 @@ for executable in [Path('/usr/local/bin/python3'), Path('/usr/local/bin/python3.
             env=dict(os.environ, LD_LIBRARY_PATH='/opt/zeronet/python/lib:/usr/local/lib'))
 
 ipfs = Path('/opt/ipfs/bin/ipfs')
+if Path('/opt/acestream/python-deps').exists():
+    assert not list(Path('/opt/acestream/lib').glob('certifi-*.egg'))
+    run('/usr/local/bin/python3.10', '-c',
+        "import certifi, ssl; assert certifi.__version__ >= '2026.10.23'; "
+        "assert ssl.create_default_context(cafile=certifi.where()).get_ca_certs()",
+        env=dict(os.environ, PYTHONPATH='/opt/acestream/python-deps'))
+
 if ipfs.exists():
     with tempfile.TemporaryDirectory(prefix='security-ipfs-') as temp:
         env = dict(os.environ, IPFS_PATH=temp + '/repo')

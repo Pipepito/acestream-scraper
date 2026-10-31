@@ -69,6 +69,10 @@ if ipfs.exists():
 
 if Path('/opt/zeronet/bin/zeronet').exists():
     assert '--ui-port' in run('/opt/zeronet/bin/zeronet', '--no-bootstrap', '--help')
+    run('/opt/zeronet/python/bin/python3.11', '-c',
+        'from aiobtdht import DHT; from cerberus import Validator; '
+        'assert Validator({"value": {"type": "integer"}}).validate({"value": 42})',
+        env=dict(os.environ, LD_LIBRARY_PATH='/opt/zeronet/python/lib'))
 
 if Path('/usr/bin/warp-cli').exists():
     assert 'warp-cli' in run('/usr/bin/warp-cli', '--version').lower()

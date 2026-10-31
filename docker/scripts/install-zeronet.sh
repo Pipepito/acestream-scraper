@@ -158,10 +158,34 @@ log "installing python dependencies"
 "$PYTHON_BIN" -m pip install --no-cache-dir --upgrade pip setuptools wheel
 "$PYTHON_BIN" -m pip install --no-cache-dir -r "$REQUIREMENTS"
 
+# aiokrpc pins Cerberus 1.3.1, which uses pkg_resources only to read its
+# version. Keep the pinned validator and use the standard-library equivalent.
+"$PYTHON_BIN" - <<'CERBERUS_PATCH'
+import importlib.metadata
+from pathlib import Path
+import sysconfig
+import sys
+
+if importlib.metadata.version("Cerberus") != "1.3.1":
+    sys.exit("Cerberus compatibility patch: review the new dependency version")
+path = Path(sysconfig.get_path("purelib")) / "cerberus/__init__.py"
+source = path.read_text(encoding="utf-8")
+old = "from pkg_resources import get_distribution, DistributionNotFound\n"
+new = ("from importlib.metadata import distribution as get_distribution, "
+       "PackageNotFoundError as DistributionNotFound\n")
+if source.count(old) != 1:
+    sys.exit("Cerberus compatibility patch: unexpected pinned source")
+path.write_text(source.replace(old, new), encoding="utf-8")
+CERBERUS_PATCH
+
 # Packaging tools are build-only. Their vendored libraries and ensurepip wheels
 # must not remain in the immutable runtime after dependency installation.
 "$PYTHON_BIN" -m pip uninstall --yes pip setuptools wheel
 rm -rf "$PYTHON_PREFIX"/lib/python*/ensurepip
+
+# --help does not load the DHT dependency chain. Exercise it after removal so
+# a missing runtime import fails the build instead of the first node startup.
+"$PYTHON_BIN" -c 'from aiobtdht import DHT; from cerberus import Validator; assert Validator({"value": {"type": "integer"}}).validate({"value": 42})'
 
 # Carry the whole interpreter prefix along: the runtime image runs the app on
 # a different CPython, so ZeroNet brings its own (binary, stdlib, libpython

@@ -21,7 +21,7 @@ export default function LoginForm({ onCancel }: { onCancel?: () => void }) {
   return <ContentSection title="Sign in"><Stack component="form" spacing={2} onSubmit={submit} sx={{ maxWidth: 440 }}>
     <AccountTransportNotice />
     <TextField required label="Username" autoComplete="username" value={username} onChange={e => setUsername(e.target.value)} />
-    <TextField required label="Password" type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} inputProps={{ maxLength: 128 }} />
+    <TextField required label="Password" type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} />
     {error ? <Alert severity="error">{error}</Alert> : null}
     <Button type="submit" disabled={busy || access?.status.account_transport === 'blocked'} variant="contained">{busy ? 'Signing in…' : 'Sign in'}</Button>
     {onCancel ? <Button onClick={onCancel}>Back to viewing</Button> : null}

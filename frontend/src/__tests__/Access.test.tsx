@@ -8,6 +8,7 @@ import AccessSettings from '../components/access/AccessSettings';
 import AccountSetup from '../components/access/AccountSetup';
 import PasswordForm from '../components/access/PasswordForm';
 import AccessGate from '../components/access/AccessGate';
+import LoginForm from '../components/access/LoginForm';
 import CastControls from '../components/player/CastControls';
 import { accessService, type AccessStatus } from '../services/accessService';
 import { castService } from '../services/castService';
@@ -185,4 +186,16 @@ test('setup explains unavailable account transport before submitting credentials
   expect(screen.getByRole('button', { name: 'Create administrator and continue' })).toBeDisabled();
   fireEvent.click(screen.getByRole('checkbox', { name: 'Enable user management' }));
   expect(screen.getByRole('button', { name: 'Continue without accounts' })).toBeEnabled();
+});
+
+
+test('sign-in accepts the same Unicode password length as password creation', async () => {
+  (accessService.login as jest.Mock).mockResolvedValue(undefined);
+  wrapper(<LoginForm />, { ...pending, mode: 'accounts', account_transport: 'local_http' });
+  fireEvent.change(screen.getByLabelText(/^Username/), { target: { value: 'owner' } });
+  const password = screen.getByLabelText(/^Password/);
+  expect(password).not.toHaveAttribute('maxlength');
+  fireEvent.change(password, { target: { value: '😀'.repeat(128) } });
+  fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+  await waitFor(() => expect(accessService.login).toHaveBeenCalledWith('owner', '😀'.repeat(128)));
 });

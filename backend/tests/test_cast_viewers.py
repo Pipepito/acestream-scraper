@@ -183,7 +183,8 @@ async def test_native_android_media_namespace_requires_receiver_launch(viewers, 
         assert actions == [('launch', APP_MEDIA_RECEIVER), ('load', APP_MEDIA_RECEIVER)]
 
 
-def test_cast_waits_for_live_buffer_without_delaying_browser_start(tmp_path):
+@pytest.mark.parametrize('segment_seconds, before, ready', [(1, 19, 20), (2, 9, 10), (6, 3, 4), (10, 1, 2)])
+def test_cast_waits_for_live_buffer_without_delaying_browser_start(tmp_path, segment_seconds, before, ready):
     from app.services.player_service import PlayerService
 
     player = PlayerService()
@@ -196,7 +197,24 @@ def test_cast_waits_for_live_buffer_without_delaying_browser_start(tmp_path):
     playlist.write_text('#EXTM3U\nseg00000.ts\nseg00001.ts\n')
     assert service.hls_ready(browser)
     assert not any(service.hls_ready(lease) for lease in casts)
-    playlist.write_text('#EXTM3U\n' + ''.join(f'seg{i:05d}.ts\n' for i in range(10)))
+    def manifest(count):
+        return '#EXTM3U\n' + ''.join(f'#EXTINF:{segment_seconds},\nseg{i:05d}.ts\n' for i in range(count))
+    playlist.write_text(manifest(before))
+    assert not any(service.hls_ready(lease) for lease in casts)
+    playlist.write_text(manifest(ready))
     assert all(service.hls_ready(lease) for lease in casts)
     argv = player.ffmpeg_argv('http://engine.test/stream', tmp_path)
     assert int(argv[argv.index('-hls_list_size') + 1]) == 30
+
+
+@pytest.mark.parametrize('duration', ['nan', 'inf', '-20', 'invalid'])
+def test_cast_buffer_ignores_invalid_durations_and_unfinished_entries(tmp_path, duration):
+    from app.services.player_service import PlayerService
+
+    player = PlayerService()
+    session = SimpleNamespace(dir=tmp_path)
+    (tmp_path / 'index.m3u8').write_text(
+        f'#EXTM3U\n#EXTINF:{duration},\nseg00000.ts\n'
+        '#EXTINF:2,\nseg00001.ts\n#EXTINF:30,\n')
+    assert player.hls_ready(session)
+    assert not player.hls_ready(session, minimum_seconds=20)

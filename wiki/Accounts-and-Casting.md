@@ -94,8 +94,9 @@ commands. Docker needs multicast connectivity to the home network. Linux host
 networking is one option; ordinary port publishing alone does not forward mDNS.
 No Docker socket is used. Discovery can take several seconds.
 
-Cast prepares ten complete HLS segments before loading the receiver (about
-20 seconds for two-second segments, longer with widely spaced source keyframes).
+Cast prepares at least 20 seconds of complete HLS segments before loading the
+receiver. It measures media duration because original-video segments follow the
+source's keyframes and may be longer or shorter than the two-second target.
 The shared player retains thirty segments, typically about one minute, to give
 receivers room to buffer and resume. This increases temporary player disk usage;
 the configured player-session limit still applies. Browser watching keeps its

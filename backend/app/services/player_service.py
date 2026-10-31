@@ -6,6 +6,7 @@ import asyncio
 import contextlib
 import ctypes
 import logging
+import math
 import os
 import re
 import shutil
@@ -253,13 +254,29 @@ class PlayerService:
     def playlist_path(self, session: PlayerSession) -> Path:
         return session.dir / "index.m3u8"
 
-    def hls_ready(self, session: PlayerSession, *, minimum_segments: int = 2) -> bool:
+    def hls_ready(self, session: PlayerSession, *, minimum_segments: int = 2, minimum_seconds: float = 0) -> bool:
         playlist = self.playlist_path(session)
         try:
             lines = playlist.read_text().splitlines()
         except OSError:
             return False
-        return sum(1 for line in lines if line.strip().endswith(".ts")) >= minimum_segments
+        segments = 0
+        seconds = 0.0
+        pending_duration = 0.0
+        for line in lines:
+            line = line.strip()
+            if line.startswith('#EXTINF:'):
+                try:
+                    pending_duration = float(line.partition(':')[2].partition(',')[0])
+                except ValueError:
+                    pending_duration = 0.0
+            elif line and not line.startswith('#'):
+                if line.endswith('.ts'):
+                    segments += 1
+                    if math.isfinite(pending_duration) and pending_duration > 0:
+                        seconds += pending_duration
+                pending_duration = 0.0
+        return segments >= minimum_segments and seconds >= minimum_seconds
 
     async def open_session(self, content_id: str, audio_index: Optional[int] = None, subtitle_index: Optional[int] = None, *, compatibility: bool = False) -> PlayerSession:
         async with self._lock:

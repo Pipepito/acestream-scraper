@@ -43,10 +43,12 @@ validation errors never echo input secrets.
 Cast discovery accepts video-capable mDNS announcements on port 8009 with numeric
 RFC1918/ULA destinations. It does not issue DIAL HTTP probes to advertised URLs.
 An explicit Find TVs action can also probe fixed numeric private destinations on
-port 8008 for a bounded Cast video identity; it never follows redirects or
+port 8008 for a bounded Cast identity; it never follows redirects or
 advertised URLs. Discovery scans at most three inferred /24 networks with 32
 concurrent requests, a 20-second deadline and a 30-second cooldown. Unicast entries
-expire after five minutes. Only server-issued device IDs are accepted. Device and session inventories are
+expire after five minutes. Older Android TVs are recognized by the legacy
+top-level UDN, name and Cast firmware revision when capabilities are absent;
+modern responses reporting no display are rejected. Only server-issued device IDs are accepted. Device and session inventories are
 bounded. Each cast owns a viewer lease over the shared player, separate control
 and media credentials, and an exact receiver media URL. Cleanup checks ownership
 before sending Stop and collects late worker completion before releasing resources.

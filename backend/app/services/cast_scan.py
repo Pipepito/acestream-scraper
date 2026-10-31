@@ -66,7 +66,7 @@ class CastScanner:
 
 
 async def device_info(client, host):
-    """Accept only a positive Cast video identity, not an arbitrary open port."""
+    """Require a Cast identity; legacy receivers may omit video capabilities."""
     from pychromecast.models import CastInfo, HostServiceInfo
     if not receiver_address(host):
         return None
@@ -81,11 +81,21 @@ async def device_info(client, host):
                     return None
         data = json.loads(body)
         info = data.get('device_info', {})
-        if info.get('capabilities', {}).get('display_supported') is not True:
-            return None
-        identity = UUID(info.get('ssdp_udn', '').removeprefix('uuid:'))
+        if info:
+            if info.get('capabilities', {}).get('display_supported') is not True:
+                return None
+            udn = info.get('ssdp_udn', '')
+        else:
+            # Older Android TVs use the legacy eureka response recognized by
+            # PyChromecast: a top-level UDN/name and Cast firmware revision.
+            # They do not report display capabilities. Do not mistake a random
+            # web interface with only a name/UUID for a Cast receiver.
+            if not data.get('cast_build_revision') or not isinstance(data.get('name'), str):
+                return None
+            udn = data.get('ssdp_udn', '')
+        identity = UUID(udn.removeprefix('uuid:'))
         name = str(info.get('name') or data.get('name') or 'TV')[:100]
-        model = str(info.get('model_name') or '')[:100]
+        model = str(info.get('model_name') or 'Google Cast')[:100]
         return CastInfo({HostServiceInfo(host, 8009)}, identity, model, name, host, 8009, 'cast', 'Google')
     except (httpx.HTTPError, ValueError, TypeError, AttributeError):
         return None

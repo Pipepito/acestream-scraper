@@ -115,7 +115,8 @@ Android TV must provide Google Cast. Docker needs multicast connectivity for mDN
 Linux host networking is one option. Ordinary port publishing does not forward
 multicast. The fallback checks up to three detected /24 networks, at most 32
 requests at once, for up to 20 seconds, with a 30-second cooldown. It accepts only
-video-capable Cast identities from the fixed local device-info endpoint; some TVs
+Cast identities from the fixed local device-info endpoint, including older Android
+TV responses without capability information. Known audio-only devices are excluded; some TVs
 block that endpoint and still require multicast. No Docker socket is used.
 
 Cast prepares at least 20 seconds of complete HLS segments before loading the

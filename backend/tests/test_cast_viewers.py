@@ -295,3 +295,20 @@ async def test_another_local_browser_cannot_control_owned_cast():
     with pytest.raises(HTTPException) as error:
         await service.command('owned', CastCommand(action='stop'), {'id': 'local:second', 'administrator': False})
     assert error.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_unicast_discovery_supports_legacy_android_tv_identity():
+    import httpx
+    import json
+    from app.services.cast_scan import device_info
+    identity = uuid4()
+    data = {'name': 'Older Android TV', 'ssdp_udn': str(identity), 'cast_build_revision': '1.56.123456'}
+    def reply(request):
+        return httpx.Response(200, stream=httpx.ByteStream(json.dumps(data).encode()))
+    async with httpx.AsyncClient(transport=httpx.MockTransport(reply)) as client:
+        found = await device_info(client, '192.168.1.20')
+        assert found.uuid == identity and found.friendly_name == data['name']
+        assert found.model_name == 'Google Cast'
+        del data['cast_build_revision']
+        assert await device_info(client, '192.168.1.20') is None

@@ -23,10 +23,13 @@ for executable in [Path('/usr/local/bin/python3'), Path('/usr/local/bin/python3.
 ipfs = Path('/opt/ipfs/bin/ipfs')
 if Path('/opt/acestream/python-deps').exists():
     assert not list(Path('/opt/acestream/lib').glob('certifi-*.egg'))
+    assert not list(Path('/opt/acestream/lib').glob('idna-*.egg'))
     run('/usr/local/bin/python3.10', '-c',
-        "import certifi, ssl, importlib.util; "
+        "import certifi, idna, ssl, importlib.util; "
         "assert importlib.util.find_spec('pkg_resources') is not None; "
         "assert certifi.__version__ >= '2026.10.23'; "
+        "assert tuple(map(int, idna.__version__.split('.'))) >= (3, 15); "
+        "assert idna.encode('bücher.example') == b'xn--bcher-kva.example'; "
         "assert ssl.create_default_context(cafile=certifi.where()).get_ca_certs()",
         env=dict(os.environ, PYTHONPATH='/opt/acestream/python-deps'))
 

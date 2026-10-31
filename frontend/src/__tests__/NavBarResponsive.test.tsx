@@ -181,12 +181,19 @@ describe('NavBar responsive shell behavior', () => {
     await tab();
     expect(screen.getByRole('button', { name: /switch to dark theme/i })).toHaveFocus();
 
-    for (const name of [
+    const expectedNames = [
       'TV dashboard', 'Live TV', 'Recordings', 'Catalogues', 'Events', 'Scraper', 'Search', 'Acestream Channels', 'TV Channels',
-      'EPG', 'Playlist', 'Public address', 'Web player', 'TV casting', 'Remote players', 'Media servers', 'Telegram', 'System status', 'WARP', 'Settings',
-    ]) {
+      'EPG', 'Playlist', 'Public address', 'Web player', 'TV casting', 'Remote players', 'Media servers', 'Telegram', 'System status', 'WARP', 'Settings', 'Changelog',
+    ];
+    // Resolve the static menu once; repeated whole-page role queries dominate
+    // this keyboard journey under coverage instrumentation.
+    const links = ['Watch', 'Manage', 'Integrations', 'System'].flatMap(section =>
+      within(screen.getByRole('list', { name: section })).getAllByRole('link'));
+    expect(links).toHaveLength(expectedNames.length);
+    for (const [index, name] of expectedNames.entries()) {
       await tab();
-      expect(screen.getByRole('link', { name })).toHaveFocus();
+      expect(links[index]).toHaveAccessibleName(name);
+      expect(links[index]).toHaveFocus();
     }
 
   });

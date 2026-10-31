@@ -69,8 +69,11 @@ testing the SPA through FastAPI rather than the Vite server.
   meaningful UI changes.
 - For navigation, API integration, or cross-page workflows, add/update Playwright
   journeys as appropriate after focused Jest coverage.
-- Preserve Vite `manualChunks` behavior unless bundle tuning is the task; a casual
-  import change can move large MUI/data-grid/page chunks back into the entry bundle.
+- Preserve Vite/Rolldown dependency groups unless bundle tuning is the task. Keep
+  React/scheduler together and MUI with its Emotion/transition helpers to avoid
+  initialization cycles. HLS uses pinned full-feature source modules; upgrades must
+  update its build dependencies/flags and pass the compatibility test. See
+  `docs/dev/frontend-bundles.md`; verify the built SPA, not only the dev server.
 
 ## Player audio
 

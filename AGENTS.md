@@ -815,3 +815,16 @@ WARP packages retain the official headless tools, runtime libraries and capabili
 settings, without the unused desktop GUI. Python packaging tools are build-only.
 Run the production dependency smoke and rescan exact images after changes; see
 `docker/ipfs/README.md` and `wiki/Docker.md#runtime-dependency-maintenance`.
+
+## WARP management
+
+WARP exclusions are app-managed through `GET/PUT /api/v1/warp/exclusions` and
+`backend/warp_exclusions.py`, shared with `warp-setup.sh`. Persist desired and
+previously managed hosts beside the database; retain pending removals after partial
+failures, reject stale edits, preserve unrelated CLI exclusions, and verify the
+active exclude-mode list before claiming success. Saved empty lists override
+`WARP_EXCLUDE_HOSTS`; the environment bootstraps only before a saved file exists.
+Startup/recovery reapplies saved exclusions and rechecks the auto-connect barrier.
+Use bounded argv-only commands off the event loop. Startup controls on the WARP
+page use the existing runtime-config API and require a container restart. See
+`wiki/Docker.md#managing-warp-from-the-app`.

@@ -593,5 +593,11 @@
     "externalEngineSettings": "Engines are optional for scraping and playlist management. Add a reachable endpoint under Advanced settings \u2192 Playback engine address, or later in Settings \u2192 Playback. Configure dedicated checks in Settings \u2192 Automation.",
     "afterRun": "Then open http://localhost:{webPort} (use your Docker host address on another device). Check Overview \u2192 Services, add sources in Scraper, organize TV Channels and open Live TV or Playlist.",
     "runtimeConfiguration": "Runtime-file options are imported into runtime-config.json beside the database when their key is missing. Each saved key overrides Docker environment values. Use Settings \u2192 Setup wizard and restart to apply. Internal service listeners and Acexy buffering are configurable there; Docker published ports, mounts, capabilities and credentials remain deployment settings."
+  },
+  "warpManagement": {
+    "page": "/warp",
+    "excludeHostsBootstrapEnv": "WARP_EXCLUDE_HOSTS",
+    "savedExclusionsFile": "warp-exclusions.json",
+    "description": "Manage excluded hosts in the WARP page without recreating the container. Saved exclusions override the environment bootstrap. WARP startup settings are saved in the app and require a container restart."
   }
 }

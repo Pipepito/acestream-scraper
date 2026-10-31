@@ -8,6 +8,8 @@ import * as warpHooks from '../hooks/useWarp';
 import { WarpMode } from '../types/warpTypes';
 
 jest.mock('../hooks/useWarp');
+jest.mock('../components/WarpExclusionsSection', () => () => null);
+jest.mock('../components/WarpStartupSection', () => () => null);
 
 const connectedStatus = {
   running: true,

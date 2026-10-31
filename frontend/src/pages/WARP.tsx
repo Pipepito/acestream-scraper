@@ -21,6 +21,8 @@ import { useWarpStatus, useWarpConnect, useWarpDisconnect, useWarpSetMode, useWa
 import { WarpMode, WarpStatus } from '../types/warpTypes';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
+import WarpExclusionsSection from '../components/WarpExclusionsSection';
+import WarpStartupSection from '../components/WarpStartupSection';
 
 const SUBTITLE = 'Cloudflare WARP tunnel for the scraper’s outbound traffic.';
 
@@ -51,6 +53,18 @@ const WarpPage: React.FC = () => {
   useEffect(() => {
     if (status?.mode) setSelectedMode(status.mode);
   }, [status?.mode]);
+
+  const [reconnecting, setReconnecting] = useState(false);
+  const reconnect = async () => {
+    setReconnecting(true);
+    setActionError(null);
+    try {
+      await disconnectMutation.mutateAsync();
+      await connectMutation.mutateAsync();
+    } catch (err) {
+      setActionError(`Could not reconnect WARP: ${err instanceof Error ? err.message : 'unknown error'}. Check the connection status and use Connect to retry.`);
+    } finally { setReconnecting(false); }
+  };
 
   const handleModeChange = (event: SelectChangeEvent) => setSelectedMode(event.target.value as WarpMode);
 
@@ -103,12 +117,13 @@ const WarpPage: React.FC = () => {
         subtitle={SUBTITLE}
         actions={
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ width: { xs: '100%', sm: 'auto' } }}>
-            <Button variant="contained" color="primary" onClick={() => connectMutation.mutate()} disabled={!running || connected || connectMutation.isPending}>
+            <Button variant="contained" color="primary" onClick={() => connectMutation.mutate()} disabled={!running || connected || connectMutation.isPending || reconnecting}>
               {connectMutation.isPending ? <CircularProgress size={24} color="inherit" /> : 'Connect'}
             </Button>
-            <Button variant="outlined" onClick={() => disconnectMutation.mutate()} disabled={!running || !connected || disconnectMutation.isPending}>
+            <Button variant="outlined" onClick={() => disconnectMutation.mutate()} disabled={!running || !connected || disconnectMutation.isPending || reconnecting}>
               {disconnectMutation.isPending ? <CircularProgress size={24} color="inherit" /> : 'Disconnect'}
             </Button>
+            <Button disabled={!running || !connected || reconnecting || connectMutation.isPending || disconnectMutation.isPending} onClick={reconnect}>{reconnecting ? 'Reconnecting…' : 'Reconnect'}</Button>
           </Stack>
         }
         overflowActions={[{ label: 'Back to System status', onClick: () => navigate('/system') }]}
@@ -194,6 +209,9 @@ const WarpPage: React.FC = () => {
         </ContentSection>
       ) : null}
 
+      <WarpExclusionsSection />
+      <WarpStartupSection />
+
       {running ? (
         <ContentSection title="Mode and license" description="Change how WARP routes traffic, then register a license key if your account needs it.">
           <Grid container spacing={3}>
@@ -201,10 +219,13 @@ const WarpPage: React.FC = () => {
               <FormControl fullWidth sx={{ mb: 3 }}>
                 <InputLabel id="warp-mode-label">Mode</InputLabel>
                 <Select labelId="warp-mode-label" value={selectedMode} onChange={handleModeChange} label="Mode">
-                  <MenuItem value={WarpMode.WARP}>WARP (Full Tunnel)</MenuItem>
-                  <MenuItem value={WarpMode.DOT}>DOT (DNS over TLS)</MenuItem>
-                  <MenuItem value={WarpMode.PROXY}>PROXY</MenuItem>
-                  <MenuItem value={WarpMode.OFF}>OFF</MenuItem>
+                  <MenuItem value={WarpMode.WARP}>WARP with standard DNS</MenuItem>
+                  <MenuItem value={WarpMode.WARP_DOH}>WARP with DNS over HTTPS</MenuItem>
+                  <MenuItem value={WarpMode.WARP_DOT}>WARP with DNS over TLS</MenuItem>
+                  <MenuItem value={WarpMode.DOH}>DNS over HTTPS only</MenuItem>
+                  <MenuItem value={WarpMode.TUNNEL_ONLY}>Tunnel only, keep current DNS</MenuItem>
+                  <MenuItem value={WarpMode.DOT}>DNS over TLS only</MenuItem>
+                  <MenuItem value={WarpMode.PROXY}>SOCKS5 proxy only</MenuItem>
                 </Select>
                 <Button variant="contained" color="primary" onClick={handleSetMode} disabled={status?.mode === selectedMode || setModeMutation.isPending} sx={{ mt: 2 }}>
                   {setModeMutation.isPending ? <CircularProgress size={24} /> : 'Set Mode'}

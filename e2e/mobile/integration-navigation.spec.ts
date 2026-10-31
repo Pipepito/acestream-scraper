@@ -7,6 +7,8 @@ const setups = [
 
 for (const mode of ['light', 'dark']) {
   test(`${mode}: integrations have independent pages and a menu category`, async ({ page }) => {
+    // This journey loads all five integrations plus their menu navigation.
+    test.setTimeout(60_000);
     const errors: string[] = [];
     const requests: string[] = [];
     const mutations: string[] = [];
@@ -32,6 +34,9 @@ for (const mode of ['light', 'dark']) {
       return route.fulfill({ json: fixtures[path] ?? {} });
     });
     for (const [slug, title] of setups) {
+      // Unmount the previous SPA before measuring the next page. Its pending
+      // queries otherwise race with clearing this request inventory in Firefox.
+      await page.goto('about:blank');
       requests.length = 0;
       await page.goto(`/integrations/${slug}`);
       await expect(page.getByRole('heading', { level: 1, name: title, exact: true })).toBeVisible();

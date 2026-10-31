@@ -11,7 +11,7 @@ interface CastContext { setOptions: (options: object) => void; requestSession: (
 interface CastSDK {
   framework: { CastContext: { getInstance: () => CastContext }; RemotePlayer: new () => object; RemotePlayerController: new (player: object) => { stop: () => void; playOrPause: () => void } };
 }
-interface ChromeCast { media: { DEFAULT_MEDIA_RECEIVER_APP_ID: string; MediaInfo: new (id: string, type: string) => { streamType?: string }; LoadRequest: new (info: object) => object; StreamType: { LIVE: string } }; }
+interface ChromeCast { media: { DEFAULT_MEDIA_RECEIVER_APP_ID: string; MediaInfo: new (id: string, type: string) => { streamType?: string; hlsSegmentFormat?: string; hlsVideoSegmentFormat?: string }; LoadRequest: new (info: object) => object; StreamType: { LIVE: string } }; }
 type CastWindow = Window & { cast?: CastSDK; chrome?: { cast?: ChromeCast }; __onGCastApiAvailable?: (available: boolean) => void };
 let load: Promise<boolean> | undefined;
 let owned: { viewer: string; control: string; url: string } | undefined;
@@ -60,6 +60,8 @@ export async function startBrowserCast(payload: CastStart): Promise<void> {
     const url = new URL(viewer.playlist_url, window.location.href).href;
     const info = new target.chrome.cast.media.MediaInfo(url, 'application/vnd.apple.mpegurl');
     info.streamType = target.chrome.cast.media.StreamType.LIVE;
+    info.hlsSegmentFormat = 'ts';
+    info.hlsVideoSegmentFormat = 'mpeg2_ts';
     await session.loadMedia(new target.chrome.cast.media.LoadRequest(info));
     if (owned) await apiClient.delete(`/v1/viewers/${owned.viewer}`, { headers: { 'X-Viewer-Token': owned.control } }).catch(() => undefined);
     owned = { viewer: viewer.id, control: viewer.control_token ?? '', url };

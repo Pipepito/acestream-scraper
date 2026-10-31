@@ -149,6 +149,8 @@ async def test_native_android_media_namespace_requires_receiver_launch(viewers, 
     def send(namespace, data, **kwargs):
         actions.append(('load', receiver.app_id))
         assert receiver.app_id == APP_MEDIA_RECEIVER
+        assert data['media']['hlsSegmentFormat'] == 'ts'
+        assert data['media']['hlsVideoSegmentFormat'] == 'mpeg2_ts'
         media.status.content_id = data['media']['contentId']
         media.status.player_state = 'PLAYING'
         media.session_active_event.set()

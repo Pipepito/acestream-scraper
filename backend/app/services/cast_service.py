@@ -182,7 +182,8 @@ class CastService:
                 # Await this LOAD response, not an active-media event which can
                 # already be set by the app being replaced.
                 await settled_thread(client.media_controller.quick_play, media_id=url,
-                    media_type='application/vnd.apple.mpegurl', stream_type='LIVE', timeout=30)
+                    media_type='application/vnd.apple.mpegurl', stream_type='LIVE', timeout=30,
+                    media_info={'hlsSegmentFormat': 'ts', 'hlsVideoSegmentFormat': 'mpeg2_ts'})
                 loaded_deadline = time.monotonic() + 5
                 while not self.owns_media(cast) and time.monotonic() < loaded_deadline:
                     await asyncio.sleep(.1)

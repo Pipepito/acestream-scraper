@@ -28,8 +28,16 @@ def first_run_accounts():
     """Exercise the wizard's explicit opt-out on a disposable fresh container."""
     base = 'http://127.0.0.1:8000'
     browser = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
-    with browser.open(base + '/api/v1/auth/status', timeout=5) as response:
-        status = json.load(response)
+    try:
+        with browser.open(base + '/api/v1/auth/status', timeout=5) as response:
+            status = json.load(response)
+    except urllib.error.HTTPError as error:
+        # The same pinned probe also validates protected branches predating
+        # accounts. Only an absent endpoint is compatible; auth/server errors
+        # must fail. The caller still verifies the legacy public OpenAPI route.
+        if error.code == 404:
+            return
+        raise
     assert status['mode'] == 'pending', 'Fresh images must offer account setup'
     for path in ('/api/v1/config', '/openapi.json'):
         try:

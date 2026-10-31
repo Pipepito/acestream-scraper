@@ -100,3 +100,10 @@ public, while only private orchestration may invoke host Docker operations.
 Changes to that pinned contract require an infrastructure review/deployment.
 The production Dockerfile places application copies after stable installation
 layers so application edits do not reinstall bundled operating-system packages.
+
+The dependency runner must install `libx264-dev` when building the application's
+minimal FFmpeg; the production Dockerfile's packages do not carry into that
+separate image. Production acceptance probes are pinned independently in private
+policy. Their first-run account checks preserve compatibility with older protected
+branches only when the account-status endpoint is absent (HTTP 404); authentication
+and server errors still fail acceptance.

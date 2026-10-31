@@ -355,6 +355,12 @@ on `pip` being available in the production container. ZeroNet keeps its own
 interpreter and runtime dependencies. Existing encrypted Telegram sessions remain
 compatible with the updated cryptography library.
 
+The AMD64 AceStream executable keeps its required Python 3.10 runtime. Its old
+bundled certifi egg is replaced with a maintained certificate package. Review this
+engine's dependency inventory separately from ARM: dependencies requiring Python
+3.11 cannot be substituted without an upstream engine update. Verify the real
+playback/checker lifecycle after changing any of its bundled libraries.
+
 ### View Running Containers
 ```bash
 docker ps

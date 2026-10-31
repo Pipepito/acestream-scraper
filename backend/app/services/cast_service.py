@@ -175,8 +175,14 @@ class CastService:
                     raise HTTPException(504, 'Stream preparation timed out')
                 url = f'{policy.cast_media_url}/api/v1/viewers/{lease.id}/media/index.m3u8?cap={media}'
                 cast = OwnedCast(uuid4().hex, payload.device_id, info.friendly_name or 'TV', user['id'], lease.id, client, url, time.monotonic())
-                await settled_thread(client.media_controller.play_media, url, 'application/vnd.apple.mpegurl', stream_type='LIVE')
-                await settled_thread(client.media_controller.block_until_active, timeout=10)
+                # Native Android TV apps can advertise the media namespace but
+                # cannot load arbitrary URLs. After the replacement guard above,
+                # require the default media receiver before sending LOAD.
+                client.media_controller.app_must_match = True
+                # Await this LOAD response, not an active-media event which can
+                # already be set by the app being replaced.
+                await settled_thread(client.media_controller.quick_play, media_id=url,
+                    media_type='application/vnd.apple.mpegurl', stream_type='LIVE', timeout=30)
                 loaded_deadline = time.monotonic() + 5
                 while not self.owns_media(cast) and time.monotonic() < loaded_deadline:
                     await asyncio.sleep(.1)

@@ -2,7 +2,7 @@
 import asyncio
 import time
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 from uuid import uuid4
 import pytest
 from fastapi import HTTPException
@@ -126,3 +126,56 @@ async def test_unavailable_access_store_releases_viewers(viewers, monkeypatch):
     await viewers.tick()
     assert lease.id not in viewers.leases
     viewers.player.leave.assert_called_once()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('replace', [False, True])
+async def test_native_android_media_namespace_requires_receiver_launch(viewers, monkeypatch, replace):
+    from pychromecast.config import APP_MEDIA_RECEIVER
+    from pychromecast.controllers.media import MediaController
+    from app.schemas.cast import CastStart
+
+    # Use the real controller: Android's native TV app supports the namespace
+    # but cannot load the URL. LOAD must follow an authorized receiver launch.
+    media = MediaController()
+    receiver = SimpleNamespace(app_id='AndroidNativeApp')
+    actions = []
+
+    def launch(app_id, *, force_launch=False, callback_function=None):
+        actions.append(('launch', app_id))
+        receiver.app_id = app_id
+        callback_function(True, None)
+
+    def send(namespace, data, **kwargs):
+        actions.append(('load', receiver.app_id))
+        assert receiver.app_id == APP_MEDIA_RECEIVER
+        media.status.content_id = data['media']['contentId']
+        media.status.player_state = 'PLAYING'
+        media.session_active_event.set()
+        kwargs['callback_function'](True, {'type': 'MEDIA_STATUS'})
+
+    receiver.launch_app = launch
+    media.registered(SimpleNamespace(receiver_controller=receiver,
+        app_namespaces=[media.namespace], send_app_message=send))
+    client = SimpleNamespace(media_controller=media, status=SimpleNamespace(
+        app_id='AndroidNativeApp', volume_level=.5), wait=Mock(), disconnect=Mock())
+    monkeypatch.setattr('pychromecast.get_chromecast_from_cast_info', lambda *args, **kwargs: client)
+    monkeypatch.setattr('app.services.cast_service.viewer_service', viewers)
+    viewers.player.hls_ready = lambda session: True
+    service = CastService()
+    monkeypatch.setattr(service.discovery, 'get', lambda identity: SimpleNamespace(friendly_name='TV'))
+    lease = SimpleNamespace(id='viewer', session_id=viewers.player.session.id)
+    service.prepare = AsyncMock(return_value=(lease, 'control', 'media'))
+    payload = CastStart(content_id='a' * 40, device_id='device', replace=replace)
+    policy = AccessPolicy(cast_media_url='http://app.test')
+    if not replace:
+        with pytest.raises(HTTPException) as error:
+            await service.start(payload, {'id': 'owner', 'administrator': True}, policy)
+        assert error.value.status_code == 409
+        assert actions == []
+        service.prepare.assert_not_awaited()
+        client.disconnect.assert_called_once()
+    else:
+        status = await service.start(payload, {'id': 'owner', 'administrator': True}, policy)
+        assert status.state == 'PLAYING'
+        assert actions == [('launch', APP_MEDIA_RECEIVER), ('load', APP_MEDIA_RECEIVER)]

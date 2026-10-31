@@ -214,7 +214,11 @@ install_executable() {
             --no-warn-script-location \
             --target="$ACE_DIR/python-deps" \
             -r "$ACE_DIR/requirements.txt" \
-            'certifi>=2026.10.23'
+            'certifi>=2026.10.23' \
+            'setuptools==81.0.0'
+        # Native egg loaders still import pkg_resources. Keep its last supported
+        # setuptools release in the engine's private dependency directory; 82+
+        # removes that API. The base interpreters still ship without pip/wheel.
         # The upstream executable archive carries a 2020 certificate bundle as
         # an egg. Replace the actual package, not only its scanner metadata.
         # PYTHONPATH already exposes python-deps to both engine launchers.

@@ -24,7 +24,9 @@ ipfs = Path('/opt/ipfs/bin/ipfs')
 if Path('/opt/acestream/python-deps').exists():
     assert not list(Path('/opt/acestream/lib').glob('certifi-*.egg'))
     run('/usr/local/bin/python3.10', '-c',
-        "import certifi, ssl; assert certifi.__version__ >= '2026.10.23'; "
+        "import certifi, ssl, importlib.util; "
+        "assert importlib.util.find_spec('pkg_resources') is not None; "
+        "assert certifi.__version__ >= '2026.10.23'; "
         "assert ssl.create_default_context(cafile=certifi.where()).get_ca_certs()",
         env=dict(os.environ, PYTHONPATH='/opt/acestream/python-deps'))
 

@@ -356,7 +356,9 @@ interpreter and runtime dependencies. Existing encrypted Telegram sessions remai
 compatible with the updated cryptography library.
 
 The AMD64 AceStream executable keeps its required Python 3.10 runtime. Its old
-bundled certifi egg is replaced with a maintained certificate package. Review this
+bundled certifi egg is replaced with a maintained certificate package. Its native
+egg loaders retain setuptools 81's `pkg_resources` compatibility API in the
+engine's private dependency directory. Review this
 engine's dependency inventory separately from ARM: dependencies requiring Python
 3.11 cannot be substituted without an upstream engine update. Verify the real
 playback/checker lifecycle after changing any of its bundled libraries.

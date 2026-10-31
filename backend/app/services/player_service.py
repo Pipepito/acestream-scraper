@@ -46,6 +46,7 @@ NO_VIEWERS_SECONDS = 5.0
 ERROR_SECONDS = 60.0
 TICK_SECONDS = 5.0
 STDERR_TAIL = 20
+HLS_WINDOW_SEGMENTS = 30
 _SESSION_DIR = re.compile(r"^[0-9a-f]{32}$")
 _STREAM_LINE = re.compile(r"Stream #0:\d+.*?: (Video|Audio): ([A-Za-z0-9_]+)")
 
@@ -157,7 +158,7 @@ class PlayerService:
             str(self.ffmpeg_path()), "-nostdin", "-hide_banner", "-loglevel", "info", "-nostats",
             "-rw_timeout", str(read_timeout_us), "-fflags", "+genpts+discardcorrupt",
             "-i", playback_url, "-map", "0:v:0", "-map", f"0:a:{audio_index}" if audio_index is not None else "0:a:0?", "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-ac", "2",
-            "-f", "hls", "-hls_time", "2", "-hls_list_size", "6", "-hls_delete_threshold", "2",
+            "-f", "hls", "-hls_time", "2", "-hls_list_size", str(HLS_WINDOW_SEGMENTS), "-hls_delete_threshold", "2",
             "-hls_flags", "delete_segments+independent_segments+omit_endlist+temp_file",
             "-hls_segment_type", "mpegts", "-hls_segment_filename", str(directory / "seg%05d.ts"),
             str(directory / "index.m3u8"),
@@ -252,13 +253,13 @@ class PlayerService:
     def playlist_path(self, session: PlayerSession) -> Path:
         return session.dir / "index.m3u8"
 
-    def hls_ready(self, session: PlayerSession) -> bool:
+    def hls_ready(self, session: PlayerSession, *, minimum_segments: int = 2) -> bool:
         playlist = self.playlist_path(session)
         try:
             lines = playlist.read_text().splitlines()
         except OSError:
             return False
-        return sum(1 for line in lines if line.strip().endswith(".ts")) >= 2
+        return sum(1 for line in lines if line.strip().endswith(".ts")) >= minimum_segments
 
     async def open_session(self, content_id: str, audio_index: Optional[int] = None, subtitle_index: Optional[int] = None, *, compatibility: bool = False) -> PlayerSession:
         async with self._lock:

@@ -26,6 +26,7 @@ def status_for(lease, media_token=None, control=None, root_path=''):
     data = _status(session).model_dump()
     data['error_message'] = 'Playback could not continue. Retry or choose another channel.' if session.error else ''
     data.update(id=lease.id, viewers=1, stats=None, control_token=control,
+                hls_ready=viewer_service.hls_ready(lease),
                 playlist_url=f'{root_path}/api/v1/viewers/{lease.id}/media/index.m3u8' + (f'?cap={media_token}' if media_token else ''))
     return ViewerStatus(**data)
 

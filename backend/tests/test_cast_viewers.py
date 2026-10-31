@@ -163,10 +163,10 @@ async def test_native_android_media_namespace_requires_receiver_launch(viewers, 
         app_id='AndroidNativeApp', volume_level=.5), wait=Mock(), disconnect=Mock())
     monkeypatch.setattr('pychromecast.get_chromecast_from_cast_info', lambda *args, **kwargs: client)
     monkeypatch.setattr('app.services.cast_service.viewer_service', viewers)
-    viewers.player.hls_ready = lambda session: True
+    viewers.player.hls_ready = lambda session, **kwargs: True
     service = CastService()
     monkeypatch.setattr(service.discovery, 'get', lambda identity: SimpleNamespace(friendly_name='TV'))
-    lease = SimpleNamespace(id='viewer', session_id=viewers.player.session.id)
+    lease = SimpleNamespace(id='viewer', session_id=viewers.player.session.id, permission='cast_server')
     service.prepare = AsyncMock(return_value=(lease, 'control', 'media'))
     payload = CastStart(content_id='a' * 40, device_id='device', replace=replace)
     policy = AccessPolicy(cast_media_url='http://app.test')
@@ -181,3 +181,22 @@ async def test_native_android_media_namespace_requires_receiver_launch(viewers, 
         status = await service.start(payload, {'id': 'owner', 'administrator': True}, policy)
         assert status.state == 'PLAYING'
         assert actions == [('launch', APP_MEDIA_RECEIVER), ('load', APP_MEDIA_RECEIVER)]
+
+
+def test_cast_waits_for_live_buffer_without_delaying_browser_start(tmp_path):
+    from app.services.player_service import PlayerService
+
+    player = PlayerService()
+    session = SimpleNamespace(id='session', dir=tmp_path)
+    player.sessions[session.id] = session
+    service = ViewerService(player)
+    browser = SimpleNamespace(session_id=session.id, permission='live')
+    casts = [SimpleNamespace(session_id=session.id, permission=p) for p in ('cast', 'cast_server')]
+    playlist = tmp_path / 'index.m3u8'
+    playlist.write_text('#EXTM3U\nseg00000.ts\nseg00001.ts\n')
+    assert service.hls_ready(browser)
+    assert not any(service.hls_ready(lease) for lease in casts)
+    playlist.write_text('#EXTM3U\n' + ''.join(f'seg{i:05d}.ts\n' for i in range(10)))
+    assert all(service.hls_ready(lease) for lease in casts)
+    argv = player.ffmpeg_argv('http://engine.test/stream', tmp_path)
+    assert int(argv[argv.index('-hls_list_size') + 1]) == 30

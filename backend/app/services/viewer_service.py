@@ -31,6 +31,13 @@ class ViewerService:
         self.leases: dict[str, ViewerLease] = {}
         self._pending = 0
 
+    def hls_ready(self, lease):
+        # Cast's receiver needs a deeper live buffer than the browser player.
+        # Ten complete two-second segments avoid repeatedly chasing the live edge.
+        session = self.player.get(lease.session_id)
+        return bool(session and self.player.hls_ready(session,
+            minimum_segments=10 if lease.permission in ('cast', 'cast_server') else 2))
+
     async def create(self, payload, user=None, *, detached=False, permission='live', compatibility=False):
         if len(self.leases) + self._pending >= 256:
             raise HTTPException(409, 'Too many active viewers')

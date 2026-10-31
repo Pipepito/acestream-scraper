@@ -166,7 +166,7 @@ class CastService:
                     session = viewer_service.player.get(lease.session_id)
                     if not session or session.state in ('error', 'stopped'):
                         raise HTTPException(409, 'The stream could not start')
-                    if viewer_service.player.hls_ready(session):
+                    if viewer_service.hls_ready(lease):
                         break
                     lease.last_access = time.monotonic()
                     viewer_service.player.touch(lease.session_id)

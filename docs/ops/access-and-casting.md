@@ -59,3 +59,7 @@ its disposable container before reading protected API/schema routes. The private
 infrastructure's public-probe pin must include this wizard-aware acceptance probe;
 older probes assume anonymous OpenAPI access before setup. This does not change
 operator installs or authorize changes to private infrastructure policy.
+The private dependency-runner image also needs target-platform x264 development
+files when building this revision's GPL-enabled FFmpeg. Updating that runner
+definition is a separate infrastructure review; the public application cannot
+select or replace its host policy.

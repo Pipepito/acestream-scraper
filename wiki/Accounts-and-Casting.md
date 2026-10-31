@@ -94,6 +94,13 @@ commands. Docker needs multicast connectivity to the home network. Linux host
 networking is one option; ordinary port publishing alone does not forward mDNS.
 No Docker socket is used. Discovery can take several seconds.
 
+Cast prepares ten complete HLS segments before loading the receiver (about
+20 seconds for two-second segments, longer with widely spaced source keyframes).
+The shared player retains thirty segments, typically about one minute, to give
+receivers room to buffer and resume. This increases temporary player disk usage;
+the configured player-session limit still applies. Browser watching keeps its
+shorter startup threshold. Both server and browser Cast use the deeper buffer.
+
 Server casting works from Firefox and Safari as well as Chromium browsers because
 the application server controls the receiver. Remote clients cannot enumerate or
 control the server's TVs by default. The **Allow remote casting** switch permits

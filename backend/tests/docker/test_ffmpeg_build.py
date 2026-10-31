@@ -31,7 +31,7 @@ PLAYER_COMMAND = [
     "-i", "/f/sample.m2ts",
     "-map", "0:v:0", "-map", "0:a:0?",
     "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-ac", "2",
-    "-f", "hls", "-hls_time", "2", "-hls_list_size", "6", "-hls_delete_threshold", "2",
+    "-f", "hls", "-hls_time", "2", "-hls_list_size", "30", "-hls_delete_threshold", "2",
     "-hls_flags", "delete_segments+independent_segments+omit_endlist+temp_file",
     "-hls_segment_type", "mpegts", "-hls_segment_filename", "/out/player/seg%05d.ts",
     "/out/player/index.m3u8",

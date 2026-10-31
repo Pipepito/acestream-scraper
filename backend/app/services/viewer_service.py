@@ -1,5 +1,4 @@
 """Independent viewer leases over shared player sessions; tokens never authorize peers."""
-import asyncio
 import logging
 from dataclasses import dataclass
 import secrets

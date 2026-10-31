@@ -13,7 +13,6 @@ from argon2 import PasswordHasher
 from argon2.exceptions import VerificationError, InvalidHashError
 from fastapi import HTTPException, Request
 
-from app.repositories.access_repository import AccessRepository
 from app.schemas.access import PERMISSIONS
 
 COOKIE = 'scraper_session'

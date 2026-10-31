@@ -8,7 +8,8 @@ from app.repositories.watch_repository import WatchRepository
 def test_protected_playlist_retains_filters_and_guide_without_upstream_secrets(db_session):
     tv = TVChannel(name='Selected', channel_number=7, category='Sport', is_active=True, is_favorite=True)
     other = TVChannel(name='Excluded', channel_number=8, category='News', is_active=True)
-    db_session.add_all([tv, other]); db_session.flush()
+    db_session.add_all([tv, other])
+    db_session.flush()
     db_session.add_all([
         AcestreamChannel(id='a' * 40, name='Selected source', tv_channel_id=tv.id, source_url='fixture', is_active=True, is_online=True, group='Sport', tvg_id='guide-selected'),
         AcestreamChannel(id='url:' + 'b' * 40, name='HTTP source', tv_channel_id=tv.id, source_url='fixture', is_active=True, is_online=True, group='Sport', stream_url='https://private.example/video?secret=do-not-export', stream_headers={'Referer': 'private-header'}),

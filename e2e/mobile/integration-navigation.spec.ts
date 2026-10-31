@@ -16,7 +16,9 @@ for (const mode of ['light', 'dark']) {
     page.on('console', message => { if (['warning', 'error'].includes(message.type())) errors.push(message.text()); });
     page.on('response', response => { if (response.url().includes('/api/') && response.status() >= 400) errors.push(`${response.status()} ${response.url()}`); });
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.addInitScript(value => localStorage.setItem('app-theme-mode', value), mode);
+    await page.addInitScript(value => {
+      if (location.protocol !== 'about:') localStorage.setItem('app-theme-mode', value);
+    }, mode);
     await page.route('**/api/**', route => {
       const request = route.request();
       const path = new URL(request.url()).pathname.replace('/api/v1', '').replace(/\/$/, '');

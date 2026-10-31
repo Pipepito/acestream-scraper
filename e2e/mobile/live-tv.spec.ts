@@ -134,8 +134,9 @@ for (const mode of ['light', 'dark']) {
     await page.addInitScript((value) => localStorage.setItem('app-theme-mode', value), mode);
     await page.goto('/live-tv');
     for (const title of ['Arena TV', 'Independent live stream']) {
-      await page.getByRole('button', { name: `Send to player ${title}`, exact: true }).focus();
-      await page.keyboard.press('Enter');
+      const send = page.getByRole('button', { name: `Send to player ${title}`, exact: true });
+      await expect(send).toBeEnabled();
+      await send.press('Enter');
       await page.getByRole('menuitem', { name: 'Living room (VLC)' }).click();
       await expect(page.getByText(`Sent ${title} to Living room.`)).toBeVisible();
     }

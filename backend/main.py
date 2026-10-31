@@ -41,6 +41,8 @@ from app.config.database import (
 from app.config.settings import get_settings, settings
 from app.config.version import get_app_version
 from app.middleware.forwarded import ForwardedHeadersMiddleware, parse_trusted
+from app.middleware.access import AccessMiddleware
+from app.middleware.media_cors import ApplicationCORSMiddleware
 from app.services.startup_service import startup_service
 from app.repositories.startup_recovery import database_path, legacy_disabled, recover_database
 from app.services.epg_service import EPGService
@@ -335,11 +337,9 @@ async def correlation_id_middleware(request: Request, call_next):
 
 from app.middleware.recipe_limits import RecipeRequestLimits
 app.add_middleware(RecipeRequestLimits)
-from app.middleware.access import AccessMiddleware
 app.add_middleware(AccessMiddleware)
 
 # Add CORS middleware
-from app.middleware.media_cors import ApplicationCORSMiddleware
 app.add_middleware(
     ApplicationCORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,

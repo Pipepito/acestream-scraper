@@ -5,6 +5,12 @@ import { ScraperPage } from '../src/pages/scraper';
 import { ChannelsPage } from '../src/pages/channels';
 
 test('manual UI actions deliver one webhook each through the built backend', async ({ page, request, api }) => {
+  // Earlier journeys start a catalogue scan. Its completion notification must
+  // finish before this test installs its receiver and asserts exact event counts.
+  await expect.poll(async () => (await api.backgroundTasks()).every(job =>
+    job.status !== 'running' && job.status !== 'waiting'), {
+    timeout: 120_000, message: 'earlier scheduled work finishes before webhook capture',
+  }).toBe(true);
   const path = '/api/v1/config/notification_webhook_url';
   expect((await (await request.get(path)).json()).value, 'use a disposable E2E database').toBe('');
   const checker = await (await request.get('/api/v1/config/check-engine')).json();

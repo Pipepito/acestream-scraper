@@ -101,14 +101,35 @@ def require_csrf(request: Request):
         raise HTTPException(403, 'Reload the page before submitting this form')
 
 
-def secure_transport(request):
+def account_transport(request):
+    """Allow plaintext accounts only between verified private-network endpoints."""
+    if request.url.scheme == 'https':
+        return 'https'
     peer = getattr(request.state, 'peer', ('', 0))[0]
     try:
-        local = ipaddress.ip_address(peer).is_loopback
+        address = ipaddress.ip_address(peer)
+        address = getattr(address, 'ipv4_mapped', None) or address
+        local = address.is_loopback
     except ValueError:
         local = False
-    if request.url.scheme != 'https' and not (local and request.url.hostname in ('localhost', '127.0.0.1', '::1')):
-        raise HTTPException(403, 'Use HTTPS for account access, or open the application through localhost')
+    if request.url.scheme == 'http':
+        if local and request.url.hostname in ('localhost', '127.0.0.1', '::1') and not any(
+                name in request.headers for name in ('forwarded', 'x-forwarded-for', 'x-real-ip', 'x-forwarded-host')):
+            return 'local_http'
+        try:
+            destination = ipaddress.ip_address(request.url.hostname or '')
+            destination = getattr(destination, 'ipv4_mapped', None) or destination
+        except ValueError:
+            destination = None
+        # A public address trusted for casting never grants plaintext account access.
+        if destination and any(destination in ipaddress.ip_network(value) for value in DEFAULT_HOME_NETWORKS) and trusted_client(request, DEFAULT_HOME_NETWORKS):
+            return 'local_http'
+    return 'blocked'
+
+
+def secure_transport(request):
+    if account_transport(request) == 'blocked':
+        raise HTTPException(403, 'Use HTTPS, or open the server’s private IP address from a verified home network. A proxy or Docker gateway must preserve the real client address.')
 
 
 def header_token(request):
@@ -129,7 +150,10 @@ def request_user(request, repo):
             request.state.header_authenticated = True
             return user
     session = request.cookies.get(COOKIE, '')
-    return repo.session_user(session) if session else None
+    user = repo.session_user(session) if session else None
+    if user:
+        secure_transport(request)
+    return user
 
 
 def permissions(request):

@@ -4789,6 +4789,12 @@ export interface components {
         };
         /** AccessStatus */
         AccessStatus: {
+            /**
+             * Account Transport
+             * @default blocked
+             * @enum {string}
+             */
+            account_transport?: "https" | "local_http" | "blocked";
             /** Csrf */
             csrf: string;
             /**

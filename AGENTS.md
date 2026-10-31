@@ -6,7 +6,7 @@ First-run account setup and later activation live in Settings → Access; no new
 Docker bootstrap credentials are required. Keep the independent migrated access
 store and fail-closed marker outside catalogue exports/recovery. Default-deny
 management applies to all API aliases and ASGI prefixes. Viewer/media capabilities,
-IPTV credentials and administrative headers are separate. TV casting has its own Integrations page and works without accounts for verified
+IPTV credentials and administrative headers are separate. Accounts support HTTPS and verified private-IP HTTP on a home network; never infer local access from a proxy/gateway or a public Cast trust entry. TV casting has its own Integrations page and works without accounts for verified
 home clients. With accounts enabled, require casting permission. Remote control
 always requires an account and explicit opt-in. Keep automatic discovery bounded,
 proxy trust explicit, and local-browser ownership separate from accounts. Receiver cleanup must verify exact media ownership; original

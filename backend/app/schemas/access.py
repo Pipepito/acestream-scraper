@@ -101,6 +101,7 @@ class AccessStatus(BaseModel):
     permissions: list[Permission] = Field(default_factory=list)
     csrf: str
     legacy_token: bool = False
+    account_transport: Literal['https', 'local_http', 'blocked'] = 'blocked'
 
 
 class CredentialCreate(StrictModel):

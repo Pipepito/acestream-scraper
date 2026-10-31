@@ -11,16 +11,19 @@ import { getAccessErrorMessage } from '../../services/accessErrors';
 
 function CastingSettings({ initial, accounts }: { initial: CastSettings; accounts: boolean }) {
   const cache = useQueryClient();
-  const [settings, setSettings] = useState(initial);
-  const [home, setHome] = useState((initial.home_networks ?? []).join(', '));
+  const [draft, setSettings] = useState<CastSettings | null>(null);
+  const settings = draft ?? initial;
+  const [homeDraft, setHome] = useState<string | null>(null);
+  const home = homeDraft ?? (initial.home_networks ?? []).join(', ');
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<{ message: string; error: boolean } | null>(null);
   const submit = async (event: React.FormEvent) => {
     event.preventDefault(); setBusy(true); setFeedback(null);
     try {
+      await cache.cancelQueries({ queryKey: ['cast-settings'] });
       const saved = await castService.saveSettings({ ...settings, home_networks: home.split(',').map(v => v.trim()).filter(Boolean) });
       cache.setQueryData(['cast-settings'], saved);
-      setSettings(saved); setHome((saved.home_networks ?? []).join(', '));
+      setSettings(null); setHome(null);
       await cache.invalidateQueries({ queryKey: ['cast-capabilities'] });
       await cache.invalidateQueries({ queryKey: ['access-policy'] });
       setFeedback({ message: 'TV casting settings saved.', error: false });

@@ -5,6 +5,8 @@ import { useAccess } from './AccessContext';
 import { getAccessErrorMessage } from '../../services/accessErrors';
 import ContentSection from '../layout/ContentSection';
 import { getApiToken, setApiToken } from '../../services/apiToken';
+import NewPasswordField, { PASSWORD_REQUIREMENT, validNewPassword } from './NewPasswordField';
+import AccountTransportNotice from './AccountTransportNotice';
 
 export default function AccountSetup() {
   const access = useAccess();
@@ -18,6 +20,7 @@ export default function AccountSetup() {
   const [legacy, setLegacy] = useState(getApiToken() ?? '');
   const submit = async (event: React.FormEvent) => {
     event.preventDefault(); setError('');
+    if (enabled && !validNewPassword(password)) { setError(PASSWORD_REQUIREMENT); return; }
     if (enabled && password !== confirmation) { setError('The passwords do not match.'); return; }
     setBusy(true);
     try {
@@ -29,19 +32,20 @@ export default function AccountSetup() {
     finally { setBusy(false); }
   };
   return <ContentSection title="Who can use this installation?" description="Choose how people access your channels and settings. You can change this later in Settings → Access.">
-    <Stack component="form" onSubmit={submit} spacing={2} sx={{ maxWidth: 560 }}>
+    <Stack component="form" aria-label="Account setup" onSubmit={submit} spacing={2} sx={{ maxWidth: 560 }}>
       <FormControlLabel control={<Checkbox checked={enabled} onChange={(_, value) => setEnabled(value)} />} label="Enable user management" />
       <Typography>User management protects settings with a login and lets you give other people viewing and casting permissions. Public viewing and local IPTV access can be allowed separately.</Typography>
       {access?.status.legacy_token ? <TextField label="Existing API token" type="password" required value={legacy} onChange={e => setLegacy(e.target.value)} autoComplete="off" /> : null}
       {enabled ? <>
-        <Typography variant="body2">Use HTTPS for account setup and sign-in. Local setup through localhost also works.</Typography>
+        <AccountTransportNotice />
+        <Typography variant="body2">Accounts work over HTTPS or through the server’s private IP address on a verified home network. HTTP on your home network is not encrypted.</Typography>
         <TextField label="Administrator username" required value={username} onChange={e => setUsername(e.target.value)} autoComplete="username" inputProps={{ maxLength: 64, pattern: '[a-zA-Z0-9_.\\-]+' }} />
-        <TextField label="Password" required type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="new-password" helperText="Use 12–128 characters." inputProps={{ minLength: 12, maxLength: 128 }} />
+        <NewPasswordField label="Password" value={password} onChange={setPassword} />
         <TextField label="Confirm password" required type="password" value={confirmation} onChange={e => setConfirmation(e.target.value)} autoComplete="new-password" />
         {access?.status.legacy_token ? <Alert severity="warning"><FormControlLabel control={<Checkbox checked={migrate} onChange={(_, value) => setMigrate(value)} />} label="Keep the existing API token for playback only" /><Typography variant="body2">Existing administrative scripts will need a new header credential from Settings → Access. Replace shared playlist tokens when ready.</Typography></Alert> : null}
       </> : <Alert severity="warning">Anyone who can reach this installation can manage it when user management is off. Existing API-token protection is retained.</Alert>}
       {error ? <Alert severity="error">{error}</Alert> : null}
-      <Button type="submit" variant="contained" disabled={busy || (enabled && Boolean(access?.status.legacy_token) && !migrate)}>{busy ? 'Saving…' : enabled ? 'Create administrator and continue' : 'Continue without accounts'}</Button>
+      <Button type="submit" variant="contained" disabled={busy || (enabled && (access?.status.account_transport === 'blocked' || (Boolean(access?.status.legacy_token) && !migrate)))}>{busy ? 'Saving…' : enabled ? 'Create administrator and continue' : 'Continue without accounts'}</Button>
       <Typography variant="body2" color="text.secondary">No Docker settings or setup secrets are needed. If you lose your password, the container owner can reset it with a command.</Typography>
     </Stack>
   </ContentSection>;

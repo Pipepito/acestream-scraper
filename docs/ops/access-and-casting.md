@@ -14,7 +14,7 @@ The health endpoint stays available independently of access-storage health.
 | --- | --- |
 | `GET /api/v1/auth/status` | Mode, current account, effective permissions, CSRF nonce |
 | `POST /api/v1/auth/bootstrap` | First setup/activation, CSRF, rate limit, existing legacy header when configured |
-| `POST /api/v1/auth/login` | HTTPS/local loopback, CSRF, bounded Argon2 verification, per-client throttling |
+| `POST /api/v1/auth/login` | HTTPS/verified private HTTP/local loopback, CSRF, bounded Argon2 verification, per-client throttling |
 | Other `/auth` operations | Current account or administrator, cookie mutations require CSRF |
 | `/api/v1/view/*` | Individual viewing permission and sanitized models |
 | `/api/v1/viewers` | Live permission and stored active stream only |
@@ -38,7 +38,18 @@ changes/reset, disabling accounts and permission edits revoke sessions/credentia
 Sessions have twelve-hour idle and seven-day absolute limits, at most ten per
 account; accounts and credentials are capped at one hundred each. Login cleanup
 bounds expired rows. Account request bodies are limited before parsing and
-validation errors never echo input secrets.
+validation errors never echo input secrets. The status API reports `account_transport`
+so setup/sign-in can explain a blocked connection before sending credentials.
+Plaintext account access requires both a numeric RFC1918/ULA destination and a
+verified RFC1918/ULA client (or actual loopback with a localhost destination).
+Use the same proxy/gateway checks as Cast; configured public Cast home addresses
+never widen this exception. Recheck this boundary on authenticated session reads,
+not only login. HTTPS cookies remain Secure; local HTTP sessions use HttpOnly,
+SameSite=Strict cookies and the existing CSRF guard.
+
+Access and casting forms render refreshed server state until edited, preserve
+unsaved drafts during refetch, and replace query data with normalized save responses.
+Cancel pending reads before saving so an older response cannot overwrite the save.
 
 Cast discovery accepts video-capable mDNS announcements on port 8009 with numeric
 RFC1918/ULA destinations. It does not issue DIAL HTTP probes to advertised URLs.

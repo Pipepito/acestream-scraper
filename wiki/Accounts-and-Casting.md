@@ -8,9 +8,16 @@ accounts. Complete this choice before exposing a new installation to the interne
 the first person opening an unconfigured installation can configure it.
 
 No new Docker variables, Docker secrets or setup tokens are required. Account
-setup and sign-in use HTTPS, or HTTP through localhost. A trusted HTTPS reverse
-proxy works with the existing forwarded-header configuration. Opening an HTTP LAN
-address shows an explanation to use HTTPS or localhost before sending a password.
+setup and sign-in work over HTTPS or HTTP through a private server IP on a
+verified home network (for example `http://192.168.1.10:8000`). Localhost also works.
+HTTP is not encrypted; use it only on a home network you trust. Internet access
+still requires HTTPS, including a public address explicitly trusted for casting.
+A trusted reverse proxy must preserve the real client address; a Docker gateway
+alone cannot prove that a visitor is local. The setup/sign-in screen explains
+when the connection cannot be verified before submitting credentials.
+
+New passwords require 12–128 characters. Setup, account creation and password
+changes show this requirement and flag invalid lengths before submission.
 
 An existing installation keeps its previous access behavior until an operator
 turns on user management in **Settings → Access**. With accounts disabled, anyone

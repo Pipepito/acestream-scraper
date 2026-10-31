@@ -9,7 +9,7 @@ from app.repositories.access_repository import AccessRepository, digest
 from app.schemas.access import (AccessStatus, AccountView, AccountCreate, AccountUpdate, Bootstrap,
     Credentials, PasswordChange, AccessPolicy, CredentialCreate, CredentialView, CredentialIssued, SessionView, DisableAccess)
 from app.services.access_service import (COOKIE, CSRF_COOKIE, csrf_token, require_csrf, secure_transport,
-    hash_password, verify_password, require_admin, permissions, limit_login, header_token, legacy_matches, trusted_client, valid_csrf)
+    hash_password, verify_password, require_admin, permissions, limit_login, header_token, legacy_matches, trusted_client, valid_csrf, account_transport)
 
 
 class AccessRoute(APIRoute):
@@ -56,7 +56,8 @@ def access_status(request: Request, response: Response):
     if policy.public_playlists or (policy.local_iptv and trusted_client(request, policy.local_networks)):
         effective.add('playlists')
     return AccessStatus(mode=mode, user=getattr(request.state, 'access_user', None),
-                        permissions=sorted(effective), csrf=csrf, legacy_token=bool(os.environ.get('API_TOKEN')))
+                        permissions=sorted(effective), csrf=csrf, legacy_token=bool(os.environ.get('API_TOKEN')),
+                        account_transport=account_transport(request))
 
 
 @router.post('/bootstrap', response_model=AccountView | None)

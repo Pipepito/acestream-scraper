@@ -70,6 +70,16 @@
       },
       "AccessStatus": {
         "properties": {
+          "account_transport": {
+            "default": "blocked",
+            "enum": [
+              "https",
+              "local_http",
+              "blocked"
+            ],
+            "title": "Account Transport",
+            "type": "string"
+          },
           "csrf": {
             "title": "Csrf",
             "type": "string"

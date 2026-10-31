@@ -315,3 +315,85 @@ def test_cast_settings_cannot_be_changed_by_viewer_accounts(access_client):
     assert client.get('/api/v1/cast/settings').status_code == 403
     assert client.put('/api/v1/cast/settings', json={'remote_casting': True}).status_code == 403
     assert client.post('/api/v1/cast/home-connection').status_code == 403
+
+
+@pytest.mark.parametrize('peer,host,headers,proxy,allowed', [
+    ('192.168.1.22', '192.168.1.10:8000', {}, '', True),
+    ('10.1.2.3', '10.1.2.4', {}, '', True),
+    ('fd12::2', '[fd12::1]', {}, '', True),
+    ('::ffff:192.168.1.22', '192.168.1.10', {}, '', True),
+    ('127.0.0.1', 'localhost', {}, '127.0.0.1', True),
+    ('127.0.0.1', 'localhost', {'x-forwarded-for': '8.8.8.8'}, '127.0.0.1', False),
+    ('8.8.8.8', '192.168.1.10', {}, '', False),
+    ('192.168.1.22', 'app.example', {}, '', False),
+    ('172.17.0.1', '192.168.1.10', {}, '', False),
+    ('127.0.0.1', '192.168.1.10', {}, '', False),
+    ('192.168.1.22', '192.168.1.10', {'x-forwarded-for': '192.168.1.25'}, '', False),
+    ('192.168.1.22', '192.168.1.10', {}, '192.168.0.0/16', False),
+    ('172.17.0.1', '192.168.1.10', {'x-forwarded-for': '192.168.1.22'}, '172.17.0.1', True),
+    ('172.17.0.1', '192.168.1.10', {'x-forwarded-for': '8.8.8.8'}, '172.17.0.1', False),
+])
+def test_plaintext_accounts_require_verified_private_endpoints(peer, host, headers, proxy, allowed, monkeypatch):
+    from types import SimpleNamespace
+    from starlette.requests import Request
+    from app.services.access_service import account_transport
+    from app.middleware.forwarded import ForwardedHeadersMiddleware, parse_trusted
+    import asyncio
+    monkeypatch.setattr('app.config.settings.get_settings', lambda: SimpleNamespace(FORWARDED_ALLOW_IPS=proxy))
+    scope = {'type': 'http', 'method': 'GET', 'scheme': 'http', 'path': '/',
+             'headers': [(b'host', host.encode()), *[(k.encode(), v.encode()) for k, v in headers.items()]],
+             'server': ('app', 80), 'client': (peer, 1234), 'state': {'access_policy': AccessPolicy(home_networks=['8.8.8.8/32'])}}
+    async def app(scope, receive, send):
+        assert account_transport(Request(scope)) == ('local_http' if allowed else 'blocked')
+    asyncio.run(ForwardedHeadersMiddleware(app, parse_trusted(proxy))(scope, None, None))
+
+
+def test_local_http_account_lifecycle_and_casting(access_client, monkeypatch):
+    import main
+    from app.services.cast_service import cast_service
+    _, repo = access_client
+    monkeypatch.setattr(cast_service.discovery, 'start', lambda: None)
+    client = TestClient(main.app, base_url='http://192.168.1.10:8000', client=('192.168.1.22', 1234))
+    try:
+        status = client.get('/api/v1/auth/status').json()
+        assert status['account_transport'] == 'local_http'
+        client.headers['X-CSRF-Token'] = status['csrf']
+        enable(client)
+        assert client.get('/api/v1/auth/status').json()['user']['administrator']
+        assert client.get('/api/v1/cast/capabilities').json()['server_devices'] is True
+        assert client.put('/api/v1/auth/policy', json={'public_features': ['live', 'guide'], 'public_playlists': True}).status_code == 200
+        assert client.put('/api/v1/cast/settings', json={'compatibility_conversion': True}).status_code == 200
+        assert client.get('/api/v1/auth/policy').json()['public_features'] == ['guide', 'live']
+        assert client.get('/api/v1/cast/settings').json()['compatibility_conversion'] is True
+        assert client.post('/api/v1/auth/logout').status_code == 204
+        login = client.post('/api/v1/auth/login', json={'username': 'owner', 'password': 'a sufficiently long password'})
+        assert login.status_code == 200
+        assert 'HttpOnly' in login.headers['set-cookie'] and 'SameSite=strict' in login.headers['set-cookie']
+        assert 'Secure' not in login.headers['set-cookie']
+        session = client.cookies.get('scraper_session')
+        remote = TestClient(main.app, base_url='http://192.168.1.10:8000', client=('8.8.8.8', 1234))
+        try:
+            remote.cookies.set('scraper_session', session)
+            assert remote.get('/api/v1/auth/users').status_code == 403
+        finally:
+            remote.close()
+        assert repo.state()[0] == 'accounts'
+    finally:
+        client.close()
+
+
+def test_public_http_cannot_activate_accounts_even_with_casting_trust(access_client):
+    import main
+    _, repo = access_client
+    repo.update_policy({'home_networks': ['8.8.8.8/32'], 'remote_casting': True})
+    client = TestClient(main.app, base_url='http://app.example', client=('8.8.8.8', 1234))
+    try:
+        status = client.get('/api/v1/auth/status').json()
+        assert status['account_transport'] == 'blocked'
+        client.headers['X-CSRF-Token'] = status['csrf']
+        response = client.post('/api/v1/auth/bootstrap', json={'username': 'owner', 'password': 'a sufficiently long password', 'password_confirmation': 'a sufficiently long password'})
+        assert response.status_code == 403
+        assert repo.state()[0] == 'pending'
+        assert repo.users() == []
+    finally:
+        client.close()

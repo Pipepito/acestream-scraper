@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@mui/material/styles';
 import { createAppTheme } from '../theme';
@@ -60,5 +60,25 @@ test('public-address home trust requires explicit confirmation and does not enab
   await waitFor(() => expect(castService.trustHome).toHaveBeenCalledTimes(1));
   await waitFor(() => expect(view.cache.getQueryData(['cast-settings'])).toEqual({ ...settings, home_networks: ['8.8.4.4/32'] }));
   expect(castService.saveSettings).not.toHaveBeenCalled();
+  view.unmount(); view.cache.clear();
+});
+
+
+test('casting displays refreshed preferences without replacing unsaved edits', async () => {
+  const view = renderPage(true);
+  await screen.findByRole('button', { name: 'Save casting settings' });
+  fireEvent.click(screen.getByRole('button', { name: 'Advanced connection settings' }));
+  act(() => { view.cache.setQueryData(['cast-settings'], { ...settings, compatibility_conversion: true, remote_casting: true, home_networks: ['192.168.1.0/24'], cast_media_url: 'http://192.168.1.10:8000' }); });
+  await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Offer H.264 compatibility conversion' })).toBeChecked());
+  expect(screen.getByRole('checkbox', { name: /Allow accounts with casting permission/ })).toBeChecked();
+  expect(screen.getByLabelText('Allowed home networks')).toHaveValue('192.168.1.0/24');
+  expect(screen.getByLabelText('Application address for TVs')).toHaveValue('http://192.168.1.10:8000');
+  fireEvent.change(screen.getByLabelText('Allowed home networks'), { target: { value: '192.168.2.12/24' } });
+  act(() => { view.cache.setQueryData(['cast-settings'], settings); });
+  expect(screen.getByLabelText('Allowed home networks')).toHaveValue('192.168.2.12/24');
+  (castService.saveSettings as jest.Mock).mockResolvedValue({ ...settings, home_networks: ['192.168.2.0/24'] });
+  fireEvent.click(screen.getByRole('button', { name: 'Save casting settings' }));
+  await screen.findByText('TV casting settings saved.');
+  expect(screen.getByLabelText('Allowed home networks')).toHaveValue('192.168.2.0/24');
   view.unmount(); view.cache.clear();
 });

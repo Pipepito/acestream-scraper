@@ -39,7 +39,12 @@ test('manual UI actions deliver one webhook each through the built backend', asy
     await section.getByRole('textbox', { name: 'Webhook URL' }).fill(`${origin}/message?token=private`);
     await section.getByRole('button', { name: 'Save', exact: true }).click();
     await expect(page.getByRole('alert').filter({ hasText: 'Notification webhook saved.' })).toBeVisible();
+    const testDelivery = page.waitForResponse(response =>
+      response.request().method() === 'POST'
+      && new URL(response.url()).pathname === `${path}/test`);
     await section.getByRole('button', { name: 'Send test', exact: true }).click();
+    const delivered = await testDelivery;
+    expect(delivered.ok(), await delivered.text()).toBe(true);
     await expect.poll(() => events.map((event) => event.event)).toEqual(['test']);
 
     const scraper = new ScraperPage(page);
